@@ -23,96 +23,56 @@ from ..utils import (
 
 
 class NhkBaseIE(InfoExtractor):
-    _API_URL_TEMPLATE = 'https://nwapi.nhk.jp/nhkworld/%sod%slist/v7b/%s/%s/%s/all%s.json'
+    _API_URL_TEMPLATE = 'https://api.nhkworld.jp/showsapi/v1/{lang}/{content_format}_{page_type}/{m_id}{extra_page}'
     _BASE_URL_REGEX = r'https?://www3\.nhk\.or\.jp/nhkworld/(?P<lang>[a-z]{2})/'
 
     def _call_api(self, m_id, lang, is_video, is_episode, is_clip):
-        return self._download_json(
-            self._API_URL_TEMPLATE % (
-                'v' if is_video else 'r',
-                'clip' if is_clip else 'esd',
-                'episode' if is_episode else 'program',
-                m_id, lang, '/all' if is_video else ''),
-            m_id, query={'apikey': 'EJfK8jdS57GqlupFgAfAAwr573q01y6k'})['data']['episodes'] or []
+        content_format = 'video' if is_video else 'audio'
 
-    def _get_api_info(self, refresh=True):
-        if not refresh:
-            return self.cache.load('nhk', 'api_info')
+        if not is_episode:
+            page_type = 'programs'
 
-        self.cache.store('nhk', 'api_info', {})
-        movie_player_js = self._download_webpage(
-            'https://movie-a.nhk.or.jp/world/player/js/movie-player.js', None,
-            note='Downloading stream API information')
-        api_info = {
-            'url': self._search_regex(
-                r'prod:[^;]+\bapiUrl:\s*[\'"]([^\'"]+)[\'"]', movie_player_js, None, 'stream API url'),
-            'token': self._search_regex(
-                r'prod:[^;]+\btoken:\s*[\'"]([^\'"]+)[\'"]', movie_player_js, None, 'stream API token'),
-        }
-        self.cache.store('nhk', 'api_info', api_info)
-        return api_info
+        if is_clip:
+            content_type = 'clips'
+        else:
+            content_type = 'episodes'
 
-    def _extract_stream_info(self, vod_id):
-        for refresh in (False, True):
-            api_info = self._get_api_info(refresh)
-            if not api_info:
-                continue
+        if not is_episode:
+            extra_page = f'/{content_format}_{content_type}'
+        else:
+            extra_page = ''
+            page_type = content_type
 
-            api_url = api_info.pop('url')
-            meta = traverse_obj(
-                self._download_json(
-                    api_url, vod_id, 'Downloading stream url info', fatal=False, query={
-                        **api_info,
-                        'type': 'json',
-                        'optional_id': vod_id,
-                        'active_flg': 1,
-                    }), ('meta', 0))
-            stream_url = traverse_obj(
-                meta, ('movie_url', ('mb_auto', 'auto_sp', 'auto_pc'), {url_or_none}), get_all=False)
+        return self._download_json(self._API_URL_TEMPLATE.format(
+            lang=lang,
+            content_format=content_format,
+            page_type=page_type,
+            m_id=m_id,
+            extra_page=extra_page,
+        ), video_id=join_nonempty(m_id, lang),
+        )
 
-            if stream_url:
-                formats, subtitles = self._extract_m3u8_formats_and_subtitles(stream_url, vod_id)
-                return {
-                    **traverse_obj(meta, {
-                        'duration': ('duration', {int_or_none}),
-                        'timestamp': ('publication_date', {unified_timestamp}),
-                        'release_timestamp': ('insert_date', {unified_timestamp}),
-                        'modified_timestamp': ('update_date', {unified_timestamp}),
-                    }),
-                    'formats': formats,
-                    'subtitles': subtitles,
-                }
-        raise ExtractorError('Unable to extract stream url')
+        # FOR EXAMPLE:
+        # https://api.nhkworld.jp/showsapi/v1/en/video_episodes/2024117
+        # https://api.nhkworld.jp/showsapi/v1/en/audio_episodes/r_l_japannews-20250203-1
+        # https://api.nhkworld.jp/showsapi/v1/en/video_clips/9999011
+        # https://api.nhkworld.jp/showsapi/v1/en/video_programs/dwc/video_episodes
+        # https://api.nhkworld.jp/showsapi/v1/en/audio_programs/livinginjapan/audio_episodes
+        # no such thing as an audio_clips afaict
 
     def _extract_episode_info(self, url, episode=None):
         fetch_episode = episode is None
         lang, m_type, episode_id = NhkVodIE._match_valid_url(url).group('lang', 'type', 'id')
         is_video = m_type != 'audio'
 
-        if is_video:
-            episode_id = episode_id[:4] + '-' + episode_id[4:]
-
         if fetch_episode:
             episode = self._call_api(
-                episode_id, lang, is_video, True, episode_id[:4] == '9999')[0]
+                episode_id, lang, is_video, is_episode=True, is_clip=episode_id[:4] == '9999')
 
-        def get_clean_field(key):
-            return clean_html(episode.get(key + '_clean') or episode.get(key))
+        video_id = join_nonempty('id', 'lang', from_dict=episode)
 
-        title = get_clean_field('sub_title')
-        series = get_clean_field('title')
-
-        thumbnails = []
-        for s, w, h in [('', 640, 360), ('_l', 1280, 720)]:
-            img_path = episode.get('image' + s)
-            if not img_path:
-                continue
-            thumbnails.append({
-                'id': f'{h}p',
-                'height': h,
-                'width': w,
-                'url': 'https://www3.nhk.or.jp' + img_path,
-            })
+        title = episode.get('title')
+        series = traverse_obj(episode, (('video_program', 'audio_program'), any, 'title'))
 
         episode_name = title
         if series and title:
@@ -125,37 +85,54 @@ class NhkBaseIE(InfoExtractor):
             episode_name = None
 
         info = {
-            'id': episode_id + '-' + lang,
+            'id': video_id,
             'title': title,
-            'description': get_clean_field('description'),
-            'thumbnails': thumbnails,
             'series': series,
             'episode': episode_name,
+            **traverse_obj(episode, ({
+                'description': 'description',
+                'release_timestamp': ('first_broadcasted_at', {unified_timestamp}),
+                'categories': ('categories', ..., 'name'),
+                'tags': ('tags', ..., 'name'),
+                'thumbnails': ('images', ..., {
+                    'url': ('url', {lambda x: urljoin(url, x)}, {url_or_none}),
+                    'width': 'width',
+                    'height': 'height',
+                }),
+            })),
         }
 
-        if is_video:
-            vod_id = episode['vod_id']
-            info.update({
-                **self._extract_stream_info(vod_id),
-                'id': vod_id,
-            })
-
+        # FOOLISH ASSUMPTION: an episode can't be video and audio at the same time
+        stream_info = traverse_obj(episode, (('video', 'audio'), any))
+        if not stream_info:
+            self.raise_no_formats('Stream not found; it has most likely expired', expected=True)
         else:
-            if fetch_episode:
+            stream_url = stream_info.get('url')
+            if is_video:
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(stream_url, video_id)
+                info.update({
+                    'formats': formats,
+                    'subtitles': subtitles,
+                    **traverse_obj(stream_info, ({
+                        'duration': 'duration',
+                        'timestamp': ('published_at', {unified_timestamp}),
+                    })),
+                })
+            else:
                 # From https://www3.nhk.or.jp/nhkworld/common/player/radio/inline/rod.html
-                audio_path = remove_end(episode['audio']['audio'], '.m4a')
+                audio_path = remove_end(stream_url, '.m4a')
                 info['formats'] = self._extract_m3u8_formats(
                     f'{urljoin("https://vod-stream.nhk.jp", audio_path)}/index.m3u8',
                     episode_id, 'm4a', entry_protocol='m3u8_native',
                     m3u8_id='hls', fatal=False)
                 for f in info['formats']:
                     f['language'] = lang
-            else:
-                info.update({
-                    '_type': 'url_transparent',
-                    'ie_key': NhkVodIE.ie_key(),
-                    'url': url,
-                })
+
+            info.update({
+                'extractor_key': NhkVodIE.ie_key(),
+                'extractor': NhkVodIE.ie_key(),
+            })
+
         return info
 
 
@@ -168,29 +145,29 @@ class NhkVodIE(NhkBaseIE):
     # Content available only for a limited period of time. Visit
     # https://www3.nhk.or.jp/nhkworld/en/ondemand/ for working samples.
     _TESTS = [{
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/2049126/',
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/shows/2049165/',
         'info_dict': {
-            'id': 'nw_vod_v_en_2049_126_20230413233000_01_1681398302',
+            'id': '2049165-en',
             'ext': 'mp4',
-            'title': 'Japan Railway Journal - The Tohoku Shinkansen: Full Speed Ahead',
-            'description': 'md5:49f7c5b206e03868a2fdf0d0814b92f6',
+            'title': 'Japan Railway Journal - Choshi Electric Railway: Fighting to Get Back on Track',
+            'description': 'md5:ab57df2fca7f04245148c2e787bb203d',
             'thumbnail': r're:https://.+/.+\.jpg',
-            'episode': 'The Tohoku Shinkansen: Full Speed Ahead',
+            'episode': 'Choshi Electric Railway: Fighting to Get Back on Track',
             'series': 'Japan Railway Journal',
-            'modified_timestamp': 1707217907,
-            'timestamp': 1681428600,
-            'release_timestamp': 1693883728,
-            'duration': 1679,
-            'upload_date': '20230413',
-            'modified_date': '20240206',
-            'release_date': '20230905',
+            'duration': 1680,
+            'categories': ['Biz & Tech'],
+            'tags': ['Akita', 'Chiba', 'Trains', 'All (Japan Navigator)'],
+            'timestamp': 1758810600,
+            'upload_date': '20250925',
+            'release_timestamp': 1758810600,
+            'release_date': '20250925',
         },
     }, {
         # video clip
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/9999011/',
         'md5': '153c3016dfd252ba09726588149cf0e7',
         'info_dict': {
-            'id': 'lpZXIwaDE6_Z-976CPsFdxyICyWUzlT5',
+            'id': '9999011-en',
             'ext': 'mp4',
             'title': 'Dining with the Chef - Chef Saito\'s Family recipe: MENCHI-KATSU',
             'description': 'md5:5aee4a9f9d81c26281862382103b0ea5',
@@ -198,24 +175,23 @@ class NhkVodIE(NhkBaseIE):
             'series': 'Dining with the Chef',
             'episode': 'Chef Saito\'s Family recipe: MENCHI-KATSU',
             'duration': 148,
-            'upload_date': '20190816',
-            'release_date': '20230902',
-            'release_timestamp': 1693619292,
-            'modified_timestamp': 1707217907,
-            'modified_date': '20240206',
-            'timestamp': 1565997540,
+            'categories': ['Food'],
+            'tags': ['Washoku'],
+            'timestamp': 1548212400,
+            'upload_date': '20190123',
         },
     }, {
         # radio
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/audio/livinginjapan-20231001-1/',
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/shows/audio/livinginjapan-20240901-1/',
         'info_dict': {
-            'id': 'livinginjapan-20231001-1-en',
+            'id': 'livinginjapan-20240901-1-en',
             'ext': 'm4a',
-            'title': 'Living in Japan - Tips for Travelers to Japan / Ramen Vending Machines',
+            'title': 'Living in Japan - Weekend Hiking / Self-protection from crime',
             'series': 'Living in Japan',
-            'description': 'md5:0a0e2077d8f07a03071e990a6f51bfab',
+            'description': 'md5:4d0e14ab73bdbfedb60a53b093954ed6',
             'thumbnail': r're:https://.+/.+\.jpg',
-            'episode': 'Tips for Travelers to Japan / Ramen Vending Machines',
+            'episode': 'Weekend Hiking / Self-protection from crime',
+            'categories': ['Interactive'],
         },
     }, {
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/2015173/',
@@ -256,96 +232,51 @@ class NhkVodIE(NhkBaseIE):
         },
         'skip': 'expires 2023-10-15',
     }, {
-        # a one-off (single-episode series). title from the api is just '<p></p>'
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/3004952/',
+        # a one-off (single-episode series). title from the api is just null
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/shows/3026036/',
         'info_dict': {
-            'id': 'nw_vod_v_en_3004_952_20230723091000_01_1690074552',
+            'id': '3026036-en',
             'ext': 'mp4',
-            'title': 'Barakan Discovers - AMAMI OSHIMA: Isson\'s Treasure Isla',
-            'description': 'md5:5db620c46a0698451cc59add8816b797',
-            'thumbnail': r're:https://.+/.+\.jpg',
-            'release_date': '20230905',
-            'timestamp': 1690103400,
-            'duration': 2939,
-            'release_timestamp': 1693898699,
-            'upload_date': '20230723',
-            'modified_timestamp': 1707217907,
-            'modified_date': '20240206',
-            'episode': 'AMAMI OSHIMA: Isson\'s Treasure Isla',
-            'series': 'Barakan Discovers',
+            'title': 'STATELESS: The Japanese Left Behind in the Philippines',
+            'description': 'md5:9a2fd51cdfa9f52baae28569e0053786',
+            'duration': 2955,
+            'thumbnail': 'https://www3.nhk.or.jp/nhkworld/en/shows/3026036/images/wide_l_QPtWpt4lzVhm3NzPAMIIF35MCg4CdNwcikPaTS5Q.jpg',
+            'categories': ['Documentary', 'Culture & Lifestyle'],
+            'tags': ['Documentary 360', 'The Pursuit of PEACE'],
+            'timestamp': 1758931800,
+            'upload_date': '20250927',
+            'release_timestamp': 1758931800,
+            'release_date': '20250927',
         },
     }, {
         # /ondemand/video/ url with alphabetical character in 5th position of id
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/9999a07/',
         'info_dict': {
-            'id': 'nw_c_en_9999-a07',
+            'id': '9999a07-en',
             'ext': 'mp4',
             'episode': 'Mini-Dramas on SDGs: Ep 1 Close the Gender Gap [Director\'s Cut]',
             'series': 'Mini-Dramas on SDGs',
-            'modified_date': '20240206',
             'title': 'Mini-Dramas on SDGs - Mini-Dramas on SDGs: Ep 1 Close the Gender Gap [Director\'s Cut]',
             'description': 'md5:3f9dcb4db22fceb675d90448a040d3f6',
-            'timestamp': 1621962360,
-            'duration': 189,
-            'release_date': '20230903',
-            'modified_timestamp': 1707217907,
+            'timestamp': 1621911600,
+            'duration': 190,
             'upload_date': '20210525',
             'thumbnail': r're:https://.+/.+\.jpg',
-            'release_timestamp': 1693713487,
+            'categories': ['Current Affairs', 'Entertainment'],
         },
     }, {
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/9999d17/',
         'info_dict': {
-            'id': 'nw_c_en_9999-d17',
+            'id': '9999d17-en',
             'ext': 'mp4',
             'title': 'Flowers of snow blossom - The 72 Pentads of Yamato',
             'description': 'Today’s focus: Snow',
-            'release_timestamp': 1693792402,
-            'release_date': '20230904',
-            'upload_date': '20220128',
-            'timestamp': 1643370960,
             'thumbnail': r're:https://.+/.+\.jpg',
             'duration': 136,
-            'series': '',
-            'modified_date': '20240206',
-            'modified_timestamp': 1707217907,
-        },
-    }, {
-        # new /shows/ url format
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/shows/2032307/',
-        'info_dict': {
-            'id': 'nw_vod_v_en_2032_307_20240321113000_01_1710990282',
-            'ext': 'mp4',
-            'title': 'Japanology Plus - 20th Anniversary Special Part 1',
-            'description': 'md5:817d41fc8e54339ad2a916161ea24faf',
-            'episode': '20th Anniversary Special Part 1',
-            'series': 'Japanology Plus',
-            'thumbnail': r're:https://.+/.+\.jpg',
-            'duration': 1680,
-            'timestamp': 1711020600,
-            'upload_date': '20240321',
-            'release_timestamp': 1711022683,
-            'release_date': '20240321',
-            'modified_timestamp': 1711031012,
-            'modified_date': '20240321',
-        },
-    }, {
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/shows/3020025/',
-        'info_dict': {
-            'id': 'nw_vod_v_en_3020_025_20230325144000_01_1679723944',
-            'ext': 'mp4',
-            'title': '100 Ideas to Save the World - Working Styles Evolve',
-            'description': 'md5:9e6c7778eaaf4f7b4af83569649f84d9',
-            'episode': 'Working Styles Evolve',
-            'series': '100 Ideas to Save the World',
-            'thumbnail': r're:https://.+/.+\.jpg',
-            'duration': 899,
-            'upload_date': '20230325',
-            'timestamp': 1679755200,
-            'release_date': '20230905',
-            'release_timestamp': 1693880540,
-            'modified_date': '20240206',
-            'modified_timestamp': 1707217907,
+            'categories': ['Culture & Lifestyle', 'Science & Nature'],
+            'tags': ['Nara', 'Temples & Shrines', 'Winter', 'Snow'],
+            'timestamp': 1643339040,
+            'upload_date': '20220128',
         },
     }, {
         # new /shows/audio/ url format
@@ -400,16 +331,7 @@ class NhkVodProgramIE(NhkBaseIE):
             'title': 'Living in Japan',
             'description': 'md5:665bb36ec2a12c5a7f598ee713fc2b54',
         },
-        'playlist_mincount': 12,
-    }, {
-        # /tv/ program url
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/tv/designtalksplus/',
-        'info_dict': {
-            'id': 'designtalksplus',
-            'title': 'DESIGN TALKS plus',
-            'description': 'md5:47b3b3a9f10d4ac7b33b53b70a7d2837',
-        },
-        'playlist_mincount': 20,
+        'playlist_mincount': 11,
     }, {
         'url': 'https://www3.nhk.or.jp/nhkworld/en/shows/10yearshayaomiyazaki/',
         'only_matching': True,
@@ -430,7 +352,7 @@ class NhkVodProgramIE(NhkBaseIE):
             program_id, lang, m_type != 'audio', False, episode_type == 'clip')
 
         def entries():
-            for episode in episodes:
+            for episode in episodes['items']:
                 if episode_path := episode.get('url'):
                     yield self._extract_episode_info(urljoin(url, episode_path), episode)
 
@@ -446,7 +368,7 @@ class NhkVodProgramIE(NhkBaseIE):
             'tAudioProgramMain__info',  # /shows/audio/programs/
             'p-program-description'], html)  # /tv/
 
-        return self.playlist_result(entries(), program_id, program_title, program_description)
+        return self.playlist_result(entries(), program_id, program_title, program_description, series=program_title)
 
 
 class NhkForSchoolBangumiIE(InfoExtractor):
