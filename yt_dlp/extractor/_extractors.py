@@ -1363,6 +1363,7 @@ from .nova import (
     NovaIE,
 )
 from .novaplay import NovaPlayIE
+from .nowcanal import NowCanalIE
 from .nowness import (
     NownessIE,
     NownessPlaylistIE,
