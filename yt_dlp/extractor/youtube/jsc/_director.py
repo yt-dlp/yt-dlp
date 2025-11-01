@@ -181,7 +181,7 @@ class JsChallengeRequestDirector:
                 return parts[0]
             return f'{", ".join(parts[:-1])} {joiner} {parts[-1]}'
 
-        if len(descriptions) > 1:
+        if len(descriptions) == 1:
             msg = (
                 f'Remote component {descriptions[0]} was skipped. '
                 f'It may be required to solve JS challenges. '
