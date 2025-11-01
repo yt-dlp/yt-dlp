@@ -1218,6 +1218,7 @@ from .n1 import (
     N1InfoAssetIE,
     N1InfoIIE,
 )
+from .nascar import NascarClassicsIE
 from .nate import (
     NateIE,
     NateProgramIE,
