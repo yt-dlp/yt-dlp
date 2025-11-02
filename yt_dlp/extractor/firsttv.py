@@ -11,7 +11,7 @@ from ..utils import (
     unified_strdate,
     url_or_none,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import require, traverse_obj
 
 
 class FirstTVIE(InfoExtractor):
@@ -156,25 +156,20 @@ class FirstTVLiveIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
 
         streams_list = self._download_json('https://stream.1tv.ru/api/playlist/1tvch-v1_as_array.json', 'live')
-        mpd_list = traverse_obj(streams_list, ('mpd', ..., {url_or_none}))
-
-        if not mpd_list:
-            raise ExtractorError('Can\'t download json with mpd streams')
-        mpd_formats, mpd_subtitles = self._extract_mpd_formats_and_subtitles(
-            mpd_url=mpd_list[0], video_id='live_mpd',
-        )
+        mpd_url = traverse_obj(streams_list, ('mpd', ..., {url_or_none}, any, {require('mpd url')}))
+        formats, subtitles = self._extract_mpd_formats_and_subtitles(mpd_url, display_id, mpd_id='dash', fatal=False)
 
         # It is mandatory to use the '-re' option for ffmpeg,
         # otherwise the recording of fragments will stop after
         # a while due to the speed n-times faster than real time.
-        for f in mpd_formats:
+        for f in formats:
             f.update({'downloader_options': {'ffmpeg_args': ['-re'], 'ffmpeg_args_out': ['-c', 'copy', '-f', 'mp4']}})
 
         return {
             'id': display_id,
             'title': self._html_extract_title(webpage),
             'ext': 'mp4',
-            'formats': mpd_formats,
-            'subtitles': mpd_subtitles,
+            'formats': formats,
+            'subtitles': subtitles,
             'is_live': True,
         }
