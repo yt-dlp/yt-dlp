@@ -690,8 +690,6 @@ from .frontendmasters import (
     FrontendMastersLessonIE,
 )
 from .frontro import (
-    FrontroBaseIE,
-    FrontroGroupBaseIE,
     TheChosenGroupIE,
     TheChosenIE,
 )
