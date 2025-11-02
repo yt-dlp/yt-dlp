@@ -642,7 +642,7 @@ from .filmon import (
 from .filmweb import FilmwebIE
 from .firsttv import (
     FirstTVIE,
-    FirstTVLiveIE
+    FirstTVLiveIE,
 )
 from .fivetv import FiveTVIE
 from .flextv import FlexTVIE
