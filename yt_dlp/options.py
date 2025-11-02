@@ -1953,6 +1953,37 @@ def create_parser():
     parser.add_option_group(sponsorblock)
     parser.add_option_group(extractor)
 
+    # Add queue management group
+    queue_group = optparse.OptionGroup(parser, 'Queue Management', description=(
+        'Persistent download queue that survives restarts. '
+        'Queue is stored in ~/.yt-dlp-queue.json by default.'))
+    
+    queue_group.add_option(
+        '--queue-file', dest='queue_file', metavar='FILE',
+        help='Use persistent queue file (default: ~/.yt-dlp-queue.json)')
+    
+    queue_group.add_option(
+        '--add-to-queue', action='store_true', dest='add_to_queue', default=False,
+        help='Add URLs to queue instead of downloading immediately')
+    
+    queue_group.add_option(
+        '--queue-status', action='store_true', dest='queue_status', default=False,
+        help='Show current queue status and exit')
+    
+    queue_group.add_option(
+        '--process-queue', action='store_true', dest='process_queue', default=False,
+        help='Download all URLs in queue and exit')
+    
+    queue_group.add_option(
+        '--queue-clear', action='store_true', dest='queue_clear', default=False,
+        help='Clear all items from queue file')
+    
+    queue_group.add_option(
+        '--queue-remove', dest='queue_remove', metavar='ID', action='append',
+        help='Remove specific item(s) from queue by ID (can be used multiple times)')
+    
+    parser.add_option_group(queue_group)
+
     return parser
 
 

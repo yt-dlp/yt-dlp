@@ -55,6 +55,7 @@ from .networking.exceptions import (
 )
 from .networking.impersonate import ImpersonateRequestHandler, ImpersonateTarget
 from .plugins import directories as plugin_directories, load_all_plugins
+from .utils.queue_manager import PersistentQueue
 from .postprocessor import (
     EmbedThumbnailPP,
     FFmpegFixupDuplicateMoovPP,
@@ -636,6 +637,10 @@ class YoutubeDL:
         self._playlist_urls = set()
         self.cache = Cache(self)
         self.__header_cookies = []
+        
+        # Initialize persistent queue
+        queue_file = self.params.get('queue_file')
+        self.queue_manager = PersistentQueue(queue_file)
 
         # compat for API: load plugins if they have not already
         if not all_plugins_loaded.value:
@@ -3599,6 +3604,18 @@ class YoutubeDL:
 
     def download(self, url_list):
         """Download a given list of URLs."""
+        # Handle queue operations first
+        if self.params.get('queue_status'):
+            self.show_queue_status()
+            return 0
+        
+        if self.params.get('add_to_queue'):
+            self.add_to_queue(url_list)
+            return 0
+        
+        if self.params.get('process_queue'):
+            return self.process_queue()
+        
         url_list = variadic(url_list)  # Passing a single URL is a common mistake
         outtmpl = self.params['outtmpl']['default']
         if (len(url_list) > 1
@@ -4439,3 +4456,130 @@ class YoutubeDL:
             if ret and not write_all:
                 break
         return ret
+
+    def add_to_queue(self, urls):
+        """Add URLs to persistent queue"""
+        # Extract options from params that should be stored with queue item
+        options = {}
+        if self.params.get('format'):
+            options['format'] = self.params.get('format')
+        if self.params.get('outtmpl'):
+            options['outtmpl'] = self.params.get('outtmpl')
+        
+        for url in urls:
+            item_id = self.queue_manager.add_item(url, options)
+            self.to_screen(f'Added to queue: {url} (ID: {item_id[:8]})')
+        
+        stats = self.queue_manager.get_queue_stats()
+        self.to_screen(f'Queue now contains {stats["total"]} items ({stats["pending"]} pending)')
+
+    def show_queue_status(self):
+        """Show current queue status"""
+        # Reload queue from file to show latest status
+        self.queue_manager._load_queue()
+        
+        stats = self.queue_manager.get_queue_stats()
+        if stats['total'] == 0:
+            self.to_screen('Queue is empty')
+            return
+        
+        self.to_screen(self.queue_manager.get_queue_summary())
+        
+        # Show pending items
+        pending_items = self.queue_manager.get_pending_items()
+        if pending_items:
+            self.to_screen('\nPending items:')
+            for i, item in enumerate(pending_items[:10], 1):  # Show first 10
+                self.to_screen(f'  {i}. [{item.id[:8]}] {item.url}')
+            if len(pending_items) > 10:
+                self.to_screen(f'  ... and {len(pending_items) - 10} more pending items')
+
+    def process_queue(self):
+        """Download all URLs in queue"""
+        # Reload queue from file to get latest pending items
+        self.queue_manager._load_queue()
+        
+        pending_items = self.queue_manager.get_pending_items()
+        if not pending_items:
+            self.to_screen('Queue is empty (no pending items)')
+            return 0
+        
+        self.to_screen(f'Processing {len(pending_items)} pending items from queue...')
+        
+        # Process each pending URL in queue
+        for i, item in enumerate(pending_items, 1):
+            self.to_screen(f'[{i}/{len(pending_items)}] Downloading: {item.url} (ID: {item.id[:8]})')
+            
+            # Update status to downloading
+            self.queue_manager.update_item_status(item.id, 'downloading', started_at=dt.datetime.now().isoformat())
+            
+            # Apply stored options if any
+            original_params = {}
+            if item.options:
+                for key, value in item.options.items():
+                    original_params[key] = self.params.get(key)
+                    self.params[key] = value
+            
+            try:
+                # Temporarily disable queue operations to avoid recursion
+                queue_params = {}
+                for key in ['queue_status', 'add_to_queue', 'process_queue']:
+                    queue_params[key] = self.params.pop(key, None)
+                
+                result = self.download([item.url])
+                
+                # Restore queue params
+                for key, value in queue_params.items():
+                    if value is not None:
+                        self.params[key] = value
+                
+                # Restore original params
+                for key, value in original_params.items():
+                    if value is None:
+                        self.params.pop(key, None)
+                    else:
+                        self.params[key] = value
+                
+                if result == 0:
+                    self.queue_manager.update_item_status(
+                        item.id, 'completed',
+                        completed_at=dt.datetime.now().isoformat()
+                    )
+                    self.to_screen(f'[{i}/{len(pending_items)}] Completed: {item.url}')
+                else:
+                    self.queue_manager.update_item_status(
+                        item.id, 'failed',
+                        error_message='Download failed',
+                        retry_count=item.retry_count + 1
+                    )
+                    self.to_screen(f'[{i}/{len(pending_items)}] Failed: {item.url}')
+            except Exception as e:
+                self.queue_manager.update_item_status(
+                    item.id, 'failed',
+                    error_message=str(e),
+                    retry_count=item.retry_count + 1
+                )
+                self.to_screen(f'[{i}/{len(pending_items)}] Error: {item.url} - {e}')
+        
+        self.to_screen('Queue processing complete')
+        return 0
+
+    def clear_queue(self):
+        """Clear all items from queue"""
+        self.queue_manager.clear_queue()
+        self.to_screen('Queue cleared')
+
+    def remove_queue_items(self, item_ids):
+        """Remove specific items from queue"""
+        removed_count = 0
+        for item_id in item_ids:
+            if self.queue_manager.remove_item(item_id):
+                removed_count += 1
+                self.to_screen(f'Removed item: {item_id[:8]}')
+            else:
+                self.to_screen(f'Item not found: {item_id[:8]}')
+        
+        if removed_count > 0:
+            self.to_screen(f'Removed {removed_count} items from queue')
+        else:
+            self.to_screen('No items removed')
