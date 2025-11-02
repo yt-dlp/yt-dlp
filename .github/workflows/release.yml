@@ -269,9 +269,10 @@ jobs:
               "[![Master](https://img.shields.io/badge/Master%20builds-lightblue.svg?style=for-the-badge)]" \
                 "(https://github.com/${MASTER_REPO}/releases/latest \"Master builds\")" >> ./RELEASE_NOTES
           fi
-          printf '\n\n%s\n\n%s%s\n\n---\n' \
+          printf '\n\n%s\n\n%s%s%s\n\n---\n' \
             "#### A description of the various files is in the [README](https://github.com/${REPOSITORY}#release-files)" \
-            "The PyInstaller-bundled executables are subject to the licenses described in " \
+            "The zipimport Unix executable contains code licensed under ISC and MIT. " \
+            "The PyInstaller-bundled executables are subject to these and other licenses, all of which are compiled in " \
             "[THIRD_PARTY_LICENSES.txt](https://github.com/${BASE_REPO}/blob/${HEAD_SHA}/THIRD_PARTY_LICENSES.txt)" >> ./RELEASE_NOTES
           python ./devscripts/make_changelog.py -vv --collapsible >> ./RELEASE_NOTES
           printf '%s\n\n' '**This is a pre-release build**' >> ./PRERELEASE_NOTES

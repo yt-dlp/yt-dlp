@@ -271,6 +271,19 @@ DEPENDENCIES: list[Dependency] = [
         license_url='https://raw.githubusercontent.com/python-websockets/websockets/refs/heads/main/LICENSE',
         project_url='https://websockets.readthedocs.io/',
     ),
+    # Dependencies of yt-dlp-ejs
+    Dependency(
+        name='Meriyah',
+        license='ISC',
+        license_url='https://raw.githubusercontent.com/meriyah/meriyah/refs/heads/main/LICENSE.md',
+        project_url='https://github.com/meriyah/meriyah',
+    ),
+    Dependency(
+        name='Astring',
+        license='MIT',
+        license_url='https://raw.githubusercontent.com/davidbonnet/astring/refs/heads/main/LICENSE',
+        project_url='https://github.com/davidbonnet/astring/',
+    ),
 ]
 
 
