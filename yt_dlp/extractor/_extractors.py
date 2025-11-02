@@ -1083,10 +1083,6 @@ from .manoto import (
 )
 from .manyvids import ManyVidsIE
 from .maoritv import MaoriTVIE
-from .markiza import (
-    MarkizaIE,
-    MarkizaPageIE,
-)
 from .massengeschmacktv import MassengeschmackTVIE
 from .masters import MastersIE
 from .matchtv import MatchTVIE
