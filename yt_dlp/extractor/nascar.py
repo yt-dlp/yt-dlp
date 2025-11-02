@@ -18,8 +18,7 @@ class NascarClassicsIE(InfoExtractor):
             'tags': ['2023', 'race #22', 'richmond', 'chris buescher', 'cup'],
             'chapters': 'count:18',
         },
-    },
-        {
+    }, {
         'url': 'https://classics.nascar.com/video/UASvPDOwEha~SIvJii7uAC~wszPshklHN',
         'md5': 'a5e8d6ec6005da3857d25ba2df5e7133',
         'info_dict': {
@@ -38,26 +37,21 @@ class NascarClassicsIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        content_data = self._search_json('contentData":', webpage, 'nascar_classics_content_data', video_id)
-
-        name = traverse_obj(content_data, ('input', 'name'))
-        description = str_or_none(traverse_obj(content_data, ('input', 'description')))
-        thumbnail = url_or_none(traverse_obj(content_data, ('input', 'thumbnail')))
-        m3u8_url = traverse_obj(content_data, ('input', 'src'))
-        tags = traverse_obj(content_data, ('input', 'settings', 'tags'))
-        timestamp = int_or_none(parse_iso8601(traverse_obj(content_data, ('input', 'start_time'))))
-        timeline_events = traverse_obj(content_data, ('overlay', 'data', 'timelines', 0, 'events'), default=[])
-
-        chapters = [{'start_time': int_or_none(event.get('timestamp'), default=0), 'title': event.get('name', '')} for event in timeline_events]
-        formats = self._extract_m3u8_formats(m3u8_url=m3u8_url, video_id=video_id)
+        content_data = self._search_nextjs_data(
+            webpage, video_id)['props']['pageProps']['contentData']
 
         return {
             'id': video_id,
-            'title': name,
-            'description': description,
-            'formats': formats,
-            'thumbnail': thumbnail,
-            'tags': tags,
-            'timestamp': timestamp,
-            'chapters': chapters,
+            'formats': self._extract_m3u8_formats(content_data['input']['src'], video_id),
+            **traverse_obj(content_data, {
+                'title': ('input', 'name', {str}),
+                'description': ('input', 'description', {str}),
+                'thumbnail': ('input', 'thumbnail', {url_or_none}),
+                'tags': ('input', 'settings', 'tags', ..., {str}),
+                'timestamp': ('input', 'start_time', {parse_iso8601}),
+                'chapters': ('overlay', 'data', 'timelines', 0, 'events', ..., {
+                    'start_time': ('timestamp', {float_or_none}),
+                    'title': ('name', {str}),
+                }),
+            }),
         }
