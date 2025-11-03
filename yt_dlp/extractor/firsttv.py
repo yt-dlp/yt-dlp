@@ -156,8 +156,10 @@ class FirstTVLiveIE(InfoExtractor):
 
         streams_list = self._download_json('https://stream.1tv.ru/api/playlist/1tvch-v1_as_array.json', 'live')
         mpd_url = traverse_obj(streams_list, ('mpd', ..., {url_or_none}, any, {require('mpd url')}))
-        formats, subtitles = self._extract_mpd_formats_and_subtitles(mpd_url, display_id, mpd_id='dash', fatal=False)
-
+        hls_url = traverse_obj(streams_list, ('hls', ..., {url_or_none}, any, {require('hls url')}))
+        mpd_formats, subtitles = self._extract_mpd_formats_and_subtitles(mpd_url, display_id, mpd_id='dash', fatal=True)
+        hls_formats = self._extract_m3u8_formats(hls_url, display_id, 'mp4', m3u8_id='hls', live=True, fatal=False)
+        formats = mpd_formats + hls_formats
         # It is mandatory to use the '-re' option for ffmpeg,
         # otherwise the recording of fragments will stop after
         # a while due to the speed n-times faster than real time.
