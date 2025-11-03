@@ -217,14 +217,6 @@ class EuroParlWebstreamIE(InfoExtractor):
                                          video_id, 'Downloading iframe', query=query)
         stream_info = self._search_json(r'<script [^>]*id="ng-state"[^>]*>', webpage, 'stream info', video_id)['contentEventKey']
         player_url = stream_info.get('playerUrl')
-        # status = traverse_obj(stream_info, ('media_item', 'mediaSubType'))
-        # base = 'https://control.eup.glcloud.eu/content-manager/api/v1/socket.io/?EIO=4&transport=polling'
-        # headers = {'referer': f'https://control.eup.glcloud.eu/content-manager/content-page/{video_id}'}
-        # sid = self._download_socket_json(base, video_id, note='Opening socket', headers=headers)['sid']
-        # base += '&sid=' + sid
-        # self._download_webpage(base, video_id, 'Polling socket with payload', data=b'40/content,', headers=headers)
-        # self._download_webpage(base, video_id, 'Polling socket', headers=headers)
-        # self._download_socket_json(base, video_id, 'Getting broadcast metadata from socket', headers=headers)
         if player_url:
             live_status = 'was_live'
             query = None if stream_info.get('finalVod') else traverse_obj(stream_info, {
