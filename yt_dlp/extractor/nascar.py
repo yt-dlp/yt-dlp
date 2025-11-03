@@ -1,5 +1,10 @@
 from .common import InfoExtractor
-from ..utils import float_or_none, parse_iso8601, traverse_obj, url_or_none
+from ..utils import (
+    float_or_none,
+    parse_iso8601,
+    url_or_none,
+)
+from ..utils.traversal import traverse_obj
 
 
 class NascarClassicsIE(InfoExtractor):
@@ -12,7 +17,6 @@ class NascarClassicsIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Cook Out 400 2023',
             'thumbnail': 'https://va.aws.nascar.com/IMAGES/CUP_2023_22_RICHMOND_THUMB_NCD.jpg',
-            'description': '',
             'timestamp': 1690732800,
             'upload_date': '20230730',
             'tags': ['2023', 'race #22', 'richmond', 'chris buescher', 'cup'],
@@ -26,7 +30,6 @@ class NascarClassicsIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'I Love New York 355 at the Glen 2017',
             'thumbnail': 'https://va.aws.nascar.com/IMAGES/CUP_2017_22_WATKINSGLEN_THUMB_NCD.jpg',
-            'description': '',
             'timestamp': 1501995600,
             'upload_date': '20170806',
             'tags': ['watkins glen', 'race #22', '2017', 'martin truex jr.', 'cup'],
@@ -42,14 +45,14 @@ class NascarClassicsIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'formats': self._extract_m3u8_formats(content_data['input']['src'], video_id),
+            'formats': self._extract_m3u8_formats(content_data['input']['src'], video_id, 'mp4'),
             **traverse_obj(content_data, {
                 'title': ('input', 'name', {str}),
-                'description': ('input', 'description', {str}),
+                'description': ('input', 'description', {str}, filter),
                 'thumbnail': ('input', 'thumbnail', {url_or_none}),
                 'tags': ('input', 'settings', 'tags', ..., {str}),
                 'timestamp': ('input', 'start_time', {parse_iso8601}),
-                'chapters': ('overlay', 'data', 'timelines', 0, 'events', ..., {
+                'chapters': ('overlay', 'data', 'timelines', 0, 'events', lambda _, v: float(v['timestamp']) is not None, {
                     'start_time': ('timestamp', {float_or_none}),
                     'title': ('name', {str}),
                 }),
