@@ -167,6 +167,7 @@ def register_preference_generic(
         return preference
     return outer
 
+
 if typing.TYPE_CHECKING:
     T = typing.TypeVar('T', bound=IEContentProvider)
     U = typing.TypeVar('U', bound=IEContentProvider)
