@@ -3,19 +3,21 @@
 # Allow direct execution
 import os
 import sys
-import unittest
-import unittest.mock
-import warnings
-import datetime as dt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 import contextlib
+import datetime as dt
 import io
 import itertools
 import json
+import ntpath
+import pickle
 import subprocess
+import unittest
+import unittest.mock
+import warnings
 import xml.etree.ElementTree
 
 from yt_dlp.compat import (
@@ -70,6 +72,8 @@ from yt_dlp.utils import (
     iri_to_uri,
     is_html,
     js_to_json,
+    jwt_decode_hs256,
+    jwt_encode,
     limit_length,
     locked_file,
     lowercase_escape,
@@ -98,11 +102,13 @@ from yt_dlp.utils import (
     remove_start,
     render_table,
     replace_extension,
+    datetime_round,
     rot47,
     sanitize_filename,
     sanitize_path,
     sanitize_url,
     shell_quote,
+    strftime_or_none,
     smuggle_url,
     str_to_int,
     strip_jsonp,
@@ -218,11 +224,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_filename('_BD_eEpuzXw', is_id=True), '_BD_eEpuzXw')
         self.assertEqual(sanitize_filename('N0Y__7-UOdI', is_id=True), 'N0Y__7-UOdI')
 
+    @unittest.mock.patch('sys.platform', 'win32')
     def test_sanitize_path(self):
-        with unittest.mock.patch('sys.platform', 'win32'):
-            self._test_sanitize_path()
-
-    def _test_sanitize_path(self):
         self.assertEqual(sanitize_path('abc'), 'abc')
         self.assertEqual(sanitize_path('abc/def'), 'abc\\def')
         self.assertEqual(sanitize_path('abc\\def'), 'abc\\def')
@@ -249,16 +252,26 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_path('abc/def...'), 'abc\\def..#')
         self.assertEqual(sanitize_path('abc.../def'), 'abc..#\\def')
         self.assertEqual(sanitize_path('abc.../def...'), 'abc..#\\def..#')
-
-        self.assertEqual(sanitize_path('../abc'), '..\\abc')
-        self.assertEqual(sanitize_path('../../abc'), '..\\..\\abc')
-        self.assertEqual(sanitize_path('./abc'), 'abc')
-        self.assertEqual(sanitize_path('./../abc'), '..\\abc')
-
-        self.assertEqual(sanitize_path('\\abc'), '\\abc')
-        self.assertEqual(sanitize_path('C:abc'), 'C:abc')
-        self.assertEqual(sanitize_path('C:abc\\..\\'), 'C:..')
         self.assertEqual(sanitize_path('C:\\abc:%(title)s.%(ext)s'), 'C:\\abc#%(title)s.%(ext)s')
+
+        for test, expected in [
+            ('C:\\', 'C:\\'),
+            ('../abc', '..\\abc'),
+            ('../../abc', '..\\..\\abc'),
+            ('./abc', 'abc'),
+            ('./../abc', '..\\abc'),
+            ('\\abc', '\\abc'),
+            ('C:abc', 'C:abc'),
+            ('C:abc\\..\\', 'C:'),
+            ('C:abc\\..\\def\\..\\..\\', 'C:..'),
+            ('C:\\abc\\xyz///..\\def\\', 'C:\\abc\\def'),
+            ('abc/../', '.'),
+            ('./abc/../', '.'),
+        ]:
+            result = sanitize_path(test)
+            assert result == expected, f'{test} was incorrectly resolved'
+            assert result == sanitize_path(result), f'{test} changed after sanitizing again'
+            assert result == ntpath.normpath(test), f'{test} does not match ntpath.normpath'
 
     def test_sanitize_url(self):
         self.assertEqual(sanitize_url('//foo.bar'), 'http://foo.bar')
@@ -391,6 +404,25 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(datetime_from_str('20210131+59day', precision='day'), datetime_from_str('20210131+2month', precision='auto'))
         self.assertEqual(datetime_from_str('now+1day', precision='hour'), datetime_from_str('now+24hours', precision='auto'))
         self.assertEqual(datetime_from_str('now+23hours', precision='hour'), datetime_from_str('now+23hours', precision='auto'))
+
+    def test_datetime_round(self):
+        self.assertEqual(datetime_round(dt.datetime.strptime('1820-05-12T01:23:45Z', '%Y-%m-%dT%H:%M:%SZ')),
+                         dt.datetime(1820, 5, 12, tzinfo=dt.timezone.utc))
+        self.assertEqual(datetime_round(dt.datetime.strptime('1969-12-31T23:34:45Z', '%Y-%m-%dT%H:%M:%SZ'), 'hour'),
+                         dt.datetime(1970, 1, 1, 0, tzinfo=dt.timezone.utc))
+        self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45Z', '%Y-%m-%dT%H:%M:%SZ'), 'minute'),
+                         dt.datetime(2024, 12, 25, 1, 24, tzinfo=dt.timezone.utc))
+        self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45.123Z', '%Y-%m-%dT%H:%M:%S.%fZ'), 'second'),
+                         dt.datetime(2024, 12, 25, 1, 23, 45, tzinfo=dt.timezone.utc))
+        self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45.678Z', '%Y-%m-%dT%H:%M:%S.%fZ'), 'second'),
+                         dt.datetime(2024, 12, 25, 1, 23, 46, tzinfo=dt.timezone.utc))
+
+    def test_strftime_or_none(self):
+        self.assertEqual(strftime_or_none(-4722192000), '18200512')
+        self.assertEqual(strftime_or_none(0), '19700101')
+        self.assertEqual(strftime_or_none(1735084800), '20241225')
+        # Throws OverflowError
+        self.assertEqual(strftime_or_none(1735084800000), None)
 
     def test_daterange(self):
         _20century = DateRange('19000101', '20000101')
@@ -644,6 +676,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(url_or_none('mms://foo.de'), 'mms://foo.de')
         self.assertEqual(url_or_none('rtspu://foo.de'), 'rtspu://foo.de')
         self.assertEqual(url_or_none('ftps://foo.de'), 'ftps://foo.de')
+        self.assertEqual(url_or_none('ws://foo.de'), 'ws://foo.de')
+        self.assertEqual(url_or_none('wss://foo.de'), 'wss://foo.de')
 
     def test_parse_age_limit(self):
         self.assertEqual(parse_age_limit(None), None)
@@ -1245,6 +1279,7 @@ class TestUtil(unittest.TestCase):
     def test_js_to_json_malformed(self):
         self.assertEqual(js_to_json('42a1'), '42"a1"')
         self.assertEqual(js_to_json('42a-1'), '42"a"-1')
+        self.assertEqual(js_to_json('{a: `${e("")}`}'), '{"a": "\\"e\\"(\\"\\")"}')
 
     def test_js_to_json_template_literal(self):
         self.assertEqual(js_to_json('`Hello ${name}`', {'name': '"world"'}), '"Hello world"')
@@ -1355,6 +1390,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_resolution('pre_1920x1080_post'), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('ep1x2'), {})
         self.assertEqual(parse_resolution('1920, 1080'), {'width': 1920, 'height': 1080})
+        self.assertEqual(parse_resolution('1920w', lenient=True), {'width': 1920})
 
     def test_parse_bitrate(self):
         self.assertEqual(parse_bitrate(None), None)
@@ -1827,7 +1863,7 @@ Line 1
 
         self.assertEqual(
             list(get_elements_text_and_html_by_attribute('class', 'foo bar', html)),
-            list(zip(['nice', 'also nice'], self.GET_ELEMENTS_BY_CLASS_RES)))
+            list(zip(['nice', 'also nice'], self.GET_ELEMENTS_BY_CLASS_RES, strict=True)))
         self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'foo', html)), [])
         self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'no-such-foo', html)), [])
 
@@ -2068,21 +2104,26 @@ Line 1
         headers = HTTPHeaderDict()
         headers['ytdl-test'] = b'0'
         self.assertEqual(list(headers.items()), [('Ytdl-Test', '0')])
+        self.assertEqual(list(headers.sensitive().items()), [('ytdl-test', '0')])
         headers['ytdl-test'] = 1
         self.assertEqual(list(headers.items()), [('Ytdl-Test', '1')])
+        self.assertEqual(list(headers.sensitive().items()), [('ytdl-test', '1')])
         headers['Ytdl-test'] = '2'
         self.assertEqual(list(headers.items()), [('Ytdl-Test', '2')])
+        self.assertEqual(list(headers.sensitive().items()), [('Ytdl-test', '2')])
         self.assertTrue('ytDl-Test' in headers)
         self.assertEqual(str(headers), str(dict(headers)))
         self.assertEqual(repr(headers), str(dict(headers)))
 
         headers.update({'X-dlp': 'data'})
         self.assertEqual(set(headers.items()), {('Ytdl-Test', '2'), ('X-Dlp', 'data')})
+        self.assertEqual(set(headers.sensitive().items()), {('Ytdl-test', '2'), ('X-dlp', 'data')})
         self.assertEqual(dict(headers), {'Ytdl-Test': '2', 'X-Dlp': 'data'})
         self.assertEqual(len(headers), 2)
         self.assertEqual(headers.copy(), headers)
-        headers2 = HTTPHeaderDict({'X-dlp': 'data3'}, **headers, **{'X-dlp': 'data2'})
+        headers2 = HTTPHeaderDict({'X-dlp': 'data3'}, headers, **{'X-dlP': 'data2'})
         self.assertEqual(set(headers2.items()), {('Ytdl-Test', '2'), ('X-Dlp', 'data2')})
+        self.assertEqual(set(headers2.sensitive().items()), {('Ytdl-test', '2'), ('X-dlP', 'data2')})
         self.assertEqual(len(headers2), 2)
         headers2.clear()
         self.assertEqual(len(headers2), 0)
@@ -2090,16 +2131,23 @@ Line 1
         # ensure we prefer latter headers
         headers3 = HTTPHeaderDict({'Ytdl-TeSt': 1}, {'Ytdl-test': 2})
         self.assertEqual(set(headers3.items()), {('Ytdl-Test', '2')})
+        self.assertEqual(set(headers3.sensitive().items()), {('Ytdl-test', '2')})
         del headers3['ytdl-tesT']
         self.assertEqual(dict(headers3), {})
 
         headers4 = HTTPHeaderDict({'ytdl-test': 'data;'})
         self.assertEqual(set(headers4.items()), {('Ytdl-Test', 'data;')})
+        self.assertEqual(set(headers4.sensitive().items()), {('ytdl-test', 'data;')})
 
         # common mistake: strip whitespace from values
         # https://github.com/yt-dlp/yt-dlp/issues/8729
         headers5 = HTTPHeaderDict({'ytdl-test': ' data; '})
         self.assertEqual(set(headers5.items()), {('Ytdl-Test', 'data;')})
+        self.assertEqual(set(headers5.sensitive().items()), {('ytdl-test', 'data;')})
+
+        # test if picklable
+        headers6 = HTTPHeaderDict(a=1, b=2)
+        self.assertEqual(pickle.loads(pickle.dumps(headers6)), headers6)
 
     def test_extract_basic_auth(self):
         assert extract_basic_auth('http://:foo.bar') == ('http://:foo.bar', None)
@@ -2148,6 +2196,41 @@ Line 1
         assert int_or_none(10, scale=0.1) == 100, 'positionally passed argument should call function'
         assert int_or_none(v=10) == 10, 'keyword passed positional should call function'
         assert int_or_none(scale=0.1)(10) == 100, 'call after partial application should call the function'
+
+    _JWT_KEY = '12345678'
+    _JWT_HEADERS_1 = {'a': 'b'}
+    _JWT_HEADERS_2 = {'typ': 'JWT', 'alg': 'HS256'}
+    _JWT_HEADERS_3 = {'typ': 'JWT', 'alg': 'RS256'}
+    _JWT_HEADERS_4 = {'c': 'd', 'alg': 'ES256'}
+    _JWT_DECODED = {
+        'foo': 'bar',
+        'qux': 'baz',
+    }
+    _JWT_SIMPLE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.fKojvTWqnjNTbsdoDTmYNc4tgYAG3h_SWRzM77iLH0U'
+    _JWT_WITH_EXTRA_HEADERS = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImEiOiJiIn0.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.Ia91-B77yasfYM7jsB6iVKLew-3rO6ITjNmjWUVXCvQ'
+    _JWT_WITH_REORDERED_HEADERS = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.slg-7COta5VOfB36p3tqV4MGPV6TTA_ouGnD48UEVq4'
+    _JWT_WITH_REORDERED_HEADERS_AND_RS256_ALG = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.XWp496oVgQnoits0OOocutdjxoaQwn4GUWWxUsKENPM'
+    _JWT_WITH_EXTRA_HEADERS_AND_ES256_ALG = 'eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImMiOiJkIn0.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.oM_tc7IkfrwkoRh43rFFE1wOi3J3mQGwx7_lMyKQqDg'
+
+    def test_jwt_encode(self):
+        def test(expected, headers={}):
+            self.assertEqual(jwt_encode(self._JWT_DECODED, self._JWT_KEY, headers=headers), expected)
+
+        test(self._JWT_SIMPLE)
+        test(self._JWT_WITH_EXTRA_HEADERS, headers=self._JWT_HEADERS_1)
+        test(self._JWT_WITH_REORDERED_HEADERS, headers=self._JWT_HEADERS_2)
+        test(self._JWT_WITH_REORDERED_HEADERS_AND_RS256_ALG, headers=self._JWT_HEADERS_3)
+        test(self._JWT_WITH_EXTRA_HEADERS_AND_ES256_ALG, headers=self._JWT_HEADERS_4)
+
+    def test_jwt_decode_hs256(self):
+        def test(inp):
+            self.assertEqual(jwt_decode_hs256(inp), self._JWT_DECODED)
+
+        test(self._JWT_SIMPLE)
+        test(self._JWT_WITH_EXTRA_HEADERS)
+        test(self._JWT_WITH_REORDERED_HEADERS)
+        test(self._JWT_WITH_REORDERED_HEADERS_AND_RS256_ALG)
+        test(self._JWT_WITH_EXTRA_HEADERS_AND_ES256_ALG)
 
 
 if __name__ == '__main__':

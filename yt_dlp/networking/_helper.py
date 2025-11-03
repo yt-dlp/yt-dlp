@@ -13,7 +13,6 @@ import urllib.request
 from .exceptions import RequestError
 from ..dependencies import certifi
 from ..socks import ProxyType, sockssocket
-from ..utils import format_field, traverse_obj
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable
@@ -80,19 +79,6 @@ def make_socks_proxy_opts(socks_proxy):
         'username': unquote_if_non_empty(url_components.username),
         'password': unquote_if_non_empty(url_components.password),
     }
-
-
-def select_proxy(url, proxies):
-    """Unified proxy selector for all backends"""
-    url_components = urllib.parse.urlparse(url)
-    if 'no' in proxies:
-        hostport = url_components.hostname + format_field(url_components.port, None, ':%s')
-        if urllib.request.proxy_bypass_environment(hostport, {'no': proxies['no']}):
-            return
-        elif urllib.request.proxy_bypass(hostport):  # check system settings
-            return
-
-    return traverse_obj(proxies, url_components.scheme or 'http', 'all')
 
 
 def get_redirect_method(method, status):
@@ -214,7 +200,7 @@ def wrap_request_errors(func):
 
 
 def _socket_connect(ip_addr, timeout, source_address):
-    af, socktype, proto, canonname, sa = ip_addr
+    af, socktype, proto, _canonname, sa = ip_addr
     sock = socket.socket(af, socktype, proto)
     try:
         if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
@@ -229,7 +215,7 @@ def _socket_connect(ip_addr, timeout, source_address):
 
 
 def create_socks_proxy_socket(dest_addr, proxy_args, proxy_ip_addr, timeout, source_address):
-    af, socktype, proto, canonname, sa = proxy_ip_addr
+    af, socktype, proto, _canonname, sa = proxy_ip_addr
     sock = sockssocket(af, socktype, proto)
     try:
         connect_proxy_args = proxy_args.copy()
