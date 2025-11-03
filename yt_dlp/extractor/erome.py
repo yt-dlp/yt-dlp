@@ -18,7 +18,7 @@ class EromeIE(InfoExtractor):
             'age_limit': 18,
             'description': 'md5:8fcf452a31183ad6a23800adcd98c9f7',
         },
-        'playlist_mincount': 15,
+        'playlist_mincount': 9,
     }]
 
     def _real_extract(self, url):
@@ -100,7 +100,7 @@ class EromeIE(InfoExtractor):
         img_pattern = r'<img[^>]+src="(https?://s\d+\.erome\.com/\d+/' + re.escape(album_id) + r'/[^"]*\.(?:jpg|jpeg|png|gif)(?:\?[^"]*)?)"[^>]*>'
         img_matches = re.finditer(img_pattern, webpage, re.IGNORECASE)
 
-        img_count = 0
+        img_urls = []
         for match in img_matches:
             img_url = match.group(1)
             if img_url:
@@ -108,18 +108,23 @@ class EromeIE(InfoExtractor):
                 if not any(x in img_url for x in ['thumb', '_s.', '_t.', '/t/']):
                     img_url = url_or_none(img_url)
                     if img_url:
-                        img_count += 1
-                        entries.append({
-                            'id': f'{album_id}_img_{img_count}',
-                            'url': img_url,
-                            'title': f'{title} - Image {img_count}',
-                            'uploader': uploader,
-                            'ext': 'jpg',
-                            'description': description,
-                            'http_headers': {
-                                'Referer': 'https://www.erome.com/',
-                            },
-                        })
+                        img_urls.append(img_url)
+
+        # Remove duplicates while preserving order
+        img_urls = list(dict.fromkeys(img_urls))
+
+        for i, img_url in enumerate(img_urls):
+            entries.append({
+                'id': f'{album_id}_img_{i + 1}',
+                'url': img_url,
+                'title': f'{title} - Image {i + 1}',
+                'uploader': uploader,
+                'ext': 'jpg',
+                'description': description,
+                'http_headers': {
+                    'Referer': 'https://www.erome.com/',
+                },
+            })
 
         if not entries:
             raise ExtractorError('No media found', expected=True)
