@@ -84,7 +84,7 @@ def register_spec(provider: type[PoTokenCacheSpecProvider]):
 
 
 def register_preference(
-        *providers: type[PoTokenCacheProvider]) -> typing.Callable[[CacheProviderPreference], CacheProviderPreference]:
+        *providers: type[T]) -> typing.Callable[[CacheProviderPreference[T]], CacheProviderPreference[T]]:
     """Register a preference for a PoTokenCacheProvider"""
     return register_preference_generic(
         PoTokenCacheProvider,
@@ -94,4 +94,5 @@ def register_preference(
 
 
 if typing.TYPE_CHECKING:
-    CacheProviderPreference = typing.Callable[[PoTokenCacheProvider, PoTokenRequest], int]
+    T = typing.TypeVar('T', bound=PoTokenCacheProvider)
+    CacheProviderPreference = typing.Callable[[T, PoTokenRequest], int]

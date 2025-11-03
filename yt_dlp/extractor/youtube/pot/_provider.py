@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import enum
 import functools
+import typing
 
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.utils import NO_DEFAULT, bug_reports_message, classproperty, traverse_obj
@@ -137,10 +138,10 @@ def configuration_arg(config, key, default=NO_DEFAULT, *, casesense=False):
 
 
 def register_provider_generic(
-    provider,
-    base_class,
-    registry,
-):
+    provider: type[T],
+    base_class: type[U],
+    registry: dict[str, type[U]],
+) -> type[T]:
     """Generic function to register a provider class"""
     assert issubclass(provider, base_class), f'{provider} must be a subclass of {base_class.__name__}'
     assert provider.PROVIDER_KEY not in registry, f'{base_class.__name__} {provider.PROVIDER_KEY} already registered'
@@ -149,19 +150,23 @@ def register_provider_generic(
 
 
 def register_preference_generic(
-    base_class,
-    registry,
-    *providers,
+    base_class: type[T],
+    registry: set,
+    *providers: type[U],
 ):
     """Generic function to register a preference for a provider"""
     assert all(issubclass(provider, base_class) for provider in providers)
 
     def outer(preference):
         @functools.wraps(preference)
-        def inner(provider, *args, **kwargs):
+        def inner(provider, *args, **kwargs) -> int:
             if not providers or isinstance(provider, providers):
                 return preference(provider, *args, **kwargs)
             return 0
         registry.add(inner)
         return preference
     return outer
+
+if typing.TYPE_CHECKING:
+    T = typing.TypeVar('T', bound=IEContentProvider)
+    U = typing.TypeVar('U', bound=IEContentProvider)

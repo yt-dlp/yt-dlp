@@ -147,7 +147,7 @@ def register_provider(provider: type[JsChallengeProvider]):
     )
 
 
-def register_preference(*providers: type[JsChallengeProvider]) -> typing.Callable[[Preference], Preference]:
+def register_preference(*providers: type[T]) -> typing.Callable[[Preference[T]], Preference[T]]:
     """Register a preference for a JsChallengeProvider class."""
     return register_preference_generic(
         JsChallengeProvider,
@@ -157,5 +157,6 @@ def register_preference(*providers: type[JsChallengeProvider]) -> typing.Callabl
 
 
 if typing.TYPE_CHECKING:
-    Preference = typing.Callable[[JsChallengeProvider, list[JsChallengeRequest]], int]
+    T = typing.TypeVar('T', bound=JsChallengeProvider)
+    Preference = typing.Callable[[T, list[JsChallengeRequest]], int]
     __all__.append('Preference')
