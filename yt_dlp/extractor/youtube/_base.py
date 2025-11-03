@@ -380,11 +380,15 @@ def short_client_name(client_name):
     return join_nonempty(main[:4], ''.join(x[0] for x in parts)).upper()
 
 
-def build_innertube_clients():
-    THIRD_PARTY = {
+def _fix_embedded_ytcfg(ytcfg):
+    ytcfg['INNERTUBE_CONTEXT'].setdefault('thirdParty', {}).update({
         'embedUrl': 'https://www.youtube.com/',  # Can be any valid URL
-    }
-    BASE_CLIENTS = ('ios', 'web', 'tv', 'mweb', 'android')
+    })
+
+
+def build_innertube_clients():
+    # From highest to lowest priority
+    BASE_CLIENTS = ('tv', 'web', 'mweb', 'android', 'ios')
     priority = qualities(BASE_CLIENTS[::-1])
 
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
@@ -405,10 +409,7 @@ def build_innertube_clients():
         ytcfg['priority'] = 10 * priority(base_client)
 
         if variant == 'embedded':
-            ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = THIRD_PARTY
-            ytcfg['priority'] -= 2
-        elif variant:
-            ytcfg['priority'] -= 3
+            _fix_embedded_ytcfg(ytcfg)
 
 
 build_innertube_clients()
@@ -990,6 +991,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             }))
 
         ytcfg = self.extract_ytcfg(video_id, webpage) or {}
+
+        # See https://github.com/yt-dlp/yt-dlp/issues/14826
+        if _split_innertube_client(client)[2] == 'embedded':
+            _fix_embedded_ytcfg(ytcfg)
 
         # Workaround for https://github.com/yt-dlp/yt-dlp/issues/12563
         # But it's not effective when logged-in
