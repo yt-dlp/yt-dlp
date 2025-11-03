@@ -852,6 +852,9 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     formats, separated by "/", e.g. "mp4/mkv".
                                     Ignored if no merge is required. (currently
                                     supported: avi, flv, mkv, mov, mp4, webm)
+    --merge-skip-duplicates         Skip duplicate formats during merge
+    --no-merge-skip-duplicates      Do not skip duplicate formats during merge
+                                    (default)
 
 ## Subtitle Options:
     --write-subs                    Write subtitle file

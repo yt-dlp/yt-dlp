@@ -912,6 +912,14 @@ def create_parser():
             'Ignored if no merge is required. '
             f'(currently supported: {", ".join(sorted(FFmpegMergerPP.SUPPORTED_EXTS))})'))
     video_format.add_option(
+        '--merge-skip-duplicates',
+        action='store_true', dest='merge_skip_duplicates',
+        help='Skip duplicate formats during merge')
+    video_format.add_option(
+        '--no-merge-skip-duplicates',
+        action='store_false', dest='merge_skip_duplicates', default=True,
+        help='Do not skip duplicate formats during merge (default)')
+    video_format.add_option(
         '--allow-unplayable-formats',
         action='store_true', dest='allow_unplayable_formats', default=False,
         help=optparse.SUPPRESS_HELP)

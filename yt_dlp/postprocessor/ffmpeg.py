@@ -817,11 +817,13 @@ class FFmpegMergerPP(FFmpegPostProcessor):
         args = ['-c', 'copy']
         audio_streams = 0
         seen_formats = set()
+        dedup = self.get_param('merge_skip_duplicates')
         for (i, fmt) in enumerate(info['requested_formats']):
-            if fmt['format_id'] in seen_formats:
-                self.to_screen(f'Skipping duplicate format {fmt["format_id"]} (#{i})')
-            else:
-                seen_formats.add(fmt['format_id'])
+            if dedup:
+                if fmt['format_id'] in seen_formats:
+                    self.to_screen(f'Skipping duplicate format {fmt["format_id"]} (#{i})')
+                else:
+                    seen_formats.add(fmt['format_id'])
             if fmt.get('acodec') != 'none':
                 args.extend(['-map', f'{i}:a:0'])
                 aac_fixup = fmt['protocol'].startswith('m3u8') and self.get_audio_codec(fmt['filepath']) == 'aac'

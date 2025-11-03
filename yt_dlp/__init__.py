@@ -913,6 +913,7 @@ def parse_options(argv=None):
         'wait_for_video': opts.wait_for_video,
         'mark_watched': opts.mark_watched,
         'merge_output_format': opts.merge_output_format,
+        'merge_skip_duplicates': opts.merge_skip_duplicates,
         'final_ext': final_ext,
         'postprocessors': postprocessors,
         'fixup': opts.fixup,
