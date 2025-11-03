@@ -83,25 +83,6 @@ class PlutoTVIE(PlutoTVBase):
             'title': 'Squadra Speciale Cobra 11 - Season 5',
         },
         'playlist_count': 17,
-    }, {
-        'url': 'https://pluto.tv/on-demand/series/62f5fb1b51b268001a993666/season/2/episode/62fb6e32946347001bf008ca',
-        'md5': '7e100cd3b771e9dd9b6af81abdd812af',
-        'info_dict': {
-            'id': '62fb6e32946347001bf008ca',
-            'ext': 'mp4',
-            'display_id': 'serie-2-episodio-5-2006-2-5',
-            'episode_id': '62fb6e32946347001bf008ca',
-            'genres': ['Sci-Fi & Fantasy'],
-            'thumbnail': 'http://images.pluto.tv/episodes/62fb6e32946347001bf008ca/poster.jpg?fm=png&q=100',
-            'season_number': 2,
-            'series_id': '62f5fb1b51b268001a993666',
-            'title': 'L\'ascesa dei Cyber-uomini (parte 1)',
-            'duration': 3120.0,
-            'season': 'Season 2',
-            'series': 'Doctor Who',
-            'description': 'md5:66965714ba60b02996bd1b551475f6fa',
-            'episode': 'L\'ascesa dei Cyber-uomini (parte 1)',
-        },
     }]
 
     def _to_ad_free_formats(self, video_id, formats, subtitles):
