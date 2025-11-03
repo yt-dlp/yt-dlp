@@ -13,6 +13,7 @@ from ..utils import (
     try_get,
     unified_timestamp,
 )
+from ..utils.traversal import traverse_obj
 
 
 class DPlayBaseIE(InfoExtractor):
@@ -1053,7 +1054,7 @@ class DiscoveryPlusIndiaIE(DiscoveryPlusBaseIE):
 
 
 class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?P<domain>(?:tlc|dmax)\.de|dplay\.co\.uk)/(?:programme|show|sendungen)/(?P<programme>[^/]+)/(?:video/)?(?P<alternate_id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?P<domain>(?:tlc|dmax)\.de)/(?:programme|show|sendungen)/(?P<programme>[^/?#]+)/(?:video/)?(?P<alternate_id>[^/?#]+)'
 
     _TESTS = [{
         'url': 'https://dmax.de/sendungen/goldrausch-in-australien/german-gold',
@@ -1062,7 +1063,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'ext': 'mp4',
             'title': 'German Gold',
             'description': 'md5:f3073306553a8d9b40e6ac4cdbf09fc6',
-            'display_id': 'goldrausch-in-australien/german-gold',
+            'display_id': 'german-gold',
             'episode': 'Episode 1',
             'episode_number': 1,
             'season': 'Season 5',
@@ -1074,6 +1075,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'creators': ['DMAX'],
             'thumbnail': 'https://eu1-prod-images.disco-api.com/2023/05/09/f72fb510-7992-3b12-af7f-f16a2c22d1e3.jpeg',
             'tags': ['schatzsucher', 'schatz', 'nugget', 'bodenschätze', 'down under', 'australien', 'goldrausch'],
+            'categories': ['Gold', 'Schatzsucher'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -1101,19 +1103,94 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
         'url': 'https://www.dmax.de/programme/dmax-highlights/video/tuning-star-sidney-hoffmann-exklusiv-bei-dmax/191023082312316',
         'only_matching': True,
     }, {
-        'url': 'https://www.dplay.co.uk/show/ghost-adventures/video/hotel-leger-103620/EHD_280313B',
-        'only_matching': True,
-    }, {
         'url': 'https://tlc.de/sendungen/breaking-amish/die-welt-da-drauen/',
         'only_matching': True,
+    }, {
+        'url': 'https://dmax.de/sendungen/feuerwache-3-alarm-in-muenchen/24-stunden-auf-der-feuerwache-3',
+        'info_dict': {
+            'id': '8873549',
+            'ext': 'mp4',
+            'title': '24 Stunden auf der Feuerwache 3',
+            'description': 'md5:f3084ef6170bfb79f9a6e0c030e09330',
+            'display_id': '24-stunden-auf-der-feuerwache-3',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'season': 'Season 1',
+            'season_number': 1,
+            'series': 'Feuerwache 3 - Alarm in München',
+            'duration': 2632.0,
+            'upload_date': '20251016',
+            'timestamp': 1760645100,
+            'creators': ['DMAX'],
+            'thumbnail': 'https://eu1-prod-images.disco-api.com/2025/10/14/0bdee68c-a8d8-33d9-9204-16eb61108552.jpeg',
+            'tags': [],
+            'categories': ['DMAX Originals', 'Jobs', 'Blaulicht'],
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://tlc.de/sendungen/ghost-adventures/der-poltergeist-im-kostumladen',
+        'info_dict': {
+            'id': '4550602',
+            'ext': 'mp4',
+            'title': 'Der Poltergeist im Kostümladen',
+            'description': 'md5:20b52b9736a0a3a7873d19a238fad7fc',
+            'display_id': 'der-poltergeist-im-kostumladen',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'season': 'Season 25',
+            'season_number': 25,
+            'series': 'Ghost Adventures',
+            'duration': 2493.0,
+            'upload_date': '20241223',
+            'timestamp': 1734948900,
+            'creators': ['TLC'],
+            'thumbnail': 'https://eu1-prod-images.disco-api.com/2023/04/05/59941d26-a81b-365f-829f-69d8cd81fd0f.jpeg',
+            'tags': [],
+            'categories': ['Paranormal', 'Gruselig!'],
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://tlc.de/sendungen/evil-gesichter-des-boesen/das-geheimnis-meines-bruders',
+        'info_dict': {
+            'id': '7792288',
+            'ext': 'mp4',
+            'title': 'Das Geheimnis meines Bruders',
+            'description': 'md5:3167550bb582eb9c92875c86a0a20882',
+            'display_id': 'das-geheimnis-meines-bruders',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'season': 'Season 1',
+            'season_number': 1,
+            'series': 'Evil - Gesichter des Bösen',
+            'duration': 2626.0,
+            'upload_date': '20240926',
+            'timestamp': 1727388000,
+            'creators': ['TLC'],
+            'thumbnail': 'https://eu1-prod-images.disco-api.com/2024/11/29/e9f3e3ae-74ec-3631-81b7-fc7bbe844741.jpeg',
+            'tags': 'count:13',
+            'categories': ['True Crime', 'Mord'],
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
         domain, programme, alternate_id = self._match_valid_url(url).groups()
-        country = 'GB' if domain == 'dplay.co.uk' else 'DE'
-        realm = 'questuk' if country == 'GB' else domain.replace('.', '')
-        return self._get_disco_api_info(
-            url, f'{programme}/{alternate_id}', 'eu1-prod.disco-api.com', realm, country)
+        meta = self._download_json(
+            f'https://de-api.loma-cms.com/feloma/videos/{alternate_id}/',
+            alternate_id, query={
+                'environment': domain.split('.')[0],
+                'v': '2',
+                'filter[show.slug]': programme,
+            }, fatal=False)
+        video_id = traverse_obj(meta, ('uid', {str}, {lambda s: s[-7:]})) or alternate_id
+
+        disco_api_info = self._get_disco_api_info(
+            url, video_id, 'eu1-prod.disco-api.com', domain.replace('.', ''), 'DE')
+        disco_api_info['display_id'] = alternate_id
+        disco_api_info['categories'] = traverse_obj(meta, (
+            'taxonomies', lambda _, v: v['category'] == 'genre', 'title', {str.strip}, filter, all, filter))
+
+        return disco_api_info
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
         headers.update({

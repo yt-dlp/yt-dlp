@@ -11,8 +11,8 @@ from ._helper import (
     create_connection,
     create_socks_proxy_socket,
     make_socks_proxy_opts,
-    select_proxy,
 )
+from ..utils.networking import select_proxy
 from .common import Features, Response, register_rh
 from .exceptions import (
     CertificateVerifyError,
@@ -34,6 +34,7 @@ import websockets.version
 
 websockets_version = tuple(map(int_or_none, websockets.version.version.split('.')))
 if websockets_version < (13, 0):
+    websockets._yt_dlp__version = f'{websockets.version.version} (unsupported)'
     raise ImportError('Only websockets>=13.0 is supported')
 
 import websockets.sync.client
