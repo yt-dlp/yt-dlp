@@ -5,7 +5,6 @@ import re
 from .common import InfoExtractor
 from .dailymotion import DailymotionIE
 from .odnoklassniki import OdnoklassnikiIE
-from .pladform import PladformIE
 from .sibnet import SibnetEmbedIE
 from .vimeo import VimeoIE
 from .youtube import YoutubeIE
@@ -97,12 +96,12 @@ class VKIE(VKBaseIE):
                     https?://
                         (?:
                             (?:
-                                (?:(?:m|new)\.)?vk(?:(?:video)?\.ru|\.com)/video_|
+                                (?:(?:m|new|vksport)\.)?vk(?:(?:video)?\.ru|\.com)/video_|
                                 (?:www\.)?daxab\.com/
                             )
                             ext\.php\?(?P<embed_query>.*?\boid=(?P<oid>-?\d+).*?\bid=(?P<id>\d+).*)|
                             (?:
-                                (?:(?:m|new)\.)?vk(?:(?:video)?\.ru|\.com)/(?:.+?\?.*?z=)?(?:video|clip)|
+                                (?:(?:m|new|vksport)\.)?vk(?:(?:video)?\.ru|\.com)/(?:.+?\?.*?z=)?(?:video|clip)|
                                 (?:www\.)?daxab\.com/embed/
                             )
                             (?P<videoid>-?\d+_\d+)(?:.*\blist=(?P<list_id>([\da-f]+)|(ln-[\da-zA-Z]+)))?
@@ -301,6 +300,24 @@ class VKIE(VKBaseIE):
             },
         },
         {
+            'url': 'https://vkvideo.ru/video-50883936_456244102',
+            'info_dict': {
+                'id': '-50883936_456244102',
+                'ext': 'mp4',
+                'title': 'Добивание Украины // Техник в коме // МОЯ ЗЛОСТЬ №140',
+                'description': 'md5:a9bc46181e9ebd0fdd82cef6c0191140',
+                'uploader': 'Стас Ай, Как Просто!',
+                'uploader_id': '-50883936',
+                'comment_count': int,
+                'like_count': int,
+                'duration': 4651,
+                'thumbnail': r're:https?://.+\.jpg',
+                'chapters': 'count:59',
+                'timestamp': 1743333869,
+                'upload_date': '20250330',
+            },
+        },
+        {
             # live stream, hls and rtmp links, most likely already finished live
             # stream by the time you are reading this comment
             'url': 'https://vk.com/video-140332_456239111',
@@ -314,11 +331,6 @@ class VKIE(VKBaseIE):
         {
             # age restricted video, requires vk account credentials
             'url': 'https://vk.com/video205387401_164765225',
-            'only_matching': True,
-        },
-        {
-            # pladform embed
-            'url': 'https://vk.com/video-76116461_171554880',
             'only_matching': True,
         },
         {
@@ -345,6 +357,10 @@ class VKIE(VKBaseIE):
         },
         {
             'url': 'https://vk.ru/video-220754053_456242564',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://vksport.vkvideo.ru/video-124096712_456240773',
             'only_matching': True,
         },
     ]
@@ -438,10 +454,6 @@ class VKIE(VKBaseIE):
         if vimeo_url is not None:
             return self.url_result(vimeo_url, VimeoIE.ie_key())
 
-        pladform_url = PladformIE._extract_url(info_page)
-        if pladform_url:
-            return self.url_result(pladform_url, PladformIE.ie_key())
-
         m_rutube = re.search(
             r'\ssrc="((?:https?:)?//rutube\.ru\\?/(?:video|play)\\?/embed(?:.*?))\\?"', info_page)
         if m_rutube is not None:
@@ -530,21 +542,21 @@ class VKIE(VKBaseIE):
             'formats': formats,
             'subtitles': subtitles,
             **traverse_obj(mv_data, {
-                'title': ('title', {unescapeHTML}),
+                'title': ('title', {str}, {unescapeHTML}),
                 'description': ('desc', {clean_html}, filter),
                 'duration': ('duration', {int_or_none}),
                 'like_count': ('likes', {int_or_none}),
                 'comment_count': ('commcount', {int_or_none}),
             }),
             **traverse_obj(data, {
-                'title': ('md_title', {unescapeHTML}),
+                'title': ('md_title', {str}, {unescapeHTML}),
                 'description': ('description', {clean_html}, filter),
                 'thumbnail': ('jpg', {url_or_none}),
-                'uploader': ('md_author', {str}),
+                'uploader': ('md_author', {str}, {unescapeHTML}),
                 'uploader_id': (('author_id', 'authorId'), {str_or_none}, any),
                 'duration': ('duration', {int_or_none}),
                 'chapters': ('time_codes', lambda _, v: isinstance(v['time'], int), {
-                    'title': ('text', {str}),
+                    'title': ('text', {str}, {unescapeHTML}),
                     'start_time': 'time',
                 }),
             }),
@@ -560,7 +572,7 @@ class VKUserVideosIE(VKBaseIE):
     IE_DESC = "VK - User's Videos"
     _BASE_URL_RE = r'https?://(?:(?:m|new)\.)?vk(?:video\.ru|\.com/video)'
     _VALID_URL = [
-        rf'{_BASE_URL_RE}/playlist/(?P<id>-?\d+_\d+)',
+        rf'{_BASE_URL_RE}/playlist/(?P<id>-?\d+_-?\d+)',
         rf'{_BASE_URL_RE}/(?P<id>@[^/?#]+)(?:/all)?/?(?!\?.*\bz=video)(?:[?#]|$)',
     ]
     _TESTS = [{
@@ -589,6 +601,9 @@ class VKUserVideosIE(VKBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://vk.com/video/playlist/-174476437_2',
+        'only_matching': True,
+    }, {
+        'url': 'https://vkvideo.ru/playlist/-51890028_-2',
         'only_matching': True,
     }]
     _VIDEO = collections.namedtuple('Video', ['owner_id', 'id'])
@@ -715,7 +730,7 @@ class VKWallPostIE(VKBaseIE):
     def _unmask_url(self, mask_url, vk_id):
         if 'audio_api_unavailable' in mask_url:
             extra = mask_url.split('?extra=')[1].split('#')
-            func, base = self._decode(extra[1]).split(chr(11))
+            _, base = self._decode(extra[1]).split(chr(11))
             mask_url = list(self._decode(extra[0]))
             url_len = len(mask_url)
             indexes = [None] * url_len
