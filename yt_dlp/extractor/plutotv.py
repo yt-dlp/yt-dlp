@@ -1,5 +1,4 @@
 import re
-import urllib.parse
 import uuid
 
 from .common import InfoExtractor
@@ -28,6 +27,35 @@ class PlutoTVBase(InfoExtractor):
             'id': element.get('id') or element['_id'],
         }
 
+    def _to_ad_free_formats(self, video_id, formats):
+        for fmt in formats:
+            res = self._download_webpage(
+                fmt.get('url'), video_id, 'Downloading m3u8 playlist',
+                fatal=False)
+            if not res:
+                continue
+            lines = res.splitlines()
+            max_iv = 0
+            url_path = None
+            for line in lines:
+                if line.startswith('#EXT-X-KEY:'):
+                    path, iv = re.search(r'URI="(?P<path>[^"]+)/[^.]+\.key",IV=0x0*(?P<iv>\d+)', line).group('path', 'iv')
+                    iv = int(iv)
+                    if iv > max_iv:
+                        max_iv = iv
+                        url_path = path
+            if url_path:
+                fmt['hls_media_playlist_data'] = ''
+                valid = True
+                for line in lines:
+                    if line.startswith('#EXT-X-KEY:'):
+                        path = re.search(r'URI="([^"]+)/[^.]+\.key"', line).group(1)
+                        valid = path == url_path
+                    if valid:
+                        fmt['hls_media_playlist_data'] += line + '\n'
+            else:
+                self.report_warning(f'Unable to find ad-free playlist in format {fmt.get("format_id")}')
+
     def _extract_formats(self, video_data):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(f"{video_data['stitcher']}/v2{video_data['path']}?{video_data['stitcherParams']}&jwt={video_data['sessionToken']}", video_data['id'])
         for f in formats:
@@ -35,10 +63,10 @@ class PlutoTVBase(InfoExtractor):
             f.setdefault('vcodec', 'avc1.64001f')
             f.setdefault('acodec', 'mp4a.40.2')
             f.setdefault('fps', 30)
-        return {
-            'formats': formats,
-            'subtitles': subtitles,
-        }
+        for f in subtitles:
+            f['url'] += f"&jwt={video_data['sessionToken']}"
+        self._to_ad_free_formats(video_data['id'], formats)
+        return {'formats': formats, 'subtitles': subtitles}
 
 
 class PlutoTVIE(PlutoTVBase):
@@ -52,7 +80,7 @@ class PlutoTVIE(PlutoTVBase):
         )?'''
     _TESTS = [{
         'url': 'https://pluto.tv/it/on-demand/movies/6246b0adef11000014d220c3',
-        'md5': '5efe37ad6c1085a4ad4684b9b82cb1c1',
+        'md5': 'f1c7a444e3c05bee8cdb9f28898ffae8',
         'info_dict': {
             'id': '6246b0adef11000014d220c3',
             'ext': 'mp4',
@@ -84,40 +112,6 @@ class PlutoTVIE(PlutoTVBase):
         },
         'playlist_count': 17,
     }]
-
-    def _to_ad_free_formats(self, video_id, formats, subtitles):
-        ad_free_formats, ad_free_subtitles, m3u8_urls = [], {}, set()
-        for fmt in formats:
-            res = self._download_webpage(
-                fmt.get('url'), video_id, note='Downloading m3u8 playlist',
-                fatal=False)
-            if not res:
-                continue
-            first_segment_url = re.search(
-                r'^(https?://.*/)0\-(end|[0-9]+)/[^/]+\.ts$', res,
-                re.MULTILINE)
-            if first_segment_url:
-                m3u8_urls.add(
-                    urllib.parse.urljoin(first_segment_url.group(1), '0-end/master.m3u8'))
-                continue
-            first_segment_url = re.search(
-                r'^(https?://.*/).+\-0+[0-1]0\.ts$', res,
-                re.MULTILINE)
-            if first_segment_url:
-                m3u8_urls.add(
-                    urllib.parse.urljoin(first_segment_url.group(1), 'master.m3u8'))
-                continue
-
-        for m3u8_url in m3u8_urls:
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False)
-            ad_free_formats.extend(fmts)
-            ad_free_subtitles = self._merge_subtitles(ad_free_subtitles, subs)
-        if ad_free_formats:
-            formats, subtitles = ad_free_formats, ad_free_subtitles
-        else:
-            self.report_warning('Unable to find ad-free formats')
-        return formats, subtitles
 
     def _get_video_info(self, video, series=None, season_number=None):
         thumbnails = [{
