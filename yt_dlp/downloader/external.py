@@ -488,20 +488,6 @@ class FFmpegFD(ExternalFD):
         if not self.params.get('verbose'):
             args += ['-hide_banner']
 
-        args += traverse_obj(info_dict, ('downloader_options', 'ffmpeg_args', ...))
-
-        # These exists only for compatibility. Extractors should use
-        # info_dict['downloader_options']['ffmpeg_args'] instead
-        args += info_dict.get('_ffmpeg_args') or []
-        seekable = info_dict.get('_seekable')
-        if seekable is not None:
-            # setting -seekable prevents ffmpeg from guessing if the server
-            # supports seeking(by adding the header `Range: bytes=0-`), which
-            # can cause problems in some cases
-            # https://github.com/ytdl-org/youtube-dl/issues/11800#issuecomment-275037127
-            # http://trac.ffmpeg.org/ticket/6125#comment:10
-            args += ['-seekable', '1' if seekable else '0']
-
         env = None
         proxy = self.params.get('proxy')
         if proxy:
@@ -521,38 +507,9 @@ class FFmpegFD(ExternalFD):
             env['HTTP_PROXY'] = proxy
             env['http_proxy'] = proxy
 
-        protocol = info_dict.get('protocol')
-
-        if protocol == 'rtmp':
-            player_url = info_dict.get('player_url')
-            page_url = info_dict.get('page_url')
-            app = info_dict.get('app')
-            play_path = info_dict.get('play_path')
-            tc_url = info_dict.get('tc_url')
-            flash_version = info_dict.get('flash_version')
-            live = info_dict.get('rtmp_live', False)
-            conn = info_dict.get('rtmp_conn')
-            if player_url is not None:
-                args += ['-rtmp_swfverify', player_url]
-            if page_url is not None:
-                args += ['-rtmp_pageurl', page_url]
-            if app is not None:
-                args += ['-rtmp_app', app]
-            if play_path is not None:
-                args += ['-rtmp_playpath', play_path]
-            if tc_url is not None:
-                args += ['-rtmp_tcurl', tc_url]
-            if flash_version is not None:
-                args += ['-rtmp_flashver', flash_version]
-            if live:
-                args += ['-rtmp_live', 'live']
-            if isinstance(conn, list):
-                for entry in conn:
-                    args += ['-rtmp_conn', entry]
-            elif isinstance(conn, str):
-                args += ['-rtmp_conn', conn]
-
         start_time, end_time = info_dict.get('section_start') or 0, info_dict.get('section_end')
+
+        fallback_input_args = traverse_obj(info_dict, ('downloader_options', 'ffmpeg_args', ...))
 
         selected_formats = info_dict.get('requested_formats') or [info_dict]
         for i, fmt in enumerate(selected_formats):
@@ -572,6 +529,37 @@ class FFmpegFD(ExternalFD):
             if end_time:
                 args += ['-t', str(end_time - start_time)]
 
+            protocol = fmt.get('protocol')
+
+            if protocol == 'rtmp':
+                player_url = fmt.get('player_url')
+                page_url = fmt.get('page_url')
+                app = fmt.get('app')
+                play_path = fmt.get('play_path')
+                tc_url = fmt.get('tc_url')
+                flash_version = fmt.get('flash_version')
+                live = fmt.get('rtmp_live', False)
+                conn = fmt.get('rtmp_conn')
+                if player_url is not None:
+                    args += ['-rtmp_swfverify', player_url]
+                if page_url is not None:
+                    args += ['-rtmp_pageurl', page_url]
+                if app is not None:
+                    args += ['-rtmp_app', app]
+                if play_path is not None:
+                    args += ['-rtmp_playpath', play_path]
+                if tc_url is not None:
+                    args += ['-rtmp_tcurl', tc_url]
+                if flash_version is not None:
+                    args += ['-rtmp_flashver', flash_version]
+                if live:
+                    args += ['-rtmp_live', 'live']
+                if isinstance(conn, list):
+                    for entry in conn:
+                        args += ['-rtmp_conn', entry]
+                elif isinstance(conn, str):
+                    args += ['-rtmp_conn', conn]
+
             url = fmt['url']
             if self.params.get('enable_file_urls') and url.startswith('file:'):
                 # The default protocol_whitelist is 'file,crypto,data' when reading local m3u8 URLs,
@@ -586,6 +574,7 @@ class FFmpegFD(ExternalFD):
                 #      https://trac.ffmpeg.org/ticket/2702
                 url = re.sub(r'^file://(?:localhost)?/', 'file:' if os.name == 'nt' else 'file:/', url)
 
+            args += traverse_obj(fmt, ('downloader_options', 'ffmpeg_args', ...)) or fallback_input_args
             args += [*self._configuration_args((f'_i{i + 1}', '_i')), '-i', url]
 
         if not (start_time or end_time) or not self.params.get('force_keyframes_at_cuts'):
