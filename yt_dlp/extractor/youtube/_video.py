@@ -147,9 +147,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
     _DEFAULT_CLIENTS = ('tv', 'android_sdkless', 'web')
     _DEFAULT_JSLESS_CLIENTS = ('android_sdkless', 'web_safari', 'web')
-    _DEFAULT_AUTHED_CLIENTS = ('tv', 'web_safari', 'web')
+    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web_safari', 'web')
     # Premium does not require POT (except for subtitles)
-    _DEFAULT_PREMIUM_CLIENTS = ('tv', 'web_creator', 'web')
+    _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator', 'web')
 
     _GEO_BYPASS = False
 
