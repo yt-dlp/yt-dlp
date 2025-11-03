@@ -190,26 +190,6 @@ class TumblrIE(InfoExtractor):
         },
         'add_ie': ['Vimeo'],
     }, {
-        'url': 'http://sutiblr.tumblr.com/post/139638707273',
-        'md5': '2dd184b3669e049ba40563a7d423f95c',
-        'info_dict': {
-            'id': 'ir7qBEIKqvq',
-            'ext': 'mp4',
-            'title': 'Vine by sutiblr',
-            'alt_title': 'Vine by sutiblr',
-            'uploader': 'sutiblr',
-            'uploader_id': '1198993975374495744',
-            'upload_date': '20160220',
-            'like_count': int,
-            'comment_count': int,
-            'repost_count': int,
-            'thumbnail': r're:^https?://.*\.jpg',
-            'timestamp': 1455940159,
-            'view_count': int,
-        },
-        'add_ie': ['Vine'],
-        'skip': 'Vine is unavailable',
-    }, {
         'url': 'https://silami.tumblr.com/post/84250043974/my-bad-river-flows-in-you-impression-on-maschine',
         'md5': '3c92d7c3d867f14ccbeefa2119022277',
         'info_dict': {
@@ -366,7 +346,6 @@ class TumblrIE(InfoExtractor):
     _providers = {
         'instagram': 'Instagram',
         'vimeo': 'Vimeo',
-        'vine': 'Vine',
         'youtube': 'Youtube',
         'dailymotion': 'Dailymotion',
         'tiktok': 'TikTok',

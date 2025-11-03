@@ -373,7 +373,7 @@ class CommitRange:
             issues = [issue.strip()[1:] for issue in issues.split(',')] if issues else []
 
             if prefix:
-                groups, details, sub_details = zip(*map(self.details_from_prefix, prefix.split(',')))
+                groups, details, sub_details = zip(*map(self.details_from_prefix, prefix.split(',')), strict=True)
                 group = next(iter(filter(None, groups)), None)
                 details = ', '.join(unique(details))
                 sub_details = list(itertools.chain.from_iterable(sub_details))
