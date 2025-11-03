@@ -471,7 +471,7 @@ def create_parser():
             'Supported runtimes are (in order of priority, from highest to lowest): deno, node, quickjs, bun. '
             'Only "deno" is enabled by default. The highest priority runtime that is both enabled and '
             'available will be used. In order to use a lower priority runtime when "deno" is available, '
-            '--no-js-runtimes needs to be passed before enabling other runtimes.'))
+            '--no-js-runtimes needs to be passed before enabling other runtimes'))
     general.add_option(
         '--no-js-runtimes',
         dest='js_runtimes', action='store_const', const=[],
@@ -492,7 +492,7 @@ def create_parser():
             'You can use this option multiple times to allow multiple components. '
             'Supported values: ejs:npm (external JavaScript components from npm), '
             'ejs:github (external JavaScript components from yt-dlp-ejs GitHub). '
-            'By default, no remote components are allowed.'))
+            'By default, no remote components are allowed'))
     general.add_option(
         '--no-remote-components',
         dest='remote_components', action='store_const', const=[],
