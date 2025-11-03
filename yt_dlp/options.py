@@ -468,9 +468,10 @@ def create_parser():
         help=(
             'Additional JavaScript runtime to enable, with an optional path to the runtime location. '
             'This option can be used multiple times to enable multiple runtimes. '
-            'Supported runtimes: deno, node, quickjs, bun. By default, only "deno" runtime is enabled. '
-            'The runtime priority is deno > node > quickjs > bun. The first enabled and available runtime is used. '
-            'To not use deno when available --no-js-runtimes needs to be passed before enabling other runtimes.'))
+            'Supported runtimes are (in order of priority, from highest to lowest): deno, node, quickjs, bun. '
+            'Only "deno" is enabled by default. The highest priority runtime that is both enabled and '
+            'available will be used. In order to use a lower priority runtime when "deno" is available, '
+            '--no-js-runtimes needs to be passed before enabling other runtimes.'))
     general.add_option(
         '--no-js-runtimes',
         dest='js_runtimes', action='store_const', const=[],
@@ -486,9 +487,11 @@ def create_parser():
         default=[],
         help=(
             'Remote components to allow yt-dlp to fetch when required. '
-            'This option should not be required when using correctly packaged versions of yt-dlp. '
+            'This option is currently not needed if you are using an official executable '
+            'or have the yt-dlp-ejs library installed in your Python environment. '
             'You can use this option multiple times to allow multiple components. '
-            'Supported values: ejs:npm (external JavaScript components from npm), ejs:github (external JavaScript components from yt-dlp-ejs GitHub). '
+            'Supported values: ejs:npm (external JavaScript components from npm), '
+            'ejs:github (external JavaScript components from yt-dlp-ejs GitHub). '
             'By default, no remote components are allowed.'))
     general.add_option(
         '--no-remote-components',
