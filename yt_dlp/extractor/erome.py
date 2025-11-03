@@ -11,14 +11,14 @@ from ..utils import (
 class EromeIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?erome\.com/a/(?P<id>[0-9A-Za-z]+)'
     _TESTS = [{
-        'url': 'https://www.erome.com/a/puDn9Ypp',
+        'url': 'https://www.erome.com/a/JlMZFf4f',
         'info_dict': {
-            'id': 'puDn9Ypp',
-            'title': 'Gostosa de bikini',
+            'id': 'JlMZFf4f',
+            'title': '🍒 Perfect Tits!!!!',
             'age_limit': 18,
-            'description': 'md5:8fcf452a31183ad6a23800adcd98c9f7',
+            'description': 'md5:02591cd58c09a183e003b9a7a27ab79d',
         },
-        'playlist_mincount': 9,
+        'playlist_mincount': 40,
     }]
 
     def _real_extract(self, url):
