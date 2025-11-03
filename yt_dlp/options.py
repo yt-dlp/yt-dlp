@@ -468,7 +468,9 @@ def create_parser():
         help=(
             'Additional JavaScript runtime to enable, with an optional path to the runtime location. '
             'This option can be used multiple times to enable multiple runtimes. '
-            'Supported runtimes: deno, node, bun, quickjs. By default, only "deno" runtime is enabled.'))
+            'Supported runtimes: deno, node, quickjs, bun. By default, only "deno" runtime is enabled. '
+            'The runtime priority is deno > node > quickjs > bun. The first enabled and available runtime is used. '
+            'To not use deno when available --no-js-runtimes needs to be passed before enabling other runtimes.'))
     general.add_option(
         '--no-js-runtimes',
         dest='js_runtimes', action='store_const', const=[],
@@ -484,6 +486,7 @@ def create_parser():
         default=[],
         help=(
             'Remote components to allow yt-dlp to fetch when required. '
+            'This option should not be required when using correctly packaged versions of yt-dlp. '
             'You can use this option multiple times to allow multiple components. '
             'Supported values: ejs:npm (external JavaScript components from npm), ejs:github (external JavaScript components from yt-dlp-ejs GitHub). '
             'By default, no remote components are allowed.'))
