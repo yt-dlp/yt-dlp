@@ -91,6 +91,9 @@ class EromeIE(InfoExtractor):
                     'title': f'{title} - Video {i + 1}',
                     'uploader': uploader,
                     'description': description,
+                    'http_headers': {
+                        'Referer': 'https://www.erome.com/',
+                    },
                 })
 
         # Extract images - look for content images in the album directory
@@ -113,6 +116,9 @@ class EromeIE(InfoExtractor):
                             'uploader': uploader,
                             'ext': 'jpg',
                             'description': description,
+                            'http_headers': {
+                                'Referer': 'https://www.erome.com/',
+                            },
                         })
 
         if not entries:
@@ -123,7 +129,7 @@ class EromeIE(InfoExtractor):
 
 
 class EromeProfileIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?erome\.com/(?P<id>[a-zA-Z0-9_-]+)(?:/page/(?P<page>\d+))?'
+    _VALID_URL = r'https?://(?:www\.)?erome\.com/(?P<id>[a-zA-Z0-9_-]+)(?:\?page=\d+)?'
     _TESTS = [{
         'url': 'https://www.erome.com/username',
         'info_dict': {
@@ -140,16 +146,68 @@ class EromeProfileIE(InfoExtractor):
         return (False if EromeIE.suitable(url) else
                 super().suitable(url))
 
+    def _entries(self, profile_id):
+        page_num = 1
+
+        while True:
+            # Set age verification cookies before downloading
+            self._set_cookie('erome.com', 'age_verified', '1')
+            self._set_cookie('www.erome.com', 'age_verified', '1')
+
+            page_url = f'https://www.erome.com/{profile_id}' if page_num == 1 else f'https://www.erome.com/{profile_id}?page={page_num}'
+            webpage = self._download_webpage(
+                page_url, profile_id,
+                note=f'Downloading page {page_num}',
+                fatal=False)
+
+            if not webpage:
+                break
+
+            # Check if we've reached the end or hit an error page
+            if any(x in webpage for x in [
+                'User not found',
+                'Profile not found',
+                'This user does not exist',
+                'Page not found',
+            ]):
+                break
+
+            # Find album links on this page
+            album_links = re.findall(
+                r'href="(?:https?://(?:www\.)?erome\.com)?(/a/[a-zA-Z0-9]+)"',
+                webpage)
+
+            # Remove duplicates while preserving order
+            album_links = list(dict.fromkeys(album_links))
+
+            if not album_links:
+                break
+
+            for album_path in album_links:
+                album_url = f'https://www.erome.com{album_path}'
+                album_id = album_path.split('/')[-1]
+                yield self.url_result(
+                    album_url, EromeIE.ie_key(),
+                    video_id=album_id,
+                    video_title=f'{profile_id} - Album {album_id}')
+
+            # Check if there's a next page
+            if f'/page/{page_num + 1}' not in webpage and f'page={page_num + 1}' not in webpage:
+                break
+
+            page_num += 1
+
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         profile_id = mobj.group('id')
-        page = mobj.group('page') or '1'
 
         # Set age verification cookies before downloading
         self._set_cookie('erome.com', 'age_verified', '1')
         self._set_cookie('www.erome.com', 'age_verified', '1')
 
-        webpage = self._download_webpage(url, profile_id)
+        # Download first page to get profile info
+        webpage = self._download_webpage(
+            f'https://www.erome.com/{profile_id}', profile_id)
 
         # Check if profile exists
         if any(x in webpage for x in [
@@ -173,32 +231,11 @@ class EromeProfileIE(InfoExtractor):
             r'<meta name="description" content="([^"]+)"',
             webpage, 'description', fatal=False)
 
-        # Find album links
-        album_links = re.findall(r'href="(/a/[a-zA-Z0-9]+)"', webpage)
-
-        # Remove duplicates while preserving order
-        album_links = list(dict.fromkeys(album_links))
-
-        entries = []
-        for album_path in album_links:
-            album_url = f'https://www.erome.com{album_path}'
-            album_id = album_path.split('/')[-1]
-            entries.append(self.url_result(
-                album_url, EromeIE.ie_key(),
-                video_id=album_id,
-                video_title=f'{profile_id} - Album {album_id}'))
-
-        if not entries:
-            raise ExtractorError('No albums found on this profile')
-
-        playlist_title = f'{title} - Page {page}' if page != '1' else title
-        playlist_id = f'{profile_id}_page_{page}' if page != '1' else profile_id
-
         return {
             '_type': 'playlist',
-            'id': playlist_id,
-            'title': playlist_title,
+            'id': profile_id,
+            'title': title,
             'description': description,
-            'entries': entries,
+            'entries': self._entries(profile_id),
             'age_limit': 18,
         }
