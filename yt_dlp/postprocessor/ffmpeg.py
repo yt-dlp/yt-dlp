@@ -418,7 +418,7 @@ class FFmpegPostProcessor(PostProcessor):
         if concat_opts is None:
             concat_opts = [{}] * len(in_files)
         yield 'ffconcat version 1.0\n'
-        for file, opts in zip(in_files, concat_opts):
+        for file, opts in zip(in_files, concat_opts, strict=True):
             yield f'file {cls._quote_for_ffmpeg(cls._ffmpeg_filename_argument(file))}\n'
             # Iterate explicitly to yield the following directives in order, ignoring the rest.
             for directive in 'inpoint', 'outpoint', 'duration':
@@ -639,7 +639,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             # postprocessor a second time
             '-map', '-0:s',
         ]
-        for i, (lang, name) in enumerate(zip(sub_langs, sub_names)):
+        for i, (lang, name) in enumerate(zip(sub_langs, sub_names, strict=True)):
             opts.extend(['-map', f'{i + 1}:0'])
             lang_code = ISO639Utils.short2long(lang) or lang
             opts.extend([f'-metadata:s:s:{i}', f'language={lang_code}'])
