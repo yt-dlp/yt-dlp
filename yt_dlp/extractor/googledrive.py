@@ -342,8 +342,8 @@ class GoogleDriveFolderIE(InfoExtractor):
 
         title = self._extract_json_meta(webpage, folder_id, dsval=0, name='folder info')[1][2]
         items = (
-            self._extract_json_meta(webpage, folder_id, hashval=6, name='folder items', default=[None])[-1] or
-            self._parse_json(self._search_json(
+            self._extract_json_meta(webpage, folder_id, hashval=6, name='folder items', default=[None])[-1]
+            or self._parse_json(self._search_json(
                 r'''window\['_DRIVE_ivd'\]\s*=''', webpage, 'folder items', folder_id,
                 contains_pattern="'[^']+'", transform_source=js_to_json), folder_id)[0])
 
