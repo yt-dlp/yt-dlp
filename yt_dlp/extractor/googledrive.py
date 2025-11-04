@@ -345,7 +345,8 @@ class GoogleDriveFolderIE(InfoExtractor):
             self._extract_json_meta(webpage, folder_id, hashval=6, name='folder items', default=[None])[-1]
             or self._parse_json(self._search_json(
                 r'''window\['_DRIVE_ivd'\]\s*=''', webpage, 'folder items', folder_id,
-                contains_pattern="'[^']+'", transform_source=js_to_json), folder_id)[0])
+                contains_pattern=r'''(?P<q>['"])(?P<str>(?!(?P=q))[\s\S]+)(?P=q)''',
+                transform_source=js_to_json), folder_id)[0])
 
         if not items:  # empty folder, False or None
             return self.playlist_result([], folder_id, title)
