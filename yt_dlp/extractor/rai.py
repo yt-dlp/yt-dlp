@@ -344,7 +344,18 @@ class RaiPlayIE(RaiBaseIE):
             'release_year': int,
         },
     }, {
-        # embedded
+        'url': 'http://www.raiplay.it/video/2016/11/gazebotraindesi-efebe701-969c-4593-92f3-285f0d1ce750.html?',
+        'only_matching': True,
+    }, {
+        # subtitles at 'subtitlesArray' key (see #27698)
+        'url': 'https://www.raiplay.it/video/2020/12/Report---04-01-2021-2e90f1de-8eee-4de4-ac0e-78d21db5b600.html',
+        'only_matching': True,
+    }, {
+        # DRM protected
+        'url': 'https://www.raiplay.it/video/2021/06/Lo-straordinario-mondo-di-Zoey-S2E1-Lo-straordinario-ritorno-di-Zoey-3ba992de-2332-41ad-9214-73e32ab209f4.html',
+        'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
         'url': 'https://www.rai.it/programmi/report/inchieste/Questione-di-lobby-9fbdb9dc-3765-4377-823e-58db0561a4f2.html',
         'md5': '870422055ba90cf0312888654cc9ee34',
         'info_dict': {
@@ -362,19 +373,8 @@ class RaiPlayIE(RaiBaseIE):
             'series': 'Report',
             'thumbnail': 'https://www.raiplay.it/dl/img/2025/01/25265735.png',
             'description': 'md5:df05db433304fe5881af142cca73d74a',
-            'release_year': int,
+            'release_year': 2025,
         },
-    }, {
-        'url': 'http://www.raiplay.it/video/2016/11/gazebotraindesi-efebe701-969c-4593-92f3-285f0d1ce750.html?',
-        'only_matching': True,
-    }, {
-        # subtitles at 'subtitlesArray' key (see #27698)
-        'url': 'https://www.raiplay.it/video/2020/12/Report---04-01-2021-2e90f1de-8eee-4de4-ac0e-78d21db5b600.html',
-        'only_matching': True,
-    }, {
-        # DRM protected
-        'url': 'https://www.raiplay.it/video/2021/06/Lo-straordinario-mondo-di-Zoey-S2E1-Lo-straordinario-ritorno-di-Zoey-3ba992de-2332-41ad-9214-73e32ab209f4.html',
-        'only_matching': True,
     }]
 
     def _real_extract(self, url):
