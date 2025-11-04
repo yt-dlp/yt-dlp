@@ -3047,7 +3047,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         microformats = traverse_obj(
             prs, (..., 'microformat', 'playerMicroformatRenderer'),
             expected_type=dict)
-        _, live_status, formats, _ = self._list_formats(video_id, microformats, video_details, prs, player_url)
+        _, _, formats, _ = self._list_formats(video_id, microformats, video_details, prs, player_url)
 
         for f in formats:
             if f.get('protocol') == 'sabr':
@@ -3396,9 +3396,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         server_abr_streaming_url = update_url_query(server_abr_streaming_url, {'n': self._player_cache[n_challenge]})
                     else:
                         _, challenge_response = traverse_obj(self._jsc_director.bulk_solve([JsChallengeRequest(
-                                type=JsChallengeType.N,
-                                video_id=video_id,
-                                input=NChallengeInput(challenges=[n_challenge], player_url=player_url))]), 0) or (None, None)
+                            type=JsChallengeType.N,
+                            video_id=video_id,
+                            input=NChallengeInput(challenges=[n_challenge], player_url=player_url))]), 0) or (None, None)
                         if not challenge_response or n_challenge not in challenge_response.output.results:
                             self.report_warning(
                                 f'SABR n challenge solving failed: SABR formats may be missing. '

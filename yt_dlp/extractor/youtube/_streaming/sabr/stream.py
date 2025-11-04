@@ -157,7 +157,7 @@ class SabrStream:
         if self.max_empty_requests <= 0:
             raise ValueError('max_empty_requests must be greater than 0')
         self.retry_sleep_func = retry_sleep_func
-        self._request_number = 0
+        self._request_number = 1
 
         # Whether we got any new (not consumed) segments in the request.
         self._received_new_segments = False
@@ -649,8 +649,12 @@ class SabrStream:
     def _process_sabr_redirect(self, part: UMPPart):
         sabr_redirect = protobug.load(part.data, SabrRedirect)
         self._log_part(part, protobug_obj=sabr_redirect)
+        # TODO: validate the url is:
+        # - A valid url
+        # - On the same domain as the previous url
+        # - Is HTTPS scheme
         if not sabr_redirect.redirect_url:
-            self.logger.warning('Server requested to redirect to an invalid URL')
+            self.logger.warning(f'Server requested to redirect to an invalid URL: {sabr_redirect.redirect_url}')
             return
         self.url = sabr_redirect.redirect_url
 

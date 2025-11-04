@@ -3,7 +3,15 @@ import base64
 import dataclasses
 import io
 import protobug
+import pytest
+
 from yt_dlp.extractor.youtube._streaming.sabr.models import AudioSelector, VideoSelector
+from yt_dlp.extractor.youtube._streaming.sabr.part import (
+    FormatInitializedSabrPart,
+    MediaSegmentInitSabrPart,
+    MediaSegmentDataSabrPart,
+    MediaSegmentEndSabrPart,
+)
 from yt_dlp.extractor.youtube._streaming.sabr.stream import SabrStream
 from yt_dlp.networking import Request, Response
 from yt_dlp.extractor.youtube._proto.videostreaming import (
@@ -12,10 +20,14 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     FormatId,
     FormatInitializationMetadata,
     MediaHeader,
+    BufferedRange,
+    TimeRange,
+    SabrRedirect,
 )
 from yt_dlp.extractor.youtube._streaming.ump import UMPEncoder, UMPPart, UMPPartId, write_varint
 
-VIDEO_PLAYBACK_USTREAMER_CONFIG = base64.urlsafe_b64encode(b'test-config').decode('utf-8')
+RAW_VIDEO_PLAYBACK_USTREAMER_CONFIG = b'test-config'
+VIDEO_PLAYBACK_USTREAMER_CONFIG = base64.urlsafe_b64encode(RAW_VIDEO_PLAYBACK_USTREAMER_CONFIG).decode('utf-8')
 VIDEO_ID = 'test_video_id'
 
 DEFAULT_NUM_AUDIO_SEGMENTS = 5
@@ -286,21 +298,205 @@ class BasicAudioVideoProfile(SabrResponseProcessor):
         ]
 
 
+class SabrRedirectAVProfile(BasicAudioVideoProfile):
+    def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str) -> list[UMPPart]:
+        parts = super().get_parts(vpabr, url)
+
+        # 1. Redirect with data on 2nd request
+        if 'rn=2' in url:
+            data = protobug.dumps(SabrRedirect(redirect_url='https://redirect.example.com/sabr'))
+            parts.append(UMPPart(
+                part_id=UMPPartId.SABR_REDIRECT,
+                size=len(data),
+                data=io.BytesIO(data),
+            ))
+
+        # 2. Redirect with no other data after that
+        if url.startswith('https://redirect.example.com/sabr'):
+            data = protobug.dumps(SabrRedirect(redirect_url='https://redirect.example.com/final'))
+            parts = [UMPPart(
+                part_id=UMPPartId.SABR_REDIRECT,
+                size=len(data),
+                data=io.BytesIO(data),
+            )]
+
+        return parts
+
+
+def assert_media_sequence_in_order(parts, format_selector: AudioSelector | VideoSelector, expected_total_segments: int):
+    # Checks that for the given format_selector, the media segments are in order:
+    # MediaSegmentInitSabrPart -> MediaSegmentDataSabrPart* -> MediaSegmentEndSabrPart
+
+    total_segments = 0
+    current_segment = [None, [], None]
+
+    for part in parts:
+        if isinstance(part, MediaSegmentInitSabrPart):
+            if part.format_selector == format_selector:
+                if current_segment[0] is not None:
+                    assert current_segment[2] is not None
+                    if current_segment[0].sequence_number is None:
+                        assert part.sequence_number == 1
+                    else:
+                        assert part.sequence_number == current_segment[0].sequence_number + 1
+                current_segment = [part, [], None]
+                total_segments += 1
+        elif isinstance(part, MediaSegmentDataSabrPart):
+            if part.format_selector == format_selector:
+                assert current_segment[0] is not None
+                assert part.sequence_number == current_segment[0].sequence_number
+                current_segment[1].append(part)
+        elif isinstance(part, MediaSegmentEndSabrPart):
+            if part.format_selector == format_selector:
+                assert current_segment[0] is not None
+                assert current_segment[1]
+                assert current_segment[2] is None
+                assert part.sequence_number == current_segment[0].sequence_number
+                current_segment[2] = part
+
+    assert current_segment[0].sequence_number == current_segment[0].total_segments == expected_total_segments == (total_segments - 1)
+
+
 class TestStream:
-    def test_sabr_request_handler(self, logger, client_info):
-
+    def test_sabr_audio_video(self, logger, client_info):
+        # Basic successful case that both audio and video formats are requested and returned.
         rh = SabrRequestHandler(sabr_response_processor=BasicAudioVideoProfile())
-
+        audio_selector = AudioSelector(display_name='audio')
+        video_selector = VideoSelector(display_name='video')
         sabr_stream = SabrStream(
             urlopen=rh.send,
             server_abr_streaming_url='https://example.com/sabr',
             logger=logger,
             video_playback_ustreamer_config=VIDEO_PLAYBACK_USTREAMER_CONFIG,
             client_info=client_info,
-            audio_selection=AudioSelector(display_name='audio'),
-            video_selection=VideoSelector(display_name='video'),
+            audio_selection=audio_selector,
+            video_selection=video_selector,
         )
 
-        for part in sabr_stream.iter_parts():
-            print(part)
-        print(logger.mock_calls)
+        parts = list(sabr_stream.iter_parts())
+
+        # 1. Check we got two format initialization metadata parts for the two formats.
+        format_init_parts = [part for part in parts if isinstance(part, FormatInitializedSabrPart)]
+        assert len(format_init_parts) == 2
+        assert format_init_parts[0].format_id == FormatId(itag=140, lmt=123)
+        assert format_init_parts[0].format_selector == audio_selector
+        assert format_init_parts[1].format_id == FormatId(itag=248, lmt=456)
+        assert format_init_parts[1].format_selector == video_selector
+
+        # 2. Check that media segments are in order for both audio and video selectors.
+        assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS)
+        assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS)
+
+        assert len(rh.request_history) == 6
+
+    def test_sabr_basic_buffers(self, logger, client_info):
+        # Check that basic audio and video buffering works as expected
+        # with player time updates based on the shorter of the two streams.
+        rh = SabrRequestHandler(sabr_response_processor=BasicAudioVideoProfile())
+        audio_selector = AudioSelector(display_name='audio')
+        video_selector = VideoSelector(display_name='video')
+        sabr_stream = SabrStream(
+            urlopen=rh.send,
+            server_abr_streaming_url='https://example.com/sabr',
+            logger=logger,
+            video_playback_ustreamer_config=VIDEO_PLAYBACK_USTREAMER_CONFIG,
+            client_info=client_info,
+            audio_selection=audio_selector,
+            video_selection=video_selector,
+        )
+
+        list(sabr_stream.iter_parts())
+        assert len(rh.request_history) == 6
+
+        # First empty request
+        assert rh.request_history[0].vpabr.buffered_ranges == []
+        # Player time is at 0
+        assert rh.request_history[0].vpabr.client_abr_state.player_time_ms == 0
+
+        # Second request, first segment buffered
+        assert rh.request_history[1].vpabr.buffered_ranges == [
+            BufferedRange(
+                format_id=FormatId(itag=140, lmt=123, xtags=None),
+                start_time_ms=0, duration_ms=2000, start_segment_index=1, end_segment_index=1,
+                time_range=TimeRange(start_ticks=0, duration_ticks=2000, timescale=1000)),
+            BufferedRange(
+                format_id=FormatId(itag=248, lmt=456, xtags=None),
+                start_time_ms=0, duration_ms=1000, start_segment_index=1, end_segment_index=1,
+                time_range=TimeRange(start_ticks=0, duration_ticks=1000, timescale=1000))]
+        # Player time should now be at 1000ms - based on audio segment (shorter of the two)
+        assert rh.request_history[1].vpabr.client_abr_state.player_time_ms == 1000
+
+        # Second request, first segment buffered
+        assert rh.request_history[2].vpabr.buffered_ranges == [
+            BufferedRange(
+                format_id=FormatId(itag=140, lmt=123, xtags=None),
+                start_time_ms=0, duration_ms=6001, start_segment_index=1, end_segment_index=3,
+                time_range=TimeRange(start_ticks=0, duration_ticks=6001, timescale=1000)),
+            BufferedRange(
+                format_id=FormatId(itag=248, lmt=456, xtags=None),
+                start_time_ms=0, duration_ms=3001, start_segment_index=1, end_segment_index=3,
+                time_range=TimeRange(start_ticks=0, duration_ticks=3001, timescale=1000))]
+
+        assert rh.request_history[2].vpabr.client_abr_state.player_time_ms == 3001
+        assert rh.request_history[3].vpabr.client_abr_state.player_time_ms == 5001
+        assert rh.request_history[4].vpabr.client_abr_state.player_time_ms == 7001
+
+        # Final request should have all but last segments buffered
+        assert rh.request_history[5].vpabr.buffered_ranges == [
+            BufferedRange(
+                format_id=FormatId(itag=140, lmt=123, xtags=None),
+                start_time_ms=0, duration_ms=10001, start_segment_index=1, end_segment_index=5,
+                time_range=TimeRange(start_ticks=0, duration_ticks=10001, timescale=1000)),
+            BufferedRange(
+                format_id=FormatId(itag=248, lmt=456, xtags=None),
+                start_time_ms=0, duration_ms=9001, start_segment_index=1, end_segment_index=9,
+                time_range=TimeRange(start_ticks=0, duration_ticks=9001, timescale=1000))]
+        assert rh.request_history[5].vpabr.client_abr_state.player_time_ms == 9001
+
+    def test_sabr_basic_redirect(self, logger, client_info):
+        # Test successful redirect handling
+        rh = SabrRequestHandler(sabr_response_processor=SabrRedirectAVProfile())
+        audio_selector = AudioSelector(display_name='audio')
+        video_selector = VideoSelector(display_name='video')
+        sabr_stream = SabrStream(
+            urlopen=rh.send,
+            server_abr_streaming_url='https://example.com/sabr',
+            logger=logger,
+            video_playback_ustreamer_config=VIDEO_PLAYBACK_USTREAMER_CONFIG,
+            client_info=client_info,
+            audio_selection=audio_selector,
+            video_selection=video_selector,
+        )
+
+        assert sabr_stream.url == 'https://example.com/sabr'
+        parts = list(sabr_stream.iter_parts())
+        assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS)
+        assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS)
+
+        assert len(rh.request_history) == 7
+        assert rh.request_history[0].request.url == 'https://example.com/sabr?rn=1'
+        assert rh.request_history[2].request.url == 'https://redirect.example.com/sabr?rn=3'
+        assert rh.request_history[3].request.url == 'https://redirect.example.com/final?rn=4'
+        assert rh.request_history[4].request.url == 'https://redirect.example.com/final?rn=5'
+        assert sabr_stream.url == 'https://redirect.example.com/final'
+
+    @pytest.mark.parametrize('bad_url', [None, '', 'bad-url%', 'http://insecure.example.com', 'file:///etc/passwd', 'https://example.org/sabr'])
+    def test_sabr_process_redirect_invalid_url(self, logger, client_info, bad_url):
+        # Should ignore an invalid redirect URl and continue with the current URL
+        rh = SabrRequestHandler(sabr_response_processor=SabrRedirectAVProfile())
+        audio_selector = AudioSelector(display_name='audio')
+        video_selector = VideoSelector(display_name='video')
+        sabr_stream = SabrStream(
+            urlopen=rh.send,
+            server_abr_streaming_url='https://example.com/sabr',
+            logger=logger,
+            video_playback_ustreamer_config=VIDEO_PLAYBACK_USTREAMER_CONFIG,
+            client_info=client_info,
+            audio_selection=audio_selector,
+            video_selection=video_selector,
+        )
+        data = protobug.dumps(SabrRedirect(redirect_url=bad_url))
+        sabr_stream._process_sabr_redirect(
+            UMPPart(part_id=UMPPartId.SABR_REDIRECT, size=len(data), data=io.BytesIO(data)))
+        assert sabr_stream.url == 'https://example.com/sabr'
+        logger.warning.assert_called_with(f'Server requested to redirect to an invalid URL: {bad_url}')

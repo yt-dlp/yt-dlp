@@ -86,13 +86,9 @@ class TestUMPDecoder:
     COMBINED_PART_DATA = b''.join(part['part_type_bytes'] + part['part_size_bytes'] + part['part_data_bytes'] for part in EXAMPLE_PART_DATA)
 
     def test_iter_parts(self):
-        # Create a mock file-like object
         mock_file = io.BytesIO(self.COMBINED_PART_DATA)
-
-        # Create an instance of UMPDecoder with the mock file
         decoder = UMPDecoder(mock_file)
 
-        # Iterate over the parts and check the values
         for idx, part in enumerate(decoder.iter_parts()):
             assert part.part_id == self.EXAMPLE_PART_DATA[idx]['part_id']
             assert part.size == self.EXAMPLE_PART_DATA[idx]['part_size']
@@ -105,7 +101,6 @@ class TestUMPDecoder:
         mock_file = io.BytesIO(self.COMBINED_PART_DATA + b'\x00')
         decoder = UMPDecoder(mock_file)
 
-        # Iterate over the parts and check the values
         with pytest.raises(EOFError, match='Unexpected EOF while reading part size'):
             for idx, part in enumerate(decoder.iter_parts()):
                 assert part.part_id == self.EXAMPLE_PART_DATA[idx]['part_id']
