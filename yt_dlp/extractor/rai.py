@@ -251,6 +251,7 @@ class RaiBaseIE(InfoExtractor):
 
 class RaiPlayIE(RaiBaseIE):
     _VALID_URL = rf'(?P<base>https?://(?:www\.)?raiplay\.it/.+?-(?P<id>{RaiBaseIE._UUID_RE}))\.(?:html|json)'
+    _EMBED_REGEX = [rf'<iframe [^>]*\bsrc=["\'](?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'https://www.raiplay.it/video/2014/04/Report-del-07042014-cb27157f-9dd0-4aee-b788-b1f67643a391.html',
         'md5': 'c064c0b2d09c278fb293116ef5d0a32d',
@@ -297,6 +298,7 @@ class RaiPlayIE(RaiBaseIE):
             'timestamp': 1637318940,
             'upload_date': '20211119',
             'formats': 'count:7',
+            'creators': ['Rai Fiction'],
         },
         'params': {'skip_download': True},
         'expected_warnings': ['Video not available. Likely due to geo-restriction.'],
@@ -340,7 +342,28 @@ class RaiPlayIE(RaiBaseIE):
             'episode': 'Ad ogni costo',
             'timestamp': 1665507240,
             'upload_date': '20221011',
-            'release_year': 2025,
+            'release_year': int,
+        },
+    }, {
+        # embedded
+        'url': 'https://www.rai.it/programmi/report/inchieste/Questione-di-lobby-9fbdb9dc-3765-4377-823e-58db0561a4f2.html',
+        'md5': '870422055ba90cf0312888654cc9ee34',
+        'info_dict': {
+            'id': 'f12422bb-0d3f-49a1-aa20-fb5bdacdc6d7',
+            'ext': 'mp4',
+            'upload_date': '20250112',
+            'timestamp': 1736718900,
+            'uploader': 'Rai 3',
+            'title': 'Questione di lobby - Report 12/01/2025',
+            'season': '2024/25',
+            'episode': 'Questione di lobby',
+            'duration': 2089,
+            'alt_title': 'St 2024/25 - Report - Questione di lobby',
+            'creators': ['Rai 3'],
+            'series': 'Report',
+            'thumbnail': 'https://www.raiplay.it/dl/img/2025/01/25265735.png',
+            'description': 'md5:df05db433304fe5881af142cca73d74a',
+            'release_year': int,
         },
     }, {
         'url': 'http://www.raiplay.it/video/2016/11/gazebotraindesi-efebe701-969c-4593-92f3-285f0d1ce750.html?',
@@ -699,34 +722,52 @@ class RaiArchiveIE(RaiBaseIE):
         }
 
 
-class RaiIE(InfoExtractor):
-    _VALID_URL = rf'https?://(?:www\.)?rai\.(?:it|tv)/programmi/.+-(?P<id>{RaiBaseIE._UUID_RE})(?:-.+?)?\.html'
+class RaiEmbeddedIE(RaiBaseIE):
+    _VALID_URL = False
     _TESTS = [{
-        'url': 'https://www.rai.it/programmi/report/inchieste/Questione-di-lobby-9fbdb9dc-3765-4377-823e-58db0561a4f2.html',
-        'md5': '870422055ba90cf0312888654cc9ee34',
+        'url': 'https://www.raiscuola.rai.it/italianoperstranieri/articoli/2021/06/Le-parole-dellitaliano-i-saluti-e-il-verbo-essere-be0d9ec7-9e27-4684-89e0-48d42888ba29.html',
+        'md5': '6809373c5325579cc5b5f00ffaaeef85',
         'info_dict': {
-            'id': 'f12422bb-0d3f-49a1-aa20-fb5bdacdc6d7',
+            'id': 'be0d9ec7-9e27-4684-89e0-48d42888ba29',
             'ext': 'mp4',
-            'upload_date': '20250112',
-            'timestamp': 1736718900,
-            'uploader': 'Rai 3',
-            'title': 'Questione di lobby - Report 12/01/2025',
-            'season': '2024/25',
-            'episode': 'Questione di lobby',
-            'duration': 2089,
-            'alt_title': 'St 2024/25 - Report - Questione di lobby',
-            'creators': ['Rai 3'],
-            'series': 'Report',
-            'thumbnail': 'https://www.raiplay.it/dl/img/2025/01/25265735.png',
-            'description': 'md5:df05db433304fe5881af142cca73d74a',
-            'release_year': int,
+            'title': 'Le parole dell\'italiano: i saluti e il verbo essere',
+            'description': 'Le parole dell\'italiano: i saluti e il verbo essere - Unità 1 - Livello A1',
+            'channel': 'rai_digital',
+            'duration': 349.0,
+            'thumbnail': 'https://www.raiscuola.rai.it/dl/img/2021/06/11/1623410922883_Le%20parole%20dellitaliano.jpg',
+            'genres': ['italiano per stranieri'],
+            'series': 'docenti - istruzione degli adulti',
+            'episode': 'Le parole dell\'italiano: i saluti e il verbo essere',
+            'timestamp': 1710240013,
+            'upload_date': '20240312',
+            'release_date': '20210609',
         },
     }]
 
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        html = self._download_webpage(url, video_id)
-        return self.url_result(self._search_regex(r'<iframe [^>]*\bsrc=["\']([^"\']+)', html, 'iframe url'))
+    def _extract_from_webpage(self, url, webpage):
+        embeds = re.finditer(r'''(?x)
+            <rai[^\-\s]+-player[^>]+?
+                \s*data=["\']([^"\']+?)["\']
+            >''', webpage)
+        for match in embeds:
+            video = self._parse_json(clean_html(match.group(1)), url)
+            video_id = video['track_info']['id']
+            video_id = remove_start(video_id, 'ContentItem-') or video_id
+
+            yield {
+                'id': video_id,
+                'title': video.get('title') or video['track_info'].get('title'),
+                **traverse_obj(video, {
+                    'channel': ('track_info', 'channel'),
+                    'episode_number': ('track_info', 'episode_number', {int_or_none}),
+                    'episode': ('track_info', 'episode_title'),
+                    'genres': ('track_info', 'genres'),
+                    'is_live': ('live'),
+                    'release_date': ('track_info', 'date', {lambda x: x.replace('-', '')}),
+                    'series': ('track_info', 'program_title'),
+                }),
+                **self._extract_relinker_info(video['content_url'], video_id),
+            }
 
 
 class RaiNewsIE(RaiBaseIE):
