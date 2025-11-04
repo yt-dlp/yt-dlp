@@ -1284,9 +1284,9 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                 **traverse_obj(model, {
                     'title': ('title', {str}),
                     'thumbnail': ('imageUrl', {lambda u: urljoin(url, u.replace('$recipe', 'raw'))}),
-                    'description': ('synopses', ('long', 'medium', 'short'), {str}, {lambda x: x or None}, any),
+                    'description': ('synopses', ('long', 'medium', 'short'), {str}, filter, any),
                     'duration': ('versions', 0, 'duration', {int}),
-                    'timestamp': ('versions', 0, 'availableFrom', {functools.partial(int_or_none, scale=1000)}),
+                    'timestamp': ('versions', 0, 'availableFrom', {int_or_none(scale=1000)}),
                 }),
             }
 
@@ -1386,7 +1386,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                     formats = traverse_obj(media_data, ('playlist', lambda _, v: url_or_none(v['url']), {
                         'url': ('url', {url_or_none}),
                         'ext': ('format', {str}),
-                        'tbr': ('bitrate', {functools.partial(int_or_none, scale=1000)}),
+                        'tbr': ('bitrate', {int_or_none(scale=1000)}),
                     }))
                     if formats:
                         entry = {
@@ -1398,7 +1398,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                                 'title': ('title', {str}),
                                 'thumbnail': ('imageUrl', {lambda u: urljoin(url, u.replace('$recipe', 'raw'))}),
                                 'description': ('synopses', ('long', 'medium', 'short'), {str}, any),
-                                'timestamp': ('firstPublished', {functools.partial(int_or_none, scale=1000)}),
+                                'timestamp': ('firstPublished', {int_or_none(scale=1000)}),
                             }),
                         }
                         done = True
@@ -1428,7 +1428,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             if not entry.get('timestamp'):
                 entry['timestamp'] = traverse_obj(next_data, (
                     ..., 'contents', is_type('timestamp'), 'model',
-                    'timestamp', {functools.partial(int_or_none, scale=1000)}, any))
+                    'timestamp', {int_or_none(scale=1000)}, any))
             entries.append(entry)
             return self.playlist_result(
                 entries, playlist_id, playlist_title, playlist_description)

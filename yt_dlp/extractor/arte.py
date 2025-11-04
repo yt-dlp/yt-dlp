@@ -51,8 +51,8 @@ class ArteTVIE(ArteTVBaseIE):
             'id': '109067-000-A',
             'ext': 'mp4',
             'description': 'md5:d2ca367b8ecee028dddaa8bd1aebc739',
+            'thumbnail': r're:https?://api-cdn\.arte\.tv/img/v2/image/.+',
             'timestamp': 1713927600,
-            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/3rR6PLzfbigSkkeHtkCZNF/940x530',
             'duration': 7599,
             'title': 'La loi de Téhéran',
             'upload_date': '20240424',
@@ -62,6 +62,7 @@ class ArteTVIE(ArteTVBaseIE):
                 'fr-forced': 'mincount:1',
             },
         },
+        'skip': 'Invalid URL',
     }, {
         'note': 'age-restricted',
         'url': 'https://www.arte.tv/de/videos/006785-000-A/the-element-of-crime/',
@@ -69,9 +70,9 @@ class ArteTVIE(ArteTVBaseIE):
             'id': '006785-000-A',
             'description': 'md5:c2f94fdfefc8a280e4dab68ab96ab0ba',
             'title': 'The Element of Crime',
+            'thumbnail': r're:https?://api-cdn\.arte\.tv/img/v2/image/.+',
             'timestamp': 1696111200,
             'duration': 5849,
-            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/q82dTTfyuCXupPsGxXsd7B/940x530',
             'upload_date': '20230930',
             'ext': 'mp4',
         },
@@ -252,6 +253,30 @@ class ArteTVEmbedIE(InfoExtractor):
         'url': 'https://www.arte.tv/player/v3/index.php?json_url=https://api.arte.tv/api/player/v2/config/de/100605-013-A',
         'only_matching': True,
     }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
+        'url': 'https://timesofmalta.com/article/watch-sunken-warships-north-sea-arte.1108358',
+        'info_dict': {
+            'id': '110288-000-A',
+            'ext': 'mp4',
+            'title': 'Danger on the Seabed',
+            'alt_title': 'Sunken Warships in the North Sea',
+            'description': 'md5:a2c84cbad37d280bddb6484087120add',
+            'duration': 3148,
+            'thumbnail': r're:https?://api-cdn\.arte\.tv/img/v2/image/.+',
+            'timestamp': 1741686820,
+            'upload_date': '20250311',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # FIXME: Embed detection
+        'url': 'https://www.eurockeennes.fr/en-live/',
+        'info_dict': {
+            'id': 'en-live',
+            'title': 'Les Eurocks en live | Les Eurockéennes de Belfort – 3-4-5-6 juillet 2025 sur la Presqu&#039;Île du Malsaucy',
+        },
+        'playlist_count': 4,
+    }]
 
     def _real_extract(self, url):
         qs = parse_qs(url)
@@ -304,9 +329,9 @@ class ArteTVCategoryIE(ArteTVBaseIE):
         'info_dict': {
             'id': 'politics-and-society',
             'title': 'Politics and society',
-            'description': 'Investigative documentary series, geopolitical analysis, and international commentary',
+            'description': 'Watch documentaries and reportage about politics, society and current affairs.',
         },
-        'playlist_mincount': 13,
+        'playlist_mincount': 3,
     }]
 
     @classmethod
