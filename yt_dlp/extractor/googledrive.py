@@ -321,7 +321,7 @@ class GoogleDriveFolderIE(InfoExtractor):
                     (lambda _, v: any(ie.suitable(v) for ie in available_IEs), any))
             if not entry_url:
                 return None
-            return self.url_result(entry_url, video_id=video_id, video_title=item[2])
+            return self.url_result(entry_url, video_id=video_id, video_title=traverse_obj(item, 2))
 
         folder_id = self._match_id(url) or 'my-drive'
         headers = self.geo_verification_headers()
