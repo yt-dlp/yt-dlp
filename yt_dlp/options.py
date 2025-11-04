@@ -488,7 +488,7 @@ def create_parser():
         help=(
             'Remote components to allow yt-dlp to fetch when required. '
             'This option is currently not needed if you are using an official executable '
-            'or have the yt-dlp-ejs library installed in your Python environment. '
+            'or have the requisite version of the yt-dlp-ejs package installed. '
             'You can use this option multiple times to allow multiple components. '
             'Supported values: ejs:npm (external JavaScript components from npm), '
             'ejs:github (external JavaScript components from yt-dlp-ejs GitHub). '
