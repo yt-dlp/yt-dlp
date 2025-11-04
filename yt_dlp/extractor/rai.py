@@ -722,9 +722,9 @@ class RaiArchiveIE(RaiBaseIE):
         }
 
 
-class RaiEmbeddedIE(RaiBaseIE):
+class RaiEmbedIE(RaiBaseIE):
     _VALID_URL = False
-    _TESTS = [{
+    _WEBPAGE_TESTS = [{
         'url': 'https://www.raiscuola.rai.it/italianoperstranieri/articoli/2021/06/Le-parole-dellitaliano-i-saluti-e-il-verbo-essere-be0d9ec7-9e27-4684-89e0-48d42888ba29.html',
         'md5': '6809373c5325579cc5b5f00ffaaeef85',
         'info_dict': {
@@ -750,7 +750,7 @@ class RaiEmbeddedIE(RaiBaseIE):
                 \s*data=["\']([^"\']+?)["\']
             >''', webpage)
         for match in embeds:
-            video = self._parse_json(clean_html(match.group(1)), url)
+            video = self._parse_json(match.group(1), url, clean_html)
             video_id = video['track_info']['id']
             video_id = remove_start(video_id, 'ContentItem-') or video_id
 
@@ -766,7 +766,7 @@ class RaiEmbeddedIE(RaiBaseIE):
                     'release_date': ('track_info', 'date', {lambda x: x.replace('-', '')}),
                     'series': ('track_info', 'program_title'),
                 }),
-                **self._extract_relinker_info(video['content_url'], video_id),
+                **self._extract_relinker_info(video['content_url'], video_id, video.get('audio')),
             }
 
 

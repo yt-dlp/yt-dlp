@@ -1648,7 +1648,7 @@ from .radlive import (
 from .rai import (
     RaiArchiveIE,
     RaiCulturaIE,
-    RaiEmbeddedIE,
+    RaiEmbedIE,
     RaiNewsIE,
     RaiPlayIE,
     RaiPlayLiveIE,
