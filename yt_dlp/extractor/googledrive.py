@@ -11,6 +11,7 @@ from ..utils import (
     get_element_by_class,
     get_element_html_by_id,
     int_or_none,
+    js_to_json,
     mimetype2ext,
     parse_duration,
     str_or_none,
@@ -44,7 +45,6 @@ class GoogleDriveIE(InfoExtractor):
             'thumbnail': r're:https://lh3\.googleusercontent\.com/drive-storage/',
         },
     }, {
-        # has itag 50 which is not in YoutubeIE._formats (royalty Free music from 1922)
         'url': 'https://drive.google.com/uc?id=1IP0o8dHcQrIHGgVyp0Ofvx2cGfLzyO1x',
         'md5': '322db8d63dd19788c04050a4bba67073',
         'info_dict': {
@@ -284,9 +284,9 @@ class GoogleDriveFolderIE(InfoExtractor):
         """
         Uses regex to search for json metadata with 'ds' value(0-5) or 'hash' value(1-6)
         from the webpage.
-            logged out  folder info:ds0hash1;          items:ds4hash6
-            logged in   folder info:ds0hash1;          items:ds5hash6
-            my-drive    folder info:ds0hash1/ds0hash4; items:ds5hash6
+            logged out  folder info:ds0hash1;          items (old):ds4hash6
+            logged in   folder info:ds0hash1;          items (old):ds5hash6
+            my-drive    folder info:ds0hash1/ds0hash4; items (old):ds5hash6
         For example, if the webpage contains the line below, the empty data array
         can be got by passing dsval=3 or hashval=2 to this method.
             AF_initDataCallback({key: 'ds:3', hash: '2', data:[], sideChannel: {}});
@@ -341,9 +341,13 @@ class GoogleDriveFolderIE(InfoExtractor):
             self.raise_login_required('Access Denied')
 
         title = self._extract_json_meta(webpage, folder_id, dsval=0, name='folder info')[1][2]
-        items = self._extract_json_meta(webpage, folder_id, hashval=6, name='folder items')[-1]
+        items = (
+            self._extract_json_meta(webpage, folder_id, hashval=6, name='folder items', default=[None])[-1] or
+            self._parse_json(self._search_json(
+                r'''window\['_DRIVE_ivd'\]\s*=''', webpage, 'folder items', folder_id,
+                contains_pattern="'[^']+'", transform_source=js_to_json), folder_id)[0])
 
-        if items is False:  # empty folder
+        if not items:  # empty folder, False or None
             return self.playlist_result([], folder_id, title)
 
         return self.playlist_result(
