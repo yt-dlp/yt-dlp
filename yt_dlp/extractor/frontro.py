@@ -121,8 +121,8 @@ class TheChosenIE(FrontroVideoBaseIE):
             'thumbnail': r're:https://fastly\.frontrowcdn\.com/channels/12884901895/VIDEO_THUMBNAIL/184683594325/',
             'timestamp': 1698954546,
             'upload_date': '20231102',
-            'modified_timestamp': 1762106189,
-            'modified_date': '20251102',
+            'modified_timestamp': int,
+            'modified_date': str,
         },
     }, {
         'url': 'https://watch.thechosen.tv/video/184683596189',
@@ -139,8 +139,8 @@ class TheChosenIE(FrontroVideoBaseIE):
             'thumbnail': r're:https://fastly\.frontrowcdn\.com/channels/12884901895/VIDEO_THUMBNAIL/184683596189/',
             'timestamp': 1715019474,
             'upload_date': '20240506',
-            'modified_timestamp': 1762106234,
-            'modified_date': '20251102',
+            'modified_timestamp': int,
+            'modified_date': str,
         },
     }]
 
@@ -158,8 +158,8 @@ class TheChosenGroupIE(FrontroGroupBaseIE):
             'title': 'Season 3',
             'timestamp': 1746203969,
             'upload_date': '20250502',
-            'modified_timestamp': 1747430262,
-            'modified_date': '20250516',
+            'modified_timestamp': int,
+            'modified_date': str,
         },
         'playlist_count': 8,
     }]
