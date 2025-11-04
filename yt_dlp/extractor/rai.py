@@ -438,6 +438,7 @@ class RaiPlayLiveIE(RaiPlayIE):  # XXX: Do not subclass from concrete IE
             'upload_date': '20090502',
             'timestamp': 1241276220,
             'formats': 'count:3',
+            'creators': ['Rai News 24'],
         },
         'params': {'skip_download': True},
     }]
@@ -525,6 +526,7 @@ class RaiPlaySoundIE(RaiBaseIE):
             'creator': 'rai radio 2',
             'timestamp': 1638346620,
             'upload_date': '20211201',
+            'creators': ['rai radio 2'],
         },
         'params': {'skip_download': True},
     }, {
@@ -602,6 +604,7 @@ class RaiPlaySoundLiveIE(RaiPlaySoundIE):  # XXX: Do not subclass from concrete 
             'creator': 'raiplaysound',
             'is_live': True,
             'live_status': 'is_live',
+            'creators': ['raiplaysound'],
         },
         'params': {'skip_download': True},
     }]
