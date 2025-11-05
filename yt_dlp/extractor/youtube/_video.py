@@ -3219,7 +3219,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     fmt_url = fmt_stream.get('url')
                     encrypted_sig, sc = None, None
                     if not fmt_url:
-                        # We should still extract original/default language information
+                        # We still need to register original/default language information
+                        # See: https://github.com/yt-dlp/yt-dlp/issues/14883
                         get_language_code_and_preference(fmt_stream)
                         sc = urllib.parse.parse_qs(fmt_stream.get('signatureCipher'))
                         fmt_url = url_or_none(try_get(sc, lambda x: x['url'][0]))
