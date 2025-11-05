@@ -54,9 +54,6 @@ class DigitekaIE(InfoExtractor):
         iframe_webpage = self._download_webpage(
             iframe_json_ld_url, video_id, note='Downloading iframe JSON-LD', fatal=False)
 
-        with open('webpage.txt', 'w', encoding='utf-8') as f:
-            f.write(iframe_webpage or '')
-
         info = self._search_json_ld(iframe_webpage, video_id, 'VideoObject', fatal=False) or {}
         video_url = info.get('url')
 
