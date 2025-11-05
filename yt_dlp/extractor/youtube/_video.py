@@ -3080,7 +3080,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return language_code, ORIGINAL_LANG_VALUE
             if audio_track.get('audioIsDefault'):
                 if language_code and not language_map.get(DEFAULT_LANG_VALUE):
-                    language_map.setdefault(DEFAULT_LANG_VALUE, language_code)
+                    language_map[DEFAULT_LANG_VALUE] = language_code
                 return language_code, DEFAULT_LANG_VALUE
             return language_code, -1
 
