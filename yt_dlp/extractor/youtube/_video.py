@@ -3094,7 +3094,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             client_name = streaming_data.get(STREAMING_DATA_CLIENT_NAME)
             # For handling potential pre-playback required waiting period
             preroll_length_sec = streaming_data.get(STREAMING_DATA_PREROLL_LENGTH_MSEC, 0) / 1000
-            playback_wait = int_or_none(self._configuration_arg('playback_wait', [None])[0], default=preroll_length_sec)
+            playback_wait = int_or_none(self._configuration_arg('playback_wait', [None])[0], default=min(preroll_length_sec, 6))
             available_at = streaming_data[STREAMING_DATA_FETCHED_TIMESTAMP] + playback_wait
             streaming_formats = traverse_obj(streaming_data, (('formats', 'adaptiveFormats'), ...))
 
