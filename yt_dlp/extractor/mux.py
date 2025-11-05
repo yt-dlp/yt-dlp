@@ -35,4 +35,3 @@ class MuxStreamNewIE(InfoExtractor):
             'formats': formats,
             '_type': 'video',
         }
-
