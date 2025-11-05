@@ -12,12 +12,12 @@ class MuxStreamNewIE(InfoExtractor):
             'title': '36d8c00L1vEFwF01aF1cRKQs8nblgegMda8YR9CE3wejk',
             'formats': 'mincount:1',
             'ext': 'mp4',
-            '_type': 'video'
+            '_type': 'video',
         },
         'params': {
             # m3u8 download
-            'skip_download': True
-        }
+            'skip_download': True,
+        },
     }]
 
     def _real_extract(self, url):
@@ -33,6 +33,6 @@ class MuxStreamNewIE(InfoExtractor):
             'id': video_id,
             'title': video_id,
             'formats': formats,
-            '_type': 'video'
+            '_type': 'video',
         }
 
