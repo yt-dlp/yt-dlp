@@ -1090,7 +1090,7 @@ from .markiza import (
 from .massengeschmacktv import MassengeschmackTVIE
 from .masters import MastersIE
 from .matchtv import MatchTVIE
-from .mave import MaveIE
+from .mave import MaveChannelIE, MaveIE
 from .mbn import MBNIE
 from .mdr import MDRIE
 from .medaltv import MedalTVIE

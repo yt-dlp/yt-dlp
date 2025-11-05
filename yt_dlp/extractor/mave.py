@@ -11,6 +11,7 @@ from ..utils.traversal import require, traverse_obj
 
 
 class MaveIE(InfoExtractor):
+    IE_NAME = 'mave'
     _VALID_URL = r'https?://(?P<channel>[\w-]+)\.mave\.digital/(?P<id>ep-\d+)'
     _TESTS = [{
         'url': 'https://ochenlichnoe.mave.digital/ep-25',
@@ -105,3 +106,53 @@ class MaveIE(InfoExtractor):
                 'uploader': ('author', {str}),
             })),
         }
+
+
+class MaveChannelIE(InfoExtractor):
+    IE_NAME = 'mave:channel'
+    _VALID_URL = r'https?://(?P<id>[\w-]+)\.mave\.digital/?$'
+    _TESTS = [{
+        'url': 'https://budem.mave.digital/',
+        'info_dict': {
+            'id': 'budem',
+            'title': 'Все там будем',
+            'description': 'md5:f04ae12a42be0f1d765c5e326b41987a',
+        },
+        'playlist_mincount': 15,
+    }, {
+        'url': 'https://ochenlichnoe.mave.digital/',
+        'info_dict': {
+            'id': 'ochenlichnoe',
+            'title': 'Очень личное',
+            'description': 'md5:ee36a6a52546b91b487fe08c552fdbb2',
+        },
+        'playlist_mincount': 20,
+    }]
+
+    def _real_extract(self, url):
+        channel_id = self._match_id(url)
+
+        webpage = self._download_webpage(url, channel_id)
+
+        nuxt_data = self._search_nuxt_json(webpage, channel_id)
+
+        channel_title = traverse_obj(nuxt_data, (
+            'pinia', 'common', 'podcast', 'podcast', 'title'))
+        channel_description = traverse_obj(nuxt_data, (
+            'pinia', 'common', 'podcast', 'podcast', 'description'))
+
+        episodes_data = traverse_obj(nuxt_data, ('pinia', 'common', 'episodes'))
+
+        entries = []
+        for episode in episodes_data[::-1]:
+            episode_id = traverse_obj(episode, 'id')
+            episode_code = 'ep-' + str(traverse_obj(episode, 'code'))
+            if episode_code:
+                entries.append(self.url_result(
+                    f'https://{channel_id}.mave.digital/{episode_code}',
+                    ie=MaveIE.ie_key(),
+                    video_id=episode_id,
+                ))
+
+        return self.playlist_result(
+            entries, channel_id, channel_title, channel_description)
