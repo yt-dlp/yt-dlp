@@ -800,7 +800,7 @@ class RaiEmbedIE(RaiBaseIE):
 
     def _extract_from_webpage(self, url, webpage):
         embeds = re.finditer(r'''(?x)
-            <rai[^\-\s]+-player[^>]+?
+            <rai[a-z0-9]+-player[^>]+?
                 \s*data=["\']([^"\']+?)["\']
             >''', webpage)
         for match in embeds:
