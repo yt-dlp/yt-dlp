@@ -3544,21 +3544,34 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 }))
         return webpage
 
+    def _parse_instream_ad_renderer(self, renderer):
+        instream_renderer = traverse_obj(renderer, ('instreamVideoAdRenderer', {dict})) or {}
+        length_ms = traverse_obj(instream_renderer, ('skipOffsetMilliseconds', {int}))
+        if length_ms is not None:
+            self.write_debug(f'Detected a {length_ms}ms skippable ad')
+            return length_ms
+        length_ms = traverse_obj(instream_renderer, ('playerVars', {urllib.parse.parse_qs}, 'length_seconds', -1, {int_or_none(invscale=1000)}))
+        if length_ms is not None:
+            self.write_debug(f'Detected a {length_ms}ms non-skippable ad')
+            return length_ms
+        return None
+
     def _get_preroll_length(self, ad_slot_lists):
         for slot_renderer in traverse_obj(ad_slot_lists, ('adSlots', ..., 'adSlotRenderer', {dict})):
             if traverse_obj(slot_renderer, ('adSlotMetadata', 'triggerEvent')) != 'SLOT_TRIGGER_EVENT_BEFORE_CONTENT':
                 continue
-            instream_ad_renderer = traverse_obj(slot_renderer, (
+            rendering_content = traverse_obj(slot_renderer, (
                 'fulfillmentContent', 'fulfilledLayout', 'playerBytesAdLayoutRenderer',
-                'renderingContent', 'instreamVideoAdRenderer', {dict})) or {}
-            length_ms = traverse_obj(instream_ad_renderer, ('skipOffsetMilliseconds', {int}))
-            if length_ms is not None:
-                self.write_debug(f'Detected a {length_ms}ms skippable ad')
-                return length_ms
-            length_ms = traverse_obj(instream_ad_renderer, ('playerVars', {urllib.parse.parse_qs}, 'length_seconds', -1, {int_or_none(invscale=1000)}))
-            if length_ms is not None:
-                self.write_debug(f'Detected a {length_ms}ms non-skippable ad')
-                return length_ms
+                'renderingContent', {dict})) or {}
+            if 'instreamVideoAdRenderer' in rendering_content:
+                length = self._parse_instream_ad_renderer(rendering_content)
+                if length is not None:
+                    return length
+            if 'playerBytesSequentialLayoutRenderer' in rendering_content:
+                total = 0
+                for layout in traverse_obj(rendering_content, ('playerBytesSequentialLayoutRenderer', 'sequentialLayouts'), []):
+                    total += self._parse_instream_ad_renderer(traverse_obj(layout, ('playerBytesAdLayoutRenderer', 'renderingContent', {dict}))) or 0
+                return total
         return 0
 
     def _list_formats(self, video_id, microformats, video_details, player_responses, player_url, duration=None):
