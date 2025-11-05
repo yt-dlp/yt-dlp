@@ -3023,8 +3023,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_formats_and_subtitles(self, video_id, player_responses, player_url, live_status, duration):
         CHUNK_SIZE = 10 << 20
-        PREFERRED_LANG_VALUE = 10
-        original_language = None
+        ORIGINAL_LANG_VALUE = 10
+        DEFAULT_LANG_VALUE = 5
+        language_map = {
+            ORIGINAL_LANG_VALUE: None,
+            DEFAULT_LANG_VALUE: None,
+        }
         itags, stream_ids = collections.defaultdict(set), []
         itag_qualities, res_qualities = {}, {0: None}
         subtitles = {}
@@ -3064,6 +3068,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # For handling potential pre-playback required waiting period
         playback_wait = int_or_none(self._configuration_arg('playback_wait', [None])[0], default=6)
 
+        def get_language_code_and_preference(fmt_stream):
+            audio_track = fmt_stream.get('audioTrack') or {}
+            display_name = audio_track.get('displayName') or ''
+            language_code = audio_track.get('id', '').split('.')[0] or None
+            if 'descriptive' in display_name.lower():
+                return join_nonempty(language_code, 'desc'), -10
+            if 'original' in display_name.lower():
+                if language_code and not language_map.get(ORIGINAL_LANG_VALUE):
+                    language_map[ORIGINAL_LANG_VALUE] = language_code
+                return language_code, ORIGINAL_LANG_VALUE
+            if audio_track.get('audioIsDefault'):
+                if language_code and not language_map.get(DEFAULT_LANG_VALUE):
+                    language_map.setdefault(DEFAULT_LANG_VALUE, language_code)
+                return language_code, DEFAULT_LANG_VALUE
+            return language_code, -1
+
         for pr in player_responses:
             streaming_data = traverse_obj(pr, 'streamingData')
             if not streaming_data:
@@ -3079,7 +3099,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return str_or_none(fmt_stream.get('itag')), traverse_obj(fmt_stream, 'audioTrack', 'id'), fmt_stream.get('isDrc')
 
             def process_format_stream(fmt_stream, proto, missing_pot):
-                nonlocal original_language
                 itag = str_or_none(fmt_stream.get('itag'))
                 audio_track = fmt_stream.get('audioTrack') or {}
                 quality = fmt_stream.get('quality')
@@ -3096,13 +3115,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if height:
                         res_qualities[height] = quality
 
-                display_name = audio_track.get('displayName') or ''
-                is_original = 'original' in display_name.lower()
-                is_descriptive = 'descriptive' in display_name.lower()
-                is_default = audio_track.get('audioIsDefault')
-                language_code = audio_track.get('id', '').split('.')[0]
-                if language_code and (is_original or (is_default and not original_language)):
-                    original_language = language_code
+                language_code, language_preference = get_language_code_and_preference(fmt_stream)
 
                 has_drm = bool(fmt_stream.get('drmFamilies'))
 
@@ -3138,7 +3151,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'filesize': int_or_none(fmt_stream.get('contentLength')),
                     'format_id': f'{itag}{"-drc" if fmt_stream.get("isDrc") else ""}',
                     'format_note': join_nonempty(
-                        join_nonempty(display_name, is_default and ' (default)', delim=''),
+                        join_nonempty(audio_track.get('displayName'), audio_track.get('audioIsDefault') and '(default)', delim=' '),
                         name, fmt_stream.get('isDrc') and 'DRC',
                         try_get(fmt_stream, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                         try_get(fmt_stream, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
@@ -3155,8 +3168,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'tbr': tbr,
                     'filesize_approx': filesize_from_tbr(tbr, format_duration),
                     'width': int_or_none(fmt_stream.get('width')),
-                    'language': join_nonempty(language_code, 'desc' if is_descriptive else '') or None,
-                    'language_preference': PREFERRED_LANG_VALUE if is_original else 5 if is_default else -10 if is_descriptive else -1,
+                    'language': language_code,
+                    'language_preference': language_preference,
                     # Strictly de-prioritize damaged and 3gp formats
                     'preference': -10 if is_damaged else -2 if itag == '17' else None,
                 }
@@ -3206,6 +3219,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     fmt_url = fmt_stream.get('url')
                     encrypted_sig, sc = None, None
                     if not fmt_url:
+                        # We should still extract original/default language information
+                        get_language_code_and_preference(fmt_stream)
                         sc = urllib.parse.parse_qs(fmt_stream.get('signatureCipher'))
                         fmt_url = url_or_none(try_get(sc, lambda x: x['url'][0]))
                         encrypted_sig = try_get(sc, lambda x: x['s'][0])
@@ -3391,9 +3406,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 elif itag:
                     f['format_id'] = itag
 
-                if original_language and f.get('language') == original_language:
+                lang_code = f.get('language')
+                if lang_code and lang_code == language_map[ORIGINAL_LANG_VALUE]:
+                    f['format_note'] = join_nonempty(f.get('format_note'), '(original)', delim=' ')
+                    f['language_preference'] = ORIGINAL_LANG_VALUE
+                elif lang_code and lang_code == language_map[DEFAULT_LANG_VALUE]:
                     f['format_note'] = join_nonempty(f.get('format_note'), '(default)', delim=' ')
-                    f['language_preference'] = PREFERRED_LANG_VALUE
+                    f['language_preference'] = DEFAULT_LANG_VALUE
 
                 if itag in ('616', '235'):
                     f['format_note'] = join_nonempty(f.get('format_note'), 'Premium', delim=' ')
