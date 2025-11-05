@@ -1,0 +1,77 @@
+name: Challenge Tests
+on:
+  push:
+    paths:
+      - .github/workflows/challenge-tests.yml
+      - test/test_jsc/*.py
+      - yt_dlp/extractor/youtube/jsc/**.js
+      - yt_dlp/extractor/youtube/jsc/**.py
+      - yt_dlp/extractor/youtube/pot/**.py
+      - yt_dlp/utils/_jsruntime.py
+  pull_request:
+    paths:
+      - .github/workflows/challenge-tests.yml
+      - test/test_jsc/*.py
+      - yt_dlp/extractor/youtube/jsc/**.js
+      - yt_dlp/extractor/youtube/jsc/**.py
+      - yt_dlp/extractor/youtube/pot/**.py
+      - yt_dlp/utils/_jsruntime.py
+permissions:
+  contents: read
+
+concurrency:
+  group: challenge-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  tests:
+    name: Challenge Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14', pypy-3.11]
+    env:
+      QJS_VERSION: '2025-04-26'  # Earliest version with rope strings
+    steps:
+    - uses: actions/checkout@v5
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Deno
+      uses: denoland/setup-deno@v2
+      with:
+        deno-version: '2.0.0'  # minimum supported version
+    - name: Install Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        # minimum supported version is 1.0.31 but earliest available Windows version is 1.1.0
+        bun-version: ${{ (matrix.os == 'windows-latest' && '1.1.0') || '1.0.31' }}
+    - name: Install Node
+      uses: actions/setup-node@v6
+      with:
+        node-version: '20.0'  # minimum supported version
+    - name: Install QuickJS (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+          wget "https://bellard.org/quickjs/binary_releases/quickjs-linux-x86_64-${QJS_VERSION}.zip" -O quickjs.zip
+          unzip quickjs.zip qjs
+          sudo install qjs /usr/local/bin/qjs
+    - name: Install QuickJS (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: pwsh
+      run: |
+          Invoke-WebRequest "https://bellard.org/quickjs/binary_releases/quickjs-win-x86_64-${Env:QJS_VERSION}.zip" -OutFile quickjs.zip
+          unzip quickjs.zip
+    - name: Install test requirements
+      run: |
+        python ./devscripts/install_deps.py --print --only-optional-groups --include-group test > requirements.txt
+        python ./devscripts/install_deps.py --print -c certifi -c requests -c urllib3 -c yt-dlp-ejs >> requirements.txt
+        python -m pip install -U -r requirements.txt
+    - name: Run tests
+      timeout-minutes: 15
+      run: |
+        python -m yt_dlp -v --js-runtimes node --js-runtimes bun --js-runtimes quickjs || true
+        python ./devscripts/run_tests.py test/test_jsc -k download
