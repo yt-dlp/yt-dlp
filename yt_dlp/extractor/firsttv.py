@@ -2,6 +2,7 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     determine_ext,
     int_or_none,
     join_nonempty,
