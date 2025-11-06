@@ -344,7 +344,7 @@ class GoogleDriveFolderIE(InfoExtractor):
             # not logged in when visiting a private folder
             self.raise_login_required('Access Denied')
 
-        folder_info = traverse_obj(self._extract_json_meta(webpage, folder_id, dsval=0, name='folder info'),1)
+        folder_info = traverse_obj(self._extract_json_meta(webpage, folder_id, dsval=0, name='folder info'), 1)
         list_desc = (
             self._html_search_meta('description', webpage, default=None)
             or traverse_obj(folder_info, 23))
