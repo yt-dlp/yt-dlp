@@ -276,6 +276,7 @@ class GoogleDriveFolderIE(InfoExtractor):
         'info_dict': {
             'id': '1jjrhqi94d8TSHSVMSdBjD49MOiHYpHfF',
             'title': '], sideChannel: {}});',
+            'description': 'THE PLAYLIST DESCRIPTION',
         },
         'playlist_count': 8,
     }]
@@ -306,10 +307,12 @@ class GoogleDriveFolderIE(InfoExtractor):
                 rf'''hash\s*?:\s*?(['"]){hashval}\1,[^\[]*?data:''', webpage, name, video_id,
                 end_pattern=_META_END_RE, contains_pattern=_ARRAY_RE, **kwargs)
 
-    def _real_extract(self, url):
-        def item_url_getter(item, video_id):
+    def _entries(self, items):
+        if not items:  # empty folder, False or None
+            return []
+        for item in items:
             if not isinstance(item, list):
-                return None
+                continue
             available_IEs = (GoogleDriveFolderIE, GoogleDriveIE)  # subfolder or item
             if 'application/vnd.google-apps.shortcut' in item:  # extract real link
                 entry_url = traverse_obj(
@@ -320,9 +323,10 @@ class GoogleDriveFolderIE(InfoExtractor):
                     item,
                     (lambda _, v: any(ie.suitable(v) for ie in available_IEs), any))
             if not entry_url:
-                return None
-            return self.url_result(entry_url, video_id=video_id, video_title=traverse_obj(item, 2))
+                continue
+            yield self.url_result(entry_url, video_id=item[0], video_title=traverse_obj(item, 2))
 
+    def _real_extract(self, url):
         folder_id = self._match_id(url) or 'my-drive'
         headers = self.geo_verification_headers()
 
@@ -340,7 +344,11 @@ class GoogleDriveFolderIE(InfoExtractor):
             # not logged in when visiting a private folder
             self.raise_login_required('Access Denied')
 
-        title = self._extract_json_meta(webpage, folder_id, dsval=0, name='folder info')[1][2]
+        folder_info = traverse_obj(self._extract_json_meta(webpage, folder_id, dsval=0, name='folder info'),1)
+        list_desc = (
+            self._html_search_meta('description', webpage, default=None)
+            or traverse_obj(folder_info, 23))
+        title = traverse_obj(folder_info, 2)
         items = (
             self._extract_json_meta(webpage, folder_id, hashval=6, name='folder items', default=[None])[-1]
             or self._parse_json(self._search_json(
@@ -348,9 +356,5 @@ class GoogleDriveFolderIE(InfoExtractor):
                 contains_pattern=r'''(?P<q>['"])(?P<str>(?!(?P=q))[\s\S]+)(?P=q)''',
                 transform_source=js_to_json), folder_id)[0])
 
-        if not items:  # empty folder, False or None
-            return self.playlist_result([], folder_id, title)
-
         return self.playlist_result(
-            (entry for item in items if (entry := item_url_getter(item, folder_id))),
-            folder_id, title)
+            self._entries(items), folder_id, playlist_title=title, playlist_description=list_desc)
