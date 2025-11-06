@@ -3094,8 +3094,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             client_name = streaming_data.get(STREAMING_DATA_CLIENT_NAME)
             # For handling potential pre-playback required waiting period
             preroll_length_sec = streaming_data.get(STREAMING_DATA_PREROLL_LENGTH_MSEC, 0) / 1000
-            playback_wait = int_or_none(self._configuration_arg('playback_wait', [None])[0], default=min(preroll_length_sec, 6))
-            available_at = streaming_data[STREAMING_DATA_FETCHED_TIMESTAMP] + playback_wait
+            available_at = streaming_data[STREAMING_DATA_FETCHED_TIMESTAMP] + min(preroll_length_sec, 6)
             streaming_formats = traverse_obj(streaming_data, (('formats', 'adaptiveFormats'), ...))
 
             def get_stream_id(fmt_stream):
@@ -3548,11 +3547,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         instream_renderer = traverse_obj(renderer, ('instreamVideoAdRenderer', {dict})) or {}
         length_ms = traverse_obj(instream_renderer, ('skipOffsetMilliseconds', {int}))
         if length_ms is not None:
-            self.write_debug(f'Detected a {length_ms}ms skippable ad')
+            length = length_ms / 1000 if length_ms % 1000 else length_ms // 1000
+            self.write_debug(f'Detected a {length}s skippable ad')
             return length_ms
         length_ms = traverse_obj(instream_renderer, ('playerVars', {urllib.parse.parse_qs}, 'length_seconds', -1, {int_or_none(invscale=1000)}))
         if length_ms is not None:
-            self.write_debug(f'Detected a {length_ms}ms non-skippable ad')
+            length = length_ms / 1000 if length_ms % 1000 else length_ms // 1000
+            self.write_debug(f'Detected a {length}s unskippable ad')
             return length_ms
         return None
 
