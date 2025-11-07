@@ -682,13 +682,16 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
         for json_lang, json_filename in json_subs.items():
             filename_arg = self._ffmpeg_filename_argument(json_filename)
-            filename_arg_escaped = self._escape_stream_specifier(filename_arg)
+            filename_ss = self._escape_stream_specifier(filename_arg)
+            # FFmpeg sets the filename tag as the basename of the argument,
+            # protocol and all, for some reason.
+            filename_ss = os.path.basename(filename_ss)
 
             opts.extend([
                 '-map', f'-0:m:filename:{json_lang}.json?',
                 '-attach', filename_arg,
-                f'-metadata:s:m:filename:{filename_arg_escaped}', 'mimetype=application/json',
-                f'-metadata:s:m:filename:{filename_arg_escaped}', f'filename={json_lang}.json',
+                f'-metadata:s:m:filename:{filename_ss}', 'mimetype=application/json',
+                f'-metadata:s:m:filename:{filename_ss}', f'filename={json_lang}.json',
             ])
 
         temp_filename = prepend_extension(filename, 'temp')
@@ -840,7 +843,10 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             info['infojson_filename'] = infofn
 
         filename_arg = self._ffmpeg_filename_argument(infofn)
-        filename_arg_escaped = self._escape_stream_specifier(filename_arg)
+        filename_ss = self._escape_stream_specifier(filename_arg)
+        # FFmpeg sets the filename tag as the basename of the argument, protocol
+        # and all, for some reason.
+        filename_ss = os.path.basename(filename_ss)
 
         yield (
             # In order to override any old info.json reliably we need to
@@ -851,8 +857,8 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             # info.json data.
             '-map', '-0:m:filename:info.json?',
             '-attach', filename_arg,
-            f'-metadata:s:m:filename:{filename_arg_escaped}', 'mimetype=application/json',
-            f'-metadata:s:m:filename:{filename_arg_escaped}', 'filename=info.json',
+            f'-metadata:s:m:filename:{filename_ss}', 'mimetype=application/json',
+            f'-metadata:s:m:filename:{filename_ss}', 'filename=info.json',
         )
 
 
