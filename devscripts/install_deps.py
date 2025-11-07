@@ -22,14 +22,19 @@ def parse_args():
         'input', nargs='?', metavar='TOMLFILE', default=Path(__file__).parent.parent / 'pyproject.toml',
         help='input file (default: %(default)s)')
     parser.add_argument(
-        '-e', '--exclude', metavar='DEPENDENCY', action='append',
-        help='exclude a dependency')
+        '-e', '--exclude-dependency', metavar='DEPENDENCY', action='append',
+        help='exclude a dependency (can be used multiple times)')
     parser.add_argument(
-        '-i', '--include', metavar='GROUP', action='append',
-        help='include an optional dependency group')
+        '-i', '--include-group', metavar='GROUP', action='append',
+        help='include an optional dependency group (can be used multiple times)')
     parser.add_argument(
-        '-o', '--only-optional', action='store_true',
-        help='only install optional dependencies')
+        '-c', '--cherry-pick', metavar='DEPENDENCY', action='append',
+        help=(
+            'only include a specific dependency from the resulting dependency list '
+            '(can be used multiple times)'))
+    parser.add_argument(
+        '-o', '--only-optional-groups', action='store_true',
+        help='omit default dependencies unless the "default" group is specified with --include-group')
     parser.add_argument(
         '-p', '--print', action='store_true',
         help='only print requirements to stdout')
@@ -39,30 +44,41 @@ def parse_args():
     return parser.parse_args()
 
 
+def uniq(arg) -> dict[str, None]:
+    return dict.fromkeys(map(str.lower, arg or ()))
+
+
 def main():
     args = parse_args()
     project_table = parse_toml(read_file(args.input))['project']
     recursive_pattern = re.compile(rf'{project_table["name"]}\[(?P<group_name>[\w-]+)\]')
     optional_groups = project_table['optional-dependencies']
-    excludes = args.exclude or []
+
+    excludes = uniq(args.exclude_dependency)
+    only_includes = uniq(args.cherry_pick)
+    include_groups = uniq(args.include_group)
 
     def yield_deps(group):
         for dep in group:
             if mobj := recursive_pattern.fullmatch(dep):
-                yield from optional_groups.get(mobj.group('group_name'), [])
+                yield from optional_groups.get(mobj.group('group_name'), ())
             else:
                 yield dep
 
-    targets = []
-    if not args.only_optional:  # `-o` should exclude 'dependencies' and the 'default' group
-        targets.extend(project_table['dependencies'])
-        if 'default' not in excludes:  # `--exclude default` should exclude entire 'default' group
-            targets.extend(yield_deps(optional_groups['default']))
+    targets = {}
+    if not args.only_optional_groups:
+        # legacy: 'dependencies' is empty now
+        targets.update(dict.fromkeys(project_table['dependencies']))
+        targets.update(dict.fromkeys(yield_deps(optional_groups['default'])))
 
-    for include in filter(None, map(optional_groups.get, args.include or [])):
-        targets.extend(yield_deps(include))
+    for include in filter(None, map(optional_groups.get, include_groups)):
+        targets.update(dict.fromkeys(yield_deps(include)))
 
-    targets = [t for t in targets if re.match(r'[\w-]+', t).group(0).lower() not in excludes]
+    def target_filter(target):
+        name = re.match(r'[\w-]+', target).group(0).lower()
+        return name not in excludes and (not only_includes or name in only_includes)
+
+    targets = list(filter(target_filter, targets))
 
     if args.print:
         for target in targets:
