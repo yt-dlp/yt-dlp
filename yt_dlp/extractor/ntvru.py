@@ -12,6 +12,18 @@ class NTVRuIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?ntv\.ru/(?:[^/]+/)*(?P<id>[^/?#&]+)'
 
     _TESTS = [{
+        'url': 'https://www.ntv.ru/peredacha/svoya_igra/m58980/o818800',
+        'md5': '818962a1b52747d446db7cd5be43e142',
+        'info_dict': {
+            'id': '2520563',
+            'ext': 'mp4',
+            'title': 'Участники: Ирина Петрова, Сергей Коновалов, Кристина Кораблина',
+            'description': 'Участники: Ирина Петрова, Сергей Коновалов, Кристина Кораблина',
+            'thumbnail': r're:^http://.*\.jpg',
+            'duration': 2462,
+            'view_count': int,
+        },
+    }, {
         'url': 'http://www.ntv.ru/novosti/863142/',
         'md5': 'ba7ea172a91cb83eb734cad18c10e723',
         'info_dict': {
