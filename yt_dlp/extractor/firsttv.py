@@ -139,25 +139,23 @@ class FirstTVLiveIE(InfoExtractor):
     _GEO_BYPASS = False
     _GEO_COUNTRIES = ['RU']
 
-    _TESTS = [
-        {
-            'url': 'https://www.1tv.ru/live',
-            'info_dict': {
-                'id': 'live',
-                'ext': 'mp4',
-                'title': 'ПЕРВЫЙ КАНАЛ ПРЯМОЙ ЭФИР СМОТРЕТЬ ОНЛАЙН',
-                'is_live': True,
-            },
+    _TESTS = [{
+        'url': 'https://www.1tv.ru/live',
+        'info_dict': {
+            'id': 'live',
+            'ext': 'mp4',
+            'title': 'ПЕРВЫЙ КАНАЛ ПРЯМОЙ ЭФИР СМОТРЕТЬ ОНЛАЙН',
+            'is_live': True,
         },
-    ]
+    }]
 
     def _real_extract(self, url):
         display_id = 'live'
-        webpage = self._download_webpage(url, display_id)
+        webpage = self._download_webpage(url, display_id, fatal=False)
 
         streams_list = self._download_json('https://stream.1tv.ru/api/playlist/1tvch-v1_as_array.json', 'live')
         mpd_url = traverse_obj(streams_list, ('mpd', ..., {url_or_none}, any))
-        formats = self._extract_mpd_formats(mpd_url, display_id, mpd_id='dash', fatal=False)
+        formats, _ = self._extract_mpd_formats_and_subtitles(mpd_url, display_id, mpd_id='dash', fatal=False)
         hls_url = traverse_obj(streams_list, ('hls', ..., {url_or_none}, any))
         formats.extend(self._extract_m3u8_formats(hls_url, display_id, 'mp4', m3u8_id='hls', live=True, fatal=False))
         if not formats:
