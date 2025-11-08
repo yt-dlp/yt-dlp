@@ -1,6 +1,6 @@
-from .common import InfoExtractor
-
 import re
+
+from .common import InfoExtractor
 
 
 class MuxIE(InfoExtractor):
