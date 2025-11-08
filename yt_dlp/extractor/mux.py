@@ -19,8 +19,7 @@ class MuxIE(InfoExtractor):
             # m3u8 download
             'skip_download': True,
         },
-    },
-    {
+    }, {
         'url': 'https://player.mux.com/OCtRWZiZqKvLbnZ32WSEYiGNvHdAmB01j',
         'info_dict': {
             'id': 'OCtRWZiZqKvLbnZ32WSEYiGNvHdAmB01j',
@@ -47,8 +46,7 @@ class MuxIE(InfoExtractor):
             # m3u8 download
             'skip_download': True,
         },
-    },
-    {
+    }, {
         'url': 'https://muxvideo.2coders.com/download/',
         'info_dict': {
             'id': 'JBuasdg35Hw7tYmTe9k68QLPQKixL300YsWHDz5Flit8',
