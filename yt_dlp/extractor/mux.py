@@ -9,55 +9,31 @@ class MuxIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://stream.new/v/OCtRWZiZqKvLbnZ32WSEYiGNvHdAmB01j/embed',
         'info_dict': {
+            'ext': 'mp4',
             'id': 'OCtRWZiZqKvLbnZ32WSEYiGNvHdAmB01j',
             'title': 'OCtRWZiZqKvLbnZ32WSEYiGNvHdAmB01j',
-            'formats': 'mincount:1',
-            'ext': 'mp4',
-            '_type': 'video',
-        },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
         },
     }, {
         'url': 'https://player.mux.com/OCtRWZiZqKvLbnZ32WSEYiGNvHdAmB01j',
         'info_dict': {
+            'ext': 'mp4',
             'id': 'OCtRWZiZqKvLbnZ32WSEYiGNvHdAmB01j',
             'title': 'OCtRWZiZqKvLbnZ32WSEYiGNvHdAmB01j',
-            'formats': 'mincount:1',
-            'ext': 'mp4',
-            '_type': 'video',
-        },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
         },
     }]
     _WEBPAGE_TESTS = [{
-        'url': 'https://www.mux.com/blog/mux-player-iframe',
+        'url': 'https://www.redbrickai.com/blog/2025-07-14-FAST-brush',
         'info_dict': {
-            'id': 'OCtRWZiZqKvLbnZ32WSEYiGNvHdAmB01j',
-            'title': 'OCtRWZiZqKvLbnZ32WSEYiGNvHdAmB01j',
-            'formats': 'mincount:1',
             'ext': 'mp4',
-            '_type': 'video',
-        },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
+            'id': 'cXhzAiW1AmsHY01eRbEYFcTEAn0102aGN8sbt8JprP6Dfw',
+            'title': 'cXhzAiW1AmsHY01eRbEYFcTEAn0102aGN8sbt8JprP6Dfw',
         },
     }, {
         'url': 'https://muxvideo.2coders.com/download/',
         'info_dict': {
+            'ext': 'mp4',
             'id': 'JBuasdg35Hw7tYmTe9k68QLPQKixL300YsWHDz5Flit8',
             'title': 'JBuasdg35Hw7tYmTe9k68QLPQKixL300YsWHDz5Flit8',
-            'formats': 'mincount:1',
-            'ext': 'mp4',
-            '_type': 'video',
-        },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
         },
     }]
 
