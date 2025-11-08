@@ -37,6 +37,12 @@ class MuxIE(InfoExtractor):
         },
     }]
 
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        yield from super()._extract_embed_urls(url, webpage)
+        for playback_id in re.findall(r'<mux-player[^>]*\bplayback-id=["\'](?P<id>[A-Za-z0-9-]+)', webpage):
+            yield f'https://player.mux.com/{playback_id}'
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
@@ -47,11 +53,4 @@ class MuxIE(InfoExtractor):
             'id': video_id,
             'title': video_id,
             'formats': formats,
-            '_type': 'video',
         }
-
-    @classmethod
-    def _extract_embed_urls(cls, url, webpage):
-        yield from super()._extract_embed_urls(url, webpage)
-        for playback_id in re.findall(r'<mux-player[^>]*\bplayback-id=["\'](?P<id>[A-Za-z0-9-]+)', webpage):
-            yield f'https://player.mux.com/{playback_id}'
