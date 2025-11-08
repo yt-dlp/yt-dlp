@@ -1,7 +1,14 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import extract_attributes, filter_dict, parse_qs, update_url_query
+from ..utils import (
+    extract_attributes,
+    filter_dict,
+    parse_qs,
+    smuggle_url,
+    unsmuggle_url,
+    update_url_query,
+)
 from ..utils.traversal import traverse_obj
 
 
@@ -39,6 +46,14 @@ class MuxIE(InfoExtractor):
             'id': 'JBuasdg35Hw7tYmTe9k68QLPQKixL300YsWHDz5Flit8',
             'title': 'JBuasdg35Hw7tYmTe9k68QLPQKixL300YsWHDz5Flit8',
         },
+    }, {
+        # mux-player with title metadata
+        'url': 'https://datastar-todomvc.cross.stream/',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': 'KX01ZSZ8CXv5SVfVwMZKJTcuBcUQmo1ReS9U5JjoHm4k',
+            'title': 'TodoMVC with Datastar Tutorial',
+        },
     }]
 
     @classmethod
@@ -51,11 +66,14 @@ class MuxIE(InfoExtractor):
                 continue
             token = attrs.get('playback-token') or traverse_obj(playback_id, ({parse_qs}, 'token', -1))
             playback_id = playback_id.partition('?')[0]
-            yield update_url_query(
+
+            yield smuggle_url(update_url_query(
                 f'https://player.mux.com/{playback_id}',
-                filter_dict({'playback-token': token}))
+                filter_dict({'playback-token': token})),
+                {'title': attrs.get('metadata-video-title')})
 
     def _real_extract(self, url):
+        url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
 
         token = traverse_obj(parse_qs(url), ('playback-token', -1))
@@ -66,7 +84,7 @@ class MuxIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': video_id,
+            'title': smuggled_data.get('title') or video_id,
             'formats': formats,
             'subtitles': subtitles,
         }
