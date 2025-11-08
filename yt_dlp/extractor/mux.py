@@ -61,7 +61,6 @@ class MuxIE(InfoExtractor):
         },
     }]
 
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
