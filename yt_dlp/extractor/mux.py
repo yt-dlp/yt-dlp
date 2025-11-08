@@ -67,10 +67,12 @@ class MuxIE(InfoExtractor):
             token = attrs.get('playback-token') or traverse_obj(playback_id, ({parse_qs}, 'token', -1))
             playback_id = playback_id.partition('?')[0]
 
-            yield smuggle_url(update_url_query(
+            embed_url = update_url_query(
                 f'https://player.mux.com/{playback_id}',
-                filter_dict({'playback-token': token})),
-                {'title': attrs.get('metadata-video-title')})
+                filter_dict({'playback-token': token}))
+            if title := attrs.get('metadata-video-title'):
+                embed_url = smuggle_url(embed_url, {'title': title})
+            yield embed_url
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
