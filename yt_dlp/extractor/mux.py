@@ -1,11 +1,14 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
+from ..utils import extract_attributes, filter_dict, parse_qs
+from ..utils.traversal import traverse_obj
 
 
 class MuxIE(InfoExtractor):
     _VALID_URL = r'https?://(?:stream\.new/v|player\.mux\.com)/(?P<id>[A-Za-z0-9-]+)'
-    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=["\'](?P<url>(?:https?:)?//(?:stream\.new/v|player\.mux\.com)/(?P<id>[A-Za-z0-9-]+))']
+    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=["\'](?P<url>(?:https?:)?//(?:stream\.new/v|player\.mux\.com)/(?P<id>[A-Za-z0-9-]+)[^"\']+)']
     _TESTS = [{
         'url': 'https://stream.new/v/OCtRWZiZqKvLbnZ32WSEYiGNvHdAmB01j/embed',
         'info_dict': {
@@ -42,17 +45,28 @@ class MuxIE(InfoExtractor):
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
         yield from super()._extract_embed_urls(url, webpage)
-        for playback_id in re.findall(r'<mux-player[^>]*\bplayback-id=["\'](?P<id>[A-Za-z0-9-]+)', webpage):
-            yield f'https://player.mux.com/{playback_id}'
+        for mux_player in re.findall(r'<mux-(?:player|video)[^>]*\bplayback-id=[^>]+>', webpage):
+            playback_id = traverse_obj(mux_player, ({extract_attributes}, 'playback-id'))
+            if not playback_id:
+                continue
+            token = traverse_obj(mux_player, ({extract_attributes}, 'playback-token'))
+            if '?' in playback_id:
+                playback_id, qs = playback_id.split('?', 1)
+                token = token or traverse_obj(urllib.parse.parse_qs(qs), ('token', 0))
+            yield f'https://player.mux.com/{playback_id}{"?playback-token=" + token if token else ""}'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        formats = self._extract_m3u8_formats(
-            f'https://stream.mux.com/{video_id}.m3u8', video_id, 'mp4')
+        token = traverse_obj(parse_qs(url), ('playback-token', 0))
+
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            f'https://stream.mux.com/{video_id}.m3u8', video_id, 'mp4',
+            query=filter_dict({'token': token}))
 
         return {
             'id': video_id,
             'title': video_id,
             'formats': formats,
+            'subtitles': subtitles,
         }
