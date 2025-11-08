@@ -60,6 +60,37 @@ class _ByteGenerator:
         s = to_signed_32(s * to_signed_32(0xc2b2ae3d))
         return to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 16))
 
+    def _algo4(self, s):
+        # Custom scrambling function involving a left rotation (ROL)
+        s = self._s = to_signed_32(s + 0x6d2b79f5)
+        s = to_signed_32((s << 7) | ((s & 0xFFFFFFFF) >> 25))  # ROL 7
+        s = to_signed_32(s + 0x9e3779b9)
+        s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 11))
+        return to_signed_32(s * 0x27d4eb2d)
+
+    def _algo5(self, s):
+        # xorshift variant with a final addition
+        s = to_signed_32(s ^ (s << 7))
+        s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 9))
+        s = to_signed_32(s ^ (s << 8))
+        s = self._s = to_signed_32(s + 0xa5a5a5a5)
+        return s
+
+    def _algo6(self, s):
+        # LCG (a=0x2c9277b5, c=0xac564b05) with a variable right shift scrambler
+        s = self._s = to_signed_32(s * to_signed_32(0x2c9277b5) + to_signed_32(0xac564b05))
+        s2 = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 18))
+        shift = (s & 0xFFFFFFFF) >> 27 & 31
+        return to_signed_32((s2 & 0xFFFFFFFF) >> shift)
+
+    def _algo7(self, s):
+        # Weyl Sequence (k=0x9e3779b9) + custom multiply-xor-shift mixing function
+        s = self._s = to_signed_32(s + to_signed_32(0x9e3779b9))
+        e = to_signed_32(s ^ (s << 5))
+        e = to_signed_32(e * to_signed_32(0x7feb352d))
+        e = to_signed_32(e ^ ((e & 0xFFFFFFFF) >> 15))
+        return to_signed_32(e * to_signed_32(0x846ca68b))
+
     def __next__(self):
         return self._algorithm(self._s) & 0xFF
 
