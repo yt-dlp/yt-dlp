@@ -5,12 +5,9 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from .youtube import YoutubeBaseInfoExtractor, YoutubeIE
-from ..networking import HEADRequest
-from ..networking.exceptions import HTTPError
+from .youtube import YoutubeBaseInfoExtractor
 from ..utils import (
     KNOWN_EXTENSIONS,
-    ExtractorError,
     bug_reports_message,
     clean_html,
     dict_get,
@@ -21,18 +18,14 @@ from ..utils import (
     join_nonempty,
     js_to_json,
     merge_dicts,
-    mimetype2ext,
     orderedSet,
     parse_duration,
     parse_qs,
     str_or_none,
-    str_to_int,
     traverse_obj,
-    try_get,
     unified_strdate,
     unified_timestamp,
     url_or_none,
-    urlhandle_detect_ext,
 )
 
 
@@ -471,7 +464,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'url': 'https://web.archive.org/web/20110712231407/http://www.youtube.com/watch?v=lTx3G6h2xyA',
             'info_dict': {
                 'id': 'lTx3G6h2xyA',
-                'ext': 'flv',
+                'ext': 'mp4',
                 'title': 'Madeon - Pop Culture (live mashup)',
                 'upload_date': '20110711',
                 'uploader': 'Madeon',
@@ -578,7 +571,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'url': 'https://web.archive.org/web/20110126141719/http://www.youtube.com/watch?v=Q_yjX80U7Yc',
             'info_dict': {
                 'id': 'Q_yjX80U7Yc',
-                'ext': 'flv',
+                'ext': 'webm',
                 'title': 'Spray Paint Art by Clay Butler: Purple Fantasy Forest',
                 'uploader_id': 'claybutlermusic',
                 'description': 'md5:4595264559e3d0a0ceb3f011f6334543',
@@ -681,6 +674,37 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader_id': 'thecomputernerd01',
             },
         }, {
+            # Contains split audio/video formats
+            'url': 'ytarchive:o_T_S_TU12M',
+            'info_dict': {
+                'id': 'o_T_S_TU12M',
+                'ext': 'mp4',
+                'title': 'Prairie Pulse 1218; Lin Enger, Paul Olson',
+                'description': 'md5:36e7a34cdc8508e35a920ec042e799c7',
+                'uploader': 'Prairie Public',
+                'channel_id': 'UC4BOzQel6tvJm7OEDd3vZlw',
+                'channel_url': 'https://www.youtube.com/channel/UC4BOzQel6tvJm7OEDd3vZlw',
+                'duration': 1606,
+                'upload_date': '20150213',
+            },
+        }, {
+            # Video unavailable through wayback-fakeurl
+            'url': 'ytarchive:SQCom7wjGDs',
+            'info_dict': {
+                'id': 'SQCom7wjGDs',
+                'ext': 'mp4',
+                'title': 'Jamin Warren from PBS Game/Show decides that Portal is a feminist Game [Top Hats and No Brain]',
+                'description': 'md5:c0cb876dd075483ead9afcc86798efb0',
+                'uploader': 'Top Hats and Champagne',
+                'uploader_id': 'sparrowtm',
+                'uploader_url': 'https://www.youtube.com/user/sparrowtm',
+                'channel_id': 'UCW3T5nG4iEkI7HjG-Du3HQA',
+                'channel_url': 'https://www.youtube.com/channel/UCW3T5nG4iEkI7HjG-Du3HQA',
+                'duration': 1500,
+                'thumbnail': 'https://web.archive.org/web/20160108040020if_/https://i.ytimg.com/vi/SQCom7wjGDs/maxresdefault.jpg',
+                'upload_date': '20160107',
+            },
+        }, {
             'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
             'only_matching': True,
         }, {
@@ -723,6 +747,113 @@ class YoutubeWebArchiveIE(InfoExtractor):
     _WAYBACK_BASE_URL = 'https://web.archive.org/web/%sif_/'
     _OLDEST_CAPTURE_DATE = 20050214000000
     _NEWEST_CAPTURE_DATE = 20500101000000
+
+    _FORMATS = {
+        '5': {'ext': 'flv', 'width': 400, 'height': 240, 'acodec': 'mp3', 'vcodec': 'h263'},
+        '6': {'ext': 'flv', 'width': 450, 'height': 270, 'acodec': 'mp3', 'vcodec': 'h263'},
+        '13': {'ext': '3gp', 'acodec': 'aac', 'vcodec': 'mp4v'},
+        '17': {'ext': '3gp', 'width': 176, 'height': 144, 'acodec': 'aac', 'vcodec': 'mp4v'},
+        '18': {'ext': 'mp4', 'width': 640, 'height': 360, 'acodec': 'aac', 'vcodec': 'h264'},
+        '22': {'ext': 'mp4', 'width': 1280, 'height': 720, 'acodec': 'aac', 'vcodec': 'h264'},
+        '34': {'ext': 'flv', 'width': 640, 'height': 360, 'acodec': 'aac', 'vcodec': 'h264'},
+        '35': {'ext': 'flv', 'width': 854, 'height': 480, 'acodec': 'aac', 'vcodec': 'h264'},
+        # itag 36 videos are either 320x180 (BaW_jenozKc) or 320x240 (__2ABJjxzNo), abr varies as well
+        '36': {'ext': '3gp', 'width': 320, 'acodec': 'aac', 'vcodec': 'mp4v'},
+        '37': {'ext': 'mp4', 'width': 1920, 'height': 1080, 'acodec': 'aac', 'vcodec': 'h264'},
+        '38': {'ext': 'mp4', 'width': 4096, 'height': 3072, 'acodec': 'aac', 'vcodec': 'h264'},
+        '43': {'ext': 'webm', 'width': 640, 'height': 360, 'acodec': 'vorbis', 'vcodec': 'vp8'},
+        '44': {'ext': 'webm', 'width': 854, 'height': 480, 'acodec': 'vorbis', 'vcodec': 'vp8'},
+        '45': {'ext': 'webm', 'width': 1280, 'height': 720, 'acodec': 'vorbis', 'vcodec': 'vp8'},
+        '46': {'ext': 'webm', 'width': 1920, 'height': 1080, 'acodec': 'vorbis', 'vcodec': 'vp8'},
+        '59': {'ext': 'mp4', 'width': 854, 'height': 480, 'acodec': 'aac', 'vcodec': 'h264'},
+        '78': {'ext': 'mp4', 'width': 854, 'height': 480, 'acodec': 'aac', 'vcodec': 'h264'},
+
+
+        # 3D videos
+        '82': {'ext': 'mp4', 'height': 360, 'format_note': '3D', 'acodec': 'aac', 'vcodec': 'h264', 'preference': -20},
+        '83': {'ext': 'mp4', 'height': 480, 'format_note': '3D', 'acodec': 'aac', 'vcodec': 'h264', 'preference': -20},
+        '84': {'ext': 'mp4', 'height': 720, 'format_note': '3D', 'acodec': 'aac', 'vcodec': 'h264', 'preference': -20},
+        '85': {'ext': 'mp4', 'height': 1080, 'format_note': '3D', 'acodec': 'aac', 'vcodec': 'h264', 'preference': -20},
+        '100': {'ext': 'webm', 'height': 360, 'format_note': '3D', 'acodec': 'vorbis', 'vcodec': 'vp8', 'preference': -20},
+        '101': {'ext': 'webm', 'height': 480, 'format_note': '3D', 'acodec': 'vorbis', 'vcodec': 'vp8', 'preference': -20},
+        '102': {'ext': 'webm', 'height': 720, 'format_note': '3D', 'acodec': 'vorbis', 'vcodec': 'vp8', 'preference': -20},
+
+        # Apple HTTP Live Streaming
+        '91': {'ext': 'mp4', 'height': 144, 'format_note': 'HLS', 'acodec': 'aac', 'vcodec': 'h264'},
+        '92': {'ext': 'mp4', 'height': 240, 'format_note': 'HLS', 'acodec': 'aac', 'vcodec': 'h264'},
+        '93': {'ext': 'mp4', 'height': 360, 'format_note': 'HLS', 'acodec': 'aac', 'vcodec': 'h264'},
+        '94': {'ext': 'mp4', 'height': 480, 'format_note': 'HLS', 'acodec': 'aac', 'vcodec': 'h264'},
+        '95': {'ext': 'mp4', 'height': 720, 'format_note': 'HLS', 'acodec': 'aac', 'vcodec': 'h264'},
+        '96': {'ext': 'mp4', 'height': 1080, 'format_note': 'HLS', 'acodec': 'aac', 'vcodec': 'h264'},
+        '132': {'ext': 'mp4', 'height': 240, 'format_note': 'HLS', 'acodec': 'aac', 'vcodec': 'h264'},
+        '151': {'ext': 'mp4', 'height': 72, 'format_note': 'HLS', 'acodec': 'aac', 'vcodec': 'h264'},
+
+        # DASH mp4 video
+        '133': {'ext': 'mp4', 'height': 240, 'vcodec': 'h264', 'acodec': 'none'},
+        '134': {'ext': 'mp4', 'height': 360, 'vcodec': 'h264', 'acodec': 'none'},
+        '135': {'ext': 'mp4', 'height': 480, 'vcodec': 'h264', 'acodec': 'none'},
+        '136': {'ext': 'mp4', 'height': 720, 'vcodec': 'h264', 'acodec': 'none'},
+        '137': {'ext': 'mp4', 'height': 1080, 'vcodec': 'h264', 'acodec': 'none'},
+        '138': {'ext': 'mp4', 'vcodec': 'h264', 'acodec': 'none'},  # Height can vary (https://github.com/ytdl-org/youtube-dl/issues/4559)
+        '160': {'ext': 'mp4', 'height': 144, 'vcodec': 'h264', 'acodec': 'none'},
+        '212': {'ext': 'mp4', 'height': 480, 'vcodec': 'h264', 'acodec': 'none'},
+        '264': {'ext': 'mp4', 'height': 1440, 'vcodec': 'h264', 'acodec': 'none'},
+        '298': {'ext': 'mp4', 'height': 720, 'vcodec': 'h264', 'fps': 60, 'acodec': 'none'},
+        '299': {'ext': 'mp4', 'height': 1080, 'vcodec': 'h264', 'fps': 60, 'acodec': 'none'},
+        '266': {'ext': 'mp4', 'height': 2160, 'vcodec': 'h264', 'acodec': 'none'},
+
+        # Dash mp4 audio
+        '139': {'ext': 'm4a', 'acodec': 'aac', 'vcodec': 'none'},
+        '140': {'ext': 'm4a', 'acodec': 'aac', 'vcodec': 'none'},
+        '141': {'ext': 'm4a', 'acodec': 'aac', 'vcodec': 'none'},
+        '256': {'ext': 'm4a', 'acodec': 'aac', 'vcodec': 'none'},
+        '258': {'ext': 'm4a', 'acodec': 'aac', 'vcodec': 'none'},
+        '325': {'ext': 'm4a', 'acodec': 'dtse', 'vcodec': 'none'},
+        '328': {'ext': 'm4a', 'acodec': 'ec-3', 'vcodec': 'none'},
+
+        # Dash webm
+        '167': {'ext': 'webm', 'height': 360, 'width': 640, 'vcodec': 'vp8'},
+        '168': {'ext': 'webm', 'height': 480, 'width': 854, 'vcodec': 'vp8'},
+        '169': {'ext': 'webm', 'height': 720, 'width': 1280, 'vcodec': 'vp8'},
+        '170': {'ext': 'webm', 'height': 1080, 'width': 1920, 'vcodec': 'vp8'},
+        '218': {'ext': 'webm', 'height': 480, 'width': 854, 'vcodec': 'vp8'},
+        '219': {'ext': 'webm', 'height': 480, 'width': 854, 'vcodec': 'vp8'},
+        '278': {'ext': 'webm', 'height': 144, 'vcodec': 'vp9', 'acodec': 'none'},
+        '242': {'ext': 'webm', 'height': 240, 'vcodec': 'vp9', 'acodec': 'none'},
+        '243': {'ext': 'webm', 'height': 360, 'vcodec': 'vp9', 'acodec': 'none'},
+        '244': {'ext': 'webm', 'height': 480, 'vcodec': 'vp9', 'acodec': 'none'},
+        '245': {'ext': 'webm', 'height': 480, 'vcodec': 'vp9', 'acodec': 'none'},
+        '246': {'ext': 'webm', 'height': 480, 'vcodec': 'vp9', 'acodec': 'none'},
+        '247': {'ext': 'webm', 'height': 720, 'vcodec': 'vp9', 'acodec': 'none'},
+        '248': {'ext': 'webm', 'height': 1080, 'vcodec': 'vp9', 'acodec': 'none'},
+        '271': {'ext': 'webm', 'height': 1440, 'vcodec': 'vp9', 'acodec': 'none'},
+        # itag 272 videos are either 3840x2160 (e.g. RtoitU2A-3E) or 7680x4320 (sLprVF6d7Ug)
+        '272': {'ext': 'webm', 'height': 2160, 'vcodec': 'vp9', 'acodec': 'none'},
+        '302': {'ext': 'webm', 'height': 720, 'vcodec': 'vp9', 'fps': 60, 'acodec': 'none'},
+        '303': {'ext': 'webm', 'height': 1080, 'vcodec': 'vp9', 'fps': 60, 'acodec': 'none'},
+        '308': {'ext': 'webm', 'height': 1440, 'vcodec': 'vp9', 'fps': 60, 'acodec': 'none'},
+        '313': {'ext': 'webm', 'height': 2160, 'vcodec': 'vp9', 'acodec': 'none'},
+        '315': {'ext': 'webm', 'height': 2160, 'vcodec': 'vp9', 'fps': 60, 'acodec': 'none'},
+
+        # Dash webm audio
+        '171': {'ext': 'webm', 'acodec': 'vorbis', 'vcodec': 'none'},
+        '172': {'ext': 'webm', 'acodec': 'vorbis', 'vcodec': 'none'},
+
+        # Dash webm audio with opus inside
+        '249': {'ext': 'webm', 'acodec': 'opus', 'vcodec': 'none'},
+        '250': {'ext': 'webm', 'acodec': 'opus', 'vcodec': 'none'},
+        '251': {'ext': 'webm', 'acodec': 'opus', 'vcodec': 'none'},
+
+        # av01 video only formats sometimes served with "unknown" codecs
+        '394': {'ext': 'mp4', 'height': 144, 'vcodec': 'av01.0.00M.08', 'acodec': 'none'},
+        '395': {'ext': 'mp4', 'height': 240, 'vcodec': 'av01.0.00M.08', 'acodec': 'none'},
+        '396': {'ext': 'mp4', 'height': 360, 'vcodec': 'av01.0.01M.08', 'acodec': 'none'},
+        '397': {'ext': 'mp4', 'height': 480, 'vcodec': 'av01.0.04M.08', 'acodec': 'none'},
+        '398': {'ext': 'mp4', 'height': 720, 'vcodec': 'av01.0.05M.08', 'acodec': 'none'},
+        '399': {'ext': 'mp4', 'height': 1080, 'vcodec': 'av01.0.08M.08', 'acodec': 'none'},
+        '400': {'ext': 'mp4', 'height': 1440, 'vcodec': 'av01.0.12M.08', 'acodec': 'none'},
+        '401': {'ext': 'mp4', 'height': 2160, 'vcodec': 'av01.0.12M.08', 'acodec': 'none'},
+    }
 
     def _call_cdx_api(self, item_id, url, filters: list | None = None, collapse: list | None = None, query: dict | None = None, note=None, fatal=False):
         # CDX docs: https://github.com/internetarchive/wayback/blob/master/wayback-cdx-server/README.md
@@ -933,23 +1064,13 @@ class YoutubeWebArchiveIE(InfoExtractor):
         video_id, url_date, url_date_2 = self._match_valid_url(url).group('id', 'date', 'date2')
         url_date = url_date or url_date_2
 
-        urlh = None
-        retry_manager = self.RetryManager(fatal=False)
-        for retry in retry_manager:
-            try:
-                urlh = self._request_webpage(
-                    HEADRequest(f'https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/{video_id}'),
-                    video_id, note='Fetching archived video file url', expected_status=True)
-            except ExtractorError as e:
-                # HTTP Error 404 is expected if the video is not saved.
-                if isinstance(e.cause, HTTPError) and e.cause.status == 404:
-                    self.raise_no_formats(
-                        'The requested video is not archived, indexed, or there is an issue with web.archive.org (try again later)', expected=True)
-                else:
-                    retry.error = e
+        video_info = self._download_json(
+            'https://web.archive.org/__wb/videoinfo', video_id,
+            query={'vtype': 'youtube', 'vid': video_id})
 
-        if retry_manager.error:
-            self.raise_no_formats(retry_manager.error, expected=True, video_id=video_id)
+        if not traverse_obj(video_info, 'formats'):
+            self.raise_no_formats(
+                'The requested video is not archived or indexed', expected=True)
 
         capture_dates = self._get_capture_dates(video_id, int_or_none(url_date))
         self.write_debug('Captures to try: ' + join_nonempty(*capture_dates, delim=', '))
@@ -968,25 +1089,18 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
         info['thumbnails'] = self._extract_thumbnails(video_id)
 
-        if urlh:
-            url = urllib.parse.unquote(urlh.url)
-            video_file_url_qs = parse_qs(url)
-            # Attempt to recover any ext & format info from playback url & response headers
-            fmt = {'url': url, 'filesize': int_or_none(urlh.headers.get('x-archive-orig-content-length'))}
-            itag = try_get(video_file_url_qs, lambda x: x['itag'][0])
-            if itag and itag in YoutubeIE._formats:
-                fmt.update(YoutubeIE._formats[itag])
-                fmt.update({'format_id': itag})
-            else:
-                mime = try_get(video_file_url_qs, lambda x: x['mime'][0])
-                ext = (mimetype2ext(mime)
-                       or urlhandle_detect_ext(urlh)
-                       or mimetype2ext(urlh.headers.get('x-archive-guessed-content-type')))
-                fmt.update({'ext': ext})
-            info['formats'] = [fmt]
-            if not info.get('duration'):
-                info['duration'] = str_to_int(try_get(video_file_url_qs, lambda x: x['dur'][0]))
+        formats = []
+        for fmt in traverse_obj(video_info, ('formats', lambda _, v: url_or_none(v['url']))):
+            format_id = traverse_obj(fmt, ('url', {parse_qs}, 'itag', 0))
+            formats.append({
+                'format_id': format_id,
+                **self._FORMATS.get(format_id, {}),
+                **traverse_obj(fmt, {
+                    'url': ('url', {lambda x: f'https://web.archive.org/web/2id_/{x}'}),
+                    'ext': ('ext', {str}),
+                    'filesize': ('url', {parse_qs}, 'clen', 0, {int_or_none}),
+                }),
+            })
+        info['formats'] = formats
 
-        if not info.get('title'):
-            info['title'] = video_id
         return info

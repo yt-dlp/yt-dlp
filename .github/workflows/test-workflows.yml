@@ -34,7 +34,7 @@ jobs:
         env:
           ACTIONLINT_TARBALL: ${{ format('actionlint_{0}_linux_amd64.tar.gz', env.ACTIONLINT_VERSION) }}
         run: |
-          python -m devscripts.install_deps -o --include test
+          python -m devscripts.install_deps --only-optional-groups --include-group test
           sudo apt -y install shellcheck
           python -m pip install -U pyflakes
           curl -LO "${ACTIONLINT_REPO}/releases/download/v${ACTIONLINT_VERSION}/${ACTIONLINT_TARBALL}"

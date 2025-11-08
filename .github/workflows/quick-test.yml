@@ -15,7 +15,7 @@ jobs:
       with:
         python-version: '3.10'
     - name: Install test requirements
-      run: python3 ./devscripts/install_deps.py -o --include test
+      run: python ./devscripts/install_deps.py --only-optional-groups --include-group test
     - name: Run tests
       timeout-minutes: 15
       run: |
@@ -31,9 +31,9 @@ jobs:
       with:
         python-version: '3.10'
     - name: Install dev dependencies
-      run: python3 ./devscripts/install_deps.py -o --include static-analysis
+      run: python ./devscripts/install_deps.py --only-optional-groups --include-group static-analysis
     - name: Make lazy extractors
-      run: python3 ./devscripts/make_lazy_extractors.py
+      run: python ./devscripts/make_lazy_extractors.py
     - name: Run ruff
       run: ruff check --output-format github .
     - name: Run autopep8
