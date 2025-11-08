@@ -176,7 +176,7 @@ def _iter_differences(got, expected, field):
             yield field, f'expected length of {len(expected)}, got {len(got)}'
             return
 
-        for index, (got_val, expected_val) in enumerate(zip(got, expected)):
+        for index, (got_val, expected_val) in enumerate(zip(got, expected, strict=True)):
             field_name = str(index) if field is None else f'{field}.{index}'
             yield from _iter_differences(got_val, expected_val, field_name)
         return
