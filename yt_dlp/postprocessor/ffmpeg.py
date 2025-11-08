@@ -395,14 +395,19 @@ class FFmpegPostProcessor(PostProcessor):
         return string[:-1] if string[-1] == "'" else string + "'"
 
     def _escape_stream_specifier(self, string):
+        # Escape `'` and `/` as per the docs:
+        # https://ffmpeg.org/ffmpeg-utils.html#toc-Quoting-and-escaping
+        out = string.replace('\\', '\\\\')
+        out = out.replace("'", "\\'")
+
         if (is_outdated_version(self._get_version('ffmpeg'), '7.1')):
             # Versions older than 7.1 take arguments with colons verbatim.
-            return string
+            return out
 
         # Since 7.1, stream specifier arguments with colons must be escaped or
         # they will be interpreted as part of the specifier. This was done to
         # reduce ambiguity, but it also broke compatibility.
-        return string.replace(':', r'\:')
+        return out.replace(':', r'\:')
 
     def force_keyframes(self, filename, timestamps):
         timestamps = orderedSet(timestamps)
