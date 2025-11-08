@@ -1174,7 +1174,7 @@ Predefined aliases for convenience and ease of use. Note that future
 You can configure yt-dlp by placing any supported command line option in a configuration file. The configuration is loaded from the following locations:
 
 1. **Main Configuration**:
-    * The file given to `--config-location`
+    * The file given to `--config-locations`
 1. **Portable Configuration**: (Recommended for portable installations)
     * If using a binary, `yt-dlp.conf` in the same directory as the binary
     * If running from source-code, `yt-dlp.conf` in the parent directory of `yt_dlp`
@@ -1256,7 +1256,7 @@ yt-dlp --netrc-cmd 'gpg --decrypt ~/.authinfo.gpg' 'https://www.youtube.com/watc
 
 ### Notes about environment variables
 * Environment variables are normally specified as `${VARIABLE}`/`$VARIABLE` on UNIX and `%VARIABLE%` on Windows; but is always shown as `${VARIABLE}` in this documentation
-* yt-dlp also allows using UNIX-style variables on Windows for path-like options; e.g. `--output`, `--config-location`
+* yt-dlp also allows using UNIX-style variables on Windows for path-like options; e.g. `--output`, `--config-locations`
 * If unset, `${XDG_CONFIG_HOME}` defaults to `~/.config` and `${XDG_CACHE_HOME}` to `~/.cache`
 * On Windows, `~` points to `${HOME}` if present; or, `${USERPROFILE}` or `${HOMEDRIVE}${HOMEPATH}` otherwise
 * On Windows, `${USERPROFILE}` generally points to `C:\Users\<user name>` and `${APPDATA}` to `${USERPROFILE}\AppData\Roaming`
