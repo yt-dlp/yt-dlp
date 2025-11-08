@@ -13,6 +13,8 @@ from ..utils.traversal import get_first, traverse_obj
 
 
 class GoPlayIE(InfoExtractor):
+    IE_NAME = 'play.tv'
+    IE_DESC = 'PLAY (formerly goplay.be)'
     _VALID_URL = r'https?://(www\.)?play\.tv/video/([^/?#]+/[^/?#]+/|)(?P<id>[^/#]+)'
 
     _NETRC_MACHINE = 'goplay'
