@@ -130,7 +130,7 @@ class MaveIE(MaveBaseIE):
 
 class MaveChannelIE(MaveBaseIE):
     IE_NAME = 'mave:channel'
-    _VALID_URL = r'https?://(?P<id>[\w-]+)\.mave\.digital/?$'
+    _VALID_URL = r'https?://(?P<id>[\w-]+)\.mave\.digital/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://budem.mave.digital/',
         'info_dict': {
@@ -187,5 +187,5 @@ class MaveChannelIE(MaveBaseIE):
             'id': channel_id,
             'title': channel_meta['podcast']['title'],
             'description': channel_meta['podcast']['description'],
-            'entries': entries,
+            'entries': entries[::-1],
         }
