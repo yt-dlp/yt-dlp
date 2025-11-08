@@ -22,6 +22,7 @@ class MuxIE(InfoExtractor):
         },
     }]
     _WEBPAGE_TESTS = [{
+        # iframe embed
         'url': 'https://www.redbrickai.com/blog/2025-07-14-FAST-brush',
         'info_dict': {
             'ext': 'mp4',
@@ -29,6 +30,7 @@ class MuxIE(InfoExtractor):
             'title': 'cXhzAiW1AmsHY01eRbEYFcTEAn0102aGN8sbt8JprP6Dfw',
         },
     }, {
+        # mux-player embed
         'url': 'https://muxvideo.2coders.com/download/',
         'info_dict': {
             'ext': 'mp4',
