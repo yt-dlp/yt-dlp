@@ -44,7 +44,7 @@ class MuxIE(InfoExtractor):
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
         yield from super()._extract_embed_urls(url, webpage)
-        for mux_player in re.findall(r'<mux-(?:player|video)[^>]*\bplayback-id=[^>]+>', webpage):
+        for mux_player in re.findall(r'<mux-(?:player|video)\b[^>]*\bplayback-id=[^>]+>', webpage):
             attrs = extract_attributes(mux_player)
             playback_id = attrs.get('playback-id')
             if not playback_id:
@@ -58,7 +58,7 @@ class MuxIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        token = traverse_obj(parse_qs(url), ('playback-token', 0))
+        token = traverse_obj(parse_qs(url), ('playback-token', -1))
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             f'https://stream.mux.com/{video_id}.m3u8', video_id, 'mp4',
