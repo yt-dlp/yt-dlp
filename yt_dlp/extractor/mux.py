@@ -1,8 +1,7 @@
 import re
-import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import extract_attributes, filter_dict, parse_qs
+from ..utils import extract_attributes, filter_dict, parse_qs, update_url_query
 from ..utils.traversal import traverse_obj
 
 
@@ -46,14 +45,15 @@ class MuxIE(InfoExtractor):
     def _extract_embed_urls(cls, url, webpage):
         yield from super()._extract_embed_urls(url, webpage)
         for mux_player in re.findall(r'<mux-(?:player|video)[^>]*\bplayback-id=[^>]+>', webpage):
-            playback_id = traverse_obj(mux_player, ({extract_attributes}, 'playback-id'))
+            attrs = extract_attributes(mux_player)
+            playback_id = attrs.get('playback-id')
             if not playback_id:
                 continue
-            token = traverse_obj(mux_player, ({extract_attributes}, 'playback-token'))
-            if '?' in playback_id:
-                playback_id, qs = playback_id.split('?', 1)
-                token = token or traverse_obj(urllib.parse.parse_qs(qs), ('token', 0))
-            yield f'https://player.mux.com/{playback_id}{"?playback-token=" + token if token else ""}'
+            token = attrs.get('playback-token') or traverse_obj(playback_id, ({parse_qs}, 'token', -1))
+            playback_id = playback_id.partition('?')[0]
+            yield update_url_query(
+                f'https://player.mux.com/{playback_id}',
+                filter_dict({'playback-token': token}))
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
