@@ -159,8 +159,8 @@ class NTVRuIE(InfoExtractor):
             'id': video_id,
             'formats': formats,
             **traverse_obj(metadata, {
-                'title': ('{*}title/text()', ..., {unescapeHTML}, any),
-                'description': ('{*}description/text()', ..., {unescapeHTML}, any),
+                'title': ('{*}title/text()', ..., {str}, {unescapeHTML}, any),
+                'description': ('{*}description/text()', ..., {str}, {unescapeHTML}, any),
                 'duration': ('{*}duration/text()', ..., {int_or_none}, any),
                 'timestamp': ('{*}create_date/text()', ..., {parse_iso8601}, any),
                 'release_timestamp': ('{*}upload_date/text()', ..., {parse_iso8601}, any),
@@ -170,8 +170,8 @@ class NTVRuIE(InfoExtractor):
                 'comment_count': ('{*}stats/comments/text()', ..., {int_or_none}, any),
             }),
             **traverse_obj(player, {
-                'title': ('data/title/text()', ..., {unescapeHTML}, any),
-                'description': ('data/description/text()', ..., {unescapeHTML}, any),
+                'title': ('data/title/text()', ..., {str}, {unescapeHTML}, any),
+                'description': ('data/description/text()', ..., {str}, {unescapeHTML}, any),
                 'duration': ('data/video/totaltime/text()', ..., {int_or_none}, any),
                 'view_count': ('data/video/views/text()', ..., {int_or_none}, any),
                 'thumbnail': ('data/video/splash/text()', ..., {url_or_none}, any),
