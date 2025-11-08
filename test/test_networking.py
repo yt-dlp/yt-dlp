@@ -893,7 +893,9 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
 
         with handler(enable_file_urls=True) as rh:
             res = validate_and_send(rh, req)
-            assert res.read() == b'foobar'
+            assert res.read(1) == b'f'
+            assert not res.fp.closed
+            assert res.read() == b'oobar'
             # Should automatically close the underlying file object
             assert res.fp.closed
 
@@ -1220,6 +1222,14 @@ class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
         res4.close()
         assert res4.closed
         assert res4._buffer == b''
+
+    def test_http_response_auto_close(self, handler):
+        with handler() as rh:
+            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/gen_200'))
+            assert res.read() == b'<html></html>'
+            # Should automatically close the underlying file object in the HTTP Response
+            assert res.fp.closed
+            assert res.closed
 
 
 def run_validation(handler, error, req, **handler_kwargs):
