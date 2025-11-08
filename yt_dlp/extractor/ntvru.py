@@ -21,7 +21,7 @@ class NTVRuIE(InfoExtractor):
             'id': '2520563',
             'ext': 'mp4',
             'title': 'Участники: Ирина Петрова, Сергей Коновалов, Кристина Кораблина',
-            'description': 'Участники: Ирина Петрова, Сергей Коновалов, Кристина Кораблина',
+            'description': 'md5:fcbd21cd45238a940b95550f9e178e3e',
             'thumbnail': r're:^http://.*\.jpg',
             'duration': 2462,
             'view_count': int,
@@ -61,8 +61,8 @@ class NTVRuIE(InfoExtractor):
         'info_dict': {
             'id': '747480',
             'ext': 'mp4',
-            'title': '«Сегодня». 21\xa0марта 2014\xa0года. 16:00 ',
-            'description': '«Сегодня». 21\xa0марта 2014\xa0года. 16:00 ',
+            'title': '"Сегодня". 21 марта 2014 года. 16:00 ',
+            'description': 'md5:bed80745ca72af557433195f51a02785',
             'thumbnail': r're:^http://.*\.jpg',
             'duration': 1496,
             'view_count': int,
@@ -81,8 +81,8 @@ class NTVRuIE(InfoExtractor):
         'info_dict': {
             'id': '1126480',
             'ext': 'mp4',
-            'title': 'Остросюжетный фильм «Кома»',
-            'description': 'Остросюжетный фильм «Кома»',
+            'title': 'Остросюжетный фильм "Кома"',
+            'description': 'md5:e79ffd0887425a0f05a58885c408d7d8',
             'thumbnail': r're:^http://.*\.jpg',
             'duration': 5608,
             'view_count': int,
@@ -101,8 +101,8 @@ class NTVRuIE(InfoExtractor):
         'info_dict': {
             'id': '751482',
             'ext': 'mp4',
-            'title': '«Дело врачей»: «Деревце жизни»',
-            'description': '«Дело врачей»: «Деревце жизни»',
+            'title': '"Дело врачей": "Деревце жизни"',
+            'description': 'md5:d6fbf9193f880f50d9cbfbcc954161c1',
             'thumbnail': r're:^http://.*\.jpg',
             'duration': 2590,
             'view_count': int,
@@ -158,6 +158,13 @@ class NTVRuIE(InfoExtractor):
         return {
             'id': video_id,
             'formats': formats,
+            **traverse_obj(player, {
+                'title': ('data/title/text()', ..., {str}, {unescapeHTML}, any),
+                'description': ('data/description/text()', ..., {str}, {unescapeHTML}, any),
+                'duration': ('data/video/totaltime/text()', ..., {int_or_none}, any),
+                'view_count': ('data/video/views/text()', ..., {int_or_none}, any),
+                'thumbnail': ('data/video/splash/text()', ..., {url_or_none}, any),
+            }),
             **traverse_obj(metadata, {
                 'title': ('{*}title/text()', ..., {str}, {unescapeHTML}, any),
                 'description': ('{*}description/text()', ..., {str}, {unescapeHTML}, any),
@@ -168,12 +175,5 @@ class NTVRuIE(InfoExtractor):
                 'tags': ('{*}tag/text()', ..., {str}, {lambda x: x.split(',')}, ..., {str.strip}, filter),
                 'view_count': ('{*}stats/views_total/text()', ..., {int_or_none}, any),
                 'comment_count': ('{*}stats/comments/text()', ..., {int_or_none}, any),
-            }),
-            **traverse_obj(player, {
-                'title': ('data/title/text()', ..., {str}, {unescapeHTML}, any),
-                'description': ('data/description/text()', ..., {str}, {unescapeHTML}, any),
-                'duration': ('data/video/totaltime/text()', ..., {int_or_none}, any),
-                'view_count': ('data/video/views/text()', ..., {int_or_none}, any),
-                'thumbnail': ('data/video/splash/text()', ..., {url_or_none}, any),
             }),
         }
