@@ -1048,6 +1048,14 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
         rh.close()
         assert called
 
+    def test_http_response_auto_close(self, handler):
+        with handler() as rh:
+            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/gen_200'))
+            assert res.read() == b'<html></html>'
+            # Should automatically close the underlying file object in the HTTP Response
+            assert res.fp.closed
+            assert res.closed
+
 
 @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
 class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
