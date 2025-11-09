@@ -169,7 +169,11 @@ class MaveChannelIE(MaveBaseIE):
         return {
             '_type': 'playlist',
             'id': channel_id,
-            'title': channel_meta['podcast']['title'],
-            'description': channel_meta['podcast']['description'],
-            'entries': entries[::-1],
+            **traverse_obj(channel_meta, {
+                'title': ('podcast', 'title', {str}),
+                'description': ('podcast', 'description', {str}),
+            }),
+            'entries': InAdvancePagedList(
+                functools.partial(self._entries, channel_id, channel_meta),
+                math.ceil(channel_meta['podcast']['episodes_count'] / self._PAGE_SIZE), self._PAGE_SIZE),
         }
