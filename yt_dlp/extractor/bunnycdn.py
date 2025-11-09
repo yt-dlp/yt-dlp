@@ -39,7 +39,7 @@ class BunnyCdnIE(InfoExtractor):
             'timestamp': 1691145748,
             'thumbnail': r're:^https?://.*\.b-cdn\.net/32e34c4b-0d72-437c-9abb-05e67657da34/thumbnail_9172dc16\.jpg',
             'duration': 106.0,
-            'description': 'md5:981a3e899a5c78352b21ed8b2f1efd81',
+            'description': 'md5:11452bcb31f379ee3eaf1234d3264e44',
             'upload_date': '20230804',
             'title': 'Sanela ist Teil der #arbeitsmarktkraft',
         },
@@ -56,6 +56,20 @@ class BunnyCdnIE(InfoExtractor):
             'description': '',
             'upload_date': '20240221',
             'thumbnail': r're:^https?://.*\.b-cdn\.net/2e8545ec-509d-4571-b855-4cf0235ccd75/thumbnail\.jpg',
+        },
+        'params': {'skip_download': True},
+    }, {
+        # Requires any Referer
+        'url': 'https://iframe.mediadelivery.net/embed/289162/6372f5a3-68df-4ef7-a115-e1110186c477',
+        'info_dict': {
+            'id': '6372f5a3-68df-4ef7-a115-e1110186c477',
+            'ext': 'mp4',
+            'title': '12-Creating Small Asset Blockouts -Timelapse.mp4',
+            'description': '',
+            'duration': 263.0,
+            'timestamp': 1724485440,
+            'upload_date': '20240824',
+            'thumbnail': r're:^https?://.*\.b-cdn\.net/6372f5a3-68df-4ef7-a115-e1110186c477/thumbnail\.jpg',
         },
         'params': {'skip_download': True},
     }]
@@ -100,7 +114,7 @@ class BunnyCdnIE(InfoExtractor):
         video_id, library_id = self._match_valid_url(url).group('id', 'library_id')
         webpage = self._download_webpage(
             f'https://iframe.mediadelivery.net/embed/{library_id}/{video_id}', video_id,
-            headers=traverse_obj(smuggled_data, {'Referer': 'Referer'}),
+            headers={'Referer': smuggled_data.get('Referer') or 'https://iframe.mediadelivery.net/'},
             query=traverse_obj(parse_qs(url), {'token': 'token', 'expires': 'expires'}))
 
         if html_title := self._html_extract_title(webpage, default=None) == '403':

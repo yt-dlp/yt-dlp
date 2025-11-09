@@ -3,6 +3,7 @@
 # Allow direct execution
 import os
 import sys
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -614,8 +615,11 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
     @pytest.mark.skip_handler('CurlCFFI', 'not supported by curl-cffi')
     def test_gzip_trailing_garbage(self, handler):
         with handler() as rh:
-            data = validate_and_send(rh, Request(f'http://localhost:{self.http_port}/trailing_garbage')).read().decode()
+            res = validate_and_send(rh, Request(f'http://localhost:{self.http_port}/trailing_garbage'))
+            data = res.read().decode()
             assert data == '<html><video src="/vid.mp4" /></html>'
+            # Should auto-close and mark the response adaptor as closed
+            assert res.closed
 
     @pytest.mark.skip_handler('CurlCFFI', 'not applicable to curl-cffi')
     @pytest.mark.skipif(not brotli, reason='brotli support is not installed')
@@ -627,6 +631,8 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                     headers={'ytdl-encoding': 'br'}))
             assert res.headers.get('Content-Encoding') == 'br'
             assert res.read() == b'<html><video src="/vid.mp4" /></html>'
+            # Should auto-close and mark the response adaptor as closed
+            assert res.closed
 
     def test_deflate(self, handler):
         with handler() as rh:
@@ -636,6 +642,8 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                     headers={'ytdl-encoding': 'deflate'}))
             assert res.headers.get('Content-Encoding') == 'deflate'
             assert res.read() == b'<html><video src="/vid.mp4" /></html>'
+            # Should auto-close and mark the response adaptor as closed
+            assert res.closed
 
     def test_gzip(self, handler):
         with handler() as rh:
@@ -645,6 +653,8 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                     headers={'ytdl-encoding': 'gzip'}))
             assert res.headers.get('Content-Encoding') == 'gzip'
             assert res.read() == b'<html><video src="/vid.mp4" /></html>'
+            # Should auto-close and mark the response adaptor as closed
+            assert res.closed
 
     def test_multiple_encodings(self, handler):
         with handler() as rh:
@@ -655,6 +665,8 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                         headers={'ytdl-encoding': pair}))
                 assert res.headers.get('Content-Encoding') == pair
                 assert res.read() == b'<html><video src="/vid.mp4" /></html>'
+                # Should auto-close and mark the response adaptor as closed
+                assert res.closed
 
     @pytest.mark.skip_handler('CurlCFFI', 'not supported by curl-cffi')
     def test_unsupported_encoding(self, handler):
@@ -665,6 +677,8 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                     headers={'ytdl-encoding': 'unsupported', 'Accept-Encoding': '*'}))
             assert res.headers.get('Content-Encoding') == 'unsupported'
             assert res.read() == b'raw'
+            # Should auto-close and mark the response adaptor as closed
+            assert res.closed
 
     def test_read(self, handler):
         with handler() as rh:
@@ -672,9 +686,13 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                 rh, Request(f'http://127.0.0.1:{self.http_port}/headers'))
             assert res.readable()
             assert res.read(1) == b'H'
+            # Ensure we don't close the adaptor yet
+            assert not res.closed
             assert res.read(3) == b'ost'
             assert res.read().decode().endswith('\n\n')
             assert res.read() == b''
+            # Should auto-close and mark the response adaptor as closed
+            assert res.closed
 
     def test_request_disable_proxy(self, handler):
         for proxy_proto in handler._SUPPORTED_PROXY_SCHEMES or ['http']:
@@ -875,10 +893,30 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
 
         with handler(enable_file_urls=True) as rh:
             res = validate_and_send(rh, req)
-            assert res.read() == b'foobar'
-            res.close()
+            assert res.read(1) == b'f'
+            assert not res.fp.closed
+            assert res.read() == b'oobar'
+            # Should automatically close the underlying file object
+            assert res.fp.closed
 
         os.unlink(tf.name)
+
+    def test_data_uri_auto_close(self, handler):
+        with handler() as rh:
+            res = validate_and_send(rh, Request('data:text/plain,hello%20world'))
+            assert res.read() == b'hello world'
+            # Should automatically close the underlying file object
+            assert res.fp.closed
+            assert res.closed
+
+    def test_http_response_auto_close(self, handler):
+        with handler() as rh:
+            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/gen_200'))
+            assert res.read() == b'<html></html>'
+            # Should automatically close the underlying file object in the HTTP Response
+            assert isinstance(res.fp, http.client.HTTPResponse)
+            assert res.fp.fp is None
+            assert res.closed
 
     def test_http_error_returns_content(self, handler):
         # urllib HTTPError will try close the underlying response if reference to the HTTPError object is lost
@@ -1011,6 +1049,14 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
         monkeypatch.setattr(session, 'close', mock_close)
         rh.close()
         assert called
+
+    def test_http_response_auto_close(self, handler):
+        with handler() as rh:
+            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/gen_200'))
+            assert res.read() == b'<html></html>'
+            # Should automatically close the underlying file object in the HTTP Response
+            assert res.fp.closed
+            assert res.closed
 
 
 @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
@@ -1176,6 +1222,14 @@ class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
         res4.close()
         assert res4.closed
         assert res4._buffer == b''
+
+    def test_http_response_auto_close(self, handler):
+        with handler() as rh:
+            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/gen_200'))
+            assert res.read() == b'<html></html>'
+            # Should automatically close the underlying file object in the HTTP Response
+            assert res.fp.closed
+            assert res.closed
 
 
 def run_validation(handler, error, req, **handler_kwargs):
@@ -2031,6 +2085,30 @@ class TestResponse:
             assert res.geturl() == res.url
             assert res.info() is res.headers
             assert res.getheader('test') == res.get_header('test')
+
+    def test_auto_close(self):
+        # Should mark the response as closed if the underlying file is closed
+        class AutoCloseBytesIO(io.BytesIO):
+            def read(self, size=-1, /):
+                data = super().read(size)
+                self.close()
+                return data
+
+        fp = AutoCloseBytesIO(b'test')
+        res = Response(fp, url='test://', headers={}, status=200)
+        assert not res.closed
+        res.read()
+        assert res.closed
+
+    def test_close(self):
+        # Should not call close() on the underlying file when already closed
+        fp = MagicMock()
+        fp.closed = False
+        res = Response(fp, url='test://', headers={}, status=200)
+        res.close()
+        fp.closed = True
+        res.close()
+        assert fp.close.call_count == 1
 
 
 class TestImpersonateTarget:
