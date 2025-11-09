@@ -778,6 +778,7 @@ from .groupon import GrouponIE
 from .harpodeon import HarpodeonIE
 from .hbo import HBOIE
 from .hearthisat import HearThisAtIE
+from .heinetworktv import HEINetworkTVVideoIE
 from .heise import HeiseIE
 from .hellporno import HellPornoIE
 from .hgtv import HGTVComShowIE
