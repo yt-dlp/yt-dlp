@@ -73,18 +73,21 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
 
     def _extract_aetn_info(self, domain, filter_key, filter_value, url):
         requestor_id, brand, software_statement = self._DOMAIN_MAP[domain]
+        graphql_video_id = (self._search_regex(
+            r'<meta[^>]+content="[^"]*tpid/(\d+)"|<meta[^>]*name="videoId"[^>]*content="(\d+)"',
+            self._download_webpage(url, filter_value), 'video ID') if filter_key == 'canonical' else filter_value)
         result = self._download_json(
-            f'https://feeds.video.aetnd.com/api/v2/{brand}/videos',
-            filter_value, query={f'filter[{filter_key}]': filter_value})
-        result = traverse_obj(
-            result, ('results',
-                     lambda k, v: k == 0 and v[filter_key] == filter_value),
-            get_all=False)
-        if not result:
+            'https://yoga.appsvcs.aetnd.com/', graphql_video_id,
+            query={'brand': brand, 'mode': 'live', 'platform': 'web'},
+            data=json.dumps({'operationName': 'getUserVideo', 'variables': {'videoId': graphql_video_id},
+                             'query': 'query getUserVideo($videoId: ID!) { video(id: $videoId) { title publicUrl programId tvSeasonNumber tvSeasonEpisodeNumber series { title } } }'}).encode(),
+            headers={'Content-Type': 'application/json'})
+        result = traverse_obj(result, ('data', 'video'), default={})
+        if not result or not result.get('publicUrl'):
             raise ExtractorError('Show not found in A&E feed (too new?)', expected=True,
                                  video_id=remove_start(filter_value, '/'))
         title = result['title']
-        video_id = result['id']
+        video_id = result['programId']
         media_url = result['publicUrl']
         theplatform_metadata = self._download_theplatform_metadata(self._search_regex(
             r'https?://link\.theplatform\.com/s/([^?]+)', media_url, 'theplatform_path'), video_id)
@@ -100,7 +103,7 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         info.update(self._extract_aen_smil(media_url, video_id, auth))
         info.update({
             'title': title,
-            'series': result.get('seriesName'),
+            'series': (result.get('series') or {}).get('title'),
             'season_number': int_or_none(result.get('tvSeasonNumber')),
             'episode_number': int_or_none(result.get('tvSeasonEpisodeNumber')),
         })
@@ -115,6 +118,7 @@ class AENetworksIE(AENetworksBaseIE):
         (?P<type>movie|special)s/[^/?#]+(?P<extra>/[^/?#]+)?|
         (?:shows/[^/?#]+/)?videos/[^/?#]+
     )'''
+
     _TESTS = [{
         'url': 'http://www.history.com/shows/mountain-men/season-1/episode-1',
         'info_dict': {
