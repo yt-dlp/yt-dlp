@@ -441,7 +441,7 @@ def create_parser():
             '("-" for stdin). Can be used multiple times and inside other configuration files'))
     general.add_option(
         '--plugin-dirs',
-        metavar='PATH',
+        metavar='DIR',
         dest='plugin_dirs',
         action='callback',
         callback=_list_from_options_callback,
@@ -466,9 +466,13 @@ def create_parser():
         callback_kwargs={'delim': None},
         default=['deno'],
         help=(
-            'Additional JavaScript runtime to enable, with an optional path to the runtime location. '
+            'Additional JavaScript runtime to enable, with an optional location for the runtime '
+            '(either the path to the binary or its containing directory). '
             'This option can be used multiple times to enable multiple runtimes. '
-            'Supported runtimes: deno, node, bun, quickjs. By default, only "deno" runtime is enabled.'))
+            'Supported runtimes are (in order of priority, from highest to lowest): deno, node, quickjs, bun. '
+            'Only "deno" is enabled by default. The highest priority runtime that is both enabled and '
+            'available will be used. In order to use a lower priority runtime when "deno" is available, '
+            '--no-js-runtimes needs to be passed before enabling other runtimes'))
     general.add_option(
         '--no-js-runtimes',
         dest='js_runtimes', action='store_const', const=[],
@@ -484,9 +488,12 @@ def create_parser():
         default=[],
         help=(
             'Remote components to allow yt-dlp to fetch when required. '
+            'This option is currently not needed if you are using an official executable '
+            'or have the requisite version of the yt-dlp-ejs package installed. '
             'You can use this option multiple times to allow multiple components. '
-            'Supported values: ejs:npm (external JavaScript components from npm), ejs:github (external JavaScript components from yt-dlp-ejs GitHub). '
-            'By default, no remote components are allowed.'))
+            'Supported values: ejs:npm (external JavaScript components from npm), '
+            'ejs:github (external JavaScript components from yt-dlp-ejs GitHub). '
+            'By default, no remote components are allowed'))
     general.add_option(
         '--no-remote-components',
         dest='remote_components', action='store_const', const=[],

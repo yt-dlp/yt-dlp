@@ -360,7 +360,7 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     containing directory ("-" for stdin). Can be
                                     used multiple times and inside other
                                     configuration files
-    --plugin-dirs PATH              Path to an additional directory to search
+    --plugin-dirs DIR               Path to an additional directory to search
                                     for plugins. This option can be used
                                     multiple times to add multiple directories.
                                     Use "default" to search the default plugin
@@ -369,22 +369,33 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     including defaults and those provided by
                                     previous --plugin-dirs
     --js-runtimes RUNTIME[:PATH]    Additional JavaScript runtime to enable,
-                                    with an optional path to the runtime
-                                    location. This option can be used multiple
-                                    times to enable multiple runtimes. Supported
-                                    runtimes: deno, node, bun, quickjs. By
-                                    default, only "deno" runtime is enabled.
+                                    with an optional location for the runtime
+                                    (either the path to the binary or its
+                                    containing directory). This option can be
+                                    used multiple times to enable multiple
+                                    runtimes. Supported runtimes are (in order
+                                    of priority, from highest to lowest): deno,
+                                    node, quickjs, bun. Only "deno" is enabled
+                                    by default. The highest priority runtime
+                                    that is both enabled and available will be
+                                    used. In order to use a lower priority
+                                    runtime when "deno" is available, --no-js-
+                                    runtimes needs to be passed before enabling
+                                    other runtimes
     --no-js-runtimes                Clear JavaScript runtimes to enable,
                                     including defaults and those provided by
                                     previous --js-runtimes
     --remote-components COMPONENT   Remote components to allow yt-dlp to fetch
-                                    when required. You can use this option
-                                    multiple times to allow multiple components.
-                                    Supported values: ejs:npm (external
-                                    JavaScript components from npm), ejs:github
-                                    (external JavaScript components from yt-dlp-
-                                    ejs GitHub). By default, no remote
-                                    components are allowed.
+                                    when required. This option is currently not
+                                    needed if you are using an official
+                                    executable or have the requisite version of
+                                    the yt-dlp-ejs package installed. You can
+                                    use this option multiple times to allow
+                                    multiple components. Supported values:
+                                    ejs:npm (external JavaScript components from
+                                    npm), ejs:github (external JavaScript
+                                    components from yt-dlp-ejs GitHub). By
+                                    default, no remote components are allowed
     --no-remote-components          Disallow fetching of all remote components,
                                     including any previously allowed by
                                     --remote-components or defaults.
@@ -1105,11 +1116,12 @@ Make chapter entries for, or remove various segments (sponsor,
                                     for, separated by commas. Available
                                     categories are sponsor, intro, outro,
                                     selfpromo, preview, filler, interaction,
-                                    music_offtopic, poi_highlight, chapter, all
-                                    and default (=all). You can prefix the
-                                    category with a "-" to exclude it. See [1]
-                                    for descriptions of the categories. E.g.
-                                    --sponsorblock-mark all,-preview
+                                    music_offtopic, hook, poi_highlight,
+                                    chapter, all and default (=all). You can
+                                    prefix the category with a "-" to exclude
+                                    it. See [1] for descriptions of the
+                                    categories. E.g. --sponsorblock-mark
+                                    all,-preview
                                     [1] https://wiki.sponsor.ajay.app/w/Segment_Categories
     --sponsorblock-remove CATS      SponsorBlock categories to be removed from
                                     the video file, separated by commas. If a
@@ -1174,7 +1186,7 @@ Predefined aliases for convenience and ease of use. Note that future
 You can configure yt-dlp by placing any supported command line option in a configuration file. The configuration is loaded from the following locations:
 
 1. **Main Configuration**:
-    * The file given to `--config-location`
+    * The file given to `--config-locations`
 1. **Portable Configuration**: (Recommended for portable installations)
     * If using a binary, `yt-dlp.conf` in the same directory as the binary
     * If running from source-code, `yt-dlp.conf` in the parent directory of `yt_dlp`
@@ -1256,7 +1268,7 @@ yt-dlp --netrc-cmd 'gpg --decrypt ~/.authinfo.gpg' 'https://www.youtube.com/watc
 
 ### Notes about environment variables
 * Environment variables are normally specified as `${VARIABLE}`/`$VARIABLE` on UNIX and `%VARIABLE%` on Windows; but is always shown as `${VARIABLE}` in this documentation
-* yt-dlp also allows using UNIX-style variables on Windows for path-like options; e.g. `--output`, `--config-location`
+* yt-dlp also allows using UNIX-style variables on Windows for path-like options; e.g. `--output`, `--config-locations`
 * If unset, `${XDG_CONFIG_HOME}` defaults to `~/.config` and `${XDG_CACHE_HOME}` to `~/.cache`
 * On Windows, `~` points to `${HOME}` if present; or, `${USERPROFILE}` or `${HOMEDRIVE}${HOMEPATH}` otherwise
 * On Windows, `${USERPROFILE}` generally points to `C:\Users\<user name>` and `${APPDATA}` to `${USERPROFILE}\AppData\Roaming`
