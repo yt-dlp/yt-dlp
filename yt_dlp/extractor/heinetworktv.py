@@ -67,7 +67,7 @@ class HEINetworkTVIE(InfoExtractor):
             return self._extract_single_video(webpage, url)
 
     def _extract_collection(self, webpage, url):
-        grid = get_element_html_by_class('grid', webpage)
+        grid = get_element_html_by_class('group/collection', webpage)
         linksHtml = get_elements_html_by_class('group/thumb', grid)
         urls = [extract_attributes(html)['href'] for html in linksHtml]
 
@@ -123,7 +123,7 @@ class HEINetworkTVIE(InfoExtractor):
         return get_element_by_attribute('href', '/my-account', webpage) is not None
 
     def _is_collection(self, webpage):
-        return get_element_by_class('grid', webpage) is not None
+        return get_element_by_class('group/collection', webpage) is not None
 
     def _breadcrumbs(self, webpage):
         breadcrumb_container = get_element_html_by_class('breadcrumbs', webpage)
