@@ -21,40 +21,32 @@ class MaveBaseIE(InfoExtractor):
             episode_code, note='Downloading episode metadata')
 
     def _create_entry(self, channel_id, channel_meta, episode_meta):
-        display_id = f'{channel_id}-{episode_meta["code"]}'
-
-        reactions = episode_meta.get('reactions')
-
         return {
-            'display_id': display_id,
+            'display_id': f'{channel_id}-{episode_meta["code"]}',
             'channel_id': channel_id,
             'channel_url': f'https://{channel_id}.mave.digital/',
             'vcodec': 'none',
-            'thumbnail': self._API_BASE_STORAGE_URL + episode_meta['image'],
-            'url': self._API_BASE_STORAGE_URL + episode_meta['audio'],
-            'id': episode_meta['id'],
-            'title': episode_meta['title'],
-            'description': clean_html(episode_meta['description']),
-            'duration': int_or_none(episode_meta['duration']),
-            'season_number': int_or_none(episode_meta['season']),
-            'episode_number': int_or_none(episode_meta['number']),
-            'view_count': int_or_none(episode_meta['listenings']),
-            'like_count': next(
-                (int(r['count']) for r in reactions
-                 if r['type'] == 'like'),
-                0,
-            ) if reactions else None,
-            'dislike_count': next(
-                (int(r['count']) for r in reactions
-                 if r['type'] == 'dislike'),
-                0,
-            ) if reactions else None,
-            'age_limit': 18 if episode_meta.get('is_explicit') else None,
-            'timestamp': parse_iso8601(episode_meta['publish_date']),
-            'series_id': channel_meta['podcast']['id'],
-            'series': channel_meta['podcast']['title'],
-            'channel': channel_meta['podcast']['title'],
-            'uploader': channel_meta['podcast']['author'],
+            **traverse_obj(episode_meta, {
+                'id': ('id', {str}),
+                'url': ('audio', {urljoin(self._API_BASE_STORAGE_URL)}),
+                'title': ('title', {str}),
+                'description': ('description', {clean_html}),
+                'thumbnail': ('image', {urljoin(self._API_BASE_STORAGE_URL)}),
+                'duration': ('duration', {int_or_none}),
+                'season_number': ('season', {int_or_none}),
+                'episode_number': ('number', {int_or_none}),
+                'view_count': ('listenings', {int_or_none}),
+                'like_count': ('reactions', lambda _, v: v['type'] == 'like', 'count', {int_or_none}, any),
+                'dislike_count': ('reactions', lambda _, v: v['type'] == 'dislike', 'count', {int_or_none}, any),
+                'age_limit': ('is_explicit', {lambda x: 18 if x else None}),
+                'timestamp': ('publish_date', {parse_iso8601}),
+            }),
+            **traverse_obj(channel_meta, {
+                'series_id': ('podcast', 'id', {str}),
+                'series': ('podcast', 'title', {str}),
+                'channel': ('podcast', 'title', {str}),
+                'uploader': ('podcast', 'author', {str}),
+            }),
         }
 
 
