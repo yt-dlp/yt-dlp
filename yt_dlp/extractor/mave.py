@@ -148,31 +148,23 @@ class MaveChannelIE(MaveBaseIE):
         },
         'playlist_mincount': 80,
     }]
+    _PAGE_SIZE = 50
+
+    def _entries(self, channel_id, channel_meta, page_num):
+        page_data = self._download_json(
+            f'{self._API_BASE_URL}/{channel_id}/episodes', channel_id, query={
+                'view': 'all',
+                'page': page_num + 1,
+                'sort': 'newest',
+                'format': 'all',
+            }, note=f'Downloading page {page_num + 1}')
+        for ep in traverse_obj(page_data, ('episodes', ..., {dict})):
+            yield self._create_entry(channel_id, channel_meta, episode_meta=ep)
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
 
         channel_meta = self._load_channel_meta(channel_id)
-
-        entries = []
-        page = 1
-
-        while True:
-            data = self._download_json(
-                f'{self._API_BASE_URL}/{channel_id}/episodes?'
-                f'view=all&page={page}&sort=newest&format=all',
-                channel_id)
-
-            episodes = data.get('episodes', [])
-
-            if not episodes:
-                break
-            else:
-                for episode_meta in data['episodes']:
-                    entries.append(self._create_entry(
-                        channel_id, channel_meta, episode_meta))
-
-                page += 1
 
         return {
             '_type': 'playlist',
