@@ -1,4 +1,5 @@
 import logging
+from abc import ABC, abstractmethod
 from xml.etree import ElementTree
 
 from .common import InfoExtractor
@@ -57,25 +58,21 @@ class HEINetworkTVVideoIE(InfoExtractor):
         }
 
 
-class HEINetworkTVSeasonIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?heinetwork\.tv/(?P<series>[\w-]+)/(?P<id>[\w-]+)'
-    _TESTS = [{
-        # requires cookies
-        'url': 'https://www.heinetwork.tv/on-cinema-at-the-cinema/season-2/',
-        'playlist_mincount': 12,
-        'info_dict': {
-            'id': 'season-2',
-            'title': 'Season 2',
-        },
-    }]
+def _breadcrumbs(webpage):
+    breadcrumb_container = get_element_html_by_class('breadcrumbs', webpage)
+    root = ElementTree.fromstring(breadcrumb_container)
+    return [e.text.strip() for e in root.findall('.//li')]
 
+
+class HEINetworkTVCollectionIE(InfoExtractor, ABC):
+    """Base class for HEINetworkTV collection extractors, which appear to have the same webpage structure"""
+
+    @abstractmethod
     def _playlist_item_extractor(self):
-        return HEINetworkTVVideoIE
+        pass
 
     def _title(self, webpage):
-        breadcrumb_container = get_element_html_by_class('breadcrumbs', webpage)
-        root = ElementTree.fromstring(breadcrumb_container)
-        return root.findall('.//li')[-1].text.strip()
+        return _breadcrumbs(webpage)[-1]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -92,7 +89,23 @@ class HEINetworkTVSeasonIE(InfoExtractor):
         )
 
 
-class HEINetworkTVSeriesIE(HEINetworkTVSeasonIE):
+class HEINetworkTVSeasonIE(HEINetworkTVCollectionIE):
+    _VALID_URL = r'https?://(?:www\.)?heinetwork\.tv/(?P<series>[\w-]+)/(?P<id>[\w-]+)'
+    _TESTS = [{
+        # requires cookies
+        'url': 'https://www.heinetwork.tv/on-cinema-at-the-cinema/season-2/',
+        'playlist_mincount': 12,
+        'info_dict': {
+            'id': 'season-2',
+            'title': 'Season 2',
+        },
+    }]
+
+    def _playlist_item_extractor(self):
+        return HEINetworkTVVideoIE
+
+
+class HEINetworkTVSeriesIE(HEINetworkTVCollectionIE):
     _VALID_URL = r'https?://(?:www\.)?heinetwork\.tv/(?P<id>[\w-]+)'
     _TESTS = [{
         # requires cookies
@@ -100,7 +113,7 @@ class HEINetworkTVSeriesIE(HEINetworkTVSeasonIE):
         'playlist_mincount': 16,
         'info_dict': {
             'id': 'on-cinema-at-the-cinema',
-            'title': 'On Cinema',
+            'title': 'On Cinema at the Cinema',
         },
     }]
 
