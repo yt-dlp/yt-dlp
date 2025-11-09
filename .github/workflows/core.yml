@@ -80,7 +80,7 @@ jobs:
         ^test/test_socks.py$
         ^pyproject.toml$
         "
-        if [[ git diff --name-only "${source}" "${target}" | grep -Ef <(printf '%s' "${patterns}") ]]; then
+        if git diff --name-only "${source}" "${target}" | grep -Ef <(printf '%s' "${patterns}"); then
           flags+=(--flaky)
         fi
 

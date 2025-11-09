@@ -572,7 +572,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert b'test2: test2' not in data
             assert b'test3: test3' in data
 
-    @pytest.mark.handler_flaky('CurlCFFI', os.name != 'nt', reason='segfaults')
+    @pytest.mark.handler_flaky('CurlCFFI', os.name == 'nt', reason='segfaults')
     def test_read_timeout(self, handler):
         with handler() as rh:
             # Default timeout is 20 seconds, so this should go through
