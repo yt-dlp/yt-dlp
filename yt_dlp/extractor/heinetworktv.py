@@ -1,7 +1,14 @@
 import logging
+from xml.etree import ElementTree
 
 from .common import InfoExtractor
-from ..utils import extract_attributes, get_element_by_attribute, get_element_text_and_html_by_tag
+from ..utils import (
+    extract_attributes,
+    get_element_by_attribute,
+    get_element_html_by_class,
+    get_element_text_and_html_by_tag,
+    get_elements_html_by_class,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,3 +55,54 @@ class HEINetworkTVVideoIE(InfoExtractor):
             'title': self._extract_video_title(webpage),
             'formats': formats,
         }
+
+
+class HEINetworkTVSeasonIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?heinetwork\.tv/(?P<series>[\w-]+)/(?P<id>[\w-]+)'
+    _TESTS = [{
+        # requires cookies
+        'url': 'https://www.heinetwork.tv/on-cinema-at-the-cinema/season-2/',
+        'playlist_mincount': 12,
+        'info_dict': {
+            'id': 'season-2',
+            'title': 'Season 2',
+        },
+    }]
+
+    def _playlist_item_extractor(self):
+        return HEINetworkTVVideoIE
+
+    def _title(self, webpage):
+        breadcrumb_container = get_element_html_by_class('breadcrumbs', webpage)
+        root = ElementTree.fromstring(breadcrumb_container)
+        return root.findall('.//li')[-1].text.strip()
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+        grid = get_element_html_by_class('grid', webpage)
+        linksHtml = get_elements_html_by_class('group/thumb', grid)
+        urls = [extract_attributes(html)['href'] for html in linksHtml]
+
+        return self.playlist_from_matches(
+            urls,
+            ie=self._playlist_item_extractor(),
+            playlist_id=display_id,
+            playlist_title=self._title(webpage),
+        )
+
+
+class HEINetworkTVSeriesIE(HEINetworkTVSeasonIE):
+    _VALID_URL = r'https?://(?:www\.)?heinetwork\.tv/(?P<id>[\w-]+)'
+    _TESTS = [{
+        # requires cookies
+        'url': 'https://www.heinetwork.tv/on-cinema-at-the-cinema/',
+        'playlist_mincount': 16,
+        'info_dict': {
+            'id': 'on-cinema-at-the-cinema',
+            'title': 'On Cinema',
+        },
+    }]
+
+    def _playlist_item_extractor(self):
+        return HEINetworkTVSeasonIE
