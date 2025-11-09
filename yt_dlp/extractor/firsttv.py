@@ -155,11 +155,7 @@ class FirstTVLiveIE(InfoExtractor):
 
         streams_list = self._download_json('https://stream.1tv.ru/api/playlist/1tvch-v1_as_array.json', 'live')
         mpd_url = traverse_obj(streams_list, ('mpd', ..., {url_or_none}, any))
-        formats, _ = self._extract_mpd_formats_and_subtitles(mpd_url, display_id, mpd_id='dash', fatal=False)
-        hls_url = traverse_obj(streams_list, ('hls', ..., {url_or_none}, any))
-        formats.extend(self._extract_m3u8_formats(hls_url, display_id, 'mp4', m3u8_id='hls', live=True, fatal=False))
-        if not formats:
-            raise ExtractorError('Unable to extract any stream')
+        formats, _ = self._extract_mpd_formats_and_subtitles(mpd_url, display_id, mpd_id='dash')
 
         return {
             'id': display_id,
