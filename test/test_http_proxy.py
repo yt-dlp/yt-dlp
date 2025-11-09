@@ -247,6 +247,7 @@ def ctx(request):
 
 @pytest.mark.parametrize(
     'handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', reason='segfaults')
 @pytest.mark.parametrize('ctx', ['http'], indirect=True)  # pure http proxy can only support http
 class TestHTTPProxy:
     def test_http_no_auth(self, handler, ctx):
