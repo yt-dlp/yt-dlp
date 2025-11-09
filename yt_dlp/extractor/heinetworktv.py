@@ -1,4 +1,5 @@
 import logging
+import re
 from abc import ABC, abstractmethod
 from xml.etree import ElementTree
 
@@ -6,9 +7,12 @@ from .common import InfoExtractor
 from ..utils import (
     extract_attributes,
     get_element_by_attribute,
+    get_element_by_class,
     get_element_html_by_class,
+    get_element_html_by_id,
     get_element_text_and_html_by_tag,
     get_elements_html_by_class,
+    unified_strdate,
 )
 
 logger = logging.getLogger(__name__)
@@ -24,6 +28,10 @@ class HEINetworkTVVideoIE(InfoExtractor):
             'id': 'side-effects-and-identity-thief',
             'title': '201 ‘Side Effects’ and ‘Identity Thief’',
             'ext': 'mp4',
+            'release_date': '20130207',
+        },
+        'params': {
+            'skip_download': True,
         },
     }]
 
@@ -42,6 +50,12 @@ class HEINetworkTVVideoIE(InfoExtractor):
             return None
         return attrs['metadata-video-title']
 
+    def _air_date(self, webpage):
+        episode_info_container = get_element_html_by_id('hei-episode-title', webpage)
+        release_date_str = get_element_by_class('text-sm', episode_info_container)
+        matches = re.match(r'\s+Air Date: (?P<date>[\w/]+)', release_date_str)
+        return unified_strdate(matches.group('date'), day_first=False)
+
     def _real_extract(self, url):
         if not self._is_logged_in(self._download_webpage('https://www.heinetwork.tv/', None)):
             logger.warning('You are not logged in. Some videos may be unavailable.')
@@ -50,11 +64,13 @@ class HEINetworkTVVideoIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         video_src = self._extract_video_src(webpage)
         formats, _subs = self._extract_m3u8_formats_and_subtitles(video_src, video_id)
+        air_date = self._air_date(webpage)
 
         return {
             'id': video_id,
             'title': self._extract_video_title(webpage),
             'formats': formats,
+            'release_date': air_date,
         }
 
 
