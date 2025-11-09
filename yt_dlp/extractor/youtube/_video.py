@@ -1596,6 +1596,70 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'params': {
             'skip_download': True,
         },
+    }, {
+        # Video with two collaborators
+        'url': 'https://www.youtube.com/watch?v=brhfDfLdDZ8',
+        'info_dict': {
+            'id': 'brhfDfLdDZ8',
+            'ext': 'mp4',
+            'title': 'This is the WORST Movie Science We\'ve Ever Seen',
+            'description': 'md5:8afd0a3cd69ec63438fc573580436f92',
+            'media_type': 'video',
+            'uploader': 'Open Sauce',
+            'uploader_id': '@opensaucelive',
+            'uploader_url': 'https://www.youtube.com/@opensaucelive',
+            'channel': 'Open Sauce',
+            'channel_id': 'UC2EiGVmCeD79l_vZ204DUSw',
+            'channel_url': 'https://www.youtube.com/channel/UC2EiGVmCeD79l_vZ204DUSw',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 1664,
+            'thumbnail': 'https://i.ytimg.com/vi/brhfDfLdDZ8/hqdefault.jpg',
+            'categories': ['Entertainment'],
+            'tags': ['Moonfall', 'Bad Science', 'Open Sauce', 'Sauce+', 'The Backyard Scientist', 'William Osman', 'Allen Pan'],
+            'creators': ['Open Sauce', 'William Osman 2'],
+            'timestamp': 1759452918,
+            'upload_date': '20251003',
+            'playable_in_embed': True,
+            'availability': 'public',
+            'live_status': 'not_live',
+        },
+        'params': {'skip_download': True},
+    }, {
+        # Video with five collaborators
+        'url': 'https://www.youtube.com/watch?v=_A9KsMbWh4E',
+        'info_dict': {
+            'id': '_A9KsMbWh4E',
+            'ext': 'mp4',
+            'title': '【MV】薫習 - LIVE UNION【RK Music】',
+            'description': 'md5:9b3dc2b91103f303fcc0dac8617e7938',
+            'media_type': 'video',
+            'uploader': 'RK Music',
+            'uploader_id': '@RKMusic_inc',
+            'uploader_url': 'https://www.youtube.com/@RKMusic_inc',
+            'channel': 'RK Music',
+            'channel_id': 'UCiLhMk-gmE2zgF7KGVyqvFw',
+            'channel_url': 'https://www.youtube.com/channel/UCiLhMk-gmE2zgF7KGVyqvFw',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 193,
+            'thumbnail': 'https://i.ytimg.com/vi_webp/_A9KsMbWh4E/maxresdefault.webp',
+            'categories': ['Music'],
+            'tags': [],
+            'creators': ['RK Music', 'HACHI', '焔魔るり CH. / Ruri Enma', '瀬戸乃とと', '水瀬 凪/MINASE Nagi'],
+            'timestamp': 1761908406,
+            'upload_date': '20251031',
+            'release_timestamp': 1761908406,
+            'release_date': '20251031',
+            'playable_in_embed': True,
+            'availability': 'public',
+            'live_status': 'not_live',
+        },
+        'params': {'skip_download': True},
     }]
     _WEBPAGE_TESTS = [{
         # <object>
@@ -4166,9 +4230,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         vsir = get_first(contents, 'videoSecondaryInfoRenderer')
         if vsir:
             vor = traverse_obj(vsir, ('owner', 'videoOwnerRenderer'))
+            collaborators = traverse_obj(vor, (
+                'attributedTitle', 'commandRuns', ..., 'onTap', 'innertubeCommand', 'showDialogCommand',
+                'panelLoadingStrategy', 'inlineContent', 'dialogViewModel', 'customContent', 'listViewModel',
+                'listItems', ..., 'listItemViewModel', 'title', 'content', {str}))
             info.update({
-                'channel': self._get_text(vor, 'title'),
-                'channel_follower_count': self._get_count(vor, 'subscriberCountText')})
+                'channel': self._get_text(vor, 'title') or (collaborators[0] if collaborators else None),
+                'channel_follower_count': self._get_count(vor, 'subscriberCountText'),
+                'creators': collaborators if collaborators else None,
+            })
 
             if not channel_handle:
                 channel_handle = self.handle_from_url(

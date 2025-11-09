@@ -1200,6 +1200,7 @@ from .musicdex import (
     MusicdexPlaylistIE,
     MusicdexSongIE,
 )
+from .mux import MuxIE
 from .mx3 import (
     Mx3IE,
     Mx3NeoIE,
