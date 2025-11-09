@@ -12,8 +12,8 @@ class MaveBaseIE(InfoExtractor):
 
     def _load_channel_meta(self, channel_id):
         return self._download_json(
-            f'{self._API_BASE_URL}/{channel_id}/',
-            channel_id)
+            f'{self._API_BASE_URL}/{channel_id}/', channel_id,
+            note='Downloading channel metadata')
 
     def _load_episode_meta(self, channel_id, episode_code):
         return self._download_json(
