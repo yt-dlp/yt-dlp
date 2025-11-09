@@ -65,7 +65,7 @@ class InstagramBaseIE(InfoExtractor):
 
     def _extract_nodes(self, nodes, is_direct=False):
         for idx, node in enumerate(nodes, start=1):
-            if node.get('__typename') != 'XDTMediaDict' and node.get('video_versions'):
+            if node.get('__typename') != 'XDTMediaDict' and not node.get('video_versions'):
                 continue
 
             video_id = node.get('code')
@@ -525,7 +525,7 @@ class InstagramIE(InstagramBaseIE):
 class InstagramPlaylistBaseIE(InstagramBaseIE):
     _gis_tmpl = None  # used to cache GIS request type
 
-    def _parse_graphql(self, webpage):
+    def _get_csrf_token(self, webpage):
         # Reads a webpage and returns its User data and Csrf Token.
         return  self._search_regex(
             r'"csrf_token"\s*:\s*"([^"]+)"' , webpage , 'csrf token',
@@ -606,7 +606,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
     def _real_extract(self, url):
         user_or_tag = self._match_id(url)
         webpage = self._download_webpage(url, user_or_tag)
-        csrf_token = self._parse_graphql(webpage)
+        csrf_token = self._get_csrf_token(webpage)
         self._set_cookie('instagram.com', 'ig_pr', '1')
 
         return self.playlist_result(
