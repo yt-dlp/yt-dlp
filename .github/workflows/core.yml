@@ -68,7 +68,7 @@ jobs:
       timeout-minutes: 15
       continue-on-error: False
       env:
-        source: ${{ (github.event_name == 'push' && github.event.before) || 'master' }}
+        source: ${{ (github.event_name == 'push' && github.event.before) || 'origin/master' }}
         target: ${{ github.event.after }}
       shell: bash
       run: |
