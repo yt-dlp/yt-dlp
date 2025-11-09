@@ -441,7 +441,7 @@ def create_parser():
             '("-" for stdin). Can be used multiple times and inside other configuration files'))
     general.add_option(
         '--plugin-dirs',
-        metavar='PATH',
+        metavar='DIR',
         dest='plugin_dirs',
         action='callback',
         callback=_list_from_options_callback,
