@@ -13,7 +13,7 @@ def runtime_version_tuple(v):
     return tuple(int_or_none(x, default=0) for x in v.split('.'))
 
 
-def determine_runtime_path(path, basename):
+def _determine_runtime_path(path, basename):
     if not path:
         return basename
     if os.path.isdir(path):
@@ -47,7 +47,7 @@ class DenoJsRuntime(JsRuntime):
     MIN_SUPPORTED_VERSION = (2, 0, 0)
 
     def _info(self):
-        path = determine_runtime_path(self._path, 'deno')
+        path = _determine_runtime_path(self._path, 'deno')
         out = _get_exe_version_output(path, ['--version'])
         if not out:
             return None
@@ -62,7 +62,7 @@ class BunJsRuntime(JsRuntime):
     MIN_SUPPORTED_VERSION = (1, 0, 31)
 
     def _info(self):
-        path = determine_runtime_path(self._path, 'bun')
+        path = _determine_runtime_path(self._path, 'bun')
         out = _get_exe_version_output(path, ['--version'])
         if not out:
             return None
@@ -77,7 +77,7 @@ class NodeJsRuntime(JsRuntime):
     MIN_SUPPORTED_VERSION = (20, 0, 0)
 
     def _info(self):
-        path = determine_runtime_path(self._path, 'node')
+        path = _determine_runtime_path(self._path, 'node')
         out = _get_exe_version_output(path, ['--version'])
         if not out:
             return None
@@ -92,7 +92,7 @@ class QuickJsRuntime(JsRuntime):
     MIN_SUPPORTED_VERSION = (2023, 12, 9)
 
     def _info(self):
-        path = determine_runtime_path(self._path, 'qjs')
+        path = _determine_runtime_path(self._path, 'qjs')
         # quickjs does not have --version and --help returns a status code of 1
         out = _get_exe_version_output(path, ['--help'], ignore_return_code=True)
         if not out:
