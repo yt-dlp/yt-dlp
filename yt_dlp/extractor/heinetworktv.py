@@ -29,6 +29,10 @@ class HEINetworkTVIE(InfoExtractor):
             'title': '201 ‘Side Effects’ and ‘Identity Thief’',
             'ext': 'mp4',
             'release_date': '20130207',
+            'season': 'Season 2',
+            'season_number': 2,
+            'season_id': 'season-2',
+            'series': 'On Cinema at the Cinema',
         },
         'params': {
             'skip_download': True,
@@ -74,18 +78,40 @@ class HEINetworkTVIE(InfoExtractor):
             playlist_title=self._breadcrumbs(webpage)[-1],
         )
 
+    def _extract_season_name_and_number(self, webpage):
+        bc = self._breadcrumbs(webpage)
+        if len(bc) != 2:
+            return None, None
+        season_name = bc[-1]
+        season_number_match = re.match(r'Season (\d+)', season_name)
+        if not season_number_match:
+            return season_name, None
+        return season_name, int(season_number_match.group(1))
+
+    def _extract_series_name(self, webpage):
+        bc = self._breadcrumbs(webpage)
+        if len(bc) < 1:
+            return None
+        return bc[0]
+
     def _extract_single_video(self, webpage, url):
         path_components = [p for p in urllib.parse.urlparse(url).path.split('/') if p]
         video_id = path_components[-1]
         video_src = self._extract_video_src(webpage)
         formats, _subs = self._extract_m3u8_formats_and_subtitles(video_src, video_id)
         air_date = self._air_date(webpage)
+        season, season_number = self._extract_season_name_and_number(webpage)
+        series = self._extract_series_name(webpage)
 
         return {
             'id': video_id,
             'title': self._extract_video_title(webpage),
             'formats': formats,
             'release_date': air_date,
+            'season': season,
+            'season_number': season_number,
+            'season_id': path_components[-2],
+            'series': series,
         }
 
     # General helpers
