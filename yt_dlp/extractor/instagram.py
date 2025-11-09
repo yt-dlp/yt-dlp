@@ -526,10 +526,10 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
 
     def _get_csrf_token(self, webpage):
         return  self._search_regex(
-            r'"csrf_token"\s*:\s*"([^"]+)"' , webpage , 'csrf token',
+            r'"csrf_token"\s*:\s*"([^"]+)"', webpage, 'csrf token',
         )
 
-    def _extract_graphql(self, url ,csrf_token):
+    def _extract_graphql(self, url, csrf_token):
         # Parses GraphQL queries containing videos and generates a playlist.
         uploader_id = self._match_id(url)
         rhx_gis = '3c7ca9dcefcf966d11dacf1f151335e8'
@@ -538,8 +538,8 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
         for page_num in itertools.count(1):
             variables = {
                 'after': cursor,
-                'before':None,
-                'data':{
+                'before': None,
+                'data': {
                     'count': 12,
                     'latest_reel_media': True,
                     'latest_besties_reel_media': True,
@@ -568,7 +568,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                         'https://www.instagram.com/graphql/query/',
                         uploader_id,
                         f'Downloading JSON page {page_num}',
-                        headers = (self._api_headers.update({'x-csrftoken' : csrf_token})),
+                        headers={**self._api_headers, 'x-csrftoken' : csrf_token},
                         query={
                             'variables': variables_json,
                             'doc_id': 24937007899300943,
@@ -576,8 +576,8 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                     media = self._parse_timeline_from(json_data)
                     self._gis_tmpl = gis_tmpl
                     # if Private profile or no post or reel
-                    if not media.get('edges' ,[]):
-                        raise self.raise_login_required(method='cookies')
+                    if not media.get('edges'):
+                        raise self.raise_login_required()
                     break
                 except ExtractorError as e:
                     # if it's an error caused by a bad query, and there are
@@ -604,7 +604,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
         self._set_cookie('instagram.com', 'ig_pr', '1')
 
         return self.playlist_result(
-            self._extract_graphql(url , csrf_token), user_or_tag, user_or_tag)
+            self._extract_graphql(url, csrf_token), user_or_tag, user_or_tag)
 
 
 class InstagramUserIE(InstagramPlaylistBaseIE):
