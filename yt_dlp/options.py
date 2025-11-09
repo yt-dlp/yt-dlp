@@ -466,7 +466,8 @@ def create_parser():
         callback_kwargs={'delim': None},
         default=['deno'],
         help=(
-            'Additional JavaScript runtime to enable, with an optional path to the runtime location. '
+            'Additional JavaScript runtime to enable, with an optional location for the runtime '
+            '(either the path to the binary or its containing directory). '
             'This option can be used multiple times to enable multiple runtimes. '
             'Supported runtimes are (in order of priority, from highest to lowest): deno, node, quickjs, bun. '
             'Only "deno" is enabled by default. The highest priority runtime that is both enabled and '
