@@ -56,8 +56,10 @@ class HEINetworkTVIE(InfoExtractor):
     def _real_extract(self, url):
         if not self._is_logged_in(self._download_webpage('https://www.heinetwork.tv/', None)):
             logger.warning('You are not logged in. Some videos may be unavailable.')
+        parts = urllib.parse.urlparse(url).path.split('/')
+        # remove empty parts; get last element
+        item_id = next(filter(None, reversed(parts)))
 
-        item_id = urllib.parse.urlparse(url).path.split('/')[-1]
         webpage = self._download_webpage(url, item_id)
         if self._is_collection(webpage):
             return self._extract_collection(webpage, url)
