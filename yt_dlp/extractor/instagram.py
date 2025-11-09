@@ -525,7 +525,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
     _gis_tmpl = None  # used to cache GIS request type
 
     def _get_csrf_token(self, webpage):
-        return  self._search_regex(
+        return self._search_regex(
             r'"csrf_token"\s*:\s*"([^"]+)"', webpage, 'csrf token',
         )
 
@@ -568,7 +568,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                         'https://www.instagram.com/graphql/query/',
                         uploader_id,
                         f'Downloading JSON page {page_num}',
-                        headers={**self._api_headers, 'x-csrftoken' : csrf_token},
+                        headers={**self._api_headers, 'x-csrftoken': csrf_token},
                         query={
                             'variables': variables_json,
                             'doc_id': 24937007899300943,
