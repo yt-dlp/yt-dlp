@@ -56,6 +56,8 @@ jobs:
           python-version: pypy-3.11
     steps:
     - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
       with:
@@ -83,6 +85,5 @@ jobs:
         if git diff --name-only "${source}" "${target}" | grep -Ef <(printf '%s' "${patterns}"); then
           flags+=(--flaky)
         fi
-
         python3 -m yt_dlp -v || true  # Print debug head
         python3 -m devscripts.run_tests "${flags[@]}" --pytest-args '--reruns 2 --reruns-delay 3.0' core
