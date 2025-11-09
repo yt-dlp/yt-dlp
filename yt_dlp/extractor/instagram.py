@@ -573,9 +573,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                             'variables': variables_json,
                             'doc_id': 24937007899300943,
                         })
-
                     media = self._parse_timeline_from(json_data)
-
                     self._gis_tmpl = gis_tmpl
                     # if Private profile or no post or reel
                     if not media.get('edges' ,[]):
