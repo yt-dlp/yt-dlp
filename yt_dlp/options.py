@@ -1982,6 +1982,10 @@ def create_parser():
         '--queue-remove', dest='queue_remove', metavar='ID', action='append',
         help='Remove specific item(s) from queue by ID (can be used multiple times)')
     
+    queue_group.add_option(
+        '--queue-retry', dest='queue_retry', metavar='ID', action='append',
+        help='Retry specific failed item(s) by ID (can be used multiple times). Use "all" to retry all failed items')
+    
     parser.add_option_group(queue_group)
 
     return parser

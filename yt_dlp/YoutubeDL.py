@@ -4466,25 +4466,41 @@ class YoutubeDL:
         if self.params.get('outtmpl'):
             options['outtmpl'] = self.params.get('outtmpl')
         
+        added_count = 0
+        skipped_count = 0
+        
         for url in urls:
             item_id = self.queue_manager.add_item(url, options)
-            self.to_screen(f'Added to queue: {url} (ID: {item_id[:8]})')
+            if item_id:
+                self.to_screen(f'Added to queue: {url} (ID: {item_id[:8]})')
+                added_count += 1
+            else:
+                existing_item = self.queue_manager.find_item_by_url(url, ['pending', 'downloading'])
+                if existing_item:
+                    self.to_screen(f'Skipped duplicate: {url} (already in queue as {existing_item.id[:8]})')
+                else:
+                    self.to_screen(f'Skipped: {url} (duplicate)')
+                skipped_count += 1
         
-        stats = self.queue_manager.get_queue_stats()
-        self.to_screen(f'Queue now contains {stats["total"]} items ({stats["pending"]} pending)')
+        if added_count > 0:
+            stats = self.queue_manager.get_queue_stats()
+            self.to_screen(f'Queue now contains {stats["total"]} items ({stats["pending"]} pending)')
+        
+        if skipped_count > 0:
+            self.to_screen(f'Skipped {skipped_count} duplicate URL(s)')
 
     def show_queue_status(self):
         """Show current queue status"""
         # Reload queue from file to show latest status
         self.queue_manager._load_queue()
-        
+
         stats = self.queue_manager.get_queue_stats()
         if stats['total'] == 0:
             self.to_screen('Queue is empty')
             return
-        
+
         self.to_screen(self.queue_manager.get_queue_summary())
-        
+
         # Show pending items
         pending_items = self.queue_manager.get_pending_items()
         if pending_items:
@@ -4493,6 +4509,17 @@ class YoutubeDL:
                 self.to_screen(f'  {i}. [{item.id[:8]}] {item.url}')
             if len(pending_items) > 10:
                 self.to_screen(f'  ... and {len(pending_items) - 10} more pending items')
+        
+        # Show failed items
+        failed_items = self.queue_manager.get_failed_items()
+        if failed_items:
+            self.to_screen('\nFailed items (use --queue-retry to retry):')
+            for i, item in enumerate(failed_items[:10], 1):  # Show first 10
+                error_msg = f' - {item.error_message}' if item.error_message else ''
+                retry_info = f' (retries: {item.retry_count})' if item.retry_count > 0 else ''
+                self.to_screen(f'  {i}. [{item.id[:8]}] {item.url}{error_msg}{retry_info}')
+            if len(failed_items) > 10:
+                self.to_screen(f'  ... and {len(failed_items) - 10} more failed items')
 
     def process_queue(self):
         """Download all URLs in queue"""
@@ -4578,8 +4605,42 @@ class YoutubeDL:
                 self.to_screen(f'Removed item: {item_id[:8]}')
             else:
                 self.to_screen(f'Item not found: {item_id[:8]}')
-        
+
         if removed_count > 0:
             self.to_screen(f'Removed {removed_count} items from queue')
         else:
             self.to_screen('No items removed')
+    
+    def retry_queue_items(self, item_ids):
+        """Retry specific failed items or all failed items"""
+        # Reload queue from file to get latest status
+        self.queue_manager._load_queue()
+        
+        if item_ids and 'all' in [id.lower() for id in item_ids]:
+            # Retry all failed items
+            count = self.queue_manager.retry_all_failed()
+            if count > 0:
+                self.to_screen(f'Reset {count} failed items to pending status')
+            else:
+                self.to_screen('No failed items to retry')
+            return
+        
+        # Retry specific items
+        retried_count = 0
+        for item_id in item_ids:
+            if self.queue_manager.retry_item(item_id):
+                retried_count += 1
+                self.to_screen(f'Reset item to pending: {item_id[:8]}')
+            else:
+                item = self.queue_manager.get_item(item_id)
+                if item is None:
+                    self.to_screen(f'Item not found: {item_id[:8]}')
+                elif item.status != 'failed':
+                    self.to_screen(f'Item {item_id[:8]} is not in failed status (current: {item.status})')
+                else:
+                    self.to_screen(f'Failed to retry item: {item_id[:8]}')
+        
+        if retried_count > 0:
+            self.to_screen(f'Reset {retried_count} items to pending status')
+        else:
+            self.to_screen('No items were reset')

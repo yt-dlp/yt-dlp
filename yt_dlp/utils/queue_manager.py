@@ -123,8 +123,12 @@ class PersistentQueue:
             # If save fails, items remain in memory
             raise IOError(f'Failed to save queue file: {e}')
     
-    def add_item(self, url: str, options: Dict[str, Any] = None, priority: str = 'normal') -> str:
-        """Add new item to queue"""
+    def add_item(self, url: str, options: Dict[str, Any] = None, priority: str = 'normal') -> Optional[str]:
+        """Add new item to queue. Returns item ID if added, None if duplicate."""
+        # Check for duplicate URL (pending or downloading)
+        if self.has_duplicate_url(url):
+            return None
+        
         item = QueueItem(url, options, priority)
         self.items[item.id] = item
         self._save_queue()
@@ -142,6 +146,20 @@ class PersistentQueue:
         """Get item by ID"""
         return self.items.get(item_id)
     
+    def find_item_by_url(self, url: str, status_filter: Optional[List[str]] = None) -> Optional[QueueItem]:
+        """Find item by URL, optionally filtered by status"""
+        for item in self.items.values():
+            if item.url == url:
+                if status_filter is None or item.status in status_filter:
+                    return item
+        return None
+    
+    def has_duplicate_url(self, url: str) -> bool:
+        """Check if URL already exists in queue (pending or downloading)"""
+        # Check for duplicates in pending or downloading status
+        # Allow re-adding completed or failed items
+        return self.find_item_by_url(url, ['pending', 'downloading']) is not None
+    
     def get_pending_items(self, priority: Optional[str] = None) -> List[QueueItem]:
         """Get pending items, optionally filtered by priority"""
         items = [item for item in self.items.values() if item.status == 'pending']
@@ -154,6 +172,38 @@ class PersistentQueue:
             priority_order.get(x.priority, 1),
             x.added_at
         ))
+    
+    def get_failed_items(self) -> List[QueueItem]:
+        """Get all failed items"""
+        return [item for item in self.items.values() if item.status == 'failed']
+    
+    def retry_item(self, item_id: str) -> bool:
+        """Reset failed item back to pending for retry"""
+        if item_id in self.items:
+            item = self.items[item_id]
+            if item.status == 'failed':
+                item.status = 'pending'
+                item.error_message = None
+                item.started_at = None
+                item.completed_at = None
+                # Keep retry_count for tracking
+                self._save_queue()
+                return True
+        return False
+    
+    def retry_all_failed(self) -> int:
+        """Reset all failed items back to pending"""
+        count = 0
+        for item in self.items.values():
+            if item.status == 'failed':
+                item.status = 'pending'
+                item.error_message = None
+                item.started_at = None
+                item.completed_at = None
+                count += 1
+        if count > 0:
+            self._save_queue()
+        return count
     
     def update_item_status(self, item_id: str, status: str, **kwargs):
         """Update item status and other properties"""

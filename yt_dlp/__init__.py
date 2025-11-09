@@ -980,6 +980,10 @@ def _real_main(argv=None):
             ydl.remove_queue_items(opts.queue_remove)
             return 0
         
+        if opts.queue_retry:
+            ydl.retry_queue_items(opts.queue_retry)
+            return 0
+        
         if opts.add_to_queue:
             ydl.add_to_queue(all_urls)
             return 0
