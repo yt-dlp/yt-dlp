@@ -10,7 +10,7 @@ from ..utils import (
     unified_strdate,
     url_or_none,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import traverse_obj, require
 
 
 class FirstTVIE(InfoExtractor):
@@ -132,11 +132,9 @@ class FirstTVIE(InfoExtractor):
 
 
 class FirstTVLiveIE(InfoExtractor):
-    IE_NAME = '1tv-live'
+    IE_NAME = '1tv:live'
     IE_DESC = 'Первый канал (прямой эфир)'
     _VALID_URL = r'https?://(?:www\.)?1tv\.ru/live'
-    _GEO_BYPASS = False
-    _GEO_COUNTRIES = ['RU']
 
     _TESTS = [{
         'url': 'https://www.1tv.ru/live',
@@ -152,8 +150,9 @@ class FirstTVLiveIE(InfoExtractor):
         display_id = 'live'
         webpage = self._download_webpage(url, display_id, fatal=False)
 
-        streams_list = self._download_json('https://stream.1tv.ru/api/playlist/1tvch-v1_as_array.json', 'live')
-        mpd_url = traverse_obj(streams_list, ('mpd', ..., {url_or_none}, any))
+        streams_list = self._download_json('https://stream.1tv.ru/api/playlist/1tvch-v1_as_array.json', display_id)
+        mpd_url = traverse_obj(streams_list, ('mpd', ..., {url_or_none}, any, {require('mpd url')}))
+        # FFmpeg needs to be passed -re to not seek past live window. This is handled by core
         formats, _ = self._extract_mpd_formats_and_subtitles(mpd_url, display_id, mpd_id='dash')
 
         return {
