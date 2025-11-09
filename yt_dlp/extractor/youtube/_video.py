@@ -147,9 +147,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
     _DEFAULT_CLIENTS = ('tv', 'android_sdkless', 'web')
     _DEFAULT_JSLESS_CLIENTS = ('android_sdkless', 'web_safari', 'web')
-    _DEFAULT_AUTHED_CLIENTS = ('tv', 'web_safari', 'web')
+    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web_safari', 'web')
     # Premium does not require POT (except for subtitles)
-    _DEFAULT_PREMIUM_CLIENTS = ('tv', 'web_creator', 'web')
+    _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator', 'web')
 
     _GEO_BYPASS = False
 
@@ -1554,6 +1554,110 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'uploader_id': '@으아-v1k',
             'uploader_url': 'https://www.youtube.com/@으아-v1k',
             'view_count': int,
+        },
+        'params': {'skip_download': True},
+    }, {
+        # Youtube Music Auto-generated description with dot in artist name
+        'url': 'https://music.youtube.com/watch?v=DbCvuSGfR3Y',
+        'info_dict': {
+            'id': 'DbCvuSGfR3Y',
+            'ext': 'mp4',
+            'title': 'Back Around',
+            'artists': ['half·alive'],
+            'track': 'Back Around',
+            'album': 'Conditions Of A Punk',
+            'release_date': '20221202',
+            'release_year': 2021,
+            'alt_title': 'Back Around',
+            'description': 'md5:bfc0e2b3cc903a608d8a85a13cb50f95',
+            'media_type': 'video',
+            'uploader': 'half•alive',
+            'channel': 'half•alive',
+            'channel_id': 'UCYQrYophdVI3nVDPOnXyIng',
+            'channel_url': 'https://www.youtube.com/channel/UCYQrYophdVI3nVDPOnXyIng',
+            'channel_is_verified': True,
+            'channel_follower_count': int,
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 223,
+            'thumbnail': 'https://i.ytimg.com/vi_webp/DbCvuSGfR3Y/maxresdefault.webp',
+            'heatmap': 'count:100',
+            'categories': ['Music'],
+            'tags': ['half·alive', 'Conditions Of A Punk', 'Back Around'],
+            'creators': ['half·alive'],
+            'timestamp': 1669889281,
+            'upload_date': '20221201',
+            'playable_in_embed': True,
+            'availability': 'public',
+            'live_status': 'not_live',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # Video with two collaborators
+        'url': 'https://www.youtube.com/watch?v=brhfDfLdDZ8',
+        'info_dict': {
+            'id': 'brhfDfLdDZ8',
+            'ext': 'mp4',
+            'title': 'This is the WORST Movie Science We\'ve Ever Seen',
+            'description': 'md5:8afd0a3cd69ec63438fc573580436f92',
+            'media_type': 'video',
+            'uploader': 'Open Sauce',
+            'uploader_id': '@opensaucelive',
+            'uploader_url': 'https://www.youtube.com/@opensaucelive',
+            'channel': 'Open Sauce',
+            'channel_id': 'UC2EiGVmCeD79l_vZ204DUSw',
+            'channel_url': 'https://www.youtube.com/channel/UC2EiGVmCeD79l_vZ204DUSw',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 1664,
+            'thumbnail': 'https://i.ytimg.com/vi/brhfDfLdDZ8/hqdefault.jpg',
+            'categories': ['Entertainment'],
+            'tags': ['Moonfall', 'Bad Science', 'Open Sauce', 'Sauce+', 'The Backyard Scientist', 'William Osman', 'Allen Pan'],
+            'creators': ['Open Sauce', 'William Osman 2'],
+            'timestamp': 1759452918,
+            'upload_date': '20251003',
+            'playable_in_embed': True,
+            'availability': 'public',
+            'live_status': 'not_live',
+        },
+        'params': {'skip_download': True},
+    }, {
+        # Video with five collaborators
+        'url': 'https://www.youtube.com/watch?v=_A9KsMbWh4E',
+        'info_dict': {
+            'id': '_A9KsMbWh4E',
+            'ext': 'mp4',
+            'title': '【MV】薫習 - LIVE UNION【RK Music】',
+            'description': 'md5:9b3dc2b91103f303fcc0dac8617e7938',
+            'media_type': 'video',
+            'uploader': 'RK Music',
+            'uploader_id': '@RKMusic_inc',
+            'uploader_url': 'https://www.youtube.com/@RKMusic_inc',
+            'channel': 'RK Music',
+            'channel_id': 'UCiLhMk-gmE2zgF7KGVyqvFw',
+            'channel_url': 'https://www.youtube.com/channel/UCiLhMk-gmE2zgF7KGVyqvFw',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 193,
+            'thumbnail': 'https://i.ytimg.com/vi_webp/_A9KsMbWh4E/maxresdefault.webp',
+            'categories': ['Music'],
+            'tags': [],
+            'creators': ['RK Music', 'HACHI', '焔魔るり CH. / Ruri Enma', '瀬戸乃とと', '水瀬 凪/MINASE Nagi'],
+            'timestamp': 1761908406,
+            'upload_date': '20251031',
+            'release_timestamp': 1761908406,
+            'release_date': '20251031',
+            'playable_in_embed': True,
+            'availability': 'public',
+            'live_status': 'not_live',
         },
         'params': {'skip_download': True},
     }]
@@ -3023,8 +3127,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_formats_and_subtitles(self, video_id, player_responses, player_url, live_status, duration):
         CHUNK_SIZE = 10 << 20
-        PREFERRED_LANG_VALUE = 10
-        original_language = None
+        ORIGINAL_LANG_VALUE = 10
+        DEFAULT_LANG_VALUE = 5
+        language_map = {
+            ORIGINAL_LANG_VALUE: None,
+            DEFAULT_LANG_VALUE: None,
+        }
         itags, stream_ids = collections.defaultdict(set), []
         itag_qualities, res_qualities = {}, {0: None}
         subtitles = {}
@@ -3064,6 +3172,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # For handling potential pre-playback required waiting period
         playback_wait = int_or_none(self._configuration_arg('playback_wait', [None])[0], default=6)
 
+        def get_language_code_and_preference(fmt_stream):
+            audio_track = fmt_stream.get('audioTrack') or {}
+            display_name = audio_track.get('displayName') or ''
+            language_code = audio_track.get('id', '').split('.')[0] or None
+            if 'descriptive' in display_name.lower():
+                return join_nonempty(language_code, 'desc'), -10
+            if 'original' in display_name.lower():
+                if language_code and not language_map.get(ORIGINAL_LANG_VALUE):
+                    language_map[ORIGINAL_LANG_VALUE] = language_code
+                return language_code, ORIGINAL_LANG_VALUE
+            if audio_track.get('audioIsDefault'):
+                if language_code and not language_map.get(DEFAULT_LANG_VALUE):
+                    language_map[DEFAULT_LANG_VALUE] = language_code
+                return language_code, DEFAULT_LANG_VALUE
+            return language_code, -1
+
         for pr in player_responses:
             streaming_data = traverse_obj(pr, 'streamingData')
             if not streaming_data:
@@ -3079,7 +3203,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return str_or_none(fmt_stream.get('itag')), traverse_obj(fmt_stream, 'audioTrack', 'id'), fmt_stream.get('isDrc')
 
             def process_format_stream(fmt_stream, proto, missing_pot):
-                nonlocal original_language
                 itag = str_or_none(fmt_stream.get('itag'))
                 audio_track = fmt_stream.get('audioTrack') or {}
                 quality = fmt_stream.get('quality')
@@ -3096,13 +3219,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if height:
                         res_qualities[height] = quality
 
-                display_name = audio_track.get('displayName') or ''
-                is_original = 'original' in display_name.lower()
-                is_descriptive = 'descriptive' in display_name.lower()
-                is_default = audio_track.get('audioIsDefault')
-                language_code = audio_track.get('id', '').split('.')[0]
-                if language_code and (is_original or (is_default and not original_language)):
-                    original_language = language_code
+                language_code, language_preference = get_language_code_and_preference(fmt_stream)
 
                 has_drm = bool(fmt_stream.get('drmFamilies'))
 
@@ -3138,7 +3255,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'filesize': int_or_none(fmt_stream.get('contentLength')),
                     'format_id': f'{itag}{"-drc" if fmt_stream.get("isDrc") else ""}',
                     'format_note': join_nonempty(
-                        join_nonempty(display_name, is_default and ' (default)', delim=''),
+                        join_nonempty(audio_track.get('displayName'), audio_track.get('audioIsDefault') and '(default)', delim=' '),
                         name, fmt_stream.get('isDrc') and 'DRC',
                         try_get(fmt_stream, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                         try_get(fmt_stream, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
@@ -3155,8 +3272,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'tbr': tbr,
                     'filesize_approx': filesize_from_tbr(tbr, format_duration),
                     'width': int_or_none(fmt_stream.get('width')),
-                    'language': join_nonempty(language_code, 'desc' if is_descriptive else '') or None,
-                    'language_preference': PREFERRED_LANG_VALUE if is_original else 5 if is_default else -10 if is_descriptive else -1,
+                    'language': language_code,
+                    'language_preference': language_preference,
                     # Strictly de-prioritize damaged and 3gp formats
                     'preference': -10 if is_damaged else -2 if itag == '17' else None,
                 }
@@ -3206,6 +3323,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     fmt_url = fmt_stream.get('url')
                     encrypted_sig, sc = None, None
                     if not fmt_url:
+                        # We still need to register original/default language information
+                        # See: https://github.com/yt-dlp/yt-dlp/issues/14883
+                        get_language_code_and_preference(fmt_stream)
                         sc = urllib.parse.parse_qs(fmt_stream.get('signatureCipher'))
                         fmt_url = url_or_none(try_get(sc, lambda x: x['url'][0]))
                         encrypted_sig = try_get(sc, lambda x: x['s'][0])
@@ -3391,9 +3511,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 elif itag:
                     f['format_id'] = itag
 
-                if original_language and f.get('language') == original_language:
+                lang_code = f.get('language')
+                if lang_code and lang_code == language_map[ORIGINAL_LANG_VALUE]:
+                    f['format_note'] = join_nonempty(f.get('format_note'), '(original)', delim=' ')
+                    f['language_preference'] = ORIGINAL_LANG_VALUE
+                elif lang_code and lang_code == language_map[DEFAULT_LANG_VALUE]:
                     f['format_note'] = join_nonempty(f.get('format_note'), '(default)', delim=' ')
-                    f['language_preference'] = PREFERRED_LANG_VALUE
+                    f['language_preference'] = DEFAULT_LANG_VALUE
 
                 if itag in ('616', '235'):
                     f['format_note'] = join_nonempty(f.get('format_note'), 'Premium', delim=' ')
@@ -3988,20 +4112,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         # Youtube Music Auto-generated description
         if (video_description or '').strip().endswith('\nAuto-generated by YouTube.'):
-            # XXX: Causes catastrophic backtracking if description has "·"
-            # E.g. https://www.youtube.com/watch?v=DoPaAxMQoiI
-            # Simulating atomic groups:  (?P<a>[^xy]+)x  =>  (?=(?P<a>[^xy]+))(?P=a)x
-            # reduces it, but does not fully fix it. https://regex101.com/r/8Ssf2h/2
             mobj = re.search(
                 r'''(?xs)
-                    (?=(?P<track>[^\n·]+))(?P=track)·
-                    (?=(?P<artist>[^\n]+))(?P=artist)\n+
-                    (?=(?P<album>[^\n]+))(?P=album)\n
-                    (?:.+?℗\s*(?P<release_year>\d{4})(?!\d))?
-                    (?:.+?Released\ on\s*:\s*(?P<release_date>\d{4}-\d{2}-\d{2}))?
-                    (.+?\nArtist\s*:\s*
-                        (?=(?P<clean_artist>[^\n]+))(?P=clean_artist)\n
-                    )?.+\nAuto-generated\ by\ YouTube\.\s*$
+                    (?:\n|^)(?P<track>[^\n·]+)\ ·\ (?P<artist>[^\n]+)\n+
+                    (?P<album>[^\n]+)\n+
+                    (?:℗\s*(?P<release_year>\d{4}))?
+                    (?:.+?\nReleased\ on\s*:\s*(?P<release_date>\d{4}-\d{2}-\d{2}))?
+                    (?:.+?\nArtist\s*:\s*(?P<clean_artist>[^\n]+)\n)?
+                    .+\nAuto-generated\ by\ YouTube\.\s*$
                 ''', video_description)
             if mobj:
                 release_year = mobj.group('release_year')
@@ -4013,7 +4131,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 info.update({
                     'album': mobj.group('album'.strip()),
                     'artists': ([a] if (a := mobj.group('clean_artist'))
-                                else [a.strip() for a in mobj.group('artist').split('·')]),
+                                else [a.strip() for a in mobj.group('artist').split(' · ')]),
                     'track': mobj.group('track').strip(),
                     'release_date': release_date,
                     'release_year': int_or_none(release_year),
@@ -4112,9 +4230,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         vsir = get_first(contents, 'videoSecondaryInfoRenderer')
         if vsir:
             vor = traverse_obj(vsir, ('owner', 'videoOwnerRenderer'))
+            collaborators = traverse_obj(vor, (
+                'attributedTitle', 'commandRuns', ..., 'onTap', 'innertubeCommand', 'showDialogCommand',
+                'panelLoadingStrategy', 'inlineContent', 'dialogViewModel', 'customContent', 'listViewModel',
+                'listItems', ..., 'listItemViewModel', 'title', 'content', {str}))
             info.update({
-                'channel': self._get_text(vor, 'title'),
-                'channel_follower_count': self._get_count(vor, 'subscriberCountText')})
+                'channel': self._get_text(vor, 'title') or (collaborators[0] if collaborators else None),
+                'channel_follower_count': self._get_count(vor, 'subscriberCountText'),
+                'creators': collaborators if collaborators else None,
+            })
 
             if not channel_handle:
                 channel_handle = self.handle_from_url(
