@@ -588,6 +588,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             validate_and_send(
                 rh, Request(f'http://127.0.0.1:{self.http_port}/timeout_1', extensions={'timeout': 4}))
 
+    @pytest.mark.handler_flaky('CurlCFFI', os.name == 'nt', reason='segfaults')
     def test_connect_timeout(self, handler):
         # nothing should be listening on this port
         connect_timeout_url = 'http://10.255.255.255'
@@ -603,6 +604,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             validate_and_send(rh, request)
         assert time.time() - now < DEFAULT_TIMEOUT
 
+    @pytest.mark.handler_flaky('CurlCFFI', os.name == 'nt', reason='segfaults')
     def test_source_address(self, handler):
         source_address = f'127.0.0.{random.randint(5, 255)}'
         # on some systems these loopback addresses we need for testing may not be available
@@ -757,6 +759,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
 
 
 @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', reason='segfaults')
 class TestClientCertificate:
     @classmethod
     def setup_class(cls):
