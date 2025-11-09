@@ -65,7 +65,7 @@ class InstagramBaseIE(InfoExtractor):
 
     def _extract_nodes(self, nodes, is_direct=False):
         for idx, node in enumerate(nodes, start=1):
-            if node.get('__typename') != 'XDTMediaDict' and not node.get('video_versions'):
+            if node.get('__typename') != 'XDTMediaDict' or not node.get('video_versions'):
                 continue
 
             video_id = node.get('code')
@@ -521,12 +521,10 @@ class InstagramIE(InstagramBaseIE):
         }
 
 
-
 class InstagramPlaylistBaseIE(InstagramBaseIE):
     _gis_tmpl = None  # used to cache GIS request type
 
     def _get_csrf_token(self, webpage):
-        # Reads a webpage and returns its User data and Csrf Token.
         return  self._search_regex(
             r'"csrf_token"\s*:\s*"([^"]+)"' , webpage , 'csrf token',
         )
@@ -542,7 +540,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                 'after': cursor,
                 'before':None,
                 'data':{
-                    'count':12,
+                    'count': 12,
                     'latest_reel_media': True,
                     'latest_besties_reel_media': True,
                     'include_reel_media_seen_timestamp': True,
@@ -573,7 +571,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                         headers = (self._api_headers.update({'x-csrftoken' : csrf_token})),
                         query={
                             'variables': variables_json,
-                            'doc_id':24937007899300943,
+                            'doc_id': 24937007899300943,
                         })
 
                     media = self._parse_timeline_from(json_data)
@@ -591,15 +589,13 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                             continue
                     raise
 
-            nodes = traverse_obj(media, ('edges',..., 'node'), expected_type=dict) or []
+            nodes = traverse_obj(media, ('edges', ..., 'node'), expected_type=dict) or []
             if not nodes:
                 break
-
             yield from self._extract_nodes(nodes)
 
             has_next_page = traverse_obj(media, ('page_info', 'has_next_page'))
             cursor = traverse_obj(media, ('page_info', 'end_cursor'), expected_type=str)
-
             if not has_next_page or not cursor:
                 break
 
@@ -612,8 +608,8 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
         return self.playlist_result(
             self._extract_graphql(url , csrf_token), user_or_tag, user_or_tag)
 
+
 class InstagramUserIE(InstagramPlaylistBaseIE):
-    _WORKING = True
     _VALID_URL = r'https?://(?:www\.)?instagram\.com/(?P<id>[^/]{2,})/?(?:$|[?#])'
     IE_DESC = 'Instagram user profile'
     IE_NAME = 'instagram:user'
