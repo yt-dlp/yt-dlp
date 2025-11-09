@@ -1,8 +1,14 @@
+import functools
+import math
+
 from .common import InfoExtractor
 from ..utils import (
+    InAdvancePagedList,
     clean_html,
     int_or_none,
     parse_iso8601,
+    traverse_obj,
+    urljoin,
 )
 
 
@@ -36,8 +42,12 @@ class MaveBaseIE(InfoExtractor):
                 'season_number': ('season', {int_or_none}),
                 'episode_number': ('number', {int_or_none}),
                 'view_count': ('listenings', {int_or_none}),
-                'like_count': ('reactions', lambda _, v: v['type'] == 'like', 'count', {int_or_none}, any),
-                'dislike_count': ('reactions', lambda _, v: v['type'] == 'dislike', 'count', {int_or_none}, any),
+                'like_count': ('reactions',
+                               lambda _, v: v['type'] == 'like',
+                               'count', {int_or_none}, any),
+                'dislike_count': ('reactions',
+                                  lambda _, v: v['type'] == 'dislike',
+                                  'count', {int_or_none}, any),
                 'age_limit': ('is_explicit', {lambda x: 18 if x else None}),
                 'timestamp': ('publish_date', {parse_iso8601}),
             }),
@@ -175,5 +185,8 @@ class MaveChannelIE(MaveBaseIE):
             }),
             'entries': InAdvancePagedList(
                 functools.partial(self._entries, channel_id, channel_meta),
-                math.ceil(channel_meta['podcast']['episodes_count'] / self._PAGE_SIZE), self._PAGE_SIZE),
+                math.ceil(
+                    channel_meta['podcast']['episodes_count'] / self._PAGE_SIZE,
+                ),
+                self._PAGE_SIZE),
         }
