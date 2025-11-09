@@ -54,29 +54,27 @@ class HEINetworkTVIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        if not self._is_logged_in(self._download_webpage('https://www.heinetwork.tv/', None)):
-            logger.warning('You are not logged in. Some videos may be unavailable.')
         parts = urllib.parse.urlparse(url).path.split('/')
         # remove empty parts; get last element
         item_id = next(filter(None, reversed(parts)))
 
         webpage = self._download_webpage(url, item_id)
+        if not self._is_logged_in(webpage):
+            logger.warning('You are not logged in. Some videos may be unavailable.')
         if self._is_collection(webpage):
             return self._extract_collection(webpage, url)
         else:
             return self._extract_single_video(webpage, url)
 
     def _extract_collection(self, webpage, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
         grid = get_element_html_by_class('grid', webpage)
         linksHtml = get_elements_html_by_class('group/thumb', grid)
         urls = [extract_attributes(html)['href'] for html in linksHtml]
 
         return self.playlist_from_matches(
             urls,
-            playlist_id=display_id,
             ie=HEINetworkTVIE,
+            playlist_id=self._path_components(url)[-1],
             playlist_title=self._breadcrumbs(webpage)[-1],
         )
 
@@ -96,8 +94,11 @@ class HEINetworkTVIE(InfoExtractor):
             return None
         return bc[0]
 
+    def _path_components(self, url):
+        return [p for p in urllib.parse.urlparse(url).path.split('/') if p]
+
     def _extract_single_video(self, webpage, url):
-        path_components = [p for p in urllib.parse.urlparse(url).path.split('/') if p]
+        path_components = self._path_components(url)
         video_id = path_components[-1]
         video_src = self._extract_video_src(webpage)
         formats, _subs = self._extract_m3u8_formats_and_subtitles(video_src, video_id)
