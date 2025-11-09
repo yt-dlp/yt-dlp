@@ -316,6 +316,7 @@ class TestHTTPProxy:
         ('Requests', 'https'),
         ('CurlCFFI', 'https'),
     ], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', reason='segfaults')
 class TestHTTPConnectProxy:
     def test_http_connect_no_auth(self, handler, ctx):
         with ctx.http_server(HTTPConnectProxyHandler) as server_address:

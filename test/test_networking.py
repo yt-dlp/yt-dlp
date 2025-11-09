@@ -314,6 +314,7 @@ class TestRequestHandlerBase:
 @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
 class TestHTTPRequestHandler(TestRequestHandlerBase):
 
+    @pytest.mark.handler_flaky('CurlCFFI', os.name == 'nt', reason='segfaults')
     def test_verify_cert(self, handler):
         with handler() as rh:
             with pytest.raises(CertificateVerifyError):
