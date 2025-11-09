@@ -557,7 +557,7 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
 
 
 def _extract_safari_cookies(profile, logger):
-    if sys.platform != 'darwin':
+    if sys.platform not in ('darwin', 'ios'):
         raise ValueError(f'unsupported platform: {sys.platform}')
 
     if profile:
