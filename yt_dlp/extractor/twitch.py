@@ -1050,7 +1050,10 @@ class TwitchStreamIE(TwitchVideosBaseIE):
         gql = self._download_gql(
             channel_name, [{
                 'operationName': 'StreamMetadata',
-                'variables': {'channelLogin': channel_name, 'includeIsDJ': True},
+                'variables': {
+                    'channelLogin': channel_name,
+                    'includeIsDJ': True,
+                },
             }, {
                 'operationName': 'ComscoreStreamingQuery',
                 'variables': {
