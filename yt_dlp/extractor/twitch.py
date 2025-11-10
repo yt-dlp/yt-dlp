@@ -46,7 +46,7 @@ class TwitchBaseIE(InfoExtractor):
         'ClipsCards__User': 'b73ad2bfaecfd30a9e6c28fada15bd97032c83ec77a0440766a56fe0bd632777',
         'ShareClipRenderStatus': 'e0a46b287d760c6890a39d1ccd736af5ec9479a267d02c710e9ac33326b651d2',
         'ChannelCollectionsContent': '447aec6a0cc1e8d0a8d7732d47eb0762c336a2294fdb009e9c9d854e49d484b9',
-        'StreamMetadata': 'a647c2a13599e5991e175155f798ca7f1ecddde73f7f341f39009c14dbf59962',
+        'StreamMetadata': 'b57f9b910f8cd1a4659d894fe7550ccc81ec9052c01e438b290fd66a040b9b93',
         'ComscoreStreamingQuery': 'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
         'VideoPreviewOverlay': '3006e77e51b128d838fa4e835723ca4dc9a05c5efd4466c1085215c6e437e65c',
         'VideoMetadata': '49b5b8f268cdeb259d75b58dcb0c1a748e3b575003448a2333dc5cdafd49adad',
@@ -1050,7 +1050,10 @@ class TwitchStreamIE(TwitchVideosBaseIE):
         gql = self._download_gql(
             channel_name, [{
                 'operationName': 'StreamMetadata',
-                'variables': {'channelLogin': channel_name},
+                'variables': {
+                    'channelLogin': channel_name,
+                    'includeIsDJ': True,
+                },
             }, {
                 'operationName': 'ComscoreStreamingQuery',
                 'variables': {
