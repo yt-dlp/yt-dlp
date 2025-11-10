@@ -6,6 +6,7 @@ from ..utils import (
     OnDemandPagedList,
     clean_html,
     determine_ext,
+    float_or_none,
     format_field,
     int_or_none,
     join_nonempty,
@@ -63,7 +64,7 @@ class FloatplaneBaseIE(InfoExtractor):
             cdn_base_url = traverse_obj(stream, ('groups', 0, 'origins', 0, 'url', {str}))
 
             formats = []
-            for variant in traverse_obj(stream, ('groups', 0, 'variants', lambda _, v: v['url'])):
+            for variant in traverse_obj(stream, ('groups', 0, 'variants', lambda _, v: v.get('url'))):
                 url = urljoin(cdn_base_url, variant.get('url'))
                 format_id = variant.get('name')
                 hls_aes = {}
