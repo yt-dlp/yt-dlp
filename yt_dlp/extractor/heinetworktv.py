@@ -25,7 +25,7 @@ class HEINetworkTVIE(InfoExtractor):
         'url': 'https://www.heinetwork.tv/on-cinema-at-the-cinema/season-2/side-effects-and-identity-thief/',
         'md5': 'd10a28af64c3c34a69baa3f38a8c760b',
         'info_dict': {
-            'id': 'side-effects-and-identity-thief',
+            'id': '52',
             'title': '201 ‘Side Effects’ and ‘Identity Thief’',
             'ext': 'mp4',
             'release_date': '20130207',
@@ -97,9 +97,14 @@ class HEINetworkTVIE(InfoExtractor):
     def _path_components(self, url):
         return [p for p in urllib.parse.urlparse(url).path.split('/') if p]
 
+    def _extract_video_id(self, webpage):
+        _text, html = get_element_text_and_html_by_tag('hei-video', webpage)
+        attrs = extract_attributes(html)
+        return attrs['data-episode-id']
+
     def _extract_single_video(self, webpage, url):
         path_components = self._path_components(url)
-        video_id = path_components[-1]
+        video_id = self._extract_video_id(webpage)
         video_src = self._extract_video_src(webpage)
         formats, _subs = self._extract_m3u8_formats_and_subtitles(video_src, video_id)
         air_date = self._air_date(webpage)
