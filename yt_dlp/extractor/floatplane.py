@@ -57,9 +57,9 @@ class FloatplaneBaseIE(InfoExtractor):
                 impersonate=self._IMPERSONATE_TARGET)
 
             metadata = self._download_json(
-                f'{self._BASE_URL}/api/v3/content/{media_typ}', media_id, query={'id': media_id},
-                note=f'Downloading {media_typ} metadata', fatal=False,
-                impersonate=self._IMPERSONATE_TARGET)
+                f'{self._BASE_URL}/api/v3/content/{media_typ}', media_id,
+                f'Downloading {media_typ} metadata', query={'id': media_id},
+                fatal=False, impersonate=self._IMPERSONATE_TARGET)
 
             cdn_base_url = traverse_obj(stream, ('groups', 0, 'origins', 0, 'url', {str}))
 
