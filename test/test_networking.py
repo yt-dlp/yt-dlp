@@ -312,6 +312,7 @@ class TestRequestHandlerBase:
 
 
 @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', os.name == 'nt', reason='segfaults')
 class TestHTTPRequestHandler(TestRequestHandlerBase):
 
     def test_verify_cert(self, handler):
@@ -756,6 +757,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
 
 
 @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', reason='segfaults')
 class TestClientCertificate:
     @classmethod
     def setup_class(cls):
@@ -1060,6 +1062,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
 
 
 @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', os.name == 'nt', reason='segfaults')
 class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
 
     @pytest.mark.parametrize('params,extensions', [
