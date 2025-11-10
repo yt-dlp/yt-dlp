@@ -10,6 +10,7 @@ from ..utils import (
     _configuration_args,
     deprecation_warning,
 )
+from ..utils._utils import _ProgressState
 
 
 class PostProcessorMetaClass(type):
@@ -189,7 +190,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
 
         self._downloader.to_console_title(self._downloader.evaluate_outtmpl(
             progress_template.get('postprocess-title') or 'yt-dlp %(progress._default_template)s',
-            progress_dict))
+            progress_dict), _ProgressState.from_dict(s), s.get('_percent'))
 
     def _retry_download(self, err, count, retries):
         # While this is not an extractor, it behaves similar to one and

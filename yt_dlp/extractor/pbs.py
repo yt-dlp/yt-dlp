@@ -181,7 +181,7 @@ class PBSIE(InfoExtractor):
     )
 
     IE_NAME = 'pbs'
-    IE_DESC = 'Public Broadcasting Service (PBS) and member stations: {}'.format(', '.join(list(zip(*_STATIONS))[1]))
+    IE_DESC = 'Public Broadcasting Service (PBS) and member stations: {}'.format(', '.join(list(zip(*_STATIONS, strict=True))[1]))
 
     _VALID_URL = r'''(?x)https?://
         (?:
@@ -193,7 +193,7 @@ class PBSIE(InfoExtractor):
               (?:[^/?#]+/){{1,5}}(?P<presumptive_id>[^/?#]+?)(?:\.html)?/?(?:$|[?#])
             )
         )
-    '''.format('|'.join(next(zip(*_STATIONS))))
+    '''.format('|'.join(next(zip(*_STATIONS, strict=True))))
 
     _GEO_COUNTRIES = ['US']
 
@@ -501,7 +501,7 @@ class PBSIE(InfoExtractor):
                 r"div\s*:\s*'videoembed'\s*,\s*mediaid\s*:\s*'(\d+)'",  # frontline video embed
                 r'class="coveplayerid">([^<]+)<',                       # coveplayer
                 r'<section[^>]+data-coveid="(\d+)"',                    # coveplayer from http://www.pbs.org/wgbh/frontline/film/real-csi/
-                r'\bclass="passportcoveplayer"[^>]+\bdata-media="(\d+)',  # https://www.thirteen.org/programs/the-woodwrights-shop/who-wrote-the-book-of-sloyd-fggvvq/
+                r'\sclass="passportcoveplayer"[^>]*\sdata-media="(\d+)',  # https://www.thirteen.org/programs/the-woodwrights-shop/who-wrote-the-book-of-sloyd-fggvvq/
                 r'<input type="hidden" id="pbs_video_id_[0-9]+" value="([0-9]+)"/>',  # jwplayer
                 r"(?s)window\.PBS\.playerConfig\s*=\s*{.*?id\s*:\s*'([0-9]+)',",
                 r'<div[^>]+\bdata-cove-id=["\'](\d+)"',  # http://www.pbs.org/wgbh/roadshow/watch/episode/2105-indianapolis-hour-2/
