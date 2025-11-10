@@ -33,6 +33,8 @@ class HEINetworkTVIE(InfoExtractor):
             'season_number': 2,
             'season_id': 'season-2',
             'series': 'On Cinema at the Cinema',
+            'episode': '‘Side Effects’ and ‘Identity Thief’',
+            'episode_number': 1,
         },
         'params': {
             'skip_download': True,
@@ -102,6 +104,20 @@ class HEINetworkTVIE(InfoExtractor):
         attrs = extract_attributes(html)
         return attrs['data-episode-id']
 
+    def _clean_episode_title(self, video_title):
+        match = re.match(r'\d+\s+(?P<title>.+)', video_title)
+        if match:
+            return match.group('title')
+        return None
+
+    def _episode_number(self, video_title, season_number):
+        if season_number is None:
+            return None
+        match = re.match(fr'{re.escape(str(season_number))}(?P<episode_no>\d+)', video_title)
+        if match:
+            return int(match.group('episode_no'))
+        return None
+
     def _extract_single_video(self, webpage, url):
         path_components = self._path_components(url)
         video_id = self._extract_video_id(webpage)
@@ -110,16 +126,19 @@ class HEINetworkTVIE(InfoExtractor):
         air_date = self._air_date(webpage)
         season, season_number = self._extract_season_name_and_number(webpage)
         series = self._extract_series_name(webpage)
+        video_title = self._extract_video_title(webpage)
 
         return {
             'id': video_id,
-            'title': self._extract_video_title(webpage),
+            'title': video_title,
             'formats': formats,
             'release_date': air_date,
             'season': season,
             'season_number': season_number,
             'season_id': path_components[-2],
             'series': series,
+            'episode': self._clean_episode_title(video_title),
+            'episode_number': self._episode_number(video_title, season_number),
         }
 
     # General helpers
