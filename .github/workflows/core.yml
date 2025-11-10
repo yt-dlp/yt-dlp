@@ -64,17 +64,12 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install test requirements
       run: python ./devscripts/install_deps.py --include-group test --include-group curl-cffi
-    - name: Get base commit
-      id: base
-      shell: bash
-      run: |
-        echo "base=$(git merge-base origin/master HEAD)" >> "${GITHUB_OUTPUT}"
     - name: Run tests
       timeout-minutes: 15
       continue-on-error: False
       env:
-        source: ${{ (github.event_name == 'push' && github.event.before) || steps.base.outputs.base }}
-        target: ${{ github.event.after }}
+        source: ${{ (github.event_name == 'push' && github.event.before) || 'origin/master' }}
+        target: ${{ (github.event_name == 'push' && github.event.after) || 'HEAD' }}
       shell: bash
       run: |
         flags=()
