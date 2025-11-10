@@ -312,9 +312,9 @@ class TestRequestHandlerBase:
 
 
 @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', os.name == 'nt', reason='segfaults')
 class TestHTTPRequestHandler(TestRequestHandlerBase):
 
-    @pytest.mark.handler_flaky('CurlCFFI', os.name == 'nt', reason='segfaults')
     def test_verify_cert(self, handler):
         with handler() as rh:
             with pytest.raises(CertificateVerifyError):
@@ -573,7 +573,6 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert b'test2: test2' not in data
             assert b'test3: test3' in data
 
-    @pytest.mark.handler_flaky('CurlCFFI', os.name == 'nt', reason='segfaults')
     def test_read_timeout(self, handler):
         with handler() as rh:
             # Default timeout is 20 seconds, so this should go through
@@ -589,7 +588,6 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             validate_and_send(
                 rh, Request(f'http://127.0.0.1:{self.http_port}/timeout_1', extensions={'timeout': 4}))
 
-    @pytest.mark.handler_flaky('CurlCFFI', os.name == 'nt', reason='segfaults')
     def test_connect_timeout(self, handler):
         # nothing should be listening on this port
         connect_timeout_url = 'http://10.255.255.255'
@@ -605,7 +603,6 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             validate_and_send(rh, request)
         assert time.time() - now < DEFAULT_TIMEOUT
 
-    @pytest.mark.handler_flaky('CurlCFFI', os.name == 'nt', reason='segfaults')
     def test_source_address(self, handler):
         source_address = f'127.0.0.{random.randint(5, 255)}'
         # on some systems these loopback addresses we need for testing may not be available
@@ -1065,6 +1062,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
 
 
 @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', os.name == 'nt', reason='segfaults')
 class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
 
     @pytest.mark.parametrize('params,extensions', [
