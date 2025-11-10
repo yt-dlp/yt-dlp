@@ -1,4 +1,5 @@
 import re
+import urllib.parse
 import uuid
 
 from .common import InfoExtractor
@@ -29,28 +30,38 @@ class PlutoTVBase(InfoExtractor):
 
     def _to_ad_free_formats(self, video_id, formats):
         for fmt in formats:
-            res = self._download_webpage(
+            res, base = self._download_webpage_handle(
                 fmt.get('url'), video_id, 'Downloading m3u8 playlist',
                 fatal=False)
             if not res:
                 continue
-            lines = res.splitlines()
-            max_iv = 0
-            url_path = None
-            for line in lines:
-                if line.startswith('#EXT-X-KEY:'):
-                    path, iv = re.search(r'URI="(?P<path>[^"]+)/[^.]+\.key",IV=0x0*(?P<iv>\d+)', line).group('path', 'iv')
-                    iv = int(iv)
-                    if iv > max_iv:
-                        max_iv = iv
-                        url_path = path
+            base = base.url
+            res = res.splitlines()
+            path_occur = {}
+            extinf = 0
+            for line in res:
+                match = re.match(r'^#EXTINF:(\d+)', line)
+                if match:
+                    extinf = float_or_none(match.group(1)) or 0
+                elif not line.startswith('#'):
+                    match = re.search(r'^(.+)/[^/]+$', line)
+                    if match:
+                        path = urllib.parse.urlparse(urllib.parse.urljoin(base, match.group(1))).path
+                        path_occur[path] = path_occur.get(path, 0) + extinf
+            url_path = max(path_occur, key=path_occur.get)
             if url_path:
                 fmt['hls_media_playlist_data'] = ''
                 valid = True
-                for line in lines:
+                for line in res:
+                    # prevent key mismatch
                     if line.startswith('#EXT-X-KEY:'):
-                        path = re.search(r'URI="([^"]+)/[^.]+\.key"', line).group(1)
-                        valid = path == url_path
+                        match = re.search(r'URI="([^"]+)/[^.]+\.key"', line)
+                        # if no match, the line is probably malformed, keep it as is
+                        valid = not match or urllib.parse.urlparse(urllib.parse.urljoin(base, match.group(1))).path == url_path
+                    elif not line.startswith('#'):
+                        match = re.search(r'^(.+)/[^/]+$', line)
+                        if match:
+                            valid = urllib.parse.urlparse(urllib.parse.urljoin(base, match.group(1))).path == url_path
                     if valid:
                         fmt['hls_media_playlist_data'] += line + '\n'
             else:
