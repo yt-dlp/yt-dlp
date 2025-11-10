@@ -14,7 +14,7 @@ from ..utils import (
     url_or_none,
     urljoin,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import require, traverse_obj
 
 
 class FloatplaneBaseIE(InfoExtractor):
@@ -61,7 +61,8 @@ class FloatplaneBaseIE(InfoExtractor):
                 f'Downloading {media_typ} metadata', query={'id': media_id},
                 fatal=False, impersonate=self._IMPERSONATE_TARGET)
 
-            cdn_base_url = traverse_obj(stream, ('groups', 0, 'origins', 0, 'url', {str}))
+            cdn_base_url = traverse_obj(stream, (
+                'groups', 0, 'origins', 0, 'url', {str}, {require('cdn base url')}))
 
             formats = []
             for variant in traverse_obj(stream, ('groups', 0, 'variants', lambda _, v: v['url'])):
