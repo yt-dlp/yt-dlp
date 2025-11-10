@@ -62,7 +62,7 @@ class FloatplaneBaseIE(InfoExtractor):
                 fatal=False, impersonate=self._IMPERSONATE_TARGET)
 
             cdn_base_url = traverse_obj(stream, (
-                'groups', 0, 'origins', 0, 'url', {str}, {require('cdn base url')}))
+                'groups', 0, 'origins', ..., 'url', {url_or_none}, any, {require('cdn base url')}))
 
             formats = []
             for variant in traverse_obj(stream, ('groups', 0, 'variants', lambda _, v: v['url'])):
