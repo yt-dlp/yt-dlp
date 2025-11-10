@@ -64,9 +64,9 @@ class FloatplaneBaseIE(InfoExtractor):
             cdn_base_url = traverse_obj(stream, ('groups', 0, 'origins', 0, 'url', {str}))
 
             formats = []
-            for variant in traverse_obj(stream, ('groups', 0, 'variants', lambda _, v: v.get('url'))):
-                format_url = urljoin(cdn_base_url, variant.get('url'))
-                format_id = variant.get('name')
+            for variant in traverse_obj(stream, ('groups', 0, 'variants', lambda _, v: v['url'])):
+                format_url = urljoin(cdn_base_url, variant['url'])
+                format_id = traverse_obj(variant, ('name', {str}))
                 hls_aes = {}
                 m3u8_data = None
 
