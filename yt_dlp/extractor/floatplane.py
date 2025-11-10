@@ -50,21 +50,22 @@ class FloatplaneBaseIE(InfoExtractor):
             media_id = media['id']
             media_typ = media.get('type') or 'video'
 
-            metadata = self._download_json(
-                f'{self._BASE_URL}/api/v3/content/{media_typ}', media_id, query={'id': media_id},
-                note=f'Downloading {media_typ} metadata', impersonate=self._IMPERSONATE_TARGET)
-
             stream = self._download_json(
                 f'{self._BASE_URL}/api/v3/delivery/info', media_id,
                 query={'scenario': 'onDemand', 'entityId': media_id},
                 note=f'Downloading {media_typ} stream data',
                 impersonate=self._IMPERSONATE_TARGET)
 
+            metadata = self._download_json(
+                f'{self._BASE_URL}/api/v3/content/{media_typ}', media_id, query={'id': media_id},
+                note=f'Downloading {media_typ} metadata', fatal=False,
+                impersonate=self._IMPERSONATE_TARGET)
+
             cdn_base_url = traverse_obj(stream, ('groups', 0, 'origins', 0, 'url', {str}))
 
             formats = []
             for variant in traverse_obj(stream, ('groups', 0, 'variants', lambda _, v: v.get('url'))):
-                url = urljoin(cdn_base_url, variant.get('url'))
+                format_url = urljoin(cdn_base_url, variant.get('url'))
                 format_id = variant.get('name')
                 hls_aes = {}
                 m3u8_data = None
@@ -72,7 +73,7 @@ class FloatplaneBaseIE(InfoExtractor):
                 # If we need impersonation for the API, then we need it for HLS keys too: extract in advance
                 if self._IMPERSONATE_TARGET is not None:
                     m3u8_data = self._download_webpage(
-                        url, media_id, fatal=False, impersonate=self._IMPERSONATE_TARGET, headers=self._HEADERS,
+                        format_url, media_id, fatal=False, impersonate=self._IMPERSONATE_TARGET, headers=self._HEADERS,
                         note=join_nonempty('Downloading', format_id, 'm3u8 information', delim=' '),
                         errnote=join_nonempty('Failed to download', format_id, 'm3u8 information', delim=' '))
                     if not m3u8_data:
@@ -101,8 +102,8 @@ class FloatplaneBaseIE(InfoExtractor):
                         'audio_channels': ('meta', 'audio', 'channelCount', {int_or_none}),
                         'fps': ('meta', 'video', 'fps', {float_or_none}),
                     }),
-                    'url': url,
-                    'ext': determine_ext(url.partition('/chunk.m3u8')[0], 'mp4'),
+                    'url': format_url,
+                    'ext': determine_ext(format_url.partition('/chunk.m3u8')[0], 'mp4'),
                     'format_id': format_id,
                     'hls_media_playlist_data': m3u8_data,
                     'hls_aes': hls_aes or None,
