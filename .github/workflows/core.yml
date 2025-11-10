@@ -77,10 +77,11 @@ jobs:
         patterns="\
         ^yt_dlp/networking/
         ^yt_dlp/utils/networking\.py$
+        ^test/test_http_proxy\.py$
         ^test/test_networking\.py$
         ^test/test_networking_utils\.py$
-        ^test/test_websockets\.py$
         ^test/test_socks\.py$
+        ^test/test_websockets\.py$
         ^pyproject\.toml$
         "
         if git diff --name-only "${source}" "${target}" | grep -Ef <(printf '%s' "${patterns}"); then
