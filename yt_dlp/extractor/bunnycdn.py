@@ -72,6 +72,9 @@ class BunnyCdnIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.b-cdn\.net/6372f5a3-68df-4ef7-a115-e1110186c477/thumbnail\.jpg',
         },
         'params': {'skip_download': True},
+    }, {
+        'url': 'https://player.mediadelivery.net/embed/519128/875880a9-bcc2-4038-9e05-e5024bba9b70',
+        'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
         # Stream requires Referer
