@@ -63,7 +63,7 @@ class FloatplaneBaseIE(InfoExtractor):
             cdn_base_url = traverse_obj(stream, ('groups', 0, 'origins', 0, 'url', {str}))
 
             formats = []
-            for variant in traverse_obj(stream, ('groups', 0, 'variants', ...)):
+            for variant in traverse_obj(stream, ('groups', 0, 'variants', lambda _, v: v['url'])):
                 url = urljoin(cdn_base_url, variant.get('url'))
                 format_id = variant.get('name')
                 hls_aes = {}
@@ -92,10 +92,15 @@ class FloatplaneBaseIE(InfoExtractor):
                 formats.append({
                     **traverse_obj(variant, {
                         'format_note': ('label', {str}),
-                        'width': ('meta', 'video', 'width', {int}),
-                        'height': ('meta', 'video', 'height', {int}),
+                        'width': ('meta', 'video', 'width', {int_or_none}),
+                        'height': ('meta', 'video', 'height', {int_or_none}),
+                        'vcodec': ('meta', 'video', 'codec', {str}),
+                        'acodec': ('meta', 'audio', 'codec', {str}),
+                        'vbr': ('meta', 'video', 'bitrate', 'average', {int_or_none(scale=1000)}),
+                        'abr': ('meta', 'audio', 'bitrate', 'average', {int_or_none(scale=1000)}),
+                        'audio_channels': ('meta', 'audio', 'channelCount', {int_or_none}),
+                        'fps': ('meta', 'video', 'fps', {float_or_none}),
                     }),
-                    **parse_codecs(traverse_obj(variant, ('meta', 'video', 'codec', {str}))),
                     'url': url,
                     'ext': determine_ext(url.partition('/chunk.m3u8')[0], 'mp4'),
                     'format_id': format_id,
