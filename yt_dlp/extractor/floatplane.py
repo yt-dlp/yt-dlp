@@ -55,17 +55,25 @@ class FloatplaneBaseIE(InfoExtractor):
                 note=f'Downloading {media_typ} metadata', impersonate=self._IMPERSONATE_TARGET)
 
             stream = self._download_json(
-                f'{self._BASE_URL}/api/v3/delivery/info', media_id,
-                query={'scenario': 'onDemand', 'entityId': media_id},
-                note=f'Downloading {media_typ} stream data',
+                f'{self._BASE_URL}/api/v2/cdn/delivery', media_id, query={
+                    'type': 'vod' if media_typ == 'video' else 'aod',
+                    'guid': metadata['guid'],
+                }, note=f'Downloading {media_typ} stream data',
                 impersonate=self._IMPERSONATE_TARGET)
 
-            cdn_base_url = traverse_obj(stream, ('groups', 0, 'origins', 0, 'url', {str}))
+            path_template = traverse_obj(stream, ('resource', 'uri', {str}))
+
+            def format_path(params):
+                path = path_template
+                for i, val in (params or {}).items():
+                    path = path.replace(f'{{qualityLevelParams.{i}}}', val)
+                return path
 
             formats = []
-            for variant in traverse_obj(stream, ('groups', 0, 'variants', ...)):
-                url = urljoin(cdn_base_url, variant.get('url'))
-                format_id = variant.get('name')
+            for quality in traverse_obj(stream, ('resource', 'data', 'qualityLevels', ...)):
+                url = urljoin(stream['cdn'], format_path(traverse_obj(
+                    stream, ('resource', 'data', 'qualityLevelParams', quality['name'], {dict}))))
+                format_id = traverse_obj(quality, ('name', {str}))
                 hls_aes = {}
                 m3u8_data = None
 
@@ -90,12 +98,12 @@ class FloatplaneBaseIE(InfoExtractor):
                             hls_aes['key'] = urlh.read().hex()
 
                 formats.append({
-                    **traverse_obj(variant, {
+                    **traverse_obj(quality, {
                         'format_note': ('label', {str}),
-                        'width': ('meta', 'video', 'width', {int}),
-                        'height': ('meta', 'video', 'height', {int}),
+                        'width': ('width', {int}),
+                        'height': ('height', {int}),
                     }),
-                    **parse_codecs(traverse_obj(variant, ('meta', 'video', 'codec', {str}))),
+                    **parse_codecs(quality.get('codecs')),
                     'url': url,
                     'ext': determine_ext(url.partition('/chunk.m3u8')[0], 'mp4'),
                     'format_id': format_id,
