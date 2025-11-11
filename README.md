@@ -87,8 +87,15 @@ yt-dlp is a feature-rich command-line audio/video downloader with support for [t
 [![All versions](https://img.shields.io/badge/-All_Versions-lightgrey.svg?style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/releases)
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
-You can install yt-dlp using [the binaries](#release-files), [pip](https://pypi.org/project/yt-dlp) or one using a third-party package manager. See [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation) for detailed instructions
+You can install yt-dlp using [the binaries](#release-files), [pip](https://pypi.org/project/yt-dlp) or one using a third-party package manager.
 
+With modern Python (PEP 668), you should install with pipx:
+
+```bash
+python3 -m pip install --user pipx
+pipx ensurepath
+pipx install yt-dlp
+````
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 ## RELEASE FILES
@@ -159,7 +166,11 @@ The git repository, the source tarball (`yt-dlp.tar.gz`), the PyPI source distri
 ## UPDATE
 You can use `yt-dlp -U` to update if you are using the [release binaries](#release-files)
 
-If you [installed with pip](https://github.com/yt-dlp/yt-dlp/wiki/Installation#with-pip), simply re-run the same command that was used to install the program
+If you installed with pipx, then you can upgrade with:
+
+```bash
+pipx upgrade yt-dlp
+```
 
 For other third-party package managers, see [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation#third-party-package-managers) or refer to their documentation
 
@@ -187,9 +198,6 @@ Example usage:
 ```
 # To update to nightly from stable executable/binary:
 yt-dlp --update-to nightly
-
-# To install nightly with pip:
-python3 -m pip install -U --pre "yt-dlp[default]"
 ```
 
 When running a yt-dlp version that is older than 90 days, you will see a warning message suggesting to update to the latest version.
