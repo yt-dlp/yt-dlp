@@ -41,7 +41,7 @@ class TwitchBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'twitch'
 
     _OPERATION_HASHES = {
-        'CollectionSideBar': '27111f1b382effad0b6def325caef1909c733fe6a4fbabf54f8d491ef2cf2f14',
+        'CollectionSideBar': '016e1e4ccee0eb4698eb3bf1a04dc1c077fb746c78c82bac9a8f0289658fbd1a',
         'FilterableVideoTower_Videos': '67004f7881e65c297936f32c75246470629557a393788fb5a69d6d9a25a8fd5f',
         'ClipsCards__User': 'b73ad2bfaecfd30a9e6c28fada15bd97032c83ec77a0440766a56fe0bd632777',
         'ShareClipRenderStatus': 'e0a46b287d760c6890a39d1ccd736af5ec9479a267d02c710e9ac33326b651d2',
@@ -622,14 +622,14 @@ def _make_video_result(node):
 
 class TwitchCollectionIE(TwitchBaseIE):
     _VALID_URL = r'https?://(?:(?:www|go|m)\.)?twitch\.tv/collections/(?P<id>[^/]+)'
-
+    IE_NAME = 'twitch:collection'
     _TESTS = [{
-        'url': 'https://www.twitch.tv/collections/wlDCoH0zEBZZbQ',
+        'url': 'https://www.twitch.tv/collections/o9zZer3IQBhTJw',
         'info_dict': {
-            'id': 'wlDCoH0zEBZZbQ',
-            'title': 'Overthrow Nook, capitalism for children',
+            'id': 'o9zZer3IQBhTJw',
+            'title': 'Playthrough Archives',
         },
-        'playlist_mincount': 13,
+        'playlist_mincount': 21,
     }]
 
     _OPERATION_NAME = 'CollectionSideBar'
