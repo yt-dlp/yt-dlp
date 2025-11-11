@@ -143,6 +143,8 @@ from .archiveorg import (
 from .arcpublishing import ArcPublishingIE
 from .ard import (
     ARDIE,
+    ARDAudiothekIE,
+    ARDAudiothekPlaylistIE,
     ARDBetaMediathekIE,
     ARDMediathekCollectionIE,
 )
@@ -638,7 +640,10 @@ from .filmon import (
     FilmOnIE,
 )
 from .filmweb import FilmwebIE
-from .firsttv import FirstTVIE
+from .firsttv import (
+    FirstTVIE,
+    FirstTVLiveIE,
+)
 from .fivetv import FiveTVIE
 from .flextv import FlexTVIE
 from .flickr import FlickrIE
@@ -1195,6 +1200,7 @@ from .musicdex import (
     MusicdexPlaylistIE,
     MusicdexSongIE,
 )
+from .mux import MuxIE
 from .mx3 import (
     Mx3IE,
     Mx3NeoIE,
@@ -1216,6 +1222,7 @@ from .n1 import (
     N1InfoAssetIE,
     N1InfoIIE,
 )
+from .nascar import NascarClassicsIE
 from .nate import (
     NateIE,
     NateProgramIE,
