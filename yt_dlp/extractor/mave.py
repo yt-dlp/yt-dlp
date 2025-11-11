@@ -9,7 +9,7 @@ from ..utils import (
     parse_iso8601,
     require,
     traverse_obj,
-    urljoin
+    urljoin,
 )
 
 
