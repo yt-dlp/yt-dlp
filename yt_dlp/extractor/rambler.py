@@ -1,4 +1,5 @@
 import json
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -18,7 +19,6 @@ from ..utils.traversal import require, traverse_obj
 class RamblerBaseIE(InfoExtractor):
     def _extract_from_rambler_api(self, rambler_id, referrer):
         key = 'uuid' if rambler_id.startswith('record::') else 'id'
-
         player_data = self._download_json(
             'https://api.vp.rambler.ru/api/v3/records/getPlayerData',
             rambler_id, query={
@@ -28,6 +28,7 @@ class RamblerBaseIE(InfoExtractor):
                     key: rambler_id,
                 }).encode(),
             })
+
         if not player_data.get('success'):
             error_type = traverse_obj(player_data, ('error', 'type', {str}, filter))
             error_subtype = traverse_obj(player_data, ('error', 'subtype', {str}, filter))
@@ -44,7 +45,7 @@ class RamblerBaseIE(InfoExtractor):
         self._remove_duplicate_formats(formats)
 
         return {
-            'channel': traverse_obj(player_data, ('channel', {str})),
+            'channel': traverse_obj(player_data, ('result', 'channel', {str})),
             'formats': formats,
             **traverse_obj(playlist, {
                 'id': ('uuid', {str}),
@@ -62,40 +63,51 @@ class RamblerIE(RamblerBaseIE):
     IE_DESC = 'Рамблер'
 
     _VALID_URL = [
-        r'https?://(?:api\.)?vp\.rambler\.ru/(?:api/(?:other|v3)/)?(?:player/(?:embed|export)\.html|records/getPlayerData)',
-        r'https?://(?:[^/]+\.)?rambler\.ru/\w+/(?P<id>[^/?#]+)',
+        r'https?://(?:(?!vp\.)[^/]+\.)?rambler\.ru/\w+/(?P<id>[^/?#]+)',
+        r'https?://vp\.rambler\.ru/player(?:/[\d.]+)?/(?P<type>embed|player)\.html',
     ]
     _TESTS = [{
-        'url': 'https://auto.rambler.ru/roadaccidents/54816856-v-moskve-mashina-s-diplomaticheskimi-nomerami-vrezalas-v-pushku/',
+        'url': 'https://auto.rambler.ru/roadaccidents/54816856-v-moskve-mashina-s-diplomaticheskimi-nomerami-vrezalas-v-pushku',
         'info_dict': {
             'id': 'record::356179de-2b91-4e01-9a2c-409dc2f3171d',
             'ext': 'mp4',
             'title': 'Автомобиль с дипномерами врезался в пушку',
+            'channel': 'ramblernews',
             'display_id': '54816856-v-moskve-mashina-s-diplomaticheskimi-nomerami-vrezalas-v-pushku',
-            'duration': 26.0,
+            'duration': 26,
             'thumbnail': r're:https?://.+\.(?:jpe?g|png)',
         },
     }, {
-        'url': 'https://api.vp.rambler.ru/api/v3/records/getPlayerData?params=%7B%22referrer%22%3A%22https%3A%2F%2Feda.ru%2Fmediaproject%2Fbystrye-uzhiny%22%2C%22uuid%22%3A%22record%3A%3A13ff0e0c-8f62-41bb-80eb-2a4664854596%22%2C%22playerTemplateId%22%3A12310%2C%22checkReferrerCount%22%3Atrue%7D',
+        'url': 'https://news.rambler.ru/moscow_city/55584944-sinoptik-ilin-nastuplenie-meteorologicheskoy-zimy-v-moskve-perenositsya',
         'info_dict': {
-            'id': 'record::13ff0e0c-8f62-41bb-80eb-2a4664854596',
+            'id': 'record::7d02afbf-4f77-438e-b302-394ac617d5e4',
             'ext': 'mp4',
-            'title': 'Гречневая лапша с индейкой и арахисом в азиатском стиле',
-            'duration': 293.0,
+            'title': 'Метеорологическая зима наступит в Москве на следующей неделе',
+            'channel': 'ramblernews',
+            'display_id': '55584944-sinoptik-ilin-nastuplenie-meteorologicheskoy-zimy-v-moskve-perenositsya',
+            'duration': 77,
             'thumbnail': r're:https?://.+\.(?:jpe?g|png)',
         },
     }, {
-        'url': 'https://api.vp.rambler.ru/api/other/player/export.html?id=2314034',
+        'url': 'https://vp.rambler.ru/player/1.151.0/player.html#id=record%3A%3Afdb0a65e-dac4-4e48-abcb-6ec09e02d88f&referrer=https%3A%2F%2Fnews.rambler.ru%2Fcommunity%2F55274681-v-peterburge-muzhchina-otbil-podrostka-u-sluzhby-bezopasnosti-metro%2F',
         'info_dict': {
-            'id': 'record::6f10ddd6-1222-4ee4-828b-9eba92e7c26f',
+            'id': 'record::fdb0a65e-dac4-4e48-abcb-6ec09e02d88f',
             'ext': 'mp4',
-            'title': 'Baby Melo.mp4',
-            'duration': 65.0,
+            'title': 'В Петербурге мужчина отбил подростка у службы безопасности метро',
+            'channel': 'ramblernews',
+            'duration': 65,
             'thumbnail': r're:https?://.+\.(?:jpe?g|png)',
         },
     }, {
-        'url': 'https://vp.rambler.ru/player/embed.html?widget=Player&id=record::9afb91a9-999a-9d9a-b9f9-b9f99999d51b&referrer=https%3A%2F%2Fexample.com',
-        'only_matching': True,
+        'url': 'https://vp.rambler.ru/player/embed.html?id=record::01a9982f-da18-4e95-b3a1-c5bcf6e112fb',
+        'info_dict': {
+            'id': 'record::01a9982f-da18-4e95-b3a1-c5bcf6e112fb',
+            'ext': 'mp4',
+            'title': 'Ученый раскрыл тайну зеленого свечения над Москвой',
+            'channel': 'ramblernews',
+            'duration': 16,
+            'thumbnail': r're:https?://.+\.(?:jpe?g|png)',
+        },
     }]
 
     def _real_extract(self, url):
@@ -111,11 +123,14 @@ class RamblerIE(RamblerBaseIE):
                 ('recordId', ('videoData', 'embed-id')), {str}, any, {require('rambler ID')}))
             referrer = url
         else:
-            query = {k: v[0] for k, v in parse_qs(url).items() if v}
+            if self._match_valid_url(url).group('type') == 'embed':
+                query = parse_qs(url)
+            else:
+                query = urllib.parse.parse_qs(urllib.parse.urlparse(url).fragment)
+            query = {k: v[0] for k, v in query.items() if v}
             rambler_id = traverse_obj(query, (
                 ('id', ('params', {json.loads}, ('id', 'uuid'))), {str}, any, {require('rambler ID')}))
-            referrer = traverse_obj(query, (
-                ('referrer', ('params', {json.loads}, 'referrer')), {url_or_none}, any), default=url)
+            referrer = traverse_obj(query, ('referrer', {url_or_none}), default=url)
 
         return {
             'display_id': display_id,
