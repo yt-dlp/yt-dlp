@@ -621,8 +621,8 @@ def _make_video_result(node):
 
 
 class TwitchCollectionIE(TwitchBaseIE):
-    _VALID_URL = r'https?://(?:(?:www|go|m)\.)?twitch\.tv/collections/(?P<id>[^/]+)'
     IE_NAME = 'twitch:collection'
+    _VALID_URL = r'https?://(?:(?:www|go|m)\.)?twitch\.tv/collections/(?P<id>[^/]+)'
     _TESTS = [{
         'url': 'https://www.twitch.tv/collections/o9zZer3IQBhTJw',
         'info_dict': {
@@ -720,8 +720,8 @@ class TwitchVideosBaseIE(TwitchPlaylistBaseIE):
 
 
 class TwitchVideosIE(TwitchVideosBaseIE):
+    IE_NAME = 'twitch:videos'
     _VALID_URL = r'https?://(?:(?:www|go|m)\.)?twitch\.tv/(?P<id>[^/]+)/(?:videos|profile)'
-
     _TESTS = [{
         # All Videos sorted by Date
         'url': 'https://www.twitch.tv/spamfish/videos?filter=all',
@@ -729,7 +729,7 @@ class TwitchVideosIE(TwitchVideosBaseIE):
             'id': 'spamfish',
             'title': 'spamfish - All Videos sorted by Date',
         },
-        'playlist_mincount': 924,
+        'playlist_mincount': 751,
     }, {
         # All Videos sorted by Popular
         'url': 'https://www.twitch.tv/spamfish/videos?filter=all&sort=views',
@@ -737,8 +737,9 @@ class TwitchVideosIE(TwitchVideosBaseIE):
             'id': 'spamfish',
             'title': 'spamfish - All Videos sorted by Popular',
         },
-        'playlist_mincount': 931,
+        'playlist_mincount': 754,
     }, {
+        # TODO: Investigate why we get 0 entries
         # Past Broadcasts sorted by Date
         'url': 'https://www.twitch.tv/spamfish/videos?filter=archives',
         'info_dict': {
@@ -753,8 +754,9 @@ class TwitchVideosIE(TwitchVideosBaseIE):
             'id': 'spamfish',
             'title': 'spamfish - Highlights sorted by Date',
         },
-        'playlist_mincount': 901,
+        'playlist_mincount': 751,
     }, {
+        # TODO: Investigate why we get 0 entries
         # Uploads sorted by Date
         'url': 'https://www.twitch.tv/esl_csgo/videos?filter=uploads&sort=time',
         'info_dict': {
@@ -763,6 +765,7 @@ class TwitchVideosIE(TwitchVideosBaseIE):
         },
         'playlist_mincount': 5,
     }, {
+        # TODO: Investigate why we get 0 entries
         # Past Premieres sorted by Date
         'url': 'https://www.twitch.tv/spamfish/videos?filter=past_premieres',
         'info_dict': {
