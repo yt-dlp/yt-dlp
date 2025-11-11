@@ -1,3 +1,6 @@
+> Documentation for the Carey Nieuwhof metadata scraper lives in
+> [carey-nieuwhof/README.md](carey-nieuwhof/README.md).
+
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 <div align="center">
 

@@ -1,0 +1,37 @@
+{
+  "name": "carey-nieuwhof",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "scrape:youtube": "CAREY_YTDLP_VERBOSE=1 CAREY_HEARTBEAT_MS=5000 tsx scrape-youtube/index.ts",
+    "scrape:youtube:sample": "CAREY_MAX_VIDEOS=2 CAREY_YTDLP_VERBOSE=1 CAREY_HEARTBEAT_MS=5000 tsx scrape-youtube/index.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint --max-warnings 0",
+    "db:generate:migration": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.21.0",
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "drizzle-kit": "^0.31.6",
+    "eslint": "^9.39.1",
+    "globals": "^15.11.0",
+    "prettier": "^3.6.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.16.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.44.7",
+    "postgres": "^3.4.5"
+  }
+}
