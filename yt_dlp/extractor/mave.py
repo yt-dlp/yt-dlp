@@ -7,10 +7,9 @@ from ..utils import (
     clean_html,
     int_or_none,
     parse_iso8601,
-    require,
-    traverse_obj,
     urljoin,
 )
+from ..utils.traversal import require, traverse_obj
 
 
 class MaveBaseIE(InfoExtractor):
