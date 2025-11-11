@@ -186,8 +186,5 @@ class MaveChannelIE(MaveBaseIE):
             }),
             'entries': InAdvancePagedList(
                 functools.partial(self._entries, channel_id, channel_meta),
-                math.ceil(
-                    channel_meta['podcast']['episodes_count'] / self._PAGE_SIZE,
-                ),
-                self._PAGE_SIZE),
+                math.ceil(channel_meta['podcast']['episodes_count'] / self._PAGE_SIZE), self._PAGE_SIZE),
         }
