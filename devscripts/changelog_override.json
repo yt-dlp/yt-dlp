@@ -314,5 +314,10 @@
         "when": "8636a9bac3bed99984c1e297453660468ecf504b",
         "short": "Fix 6224a3898821965a7d6a2cb9cc2de40a0fd6e6bc",
         "authors": ["Grub4K"]
+    },
+    {
+        "action": "add",
+        "when": "6224a3898821965a7d6a2cb9cc2de40a0fd6e6bc",
+        "short": "[priority] **An external JavaScript runtime is now required for full YouTube support**\nyt-dlp now requires users to an external JavaScript runtime such as Deno installed in order to solve the JavaScript challenges presented by YouTube. [Read more](https://github.com/yt-dlp/yt-dlp/issues/XXXXX)"
     }
 ]
