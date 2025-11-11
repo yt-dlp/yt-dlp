@@ -28,7 +28,10 @@ class MaveBaseIE(InfoExtractor):
 
     def _create_entry(self, channel_id, channel_meta, episode_meta):
         return {
-            'display_id': f'{channel_id}-{episode_meta["code"]}',
+            'display_id': f'{channel_id}-{episode_code}',
+            'extractor_key': MaveIE.ie_key(),
+            'extractor': MaveIE.IE_NAME,
+            'webpage_url': f'https://{channel_id}.mave.digital/ep-{episode_code}',
             'channel_id': channel_id,
             'channel_url': f'https://{channel_id}.mave.digital/',
             'vcodec': 'none',
