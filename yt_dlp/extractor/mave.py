@@ -52,7 +52,7 @@ class MaveBaseIE(InfoExtractor):
                 'dislike_count': ('reactions',
                                   lambda _, v: v['type'] == 'dislike',
                                   'count', {int_or_none}, any),
-                'age_limit': ('is_explicit', {lambda x: 18 if x else None}),
+                'age_limit': ('is_explicit', {bool}, {lambda x: 18 if x else None}),
                 'timestamp': ('publish_date', {parse_iso8601}),
             }),
             **traverse_obj(channel_meta, {
