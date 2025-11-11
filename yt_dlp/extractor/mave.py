@@ -175,7 +175,7 @@ class MaveChannelIE(MaveBaseIE):
     def _real_extract(self, url):
         channel_id = self._match_id(url)
 
-        channel_meta = self._load_channel_meta(channel_id)
+        channel_meta = self._load_channel_meta(channel_id, channel_id)
 
         return {
             '_type': 'playlist',
