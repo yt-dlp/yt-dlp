@@ -2190,7 +2190,11 @@ from .tvc import (
     TVCIE,
     TVCArticleIE,
 )
-from .tver import TVerIE
+from .tver import (
+    TVerIE,
+    TVerPlaylistIE,
+    TVerSearchIE,
+)
 from .tvigle import TvigleIE
 from .tviplayer import TVIPlayerIE
 from .tvn24 import TVN24IE
