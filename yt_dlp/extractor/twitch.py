@@ -45,7 +45,7 @@ class TwitchBaseIE(InfoExtractor):
         'FilterableVideoTower_Videos': '67004f7881e65c297936f32c75246470629557a393788fb5a69d6d9a25a8fd5f',
         'ClipsCards__User': '90c33f5e6465122fba8f9371e2a97076f9ed06c6fed3788d002ab9eba8f91d88',
         'ShareClipRenderStatus': 'e0a46b287d760c6890a39d1ccd736af5ec9479a267d02c710e9ac33326b651d2',
-        'ChannelCollectionsContent': '447aec6a0cc1e8d0a8d7732d47eb0762c336a2294fdb009e9c9d854e49d484b9',
+        'ChannelCollectionsContent': '5247910a19b1cd2b760939bf4cba4dcbd3d13bdf8c266decd16956f6ef814077',
         'StreamMetadata': 'b57f9b910f8cd1a4659d894fe7550ccc81ec9052c01e438b290fd66a040b9b93',
         'ComscoreStreamingQuery': 'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
         'VideoPreviewOverlay': '3006e77e51b128d838fa4e835723ca4dc9a05c5efd4466c1085215c6e437e65c',
@@ -901,8 +901,8 @@ class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
 
 
 class TwitchVideosCollectionsIE(TwitchPlaylistBaseIE):
+    IE_NAME = 'twitch:videos:collections'
     _VALID_URL = r'https?://(?:(?:www|go|m)\.)?twitch\.tv/(?P<id>[^/]+)/videos/*?\?.*?\bfilter=collections'
-
     _TESTS = [{
         # Collections
         'url': 'https://www.twitch.tv/spamfish/videos?filter=collections',
