@@ -27,6 +27,7 @@ class MaveBaseIE(InfoExtractor):
             display_id, note='Downloading episode metadata')
 
     def _create_entry(self, channel_id, channel_meta, episode_meta):
+        episode_code = traverse_obj(episode_meta, ('code', {require('episode code')}))
         return {
             'display_id': f'{channel_id}-{episode_code}',
             'extractor_key': MaveIE.ie_key(),
