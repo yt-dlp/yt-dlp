@@ -16,9 +16,9 @@ class MaveBaseIE(InfoExtractor):
     _API_BASE_URL = 'https://api.mave.digital/v1/website'
     _API_BASE_STORAGE_URL = 'https://store.cloud.mts.ru/mave/'
 
-    def _load_channel_meta(self, channel_id):
+    def _load_channel_meta(self, channel_id, display_id):
         return self._download_json(
-            f'{self._API_BASE_URL}/{channel_id}/', channel_id,
+            f'{self._API_BASE_URL}/{channel_id}/', display_id,
             note='Downloading channel metadata')
 
     def _load_episode_meta(self, channel_id, episode_code):
