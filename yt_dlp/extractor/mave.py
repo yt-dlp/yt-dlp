@@ -127,6 +127,7 @@ class MaveIE(MaveBaseIE):
     def _real_extract(self, url):
         channel_id, episode_code = self._match_valid_url(url).group(
             'channel_id', 'episode_code')
+        display_id = f'{channel_id}-{episode_code}'
 
         channel_meta = self._load_channel_meta(channel_id)
         episode_meta = self._load_episode_meta(channel_id, episode_code)
