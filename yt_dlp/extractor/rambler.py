@@ -128,8 +128,7 @@ class RamblerIE(RamblerBaseIE):
             else:
                 query = urllib.parse.parse_qs(urllib.parse.urlparse(url).fragment)
             query = {k: v[0] for k, v in query.items() if v}
-            rambler_id = traverse_obj(query, (
-                ('id', ('params', {json.loads}, ('id', 'uuid'))), {str}, any, {require('rambler ID')}))
+            rambler_id = traverse_obj(query, ('id', {str}, {require('rambler ID')}))
             referrer = traverse_obj(query, ('referrer', {url_or_none}), default=url)
 
         return {
