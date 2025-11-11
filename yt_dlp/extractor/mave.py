@@ -129,8 +129,8 @@ class MaveIE(MaveBaseIE):
             'channel_id', 'episode_code')
         display_id = f'{channel_id}-{episode_code}'
 
-        channel_meta = self._load_channel_meta(channel_id)
-        episode_meta = self._load_episode_meta(channel_id, episode_code)
+        channel_meta = self._load_channel_meta(channel_id, display_id)
+        episode_meta = self._load_episode_meta(channel_id, episode_code, display_id)
 
         return self._create_entry(channel_id, channel_meta, episode_meta)
 
