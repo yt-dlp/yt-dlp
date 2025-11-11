@@ -44,13 +44,13 @@ class TwitchBaseIE(InfoExtractor):
         'CollectionSideBar': '016e1e4ccee0eb4698eb3bf1a04dc1c077fb746c78c82bac9a8f0289658fbd1a',
         'FilterableVideoTower_Videos': '67004f7881e65c297936f32c75246470629557a393788fb5a69d6d9a25a8fd5f',
         'ClipsCards__User': '90c33f5e6465122fba8f9371e2a97076f9ed06c6fed3788d002ab9eba8f91d88',
-        'ShareClipRenderStatus': 'e0a46b287d760c6890a39d1ccd736af5ec9479a267d02c710e9ac33326b651d2',
+        'ShareClipRenderStatus': '1844261bb449fa51e6167040311da4a7a5f1c34fe71c71a3e0c4f551bc30c698',
         'ChannelCollectionsContent': '5247910a19b1cd2b760939bf4cba4dcbd3d13bdf8c266decd16956f6ef814077',
         'StreamMetadata': 'b57f9b910f8cd1a4659d894fe7550ccc81ec9052c01e438b290fd66a040b9b93',
         'ComscoreStreamingQuery': 'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
-        'VideoPreviewOverlay': '3006e77e51b128d838fa4e835723ca4dc9a05c5efd4466c1085215c6e437e65c',
+        'VideoPreviewOverlay': '9515480dee68a77e667cb19de634739d33f243572b007e98e67184b1a5d8369f',
         'VideoMetadata': '45111672eea2e507f8ba44d101a61862f9c56b11dee09a15634cb75cb9b9084d',
-        'VideoPlayer_ChapterSelectButtonVideo': '8d2793384aac3773beab5e59bd5d6f585aedb923d292800119e03d40cd0f9b41',
+        'VideoPlayer_ChapterSelectButtonVideo': '71835d5ef425e154bf282453a926d99b328cdc5e32f36d3a209d0f4778b41203',
         'VideoPlayer_VODSeekbarPreviewVideo': '07e99e4d56c5a7c67117a154777b0baf85a5ffefa393b213f4bc712ccaf85dd6',
     }
 
