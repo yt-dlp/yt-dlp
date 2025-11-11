@@ -621,7 +621,7 @@ def _make_video_result(node):
 
 
 class TwitchCollectionIE(TwitchBaseIE):
-    IE_NAME = 'twitch:collections'
+    IE_NAME = 'twitch:collection'
     _VALID_URL = r'https?://(?:(?:www|go|m)\.)?twitch\.tv/collections/(?P<id>[^/]+)'
     _TESTS = [{
         'url': 'https://www.twitch.tv/collections/o9zZer3IQBhTJw',
