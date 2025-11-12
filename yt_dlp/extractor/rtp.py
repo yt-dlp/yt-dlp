@@ -152,12 +152,13 @@ class RTPIE(InfoExtractor):
                     asset_index = idx
                     break
 
-        asset_urls = traverse_obj(episode_data, ('assets', asset_index, 'asset_url', {dict}))
+        asset = traverse_obj(episode_data, ('assets', asset_index))
+        asset_urls = traverse_obj(asset, ('asset_url', {dict}))
         media_urls = traverse_obj(asset_urls, (
             ((('hls', 'dash'), 'stream_url'), ('multibitrate', ('url_hls', 'url_dash'))),))
         formats, subtitles = self._extract_formats(media_urls, episode_id)
 
-        for sub_data in traverse_obj(asset_urls, ('subtitles', 'vtt_list', lambda _, v: url_or_none(v['file']))):
+        for sub_data in traverse_obj(asset, ('subtitles', 'vtt_list', lambda _, v: url_or_none(v['file']))):
             subtitles.setdefault(sub_data.get('code') or 'pt', []).append({
                 'url': sub_data['file'],
                 'name': sub_data.get('language'),
