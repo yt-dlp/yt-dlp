@@ -52,7 +52,10 @@ class YfanefaIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': title,
+            'title': self._og_search_title(webpage, default=None) or self._html_extract_title(webpage),
             'formats': formats,
-            'http_headers': {'Referer': url},
+            **traverse_obj(player_data, {
+                'thumbnail': ('preview', {url_or_none}),
+                'duration': ('duration', {int_or_none}),
+            }),
         }
