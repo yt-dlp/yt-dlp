@@ -1,7 +1,6 @@
-import re
-
 from .common import InfoExtractor
-from ..utils import ExtractorError
+from ..utils import determine_ext, int_or_none, join_nonempty, url_or_none
+from ..utils.traversal import traverse_obj
 
 
 class YfanefaIE(InfoExtractor):
