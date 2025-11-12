@@ -46,7 +46,6 @@ class RinseFMIE(RinseFMBaseIE):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        entry = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['entry']
 
         next_data = self._search_nextjs_v13_data(webpage, display_id)
         entry = None
