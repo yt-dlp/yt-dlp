@@ -42,23 +42,13 @@ class YfanefaIE(InfoExtractor):
         player_data = self._search_json(
             r'iwPlayer\.options\["[\w.]+"\]\s*=', webpage, 'player options', video_id)
 
-        m3u8_url = url_match.group(1)
-
-        if sig_match and sig_match.group(1):
-            signature = sig_match.group(1)
-            if signature and not signature.startswith('?'):
-                signature = '?' + signature
-            m3u8_url += signature
-
-        m3u8_url = m3u8_url.replace('\\', '')
-
-        if m3u8_url.endswith('.m3u8'):
-            formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls')
+        formats = []
+        video_url = join_nonempty(player_data['url'], player_data.get('signature'), delim='')
+        if determine_ext(video_url) == 'm3u8':
+            formats = self._extract_m3u8_formats(
+                video_url, video_id, 'mp4', m3u8_id='hls')
         else:
-            formats = [{
-                'url': m3u8_url,
-                'ext': 'mp4',
-            }]
+            formats = [{'url': video_url, 'ext': 'mp4'}]
 
         return {
             'id': video_id,
