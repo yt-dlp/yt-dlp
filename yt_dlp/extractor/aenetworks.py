@@ -82,8 +82,8 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
             data=json.dumps({'operationName': 'getUserVideo', 'variables': {'videoId': graphql_video_id},
                              'query': 'query getUserVideo($videoId: ID!) { video(id: $videoId) { title publicUrl programId tvSeasonNumber tvSeasonEpisodeNumber series { title } } }'}).encode(),
             headers={'Content-Type': 'application/json'})
-        result = traverse_obj(result, ('data', 'video'), default={})
-        if not result or not result.get('publicUrl'):
+        result = traverse_obj(result, ('data', 'video', {lambda x: x.get('publicUrl') and x})
+        if not result:
             raise ExtractorError('Show not found in A&E feed (too new?)', expected=True,
                                  video_id=remove_start(filter_value, '/'))
         title = result['title']
