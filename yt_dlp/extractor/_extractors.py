@@ -1412,6 +1412,7 @@ from .nuum import (
 from .nuvid import NuvidIE
 from .nytimes import (
     NYTimesArticleIE,
+    NYTimesAudioIE,
     NYTimesCookingIE,
     NYTimesCookingRecipeIE,
     NYTimesIE,
