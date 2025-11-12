@@ -1,7 +1,4 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..utils import (
     int_or_none,
     parse_qs,
@@ -253,7 +250,7 @@ class VideomoreVideoIE(VideomoreBaseIE):
         'params': {
             'skip_download': True,
         },
-        'skip': 'redirects to https://more.tv/'
+        'skip': 'redirects to https://more.tv/',
     }, {
         'url': 'https://videomore.ru/molodezhka/6_sezon/29_seriya?utm_so',
         'only_matching': True,
@@ -264,7 +261,7 @@ class VideomoreVideoIE(VideomoreBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if VideomoreIE.suitable(url) else super(VideomoreVideoIE, cls).suitable(url)
+        return False if VideomoreIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -292,14 +289,14 @@ class VideomoreSeasonIE(VideomoreBaseIE):
     @classmethod
     def suitable(cls, url):
         return (False if (VideomoreIE.suitable(url) or VideomoreVideoIE.suitable(url))
-                else super(VideomoreSeasonIE, cls).suitable(url))
+                else super().suitable(url))
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         season = self._download_page_data(display_id)
-        season_id = compat_str(season['id'])
+        season_id = str(season['id'])
         tracks = self._download_json(
-            self._API_BASE_URL + 'seasons/%s/tracks' % season_id,
+            self._API_BASE_URL + f'seasons/{season_id}/tracks',
             season_id)['data']
         entries = []
         for track in tracks:

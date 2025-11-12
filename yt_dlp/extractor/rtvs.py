@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-
 from ..utils import (
     parse_duration,
     traverse_obj,
@@ -10,7 +9,9 @@ from ..utils import (
 
 
 class RTVSIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?rtvs\.sk/(?:radio|televizia)/archiv(?:/\d+)?/(?P<id>\d+)/?(?:[#?]|$)'
+    IE_NAME = 'stvr'
+    IE_DESC = 'Slovak Television and Radio (formerly RTVS)'
+    _VALID_URL = r'https?://(?:www\.)?(?:rtvs|stvr)\.sk/(?:radio|televizia)/archiv(?:/\d+)?/(?P<id>\d+)/?(?:[#?]|$)'
     _TESTS = [{
         # radio archive
         'url': 'http://www.rtvs.sk/radio/archiv/11224/414872',
@@ -20,9 +21,9 @@ class RTVSIE(InfoExtractor):
             'ext': 'mp3',
             'title': 'Ostrov pokladov 1 časť.mp3',
             'duration': 2854,
-            'thumbnail': 'https://www.rtvs.sk/media/a501/image/file/2/0000/b1R8.rtvs.jpg',
+            'thumbnail': 'https://www.stvr.sk/media/a501/image/file/2/0000/rtvs-00009383.png',
             'display_id': '135331',
-        }
+        },
     }, {
         # tv archive
         'url': 'http://www.rtvs.sk/televizia/archiv/8249/63118',
@@ -31,11 +32,11 @@ class RTVSIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Amaro Džives - Náš deň',
             'description': 'Galavečer pri príležitosti Medzinárodného dňa Rómov.',
-            'thumbnail': 'https://www.rtvs.sk/media/a501/image/file/2/0031/L7Qm.amaro_dzives_png.jpg',
+            'thumbnail': 'https://www.stvr.sk/media/a501/image/file/2/0031/L7Qm.amaro_dzives_png.jpg',
             'timestamp': 1428555900,
             'upload_date': '20150409',
             'duration': 4986,
-        }
+        },
     }, {
         # tv archive
         'url': 'https://www.rtvs.sk/televizia/archiv/18083?utm_source=web&utm_medium=rozcestnik&utm_campaign=Robin',
@@ -48,8 +49,11 @@ class RTVSIE(InfoExtractor):
             'display_id': '307655',
             'duration': 831,
             'upload_date': '20211111',
-            'thumbnail': 'https://www.rtvs.sk/media/a501/image/file/2/0916/robin.jpg',
-        }
+            'thumbnail': 'https://www.stvr.sk/media/a501/image/file/2/0916/robin.jpg',
+        },
+    }, {
+        'url': 'https://www.stvr.sk/radio/archiv/11224/414872',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -81,5 +85,5 @@ class RTVSIE(InfoExtractor):
             'duration': parse_duration(traverse_obj(data, ('playlist', 0, 'length'))),
             'thumbnail': traverse_obj(data, ('playlist', 0, 'image')),
             'timestamp': unified_timestamp(traverse_obj(data, ('playlist', 0, 'datetime_create'))),
-            'formats': formats
+            'formats': formats,
         }

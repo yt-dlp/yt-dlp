@@ -2,7 +2,6 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import ExtractorError, int_or_none, urlencode_postdata
 
 
@@ -16,7 +15,7 @@ class CuriosityStreamBaseIE(InfoExtractor):
             if isinstance(error, dict):
                 error = ', '.join(error.values())
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, error), expected=True)
+                f'{self.IE_NAME} said: {error}', expected=True)
 
     def _call_api(self, path, video_id, query=None):
         headers = {}
@@ -59,7 +58,7 @@ class CuriosityStreamIE(CuriosityStreamBaseIE):
             'series_id': '2',
             'thumbnail': r're:https://img.curiositystream.com/.+\.jpg',
             'tags': [],
-            'duration': 158
+            'duration': 158,
         },
         'params': {
             # m3u8 download
@@ -157,10 +156,10 @@ class CuriosityStreamCollectionBaseIE(CuriosityStreamBaseIE):
         collection = self._call_api(collection_id, collection_id)
         entries = []
         for media in collection.get('media', []):
-            media_id = compat_str(media.get('id'))
+            media_id = str(media.get('id'))
             media_type, ie = ('series', CuriosityStreamSeriesIE) if media.get('is_collection') else ('video', CuriosityStreamIE)
             entries.append(self.url_result(
-                'https://curiositystream.com/%s/%s' % (media_type, media_id),
+                f'https://curiositystream.com/{media_type}/{media_id}',
                 ie=ie.ie_key(), video_id=media_id))
         return self.playlist_result(
             entries, collection_id,

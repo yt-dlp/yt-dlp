@@ -2,12 +2,10 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_parse_qs
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     determine_ext,
-    error_to_compat_str,
     extract_attributes,
     int_or_none,
     merge_dicts,
@@ -22,7 +20,7 @@ from ..utils import (
 class IGNBaseIE(InfoExtractor):
     def _call_api(self, slug):
         return self._download_json(
-            'http://apis.ign.com/{0}/v3/{0}s/slug/{1}'.format(self._PAGE_TYPE, slug), slug)
+            f'http://apis.ign.com/{self._PAGE_TYPE}/v3/{self._PAGE_TYPE}s/slug/{slug}', slug)
 
     def _checked_call_api(self, slug):
         try:
@@ -106,8 +104,7 @@ class IGNIE(IGNBaseIE):
     _VIDEO_PATH_RE = r'/(?:\d{4}/\d{2}/\d{2}/)?(?P<id>.+?)'
     _PLAYLIST_PATH_RE = r'(?:/?\?(?P<filt>[^&#]+))?'
     _VALID_URL = (
-        r'https?://(?:.+?\.ign|www\.pcmag)\.com/videos(?:%s)'
-        % '|'.join((_VIDEO_PATH_RE + r'(?:[/?&#]|$)', _PLAYLIST_PATH_RE)))
+        r'https?://(?:.+?\.ign|www\.pcmag)\.com/videos(?:{})'.format('|'.join((_VIDEO_PATH_RE + r'(?:[/?&#]|$)', _PLAYLIST_PATH_RE))))
     IE_NAME = 'ign.com'
     _PAGE_TYPE = 'video'
 
@@ -152,10 +149,10 @@ class IGNIE(IGNBaseIE):
         grids = re.findall(
             r'''(?s)<section\b[^>]+\bclass\s*=\s*['"](?:[\w-]+\s+)*?content-feed-grid(?!\B|-)[^>]+>(.+?)</section[^>]*>''',
             webpage)
-        return filter(None,
-                      (urljoin(url, m.group('path')) for m in re.finditer(
-                          r'''<a\b[^>]+\bhref\s*=\s*('|")(?P<path>/videos%s)\1'''
-                          % cls._VIDEO_PATH_RE, grids[0] if grids else '')))
+        return filter(
+            None, (urljoin(url, m.group('path')) for m in re.finditer(
+                rf'''<a\b[^>]+\bhref\s*=\s*('|")(?P<path>/videos{cls._VIDEO_PATH_RE})\1''',
+                grids[0] if grids else '')))
 
     def _real_extract(self, url):
         display_id, filt = self._match_valid_url(url).group('id', 'filt')
@@ -224,7 +221,7 @@ class IGNVideoIE(IGNBaseIE):
 
         webpage, urlh = self._download_webpage_handle(embed_url, video_id)
         new_url = urlh.url
-        ign_url = compat_parse_qs(
+        ign_url = urllib.parse.parse_qs(
             urllib.parse.urlparse(new_url).query).get('url', [None])[-1]
         if ign_url:
             return self.url_result(ign_url, IGNIE.ie_key())
@@ -328,7 +325,7 @@ class IGNArticleIE(IGNBaseIE):
                         'Content not found: expired?', cause=e.cause,
                         expected=True)
                 elif e.cause.status == 503:
-                    self.report_warning(error_to_compat_str(e.cause))
+                    self.report_warning(str(e.cause))
                     return
             raise
 
@@ -367,7 +364,7 @@ class IGNArticleIE(IGNBaseIE):
                     flashvars = self._search_regex(
                         r'''(<param\b[^>]+\bname\s*=\s*("|')flashvars\2[^>]*>)''',
                         m.group('params'), 'flashvars', default='')
-                    flashvars = compat_parse_qs(extract_attributes(flashvars).get('value') or '')
+                    flashvars = urllib.parse.parse_qs(extract_attributes(flashvars).get('value') or '')
                     v_url = url_or_none((flashvars.get('url') or [None])[-1])
                     if v_url:
                         yield self.url_result(v_url)

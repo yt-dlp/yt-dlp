@@ -13,8 +13,8 @@ class SYVDKIE(InfoExtractor):
             'display_id': 'isabella-arendt-stiller-op-for-de-konservative-2',
             'ext': 'mp3',
             'title': 'Isabella Arendt stiller op for De Konservative',
-            'description': 'md5:f5fa6a431813bf37284f3412ad7c6c06'
-        }
+            'description': 'md5:f5fa6a431813bf37284f3412ad7c6c06',
+        },
     }]
 
     def _real_extract(self, url):

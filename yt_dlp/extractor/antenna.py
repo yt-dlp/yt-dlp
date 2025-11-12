@@ -105,7 +105,7 @@ class Ant1NewsGrArticleIE(AntennaBaseIE):
         info = self._search_json_ld(webpage, video_id, expected_type='NewsArticle')
         embed_urls = list(Ant1NewsGrEmbedIE._extract_embed_urls(url, webpage))
         if not embed_urls:
-            raise ExtractorError('no videos found for %s' % video_id, expected=True)
+            raise ExtractorError(f'no videos found for {video_id}', expected=True)
         return self.playlist_from_matches(
             embed_urls, video_id, info.get('title'), ie=Ant1NewsGrEmbedIE.ie_key(),
             video_kwargs={'url_transparent': True, 'timestamp': info.get('timestamp')})

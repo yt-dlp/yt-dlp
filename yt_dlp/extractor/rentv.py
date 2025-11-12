@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     determine_ext,
     int_or_none,
@@ -19,7 +18,7 @@ class RENTVIE(InfoExtractor):
             'title': 'Документальный спецпроект: "Промывка мозгов. Технологии XXI века"',
             'timestamp': 1472230800,
             'upload_date': '20160826',
-        }
+        },
     }, {
         'url': 'http://ren.tv/player/118577',
         'only_matching': True,
@@ -70,7 +69,7 @@ class RENTVArticleIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Видео: микроавтобус, попавший в ДТП с грузовиками в Подмосковье, превратился в груду металла',
             'description': 'Жертвами столкновения двух фур и микроавтобуса, по последним данным, стали семь человек.',
-        }
+        },
     }, {
         # TODO: invalid m3u8
         'url': 'http://ren.tv/novosti/2015-09-25/sluchaynyy-prohozhiy-poymal-avtougonshchika-v-murmanske-video',
@@ -99,6 +98,6 @@ class RENTVArticleIE(InfoExtractor):
             media_id = config_profile.get('mediaid')
             if not media_id:
                 continue
-            media_id = compat_str(media_id)
+            media_id = str(media_id)
             entries.append(self.url_result('rentv:' + media_id, 'RENTV', media_id))
         return self.playlist_result(entries, display_id)

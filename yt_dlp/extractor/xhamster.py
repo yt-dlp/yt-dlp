@@ -1,38 +1,113 @@
+import base64
+import codecs
 import itertools
 import re
+import string
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
     dict_get,
     extract_attributes,
-    ExtractorError,
     float_or_none,
     int_or_none,
+    join_nonempty,
     parse_duration,
     str_or_none,
+    try_call,
     try_get,
     unified_strdate,
     url_or_none,
-    urljoin,
 )
 
 
+def to_signed_32(n):
+    return n % ((-1 if n < 0 else 1) * 2**32)
+
+
+class _ByteGenerator:
+    def __init__(self, algo_id, seed):
+        try:
+            self._algorithm = getattr(self, f'_algo{algo_id}')
+        except AttributeError:
+            raise ExtractorError(f'Unknown algorithm ID: {algo_id}')
+        self._s = to_signed_32(seed)
+
+    def _algo1(self, s):
+        # LCG (a=1664525, c=1013904223, m=2^32)
+        # Ref: https://en.wikipedia.org/wiki/Linear_congruential_generator
+        s = self._s = to_signed_32(s * 1664525 + 1013904223)
+        return s
+
+    def _algo2(self, s):
+        # xorshift32
+        # Ref: https://en.wikipedia.org/wiki/Xorshift
+        s = to_signed_32(s ^ (s << 13))
+        s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 17))
+        s = self._s = to_signed_32(s ^ (s << 5))
+        return s
+
+    def _algo3(self, s):
+        # Weyl Sequence (k≈2^32*φ, m=2^32) + MurmurHash3 (fmix32)
+        # Ref: https://en.wikipedia.org/wiki/Weyl_sequence
+        # https://commons.apache.org/proper/commons-codec/jacoco/org.apache.commons.codec.digest/MurmurHash3.java.html
+        s = self._s = to_signed_32(s + 0x9e3779b9)
+        s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 16))
+        s = to_signed_32(s * to_signed_32(0x85ebca77))
+        s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 13))
+        s = to_signed_32(s * to_signed_32(0xc2b2ae3d))
+        return to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 16))
+
+    def _algo4(self, s):
+        # Custom scrambling function involving a left rotation (ROL)
+        s = self._s = to_signed_32(s + 0x6d2b79f5)
+        s = to_signed_32((s << 7) | ((s & 0xFFFFFFFF) >> 25))  # ROL 7
+        s = to_signed_32(s + 0x9e3779b9)
+        s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 11))
+        return to_signed_32(s * 0x27d4eb2d)
+
+    def _algo5(self, s):
+        # xorshift variant with a final addition
+        s = to_signed_32(s ^ (s << 7))
+        s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 9))
+        s = to_signed_32(s ^ (s << 8))
+        s = self._s = to_signed_32(s + 0xa5a5a5a5)
+        return s
+
+    def _algo6(self, s):
+        # LCG (a=0x2c9277b5, c=0xac564b05) with a variable right shift scrambler
+        s = self._s = to_signed_32(s * to_signed_32(0x2c9277b5) + to_signed_32(0xac564b05))
+        s2 = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 18))
+        shift = (s & 0xFFFFFFFF) >> 27 & 31
+        return to_signed_32((s2 & 0xFFFFFFFF) >> shift)
+
+    def _algo7(self, s):
+        # Weyl Sequence (k=0x9e3779b9) + custom multiply-xor-shift mixing function
+        s = self._s = to_signed_32(s + to_signed_32(0x9e3779b9))
+        e = to_signed_32(s ^ (s << 5))
+        e = to_signed_32(e * to_signed_32(0x7feb352d))
+        e = to_signed_32(e ^ ((e & 0xFFFFFFFF) >> 15))
+        return to_signed_32(e * to_signed_32(0x846ca68b))
+
+    def __next__(self):
+        return self._algorithm(self._s) & 0xFF
+
+
 class XHamsterIE(InfoExtractor):
-    _DOMAINS = r'(?:xhamster\.(?:com|one|desi)|xhms\.pro|xhamster\d+\.com|xhday\.com|xhvid\.com)'
-    _VALID_URL = r'''(?x)
+    _DOMAINS = r'(?:xhamster\.(?:com|one|desi)|xhms\.pro|xhamster\d+\.(?:com|desi)|xhday\.com|xhvid\.com)'
+    _VALID_URL = rf'''(?x)
                     https?://
-                        (?:[^/?#]+\.)?%s/
+                        (?:[^/?#]+\.)?{_DOMAINS}/
                         (?:
                             movies/(?P<id>[\dA-Za-z]+)/(?P<display_id>[^/]*)\.html|
                             videos/(?P<display_id_2>[^/]*)-(?P<id_2>[\dA-Za-z]+)
                         )
-                    ''' % _DOMAINS
+                    '''
     _TESTS = [{
         'url': 'https://xhamster.com/videos/femaleagent-shy-beauty-takes-the-bait-1509445',
-        'md5': '34e1ab926db5dc2750fed9e1f34304bb',
+        'md5': 'e009ea6b849b129e3bebaeb9cf0dee51',
         'info_dict': {
             'id': '1509445',
             'display_id': 'femaleagent-shy-beauty-takes-the-bait',
@@ -44,6 +119,11 @@ class XHamsterIE(InfoExtractor):
             'uploader_id': 'ruseful2011',
             'duration': 893,
             'age_limit': 18,
+            'thumbnail': r're:https?://.+\.jpg',
+            'uploader_url': 'https://xhamster.com/users/ruseful2011',
+            'description': '',
+            'view_count': int,
+            'comment_count': int,
         },
     }, {
         'url': 'https://xhamster.com/videos/britney-spears-sexy-booty-2221348?hd=',
@@ -57,9 +137,14 @@ class XHamsterIE(InfoExtractor):
             'uploader': 'jojo747400',
             'duration': 200,
             'age_limit': 18,
+            'description': '',
+            'view_count': int,
+            'thumbnail': r're:https?://.+\.jpg',
+            'comment_count': int,
         },
         'params': {
-            'skip_download': True,
+            'extractor_args': {'generic': {'impersonate': ['chrome']}},
+            'skip_download': 'm3u8',
         },
     }, {
         # empty seo, unavailable via new URL schema
@@ -74,10 +159,13 @@ class XHamsterIE(InfoExtractor):
             'uploader_id': 'parejafree',
             'duration': 72,
             'age_limit': 18,
+            'comment_count': int,
+            'uploader_url': 'https://xhamster.com/users/parejafree',
+            'description': '',
+            'view_count': int,
+            'thumbnail': r're:https?://.+\.jpg',
         },
-        'params': {
-            'skip_download': True,
-        },
+        'skip': 'Invalid URL',
     }, {
         # mobile site
         'url': 'https://m.xhamster.com/videos/cute-teen-jacqueline-solo-masturbation-8559111',
@@ -123,7 +211,47 @@ class XHamsterIE(InfoExtractor):
     }, {
         'url': 'https://xhvid.com/videos/lk-mm-xhc6wn6',
         'only_matching': True,
+    }, {
+        'url': 'https://xhamster20.desi/videos/my-verification-video-scottishmistress23-11937369',
+        'only_matching': True,
     }]
+
+    _XOR_KEY = b'xh7999'
+
+    def _decipher_format_url(self, format_url, format_id):
+        if all(char in string.hexdigits for char in format_url):
+            byte_data = bytes.fromhex(format_url)
+            seed = int.from_bytes(byte_data[1:5], byteorder='little', signed=True)
+            byte_gen = _ByteGenerator(byte_data[0], seed)
+            return bytearray(byte ^ next(byte_gen) for byte in byte_data[5:]).decode('latin-1')
+
+        cipher_type, _, ciphertext = try_call(
+            lambda: base64.b64decode(format_url).decode().partition('_')) or [None] * 3
+
+        if not cipher_type or not ciphertext:
+            self.report_warning(f'Skipping format "{format_id}": failed to decipher URL')
+            return None
+
+        if cipher_type == 'xor':
+            return bytes(
+                a ^ b for a, b in
+                zip(ciphertext.encode(), itertools.cycle(self._XOR_KEY))).decode()
+
+        if cipher_type == 'rot13':
+            return codecs.decode(ciphertext, cipher_type)
+
+        self.report_warning(f'Skipping format "{format_id}": unsupported cipher type "{cipher_type}"')
+        return None
+
+    def _fixup_formats(self, formats):
+        for f in formats:
+            if f.get('vcodec'):
+                continue
+            for vcodec in ('av1', 'h264'):
+                if any(f'.{vcodec}.' in f_url for f_url in (f['url'], f.get('manifest_url', ''))):
+                    f['vcodec'] = vcodec
+                    break
+        return formats
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -177,7 +305,7 @@ class XHamsterIE(InfoExtractor):
                         continue
                     format_urls.add(format_url)
                     formats.append({
-                        'format_id': '%s-%s' % (format_id, quality),
+                        'format_id': f'{format_id}-{quality}',
                         'url': format_url,
                         'ext': determine_ext(format_url, 'mp4'),
                         'height': get_height(quality),
@@ -195,7 +323,7 @@ class XHamsterIE(InfoExtractor):
                         hls_url = hls_sources.get(hls_format_key)
                         if not hls_url:
                             continue
-                        hls_url = urljoin(url, hls_url)
+                        hls_url = self._decipher_format_url(hls_url, f'hls-{hls_format_key}')
                         if not hls_url or hls_url in format_urls:
                             continue
                         format_urls.add(hls_url)
@@ -204,7 +332,7 @@ class XHamsterIE(InfoExtractor):
                             m3u8_id='hls', fatal=False))
                 standard_sources = xplayer_sources.get('standard')
                 if isinstance(standard_sources, dict):
-                    for format_id, formats_list in standard_sources.items():
+                    for identifier, formats_list in standard_sources.items():
                         if not isinstance(formats_list, list):
                             continue
                         for standard_format in formats_list:
@@ -214,7 +342,11 @@ class XHamsterIE(InfoExtractor):
                                 standard_url = standard_format.get(standard_format_key)
                                 if not standard_url:
                                     continue
-                                standard_url = urljoin(url, standard_url)
+                                quality = (str_or_none(standard_format.get('quality'))
+                                           or str_or_none(standard_format.get('label'))
+                                           or '')
+                                format_id = join_nonempty(identifier, quality)
+                                standard_url = self._decipher_format_url(standard_url, format_id)
                                 if not standard_url or standard_url in format_urls:
                                     continue
                                 format_urls.add(standard_url)
@@ -224,11 +356,9 @@ class XHamsterIE(InfoExtractor):
                                         standard_url, video_id, 'mp4', entry_protocol='m3u8_native',
                                         m3u8_id='hls', fatal=False))
                                     continue
-                                quality = (str_or_none(standard_format.get('quality'))
-                                           or str_or_none(standard_format.get('label'))
-                                           or '')
+
                                 formats.append({
-                                    'format_id': '%s-%s' % (format_id, quality),
+                                    'format_id': format_id,
                                     'url': standard_url,
                                     'ext': ext,
                                     'height': get_height(quality),
@@ -245,7 +375,7 @@ class XHamsterIE(InfoExtractor):
                     if not isinstance(c, dict):
                         continue
                     c_name = c.get('name')
-                    if isinstance(c_name, compat_str):
+                    if isinstance(c_name, str):
                         categories.append(c_name)
             else:
                 categories = None
@@ -258,7 +388,7 @@ class XHamsterIE(InfoExtractor):
                 'description': video.get('description'),
                 'timestamp': int_or_none(video.get('created')),
                 'uploader': try_get(
-                    video, lambda x: x['author']['name'], compat_str),
+                    video, lambda x: x['author']['name'], str),
                 'uploader_url': uploader_url,
                 'uploader_id': uploader_url.split('/')[-1] if uploader_url else None,
                 'thumbnail': video.get('thumbURL'),
@@ -268,10 +398,11 @@ class XHamsterIE(InfoExtractor):
                     video, lambda x: x['rating']['likes'], int)),
                 'dislike_count': int_or_none(try_get(
                     video, lambda x: x['rating']['dislikes'], int)),
-                'comment_count': int_or_none(video.get('views')),
+                'comment_count': int_or_none(video.get('comments')),
                 'age_limit': age_limit if age_limit is not None else 18,
                 'categories': categories,
-                'formats': formats,
+                'formats': self._fixup_formats(formats),
+                '_format_sort_fields': ('res', 'proto', 'tbr'),
             }
 
         # Old layout fallback
@@ -372,21 +503,50 @@ class XHamsterIE(InfoExtractor):
 
 
 class XHamsterEmbedIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/?#]+\.)?%s/xembed\.php\?video=(?P<id>\d+)' % XHamsterIE._DOMAINS
+    _VALID_URL = rf'https?://(?:[^/?#]+\.)?{XHamsterIE._DOMAINS}/xembed\.php\?video=(?P<id>\d+)'
     _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?xhamster\.com/xembed\.php\?video=\d+)\1']
-    _TEST = {
+    _TESTS = [{
         'url': 'http://xhamster.com/xembed.php?video=3328539',
         'info_dict': {
             'id': '3328539',
             'ext': 'mp4',
             'title': 'Pen Masturbation',
+            'comment_count': int,
+            'description': '',
+            'display_id': 'pen-masturbation',
             'timestamp': 1406581861,
             'upload_date': '20140728',
             'uploader': 'ManyakisArt',
             'duration': 5,
             'age_limit': 18,
-        }
-    }
+            'thumbnail': r're:https?://.+\.jpg',
+            'uploader_id': 'manyakisart',
+            'uploader_url': 'https://xhamster.com/users/manyakisart',
+            'view_count': int,
+        },
+    }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
+        'url': 'https://xhamster.com/awards/2023',
+        'info_dict': {
+            'id': 'xh2VnYn',
+            'ext': 'mp4',
+            'title': 'xHamster Awards 2023 - The Winners',
+            'age_limit': 18,
+            'comment_count': int,
+            'description': '',
+            'display_id': 'xhamster-awards-2023-the-winners',
+            'duration': 292,
+            'thumbnail': r're:https?://ic-vt-nss\.xhcdn\.com/.+',
+            'timestamp': 1700122082,
+            'upload_date': '20231116',
+            'uploader': 'xHamster',
+            'uploader_id': 'xhamster',
+            'uploader_url': 'https://xhamster.com/users/xhamster',
+            'view_count': int,
+        },
+        'params': {'skip_download': 'm3u8'},
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -394,14 +554,14 @@ class XHamsterEmbedIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         video_url = self._search_regex(
-            r'href="(https?://xhamster\.com/(?:movies/{0}/[^"]*\.html|videos/[^/]*-{0})[^"]*)"'.format(video_id),
+            rf'href="(https?://xhamster\.com/(?:movies/{video_id}/[^"]*\.html|videos/[^/]*-{video_id})[^"]*)"',
             webpage, 'xhamster url', default=None)
 
         if not video_url:
-            vars = self._parse_json(
+            player_vars = self._parse_json(
                 self._search_regex(r'vars\s*:\s*({.+?})\s*,\s*\n', webpage, 'vars'),
                 video_id)
-            video_url = dict_get(vars, ('downloadLink', 'homepageLink', 'commentsLink', 'shareUrl'))
+            video_url = dict_get(player_vars, ('downloadLink', 'homepageLink', 'commentsLink', 'shareUrl'))
 
         return self.url_result(video_url, 'XHamster')
 
@@ -421,13 +581,13 @@ class XHamsterUserIE(InfoExtractor):
         'info_dict': {
             'id': 'firatkaan',
         },
-        'playlist_mincount': 1,
+        'playlist_mincount': 0,
     }, {
         'url': 'https://xhamster.com/creators/squirt-orgasm-69',
         'info_dict': {
             'id': 'squirt-orgasm-69',
         },
-        'playlist_mincount': 150,
+        'playlist_mincount': 46,
     }, {
         'url': 'https://xhday.com/users/mobhunter',
         'only_matching': True,
@@ -441,7 +601,7 @@ class XHamsterUserIE(InfoExtractor):
         next_page_url = f'https://xhamster.com/{prefix}/{user_id}/{suffix}/1'
         for pagenum in itertools.count(1):
             page = self._download_webpage(
-                next_page_url, user_id, 'Downloading page %s' % pagenum)
+                next_page_url, user_id, f'Downloading page {pagenum}')
             for video_tag in re.findall(
                     r'(<a[^>]+class=["\'].*?\bvideo-thumb__image-container[^>]+>)',
                     page):

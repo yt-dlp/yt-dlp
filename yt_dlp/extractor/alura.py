@@ -1,17 +1,13 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-
-from ..compat import (
-    compat_urlparse,
-)
-
 from ..utils import (
+    ExtractorError,
+    clean_html,
+    int_or_none,
     urlencode_postdata,
     urljoin,
-    int_or_none,
-    clean_html,
-    ExtractorError
 )
 
 
@@ -25,7 +21,7 @@ class AluraIE(InfoExtractor):
         'info_dict': {
             'id': '60095',
             'ext': 'mp4',
-            'title': 'Referências, ref-set e alter'
+            'title': 'Referências, ref-set e alter',
         },
         'skip': 'Requires alura account credentials'},
         {
@@ -34,12 +30,12 @@ class AluraIE(InfoExtractor):
             'only_matching': True},
         {
             'url': 'https://cursos.alura.com.br/course/fundamentos-market-digital/task/55219',
-            'only_matching': True}
+            'only_matching': True},
     ]
 
     def _real_extract(self, url):
 
-        course, video_id = self._match_valid_url(url)
+        course, video_id = self._match_valid_url(url).group('course_name', 'id')
         video_url = self._VIDEO_URL % (course, video_id)
 
         video_dict = self._download_json(video_url, video_id, 'Searching for videos')
@@ -52,7 +48,7 @@ class AluraIE(InfoExtractor):
 
             formats = []
             for video_obj in video_dict:
-                video_url_m3u8 = video_obj.get('link')
+                video_url_m3u8 = video_obj.get('mp4')
                 video_format = self._extract_m3u8_formats(
                     video_url_m3u8, None, 'mp4', entry_protocol='m3u8_native',
                     m3u8_id='hls', fatal=False)
@@ -66,7 +62,7 @@ class AluraIE(InfoExtractor):
             return {
                 'id': video_id,
                 'title': video_title,
-                "formats": formats
+                'formats': formats,
             }
 
     def _perform_login(self, username, password):
@@ -95,7 +91,7 @@ class AluraIE(InfoExtractor):
             'post url', default=self._LOGIN_URL, group='url')
 
         if not post_url.startswith('http'):
-            post_url = compat_urlparse.urljoin(self._LOGIN_URL, post_url)
+            post_url = urllib.parse.urljoin(self._LOGIN_URL, post_url)
 
         response = self._download_webpage(
             post_url, None, 'Logging in',
@@ -107,7 +103,7 @@ class AluraIE(InfoExtractor):
                 r'(?s)<p[^>]+class="alert-message[^"]*">(.+?)</p>',
                 response, 'error message', default=None)
             if error:
-                raise ExtractorError('Unable to login: %s' % error, expected=True)
+                raise ExtractorError(f'Unable to login: {error}', expected=True)
             raise ExtractorError('Unable to log in')
 
 
@@ -123,7 +119,7 @@ class AluraCourseIE(AluraIE):  # XXX: Do not subclass from concrete IE
 
     @classmethod
     def suitable(cls, url):
-        return False if AluraIE.suitable(url) else super(AluraCourseIE, cls).suitable(url)
+        return False if AluraIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
 
@@ -161,7 +157,7 @@ class AluraCourseIE(AluraIE):  # XXX: Do not subclass from concrete IE
                         'url': video_url,
                         'id_key': self.ie_key(),
                         'chapter': chapter,
-                        'chapter_number': chapter_number
+                        'chapter_number': chapter_number,
                     }
                     entries.append(entry)
         return self.playlist_result(entries, course_path, course_title)

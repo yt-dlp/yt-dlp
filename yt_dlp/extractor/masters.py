@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..utils import (
     traverse_obj,
@@ -16,7 +15,7 @@ class MastersIE(InfoExtractor):
             'title': 'Sungjae Im: Thursday Interview 2022',
             'upload_date': '20220407',
             'thumbnail': r're:^https?://.*\.jpg$',
-        }
+        },
     }]
 
     def _real_extract(self, url):

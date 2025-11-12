@@ -4,8 +4,8 @@ from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     determine_protocol,
-    parse_duration,
     int_or_none,
+    parse_duration,
 )
 
 
@@ -25,7 +25,7 @@ class Lecture2GoIE(InfoExtractor):
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }
 
     def _real_extract(self, url):

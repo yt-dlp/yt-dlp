@@ -36,6 +36,18 @@ class InfoExtractorTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.end_headers()
             self.wfile.write(TEAPOT_RESPONSE_BODY.encode())
+        elif self.path == '/fake.m3u8':
+            self.send_response(200)
+            self.send_header('Content-Length', '1024')
+            self.end_headers()
+            self.wfile.write(1024 * b'\x00')
+        elif self.path == '/bipbop.m3u8':
+            with open('test/testdata/m3u8/bipbop_16x9.m3u8', 'rb') as f:
+                data = f.read()
+            self.send_response(200)
+            self.send_header('Content-Length', str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
         else:
             assert False
 
@@ -52,6 +64,18 @@ class TestInfoExtractor(unittest.TestCase):
 
     def test_ie_key(self):
         self.assertEqual(get_info_extractor(YoutubeIE.ie_key()), YoutubeIE)
+
+    def test_get_netrc_login_info(self):
+        for params in [
+            {'usenetrc': True, 'netrc_location': './test/testdata/netrc/netrc'},
+            {'netrc_cmd': f'{sys.executable} ./test/testdata/netrc/print_netrc.py'},
+        ]:
+            ie = DummyIE(FakeYDL(params))
+            self.assertEqual(ie._get_netrc_login_info(netrc_machine='normal_use'), ('user', 'pass'))
+            self.assertEqual(ie._get_netrc_login_info(netrc_machine='empty_user'), ('', 'pass'))
+            self.assertEqual(ie._get_netrc_login_info(netrc_machine='empty_pass'), ('user', ''))
+            self.assertEqual(ie._get_netrc_login_info(netrc_machine='both_empty'), ('', ''))
+            self.assertEqual(ie._get_netrc_login_info(netrc_machine='nonexistent'), (None, None))
 
     def test_html_search_regex(self):
         html = '<p id="foo">Watch this <a href="http://www.youtube.com/watch?v=BaW_jenozKc">video</a></p>'
@@ -262,19 +286,19 @@ class TestInfoExtractor(unittest.TestCase):
                 ''',
                 {
                     'chapters': [
-                        {"title": "Explosie Turnhout", "start_time": 70, "end_time": 440},
-                        {"title": "Jaarwisseling", "start_time": 440, "end_time": 1179},
-                        {"title": "Natuurbranden Colorado", "start_time": 1179, "end_time": 1263},
-                        {"title": "Klimaatverandering", "start_time": 1263, "end_time": 1367},
-                        {"title": "Zacht weer", "start_time": 1367, "end_time": 1383},
-                        {"title": "Financiële balans", "start_time": 1383, "end_time": 1484},
-                        {"title": "Club Brugge", "start_time": 1484, "end_time": 1575},
-                        {"title": "Mentale gezondheid bij topsporters", "start_time": 1575, "end_time": 1728},
-                        {"title": "Olympische Winterspelen", "start_time": 1728, "end_time": 1873},
-                        {"title": "Sober oudjaar in Nederland", "start_time": 1873, "end_time": 2079.23}
+                        {'title': 'Explosie Turnhout', 'start_time': 70, 'end_time': 440},
+                        {'title': 'Jaarwisseling', 'start_time': 440, 'end_time': 1179},
+                        {'title': 'Natuurbranden Colorado', 'start_time': 1179, 'end_time': 1263},
+                        {'title': 'Klimaatverandering', 'start_time': 1263, 'end_time': 1367},
+                        {'title': 'Zacht weer', 'start_time': 1367, 'end_time': 1383},
+                        {'title': 'Financiële balans', 'start_time': 1383, 'end_time': 1484},
+                        {'title': 'Club Brugge', 'start_time': 1484, 'end_time': 1575},
+                        {'title': 'Mentale gezondheid bij topsporters', 'start_time': 1575, 'end_time': 1728},
+                        {'title': 'Olympische Winterspelen', 'start_time': 1728, 'end_time': 1873},
+                        {'title': 'Sober oudjaar in Nederland', 'start_time': 1873, 'end_time': 2079.23},
                     ],
-                    'title': 'Het journaal - Aflevering 365 (Seizoen 2021)'
-                }, {}
+                    'title': 'Het journaal - Aflevering 365 (Seizoen 2021)',
+                }, {},
             ),
             (
                 # test multiple thumbnails in a list
@@ -301,13 +325,27 @@ class TestInfoExtractor(unittest.TestCase):
                     'thumbnails': [{'url': 'https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg'}],
                 },
                 {},
-            )
+            ),
+            (
+                # test thumbnail_url key without URL scheme
+                r'''
+<script type="application/ld+json">
+{
+"@context": "https://schema.org",
+"@type": "VideoObject",
+"thumbnail_url": "//www.nobelprize.org/images/12693-landscape-medium-gallery.jpg"
+}</script>''',
+                {
+                    'thumbnails': [{'url': 'https://www.nobelprize.org/images/12693-landscape-medium-gallery.jpg'}],
+                },
+                {},
+            ),
         ]
         for html, expected_dict, search_json_ld_kwargs in _TESTS:
             expect_dict(
                 self,
                 self.ie._search_json_ld(html, None, **search_json_ld_kwargs),
-                expected_dict
+                expected_dict,
             )
 
     def test_download_json(self):
@@ -366,7 +404,7 @@ class TestInfoExtractor(unittest.TestCase):
                     'height': 740,
                     'tbr': 1500,
                 }],
-                'thumbnail': '//pics.r18.com/digital/amateur/mgmr105/mgmr105jp.jpg'
+                'thumbnail': '//pics.r18.com/digital/amateur/mgmr105/mgmr105jp.jpg',
             })
 
         # from https://www.csfd.cz/
@@ -419,9 +457,9 @@ class TestInfoExtractor(unittest.TestCase):
                     'height': 1080,
                 }],
                 'subtitles': {
-                    'cs': [{'url': 'https://video.csfd.cz/files/subtitles/163/344/163344115_4c388b.srt'}]
+                    'cs': [{'url': 'https://video.csfd.cz/files/subtitles/163/344/163344115_4c388b.srt'}],
                 },
-                'thumbnail': 'https://img.csfd.cz/files/images/film/video/preview/163/344/163344118_748d20.png?h360'
+                'thumbnail': 'https://img.csfd.cz/files/images/film/video/preview/163/344/163344118_748d20.png?h360',
             })
 
         # from https://tamasha.com/v/Kkdjw
@@ -452,7 +490,7 @@ class TestInfoExtractor(unittest.TestCase):
                     'ext': 'mp4',
                     'format_id': '144p',
                     'height': 144,
-                }]
+                }],
             })
 
         # from https://www.directvnow.com
@@ -470,7 +508,7 @@ class TestInfoExtractor(unittest.TestCase):
                 'formats': [{
                     'ext': 'mp4',
                     'url': 'https://cdn.directv.com/content/dam/dtv/prod/website_directvnow-international/videos/DTVN_hdr_HBO_v3.mp4',
-                }]
+                }],
             })
 
         # from https://www.directvnow.com
@@ -488,7 +526,7 @@ class TestInfoExtractor(unittest.TestCase):
                 'formats': [{
                     'url': 'https://cdn.directv.com/content/dam/dtv/prod/website_directvnow-international/videos/DTVN_hdr_HBO_v3.mp4',
                     'ext': 'mp4',
-                }]
+                }],
             })
 
         # from https://www.klarna.com/uk/
@@ -547,8 +585,8 @@ class TestInfoExtractor(unittest.TestCase):
                 'id': 'XEgvuql4',
                 'formats': [{
                     'url': 'rtmp://192.138.214.154/live/sjclive',
-                    'ext': 'flv'
-                }]
+                    'ext': 'flv',
+                }],
             })
 
         # from https://www.pornoxo.com/videos/7564/striptease-from-sexy-secretary/
@@ -588,8 +626,8 @@ class TestInfoExtractor(unittest.TestCase):
                 'thumbnail': 'https://t03.vipstreamservice.com/thumbs/pxo-full/2009-12/14/a4b2157147afe5efa93ce1978e0265289c193874e02597.flv-full-13.jpg',
                 'formats': [{
                     'url': 'https://cdn.pornoxo.com/key=MF+oEbaxqTKb50P-w9G3nA,end=1489689259,ip=104.199.146.27/ip=104.199.146.27/speed=6573765/buffer=3.0/2009-12/4b2157147afe5efa93ce1978e0265289c193874e02597.flv',
-                    'ext': 'flv'
-                }]
+                    'ext': 'flv',
+                }],
             })
 
         # from http://www.indiedb.com/games/king-machine/videos
@@ -610,12 +648,12 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                 'formats': [{
                     'url': 'http://cdn.dbolical.com/cache/videos/games/1/50/49678/encode_mp4/king-machine-trailer.mp4',
                     'height': 360,
-                    'ext': 'mp4'
+                    'ext': 'mp4',
                 }, {
                     'url': 'http://cdn.dbolical.com/cache/videos/games/1/50/49678/encode720p_mp4/king-machine-trailer.mp4',
                     'height': 720,
-                    'ext': 'mp4'
-                }]
+                    'ext': 'mp4',
+                }],
             })
 
     def test_parse_m3u8_formats(self):
@@ -626,6 +664,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                 'img_bipbop_adv_example_fmp4',
                 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
                 [{
+                    # 60kbps (bitrate not provided in m3u8); sorted as worst because it's grouped with lowest bitrate video track
                     'format_id': 'aud1-English',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a1/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -633,15 +672,9 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'ext': 'mp4',
                     'protocol': 'm3u8_native',
                     'audio_ext': 'mp4',
+                    'source_preference': 0,
                 }, {
-                    'format_id': 'aud2-English',
-                    'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a2/prog_index.m3u8',
-                    'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
-                    'language': 'en',
-                    'ext': 'mp4',
-                    'protocol': 'm3u8_native',
-                    'audio_ext': 'mp4',
-                }, {
+                    # 192kbps (bitrate not provided in m3u8)
                     'format_id': 'aud3-English',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a3/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -649,6 +682,17 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'ext': 'mp4',
                     'protocol': 'm3u8_native',
                     'audio_ext': 'mp4',
+                    'source_preference': 1,
+                }, {
+                    # 384kbps (bitrate not provided in m3u8); sorted as best because it's grouped with the highest bitrate video track
+                    'format_id': 'aud2-English',
+                    'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a2/prog_index.m3u8',
+                    'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
+                    'language': 'en',
+                    'ext': 'mp4',
+                    'protocol': 'm3u8_native',
+                    'audio_ext': 'mp4',
+                    'source_preference': 2,
                 }, {
                     'format_id': '530',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/prog_index.m3u8',
@@ -866,7 +910,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'height': 1080,
                     'vcodec': 'avc1.64002a',
                 }],
-                {}
+                {},
             ),
             (
                 'bipbop_16x9',
@@ -990,45 +1034,45 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'en': [{
                         'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/subtitles/eng/prog_index.m3u8',
                         'ext': 'vtt',
-                        'protocol': 'm3u8_native'
+                        'protocol': 'm3u8_native',
                     }, {
                         'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/subtitles/eng_forced/prog_index.m3u8',
                         'ext': 'vtt',
-                        'protocol': 'm3u8_native'
+                        'protocol': 'm3u8_native',
                     }],
                     'fr': [{
                         'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/subtitles/fra/prog_index.m3u8',
                         'ext': 'vtt',
-                        'protocol': 'm3u8_native'
+                        'protocol': 'm3u8_native',
                     }, {
                         'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/subtitles/fra_forced/prog_index.m3u8',
                         'ext': 'vtt',
-                        'protocol': 'm3u8_native'
+                        'protocol': 'm3u8_native',
                     }],
                     'es': [{
                         'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/subtitles/spa/prog_index.m3u8',
                         'ext': 'vtt',
-                        'protocol': 'm3u8_native'
+                        'protocol': 'm3u8_native',
                     }, {
                         'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/subtitles/spa_forced/prog_index.m3u8',
                         'ext': 'vtt',
-                        'protocol': 'm3u8_native'
+                        'protocol': 'm3u8_native',
                     }],
                     'ja': [{
                         'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/subtitles/jpn/prog_index.m3u8',
                         'ext': 'vtt',
-                        'protocol': 'm3u8_native'
+                        'protocol': 'm3u8_native',
                     }, {
                         'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/subtitles/jpn_forced/prog_index.m3u8',
                         'ext': 'vtt',
-                        'protocol': 'm3u8_native'
+                        'protocol': 'm3u8_native',
                     }],
-                }
+                },
             ),
         ]
 
         for m3u8_file, m3u8_url, expected_formats, expected_subs in _TEST_CASES:
-            with open('./test/testdata/m3u8/%s.m3u8' % m3u8_file, encoding='utf-8') as f:
+            with open(f'./test/testdata/m3u8/{m3u8_file}.m3u8', encoding='utf-8') as f:
                 formats, subs = self.ie._parse_m3u8_formats_and_subtitles(
                     f.read(), m3u8_url, ext='mp4')
                 self.ie._sort_formats(formats)
@@ -1366,14 +1410,14 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                             'url': 'https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/manifest.mpd',
                             'fragment_base_url': 'https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/dash/',
                             'protocol': 'http_dash_segments',
-                        }
-                    ]
+                        },
+                    ],
                 },
-            )
+            ),
         ]
 
         for mpd_file, mpd_url, mpd_base_url, expected_formats, expected_subtitles in _TEST_CASES:
-            with open('./test/testdata/mpd/%s.mpd' % mpd_file, encoding='utf-8') as f:
+            with open(f'./test/testdata/mpd/{mpd_file}.mpd', encoding='utf-8') as f:
                 formats, subtitles = self.ie._parse_mpd_formats_and_subtitles(
                     compat_etree_fromstring(f.read().encode()),
                     mpd_base_url=mpd_base_url, mpd_url=mpd_url)
@@ -1408,7 +1452,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'sampling_rate': 48000,
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video-100',
@@ -1431,7 +1475,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D401FDA0544EFFC2D002CBC40000003004000000C03C60CA80000000168EF32C8',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video-326',
@@ -1454,7 +1498,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D401FDA0241FE23FFC3BC83BA44000003000400000300C03C60CA800000000168EF32C8',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video-698',
@@ -1477,7 +1521,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D401FDA0350BFB97FF06AF06AD1000003000100000300300F1832A00000000168EF32C8',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video-1493',
@@ -1500,7 +1544,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D401FDA011C3DE6FFF0D890D871000003000100000300300F1832A00000000168EF32C8',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video-4482',
@@ -1523,7 +1567,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D401FDA01A816F97FFC1ABC1AB440000003004000000C03C60CA80000000168EF32C8',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }],
                 {
@@ -1538,10 +1582,10 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                                 'duration': 8880746666,
                                 'timescale': 10000000,
                                 'fourcc': 'TTML',
-                                'codec_private_data': ''
-                            }
-                        }
-                    ]
+                                'codec_private_data': '',
+                            },
+                        },
+                    ],
                 },
             ),
             (
@@ -1571,7 +1615,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'sampling_rate': 48000,
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'audio_deu_1-224',
@@ -1597,7 +1641,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'sampling_rate': 48000,
                         'channels': 6,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video_deu-23',
@@ -1622,7 +1666,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '000000016742C00CDB06077E5C05A808080A00000300020000030009C0C02EE0177CC6300F142AE00000000168CA8DC8',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video_deu-403',
@@ -1647,7 +1691,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D4014E98323B602D4040405000003000100000300320F1429380000000168EAECF2',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video_deu-680',
@@ -1672,7 +1716,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D401EE981405FF2E02D4040405000000300100000030320F162D3800000000168EAECF2',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video_deu-1253',
@@ -1698,7 +1742,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D401EE981405FF2E02D4040405000000300100000030320F162D3800000000168EAECF2',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video_deu-2121',
@@ -1723,7 +1767,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D401EECA0601BD80B50101014000003000400000300C83C58B6580000000168E93B3C80',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video_deu-3275',
@@ -1748,7 +1792,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D4020ECA02802DD80B501010140000003004000000C83C60C65800000000168E93B3C80',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video_deu-5300',
@@ -1773,7 +1817,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D4028ECA03C0113F2E02D4040405000000300100000030320F18319600000000168E93B3C80',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }, {
                     'format_id': 'video_deu-8079',
@@ -1798,7 +1842,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'codec_private_data': '00000001674D4028ECA03C0113F2E02D4040405000000300100000030320F18319600000000168E93B3C80',
                         'channels': 2,
                         'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
+                        'nal_unit_length_field': 4,
                     },
                 }],
                 {},
@@ -1806,7 +1850,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         ]
 
         for ism_file, ism_url, expected_formats, expected_subtitles in _TEST_CASES:
-            with open('./test/testdata/ism/%s.Manifest' % ism_file, encoding='utf-8') as f:
+            with open(f'./test/testdata/ism/{ism_file}.Manifest', encoding='utf-8') as f:
                 formats, subtitles = self.ie._parse_ism_formats_and_subtitles(
                     compat_etree_fromstring(f.read().encode()), ism_url=ism_url)
                 self.ie._sort_formats(formats)
@@ -1827,12 +1871,12 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'tbr': 2148,
                     'width': 1280,
                     'height': 720,
-                }]
+                }],
             ),
         ]
 
         for f4m_file, f4m_url, expected_formats in _TEST_CASES:
-            with open('./test/testdata/f4m/%s.f4m' % f4m_file, encoding='utf-8') as f:
+            with open(f'./test/testdata/f4m/{f4m_file}.f4m', encoding='utf-8') as f:
                 formats = self.ie._parse_f4m_formats(
                     compat_etree_fromstring(f.read().encode()),
                     f4m_url, None)
@@ -1873,13 +1917,13 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     }, {
                         'manifest_url': 'https://example.org/src/foo_xspf.xspf',
                         'url': 'https://example.com/track3.mp3',
-                    }]
-                }]
+                    }],
+                }],
             ),
         ]
 
         for xspf_file, xspf_url, expected_entries in _TEST_CASES:
-            with open('./test/testdata/xspf/%s.xspf' % xspf_file, encoding='utf-8') as f:
+            with open(f'./test/testdata/xspf/{xspf_file}.xspf', encoding='utf-8') as f:
                 entries = self.ie._parse_xspf(
                     compat_etree_fromstring(f.read().encode()),
                     xspf_file, xspf_url=xspf_url, xspf_base_url=xspf_url)
@@ -1901,10 +1945,221 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         server_thread.daemon = True
         server_thread.start()
 
-        (content, urlh) = self.ie._download_webpage_handle(
-            'http://127.0.0.1:%d/teapot' % port, None,
+        content, _ = self.ie._download_webpage_handle(
+            f'http://127.0.0.1:{port}/teapot', None,
             expected_status=TEAPOT_RESPONSE_STATUS)
         self.assertEqual(content, TEAPOT_RESPONSE_BODY)
+
+    def test_search_nextjs_data(self):
+        data = '<script id="__NEXT_DATA__" type="application/json">{"props":{}}</script>'
+        self.assertEqual(self.ie._search_nextjs_data(data, None), {'props': {}})
+        self.assertEqual(self.ie._search_nextjs_data('', None, fatal=False), {})
+        self.assertEqual(self.ie._search_nextjs_data('', None, default=None), None)
+        self.assertEqual(self.ie._search_nextjs_data('', None, default={}), {})
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(self.ie._search_nextjs_data('', None, default='{}'), {})
+
+    def test_search_nextjs_v13_data(self):
+        HTML = R'''
+            <script>(self.__next_f=self.__next_f||[]).push([0])</script>
+            <script>self.__next_f.push([2,"0:[\"$\",\"$L0\",null,{\"do_not_add_this\":\"fail\"}]\n"])</script>
+            <script>self.__next_f.push([1,"1:I[46975,[],\"HTTPAccessFallbackBoundary\"]\n2:I[32630,[\"8183\",\"static/chunks/8183-768193f6a9e33cdd.js\"]]\n"])</script>
+            <script nonce="abc123">self.__next_f.push([1,"e:[false,[\"$\",\"div\",null,{\"children\":[\"$\",\"$L18\",null,{\"foo\":\"bar\"}]}],false]\n    "])</script>
+            <script>self.__next_f.push([1,"2a:[[\"$\",\"div\",null,{\"className\":\"flex flex-col\",\"children\":[]}],[\"$\",\"$L16\",null,{\"meta\":{\"dateCreated\":1730489700,\"uuid\":\"40cac41d-8d29-4ef5-aa11-75047b9f0907\"}}]]\n"])</script>
+            <script>self.__next_f.push([1,"df:[\"$undefined\",[\"$\",\"div\",null,{\"children\":[\"$\",\"$L17\",null,{}],\"do_not_include_this_field\":\"fail\"}],[\"$\",\"div\",null,{\"children\":[[\"$\",\"$L19\",null,{\"duplicated_field_name\":{\"x\":1}}],[\"$\",\"$L20\",null,{\"duplicated_field_name\":{\"y\":2}}]]}],\"$undefined\"]\n"])</script>
+            <script>self.__next_f.push([3,"MzM6WyIkIiwiJEwzMiIsbnVsbCx7ImRlY29kZWQiOiJzdWNjZXNzIn1d"])</script>
+            '''
+        EXPECTED = {
+            '18': {
+                'foo': 'bar',
+            },
+            '16': {
+                'meta': {
+                    'dateCreated': 1730489700,
+                    'uuid': '40cac41d-8d29-4ef5-aa11-75047b9f0907',
+                },
+            },
+            '19': {
+                'duplicated_field_name': {'x': 1},
+            },
+            '20': {
+                'duplicated_field_name': {'y': 2},
+            },
+        }
+        self.assertEqual(self.ie._search_nextjs_v13_data(HTML, None), EXPECTED)
+        self.assertEqual(self.ie._search_nextjs_v13_data('', None, fatal=False), {})
+        self.assertEqual(self.ie._search_nextjs_v13_data(None, None, fatal=False), {})
+
+    def test_search_nuxt_json(self):
+        HTML_TMPL = '<script data-ssr="true" id="__NUXT_DATA__" type="application/json">[{}]</script>'
+        VALID_DATA = '''
+            ["ShallowReactive",1],
+            {"data":2,"state":21,"once":25,"_errors":28,"_server_errors":30},
+            ["ShallowReactive",3],
+            {"$abcdef123456":4},
+            {"podcast":5,"activeEpisodeData":7},
+            {"podcast":6,"seasons":14},
+            {"title":10,"id":11},
+            ["Reactive",8],
+            {"episode":9,"creators":18,"empty_list":20},
+            {"title":12,"id":13,"refs":34,"empty_refs":35},
+            "Series Title",
+            "podcast-id-01",
+            "Episode Title",
+            "episode-id-99",
+            [15,16,17],
+            1,
+            2,
+            3,
+            [19],
+            "Podcast Creator",
+            [],
+            {"$ssite-config":22},
+            {"env":23,"name":24,"map":26,"numbers":14},
+            "production",
+            "podcast-website",
+            ["Set"],
+            ["Reactive",27],
+            ["Map"],
+            ["ShallowReactive",29],
+            {},
+            ["NuxtError",31],
+            {"status":32,"message":33},
+            503,
+            "Service Unavailable",
+            [36,37],
+            [38,39],
+            ["Ref",40],
+            ["ShallowRef",41],
+            ["EmptyRef",42],
+            ["EmptyShallowRef",43],
+            "ref",
+            "shallow_ref",
+            "{\\"ref\\":1}",
+            "{\\"shallow_ref\\":2}"
+        '''
+        PAYLOAD = {
+            'data': {
+                '$abcdef123456': {
+                    'podcast': {
+                        'podcast': {
+                            'title': 'Series Title',
+                            'id': 'podcast-id-01',
+                        },
+                        'seasons': [1, 2, 3],
+                    },
+                    'activeEpisodeData': {
+                        'episode': {
+                            'title': 'Episode Title',
+                            'id': 'episode-id-99',
+                            'refs': ['ref', 'shallow_ref'],
+                            'empty_refs': [{'ref': 1}, {'shallow_ref': 2}],
+                        },
+                        'creators': ['Podcast Creator'],
+                        'empty_list': [],
+                    },
+                },
+            },
+            'state': {
+                '$ssite-config': {
+                    'env': 'production',
+                    'name': 'podcast-website',
+                    'map': [],
+                    'numbers': [1, 2, 3],
+                },
+            },
+            'once': [],
+            '_errors': {},
+            '_server_errors': {
+                'status': 503,
+                'message': 'Service Unavailable',
+            },
+        }
+        PARTIALLY_INVALID = [(
+            '''
+            {"data":1},
+            {"invalid_raw_list":2},
+            [15,16,17]
+            ''',
+            {'data': {'invalid_raw_list': [None, None, None]}},
+        ), (
+            '''
+            {"data":1},
+            ["EmptyRef",2],
+            "not valid JSON"
+            ''',
+            {'data': None},
+        ), (
+            '''
+            {"data":1},
+            ["EmptyShallowRef",2],
+            "not valid JSON"
+            ''',
+            {'data': None},
+        )]
+        INVALID = [
+            '''
+                []
+            ''',
+            '''
+                ["unsupported",1],
+                {"data":2},
+                {}
+            ''',
+        ]
+        DEFAULT = object()
+
+        self.assertEqual(self.ie._search_nuxt_json(HTML_TMPL.format(VALID_DATA), None), PAYLOAD)
+        self.assertEqual(self.ie._search_nuxt_json('', None, fatal=False), {})
+        self.assertIs(self.ie._search_nuxt_json('', None, default=DEFAULT), DEFAULT)
+
+        for data, expected in PARTIALLY_INVALID:
+            self.assertEqual(
+                self.ie._search_nuxt_json(HTML_TMPL.format(data), None, fatal=False), expected)
+
+        for data in INVALID:
+            self.assertIs(
+                self.ie._search_nuxt_json(HTML_TMPL.format(data), None, default=DEFAULT), DEFAULT)
+
+
+class TestInfoExtractorNetwork(unittest.TestCase):
+    def setUp(self, /):
+        self.httpd = http.server.HTTPServer(
+            ('127.0.0.1', 0), InfoExtractorTestRequestHandler)
+        self.port = http_server_port(self.httpd)
+
+        self.server_thread = threading.Thread(target=self.httpd.serve_forever)
+        self.server_thread.daemon = True
+        self.server_thread.start()
+
+        self.called = False
+
+        def require_warning(*args, **kwargs):
+            self.called = True
+
+        self.ydl = FakeYDL()
+        self.ydl.report_warning = require_warning
+        self.ie = DummyIE(self.ydl)
+
+    def tearDown(self, /):
+        self.ydl.close()
+        self.httpd.shutdown()
+        self.httpd.server_close()
+        self.server_thread.join(1)
+
+    def test_extract_m3u8_formats(self):
+        formats, subtitles = self.ie._extract_m3u8_formats_and_subtitles(
+            f'http://127.0.0.1:{self.port}/bipbop.m3u8', None, fatal=False)
+        self.assertFalse(self.called)
+        self.assertTrue(formats)
+        self.assertTrue(subtitles)
+
+    def test_extract_m3u8_formats_warning(self):
+        formats, subtitles = self.ie._extract_m3u8_formats_and_subtitles(
+            f'http://127.0.0.1:{self.port}/fake.m3u8', None, fatal=False)
+        self.assertTrue(self.called, 'Warning was not issued for binary m3u8 file')
+        self.assertFalse(formats)
+        self.assertFalse(subtitles)
 
 
 if __name__ == '__main__':

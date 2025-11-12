@@ -14,7 +14,7 @@ class PremiershipRugbyIE(InfoExtractor):
             'duration': 6093.0,
             'tags': ['video'],
             'categories': ['Full Match', 'Harlequins', 'Newcastle Falcons', 'gallaher premiership'],
-        }
+        },
     }]
 
     def _real_extract(self, url):

@@ -14,7 +14,7 @@ class TrailerAddictIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Prince Avalanche Trailer',
             'description': 'Trailer for Prince Avalanche.\n\nTwo highway road workers spend the summer of 1988 away from their city lives. The isolated landscape becomes a place of misadventure as the men find themselves at odds with each other and the women they left behind.',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -39,7 +39,7 @@ class TrailerAddictIE(InfoExtractor):
         else:
             fvar = 'fvar'
 
-        info_url = 'http://www.traileraddict.com/%s.php?tid=%s' % (fvar, str(video_id))
+        info_url = f'http://www.traileraddict.com/{fvar}.php?tid={video_id!s}'
         info_webpage = self._download_webpage(info_url, video_id, 'Downloading the info webpage')
 
         final_url = self._search_regex(r'&fileurl=(.+)',

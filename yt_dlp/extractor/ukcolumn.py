@@ -1,11 +1,11 @@
-from ..utils import (
-    unescapeHTML,
-    urljoin,
-    ExtractorError,
-)
 from .common import InfoExtractor
 from .vimeo import VimeoIE
 from .youtube import YoutubeIE
+from ..utils import (
+    ExtractorError,
+    unescapeHTML,
+    urljoin,
+)
 
 
 class UkColumnIE(InfoExtractor):

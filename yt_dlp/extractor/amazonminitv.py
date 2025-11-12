@@ -25,7 +25,7 @@ class AmazonMiniTVBaseIE(InfoExtractor):
             asin, note=note, headers={
                 'Content-Type': 'application/json',
                 'currentpageurl': '/',
-                'currentplatform': 'dWeb'
+                'currentplatform': 'dWeb',
             }, data=json.dumps(data).encode() if data else None,
             query=None if data else {
                 'deviceType': 'A1WMMUXPCUJL4N',

@@ -4,23 +4,27 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     clean_html,
+    filter_dict,
     get_element_by_class,
     int_or_none,
     join_nonempty,
+    make_archive_id,
+    orderedSet,
     parse_duration,
+    remove_end,
     traverse_obj,
     try_call,
     unescapeHTML,
     unified_timestamp,
     url_or_none,
     urljoin,
+    variadic,
 )
 
 
 class NhkBaseIE(InfoExtractor):
     _API_URL_TEMPLATE = 'https://nwapi.nhk.jp/nhkworld/%sod%slist/v7b/%s/%s/%s/all%s.json'
-    _BASE_URL_REGEX = r'https?://www3\.nhk\.or\.jp/nhkworld/(?P<lang>[a-z]{2})/ondemand'
-    _TYPE_REGEX = r'/(?P<type>video|audio)/'
+    _BASE_URL_REGEX = r'https?://www3\.nhk\.or\.jp/nhkworld/(?P<lang>[a-z]{2})/'
 
     def _call_api(self, m_id, lang, is_video, is_episode, is_clip):
         return self._download_json(
@@ -83,7 +87,7 @@ class NhkBaseIE(InfoExtractor):
     def _extract_episode_info(self, url, episode=None):
         fetch_episode = episode is None
         lang, m_type, episode_id = NhkVodIE._match_valid_url(url).group('lang', 'type', 'id')
-        is_video = m_type == 'video'
+        is_video = m_type != 'audio'
 
         if is_video:
             episode_id = episode_id[:4] + '-' + episode_id[4:]
@@ -104,7 +108,7 @@ class NhkBaseIE(InfoExtractor):
             if not img_path:
                 continue
             thumbnails.append({
-                'id': '%dp' % h,
+                'id': f'{h}p',
                 'height': h,
                 'width': w,
                 'url': 'https://www3.nhk.or.jp' + img_path,
@@ -138,9 +142,10 @@ class NhkBaseIE(InfoExtractor):
 
         else:
             if fetch_episode:
-                audio_path = episode['audio']['audio']
+                # From https://www3.nhk.or.jp/nhkworld/common/player/radio/inline/rod.html
+                audio_path = remove_end(episode['audio']['audio'], '.m4a')
                 info['formats'] = self._extract_m3u8_formats(
-                    'https://nhkworld-vh.akamaihd.net/i%s/master.m3u8' % audio_path,
+                    f'{urljoin("https://vod-stream.nhk.jp", audio_path)}/index.m3u8',
                     episode_id, 'm4a', entry_protocol='m3u8_native',
                     m3u8_id='hls', fatal=False)
                 for f in info['formats']:
@@ -155,9 +160,11 @@ class NhkBaseIE(InfoExtractor):
 
 
 class NhkVodIE(NhkBaseIE):
-    # the 7-character IDs can have alphabetic chars too: assume [a-z] rather than just [a-f], eg
-    _VALID_URL = [rf'{NhkBaseIE._BASE_URL_REGEX}/(?P<type>video)/(?P<id>[0-9a-z]+)',
-                  rf'{NhkBaseIE._BASE_URL_REGEX}/(?P<type>audio)/(?P<id>[^/?#]+?-\d{{8}}-[0-9a-z]+)']
+    _VALID_URL = [
+        rf'{NhkBaseIE._BASE_URL_REGEX}shows/(?:(?P<type>video)/)?(?P<id>\d{{4}}[\da-z]\d+)/?(?:$|[?#])',
+        rf'{NhkBaseIE._BASE_URL_REGEX}(?:ondemand|shows)/(?P<type>audio)/(?P<id>[^/?#]+?-\d{{8}}-[\da-z]+)',
+        rf'{NhkBaseIE._BASE_URL_REGEX}ondemand/(?P<type>video)/(?P<id>\d{{4}}[\da-z]\d+)',  # deprecated
+    ]
     # Content available only for a limited period of time. Visit
     # https://www3.nhk.or.jp/nhkworld/en/ondemand/ for working samples.
     _TESTS = [{
@@ -167,17 +174,16 @@ class NhkVodIE(NhkBaseIE):
             'ext': 'mp4',
             'title': 'Japan Railway Journal - The Tohoku Shinkansen: Full Speed Ahead',
             'description': 'md5:49f7c5b206e03868a2fdf0d0814b92f6',
-            'thumbnail': 'md5:51bcef4a21936e7fea1ff4e06353f463',
+            'thumbnail': r're:https://.+/.+\.jpg',
             'episode': 'The Tohoku Shinkansen: Full Speed Ahead',
             'series': 'Japan Railway Journal',
-            'modified_timestamp': 1694243656,
+            'modified_timestamp': 1707217907,
             'timestamp': 1681428600,
             'release_timestamp': 1693883728,
             'duration': 1679,
             'upload_date': '20230413',
-            'modified_date': '20230909',
+            'modified_date': '20240206',
             'release_date': '20230905',
-
         },
     }, {
         # video clip
@@ -188,15 +194,15 @@ class NhkVodIE(NhkBaseIE):
             'ext': 'mp4',
             'title': 'Dining with the Chef - Chef Saito\'s Family recipe: MENCHI-KATSU',
             'description': 'md5:5aee4a9f9d81c26281862382103b0ea5',
-            'thumbnail': 'md5:d6a4d9b6e9be90aaadda0bcce89631ed',
+            'thumbnail': r're:https://.+/.+\.jpg',
             'series': 'Dining with the Chef',
             'episode': 'Chef Saito\'s Family recipe: MENCHI-KATSU',
             'duration': 148,
             'upload_date': '20190816',
             'release_date': '20230902',
             'release_timestamp': 1693619292,
-            'modified_timestamp': 1694168033,
-            'modified_date': '20230908',
+            'modified_timestamp': 1707217907,
+            'modified_date': '20240206',
             'timestamp': 1565997540,
         },
     }, {
@@ -208,8 +214,8 @@ class NhkVodIE(NhkBaseIE):
             'title': 'Living in Japan - Tips for Travelers to Japan / Ramen Vending Machines',
             'series': 'Living in Japan',
             'description': 'md5:0a0e2077d8f07a03071e990a6f51bfab',
-            'thumbnail': 'md5:960622fb6e06054a4a1a0c97ea752545',
-            'episode': 'Tips for Travelers to Japan / Ramen Vending Machines'
+            'thumbnail': r're:https://.+/.+\.jpg',
+            'episode': 'Tips for Travelers to Japan / Ramen Vending Machines',
         },
     }, {
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/2015173/',
@@ -245,7 +251,7 @@ class NhkVodIE(NhkBaseIE):
             'title': 'おはよう日本（7時台） - 10月8日放送',
             'series': 'おはよう日本（7時台）',
             'episode': '10月8日放送',
-            'thumbnail': 'md5:d733b1c8e965ab68fb02b2d347d0e9b4',
+            'thumbnail': r're:https://.+/.+\.jpg',
             'description': 'md5:9c1d6cbeadb827b955b20e99ab920ff0',
         },
         'skip': 'expires 2023-10-15',
@@ -255,17 +261,100 @@ class NhkVodIE(NhkBaseIE):
         'info_dict': {
             'id': 'nw_vod_v_en_3004_952_20230723091000_01_1690074552',
             'ext': 'mp4',
-            'title': 'Barakan Discovers AMAMI OSHIMA: Isson\'s Treasure Island',
+            'title': 'Barakan Discovers - AMAMI OSHIMA: Isson\'s Treasure Isla',
             'description': 'md5:5db620c46a0698451cc59add8816b797',
-            'thumbnail': 'md5:67d9ff28009ba379bfa85ad1aaa0e2bd',
+            'thumbnail': r're:https://.+/.+\.jpg',
             'release_date': '20230905',
             'timestamp': 1690103400,
             'duration': 2939,
             'release_timestamp': 1693898699,
-            'modified_timestamp': 1698057495,
-            'modified_date': '20231023',
             'upload_date': '20230723',
+            'modified_timestamp': 1707217907,
+            'modified_date': '20240206',
+            'episode': 'AMAMI OSHIMA: Isson\'s Treasure Isla',
+            'series': 'Barakan Discovers',
         },
+    }, {
+        # /ondemand/video/ url with alphabetical character in 5th position of id
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/9999a07/',
+        'info_dict': {
+            'id': 'nw_c_en_9999-a07',
+            'ext': 'mp4',
+            'episode': 'Mini-Dramas on SDGs: Ep 1 Close the Gender Gap [Director\'s Cut]',
+            'series': 'Mini-Dramas on SDGs',
+            'modified_date': '20240206',
+            'title': 'Mini-Dramas on SDGs - Mini-Dramas on SDGs: Ep 1 Close the Gender Gap [Director\'s Cut]',
+            'description': 'md5:3f9dcb4db22fceb675d90448a040d3f6',
+            'timestamp': 1621962360,
+            'duration': 189,
+            'release_date': '20230903',
+            'modified_timestamp': 1707217907,
+            'upload_date': '20210525',
+            'thumbnail': r're:https://.+/.+\.jpg',
+            'release_timestamp': 1693713487,
+        },
+    }, {
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/9999d17/',
+        'info_dict': {
+            'id': 'nw_c_en_9999-d17',
+            'ext': 'mp4',
+            'title': 'Flowers of snow blossom - The 72 Pentads of Yamato',
+            'description': 'Today’s focus: Snow',
+            'release_timestamp': 1693792402,
+            'release_date': '20230904',
+            'upload_date': '20220128',
+            'timestamp': 1643370960,
+            'thumbnail': r're:https://.+/.+\.jpg',
+            'duration': 136,
+            'series': '',
+            'modified_date': '20240206',
+            'modified_timestamp': 1707217907,
+        },
+    }, {
+        # new /shows/ url format
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/shows/2032307/',
+        'info_dict': {
+            'id': 'nw_vod_v_en_2032_307_20240321113000_01_1710990282',
+            'ext': 'mp4',
+            'title': 'Japanology Plus - 20th Anniversary Special Part 1',
+            'description': 'md5:817d41fc8e54339ad2a916161ea24faf',
+            'episode': '20th Anniversary Special Part 1',
+            'series': 'Japanology Plus',
+            'thumbnail': r're:https://.+/.+\.jpg',
+            'duration': 1680,
+            'timestamp': 1711020600,
+            'upload_date': '20240321',
+            'release_timestamp': 1711022683,
+            'release_date': '20240321',
+            'modified_timestamp': 1711031012,
+            'modified_date': '20240321',
+        },
+    }, {
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/shows/3020025/',
+        'info_dict': {
+            'id': 'nw_vod_v_en_3020_025_20230325144000_01_1679723944',
+            'ext': 'mp4',
+            'title': '100 Ideas to Save the World - Working Styles Evolve',
+            'description': 'md5:9e6c7778eaaf4f7b4af83569649f84d9',
+            'episode': 'Working Styles Evolve',
+            'series': '100 Ideas to Save the World',
+            'thumbnail': r're:https://.+/.+\.jpg',
+            'duration': 899,
+            'upload_date': '20230325',
+            'timestamp': 1679755200,
+            'release_date': '20230905',
+            'release_timestamp': 1693880540,
+            'modified_date': '20240206',
+            'modified_timestamp': 1707217907,
+        },
+    }, {
+        # new /shows/audio/ url format
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/shows/audio/livinginjapan-20231001-1/',
+        'only_matching': True,
+    }, {
+        # valid url even if can't be found in wild; support needed for clip entries extraction
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/shows/9999o80/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -273,18 +362,21 @@ class NhkVodIE(NhkBaseIE):
 
 
 class NhkVodProgramIE(NhkBaseIE):
-    _VALID_URL = rf'{NhkBaseIE._BASE_URL_REGEX}/program{NhkBaseIE._TYPE_REGEX}(?P<id>\w+)(?:.+?\btype=(?P<episode_type>clip|(?:radio|tv)Episode))?'
+    _VALID_URL = rf'''(?x)
+        {NhkBaseIE._BASE_URL_REGEX}(?:shows|tv)/
+        (?:(?P<type>audio)/programs/)?(?P<id>\w+)/?
+        (?:\?(?:[^#]+&)?type=(?P<episode_type>clip|(?:radio|tv)Episode))?'''
     _TESTS = [{
         # video program episodes
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/program/video/sumo',
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/shows/sumo/',
         'info_dict': {
             'id': 'sumo',
             'title': 'GRAND SUMO Highlights',
             'description': 'md5:fc20d02dc6ce85e4b72e0273aa52fdbf',
         },
-        'playlist_mincount': 0,
+        'playlist_mincount': 1,
     }, {
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/program/video/japanrailway',
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/shows/japanrailway/',
         'info_dict': {
             'id': 'japanrailway',
             'title': 'Japan Railway Journal',
@@ -293,40 +385,68 @@ class NhkVodProgramIE(NhkBaseIE):
         'playlist_mincount': 12,
     }, {
         # video program clips
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/program/video/japanrailway/?type=clip',
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/shows/japanrailway/?type=clip',
         'info_dict': {
             'id': 'japanrailway',
             'title': 'Japan Railway Journal',
             'description': 'md5:ea39d93af7d05835baadf10d1aae0e3f',
         },
-        'playlist_mincount': 5,
-    }, {
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/program/video/10yearshayaomiyazaki/',
-        'only_matching': True,
+        'playlist_mincount': 12,
     }, {
         # audio program
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/program/audio/listener/',
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/shows/audio/programs/livinginjapan/',
+        'info_dict': {
+            'id': 'livinginjapan',
+            'title': 'Living in Japan',
+            'description': 'md5:665bb36ec2a12c5a7f598ee713fc2b54',
+        },
+        'playlist_mincount': 12,
+    }, {
+        # /tv/ program url
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/tv/designtalksplus/',
+        'info_dict': {
+            'id': 'designtalksplus',
+            'title': 'DESIGN TALKS plus',
+            'description': 'md5:47b3b3a9f10d4ac7b33b53b70a7d2837',
+        },
+        'playlist_mincount': 20,
+    }, {
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/shows/10yearshayaomiyazaki/',
         'only_matching': True,
     }]
+
+    @classmethod
+    def suitable(cls, url):
+        return False if NhkVodIE.suitable(url) else super().suitable(url)
+
+    def _extract_meta_from_class_elements(self, class_values, html):
+        for class_value in class_values:
+            if value := clean_html(get_element_by_class(class_value, html)):
+                return value
 
     def _real_extract(self, url):
         lang, m_type, program_id, episode_type = self._match_valid_url(url).group('lang', 'type', 'id', 'episode_type')
         episodes = self._call_api(
-            program_id, lang, m_type == 'video', False, episode_type == 'clip')
+            program_id, lang, m_type != 'audio', False, episode_type == 'clip')
 
-        entries = []
-        for episode in episodes:
-            episode_path = episode.get('url')
-            if not episode_path:
-                continue
-            entries.append(self._extract_episode_info(
-                urljoin(url, episode_path), episode))
+        def entries():
+            for episode in episodes:
+                if episode_path := episode.get('url'):
+                    yield self._extract_episode_info(urljoin(url, episode_path), episode)
 
         html = self._download_webpage(url, program_id)
-        program_title = clean_html(get_element_by_class('p-programDetail__title', html))
-        program_description = clean_html(get_element_by_class('p-programDetail__text', html))
+        program_title = self._extract_meta_from_class_elements([
+            'p-programDetail__title',  # /ondemand/program/
+            'pProgramHero__logoText',  # /shows/
+            'tAudioProgramMain__title',  # /shows/audio/programs/
+            'p-program-name'], html)  # /tv/
+        program_description = self._extract_meta_from_class_elements([
+            'p-programDetail__text',  # /ondemand/program/
+            'pProgramHero__description',  # /shows/
+            'tAudioProgramMain__info',  # /shows/audio/programs/
+            'p-program-description'], html)  # /tv/
 
-        return self.playlist_result(entries, program_id, program_title, program_description)
+        return self.playlist_result(entries(), program_id, program_title, program_description)
 
 
 class NhkForSchoolBangumiIE(InfoExtractor):
@@ -342,7 +462,7 @@ class NhkForSchoolBangumiIE(InfoExtractor):
             'upload_date': '20140402',
             'ext': 'mp4',
 
-            'chapters': 'count:12'
+            'chapters': 'count:12',
         },
         'params': {
             # m3u8 download
@@ -378,12 +498,12 @@ class NhkForSchoolBangumiIE(InfoExtractor):
         chapters = None
         if chapter_durations and chapter_titles and len(chapter_durations) == len(chapter_titles):
             start_time = chapter_durations
-            end_time = chapter_durations[1:] + [duration]
+            end_time = [*chapter_durations[1:], duration]
             chapters = [{
                 'start_time': s,
                 'end_time': e,
                 'title': t,
-            } for s, e, t in zip(start_time, end_time, chapter_titles)]
+            } for s, e, t in zip(start_time, end_time, chapter_titles, strict=True)]
 
         return {
             'id': video_id,
@@ -405,7 +525,8 @@ class NhkForSchoolSubjectIE(InfoExtractor):
         'eigo', 'tokkatsu',
         'tokushi', 'sonota',
     )
-    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>%s)/?(?:[\?#].*)?$' % '|'.join(re.escape(s) for s in KNOWN_SUBJECTS)
+    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>{})/?(?:[\?#].*)?$'.format(
+        '|'.join(re.escape(s) for s in KNOWN_SUBJECTS))
 
     _TESTS = [{
         'url': 'https://www.nhk.or.jp/school/sougou/',
@@ -435,9 +556,8 @@ class NhkForSchoolSubjectIE(InfoExtractor):
 
 
 class NhkForSchoolProgramListIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>(?:%s)/[a-zA-Z0-9_-]+)' % (
-        '|'.join(re.escape(s) for s in NhkForSchoolSubjectIE.KNOWN_SUBJECTS)
-    )
+    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>(?:{})/[a-zA-Z0-9_-]+)'.format(
+        '|'.join(re.escape(s) for s in NhkForSchoolSubjectIE.KNOWN_SUBJECTS))
     _TESTS = [{
         'url': 'https://www.nhk.or.jp/school/sougou/q/',
         'info_dict': {
@@ -474,94 +594,247 @@ class NhkRadiruIE(InfoExtractor):
     IE_DESC = 'NHK らじる (Radiru/Rajiru)'
     _VALID_URL = r'https?://www\.nhk\.or\.jp/radio/(?:player/ondemand|ondemand/detail)\.html\?p=(?P<site>[\da-zA-Z]+)_(?P<corner>[\da-zA-Z]+)(?:_(?P<headline>[\da-zA-Z]+))?'
     _TESTS = [{
-        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=0449_01_3926210',
-        'skip': 'Episode expired on 2024-02-24',
+        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=LG96ZW5KZ4_01_4251382',
+        'skip': 'Episode expires on 2025-07-14',
         'info_dict': {
-            'title': 'ジャズ・トゥナイト　シリーズＪＡＺＺジャイアンツ　５６　ジョニー・ホッジス',
-            'id': '0449_01_3926210',
+            'title': 'クラシックの庭\u3000特集「ドボルザークを聴く」（１）交響曲を中心に',
+            'id': 'LG96ZW5KZ4_01_4251382',
             'ext': 'm4a',
-            'series': 'ジャズ・トゥナイト',
-            'uploader': 'NHK-FM',
-            'channel': 'NHK-FM',
-            'thumbnail': 'https://www.nhk.or.jp/prog/img/449/g449.jpg',
-            'release_date': '20240217',
-            'description': 'md5:a456ee8e5e59e6dd2a7d32e62386e811',
-            'timestamp': 1708185600,
-            'release_timestamp': 1708178400,
-            'upload_date': '20240217',
+            'description': 'md5:652d3c38a25b77959c716421eba1617a',
+            'uploader': 'NHK FM・東京',
+            'channel': 'NHK FM・東京',
+            'duration': 6597.0,
+            'thumbnail': 'https://www.nhk.jp/static/assets/images/radioseries/rs/LG96ZW5KZ4/LG96ZW5KZ4-eyecatch_a67c6e949325016c0724f2ed3eec8a2f.jpg',
+            'categories': ['音楽', 'クラシック・オペラ'],
+            'cast': ['田添菜穂子'],
+            'series': 'クラシックの庭',
+            'series_id': 'LG96ZW5KZ4',
+            'episode': '特集「ドボルザークを聴く」(1)交響曲を中心に',
+            'episode_id': 'QP1Q2ZXZY3',
+            'timestamp': 1751871000,
+            'upload_date': '20250707',
+            'release_timestamp': 1751864403,
+            'release_date': '20250707',
         },
     }, {
         # playlist, airs every weekday so it should _hopefully_ be okay forever
-        'url': 'https://www.nhk.or.jp/radio/ondemand/detail.html?p=0458_01',
+        'url': 'https://www.nhk.or.jp/radio/ondemand/detail.html?p=Z9L1V2M24L_01',
         'info_dict': {
-            'id': '0458_01',
+            'id': 'Z9L1V2M24L_01',
             'title': 'ベストオブクラシック',
             'description': '世界中の上質な演奏会をじっくり堪能する本格派クラシック番組。',
-            'channel': 'NHK-FM',
-            'uploader': 'NHK-FM',
-            'thumbnail': 'https://www.nhk.or.jp/prog/img/458/g458.jpg',
+            'thumbnail': 'https://www.nhk.jp/static/assets/images/radioseries/rs/Z9L1V2M24L/Z9L1V2M24L-eyecatch_83ed28b4782907998875965fee60a351.jpg',
+            'series_id': 'Z9L1V2M24L_01',
+            'uploader': 'NHK FM',
+            'channel': 'NHK FM',
+            'series': 'ベストオブクラシック',
         },
         'playlist_mincount': 3,
     }, {
-        # one with letters in the id
-        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F300_06_3738470',
-        'note': 'Expires on 2024-03-31',
-        'info_dict': {
-            'id': 'F300_06_3738470',
-            'ext': 'm4a',
-            'title': '有島武郎「一房のぶどう」',
-            'description': '朗読：川野一宇（ラジオ深夜便アンカー）\r\n\r\n（2016年12月8日放送「ラジオ深夜便『アンカー朗読シリーズ』」より）',
-            'channel': 'NHKラジオ第1、NHK-FM',
-            'uploader': 'NHKラジオ第1、NHK-FM',
-            'timestamp': 1635757200,
-            'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/F300/img/corner/box_109_thumbnail.jpg',
-            'release_date': '20161207',
-            'series': 'らじる文庫 by ラジオ深夜便 ',
-            'release_timestamp': 1481126700,
-            'upload_date': '20211101',
-        },
-        'expected_warnings': ['Unable to download JSON metadata', 'Failed to get extended description'],
-    }, {
         # news
-        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F261_01_3855109',
-        'skip': 'Expires on 2023-04-17',
+        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=18439M2W42_02_4251212',
+        'skip': 'Expires on 2025-07-15',
         'info_dict': {
-            'id': 'F261_01_3855109',
+            'id': '18439M2W42_02_4251212',
             'ext': 'm4a',
-            'channel': 'NHKラジオ第1',
+            'title': 'マイあさ! 午前5時のNHKニュース 2025年7月8日',
             'uploader': 'NHKラジオ第1',
-            'timestamp': 1681635900,
-            'release_date': '20230416',
+            'channel': 'NHKラジオ第1',
+            'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/18439M2W42/img/series_945_thumbnail.jpg',
             'series': 'NHKラジオニュース',
-            'title': '午後６時のNHKニュース',
-            'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/F261/img/RADIONEWS_640.jpg',
-            'upload_date': '20230416',
-            'release_timestamp': 1681635600,
+            'timestamp': 1751919420,
+            'upload_date': '20250707',
+            'release_timestamp': 1751918400,
+            'release_date': '20250707',
         },
+    }, {
+        # fallback when extended metadata fails
+        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=J8792PY43V_20_4253945',
+        'skip': 'Expires on 2025-09-01',
+        'info_dict': {
+            'id': 'J8792PY43V_20_4253945',
+            'ext': 'm4a',
+            'title': '「後絶たない筋肉増強剤の使用」ワールドリポート',
+            'description': '大濱 敦（ソウル支局）',
+            'uploader': 'NHK R1',
+            'channel': 'NHK R1',
+            'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/J8792PY43V/img/corner/box_31_thumbnail.jpg',
+            'series': 'マイあさ！ ワールドリポート',
+            'series_id': 'J8792PY43V_20',
+            'timestamp': 1751837100,
+            'upload_date': '20250706',
+            'release_timestamp': 1751835600,
+            'release_date': '20250706',
+
+        },
+        'expected_warnings': ['Failed to download extended metadata: HTTP Error 404: Not Found'],
     }]
 
     _API_URL_TMPL = None
 
-    def _extract_extended_description(self, episode_id, episode):
-        service, _, area = traverse_obj(episode, ('aa_vinfo2', {str}, {lambda x: (x or '').partition(',')}))
-        aa_vinfo3 = traverse_obj(episode, ('aa_vinfo3', {str}))
+    # The `_format_*` and `_make_*` functions are ported from: https://www.nhk.or.jp/radio/assets/js/timetable_detail_new.js
+
+    def _format_act_list(self, act_list):
+        role_groups = {}
+        for act in traverse_obj(act_list, (..., {dict})):
+            role = act.get('role')
+            if role not in role_groups:
+                role_groups[role] = []
+            role_groups[role].append(act)
+
+        formatted_roles = []
+        for role, acts in role_groups.items():
+            for i, act in enumerate(acts):
+                res = f'【{role}】' if i == 0 and role is not None else ''
+                if title := act.get('title'):
+                    res += f'{title}…'
+                formatted_roles.append(join_nonempty(res, act.get('name'), delim=''))
+        return join_nonempty(*formatted_roles, delim='，')
+
+    def _make_artists(self, track, key):
+        artists = []
+        for artist in traverse_obj(track, (key, ..., {dict})):
+            if res := join_nonempty(*traverse_obj(artist, ((
+                ('role', filter, {'{}…'.format}),
+                ('part', filter, {'（{}）'.format}),
+                ('name', filter),
+            ), {str})), delim=''):
+                artists.append(res)
+
+        return '、'.join(artists) or None
+
+    def _make_duration(self, track, key):
+        d = traverse_obj(track, (key, {parse_duration}))
+        if d is None:
+            return None
+        hours, remainder = divmod(d, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        res = '（'
+        if hours > 0:
+            res += f'{int(hours)}時間'
+        if minutes > 0:
+            res += f'{int(minutes)}分'
+        res += f'{int(seconds):02}秒）'
+        return res
+
+    def _format_music_list(self, music_list):
+        tracks = []
+        for track in traverse_obj(music_list, (..., {dict})):
+            track_details = traverse_obj(track, ((
+                ('name', filter, {'「{}」'.format}),
+                ('lyricist', filter, {'{}:作詞'.format}),
+                ('composer', filter, {'{}:作曲'.format}),
+                ('arranger', filter, {'{}:編曲'.format}),
+            ), {str}))
+
+            track_details.append(self._make_artists(track, 'byArtist'))
+            track_details.append(self._make_duration(track, 'duration'))
+
+            if label := join_nonempty('label', 'code', delim=' ', from_dict=track):
+                track_details.append(f'＜{label}＞')
+            if location := traverse_obj(track, ('location', {str})):
+                track_details.append(f'～{location}～')
+            tracks.append(join_nonempty(*track_details, delim='\n'))
+        return '\n\n'.join(tracks)
+
+    def _format_description(self, response):
+        detailed_description = traverse_obj(response, ('detailedDescription', {dict})) or {}
+        return join_nonempty(
+            join_nonempty('epg80', 'epg200', delim='\n\n', from_dict=detailed_description),
+            traverse_obj(response, ('misc', 'actList', {self._format_act_list})),
+            traverse_obj(response, ('misc', 'musicList', {self._format_music_list})),
+            delim='\n\n')
+
+    def _get_thumbnails(self, data, keys, name=None, preference=-1):
+        thumbnails = []
+        for size, thumb in traverse_obj(data, (
+            *variadic(keys, (str, bytes, dict, set)), {dict.items},
+            lambda _, v: v[0] != 'copyright' and url_or_none(v[1]['url']),
+        )):
+            thumbnails.append({
+                'url': thumb['url'],
+                'width': int_or_none(thumb.get('width')),
+                'height': int_or_none(thumb.get('height')),
+                'preference': preference,
+                'id': join_nonempty(name, size),
+            })
+            preference -= 1
+        return thumbnails
+
+    def _extract_extended_metadata(self, episode_id, aa_vinfo):
+        service, _, area = traverse_obj(aa_vinfo, (2, {str}, {lambda x: (x or '').partition(',')}))
+        date_id = aa_vinfo[3]
+
         detail_url = try_call(
-            lambda: self._API_URL_TMPL.format(service=service, area=area, dateid=aa_vinfo3))
+            lambda: self._API_URL_TMPL.format(broadcastEventId=join_nonempty(service, area, date_id)))
         if not detail_url:
-            return
+            return {}
 
-        full_meta = traverse_obj(
-            self._download_json(detail_url, episode_id, 'Downloading extended metadata', fatal=False),
-            ('list', service, 0, {dict})) or {}
-        return join_nonempty('subtitle', 'content', 'act', 'music', delim='\n\n', from_dict=full_meta)
+        response = self._download_json(
+            detail_url, episode_id, 'Downloading extended metadata',
+            'Failed to download extended metadata', fatal=False, expected_status=400)
+        if not response:
+            return {}
 
-    def _extract_episode_info(self, headline, programme_id, series_meta):
+        if error := traverse_obj(response, ('error', {dict})):
+            self.report_warning(
+                'Failed to get extended metadata. API returned '
+                f'Error {join_nonempty("statuscode", "message", from_dict=error, delim=": ")}')
+            return {}
+
+        station = traverse_obj(response, ('publishedOn', 'broadcastDisplayName', {str}))
+
+        thumbnails = []
+        thumbnails.extend(self._get_thumbnails(response, ('about', 'eyecatch')))
+        for num, dct in enumerate(traverse_obj(response, ('about', 'eyecatchList', ...))):
+            thumbnails.extend(self._get_thumbnails(dct, None, join_nonempty('list', num), -2))
+        thumbnails.extend(
+            self._get_thumbnails(response, ('about', 'partOfSeries', 'eyecatch'), 'series', -3))
+
+        return filter_dict({
+            'description': self._format_description(response),
+            'cast': traverse_obj(response, ('misc', 'actList', ..., 'name', {str})),
+            'thumbnails': thumbnails,
+            **traverse_obj(response, {
+                'title': ('name', {str}),
+                'timestamp': ('endDate', {unified_timestamp}),
+                'release_timestamp': ('startDate', {unified_timestamp}),
+                'duration': ('duration', {parse_duration}),
+            }),
+            **traverse_obj(response, ('identifierGroup', {
+                'series': ('radioSeriesName', {str}),
+                'series_id': ('radioSeriesId', {str}),
+                'episode': ('radioEpisodeName', {str}),
+                'episode_id': ('radioEpisodeId', {str}),
+                'categories': ('genre', ..., ['name1', 'name2'], {str}, all, {orderedSet}),
+            })),
+            'channel': station,
+            'uploader': station,
+        })
+
+    def _extract_episode_info(self, episode, programme_id, series_meta):
+        episode_id = f'{programme_id}_{episode["id"]}'
+        aa_vinfo = traverse_obj(episode, ('aa_contents_id', {lambda x: x.split(';')}))
+        extended_metadata = self._extract_extended_metadata(episode_id, aa_vinfo)
+        fallback_start_time, _, fallback_end_time = traverse_obj(
+            aa_vinfo, (4, {str}, {lambda x: (x or '').partition('_')}))
+
+        return {
+            **series_meta,
+            'id': episode_id,
+            'formats': self._extract_m3u8_formats(episode.get('stream_url'), episode_id, fatal=False),
+            'container': 'm4a_dash',  # force fixup, AAC-only HLS
+            'was_live': True,
+            'title': episode.get('program_title'),
+            'description': episode.get('program_sub_title'),  # fallback
+            'timestamp': unified_timestamp(fallback_end_time),
+            'release_timestamp': unified_timestamp(fallback_start_time),
+            **extended_metadata,
+        }
+
+    def _extract_news_info(self, headline, programme_id, series_meta):
         episode_id = f'{programme_id}_{headline["headline_id"]}'
         episode = traverse_obj(headline, ('file_list', 0, {dict}))
-        description = self._extract_extended_description(episode_id, episode)
-        if not description:
-            self.report_warning('Failed to get extended description, falling back to summary')
-            description = traverse_obj(episode, ('file_title_sub', {str}))
 
         return {
             **series_meta,
@@ -571,9 +844,9 @@ class NhkRadiruIE(InfoExtractor):
             'was_live': True,
             'series': series_meta.get('title'),
             'thumbnail': url_or_none(headline.get('headline_image')) or series_meta.get('thumbnail'),
-            'description': description,
             **traverse_obj(episode, {
-                'title': 'file_title',
+                'title': ('file_title', {str}),
+                'description': ('file_title_sub', {str}),
                 'timestamp': ('open_time', {unified_timestamp}),
                 'release_timestamp': ('aa_vinfo4', {lambda x: x.split('_')[0]}, {unified_timestamp}),
             }),
@@ -590,32 +863,60 @@ class NhkRadiruIE(InfoExtractor):
         site_id, corner_id, headline_id = self._match_valid_url(url).group('site', 'corner', 'headline')
         programme_id = f'{site_id}_{corner_id}'
 
-        if site_id == 'F261':
-            json_url = 'https://www.nhk.or.jp/s-media/news/news-site/list/v1/all.json'
-        else:
-            json_url = f'https://www.nhk.or.jp/radioondemand/json/{site_id}/bangumi_{programme_id}.json'
+        # XXX: News programmes use the old API
+        # Can't move this to NhkRadioNewsPageIE because news items still use the normal URL format
+        if site_id == '18439M2W42':
+            meta = self._download_json(
+                'https://www.nhk.or.jp/s-media/news/news-site/list/v1/all.json', programme_id)['main']
+            series_meta = traverse_obj(meta, {
+                'title': ('program_name', {str}),
+                'channel': ('media_name', {str}),
+                'uploader': ('media_name', {str}),
+                'thumbnail': (('thumbnail_c', 'thumbnail_p'), {url_or_none}),
+            }, get_all=False)
 
-        meta = self._download_json(json_url, programme_id)['main']
+            if headline_id:
+                headline = traverse_obj(
+                    meta, ('detail_list', lambda _, v: v['headline_id'] == headline_id, any))
+                if not headline:
+                    raise ExtractorError('Content not found; it has most likely expired', expected=True)
+                return self._extract_news_info(headline, programme_id, series_meta)
 
-        series_meta = traverse_obj(meta, {
-            'title': 'program_name',
-            'channel': 'media_name',
-            'uploader': 'media_name',
-            'thumbnail': (('thumbnail_c', 'thumbnail_p'), {url_or_none}),
-        }, get_all=False)
+            def news_entries():
+                for headline in traverse_obj(meta, ('detail_list', ..., {dict})):
+                    yield self._extract_news_info(headline, programme_id, series_meta)
+
+            return self.playlist_result(
+                news_entries(), programme_id, description=meta.get('site_detail'), **series_meta)
+
+        meta = self._download_json(
+            'https://www.nhk.or.jp/radio-api/app/v1/web/ondemand/series', programme_id, query={
+                'site_id': site_id,
+                'corner_site_id': corner_id,
+            })
+
+        fallback_station = join_nonempty('NHK', traverse_obj(meta, ('radio_broadcast', {str})), delim=' ')
+        series_meta = {
+            'series': join_nonempty('title', 'corner_name', delim=' ', from_dict=meta),
+            'series_id': programme_id,
+            'thumbnail': traverse_obj(meta, ('thumbnail_url', {url_or_none})),
+            'channel': fallback_station,
+            'uploader': fallback_station,
+        }
 
         if headline_id:
-            return self._extract_episode_info(
-                traverse_obj(meta, (
-                    'detail_list', lambda _, v: v['headline_id'] == headline_id), get_all=False),
-                programme_id, series_meta)
+            episode = traverse_obj(meta, ('episodes', lambda _, v: v['id'] == int(headline_id), any))
+            if not episode:
+                raise ExtractorError('Content not found; it has most likely expired', expected=True)
+            return self._extract_episode_info(episode, programme_id, series_meta)
 
         def entries():
-            for headline in traverse_obj(meta, ('detail_list', ..., {dict})):
-                yield self._extract_episode_info(headline, programme_id, series_meta)
+            for episode in traverse_obj(meta, ('episodes', ..., {dict})):
+                yield self._extract_episode_info(episode, programme_id, series_meta)
 
         return self.playlist_result(
-            entries(), programme_id, playlist_description=meta.get('site_detail'), **series_meta)
+            entries(), programme_id, title=series_meta.get('series'),
+            description=meta.get('series_description'), **series_meta)
 
 
 class NhkRadioNewsPageIE(InfoExtractor):
@@ -625,17 +926,17 @@ class NhkRadioNewsPageIE(InfoExtractor):
         'url': 'https://www.nhk.or.jp/radionews/',
         'playlist_mincount': 5,
         'info_dict': {
-            'id': 'F261_01',
-            'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/F261/img/RADIONEWS_640.jpg',
+            'id': '18439M2W42_01',
+            'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/18439M2W42/img/series_945_thumbnail.jpg',
             'description': 'md5:bf2c5b397e44bc7eb26de98d8f15d79d',
             'channel': 'NHKラジオ第1',
             'uploader': 'NHKラジオ第1',
             'title': 'NHKラジオニュース',
-        }
+        },
     }]
 
     def _real_extract(self, url):
-        return self.url_result('https://www.nhk.or.jp/radio/ondemand/detail.html?p=F261_01', NhkRadiruIE)
+        return self.url_result('https://www.nhk.or.jp/radio/ondemand/detail.html?p=18439M2W42_01', NhkRadiruIE)
 
 
 class NhkRadiruLiveIE(InfoExtractor):
@@ -645,11 +946,12 @@ class NhkRadiruLiveIE(InfoExtractor):
         # radio 1, no area specified
         'url': 'https://www.nhk.or.jp/radio/player/?ch=r1',
         'info_dict': {
-            'id': 'r1-tokyo',
-            'title': 're:^ＮＨＫネットラジオ第1 東京.+$',
+            'id': 'bs-r1-130',
+            'title': 're:^NHKラジオ第1・東京.+$',
             'ext': 'm4a',
-            'thumbnail': 'https://www.nhk.or.jp/common/img/media/r1-200x200.png',
+            'thumbnail': 'https://www.nhk.jp/assets/images/broadcastservice/bs/r1/r1-logo.svg',
             'live_status': 'is_live',
+            '_old_archive_ids': ['nhkradirulive r1-tokyo'],
         },
     }, {
         # radio 2, area specified
@@ -657,26 +959,28 @@ class NhkRadiruLiveIE(InfoExtractor):
         'url': 'https://www.nhk.or.jp/radio/player/?ch=r2',
         'params': {'extractor_args': {'nhkradirulive': {'area': ['fukuoka']}}},
         'info_dict': {
-            'id': 'r2-fukuoka',
-            'title': 're:^ＮＨＫネットラジオ第2 福岡.+$',
+            'id': 'bs-r2-400',
+            'title': 're:^NHKラジオ第2.+$',
             'ext': 'm4a',
-            'thumbnail': 'https://www.nhk.or.jp/common/img/media/r2-200x200.png',
+            'thumbnail': 'https://www.nhk.jp/assets/images/broadcastservice/bs/r2/r2-logo.svg',
             'live_status': 'is_live',
+            '_old_archive_ids': ['nhkradirulive r2-fukuoka'],
         },
     }, {
         # fm, area specified
         'url': 'https://www.nhk.or.jp/radio/player/?ch=fm',
         'params': {'extractor_args': {'nhkradirulive': {'area': ['sapporo']}}},
         'info_dict': {
-            'id': 'fm-sapporo',
-            'title': 're:^ＮＨＫネットラジオＦＭ 札幌.+$',
+            'id': 'bs-r3-010',
+            'title': 're:^NHK FM・札幌.+$',
             'ext': 'm4a',
-            'thumbnail': 'https://www.nhk.or.jp/common/img/media/fm-200x200.png',
+            'thumbnail': 'https://www.nhk.jp/assets/images/broadcastservice/bs/r3/r3-logo.svg',
             'live_status': 'is_live',
-        }
+            '_old_archive_ids': ['nhkradirulive fm-sapporo'],
+        },
     }]
 
-    _NOA_STATION_IDS = {'r1': 'n1', 'r2': 'n2', 'fm': 'n3'}
+    _NOA_STATION_IDS = {'r1': 'r1', 'r2': 'r2', 'fm': 'r3'}
 
     def _real_extract(self, url):
         station = self._match_id(url)
@@ -687,18 +991,21 @@ class NhkRadiruLiveIE(InfoExtractor):
         data = config.find(f'.//data//area[.="{area}"]/..')
 
         if not data:
-            raise ExtractorError('Invalid area. Valid areas are: %s' % ', '.join(
-                [i.text for i in config.findall('.//data//area')]), expected=True)
+            raise ExtractorError('Invalid area. Valid areas are: {}'.format(', '.join(
+                [i.text for i in config.findall('.//data//area')])), expected=True)
 
         noa_info = self._download_json(
             f'https:{config.find(".//url_program_noa").text}'.format(area=data.find('areakey').text),
             station, note=f'Downloading {area} station metadata', fatal=False)
-        present_info = traverse_obj(noa_info, ('nowonair_list', self._NOA_STATION_IDS.get(station), 'present'))
+        broadcast_service = traverse_obj(noa_info, (self._NOA_STATION_IDS.get(station), 'publishedOn'))
 
         return {
-            'title': ' '.join(traverse_obj(present_info, (('service', 'area',), 'name', {str}))),
-            'id': join_nonempty(station, area),
-            'thumbnails': traverse_obj(present_info, ('service', 'images', ..., {
+            **traverse_obj(broadcast_service, {
+                'title': ('broadcastDisplayName', {str}),
+                'id': ('id', {str}),
+            }),
+            '_old_archive_ids': [make_archive_id(self, join_nonempty(station, area))],
+            'thumbnails': traverse_obj(broadcast_service, ('logo', ..., {
                 'url': 'url',
                 'width': ('width', {int_or_none}),
                 'height': ('height', {int_or_none}),

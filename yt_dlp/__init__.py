@@ -1,8 +1,8 @@
 import sys
 
-if sys.version_info < (3, 8):
+if sys.version_info < (3, 10):
     raise ImportError(
-        f'You are using an unsupported version of Python. Only Python versions 3.8 and above are supported by yt-dlp')  # noqa: F541
+        f'You are using an unsupported version of Python. Only Python versions 3.10 and above are supported by yt-dlp')  # noqa: F541
 
 __license__ = 'The Unlicense'
 
@@ -14,13 +14,14 @@ import os
 import re
 import traceback
 
-from .compat import compat_os_name, compat_shlex_quote
-from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
+from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS, CookieLoadError
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
 from .networking.impersonate import ImpersonateTarget
+from .globals import IN_CLI, plugin_dirs
 from .options import parseOpts
+from .plugins import load_all_plugins as _load_all_plugins
 from .postprocessor import (
     FFmpegExtractAudioPP,
     FFmpegMergerPP,
@@ -43,7 +44,6 @@ from .utils import (
     GeoUtils,
     PlaylistEntries,
     SameFileError,
-    decodeOption,
     download_range_func,
     expand_path,
     float_or_none,
@@ -58,14 +58,19 @@ from .utils import (
     read_stdin,
     render_table,
     setproctitle,
-    traverse_obj,
+    shell_quote,
     variadic,
     write_string,
-)
-from .utils.networking import std_headers
-from .YoutubeDL import YoutubeDL
 
-_IN_CLI = False
+)
+from .utils._utils import _UnsafeExtensionError
+from .utils._jsruntime import (
+    BunJsRuntime as _BunJsRuntime,
+    DenoJsRuntime as _DenoJsRuntime,
+    NodeJsRuntime as _NodeJsRuntime,
+    QuickJsRuntime as _QuickJsRuntime,
+)
+from .YoutubeDL import YoutubeDL
 
 
 def _exit(status=0, *args):
@@ -115,9 +120,9 @@ def print_extractor_information(opts, urls):
             ie.description(markdown=False, search_examples=_SEARCHES)
             for ie in list_extractor_classes(opts.age_limit) if ie.working() and ie.IE_DESC is not False)
     elif opts.ap_list_mso:
-        out = 'Supported TV Providers:\n%s\n' % render_table(
+        out = 'Supported TV Providers:\n{}\n'.format(render_table(
             ['mso', 'mso name'],
-            [[mso_id, mso_info['name']] for mso_id, mso_info in MSO_INFO.items()])
+            [[mso_id, mso_info['name']] for mso_id, mso_info in MSO_INFO.items()]))
     else:
         return False
     write_string(out, out=sys.stdout)
@@ -129,7 +134,7 @@ def set_compat_opts(opts):
         if name not in opts.compat_opts:
             return False
         opts.compat_opts.discard(name)
-        opts.compat_opts.update(['*%s' % name])
+        opts.compat_opts.update([f'*{name}'])
         return True
 
     def set_default_compat(compat_name, opt_name, default=True, remove_compat=True):
@@ -156,6 +161,15 @@ def set_compat_opts(opts):
             opts.embed_infojson = False
     if 'format-sort' in opts.compat_opts:
         opts.format_sort.extend(FormatSorter.ytdl_default)
+    elif 'prefer-vp9-sort' in opts.compat_opts:
+        FormatSorter.default = FormatSorter._prefer_vp9_sort
+
+    if 'mtime-by-default' in opts.compat_opts:
+        if opts.updatetime is None:
+            opts.updatetime = True
+        else:
+            _unused_compat_opt('mtime-by-default')
+
     _video_multistreams_set = set_default_compat('multistreams', 'allow_multiple_video_streams', False, remove_compat=False)
     _audio_multistreams_set = set_default_compat('multistreams', 'allow_multiple_audio_streams', False, remove_compat=False)
     if _video_multistreams_set is False and _audio_multistreams_set is False:
@@ -222,7 +236,7 @@ def validate_options(opts):
         validate_minmax(opts.sleep_interval, opts.max_sleep_interval, 'sleep interval')
 
     if opts.wait_for_video is not None:
-        min_wait, max_wait, *_ = map(parse_duration, opts.wait_for_video.split('-', 1) + [None])
+        min_wait, max_wait, *_ = map(parse_duration, [*opts.wait_for_video.split('-', 1), None])
         validate(min_wait is not None and not (max_wait is None and '-' in opts.wait_for_video),
                  'time range to wait for video', opts.wait_for_video)
         validate_minmax(min_wait, max_wait, 'time range to wait for video')
@@ -233,6 +247,11 @@ def validate_options(opts):
         validate_regex('format sorting', f, FormatSorter.regex)
 
     # Postprocessor formats
+    if opts.convertsubtitles == 'none':
+        opts.convertsubtitles = None
+    if opts.convertthumbnails == 'none':
+        opts.convertthumbnails = None
+
     validate_regex('merge output format', opts.merge_output_format,
                    r'({0})(/({0}))*'.format('|'.join(map(re.escape, FFmpegMergerPP.SUPPORTED_EXTS))))
     validate_regex('audio format', opts.audioformat, FFmpegExtractAudioPP.FORMAT_RE)
@@ -252,9 +271,11 @@ def validate_options(opts):
         elif value in ('inf', 'infinite'):
             return float('inf')
         try:
-            return int(value)
+            int_value = int(value)
         except (TypeError, ValueError):
             validate(False, f'{name} retry count', value)
+        validate_positive(f'{name} retry count', int_value)
+        return int_value
 
     opts.retries = parse_retries('download', opts.retries)
     opts.fragment_retries = parse_retries('fragment', opts.fragment_retries)
@@ -264,9 +285,9 @@ def validate_options(opts):
     # Retry sleep function
     def parse_sleep_func(expr):
         NUMBER_RE = r'\d+(?:\.\d+)?'
-        op, start, limit, step, *_ = tuple(re.fullmatch(
+        op, start, limit, step, *_ = (*tuple(re.fullmatch(
             rf'(?:(linear|exp)=)?({NUMBER_RE})(?::({NUMBER_RE})?)?(?::({NUMBER_RE}))?',
-            expr.strip()).groups()) + (None, None)
+            expr.strip()).groups()), None, None)
 
         if op == 'exp':
             return lambda n: min(float(start) * (float(step or 2) ** n), float(limit or 'inf'))
@@ -284,18 +305,20 @@ def validate_options(opts):
             raise ValueError(f'invalid {key} retry sleep expression {expr!r}')
 
     # Bytes
-    def validate_bytes(name, value):
+    def validate_bytes(name, value, strict_positive=False):
         if value is None:
             return None
         numeric_limit = parse_bytes(value)
-        validate(numeric_limit is not None, 'rate limit', value)
+        validate(numeric_limit is not None, name, value)
+        if strict_positive:
+            validate_positive(name, numeric_limit, True)
         return numeric_limit
 
-    opts.ratelimit = validate_bytes('rate limit', opts.ratelimit)
+    opts.ratelimit = validate_bytes('rate limit', opts.ratelimit, True)
     opts.throttledratelimit = validate_bytes('throttled rate limit', opts.throttledratelimit)
     opts.min_filesize = validate_bytes('min filesize', opts.min_filesize)
     opts.max_filesize = validate_bytes('max filesize', opts.max_filesize)
-    opts.buffersize = validate_bytes('buffer size', opts.buffersize)
+    opts.buffersize = validate_bytes('buffer size', opts.buffersize, True)
     opts.http_chunk_size = validate_bytes('http chunk size', opts.http_chunk_size)
 
     # Output templates
@@ -396,13 +419,13 @@ def validate_options(opts):
     # MetadataParser
     def metadataparser_actions(f):
         if isinstance(f, str):
-            cmd = '--parse-metadata %s' % compat_shlex_quote(f)
+            cmd = f'--parse-metadata {shell_quote(f)}'
             try:
                 actions = [MetadataFromFieldPP.to_action(f)]
             except Exception as err:
                 raise ValueError(f'{cmd} is invalid; {err}')
         else:
-            cmd = '--replace-in-metadata %s' % ' '.join(map(compat_shlex_quote, f))
+            cmd = f'--replace-in-metadata {shell_quote(f)}'
             actions = ((MetadataParserPP.Actions.REPLACE, x, *f[1:]) for x in f[0].split(','))
 
         for action in actions:
@@ -413,13 +436,17 @@ def validate_options(opts):
             yield action
 
     if opts.metafromtitle is not None:
-        opts.parse_metadata.setdefault('pre_process', []).append('title:%s' % opts.metafromtitle)
+        opts.parse_metadata.setdefault('pre_process', []).append(f'title:{opts.metafromtitle}')
     opts.parse_metadata = {
         k: list(itertools.chain(*map(metadataparser_actions, v)))
         for k, v in opts.parse_metadata.items()
     }
 
     # Other options
+    opts.plugin_dirs = opts.plugin_dirs
+    if opts.plugin_dirs is None:
+        opts.plugin_dirs = ['default']
+
     if opts.playlist_items is not None:
         try:
             tuple(PlaylistEntries.parse_playlist_items(opts.playlist_items))
@@ -466,7 +493,7 @@ def validate_options(opts):
             default_downloader = ed.get_basename()
 
     for policy in opts.color.values():
-        if policy not in ('always', 'auto', 'no_color', 'never'):
+        if policy not in ('always', 'auto', 'auto-tty', 'no_color', 'no_color-tty', 'never'):
             raise ValueError(f'"{policy}" is not a valid color policy')
 
     warnings, deprecation_warnings = [], []
@@ -477,6 +504,14 @@ def validate_options(opts):
             '"-f best" selects the best pre-merged format which is often not the best option',
             'To let yt-dlp download and merge the best available formats, simply do not pass any format selection',
             'If you know what you are doing and want only the best pre-merged format, use "-f b" instead to suppress this warning')))
+
+    # Common mistake: -f mp4
+    if opts.format == 'mp4':
+        warnings.append('.\n         '.join((
+            '"-f mp4" selects the best pre-merged mp4 format which is often not what\'s intended',
+            'Pre-merged mp4 formats are not available from all sites, or may only be available in lower quality',
+            'To prioritize the best h264 video and aac audio in an mp4 container, use "-t mp4" instead',
+            'If you know what you are doing and want a pre-merged mp4 format, use "-f b[ext=mp4]" instead to suppress this warning')))
 
     # --(postprocessor/downloader)-args without name
     def report_args_compat(name, value, key1, key2=None, where=None):
@@ -493,7 +528,6 @@ def validate_options(opts):
 
     if report_args_compat('post-processor', opts.postprocessor_args, 'default-compat', 'default'):
         opts.postprocessor_args['default'] = opts.postprocessor_args.pop('default-compat')
-        opts.postprocessor_args.setdefault('sponskrub', [])
 
     def report_conflict(arg1, opt1, arg2='--allow-unplayable-formats', opt2='allow_unplayable_formats',
                         val1=NO_DEFAULT, val2=NO_DEFAULT, default=False):
@@ -518,11 +552,6 @@ def validate_options(opts):
                     '"--exec before_dl:"', 'exec_cmd', val2=opts.exec_cmd.get('before_dl'))
     report_conflict('--id', 'useid', '--output', 'outtmpl', val2=opts.outtmpl.get('default'))
     report_conflict('--remux-video', 'remuxvideo', '--recode-video', 'recodevideo')
-    report_conflict('--sponskrub', 'sponskrub', '--remove-chapters', 'remove_chapters')
-    report_conflict('--sponskrub', 'sponskrub', '--sponsorblock-mark', 'sponsorblock_mark')
-    report_conflict('--sponskrub', 'sponskrub', '--sponsorblock-remove', 'sponsorblock_remove')
-    report_conflict('--sponskrub-cut', 'sponskrub_cut', '--split-chapter', 'split_chapters',
-                    val1=opts.sponskrub and opts.sponskrub_cut)
 
     # Conflicts with --allow-unplayable-formats
     report_conflict('--embed-metadata', 'addmetadata')
@@ -535,23 +564,15 @@ def validate_options(opts):
     report_conflict('--recode-video', 'recodevideo')
     report_conflict('--remove-chapters', 'remove_chapters', default=[])
     report_conflict('--remux-video', 'remuxvideo')
-    report_conflict('--sponskrub', 'sponskrub')
     report_conflict('--sponsorblock-remove', 'sponsorblock_remove', default=set())
     report_conflict('--xattrs', 'xattrs')
 
-    # Fully deprecated options
-    def report_deprecation(val, old, new=None):
-        if not val:
-            return
+    if hasattr(opts, '_deprecated_options'):
         deprecation_warnings.append(
-            f'{old} is deprecated and may be removed in a future version. Use {new} instead' if new
-            else f'{old} is deprecated and may not work as expected')
-
-    report_deprecation(opts.sponskrub, '--sponskrub', '--sponsorblock-mark or --sponsorblock-remove')
-    report_deprecation(not opts.prefer_ffmpeg, '--prefer-avconv', 'ffmpeg')
-    # report_deprecation(opts.include_ads, '--include-ads')  # We may re-implement this in future
-    # report_deprecation(opts.call_home, '--call-home')  # We may re-implement this in future
-    # report_deprecation(opts.writeannotations, '--write-annotations')  # It's just that no website has it
+            f'The following options have been deprecated: {", ".join(opts._deprecated_options)}\n'
+            'Please remove them from your command/configuration to avoid future errors.\n'
+            'See  https://github.com/yt-dlp/yt-dlp/issues/14198  for more details')
+        del opts._deprecated_options
 
     # Dependent options
     opts.date = DateRange.day(opts.date) if opts.date else DateRange(opts.dateafter, opts.datebefore)
@@ -592,6 +613,13 @@ def validate_options(opts):
     if opts.ap_username is not None and opts.ap_password is None:
         opts.ap_password = getpass.getpass('Type TV provider account password and press [Return]: ')
 
+    # compat option changes global state destructively; only allow from cli
+    if 'allow-unsafe-ext' in opts.compat_opts:
+        warnings.append(
+            'Using allow-unsafe-ext opens you up to potential attacks. '
+            'Use with great care!')
+        _UnsafeExtensionError.sanitize_extension = lambda x, prepend=False: x
+
     return warnings, deprecation_warnings
 
 
@@ -602,7 +630,7 @@ def get_postprocessors(opts):
         yield {
             'key': 'MetadataParser',
             'actions': actions,
-            'when': when
+            'when': when,
         }
     sponsorblock_query = opts.sponsorblock_mark | opts.sponsorblock_remove
     if sponsorblock_query:
@@ -610,19 +638,19 @@ def get_postprocessors(opts):
             'key': 'SponsorBlock',
             'categories': sponsorblock_query,
             'api': opts.sponsorblock_api,
-            'when': 'after_filter'
+            'when': 'after_filter',
         }
     if opts.convertsubtitles:
         yield {
             'key': 'FFmpegSubtitlesConvertor',
             'format': opts.convertsubtitles,
-            'when': 'before_dl'
+            'when': 'before_dl',
         }
     if opts.convertthumbnails:
         yield {
             'key': 'FFmpegThumbnailsConvertor',
             'format': opts.convertthumbnails,
-            'when': 'before_dl'
+            'when': 'before_dl',
         }
     if opts.extractaudio:
         yield {
@@ -647,7 +675,7 @@ def get_postprocessors(opts):
         yield {
             'key': 'FFmpegEmbedSubtitle',
             # already_have_subtitle = True prevents the file from being deleted after embedding
-            'already_have_subtitle': opts.writesubtitles and keep_subs
+            'already_have_subtitle': opts.writesubtitles and keep_subs,
         }
         if not opts.writeautomaticsub and keep_subs:
             opts.writesubtitles = True
@@ -660,7 +688,7 @@ def get_postprocessors(opts):
             'remove_sponsor_segments': opts.sponsorblock_remove,
             'remove_ranges': opts.remove_ranges,
             'sponsorblock_chapter_title': opts.sponsorblock_chapter_title,
-            'force_keyframes': opts.force_keyframes_at_cuts
+            'force_keyframes': opts.force_keyframes_at_cuts,
         }
     # FFmpegMetadataPP should be run after FFmpegVideoConvertorPP and
     # FFmpegExtractAudioPP as containers before conversion may not support
@@ -675,26 +703,11 @@ def get_postprocessors(opts):
             'add_metadata': opts.addmetadata,
             'add_infojson': opts.embed_infojson,
         }
-    # Deprecated
-    # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
-    # but must be below EmbedSubtitle and FFmpegMetadata
-    # See https://github.com/yt-dlp/yt-dlp/issues/204 , https://github.com/faissaloo/SponSkrub/issues/29
-    # If opts.sponskrub is None, sponskrub is used, but it silently fails if the executable can't be found
-    if opts.sponskrub is not False:
-        yield {
-            'key': 'SponSkrub',
-            'path': opts.sponskrub_path,
-            'args': opts.sponskrub_args,
-            'cut': opts.sponskrub_cut,
-            'force': opts.sponskrub_force,
-            'ignoreerror': opts.sponskrub is None,
-            '_from_cli': True,
-        }
     if opts.embedthumbnail:
         yield {
             'key': 'EmbedThumbnail',
             # already_have_thumbnail = True prevents the file from being deleted after embedding
-            'already_have_thumbnail': opts.writethumbnail
+            'already_have_thumbnail': opts.writethumbnail,
         }
         if not opts.writethumbnail:
             opts.writethumbnail = True
@@ -741,7 +754,7 @@ def parse_options(argv=None):
     print_only = bool(opts.forceprint) and all(k not in opts.forceprint for k in POSTPROCESS_WHEN[3:])
     any_getting = any(getattr(opts, k) for k in (
         'dumpjson', 'dump_single_json', 'getdescription', 'getduration', 'getfilename',
-        'getformat', 'getid', 'getthumbnail', 'gettitle', 'geturl'
+        'getformat', 'getid', 'getthumbnail', 'gettitle', 'geturl',
     ))
     if opts.quiet is None:
         opts.quiet = any_getting or opts.print_json or bool(opts.forceprint)
@@ -766,6 +779,10 @@ def parse_options(argv=None):
         else opts.remuxvideo if opts.remuxvideo in FFmpegVideoRemuxerPP.SUPPORTED_EXTS
         else opts.audioformat if (opts.extractaudio and opts.audioformat in FFmpegExtractAudioPP.SUPPORTED_EXTS)
         else None)
+
+    js_runtimes = {
+        runtime.lower(): {'path': path} for runtime, path in (
+            [*arg.split(':', 1), None][:2] for arg in opts.js_runtimes)}
 
     return ParsedOptions(parser, opts, urls, {
         'usenetrc': opts.usenetrc,
@@ -836,6 +853,7 @@ def parse_options(argv=None):
         'noprogress': opts.quiet if opts.noprogress is None else opts.noprogress,
         'progress_with_newline': opts.progress_with_newline,
         'progress_template': opts.progress_template,
+        'progress_delta': opts.progress_delta,
         'playliststart': opts.playliststart,
         'playlistend': opts.playlistend,
         'playlistreverse': opts.playlist_reverse,
@@ -847,7 +865,6 @@ def parse_options(argv=None):
         'nopart': opts.nopart,
         'updatetime': opts.updatetime,
         'writedescription': opts.writedescription,
-        'writeannotations': opts.writeannotations,
         'writeinfojson': opts.writeinfojson,
         'allow_playlist_files': opts.allow_playlist_files,
         'clean_infojson': opts.clean_infojson,
@@ -864,8 +881,8 @@ def parse_options(argv=None):
         'listsubtitles': opts.listsubtitles,
         'subtitlesformat': opts.subtitlesformat,
         'subtitleslangs': opts.subtitleslangs,
-        'matchtitle': decodeOption(opts.matchtitle),
-        'rejecttitle': decodeOption(opts.rejecttitle),
+        'matchtitle': opts.matchtitle,
+        'rejecttitle': opts.rejecttitle,
         'max_downloads': opts.max_downloads,
         'prefer_free_formats': opts.prefer_free_formats,
         'trim_file_name': opts.trim_file_name,
@@ -881,7 +898,6 @@ def parse_options(argv=None):
         'max_views': opts.max_views,
         'daterange': opts.date,
         'cachedir': opts.cachedir,
-        'youtube_print_sig_code': opts.youtube_print_sig_code,
         'age_limit': opts.age_limit,
         'download_archive': opts.download_archive,
         'break_on_existing': opts.break_on_existing,
@@ -899,13 +915,9 @@ def parse_options(argv=None):
         'socket_timeout': opts.socket_timeout,
         'bidi_workaround': opts.bidi_workaround,
         'debug_printtraffic': opts.debug_printtraffic,
-        'prefer_ffmpeg': opts.prefer_ffmpeg,
-        'include_ads': opts.include_ads,
         'default_search': opts.default_search,
         'dynamic_mpd': opts.dynamic_mpd,
         'extractor_args': opts.extractor_args,
-        'youtube_include_dash_manifest': opts.youtube_include_dash_manifest,
-        'youtube_include_hls_manifest': opts.youtube_include_hls_manifest,
         'encoding': opts.encoding,
         'extract_flat': opts.extract_flat,
         'live_from_start': opts.live_from_start,
@@ -917,7 +929,6 @@ def parse_options(argv=None):
         'fixup': opts.fixup,
         'source_address': opts.source_address,
         'impersonate': opts.impersonate,
-        'call_home': opts.call_home,
         'sleep_interval_requests': opts.sleep_interval_requests,
         'sleep_interval': opts.sleep_interval,
         'max_sleep_interval': opts.max_sleep_interval,
@@ -927,7 +938,6 @@ def parse_options(argv=None):
         'force_keyframes_at_cuts': opts.force_keyframes_at_cuts,
         'list_thumbnails': opts.list_thumbnails,
         'playlist_items': opts.playlist_items,
-        'xattr_set_filesize': opts.xattr_set_filesize,
         'match_filter': opts.match_filter,
         'color': opts.color,
         'ffmpeg_location': opts.ffmpeg_location,
@@ -936,11 +946,14 @@ def parse_options(argv=None):
         'hls_split_discontinuity': opts.hls_split_discontinuity,
         'external_downloader_args': opts.external_downloader_args,
         'postprocessor_args': opts.postprocessor_args,
-        'cn_verification_proxy': opts.cn_verification_proxy,
         'geo_verification_proxy': opts.geo_verification_proxy,
         'geo_bypass': opts.geo_bypass,
         'geo_bypass_country': opts.geo_bypass_country,
         'geo_bypass_ip_block': opts.geo_bypass_ip_block,
+        'useid': opts.useid or None,
+        'js_runtimes': js_runtimes,
+        'remote_components': opts.remote_components,
+        'warn_when_outdated': opts.update_self is None,
         '_warnings': warnings,
         '_deprecation_warnings': deprecation_warnings,
         'compat_opts': opts.compat_opts,
@@ -952,12 +965,6 @@ def _real_main(argv=None):
 
     parser, opts, all_urls, ydl_opts = parse_options(argv)
 
-    # Dump user agent
-    if opts.dump_user_agent:
-        ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=std_headers['User-Agent'])
-        write_string(f'{ua}\n', out=sys.stdout)
-        return
-
     if print_extractor_information(opts, all_urls):
         return
 
@@ -965,6 +972,11 @@ def _real_main(argv=None):
     # See https://github.com/yt-dlp/yt-dlp/issues/2191
     if opts.ffmpeg_location:
         FFmpegPostProcessor._ffmpeg_location.set(opts.ffmpeg_location)
+
+    # load all plugins into the global lookup
+    plugin_dirs.value = opts.plugin_dirs
+    if plugin_dirs.value:
+        _load_all_plugins()
 
     with YoutubeDL(ydl_opts) as ydl:
         pre_process = opts.update_self or opts.rm_cachedir
@@ -975,13 +987,8 @@ def _real_main(argv=None):
 
         try:
             updater = Updater(ydl, opts.update_self)
-            if opts.update_self and updater.update() and actual_use:
-                if updater.cmd:
-                    return updater.restart()
-                # This code is reachable only for zip variant in py < 3.10
-                # It makes sense to exit here, but the old behavior is to continue
-                ydl.report_warning('Restart yt-dlp to use the updated version')
-                # return 100, 'ERROR: The program must exit for the update to complete'
+            if opts.update_self and updater.update() and actual_use and updater.cmd:
+                return updater.restart()
         except Exception:
             traceback.print_exc()
             ydl._download_retcode = 100
@@ -992,8 +999,10 @@ def _real_main(argv=None):
                 # List of simplified targets we know are supported,
                 # to help users know what dependencies may be required.
                 (ImpersonateTarget('chrome'), 'curl_cffi'),
-                (ImpersonateTarget('edge'), 'curl_cffi'),
                 (ImpersonateTarget('safari'), 'curl_cffi'),
+                (ImpersonateTarget('firefox'), 'curl_cffi>=0.10'),
+                (ImpersonateTarget('edge'), 'curl_cffi'),
+                (ImpersonateTarget('tor'), 'curl_cffi>=0.11'),
             ]
 
             available_targets = ydl._get_available_impersonate_targets()
@@ -1001,7 +1010,7 @@ def _real_main(argv=None):
             def make_row(target, handler):
                 return [
                     join_nonempty(target.client.title(), target.version, delim='-') or '-',
-                    join_nonempty((target.os or "").title(), target.os_version, delim='-') or '-',
+                    join_nonempty((target.os or '').title(), target.os_version, delim='-') or '-',
                     handler,
                 ]
 
@@ -1009,12 +1018,12 @@ def _real_main(argv=None):
 
             for known_target, known_handler in known_targets:
                 if not any(
-                    known_target in target and handler == known_handler
+                    known_target in target and known_handler.startswith(handler)
                     for target, handler in available_targets
                 ):
-                    rows.append([
+                    rows.insert(0, [
                         ydl._format_out(text, ydl.Styles.SUPPRESS)
-                        for text in make_row(known_target, f'{known_handler} (not available)')
+                        for text in make_row(known_target, f'{known_handler} (unavailable)')
                     ])
 
             ydl.to_screen('[info] Available impersonate targets')
@@ -1029,7 +1038,7 @@ def _real_main(argv=None):
             ydl.warn_if_short_id(args)
 
             # Show a useful error message and wait for keypress if not launched from shell on Windows
-            if not args and compat_os_name == 'nt' and getattr(sys, 'frozen', False):
+            if not args and os.name == 'nt' and getattr(sys, 'frozen', False):
                 import ctypes.wintypes
                 import msvcrt
 
@@ -1040,7 +1049,7 @@ def _real_main(argv=None):
                 # If we only have a single process attached, then the executable was double clicked
                 # When using `pyinstaller` with `--onefile`, two processes get attached
                 is_onefile = hasattr(sys, '_MEIPASS') and os.path.basename(sys._MEIPASS).startswith('_MEI')
-                if attached_processes == 1 or is_onefile and attached_processes == 2:
+                if attached_processes == 1 or (is_onefile and attached_processes == 2):
                     print(parser._generate_error_message(
                         'Do not double-click the executable, instead call it from a command line.\n'
                         'Please read the README for further information on how to use yt-dlp: '
@@ -1065,11 +1074,10 @@ def _real_main(argv=None):
 
 
 def main(argv=None):
-    global _IN_CLI
-    _IN_CLI = True
+    IN_CLI.value = True
     try:
         _exit(*variadic(_real_main(argv)))
-    except DownloadError:
+    except (CookieLoadError, DownloadError):
         _exit(1)
     except SameFileError as e:
         _exit(f'ERROR: {e}')
@@ -1086,10 +1094,20 @@ def main(argv=None):
 
 from .extractor import gen_extractors, list_extractors
 
+# Register JS runtimes and remote components
+from .globals import supported_js_runtimes, supported_remote_components
+supported_js_runtimes.value['deno'] = _DenoJsRuntime
+supported_js_runtimes.value['node'] = _NodeJsRuntime
+supported_js_runtimes.value['bun'] = _BunJsRuntime
+supported_js_runtimes.value['quickjs'] = _QuickJsRuntime
+
+supported_remote_components.value.append('ejs:github')
+supported_remote_components.value.append('ejs:npm')
+
 __all__ = [
-    'main',
     'YoutubeDL',
-    'parse_options',
     'gen_extractors',
     'list_extractors',
+    'main',
+    'parse_options',
 ]

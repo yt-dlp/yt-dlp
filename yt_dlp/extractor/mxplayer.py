@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     int_or_none,
     traverse_obj,
@@ -23,7 +22,7 @@ class MxplayerIE(InfoExtractor):
             'duration': 2451,
             'season': 'Season 1',
             'series': 'My Girlfriend Is An Alien (Hindi Dubbed)',
-            'episode': 'Episode 1'
+            'episode': 'Episode 1',
         },
         'params': {
             'format': 'bv',
@@ -56,13 +55,13 @@ class MxplayerIE(InfoExtractor):
             'duration': 2332,
             'season': 'Season 1',
             'series': 'Shaitaan',
-            'episode': 'Episode 1'
+            'episode': 'Episode 1',
         },
         'params': {
             'format': 'best',
             'skip_download': True,
         },
-        'skip': 'No longer available.'
+        'skip': 'No longer available.',
     }, {
         'url': 'https://www.mxplayer.in/show/watch-aashram/chapter-1/duh-swapna-online-d445579792b0135598ba1bc9088a84cb',
         'info_dict': {
@@ -76,7 +75,7 @@ class MxplayerIE(InfoExtractor):
             'duration': 2568,
             'season': 'Season 1',
             'series': 'Aashram',
-            'episode': 'Episode 3'
+            'episode': 'Episode 3',
         },
         'params': {
             'format': 'bv',
@@ -95,7 +94,7 @@ class MxplayerIE(InfoExtractor):
             'duration': 1305,
             'season': 'Season 1',
             'series': 'Dangerous',
-            'episode': 'Episode 1'
+            'episode': 'Episode 1',
         },
         'params': {
             'format': 'bv',
@@ -114,7 +113,7 @@ class MxplayerIE(InfoExtractor):
             'format': 'best',
             'skip_download': True,
         },
-        'skip': 'No longer available. Cannot be played on browser'
+        'skip': 'No longer available. Cannot be played on browser',
     }, {
         'url': 'https://www.mxplayer.in/movie/watch-kitne-door-kitne-paas-movie-online-a9e9c76c566205955f70d8b2cb88a6a2',
         'info_dict': {
@@ -206,11 +205,11 @@ class MxplayerShowIE(InfoExtractor):
         'info_dict': {
             'id': 'a8f44e3cc0814b5601d17772cedf5417',
             'title': 'Watch Chakravartin Ashoka Samrat Series Online',
-        }
+        },
     }]
 
-    _API_SHOW_URL = "https://api.mxplay.com/v1/web/detail/tab/tvshowseasons?type=tv_show&id={}&device-density=2&platform=com.mxplay.desktop&content-languages=hi,en"
-    _API_EPISODES_URL = "https://api.mxplay.com/v1/web/detail/tab/tvshowepisodes?type=season&id={}&device-density=1&platform=com.mxplay.desktop&content-languages=hi,en&{}"
+    _API_SHOW_URL = 'https://api.mxplay.com/v1/web/detail/tab/tvshowseasons?type=tv_show&id={}&device-density=2&platform=com.mxplay.desktop&content-languages=hi,en'
+    _API_EPISODES_URL = 'https://api.mxplay.com/v1/web/detail/tab/tvshowepisodes?type=season&id={}&device-density=1&platform=com.mxplay.desktop&content-languages=hi,en&{}'
 
     def _entries(self, show_id):
         show_json = self._download_json(
@@ -218,7 +217,7 @@ class MxplayerShowIE(InfoExtractor):
             video_id=show_id, headers={'Referer': 'https://mxplayer.in'})
         page_num = 0
         for season in show_json.get('items') or []:
-            season_id = try_get(season, lambda x: x['id'], compat_str)
+            season_id = try_get(season, lambda x: x['id'], str)
             next_url = ''
             while next_url is not None:
                 page_num += 1
@@ -226,11 +225,11 @@ class MxplayerShowIE(InfoExtractor):
                     self._API_EPISODES_URL.format(season_id, next_url),
                     video_id=season_id,
                     headers={'Referer': 'https://mxplayer.in'},
-                    note='Downloading JSON metadata page %d' % page_num)
+                    note=f'Downloading JSON metadata page {page_num}')
                 for episode in season_json.get('items') or []:
                     video_url = episode['webUrl']
                     yield self.url_result(
-                        'https://mxplayer.in%s' % video_url,
+                        f'https://mxplayer.in{video_url}',
                         ie=MxplayerIE.ie_key(), video_id=video_url.split('-')[-1])
                 next_url = season_json.get('next')
 

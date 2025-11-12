@@ -468,7 +468,7 @@ fragment BannerFields on Banner {
         }, data=json.dumps({
             'query': self._GRAPHQL_QUERY,
             'variables': {'videoId': concert_id},
-            'operationName': 'videoDetailPage'
+            'operationName': 'videoDetailPage',
         }, separators=(',', ':')).encode())['data']['node']
 
         metadata = traverse_obj(data, {

@@ -1,3 +1,4 @@
+from .common import InfoExtractor
 from ..utils import (
     mimetype2ext,
     parse_duration,
@@ -5,7 +6,6 @@ from ..utils import (
     str_or_none,
     traverse_obj,
 )
-from .common import InfoExtractor
 
 
 class BloggerIE(InfoExtractor):
@@ -19,16 +19,27 @@ class BloggerIE(InfoExtractor):
             'id': 'BLOGGER-video-3c740e3a49197e16-796',
             'title': 'BLOGGER-video-3c740e3a49197e16-796',
             'ext': 'mp4',
-            'thumbnail': r're:^https?://.*',
             'duration': 76.068,
-        }
+            'thumbnail': r're:https?://i9\.ytimg\.com/vi_blogger/.+',
+        },
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://blog.tomeuvizoso.net/2019/01/a-panfrost-milestone.html',
+        'md5': 'f1bc19b6ea1b0fd1d81e84ca9ec467ac',
+        'info_dict': {
+            'id': 'BLOGGER-video-3c740e3a49197e16-12203',
+            'ext': 'mp4',
+            'title': 'BLOGGER-video-3c740e3a49197e16-12203',
+            'duration': 76.068,
+            'thumbnail': r're:https?://i9\.ytimg\.com/vi_blogger/.+',
+        },
     }]
 
     def _real_extract(self, url):
         token_id = self._match_id(url)
         webpage = self._download_webpage(url, token_id)
         data_json = self._search_regex(r'var\s+VIDEO_CONFIG\s*=\s*(\{.*)', webpage, 'JSON data')
-        data = self._parse_json(data_json.encode('utf-8').decode('unicode_escape'), token_id)
+        data = self._parse_json(data_json.encode().decode('unicode_escape'), token_id)
         streams = data['streams']
         formats = [{
             'ext': mimetype2ext(traverse_obj(parse_qs(stream['play_url']), ('mime', 0))),

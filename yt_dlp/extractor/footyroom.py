@@ -19,7 +19,7 @@ class FootyRoomIE(InfoExtractor):
             'title': 'VIDEO Georgia 0 - 2 Germany',
         },
         'playlist_count': 1,
-        'add_ie': ['Playwire']
+        'add_ie': ['Playwire'],
     }]
 
     def _real_extract(self, url):

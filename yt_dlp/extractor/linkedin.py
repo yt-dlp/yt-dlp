@@ -1,4 +1,5 @@
-from itertools import zip_longest
+import itertools
+import json
 import re
 
 from .common import InfoExtractor
@@ -7,14 +8,14 @@ from ..utils import (
     extract_attributes,
     float_or_none,
     int_or_none,
-    srt_subtitles_timecode,
     mimetype2ext,
-    traverse_obj,
+    srt_subtitles_timecode,
     try_get,
     url_or_none,
     urlencode_postdata,
     urljoin,
 )
+from ..utils.traversal import find_elements, require, traverse_obj
 
 
 class LinkedInBaseIE(InfoExtractor):
@@ -59,14 +60,14 @@ class LinkedInLearningBaseIE(LinkedInBaseIE):
         if video_slug:
             query.update({
                 'videoSlug': video_slug,
-                'resolution': '_%s' % resolution,
+                'resolution': f'_{resolution}',
             })
             sub = ' %dp' % resolution
         api_url = 'https://www.linkedin.com/learning-api/detailedCourses'
         if not self._get_cookies(api_url).get('JSESSIONID'):
             self.raise_login_required()
         return self._download_json(
-            api_url, video_slug, 'Downloading%s JSON metadata' % sub, headers={
+            api_url, video_slug, f'Downloading{sub} JSON metadata', headers={
                 'Csrf-Token': self._get_cookies(api_url)['JSESSIONID'].value,
             }, query=query)['elements'][0]
 
@@ -78,11 +79,14 @@ class LinkedInLearningBaseIE(LinkedInBaseIE):
                 return mobj.group(1)
 
     def _get_video_id(self, video_data, course_slug, video_slug):
-        return self._get_urn_id(video_data) or '%s/%s' % (course_slug, video_slug)
+        return self._get_urn_id(video_data) or f'{course_slug}/{video_slug}'
 
 
 class LinkedInIE(LinkedInBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?linkedin\.com/posts/[^/?#]+-(?P<id>\d+)-\w{4}/?(?:[?#]|$)'
+    _VALID_URL = [
+        r'https?://(?:www\.)?linkedin\.com/posts/[^/?#]+-(?P<id>\d+)-\w{4}/?(?:[?#]|$)',
+        r'https?://(?:www\.)?linkedin\.com/feed/update/urn:li:activity:(?P<id>\d+)',
+    ]
     _TESTS = [{
         'url': 'https://www.linkedin.com/posts/mishalkhawaja_sendinblueviews-toronto-digitalmarketing-ugcPost-6850898786781339649-mM20',
         'info_dict': {
@@ -92,7 +96,7 @@ class LinkedInIE(LinkedInBaseIE):
             'description': 'md5:2998a31f6f479376dd62831f53a80f71',
             'uploader': 'Mishal K.',
             'thumbnail': 're:^https?://media.licdn.com/dms/image/.*$',
-            'like_count': int
+            'like_count': int,
         },
     }, {
         'url': 'https://www.linkedin.com/posts/the-mathworks_2_what-is-mathworks-cloud-center-activity-7151241570371948544-4Gu7',
@@ -104,8 +108,11 @@ class LinkedInIE(LinkedInBaseIE):
             'uploader': 'MathWorks',
             'thumbnail': 're:^https?://media.licdn.com/dms/image/.*$',
             'like_count': int,
-            'subtitles': 'mincount:1'
+            'subtitles': 'mincount:1',
         },
+    }, {
+        'url': 'https://www.linkedin.com/feed/update/urn:li:activity:7016901149999955968/?utm_source=share&utm_medium=member_desktop',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -156,12 +163,13 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
 
     def json2srt(self, transcript_lines, duration=None):
         srt_data = ''
-        for line, (line_dict, next_dict) in enumerate(zip_longest(transcript_lines, transcript_lines[1:])):
+        for line, (line_dict, next_dict) in enumerate(itertools.zip_longest(transcript_lines, transcript_lines[1:])):
             start_time, caption = line_dict['transcriptStartAt'] / 1000, line_dict['caption']
             end_time = next_dict['transcriptStartAt'] / 1000 if next_dict else duration or start_time + 1
-            srt_data += '%d\n%s --> %s\n%s\n\n' % (line + 1, srt_subtitles_timecode(start_time),
-                                                   srt_subtitles_timecode(end_time),
-                                                   caption)
+            srt_data += (
+                f'{line + 1}\n'
+                f'{srt_subtitles_timecode(start_time)} --> {srt_subtitles_timecode(end_time)}\n'
+                f'{caption}\n\n')
         return srt_data
 
     def _real_extract(self, url):
@@ -176,7 +184,7 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
             progressive_url = video_url_data.get('progressiveUrl')
             if progressive_url:
                 formats.append({
-                    'format_id': 'progressive-%dp' % height,
+                    'format_id': f'progressive-{height}p',
                     'url': progressive_url,
                     'ext': 'mp4',
                     'height': height,
@@ -208,7 +216,7 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
         if transcript_lines:
             subtitles['en'] = [{
                 'ext': 'srt',
-                'data': self.json2srt(transcript_lines, duration)
+                'data': self.json2srt(transcript_lines, duration),
             }]
 
         return {
@@ -222,7 +230,7 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
             # It seems like this would be correctly handled by default
             # However, unless someone can confirm this, the old
             # behaviour is being kept as-is
-            '_format_sort_fields': ('res', 'source_preference')
+            '_format_sort_fields': ('res', 'source_preference'),
         }
 
 
@@ -241,7 +249,7 @@ class LinkedInLearningCourseIE(LinkedInLearningBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if LinkedInLearningIE.suitable(url) else super(LinkedInLearningCourseIE, cls).suitable(url)
+        return False if LinkedInLearningIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         course_slug = self._match_id(url)
@@ -259,7 +267,7 @@ class LinkedInLearningCourseIE(LinkedInLearningBaseIE):
                     '_type': 'url_transparent',
                     'id': self._get_video_id(video, course_slug, video_slug),
                     'title': video.get('title'),
-                    'url': 'https://www.linkedin.com/learning/%s/%s' % (course_slug, video_slug),
+                    'url': f'https://www.linkedin.com/learning/{course_slug}/{video_slug}',
                     'chapter': chapter_title,
                     'chapter_number': chapter_number,
                     'chapter_id': chapter_id,
@@ -270,3 +278,110 @@ class LinkedInLearningCourseIE(LinkedInLearningBaseIE):
             entries, course_slug,
             course_data.get('title'),
             course_data.get('description'))
+
+
+class LinkedInEventsIE(LinkedInBaseIE):
+    IE_NAME = 'linkedin:events'
+    _VALID_URL = r'https?://(?:www\.)?linkedin\.com/events/(?P<id>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://www.linkedin.com/events/7084656651378536448/comments/',
+        'info_dict': {
+            'id': '7084656651378536448',
+            'ext': 'mp4',
+            'title': '#37 Aprende a hacer una entrevista en inglés para tu próximo trabajo remoto',
+            'description': '¡Agarra para anotar que se viene tremendo evento!',
+            'duration': 1765,
+            'timestamp': 1689113772,
+            'upload_date': '20230711',
+            'release_timestamp': 1689174012,
+            'release_date': '20230712',
+            'live_status': 'was_live',
+        },
+    }, {
+        'url': 'https://www.linkedin.com/events/27-02energyfreedombyenergyclub7295762520814874625/comments/',
+        'info_dict': {
+            'id': '27-02energyfreedombyenergyclub7295762520814874625',
+            'ext': 'mp4',
+            'title': '27.02 Energy Freedom by Energy Club',
+            'description': 'md5:1292e6f31df998914c293787a02c3b91',
+            'duration': 6420,
+            'timestamp': 1739445333,
+            'upload_date': '20250213',
+            'release_timestamp': 1740657620,
+            'release_date': '20250227',
+            'live_status': 'was_live',
+        },
+    }]
+
+    def _real_initialize(self):
+        if not self._get_cookies('https://www.linkedin.com/').get('li_at'):
+            self.raise_login_required()
+
+    def _real_extract(self, url):
+        event_id = self._match_id(url)
+        webpage = self._download_webpage(url, event_id)
+
+        base_data = traverse_obj(webpage, (
+            {find_elements(tag='code', attr='style', value='display: none')}, ..., {json.loads}, 'included', ...))
+        meta_data = traverse_obj(base_data, (
+            lambda _, v: v['$type'] == 'com.linkedin.voyager.dash.events.ProfessionalEvent', any)) or {}
+
+        live_status = {
+            'PAST': 'was_live',
+            'ONGOING': 'is_live',
+            'FUTURE': 'is_upcoming',
+        }.get(meta_data.get('lifecycleState'))
+
+        if live_status == 'is_upcoming':
+            player_data = {}
+            if event_time := traverse_obj(meta_data, ('displayEventTime', {str})):
+                message = f'This live event is scheduled for {event_time}'
+            else:
+                message = 'This live event has not yet started'
+            self.raise_no_formats(message, expected=True, video_id=event_id)
+        else:
+            # TODO: Add support for audio-only live events
+            player_data = traverse_obj(base_data, (
+                lambda _, v: v['$type'] == 'com.linkedin.videocontent.VideoPlayMetadata',
+                any, {require('video player data')}))
+
+        formats, subtitles = [], {}
+        for prog_fmts in traverse_obj(player_data, ('progressiveStreams', ..., {dict})):
+            for fmt_url in traverse_obj(prog_fmts, ('streamingLocations', ..., 'url', {url_or_none})):
+                formats.append({
+                    'url': fmt_url,
+                    **traverse_obj(prog_fmts, {
+                        'width': ('width', {int_or_none}),
+                        'height': ('height', {int_or_none}),
+                        'tbr': ('bitRate', {int_or_none(scale=1000)}),
+                        'filesize': ('size', {int_or_none}),
+                        'ext': ('mediaType', {mimetype2ext}),
+                    }),
+                })
+
+        for m3u8_url in traverse_obj(player_data, (
+            'adaptiveStreams', lambda _, v: v['protocol'] == 'HLS', 'masterPlaylists', ..., 'url', {url_or_none},
+        )):
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                m3u8_url, event_id, 'mp4', m3u8_id='hls', fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
+
+        return {
+            'id': event_id,
+            'formats': formats,
+            'subtitles': subtitles,
+            'live_status': live_status,
+            **traverse_obj(meta_data, {
+                'title': ('name', {str}),
+                'description': ('description', 'text', {str}),
+                'timestamp': ('createdAt', {int_or_none(scale=1000)}),
+                # timeRange.start is available when the stream is_upcoming
+                'release_timestamp': ('timeRange', 'start', {int_or_none(scale=1000)}),
+            }),
+            **traverse_obj(player_data, {
+                'duration': ('duration', {int_or_none(scale=1000)}),
+                # liveStreamCreatedAt is only available when the stream is_live or was_live
+                'release_timestamp': ('liveStreamCreatedAt', {int_or_none(scale=1000)}),
+            }),
+        }

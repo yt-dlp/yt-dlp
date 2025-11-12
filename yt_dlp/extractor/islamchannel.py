@@ -14,7 +14,7 @@ class IslamChannelIE(InfoExtractor):
             'description': 'md5:5cc7ddecef064ea7afe52eb5e0e33b55',
             'thumbnail': r're:https?://.+',
             'ext': 'mp4',
-        }
+        },
     }]
 
     def _real_extract(self, url):

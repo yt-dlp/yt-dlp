@@ -39,8 +39,8 @@ class RinseFMIE(RinseFMBaseIE):
             'title': 'Club Glow - 15/12/2023 - 20:00',
             'thumbnail': r're:^https://.+\.(?:jpg|JPG)$',
             'release_timestamp': 1702598400,
-            'release_date': '20231215'
-        }
+            'release_date': '20231215',
+        },
     }]
 
     def _real_extract(self, url):
@@ -58,22 +58,22 @@ class RinseFMArtistPlaylistIE(RinseFMBaseIE):
         'info_dict': {
             'id': 'resources',
             'title': '[re]sources',
-            'description': '[re]sources est un label parisien piloté par le DJ et producteur Tommy Kid.'
+            'description': '[re]sources est un label parisien piloté par le DJ et producteur Tommy Kid.',
         },
-        'playlist_mincount': 40
+        'playlist_mincount': 40,
     }, {
         'url': 'https://rinse.fm/shows/ivy/',
         'info_dict': {
             'id': 'ivy',
             'title': '[IVY]',
-            'description': 'A dedicated space for DNB/Turbo House and 4x4.'
+            'description': 'A dedicated space for DNB/Turbo House and 4x4.',
         },
-        'playlist_mincount': 7
+        'playlist_mincount': 7,
     }]
 
     def _entries(self, data):
         for episode in traverse_obj(data, (
-            'props', 'pageProps', 'episodes', lambda _, v: determine_ext(v['fileUrl']) in MEDIA_EXTENSIONS.audio)
+            'props', 'pageProps', 'episodes', lambda _, v: determine_ext(v['fileUrl']) in MEDIA_EXTENSIONS.audio),
         ):
             yield self._parse_entry(episode)
 

@@ -3,18 +3,13 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_etree_fromstring,
-    compat_str,
-    compat_urllib_parse_unquote,
-)
+from ..compat import compat_etree_fromstring
 from ..networking import Request
 from ..networking.exceptions import network_exceptions
 from ..utils import (
     ExtractorError,
     clean_html,
     determine_ext,
-    error_to_compat_str,
     float_or_none,
     format_field,
     get_element_by_id,
@@ -55,7 +50,7 @@ class FacebookIE(InfoExtractor):
                             [^/]+/videos/(?:[^/]+/)?|
                             [^/]+/posts/|
                             events/(?:[^/]+/)?|
-                            groups/[^/]+/(?:permalink|posts)/|
+                            groups/[^/]+/(?:permalink|posts)/(?:[\da-f]+/)?|
                             watchparty/
                         )|
                     facebook:
@@ -86,13 +81,14 @@ class FacebookIE(InfoExtractor):
             'description': 'md5:34675bda53336b1d16400265c2bb9b3b',
             'uploader': 'RADIO KICKS FM',
             'upload_date': '20230818',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1692346159,
-            'thumbnail': r're:^https?://.*',
             'uploader_id': '100063551323670',
-            'duration': 3132.184,
+            'duration': 3133.583,
             'view_count': int,
             'concurrent_view_count': 0,
         },
+        'expected_warnings': ['Cannot parse data'],
     }, {
         'url': 'https://www.facebook.com/video.php?v=637842556329505&fref=nf',
         'md5': '6a40d33c0eccbb1af76cf0485a052659',
@@ -111,16 +107,18 @@ class FacebookIE(InfoExtractor):
         'info_dict': {
             'id': '274175099429670',
             'ext': 'mp4',
-            'title': 'Asif',
+            'title': '119 reactions · 1.4K shares | Asif Nawab Butt on Reels',
             'description': '',
             'uploader': 'Asif Nawab Butt',
             'upload_date': '20140506',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1399398998,
-            'thumbnail': r're:^https?://.*',
-            'uploader_id': 'pfbid028wxorhX2ErLFJ578N6P3crHD3PHmXTCqCvfBpsnbSLmbokwSY75p5hWBjHGkG4zxl',
+            'uploader_id': 'pfbid028xue38TBXRyNbiqBSV2LFs3QK3yopvKjupbqFoL6U9SKbx4p2SMdJjQSBvnjsHGWl',
             'duration': 131.03,
             'concurrent_view_count': int,
+            'view_count': int,
         },
+        'expected_warnings': ['Cannot parse data'],
     }, {
         'note': 'Video with DASH manifest',
         'url': 'https://www.facebook.com/video.php?v=957955867617029',
@@ -162,7 +160,7 @@ class FacebookIE(InfoExtractor):
             'id': '10153664894881749',
             'ext': 'mp4',
             'title': 'Average time to confirm recent Supreme Court nominees: 67 days Longest it\'s t...',
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1456259628,
             'upload_date': '20160223',
             'uploader': 'Barack Obama',
@@ -172,7 +170,7 @@ class FacebookIE(InfoExtractor):
         # have 1080P, but only up to 720p in swf params
         # data.video.story.attachments[].media
         'url': 'https://www.facebook.com/cnn/videos/10155529876156509/',
-        'md5': 'ca63897a90c9452efee5f8c40d080e25',
+        'md5': '70b82ebf5f0e9b91b2a49d3db3563611',
         'info_dict': {
             'id': '10155529876156509',
             'ext': 'mp4',
@@ -181,13 +179,14 @@ class FacebookIE(InfoExtractor):
             'timestamp': 1477818095,
             'upload_date': '20161030',
             'uploader': 'CNN',
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'view_count': int,
             'uploader_id': '100059479812265',
             'concurrent_view_count': int,
-            'duration': 44.478,
+            'duration': 44.181,
         },
     }, {
+        # FIXME: unable to extract uploader, no formats found
         # bigPipe.onPageletArrive ... onPageletArrive pagelet_group_mall
         # data.node.comet_sections.content.story.attachments[].style_type_renderer.attachment.media
         'url': 'https://www.facebook.com/yaroslav.korpan/videos/1417995061575415/',
@@ -201,15 +200,13 @@ class FacebookIE(InfoExtractor):
             'uploader': 'Yaroslav Korpan',
             'uploader_id': 'pfbid06AScABAWcW91qpiuGrLt99Ef9tvwHoXP6t8KeFYEqkSfreMtfa9nTveh8b2ZEVSWl',
             'concurrent_view_count': int,
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'view_count': int,
             'duration': 11736.446,
         },
-        'params': {
-            'skip_download': True,
-        },
+        'skip': 'Invalid URL',
     }, {
-        # FIXME
+        # FIXME: Cannot parse data error
         'url': 'https://www.facebook.com/LaGuiaDelVaron/posts/1072691702860471',
         'info_dict': {
             'id': '1072691702860471',
@@ -218,7 +215,7 @@ class FacebookIE(InfoExtractor):
             'timestamp': 1477305000,
             'upload_date': '20161024',
             'uploader': 'La Guía Del Varón',
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
         },
         'skip': 'Requires logging in',
     }, {
@@ -246,10 +243,11 @@ class FacebookIE(InfoExtractor):
             'timestamp': 1511548260,
             'upload_date': '20171124',
             'uploader': 'Vickie Gentry',
-            'uploader_id': 'pfbid0FuZhHCeWDAxWxEbr3yKPFaRstXvRxgsp9uCPG6GjD4J2AitB35NUAuJ4Q75KcjiDl',
-            'thumbnail': r're:^https?://.*',
-            'duration': 148.435,
+            'uploader_id': 'pfbid0FkkycT95ySNNyfCw4Cho6u5G7WbbZEcxT496Hq8rtx1K3LcTCATpR3wnyYhmyGC5l',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
+            'duration': 148.224,
         },
+        'skip': 'Invalid URL',
     }, {
         # data.node.comet_sections.content.story.attachments[].styles.attachment.media
         'url': 'https://www.facebook.com/attn/posts/pfbid0j1Czf2gGDVqeQ8KiMLFm3pWN8GxsQmeRrVhimWDzMuKQoR8r4b1knNsejELmUgyhl',
@@ -263,7 +261,7 @@ class FacebookIE(InfoExtractor):
             'duration': 132.675,
             'uploader_id': '100064451419378',
             'view_count': int,
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1701975646,
         },
     }, {
@@ -274,9 +272,9 @@ class FacebookIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Lela Evans',
             'description': 'Today Makkovik\'s own Pilot Mandy Smith made her inaugural landing on the airstrip in her hometown. What a proud moment as we all cheered and...',
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'uploader': 'Lela Evans',
-            'uploader_id': 'pfbid0shZJipuigyy5mqrUJn9ub5LJFWNHvan5prtyi3LrDuuuJ4NwrURgnQHYR9fywBepl',
+            'uploader_id': 'pfbid02wjMpknobSMnyynK3TNKN4Ww1StcpAKXgowqTyge3bz7LwHZMQ68uiXzzbu7xeryBl',
             'upload_date': '20231228',
             'timestamp': 1703804085,
             'duration': 394.347,
@@ -327,30 +325,29 @@ class FacebookIE(InfoExtractor):
             'upload_date': '20180523',
             'uploader': 'ESL One Dota 2',
             'uploader_id': '100066514874195',
-            'duration': 4524.212,
+            'duration': 4524.001,
             'view_count': int,
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'concurrent_view_count': int,
         },
-        'params': {
-            'skip_download': True,
-        },
+        'params': {'skip_download': True},
     }, {
         # data.node.comet_sections.content.story.attachments[].style_type_renderer.attachment.all_subattachments.nodes[].media
         'url': 'https://www.facebook.com/100033620354545/videos/106560053808006/',
         'info_dict': {
             'id': '106560053808006',
             'ext': 'mp4',
-            'title': 'Josef',
-            'thumbnail': r're:^https?://.*',
+            'title': 'Josef Novak on Reels',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'concurrent_view_count': int,
-            'uploader_id': 'pfbid0cibUN6tV7DYgdbJdsUFN46wc4jKpVSPAvJQhFofGqBGmVn3V3JtAs2tfUwziw2hUl',
+            'uploader_id': 'pfbid0cjYJYXpePWqhZ9DgpB6gKXrN2q3obwducdKm4wT7K5nkhbfKg5cneocYbsdaji7fl',
             'timestamp': 1549275572,
-            'duration': 3.413,
+            'duration': 3.283,
             'uploader': 'Josef Novak',
             'description': '',
             'upload_date': '20190204',
         },
+        'expected_warnings': ['Cannot parse data'],
     }, {
         # data.video.story.attachments[].media
         'url': 'https://www.facebook.com/watch/?v=647537299265662',
@@ -401,6 +398,7 @@ class FacebookIE(InfoExtractor):
         'playlist_count': 1,
         'skip': 'Requires logging in',
     }, {
+        # FIXME: Cannot parse data error
         # data.event.cover_media_renderer.cover_video
         'url': 'https://m.facebook.com/events/1509582499515440',
         'info_dict': {
@@ -408,14 +406,67 @@ class FacebookIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'ANALISI IN CAMPO OSCURO " Coaguli nel sangue dei vaccinati"',
             'description': 'Other event by Comitato Liberi Pensatori on Tuesday, October 18 2022',
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'uploader': 'Comitato Liberi Pensatori',
             'uploader_id': '100065709540881',
         },
+    }, {
+        'url': 'https://www.facebook.com/groups/1513990329015294/posts/d41d8cd9/2013209885760000/?app=fbl',
+        'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        # <iframe> embed
+        'url': 'http://www.unique-almeria.com/mini-hollywood.html',
+        'md5': 'cba5d8c5021e9340dcefe925255e2c3e',
+        'info_dict': {
+            'id': '1529066599879',
+            'ext': 'mp4',
+            'title': 'Facebook video #1529066599879',
+        },
+        'expected_warnings': ['unable to extract uploader'],
+    }, {
+        # FIXME: Embed detection
+        # <iframe> embed, plugin video
+        'url': 'https://www.newsmemory.com/eedition/e-publishing-solutions/2-in-one-app/',
+        'md5': 'ae97d4a44f8cc9a8b1a4c03b9ed793af',
+        'info_dict': {
+            'id': '10155710648695814',
+            'ext': 'mp4',
+            'title': 'Download the all new and improved Trinidad Express App',
+            'concurrent_view_count': int,
+            'description': 'md5:4806195c99908e4189b45b1c23bd4f89',
+            'duration': 69.408,
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
+            'timestamp': 1533919195,
+            'upload_date': '20180810',
+            'uploader': 'Trinidad Express Newspapers',
+            'uploader_id': '100064446413648',
+            'view_count': int,
+        },
+        'expected_warnings': ['Cannot parse data'],
+    }, {
+        # API embed
+        'url': 'https://www.curs.md/ro',
+        'md5': '090bae53b9bff2be993c896edc2ea205',
+        'info_dict': {
+            'id': '334484292523563',
+            'ext': 'mp4',
+            'title': 'md5:9abffe1c86cdd967ffa224e1ccc13b90',
+            'concurrent_view_count': int,
+            'description': 'md5:0ba98567a61c640f9fabf1882235b33d',
+            'duration': 8789.891,
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
+            'timestamp': 1700603114,
+            'upload_date': '20231121',
+            'uploader': 'Istoria Moldovei',
+            'uploader_id': '100063529778592',
+            'view_count': int,
+        },
+        'params': {'extractor_args': {'generic': {'impersonate': ['chrome']}}},
     }]
     _SUPPORTED_PAGLETS_REGEX = r'(?:pagelet_group_mall|permalink_video_pagelet|hyperfeed_story_id_[0-9a-f]+)'
     _api_config = {
-        'graphURI': '/api/graphql/'
+        'graphURI': '/api/graphql/',
     }
 
     def _perform_login(self, username, password):
@@ -450,7 +501,7 @@ class FacebookIE(InfoExtractor):
                     r'(?s)<div[^>]+class=(["\']).*?login_error_box.*?\1[^>]*><div[^>]*>.*?</div><div[^>]*>(?P<error>.+?)</div>',
                     login_results, 'login error', default=None, group='error')
                 if error:
-                    raise ExtractorError('Unable to login: %s' % error, expected=True)
+                    raise ExtractorError(f'Unable to login: {error}', expected=True)
                 self.report_warning('unable to log in: bad username/password, or exceeded login rate limit (~3/min). Check credentials or wait.')
                 return
 
@@ -474,7 +525,7 @@ class FacebookIE(InfoExtractor):
             if re.search(r'id="checkpointSubmitButton"', check_response) is not None:
                 self.report_warning('Unable to confirm login, you have to login in your browser and authorize the login.')
         except network_exceptions as err:
-            self.report_warning('unable to log in: %s' % error_to_compat_str(err))
+            self.report_warning(f'unable to log in: {err}')
             return
 
     def _extract_from_url(self, url, video_id):
@@ -493,7 +544,7 @@ class FacebookIE(InfoExtractor):
             page_title = title or self._html_search_regex((
                 r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>(?P<content>[^<]*)</h2>',
                 r'(?s)<span class="fbPhotosPhotoCaption".*?id="fbPhotoPageCaption"><span class="hasCaption">(?P<content>.*?)</span>',
-                self._meta_regex('og:title'), self._meta_regex('twitter:title'), r'<title>(?P<content>.+?)</title>'
+                self._meta_regex('og:title'), self._meta_regex('twitter:title'), r'<title>(?P<content>.+?)</title>',
             ), webpage, 'title', default=None, group='content')
             description = description or self._html_search_meta(
                 ['description', 'og:description', 'twitter:description'],
@@ -503,7 +554,8 @@ class FacebookIE(InfoExtractor):
                 or get_first(post, ('video', 'creation_story', 'attachments', ..., 'media', lambda k, v: k == 'owner' and v['name']))
                 or get_first(post, (..., 'video', lambda k, v: k == 'owner' and v['name']))
                 or get_first(post, ('node', 'actors', ..., {dict}))
-                or get_first(post, ('event', 'event_creator', {dict})) or {})
+                or get_first(post, ('event', 'event_creator', {dict}))
+                or get_first(post, ('video', 'creation_story', 'short_form_video_context', 'video_owner', {dict})) or {})
             uploader = uploader_data.get('name') or (
                 clean_html(get_element_by_id('fbPhotoPageAuthorName', webpage))
                 or self._search_regex(
@@ -525,10 +577,15 @@ class FacebookIE(InfoExtractor):
                 'timestamp': timestamp,
                 'thumbnail': thumbnail,
                 'view_count': parse_count(self._search_regex(
-                    (r'\bviewCount\s*:\s*["\']([\d,.]+)', r'video_view_count["\']\s*:\s*(\d+)',),
+                    (r'\bviewCount\s*:\s*["\']([\d,.]+)', r'video_view_count["\']\s*:\s*(\d+)'),
                     webpage, 'view count', default=None)),
                 'concurrent_view_count': get_first(post, (
                     ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
+                **traverse_obj(post, (lambda _, v: video_id in v['url'], 'feedback', {
+                    'like_count': ('likers', 'count', {int}),
+                    'comment_count': ('total_comment_count', {int}),
+                    'repost_count': ('share_count_reduced', {parse_count}),
+                }), get_all=False),
             }
 
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
@@ -559,12 +616,13 @@ class FacebookIE(InfoExtractor):
                 return extract_video_data(try_get(
                     js_data, lambda x: x['jsmods']['instances'], list) or [])
 
-        def extract_dash_manifest(video, formats):
-            dash_manifest = video.get('dash_manifest')
+        def extract_dash_manifest(vid_data, formats, mpd_url=None):
+            dash_manifest = traverse_obj(
+                vid_data, 'dash_manifest', 'playlist', 'dash_manifest_xml_string', 'manifest_xml', expected_type=str)
             if dash_manifest:
                 formats.extend(self._parse_mpd_formats(
                     compat_etree_fromstring(urllib.parse.unquote_plus(dash_manifest)),
-                    mpd_url=video.get('dash_manifest_url')))
+                    mpd_url=url_or_none(vid_data.get('dash_manifest_url')) or mpd_url))
 
         def process_formats(info):
             # Downloads with browser's User-Agent are rate limited. Working around
@@ -576,27 +634,33 @@ class FacebookIE(InfoExtractor):
                 # Formats larger than ~500MB will return error 403 unless chunk size is regulated
                 f.setdefault('downloader_options', {})['http_chunk_size'] = 250 << 20
 
-        def extract_relay_data(_filter):
-            return self._parse_json(self._search_regex(
-                r'data-sjs>({.*?%s.*?})</script>' % _filter,
-                webpage, 'replay data', default='{}'), video_id, fatal=False) or {}
+        def yield_all_relay_data(_filter):
+            for relay_data in re.findall(rf'data-sjs>({{.*?{_filter}.*?}})</script>', webpage):
+                yield self._parse_json(relay_data, video_id, fatal=False) or {}
 
-        def extract_relay_prefetched_data(_filter):
-            return traverse_obj(extract_relay_data(_filter), (
-                'require', (None, (..., ..., ..., '__bbox', 'require')),
+        def extract_relay_data(_filter):
+            return next(filter(None, yield_all_relay_data(_filter)), {})
+
+        def extract_relay_prefetched_data(_filter, target_keys=None):
+            path = 'data'
+            if target_keys is not None:
+                path = lambda k, v: k == 'data' and any(target in v for target in variadic(target_keys))
+            return traverse_obj(yield_all_relay_data(_filter), (
+                ..., 'require', (None, (..., ..., ..., '__bbox', 'require')),
                 lambda _, v: any(key.startswith('RelayPrefetchedStreamCache') for key in v),
-                ..., ..., '__bbox', 'result', 'data', {dict}), get_all=False) or {}
+                ..., ..., '__bbox', 'result', path, {dict}), get_all=False) or {}
 
         if not video_data:
             server_js_data = self._parse_json(self._search_regex([
                 r'bigPipe\.onPageletArrive\(({.+?})\)\s*;\s*}\s*\)\s*,\s*["\']onPageletArrive\s+' + self._SUPPORTED_PAGLETS_REGEX,
-                r'bigPipe\.onPageletArrive\(({.*?id\s*:\s*"%s".*?})\);' % self._SUPPORTED_PAGLETS_REGEX
+                rf'bigPipe\.onPageletArrive\(({{.*?id\s*:\s*"{self._SUPPORTED_PAGLETS_REGEX}".*?}})\);',
             ], webpage, 'js data', default='{}'), video_id, js_to_json, False)
             video_data = extract_from_jsmods_instances(server_js_data)
 
         if not video_data:
             data = extract_relay_prefetched_data(
-                r'"(?:dash_manifest|playable_url(?:_quality_hd)?)')
+                r'"(?:dash_manifest|playable_url(?:_quality_hd)?)',
+                target_keys=('video', 'event', 'nodes', 'node', 'mediaset'))
             if data:
                 entries = []
 
@@ -608,16 +672,20 @@ class FacebookIE(InfoExtractor):
                         video = video['creation_story']
                         video['owner'] = traverse_obj(video, ('short_form_video_context', 'video_owner'))
                         video.update(reel_info)
+
                     formats = []
                     q = qualities(['sd', 'hd'])
+
+                    # Legacy formats extraction
+                    fmt_data = traverse_obj(video, ('videoDeliveryLegacyFields', {dict})) or video
                     for key, format_id in (('playable_url', 'sd'), ('playable_url_quality_hd', 'hd'),
                                            ('playable_url_dash', ''), ('browser_native_hd_url', 'hd'),
                                            ('browser_native_sd_url', 'sd')):
-                        playable_url = video.get(key)
+                        playable_url = fmt_data.get(key)
                         if not playable_url:
                             continue
                         if determine_ext(playable_url) == 'mpd':
-                            formats.extend(self._extract_mpd_formats(playable_url, video_id))
+                            formats.extend(self._extract_mpd_formats(playable_url, video_id, fatal=False))
                         else:
                             formats.append({
                                 'format_id': format_id,
@@ -625,14 +693,39 @@ class FacebookIE(InfoExtractor):
                                 'quality': q(format_id) - 3,
                                 'url': playable_url,
                             })
-                    extract_dash_manifest(video, formats)
+                    extract_dash_manifest(fmt_data, formats)
+
+                    # New videoDeliveryResponse formats extraction
+                    fmt_data = traverse_obj(video, ('videoDeliveryResponseFragment', 'videoDeliveryResponseResult'))
+                    mpd_urls = traverse_obj(fmt_data, ('dash_manifest_urls', ..., 'manifest_url', {url_or_none}))
+                    dash_manifests = traverse_obj(fmt_data, ('dash_manifests', lambda _, v: v['manifest_xml']))
+                    for idx, dash_manifest in enumerate(dash_manifests):
+                        extract_dash_manifest(dash_manifest, formats, mpd_url=traverse_obj(mpd_urls, idx))
+                    if not dash_manifests:
+                        # Only extract from MPD URLs if the manifests are not already provided
+                        for mpd_url in mpd_urls:
+                            formats.extend(self._extract_mpd_formats(mpd_url, video_id, fatal=False))
+                    for prog_fmt in traverse_obj(fmt_data, ('progressive_urls', lambda _, v: v['progressive_url'])):
+                        format_id = traverse_obj(prog_fmt, ('metadata', 'quality', {str.lower}))
+                        formats.append({
+                            'format_id': format_id,
+                            # sd, hd formats w/o resolution info should be deprioritized below DASH
+                            'quality': q(format_id) - 3,
+                            'url': prog_fmt['progressive_url'],
+                        })
+                    for m3u8_url in traverse_obj(fmt_data, ('hls_playlist_urls', ..., 'hls_playlist_url', {url_or_none})):
+                        formats.extend(self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', fatal=False, m3u8_id='hls'))
+
+                    if not formats:
+                        # Do not append false positive entry w/o any formats
+                        return
 
                     automatic_captions, subtitles = {}, {}
                     is_broadcast = traverse_obj(video, ('is_video_broadcast', {bool}))
                     for caption in traverse_obj(video, (
                         'video_available_captions_locales',
                         {lambda x: sorted(x, key=lambda c: c['locale'])},
-                        lambda _, v: url_or_none(v['captions_url'])
+                        lambda _, v: url_or_none(v['captions_url']),
                     )):
                         lang = caption.get('localized_language') or 'und'
                         subs = {
@@ -670,7 +763,7 @@ class FacebookIE(InfoExtractor):
                             'description': description,
                         })
                     else:
-                        info['title'] = description or 'Facebook video #%s' % v_id
+                        info['title'] = description or f'Facebook video #{v_id}'
                     entries.append(info)
 
                 def parse_attachment(attachment, key='media'):
@@ -699,7 +792,7 @@ class FacebookIE(InfoExtractor):
                 if video:
                     attachments = try_get(video, [
                         lambda x: x['story']['attachments'],
-                        lambda x: x['creation_story']['attachments']
+                        lambda x: x['creation_story']['attachments'],
                     ], list) or []
                     for attachment in attachments:
                         parse_attachment(attachment)
@@ -723,7 +816,7 @@ class FacebookIE(InfoExtractor):
             m_msg = re.search(r'class="[^"]*uiInterstitialContent[^"]*"><div>(.*?)</div>', webpage)
             if m_msg is not None:
                 raise ExtractorError(
-                    'The video is not available, Facebook said: "%s"' % m_msg.group(1),
+                    f'The video is not available, Facebook said: "{m_msg.group(1)}"',
                     expected=True)
             elif any(p in webpage for p in (
                     '>You must log in to continue',
@@ -760,7 +853,7 @@ class FacebookIE(InfoExtractor):
                 v_id = video.get('id')
                 if not v_id:
                     continue
-                v_id = compat_str(v_id)
+                v_id = str(v_id)
                 entries.append(self.url_result(
                     self._VIDEO_PAGE_TEMPLATE % v_id,
                     self.ie_key(), v_id, video.get('name')))
@@ -818,7 +911,7 @@ class FacebookIE(InfoExtractor):
                 continue
             for quality in ('sd', 'hd'):
                 for src_type in ('src', 'src_no_ratelimit'):
-                    src = f[0].get('%s_%s' % (quality, src_type))
+                    src = f[0].get(f'{quality}_{src_type}')
                     if src:
                         # sd, hd formats w/o resolution info should be deprioritized below DASH
                         # TODO: investigate if progressive or src formats still exist
@@ -826,10 +919,10 @@ class FacebookIE(InfoExtractor):
                         if quality == 'hd':
                             preference += 1
                         formats.append({
-                            'format_id': '%s_%s_%s' % (format_id, quality, src_type),
+                            'format_id': f'{format_id}_{quality}_{src_type}',
                             'url': src,
                             'quality': preference,
-                            'height': 720 if quality == 'hd' else None
+                            'height': 720 if quality == 'hd' else None,
                         })
             extract_dash_manifest(f[0], formats)
             subtitles_src = f[0].get('subtitles_src')
@@ -855,20 +948,24 @@ class FacebookIE(InfoExtractor):
 
 class FacebookPluginsVideoIE(InfoExtractor):
     _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/plugins/video\.php\?.*?\bhref=(?P<id>https.+)'
-
     _TESTS = [{
         'url': 'https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Fgov.sg%2Fvideos%2F10154383743583686%2F&show_text=0&width=560',
-        'md5': '5954e92cdfe51fe5782ae9bda7058a07',
+        'md5': 'af83aeae1d595f377c6e47a450828155',
         'info_dict': {
             'id': '10154383743583686',
             'ext': 'mp4',
-            # TODO: Fix title, uploader
             'title': 'What to do during the haze?',
-            'uploader': 'Gov.sg',
-            'upload_date': '20160826',
+            'concurrent_view_count': int,
+            'description': 'md5:81839c0979803a014b20798df255ed0b',
+            'duration': 65.087,
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1472184808,
+            'upload_date': '20160826',
+            'uploader': 'gov.sg',
+            'uploader_id': '100064718678925',
+            'view_count': int,
         },
-        'add_ie': [FacebookIE.ie_key()],
+        'expected_warnings': ['Cannot parse data'],
     }, {
         'url': 'https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Fvideo.php%3Fv%3D10204634152394104',
         'only_matching': True,
@@ -879,7 +976,7 @@ class FacebookPluginsVideoIE(InfoExtractor):
 
     def _real_extract(self, url):
         return self.url_result(
-            compat_urllib_parse_unquote(self._match_id(url)),
+            urllib.parse.unquote(self._match_id(url)),
             FacebookIE.ie_key())
 
 
@@ -902,7 +999,7 @@ class FacebookRedirectURLIE(InfoExtractor):
             'tags': 'count:11',
             'duration': 3332,
             'live_status': 'not_live',
-            'thumbnail': 'https://i.ytimg.com/vi/pO8h3EaFRdo/maxresdefault.jpg',
+            'thumbnail': r're:https?://i\.ytimg\.com/vi/.+',
             'channel_url': 'https://www.youtube.com/channel/UCGBpxWJr9FNOcFYA5GkKrMg',
             'availability': 'public',
             'uploader_url': 'http://www.youtube.com/user/brtvofficial',
@@ -911,8 +1008,7 @@ class FacebookRedirectURLIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
         },
-        'add_ie': ['Youtube'],
-        'params': {'skip_download': 'Youtube'},
+        'skip': 'Youtube video is now private',
     }]
 
     def _real_extract(self, url):
@@ -925,22 +1021,23 @@ class FacebookRedirectURLIE(InfoExtractor):
 class FacebookReelIE(InfoExtractor):
     _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/reel/(?P<id>\d+)'
     IE_NAME = 'facebook:reel'
-
     _TESTS = [{
         'url': 'https://www.facebook.com/reel/1195289147628387',
-        'md5': 'f13dd37f2633595982db5ed8765474d3',
+        'md5': 'aeb0153ecb2eaacdf2dc2bf88f593fef',
         'info_dict': {
             'id': '1195289147628387',
             'ext': 'mp4',
-            'title': 'md5:b05800b5b1ad56c0ca78bd3807b6a61e',
-            'description': 'md5:22f03309b216ac84720183961441d8db',
-            'uploader': 'md5:723e6cb3091241160f20b3c5dc282af1',
+            'title': '9.7K views · 352 reactions | When your trying to help your partner out with an arrest and #FAAFO games begin. Let the “Slapathon” commence!! 👊👋 | Beast Camp Training',
+            'description': 'md5:5a767dc7e78718667b150a7facc4a34f',
+            'uploader': '9.7K views &#xb7; 352 reactions | When your trying to help your partner out with an arrest and #FAAFO games begin. Let the &#x201c;Slapathon&#x201d; commence!! &#x1f44a;&#x1f44b; | Beast Camp Training',
             'uploader_id': '100040874179269',
             'duration': 9.579,
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1637502609,
             'upload_date': '20211121',
-            'thumbnail': r're:^https?://.*',
-        }
+            'comment_count': int,
+            'repost_count': int,
+        },
     }]
 
     def _real_extract(self, url):
@@ -952,21 +1049,38 @@ class FacebookReelIE(InfoExtractor):
 class FacebookAdsIE(InfoExtractor):
     _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/ads/library/?\?(?:[^#]+&)?id=(?P<id>\d+)'
     IE_NAME = 'facebook:ads'
-
     _TESTS = [{
         'url': 'https://www.facebook.com/ads/library/?id=899206155126718',
         'info_dict': {
             'id': '899206155126718',
             'ext': 'mp4',
             'title': 'video by Kandao',
+            'description': 'md5:0822724069e3aca97cbed5dabbab282e',
             'uploader': 'Kandao',
             'uploader_id': '774114102743284',
-            'uploader_url': r're:^https?://.*',
+            'uploader_url': 'https://facebook.com/KandaoVR',
             'timestamp': 1702548330,
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'upload_date': '20231214',
             'like_count': int,
-        }
+        },
+        'skip': 'Invalid URL',
+    }, {
+        # key 'watermarked_video_sd_url' missing
+        'url': 'https://www.facebook.com/ads/library/?id=501152689226254',
+        'info_dict': {
+            'id': '501152689226254',
+            'ext': 'mp4',
+            'title': 'video by mat.nawrocki',
+            'description': 'md5:02a446ace7ff8c3c37a2892922492490',
+            'uploader': 'mat.nawrocki',
+            'uploader_id': '148586968341456',
+            'uploader_url': 'https://www.instagram.com/_u/mat.nawrocki',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
+            'timestamp': 1723452305,
+            'upload_date': '20240812',
+            'like_count': int,
+        },
     }, {
         'url': 'https://www.facebook.com/ads/library/?id=893637265423481',
         'info_dict': {
@@ -974,12 +1088,13 @@ class FacebookAdsIE(InfoExtractor):
             'title': 'Jusqu\u2019\u00e0 -25% sur une s\u00e9lection de vins p\u00e9tillants italiens ',
             'uploader': 'Eataly Paris Marais',
             'uploader_id': '2086668958314152',
-            'uploader_url': r're:^https?://.*',
+            'uploader_url': 'https://facebook.com/EatalyParisMarais',
             'timestamp': 1703571529,
             'upload_date': '20231226',
             'like_count': int,
         },
         'playlist_count': 3,
+        'skip': 'Invalid URL',
     }, {
         'url': 'https://es-la.facebook.com/ads/library/?id=901230958115569',
         'only_matching': True,
@@ -998,7 +1113,7 @@ class FacebookAdsIE(InfoExtractor):
     def _extract_formats(self, video_dict):
         formats = []
         for format_key, format_url in traverse_obj(video_dict, (
-            {dict.items}, lambda _, v: v[0] in self._FORMATS_MAP and url_or_none(v[1])
+            {dict.items}, lambda _, v: v[0] in self._FORMATS_MAP and url_or_none(v[1]),
         )):
             formats.append({
                 'format_id': self._FORMATS_MAP[format_key][0],
@@ -1013,34 +1128,42 @@ class FacebookAdsIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        post_data = [self._parse_json(j, video_id, fatal=False)
-                     for j in re.findall(r's\.handle\(({.*})\);requireLazy\(', webpage)]
-        data = traverse_obj(post_data, (
-            ..., 'require', ..., ..., ..., 'props', 'deeplinkAdCard', 'snapshot', {dict}), get_all=False)
+        post_data = traverse_obj(
+            re.findall(r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage), (..., {json.loads}))
+        data = get_first(post_data, (
+            'require', ..., ..., ..., '__bbox', 'require', ..., ..., ...,
+            'entryPointRoot', 'otherProps', 'deeplinkAdCard', 'snapshot', {dict}))
         if not data:
             raise ExtractorError('Unable to extract ad data')
 
         title = data.get('title')
         if not title or title == '{{product.name}}':
             title = join_nonempty('display_format', 'page_name', delim=' by ', from_dict=data)
+        markup_id = traverse_obj(data, ('body', '__m', {str}))
+        markup = traverse_obj(post_data, (
+            ..., 'require', ..., ..., ..., '__bbox', 'markup', lambda _, v: v[0].startswith(markup_id),
+            ..., '__html', {clean_html}, {lambda x: not x.startswith('{{product.') and x}, any))
 
-        info_dict = traverse_obj(data, {
-            'description': ('link_description', {str}, {lambda x: x if x != '{{product.description}}' else None}),
+        info_dict = merge_dicts({
+            'title': title,
+            'description': markup or None,
+        }, traverse_obj(data, {
+            'description': ('link_description', {lambda x: x if not x.startswith('{{product.') else None}),
             'uploader': ('page_name', {str}),
             'uploader_id': ('page_id', {str_or_none}),
             'uploader_url': ('page_profile_uri', {url_or_none}),
             'timestamp': ('creation_time', {int_or_none}),
             'like_count': ('page_like_count', {int_or_none}),
-        })
+        }))
 
         entries = []
         for idx, entry in enumerate(traverse_obj(
-            data, (('videos', 'cards'), lambda _, v: any([url_or_none(v[f]) for f in self._FORMATS_MAP]))), 1
+            data, (('videos', 'cards'), lambda _, v: any(url_or_none(v.get(f)) for f in self._FORMATS_MAP))), 1,
         ):
             entries.append({
                 'id': f'{video_id}_{idx}',
                 'title': entry.get('title') or title,
-                'description': entry.get('link_description') or info_dict.get('description'),
+                'description': traverse_obj(entry, 'body', 'link_description') or info_dict.get('description'),
                 'thumbnail': url_or_none(entry.get('video_preview_image_url')),
                 'formats': self._extract_formats(entry),
             })

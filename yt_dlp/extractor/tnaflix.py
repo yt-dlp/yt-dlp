@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     fix_xml_ampersands,
     float_or_none,
@@ -64,7 +63,7 @@ class TNAFlixNetworkBaseIE(InfoExtractor):
         height = int_or_none(xpath_text(timeline, './imageHeight', 'thumbnail height'))
 
         return [{
-            'url': self._proto_relative_url(pattern_el.text.replace('#', compat_str(i)), 'http:'),
+            'url': self._proto_relative_url(pattern_el.text.replace('#', str(i)), 'http:'),
             'width': width,
             'height': height,
         } for i in range(first, last + 1)]
@@ -138,7 +137,7 @@ class TNAFlixNetworkBaseIE(InfoExtractor):
 
             thumbnails = self._extract_thumbnails(cfg_xml) or []
             thumbnails.append({
-                'url': self._proto_relative_url(xpath_text(cfg_xml, './startThumb', 'thumbnail'), 'http:')
+                'url': self._proto_relative_url(xpath_text(cfg_xml, './startThumb', 'thumbnail'), 'http:'),
             })
 
         # check for EMPFlix-style JSON and extract
@@ -239,7 +238,7 @@ class TNAFlixIE(TNAEMPFlixBaseIE):
             'duration': 91,
             'age_limit': 18,
             'categories': list,
-        }
+        },
     }, {
         # non-anonymous uploader, categories
         'url': 'https://www.tnaflix.com/teen-porn/Educational-xxx-video/video6538',
@@ -255,7 +254,7 @@ class TNAFlixIE(TNAEMPFlixBaseIE):
             'age_limit': 18,
             'uploader': 'bobwhite39',
             'categories': list,
-        }
+        },
     }, {
         'url': 'https://www.tnaflix.com/amateur-porn/bunzHD-Ms.Donk/video358632',
         'only_matching': True,
@@ -278,7 +277,7 @@ class EMPFlixIE(TNAEMPFlixBaseIE):
             'duration': 83,
             'age_limit': 18,
             'categories': list,
-        }
+        },
     }, {
         'url': 'http://www.empflix.com/videos/[AROMA][ARMD-718]-Aoi-Yoshino-Sawa-25826.html',
         'only_matching': True,
@@ -313,7 +312,7 @@ class MovieFapIE(TNAFlixNetworkBaseIE):
             'comment_count': int,
             'average_rating': float,
             'categories': ['Amateur', 'Masturbation', 'Mature', 'Flashing'],
-        }
+        },
     }, {
         # quirky single-format case where the extension is given as fid, but the video is really an flv
         'url': 'http://www.moviefap.com/videos/e5da0d3edce5404418f5/jeune-couple-russe.html',

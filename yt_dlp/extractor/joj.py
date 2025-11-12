@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     format_field,
     int_or_none,
@@ -23,19 +22,18 @@ class JojIE(InfoExtractor):
             'id': 'a388ec4c-6019-4a4a-9312-b1bee194e932',
             'ext': 'mp4',
             'title': 'NOVÉ BÝVANIE',
-            'thumbnail': r're:^https?://.*?$',
             'duration': 3118,
-        }
+            'thumbnail': r're:https?://img\.joj\.sk/.+',
+        },
     }, {
         'url': 'https://media.joj.sk/embed/CSM0Na0l0p1',
         'info_dict': {
             'id': 'CSM0Na0l0p1',
             'ext': 'mp4',
-            'height': 576,
             'title': 'Extrémne rodiny 2 - POKRAČOVANIE (2012/04/09 21:30:00)',
             'duration': 3937,
-            'thumbnail': r're:^https?://.*?$',
-        }
+            'thumbnail': r're:https?://img\.joj\.sk/.+',
+        },
     }, {
         'url': 'https://media.joj.sk/embed/9i1cxv',
         'only_matching': True,
@@ -46,12 +44,21 @@ class JojIE(InfoExtractor):
         'url': 'joj:9i1cxv',
         'only_matching': True,
     }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
+        'url': 'https://www.noviny.sk/slovensko/238543-slovenskom-sa-prehnala-vlna-silnych-burok',
+        'info_dict': {
+            'id': '238543-slovenskom-sa-prehnala-vlna-silnych-burok',
+            'title': 'Slovenskom sa prehnala vlna silných búrok',
+        },
+        'playlist_mincount': 5,
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'https://media.joj.sk/embed/%s' % video_id, video_id)
+            f'https://media.joj.sk/embed/{video_id}', video_id)
 
         title = (self._search_json(r'videoTitle\s*:', webpage, 'title', video_id,
                                    contains_pattern=r'["\'].+["\']', default=None)
@@ -66,7 +73,7 @@ class JojIE(InfoExtractor):
 
         formats = []
         for format_url in try_get(bitrates, lambda x: x['mp4'], list) or []:
-            if isinstance(format_url, compat_str):
+            if isinstance(format_url, str):
                 height = self._search_regex(
                     r'(\d+)[pP]|(pal)\.', format_url, 'height', default=None)
                 if height == 'pal':
@@ -78,7 +85,7 @@ class JojIE(InfoExtractor):
                 })
         if not formats:
             playlist = self._download_xml(
-                'https://media.joj.sk/services/Video.php?clip=%s' % video_id,
+                f'https://media.joj.sk/services/Video.php?clip={video_id}',
                 video_id)
             for file_el in playlist.findall('./files/file'):
                 path = file_el.get('path')
@@ -86,8 +93,8 @@ class JojIE(InfoExtractor):
                     continue
                 format_id = file_el.get('id') or file_el.get('label')
                 formats.append({
-                    'url': 'http://n16.joj.sk/storage/%s' % path.replace(
-                        'dat/', '', 1),
+                    'url': 'http://n16.joj.sk/storage/{}'.format(path.replace(
+                        'dat/', '', 1)),
                     'format_id': format_id,
                     'height': int_or_none(self._search_regex(
                         r'(\d+)[pP]', format_id or path, 'height',

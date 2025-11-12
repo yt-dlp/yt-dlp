@@ -8,10 +8,8 @@ import time
 from .common import InfoExtractor
 from ..aes import aes_encrypt
 from ..utils import (
-    bytes_to_intlist,
     determine_ext,
     int_or_none,
-    intlist_to_bytes,
     join_nonempty,
     smuggle_url,
     strip_jsonp,
@@ -33,24 +31,6 @@ class AnvatoIE(InfoExtractor):
     _AUTH_KEY = b'\x31\xc2\x42\x84\x9e\x73\xa0\xce'  # from anvplayer.min.js
 
     _TESTS = [{
-        # from https://www.nfl.com/videos/baker-mayfield-s-game-changing-plays-from-3-td-game-week-14
-        'url': 'anvato:GXvEgwyJeWem8KCYXfeoHWknwP48Mboj:899441',
-        'md5': '921919dab3cd0b849ff3d624831ae3e2',
-        'info_dict': {
-            'id': '899441',
-            'ext': 'mp4',
-            'title': 'Baker Mayfield\'s game-changing plays from 3-TD game Week 14',
-            'description': 'md5:85e05a3cc163f8c344340f220521136d',
-            'upload_date': '20201215',
-            'timestamp': 1608009755,
-            'thumbnail': r're:^https?://.*\.jpg',
-            'uploader': 'NFL',
-            'tags': ['Baltimore Ravens at Cleveland Browns (2020-REG-14)', 'Baker Mayfield', 'Game Highlights',
-                     'Player Highlights', 'Cleveland Browns', 'league'],
-            'duration': 157,
-            'categories': ['Entertainment', 'Game', 'Highlights'],
-        },
-    }, {
         # from https://ktla.com/news/99-year-old-woman-learns-to-fly-in-torrance-checks-off-bucket-list-dream/
         'url': 'anvato:X8POa4zpGZMmeiq0wqiO8IP5rMqQM9VN:8032455',
         'md5': '837718bcfb3a7778d022f857f7a9b19e',
@@ -238,32 +218,7 @@ class AnvatoIE(InfoExtractor):
         'gray': 'anvato_mcp_gray_web_prod_4c10f067c393ed8fc453d3930f8ab2b159973900',
         'hearst': 'anvato_mcp_hearst_web_prod_5356c3de0fc7c90a3727b4863ca7fec3a4524a99',
         'cbs': 'anvato_mcp_cbs_web_prod_02f26581ff80e5bda7aad28226a8d369037f2cbe',
-        'telemundo': 'anvato_mcp_telemundo_web_prod_c5278d51ad46fda4b6ca3d0ea44a7846a054f582'
-    }
-
-    def _generate_nfl_token(self, anvack, mcp_id):
-        reroute = self._download_json(
-            'https://api.nfl.com/v1/reroute', mcp_id, data=b'grant_type=client_credentials',
-            headers={'X-Domain-Id': 100}, note='Fetching token info')
-        token_type = reroute.get('token_type') or 'Bearer'
-        auth_token = f'{token_type} {reroute["access_token"]}'
-        response = self._download_json(
-            'https://api.nfl.com/v3/shield/', mcp_id, data=json.dumps({
-                'query': '''{
-  viewer {
-    mediaToken(anvack: "%s", id: %s) {
-      token
-    }
-  }
-}''' % (anvack, mcp_id),
-            }).encode(), headers={
-                'Authorization': auth_token,
-                'Content-Type': 'application/json',
-            }, note='Fetching NFL API token')
-        return traverse_obj(response, ('data', 'viewer', 'mediaToken', 'token'))
-
-    _TOKEN_GENERATORS = {
-        'GXvEgwyJeWem8KCYXfeoHWknwP48Mboj': _generate_nfl_token,
+        'telemundo': 'anvato_mcp_telemundo_web_prod_c5278d51ad46fda4b6ca3d0ea44a7846a054f582',
     }
 
     def _server_time(self, access_key, video_id):
@@ -277,8 +232,8 @@ class AnvatoIE(InfoExtractor):
         server_time = self._server_time(access_key, video_id)
         input_data = f'{server_time}~{md5_text(video_data_url)}~{md5_text(server_time)}'
 
-        auth_secret = intlist_to_bytes(aes_encrypt(
-            bytes_to_intlist(input_data[:64]), bytes_to_intlist(self._AUTH_KEY)))
+        auth_secret = bytes(aes_encrypt(
+            list(input_data[:64].encode()), list(self._AUTH_KEY)))
         query = {
             'X-Anvato-Adst-Auth': base64.b64encode(auth_secret).decode('ascii'),
             'rtyp': 'fp',
@@ -290,8 +245,6 @@ class AnvatoIE(InfoExtractor):
         }
         if extracted_token is not None:
             api['anvstk2'] = extracted_token
-        elif self._TOKEN_GENERATORS.get(access_key) is not None:
-            api['anvstk2'] = self._TOKEN_GENERATORS[access_key](self, access_key, video_id)
         elif self._ANVACK_TABLE.get(access_key) is not None:
             api['anvstk'] = md5_text(f'{access_key}|{anvrid}|{server_time}|{self._ANVACK_TABLE[access_key]}')
         else:
@@ -299,7 +252,7 @@ class AnvatoIE(InfoExtractor):
 
         return self._download_json(
             video_data_url, video_id, transform_source=strip_jsonp, query=query,
-            data=json.dumps({'api': api}, separators=(',', ':')).encode('utf-8'))
+            data=json.dumps({'api': api}, separators=(',', ':')).encode())
 
     def _get_anvato_videos(self, access_key, video_id, token):
         video_data = self._get_video_json(access_key, video_id, token)
@@ -358,7 +311,7 @@ class AnvatoIE(InfoExtractor):
         for caption in video_data.get('captions', []):
             a_caption = {
                 'url': caption['url'],
-                'ext': 'tt' if caption.get('format') == 'SMPTE-TT' else None
+                'ext': 'tt' if caption.get('format') == 'SMPTE-TT' else None,
             }
             subtitles.setdefault(caption['language'], []).append(a_caption)
         subtitles = self._merge_subtitles(subtitles, hls_subs, vtt_subs)

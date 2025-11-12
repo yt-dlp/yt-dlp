@@ -4,12 +4,11 @@ import re
 import time
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
-    dict_get,
     ExtractorError,
-    js_to_json,
+    dict_get,
     int_or_none,
+    js_to_json,
     parse_iso8601,
     str_or_none,
     traverse_obj,
@@ -22,7 +21,7 @@ from ..utils import (
 
 class ABCIE(InfoExtractor):
     IE_NAME = 'abc.net.au'
-    _VALID_URL = r'https?://(?:www\.)?abc\.net\.au/(?:news|btn)/(?:[^/]+/){1,4}(?P<id>\d{5,})'
+    _VALID_URL = r'https?://(?:www\.)?abc\.net\.au/(?:news|btn|listen)/(?:[^/?#]+/){1,4}(?P<id>\d{5,})'
 
     _TESTS = [{
         'url': 'http://www.abc.net.au/news/2014-11-05/australia-to-staff-ebola-treatment-centre-in-sierra-leone/5868334',
@@ -54,8 +53,9 @@ class ABCIE(InfoExtractor):
         'info_dict': {
             'id': '6880080',
             'ext': 'mp3',
-            'title': 'NAB lifts interest rates, following Westpac and CBA',
+            'title': 'NAB lifts interest rates, following Westpac and CBA - ABC listen',
             'description': 'md5:f13d8edc81e462fce4a0437c7dc04728',
+            'thumbnail': r're:https://live-production\.wcms\.abc-cdn\.net\.au/2193d7437c84b25eafd6360c82b5fa21',
         },
     }, {
         'url': 'http://www.abc.net.au/news/2015-10-19/6866214',
@@ -65,17 +65,19 @@ class ABCIE(InfoExtractor):
         'info_dict': {
             'id': '10527914',
             'ext': 'mp4',
-            'title': 'WWI Centenary',
-            'description': 'md5:c2379ec0ca84072e86b446e536954546',
-        }
+            'title': 'WWI Centenary - Behind The News',
+            'description': 'md5:fa4405939ff750fade46ff0cd4c66a52',
+            'thumbnail': r're:https://live-production\.wcms\.abc-cdn\.net\.au/bcc3433c97bf992dff32ec5a768713c9',
+        },
     }, {
         'url': 'https://www.abc.net.au/news/programs/the-world/2020-06-10/black-lives-matter-protests-spawn-support-for/12342074',
         'info_dict': {
             'id': '12342074',
             'ext': 'mp4',
             'title': 'Black Lives Matter protests spawn support for Papuans in Indonesia',
-            'description': 'md5:2961a17dc53abc558589ccd0fb8edd6f',
-        }
+            'description': 'md5:625257209f2d14ce23cb4e3785da9beb',
+            'thumbnail': r're:https://live-production\.wcms\.abc-cdn\.net\.au/7ee6f190de6d7dbb04203e514bfae9ec',
+        },
     }, {
         'url': 'https://www.abc.net.au/btn/newsbreak/btn-newsbreak-20200814/12560476',
         'info_dict': {
@@ -86,7 +88,7 @@ class ABCIE(InfoExtractor):
             'upload_date': '20200813',
             'uploader': 'Behind the News',
             'uploader_id': 'behindthenews',
-        }
+        },
     }, {
         'url': 'https://www.abc.net.au/news/2023-06-25/wagner-boss-orders-troops-back-to-bases-to-avoid-bloodshed/102520540',
         'info_dict': {
@@ -94,8 +96,17 @@ class ABCIE(InfoExtractor):
             'title': 'Wagner Group retreating from Russia, leader Prigozhin to move to Belarus',
             'ext': 'mp4',
             'description': 'Wagner troops leave Rostov-on-Don and\xa0Yevgeny Prigozhin will move to Belarus under a deal brokered by Belarusian President Alexander Lukashenko to end the mutiny.',
-            'thumbnail': 'https://live-production.wcms.abc-cdn.net.au/0c170f5b57f0105c432f366c0e8e267b?impolicy=wcms_crop_resize&cropH=2813&cropW=5000&xPos=0&yPos=249&width=862&height=485',
-        }
+            'thumbnail': r're:https://live-production\.wcm\.abc-cdn\.net\.au/0c170f5b57f0105c432f366c0e8e267b',
+        },
+    }, {
+        'url': 'https://www.abc.net.au/listen/programs/the-followers-madness-of-two/presents-followers-madness-of-two/105697646',
+        'info_dict': {
+            'id': '105697646',
+            'title': 'INTRODUCING — The Followers: Madness of Two - ABC listen',
+            'ext': 'mp3',
+            'description': 'md5:2310cd0d440a4e01656abea15db8d1f3',
+            'thumbnail': r're:https://live-production\.wcms\.abc-cdn\.net\.au/90d7078214e5d66553ffb7fcf0da0cda',
+        },
     }]
 
     def _real_extract(self, url):
@@ -126,7 +137,7 @@ class ABCIE(InfoExtractor):
                 if mobj is None:
                     expired = self._html_search_regex(r'(?s)class="expired-(?:video|audio)".+?<span>(.+?)</span>', webpage, 'expired', None)
                     if expired:
-                        raise ExtractorError('%s said: %s' % (self.IE_NAME, expired), expected=True)
+                        raise ExtractorError(f'{self.IE_NAME} said: {expired}', expected=True)
                     raise ExtractorError('Unable to extract video urls')
 
             urls_info = self._parse_json(
@@ -164,7 +175,7 @@ class ABCIE(InfoExtractor):
                 'height': height,
                 'tbr': bitrate,
                 'filesize': int_or_none(url_info.get('filesize')),
-                'format_id': format_id
+                'format_id': format_id,
             })
 
         return {
@@ -288,13 +299,12 @@ class ABCIViewIE(InfoExtractor):
         stream = next(s for s in video_params['playlist'] if s.get('type') in ('program', 'livestream'))
 
         house_number = video_params.get('episodeHouseNumber') or video_id
-        path = '/auth/hls/sign?ts={0}&hn={1}&d=android-tablet'.format(
-            int(time.time()), house_number)
+        path = f'/auth/hls/sign?ts={int(time.time())}&hn={house_number}&d=android-tablet'
         sig = hmac.new(
             b'android.content.res.Resources',
-            path.encode('utf-8'), hashlib.sha256).hexdigest()
+            path.encode(), hashlib.sha256).hexdigest()
         token = self._download_webpage(
-            'http://iview.abc.net.au{0}&sig={1}'.format(path, sig), video_id)
+            f'http://iview.abc.net.au{path}&sig={sig}', video_id)
 
         def tokenize_url(url, token):
             return update_url_query(url, {
@@ -303,7 +313,7 @@ class ABCIViewIE(InfoExtractor):
 
         for sd in ('1080', '720', 'sd', 'sd-low'):
             sd_url = try_get(
-                stream, lambda x: x['streams']['hls'][sd], compat_str)
+                stream, lambda x: x['streams']['hls'][sd], str)
             if not sd_url:
                 continue
             formats = self._extract_m3u8_formats(
@@ -311,6 +321,8 @@ class ABCIViewIE(InfoExtractor):
                 entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
             if formats:
                 break
+        else:
+            formats = []
 
         subtitles = {}
         src_vtt = stream.get('captions', {}).get('src-vtt')
@@ -358,7 +370,7 @@ class ABCIViewShowSeriesIE(InfoExtractor):
             'description': 'md5:93119346c24a7c322d446d8eece430ff',
             'series': 'Upper Middle Bogan',
             'season': 'Series 1',
-            'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.*\.jpg$'
+            'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.*\.jpg$',
         },
         'playlist_count': 8,
     }, {
@@ -386,20 +398,30 @@ class ABCIViewShowSeriesIE(InfoExtractor):
             'description': 'Satirist Mark Humphries brings his unique perspective on current political events for 7.30.',
             'series': '7.30 Mark Humphries Satire',
             'season': 'Episodes',
-            'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.*\.jpg$'
+            'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.*\.jpg$',
         },
         'playlist_count': 15,
+        'skip': 'This program is not currently available in ABC iview',
+    }, {
+        'url': 'https://iview.abc.net.au/show/inbestigators',
+        'info_dict': {
+            'id': '175343-1',
+            'title': 'Series 1',
+            'description': 'md5:b9976935a6450e5b78ce2a940a755685',
+            'series': 'The Inbestigators',
+            'season': 'Series 1',
+            'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.+\.jpg',
+        },
+        'playlist_count': 17,
     }]
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
         webpage = self._download_webpage(url, show_id)
-        webpage_data = self._search_regex(
-            r'window\.__INITIAL_STATE__\s*=\s*[\'"](.+?)[\'"]\s*;',
-            webpage, 'initial state')
-        video_data = self._parse_json(
-            unescapeHTML(webpage_data).encode('utf-8').decode('unicode_escape'), show_id)
-        video_data = video_data['route']['pageData']['_embedded']
+        video_data = self._search_json(
+            r'window\.__INITIAL_STATE__\s*=\s*[\'"]', webpage, 'initial state', show_id,
+            transform_source=lambda x: x.encode().decode('unicode_escape'),
+            end_pattern=r'[\'"]\s*;')['route']['pageData']['_embedded']
 
         highlight = try_get(video_data, lambda x: x['highlightVideo']['shareUrl'])
         if not self._yes_playlist(show_id, bool(highlight), video_label='highlight video'):

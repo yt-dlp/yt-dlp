@@ -20,7 +20,7 @@ class BildIE(InfoExtractor):
             'description': 'md5:a4058c4fa2a804ab59c00d7244bbf62f',
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 196,
-        }
+        },
     }, {
         'note': 'static MP4 and HLS',
         'url': 'https://www.bild.de/video/clip/news-ausland/deftiger-abgang-vom-10m-turm-bademeister-sorgt-fuer-skandal-85158620.bild.html',
@@ -32,7 +32,7 @@ class BildIE(InfoExtractor):
             'description': 'md5:709b543c24dc31bbbffee73bccda34ad',
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 69,
-        }
+        },
     }]
 
     def _real_extract(self, url):

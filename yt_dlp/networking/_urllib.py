@@ -26,7 +26,6 @@ from ._helper import (
     create_socks_proxy_socket,
     get_redirect_method,
     make_socks_proxy_opts,
-    select_proxy,
 )
 from .common import Features, RequestHandler, Response, register_rh
 from .exceptions import (
@@ -41,7 +40,7 @@ from .exceptions import (
 from ..dependencies import brotli
 from ..socks import ProxyError as SocksProxyError
 from ..utils import update_url_query
-from ..utils.networking import normalize_url
+from ..utils.networking import normalize_url, select_proxy
 
 SUPPORTED_ENCODINGS = ['gzip', 'deflate']
 CONTENT_DECODE_ERRORS = [zlib.error, OSError]
@@ -246,8 +245,8 @@ class ProxyHandler(urllib.request.BaseHandler):
     def __init__(self, proxies=None):
         self.proxies = proxies
         # Set default handlers
-        for type in ('http', 'https', 'ftp'):
-            setattr(self, '%s_open' % type, lambda r, meth=self.proxy_open: meth(r))
+        for scheme in ('http', 'https', 'ftp'):
+            setattr(self, f'{scheme}_open', lambda r, meth=self.proxy_open: meth(r))
 
     def proxy_open(self, req):
         proxy = select_proxy(req.get_full_url(), self.proxies)
@@ -307,7 +306,25 @@ class UrllibResponseAdapter(Response):
 
     def read(self, amt=None):
         try:
-            return self.fp.read(amt)
+            data = self.fp.read(amt)
+            underlying = getattr(self.fp, 'fp', None)
+            if isinstance(self.fp, http.client.HTTPResponse) and underlying is None:
+                # http.client.HTTPResponse automatically closes itself when fully read
+                self.close()
+            elif isinstance(self.fp, urllib.response.addinfourl) and underlying is not None:
+                # urllib's addinfourl does not close the underlying fp automatically when fully read
+                if isinstance(underlying, io.BytesIO):
+                    # data URLs or in-memory responses (e.g. gzip/deflate/brotli decoded)
+                    if underlying.tell() >= len(underlying.getbuffer()):
+                        self.close()
+                elif isinstance(underlying, io.BufferedReader) and amt is None:
+                    # file URLs.
+                    # XXX: this will not mark the response as closed if it was fully read with amt.
+                    self.close()
+            elif underlying is not None and underlying.closed:
+                # Catch-all for any cases where underlying file is closed
+                self.close()
+            return data
         except Exception as e:
             handle_response_read_exceptions(e)
             raise e
@@ -348,14 +365,15 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         super()._check_extensions(extensions)
         extensions.pop('cookiejar', None)
         extensions.pop('timeout', None)
+        extensions.pop('legacy_ssl', None)
 
-    def _create_instance(self, proxies, cookiejar):
+    def _create_instance(self, proxies, cookiejar, legacy_ssl_support=None):
         opener = urllib.request.OpenerDirector()
         handlers = [
             ProxyHandler(proxies),
             HTTPHandler(
                 debuglevel=int(bool(self.verbose)),
-                context=self._make_sslcontext(),
+                context=self._make_sslcontext(legacy_ssl_support=legacy_ssl_support),
                 source_address=self.source_address),
             HTTPCookieProcessor(cookiejar),
             DataHandler(),
@@ -378,19 +396,22 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         opener.addheaders = []
         return opener
 
-    def _send(self, request):
-        headers = self._merge_headers(request.headers)
+    def _prepare_headers(self, _, headers):
         add_accept_encoding_header(headers, SUPPORTED_ENCODINGS)
+
+    def _send(self, request):
+        headers = self._get_headers(request)
         urllib_req = urllib.request.Request(
             url=request.url,
             data=request.data,
-            headers=dict(headers),
-            method=request.method
+            headers=headers,
+            method=request.method,
         )
 
         opener = self._get_instance(
             proxies=self._get_proxies(request),
-            cookiejar=self._get_cookiejar(request)
+            cookiejar=self._get_cookiejar(request),
+            legacy_ssl_support=request.extensions.get('legacy_ssl'),
         )
         try:
             res = opener.open(urllib_req, timeout=self._calculate_timeout(request))

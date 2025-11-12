@@ -8,16 +8,14 @@ passthrough_module(__name__, '.._legacy', callback=lambda attr: warnings.warn(
     DeprecationWarning(f'{__name__}.{attr} is deprecated'), stacklevel=6))
 del passthrough_module
 
-import base64
-import urllib.error
-import urllib.parse
+import functools  # noqa: F401
+import os
 
-compat_str = str
 
-compat_b64decode = base64.b64decode
+compat_os_name = os.name
+compat_realpath = os.path.realpath
 
-compat_urlparse = urllib.parse
-compat_parse_qs = urllib.parse.parse_qs
-compat_urllib_parse_unquote = urllib.parse.unquote
-compat_urllib_parse_urlencode = urllib.parse.urlencode
-compat_urllib_parse_urlparse = urllib.parse.urlparse
+
+def compat_shlex_quote(s):
+    from ..utils import shell_quote
+    return shell_quote(s)

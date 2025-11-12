@@ -1,8 +1,7 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
-    clean_html,
     ExtractorError,
+    clean_html,
     int_or_none,
     merge_dicts,
     parse_count,
@@ -44,9 +43,6 @@ class HKETVIE(InfoExtractor):
             'upload_date': '20070109',
             'duration': 907,
             'subtitles': {},
-        },
-        'params': {
-            'geo_verification_proxy': '<HK proxy here>',
         },
         'skip': 'Geo restricted to HK',
     }]
@@ -144,7 +140,7 @@ class HKETVIE(InfoExtractor):
             if not isinstance(track, dict):
                 continue
             track_kind = str_or_none(track.get('kind'))
-            if not track_kind or not isinstance(track_kind, compat_str):
+            if not track_kind or not isinstance(track_kind, str):
                 continue
             if track_kind.lower() not in ('captions', 'subtitles'):
                 continue

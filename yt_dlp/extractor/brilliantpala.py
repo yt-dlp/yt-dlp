@@ -27,8 +27,17 @@ class BrilliantpalaBaseIE(InfoExtractor):
             r'"username"\s*:\s*"(?P<username>[^"]+)"', webpage, 'logged-in username')
 
     def _perform_login(self, username, password):
-        login_form = self._hidden_inputs(self._download_webpage(
-            self._LOGIN_API, None, 'Downloading login page'))
+        login_page, urlh = self._download_webpage_handle(
+            self._LOGIN_API, None, 'Downloading login page', expected_status=401)
+        if urlh.status != 401 and not urlh.url.startswith(self._LOGIN_API):
+            self.write_debug('Cookies are valid, no login required.')
+            return
+
+        if urlh.status == 401:
+            self.write_debug('Got HTTP Error 401; cookies have been invalidated')
+            login_page = self._download_webpage(self._LOGIN_API, None, 'Re-downloading login page')
+
+        login_form = self._hidden_inputs(login_page)
         login_form.update({
             'username': username,
             'password': password,

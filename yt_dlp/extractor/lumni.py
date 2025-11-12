@@ -12,7 +12,7 @@ class LumniIE(FranceTVBaseInfoExtractor):
             'title': "L'homme et son environnement dans la révolution industrielle - L'ère de l'homme",
             'thumbnail': 'https://assets.webservices.francetelevisions.fr/v1/assets/images/a7/17/9f/a7179f5f-63a5-4e11-8d4d-012ab942d905.jpg',
             'duration': 230,
-        }
+        },
     }]
 
     def _real_extract(self, url):

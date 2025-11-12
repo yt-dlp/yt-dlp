@@ -35,7 +35,7 @@ class NoicePodcastIE(InfoExtractor):
             'comment_count': int,
             'dislike_count': int,
             'channel_follower_count': int,
-        }
+        },
     }, {
         'url': 'https://open.noice.id/content/222134e4-99f2-456f-b8a2-b8be404bf063',
         'info_dict': {
@@ -60,7 +60,7 @@ class NoicePodcastIE(InfoExtractor):
             'comment_count': int,
             'channel': 'Dear Jerome',
             'channel_follower_count': int,
-        }
+        },
     }]
 
     def _get_formats_and_subtitles(self, media_url, video_id):
@@ -112,5 +112,5 @@ class NoicePodcastIE(InfoExtractor):
                 'dislike_count': 'dislikes',
                 'comment_count': 'comments',
                 'channel_follower_count': 'followers',
-            }))
+            })),
         }

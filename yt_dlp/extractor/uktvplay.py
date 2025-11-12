@@ -18,7 +18,7 @@ class UKTVPlayIE(InfoExtractor):
             # m3u8 download
             'skip_download': True,
         },
-        'expected_warnings': ['Failed to download MPD manifest']
+        'expected_warnings': ['Failed to download MPD manifest'],
     }, {
         'url': 'https://uktvplay.uktv.co.uk/shows/africa/watch-online/5983349675001',
         'only_matching': True,

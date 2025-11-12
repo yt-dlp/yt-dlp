@@ -18,7 +18,7 @@ class YouJizzIE(InfoExtractor):
             'title': 'Zeichentrick 1',
             'age_limit': 18,
             'duration': 2874,
-        }
+        },
     }, {
         'url': 'http://www.youjizz.com/videos/-2189178.html',
         'only_matching': True,

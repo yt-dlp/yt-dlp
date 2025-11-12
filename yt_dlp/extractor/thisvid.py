@@ -27,7 +27,7 @@ class ThisVidIE(InfoExtractor):
             'uploader': 'jeanslevisjeans',
             'display_id': 'sitting-on-ball-tight-jeans',
             'age_limit': 18,
-        }
+        },
     }, {
         'url': 'https://thisvid.com/embed/3533241/',
         'md5': '839becb572995687e11a69dc4358a386',
@@ -40,7 +40,7 @@ class ThisVidIE(InfoExtractor):
             'uploader': 'jeanslevisjeans',
             'display_id': 'sitting-on-ball-tight-jeans',
             'age_limit': 18,
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -134,7 +134,7 @@ class ThisVidPlaylistBaseIE(InfoExtractor):
         title = re.split(
             r'(?i)\s*\|\s*ThisVid\.com\s*$',
             self._og_search_title(webpage, default=None)
-            or self._html_search_regex(r'(?s)<title\b[^>]*>(.+?)</title', webpage, 'title', fatal=False) or '', 1)[0] or None
+            or self._html_search_regex(r'(?s)<title\b[^>]*>(.+?)</title', webpage, 'title', fatal=False) or '', maxsplit=1)[0] or None
 
         return self.playlist_from_matches(
             self._generate_playlist_entries(url, playlist_id, webpage),

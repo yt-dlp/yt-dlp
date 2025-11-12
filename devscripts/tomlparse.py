@@ -11,7 +11,7 @@ IMPORTANT: INVALID FILES OR MULTILINE STRINGS ARE NOT SUPPORTED!
 
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import json
 import re
 
@@ -115,9 +115,9 @@ def parse_value(data: str, index: int):
     for func in [
         int,
         float,
-        datetime.time.fromisoformat,
-        datetime.date.fromisoformat,
-        datetime.datetime.fromisoformat,
+        dt.time.fromisoformat,
+        dt.date.fromisoformat,
+        dt.datetime.fromisoformat,
         {'true': True, 'false': False}.get,
     ]:
         try:
@@ -179,7 +179,7 @@ def main():
         data = file.read()
 
     def default(obj):
-        if isinstance(obj, (datetime.date, datetime.time, datetime.datetime)):
+        if isinstance(obj, (dt.date, dt.time, dt.datetime)):
             return obj.isoformat()
 
     print(json.dumps(parse_toml(data), default=default))

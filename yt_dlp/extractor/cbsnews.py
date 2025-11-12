@@ -1,13 +1,10 @@
 import base64
 import re
-import urllib.error
 import urllib.parse
 import zlib
 
 from .anvato import AnvatoIE
 from .common import InfoExtractor
-from .paramountplus import ParamountPlusIE
-from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
     UserNotLive,
@@ -97,7 +94,7 @@ class CBSNewsBaseIE(InfoExtractor):
             **traverse_obj(item, {
                 'title': (None, ('fulltitle', 'title')),
                 'description': 'dek',
-                'timestamp': ('timestamp', {lambda x: float_or_none(x, 1000)}),
+                'timestamp': ('timestamp', {float_or_none(scale=1000)}),
                 'duration': ('duration', {float_or_none}),
                 'subtitles': ('captions', {get_subtitles}),
                 'thumbnail': ('images', ('hd', 'sd'), {url_or_none}),
@@ -133,13 +130,7 @@ class CBSNewsEmbedIE(CBSNewsBaseIE):
         video_id = item['mpxRefId']
         video_url = self._get_video_url(item)
         if not video_url:
-            # Old embeds redirect user to ParamountPlus but most links are 404
-            pplus_url = f'https://www.paramountplus.com/shows/video/{video_id}'
-            try:
-                self._request_webpage(HEADRequest(pplus_url), video_id)
-                return self.url_result(pplus_url, ParamountPlusIE)
-            except ExtractorError:
-                self.raise_no_formats('This video is no longer available', True, video_id)
+            raise ExtractorError('This video is no longer available', expected=True)
 
         return self._extract_video(item, video_url, video_id)
 

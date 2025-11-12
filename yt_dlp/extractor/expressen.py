@@ -58,7 +58,7 @@ class ExpressenIE(InfoExtractor):
         def extract_data(name):
             return self._parse_json(
                 self._search_regex(
-                    r'data-%s=(["\'])(?P<value>(?:(?!\1).)+)\1' % name,
+                    rf'data-{name}=(["\'])(?P<value>(?:(?!\1).)+)\1',
                     webpage, 'info', group='value'),
                 display_id, transform_source=unescapeHTML)
 

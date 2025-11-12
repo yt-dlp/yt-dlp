@@ -46,7 +46,7 @@ class HolodexIE(InfoExtractor):
         'url': 'https://holodex.net/watch/_m2mQyaofjI?foo=bar&playlist=69',
         'info_dict': {
             'id': '69',
-            'title': '拿著金斧頭的藍髮大姊姊'
+            'title': '拿著金斧頭的藍髮大姊姊',
         },
         'playlist_count': 3,
     }, {

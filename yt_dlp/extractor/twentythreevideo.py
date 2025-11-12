@@ -16,7 +16,7 @@ class TwentyThreeVideoIE(InfoExtractor):
             'upload_date': '20171221',
             'uploader_id': '12258964',
             'uploader': 'Rasmus Bysted',
-        }
+        },
     }, {
         'url': 'https://bonnier-publications-danmark.23video.com/v.ihtml/player.html?token=f0dc46476e06e13afd5a1f84a29e31e8&source=embed&photo%5fid=36137620',
         'only_matching': True,
@@ -24,7 +24,7 @@ class TwentyThreeVideoIE(InfoExtractor):
 
     def _real_extract(self, url):
         domain, query, photo_id = self._match_valid_url(url).groups()
-        base_url = 'https://%s' % domain
+        base_url = f'https://{domain}'
         photo_data = self._download_json(
             base_url + '/api/photo/list?' + query, photo_id, query={
                 'format': 'json',

@@ -17,8 +17,8 @@ class DetikEmbedIE(InfoExtractor):
             'tags': ['raja charles', ' raja charles iii', ' ratu elizabeth', ' ratu elizabeth meninggal dunia', ' raja inggris', ' inggris'],
             'release_timestamp': 1662869995,
             'release_date': '20220911',
-            'uploader': 'REUTERS'
-        }
+            'uploader': 'REUTERS',
+        },
     }, {
         # 20.detik
         'url': 'https://20.detik.com/otobuzz/20220704-220704093/mulai-rp-10-jutaan-ini-skema-kredit-mitsubishi-pajero-sport',
@@ -36,8 +36,8 @@ class DetikEmbedIE(InfoExtractor):
             'release_timestamp': 1656926321,
             'release_date': '20220704',
             'age_limit': 0,
-            'uploader': 'Ridwan Arifin '  # TODO: strip trailling whitespace at uploader
-        }
+            'uploader': 'Ridwan Arifin ',  # TODO: strip trailling whitespace at uploader
+        },
     }, {
         # pasangmata.detik
         'url': 'https://pasangmata.detik.com/contribution/366649',
@@ -49,7 +49,7 @@ class DetikEmbedIE(InfoExtractor):
             'age_limit': 0,
             'tags': 'count:17',
             'thumbnail': 'https://akcdn.detik.net.id/community/data/media/thumbs-pasangmata/2022/09/08/366649-16626229351533009620.mp4-03.jpg',
-        }
+        },
     }, {
         # insertlive embed
         'url': 'https://www.insertlive.com/embed/video/290482',
@@ -64,7 +64,7 @@ class DetikEmbedIE(InfoExtractor):
             'title': 'Diincar Leonardo DiCaprio, Gigi Hadid Ngaku Tertarik Tapi Belum Cinta',
             'tags': ['leonardo dicaprio', ' gigi hadid', ' hollywood'],
             'uploader': '!nsertlive',
-        }
+        },
     }, {
         # beautynesia embed
         'url': 'https://www.beautynesia.id/embed/video/261636',
@@ -79,7 +79,7 @@ class DetikEmbedIE(InfoExtractor):
             'tags': ['zodiac update', ' zodiak', ' ramalan bintang', ' zodiak beruntung 2022', ' zodiak hoki september 2022', ' zodiak beruntung september 2022'],
             'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/05/3-zodiak-paling-beruntung-selama-september-2022_169.jpeg?w=600&q=90',
             'uploader': 'amh',
-        }
+        },
     }, {
         # cnbcindonesia embed
         'url': 'https://www.cnbcindonesia.com/embed/video/371839',
@@ -91,7 +91,7 @@ class DetikEmbedIE(InfoExtractor):
             'age_limit': 0,
             'thumbnail': 'https://awsimages.detik.net.id/visual/2022/09/13/cnbc-indonesia-tv-3_169.png?w=600&q=80',
             'description': 'md5:8b9111e37555fcd95fe549a9b4ae6fdc',
-        }
+        },
     }, {
         # detik shortlink (we can get it from https://dtk.id/?<url>)
         'url': 'https://dtk.id/NkISKr',
@@ -110,7 +110,7 @@ class DetikEmbedIE(InfoExtractor):
             'timestamp': 1663139688,
             'duration': 213.0,
             'tags': ['hacker bjorka', 'bjorka', 'hacker bjorka bocorkan data rahasia presiden jokowi', 'jokowi'],
-        }
+        },
     }]
 
     def _extract_from_webpage(self, url, webpage):
@@ -142,7 +142,7 @@ class DetikEmbedIE(InfoExtractor):
                 'timestamp': int_or_none(self._html_search_meta('dtk:createdateunix', webpage, fatal=False, default=None), 1000),
                 'uploader': self._search_regex(
                     r'([^-]+)', self._html_search_meta('dtk:author', webpage, default='').strip(), 'uploader',
-                    default=None)
+                    default=None),
             }
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, display_id)

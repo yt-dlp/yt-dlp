@@ -18,9 +18,9 @@ from ..utils import (
 class NiconicoChannelPlusBaseIE(InfoExtractor):
     _WEBPAGE_BASE_URL = 'https://nicochannel.jp'
 
-    def _call_api(self, path, item_id, *args, **kwargs):
+    def _call_api(self, path, item_id, **kwargs):
         return self._download_json(
-            f'https://nfc-api.nicochannel.jp/fc/{path}', video_id=item_id, *args, **kwargs)
+            f'https://nfc-api.nicochannel.jp/fc/{path}', video_id=item_id, **kwargs)
 
     def _find_fanclub_site_id(self, channel_name):
         fanclub_list_json = self._call_api(

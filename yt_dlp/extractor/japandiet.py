@@ -1,5 +1,6 @@
 import re
 
+from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -9,9 +10,8 @@ from ..utils import (
     smuggle_url,
     traverse_obj,
     try_call,
-    unsmuggle_url
+    unsmuggle_url,
 )
-from .common import InfoExtractor
 
 
 def _parse_japanese_date(text):
@@ -41,7 +41,7 @@ def _parse_japanese_duration(text):
     mobj = re.search(r'(?:(\d+)日間?)?(?:(\d+)時間?)?(?:(\d+)分)?(?:(\d+)秒)?', re.sub(r'[\s\u3000]+', '', text or ''))
     if not mobj:
         return
-    days, hours, mins, secs = [int_or_none(x, default=0) for x in mobj.groups()]
+    days, hours, mins, secs = (int_or_none(x, default=0) for x in mobj.groups())
     return secs + mins * 60 + hours * 60 * 60 + days * 24 * 60 * 60
 
 
@@ -142,10 +142,10 @@ class ShugiinItvVodIE(ShugiinItvBaseIE):
             'title': 'ウクライナ大統領国会演説（オンライン）',
             'release_date': '20220323',
             'chapters': 'count:4',
-        }
+        },
     }, {
         'url': 'https://www.shugiintv.go.jp/en/index.php?ex=VL&media_type=&deli_id=53846',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -194,11 +194,14 @@ class ShugiinItvVodIE(ShugiinItvBaseIE):
 
 
 class SangiinInstructionIE(InfoExtractor):
-    _VALID_URL = r'^https?://www\.webtv\.sangiin\.go\.jp/webtv/index\.php'
+    _VALID_URL = r'https?://www\.webtv\.sangiin\.go\.jp/webtv/index\.php'
     IE_DESC = False  # this shouldn't be listed as a supported site
 
     def _real_extract(self, url):
-        raise ExtractorError('Copy the link from the botton below the video description or player, and use the link to download. If there are no button in the frame, get the URL of the frame showing the video.', expected=True)
+        raise ExtractorError(
+            'Copy the link from the button below the video description/player '
+            'and use that link to download. If there is no button in the frame, '
+            'get the URL of the frame showing the video.', expected=True)
 
 
 class SangiinIE(InfoExtractor):
@@ -232,7 +235,7 @@ class SangiinIE(InfoExtractor):
             'is_live': True,
         },
         'skip': 'this live is turned into archive after it ends',
-    }, ]
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

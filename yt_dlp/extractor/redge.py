@@ -1,4 +1,3 @@
-import functools
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
@@ -51,14 +50,14 @@ class RedCDNLivxIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    """
+    '''
     Known methods (first in url path):
     - `livedash` - DASH MPD
     - `livehls` - HTTP Live Streaming
     - `livess` - IIS Smooth Streaming
     - `nvr` - CCTV mode, directly returns a file, typically flv, avc1, aac
     - `sc` - shoutcast/icecast (audio streams, like radio)
-    """
+    '''
 
     def _real_extract(self, url):
         tenant, path = self._match_valid_url(url).group('tenant', 'id')
@@ -118,7 +117,7 @@ class RedCDNLivxIE(InfoExtractor):
 
         time_scale = traverse_obj(ism_doc, ('@TimeScale', {int_or_none})) or 10000000
         duration = traverse_obj(
-            ism_doc, ('@Duration', {functools.partial(float_or_none, scale=time_scale)})) or None
+            ism_doc, ('@Duration', {float_or_none(scale=time_scale)})) or None
 
         live_status = None
         if traverse_obj(ism_doc, '@IsLive') == 'TRUE':

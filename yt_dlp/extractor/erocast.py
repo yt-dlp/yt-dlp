@@ -32,7 +32,7 @@ class ErocastIE(InfoExtractor):
             'view_count': int,
             'comment_count': int,
             'webpage_url': 'https://erocast.me/track/9787/f4m-your-roommate-who-is-definitely-not-possessed-by-an-alien-suddenly-wants-to-fuck-you',
-        }
+        },
     }]
 
     def _real_extract(self, url):

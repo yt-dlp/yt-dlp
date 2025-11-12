@@ -8,14 +8,14 @@ class NprIE(InfoExtractor):
         'url': 'https://www.npr.org/sections/allsongs/2015/10/21/449974205/new-music-from-beach-house-chairlift-cmj-discoveries-and-more',
         'info_dict': {
             'id': '449974205',
-            'title': 'New Music From Beach House, Chairlift, CMJ Discoveries And More'
+            'title': 'New Music From Beach House, Chairlift, CMJ Discoveries And More',
         },
         'playlist_count': 7,
     }, {
         'url': 'https://www.npr.org/sections/deceptivecadence/2015/10/09/446928052/music-from-the-shadows-ancient-armenian-hymns-and-piano-jazz',
         'info_dict': {
             'id': '446928052',
-            'title': "Songs We Love: Tigran Hamasyan, 'Your Mercy is Boundless'"
+            'title': "Songs We Love: Tigran Hamasyan, 'Your Mercy is Boundless'",
         },
         'playlist': [{
             'md5': '12fa60cb2d3ed932f53609d4aeceabf1',

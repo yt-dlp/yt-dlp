@@ -51,7 +51,6 @@ cookies
 *.srt
 *.ssa
 *.swf
-*.swp
 *.tt
 *.ttml
 *.url
@@ -67,7 +66,7 @@ cookies
 # Python
 *.pyc
 *.pyo
-.pytest_cache
+.*_cache
 wine-py2exe/
 py2exe.log
 build/
@@ -93,6 +92,7 @@ updates_key.pem
 *.class
 *.isorted
 *.stackdump
+uv.lock
 
 # Generated
 AUTHORS
@@ -105,6 +105,9 @@ README.txt
 *.zsh
 *.spec
 test/testdata/sigs/player-*.js
+test/testdata/thumbnails/empty.webp
+test/testdata/thumbnails/foo\ %d\ bar/foo_%d.*
+.ejs-*
 
 # Binary
 /youtube-dl
@@ -119,6 +122,7 @@ yt-dlp.zip
 .vscode
 *.sublime-*
 *.code-workspace
+*.swp
 
 # Lazy extractors
 */extractor/lazy_extractors.py
@@ -126,3 +130,6 @@ yt-dlp.zip
 # Plugins
 ytdlp_plugins/
 yt-dlp-plugins
+
+# Packages
+yt_dlp_ejs/

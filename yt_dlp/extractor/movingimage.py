@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    unescapeHTML,
     parse_duration,
+    unescapeHTML,
 )
 
 
@@ -31,7 +31,7 @@ class MovingImageIE(InfoExtractor):
 
         def search_field(field_name, fatal=False):
             return self._search_regex(
-                r'<span\s+class="field_title">%s:</span>\s*<span\s+class="field_content">([^<]+)</span>' % field_name,
+                rf'<span\s+class="field_title">{field_name}:</span>\s*<span\s+class="field_content">([^<]+)</span>',
                 webpage, 'title', fatal=fatal)
 
         title = unescapeHTML(search_field('Title', fatal=True)).strip('()[]')

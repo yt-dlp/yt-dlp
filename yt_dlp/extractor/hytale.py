@@ -1,7 +1,8 @@
 import re
 
+from .cloudflarestream import CloudflareStreamIE
 from .common import InfoExtractor
-from ..utils import traverse_obj
+from ..utils.traversal import traverse_obj
 
 
 class HytaleIE(InfoExtractor):
@@ -20,8 +21,8 @@ class HytaleIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Avatar Personalization',
                 'thumbnail': r're:https://videodelivery\.net/\w+/thumbnails/thumbnail\.jpg',
-            }
-        }]
+            },
+        }],
     }, {
         'url': 'https://www.hytale.com/news/2019/11/hytale-graphics-update',
         'info_dict': {
@@ -49,7 +50,7 @@ class HytaleIE(InfoExtractor):
         entries = [
             self.url_result(
                 f'https://cloudflarestream.com/{video_hash}/manifest/video.mpd?parentOrigin=https%3A%2F%2Fhytale.com',
-                title=self._titles.get(video_hash), url_transparent=True)
+                CloudflareStreamIE, title=self._titles.get(video_hash), url_transparent=True)
             for video_hash in re.findall(
                 r'<stream\s+class\s*=\s*"ql-video\s+cf-stream"\s+src\s*=\s*"([a-f0-9]{32})"',
                 webpage)

@@ -5,7 +5,10 @@ from .common import InfoExtractor
 from .dailymotion import DailymotionIE
 from ..networking import HEADRequest
 from ..utils import (
+    ExtractorError,
+    clean_html,
     determine_ext,
+    extract_attributes,
     filter_dict,
     format_field,
     int_or_none,
@@ -15,7 +18,11 @@ from ..utils import (
     unsmuggle_url,
     url_or_none,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import (
+    find_element,
+    get_first,
+    traverse_obj,
+)
 
 
 class FranceTVBaseInfoExtractor(InfoExtractor):
@@ -28,11 +35,13 @@ class FranceTVBaseInfoExtractor(InfoExtractor):
 
 
 class FranceTVIE(InfoExtractor):
+    IE_NAME = 'francetv'
     _VALID_URL = r'francetv:(?P<id>[^@#]+)'
     _GEO_COUNTRIES = ['FR']
     _GEO_BYPASS = False
 
     _TESTS = [{
+        # tokenized url is in dinfo['video']['token']
         'url': 'francetv:ec217ecc-0733-48cf-ac06-af1347b849d1',
         'info_dict': {
             'id': 'ec217ecc-0733-48cf-ac06-af1347b849d1',
@@ -42,6 +51,19 @@ class FranceTVIE(InfoExtractor):
             'duration': 2580,
             'thumbnail': r're:^https?://.*\.jpg$',
             'upload_date': '20170813',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # tokenized url is in dinfo['video']['token']['akamai']
+        'url': 'francetv:c5bda21d-2c6f-4470-8849-3d8327adb2ba',
+        'info_dict': {
+            'id': 'c5bda21d-2c6f-4470-8849-3d8327adb2ba',
+            'ext': 'mp4',
+            'title': '13h15, le dimanche... - Les mystères de Jésus',
+            'timestamp': 1514118300,
+            'duration': 2880,
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'upload_date': '20171224',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -68,6 +90,7 @@ class FranceTVIE(InfoExtractor):
     def _extract_video(self, video_id, hostname=None):
         is_live = None
         videos = []
+        drm_formats = False
         title = None
         subtitle = None
         episode_number = None
@@ -85,13 +108,12 @@ class FranceTVIE(InfoExtractor):
                     'device_type': device_type,
                     'browser': browser,
                     'domain': hostname,
-                }), fatal=False)
+                }), fatal=False, expected_status=422)  # 422 json gives detailed error code/message
 
             if not dinfo:
                 continue
 
-            video = traverse_obj(dinfo, ('video', {dict}))
-            if video:
+            if video := traverse_obj(dinfo, ('video', {dict})):
                 videos.append(video)
                 if duration is None:
                     duration = video.get('duration')
@@ -99,9 +121,20 @@ class FranceTVIE(InfoExtractor):
                     is_live = video.get('is_live')
                 if spritesheets is None:
                     spritesheets = video.get('spritesheets')
+            elif code := traverse_obj(dinfo, ('code', {int})):
+                if code == 2009:
+                    self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
+                elif code in (2015, 2017, 2019):
+                    # 2015: L'accès à cette vidéo est impossible. (DRM-only)
+                    # 2017: Cette vidéo n'est pas disponible depuis le site web mobile (b/c DRM)
+                    # 2019: L'accès à cette vidéo est incompatible avec votre configuration. (DRM-only)
+                    drm_formats = True
+                    continue
+                self.report_warning(
+                    f'{self.IE_NAME} said: {code} "{clean_html(dinfo.get("message"))}"')
+                continue
 
-            meta = traverse_obj(dinfo, ('meta', {dict}))
-            if meta:
+            if meta := traverse_obj(dinfo, ('meta', {dict})):
                 if title is None:
                     title = meta.get('title')
                 # meta['pre_title'] contains season and episode number for series in format "S<ID> E<ID>"
@@ -114,12 +147,15 @@ class FranceTVIE(InfoExtractor):
                 if timestamp is None:
                     timestamp = parse_iso8601(meta.get('broadcasted_at'))
 
+        if not videos and drm_formats:
+            self.report_drm(video_id)
+
         formats, subtitles, video_url = [], {}, None
         for video in traverse_obj(videos, lambda _, v: url_or_none(v['url'])):
             video_url = video['url']
             format_id = video.get('format')
 
-            if token_url := url_or_none(video.get('token')):
+            if token_url := traverse_obj(video, ('token', (None, 'akamai'), {url_or_none}, any)):
                 tokenized_url = traverse_obj(self._download_json(
                     token_url, video_id, f'Downloading signed {format_id} manifest URL',
                     fatal=False, query={
@@ -175,7 +211,7 @@ class FranceTVIE(InfoExtractor):
         for f in formats:
             if f.get('acodec') != 'none' and f.get('language') in ('qtz', 'qad'):
                 f['language_preference'] = -10
-                f['format_note'] = 'audio description%s' % format_field(f, 'format_note', ', %s')
+                f['format_note'] = 'audio description{}'.format(format_field(f, 'format_note', ', %s'))
 
         if spritesheets:
             formats.append({
@@ -189,10 +225,10 @@ class FranceTVIE(InfoExtractor):
                 'fragments': [{
                     'url': sheet,
                     # XXX: not entirely accurate; each spritesheet seems to be
-                    # a 10×10 grid of thumbnails corresponding to approximately
+                    # a 10x10 grid of thumbnails corresponding to approximately
                     # 2 seconds of the video; the last spritesheet may be shorter
                     'duration': 200,
-                } for sheet in traverse_obj(spritesheets, (..., {url_or_none}))]
+                } for sheet in traverse_obj(spritesheets, (..., {url_or_none}))],
             })
 
         return {
@@ -220,12 +256,13 @@ class FranceTVIE(InfoExtractor):
 
 
 class FranceTVSiteIE(FranceTVBaseInfoExtractor):
+    IE_NAME = 'francetv:site'
     _VALID_URL = r'https?://(?:(?:www\.)?france\.tv|mobile\.france\.tv)/(?:[^/]+/)*(?P<id>[^/]+)\.html'
 
     _TESTS = [{
         'url': 'https://www.france.tv/france-2/13h15-le-dimanche/140921-les-mysteres-de-jesus.html',
         'info_dict': {
-            'id': 'ec217ecc-0733-48cf-ac06-af1347b849d1',
+            'id': 'b2cf9fd8-e971-4757-8651-848f2772df61',  # old: ec217ecc-0733-48cf-ac06-af1347b849d1
             'ext': 'mp4',
             'title': '13h15, le dimanche... - Les mystères de Jésus',
             'timestamp': 1502623500,
@@ -236,7 +273,7 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
         'params': {
             'skip_download': True,
         },
-        'add_ie': [FranceTVIE.ie_key()],
+        'skip': 'Unfortunately, this video is no longer available',
     }, {
         # geo-restricted
         'url': 'https://www.france.tv/enfants/six-huit-ans/foot2rue/saison-1/3066387-duel-au-vieux-port.html',
@@ -254,6 +291,7 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 1441,
         },
+        'skip': 'Unfortunately, this video is no longer available',
     }, {
         # geo-restricted livestream (workflow == 'token-akamai')
         'url': 'https://www.france.tv/france-4/direct.html',
@@ -274,6 +312,19 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
             'live_status': 'is_live',
         },
         'params': {'skip_download': 'livestream'},
+    }, {
+        # Not geo-restricted
+        'url': 'https://www.france.tv/france-2/la-maison-des-maternelles/5574051-nous-sommes-amis-et-nous-avons-fait-un-enfant-ensemble.html',
+        'info_dict': {
+            'id': 'b448bfe4-9fe7-11ee-97d8-2ba3426fa3df',
+            'ext': 'mp4',
+            'title': 'Nous sommes amis et nous avons fait un enfant ensemble - Émission du jeudi 21 décembre 2023',
+            'duration': 1065,
+            'thumbnail': r're:https?://.+/.+\.jpg',
+            'timestamp': 1703147921,
+            'upload_date': '20231221',
+        },
+        'params': {'skip_download': 'm3u8'},
     }, {
         # france3
         'url': 'https://www.france.tv/france-3/des-chiffres-et-des-lettres/139063-emission-du-mardi-9-mai-2017.html',
@@ -310,17 +361,11 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-
         webpage = self._download_webpage(url, display_id)
-
-        video_id = self._search_regex(
-            r'(?:data-main-video\s*=|videoId["\']?\s*[:=])\s*(["\'])(?P<id>(?:(?!\1).)+)\1',
-            webpage, 'video id', default=None, group='id')
-
+        nextjs_data = self._search_nextjs_v13_data(webpage, display_id)
+        video_id = get_first(nextjs_data, ('options', 'id', {str}))
         if not video_id:
-            video_id = self._html_search_regex(
-                r'(?:href=|player\.setVideo\(\s*)"http://videos?\.francetv\.fr/video/([^@"]+@[^"]+)"',
-                webpage, 'video ID')
+            raise ExtractorError('Unable to extract video ID')
 
         return self._make_url_result(video_id, url=url)
 
@@ -413,11 +458,16 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
                 self.url_result(dailymotion_url, DailymotionIE.ie_key())
                 for dailymotion_url in dailymotion_urls])
 
-        video_id = self._search_regex(
-            (r'player\.load[^;]+src:\s*["\']([^"\']+)',
-             r'id-video=([^@]+@[^"]+)',
-             r'<a[^>]+href="(?:https?:)?//videos\.francetv\.fr/video/([^@]+@[^"]+)"',
-             r'(?:data-id|<figure[^<]+\bid)=["\']([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'),
-            webpage, 'video id')
+        video_id = (
+            traverse_obj(webpage, (
+                {find_element(tag='button', attr='data-cy', value='francetv-player-wrapper', html=True)},
+                {extract_attributes}, 'id'))
+            or self._search_regex(
+                (r'player\.load[^;]+src:\s*["\']([^"\']+)',
+                 r'id-video=([^@]+@[^"]+)',
+                 r'<a[^>]+href="(?:https?:)?//videos\.francetv\.fr/video/([^@]+@[^"]+)"',
+                 r'(?:data-id|<figure[^<]+\bid)=["\']([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'),
+                webpage, 'video id')
+        )
 
         return self._make_url_result(video_id, url=url)

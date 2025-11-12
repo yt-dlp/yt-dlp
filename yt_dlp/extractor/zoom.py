@@ -109,9 +109,9 @@ class ZoomIE(InfoExtractor):
 
         subtitles = {}
         for _type in ('transcript', 'cc', 'chapter'):
-            if data.get('%sUrl' % _type):
+            if data.get(f'{_type}Url'):
                 subtitles[_type] = [{
-                    'url': urljoin(base_url, data['%sUrl' % _type]),
+                    'url': urljoin(base_url, data[f'{_type}Url']),
                     'ext': 'vtt',
                 }]
 
@@ -126,7 +126,7 @@ class ZoomIE(InfoExtractor):
                 'format_id': 'view',
                 'ext': 'mp4',
                 'filesize_approx': parse_filesize(str_or_none(traverse_obj(data, ('recording', 'fileSizeInMB')))),
-                'preference': 0
+                'preference': 0,
             })
 
         if data.get('shareMp4Url'):
@@ -137,7 +137,7 @@ class ZoomIE(InfoExtractor):
                 'height': int_or_none(traverse_obj(data, ('shareResolvtions', 1))),
                 'format_id': 'share',
                 'ext': 'mp4',
-                'preference': -1
+                'preference': -1,
             })
 
         view_with_share_url = data.get('viewMp4WithshareUrl')
@@ -149,7 +149,7 @@ class ZoomIE(InfoExtractor):
                 'url': view_with_share_url,
                 'format_id': 'view_with_share',
                 'ext': 'mp4',
-                'preference': 1
+                'preference': 1,
             })
 
         return {

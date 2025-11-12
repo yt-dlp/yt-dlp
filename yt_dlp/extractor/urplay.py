@@ -1,13 +1,14 @@
 from .common import InfoExtractor
 from ..utils import (
-    dict_get,
     ExtractorError,
-    int_or_none,
     ISO639Utils,
+    dict_get,
+    int_or_none,
     parse_age_limit,
     try_get,
     unified_timestamp,
 )
+from ..utils.traversal import traverse_obj
 
 
 class URPlayIE(InfoExtractor):
@@ -25,7 +26,7 @@ class URPlayIE(InfoExtractor):
             'upload_date': '20171214',
             'series': 'UR Samtiden - Livet, universum och rymdens märkliga musik',
             'duration': 2269,
-            'categories': ['Vetenskap & teknik'],
+            'categories': ['Kultur & historia'],
             'tags': ['Kritiskt tänkande', 'Vetenskap', 'Vetenskaplig verksamhet'],
             'episode': 'Om vetenskap, kritiskt tänkande och motstånd',
             'age_limit': 15,
@@ -78,7 +79,7 @@ class URPlayIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         urplayer_data = self._search_nextjs_data(webpage, video_id, fatal=False) or {}
         if urplayer_data:
-            urplayer_data = try_get(urplayer_data, lambda x: x['props']['pageProps']['program'], dict)
+            urplayer_data = traverse_obj(urplayer_data, ('props', 'pageProps', 'productData', {dict}))
             if not urplayer_data:
                 raise ExtractorError('Unable to parse __NEXT_DATA__')
         else:
@@ -98,7 +99,7 @@ class URPlayIE(InfoExtractor):
             file_http = v.get('location')
             if file_http:
                 formats.extend(self._extract_wowza_formats(
-                    'http://%s/%splaylist.m3u8' % (host, file_http),
+                    f'http://{host}/{file_http}playlist.m3u8',
                     video_id, skip_protocols=['f4m', 'rtmp', 'rtsp']))
 
         subtitles = {}
@@ -116,14 +117,14 @@ class URPlayIE(InfoExtractor):
             for k, v in stream.items():
                 if (k in ('sd', 'hd') or not isinstance(v, dict)):
                     continue
-                lang, sttl_url = (v.get(kk) for kk in ('language', 'location', ))
+                lang, sttl_url = (v.get(kk) for kk in ('language', 'location'))
                 if not sttl_url:
                     continue
                 lang = parse_lang_code(lang)
                 if not lang:
                     continue
                 sttl = subtitles.get(lang) or []
-                sttl.append({'ext': k, 'url': sttl_url, })
+                sttl.append({'ext': k, 'url': sttl_url})
                 subtitles[lang] = sttl
 
         image = urplayer_data.get('image') or {}
@@ -146,7 +147,7 @@ class URPlayIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': '%s : %s' % (series_title, episode) if series_title else episode,
+            'title': f'{series_title} : {episode}' if series_title else episode,
             'description': urplayer_data.get('description'),
             'thumbnails': thumbnails,
             'timestamp': unified_timestamp(urplayer_data.get('publishedAt')),

@@ -4,6 +4,7 @@ from .wrestleuniverse import WrestleUniverseBaseIE
 from ..utils import (
     int_or_none,
     traverse_obj,
+    url_basename,
     url_or_none,
 )
 
@@ -65,9 +66,19 @@ class StacommuBaseIE(WrestleUniverseBaseIE):
         hls_info, decrypt = self._call_encrypted_api(
             video_id, ':watchArchive', 'stream information', data={'method': 1})
 
+        formats = self._get_formats(hls_info, ('hls', 'urls', ..., {url_or_none}), video_id)
+        for f in formats:
+            # bitrates are exaggerated in PPV playlists, so avoid wrong/huge filesize_approx values
+            if f.get('tbr'):
+                f['tbr'] = int(f['tbr'] / 2.5)
+            # prefer variants with the same basename as the master playlist to avoid partial streams
+            f['format_id'] = url_basename(f['url']).partition('.')[0]
+            if not f['format_id'].startswith(url_basename(f['manifest_url']).partition('.')[0]):
+                f['preference'] = -10
+
         return {
             'id': video_id,
-            'formats': self._get_formats(hls_info, ('hls', 'urls', ..., {url_or_none}), video_id),
+            'formats': formats,
             'hls_aes': self._extract_hls_key(hls_info, 'hls', decrypt),
             **traverse_obj(video_info, {
                 'title': ('displayName', {str}),
@@ -174,7 +185,7 @@ class TheaterComplexTownBaseIE(StacommuBaseIE):
 
 
 class TheaterComplexTownVODIE(TheaterComplexTownBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?theater-complex\.town/(?:en/)?videos/episodes/(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?theater-complex\.town/(?:(?:en|ja)/)?videos/episodes/(?P<id>\w+)'
     IE_NAME = 'theatercomplextown:vod'
     _TESTS = [{
         'url': 'https://www.theater-complex.town/videos/episodes/hoxqidYNoAn7bP92DN6p78',
@@ -195,6 +206,9 @@ class TheaterComplexTownVODIE(TheaterComplexTownBaseIE):
     }, {
         'url': 'https://www.theater-complex.town/en/videos/episodes/6QT7XYwM9dJz5Gf9VB6K5y',
         'only_matching': True,
+    }, {
+        'url': 'https://www.theater-complex.town/ja/videos/episodes/hoxqidYNoAn7bP92DN6p78',
+        'only_matching': True,
     }]
 
     _API_PATH = 'videoEpisodes'
@@ -204,7 +218,7 @@ class TheaterComplexTownVODIE(TheaterComplexTownBaseIE):
 
 
 class TheaterComplexTownPPVIE(TheaterComplexTownBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?theater-complex\.town/(?:en/)?ppv/(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?theater-complex\.town/(?:(?:en|ja)/)?(?:ppv|live)/(?P<id>\w+)'
     IE_NAME = 'theatercomplextown:ppv'
     _TESTS = [{
         'url': 'https://www.theater-complex.town/ppv/wytW3X7khrjJBUpKuV3jen',
@@ -222,6 +236,12 @@ class TheaterComplexTownPPVIE(TheaterComplexTownBaseIE):
         },
     }, {
         'url': 'https://www.theater-complex.town/en/ppv/wytW3X7khrjJBUpKuV3jen',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.theater-complex.town/ja/ppv/qwUVmLmGEiZ3ZW6it9uGys',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.theater-complex.town/en/live/79akNM7bJeD5Fi9EP39aDp',
         'only_matching': True,
     }]
 
