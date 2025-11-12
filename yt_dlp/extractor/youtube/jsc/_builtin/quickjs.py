@@ -29,7 +29,7 @@ class QuickJSJCP(EJSBaseJCP, BuiltinIEContentProvider):
 
         # Cygwin uses POSIX paths (i.e. /tmp) that are not understood by native win32 apps (i.e. qjs.exe)
         if sys.platform == 'cygwin':
-            _cygwin1 = ctypes.CDLL('cygwiin1.dll')
+            _cygwin1 = ctypes.CDLL('cygwin1.dll')
             # https://cygwin.com/cygwin-api/func-cygwin-create-path.html
             _cygwin1.cygwin_create_path.restype = ctypes.c_void_p
             # https://man7.org/linux/man-pages/man3/free.3p.html
