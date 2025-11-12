@@ -103,9 +103,11 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         info.update(self._extract_aen_smil(media_url, video_id, auth))
         info.update({
             'title': title,
-            'series': (result.get('series') or {}).get('title'),
-            'season_number': int_or_none(result.get('tvSeasonNumber')),
-            'episode_number': int_or_none(result.get('tvSeasonEpisodeNumber')),
+            **traverse_obj(result, {
+                'series': ('series', 'title', {str}),
+                'season_number': ('tvSeasonNumber', {int_or_none}),
+                'episode_number': ('tvSeasonEpisodeNumber', {int_or_none}),
+            }),
         })
         return info
 
