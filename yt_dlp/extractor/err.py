@@ -2,7 +2,9 @@ from .common import InfoExtractor
 from ..utils import (
     clean_html,
     int_or_none,
+    smuggle_url,
     str_or_none,
+    unsmuggle_url,
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
@@ -174,12 +176,15 @@ class ERRJupiterIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
+        url, idata = unsmuggle_url(url, {})
         video_id = self._match_id(url)
         data = self._download_json(
             'https://services.err.ee/api/v2/vodContent/getContentPageData', video_id,
-            query={'contentId': video_id})['data']['mainContent']
+            query={'contentId': video_id})['data']
 
-        media_data = traverse_obj(data, ('medias', ..., {dict}), get_all=False)
+        main_data = data.get('mainContent')
+
+        media_data = traverse_obj(main_data, ('medias', ..., {dict}), get_all=False)
         if traverse_obj(media_data, ('restrictions', 'drm', {bool})):
             self.report_drm(video_id)
 
@@ -200,11 +205,11 @@ class ERRJupiterIE(InfoExtractor):
                 'format_id': 'http',
             })
 
-        return {
+        metadata = {
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
-            **traverse_obj(data, {
+            **traverse_obj(main_data, {
                 'title': ('heading', {str}),
                 'alt_title': ('subHeading', {str}),
                 'description': (('lead', 'body'), {clean_html}, filter),
@@ -213,12 +218,34 @@ class ERRJupiterIE(InfoExtractor):
                 'release_timestamp': (('scheduleStart', 'publicStart'), {int_or_none}),
                 'release_year': ('year', {int_or_none}),
             }, get_all=False),
-            **(traverse_obj(data, {
+        }
+
+        # Early return for non-episode types ('movies', ...?)
+        if main_data.get('type') != 'episode':
+            return metadata
+
+        metadata |= {
+            **(traverse_obj(main_data, {
                 'series': ('heading', {str}),
                 'series_id': ('rootContentId', {str_or_none}),
                 'episode': ('subHeading', {str}),
                 'season_number': ('season', {int_or_none}),
                 'episode_number': ('episode', {int_or_none}),
                 'episode_id': ('id', {str_or_none}),
-            }) if data.get('type') == 'episode' else {}),
+            })),
         }
+
+        if season_data := data.get('seasonList'):
+            # XXX: Apparently we need to fill out the playlist_id
+            if self._yes_playlist('dummy-id', video_id, idata):
+                playlist_type = season_data.get('type')
+                if playlist_type in ('seasonal', 'monthly'):
+                    active_season = next(season for season in season_data.get('items') if season.get('contents'))
+                    entries = [
+                        self.url_result(smuggle_url(episode['url'], {'force_noplaylist': True}))
+                        for episode in active_season.get('contents', [])
+                    ]
+                    return self.playlist_result(entries, video_id, **metadata)
+                else:
+                    self.report_warning(f'Unhandled playlist type {playlist_type}, skipping playlist...')
+        return metadata
