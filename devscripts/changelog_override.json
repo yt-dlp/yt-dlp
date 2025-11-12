@@ -308,5 +308,16 @@
         "action": "add",
         "when": "2c9091e355a7ba5d1edb69796ecdca48199b77fb",
         "short": "[priority] **A stopgap release with a *TEMPORARY partial* fix for YouTube support**\nSome formats may still be unavailable, especially if cookies are passed to yt-dlp. The ***NEXT*** release, expected very soon, **will require an external JS runtime (e.g. Deno)** in order for YouTube downloads to work properly. [Read more](https://github.com/yt-dlp/yt-dlp/issues/14404)"
+    },
+    {
+        "action": "change",
+        "when": "8636a9bac3bed99984c1e297453660468ecf504b",
+        "short": "Fix 6224a3898821965a7d6a2cb9cc2de40a0fd6e6bc",
+        "authors": ["Grub4K"]
+    },
+    {
+        "action": "add",
+        "when": "6224a3898821965a7d6a2cb9cc2de40a0fd6e6bc",
+        "short": "[priority] **An external JavaScript runtime is now required for full YouTube support**\nyt-dlp now requires users to have an external JavaScript runtime (e.g. Deno) installed in order to solve the JavaScript challenges presented by YouTube. [Read more](https://github.com/yt-dlp/yt-dlp/issues/15012)"
     }
 ]
