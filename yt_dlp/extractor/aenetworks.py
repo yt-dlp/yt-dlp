@@ -74,7 +74,7 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
     def _extract_aetn_info(self, domain, filter_key, filter_value, url):
         requestor_id, brand, software_statement = self._DOMAIN_MAP[domain]
         graphql_video_id = (self._search_regex(
-            r'<meta[^>]+content="[^"]*tpid/(\d+)"|<meta[^>]*name="videoId"[^>]*content="(\d+)"',
+            r'<meta\s[^>]*(?:content="[^"]*tpid/(\d+)"|name="videoId"[^>]+content="(\d+)")',
             self._download_webpage(url, filter_value), 'video ID') if filter_key == 'canonical' else filter_value)
         result = self._download_json(
             'https://yoga.appsvcs.aetnd.com/', graphql_video_id,
