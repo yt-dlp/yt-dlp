@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import determine_ext
+from ..utils import ExtractorError
 
 
 class DigitekaIE(InfoExtractor):
@@ -42,59 +42,66 @@ class DigitekaIE(InfoExtractor):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
-        video_type = mobj.group('embed_type') or mobj.group('site_type')
-        if video_type == 'music':
-            video_type = 'musique'
 
-        IFRAME_MD_ID = '01836272'   # Static ID for Ultimedia iframes
-        iframe_json_ld_url = (
-            f'https://www.ultimedia.com/deliver/generic/iframe/mdtk/{IFRAME_MD_ID}/zone/1/src/{video_id}'
-        )
+        IFRAME_MD_ID = '01836272'   # One static ID working for Ultimedia iframes
 
-        iframe_webpage = self._download_webpage(
-            iframe_json_ld_url, video_id, note='Downloading iframe JSON-LD', fatal=False)
+        api_url = f'https://www.ultimedia.com/player/getConf/{IFRAME_MD_ID}/1/{video_id}'
 
-        info = self._search_json_ld(iframe_webpage, video_id, 'VideoObject', fatal=False) or {}
-        video_url = info.get('url')
+        conf_data = self._download_json(
+            api_url, video_id, note='Downloading player configuration')
 
-        if not video_url:
-            self.report_warning('JSON-LD "contentUrl" missing. Checking DtkPlayer JS for MP4 URL.')
+        video_info = conf_data.get('video')
+        if not video_info:
+            raise ExtractorError('Failed to retrieve video information from API.', expected=True)
 
-            video_url = self._search_regex(
-                r'"mp4_404"\s*:\s*"(https?:\\/\\/assets\.digiteka\.com\\/encoded\\/[^"]+\\/mp4\\/[^"]+_404\.mp4)"',
-                iframe_webpage, 'MP4 404 URL', fatal=False)
-            if video_url:
-                video_url = video_url.replace('\\/', '/')
+        title = video_info['title']
+        formats = []
+        media_sources = video_info.get('media_sources', {})
 
-        if video_url:
-            self.to_screen(f'{video_id}: SUCCESS: Using JSON-LD method.')
+        hls_sources = media_sources.get('hls', {})
+        for format_id, hls_url in hls_sources.items():
+            if not hls_url:
+                continue
 
-            title = info.get('title') or self._html_search_meta('title', iframe_webpage)
-            formats = [{
-                'url': video_url,
-                'ext': determine_ext(video_url, 'mp4'),
-                'format_id': 'hd',
-            }]
+            height_str = format_id.split('_')[-1]
+            height = int(height_str) if height_str.isdigit() else None
 
-            return {
-                'id': video_id,
-                'title': title,
-                'thumbnail': info.get('thumbnail'),
-                'duration': info.get('duration'),
-                'timestamp': info.get('timestamp'),
-                'formats': formats,
-            }
+            formats.append({
+                'url': hls_url,
+                'format_id': f'hls-{height_str}',
+                'height': height,
+                'protocol': 'm3u8_native',
+                'ext': 'mp4',
+            })
 
-        self.report_warning('JSON-LD extraction failed. Falling back to original API logic.')
+        mp4_sources = media_sources.get('mp4', {})
+        for format_id, mp4_url in mp4_sources.items():
+            if not mp4_url:
+                continue
 
-        deliver_info = self._download_json(
-            f'http://www.ultimedia.com/deliver/video?video={video_id}&topic={video_type}',
-            video_id)
+            height_str = format_id.split('_')[-1]
+            height = int(height_str) if height_str.isdigit() else None
 
-        yt_id = deliver_info.get('yt_id')
+            formats.append({
+                'url': mp4_url,
+                'format_id': f'mp4-{height_str}',
+                'height': height,
+                'ext': 'mp4',
+            })
+
+        yt_id = video_info.get('yt_id')
         if yt_id:
             return self.url_result(yt_id, 'Youtube')
 
+        if not formats:
+            raise ExtractorError('No video formats found.', expected=True)
+
         return {
+            'id': video_id,
+            'title': title,
+            'thumbnail': video_info.get('image'),
+            'duration': video_info.get('duration'),
+            'timestamp': video_info.get('creationDate'),
+            'uploader_id': video_info.get('ownerId'),
             'formats': formats,
         }
