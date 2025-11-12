@@ -38,7 +38,6 @@ from ..networking.exceptions import (
     TransportError,
     network_exceptions,
 )
-from ..networking.impersonate import ImpersonateTarget
 from ..utils import (
     IDENTITY,
     JSON_LD_RE,
@@ -244,7 +243,7 @@ class InfoExtractor:
                     * extra_param_to_segment_url  A query string to append to each
                                  fragment's URL, or to update each existing query string
                                  with. If it is an HLS stream with an AES-128 decryption key,
-                                 the query paramaters will be passed to the key URI as well,
+                                 the query parameters will be passed to the key URI as well,
                                  unless there is an `extra_param_to_key_url` given,
                                  or unless an external key URI is provided via `hls_aes`.
                                  Only applied by the native HLS/DASH downloaders.
@@ -259,6 +258,12 @@ class InfoExtractor:
                                  * key  The key (as hex) used to decrypt fragments.
                                         If `key` is given, any key URI will be ignored
                                  * iv   The IV (as hex) used to decrypt fragments
+                    * impersonate  Impersonate target(s). Can be any of the following entities:
+                                * an instance of yt_dlp.networking.impersonate.ImpersonateTarget
+                                * a string in the format of CLIENT[:OS]
+                                * a list or a tuple of CLIENT[:OS] strings or ImpersonateTarget instances
+                                * a boolean value; True means any impersonate target is sufficient
+                    * available_at  Unix timestamp of when a format will be available to download
                     * downloader_options  A dictionary of downloader options
                                  (For internal use only)
                                  * http_chunk_size Chunk size for HTTP downloads
@@ -336,6 +341,7 @@ class InfoExtractor:
                         * "name": Name or description of the subtitles
                         * "http_headers": A dictionary of additional HTTP headers
                                   to add to the request.
+                        * "impersonate": Impersonate target(s); same as the "formats" field
                     "ext" will be calculated from URL if missing
     automatic_captions: Like 'subtitles'; contains automatically generated
                     captions instead of normal subtitles
@@ -392,6 +398,8 @@ class InfoExtractor:
     chapters:       A list of dictionaries, with the following entries:
                         * "start_time" - The start time of the chapter in seconds
                         * "end_time" - The end time of the chapter in seconds
+                                       (optional: core code can determine this value from
+                                       the next chapter's start_time or the video's duration)
                         * "title" (optional, string)
     heatmap:        A list of dictionaries, with the following entries:
                         * "start_time" - The start time of the data point in seconds
@@ -406,12 +414,13 @@ class InfoExtractor:
                     'unlisted' or 'public'. Use 'InfoExtractor._availability'
                     to set it
     media_type:     The type of media as classified by the site, e.g. "episode", "clip", "trailer"
-    _old_archive_ids: A list of old archive ids needed for backward compatibility
+    _old_archive_ids: A list of old archive ids needed for backward
+                   compatibility. Use yt_dlp.utils.make_archive_id to generate ids
     _format_sort_fields: A list of fields to use for sorting formats
     __post_extractor: A function to be called just before the metadata is
                     written to either disk, logger or console. The function
                     must return a dict which will be added to the info_dict.
-                    This is usefull for additional information that is
+                    This is useful for additional information that is
                     time-consuming to extract. Note that the fields thus
                     extracted will not be available to output template and
                     match_filter. So, only "comments" and "comment_count" are
@@ -884,26 +893,17 @@ class InfoExtractor:
 
         extensions = {}
 
-        if impersonate in (True, ''):
-            impersonate = ImpersonateTarget()
-        requested_targets = [
-            t if isinstance(t, ImpersonateTarget) else ImpersonateTarget.from_str(t)
-            for t in variadic(impersonate)
-        ] if impersonate else []
-
-        available_target = next(filter(self._downloader._impersonate_target_available, requested_targets), None)
+        available_target, requested_targets = self._downloader._parse_impersonate_targets(impersonate)
         if available_target:
             extensions['impersonate'] = available_target
         elif requested_targets:
-            message = 'The extractor is attempting impersonation, but '
-            message += (
-                'no impersonate target is available' if not str(impersonate)
-                else f'none of these impersonate targets are available: "{", ".join(map(str, requested_targets))}"')
-            info_msg = ('see  https://github.com/yt-dlp/yt-dlp#impersonation  '
-                        'for information on installing the required dependencies')
+            msg = 'The extractor is attempting impersonation'
             if require_impersonation:
-                raise ExtractorError(f'{message}; {info_msg}', expected=True)
-            self.report_warning(f'{message}; if you encounter errors, then {info_msg}', only_once=True)
+                raise ExtractorError(
+                    self._downloader._unavailable_targets_message(requested_targets, note=msg, is_error=True),
+                    expected=True)
+            self.report_warning(
+                self._downloader._unavailable_targets_message(requested_targets, note=msg), only_once=True)
 
         try:
             return self._downloader.urlopen(self._create_request(url_or_request, data, headers, query, extensions))
@@ -1528,11 +1528,11 @@ class InfoExtractor:
             r'>\s*(?:18\s+U(?:\.S\.C\.|SC)\s+)?(?:§+\s*)?2257\b',
         ]
 
-        age_limit = 0
+        age_limit = None
         for marker in AGE_LIMIT_MARKERS:
             mobj = re.search(marker, html)
             if mobj:
-                age_limit = max(age_limit, int(traverse_obj(mobj, 1, default=18)))
+                age_limit = max(age_limit or 0, int(traverse_obj(mobj, 1, default=18)))
         return age_limit
 
     def _media_rating_search(self, html):
@@ -1663,7 +1663,7 @@ class InfoExtractor:
                 'end_time': part.get('endOffset'),
             } for part in variadic(e.get('hasPart') or []) if part.get('@type') == 'Clip']
             for idx, (last_c, current_c, next_c) in enumerate(zip(
-                    [{'end_time': 0}, *chapters], chapters, chapters[1:])):
+                    [{'end_time': 0}, *chapters], chapters, chapters[1:], strict=False)):
                 current_c['end_time'] = current_c['end_time'] or next_c['start_time']
                 current_c['start_time'] = current_c['start_time'] or last_c['end_time']
                 if None in current_c.values():
@@ -1783,6 +1783,59 @@ class InfoExtractor:
             r'<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]*>', webpage, 'next.js data',
             video_id, end_pattern='</script>', fatal=fatal, default=default, **kw)
 
+    def _search_nextjs_v13_data(self, webpage, video_id, fatal=True):
+        """Parses Next.js app router flight data that was introduced in Next.js v13"""
+        nextjs_data = {}
+        if not fatal and not isinstance(webpage, str):
+            return nextjs_data
+
+        def flatten(flight_data):
+            if not isinstance(flight_data, list):
+                return
+            if len(flight_data) == 4 and flight_data[0] == '$':
+                _, name, _, data = flight_data
+                if not isinstance(data, dict):
+                    return
+                children = data.pop('children', None)
+                if data and isinstance(name, str) and re.fullmatch(r'\$L[0-9a-f]+', name):
+                    # It is useful hydration JSON data
+                    nextjs_data[name[2:]] = data
+                flatten(children)
+                return
+            for f in flight_data:
+                flatten(f)
+
+        flight_text = ''
+        # The pattern for the surrounding JS/tag should be strict as it's a hardcoded string in the next.js source
+        # Ref: https://github.com/vercel/next.js/blob/5a4a08fdc/packages/next/src/server/app-render/use-flight-response.tsx#L189
+        for flight_segment in re.findall(r'<script\b[^>]*>self\.__next_f\.push\((\[.+?\])\)</script>', webpage):
+            segment = self._parse_json(flight_segment, video_id, fatal=fatal, errnote=None if fatal else False)
+            # Some earlier versions of next.js "optimized" away this array structure; this is unsupported
+            # Ref: https://github.com/vercel/next.js/commit/0123a9d5c9a9a77a86f135b7ae30b46ca986d761
+            if not isinstance(segment, list) or len(segment) != 2:
+                self.write_debug(
+                    f'{video_id}: Unsupported next.js flight data structure detected', only_once=True)
+                continue
+            # Only use the relevant payload type (1 == data)
+            # Ref: https://github.com/vercel/next.js/blob/5a4a08fdc/packages/next/src/server/app-render/use-flight-response.tsx#L11-L14
+            payload_type, chunk = segment
+            if payload_type == 1:
+                flight_text += chunk
+
+        for f in flight_text.splitlines():
+            prefix, _, body = f.lstrip().partition(':')
+            if not re.fullmatch(r'[0-9a-f]+', prefix):
+                continue
+            # The body still isn't guaranteed to be valid JSON, so parsing should always be non-fatal
+            if body.startswith('[') and body.endswith(']'):
+                flatten(self._parse_json(body, video_id, fatal=False, errnote=False))
+            elif body.startswith('{') and body.endswith('}'):
+                data = self._parse_json(body, video_id, fatal=False, errnote=False)
+                if data is not None:
+                    nextjs_data[prefix] = data
+
+        return nextjs_data
+
     def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__', *, fatal=True, traverse=('data', 0)):
         """Parses Nuxt.js metadata. This works as long as the function __NUXT__ invokes is a pure function"""
         rectx = re.escape(context_name)
@@ -1795,7 +1848,7 @@ class InfoExtractor:
             return {}
 
         args = dict(zip(arg_keys.split(','), map(json.dumps, self._parse_json(
-            f'[{arg_vals}]', video_id, transform_source=js_to_json, fatal=fatal) or ())))
+            f'[{arg_vals}]', video_id, transform_source=js_to_json, fatal=fatal) or ()), strict=True))
 
         ret = self._parse_json(js, video_id, transform_source=functools.partial(js_to_json, vars=args), fatal=fatal)
         return traverse_obj(ret, traverse) or {}
@@ -2916,7 +2969,7 @@ class InfoExtractor:
                     else:
                         codecs = parse_codecs(codec_str)
                     if content_type not in ('video', 'audio', 'text'):
-                        if mime_type == 'image/jpeg':
+                        if mime_type in ('image/avif', 'image/jpeg'):
                             content_type = mime_type
                         elif codecs.get('vcodec', 'none') != 'none':
                             content_type = 'video'
@@ -2976,14 +3029,14 @@ class InfoExtractor:
                             'manifest_url': mpd_url,
                             'filesize': filesize,
                         }
-                    elif content_type == 'image/jpeg':
+                    elif content_type in ('image/avif', 'image/jpeg'):
                         # See test case in VikiIE
                         # https://www.viki.com/videos/1175236v-choosing-spouse-by-lottery-episode-1
                         f = {
                             'format_id': format_id,
                             'ext': 'mhtml',
                             'manifest_url': mpd_url,
-                            'format_note': 'DASH storyboards (jpeg)',
+                            'format_note': f'DASH storyboards ({mimetype2ext(mime_type)})',
                             'acodec': 'none',
                             'vcodec': 'none',
                         }
@@ -3055,7 +3108,6 @@ class InfoExtractor:
                         else:
                             # $Number*$ or $Time$ in media template with S list available
                             # Example $Number*$: http://www.svtplay.se/klipp/9023742/stopptid-om-bjorn-borg
-                            # Example $Time$: https://play.arkena.com/embed/avp/v2/player/media/b41dda37-d8e7-4d3f-b1b5-9a9db578bdfe/1/129411
                             representation_ms_info['fragments'] = []
                             segment_time = 0
                             segment_d = None
@@ -3125,7 +3177,7 @@ class InfoExtractor:
                             'url': mpd_url or base_url,
                             'fragment_base_url': base_url,
                             'fragments': [],
-                            'protocol': 'http_dash_segments' if mime_type != 'image/jpeg' else 'mhtml',
+                            'protocol': 'mhtml' if mime_type in ('image/avif', 'image/jpeg') else 'http_dash_segments',
                         })
                         if 'initialization_url' in representation_ms_info:
                             initialization_url = representation_ms_info['initialization_url']
@@ -3140,7 +3192,7 @@ class InfoExtractor:
                     else:
                         # Assuming direct URL to unfragmented media.
                         f['url'] = base_url
-                    if content_type in ('video', 'audio', 'image/jpeg'):
+                    if content_type in ('video', 'audio', 'image/avif', 'image/jpeg'):
                         f['manifest_stream_number'] = stream_numbers[f['url']]
                         stream_numbers[f['url']] += 1
                         period_entry['formats'].append(f)

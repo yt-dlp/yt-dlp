@@ -1945,7 +1945,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         server_thread.daemon = True
         server_thread.start()
 
-        (content, urlh) = self.ie._download_webpage_handle(
+        content, _ = self.ie._download_webpage_handle(
             f'http://127.0.0.1:{port}/teapot', None,
             expected_status=TEAPOT_RESPONSE_STATUS)
         self.assertEqual(content, TEAPOT_RESPONSE_BODY)
@@ -1958,6 +1958,37 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         self.assertEqual(self.ie._search_nextjs_data('', None, default={}), {})
         with self.assertWarns(DeprecationWarning):
             self.assertEqual(self.ie._search_nextjs_data('', None, default='{}'), {})
+
+    def test_search_nextjs_v13_data(self):
+        HTML = R'''
+            <script>(self.__next_f=self.__next_f||[]).push([0])</script>
+            <script>self.__next_f.push([2,"0:[\"$\",\"$L0\",null,{\"do_not_add_this\":\"fail\"}]\n"])</script>
+            <script>self.__next_f.push([1,"1:I[46975,[],\"HTTPAccessFallbackBoundary\"]\n2:I[32630,[\"8183\",\"static/chunks/8183-768193f6a9e33cdd.js\"]]\n"])</script>
+            <script nonce="abc123">self.__next_f.push([1,"e:[false,[\"$\",\"div\",null,{\"children\":[\"$\",\"$L18\",null,{\"foo\":\"bar\"}]}],false]\n    "])</script>
+            <script>self.__next_f.push([1,"2a:[[\"$\",\"div\",null,{\"className\":\"flex flex-col\",\"children\":[]}],[\"$\",\"$L16\",null,{\"meta\":{\"dateCreated\":1730489700,\"uuid\":\"40cac41d-8d29-4ef5-aa11-75047b9f0907\"}}]]\n"])</script>
+            <script>self.__next_f.push([1,"df:[\"$undefined\",[\"$\",\"div\",null,{\"children\":[\"$\",\"$L17\",null,{}],\"do_not_include_this_field\":\"fail\"}],[\"$\",\"div\",null,{\"children\":[[\"$\",\"$L19\",null,{\"duplicated_field_name\":{\"x\":1}}],[\"$\",\"$L20\",null,{\"duplicated_field_name\":{\"y\":2}}]]}],\"$undefined\"]\n"])</script>
+            <script>self.__next_f.push([3,"MzM6WyIkIiwiJEwzMiIsbnVsbCx7ImRlY29kZWQiOiJzdWNjZXNzIn1d"])</script>
+            '''
+        EXPECTED = {
+            '18': {
+                'foo': 'bar',
+            },
+            '16': {
+                'meta': {
+                    'dateCreated': 1730489700,
+                    'uuid': '40cac41d-8d29-4ef5-aa11-75047b9f0907',
+                },
+            },
+            '19': {
+                'duplicated_field_name': {'x': 1},
+            },
+            '20': {
+                'duplicated_field_name': {'y': 2},
+            },
+        }
+        self.assertEqual(self.ie._search_nextjs_v13_data(HTML, None), EXPECTED)
+        self.assertEqual(self.ie._search_nextjs_v13_data('', None, fatal=False), {})
+        self.assertEqual(self.ie._search_nextjs_v13_data(None, None, fatal=False), {})
 
     def test_search_nuxt_json(self):
         HTML_TMPL = '<script data-ssr="true" id="__NUXT_DATA__" type="application/json">[{}]</script>'

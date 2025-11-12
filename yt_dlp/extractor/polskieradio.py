@@ -405,7 +405,7 @@ class PolskieRadioCategoryIE(InfoExtractor):
                 tab_content = self._download_json(
                     'https://www.polskieradio.pl/CMS/TemplateBoxesManagement/TemplateBoxTabContent.aspx/GetTabContent',
                     category_id, f'Downloading page {page_num}', headers={'content-type': 'application/json'},
-                    data=json.dumps(dict(zip((
+                    data=json.dumps(dict(zip((  # noqa: B905
                         'boxInstanceId', 'tabId', 'categoryType', 'sectionId', 'categoryId', 'pagerMode',
                         'subjectIds', 'tagIndexId', 'queryString', 'name', 'openArticlesInParentTemplate',
                         'idSectionFromUrl', 'maxDocumentAge', 'showCategoryForArticle', 'pageNumber',
