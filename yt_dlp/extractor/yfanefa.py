@@ -7,7 +7,6 @@ from ..utils import ExtractorError
 class YfanefaIE(InfoExtractor):
     IE_NAME = 'yfanefa'
 
-    # FIXED: Capture entire path until ? or #
     _VALID_URL = r'https?://(?:www\.)?yfanefa\.com/(?P<id>[^?#]+)'
 
     _TESTS = [{
