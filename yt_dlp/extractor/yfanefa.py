@@ -39,18 +39,8 @@ class YfanefaIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(url, video_id)
-        title = self._og_search_title(webpage) or self._html_extract_title(webpage)
-
-        player_match = re.search(r'iwPlayer\.options\[[^\]]+\]\s*=\s*({.*?});', webpage, re.DOTALL)
-        if not player_match:
-            raise ExtractorError('Could not find player configuration')
-
-        config_str = player_match.group(1).replace('\\/', '/')
-        url_match = re.search(r'"url":"(https://media\.yfanefa\.com/storage/v1/(?:hls|file)/[^"]+)"', config_str)
-        sig_match = re.search(r'"signature":"(\?[^"]*)"', config_str)
-
-        if not url_match:
-            raise ExtractorError('Could not extract video URL')
+        player_data = self._search_json(
+            r'iwPlayer\.options\["[\w.]+"\]\s*=', webpage, 'player options', video_id)
 
         m3u8_url = url_match.group(1)
 
