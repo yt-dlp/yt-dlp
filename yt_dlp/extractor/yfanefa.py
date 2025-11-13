@@ -1,37 +1,42 @@
 from .common import InfoExtractor
-from ..utils import determine_ext, int_or_none, join_nonempty, url_or_none
+from ..utils import (
+    determine_ext,
+    int_or_none,
+    join_nonempty,
+    remove_end,
+    url_or_none,
+)
 from ..utils.traversal import traverse_obj
 
 
 class YfanefaIE(InfoExtractor):
     IE_NAME = 'yfanefa'
-
     _VALID_URL = r'https?://(?:www\.)?yfanefa\.com/(?P<id>[^?#]+)'
-
     _TESTS = [{
         'url': 'https://www.yfanefa.com/record/2717',
         'info_dict': {
             'id': 'record/2717',
             'ext': 'mp4',
             'title': 'THE HALLAMSHIRE RIFLES LEAVING SHEFFIELD, 1914',
+            'duration': 5239,
+            'thumbnail': r're:https://media\.yfanefa\.com/storage/v1/file/',
         },
-        'params': {'skip_download': True},
     }, {
         'url': 'https://www.yfanefa.com/news/53',
         'info_dict': {
             'id': 'news/53',
             'ext': 'mp4',
             'title': 'Memory Bank:  Bradford Launch',
+            'thumbnail': r're:https://media\.yfanefa\.com/storage/v1/file/',
         },
-        'params': {'skip_download': True},
     }, {
         'url': 'https://www.yfanefa.com/evaluating_nature_matters',
         'info_dict': {
             'id': 'evaluating_nature_matters',
             'ext': 'mp4',
             'title': 'Evaluating Nature Matters',
+            'thumbnail': r're:https://media\.yfanefa\.com/storage/v1/file/',
         },
-        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
@@ -51,7 +56,9 @@ class YfanefaIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._og_search_title(webpage, default=None) or self._html_extract_title(webpage),
+            'title':
+                self._og_search_title(webpage, default=None)
+                or remove_end(self._html_extract_title(webpage), ' | Yorkshire Film Archive'),
             'formats': formats,
             **traverse_obj(player_data, {
                 'thumbnail': ('preview', {url_or_none}),
