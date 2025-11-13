@@ -60,15 +60,13 @@ class _ByteGenerator:
         s = to_signed_32(s * to_signed_32(0xc2b2ae3d))
         return to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 16))
 
-
     def _algo4(self, s):
         # Custom scrambling function involving a left rotation (ROL)
         s = self._s = to_signed_32(s + 0x6d2b79f5)
         s = to_signed_32((s << 7) | ((s & 0xFFFFFFFF) >> 25))  # ROL 7
         s = to_signed_32(s + 0x9e3779b9)
         s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 11))
-        s = to_signed_32(s * 0x27d4eb2d)
-        return s
+        return to_signed_32(s * 0x27d4eb2d)
 
     def _algo5(self, s):
         # xorshift variant with a final addition
@@ -91,8 +89,7 @@ class _ByteGenerator:
         e = to_signed_32(s ^ (s << 5))
         e = to_signed_32(e * to_signed_32(0x7feb352d))
         e = to_signed_32(e ^ ((e & 0xFFFFFFFF) >> 15))
-        e = to_signed_32(e * to_signed_32(0x846ca68b))
-        return e
+        return to_signed_32(e * to_signed_32(0x846ca68b))
 
     def __next__(self):
         return self._algorithm(self._s) & 0xFF
