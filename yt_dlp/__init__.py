@@ -69,6 +69,7 @@ from .utils._jsruntime import (
     DenoJsRuntime as _DenoJsRuntime,
     NodeJsRuntime as _NodeJsRuntime,
     QuickJsRuntime as _QuickJsRuntime,
+    JavaScriptCoreRuntime as _JavaScriptCoreRuntime,
 )
 from .YoutubeDL import YoutubeDL
 
@@ -1100,6 +1101,7 @@ supported_js_runtimes.value['deno'] = _DenoJsRuntime
 supported_js_runtimes.value['node'] = _NodeJsRuntime
 supported_js_runtimes.value['bun'] = _BunJsRuntime
 supported_js_runtimes.value['quickjs'] = _QuickJsRuntime
+supported_js_runtimes.value['javascriptcore'] = _JavaScriptCoreRuntime
 
 supported_remote_components.value.append('ejs:github')
 supported_remote_components.value.append('ejs:npm')
