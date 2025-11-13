@@ -1,8 +1,8 @@
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    MEDIA_EXTENSIONS,
     determine_ext,
+    MEDIA_EXTENSIONS,
     parse_iso8601,
     traverse_obj,
     url_or_none,
@@ -48,21 +48,21 @@ class RinseFMIE(RinseFMBaseIE):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        
+
         api_url = f'{self._API_BASE}/episodes/{display_id}'
         self.write_debug(f'API URL: {api_url}')
-        
+
         api_data = self._download_json(
-            api_url, display_id, 
-            note='Downloading episode data from API'
+            api_url, display_id,
+            note='Downloading episode data from API',
         )
-        
+
         self.write_debug(f'API response keys: {list(api_data.keys()) if api_data else None}')
-        
+
         entry = traverse_obj(api_data, ('entry',))
         if not entry:
             raise ExtractorError('Could not extract episode data from API response')
-        
+
         return self._parse_entry(entry)
 
 
@@ -95,28 +95,28 @@ class RinseFMArtistPlaylistIE(RinseFMBaseIE):
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        
+
         api_url = f'{self._API_BASE}/shows/{playlist_id}'
         self.write_debug(f'API URL: {api_url}')
-        
+
         api_data = self._download_json(
             api_url, playlist_id,
-            note='Downloading show data from API'
+            note='Downloading show data from API',
         )
-        
+
         self.write_debug(f'API response keys: {list(api_data.keys()) if api_data else None}')
-        
+
         show_entry = traverse_obj(api_data, ('entry',))
         episodes = traverse_obj(api_data, ('episodes',))
-        
+
         self.write_debug(f'Found {len(episodes) if episodes else 0} episodes')
-        
+
         if not episodes:
             raise ExtractorError('Could not extract episodes from API response')
-        
+
         title = traverse_obj(show_entry, ('title', {str}))
         description = traverse_obj(show_entry, ('extract', {str}))
-        
+
         return self.playlist_result(
-            self._entries(episodes), playlist_id, title, description=description
+            self._entries(episodes), playlist_id, title, description=description,
         )
