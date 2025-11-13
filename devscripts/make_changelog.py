@@ -353,6 +353,13 @@ class CommitRange:
                     continue
                 commit = Commit(override_hash, override['short'], override.get('authors') or [])
                 logger.info(f'CHANGE {self._commits[commit.hash]} -> {commit}')
+                if match := self.FIXES_RE.search(commit.short):
+                    fix_commitish = match.group(1)
+                    if fix_commitish in self._commits:
+                        del self._commits[commit.hash]
+                        self._fixes[fix_commitish].append(commit)
+                        logger.info(f'Found fix for {fix_commitish[:HASH_LENGTH]}: {commit.hash[:HASH_LENGTH]}')
+                        continue
                 self._commits[commit.hash] = commit
 
         self._commits = dict(reversed(self._commits.items()))
