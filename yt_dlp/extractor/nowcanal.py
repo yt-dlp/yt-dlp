@@ -1,5 +1,3 @@
-import json
-import re
 
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
@@ -22,20 +20,22 @@ class NowCanalIE(InfoExtractor):
             'upload_date': '20250806',
             'tags': ['now'],
         },
+    }, {
+        'url': 'https://www.nowcanal.pt/programas/frente-a-frente/detalhe/frente-a-frente-eva-cruzeiro-ps-e-rita-matias-chega',
+        'only_matching': True,
     }]
+
+    _BC_PLAYER = 'chhIqzukMq'
+    _BC_ACCOUNT = '6108484330001'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        m = re.search(r'\.addBrightcoveVideoWithJson\(\[\{([^\}]+)\}\]', webpage, re.MULTILINE)
-        data = json.loads(f'{{{m.groups(1)[0]}}}')
-
-        bc_id = data['brightcoveVideoId']
-        bc_player = 'chhIqzukMq'
-        bc_account = '6108484330001'
+        video_data = self._search_json(
+            r'videoHandler\.addBrightcoveVideoWithJson\(\[', webpage, 'video data', video_id)
 
         return self.url_result(
-            f'https://players.brightcove.net/{bc_account}/{bc_player}_default/index.html?videoId={bc_id}',
+            f"https://players.brightcove.net/{self._BC_ACCOUNT}/{self._BC_PLAYER}_default/index.html?videoId={video_data['brightcoveVideoId']}",
             BrightcoveNewIE,
         )
