@@ -1,5 +1,6 @@
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     MEDIA_EXTENSIONS,
     determine_ext,
     parse_iso8601,
@@ -9,6 +10,8 @@ from ..utils import (
 
 
 class RinseFMBaseIE(InfoExtractor):
+    _API_BASE = 'https://rinse.fm/api/query/v1'
+
     @staticmethod
     def _parse_entry(entry):
         return {
@@ -45,19 +48,21 @@ class RinseFMIE(RinseFMBaseIE):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
-
-        next_data = self._search_nextjs_v13_data(webpage, display_id)
-        entry = None
-        for chunk_data in next_data.values():
-            entry = traverse_obj(chunk_data, ('episode',), get_all=False)
-            if entry:
-                break
-
+        
+        api_url = f'{self._API_BASE}/episodes/{display_id}'
+        self.write_debug(f'API URL: {api_url}')
+        
+        api_data = self._download_json(
+            api_url, display_id, 
+            note='Downloading episode data from API'
+        )
+        
+        self.write_debug(f'API response keys: {list(api_data.keys()) if api_data else None}')
+        
+        entry = traverse_obj(api_data, ('entry',))
         if not entry:
-            entry = self._search_nextjs_data(webpage, display_id, fatal=False)
-            entry = traverse_obj(entry, ('props', 'pageProps', 'entry'))
-
+            raise ExtractorError('Could not extract episode data from API response')
+        
         return self._parse_entry(entry)
 
 
@@ -81,37 +86,37 @@ class RinseFMArtistPlaylistIE(RinseFMBaseIE):
         'playlist_mincount': 7,
     }]
 
-    def _entries(self, data):
-        episodes = traverse_obj(data, (
-            'props', 'pageProps', 'episodes',
-            lambda _, v: determine_ext(v['fileUrl']) in MEDIA_EXTENSIONS.audio,
-        )) or traverse_obj(data, (
-            ..., 'episodes',
-            lambda _, v: determine_ext(v['fileUrl']) in MEDIA_EXTENSIONS.audio,
-        ))
-
+    def _entries(self, episodes):
         for episode in episodes or []:
-            yield self._parse_entry(episode)
+            # Filter out episodes without valid file URLs
+            file_url = episode.get('fileUrl')
+            if file_url and determine_ext(file_url) in MEDIA_EXTENSIONS.audio:
+                yield self._parse_entry(episode)
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        webpage = self._download_webpage(url, playlist_id)
-        title = self._og_search_title(webpage) or self._html_search_meta('title', webpage)
-        description = self._og_search_description(webpage) or self._html_search_meta(
-            'description', webpage)
-
-        next_data = self._search_nextjs_v13_data(webpage, playlist_id)
-        data = None
-        for chunk_data in next_data.values():
-            episodes = traverse_obj(chunk_data, ('episodes',), get_all=False)
-            page_props = traverse_obj(chunk_data, ('props', 'pageProps'), get_all=False)
-            if episodes or page_props:
-                data = chunk_data
-                break
-
-        # Fall back to the old method for backward compatibility
-        if not data:
-            data = self._search_nextjs_data(webpage, playlist_id, fatal=False)
-
+        
+        api_url = f'{self._API_BASE}/shows/{playlist_id}'
+        self.write_debug(f'API URL: {api_url}')
+        
+        api_data = self._download_json(
+            api_url, playlist_id,
+            note='Downloading show data from API'
+        )
+        
+        self.write_debug(f'API response keys: {list(api_data.keys()) if api_data else None}')
+        
+        show_entry = traverse_obj(api_data, ('entry',))
+        episodes = traverse_obj(api_data, ('episodes',))
+        
+        self.write_debug(f'Found {len(episodes) if episodes else 0} episodes')
+        
+        if not episodes:
+            raise ExtractorError('Could not extract episodes from API response')
+        
+        title = traverse_obj(show_entry, ('title', {str}))
+        description = traverse_obj(show_entry, ('extract', {str}))
+        
         return self.playlist_result(
-            self._entries(data), playlist_id, title, description=description)
+            self._entries(episodes), playlist_id, title, description=description
+        )
