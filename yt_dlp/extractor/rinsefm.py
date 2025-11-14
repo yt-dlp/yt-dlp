@@ -62,17 +62,17 @@ class RinseFMArtistPlaylistIE(RinseFMBaseIE):
         'info_dict': {
             'id': 'resources',
             'title': '[re]sources',
-            'description': '[re]sources est un label parisien piloté par le DJ et producteur Tommy Kid.',
+            'description': 'md5:fd6a7254e8273510e6d49fbf50edf392',
         },
         'playlist_mincount': 40,
     }, {
-        'url': 'https://rinse.fm/shows/ivy/',
+        'url': 'https://www.rinse.fm/shows/esk',
         'info_dict': {
-            'id': 'ivy',
-            'title': '[IVY]',
-            'description': 'A dedicated space for DNB/Turbo House and 4x4.',
+            'id': 'esk',
+            'title': 'Esk',
+            'description': 'md5:5893d7c1d411ae8dea7fba12f109aa98',
         },
-        'playlist_mincount': 7,
+        'playlist_mincount': 139,
     }]
 
     def _entries(self, data):
