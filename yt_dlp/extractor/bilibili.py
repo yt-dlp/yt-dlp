@@ -684,8 +684,8 @@ class BiliBiliIE(BilibiliBaseIE):
                                    )
             if new_url and BiliBiliBangumiIE.suitable(new_url):
                 return self.url_result(new_url, BiliBiliBangumiIE)
-            if new_url and BiliBiliIE.suitable(new_url):
-                return self.url_result(new_url, BiliBiliIE)
+            if new_url and self.suitable(new_url):
+                return self.url_result(new_url, self)
             raise ExtractorError('Unable to extract initial state')
 
         if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
