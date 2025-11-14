@@ -546,9 +546,9 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                         'Accept': 'application/json',
                         'Referer': 'https://www.instagram.com/',
                         'Origin': 'https://www.instagram.com',
-                        }, query={
-                            'doc_id': self._DOC_ID,
-                            'variables': variables,
+                    }, query={
+                        'doc_id': self._DOC_ID,
+                        'variables': variables,
                     })
 
                 media = self._parse_timeline_from(json_data)
