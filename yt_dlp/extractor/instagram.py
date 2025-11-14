@@ -3,7 +3,6 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     bug_reports_message,
@@ -65,7 +64,11 @@ class InstagramBaseIE(InfoExtractor):
 
     def _extract_nodes(self, nodes, is_direct=False):
         for idx, node in enumerate(nodes, start=1):
+<<<<<<< Updated upstream
             if node.get('__typename') != 'XDTMediaDict' or not node.get('video_versions'):
+=======
+            if not node.get('video_dash_manifest') or node.get('__typename') == ('XDTGraphVideo'):
+>>>>>>> Stashed changes
                 continue
 
             video_id = node.get('code')
@@ -522,13 +525,17 @@ class InstagramIE(InstagramBaseIE):
 
 
 class InstagramPlaylistBaseIE(InstagramBaseIE):
-    _gis_tmpl = None  # used to cache GIS request type
 
+<<<<<<< Updated upstream
     def _get_csrf_token(self, webpage):
+=======
+    def _parse_graphql(self, webpage):
+>>>>>>> Stashed changes
         return self._search_regex(
             r'"csrf_token"\s*:\s*"([^"]+)"', webpage, 'csrf token',
         )
 
+<<<<<<< Updated upstream
     def _extract_graphql(self, url, csrf_token):
         # Parses GraphQL queries containing videos and generates a playlist.
         uploader_id = self._match_id(url)
@@ -551,17 +558,19 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
             }
 
             variables_json = json.dumps(variables, sort_keys=True, separators=(',', ':'))
+=======
+    def _extract_graphql(self, csrftoken, url):
+        # Parses GraphQL queries containing videos and generates a playlist.
+        uploader_id = self._match_id(url)
 
-            if self._gis_tmpl:
-                gis_tmpls = [self._gis_tmpl]
-            else:
-                gis_tmpls = [
-                    f'{rhx_gis}',
-                    '',
-                    f'{rhx_gis}:{csrf_token}',
-                    '{}:{}:{}'.format(rhx_gis, csrf_token, self.get_param('http_headers')['User-Agent']),
-                ]
+        cursor = ''
+        for page_num in itertools.count(1):
+>>>>>>> Stashed changes
 
+            try:
+                variables = self._make_variables(uploader_id, cursor)
+
+<<<<<<< Updated upstream
             for gis_tmpl in gis_tmpls:
                 try:
                     json_data = self._download_json(
@@ -586,6 +595,27 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                         if gis_tmpl != gis_tmpls[-1]:
                             continue
                     raise
+=======
+                json_data = self._download_json(
+                    'https://www.instagram.com/graphql/query', uploader_id,
+                    f'Downloading JSON page {page_num}', headers={
+                        **self._api_headers,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'x-csrftoken': csrftoken,
+                        'Accept': 'application/json',
+                        'Referer': 'https://www.instagram.com/',
+                        'Origin': 'https://www.instagram.com',
+                        }, query={
+                            'doc_id': self._DOC_ID,
+                            'variables': variables,
+                    })
+
+                media = self._parse_timeline_from(json_data)
+            except ExtractorError:
+                self.raise_login_required(
+                    'This content is only available for registered users who follow this account')
+                raise
+>>>>>>> Stashed changes
 
             nodes = traverse_obj(media, ('edges', ..., 'node'), expected_type=dict) or []
             if not nodes:
@@ -600,11 +630,22 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
     def _real_extract(self, url):
         user_or_tag = self._match_id(url)
         webpage = self._download_webpage(url, user_or_tag)
+<<<<<<< Updated upstream
         csrf_token = self._get_csrf_token(webpage)
         self._set_cookie('instagram.com', 'ig_pr', '1')
 
         return self.playlist_result(
             self._extract_graphql(url, csrf_token), user_or_tag, user_or_tag)
+=======
+
+        self._set_cookie('instagram.com', 'ig_pr', '1')
+
+        return self.playlist_result(
+            self._extract_graphql(self._parse_graphql(webpage), url),
+            playlist_id=user_or_tag,
+            title=user_or_tag,
+        )
+>>>>>>> Stashed changes
 
 
 class InstagramUserIE(InstagramPlaylistBaseIE):
@@ -625,6 +666,26 @@ class InstagramUserIE(InstagramPlaylistBaseIE):
         },
     }]
 
+<<<<<<< Updated upstream
+=======
+    _DOC_ID = 32787567760834226
+
+    @staticmethod
+    def _make_variables(username, cursor):
+        return json.dumps({
+            'after': cursor,
+            'data': {
+                'count': 12,
+                'include_reel_media_seen_timestamp': True,
+                'include_relationship_info': True,
+                'latest_besties_reel_media': True,
+                'latest_reel_media': True,
+            },
+            'username': username,
+            '__relay_internal__pv__PolarisIsLoggedInrelayprovider': True,
+        }, separators=(',', ':'))
+
+>>>>>>> Stashed changes
     @staticmethod
     def _parse_timeline_from(data):
         # extracts the media timeline data from a GraphQL result
@@ -649,21 +710,20 @@ class InstagramTagIE(InstagramPlaylistBaseIE):
         },
     }]
 
-    _QUERY_HASH = ('f92f56d47dc7a55b606908374b43a314',)
+    _DOC_ID = 17875800862117404
+
+    @staticmethod
+    def _make_variables(tag_name, cursor):
+        return json.dumps({
+            'next': cursor,
+            'first': 12,
+            'tag_name': tag_name,
+        })
 
     @staticmethod
     def _parse_timeline_from(data):
         # extracts the media timeline data from a GraphQL result
         return data['data']['hashtag']['edge_hashtag_to_media']
-
-    @staticmethod
-    def _query_vars_for(data):
-        # returns a dictionary of variables to add to the timeline query based
-        # on the GraphQL of the original page
-        return {
-            'tag_name':
-                data['entry_data']['TagPage'][0]['graphql']['hashtag']['name'],
-        }
 
 
 class InstagramStoryIE(InstagramBaseIE):
