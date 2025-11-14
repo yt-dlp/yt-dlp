@@ -522,7 +522,7 @@ class InstagramIE(InstagramBaseIE):
 
 class InstagramPlaylistBaseIE(InstagramBaseIE):
 
-    def _parse_graphql(self, webpage):
+    def _get_csrf_token(self, webpage):
         return self._search_regex(
             r'"csrf_token"\s*:\s*"([^"]+)"', webpage, 'csrf token',
         )
