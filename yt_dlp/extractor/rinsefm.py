@@ -1,7 +1,6 @@
 from .common import InfoExtractor
 from ..utils import (
     MEDIA_EXTENSIONS,
-    ExtractorError,
     determine_ext,
     parse_iso8601,
     url_or_none,
