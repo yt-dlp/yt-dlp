@@ -85,26 +85,9 @@ class RinseFMArtistPlaylistIE(RinseFMBaseIE):
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
 
-        api_url = f'{self._API_BASE}/shows/{playlist_id}'
-        self.write_debug(f'API URL: {api_url}')
-
         api_data = self._download_json(
-            api_url, playlist_id,
-            note='Downloading show data from API',
-        )
-
-        self.write_debug(f'API response keys: {list(api_data.keys()) if api_data else None}')
-
-        show_entry = traverse_obj(api_data, ('entry',))
-        episodes = traverse_obj(api_data, ('episodes',))
-
-        self.write_debug(f'Found {len(episodes) if episodes else 0} episodes')
-
-        if not episodes:
-            raise ExtractorError('Could not extract episodes from API response')
-
-        title = traverse_obj(show_entry, ('title', {str}))
-        description = traverse_obj(show_entry, ('extract', {str}))
+            f'{self._API_BASE}/shows/{playlist_id}', playlist_id,
+            note='Downloading show data from API')
 
         return self.playlist_result(
             self._entries(episodes), playlist_id, title, description=description,
