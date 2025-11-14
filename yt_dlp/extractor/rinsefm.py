@@ -49,19 +49,9 @@ class RinseFMIE(RinseFMBaseIE):
     def _real_extract(self, url):
         display_id = self._match_id(url)
 
-        api_url = f'{self._API_BASE}/episodes/{display_id}'
-        self.write_debug(f'API URL: {api_url}')
-
-        api_data = self._download_json(
-            api_url, display_id,
-            note='Downloading episode data from API',
-        )
-
-        self.write_debug(f'API response keys: {list(api_data.keys()) if api_data else None}')
-
-        entry = traverse_obj(api_data, ('entry',))
-        if not entry:
-            raise ExtractorError('Could not extract episode data from API response')
+        entry = self._download_json(
+            f'{self._API_BASE}/episodes/{display_id}', display_id,
+            note='Downloading episode data from API')['entry']
 
         return self._parse_entry(entry)
 
