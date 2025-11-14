@@ -90,5 +90,8 @@ class RinseFMArtistPlaylistIE(RinseFMBaseIE):
             note='Downloading show data from API')
 
         return self.playlist_result(
-            self._entries(episodes), playlist_id, title, description=description,
-        )
+            self._entries(api_data), playlist_id,
+            **traverse_obj(api_data, ('entry', {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+            })))
