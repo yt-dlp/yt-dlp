@@ -570,9 +570,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
     def _real_extract(self, url):
         user_or_tag = self._match_id(url)
         webpage = self._download_webpage(url, user_or_tag)
-
         self._set_cookie('instagram.com', 'ig_pr', '1')
-
         return self.playlist_result(
             self._extract_graphql(self._parse_graphql(webpage), url),
             playlist_id=user_or_tag,
