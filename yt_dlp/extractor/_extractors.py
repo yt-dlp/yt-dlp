@@ -640,7 +640,10 @@ from .filmon import (
     FilmOnIE,
 )
 from .filmweb import FilmwebIE
-from .firsttv import FirstTVIE
+from .firsttv import (
+    FirstTVIE,
+    FirstTVLiveIE,
+)
 from .fivetv import FiveTVIE
 from .flextv import FlexTVIE
 from .flickr import FlickrIE

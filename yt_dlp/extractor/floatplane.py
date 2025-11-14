@@ -6,15 +6,15 @@ from ..utils import (
     OnDemandPagedList,
     clean_html,
     determine_ext,
+    float_or_none,
     format_field,
     int_or_none,
     join_nonempty,
-    parse_codecs,
     parse_iso8601,
     url_or_none,
     urljoin,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import require, traverse_obj
 
 
 class FloatplaneBaseIE(InfoExtractor):
@@ -50,37 +50,31 @@ class FloatplaneBaseIE(InfoExtractor):
             media_id = media['id']
             media_typ = media.get('type') or 'video'
 
-            metadata = self._download_json(
-                f'{self._BASE_URL}/api/v3/content/{media_typ}', media_id, query={'id': media_id},
-                note=f'Downloading {media_typ} metadata', impersonate=self._IMPERSONATE_TARGET)
-
             stream = self._download_json(
-                f'{self._BASE_URL}/api/v2/cdn/delivery', media_id, query={
-                    'type': 'vod' if media_typ == 'video' else 'aod',
-                    'guid': metadata['guid'],
-                }, note=f'Downloading {media_typ} stream data',
+                f'{self._BASE_URL}/api/v3/delivery/info', media_id,
+                query={'scenario': 'onDemand', 'entityId': media_id},
+                note=f'Downloading {media_typ} stream data',
                 impersonate=self._IMPERSONATE_TARGET)
 
-            path_template = traverse_obj(stream, ('resource', 'uri', {str}))
+            metadata = self._download_json(
+                f'{self._BASE_URL}/api/v3/content/{media_typ}', media_id,
+                f'Downloading {media_typ} metadata', query={'id': media_id},
+                fatal=False, impersonate=self._IMPERSONATE_TARGET)
 
-            def format_path(params):
-                path = path_template
-                for i, val in (params or {}).items():
-                    path = path.replace(f'{{qualityLevelParams.{i}}}', val)
-                return path
+            cdn_base_url = traverse_obj(stream, (
+                'groups', 0, 'origins', ..., 'url', {url_or_none}, any, {require('cdn base url')}))
 
             formats = []
-            for quality in traverse_obj(stream, ('resource', 'data', 'qualityLevels', ...)):
-                url = urljoin(stream['cdn'], format_path(traverse_obj(
-                    stream, ('resource', 'data', 'qualityLevelParams', quality['name'], {dict}))))
-                format_id = traverse_obj(quality, ('name', {str}))
+            for variant in traverse_obj(stream, ('groups', 0, 'variants', lambda _, v: v['url'])):
+                format_url = urljoin(cdn_base_url, variant['url'])
+                format_id = traverse_obj(variant, ('name', {str}))
                 hls_aes = {}
                 m3u8_data = None
 
                 # If we need impersonation for the API, then we need it for HLS keys too: extract in advance
                 if self._IMPERSONATE_TARGET is not None:
                     m3u8_data = self._download_webpage(
-                        url, media_id, fatal=False, impersonate=self._IMPERSONATE_TARGET, headers=self._HEADERS,
+                        format_url, media_id, fatal=False, impersonate=self._IMPERSONATE_TARGET, headers=self._HEADERS,
                         note=join_nonempty('Downloading', format_id, 'm3u8 information', delim=' '),
                         errnote=join_nonempty('Failed to download', format_id, 'm3u8 information', delim=' '))
                     if not m3u8_data:
@@ -98,14 +92,19 @@ class FloatplaneBaseIE(InfoExtractor):
                             hls_aes['key'] = urlh.read().hex()
 
                 formats.append({
-                    **traverse_obj(quality, {
+                    **traverse_obj(variant, {
                         'format_note': ('label', {str}),
-                        'width': ('width', {int}),
-                        'height': ('height', {int}),
+                        'width': ('meta', 'video', 'width', {int_or_none}),
+                        'height': ('meta', 'video', 'height', {int_or_none}),
+                        'vcodec': ('meta', 'video', 'codec', {str}),
+                        'acodec': ('meta', 'audio', 'codec', {str}),
+                        'vbr': ('meta', 'video', 'bitrate', 'average', {int_or_none(scale=1000)}),
+                        'abr': ('meta', 'audio', 'bitrate', 'average', {int_or_none(scale=1000)}),
+                        'audio_channels': ('meta', 'audio', 'channelCount', {int_or_none}),
+                        'fps': ('meta', 'video', 'fps', {float_or_none}),
                     }),
-                    **parse_codecs(quality.get('codecs')),
-                    'url': url,
-                    'ext': determine_ext(url.partition('/chunk.m3u8')[0], 'mp4'),
+                    'url': format_url,
+                    'ext': determine_ext(format_url.partition('/chunk.m3u8')[0], 'mp4'),
                     'format_id': format_id,
                     'hls_media_playlist_data': m3u8_data,
                     'hls_aes': hls_aes or None,
