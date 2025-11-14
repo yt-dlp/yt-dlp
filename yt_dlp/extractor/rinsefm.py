@@ -1,12 +1,12 @@
 from .common import InfoExtractor
 from ..utils import (
+    MEDIA_EXTENSIONS,
     ExtractorError,
     determine_ext,
-    MEDIA_EXTENSIONS,
     parse_iso8601,
-    traverse_obj,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class RinseFMBaseIE(InfoExtractor):
