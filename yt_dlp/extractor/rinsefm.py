@@ -76,12 +76,11 @@ class RinseFMArtistPlaylistIE(RinseFMBaseIE):
         'playlist_mincount': 7,
     }]
 
-    def _entries(self, episodes):
-        for episode in episodes or []:
-            # Filter out episodes without valid file URLs
-            file_url = episode.get('fileUrl')
-            if file_url and determine_ext(file_url) in MEDIA_EXTENSIONS.audio:
-                yield self._parse_entry(episode)
+    def _entries(self, data):
+        for episode in traverse_obj(data, (
+            'episodes', lambda _, v: determine_ext(v['fileUrl']) in MEDIA_EXTENSIONS.audio),
+        ):
+            yield self._parse_entry(episode)
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
