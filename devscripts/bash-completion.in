@@ -1,33 +1,48 @@
-__yt_dlp()
-{
-    local cur prev opts fileopts diropts keywords
-    COMPREPLY=()
-    cur="${COMP_WORDS[COMP_CWORD]}"
-    prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="{{flags}}"
-    keywords=":ytfavorites :ytrecommended :ytsubscriptions :ytwatchlater :ythistory"
-    fileopts="-a|--batch-file|--download-archive|--cookies|--load-info-json"
-    diropts="--cache-dir"
+_comp_cmd_yt-dlp() {
+    local cur prev
+    # Unused variables assigned by _comp_initialize.
+    # shellcheck disable=SC2034
+    local words cword comp_args was_split
 
-    if [[ ${prev} =~ ${fileopts} ]]; then
-        local IFS=$'\n'
-        type compopt &>/dev/null && compopt -o filenames
-        COMPREPLY=( $(compgen -f -- ${cur}) )
-        return 0
-    elif [[ ${prev} =~ ${diropts} ]]; then
-        local IFS=$'\n'
-        type compopt &>/dev/null && compopt -o dirnames
-        COMPREPLY=( $(compgen -d -- ${cur}) )
-        return 0
-    fi
+    # ':' must be excluded from COMP_WORDBREAKS to handle :yt* keywords
+    _comp_initialize -n : -s -- "$@" || return
 
-    if [[ ${cur} =~ : ]]; then
-        COMPREPLY=( $(compgen -W "${keywords}" -- ${cur}) )
-        return 0
-    elif [[ ${cur} == * ]] ; then
-        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-        return 0
-    fi
-}
+    case "$prev" in
+        -a | --batch-file | --download-archive | --cookies | --load-info-json \
+                | --config-locations | --netrc-location | --ffmpeg-location \
+                | --client-certificate | --client-certificate-key )
+            _comp_compgen_filedir
+            return
+            ;;
 
-complete -F __yt_dlp yt-dlp
+        --plugin-dirs | --cache-dir )
+            _comp_compgen_filedir -d
+            return
+            ;;
+
+        * )
+            case "$cur" in
+                :* )
+                    local -r keywords=(
+                        :ytnotif{,ication}{,s}
+                        :ytfav{,o{,u}rite}{,s}
+                        :ytwatchlater
+                        :ytrec{,ommended}
+                        :ytsub{,scription}{,s}
+                        :ythis{,tory}
+                    )
+                    _comp_compgen -- -W "${keywords[*]}"
+                    _comp_ltrim_colon_completions "$cur"
+                    return
+                    ;;
+
+                * )
+                    local -r opts=( YT_DLP_FLAGS )
+                    _comp_compgen -- -W "${opts[*]}"
+                    return
+                    ;;
+            esac
+            ;;
+    esac
+} \
+    && complete -F _comp_cmd_yt-dlp yt-dlp
