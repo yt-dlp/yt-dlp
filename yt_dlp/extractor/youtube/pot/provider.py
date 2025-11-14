@@ -250,7 +250,7 @@ def provider_bug_report_message(provider: IEContentProvider, before=';'):
     return f'{before} {msg}' if before else msg
 
 
-def register_preference(*providers: type[PoTokenProvider]) -> typing.Callable[[Preference], Preference]:
+def register_preference(*providers: type[T]) -> typing.Callable[[Preference[T]], Preference[T]]:
     """Register a preference for a PoTokenProvider"""
     return register_preference_generic(
         PoTokenProvider,
@@ -260,7 +260,8 @@ def register_preference(*providers: type[PoTokenProvider]) -> typing.Callable[[P
 
 
 if typing.TYPE_CHECKING:
-    Preference = typing.Callable[[PoTokenProvider, PoTokenRequest], int]
+    T = typing.TypeVar('T', bound=PoTokenProvider)
+    Preference = typing.Callable[[T, PoTokenRequest], int]
     __all__.append('Preference')
 
     # Barebones innertube context. There may be more fields.
