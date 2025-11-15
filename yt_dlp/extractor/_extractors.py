@@ -268,6 +268,7 @@ from .bitchute import (
     BitChuteChannelIE,
     BitChuteIE,
 )
+from .bitmovin import BitmovinIE
 from .blackboardcollaborate import (
     BlackboardCollaborateIE,
     BlackboardCollaborateLaunchIE,
