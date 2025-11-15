@@ -1,10 +1,9 @@
-
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
 
 
 class NowCanalIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?nowcanal\.pt/[\w\-/]+/detalhe/(?P<id>[\w\-]+)'
+    _VALID_URL = r'https?://(?:www\.)?nowcanal\.pt(?:/[\w-]+)+/detalhe/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.nowcanal.pt/ultimas/detalhe/pedro-sousa-hjulmand-pode-ter-uma-saida-limpa-do-sporting-daqui-a-um-ano',
         'md5': '047f17cb783e66e467d703e704bbc95d',
@@ -25,17 +24,14 @@ class NowCanalIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    _BC_PLAYER = 'chhIqzukMq'
-    _BC_ACCOUNT = '6108484330001'
+    _BC_URL_TMPL = 'https://players.brightcove.net/chhIqzukMq/6108484330001_default/index.html?videoId={}'
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
 
-        video_data = self._search_json(
-            r'videoHandler\.addBrightcoveVideoWithJson\(\[', webpage, 'video data', video_id)
+        video_id = self._search_json(
+            r'videoHandler\.addBrightcoveVideoWithJson\(\[',
+            webpage, 'video data', display_id)['brightcoveVideoId']
 
-        return self.url_result(
-            f"https://players.brightcove.net/{self._BC_ACCOUNT}/{self._BC_PLAYER}_default/index.html?videoId={video_data['brightcoveVideoId']}",
-            BrightcoveNewIE,
-        )
+        return self.url_result(self._BC_URL_TMPL.format(video_id), BrightcoveNewIE)
