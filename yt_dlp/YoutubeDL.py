@@ -3718,6 +3718,8 @@ class YoutubeDL:
                 return str(obj)
             elif obj is None or isinstance(obj, (str, int, float, bool)):
                 return obj
+            elif callable(obj):
+                return None
             else:
                 return repr(obj)
 
