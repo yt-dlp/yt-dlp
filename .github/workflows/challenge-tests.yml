@@ -65,6 +65,9 @@ jobs:
       run: |
           Invoke-WebRequest "https://bellard.org/quickjs/binary_releases/quickjs-win-x86_64-${Env:QJS_VERSION}.zip" -OutFile quickjs.zip
           unzip quickjs.zip
+    - name: Install JavaScriptCore (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: sudo apt-get install libjavascriptcoregtk-6.0-1
     - name: Install test requirements
       run: |
         python ./devscripts/install_deps.py --print --only-optional-groups --include-group test > requirements.txt
