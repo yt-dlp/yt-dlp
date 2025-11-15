@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import int_or_none
+from ..utils import ExtractorError
 
 
 class DigitekaIE(InfoExtractor):
@@ -25,74 +25,83 @@ class DigitekaIE(InfoExtractor):
         )/(?P<id>[\d+a-z]+)'''
     _EMBED_REGEX = [r'<(?:iframe|script)[^>]+src=["\'](?P<url>(?:https?:)?//(?:www\.)?ultimedia\.com/deliver/(?:generic|musique)(?:/[^/]+)*/(?:src|article)/[\d+a-z]+)']
     _TESTS = [{
-        # news
-        'url': 'https://www.ultimedia.com/default/index/videogeneric/id/s8uk0r',
-        'md5': '276a0e49de58c7e85d32b057837952a2',
+        'url': 'https://www.ultimedia.com/default/index/videogeneric/id/3x5x55k',
         'info_dict': {
-            'id': 's8uk0r',
+            'id': '3x5x55k',
             'ext': 'mp4',
-            'title': 'Loi sur la fin de vie: le texte prévoit un renforcement des directives anticipées',
+            'title': 'Il est passionné de DS',
             'thumbnail': r're:^https?://.*\.jpg',
-            'duration': 74,
-            'upload_date': '20150317',
-            'timestamp': 1426604939,
-            'uploader_id': '3fszv',
+            'duration': 89,
+            'upload_date': '20251012',
+            'timestamp': 1760285363,
+            'uploader_id': '3pz33',
         },
-    }, {
-        # music
-        'url': 'https://www.ultimedia.com/default/index/videomusic/id/xvpfp8',
-        'md5': '2ea3513813cf230605c7e2ffe7eca61c',
-        'info_dict': {
-            'id': 'xvpfp8',
-            'ext': 'mp4',
-            'title': 'Two - C\'est La Vie (clip)',
-            'thumbnail': r're:^https?://.*\.jpg',
-            'duration': 233,
-            'upload_date': '20150224',
-            'timestamp': 1424760500,
-            'uploader_id': '3rfzk',
-        },
-    }, {
-        'url': 'https://www.digiteka.net/deliver/generic/iframe/mdtk/01637594/src/lqm3kl/zone/1/showtitle/1/autoplay/yes',
-        'only_matching': True,
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
-        video_type = mobj.group('embed_type') or mobj.group('site_type')
-        if video_type == 'music':
-            video_type = 'musique'
 
-        deliver_info = self._download_json(
-            f'http://www.ultimedia.com/deliver/video?video={video_id}&topic={video_type}',
-            video_id)
+        IFRAME_MD_ID = '01836272'   # One static ID working for Ultimedia iframes
 
-        yt_id = deliver_info.get('yt_id')
+        api_url = f'https://www.ultimedia.com/player/getConf/{IFRAME_MD_ID}/1/{video_id}'
+
+        conf_data = self._download_json(
+            api_url, video_id, note='Downloading player configuration')
+
+        video_info = conf_data.get('video')
+        if not video_info:
+            raise ExtractorError('Failed to retrieve video information from API.', expected=True)
+
+        title = video_info['title']
+        formats = []
+        media_sources = video_info.get('media_sources', {})
+
+        hls_sources = media_sources.get('hls', {})
+        for format_id, hls_url in hls_sources.items():
+            if not hls_url:
+                continue
+
+            height_str = format_id.split('_')[-1]
+            height = int(height_str) if height_str.isdigit() else None
+
+            formats.append({
+                'url': hls_url,
+                'format_id': f'hls-{height_str}',
+                'height': height,
+                'protocol': 'm3u8_native',
+                'ext': 'mp4',
+            })
+
+        mp4_sources = media_sources.get('mp4', {})
+        for format_id, mp4_url in mp4_sources.items():
+            if not mp4_url:
+                continue
+
+            height_str = format_id.split('_')[-1]
+            height = int(height_str) if height_str.isdigit() else None
+
+            formats.append({
+                'url': mp4_url,
+                'format_id': f'mp4-{height_str}',
+                'height': height,
+                'ext': 'mp4',
+            })
+
+        yt_id = video_info.get('yt_id')
         if yt_id:
             return self.url_result(yt_id, 'Youtube')
 
-        jwconf = deliver_info['jwconf']
-
-        formats = []
-        for source in jwconf['playlist'][0]['sources']:
-            formats.append({
-                'url': source['file'],
-                'format_id': source.get('label'),
-            })
-
-        title = deliver_info['title']
-        thumbnail = jwconf.get('image')
-        duration = int_or_none(deliver_info.get('duration'))
-        timestamp = int_or_none(deliver_info.get('release_time'))
-        uploader_id = deliver_info.get('owner_id')
+        if not formats:
+            raise ExtractorError('No video formats found.', expected=True)
 
         return {
             'id': video_id,
             'title': title,
-            'thumbnail': thumbnail,
-            'duration': duration,
-            'timestamp': timestamp,
-            'uploader_id': uploader_id,
+            'thumbnail': video_info.get('image'),
+            'duration': video_info.get('duration'),
+            'timestamp': video_info.get('creationDate'),
+            'uploader_id': video_info.get('ownerId'),
             'formats': formats,
         }
