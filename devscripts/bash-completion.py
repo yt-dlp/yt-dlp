@@ -4,7 +4,6 @@
 import os
 import shlex
 import sys
-from itertools import chain
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -16,9 +15,18 @@ BASH_COMPLETION_TEMPLATE = 'devscripts/bash-completion.in'
 
 
 def yt_dlp_flags():
+    opts, long_opts = [], []
+
     for opt in yt_dlp.parseOpts(ignore_config_files=True)[0]._get_all_options():
-        for opt_str in chain(opt._short_opts, opt._long_opts):
-            yield shlex.quote(opt_str)
+        opts.extend(opt._short_opts)
+        long_opts.extend(opt._long_opts)
+
+    opts.sort()
+    long_opts.sort()
+    opts.extend(long_opts)
+
+    for o in opts:
+        yield shlex.quote(o)
 
 
 def build_completion():
@@ -26,7 +34,7 @@ def build_completion():
         template = f.read()
     with open(BASH_COMPLETION_FILE, 'w') as f:
         # just using the special char
-        filled_template = template.replace('YT_DLP_FLAGS', ' '.join(sorted(yt_dlp_flags())))
+        filled_template = template.replace('YT_DLP_FLAGS', ' '.join(yt_dlp_flags()))
         f.write(filled_template)
 
 

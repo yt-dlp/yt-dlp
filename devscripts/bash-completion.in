@@ -38,6 +38,7 @@ _comp_cmd_yt-dlp() {
 
                 * )
                     local -r opts=( YT_DLP_FLAGS )
+                    compopt -o nosort
                     _comp_compgen -- -W "${opts[*]}"
                     return
                     ;;
