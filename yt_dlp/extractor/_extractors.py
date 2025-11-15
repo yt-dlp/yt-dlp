@@ -1900,6 +1900,11 @@ from .sonyliv import (
     SonyLIVIE,
     SonyLIVSeriesIE,
 )
+from .soopglobal import (
+    SoopGlobalIE,
+    SoopGlobalLiveIE,
+    SoopGlobalUserIE,
+)
 from .soundcloud import (
     SoundcloudEmbedIE,
     SoundcloudIE,
