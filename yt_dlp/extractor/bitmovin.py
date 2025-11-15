@@ -60,11 +60,13 @@ class BitmovinIE(InfoExtractor):
         player_config = self._download_json(
             f'https://streams.bitmovin.com/{video_id}/config', video_id)['sources']
 
-        formats = self._extract_m3u8_formats(player_config['hls'], video_id, 'mp4')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            player_config['hls'], video_id, 'mp4')
 
         return {
             'id': video_id,
             'formats': formats,
+            'subtitles': subtitles,
             **traverse_obj(player_config, {
                 'title': ('title', {str}),
                 'thumbnail': ('poster', {str}),
