@@ -23,9 +23,9 @@ class PinterestBaseIE(InfoExtractor):
     def _call_api(self, resource, video_id, options):
         return self._download_json(
             f'https://www.pinterest.com/resource/{resource}Resource/get/',
-            video_id, f'Download {resource} JSON metadata', query={
-                'data': json.dumps({'options': options}),
-            })['resource_response']
+            video_id, f'Download {resource} JSON metadata',
+            query={'data': json.dumps({'options': options})},
+            headers={'X-Pinterest-PWS-Handler': 'www/[username].js'})['resource_response']
 
     def _extract_video(self, data, extract_formats=True):
         video_id = data['id']
@@ -109,7 +109,7 @@ class PinterestBaseIE(InfoExtractor):
 
 
 class PinterestIE(PinterestBaseIE):
-    _VALID_URL = rf'{PinterestBaseIE._VALID_URL_BASE}/pin/(?P<id>\d+)'
+    _VALID_URL = rf'{PinterestBaseIE._VALID_URL_BASE}/pin/(?:[\w-]+--)?(?P<id>\d+)'
     _TESTS = [{
         # formats found in data['videos']
         'url': 'https://www.pinterest.com/pin/664281013778109217/',
@@ -174,6 +174,25 @@ class PinterestIE(PinterestBaseIE):
     }, {
         'url': 'https://co.pinterest.com/pin/824721750502199491/',
         'only_matching': True,
+    },
+        {
+        'url': 'https://pinterest.com/pin/dive-into-serenity-blue-lagoon-pedi-nails-for-a-tranquil-and-refreshing-spa-experience-video-in-2024--2885187256207927',
+        'info_dict': {
+            'id': '2885187256207927',
+            'ext': 'mp4',
+            'title': 'Dive into Serenity: Blue Lagoon Pedi Nails for a Tranquil and Refreshing Spa Experience! 💙💅',
+            'description': 'md5:5da41c767d2317e42e49b663b0b2150f',
+            'uploader': 'Glamour Artistry |Everyday Outfits, Luxury Fashion & Nail Designs',
+            'uploader_id': '1142999717836434688',
+            'upload_date': '20240702',
+            'timestamp': 1719939156,
+            'duration': 7.967,
+            'comment_count': int,
+            'repost_count': int,
+            'categories': 'count:9',
+            'tags': ['#BlueLagoonPediNails', '#SpaExperience'],
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
+        },
     }]
 
     def _real_extract(self, url):

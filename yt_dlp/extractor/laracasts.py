@@ -32,14 +32,14 @@ class LaracastsBaseIE(InfoExtractor):
             VimeoIE, url_transparent=True,
             **traverse_obj(episode, {
                 'id': ('id', {int}, {str_or_none}),
-                'webpage_url': ('path', {lambda x: urljoin('https://laracasts.com', x)}),
+                'webpage_url': ('path', {urljoin('https://laracasts.com')}),
                 'title': ('title', {clean_html}),
                 'season_number': ('chapter', {int_or_none}),
                 'episode_number': ('position', {int_or_none}),
                 'description': ('body', {clean_html}),
                 'thumbnail': ('largeThumbnail', {url_or_none}),
                 'duration': ('length', {int_or_none}),
-                'date': ('dateSegments', 'published', {unified_strdate}),
+                'upload_date': ('dateSegments', 'published', {unified_strdate}),
             }))
 
 
@@ -54,7 +54,7 @@ class LaracastsIE(LaracastsBaseIE):
             'title': 'Hello, Laravel',
             'ext': 'mp4',
             'duration': 519,
-            'date': '20240312',
+            'upload_date': '20240312',
             'thumbnail': 'https://laracasts.s3.amazonaws.com/videos/thumbnails/youtube/30-days-to-learn-laravel-11-1.png',
             'description': 'md5:ddd658bb241975871d236555657e1dd1',
             'season_number': 1,
@@ -104,7 +104,7 @@ class LaracastsPlaylistIE(LaracastsBaseIE):
                 'description': ('body', {clean_html}),
                 'thumbnail': (('large_thumbnail', 'thumbnail'), {url_or_none}, any),
                 'duration': ('runTime', {parse_duration}),
-                'categories': ('taxonomy', 'name', {str}, {lambda x: x and [x]}),
+                'categories': ('taxonomy', 'name', {str}, all, filter),
                 'tags': ('topics', ..., 'name', {str}),
                 'modified_date': ('lastUpdated', {unified_strdate}),
             }),

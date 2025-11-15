@@ -2,11 +2,17 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import js_to_json, str_or_none, traverse_obj
+from ..networking import HEADRequest
+from ..utils import (
+    determine_ext,
+    js_to_json,
+    str_or_none,
+)
+from ..utils.traversal import traverse_obj
 
 
 class SubstackIE(InfoExtractor):
-    _VALID_URL = r'https?://(?P<username>[\w-]+)\.substack\.com/p/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://[\w-]+\.substack\.com/p/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://haleynahman.substack.com/p/i-made-a-vlog?s=r',
         'md5': 'f27e4fc6252001d48d479f45e65cdfd5',
@@ -43,6 +49,42 @@ class SubstackIE(InfoExtractor):
             'uploader': "Andrew Zimmern's Spilled Milk ",
             'uploader_id': '577659',
         },
+    }, {
+        # Podcast that needs its file extension resolved to mp3
+        'url': 'https://persuasion1.substack.com/p/summers',
+        'md5': '1456a755d46084744facdfac9edf900f',
+        'info_dict': {
+            'id': '141970405',
+            'ext': 'mp3',
+            'title': 'Larry Summers on What Went Wrong on Campus',
+            'description': 'Yascha Mounk and Larry Summers also discuss the promise and perils of artificial intelligence.',
+            'thumbnail': r're:https://substackcdn\.com/image/.+\.jpeg',
+            'uploader': 'Persuasion',
+            'uploader_id': '61579',
+        },
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.mollymovieclub.com/p/interstellar',
+        'info_dict': {
+            'id': '53602801',
+            'ext': 'mpga',
+            'title': 'Interstellar',
+            'description': 'Listen now | Episode One',
+            'thumbnail': r're:https?://.+\.jpeg',
+            'uploader': 'Molly Movie Club',
+            'uploader_id': '839621',
+        },
+    }, {
+        'url': 'https://www.blockedandreported.org/p/episode-117-lets-talk-about-depp',
+        'info_dict': {
+            'id': '57962052',
+            'ext': 'mpga',
+            'title': 'md5:855b2756f0ee10f6723fa00b16266f8d',
+            'description': 'The takes the takes the takes',
+            'thumbnail': r're:https?://.+\.jpeg',
+            'uploader': 'Blocked and Reported',
+            'uploader_id': '500230',
+        },
     }]
 
     @classmethod
@@ -74,7 +116,7 @@ class SubstackIE(InfoExtractor):
         return formats, subtitles
 
     def _real_extract(self, url):
-        display_id, username = self._match_valid_url(url).group('id', 'username')
+        display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
 
         webpage_info = self._parse_json(self._search_json(
@@ -89,7 +131,15 @@ class SubstackIE(InfoExtractor):
         post_type = webpage_info['post']['type']
         formats, subtitles = [], {}
         if post_type == 'podcast':
-            formats, subtitles = [{'url': webpage_info['post']['podcast_url']}], {}
+            fmt = {'url': webpage_info['post']['podcast_url']}
+            if not determine_ext(fmt['url'], default_ext=None):
+                # The redirected format URL expires but the original URL doesn't,
+                # so we only want to extract the extension from this request
+                fmt['ext'] = determine_ext(self._request_webpage(
+                    HEADRequest(fmt['url']), display_id,
+                    'Resolving podcast file extension',
+                    'Podcast URL is invalid').url)
+            formats.append(fmt)
         elif post_type == 'video':
             formats, subtitles = self._extract_video_formats(webpage_info['post']['videoUpload']['id'], canonical_url)
         else:

@@ -15,7 +15,6 @@ from ..utils import (
     str_or_none,
     strip_jsonp,
     traverse_obj,
-    unescapeHTML,
     url_or_none,
     urljoin,
 )
@@ -211,10 +210,10 @@ class QQMusicIE(QQMusicBaseIE):
             'formats': formats,
             **traverse_obj(info_data, {
                 'title': ('title', {str}),
-                'album': ('album', 'title', {str}, {lambda x: x or None}),
+                'album': ('album', 'title', {str}, filter),
                 'release_date': ('time_public', {lambda x: x.replace('-', '') or None}),
                 'creators': ('singer', ..., 'name', {str}),
-                'alt_title': ('subtitle', {str}, {lambda x: x or None}),
+                'alt_title': ('subtitle', {str}, filter),
                 'duration': ('interval', {int_or_none}),
             }),
             **traverse_obj(init_data, ('detail', {
@@ -425,7 +424,7 @@ class QQMusicPlaylistIE(QQPlaylistBaseIE):
 
         return self.playlist_result(entries, list_id, **traverse_obj(list_json, ('cdlist', 0, {
             'title': ('dissname', {str}),
-            'description': ('desc', {unescapeHTML}, {clean_html}),
+            'description': ('desc', {clean_html}),
         })))
 
 

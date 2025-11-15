@@ -1,9 +1,9 @@
 import urllib.parse
 
-from .once import OnceIE
+from .common import InfoExtractor
 
 
-class GameSpotIE(OnceIE):
+class GameSpotIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?gamespot\.com/(?:video|article|review)s/(?:[^/]+/\d+-|embed/)(?P<id>\d+)'
     _TESTS = [{
         'url': 'http://www.gamespot.com/videos/arma-3-community-guide-sitrep-i/2300-6410818/',

@@ -6,12 +6,10 @@ from ..utils import (
     determine_ext,
     extract_attributes,
     get_element_by_class,
-    get_element_text_and_html_by_tag,
     parse_duration,
-    traverse_obj,
-    try_call,
     url_or_none,
 )
+from ..utils.traversal import find_element, traverse_obj
 
 
 class NekoHackerIE(InfoExtractor):
@@ -35,7 +33,7 @@ class NekoHackerIE(InfoExtractor):
                     'acodec': 'mp3',
                     'release_date': '20221101',
                     'album': 'Nekoverse',
-                    'artist': 'Neko Hacker',
+                    'artists': ['Neko Hacker'],
                     'track': 'Spaceship',
                     'track_number': 1,
                     'duration': 195.0,
@@ -53,7 +51,7 @@ class NekoHackerIE(InfoExtractor):
                     'acodec': 'mp3',
                     'release_date': '20221101',
                     'album': 'Nekoverse',
-                    'artist': 'Neko Hacker',
+                    'artists': ['Neko Hacker'],
                     'track': 'City Runner',
                     'track_number': 2,
                     'duration': 148.0,
@@ -71,7 +69,7 @@ class NekoHackerIE(InfoExtractor):
                     'acodec': 'mp3',
                     'release_date': '20221101',
                     'album': 'Nekoverse',
-                    'artist': 'Neko Hacker',
+                    'artists': ['Neko Hacker'],
                     'track': 'Nature Talk',
                     'track_number': 3,
                     'duration': 174.0,
@@ -89,7 +87,7 @@ class NekoHackerIE(InfoExtractor):
                     'acodec': 'mp3',
                     'release_date': '20221101',
                     'album': 'Nekoverse',
-                    'artist': 'Neko Hacker',
+                    'artists': ['Neko Hacker'],
                     'track': 'Crystal World',
                     'track_number': 4,
                     'duration': 199.0,
@@ -115,7 +113,7 @@ class NekoHackerIE(InfoExtractor):
                     'acodec': 'mp3',
                     'release_date': '20210115',
                     'album': '進め！むじなカンパニー',
-                    'artist': 'Neko Hacker',
+                    'artists': ['Neko Hacker'],
                     'track': 'md5:1a5fcbc96ca3c3265b1c6f9f79f30fd0',
                     'track_number': 1,
                 },
@@ -132,7 +130,7 @@ class NekoHackerIE(InfoExtractor):
                     'acodec': 'mp3',
                     'release_date': '20210115',
                     'album': '進め！むじなカンパニー',
-                    'artist': 'Neko Hacker',
+                    'artists': ['Neko Hacker'],
                     'track': 'むじな de なじむ feat. 六科なじむ (CV: 日高里菜 )',
                     'track_number': 2,
                 },
@@ -149,7 +147,7 @@ class NekoHackerIE(InfoExtractor):
                     'acodec': 'mp3',
                     'release_date': '20210115',
                     'album': '進め！むじなカンパニー',
-                    'artist': 'Neko Hacker',
+                    'artists': ['Neko Hacker'],
                     'track': '進め！むじなカンパニー (instrumental)',
                     'track_number': 3,
                 },
@@ -166,7 +164,7 @@ class NekoHackerIE(InfoExtractor):
                     'acodec': 'mp3',
                     'release_date': '20210115',
                     'album': '進め！むじなカンパニー',
-                    'artist': 'Neko Hacker',
+                    'artists': ['Neko Hacker'],
                     'track': 'むじな de なじむ (instrumental)',
                     'track_number': 4,
                 },
@@ -181,13 +179,16 @@ class NekoHackerIE(InfoExtractor):
         playlist = get_element_by_class('playlist', webpage)
 
         if not playlist:
-            iframe = try_call(lambda: get_element_text_and_html_by_tag('iframe', webpage)[1]) or ''
-            iframe_src = url_or_none(extract_attributes(iframe).get('src'))
+            iframe_src = traverse_obj(webpage, (
+                {find_element(tag='iframe', html=True)}, {extract_attributes}, 'src', {url_or_none}))
             if not iframe_src:
                 raise ExtractorError('No playlist or embed found in webpage')
             elif re.match(r'https?://(?:\w+\.)?spotify\.com/', iframe_src):
                 raise ExtractorError('Spotify embeds are not supported', expected=True)
             return self.url_result(url, 'Generic')
+
+        player_params = self._search_json(
+            r'var srp_player_params_[\da-f]+\s*=', webpage, 'player params', playlist_id, default={})
 
         entries = []
         for track_number, track in enumerate(re.findall(r'(<li[^>]+data-audiopath[^>]+>)', playlist), 1):
@@ -200,12 +201,12 @@ class NekoHackerIE(InfoExtractor):
                 'album': 'data-albumtitle',
                 'duration': ('data-tracktime', {parse_duration}),
                 'release_date': ('data-releasedate', {lambda x: re.match(r'\d{8}', x.replace('.', ''))}, 0),
-                'thumbnail': ('data-albumart', {url_or_none}),
             })
             entries.append({
                 **entry,
+                'thumbnail': url_or_none(player_params.get('artwork')),
                 'track_number': track_number,
-                'artist': 'Neko Hacker',
+                'artists': ['Neko Hacker'],
                 'vcodec': 'none',
                 'acodec': 'mp3' if entry['ext'] == 'mp3' else None,
             })

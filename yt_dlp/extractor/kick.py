@@ -1,13 +1,12 @@
 import functools
+import urllib.parse
 
 from .common import InfoExtractor
-from ..networking import HEADRequest
 from ..utils import (
     UserNotLive,
     determine_ext,
     float_or_none,
     int_or_none,
-    merge_dicts,
     parse_iso8601,
     str_or_none,
     traverse_obj,
@@ -17,21 +16,17 @@ from ..utils import (
 
 
 class KickBaseIE(InfoExtractor):
-    def _real_initialize(self):
-        self._request_webpage(
-            HEADRequest('https://kick.com/'), None, 'Setting up session', fatal=False, impersonate=True)
-        xsrf_token = self._get_cookies('https://kick.com/').get('XSRF-TOKEN')
-        if not xsrf_token:
-            self.write_debug('kick.com did not set XSRF-TOKEN cookie')
-        KickBaseIE._API_HEADERS = {
-            'Authorization': f'Bearer {xsrf_token.value}',
-            'X-XSRF-TOKEN': xsrf_token.value,
-        } if xsrf_token else {}
+    @functools.cached_property
+    def _api_headers(self):
+        token = traverse_obj(
+            self._get_cookies('https://kick.com/'),
+            ('session_token', 'value', {urllib.parse.unquote}))
+        return {'Authorization': f'Bearer {token}'} if token else {}
 
     def _call_api(self, path, display_id, note='Downloading API JSON', headers={}, **kwargs):
         return self._download_json(
             f'https://kick.com/api/{path}', display_id, note=note,
-            headers=merge_dicts(headers, self._API_HEADERS), impersonate=True, **kwargs)
+            headers={**self._api_headers, **headers}, impersonate=True, **kwargs)
 
 
 class KickIE(KickBaseIE):
@@ -67,7 +62,7 @@ class KickIE(KickBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if KickClipIE.suitable(url) else super().suitable(url)
+        return False if (KickVODIE.suitable(url) or KickClipIE.suitable(url)) else super().suitable(url)
 
     def _real_extract(self, url):
         channel = self._match_id(url)
@@ -98,28 +93,49 @@ class KickIE(KickBaseIE):
 
 class KickVODIE(KickBaseIE):
     IE_NAME = 'kick:vod'
-    _VALID_URL = r'https?://(?:www\.)?kick\.com/video/(?P<id>[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})'
+    _VALID_URL = r'https?://(?:www\.)?kick\.com/[\w-]+/videos/(?P<id>[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})'
     _TESTS = [{
-        'url': 'https://kick.com/video/e74614f4-5270-4319-90ad-32179f19a45c',
-        'md5': '3870f94153e40e7121a6e46c068b70cb',
+        # Regular VOD
+        'url': 'https://kick.com/xqc/videos/5c697a87-afce-4256-b01f-3c8fe71ef5cb',
         'info_dict': {
-            'id': 'e74614f4-5270-4319-90ad-32179f19a45c',
+            'id': '5c697a87-afce-4256-b01f-3c8fe71ef5cb',
             'ext': 'mp4',
-            'title': r're:❎ MEGA DRAMA ❎ LIVE ❎ CLICK ❎ ULTIMATE SKILLS .+',
+            'title': '🐗LIVE🐗CLICK🐗HERE🐗DRAMA🐗ALL DAY🐗NEWS🐗VIDEOS🐗CLIPS🐗GAMES🐗STUFF🐗WOW🐗IM HERE🐗LETS GO🐗COOL🐗VERY NICE🐗',
             'description': 'THE BEST AT ABSOLUTELY EVERYTHING. THE JUICER. LEADER OF THE JUICERS.',
-            'channel': 'xqc',
-            'channel_id': '668',
             'uploader': 'xQc',
             'uploader_id': '676',
-            'upload_date': '20240724',
-            'timestamp': 1721796562,
-            'duration': 18566.0,
-            'thumbnail': r're:^https?://.*\.jpg',
+            'channel': 'xqc',
+            'channel_id': '668',
             'view_count': int,
-            'categories': ['VALORANT'],
-            'age_limit': 0,
+            'age_limit': 18,
+            'duration': 22278.0,
+            'thumbnail': r're:^https?://.*\.jpg',
+            'categories': ['Deadlock'],
+            'timestamp': 1756082443,
+            'upload_date': '20250825',
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        # VOD of ongoing livestream (at the time of writing the test, ID rotates every two days)
+        'url': 'https://kick.com/a-log-burner/videos/5230df84-ea38-46e1-be4f-f5949ae55641',
+        'info_dict': {
+            'id': '5230df84-ea38-46e1-be4f-f5949ae55641',
+            'ext': 'mp4',
+            'title': r're:😴 Cozy Fireplace ASMR 🔥 | Relax, Focus, Sleep 💤',
+            'description': 'md5:080bc713eac0321a7b376a1b53816d1b',
+            'uploader': 'A_Log_Burner',
+            'uploader_id': '65114691',
+            'channel': 'a-log-burner',
+            'channel_id': '63967687',
+            'view_count': int,
+            'age_limit': 18,
+            'thumbnail': r're:^https?://.*\.jpg',
+            'categories': ['Other, Watch Party'],
+            'timestamp': int,
+            'upload_date': str,
+            'live_status': 'is_live',
+        },
+        'skip': 'live',
     }]
 
     def _real_extract(self, url):
@@ -137,18 +153,19 @@ class KickVODIE(KickBaseIE):
                 'uploader': ('livestream', 'channel', 'user', 'username', {str}),
                 'uploader_id': ('livestream', 'channel', 'user_id', {int}, {str_or_none}),
                 'timestamp': ('created_at', {parse_iso8601}),
-                'duration': ('livestream', 'duration', {functools.partial(float_or_none, scale=1000)}),
+                'duration': ('livestream', 'duration', {float_or_none(scale=1000)}),
                 'thumbnail': ('livestream', 'thumbnail', {url_or_none}),
                 'categories': ('livestream', 'categories', ..., 'name', {str}),
                 'view_count': ('views', {int_or_none}),
                 'age_limit': ('livestream', 'is_mature', {bool}, {lambda x: 18 if x else 0}),
+                'is_live': ('livestream', 'is_live', {bool}),
             }),
         }
 
 
 class KickClipIE(KickBaseIE):
     IE_NAME = 'kick:clips'
-    _VALID_URL = r'https?://(?:www\.)?kick\.com/[\w-]+/?\?(?:[^#]+&)?clip=(?P<id>clip_[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?kick\.com/[\w-]+(?:/clips/|/?\?(?:[^#]+&)?clip=)(?P<id>clip_[\w-]+)'
     _TESTS = [{
         'url': 'https://kick.com/mxddy?clip=clip_01GYXVB5Y8PWAPWCWMSBCFB05X',
         'info_dict': {
@@ -186,6 +203,26 @@ class KickClipIE(KickBaseIE):
             'view_count': int,
             'like_count': int,
             'categories': ['Just Chatting'],
+            'age_limit': 0,
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://kick.com/spreen/clips/clip_01J8RGZRKHXHXXKJEHGRM932A5',
+        'info_dict': {
+            'id': 'clip_01J8RGZRKHXHXXKJEHGRM932A5',
+            'ext': 'mp4',
+            'title': 'KLJASLDJKLJKASDLJKDAS',
+            'channel': 'spreen',
+            'channel_id': '5312671',
+            'uploader': 'AnormalBarraBaja',
+            'uploader_id': '26518262',
+            'duration': 43.0,
+            'upload_date': '20240927',
+            'timestamp': 1727399987,
+            'thumbnail': 'https://clips.kick.com/clips/f2/clip_01J8RGZRKHXHXXKJEHGRM932A5/thumbnail.webp',
+            'view_count': int,
+            'like_count': int,
+            'categories': ['Minecraft'],
             'age_limit': 0,
         },
         'params': {'skip_download': 'm3u8'},

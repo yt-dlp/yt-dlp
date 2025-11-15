@@ -17,7 +17,7 @@ class MediaStreamBaseIE(InfoExtractor):
     _BASE_URL_RE = r'https?://mdstrm\.com/(?:embed|live-stream)'
 
     def _extract_mediastream_urls(self, webpage):
-        yield from traverse_obj(list(self._yield_json_ld(webpage, None, fatal=False)), (
+        yield from traverse_obj(list(self._yield_json_ld(webpage, None, default={})), (
             lambda _, v: v['@type'] == 'VideoObject', ('embedUrl', 'contentUrl'),
             {lambda x: x if re.match(rf'{self._BASE_URL_RE}/\w+', x) else None}))
 
