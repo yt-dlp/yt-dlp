@@ -1080,7 +1080,7 @@ class SoundcloudPlaylistIE(SoundcloudPlaylistBaseIE):
         },
         'playlist_count': 6,
     }, {
-      'url': 'https://api.soundcloud.com/playlists/soundcloud%3Aplaylists%3A1759227795',
+        'url': 'https://api.soundcloud.com/playlists/soundcloud%3Aplaylists%3A1759227795',
         'only_matching': True,
     }, {
         'url': 'https://api.soundcloud.com/playlists/soundcloud:playlists:2104769627?secret_token=s-wmpCLuExeYX',
