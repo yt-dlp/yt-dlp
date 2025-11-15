@@ -24,7 +24,7 @@ class NowCanalIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    _BC_URL_TMPL = 'https://players.brightcove.net/chhIqzukMq/6108484330001_default/index.html?videoId={}'
+    _BC_URL_TMPL = 'https://players.brightcove.net/6108484330001/chhIqzukMq_default/index.html?videoId={}'
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
