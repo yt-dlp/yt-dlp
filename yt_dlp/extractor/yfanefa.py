@@ -15,7 +15,7 @@ class YfanefaIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://www.yfanefa.com/record/2717',
         'info_dict': {
-            'id': 'record/2717',
+            'id': 'record-2717',
             'ext': 'mp4',
             'title': 'THE HALLAMSHIRE RIFLES LEAVING SHEFFIELD, 1914',
             'duration': 5239,
@@ -24,7 +24,7 @@ class YfanefaIE(InfoExtractor):
     }, {
         'url': 'https://www.yfanefa.com/news/53',
         'info_dict': {
-            'id': 'news/53',
+            'id': 'news-53',
             'ext': 'mp4',
             'title': 'Memory Bank:  Bradford Launch',
             'thumbnail': r're:https://media\.yfanefa\.com/storage/v1/file/',
@@ -55,7 +55,7 @@ class YfanefaIE(InfoExtractor):
             formats = [{'url': video_url, 'ext': 'mp4'}]
 
         return {
-            'id': video_id,
+            'id': video_id.strip('/').replace('/', '-'),
             'title':
                 self._og_search_title(webpage, default=None)
                 or remove_end(self._html_extract_title(webpage), ' | Yorkshire Film Archive'),
