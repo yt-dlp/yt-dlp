@@ -109,6 +109,17 @@ class FloatplaneBaseIE(InfoExtractor):
                     'hls_media_playlist_data': m3u8_data,
                     'hls_aes': hls_aes or None,
                 })
+
+            subtitles = {}
+            automatic_captions = {}
+            for sub_data in traverse_obj(metadata, ('textTracks', lambda _, v: url_or_none(v['src']))):
+                sub_lang = sub_data.get('language') or 'en'
+                sub_entry = {'url': sub_data['src']}
+                if sub_data.get('generated'):
+                    automatic_captions.setdefault(sub_lang, []).append(sub_entry)
+                else:
+                    subtitles.setdefault(sub_lang, []).append(sub_entry)
+
             items.append({
                 **common_info,
                 'id': media_id,
@@ -118,6 +129,8 @@ class FloatplaneBaseIE(InfoExtractor):
                     'thumbnail': ('thumbnail', 'path', {url_or_none}),
                 }),
                 'formats': formats,
+                'subtitles': subtitles,
+                'automatic_captions': automatic_captions,
             })
 
         post_info = {
