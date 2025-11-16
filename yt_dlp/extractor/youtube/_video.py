@@ -3150,6 +3150,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._downloader.deprecated_feature('[youtube] include_duplicate_formats extractor argument is deprecated. '
                                                 'Use formats=duplicate extractor argument instead')
 
+        def is_super_resolution(f_url):
+            return '1' in traverse_obj(f_url, ({parse_qs}, 'xtags', ..., {urllib.parse.parse_qs}, 'sr', ...))
+
         def solve_sig(s, spec):
             return ''.join(s[i] for i in spec)
 
@@ -3202,7 +3205,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             def get_stream_id(fmt_stream):
                 return str_or_none(fmt_stream.get('itag')), traverse_obj(fmt_stream, 'audioTrack', 'id'), fmt_stream.get('isDrc')
 
-            def process_format_stream(fmt_stream, proto, missing_pot):
+            def process_format_stream(fmt_stream, proto, missing_pot, super_resolution=False):
                 itag = str_or_none(fmt_stream.get('itag'))
                 audio_track = fmt_stream.get('audioTrack') or {}
                 quality = fmt_stream.get('quality')
@@ -3253,10 +3256,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 dct = {
                     'asr': int_or_none(fmt_stream.get('audioSampleRate')),
                     'filesize': int_or_none(fmt_stream.get('contentLength')),
-                    'format_id': f'{itag}{"-drc" if fmt_stream.get("isDrc") else ""}',
+                    'format_id': join_nonempty(itag, (
+                        'drc' if fmt_stream.get('isDrc')
+                        else 'sr' if super_resolution
+                        else None)),
                     'format_note': join_nonempty(
                         join_nonempty(audio_track.get('displayName'), audio_track.get('audioIsDefault') and '(default)', delim=' '),
-                        name, fmt_stream.get('isDrc') and 'DRC',
+                        name, fmt_stream.get('isDrc') and 'DRC', super_resolution and 'AI-upscaled',
                         try_get(fmt_stream, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                         try_get(fmt_stream, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
                         is_damaged and 'DAMAGED', missing_pot and 'MISSING POT',
@@ -3342,7 +3348,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             self.report_warning(msg, video_id, only_once=True)
                             continue
 
-                    fmt = process_format_stream(fmt_stream, proto, missing_pot=require_po_token and not po_token)
+                    fmt = process_format_stream(
+                        fmt_stream, proto, missing_pot=require_po_token and not po_token,
+                        super_resolution=is_super_resolution(fmt_url))
                     if not fmt:
                         continue
 
