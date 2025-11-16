@@ -17,9 +17,9 @@ class MaveBaseIE(InfoExtractor):
     _API_BASE_STORAGE_URL = 'https://store.cloud.mts.ru/mave/'
 
     def _load_channel_meta(self, channel_id, display_id):
-        return self._download_json(
+        return traverse_obj(self._download_json(
             f'{self._API_BASE_URL}/{channel_id}/', display_id,
-            note='Downloading channel metadata')
+            note='Downloading channel metadata'), 'podcast')
 
     def _load_episode_meta(self, channel_id, episode_code, display_id):
         return self._download_json(
@@ -52,10 +52,10 @@ class MaveBaseIE(InfoExtractor):
                 'timestamp': ('publish_date', {parse_iso8601}),
             }),
             **traverse_obj(channel_meta, {
-                'series_id': ('podcast', 'id', {str}),
-                'series': ('podcast', 'title', {str}),
-                'channel': ('podcast', 'title', {str}),
-                'uploader': ('podcast', 'author', {str}),
+                'series_id': ('id', {str}),
+                'series': ('title', {str}),
+                'channel': ('title', {str}),
+                'uploader': ('author', {str}),
             }),
         }
 
@@ -181,10 +181,10 @@ class MaveChannelIE(MaveBaseIE):
             '_type': 'playlist',
             'id': channel_id,
             **traverse_obj(channel_meta, {
-                'title': ('podcast', 'title', {str}),
-                'description': ('podcast', 'description', {str}),
+                'title': ('title', {str}),
+                'description': ('description', {str}),
             }),
             'entries': InAdvancePagedList(
                 functools.partial(self._entries, channel_id, channel_meta),
-                math.ceil(channel_meta['podcast']['episodes_count'] / self._PAGE_SIZE), self._PAGE_SIZE),
+                math.ceil(channel_meta['episodes_count'] / self._PAGE_SIZE), self._PAGE_SIZE),
         }
