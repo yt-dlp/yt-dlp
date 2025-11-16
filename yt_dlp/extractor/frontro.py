@@ -1,7 +1,7 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import int_or_none, parse_iso8601, try_call, url_or_none
+from ..utils import int_or_none, parse_iso8601, url_or_none
 from ..utils.traversal import traverse_obj
 
 
@@ -83,7 +83,9 @@ class FrontroGroupBaseIE(FrontoBaseIE):
             })['data']['pageContainer']
 
         entries = []
-        for video_id in traverse_obj(metadata, ('itemRefs', 'edges', ..., 'node', 'contentItem', 'videoItem', 'id')):
+        for video_id in traverse_obj(metadata, (
+            'itemRefs', 'edges', ..., 'node', 'contentItem', 'videoItem', 'id', {str}),
+        ):
             entries.append(self.url_result(
                 self._VIDEO_URL_TMPL % video_id, self._VIDEO_EXTRACTOR, video_id))
 
