@@ -1214,6 +1214,11 @@ def create_parser():
         '--sleep-subtitles', metavar='SECONDS',
         dest='sleep_interval_subtitles', default=0, type=int,
         help='Number of seconds to sleep before each subtitle download')
+    workarounds.add_option(
+        '--fragment-image-cloaking', metavar='MIME:BYTES_LENGTH[,...]',
+        dest='fragment_image_cloaking', type=str,
+        help=('Wheather strip out at the begining up to the length of the image cloaking signature. '
+              'Set auto to use predefined lengths based on fragment content type.'))
 
     verbosity = optparse.OptionGroup(parser, 'Verbosity and Simulation Options')
     verbosity.add_option(
