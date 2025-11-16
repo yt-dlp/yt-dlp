@@ -1806,6 +1806,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         },
         'playlist_count': 10,
         'params': {'skip_download': True},
+    }, {
+        'note': 'Video with AI summary',
+        'url': 'https://www.youtube.com/watch?v=8lF22FnHkUU',
+        'info_dict': {
+            'id': '8lF22FnHkUU',
+            'ext': 'mp4',
+            'ai_summary': 'md5:d892e2d40070a08530c965dc2c0922f7',
+        },
+        'params': {'skip_download': True},
     }]
 
     _DEFAULT_PLAYER_JS_VERSION = 'actual'
@@ -3748,6 +3757,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         initial_description = traverse_obj(initial_sdcr, (
             'items', ..., 'expandableVideoDescriptionBodyRenderer',
             'attributedDescriptionBodyText', 'content', {str}, any))
+        initial_ai_summary = traverse_obj(initial_data, (
+            'contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents', ...,
+            'expandableMetadataRenderer', 'header', 'collapsedTitle', 'simpleText', {str}, any),
+            ('engagementPanels', ..., 'engagementPanelSectionListRenderer', 'content',
+             'structuredDescriptionContentRenderer', 'items', ...,
+             'expandableMetadataRenderer', 'header', 'collapsedTitle', 'simpleText', {str}, any))
         # videoDescriptionHeaderRenderer also has publishDate/channel/handle/ucid, but not needed
         initial_vdhr = traverse_obj(initial_sdcr, (
             'items', ..., 'videoDescriptionHeaderRenderer', {dict}, any)) or {}
@@ -4168,6 +4183,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 or None)
 
             info['heatmap'] = self._extract_heatmap(initial_data)
+
+            if initial_ai_summary:
+                info['ai_summary'] = initial_ai_summary
 
         contents = traverse_obj(
             initial_data, ('contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents'),

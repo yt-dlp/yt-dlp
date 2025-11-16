@@ -409,6 +409,7 @@ class InfoExtractor:
                     players on other sites. Can be True (=always allowed),
                     False (=never allowed), None (=unknown), or a string
                     specifying the criteria for embedability; e.g. 'whitelist'
+    ai_summary:     Short AI-generated summary text shown on the video description, if available.
     availability:   Under what condition the video is available. One of
                     'private', 'premium_only', 'subscriber_only', 'needs_auth',
                     'unlisted' or 'public'. Use 'InfoExtractor._availability'
