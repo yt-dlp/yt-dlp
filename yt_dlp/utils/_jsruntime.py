@@ -3,6 +3,7 @@ import abc
 import dataclasses
 import functools
 import os.path
+import shutil
 
 from ._utils import _get_exe_version_output, detect_exe_version, int_or_none
 
@@ -15,7 +16,7 @@ def runtime_version_tuple(v):
 
 def _determine_runtime_path(path, basename):
     if not path:
-        return basename
+        return shutil.which(basename)
     if os.path.isdir(path):
         return os.path.join(path, basename)
     return path
