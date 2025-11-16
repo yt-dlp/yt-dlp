@@ -3262,7 +3262,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         else None)),
                     'format_note': join_nonempty(
                         join_nonempty(audio_track.get('displayName'), audio_track.get('audioIsDefault') and '(default)', delim=' '),
-                        name, fmt_stream.get('isDrc') and 'DRC', super_resolution and 'Super resolution (AI upscaled)',
+                        name, fmt_stream.get('isDrc') and 'DRC', super_resolution and 'AI-upscaled',
                         try_get(fmt_stream, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                         try_get(fmt_stream, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
                         is_damaged and 'DAMAGED', missing_pot and 'MISSING POT',
