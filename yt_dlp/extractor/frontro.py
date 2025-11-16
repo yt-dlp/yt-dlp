@@ -7,12 +7,9 @@ from ..utils.traversal import traverse_obj
 
 class FrontoBaseIE(InfoExtractor):
     def _get_auth_headers(self, url):
-        auth_cookie = try_call(lambda: self._get_cookies(url)['frAccessToken'].value)
-        if not auth_cookie:
-            return {}
-        return {
-            'authorization': f'Bearer {auth_cookie}',
-        }
+        return traverse_obj(self._get_cookies(url), {
+            'authorization': ('frAccessToken', 'value', {lambda token: f'Bearer {token}' if token else None}),
+        })
 
 
 class FrontroVideoBaseIE(FrontoBaseIE):
