@@ -77,6 +77,7 @@ STREAMING_DATA_PLAYER_TOKEN_PROVIDED = '__yt_dlp_player_token_provided'
 STREAMING_DATA_INNERTUBE_CONTEXT = '__yt_dlp_innertube_context'
 STREAMING_DATA_IS_PREMIUM_SUBSCRIBER = '__yt_dlp_is_premium_subscriber'
 STREAMING_DATA_FETCHED_TIMESTAMP = '__yt_dlp_fetched_timestamp'
+STREAMING_DATA_PREROLL_LENGTH_MSEC = '__yt_dlp_preroll_length_msec'
 
 PO_TOKEN_GUIDE_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide'
 
@@ -3033,6 +3034,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # Save client details for introspection later
                 innertube_context = traverse_obj(player_ytcfg or self._get_default_ytcfg(client), 'INNERTUBE_CONTEXT')
                 fetched_timestamp = int(time.time())
+                preroll_length_msec = self._get_preroll_length(pr)
                 sd = pr.setdefault('streamingData', {})
                 sd[STREAMING_DATA_CLIENT_NAME] = client
                 sd[STREAMING_DATA_FETCH_GVS_PO_TOKEN] = fetch_gvs_po_token_func
@@ -3041,6 +3043,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 sd[STREAMING_DATA_FETCH_SUBS_PO_TOKEN] = fetch_subs_po_token_func
                 sd[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER] = is_premium_subscriber
                 sd[STREAMING_DATA_FETCHED_TIMESTAMP] = fetched_timestamp
+                sd[STREAMING_DATA_PREROLL_LENGTH_MSEC] = preroll_length_msec
                 for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
                     f[STREAMING_DATA_CLIENT_NAME] = client
                     f[STREAMING_DATA_FETCH_GVS_PO_TOKEN] = fetch_gvs_po_token_func
@@ -3169,9 +3172,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # save pots per client to avoid fetching again
         gvs_pots = {}
 
-        # For handling potential pre-playback required waiting period
-        playback_wait = int_or_none(self._configuration_arg('playback_wait', [None])[0], default=6)
-
         def get_language_code_and_preference(fmt_stream):
             audio_track = fmt_stream.get('audioTrack') or {}
             display_name = audio_track.get('displayName') or ''
@@ -3196,7 +3196,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_premium_subscriber = streaming_data[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER]
             player_token_provided = streaming_data[STREAMING_DATA_PLAYER_TOKEN_PROVIDED]
             client_name = streaming_data.get(STREAMING_DATA_CLIENT_NAME)
-            available_at = streaming_data[STREAMING_DATA_FETCHED_TIMESTAMP] + playback_wait
+            # For handling potential pre-playback required waiting period
+            preroll_length_sec = streaming_data.get(STREAMING_DATA_PREROLL_LENGTH_MSEC, 0) / 1000
+            available_at = streaming_data[STREAMING_DATA_FETCHED_TIMESTAMP] + min(preroll_length_sec, 6)
             streaming_formats = traverse_obj(streaming_data, (('formats', 'adaptiveFormats'), ...))
 
             def get_stream_id(fmt_stream):
@@ -3644,6 +3646,38 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'User-Agent': ('INNERTUBE_CONTEXT', 'client', 'userAgent', {str}),
                 }))
         return webpage
+
+    def _parse_instream_ad_renderer(self, renderer):
+        instream_renderer = traverse_obj(renderer, ('instreamVideoAdRenderer', {dict})) or {}
+        length_ms = traverse_obj(instream_renderer, ('skipOffsetMilliseconds', {int}))
+        if length_ms is not None:
+            length = length_ms / 1000 if length_ms % 1000 else length_ms // 1000
+            self.write_debug(f'Detected a {length}s skippable ad')
+            return length_ms
+        length_ms = traverse_obj(instream_renderer, ('playerVars', {urllib.parse.parse_qs}, 'length_seconds', -1, {int_or_none(invscale=1000)}))
+        if length_ms is not None:
+            length = length_ms / 1000 if length_ms % 1000 else length_ms // 1000
+            self.write_debug(f'Detected a {length}s unskippable ad')
+            return length_ms
+        return None
+
+    def _get_preroll_length(self, ad_slot_lists):
+        for slot_renderer in traverse_obj(ad_slot_lists, ('adSlots', ..., 'adSlotRenderer', {dict})):
+            if traverse_obj(slot_renderer, ('adSlotMetadata', 'triggerEvent')) != 'SLOT_TRIGGER_EVENT_BEFORE_CONTENT':
+                continue
+            rendering_content = traverse_obj(slot_renderer, (
+                'fulfillmentContent', 'fulfilledLayout', 'playerBytesAdLayoutRenderer',
+                'renderingContent', {dict})) or {}
+            if 'instreamVideoAdRenderer' in rendering_content:
+                length = self._parse_instream_ad_renderer(rendering_content)
+                if length is not None:
+                    return length
+            if 'playerBytesSequentialLayoutRenderer' in rendering_content:
+                total = 0
+                for layout in traverse_obj(rendering_content, ('playerBytesSequentialLayoutRenderer', 'sequentialLayouts'), []):
+                    total += self._parse_instream_ad_renderer(traverse_obj(layout, ('playerBytesAdLayoutRenderer', 'renderingContent', {dict}))) or 0
+                return total
+        return 0
 
     def _list_formats(self, video_id, microformats, video_details, player_responses, player_url, duration=None):
         live_broadcast_details = traverse_obj(microformats, (..., 'liveBroadcastDetails'))
