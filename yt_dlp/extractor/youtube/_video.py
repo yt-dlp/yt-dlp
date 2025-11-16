@@ -3150,8 +3150,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._downloader.deprecated_feature('[youtube] include_duplicate_formats extractor argument is deprecated. '
                                                 'Use formats=duplicate extractor argument instead')
 
-        avoid_ai_upscaling = self._configuration_arg('avoid_ai_upscaling', ['true'])[0] != 'false'
-
         def is_super_resolution(f_url):
             return '1' in traverse_obj(f_url, ({parse_qs}, 'xtags', ..., {urllib.parse.parse_qs}, 'sr', ...))
 
@@ -3283,11 +3281,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'language': language_code,
                     'language_preference': language_preference,
                     # Strictly de-prioritize damaged and 3gp formats
-                    'preference': (
-                        -10 if is_damaged
-                        else -5 if super_resolution and avoid_ai_upscaling
-                        else -2 if itag == '17'
-                        else None),
+                    'preference': -10 if is_damaged else -2 if itag == '17' else None,
                 }
                 mime_mobj = re.match(
                     r'((?:[^/]+)/(?:[^;]+))(?:;\s*codecs="([^"]+)")?', fmt_stream.get('mimeType') or '')
