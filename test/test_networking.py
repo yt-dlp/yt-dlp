@@ -931,7 +931,7 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
             assert res.fp.fp is None
             assert res.closed
 
-    def test_data_uri_partial_read_then_full(self, handler):
+    def test_data_uri_partial_read_then_full_read(self, handler):
         with handler() as rh:
             res = validate_and_send(rh, Request('data:text/plain,hello%20world'))
             assert res.read(6) == b'hello '
