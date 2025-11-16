@@ -27,7 +27,7 @@ class MaveBaseIE(InfoExtractor):
             display_id, note='Downloading episode metadata')
 
     def _create_entry(self, channel_id, channel_meta, episode_meta):
-        episode_code = traverse_obj(episode_meta, ('code', {require('episode code')}))
+        episode_code = traverse_obj(episode_meta, ('code', {int}, {require('episode code')}))
         return {
             'display_id': f'{channel_id}-{episode_code}',
             'extractor_key': MaveIE.ie_key(),
@@ -169,8 +169,8 @@ class MaveChannelIE(MaveBaseIE):
                 'sort': 'newest',
                 'format': 'all',
             }, note=f'Downloading page {page_num + 1}')
-        for ep in traverse_obj(page_data, ('episodes', ..., {dict})):
-            yield self._create_entry(channel_id, channel_meta, episode_meta=ep)
+        for ep in traverse_obj(page_data, ('episodes', lambda _, v: v['audio'] and v['id'])):
+            yield self._create_entry(channel_id, channel_meta, ep)
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
