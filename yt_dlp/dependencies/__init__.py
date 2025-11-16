@@ -22,6 +22,10 @@ else:
     if not _path_exists(certifi.where()):
         certifi = None
 
+try:
+    import zstandard
+except ImportError:
+    zstandard = None
 
 try:
     import mutagen
