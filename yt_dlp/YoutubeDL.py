@@ -3137,7 +3137,10 @@ class YoutubeDL:
             except re.error as e:
                 raise ValueError(f'Wrong regex for subtitlelangs: {e.pattern}')
         else:
+            # Prioritize original language subtitles (e.g., "it-orig") over translated ones
+            orig_lang = next((lang for lang in all_sub_langs if lang.endswith('-orig')), None)
             requested_langs = LazyList(itertools.chain(
+                [orig_lang] if orig_lang else [],
                 ['en'] if 'en' in normal_sub_langs else [],
                 filter(lambda f: f.startswith('en'), normal_sub_langs),
                 ['en'] if 'en' in all_sub_langs else [],
