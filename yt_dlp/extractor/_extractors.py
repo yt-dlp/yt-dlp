@@ -691,6 +691,10 @@ from .frontendmasters import (
     FrontendMastersIE,
     FrontendMastersLessonIE,
 )
+from .frontro import (
+    TheChosenGroupIE,
+    TheChosenIE,
+)
 from .fujitv import FujiTVFODPlus7IE
 from .funk import FunkIE
 from .funker530 import Funker530IE
