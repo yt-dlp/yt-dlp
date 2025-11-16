@@ -16,7 +16,7 @@ def runtime_version_tuple(v):
 
 def _determine_runtime_path(path, basename):
     if not path:
-        return shutil.which(basename)
+        return shutil.which(basename) or basename
     if os.path.isdir(path):
         return os.path.join(path, basename)
     return path
