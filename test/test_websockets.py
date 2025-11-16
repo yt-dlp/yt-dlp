@@ -38,6 +38,13 @@ from yt_dlp.utils.networking import HTTPHeaderDict
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
+pytestmark = pytest.mark.handler_flaky(
+    'Websockets',
+    os.name != 'nt' and sys.implementation.name == 'pypy',
+    reason='segfaults',
+)
+
+
 def websocket_handler(websocket):
     for message in websocket:
         if isinstance(message, bytes):

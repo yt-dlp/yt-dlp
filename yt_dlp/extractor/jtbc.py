@@ -98,7 +98,7 @@ class JTBCIE(InfoExtractor):
 
         formats = []
         for stream_url in traverse_obj(playback_data, ('sources', 'HLS', ..., 'file', {url_or_none})):
-            stream_url = re.sub(r'/playlist(?:_pd\d+)?\.m3u8', '/index.m3u8', stream_url)
+            stream_url = re.sub(r'/playlist_pd\d+\.m3u8', '/playlist.m3u8', stream_url)
             formats.extend(self._extract_m3u8_formats(stream_url, video_id, fatal=False))
 
         metadata = self._download_json(

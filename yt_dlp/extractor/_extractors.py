@@ -268,6 +268,7 @@ from .bitchute import (
     BitChuteChannelIE,
     BitChuteIE,
 )
+from .bitmovin import BitmovinIE
 from .blackboardcollaborate import (
     BlackboardCollaborateIE,
     BlackboardCollaborateLaunchIE,
@@ -640,7 +641,10 @@ from .filmon import (
     FilmOnIE,
 )
 from .filmweb import FilmwebIE
-from .firsttv import FirstTVIE
+from .firsttv import (
+    FirstTVIE,
+    FirstTVLiveIE,
+)
 from .fivetv import FiveTVIE
 from .flextv import FlexTVIE
 from .flickr import FlickrIE
@@ -1197,6 +1201,7 @@ from .musicdex import (
     MusicdexPlaylistIE,
     MusicdexSongIE,
 )
+from .mux import MuxIE
 from .mx3 import (
     Mx3IE,
     Mx3NeoIE,
@@ -1364,6 +1369,7 @@ from .nova import (
     NovaIE,
 )
 from .novaplay import NovaPlayIE
+from .nowcanal import NowCanalIE
 from .nowness import (
     NownessIE,
     NownessPlaylistIE,
@@ -2517,6 +2523,7 @@ from .yappy import (
     YappyIE,
     YappyProfileIE,
 )
+from .yfanefa import YfanefaIE
 from .yle_areena import YleAreenaIE
 from .youjizz import YouJizzIE
 from .youku import (
