@@ -4006,17 +4006,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         subtitles = {}
         skipped_subs_clients = set()
 
-        # Only web/mweb clients provide translationLanguages, so include initial_pr in the traversal
-        translation_languages = {
-            lang['languageCode']: self._get_text(lang['languageName'], max_runs=1)
-            for lang in traverse_obj(player_responses, (
-                ..., 'captions', 'playerCaptionsTracklistRenderer', 'translationLanguages',
-                lambda _, v: v['languageCode'] and v['languageName']))
-        }
-        # NB: Constructing the full subtitle dictionary is slow
-        get_translated_subs = 'translated_subs' not in self._configuration_arg('skip') and (
-            self.get_param('writeautomaticsub', False) or self.get_param('listsubtitles'))
-
         # Filter out initial_pr which does not have streamingData (smuggled client context)
         prs = traverse_obj(player_responses, (
             lambda _, v: v['streamingData'] and v['captions']['playerCaptionsTracklistRenderer']))
@@ -4060,7 +4049,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     self._report_pot_subtitles_skipped(video_id, client_name)
                     break
 
-                orig_lang = qs.get('lang', [None])[-1]
                 lang_name = self._get_text(caption_track, 'name', max_runs=1)
                 if caption_track.get('kind') != 'asr':
                     if not lang_code:
@@ -4069,29 +4057,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         subtitles, base_url, lang_code, lang_name, client_name, pot_params)
                     if not caption_track.get('isTranslatable'):
                         continue
-                for trans_code, trans_name in translation_languages.items():
-                    if not trans_code:
-                        continue
-                    orig_trans_code = trans_code
-                    if caption_track.get('kind') != 'asr' and trans_code != 'und':
-                        if not get_translated_subs:
-                            continue
-                        trans_code += f'-{lang_code}'
-                        trans_name += format_field(lang_name, None, ' from %s')
-                    if lang_code == f'a-{orig_trans_code}':
-                        # Set audio language based on original subtitles
-                        for f in formats:
-                            if f.get('acodec') != 'none' and not f.get('language'):
-                                f['language'] = orig_trans_code
-                        # Add an "-orig" label to the original language so that it can be distinguished.
-                        # The subs are returned without "-orig" as well for compatibility
-                        process_language(
-                            automatic_captions, base_url, f'{trans_code}-orig',
-                            f'{trans_name} (Original)', client_name, pot_params)
-                    # Setting tlang=lang returns damaged subtitles.
+                else:
+                    lang_code = remove_start(lang_code, 'a-')
                     process_language(
-                        automatic_captions, base_url, trans_code, trans_name, client_name,
-                        pot_params if orig_lang == orig_trans_code else {'tlang': trans_code, **pot_params})
+                        automatic_captions, base_url, lang_code, lang_name, client_name, pot_params)
 
             # Avoid duplication if we've already got everything we need
             need_subs_langs.difference_update(subtitles)
