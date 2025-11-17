@@ -235,7 +235,7 @@ class NhkVodIE(NhkBaseIE):
         'info_dict': {
             'id': 'qfjay6cg',
             'ext': 'mp4',
-            'title': 'DESIGN TALKS plus - Fishermen's Finery',
+            'title': 'DESIGN TALKS plus - Fishermen\'s Finery',
             'description': 'md5:8a8f958aaafb0d7cb59d38de53f1e448',
             'thumbnail': r're:^https?:/(/[a-z0-9.-]+)+\.jpg\?w=1920&h=1080$',
             'upload_date': '20210615',
