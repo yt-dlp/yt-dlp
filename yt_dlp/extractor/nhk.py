@@ -299,7 +299,7 @@ class NhkVodIE(NhkBaseIE):
             'id': 'nw_c_en_9999-d17',
             'ext': 'mp4',
             'title': 'Flowers of snow blossom - The 72 Pentads of Yamato',
-            'description': 'Today's focus: Snow',
+            'description': 'Today\'s focus: Snow',
             'release_timestamp': 1693792402,
             'release_date': '20230904',
             'upload_date': '20220128',
