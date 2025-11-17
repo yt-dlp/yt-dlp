@@ -453,6 +453,22 @@ class PBSIE(InfoExtractor):
             'url': 'https://player.pbs.org/portalplayer/3004638221/?uid=',
             'only_matching': True,
         },
+        {
+            'url': 'https://www.pbs.org/video/caregiving',
+            'info_dict': {
+                'id': '3101776876',
+                'ext': 'mp4',
+                'title': 'Caregiving - Caregiving',
+                'description': 'A documentary revealing America’s caregiving crisis through intimate stories and expert insight.',
+                'display_id': 'caregiving',
+                'duration': 6783,
+                'thumbnail': 'https://image.pbs.org/video-assets/BSrSkcc-asset-mezzanine-16x9-nlcxQts.jpg',
+                'chapters': [],
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
     ]
     _ERRORS = {
         101: 'We\'re sorry, but this video is not yet available.',
