@@ -86,7 +86,10 @@ class NhkBaseIE(InfoExtractor):
 
     def _extract_episode_info(self, url, episode=None):
         fetch_episode = episode is None
-        lang, m_type, episode_id = NhkVodIE._match_valid_url(url).group('lang', 'type', 'id')
+        match = NhkVodIE._match_valid_url(url)
+        lang = match.group('lang')
+        m_type = match.group('type') or 'video'  # Default to video if type not specified
+        episode_id = match.group('id')
         is_video = m_type != 'audio'
 
         if is_video:
@@ -163,7 +166,7 @@ class NhkVodIE(NhkBaseIE):
     _VALID_URL = [
         rf'{NhkBaseIE._BASE_URL_REGEX}shows/(?:(?P<type>video)/)?(?P<id>\d{{4}}[\da-z]\d+)/?(?:$|[?#])',
         rf'{NhkBaseIE._BASE_URL_REGEX}(?:ondemand|shows)/(?P<type>audio)/(?P<id>[^/?#]+?-\d{{8}}-[\da-z]+)',
-        rf'{NhkBaseIE._BASE_URL_REGEX}ondemand/(?P<type>video)/(?P<id>\d{{4}}[\da-z]\d+)',  # deprecated
+        rf'{NhkBaseIE._BASE_URL_REGEX}ondemand/(?P<type>video)/(?P<id>\d{{4}}[\da-z]\d+)/?',  # deprecated
         rf'{NhkBaseIE._BASE_URL_REGEX}tv/[^/]+/\d+/(?P<id>\d{{4}}[\da-z]\d+)/?',  # TV page URLs
     ]
     # Content available only for a limited period of time. Visit
