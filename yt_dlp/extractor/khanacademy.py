@@ -15,7 +15,7 @@ from ..utils import (
 class KhanAcademyBaseIE(InfoExtractor):
     _VALID_URL_TEMPL = r'https?://(?:www\.)?khanacademy\.org/(?P<id>(?:[^/]+/){%s}%s[^?#/&]+)'
 
-    _PUBLISHED_CONTENT_VERSION = '171419ab20465d931b356f22d20527f13969bb70'
+    _PUBLISHED_CONTENT_VERSION = 'dc34750f0572c80f5effe7134082fe351143c1e4'
 
     def _parse_video(self, video):
         return {
@@ -39,7 +39,7 @@ class KhanAcademyBaseIE(InfoExtractor):
             query={
                 'fastly_cacheable': 'persist_until_publish',
                 'pcv': self._PUBLISHED_CONTENT_VERSION,
-                'hash': '1242644265',
+                'hash': '3712657851',
                 'variables': json.dumps({
                     'path': display_id,
                     'countryCode': 'US',

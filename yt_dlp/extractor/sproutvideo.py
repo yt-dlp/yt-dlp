@@ -41,6 +41,7 @@ class SproutVideoIE(InfoExtractor):
             'duration': 703,
             'thumbnail': r're:https?://images\.sproutvideo\.com/.+\.jpg',
         },
+        'skip': 'Account Disabled',
     }, {
         # http formats 'sd' and 'hd' are available
         'url': 'https://videos.sproutvideo.com/embed/119cd6bc1a18e6cd98/30751a1761ae5b90',
@@ -100,8 +101,15 @@ class SproutVideoIE(InfoExtractor):
         webpage = self._download_webpage(
             url, video_id, headers=traverse_obj(smuggled_data, {'Referer': 'referer'}))
         data = self._search_json(
-            r'var\s+dat\s*=\s*["\']', webpage, 'data', video_id, contains_pattern=r'[A-Za-z0-9+/=]+',
-            end_pattern=r'["\'];', transform_source=lambda x: base64.b64decode(x).decode())
+            r'(?:var|const|let)\s+(?:dat|(?:player|video)Info|)\s*=\s*["\']', webpage, 'player info',
+            video_id, contains_pattern=r'[A-Za-z0-9+/=]+', end_pattern=r'["\'];',
+            transform_source=lambda x: base64.b64decode(x).decode())
+
+        # SproutVideo may send player info for 'SMPTE Color Monitor Test' [a791d7b71b12ecc52e]
+        # e.g. if the user-agent we used with the webpage request is too old
+        video_uid = data['videoUid']
+        if video_id != video_uid:
+            raise ExtractorError(f'{self.IE_NAME} sent the wrong video data ({video_uid})')
 
         formats, subtitles = [], {}
         headers = {

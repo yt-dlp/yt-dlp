@@ -1,3 +1,4 @@
+import functools
 import hashlib
 import re
 import time
@@ -8,6 +9,7 @@ from ..utils import (
     ExtractorError,
     classproperty,
     float_or_none,
+    parse_qs,
     traverse_obj,
     url_or_none,
 )
@@ -51,6 +53,15 @@ class DacastVODIE(DacastBaseIE):
             'thumbnail': 'https://universe-files.dacast.com/26137208-5858-65c1-5e9a-9d6b6bd2b6c2',
         },
         'params': {'skip_download': 'm3u8'},
+    }, {  # /uspaes/ in hls_url
+        'url': 'https://iframe.dacast.com/vod/f9823fc6-faba-b98f-0d00-4a7b50a58c5b/348c5c84-b6af-4859-bb9d-1d01009c795b',
+        'info_dict': {
+            'id': '348c5c84-b6af-4859-bb9d-1d01009c795b',
+            'ext': 'mp4',
+            'title': 'pl1-edyta-rubas-211124.mp4',
+            'uploader_id': 'f9823fc6-faba-b98f-0d00-4a7b50a58c5b',
+            'thumbnail': 'https://universe-files.dacast.com/4d0bd042-a536-752d-fc34-ad2fa44bbcbb.png',
+        },
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://www.dacast.com/support/knowledgebase/how-can-i-embed-a-video-on-my-website/',
@@ -74,9 +85,22 @@ class DacastVODIE(DacastBaseIE):
         'params': {'skip_download': 'm3u8'},
     }]
 
+    @functools.cached_property
+    def _usp_signing_secret(self):
+        player_js = self._download_webpage(
+            'https://player.dacast.com/js/player.js', None, 'Downloading player JS')
+        # Rotates every so often, but hardcode a fallback in case of JS change/breakage before rotation
+        return self._search_regex(
+            r'\bUSP_SIGNING_SECRET\s*=\s*(["\'])(?P<secret>(?:(?!\1).)+)', player_js,
+            'usp signing secret', group='secret', fatal=False) or 'hGDtqMKYVeFdofrAfFmBcrsakaZELajI'
+
     def _real_extract(self, url):
         user_id, video_id = self._match_valid_url(url).group('user_id', 'id')
-        query = {'contentId': f'{user_id}-vod-{video_id}', 'provider': 'universe'}
+        query = {
+            'contentId': f'{user_id}-vod-{video_id}',
+            'provider': 'universe',
+            **traverse_obj(url, ({parse_qs}, 'uss_token', {'signedKey': -1})),
+        }
         info = self._download_json(self._API_INFO_URL, video_id, query=query, fatal=False)
         access = self._download_json(
             'https://playback.dacast.com/content/access', video_id,
@@ -94,10 +118,10 @@ class DacastVODIE(DacastBaseIE):
         if 'DRM_EXT' in hls_url:
             self.report_drm(video_id)
         elif '/uspaes/' in hls_url:
-            # From https://player.dacast.com/js/player.js
+            # Ref: https://player.dacast.com/js/player.js
             ts = int(time.time())
             signature = hashlib.sha1(
-                f'{10413792000 - ts}{ts}YfaKtquEEpDeusCKbvYszIEZnWmBcSvw').digest().hex()
+                f'{10413792000 - ts}{ts}{self._usp_signing_secret}'.encode()).digest().hex()
             hls_aes['uri'] = f'https://keys.dacast.com/uspaes/{video_id}.key?s={signature}&ts={ts}'
 
         for retry in self.RetryManager():

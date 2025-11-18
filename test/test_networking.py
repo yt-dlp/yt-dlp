@@ -3,6 +3,7 @@
 # Allow direct execution
 import os
 import sys
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -22,7 +23,6 @@ import ssl
 import tempfile
 import threading
 import time
-import urllib.error
 import urllib.request
 import warnings
 import zlib
@@ -39,6 +39,7 @@ from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import brotli, curl_cffi, requests, urllib3
 from yt_dlp.networking import (
     HEADRequest,
+    PATCHRequest,
     PUTRequest,
     Request,
     RequestDirector,
@@ -222,10 +223,7 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
                 if encoding == 'br' and brotli:
                     payload = brotli.compress(payload)
                 elif encoding == 'gzip':
-                    buf = io.BytesIO()
-                    with gzip.GzipFile(fileobj=buf, mode='wb') as f:
-                        f.write(payload)
-                    payload = buf.getvalue()
+                    payload = gzip.compress(payload, mtime=0)
                 elif encoding == 'deflate':
                     payload = zlib.compress(payload)
                 elif encoding == 'unsupported':
@@ -264,6 +262,11 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Content-Length', str(len(payload)))
             self.end_headers()
             self.wfile.write(payload)
+            self.finish()
+        elif self.path == '/get_cookie':
+            self.send_response(200)
+            self.send_header('Set-Cookie', 'test=ytdlp; path=/')
+            self.end_headers()
             self.finish()
         else:
             self._status(404)
@@ -309,6 +312,7 @@ class TestRequestHandlerBase:
 
 
 @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', os.name == 'nt', reason='segfaults')
 class TestHTTPRequestHandler(TestRequestHandlerBase):
 
     def test_verify_cert(self, handler):
@@ -337,6 +341,52 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             with pytest.raises(SSLError, match=r'(?i)ssl(?:v3|/tls).alert.handshake.failure') as exc_info:
                 validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers'))
             assert not issubclass(exc_info.type, CertificateVerifyError)
+
+    @pytest.mark.skip_handler('CurlCFFI', 'legacy_ssl ignored by CurlCFFI')
+    def test_legacy_ssl_extension(self, handler):
+        # HTTPS server with old ciphers
+        # XXX: is there a better way to test this than to create a new server?
+        https_httpd = http.server.ThreadingHTTPServer(
+            ('127.0.0.1', 0), HTTPTestRequestHandler)
+        sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        sslctx.maximum_version = ssl.TLSVersion.TLSv1_2
+        sslctx.set_ciphers('SHA1:AESCCM:aDSS:eNULL:aNULL')
+        sslctx.load_cert_chain(os.path.join(TEST_DIR, 'testcert.pem'), None)
+        https_httpd.socket = sslctx.wrap_socket(https_httpd.socket, server_side=True)
+        https_port = http_server_port(https_httpd)
+        https_server_thread = threading.Thread(target=https_httpd.serve_forever)
+        https_server_thread.daemon = True
+        https_server_thread.start()
+
+        with handler(verify=False) as rh:
+            res = validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers', extensions={'legacy_ssl': True}))
+            assert res.status == 200
+            res.close()
+
+            # Ensure only applies to request extension
+            with pytest.raises(SSLError):
+                validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers'))
+
+    @pytest.mark.skip_handler('CurlCFFI', 'legacy_ssl ignored by CurlCFFI')
+    def test_legacy_ssl_support(self, handler):
+        # HTTPS server with old ciphers
+        # XXX: is there a better way to test this than to create a new server?
+        https_httpd = http.server.ThreadingHTTPServer(
+            ('127.0.0.1', 0), HTTPTestRequestHandler)
+        sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        sslctx.maximum_version = ssl.TLSVersion.TLSv1_2
+        sslctx.set_ciphers('SHA1:AESCCM:aDSS:eNULL:aNULL')
+        sslctx.load_cert_chain(os.path.join(TEST_DIR, 'testcert.pem'), None)
+        https_httpd.socket = sslctx.wrap_socket(https_httpd.socket, server_side=True)
+        https_port = http_server_port(https_httpd)
+        https_server_thread = threading.Thread(target=https_httpd.serve_forever)
+        https_server_thread.daemon = True
+        https_server_thread.start()
+
+        with handler(verify=False, legacy_ssl_support=True) as rh:
+            res = validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers'))
+            assert res.status == 200
+            res.close()
 
     def test_percent_encode(self, handler):
         with handler() as rh:
@@ -490,6 +540,24 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                 rh, Request(f'http://127.0.0.1:{self.http_port}/headers', extensions={'cookiejar': cookiejar})).read()
             assert b'cookie: test=ytdlp' in data.lower()
 
+    def test_cookie_sync_only_cookiejar(self, handler):
+        # Ensure that cookies are ONLY being handled by the cookiejar
+        with handler() as rh:
+            validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/get_cookie', extensions={'cookiejar': YoutubeDLCookieJar()}))
+            data = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/headers', extensions={'cookiejar': YoutubeDLCookieJar()})).read()
+            assert b'cookie: test=ytdlp' not in data.lower()
+
+    def test_cookie_sync_delete_cookie(self, handler):
+        # Ensure that cookies are ONLY being handled by the cookiejar
+        cookiejar = YoutubeDLCookieJar()
+        with handler(cookiejar=cookiejar) as rh:
+            validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/get_cookie'))
+            data = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/headers')).read()
+            assert b'cookie: test=ytdlp' in data.lower()
+            cookiejar.clear_session_cookies()
+            data = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/headers')).read()
+            assert b'cookie: test=ytdlp' not in data.lower()
+
     def test_headers(self, handler):
 
         with handler(headers=HTTPHeaderDict({'test1': 'test', 'test2': 'test2'})) as rh:
@@ -545,12 +613,14 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                 rh, Request(f'http://127.0.0.1:{self.http_port}/source_address')).read().decode()
             assert source_address == data
 
-    # Not supported by CurlCFFI
     @pytest.mark.skip_handler('CurlCFFI', 'not supported by curl-cffi')
     def test_gzip_trailing_garbage(self, handler):
         with handler() as rh:
-            data = validate_and_send(rh, Request(f'http://localhost:{self.http_port}/trailing_garbage')).read().decode()
+            res = validate_and_send(rh, Request(f'http://localhost:{self.http_port}/trailing_garbage'))
+            data = res.read().decode()
             assert data == '<html><video src="/vid.mp4" /></html>'
+            # Should auto-close and mark the response adaptor as closed
+            assert res.closed
 
     @pytest.mark.skip_handler('CurlCFFI', 'not applicable to curl-cffi')
     @pytest.mark.skipif(not brotli, reason='brotli support is not installed')
@@ -562,6 +632,8 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                     headers={'ytdl-encoding': 'br'}))
             assert res.headers.get('Content-Encoding') == 'br'
             assert res.read() == b'<html><video src="/vid.mp4" /></html>'
+            # Should auto-close and mark the response adaptor as closed
+            assert res.closed
 
     def test_deflate(self, handler):
         with handler() as rh:
@@ -571,6 +643,8 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                     headers={'ytdl-encoding': 'deflate'}))
             assert res.headers.get('Content-Encoding') == 'deflate'
             assert res.read() == b'<html><video src="/vid.mp4" /></html>'
+            # Should auto-close and mark the response adaptor as closed
+            assert res.closed
 
     def test_gzip(self, handler):
         with handler() as rh:
@@ -580,6 +654,8 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                     headers={'ytdl-encoding': 'gzip'}))
             assert res.headers.get('Content-Encoding') == 'gzip'
             assert res.read() == b'<html><video src="/vid.mp4" /></html>'
+            # Should auto-close and mark the response adaptor as closed
+            assert res.closed
 
     def test_multiple_encodings(self, handler):
         with handler() as rh:
@@ -590,6 +666,8 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                         headers={'ytdl-encoding': pair}))
                 assert res.headers.get('Content-Encoding') == pair
                 assert res.read() == b'<html><video src="/vid.mp4" /></html>'
+                # Should auto-close and mark the response adaptor as closed
+                assert res.closed
 
     @pytest.mark.skip_handler('CurlCFFI', 'not supported by curl-cffi')
     def test_unsupported_encoding(self, handler):
@@ -600,6 +678,8 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                     headers={'ytdl-encoding': 'unsupported', 'Accept-Encoding': '*'}))
             assert res.headers.get('Content-Encoding') == 'unsupported'
             assert res.read() == b'raw'
+            # Should auto-close and mark the response adaptor as closed
+            assert res.closed
 
     def test_read(self, handler):
         with handler() as rh:
@@ -607,9 +687,13 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                 rh, Request(f'http://127.0.0.1:{self.http_port}/headers'))
             assert res.readable()
             assert res.read(1) == b'H'
+            # Ensure we don't close the adaptor yet
+            assert not res.closed
             assert res.read(3) == b'ost'
             assert res.read().decode().endswith('\n\n')
             assert res.read() == b''
+            # Should auto-close and mark the response adaptor as closed
+            assert res.closed
 
     def test_request_disable_proxy(self, handler):
         for proxy_proto in handler._SUPPORTED_PROXY_SCHEMES or ['http']:
@@ -651,8 +735,40 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                     rh, Request(
                         f'http://127.0.0.1:{self.http_port}/headers', proxies={'all': 'http://10.255.255.255'})).close()
 
+    @pytest.mark.skip_handlers_if(lambda _, handler: handler not in ['Urllib', 'CurlCFFI'], 'handler does not support keep_header_casing')
+    def test_keep_header_casing(self, handler):
+        with handler() as rh:
+            res = validate_and_send(
+                rh, Request(
+                    f'http://127.0.0.1:{self.http_port}/headers', headers={'X-test-heaDer': 'test'}, extensions={'keep_header_casing': True})).read().decode()
+
+            assert 'X-test-heaDer: test' in res
+
+    def test_partial_read_then_full_read(self, handler):
+        with handler() as rh:
+            for encoding in ('', 'gzip', 'deflate'):
+                res = validate_and_send(rh, Request(
+                    f'http://127.0.0.1:{self.http_port}/content-encoding',
+                    headers={'ytdl-encoding': encoding}))
+                assert res.headers.get('Content-Encoding') == encoding
+                assert res.read(6) == b'<html>'
+                assert res.read(0) == b''
+                assert res.read() == b'<video src="/vid.mp4" /></html>'
+
+    def test_partial_read_greater_than_response_then_full_read(self, handler):
+        with handler() as rh:
+            for encoding in ('', 'gzip', 'deflate'):
+                res = validate_and_send(rh, Request(
+                    f'http://127.0.0.1:{self.http_port}/content-encoding',
+                    headers={'ytdl-encoding': encoding}))
+                assert res.headers.get('Content-Encoding') == encoding
+                assert res.read(512) == b'<html><video src="/vid.mp4" /></html>'
+                assert res.read(0) == b''
+                assert res.read() == b''
+
 
 @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', reason='segfaults')
 class TestClientCertificate:
     @classmethod
     def setup_class(cls):
@@ -753,6 +869,24 @@ class TestRequestHandlerMisc:
         rh.close()
         assert len(logging_handlers) == before_count
 
+    def test_wrap_request_errors(self):
+        class TestRequestHandler(RequestHandler):
+            def _validate(self, request):
+                if request.headers.get('x-fail'):
+                    raise UnsupportedRequest('test error')
+
+            def _send(self, request: Request):
+                raise RequestError('test error')
+
+        with TestRequestHandler(logger=FakeLogger()) as rh:
+            with pytest.raises(UnsupportedRequest, match='test error') as exc_info:
+                rh.validate(Request('http://example.com', headers={'x-fail': '1'}))
+            assert exc_info.value.handler is rh
+
+            with pytest.raises(RequestError, match='test error') as exc_info:
+                rh.send(Request('http://example.com'))
+            assert exc_info.value.handler is rh
+
 
 @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
 class TestUrllibRequestHandler(TestRequestHandlerBase):
@@ -772,10 +906,52 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
 
         with handler(enable_file_urls=True) as rh:
             res = validate_and_send(rh, req)
-            assert res.read() == b'foobar'
-            res.close()
+            assert res.read(1) == b'f'
+            assert not res.fp.closed
+            assert res.read() == b'oobar'
+            # Should automatically close the underlying file object
+            assert res.fp.closed
 
         os.unlink(tf.name)
+
+    def test_data_uri_auto_close(self, handler):
+        with handler() as rh:
+            res = validate_and_send(rh, Request('data:text/plain,hello%20world'))
+            assert res.read() == b'hello world'
+            # Should automatically close the underlying file object
+            assert res.fp.closed
+            assert res.closed
+
+    def test_http_response_auto_close(self, handler):
+        with handler() as rh:
+            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/gen_200'))
+            assert res.read() == b'<html></html>'
+            # Should automatically close the underlying file object in the HTTP Response
+            assert isinstance(res.fp, http.client.HTTPResponse)
+            assert res.fp.fp is None
+            assert res.closed
+
+    def test_data_uri_partial_read_then_full_read(self, handler):
+        with handler() as rh:
+            res = validate_and_send(rh, Request('data:text/plain,hello%20world'))
+            assert res.read(6) == b'hello '
+            assert res.read(0) == b''
+            assert res.read() == b'world'
+            # Should automatically close the underlying file object
+            assert res.fp.closed
+            assert res.closed
+
+    def test_data_uri_partial_read_greater_than_response_then_full_read(self, handler):
+        with handler() as rh:
+            res = validate_and_send(rh, Request('data:text/plain,hello%20world'))
+            assert res.read(512) == b'hello world'
+            # Response and its underlying file object should already be closed now
+            assert res.fp.closed
+            assert res.closed
+            assert res.read(0) == b''
+            assert res.read() == b''
+            assert res.fp.closed
+            assert res.closed
 
     def test_http_error_returns_content(self, handler):
         # urllib HTTPError will try close the underlying response if reference to the HTTPError object is lost
@@ -909,12 +1085,20 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
         rh.close()
         assert called
 
+    def test_http_response_auto_close(self, handler):
+        with handler() as rh:
+            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/gen_200'))
+            assert res.read() == b'<html></html>'
+            # Should automatically close the underlying file object in the HTTP Response
+            assert res.fp.closed
+            assert res.closed
+
 
 @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', os.name == 'nt', reason='segfaults')
 class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
 
     @pytest.mark.parametrize('params,extensions', [
-        ({}, {'impersonate': ImpersonateTarget('chrome')}),
         ({'impersonate': ImpersonateTarget('chrome', '110')}, {}),
         ({'impersonate': ImpersonateTarget('chrome', '99')}, {'impersonate': ImpersonateTarget('chrome', '110')}),
     ])
@@ -1075,6 +1259,14 @@ class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
         assert res4.closed
         assert res4._buffer == b''
 
+    def test_http_response_auto_close(self, handler):
+        with handler() as rh:
+            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/gen_200'))
+            assert res.read() == b'<html></html>'
+            # Should automatically close the underlying file object in the HTTP Response
+            assert res.fp.closed
+            assert res.closed
+
 
 def run_validation(handler, error, req, **handler_kwargs):
     with handler(**handler_kwargs) as rh:
@@ -1200,6 +1392,10 @@ class TestRequestHandlerValidation:
             ({'timeout': 1}, False),
             ({'timeout': 'notatimeout'}, AssertionError),
             ({'unsupported': 'value'}, UnsupportedRequest),
+            ({'legacy_ssl': False}, False),
+            ({'legacy_ssl': True}, False),
+            ({'legacy_ssl': 'notabool'}, AssertionError),
+            ({'keep_header_casing': True}, UnsupportedRequest),
         ]),
         ('Requests', 'http', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
@@ -1207,6 +1403,12 @@ class TestRequestHandlerValidation:
             ({'timeout': 1}, False),
             ({'timeout': 'notatimeout'}, AssertionError),
             ({'unsupported': 'value'}, UnsupportedRequest),
+            ({'legacy_ssl': False}, False),
+            ({'legacy_ssl': True}, False),
+            ({'legacy_ssl': 'notabool'}, AssertionError),
+            ({'keep_header_casing': False}, False),
+            ({'keep_header_casing': True}, False),
+            ({'keep_header_casing': 'notabool'}, AssertionError),
         ]),
         ('CurlCFFI', 'http', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
@@ -1220,6 +1422,9 @@ class TestRequestHandlerValidation:
             ({'impersonate': ImpersonateTarget(None, None, None, None)}, False),
             ({'impersonate': ImpersonateTarget()}, False),
             ({'impersonate': 'chrome'}, AssertionError),
+            ({'legacy_ssl': False}, False),
+            ({'legacy_ssl': True}, False),
+            ({'legacy_ssl': 'notabool'}, AssertionError),
         ]),
         (NoCheckRH, 'http', [
             ({'cookiejar': 'notacookiejar'}, False),
@@ -1228,6 +1433,9 @@ class TestRequestHandlerValidation:
         ('Websockets', 'ws', [
             ({'cookiejar': YoutubeDLCookieJar()}, False),
             ({'timeout': 2}, False),
+            ({'legacy_ssl': False}, False),
+            ({'legacy_ssl': True}, False),
+            ({'legacy_ssl': 'notabool'}, AssertionError),
         ]),
     ]
 
@@ -1746,6 +1954,7 @@ class TestRequest:
 
     def test_request_helpers(self):
         assert HEADRequest('http://example.com').method == 'HEAD'
+        assert PATCHRequest('http://example.com').method == 'PATCH'
         assert PUTRequest('http://example.com').method == 'PUT'
 
     def test_headers(self):
@@ -1912,6 +2121,30 @@ class TestResponse:
             assert res.geturl() == res.url
             assert res.info() is res.headers
             assert res.getheader('test') == res.get_header('test')
+
+    def test_auto_close(self):
+        # Should mark the response as closed if the underlying file is closed
+        class AutoCloseBytesIO(io.BytesIO):
+            def read(self, size=-1, /):
+                data = super().read(size)
+                self.close()
+                return data
+
+        fp = AutoCloseBytesIO(b'test')
+        res = Response(fp, url='test://', headers={}, status=200)
+        assert not res.closed
+        res.read()
+        assert res.closed
+
+    def test_close(self):
+        # Should not call close() on the underlying file when already closed
+        fp = MagicMock()
+        fp.closed = False
+        res = Response(fp, url='test://', headers={}, status=200)
+        res.close()
+        fp.closed = True
+        res.close()
+        assert fp.close.call_count == 1
 
 
 class TestImpersonateTarget:
