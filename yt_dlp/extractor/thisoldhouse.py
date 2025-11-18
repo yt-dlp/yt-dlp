@@ -1,3 +1,5 @@
+import urllib.parse
+
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
 from .zype import ZypeIE
@@ -107,8 +109,10 @@ class ThisOldHouseIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
-        if 'To Unlock This content' in webpage:
+        webpage, urlh = self._download_webpage_handle(url, display_id)
+        # If login response says inactive subscription, site redirects to index for Insider content
+        redirected_to_index = urllib.parse.urlparse(urlh.url).path in ('', '/')
+        if 'To Unlock This content' in webpage or redirected_to_index:
             self.raise_login_required('This video is only available for subscribers')
 
         video_url, video_id = self._search_regex(
