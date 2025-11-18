@@ -117,7 +117,7 @@ class MedalTVIE(InfoExtractor):
                 'comment_count': ('comments', {int_or_none}),
                 'uploader': ('poster', 'displayName', {str}),
                 'uploader_id': ('poster', 'userId', {str}),
-                'uploader_url': ('poster', 'userId', {str}, {filter}, {lambda x: x and f'https://medal.tv/users/{x}'}),
+                'uploader_url': ('poster', 'userId', {str}, filter, {lambda x: x and f'https://medal.tv/users/{x}'}),
                 'tags': ('tags', ..., {str}),
                 'thumbnail': ('thumbnailUrl', {url_or_none}),
             }),
