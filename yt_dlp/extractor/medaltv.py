@@ -1,8 +1,6 @@
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
-    str_or_none,
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
@@ -27,7 +25,7 @@ class MedalTVIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'duration': 13,
-            'thumbnail': r're:https://cdn\.medal\.tv/ugcp/content-thumbnail/',
+            'thumbnail': r're:https://cdn\.medal\.tv/ugcp/content-thumbnail/.*\.jpg',
             'tags': ['headshot', 'valorant', '4k', 'clutch', 'mornu'],
         },
     }, {
@@ -42,7 +40,7 @@ class MedalTVIE(InfoExtractor):
             'timestamp': 1605580939,
             'upload_date': '20201117',
             'uploader_id': '5156321',
-            'thumbnail': r're:https://cdn\.medal\.tv/source/',
+            'thumbnail': r're:https://cdn\.medal\.tv/source/.*\.png',
             'uploader_url': 'https://medal.tv/users/5156321',
             'comment_count': int,
             'view_count': int,
@@ -65,7 +63,7 @@ class MedalTVIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'duration': 25,
-            'thumbnail': r're:https://cdn\.medal\.tv/source/',
+            'thumbnail': r're:https://cdn\.medal\.tv/source/.*\.jpg',
             'timestamp': 1612896680,
             'upload_date': '20210209',
         },
@@ -97,8 +95,8 @@ class MedalTVIE(InfoExtractor):
             # Fallback, does not require auth
             self.report_warning('Video formats are not available through API, falling back to social video URL')
             urlh = self._request_webpage(
-                f'https://medal.tv/api/content/{video_id}/socialVideoUrl', video_id, fatal=False,
-                note='Check social video URL')
+                f'https://medal.tv/api/content/{video_id}/socialVideoUrl', video_id,
+                note='Checking social video URL')
             formats.append({
                 'url': urlh.url,
                 'format_id': 'social-video',
@@ -118,8 +116,8 @@ class MedalTVIE(InfoExtractor):
                 'like_count': ('likes', {int_or_none}),
                 'comment_count': ('comments', {int_or_none}),
                 'uploader': ('poster', 'displayName', {str}),
-                'uploader_id': ('poster', 'userId', {str}, {str_or_none}),
-                'uploader_url': ('poster', 'userId', {str}, {str_or_none}, {lambda x: x and f'https://medal.tv/users/{x}'}),
+                'uploader_id': ('poster', 'userId', {str}),
+                'uploader_url': ('poster', 'userId', {str}, {filter} {lambda x: x and f'https://medal.tv/users/{x}'}),
                 'tags': ('tags', ..., {str}),
                 'thumbnail': ('thumbnailUrl', {url_or_none}),
             }),
