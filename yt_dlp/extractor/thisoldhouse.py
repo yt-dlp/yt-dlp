@@ -4,6 +4,7 @@ from .zype import ZypeIE
 from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
+    filter_dict,
     parse_qs,
     smuggle_url,
     urlencode_postdata,
@@ -76,18 +77,20 @@ class ThisOldHouseIE(InfoExtractor):
     def _perform_login(self, username, password):
         login_page = self._download_webpage(
             'https://www.thisoldhouse.com/insider-login', None, 'Downloading login page')
+        hidden_inputs = self._hidden_inputs(login_page)
         response = self._download_json(
             'https://www.thisoldhouse.com/wp-admin/admin-ajax.php', None, 'Logging in',
             headers={
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
-            }, data=urlencode_postdata({
+            }, data=urlencode_postdata(filter_dict({
                 'action': 'onebill_subscriber_login',
                 'email': username,
                 'password': password,
-                'pricingPlanTerm': 'a',
-                'nonce': self._hidden_inputs(login_page)['mdcr_onebill_login_nonce'],
-            }))
+                'pricingPlanTerm': hidden_inputs['pricing_plan_term'],
+                'utm_parameters': hidden_inputs.get('utm_parameters'),
+                'nonce': hidden_inputs['mdcr_onebill_login_nonce'],
+            })))
 
         message = traverse_obj(response, ('data', 'message', {str}))
         if not response['success']:
@@ -99,7 +102,8 @@ class ThisOldHouseIE(InfoExtractor):
                 f'{self.IE_NAME} said your subscription is not active. '
                 f'If your subscription is active, this could be caused by too many sign-ins, '
                 f'and you should instead try using {self._login_hint(method="cookies")[4:]}')
-        self.write_debug(f'{self.IE_NAME} said: {message}')
+        else:
+            self.write_debug(f'{self.IE_NAME} said: {message}')
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
