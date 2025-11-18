@@ -76,8 +76,8 @@ class ThisOldHouseIE(InfoExtractor):
         login_page = self._download_webpage(
             'https://www.thisoldhouse.com/insider-login', None, 'Downloading login page')
         response = self._download_json(
-            'https://www.thisoldhouse.com/wp-admin/admin-ajax.php', None,
-            'Submitting credentials', headers={
+            'https://www.thisoldhouse.com/wp-admin/admin-ajax.php', None, 'Logging in',
+            headers={
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
             }, data=urlencode_postdata({
