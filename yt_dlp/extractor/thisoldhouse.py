@@ -1,16 +1,11 @@
-import json
-
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
 from .zype import ZypeIE
 from ..networking import HEADRequest
-from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
-    filter_dict,
     parse_qs,
     smuggle_url,
-    try_call,
     urlencode_postdata,
 )
 
@@ -77,38 +72,23 @@ class ThisOldHouseIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    _LOGIN_URL = 'https://login.thisoldhouse.com/usernamepassword/login'
-
     def _perform_login(self, username, password):
-        self._request_webpage(
-            HEADRequest('https://www.thisoldhouse.com/insider'), None, 'Requesting session cookies')
-        urlh = self._request_webpage(
-            'https://www.thisoldhouse.com/wp-login.php', None, 'Requesting login info',
-            errnote='Unable to login', query={'redirect_to': 'https://www.thisoldhouse.com/insider'})
-
-        try:
-            auth_form = self._download_webpage(
-                self._LOGIN_URL, None, 'Submitting credentials', headers={
-                    'Content-Type': 'application/json',
-                    'Referer': urlh.url,
-                }, data=json.dumps(filter_dict({
-                    **{('client_id' if k == 'client' else k): v[0] for k, v in parse_qs(urlh.url).items()},
-                    'tenant': 'thisoldhouse',
-                    'username': username,
-                    'password': password,
-                    'popup_options': {},
-                    'sso': True,
-                    '_csrf': try_call(lambda: self._get_cookies(self._LOGIN_URL)['_csrf'].value),
-                    '_intstate': 'deprecated',
-                }), separators=(',', ':')).encode())
-        except ExtractorError as e:
-            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
-                raise ExtractorError('Invalid username or password', expected=True)
-            raise
-
-        self._request_webpage(
-            'https://login.thisoldhouse.com/login/callback', None, 'Completing login',
-            data=urlencode_postdata(self._hidden_inputs(auth_form)))
+        login_page = self._download_webpage(
+            'https://www.thisoldhouse.com/insider-login', None, 'Downloading login page')
+        response = self._download_json(
+            'https://www.thisoldhouse.com/wp-admin/admin-ajax.php', None,
+            'Submitting credentials', headers={
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            }, data=urlencode_postdata({
+                'action': 'onebill_subscriber_login',
+                'email': username,
+                'password': password,
+                'pricingPlanTerm': 'a',
+                'nonce': self._hidden_inputs(login_page)['mdcr_onebill_login_nonce'],
+            }))
+        if not response['success']:
+            raise ExtractorError('Invalid username or password', expected=True)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
