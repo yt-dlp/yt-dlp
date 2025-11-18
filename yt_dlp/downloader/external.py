@@ -560,6 +560,13 @@ class FFmpegFD(ExternalFD):
                 elif isinstance(conn, str):
                     args += ['-rtmp_conn', conn]
 
+            elif protocol == 'http_dash_segments' and info_dict.get('is_live'):
+                # ffmpeg may try to read past the latest available segments for
+                # live DASH streams unless we pass `-re`. In modern ffmpeg, this
+                # is an alias of `-readrate 1`, but `-readrate` was not added
+                # until ffmpeg 5.0, so we must stick to using `-re`
+                args += ['-re']
+
             url = fmt['url']
             if self.params.get('enable_file_urls') and url.startswith('file:'):
                 # The default protocol_whitelist is 'file,crypto,data' when reading local m3u8 URLs,
