@@ -111,8 +111,7 @@ class ThisOldHouseIE(InfoExtractor):
         display_id = self._match_id(url)
         webpage, urlh = self._download_webpage_handle(url, display_id)
         # If login response says inactive subscription, site redirects to frontpage for Insider content
-        redirected_to_frontpage = urllib.parse.urlparse(urlh.url).path in ('', '/')
-        if 'To Unlock This content' in webpage or redirected_to_frontpage:
+        if 'To Unlock This content' in webpage or urllib.parse.urlparse(urlh.url).path in ('', '/'):
             self.raise_login_required('This video is only available for subscribers')
 
         video_url, video_id = self._search_regex(
