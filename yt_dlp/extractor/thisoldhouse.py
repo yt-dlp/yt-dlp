@@ -99,14 +99,13 @@ class ThisOldHouseIE(InfoExtractor):
                 f'{self.IE_NAME} said your subscription is not active. '
                 f'If your subscription is active, this could be caused by too many sign-ins, '
                 f'and you should instead try using {self._login_hint(method="cookies")[4:]}')
-        elif message != 'Login successful!':
-            self.write_debug(f'{self.IE_NAME} said: {message}')
+        self.write_debug(f'{self.IE_NAME} said: {message}')
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         if 'To Unlock This content' in webpage:
-            self.raise_login_required()
+            self.raise_login_required('This video is only available for subscribers')
 
         video_url, video_id = self._search_regex(
             r'<iframe[^>]+src=[\'"]((?:https?:)?//(?:www\.)?thisoldhouse\.(?:chorus\.build|com)/videos/zype/([0-9a-f]{24})[^\'"]*)[\'"]',
