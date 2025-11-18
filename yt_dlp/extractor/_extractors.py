@@ -1832,7 +1832,7 @@ from .scte import (
     SCTEIE,
     SCTECourseIE,
 )
-from .sejmpl import SejmIE
+from .sejmpl import SejmBlueonlineIE, SejmIE
 from .sen import SenIE
 from .senalcolombia import SenalColombiaLiveIE
 from .senategov import (
