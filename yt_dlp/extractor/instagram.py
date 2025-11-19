@@ -62,36 +62,33 @@ class InstagramBaseIE(InfoExtractor):
             or int_or_none(self._html_search_meta(
                 (f'og:video:{name}', f'video:{name}'), webpage or '', default=None)))
 
-    def _extract_nodes(self, nodes, is_direct=False):
+    def _extract_nodes(self, nodes):
         for idx, node in enumerate(nodes, start=1):
-            if not node.get('video_dash_manifest') or node.get('__typename') == ('XDTGraphVideo'):
+            typename = node.get('__typename')
+            if typename not in ('XDTMediaDict', 'XDTGraphVideo'):
                 continue
 
-            video_id = node.get('code')
+            formats = []
 
-            if is_direct:
-                info = {
-                    'id': video_id or node['id'],
-                    'url': node.get('video_url'),
-                    'width': self._get_dimension('width', node),
-                    'height': self._get_dimension('height', node),
-                    'http_headers': {
-                        'Referer': 'https://www.instagram.com/',
-                    },
-                }
-            elif not video_id:
+            video_url = node.get('video_url')
+            if video_url:
+                formats.append({'url': video_url})
+            if node.get('video_versions'):
+                media = self._extract_product_media(node)
+                formats = (media or {}).get('formats', [])
+            elif not formats:
+                self.raise_no_formats()
                 continue
             else:
-                info = {
-                    '_type': 'url',
-                    'ie_key': 'Instagram',
-                    'id': video_id,
-                    'url': f'https://instagram.com/p/{video_id}',
-                }
+                dash = traverse_obj(node, ('dash_info', 'video_dash_manifest'))
+                if dash:
+                    mpd = self._parse_mpd_formats(self._parse_xml(dash, node.get('code')), mpd_id='dash')
+                    formats.extend(mpd)
 
             yield {
-                **info,
-                'title': node.get('title') or (f'Video {idx}' if is_direct else None),
+                'id': node.get('code') or node.get('shortcode'),
+                'formats': formats,
+                'title': node.get('title') or f'Video {idx}',
                 'description': traverse_obj(
                     node, ('edge_media_to_caption', 'edges', 0, 'node', 'text'), expected_type=str),
                 'thumbnail': traverse_obj(
@@ -467,7 +464,7 @@ class InstagramIE(InstagramBaseIE):
             nodes = traverse_obj(media, ('edge_sidecar_to_children', 'edges', ..., 'node'), expected_type=dict) or []
             if nodes:
                 return self.playlist_result(
-                    self._extract_nodes(nodes, True), video_id,
+                    self._extract_nodes(nodes), video_id,
                     format_field(username, None, 'Post by %s'), description)
             raise ExtractorError('There is no video in this post', expected=True)
 
