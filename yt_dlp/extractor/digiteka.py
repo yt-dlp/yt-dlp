@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError
+from ..utils import traverse_obj, int_or_none, url_or_none
 
 
 class DigitekaIE(InfoExtractor):
@@ -38,70 +38,43 @@ class DigitekaIE(InfoExtractor):
         },
         'params': {'skip_download': True},
     }]
+    IFRAME_MD_ID = '01836272'   # One static ID working for Ultimedia iframes
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        video_id = mobj.group('id')
+        video_id = self._match_id(url)
 
-        IFRAME_MD_ID = '01836272'   # One static ID working for Ultimedia iframes
+        video_info = self._download_json(
+            f'https://www.ultimedia.com/player/getConf/{self.IFRAME_MD_ID}/1/{video_id}', video_id,
+            note='Downloading player configuration')['video']
 
-        api_url = f'https://www.ultimedia.com/player/getConf/{IFRAME_MD_ID}/1/{video_id}'
-
-        conf_data = self._download_json(
-            api_url, video_id, note='Downloading player configuration')
-
-        video_info = conf_data.get('video')
-        if not video_info:
-            raise ExtractorError('Failed to retrieve video information from API.', expected=True)
-
-        title = video_info['title']
         formats = []
-        media_sources = video_info.get('media_sources', {})
+        subtitles = {}
 
-        hls_sources = media_sources.get('hls', {})
-        for format_id, hls_url in hls_sources.items():
-            if not hls_url:
-                continue
+        if hls_url := traverse_obj(video_info, ('media_sources', 'hls', 'hls_auto', {url_or_none})):
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                hls_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
 
-            height_str = format_id.split('_')[-1]
-            height = int(height_str) if height_str.isdigit() else None
-
-            formats.append({
-                'url': hls_url,
-                'format_id': f'hls-{height_str}',
-                'height': height,
-                'protocol': 'm3u8_native',
-                'ext': 'mp4',
-            })
-
-        mp4_sources = media_sources.get('mp4', {})
-        for format_id, mp4_url in mp4_sources.items():
+        for format_id, mp4_url in traverse_obj(video_info, ('media_sources', 'mp4', {dict.items})):
             if not mp4_url:
                 continue
-
-            height_str = format_id.split('_')[-1]
-            height = int(height_str) if height_str.isdigit() else None
-
             formats.append({
                 'url': mp4_url,
-                'format_id': f'mp4-{height_str}',
-                'height': height,
+                'format_id': format_id,
+                'height': int_or_none(format_id.partition('_')[2]),
                 'ext': 'mp4',
             })
-
-        yt_id = video_info.get('yt_id')
-        if yt_id:
-            return self.url_result(yt_id, 'Youtube')
-
-        if not formats:
-            raise ExtractorError('No video formats found.', expected=True)
 
         return {
             'id': video_id,
-            'title': title,
-            'thumbnail': video_info.get('image'),
-            'duration': video_info.get('duration'),
-            'timestamp': video_info.get('creationDate'),
-            'uploader_id': video_info.get('ownerId'),
             'formats': formats,
+            'subtitles': subtitles,
+            **traverse_obj(video_info, {
+                'title': ('title', {str}),
+                'thumbnail': ('image', {url_or_none}),
+                'duration': ('duration', {int_or_none}),
+                'timestamp': ('creationDate', {int_or_none}),
+                'uploader_id': ('ownerId', {str}),
+            }),
         }
