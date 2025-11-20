@@ -65,11 +65,7 @@ class IzRuIE(InfoExtractor):
 
         iframe_webpage = self._download_webpage(urljoin(self._BASE_URL, iframe_url), video_id, 'Download player iframe')
         info_json = self._extract_script_data(iframe_webpage, r'window\.config\s*=\s*({.*?});')
-        json_ld = self._parse_json(
-            self._search_regex(
-                JSON_LD_RE, iframe_webpage, 'JSON-LD', '{}', group='json_ld'),
-            video_id, fatal=False)
-        json_ld_info = self._json_ld(json_ld, video_id, fatal=False) or {}
+        json_ld_info = self._search_json_ld(iframe_webpage, video_id)
         if not info_json or not json_ld_info:
             raise ExtractorError('Can\'t get info_json or json_ld_info from player\'s iframe')
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
