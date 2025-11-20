@@ -20,6 +20,7 @@ class NetAppVideoIE(NetAppBaseIE):
             'description': 'md5:1ee39e315243fe71fb90af2796037248',
             'uploader_id': '6255154784001',
             'duration': 2159.41,
+            'thumbnail': r're:https://house-fastly-signed-us-east-1-prod\.brightcovecdn\.com/image/.*\.jpg',
             'tags': 'count:15',
             'timestamp': 1758213949,
             'upload_date': '20250918',
