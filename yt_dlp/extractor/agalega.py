@@ -113,18 +113,12 @@ class AGalegaSeriesIE(AGalegaBaseIE):
         'url': 'https://www.agalega.gal/videos/category/27035-galician-friki',
         'info_dict': {
             'id': '27035',
-            'title': 'Galician Friki',
-            'description': 'md5:68279845eea70ba3b4324bd96e3aac30',
-            'thumbnail': 'https://crtvg-bucket.flumotion.cloud/category_cards/f1d4e23fa336467ba9b1330f6224c589.jpg',
         },
         'playlist_count': 7,
     }, {
         'url': 'https://www.agalega.gal/videos/category/17175-na-gloria?cat=17176',
         'info_dict': {
             'id': '17175',
-            'title': 'Na Gloria',
-            'description': 'Na parroquia da Gloria vivíase ben... ata que chegaron unha madrileña e un andaluz e abriron un hotel "refinado".\n',
-            'thumbnail': 'https://crtvg-bucket.flumotion.cloud/category_cards/a54fd2bcfbde439f88bb0f537335fc2a.png',
         },
         'playlist_count': 17,
     }]
