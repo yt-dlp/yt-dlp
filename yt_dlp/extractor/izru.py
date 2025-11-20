@@ -2,7 +2,7 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..utils import JSON_LD_RE, ExtractorError, url_or_none, urljoin
+from ..utils import ExtractorError, url_or_none, urljoin
 from ..utils.traversal import traverse_obj
 
 
