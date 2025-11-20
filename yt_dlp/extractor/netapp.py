@@ -7,6 +7,14 @@ from ..utils.traversal import require, traverse_obj
 class NetAppBaseIE(InfoExtractor):
     _BC_URL = 'https://players.brightcove.net/6255154784001/default_default/index.html?videoId={}'
 
+    @staticmethod
+    def _parse_metadata(item):
+        return traverse_obj(item, {
+            'title': ('name', {str}),
+            'description': ('description', {str}),
+            'timestamp': ('createdAt', {parse_iso8601}),
+        })
+
 
 class NetAppVideoIE(NetAppBaseIE):
     _VALID_URL = r'https?://media\.netapp\.com/video-detail/(?P<id>[0-9a-f-]+)'
@@ -38,14 +46,11 @@ class NetAppVideoIE(NetAppBaseIE):
         brightcove_video_id = traverse_obj(metadata, (
             'sections', lambda _, v: v['type'] == 'Player', 'video', {str}, any, {require('brightcove video id')}))
 
+        video_item = traverse_obj(metadata, ('sections', lambda _, v: v['type'] == 'VideoDetail', any))
+
         return self.url_result(
             self._BC_URL.format(brightcove_video_id), BrightcoveNewIE, brightcove_video_id,
-            url_transparent=True,
-            **traverse_obj(metadata, ('sections', lambda _, v: v['type'] == 'VideoDetail', any, {
-                'title': ('name', {str}),
-                'description': ('description', {str}),
-                'timestamp': ('createdAt', {parse_iso8601}),
-            })))
+            url_transparent=True, **self._parse_metadata(video_item))
 
 
 class NetAppCollectionIE(NetAppBaseIE):
@@ -64,11 +69,7 @@ class NetAppCollectionIE(NetAppBaseIE):
             brightcove_video_id = item['brightcoveVideoId']
             yield self.url_result(
                 self._BC_URL.format(brightcove_video_id), BrightcoveNewIE, brightcove_video_id,
-                url_transparent=True, **traverse_obj(item, {
-                    'title': ('name', {str}),
-                    'description': ('description', {str}),
-                    'timestamp': ('createdAt', {parse_iso8601}),
-                }))
+                url_transparent=True, **self._parse_metadata(item))
 
     def _real_extract(self, url):
         collection_uuid = self._match_id(url)
