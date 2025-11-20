@@ -57,7 +57,7 @@ class DigitekaIE(InfoExtractor):
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
-        for format_id, mp4_url in traverse_obj(video_info, ('media_sources', 'mp4', {dict.items})):
+        for format_id, mp4_url in traverse_obj(video_info, ('media_sources', 'mp4', {dict.items}, ...)):
             if not mp4_url:
                 continue
             formats.append({
