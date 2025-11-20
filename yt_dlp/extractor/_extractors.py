@@ -76,9 +76,9 @@ from .afreecatv import (
     AfreecaTVUserIE,
 )
 from .agalega import (
+    AGalegaSeriesIE,
     AGalegaVideoIE,
     AGalegaVideosIE,
-    AGalegaSeriesIE,
 )
 from .agora import (
     TokFMAuditionIE,
