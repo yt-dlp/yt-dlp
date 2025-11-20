@@ -1284,6 +1284,10 @@ from .nest import (
     NestClipIE,
     NestIE,
 )
+from .netapp import (
+    NetAppCollectionIE,
+    NetAppVideoIE,
+)
 from .neteasemusic import (
     NetEaseMusicAlbumIE,
     NetEaseMusicDjRadioIE,
