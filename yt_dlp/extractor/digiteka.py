@@ -39,13 +39,13 @@ class DigitekaIE(InfoExtractor):
         },
         'params': {'skip_download': True},
     }]
-    IFRAME_MD_ID = '01836272'   # One static ID working for Ultimedia iframes
+    _IFRAME_MD_ID = '01836272'   # One static ID working for Ultimedia iframes
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         video_info = self._download_json(
-            f'https://www.ultimedia.com/player/getConf/{self.IFRAME_MD_ID}/1/{video_id}', video_id,
+            f'https://www.ultimedia.com/player/getConf/{self._IFRAME_MD_ID}/1/{video_id}', video_id,
             note='Downloading player configuration')['video']
 
         formats = []
