@@ -75,4 +75,4 @@ class NetAppCollectionIE(NetAppBaseIE):
         metadata = self._download_json(
             f'https://api.media.netapp.com/client/collection/{collection_uuid}', collection_uuid)
 
-        return self.playlist_result(self._entries(metadata), playlist_id=metadata.get('id'), playlist_title=metadata.get('name'))
+        return self.playlist_result(self._entries(metadata), collection_uuid, playlist_title=metadata.get('name'))
