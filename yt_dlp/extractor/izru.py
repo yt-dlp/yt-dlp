@@ -63,7 +63,7 @@ class IzRuIE(InfoExtractor):
         iframe_url = self._search_regex(
             r'<iframe\b[^>]+\bsrc=["\'](/video/embed/[^"\']+)', webpage, 'iframe URL')
 
-        iframe_webpage = self._download_webpage(urljoin(self._BASE_URL, iframe_url), video_id, 'Download player iframe')
+        iframe_webpage = self._download_webpage(urljoin(self._BASE_URL, iframe_url), video_id, 'Download player iframe', headers={'Referer': url})
         info_json = self._extract_script_data(iframe_webpage, r'window\.config\s*=\s*({.*?});')
         json_ld_info = self._search_json_ld(iframe_webpage, video_id)
         if not info_json or not json_ld_info:
