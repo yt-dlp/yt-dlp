@@ -62,7 +62,7 @@ class InstagramBaseIE(InfoExtractor):
             or int_or_none(self._html_search_meta(
                 (f'og:video:{name}', f'video:{name}'), webpage or '', default=None)))
 
-    def _extract_nodes(self, nodes):
+    def _extract_nodes(self, nodes, **other):
         for idx, node in enumerate(nodes, start=1):
             typename = node.get('__typename')
             if typename not in ('XDTMediaDict', 'XDTGraphVideo'):
@@ -98,6 +98,7 @@ class InstagramBaseIE(InfoExtractor):
                 'view_count': int_or_none(node.get('video_view_count')),
                 'comment_count': self._get_count(node, 'comments', 'preview_comment', 'to_comment', 'to_parent_comment'),
                 'like_count': self._get_count(node, 'likes', 'preview_like'),
+                'user': other['other'] or None,
             }
 
     def _extract_product_media(self, product_media):
@@ -519,12 +520,40 @@ class InstagramIE(InstagramBaseIE):
 
 class InstagramPlaylistBaseIE(InstagramBaseIE):
 
-    def _get_csrf_token(self, webpage):
-        return self._search_regex(
-            r'"csrf_token"\s*:\s*"([^"]+)"', webpage, 'csrf token',
+    def _get_user_data(self, webpage):
+        user_id = self._search_regex(
+            r'"user_id"\s*:\s*"([^"]+)"', webpage, 'user id',
         )
+        variables = {
+            'enable_integrity_filters': True,
+            'id': user_id,
+            'render_surface': 'PROFILE',
+            '__relay_internal__pv__PolarisProjectCannesEnabledrelayprovider': True,
+            '__relay_internal__pv__PolarisProjectCannesLoggedInEnabledrelayprovider': True,
+            '__relay_internal__pv__PolarisCannesGuardianExperienceEnabledrelayprovider': True,
+            '__relay_internal__pv__PolarisCASB976ProfileEnabledrelayprovider': False,
+            '__relay_internal__pv__PolarisRepostsConsumptionEnabledrelayprovider': False,
+        }
+        data = self._download_json(f'https://www.instagram.com/graphql/query/?doc_id=25585291164389315&variables={json.dumps(variables)}', user_id, 'Download User data')
+        user_data = data['data']['user']
+        if not data:
+            return None
+        return {
+            'user_id': user_data['pk'],
+            'is_private': user_data['is_private'],
+            'bio_links': user_data['bio_links'],
+            'username': user_data['username'],
+            'profile_pic_url': user_data['profile_pic_url'],
+            'hd_profile_pic_url': user_data['hd_profile_pic_url_info']['url'],
+            'biography': user_data['biography'],
+            'full_name': user_data['full_name'],
+            'is_verified': user_data['is_verified'],
+            'follower_count': user_data['follower_count'],
+            'following_count': user_data['following_count'],
+            'media_count': user_data['media_count'],
+        }
 
-    def _extract_graphql(self, csrftoken, url):
+    def _extract_graphql(self, url, **data):
         # Parses GraphQL queries containing videos and generates a playlist.
         uploader_id = self._match_id(url)
 
@@ -539,7 +568,6 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                     f'Downloading JSON page {page_num}', headers={
                         **self._api_headers,
                         'X-Requested-With': 'XMLHttpRequest',
-                        'x-csrftoken': csrftoken,
                         'Accept': 'application/json',
                         'Referer': 'https://www.instagram.com/',
                         'Origin': 'https://www.instagram.com',
@@ -557,7 +585,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
             nodes = traverse_obj(media, ('edges', ..., 'node'), expected_type=dict) or []
             if not nodes:
                 break
-            yield from self._extract_nodes(nodes)
+            yield from self._extract_nodes(nodes, other=data['data'])
 
             has_next_page = traverse_obj(media, ('page_info', 'has_next_page'))
             cursor = traverse_obj(media, ('page_info', 'end_cursor'), expected_type=str)
@@ -569,7 +597,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
         webpage = self._download_webpage(url, user_or_tag)
         self._set_cookie('instagram.com', 'ig_pr', '1')
         return self.playlist_result(
-            self._extract_graphql(self._parse_graphql(webpage), url),
+            self._extract_graphql(url, data=self._get_user_data(webpage)),
             playlist_id=user_or_tag,
             title=user_or_tag,
         )
