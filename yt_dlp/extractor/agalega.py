@@ -5,7 +5,7 @@ from ..utils import require, str_or_none, traverse_obj, url_or_none
 
 
 class AGalegaBaseIE(InfoExtractor):
-    def _get_access_token(self, video_id):
+    def _call_api(self, video_id):
         access_token = self._download_json(
             'https://www.agalega.gal/api/fetch-api/jwt/token', video_id,
             note='Downloading access token',
@@ -46,7 +46,7 @@ class AGalegaVideosIE(AGalegaBaseIE):
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        auth_headers = self._get_access_token(playlist_id)
+        auth_headers = self._call_api(playlist_id)
         content_data = self._download_json(
             f'https://api-agalega.interactvty.com/api/2.0/contents/content/{playlist_id}/', playlist_id,
             note='Downloading content data', fatal=False, headers=auth_headers,
