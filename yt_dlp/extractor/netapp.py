@@ -61,9 +61,9 @@ class NetAppCollectionIE(NetAppBaseIE):
 
     def _entries(self, metadata):
         for item in traverse_obj(metadata, ('items', lambda _, v: v['brightcoveVideoId'])):
-            birghtcove_video_id = item['brightcoveVideoId']
+            brightcove_video_id = item['brightcoveVideoId']
             yield self.url_result(
-                self._BC_URL.format(birghtcove_video_id), BrightcoveNewIE, birghtcove_video_id,
+                self._BC_URL.format(brightcove_video_id), BrightcoveNewIE, brightcove_video_id,
                 url_transparent=True, **traverse_obj(item, {
                     'title': ('name', {str}),
                     'description': ('description', {str}),
