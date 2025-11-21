@@ -2,7 +2,7 @@ import json
 import time
 
 from .common import InfoExtractor
-from ..utils import jwt_decode_hs256, str_or_none, url_or_none
+from ..utils import jwt_decode_hs256, url_or_none
 from ..utils.traversal import traverse_obj
 
 
