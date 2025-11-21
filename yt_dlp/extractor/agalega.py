@@ -81,6 +81,7 @@ class AGalegaIE(AGalegaBaseIE):
         return {
             'id': video_id,
             'formats': formats,
+            'subtitles': subtitles,
             **traverse_obj(content_data, {
                 'title': ('name', {str_or_none}),
                 'description': (('description', 'short_description'), {str_or_none}, any),
