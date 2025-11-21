@@ -10,6 +10,8 @@ Core Maintainers are responsible for reviewing and merging contributions, publis
 
 **You can contact the core maintainers via `maintainers@yt-dlp.org`.**
 
+This is **NOT** a support channel. [Open an issue](https://github.com/yt-dlp/yt-dlp/issues/new/choose) if you need help or want to report a bug.
+
 ### [coletdjnz](https://github.com/coletdjnz)
 
 [![gh-sponsor](https://img.shields.io/badge/_-Github-white.svg?logo=github&labelColor=555555&style=for-the-badge)](https://github.com/sponsors/coletdjnz)

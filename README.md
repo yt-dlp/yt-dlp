@@ -189,7 +189,7 @@ Example usage:
 yt-dlp --update-to nightly
 
 # To install nightly with pip:
-python3 -m pip install -U --pre "yt-dlp[default]"
+python -m pip install -U --pre "yt-dlp[default]"
 ```
 
 When running a yt-dlp version that is older than 90 days, you will see a warning message suggesting to update to the latest version.
@@ -265,12 +265,12 @@ To build the standalone executable, you must have Python and `pyinstaller` (plus
 You can run the following commands:
 
 ```
-python3 devscripts/install_deps.py --include pyinstaller
-python3 devscripts/make_lazy_extractors.py
-python3 -m bundle.pyinstaller
+python devscripts/install_deps.py --include-group pyinstaller
+python devscripts/make_lazy_extractors.py
+python -m bundle.pyinstaller
 ```
 
-On some systems, you may need to use `py` or `python` instead of `python3`.
+On some systems, you may need to use `py` or `python3` instead of `python`.
 
 `python -m bundle.pyinstaller` accepts any arguments that can be passed to `pyinstaller`, such as `--onefile/-F` or `--onedir/-D`, which is further [documented here](https://pyinstaller.org/en/stable/usage.html#what-to-generate).
 
@@ -360,7 +360,7 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     containing directory ("-" for stdin). Can be
                                     used multiple times and inside other
                                     configuration files
-    --plugin-dirs PATH              Path to an additional directory to search
+    --plugin-dirs DIR               Path to an additional directory to search
                                     for plugins. This option can be used
                                     multiple times to add multiple directories.
                                     Use "default" to search the default plugin
@@ -369,22 +369,33 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     including defaults and those provided by
                                     previous --plugin-dirs
     --js-runtimes RUNTIME[:PATH]    Additional JavaScript runtime to enable,
-                                    with an optional path to the runtime
-                                    location. This option can be used multiple
-                                    times to enable multiple runtimes. Supported
-                                    runtimes: deno, node, bun, quickjs. By
-                                    default, only "deno" runtime is enabled.
+                                    with an optional location for the runtime
+                                    (either the path to the binary or its
+                                    containing directory). This option can be
+                                    used multiple times to enable multiple
+                                    runtimes. Supported runtimes are (in order
+                                    of priority, from highest to lowest): deno,
+                                    node, quickjs, bun. Only "deno" is enabled
+                                    by default. The highest priority runtime
+                                    that is both enabled and available will be
+                                    used. In order to use a lower priority
+                                    runtime when "deno" is available, --no-js-
+                                    runtimes needs to be passed before enabling
+                                    other runtimes
     --no-js-runtimes                Clear JavaScript runtimes to enable,
                                     including defaults and those provided by
                                     previous --js-runtimes
     --remote-components COMPONENT   Remote components to allow yt-dlp to fetch
-                                    when required. You can use this option
-                                    multiple times to allow multiple components.
-                                    Supported values: ejs:npm (external
-                                    JavaScript components from npm), ejs:github
-                                    (external JavaScript components from yt-dlp-
-                                    ejs GitHub). By default, no remote
-                                    components are allowed.
+                                    when required. This option is currently not
+                                    needed if you are using an official
+                                    executable or have the requisite version of
+                                    the yt-dlp-ejs package installed. You can
+                                    use this option multiple times to allow
+                                    multiple components. Supported values:
+                                    ejs:npm (external JavaScript components from
+                                    npm), ejs:github (external JavaScript
+                                    components from yt-dlp-ejs GitHub). By
+                                    default, no remote components are allowed
     --no-remote-components          Disallow fetching of all remote components,
                                     including any previously allowed by
                                     --remote-components or defaults.
@@ -1105,11 +1116,12 @@ Make chapter entries for, or remove various segments (sponsor,
                                     for, separated by commas. Available
                                     categories are sponsor, intro, outro,
                                     selfpromo, preview, filler, interaction,
-                                    music_offtopic, poi_highlight, chapter, all
-                                    and default (=all). You can prefix the
-                                    category with a "-" to exclude it. See [1]
-                                    for descriptions of the categories. E.g.
-                                    --sponsorblock-mark all,-preview
+                                    music_offtopic, hook, poi_highlight,
+                                    chapter, all and default (=all). You can
+                                    prefix the category with a "-" to exclude
+                                    it. See [1] for descriptions of the
+                                    categories. E.g. --sponsorblock-mark
+                                    all,-preview
                                     [1] https://wiki.sponsor.ajay.app/w/Segment_Categories
     --sponsorblock-remove CATS      SponsorBlock categories to be removed from
                                     the video file, separated by commas. If a
@@ -1174,7 +1186,7 @@ Predefined aliases for convenience and ease of use. Note that future
 You can configure yt-dlp by placing any supported command line option in a configuration file. The configuration is loaded from the following locations:
 
 1. **Main Configuration**:
-    * The file given to `--config-location`
+    * The file given to `--config-locations`
 1. **Portable Configuration**: (Recommended for portable installations)
     * If using a binary, `yt-dlp.conf` in the same directory as the binary
     * If running from source-code, `yt-dlp.conf` in the parent directory of `yt_dlp`
@@ -1256,7 +1268,7 @@ yt-dlp --netrc-cmd 'gpg --decrypt ~/.authinfo.gpg' 'https://www.youtube.com/watc
 
 ### Notes about environment variables
 * Environment variables are normally specified as `${VARIABLE}`/`$VARIABLE` on UNIX and `%VARIABLE%` on Windows; but is always shown as `${VARIABLE}` in this documentation
-* yt-dlp also allows using UNIX-style variables on Windows for path-like options; e.g. `--output`, `--config-location`
+* yt-dlp also allows using UNIX-style variables on Windows for path-like options; e.g. `--output`, `--config-locations`
 * If unset, `${XDG_CONFIG_HOME}` defaults to `~/.config` and `${XDG_CACHE_HOME}` to `~/.cache`
 * On Windows, `~` points to `${HOME}` if present; or, `${USERPROFILE}` or `${HOMEDRIVE}${HOMEPATH}` otherwise
 * On Windows, `${USERPROFILE}` generally points to `C:\Users\<user name>` and `${APPDATA}` to `${USERPROFILE}\AppData\Roaming`
@@ -1840,7 +1852,7 @@ The following extractors use this feature:
 #### youtube
 * `lang`: Prefer translated metadata (`title`, `description` etc) of this language code (case-sensitive). By default, the video primary language metadata is preferred, with a fallback to `en` translated. See [youtube/_base.py](https://github.com/yt-dlp/yt-dlp/blob/415b4c9f955b1a0391204bd24a7132590e7b3bdb/yt_dlp/extractor/youtube/_base.py#L402-L409) for the list of supported content language codes
 * `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and [auto-translated subtitles](https://github.com/yt-dlp/yt-dlp/issues/4090#issuecomment-1158102032) respectively
-* `player_client`: Clients to extract video data from. The currently available clients are `web`, `web_safari`, `web_embedded`, `web_music`, `web_creator`, `mweb`, `ios`, `android`, `android_sdkless`, `android_vr`, `tv`, `tv_simply` and `tv_embedded`. By default, `tv,android_sdkless,web` is used. If no JavaScript runtime is available, then `android_sdkless,web_safari,web` is used. If logged-in cookies are passed to yt-dlp, then `tv,web_safari,web` is used for free accounts and `tv,web_creator,web` is used for premium accounts. The `web_music` client is added for `music.youtube.com` URLs when logged-in cookies are used. The `web_embedded` client is added for age-restricted videos but only works if the video is embeddable. The `tv_embedded` and `web_creator` clients are added for age-restricted videos if account age-verification is required. Some clients, such as `web` and `web_music`, require a `po_token` for their formats to be downloadable. Some clients, such as `web_creator`, will only work with authentication. Not all clients support authentication via cookies. You can use `default` for the default clients, or you can use `all` for all clients (not recommended). You can prefix a client with `-` to exclude it, e.g. `youtube:player_client=default,-ios`
+* `player_client`: Clients to extract video data from. The currently available clients are `web`, `web_safari`, `web_embedded`, `web_music`, `web_creator`, `mweb`, `ios`, `android`, `android_sdkless`, `android_vr`, `tv`, `tv_simply`, `tv_downgraded`, and `tv_embedded`. By default, `tv,android_sdkless,web` is used. If no JavaScript runtime is available, then `android_sdkless,web_safari,web` is used. If logged-in cookies are passed to yt-dlp, then `tv_downgraded,web_safari,web` is used for free accounts and `tv_downgraded,web_creator,web` is used for premium accounts. The `web_music` client is added for `music.youtube.com` URLs when logged-in cookies are used. The `web_embedded` client is added for age-restricted videos but only works if the video is embeddable. The `tv_embedded` and `web_creator` clients are added for age-restricted videos if account age-verification is required. Some clients, such as `web` and `web_music`, require a `po_token` for their formats to be downloadable. Some clients, such as `web_creator`, will only work with authentication. Not all clients support authentication via cookies. You can use `default` for the default clients, or you can use `all` for all clients (not recommended). You can prefix a client with `-` to exclude it, e.g. `youtube:player_client=default,-ios`
 * `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player), `initial_data` (skip initial data/next ep request). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause issues such as missing formats or metadata.  See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) and [#12826](https://github.com/yt-dlp/yt-dlp/issues/12826) for more details
 * `webpage_skip`: Skip extraction of embedded webpage data. One or both of `player_response`, `initial_data`. These options are for testing purposes and don't skip any network requests
 * `player_params`: YouTube player parameters to use for player requests. Will overwrite any default ones set by yt-dlp.
