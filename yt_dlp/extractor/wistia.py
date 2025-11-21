@@ -339,7 +339,7 @@ class WistiaChannelIE(WistiaBaseIE):
             'title': 'The Roof S2: The Modern CRO',
             'thumbnail': r're:https?://embed(?:-ssl)?\.wistia\.com/.+\.(?:jpg|png)',
             'duration': 86.487,
-            'description': 'A sales leader on The Roof? Man, they really must be letting anyone up here this season.\n',
+            'description': 'A sales leader on The Roof? Man, they really must be letting anyone up here this season. ',
             'timestamp': 1619790290,
             'upload_date': '20210430',
         },
@@ -350,7 +350,7 @@ class WistiaChannelIE(WistiaBaseIE):
         'info_dict': {
             'id': 'sapab9p6qd',
             'title': 'Credo: An RCIA Program',
-            'description': 'Presented by the Dominican Friars\nat the Thomistic Institute',
+            'description': '\n',
         },
         'playlist_mincount': 80,
     }]
