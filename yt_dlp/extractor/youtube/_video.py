@@ -4079,7 +4079,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     any(e in traverse_obj(qs, ('exp', ...)) for e in ('xpe', 'xpv'))
                     or (pot_policy.required and not (
                         pot_policy.not_required_for_premium
-                        and pr['streamingData'][STREAMING_DATA_IS_PREMIUM_SUBSCRIBER]
                     ))
                 )
 
