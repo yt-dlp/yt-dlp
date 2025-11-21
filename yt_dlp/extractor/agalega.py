@@ -7,14 +7,14 @@ from ..utils.traversal import traverse_obj
 
 
 class AGalegaBaseIE(InfoExtractor):
-    _ACCESS_TOKEN = None
+    _access_token = None
 
     @staticmethod
     def _jwt_is_expired(token):
         return jwt_decode_hs256(token)['exp'] - time.time() < 120
 
     def _refresh_access_token(self, video_id):
-        self._ACCESS_TOKEN = self._download_json(
+        AGalegaBaseIE._access_token = self._download_json(
             'https://www.agalega.gal/api/fetch-api/jwt/token', video_id,
             note='Downloading access token',
             data=json.dumps({
@@ -25,12 +25,12 @@ class AGalegaBaseIE(InfoExtractor):
             }).encode())['access']
 
     def _call_api(self, endpoint, display_id, note, fatal=True, query=None):
-        if not self._ACCESS_TOKEN or self._jwt_is_expired(self._ACCESS_TOKEN):
+        if not AGalegaBaseIE._access_token or self._jwt_is_expired(AGalegaBaseIE._access_token):
             self._refresh_access_token(endpoint)
         return self._download_json(
             f'https://api-agalega.interactvty.com/api/2.0/contents/{endpoint}', display_id,
             note=note, fatal=fatal, query=query,
-            headers={'Authorization': f'jwtok {self._ACCESS_TOKEN}'})
+            headers={'Authorization': f'jwtok {AGalegaBaseIE._access_token}'})
 
 
 class AGalegaIE(AGalegaBaseIE):
