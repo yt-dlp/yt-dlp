@@ -78,13 +78,14 @@ class AGalegaIE(AGalegaBaseIE):
                 m3u8_url, video_id, ext='mp4', m3u8_id='hls')
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
+
         return {
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
             **traverse_obj(content_data, {
-                'title': ('name', {str_or_none}),
-                'description': (('description', 'short_description'), {str_or_none}, any),
+                'title': ('name', {str}),
+                'description': (('description', 'short_description'), {str}, any),
                 'thumbnail': ('image', {url_or_none}),
             }),
         }
