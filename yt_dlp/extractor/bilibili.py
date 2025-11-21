@@ -682,7 +682,7 @@ class BiliBiliIE(BilibiliBaseIE):
             if new_url and BiliBiliBangumiIE.suitable(new_url):
                 return self.url_result(new_url, BiliBiliBangumiIE)
             if prefix == 'AV':  # some old videos are missing init when using av urls (#14793)
-                return self.url_result(f'https://www.bilibili.com/{detail["data"]["View"]["bvid"]}/')
+                return self.url_result(f'https://www.bilibili.com/video/{detail["data"]["View"]["bvid"]}/')
             raise ExtractorError('Unable to extract initial state')
 
         if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
