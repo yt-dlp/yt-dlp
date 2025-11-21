@@ -353,6 +353,13 @@ class CommitRange:
                     continue
                 commit = Commit(override_hash, override['short'], override.get('authors') or [])
                 logger.info(f'CHANGE {self._commits[commit.hash]} -> {commit}')
+                if match := self.FIXES_RE.search(commit.short):
+                    fix_commitish = match.group(1)
+                    if fix_commitish in self._commits:
+                        del self._commits[commit.hash]
+                        self._fixes[fix_commitish].append(commit)
+                        logger.info(f'Found fix for {fix_commitish[:HASH_LENGTH]}: {commit.hash[:HASH_LENGTH]}')
+                        continue
                 self._commits[commit.hash] = commit
 
         self._commits = dict(reversed(self._commits.items()))
@@ -373,7 +380,7 @@ class CommitRange:
             issues = [issue.strip()[1:] for issue in issues.split(',')] if issues else []
 
             if prefix:
-                groups, details, sub_details = zip(*map(self.details_from_prefix, prefix.split(',')))
+                groups, details, sub_details = zip(*map(self.details_from_prefix, prefix.split(',')), strict=True)
                 group = next(iter(filter(None, groups)), None)
                 details = ', '.join(unique(details))
                 sub_details = list(itertools.chain.from_iterable(sub_details))
