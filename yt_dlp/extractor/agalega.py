@@ -1,11 +1,11 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import require, str_or_none, traverse_obj, url_or_none
+from ..utils import str_or_none, traverse_obj, url_or_none
 
 
 class AGalegaBaseIE(InfoExtractor):
-    def _call_api(self, video_id):
+    def _fetch_auth_headers(self, video_id):
         access_token = self._download_json(
             'https://www.agalega.gal/api/fetch-api/jwt/token', video_id,
             note='Downloading access token',
@@ -18,7 +18,7 @@ class AGalegaBaseIE(InfoExtractor):
         return {'authorization': f'jwtok {access_token}'}
 
 
-class AGalegaVideosIE(AGalegaBaseIE):
+class AGalegaIE(AGalegaBaseIE):
     IE_NAME = 'agalega:videos'
     _VALID_URL = r'https?://(?:www\.)?agalega\.gal/videos/(?:detail/)?(?P<id>[0-9]+)'
     _TESTS = [{
@@ -31,8 +31,7 @@ class AGalegaVideosIE(AGalegaBaseIE):
             'thumbnail': 'https://crtvg-bucket.flumotion.cloud/content_cards/2ef32c3b9f6249d9868fd8f11d389d3d.png',
             'ext': 'mp4',
         },
-    },
-        {
+    }, {
         'url': 'https://www.agalega.gal/videos/detail/296152-pulso-activo-7',
         'md5': '26df7fdcf859f38ad92d837279d6b56d',
         'info_dict': {
@@ -46,7 +45,7 @@ class AGalegaVideosIE(AGalegaBaseIE):
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        auth_headers = self._call_api(playlist_id)
+        auth_headers = self._fetch_auth_headers(playlist_id)
         content_data = self._download_json(
             f'https://api-agalega.interactvty.com/api/2.0/contents/content/{playlist_id}/', playlist_id,
             note='Downloading content data', fatal=False, headers=auth_headers,
@@ -60,15 +59,13 @@ class AGalegaVideosIE(AGalegaBaseIE):
                 'optional_fields': 'media_url',
             })
 
-        if content_data is not None and resource_data is not None:
-            m3u8_url = traverse_obj(resource_data, ('results', ..., 'media_url', {url_or_none}, any, {require('media_url')}))
-            formats = []
-            subtitles = {}
-            for m3u8_url in traverse_obj(resource_data, ('results', ..., 'media_url', {url_or_none})):
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    m3u8_url, playlist_id, ext='mp4', m3u8_id='hls')
-                formats.extend(fmts)
-                self._merge_subtitles(subs, target=subtitles)
+        formats = []
+        subtitles = {}
+        for m3u8_url in traverse_obj(resource_data, ('results', ..., 'media_url', {url_or_none})):
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                m3u8_url, playlist_id, ext='mp4', m3u8_id='hls')
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
             return {
                 'id': playlist_id,
                 'formats': formats,
