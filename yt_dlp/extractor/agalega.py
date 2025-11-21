@@ -1,12 +1,20 @@
 import json
+import time
 
 from .common import InfoExtractor
-from ..utils import str_or_none, traverse_obj, url_or_none
+from ..utils import jwt_decode_hs256, str_or_none, url_or_none
+from ..utils.traversal import traverse_obj
 
 
 class AGalegaBaseIE(InfoExtractor):
-    def _fetch_auth_headers(self, video_id):
-        access_token = self._download_json(
+    _ACCESS_TOKEN = None
+
+    @staticmethod
+    def _jwt_is_expired(token):
+        return jwt_decode_hs256(token)['exp'] - time.time() < 120
+
+    def _refresh_access_token(self, video_id):
+        self._ACCESS_TOKEN = self._download_json(
             'https://www.agalega.gal/api/fetch-api/jwt/token', video_id,
             note='Downloading access token',
             data=json.dumps({
@@ -15,7 +23,14 @@ class AGalegaBaseIE(InfoExtractor):
                 'client': 'crtvg',
                 'checkExistsCookies': False,
             }).encode())['access']
-        return {'authorization': f'jwtok {access_token}'}
+
+    def _call_api(self, endpoint, display_id, note, fatal=True, query=None):
+        if not self._ACCESS_TOKEN or self._jwt_is_expired(self._ACCESS_TOKEN):
+            self._refresh_access_token(endpoint)
+        return self._download_json(
+            f'https://api-agalega.interactvty.com/api/2.0/contents/{endpoint}', display_id,
+            note=note, fatal=fatal, query=query,
+            headers={'Authorization': f'jwtok {self._ACCESS_TOKEN}'})
 
 
 class AGalegaIE(AGalegaBaseIE):
@@ -44,17 +59,14 @@ class AGalegaIE(AGalegaBaseIE):
     }]
 
     def _real_extract(self, url):
-        playlist_id = self._match_id(url)
-        auth_headers = self._fetch_auth_headers(playlist_id)
-        content_data = self._download_json(
-            f'https://api-agalega.interactvty.com/api/2.0/contents/content/{playlist_id}/', playlist_id,
-            note='Downloading content data', fatal=False, headers=auth_headers,
+        video_id = self._match_id(url)
+        content_data = self._call_api(
+            f'content/{video_id}/', video_id, note='Downloading content data', fatal=False,
             query={
                 'optional_fields': 'image,is_premium,short_description,has_subtitle',
             })
-        resource_data = self._download_json(
-            f'https://api-agalega.interactvty.com/api/2.0/contents/content_resources/{playlist_id}/',
-            playlist_id, note='Downloading resource data', headers=auth_headers,
+        resource_data = self._call_api(
+            f'content_resources/{video_id}/', video_id, note='Downloading resource data',
             query={
                 'optional_fields': 'media_url',
             })
@@ -63,16 +75,15 @@ class AGalegaIE(AGalegaBaseIE):
         subtitles = {}
         for m3u8_url in traverse_obj(resource_data, ('results', ..., 'media_url', {url_or_none})):
             fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                m3u8_url, playlist_id, ext='mp4', m3u8_id='hls')
+                m3u8_url, video_id, ext='mp4', m3u8_id='hls')
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
-            return {
-                'id': playlist_id,
-                'formats': formats,
-                **traverse_obj(content_data, {
-                    'title': ('name', {str_or_none}),
-                    'description': (('description', 'short_description'), {str_or_none}, any),
-                    'thumbnail': ('image', {url_or_none}),
-                }),
-            }
-        return None
+        return {
+            'id': video_id,
+            'formats': formats,
+            **traverse_obj(content_data, {
+                'title': ('name', {str_or_none}),
+                'description': (('description', 'short_description'), {str_or_none}, any),
+                'thumbnail': ('image', {url_or_none}),
+            }),
+        }
