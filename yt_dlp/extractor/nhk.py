@@ -86,7 +86,10 @@ class NhkBaseIE(InfoExtractor):
 
     def _extract_episode_info(self, url, episode=None):
         fetch_episode = episode is None
-        lang, m_type, episode_id = NhkVodIE._match_valid_url(url).group('lang', 'type', 'id')
+        match = NhkVodIE._match_valid_url(url)
+        lang = match.group('lang')
+        m_type = match.group('type') or 'video'  # Default to video if type not specified
+        episode_id = match.group('id')
         is_video = m_type != 'audio'
 
         if is_video:
@@ -163,7 +166,8 @@ class NhkVodIE(NhkBaseIE):
     _VALID_URL = [
         rf'{NhkBaseIE._BASE_URL_REGEX}shows/(?:(?P<type>video)/)?(?P<id>\d{{4}}[\da-z]\d+)/?(?:$|[?#])',
         rf'{NhkBaseIE._BASE_URL_REGEX}(?:ondemand|shows)/(?P<type>audio)/(?P<id>[^/?#]+?-\d{{8}}-[\da-z]+)',
-        rf'{NhkBaseIE._BASE_URL_REGEX}ondemand/(?P<type>video)/(?P<id>\d{{4}}[\da-z]\d+)',  # deprecated
+        rf'{NhkBaseIE._BASE_URL_REGEX}ondemand/(?P<type>video)/(?P<id>\d{{4}}[\da-z]\d+)/?',  # deprecated
+        rf'{NhkBaseIE._BASE_URL_REGEX}tv/[^/]+/\d+/(?P<id>\d{{4}}[\da-z]\d+)/?',  # TV page URLs
     ]
     # Content available only for a limited period of time. Visit
     # https://www3.nhk.or.jp/nhkworld/en/ondemand/ for working samples.
@@ -235,7 +239,7 @@ class NhkVodIE(NhkBaseIE):
         'info_dict': {
             'id': 'qfjay6cg',
             'ext': 'mp4',
-            'title': 'DESIGN TALKS plus - Fishermen’s Finery',
+            'title': 'DESIGN TALKS plus - Fishermen\'s Finery',
             'description': 'md5:8a8f958aaafb0d7cb59d38de53f1e448',
             'thumbnail': r're:^https?:/(/[a-z0-9.-]+)+\.jpg\?w=1920&h=1080$',
             'upload_date': '20210615',
@@ -299,7 +303,7 @@ class NhkVodIE(NhkBaseIE):
             'id': 'nw_c_en_9999-d17',
             'ext': 'mp4',
             'title': 'Flowers of snow blossom - The 72 Pentads of Yamato',
-            'description': 'Today’s focus: Snow',
+            'description': 'Today\'s focus: Snow',
             'release_timestamp': 1693792402,
             'release_date': '20230904',
             'upload_date': '20220128',
@@ -355,9 +359,27 @@ class NhkVodIE(NhkBaseIE):
         # valid url even if can't be found in wild; support needed for clip entries extraction
         'url': 'https://www3.nhk.or.jp/nhkworld/en/shows/9999o80/',
         'only_matching': True,
+    }, {
+        # TV page URL that should redirect to ondemand URL
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/tv/72hours/20221129/4026171',
+        'info_dict': {
+            'id': 'nw_vod_v_en_4026_171_20221129120000_01_1669708800',
+            'ext': 'mp4',
+        },
+        'skip': 'Content may expire',
     }]
 
     def _real_extract(self, url):
+        # Handle TV page URLs that need to redirect to ondemand URLs
+        # Pattern: tv/[category]/[date]/[videoID] -> ondemand/video/[videoID]
+        tv_page_match = re.match(
+            rf'{self._BASE_URL_REGEX}tv/[^/]+/\d+/(?P<video_id>\d{{4}}[\da-z]\d+)/?',
+            url)
+        if tv_page_match:
+            lang = tv_page_match.group('lang')
+            video_id = tv_page_match.group('video_id')
+            # Construct the ondemand URL
+            url = f'https://www3.nhk.or.jp/nhkworld/{lang}/ondemand/video/{video_id}/'
         return self._extract_episode_info(url)
 
 
