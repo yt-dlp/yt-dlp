@@ -162,7 +162,6 @@ class AGalegaSeriesIE(AGalegaBaseIE):
                                   })))
 
     def _process_episodes_from_data(self, category_content_data, season_id, season_name):
-        """Processa episódios de dados já baixados"""
         for episode in traverse_obj(category_content_data, 'results', ...):
             video_id = str_or_none(episode.get('id'))
             resource_data = self._call_api(
