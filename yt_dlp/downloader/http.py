@@ -205,6 +205,9 @@ class HttpFD(FileDownloader):
                 # doing auto decompression. (See: https://github.com/yt-dlp/yt-dlp/pull/6176)
                 data_len = None
 
+            # The content type might be not video due to image cloaking.
+            info_dict['fragment_content_type'] = ctx.data.headers.get('Content-Type')
+
             # Range HTTP header may be ignored/unsupported by a webserver
             # (e.g. extractor/scivee.py, extractor/bambuser.py).
             # However, for a test we still would like to download just a piece of a file.
