@@ -49,38 +49,47 @@ class SponsorBlockPP(FFmpegPostProcessor):
     def _get_sponsor_chapters(self, info, duration):
         segments = self._get_sponsor_segments(info['id'], self.EXTRACTORS[info['extractor_key']])
 
-        def duration_filter(s):
-            start_end = s['segment']
-            # Ignore entire video segments (https://wiki.sponsor.ajay.app/w/Types).
-            if start_end == (0, 0):
-                return False
+        def normalize_segment_time(start, end, category):
+            """Normalize segment times by adjusting for edge cases."""
             # Ignore milliseconds difference at the start.
-            if start_end[0] <= 1:
-                start_end[0] = 0
+            if start <= 1:
+                start = 0
             # Make POI chapters 1 sec so that we can properly mark them
-            if s['category'] in self.POI_CATEGORIES:
-                start_end[1] += 1
+            if category and category in self.POI_CATEGORIES:
+                end += 1
             # Ignore milliseconds difference at the end.
             # Never allow the segment to exceed the video.
-            if duration and duration - start_end[1] <= 1:
-                start_end[1] = duration
+            if duration and duration - end <= 1:
+                end = duration
+            return start, end
+
+        def duration_filter(s):
+            start, end = s.get('segment', [0, 0])
+            # Ignore entire video segments (https://wiki.sponsor.ajay.app/w/Types).
+            if (start, end) == (0, 0):
+                return False
+            # Normalize times for duration check
+            start, end = normalize_segment_time(start, end, s.get('category'))
             # SponsorBlock duration may be absent or it may deviate from the real one.
-            diff = abs(duration - s['videoDuration']) if s['videoDuration'] else 0
-            return diff < 1 or (diff < 5 and diff / (start_end[1] - start_end[0]) < 0.05)
+            video_duration = s.get('videoDuration')
+            diff = abs(duration - video_duration) if video_duration else 0
+            return diff < 1 or (diff < 5 and diff / (end - start) < 0.05)
 
         duration_match = [s for s in segments if duration_filter(s)]
         if len(duration_match) != len(segments):
             self.report_warning('Some SponsorBlock segments are from a video of different duration, maybe from an old version of this video')
 
         def to_chapter(s):
-            (start, end), cat = s['segment'], s['category']
-            title = s['description'] if cat == 'chapter' else self.CATEGORIES[cat]
+            start, end = s.get('segment', [0, 0])
+            cat = s.get('category')
+            start, end = normalize_segment_time(start, end, cat)
+            title = s.get('description') if cat == 'chapter' else self.CATEGORIES.get(cat, 'Unknown')
             return {
                 'start_time': start,
                 'end_time': end,
                 'category': cat,
                 'title': title,
-                'type': s['actionType'],
+                'type': s.get('actionType'),
                 '_categories': [(cat, start, end, title)],
             }
 
@@ -100,6 +109,6 @@ class SponsorBlockPP(FFmpegPostProcessor):
             'actionTypes': json.dumps(['skip', 'poi', 'chapter']),
         })
         for d in self._download_json(url) or []:
-            if d['videoID'] == video_id:
-                return d['segments']
+            if d.get('videoID') == video_id:
+                return d.get('segments') or []
         return []
