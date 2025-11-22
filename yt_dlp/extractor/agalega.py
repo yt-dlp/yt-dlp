@@ -102,18 +102,21 @@ class AGalegaSeriesIE(AGalegaBaseIE):
         'url': 'https://www.agalega.gal/videos/category/27035-galician-friki',
         'info_dict': {
             'id': '27035',
+            'title': 'Galician Friki',
         },
         'playlist_count': 7,
     }, {
         'url': 'https://www.agalega.gal/videos/category/17175-na-gloria?cat=17176',
         'info_dict': {
             'id': '17175',
+            'title': 'Na Gloria',
         },
         'playlist_count': 17,
     }, {
         'url': 'https://www.agalega.gal/videos/category/30380-land-rober-show',
         'info_dict': {
             'id': '30380',
+            'title': 'Land Rober + show',
         },
         'playlist_count': 34,
     }]
