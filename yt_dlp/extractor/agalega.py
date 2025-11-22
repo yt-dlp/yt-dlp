@@ -219,13 +219,6 @@ class AGalegaSeriesIE(AGalegaBaseIE):
                 else:
                     yield from self._process_episodes_from_data(first_page, season.get('season_id'), season.get('season_name'))
 
-        # page_count = math.ceil(total_count / self._MAX_ITEMS)
-        # yield from InAdvancePagedList(
-        #         functools.partial(self._get_episodes_playlist, season.get('season_id'),
-        #         season.get('season_name')),
-        #         page_count,
-        #         self._MAX_ITEMS)
-
     def _real_extract(self, url):
         category_id = self._match_id(url)
         self._series_information(category_id)
