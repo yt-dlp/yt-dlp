@@ -97,7 +97,6 @@ class AGalegaSeriesIE(AGalegaBaseIE):
     _VALID_URL = r'https?://(?:www\.)?agalega\.gal/videos/category/(?P<id>[0-9]+)'
     _CATEGORY_DATA = None
     _MAX_ITEMS = 10
-    _PAGE_COUNT = None
     _TESTS = [{
         'url': 'https://www.agalega.gal/videos/category/27035-galician-friki',
         'info_dict': {
