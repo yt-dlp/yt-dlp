@@ -49,22 +49,27 @@ class SponsorBlockPP(FFmpegPostProcessor):
     def _get_sponsor_chapters(self, info, duration):
         segments = self._get_sponsor_segments(info['id'], self.EXTRACTORS[info['extractor_key']])
 
+        def normalize_segment_time(start, end, category):
+            """Normalize segment times by adjusting for edge cases."""
+            # Ignore milliseconds difference at the start.
+            if start <= 1:
+                start = 0
+            # Make POI chapters 1 sec so that we can properly mark them
+            if category in self.POI_CATEGORIES:
+                end += 1
+            # Ignore milliseconds difference at the end.
+            # Never allow the segment to exceed the video.
+            if duration and duration - end <= 1:
+                end = duration
+            return start, end
+
         def duration_filter(s):
             start, end = s.get('segment', [0, 0])
             # Ignore entire video segments (https://wiki.sponsor.ajay.app/w/Types).
             if (start, end) == (0, 0):
                 return False
             # Normalize times for duration check
-            # Ignore milliseconds difference at the start.
-            if start <= 1:
-                start = 0
-            # Make POI chapters 1 sec so that we can properly mark them
-            if s.get('category') in self.POI_CATEGORIES:
-                end += 1
-            # Ignore milliseconds difference at the end.
-            # Never allow the segment to exceed the video.
-            if duration and duration - end <= 1:
-                end = duration
+            start, end = normalize_segment_time(start, end, s.get('category'))
             # SponsorBlock duration may be absent or it may deviate from the real one.
             video_duration = s.get('videoDuration')
             diff = abs(duration - video_duration) if video_duration else 0
@@ -77,16 +82,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
         def to_chapter(s):
             start, end = s.get('segment', [0, 0])
             cat = s.get('category')
-            # Ignore milliseconds difference at the start.
-            if start <= 1:
-                start = 0
-            # Make POI chapters 1 sec so that we can properly mark them
-            if cat in self.POI_CATEGORIES:
-                end += 1
-            # Ignore milliseconds difference at the end.
-            # Never allow the segment to exceed the video.
-            if duration and duration - end <= 1:
-                end = duration
+            start, end = normalize_segment_time(start, end, cat)
             title = s.get('description') if cat == 'chapter' else self.CATEGORIES.get(cat, 'Unknown')
             return {
                 'start_time': start,
