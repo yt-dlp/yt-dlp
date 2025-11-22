@@ -137,7 +137,7 @@ class AGalegaSeriesIE(AGalegaBaseIE):
                 f'category_contents/{season_id}', season_id, 'Downloading category content',
                 query={
                     'optional_fields': 'image,short_description,has_subtitle,description',
-                    'page': page + 1,
+                    'page': page + 2,
                 },
             )
         except ExtractorError as e:
@@ -196,28 +196,35 @@ class AGalegaSeriesIE(AGalegaBaseIE):
             'season_id': ('id', {int}, {str_or_none}),
             'season_name': ('name', {str}),
         }))
+        if season_info:
+            for season in season_info:
+                first_page = self._call_api(
+                    f"category_contents/{season.get('season_id')}", season.get('season_id'),
+                    f"Downloading episode count for season {season.get('season_name')}",
+                    query={
+                        'optional_fields': 'image,short_description,has_subtitle,description',
+                    })
 
-        for season in season_info:
-            first_page = self._call_api(
-                f"category_contents/{season.get('season_id')}", season.get('season_id'),
-                f"Downloading episode count for season {season.get('season_name')}",
-                query={
-                    'optional_fields': 'image,short_description,has_subtitle,description',
-                    'page': 1,
-                })
+                total_count = int_or_none(first_page.get('count'))
+                results_count = len(traverse_obj(first_page, ('results', ...)))
 
-            total_count = int_or_none(first_page.get('count'))
-            results_count = len(traverse_obj(first_page, ('results', ...)))
+                if total_count is not None and total_count > results_count:
+                    yield from self._process_episodes_from_data(first_page, season.get('season_id'), season.get('season_name'))
+                    page_count = math.ceil(total_count / self._MAX_ITEMS)
+                    yield from InAdvancePagedList(
+                        functools.partial(self._get_episodes_per_season, season.get('season_id'),
+                                          season.get('season_name')),
+                        page_count - 1,
+                        self._MAX_ITEMS)
+                else:
+                    yield from self._process_episodes_from_data(first_page, season.get('season_id'), season.get('season_name'))
 
-            if total_count is not None and total_count > results_count:
-                page_count = math.ceil(total_count / self._MAX_ITEMS)
-                episodes = InAdvancePagedList(
-                    functools.partial(self._get_episodes_per_season, season.get('season_id'), season.get('season_name')),
-                    page_count,
-                    self._MAX_ITEMS)
-                yield from episodes
-            else:
-                yield from self._process_episodes_from_data(first_page, season.get('season_id'), season.get('season_name'))
+        # page_count = math.ceil(total_count / self._MAX_ITEMS)
+        # yield from InAdvancePagedList(
+        #         functools.partial(self._get_episodes_playlist, season.get('season_id'),
+        #         season.get('season_name')),
+        #         page_count,
+        #         self._MAX_ITEMS)
 
     def _real_extract(self, url):
         category_id = self._match_id(url)
