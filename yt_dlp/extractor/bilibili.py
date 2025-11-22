@@ -678,10 +678,8 @@ class BiliBiliIE(BilibiliBaseIE):
                 'https://api.bilibili.com/x/web-interface/wbi/view/detail', video_id,
                 note='Downloading redirection URL', errnote='Failed to download redirection URL',
                 query=self._sign_wbi(query, video_id), headers=headers)
-            new_url = traverse_obj(detail,
-                                   ('data', 'View', 'redirect_url', {url_or_none}),
-                                   ('data', 'View', 'festival_jump_url', {url_or_none}),
-                                   )
+            new_url = traverse_obj(detail, (
+                'data', 'View', ('redirect_url', 'festival_jump_url'), {url_or_none}, any))
             if new_url and BiliBiliBangumiIE.suitable(new_url):
                 return self.url_result(new_url, BiliBiliBangumiIE)
             if new_url and self.suitable(new_url):
