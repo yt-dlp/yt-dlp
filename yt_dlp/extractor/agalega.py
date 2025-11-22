@@ -1,8 +1,9 @@
 import json
+import math
 import time
 
-from .common import InfoExtractor
-from ..utils import jwt_decode_hs256, url_or_none
+from .common import ExtractorError, HTTPError, InfoExtractor
+from ..utils import InAdvancePagedList, functools, int_or_none, jwt_decode_hs256, str_or_none, url_or_none
 from ..utils.traversal import traverse_obj
 
 
@@ -89,3 +90,138 @@ class AGalegaIE(AGalegaBaseIE):
                 'thumbnail': ('image', {url_or_none}),
             }),
         }
+
+
+class AGalegaSeriesIE(AGalegaBaseIE):
+    IE_NAME = 'agalega:series'
+    _VALID_URL = r'https?://(?:www\.)?agalega\.gal/videos/category/(?P<id>[0-9]+)'
+    _CATEGORY_DATA = None
+    _MAX_ITEMS = 10
+    _PAGE_COUNT = None
+    _TESTS = [{
+        'url': 'https://www.agalega.gal/videos/category/27035-galician-friki',
+        'info_dict': {
+            'id': '27035',
+        },
+        'playlist_count': 7,
+    }, {
+        'url': 'https://www.agalega.gal/videos/category/17175-na-gloria?cat=17176',
+        'info_dict': {
+            'id': '17175',
+        },
+        'playlist_count': 17,
+    }, {
+        'url': 'https://www.agalega.gal/videos/category/30380-land-rober-show',
+        'info_dict': {
+            'id': '30380',
+        },
+        'playlist_count': 34,
+    }]
+
+    def _series_information(self, category_id):
+        category_data = self._call_api(
+            f'category/{category_id}/', category_id, 'series info',
+            query={
+                'optional_fields': 'image,short_description,has_subtitle,description',
+            })
+        AGalegaSeriesIE._CATEGORY_DATA = traverse_obj(category_data, {
+            'series_id': ('id', {int}, {str_or_none}),
+            'series_name': ('name', {str}),
+        })
+
+    def _get_episodes_per_season(self, season_id, season_name, page):
+        try:
+            category_content_data = self._call_api(
+                f'category_contents/{season_id}', season_id, 'Downloading category content',
+                query={
+                    'optional_fields': 'image,short_description,has_subtitle,description',
+                    'page': page + 1,
+                },
+            )
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 404:
+                return
+            raise
+
+        for episode in traverse_obj(category_content_data, 'results', ...):
+            video_id = str_or_none(episode.get('id'))
+            resource_data = self._call_api(
+                f'content_resources/{video_id}/', video_id, note='Downloading resource data',
+                query={'optional_fields': 'media_url'})
+
+            m3u8_url = traverse_obj(resource_data, ('results', 0, 'media_url', {url_or_none}))
+            yield self.url_result(m3u8_url,
+                                  video_id=video_id, video_title=str_or_none(episode.get('name')), url_transparent=True,
+                                  **traverse_obj(resource_data, ('results', 0, {
+                                      'season_name': season_name,
+                                      'season_id': season_id,
+                                      'episode_id': video_id,
+                                      'episode_name': ('name', {str}),
+                                  })))
+
+    def _process_episodes_from_data(self, category_content_data, season_id, season_name):
+        """Processa episódios de dados já baixados"""
+        for episode in traverse_obj(category_content_data, 'results', ...):
+            video_id = str_or_none(episode.get('id'))
+            resource_data = self._call_api(
+                f'content_resources/{video_id}/', video_id, note='Downloading resource data',
+                query={'optional_fields': 'media_url'})
+
+            m3u8_url = traverse_obj(resource_data, ('results', 0, 'media_url', {url_or_none}))
+            yield self.url_result(m3u8_url,
+                                  video_id=video_id, video_title=str_or_none(episode.get('name')), url_transparent=True,
+                                  **traverse_obj(resource_data, ('results', 0, {
+                                      'season_name': season_name,
+                                      'season_id': season_id,
+                                      'episode_id': video_id,
+                                      'episode_name': ('name', {str}),
+                                  })))
+
+    def _get_seasons_page(self, series_id):
+        try:
+            sub_category_data = self._call_api(
+                f'subcategory/{series_id}/', series_id,
+                'Downloading seasons',
+                query={
+                    'optional_fields': 'image,short_description,has_subtitle,description',
+                },
+            )
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 404:
+                return
+            raise
+
+        season_info = traverse_obj(sub_category_data, ('results', ..., {
+            'season_id': ('id', {int}, {str_or_none}),
+            'season_name': ('name', {str}),
+        }))
+
+        for season in season_info:
+            first_page = self._call_api(
+                f"category_contents/{season.get('season_id')}", season.get('season_id'),
+                f"Downloading episode count for season {season.get('season_name')}",
+                query={
+                    'optional_fields': 'image,short_description,has_subtitle,description',
+                    'page': 1,
+                })
+
+            total_count = int_or_none(first_page.get('count'))
+            results_count = len(traverse_obj(first_page, ('results', ...)))
+
+            if total_count is not None and total_count > results_count:
+                page_count = math.ceil(total_count / self._MAX_ITEMS)
+                episodes = InAdvancePagedList(
+                    functools.partial(self._get_episodes_per_season, season.get('season_id'), season.get('season_name')),
+                    page_count,
+                    self._MAX_ITEMS)
+                yield from episodes
+            else:
+                yield from self._process_episodes_from_data(first_page, season.get('season_id'), season.get('season_name'))
+
+    def _real_extract(self, url):
+        category_id = self._match_id(url)
+        self._series_information(category_id)
+        if self._CATEGORY_DATA:
+            entries = self._get_seasons_page(self._CATEGORY_DATA.get('series_id'))
+            return self.playlist_result(entries,
+                                        self._CATEGORY_DATA.get('series_id'), self._CATEGORY_DATA.get('series_name'))
