@@ -76,7 +76,7 @@ STREAMING_DATA_FETCH_GVS_PO_TOKEN = '__yt_dlp_fetch_gvs_po_token'
 STREAMING_DATA_PLAYER_TOKEN_PROVIDED = '__yt_dlp_player_token_provided'
 STREAMING_DATA_INNERTUBE_CONTEXT = '__yt_dlp_innertube_context'
 STREAMING_DATA_IS_PREMIUM_SUBSCRIBER = '__yt_dlp_is_premium_subscriber'
-STREAMING_DATA_FETCHED_TIMESTAMP = '__yt_dlp_fetched_timestamp'
+STREAMING_DATA_AVAILABLE_AT_TIMESTAMP = '__yt_dlp_available_at_timestamp'
 
 PO_TOKEN_GUIDE_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide'
 
@@ -3032,7 +3032,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             elif pr:
                 # Save client details for introspection later
                 innertube_context = traverse_obj(player_ytcfg or self._get_default_ytcfg(client), 'INNERTUBE_CONTEXT')
-                fetched_timestamp = int(time.time())
                 sd = pr.setdefault('streamingData', {})
                 sd[STREAMING_DATA_CLIENT_NAME] = client
                 sd[STREAMING_DATA_FETCH_GVS_PO_TOKEN] = fetch_gvs_po_token_func
@@ -3040,7 +3039,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 sd[STREAMING_DATA_INNERTUBE_CONTEXT] = innertube_context
                 sd[STREAMING_DATA_FETCH_SUBS_PO_TOKEN] = fetch_subs_po_token_func
                 sd[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER] = is_premium_subscriber
-                sd[STREAMING_DATA_FETCHED_TIMESTAMP] = fetched_timestamp
+                sd[STREAMING_DATA_AVAILABLE_AT_TIMESTAMP] = self._get_available_at_timestamp(pr, video_id, client)
                 for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
                     f[STREAMING_DATA_CLIENT_NAME] = client
                     f[STREAMING_DATA_FETCH_GVS_PO_TOKEN] = fetch_gvs_po_token_func
@@ -3172,9 +3171,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # save pots per client to avoid fetching again
         gvs_pots = {}
 
-        # For handling potential pre-playback required waiting period
-        playback_wait = int_or_none(self._configuration_arg('playback_wait', [None])[0], default=6)
-
         def get_language_code_and_preference(fmt_stream):
             audio_track = fmt_stream.get('audioTrack') or {}
             display_name = audio_track.get('displayName') or ''
@@ -3199,7 +3195,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_premium_subscriber = streaming_data[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER]
             player_token_provided = streaming_data[STREAMING_DATA_PLAYER_TOKEN_PROVIDED]
             client_name = streaming_data.get(STREAMING_DATA_CLIENT_NAME)
-            available_at = streaming_data[STREAMING_DATA_FETCHED_TIMESTAMP] + playback_wait
+            available_at = streaming_data[STREAMING_DATA_AVAILABLE_AT_TIMESTAMP]
             streaming_formats = traverse_obj(streaming_data, (('formats', 'adaptiveFormats'), ...))
 
             def get_stream_id(fmt_stream):
@@ -3652,6 +3648,36 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'User-Agent': ('INNERTUBE_CONTEXT', 'client', 'userAgent', {str}),
                 }))
         return webpage
+
+    def _get_available_at_timestamp(self, player_response, video_id, client):
+        now = time.time()
+        wait_seconds = 0
+
+        for renderer in traverse_obj(player_response, (
+            'adSlots', lambda _, v: v['adSlotRenderer']['adSlotMetadata']['triggerEvent'] == 'SLOT_TRIGGER_EVENT_BEFORE_CONTENT',
+            'adSlotRenderer', 'fulfillmentContent', 'fulfilledLayout', 'playerBytesAdLayoutRenderer', 'renderingContent', (
+                None,
+                ('playerBytesSequentialLayoutRenderer', 'sequentialLayouts', ..., 'playerBytesAdLayoutRenderer', 'renderingContent'),
+            ), 'instreamVideoAdRenderer', {dict},
+        )):
+            duration = traverse_obj(renderer, ('playerVars', {urllib.parse.parse_qs}, 'length_seconds', -1, {int_or_none}))
+            ad = 'an ad' if duration is None else f'a {duration}s ad'
+
+            skip_time = traverse_obj(renderer, ('skipOffsetMilliseconds', {float_or_none(scale=1000)}))
+            if skip_time is not None:
+                # YT allows skipping this ad; use the wait-until-skip time instead of full ad duration
+                skip_time = skip_time if skip_time % 1 else int(skip_time)
+                ad += f' skippable after {skip_time}s'
+                duration = skip_time
+
+            if duration is not None:
+                self.write_debug(f'{video_id}: Detected {ad} for {client}')
+                wait_seconds += duration
+
+        if wait_seconds:
+            return math.ceil(now) + wait_seconds
+
+        return int(now)
 
     def _list_formats(self, video_id, microformats, video_details, player_responses, player_url, duration=None):
         live_broadcast_details = traverse_obj(microformats, (..., 'liveBroadcastDetails'))
