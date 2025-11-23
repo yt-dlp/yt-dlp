@@ -396,7 +396,6 @@ class DailymotionIE(DailymotionBaseIE):
             }}
             ... on Live {{
               {self._COMMON_MEDIA_FIELDS}
-              isOnAir
             }}''', extra_params=f'password: "{password}"' if password else None)
 
         xid = media['xid']
@@ -438,7 +437,6 @@ class DailymotionIE(DailymotionBaseIE):
             '_old_archive_ids': [make_archive_id(self, xid)] if xid != video_id else None,
             **traverse_obj(media, {
                 'description': ('description', {clean_html}, filter),
-                'is_live': ('stream_type', {str}, {lambda x: x == 'live'}),
                 'tags': ('hashtags', 'edges', ..., 'node', 'name', {str}, filter, all, filter),
             }),
             **traverse_obj(metadata, {
@@ -447,6 +445,7 @@ class DailymotionIE(DailymotionBaseIE):
                 'categories': ('channel', {str}, all),
                 'channel_is_verified': ('partner', {bool}),
                 'duration': ('duration', {int_or_none}),
+                'is_live': ('stream_type', {str}, {lambda x: x == 'live'}),
                 'media_type': ('media_type', {str}),
                 'thumbnails': ('thumbnails', {dict.items}, lambda _, v: url_or_none(v[1]), {
                     'id': (0, {str}),
