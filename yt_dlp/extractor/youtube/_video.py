@@ -2629,19 +2629,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return {'contentCheckOk': True, 'racyCheckOk': True}
 
     @classmethod
-    def _generate_player_context(cls, sts=None):
+    def _generate_player_context(cls, sts=None, is_premium_subscriber=False):
         context = {
             'html5Preference': 'HTML5_PREF_WANTS',
         }
         if sts is not None:
             context['signatureTimestamp'] = sts
+        playback_context = {
+            'contentPlaybackContext': context,
+        }
+        if not is_premium_subscriber:
+            playback_context['adPlaybackContext'] = {
+                'pyv': True,
+            }
         return {
-            'playbackContext': {
-                'contentPlaybackContext': context,
-                'adPlaybackContext': {
-                    'pyv': True,
-                },
-            },
+            'playbackContext': playback_context,
             **cls._get_checkok_params(),
         }
 
@@ -2840,7 +2842,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _is_unplayable(player_response):
         return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'UNPLAYABLE'
 
-    def _extract_player_response(self, client, video_id, webpage_ytcfg, player_ytcfg, player_url, initial_pr, visitor_data, data_sync_id, po_token):
+    def _extract_player_response(self, client, video_id, webpage_ytcfg, player_ytcfg, player_url, initial_pr, visitor_data, data_sync_id, po_token, is_premium_subscriber):
         headers = self.generate_api_headers(
             ytcfg=player_ytcfg,
             default_client=client,
@@ -2869,7 +2871,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             yt_query['serviceIntegrityDimensions'] = {'poToken': po_token}
 
         sts = self._extract_signature_timestamp(video_id, player_url, webpage_ytcfg, fatal=False) if player_url else None
-        yt_query.update(self._generate_player_context(sts))
+        yt_query.update(self._generate_player_context(sts, is_premium_subscriber))
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
             ytcfg=player_ytcfg, headers=headers, fatal=True,
@@ -3025,7 +3027,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     initial_pr=initial_pr,
                     visitor_data=visitor_data,
                     data_sync_id=data_sync_id,
-                    po_token=player_po_token)
+                    po_token=player_po_token,
+                    is_premium_subscriber=is_premium_subscriber)
             except ExtractorError as e:
                 self.report_warning(e)
                 continue
