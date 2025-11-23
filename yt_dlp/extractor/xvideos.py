@@ -161,6 +161,30 @@ class XVideosIE(InfoExtractor):
                     'quality': -2 if format_id.endswith('low') else None,
                 })
 
+        if not formats:
+            self.write_debug('AI Genrated Video detected.')
+            m = self._search_regex(
+                r'(https?://[^/]+\.skynetworkcdn\.com/.+?/embed\.html)',
+                webpage,
+                'ivp iframe',
+                default=None,
+                fatal=False,
+            )
+            metadata = self._parse_json(self._search_regex(
+                r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>\s*(.*?)\s*</script>',
+                webpage, 'ld+json', flags=re.DOTALL,
+            ), video_id)
+            m3u8_url = m.replace('/xv/', '/').rsplit('/', 1)[0] + '/ch0/master.m3u8'
+            return {
+                'id': video_id,
+                'formats': self._extract_m3u8_formats(m3u8_url, video_id),
+                'description': metadata['description'],
+                'title': metadata['name'],
+                'duration': parse_duration(metadata['duration']),
+                'thumbnail': metadata['thumbnailUrl'][0],
+                'age_limit': 18,
+            }
+
         return {
             'id': video_id,
             'formats': formats,
