@@ -2638,6 +2638,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return {
             'playbackContext': {
                 'contentPlaybackContext': context,
+                'adPlaybackContext':  {
+                    'pyv': True,
+                },
             },
             **cls._get_checkok_params(),
         }
