@@ -109,10 +109,14 @@ class DailymotionBaseIE(InfoExtractor):
 class DailymotionIE(DailymotionBaseIE):
     IE_NAME = 'dailymotion'
     _VALID_URL = r'''(?ix)
-        (?:https?:)?//(?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/
+        (?:https?:)?//
         (?:
-            (?:(?:crawler|embed)/)?video/|
-            player(?:/[\da-z]+)?\.html\?(?:video|(?P<is_playlist>playlist))=
+            dai\.ly/|
+            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/
+            (?:
+                (?:(?:crawler|embed)/)?video/|
+                player(?:/[\da-z]+)?\.html\?(?:video|(?P<is_playlist>playlist))=
+            )
         )
         (?P<id>[^/?_&#"\']+)(?:[\w-]*\?playlist=(?P<playlist_id>x[0-9a-z]+))?
     '''
@@ -431,8 +435,8 @@ class DailymotionIE(DailymotionBaseIE):
             '_old_archive_ids': [make_archive_id(self, xid)] if xid != video_id else None,
             **traverse_obj(media, {
                 'description': ('description', {clean_html}, filter),
-                'tags': ('hashtags', 'edges', ..., 'node', 'name', {str}, filter, all, filter),
                 'is_live': ('stream_type', {str}, {lambda x: x == 'live'}),
+                'tags': ('hashtags', 'edges', ..., 'node', 'name', {str}, filter, all, filter),
             }),
             **traverse_obj(metadata, {
                 'title': ('title', {clean_html}),
