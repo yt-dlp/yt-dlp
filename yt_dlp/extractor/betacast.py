@@ -42,7 +42,7 @@ class BetaCastIE(InfoExtractor):
         if 'watch' in url:
             video_id = re.split(r'\D', parse_qs(re.sub(r'([?&])(?:[ +]|%20)+v=', r'\1v=', url))['v'][0].lstrip('0'), maxsplit=1)[0]
         else:
-            video_id = re.split(r'\D', url)[-1]
+            video_id = re.split(r'\D', url)[-1].lstrip('0')
 
         webpage = self._download_webpage(
             f'https://www.betacast.org/watch?v={video_id}', video_id)
