@@ -3653,14 +3653,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         now = time.time()
         wait_seconds = 0
 
-        instream_video_ad_renderers = traverse_obj(player_response, (
+        for renderer in traverse_obj(player_response, (
             'adSlots', lambda _, v: v['adSlotRenderer']['adSlotMetadata']['triggerEvent'] == 'SLOT_TRIGGER_EVENT_BEFORE_CONTENT',
             'adSlotRenderer', 'fulfillmentContent', 'fulfilledLayout', 'playerBytesAdLayoutRenderer', 'renderingContent', (
                 None,
                 ('playerBytesSequentialLayoutRenderer', 'sequentialLayouts', ..., 'playerBytesAdLayoutRenderer', 'renderingContent'),
-            ), 'instreamVideoAdRenderer', {dict}))
-
-        for renderer in instream_video_ad_renderers:
+            ), 'instreamVideoAdRenderer', {dict},
+        )):
             duration = traverse_obj(renderer, ('skipOffsetMilliseconds', {float_or_none(scale=1000)}))
             if duration is not None:
                 duration = duration if duration % 1 else int(duration)
