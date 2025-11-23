@@ -181,12 +181,19 @@ class EJSBaseJCP(JsChallengeProvider):
                         NChallengeOutput(response_data['data']) if request.type is JsChallengeType.N
                         else SigChallengeOutput(response_data['data']))))
 
-    def _construct_stdin(self, player: str, preprocessed: bool, requests: list[JsChallengeRequest], /) -> str:
+    def _get_init_script(self):
+        return f'''\
+        {self._lib_script.code}
+        Object.assign(globalThis, lib);
+        {self._core_script.code}
+        '''
+
+    def _construct_request_object(self, player: str, preprocessed: bool, requests: list[JsChallengeRequest], /):
         json_requests = [{
             'type': request.type.value,
             'challenges': request.input.challenges,
         } for request in requests]
-        data = {
+        return {
             'type': 'preprocessed',
             'preprocessed_player': player,
             'requests': json_requests,
@@ -196,11 +203,11 @@ class EJSBaseJCP(JsChallengeProvider):
             'requests': json_requests,
             'output_preprocessed': True,
         }
+
+    def _construct_stdin(self, player: str, preprocessed: bool, requests: list[JsChallengeRequest], /) -> str:
         return f'''\
-        {self._lib_script.code}
-        Object.assign(globalThis, lib);
-        {self._core_script.code}
-        console.log(JSON.stringify(jsc({json.dumps(data)})));
+        {self._get_init_script()}
+        console.log(JSON.stringify(jsc({json.dumps(self._construct_request_object(player, preprocessed, requests))})));
         '''
 
     # region: challenge solver script
