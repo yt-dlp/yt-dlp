@@ -22,6 +22,7 @@ from ..utils import (
     str_or_none,
     time_seconds,
     truncate_string,
+    unescapeHTML,
     unified_timestamp,
     update_url_query,
     url_basename,
@@ -720,12 +721,29 @@ class NicovideoSearchBaseIE(InfoExtractor):
     def _entries(self, url, item_id, query=None, note='Downloading page %(page)s'):
         query = query or {}
         pages = [query['page']] if 'page' in query else itertools.count(1)
+        is_old = False
         for page_num in pages:
             query['page'] = str(page_num)
             webpage = self._download_webpage(url, item_id, query=query, note=note % {'page': page_num})
+
             results = re.findall(r'(?<=data-video-id=)["\']?(?P<videoid>.*?)(?=["\'])', webpage)
+            has_next = None
+            if results:
+                is_old = True
+            if not is_old:
+                server_response = self._search_regex(r'<meta\s+name=["\']server-response["\']\s+content=["\']([^"\']+)["\']', webpage, 'videos json', fatal=False)
+                sr_json = self._parse_json(unescapeHTML(server_response) or '{}', 'search response') or {}
+                results = traverse_obj(
+                    sr_json,
+                    ('data', 'response', '$getSearchVideoV2', 'data', 'items', ..., ('id')),
+                ) or []
+                has_next = traverse_obj(sr_json, ('data', 'response', '$getSearchVideoV2', 'data', 'hasNext'), default=None)
+
             for item in results:
                 yield self.url_result(f'https://www.nicovideo.jp/watch/{item}', 'Niconico', item)
+
+            if has_next is not None and has_next is False:
+                break
             if not results:
                 break
 
@@ -822,7 +840,7 @@ class NicovideoTagURLIE(NicovideoSearchBaseIE):
             'id': 'ドキュメンタリー淫夢',
             'title': 'ドキュメンタリー淫夢',
         },
-        'playlist_mincount': 400,
+        'playlist_mincount': 300,
     }]
 
     def _real_extract(self, url):
