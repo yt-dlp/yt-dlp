@@ -29,22 +29,21 @@ def _find_exe(basename: str) -> str:
     # cwd
     paths.append(os.getcwd())
     # PATH items
-    path = os.environ.get('PATH')
-    if path is not None:
-        paths.extend(path.split(os.path.pathsep))
+    if path := os.environ.get('PATH'):
+        paths.extend(filter(None, path.split(os.path.pathsep)))
 
     pathext = os.environ.get('PATHEXT')
     if pathext is None:
         exts = _FALLBACK_PATHEXT
     else:
-        exts = pathext.split(os.pathsep)
+        exts = tuple(ext for ext in pathext.split(os.pathsep) if ext)
 
     visited = []
-    for path in paths:
-        path = os.path.normcase(os.path.realpath(path))
-        if path in visited:
+    for path in map(os.path.realpath, paths):
+        normed = os.path.normcase(path)
+        if normed in visited:
             continue
-        visited.append(path)
+        visited.append(normed)
 
         for ext in exts:
             binary = os.path.join(path, f'{basename}{ext}')
