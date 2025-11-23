@@ -3660,17 +3660,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 ('playerBytesSequentialLayoutRenderer', 'sequentialLayouts', ..., 'playerBytesAdLayoutRenderer', 'renderingContent'),
             ), 'instreamVideoAdRenderer', {dict},
         )):
-            duration = traverse_obj(renderer, ('skipOffsetMilliseconds', {float_or_none(scale=1000)}))
-            if duration is not None:
-                duration = duration if duration % 1 else int(duration)
-                self.write_debug(f'{video_id}: Detected a {duration}s skippable ad for {client} client')
-                # This ad is skippable so only accrue the required waiting time before we can skip
-                wait_seconds += duration
-                continue
             duration = traverse_obj(renderer, ('playerVars', {urllib.parse.parse_qs}, 'length_seconds', -1, {int_or_none}))
+            ad = 'an ad' if duration is None else f'a {duration}s ad'
+
+            skip_time = traverse_obj(renderer, ('skipOffsetMilliseconds', {float_or_none(scale=1000)}))
+            if skip_time is not None:
+                # YT allows skipping this ad; use the wait-until-skip time instead of full ad duration
+                skip_time = skip_time if skip_time % 1 else int(skip_time)
+                ad += f' skippable after {skip_time}s'
+                duration = skip_time
+
             if duration is not None:
-                self.write_debug(f'{video_id}: Detected a {duration}s unskippable ad for {client} client')
-                # This ad is unskippable so accrue the full ad duration
+                self.write_debug(f'{video_id}: Detected {ad} for {client}')
                 wait_seconds += duration
 
         if wait_seconds:
