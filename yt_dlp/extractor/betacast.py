@@ -6,6 +6,7 @@ from ..utils import (
     get_element_by_class,
     get_element_by_id,
     int_or_none,
+    parse_qs,
     strip_or_none,
     unescapeHTML,
     unified_strdate,
@@ -13,7 +14,7 @@ from ..utils import (
 
 
 class BetaCastIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?betacast\.(?:cc|lol|org)/watch\?.*?\bv=(?P<id>\d+)'
+    _VALID_URL = r'https?:[/\\]*(?:www\.)?betacast\.(?:cc|lol|org)[/\\]+watch\?.*?v=\d+'
     _TESTS = [{
         'url': 'https://www.betacast.org/watch?v=3',
         'info_dict': {
@@ -38,7 +39,7 @@ class BetaCastIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url).lstrip('0')
+        video_id = re.split(r'\D', parse_qs(re.sub(r'([?&])(?:[ +]|%20)+v=', r'\1v=', url))['v'][0].lstrip('0'), maxsplit=1)[0]
 
         webpage = self._download_webpage(
             f'https://www.betacast.org/watch?v={video_id}', video_id)
