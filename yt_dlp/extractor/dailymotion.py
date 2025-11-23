@@ -248,6 +248,9 @@ class DailymotionIE(DailymotionBaseIE):
         # Playlist newest video
         'url': 'https://geo.dailymotion.com/player/xf7zn.html?playlist=x7wdsj',
         'only_matching': True,
+    }, {
+        'url': 'https://dai.ly/x94cnnk',
+        'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
         # https://geo.dailymotion.com/player/xmyye.html?video=x93blhi
