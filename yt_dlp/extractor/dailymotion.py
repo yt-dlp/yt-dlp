@@ -12,26 +12,30 @@ from ..utils import (
     clean_html,
     extract_attributes,
     int_or_none,
-    traverse_obj,
-    try_get,
+    join_nonempty,
+    make_archive_id,
     unescapeHTML,
     unsmuggle_url,
-    update_url,
+    update_url_query,
     url_or_none,
     urlencode_postdata,
 )
+from ..utils.traversal import find_elements, traverse_obj
 
 
-class DailymotionBaseInfoExtractor(InfoExtractor):
-    _FAMILY_FILTER = None
+class DailymotionBaseIE(InfoExtractor):
+    _API_BASE = 'https://graphql.api.dailymotion.com'
+    _BASE_URL = 'https://www.dailymotion.com'
+    _FAMILY_FILTER = False
+    _GEO_BYPASS = False
     _HEADERS = {
         'Content-Type': 'application/json',
-        'Origin': 'https://www.dailymotion.com',
+        'Origin': _BASE_URL,
     }
     _NETRC_MACHINE = 'dailymotion'
 
     def _get_dailymotion_cookies(self):
-        return self._get_cookies('https://www.dailymotion.com/')
+        return self._get_cookies(self._BASE_URL)
 
     @staticmethod
     def _get_cookie_value(cookies, name):
@@ -69,7 +73,7 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
             data['grant_type'] = 'client_credentials'
         try:
             token = self._download_json(
-                'https://graphql.api.dailymotion.com/oauth/token',
+                f'{self._API_BASE}/oauth/token',
                 None, 'Downloading Access Token',
                 data=urlencode_postdata(data))['access_token']
         except ExtractorError as e:
@@ -80,152 +84,165 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
         self._set_dailymotion_cookie('access_token' if username else 'client_token', token)
         return token
 
-    def _call_api(self, object_type, xid, object_fields, note, filter_extra=None):
+    def _call_api(self, object_type, xid, object_fields, note='Downloading JSON metadata', extra_params=None):
         if not self._HEADERS.get('Authorization'):
             self._HEADERS['Authorization'] = f'Bearer {self._get_token(xid)}'
 
+        extra = f', {extra_params}' if extra_params else ''
         resp = self._download_json(
-            'https://graphql.api.dailymotion.com/', xid, note, data=json.dumps({
-                'query': '''{
-  %s(xid: "%s"%s) {
-    %s
-  }
-}''' % (object_type, xid, ', ' + filter_extra if filter_extra else '', object_fields),  # noqa: UP031
-            }).encode(), headers=self._HEADERS)
+            self._API_BASE, xid, note,
+            headers=self._HEADERS, data=json.dumps({
+                'query': f'''{{
+                  {object_type}(xid: "{xid}"{extra}) {{
+                    {object_fields}
+                  }}
+                }}''',
+            }).encode())
+
         obj = resp['data'][object_type]
         if not obj:
             raise ExtractorError(resp['errors'][0]['message'], expected=True)
+
         return obj
 
 
-class DailymotionIE(DailymotionBaseInfoExtractor):
-    _VALID_URL = r'''(?ix)
-                    (?:https?:)?//
-                    (?:
-                        dai\.ly/|
-                        (?:
-                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}|
-                            (?:www\.)?lequipe\.fr
-                        )/
-                        (?:
-                            swf/(?!video)|
-                            (?:(?:crawler|embed|swf)/)?video/|
-                            player(?:/[\da-z]+)?\.html\?(?:video|(?P<is_playlist>playlist))=
-                        )
-                    )
-                    (?P<id>[^/?_&#]+)(?:[\w-]*\?playlist=(?P<playlist_id>x[0-9a-z]+))?
-    '''
+class DailymotionIE(DailymotionBaseIE):
     IE_NAME = 'dailymotion'
+    _VALID_URL = r'''(?ix)
+        (?:https?:)?//(?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/
+        (?:
+            (?:(?:crawler|embed)/)?video/|
+            player(?:/[\da-z]+)?\.html\?(?:video|(?P<is_playlist>playlist))=
+        )
+        (?P<id>[^/?_&#"\']+)(?:[\w-]*\?playlist=(?P<playlist_id>x[0-9a-z]+))?
+    '''
     _EMBED_REGEX = [rf'(?ix)<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)["\'](?P<url>{_VALID_URL[5:]})']
     _TESTS = [{
-        'url': 'http://www.dailymotion.com/video/x5kesuj_office-christmas-party-review-jason-bateman-olivia-munn-t-j-miller_news',
+        'url': 'https://www.dailymotion.com/video/x5kesuj',
         'info_dict': {
             'id': 'x5kesuj',
             'ext': 'mp4',
-            'title': 'Office Christmas Party Review –  Jason Bateman, Olivia Munn, T.J. Miller',
+            'title': 'Office Christmas Party Review – Jason Bateman, Olivia Munn, T.J. Miller',
+            'categories': ['news'],
+            'channel': 'Deadline',
+            'channel_id': 'DeadlineHollywood',
+            'channel_is_verified': True,
             'description': 'Office Christmas Party Review - Jason Bateman, Olivia Munn, T.J. Miller',
             'duration': 187,
-            'tags': 'count:5',
+            'media_type': 'video',
             'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
             'timestamp': 1493651285,
             'upload_date': '20170501',
             'uploader': 'Deadline',
             'uploader_id': 'x1xm8ri',
-            'age_limit': 0,
-            'view_count': int,
-            'like_count': int,
         },
     }, {
-        'url': 'https://geo.dailymotion.com/player.html?video=x89eyek&mute=true',
+        # Geo-restricted to France
+        'url': 'https://www.dailymotion.com/video/xhza0o',
         'info_dict': {
-            'id': 'x89eyek',
+            'id': 'xhza0o',
             'ext': 'mp4',
-            'title': 'En quête d\'esprit du 27/03/2022',
-            'description': 'md5:66542b9f4df2eb23f314fc097488e553',
-            'duration': 2756,
-            'tags': 'count:1',
+            'title': 'LISBOA : une minute avant le film',
+            'categories': ['shortfilms'],
+            'channel': 'FilmoTV France',
+            'channel_id': 'FilmoTV',
+            'channel_is_verified': True,
+            'description': 'md5:8eb48604302cab2d045b88d9791b4a51',
+            'duration': 68,
+            'media_type': 'video',
             'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
-            'timestamp': 1648383669,
-            'upload_date': '20220327',
-            'uploader': 'CNEWS',
-            'uploader_id': 'x24vth',
-            'age_limit': 0,
-            'view_count': int,
-            'like_count': int,
+            'timestamp': 1302025395,
+            'upload_date': '20110405',
+            'uploader': 'FilmoTV France',
+            'uploader_id': 'xfvuut',
         },
-    }, {
-        'url': 'https://www.dailymotion.com/video/x2iuewm_steam-machine-models-pricing-listed-on-steam-store-ign-news_videogames',
-        'md5': '2137c41a8e78554bb09225b8eb322406',
-        'info_dict': {
-            'id': 'x2iuewm',
-            'ext': 'mp4',
-            'title': 'Steam Machine Models, Pricing Listed on Steam Store - IGN News',
-            'description': 'Several come bundled with the Steam Controller.',
-            'duration': 74,
-            'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
-            'timestamp': 1425657362,
-            'upload_date': '20150306',
-            'uploader': 'IGN',
-            'uploader_id': 'xijv66',
-            'age_limit': 0,
-            'view_count': int,
-        },
-        'skip': 'video gone',
-    }, {
-        # age-restricted video
-        'url': 'http://www.dailymotion.com/video/xyh2zz_leanna-decker-cyber-girl-of-the-year-desires-nude-playboy-plus_redband',
-        'md5': '0d667a7b9cebecc3c89ee93099c4159d',
-        'info_dict': {
-            'id': 'xyh2zz',
-            'ext': 'mp4',
-            'title': 'Leanna Decker - Cyber Girl Of The Year Desires Nude [Playboy Plus]',
-            'uploader': 'HotWaves1012',
-            'age_limit': 18,
-        },
-        'skip': 'video gone',
-    }, {
-        # geo-restricted, player v5
-        'url': 'http://www.dailymotion.com/video/xhza0o',
-        'only_matching': True,
-    }, {
-        # with subtitles
-        'url': 'http://www.dailymotion.com/video/x20su5f_the-power-of-nightmares-1-the-rise-of-the-politics-of-fear-bbc-2004_news',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.dailymotion.com/swf/video/x3n92nf',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.dailymotion.com/swf/x3ss1m_funny-magic-trick-barry-and-stuart_fun',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.lequipe.fr/video/x791mem',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.lequipe.fr/video/k7MtHciueyTcrFtFKA2',
-        'only_matching': True,
     }, {
         'url': 'https://www.dailymotion.com/video/x3z49k?playlist=xv4bw',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'x3z49k',
+            'ext': 'mp4',
+            'title': 'Squash (Rémi Gaillard)',
+            'categories': ['fun'],
+            'channel': 'Rémi Gaillard',
+            'channel_id': 'nqtv',
+            'channel_is_verified': True,
+            'description': 'md5:abc361742376162ae3cfaba81dcf49df',
+            'duration': 106,
+            'media_type': 'video',
+            'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
+            'timestamp': 1199661266,
+            'upload_date': '20080106',
+            'uploader': 'Rémi Gaillard',
+            'uploader_id': 'x4r137',
+        },
+        'params': {'noplaylist': True},
     }, {
+        'url': 'https://www.dailymotion.com/video/x3z49k?playlist=xv4bw',
+        'info_dict': {
+            'id': 'xv4bw',
+        },
+        'playlist_mincount': 23,
+    }, {
+        'url': 'https://geo.dailymotion.com/player.html?video=x3n92nf',
+        'info_dict': {
+            'id': 'x3n92nf',
+            'ext': 'mp4',
+            'title': 'Incendie au Ritz : Les images des pompiers de Paris',
+            'categories': ['news'],
+            'channel': '20Minutes',
+            'channel_id': '20Minutes',
+            'channel_is_verified': True,
+            'description': 'md5:378bf86601da54142dc773597554cc42',
+            'duration': 30,
+            'media_type': 'video',
+            'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
+            'timestamp': 1453203318,
+            'upload_date': '20160119',
+            'uploader': '20Minutes',
+            'uploader_id': 'xtsy7',
+        },
+    }, {
+        # Geo-restricted to France, Monaco, Andorra and Overseas France
+        'url': 'https://geo.dailymotion.com/player/xakln.html?video=x8mjju4',
+        'info_dict': {
+            'id': 'x8mjju4',
+            'ext': 'mp4',
+            'title': 'Wimbledon : Marketa Vondrousova remporte son premier tournoi du Grand Chelem',
+            'categories': ['sport'],
+            'channel': 'Beinsports-FR',
+            'channel_id': 'Beinsports-FR',
+            'channel_is_verified': True,
+            'duration': 763,
+            'media_type': 'video',
+            'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
+            'timestamp': 1689433092,
+            'upload_date': '20230715',
+            'uploader': 'Beinsports-FR',
+            'uploader_id': 'x1jf2q2',
+        },
+    }, {
+        # Private video, query: access_id
         'url': 'https://geo.dailymotion.com/player/x86gw.html?video=k46oCapRs4iikoz9DWy',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'x8la1te',
+            'ext': 'mp4',
+            'title': '2023-05-26_2023-05-26_étiennegénération',
+            'categories': ['news'],
+            'channel': 'Arrêt sur images',
+            'channel_id': 'asi',
+            'channel_is_verified': True,
+            'duration': 97,
+            'media_type': 'video',
+            'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
+            'timestamp': 1685117572,
+            'upload_date': '20230526',
+            'uploader': 'Arrêt sur images',
+            'uploader_id': 'x8t4yq',
+            '_old_archive_ids': ['dailymotion k46oCapRs4iikoz9DWy'],
+        },
     }, {
-        'url': 'https://geo.dailymotion.com/player/xakln.html?video=x8mjju4&customConfig%5BcustomParams%5D=%2Ffr-fr%2Ftennis%2Fwimbledon-mens-singles%2Farticles-video',
-        'only_matching': True,
-    }, {  # playlist-only
+        # Playlist newest video
         'url': 'https://geo.dailymotion.com/player/xf7zn.html?playlist=x7wdsj',
-        'only_matching': True,
-    }, {
-        'url': 'https://geo.dailymotion.com/player/xmyye.html?video=x93blhi',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.dailymotion.com/crawler/video/x8u4owg',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.dailymotion.com/embed/video/x8u4owg',
-        'only_matching': True,
-    }, {
-        'url': 'https://dai.ly/x94cnnk',
         'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
@@ -235,17 +252,17 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'id': 'x93blhi',
             'ext': 'mp4',
             'title': 'OnAir - 01/08/24',
-            'description': '',
+            'categories': ['news'],
+            'channel': 'Financialounge',
+            'channel_id': 'financialounge',
+            'channel_is_verified': True,
             'duration': 217,
+            'media_type': 'video',
+            'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
             'timestamp': 1722505658,
             'upload_date': '20240801',
             'uploader': 'Financialounge',
             'uploader_id': 'x2vtgmm',
-            'age_limit': 0,
-            'tags': [],
-            'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
-            'view_count': int,
-            'like_count': int,
         },
     }, {
         # https://geo.dailymotion.com/player/xf7zn.html?playlist=x7wdsj
@@ -255,84 +272,68 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         },
         'playlist_mincount': 50,
     }, {
+        # https://github.com/yt-dlp/yt-dlp/pull/10843
         # https://www.dailymotion.com/crawler/video/x8u4owg
         'url': 'https://www.leparisien.fr/environnement/video-le-veloto-la-voiture-a-pedales-qui-aimerait-se-faire-une-place-sur-les-routes-09-03-2024-KCYMCPM4WFHJXMSKBUI66UNFPU.php',
         'info_dict': {
             'id': 'x8u4owg',
             'ext': 'mp4',
+            'title': 'VIDÉO. Le «\xa0véloto\xa0», la voiture à pédales qui aimerait se faire une place sur les routes',
+            'categories': ['news'],
+            'channel': 'Le Parisien',
+            'channel_id': 'leparisien',
+            'channel_is_verified': True,
             'description': 'À bord du « véloto », l’alternative à la voiture pour la campagne',
-            'like_count': int,
-            'uploader': 'Le Parisien',
-            'upload_date': '20240309',
-            'view_count': int,
-            'tags': 'count:7',
+            'duration': 428,
+            'media_type': 'video',
             'thumbnail': r're:https?://www\.leparisien\.fr/.+\.jpg',
             'timestamp': 1709997866,
-            'age_limit': 0,
+            'upload_date': '20240309',
+            'uploader': 'Le Parisien',
             'uploader_id': 'x32f7b',
-            'title': 'VIDÉO. Le «\xa0véloto\xa0», la voiture à pédales qui aimerait se faire une place sur les routes',
-            'duration': 428.0,
         },
     }, {
-        # https://geo.dailymotion.com/player/xry80.html?video=x8vu47w
-        'url': 'https://www.metatube.com/en/videos/546765/This-frogs-decorates-Christmas-tree/',
-        'info_dict': {
-            'id': 'x8vu47w',
-            'ext': 'mp4',
-            'like_count': int,
-            'uploader': 'Metatube',
-            'upload_date': '20240326',
-            'view_count': int,
-            'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
-            'timestamp': 1711496732,
-            'age_limit': 0,
-            'uploader_id': 'x2xpy74',
-            'title': 'Está lindas ranitas ponen su arbolito',
-            'duration': 28,
-            'description': 'Que lindura',
-            'tags': [],
-        },
-        'skip': 'Invalid URL',
-    }, {
-        # //geo.dailymotion.com/player/xysxq.html?video=k2Y4Mjp7krAF9iCuINM
-        'url': 'https://lcp.fr/programmes/avant-la-catastrophe-la-naissance-de-la-dictature-nazie-1933-1936-346819',
-        'info_dict': {
-            'id': 'k2Y4Mjp7krAF9iCuINM',
-            'ext': 'mp4',
-            'title': 'Avant la catastrophe la naissance de la dictature nazie 1933 -1936',
-            'description': 'md5:7b620d5e26edbe45f27bbddc1c0257c1',
-            'uploader': 'LCP Assemblée nationale',
-            'uploader_id': 'xbz33d',
-            'view_count': int,
-            'like_count': int,
-            'age_limit': 0,
-            'duration': 3220,
-            'tags': [],
-            'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
-            'timestamp': 1739919947,
-            'upload_date': '20250218',
-        },
-        'skip': 'Invalid URL',
-    }, {
+        # DM.player
         'url': 'https://forum.ionicframework.com/t/ionic-2-jw-player-dailymotion-player/83248',
         'info_dict': {
             'id': 'xwr14q',
             'ext': 'mp4',
             'title': 'Macklemore & Ryan Lewis - Thrift Shop (feat. Wanz)',
-            'age_limit': 0,
+            'categories': ['music'],
+            'channel': 'Macklemore Official',
+            'channel_id': 'Macklemore-Official',
+            'channel_is_verified': True,
             'description': 'md5:47fbe168b5a6ddc4a205e20dd6c841b2',
             'duration': 234,
-            'like_count': int,
-            'tags': 'count:5',
+            'media_type': 'video',
             'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
             'timestamp': 1358177670,
             'upload_date': '20130114',
             'uploader': 'Macklemore Official',
             'uploader_id': 'x19qlwr',
-            'view_count': int,
         },
+    }, {
+        # dailymotion.createPlayer
+        'url': 'https://www.cnnturk.com/tv-cnn-turk/programlar/ana-haber/ana-haber-18-kasim-2025-sali-2360418',
+        'info_dict': {
+            'id': 'x9u1750',
+            'ext': 'mp4',
+            'title': 'Ana Haber 18 Kasım 2025 Salı',
+            'categories': ['news'],
+            'channel': 'CNN TÜRK',
+            'channel_id': 'cnnturk',
+            'channel_is_verified': True,
+            'description': 'md5:a5c5c78fa082852e129035ff56b4938b',
+            'duration': 7342,
+            'media_type': 'video',
+            'thumbnail': r're:https?://s[12]\.dmcdn\.net/v/.+',
+            'timestamp': 1763509441,
+            'upload_date': '20251118',
+            'uploader': 'CNN TÜRK',
+            'uploader_id': 'x2bu8h6',
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
-    _GEO_BYPASS = False
     _COMMON_MEDIA_FIELDS = '''description
       geoblockedCountries {
         allowed
@@ -341,27 +342,26 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
-        # https://developer.dailymotion.com/player#player-parameters
         yield from super()._extract_embed_urls(url, webpage)
-        for mobj in re.finditer(
-                r'(?s)DM\.player\([^,]+,\s*{.*?video[\'"]?\s*:\s*["\']?(?P<id>[0-9a-zA-Z]+).+?}\s*\);', webpage):
-            yield 'https://www.dailymotion.com/embed/video/' + mobj.group('id')
-        for mobj in re.finditer(
-                r'(?s)<script [^>]*\bsrc=(["\'])(?:https?:)?//[\w-]+\.dailymotion\.com/player/(?:(?!\1).)+\1[^>]*>', webpage):
-            attrs = extract_attributes(mobj.group(0))
-            player_url = url_or_none(attrs.get('src'))
-            if not player_url:
-                continue
-            player_url = player_url.replace('.js', '.html')
-            if player_url.startswith('//'):
-                player_url = f'https:{player_url}'
-            if video_id := attrs.get('data-video'):
-                query_string = f'video={video_id}'
-            elif playlist_id := attrs.get('data-playlist'):
-                query_string = f'playlist={playlist_id}'
-            else:
-                continue
-            yield update_url(player_url, query=query_string)
+
+        # https://developers.dailymotion.com/guides/migrate-player-embed/#web-sdk-mapping
+        pattern = r'''(?sx)
+            (?:DM\.player|dailymotion\.createPlayer)\(
+            [^,]+,\s*{.*?video["\']?\s*:\s*["\']?(?P<id>[0-9A-Za-z]+).*?}\)\s*;
+        '''
+        for m in re.finditer(pattern, webpage):
+            yield f'https://www.dailymotion.com/video/{m.group("id")}'
+
+        # https://developers.dailymotion.com/guides/getting-started-with-web-sdk/#player-embed-script
+        for id_type in ('playlist', 'video'):
+            for item in traverse_obj(webpage, ({find_elements(
+                tag='script', attr=f'data-{id_type}', value=r'x\w+', html=True, regex=True,
+            )}, ..., {extract_attributes}, all, lambda _, v: url_or_none(v['src']))):
+                if id_type == 'video' and item.get('data-playlist'):
+                    continue
+                if item_id := traverse_obj(item, (f'data-{id_type}', {str})):
+                    yield update_url_query(
+                        item['src'].replace('.js', '.html'), {id_type: item_id})
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url)
@@ -371,119 +371,93 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             playlist_id = video_id
             video_id = None
 
-        if self._yes_playlist(playlist_id, video_id):
+        if playlist_id and not self.get_param('noplaylist'):
             return self.url_result(
-                f'http://www.dailymotion.com/playlist/{playlist_id}',
-                'DailymotionPlaylist', playlist_id)
+                f'{self._BASE_URL}/playlist/{playlist_id}', DailymotionPlaylistIE)
 
         password = self.get_param('videopassword')
         media = self._call_api(
-            'media', video_id, '''... on Video {
-      %s
-      stats {
-        likes {
-          total
-        }
-        views {
-          total
-        }
-      }
-    }
-    ... on Live {
-      %s
-      audienceCount
-      isOnAir
-    }''' % (self._COMMON_MEDIA_FIELDS, self._COMMON_MEDIA_FIELDS), 'Downloading media JSON metadata',  # noqa: UP031
-            'password: "{}"'.format(self.get_param('videopassword')) if password else None)
+            'media', video_id, f'''... on Video {{
+              {self._COMMON_MEDIA_FIELDS}
+              hashtags {{
+                edges {{
+                  node {{
+                    name
+                  }}
+                }}
+              }}
+            }}
+            ... on Live {{
+              {self._COMMON_MEDIA_FIELDS}
+              isOnAir
+            }}''', extra_params=f'password: "{password}"' if password else None)
+
         xid = media['xid']
-
         metadata = self._download_json(
-            'https://www.dailymotion.com/player/metadata/video/' + xid,
-            xid, 'Downloading metadata JSON',
+            f'{self._BASE_URL}/player/metadata/video/{xid}', xid,
             query=traverse_obj(smuggled_data, 'query') or {'app': 'com.dailymotion.neon'})
+        video_id = metadata['id']
 
-        error = metadata.get('error')
-        if error:
-            title = error.get('title') or error['raw_message']
-            # See https://developer.dailymotion.com/api#access-error
-            if error.get('code') == 'DM007':
-                allowed_countries = try_get(media, lambda x: x['geoblockedCountries']['allowed'], list)
-                self.raise_geo_restricted(msg=title, countries=allowed_countries)
-            raise ExtractorError(
-                f'{self.IE_NAME} said: {title}', expected=True)
+        # https://developers.dailymotion.com/api/platform-api/errors/#access-error
+        if error := metadata.get('error'):
+            code = traverse_obj(error, ('code', {clean_html}, filter))
+            message = traverse_obj(error, (('title', 'raw_message'), {clean_html}, any))
+            if code == 'DM007':
+                allowed_countries = traverse_obj(media, (
+                    'geoblockedCountries', 'allowed', ..., {str}, filter, all, filter))
+                self.raise_geo_restricted(msg=message, countries=allowed_countries)
+            raise ExtractorError(join_nonempty(code, message, delim=': '), expected=True)
 
-        title = metadata['title']
-        is_live = media.get('isOnAir')
-        formats = []
-        subtitles = {}
+        m3u8_url = traverse_obj(metadata, ('qualities', 'auto', ..., 'url', {url_or_none}, any))
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, xid, 'mp4')
 
-        for quality, media_list in metadata['qualities'].items():
-            for m in media_list:
-                media_url = m.get('url')
-                media_type = m.get('type')
-                if not media_url or media_type == 'application/vnd.lumberjack.manifest':
-                    continue
-                if media_type == 'application/x-mpegURL':
-                    fmt, subs = self._extract_m3u8_formats_and_subtitles(
-                        media_url, video_id, 'mp4', live=is_live, m3u8_id='hls', fatal=False)
-                    formats.extend(fmt)
-                    self._merge_subtitles(subs, target=subtitles)
-                else:
-                    f = {
-                        'url': media_url,
-                        'format_id': 'http-' + quality,
-                    }
-                    m = re.search(r'/H264-(\d+)x(\d+)(?:-(60)/)?', media_url)
-                    if m:
-                        width, height, fps = map(int_or_none, m.groups())
-                        f.update({
-                            'fps': fps,
-                            'height': height,
-                            'width': width,
-                        })
-                    formats.append(f)
         for f in formats:
-            f['url'] = f['url'].split('#')[0]
-            if not f.get('fps') and f['format_id'].endswith('@60'):
-                f['fps'] = 60
+            _, sep, suffix = f['format_id'].rpartition('@')
+            if sep and suffix.isdigit():
+                f['fps'] = int(suffix)
 
-        subtitles_data = try_get(metadata, lambda x: x['subtitles']['data'], dict) or {}
-        for subtitle_lang, subtitle in subtitles_data.items():
-            subtitles[subtitle_lang] = [{
-                'url': subtitle_url,
-            } for subtitle_url in subtitle.get('urls', [])]
-
-        thumbnails = traverse_obj(metadata, (
-            ('posters', 'thumbnails'), {dict.items}, lambda _, v: url_or_none(v[1]), {
-                'height': (0, {int_or_none}),
-                'id': (0, {str}),
-                'url': 1,
-            }))
-
-        owner = metadata.get('owner') or {}
-        stats = media.get('stats') or {}
-        get_count = lambda x: int_or_none(try_get(stats, lambda y: y[x + 's']['total']))
+        for lang, subtitle in traverse_obj(metadata, (
+            'subtitles', 'data', {dict.items}, ...,
+        )):
+            for subtitle_url in traverse_obj(subtitle, (
+                'urls', ..., {url_or_none},
+            )):
+                subtitles.setdefault(lang, []).append({'url': subtitle_url})
 
         return {
             'id': video_id,
-            'title': title,
-            'description': clean_html(media.get('description')),
-            'thumbnails': thumbnails,
-            'duration': int_or_none(metadata.get('duration')) or None,
-            'timestamp': int_or_none(metadata.get('created_time')),
-            'uploader': owner.get('screenname'),
-            'uploader_id': owner.get('id') or metadata.get('screenname'),
-            'age_limit': 18 if metadata.get('explicit') else 0,
-            'tags': metadata.get('tags'),
-            'view_count': get_count('view') or int_or_none(media.get('audienceCount')),
-            'like_count': get_count('like'),
             'formats': formats,
             'subtitles': subtitles,
-            'is_live': is_live,
+            '_old_archive_ids': [make_archive_id(self, xid)] if xid != video_id else None,
+            **traverse_obj(media, {
+                'description': ('description', {clean_html}, filter),
+                'tags': ('hashtags', 'edges', ..., 'node', 'name', {str}, filter, all, filter),
+                'is_live': ('stream_type', {str}, {lambda x: x == 'live'}),
+            }),
+            **traverse_obj(metadata, {
+                'title': ('title', {clean_html}),
+                'age_limit': ('explicit', {bool}, {lambda x: 18 if x else None}),
+                'categories': ('channel', {str}, all),
+                'channel_is_verified': ('partner', {bool}),
+                'duration': ('duration', {int_or_none}),
+                'media_type': ('media_type', {str}),
+                'thumbnails': ('thumbnails', {dict.items}, lambda _, v: url_or_none(v[1]), {
+                    'id': (0, {str}),
+                    'height': (0, {int_or_none}),
+                    'url': 1,
+                }),
+                'timestamp': ('created_time', {int_or_none}),
+            }),
+            **traverse_obj(metadata, ('owner', {
+                'channel': ('screenname', {clean_html}),
+                'channel_id': ('username', {str}),
+                'uploader': ('screenname', {clean_html}),
+                'uploader_id': ('id', {str}),
+            })),
         }
 
 
-class DailymotionPlaylistBaseIE(DailymotionBaseInfoExtractor):
+class DailymotionPlaylistBaseIE(DailymotionBaseIE):
     _PAGE_SIZE = 100
 
     def _fetch_page(self, playlist_id, page):
@@ -552,7 +526,7 @@ class DailymotionSearchIE(DailymotionPlaylistBaseIE):
         if not self._HEADERS.get('Authorization'):
             self._HEADERS['Authorization'] = f'Bearer {self._get_token(term)}'
         resp = self._download_json(
-            'https://graphql.api.dailymotion.com/', None, note, data=json.dumps({
+            self._API_BASE, None, note, data=json.dumps({
                 'operationName': 'SEARCH_QUERY',
                 'query': self._SEARCH_QUERY,
                 'variables': {
@@ -572,7 +546,7 @@ class DailymotionSearchIE(DailymotionPlaylistBaseIE):
         page += 1
         response = self._call_search_api(term, page, f'Searching "{term}" page {page}')
         for xid in traverse_obj(response, ('videos', 'edges', ..., 'node', 'xid')):
-            yield self.url_result(f'https://www.dailymotion.com/video/{xid}', DailymotionIE, xid)
+            yield self.url_result(f'{self._BASE_URL}/video/{xid}', DailymotionIE, xid)
 
     def _real_extract(self, url):
         term = urllib.parse.unquote_plus(self._match_id(url))
