@@ -118,6 +118,13 @@ class AGalegaSeriesIE(AGalegaBaseIE):
             'title': 'Land Rober + show',
         },
         'playlist_count': 34,
+    }, {
+        'url': 'https://www.agalega.gal/videos/category/17062-peliculas-e-documentais',
+        'info_dict': {
+            'id': '17062',
+            'title': 'Películas e documentais ',
+        },
+        'playlist_count': 55,
     }]
 
     def _series_information(self, category_id):
@@ -178,7 +185,7 @@ class AGalegaSeriesIE(AGalegaBaseIE):
                                       'episode_name': ('name', {str}),
                                   })))
 
-    def _get_seasons_page(self, series_id):
+    def _get_seasons_page(self, series_id, series_name):
         try:
             sub_category_data = self._call_api(
                 f'subcategory/{series_id}/', series_id,
@@ -218,11 +225,31 @@ class AGalegaSeriesIE(AGalegaBaseIE):
                         self._MAX_ITEMS)
                 else:
                     yield from self._process_episodes_from_data(first_page, season.get('season_id'), season.get('season_name'))
+        first_page = self._call_api(
+            f'category_contents/{series_id}', series_id,
+            f'Downloading episode count for season {series_name}',
+            query={
+                'optional_fields': 'image,short_description,has_subtitle,description',
+            })
+        total_count = int_or_none(first_page.get('count'))
+        results_count = len(traverse_obj(first_page, ('results', ...)))
+
+        if results_count:
+            if total_count is not None and total_count > results_count:
+                yield from self._process_episodes_from_data(first_page, series_id, series_name)
+                page_count = math.ceil(total_count / self._MAX_ITEMS)
+                yield from InAdvancePagedList(
+                    functools.partial(self._get_episodes_per_season, series_id,
+                                      series_name),
+                    page_count - 1,
+                    self._MAX_ITEMS)
+            else:
+                yield from self._process_episodes_from_data(first_page, series_id, series_name)
 
     def _real_extract(self, url):
         category_id = self._match_id(url)
         self._series_information(category_id)
         if self._CATEGORY_DATA:
-            entries = self._get_seasons_page(self._CATEGORY_DATA.get('series_id'))
+            entries = self._get_seasons_page(self._CATEGORY_DATA.get('series_id'), self._CATEGORY_DATA.get('series_name'))
             return self.playlist_result(entries,
                                         self._CATEGORY_DATA.get('series_id'), self._CATEGORY_DATA.get('series_name'))
