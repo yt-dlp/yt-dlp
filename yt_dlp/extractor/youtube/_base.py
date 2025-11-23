@@ -104,6 +104,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'SUPPORTS_COOKIES': True,
+        'SUPPORTS_AD_CONTEXT': True,
         **WEB_PO_TOKEN_POLICIES,
     },
     # Safari UA returns pre-merged video+audio 144p/240p/360p/720p/1080p HLS formats
@@ -117,6 +118,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'SUPPORTS_COOKIES': True,
+        'SUPPORTS_AD_CONTEXT': True,
         **WEB_PO_TOKEN_POLICIES,
     },
     'web_embedded': {
@@ -156,6 +158,7 @@ INNERTUBE_CLIENTS = {
                 recommended=True,
             ),
         },
+        'SUPPORTS_AD_CONTEXT': True,
         'SUPPORTS_COOKIES': True,
     },
     # This client now requires sign-in for every video
@@ -313,6 +316,7 @@ INNERTUBE_CLIENTS = {
             ),
         },
         'SUPPORTS_COOKIES': True,
+        'SUPPORTS_AD_CONTEXT': True,
     },
     'tv': {
         'INNERTUBE_CONTEXT': {
