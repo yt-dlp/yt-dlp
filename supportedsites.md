@@ -1476,6 +1476,7 @@ The only reliable way to check if a site is supported is to try it.
  - **ThisVid**
  - **ThisVidMember**
  - **ThisVidPlaylist**
+ - **Threads**
  - **ThreeSpeak**
  - **ThreeSpeakUser**
  - **TikTok**
