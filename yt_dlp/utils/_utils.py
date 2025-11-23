@@ -877,8 +877,8 @@ class Popen(subprocess.Popen):
             kwargs.setdefault('errors', 'replace')
 
         if os.name == 'nt' and kwargs.get('executable') is None:
-            # Apply shell escaping as we are trying to run a batch file
-            # Limit scope by being as specific as possible
+            # Must apply shell escaping if we are trying to run a batch file
+            # These conditions should be very specific to limit impact
             if not shell and isinstance(args, list) and args and args[0].lower().endswith(('.bat', '.cmd')):
                 shell = True
 
