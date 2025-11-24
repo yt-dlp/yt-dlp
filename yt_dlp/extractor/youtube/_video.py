@@ -2628,8 +2628,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _get_checkok_params():
         return {'contentCheckOk': True, 'racyCheckOk': True}
 
-    @classmethod
-    def _generate_player_context(cls, sts=None, is_authenticated=False):
+    def _generate_player_context(self, sts=None):
         context = {
             'html5Preference': 'HTML5_PREF_WANTS',
         }
@@ -2638,13 +2637,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         playback_context = {
             'contentPlaybackContext': context,
         }
-        if not is_authenticated:
+        if self._configuration_arg('use_ad_playback_context', ['false'])[0] != 'false':
             playback_context['adPlaybackContext'] = {
                 'pyv': True,
             }
         return {
             'playbackContext': playback_context,
-            **cls._get_checkok_params(),
+            **self._get_checkok_params(),
         }
 
     def _get_config_po_token(self, client: str, context: _PoTokenContext):
@@ -2871,7 +2870,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             yt_query['serviceIntegrityDimensions'] = {'poToken': po_token}
 
         sts = self._extract_signature_timestamp(video_id, player_url, webpage_ytcfg, fatal=False) if player_url else None
-        yt_query.update(self._generate_player_context(sts, self.is_authenticated))
+        yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
             ytcfg=player_ytcfg, headers=headers, fatal=True,
