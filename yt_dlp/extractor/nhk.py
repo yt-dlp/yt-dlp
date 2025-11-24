@@ -28,37 +28,19 @@ class NhkBaseIE(InfoExtractor):
 
     def _call_api(self, m_id, lang, is_video, is_episode, is_clip):
         content_format = 'video' if is_video else 'audio'
-
-        if not is_episode:
-            page_type = 'programs'
-
-        if is_clip:
-            content_type = 'clips'
-        else:
-            content_type = 'episodes'
-
+        content_type = 'clips' if is_clip else 'episodes'
         if not is_episode:
             extra_page = f'/{content_format}_{content_type}'
+            page_type = 'programs'
         else:
             extra_page = ''
             page_type = content_type
 
-        return self._download_json(self._API_URL_TEMPLATE.format(
-            lang=lang,
-            content_format=content_format,
-            page_type=page_type,
-            m_id=m_id,
-            extra_page=extra_page,
-        ), video_id=join_nonempty(m_id, lang),
-        )
-
-        # FOR EXAMPLE:
-        # https://api.nhkworld.jp/showsapi/v1/en/video_episodes/2024117
-        # https://api.nhkworld.jp/showsapi/v1/en/audio_episodes/r_l_japannews-20250203-1
-        # https://api.nhkworld.jp/showsapi/v1/en/video_clips/9999011
-        # https://api.nhkworld.jp/showsapi/v1/en/video_programs/dwc/video_episodes
-        # https://api.nhkworld.jp/showsapi/v1/en/audio_programs/livinginjapan/audio_episodes
-        # no such thing as an audio_clips afaict
+        return self._download_json(
+            self._API_URL_TEMPLATE.format(
+                lang=lang, content_format=content_format, page_type=page_type,
+                m_id=m_id, extra_page=extra_page),
+            join_nonempty(m_id, lang))
 
     def _extract_episode_info(self, url, episode=None):
         fetch_episode = episode is None
@@ -89,32 +71,35 @@ class NhkBaseIE(InfoExtractor):
             'title': title,
             'series': series,
             'episode': episode_name,
-            **traverse_obj(episode, ({
-                'description': 'description',
+            **traverse_obj(episode, {
+                'description': ('description', {str}),
                 'release_timestamp': ('first_broadcasted_at', {unified_timestamp}),
-                'categories': ('categories', ..., 'name'),
-                'tags': ('tags', ..., 'name'),
-                'thumbnails': ('images', ..., {
-                    'url': ('url', {lambda x: urljoin(url, x)}, {url_or_none}),
-                    'width': 'width',
-                    'height': 'height',
+                'categories': ('categories', ..., 'name', {str}),
+                'tags': ('tags', ..., 'name', {str}),
+                'thumbnails': ('images', lambda _, v: v['url'], {
+                    'url': ('url', {urljoin(url)}),
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
                 }),
-            })),
+                'webpage_url': ('url', {urljoin(url)}),
+            }),
+            'extractor_key': NhkVodIE.ie_key(),
+            'extractor': NhkVodIE.ie_key(),
         }
 
         # FOOLISH ASSUMPTION: an episode can't be video and audio at the same time
-        stream_info = traverse_obj(episode, (('video', 'audio'), any))
-        if not stream_info:
+        stream_info = traverse_obj(episode, (('video', 'audio'), {dict}, any)) or {}
+        if not stream_info.get('url'):
             self.raise_no_formats('Stream not found; it has most likely expired', expected=True)
         else:
-            stream_url = stream_info.get('url')
+            stream_url = stream_info['url']
             if is_video:
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(stream_url, video_id)
                 info.update({
                     'formats': formats,
                     'subtitles': subtitles,
                     **traverse_obj(stream_info, ({
-                        'duration': 'duration',
+                        'duration': ('duration', {int_or_none}),
                         'timestamp': ('published_at', {unified_timestamp}),
                     })),
                 })
@@ -127,11 +112,6 @@ class NhkBaseIE(InfoExtractor):
                     m3u8_id='hls', fatal=False)
                 for f in info['formats']:
                     f['language'] = lang
-
-            info.update({
-                'extractor_key': NhkVodIE.ie_key(),
-                'extractor': NhkVodIE.ie_key(),
-            })
 
         return info
 
@@ -356,9 +336,8 @@ class NhkVodProgramIE(NhkBaseIE):
             program_id, lang, m_type != 'audio', False, episode_type == 'clip')
 
         def entries():
-            for episode in episodes['items']:
-                if episode_path := episode.get('url'):
-                    yield self._extract_episode_info(urljoin(url, episode_path), episode)
+            for episode in traverse_obj(episodes, ('items', lambda _, v: v['url'])):
+                yield self._extract_episode_info(urljoin(url, episode['url']), episode)
 
         html = self._download_webpage(url, program_id)
         program_title = self._extract_meta_from_class_elements([
