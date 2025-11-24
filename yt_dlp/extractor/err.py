@@ -239,7 +239,7 @@ class ERRJupiterIE(InfoExtractor):
             # XXX: Apparently we need to fill out the playlist_id
             if self._yes_playlist('dummy-id', video_id, idata):
                 playlist_type = season_data.get('type')
-                if playlist_type in ('seasonal', 'monthly'):
+                if playlist_type in ('seasonal', 'monthly', 'shortSeriesList'):
                     active_season = next(season for season in season_data.get('items') if season.get('contents'))
                     entries = [
                         self.url_result(smuggle_url(episode['url'], {'force_noplaylist': True}))
