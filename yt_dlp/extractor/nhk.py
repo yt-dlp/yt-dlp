@@ -156,9 +156,9 @@ class NhkVodIE(NhkBaseIE):
             'series': 'Japan Railway Journal',
             'duration': 1680,
             'categories': ['Biz & Tech'],
-            'tags': ['Akita', 'Chiba', 'Trains', 'All (Japan Navigator)'],
-            'timestamp': 1758810600,
-            'upload_date': '20250925',
+            'tags': ['Akita', 'Chiba', 'Trains', 'Transcript', 'All (Japan Navigator)'],
+            'timestamp': 1759055880,
+            'upload_date': '20250928',
             'release_timestamp': 1758810600,
             'release_date': '20250925',
         },
@@ -242,7 +242,7 @@ class NhkVodIE(NhkBaseIE):
             'duration': 2955,
             'thumbnail': 'https://www3.nhk.or.jp/nhkworld/en/shows/3026036/images/wide_l_QPtWpt4lzVhm3NzPAMIIF35MCg4CdNwcikPaTS5Q.jpg',
             'categories': ['Documentary', 'Culture & Lifestyle'],
-            'tags': ['Documentary 360', 'The Pursuit of PEACE'],
+            'tags': ['Transcript', 'Documentary 360', 'The Pursuit of PEACE'],
             'timestamp': 1758931800,
             'upload_date': '20250927',
             'release_timestamp': 1758931800,
@@ -304,6 +304,7 @@ class NhkVodProgramIE(NhkBaseIE):
             'id': 'sumo',
             'title': 'GRAND SUMO Highlights',
             'description': 'md5:fc20d02dc6ce85e4b72e0273aa52fdbf',
+            'series': 'GRAND SUMO Highlights',
         },
         'playlist_mincount': 1,
     }, {
@@ -312,6 +313,7 @@ class NhkVodProgramIE(NhkBaseIE):
             'id': 'japanrailway',
             'title': 'Japan Railway Journal',
             'description': 'md5:ea39d93af7d05835baadf10d1aae0e3f',
+            'series': 'Japan Railway Journal',
         },
         'playlist_mincount': 12,
     }, {
@@ -321,6 +323,7 @@ class NhkVodProgramIE(NhkBaseIE):
             'id': 'japanrailway',
             'title': 'Japan Railway Journal',
             'description': 'md5:ea39d93af7d05835baadf10d1aae0e3f',
+            'series': 'Japan Railway Journal',
         },
         'playlist_mincount': 12,
     }, {
@@ -330,6 +333,7 @@ class NhkVodProgramIE(NhkBaseIE):
             'id': 'livinginjapan',
             'title': 'Living in Japan',
             'description': 'md5:665bb36ec2a12c5a7f598ee713fc2b54',
+            'series': 'Living in Japan',
         },
         'playlist_mincount': 11,
     }, {
