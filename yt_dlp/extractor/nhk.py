@@ -84,10 +84,10 @@ class NhkBaseIE(InfoExtractor):
                 'webpage_url': ('url', {urljoin(url)}),
             }),
             'extractor_key': NhkVodIE.ie_key(),
-            'extractor': NhkVodIE.ie_key(),
+            'extractor': NhkVodIE.IE_NAME,
         }
 
-        # FOOLISH ASSUMPTION: an episode can't be video and audio at the same time
+        # XXX: We are assuming that 'video' and 'audio' are mutually exclusive
         stream_info = traverse_obj(episode, (('video', 'audio'), {dict}, any)) or {}
         if not stream_info.get('url'):
             self.raise_no_formats('Stream not found; it has most likely expired', expected=True)
