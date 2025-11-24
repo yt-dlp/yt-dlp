@@ -637,14 +637,14 @@ from .fc2 import (
 )
 from .fczenit import FczenitIE
 from .fifa import FifaIE
+from .fikfap import (
+    FikfapCollectionIE,
+    FikfapIE,
+    FikfapUserIE,
+)
 from .filmon import (
     FilmOnChannelIE,
     FilmOnIE,
-)
-from .fikfap import (
-    FikfapIE,
-    FikfapCollectionIE,
-    FikfapUserIE,
 )
 from .filmweb import FilmwebIE
 from .firsttv import (
