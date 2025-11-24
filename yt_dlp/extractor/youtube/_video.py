@@ -4082,12 +4082,26 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         })
 
                 if not pot_params and requires_pot:
-                    skipped_subs_clients.add(client_name)
-                    self._report_pot_subtitles_skipped(video_id, client_name)
-                    break
+                    # Check if the user has opted-in to see "broken" formats/subs via --extractor-args "youtube:formats=missing_pot"
+                    if 'missing_pot' not in self._configuration_arg('formats'):
+                        skipped_subs_clients.add(client_name)
+                        self._report_pot_subtitles_skipped(video_id, client_name)
+                        break
+                    # If enabled, log a debug message and proceed to add the subtitle
+                    self.write_debug(f'{video_id}: {client_name} client subtitles require POT but "missing_pot" is enabled. Allowing potentially broken URL.')
 
                 orig_lang = qs.get('lang', [None])[-1]
                 lang_name = self._get_text(caption_track, 'name', max_runs=1)
+
+                if caption_track.get('kind') == 'asr':
+                    # Force-add the ASR track directly to automatic_captions
+                    # This fixes the issue where experimental languages are missing from the translation map
+                    asr_code = get_lang_code(caption_track)
+                    if asr_code:
+                        process_language(
+                            automatic_captions, base_url, asr_code,
+                            f'{lang_name} (Original)', client_name, pot_params)
+
                 if caption_track.get('kind') != 'asr':
                     if not lang_code:
                         continue
