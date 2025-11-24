@@ -467,7 +467,7 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
     --list-impersonate-targets      List available clients to impersonate.
     -4, --force-ipv4                Make all connections via IPv4
     -6, --force-ipv6                Make all connections via IPv6
-    --enable-file-urls              Enable file:// URLs. This is disabled by
+    --enable-file-urls              Enable file:/// URLs. This is disabled by
                                     default for security reasons.
 
 ## Geo-restriction:
