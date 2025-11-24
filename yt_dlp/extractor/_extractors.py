@@ -641,6 +641,11 @@ from .filmon import (
     FilmOnChannelIE,
     FilmOnIE,
 )
+from .fikfap import (
+    FikfapIE,
+    FikfapCollectionIE,
+    FikfapUserIE,
+)
 from .filmweb import FilmwebIE
 from .firsttv import (
     FirstTVIE,
