@@ -763,8 +763,8 @@ class InstagramLiveIE(InstagramBaseIE):
 
         target_user_id = traverse_obj(
             metadata,
-            ('require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., 'rootView', 'props', 'target_user_id', {str}),
-            ('require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., 'hostableView', 'props', 'target_user_id', {str}),
+            ('require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., 'initialRouteInfo', 'route', 'rootView', 'props', 'target_user_id', {str}),
+            ('require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., 'initialRouteInfo', 'route', 'hostableView', 'props', 'target_user_id', {str}),
             get_all=False)
         if not target_user_id:
             raise ExtractorError('Missing "target_user_id" in metadata')
@@ -788,6 +788,10 @@ class InstagramLiveIE(InstagramBaseIE):
 
         return {
             'id': video_id,
+            'title': traverse_obj(
+                metadata,
+                ('require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., 'initialRouteInfo', 'route', 'meta', 'title', {str}),
+                default=''),
             'formats': self._extract_mpd_formats(
                 traverse_obj(web_info_json, ('dash_abr_playback_url', {url_or_none})), video_id),
             'uploader': traverse_obj(web_info_json, ('broadcast_owner', 'full_name')),
