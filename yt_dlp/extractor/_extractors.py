@@ -1498,6 +1498,7 @@ from .parti import (
 )
 from .patreon import (
     PatreonCampaignIE,
+    PatreonCollectionIE,
     PatreonIE,
 )
 from .pbs import (
