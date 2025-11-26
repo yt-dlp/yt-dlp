@@ -116,7 +116,7 @@ class FikfapCollectionIE(FikfapPlaylistBaseIE):
     _VALID_URL = r'https?://(?:www\.)?fikfap\.com/collections/(?P<id>[^/?#]+)'
     IE_NAME = 'fikfap:collection'
     _TESTS = [{
-        'url': 'https://fikfap.com/user/Mrmrscumzalot69',
+        'url': 'https://fikfap.com/collections/6f731e69-4382-4c03-ae26-149243223ab6',
         'info_dict': {
             'id': '6f731e69-4382-4c03-ae26-149243223ab6',
         },
