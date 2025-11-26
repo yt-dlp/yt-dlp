@@ -4063,6 +4063,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             pot_params = {}
             already_fetched_pot = False
 
+
             for caption_track in traverse_obj(pctr, ('captionTracks', lambda _, v: v['baseUrl'])):
                 base_url = caption_track['baseUrl']
                 qs = parse_qs(base_url)
@@ -4081,27 +4082,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             'c': innertube_client_name,
                         })
 
+                # Reverted to standard behavior: If it needs a token and we don't have one, skip it.
                 if not pot_params and requires_pot:
-                    # Check if the user has opted-in to see "broken" formats/subs via --extractor-args "youtube:formats=missing_pot"
-                    if 'missing_pot' not in self._configuration_arg('formats'):
-                        skipped_subs_clients.add(client_name)
-                        self._report_pot_subtitles_skipped(video_id, client_name)
-                        break
-                    # If enabled, log a debug message and proceed to add the subtitle
-                    self.write_debug(f'{video_id}: {client_name} client subtitles require POT but "missing_pot" is enabled. Allowing potentially broken URL.')
+                    skipped_subs_clients.add(client_name)
+                    self._report_pot_subtitles_skipped(video_id, client_name)
+                    break
 
                 orig_lang = qs.get('lang', [None])[-1]
                 lang_name = self._get_text(caption_track, 'name', max_runs=1)
-
-                if caption_track.get('kind') == 'asr':
-                    # Force-add the ASR track directly to automatic_captions
-                    # This fixes the issue where experimental languages are missing from the translation map
-                    asr_code = get_lang_code(caption_track)
-                    if asr_code:
-                        process_language(
-                            automatic_captions, base_url, asr_code,
-                            f'{lang_name} (Original)', client_name, pot_params)
-
+                
                 if caption_track.get('kind') != 'asr':
                     if not lang_code:
                         continue
@@ -4109,6 +4098,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         subtitles, base_url, lang_code, lang_name, client_name, pot_params)
                     if not caption_track.get('isTranslatable'):
                         continue
+
+                # Track if we processed this ASR track via the standard map to avoid duplicates
+                asr_processed = False
+                
                 for trans_code, trans_name in translation_languages.items():
                     if not trans_code:
                         continue
@@ -4128,10 +4121,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         process_language(
                             automatic_captions, base_url, f'{trans_code}-orig',
                             f'{trans_name} (Original)', client_name, pot_params)
+                        asr_processed = True # Mark as handled
                     # Setting tlang=lang returns damaged subtitles.
                     process_language(
                         automatic_captions, base_url, trans_code, trans_name, client_name,
                         pot_params if orig_lang == orig_trans_code else {'tlang': trans_code, **pot_params})
+
+                # Fallback for experimental languages (like yue) not in translationLanguages
+                if caption_track.get('kind') == 'asr' and not asr_processed:
+                    # Only add if the loop above missed it.
+                    if lang_code:
+                         process_language(
+                            automatic_captions, base_url, lang_code,
+                            f'{lang_name} (Original)', client_name, pot_params)
 
             # Avoid duplication if we've already got everything we need
             need_subs_langs.difference_update(subtitles)

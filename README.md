@@ -1870,7 +1870,6 @@ The following extractors use this feature:
 * `po_token`:  Proof of Origin (PO) Token(s) to use. Comma seperated list of PO Tokens in the format `CLIENT.CONTEXT+PO_TOKEN`, e.g. `youtube:po_token=web.gvs+XXX,web.player=XXX,web_safari.gvs+YYY`. Context can be any of `gvs` (Google Video Server URLs), `player` (Innertube player request) or `subs` (Subtitles)
 * `pot_trace`: Enable debug logging for PO Token fetching. Either `true` or `false` (default)
 * `fetch_pot`: Policy to use for fetching a PO Token from providers. One of `always` (always try fetch a PO Token regardless if the client requires one for the given context), `never` (never fetch a PO Token), or `auto` (default; only fetch a PO Token if the client requires one for the given context)
-* `playback_wait`: Duration (in seconds) to wait inbetween the extraction and download stages in order to ensure the formats are available. The default is `6` seconds
 * `jsc_trace`: Enable debug logging for JS Challenge fetching. Either `true` or `false` (default)
 
 #### youtube-ejs
