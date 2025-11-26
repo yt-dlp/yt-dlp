@@ -1,8 +1,7 @@
-import itertools
 import uuid
 
 from .common import InfoExtractor
-from ..utils import unified_strdate
+from ..utils import OnDemandPagedList, unified_strdate
 
 
 class FikfapBaseIE(InfoExtractor):
@@ -37,16 +36,17 @@ class FikfapBaseIE(InfoExtractor):
                 'Origin': 'https://fikfap.com',
                 'Referer': 'https://fikfap.com/',
             })
+
         yield {
             'id': video_id,
             'formats': formats,
-            'title': post['label'],
-            'thumbnail': post['thumbnailStreamUrl'],
-            'likes_count': post['likesCount'],
-            'upload_date': unified_strdate(post['publishedAt']),
-            'view_count': post['viewsCount'],
-            'comments_count': post['commentsCount'],
-            'author': post['author'],
+            'title': post.get('label'),
+            'thumbnail': post.get('thumbnailStreamUrl'),
+            'likes_count': post.get('likesCount'),
+            'upload_date': unified_strdate(post.get('publishedAt')),
+            'view_count': post.get('viewsCount'),
+            'comments_count': post.get('commentsCount'),
+            'author': post.get('author'),
             'age_limit': 18,
         }
 
@@ -68,25 +68,34 @@ class FikfapIE(FikfapBaseIE):
 
 
 class FikfapPlaylistBaseIE(FikfapBaseIE):
-    def _parse_posts(self, video_id):
-        _after_id = None
-
-        for post in itertools.count(1):
-            path = f'/{self._MIDDLE_NAME}/{video_id}/posts?amount=21'
-            if _after_id:
-                path += f'&afterId={_after_id}'
-            post_data = self._call_api(path, video_id, f'Downloading Page - {post} information')
-            if not post_data:
-                break
-            for pst in post_data:
-                yield from self._extract_post(pst, video_id)
-            _after_id = post_data[-1].get('postId')
-            if len(post_data) < 21 and not _after_id:
-                break
-
     def _real_extract(self, url):
         video_id = self._match_valid_url(url).group('id')
-        return self.playlist_result(self._parse_posts(video_id), video_id, video_id)
+        amount = 21
+
+        def fetch_page(page):
+            after_id = None
+            if after_id is None:
+                path = f'/{self._MIDDLE_NAME}/{video_id}/posts?amount={amount}'
+            else:
+                path = f'/{self._MIDDLE_NAME}/{video_id}/posts?amount={amount}&afterId={after_id}'
+
+            data = self._call_api(path, video_id, f'Downloading Page {page}')
+            if not data:
+                return []
+
+            after_id = data[-1].get('postId')
+
+            entries = []
+            for pst in data:
+                entries.extend(self._extract_post(pst, video_id))
+
+            return entries
+
+        return self.playlist_result(
+            OnDemandPagedList(fetch_page, 21),
+            playlist_id=video_id,
+            playlist_title=video_id,
+        )
 
 
 class FikfapUserIE(FikfapPlaylistBaseIE):
@@ -107,7 +116,7 @@ class FikfapCollectionIE(FikfapPlaylistBaseIE):
     _VALID_URL = r'https?://(?:www\.)?fikfap\.com/collections/(?P<id>[^/?#]+)'
     IE_NAME = 'fikfap:collection'
     _TESTS = [{
-        'url': 'https://fikfap.com/collections/6f731e69-4382-4c03-ae26-149243223ab6',
+        'url': 'https://fikfap.com/user/Mrmrscumzalot69',
         'info_dict': {
             'id': '6f731e69-4382-4c03-ae26-149243223ab6',
         },
