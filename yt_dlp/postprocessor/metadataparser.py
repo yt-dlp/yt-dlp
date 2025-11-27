@@ -43,6 +43,8 @@ class MetadataParserPP(PostProcessor):
            '(?P<title>.+)\ \-\ (?P<artist>.+)'
         """
         if not re.search(r'%\(\w+\)s', fmt):
+            if re.match(r'\w+', fmt):
+                return rf'(?P<{fmt}>.+)'
             return fmt
         lastpos = 0
         regex = ''
