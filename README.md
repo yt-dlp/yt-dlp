@@ -1299,7 +1299,7 @@ The field names themselves (the part inside the parenthesis) can also have some 
 
 1. **Default**: A literal default value can be specified for when the field is empty using a `|` separator. This overrides `--output-na-placeholder`. E.g. `%(uploader|Unknown)s`
 
-1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, yt-dlp additionally supports converting to `B` = **B**ytes, `j` = **j**son (flag `#` for pretty-printing, `+` for Unicode), `h` = HTML escaping, `l` = a comma separated **l**ist (flag `#` for `\n` newline-separated), `q` = a string **q**uoted for the terminal (flag `#` to split a list into different arguments), `D` = add **D**ecimal suffixes (e.g. 10M) (flag `#` to use 1024 as factor), and `S` = **S**anitize as filename (flag `#` for restricted)
+1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, yt-dlp additionally supports converting to `B` = **B**ytes, `j` = **j**son (flag `#` for pretty-printing, `+` for Unicode), `h` = HTML escaping, `l` = a comma-separated **l**ist (flag `#` for `\n` newline-separated), `q` = a string **q**uoted for the terminal (flag `#` to split a list into different arguments), `D` = add **D**ecimal suffixes (e.g. 10M) (flag `#` to use 1024 as factor), and `S` = **S**anitize as filename (flag `#` for restricted)
 
 1. **Unicode normalization**: The format type `U` can be used for NFC [Unicode normalization](https://docs.python.org/3/library/unicodedata.html#unicodedata.normalize). The alternate form flag (`#`) changes the normalization to NFD and the conversion flag `+` can be used for NFKC/NFKD compatibility equivalence normalization. E.g. `%(title)+.100U` is NFKC
 
@@ -1873,7 +1873,7 @@ The following extractors use this feature:
 * `jsc_trace`: Enable debug logging for JS Challenge fetching. Either `true` or `false` (default)
 
 #### youtube-ejs
-* `jitless`: Run suported Javascript engines in JIT-less mode. Supported runtimes are `deno`, `node` and `bun`. Provides better security at the cost of performance/speed. Do note that `node` and `bun` are still considered unsecure. Either `true` or `false` (default)
+* `jitless`: Run supported Javascript engines in JIT-less mode. Supported runtimes are `deno`, `node` and `bun`. Provides better security at the cost of performance/speed. Do note that `node` and `bun` are still considered insecure. Either `true` or `false` (default)
 
 #### youtubepot-webpo
 * `bind_to_visitor_id`: Whether to use the Visitor ID instead of Visitor Data for caching WebPO tokens. Either `true` (default) or `false`
