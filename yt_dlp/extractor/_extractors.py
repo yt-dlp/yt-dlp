@@ -655,7 +655,10 @@ from .floatplane import (
 )
 from .folketinget import FolketingetIE
 from .footyroom import FootyRoomIE
-from .forendors import ForendorsIE
+from .forendors import (
+    ForendorsChannelIE,
+    ForendorsIE,
+)
 from .formula1 import Formula1IE
 from .fourtube import (
     FourTubeIE,
