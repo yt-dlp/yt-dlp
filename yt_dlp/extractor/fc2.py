@@ -5,12 +5,12 @@ from .common import InfoExtractor
 from ..networking import Request
 from ..utils import (
     ExtractorError,
+    UserNotLive,
     js_to_json,
     traverse_obj,
     update_url_query,
     urlencode_postdata,
     urljoin,
-    UserNotLive,
 )
 
 
