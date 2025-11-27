@@ -205,6 +205,8 @@ class FC2LiveIE(InfoExtractor):
                 'client_app': 'browser_hls',
                 'ipv6': '',
             }), headers={'X-Requested-With': 'XMLHttpRequest'})
+        if control_server.get('status') == 11 or control_server.get('message'):
+            raise ExtractorError(f'Live Stream is Ended msg: ({control_server.get('message')})')
         self._set_cookie('live.fc2.com', 'l_ortkn', control_server['orz_raw'])
 
         ws_url = update_url_query(control_server['url'], {'control_token': control_server['control_token']})
