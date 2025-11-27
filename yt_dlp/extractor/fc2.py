@@ -10,6 +10,7 @@ from ..utils import (
     update_url_query,
     urlencode_postdata,
     urljoin,
+    UserNotLive,
 )
 
 
@@ -205,9 +206,8 @@ class FC2LiveIE(InfoExtractor):
                 'client_app': 'browser_hls',
                 'ipv6': '',
             }), headers={'X-Requested-With': 'XMLHttpRequest'})
-        msg = control_server.get('message')
-        if control_server.get('status') == 11 or msg:
-            raise ExtractorError(f'Live Stream is Ended msg: ({msg})')
+        if traverse_obj(control_server, ('status', {int})) == 11:
+            raise UserNotLive(video_id=video_id)
         self._set_cookie('live.fc2.com', 'l_ortkn', control_server['orz_raw'])
 
         ws_url = update_url_query(control_server['url'], {'control_token': control_server['control_token']})
