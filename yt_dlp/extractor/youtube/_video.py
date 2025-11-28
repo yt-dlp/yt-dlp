@@ -4093,7 +4093,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                 orig_lang = qs.get('lang', [None])[-1]
                 lang_name = self._get_text(caption_track, 'name', max_runs=1)
-                if caption_track.get('kind') != 'asr':
+                is_manual_subs = caption_track.get('kind') != 'asr'
+                if is_manual_subs:
                     if not lang_code:
                         continue
                     process_language(
@@ -4104,7 +4105,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not trans_code:
                         continue
                     orig_trans_code = trans_code
-                    if caption_track.get('kind') != 'asr' and trans_code != 'und':
+                    if is_manual_subs and trans_code != 'und':
                         if not get_translated_subs:
                             continue
                         trans_code += f'-{lang_code}'
@@ -4125,7 +4126,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # Workaround for new automatic captions languages not yet in 'translationLanguages'
                 # e.g. Cantonese [yue], see https://github.com/yt-dlp/yt-dlp/issues/14889
                 lang_code = remove_start(lang_code, 'a-')
-                if caption_track.get('kind') != 'asr' or not lang_code or lang_code in automatic_captions:
+                if is_manual_subs or not lang_code or lang_code in automatic_captions:
                     continue
                 lang_name = remove_end(lang_name, ' (auto-generated)')
                 if caption_track.get('isTranslatable'):
