@@ -320,10 +320,8 @@ class HttpFD(FileDownloader):
                         ctx.throttle_start = now
                     elif now - ctx.throttle_start > 3:
                         if ctx.stream is not None and ctx.tmpfilename != '-':
-                            if ctx.stream is not None:
-                                with contextlib.suppress(BaseException):
-                                    ctx.stream.close()
-                            ctx.stream.close()
+                            with contextlib.suppress(BaseException):
+                                ctx.stream.close()
                         raise ThrottledDownload
                 elif speed:
                     ctx.throttle_start = None
