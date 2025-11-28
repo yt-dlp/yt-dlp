@@ -481,7 +481,6 @@ class FragmentFD(FileDownloader):
                     self.to_screen(f'[download] Empty last YouTube fragment {frag_index}, skipping')
                     if not self.params.get('keep_fragments', False):
                         self.try_remove(ctx['fragment_filename_sanitized'])
-                    #del ctx['fragment_filename_sanitized']
                 else:
                     self.report_skip_fragment(frag_index, 'fragment not found')
             else:
