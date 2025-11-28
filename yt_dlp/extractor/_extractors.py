@@ -75,6 +75,7 @@ from .afreecatv import (
     AfreecaTVLiveIE,
     AfreecaTVUserIE,
 )
+from .agalega import AGalegaIE
 from .agora import (
     TokFMAuditionIE,
     TokFMPodcastIE,
@@ -268,6 +269,7 @@ from .bitchute import (
     BitChuteChannelIE,
     BitChuteIE,
 )
+from .bitmovin import BitmovinIE
 from .blackboardcollaborate import (
     BlackboardCollaborateIE,
     BlackboardCollaborateLaunchIE,
@@ -690,6 +692,10 @@ from .frontendmasters import (
     FrontendMastersIE,
     FrontendMastersLessonIE,
 )
+from .frontro import (
+    TheChosenGroupIE,
+    TheChosenIE,
+)
 from .fujitv import FujiTVFODPlus7IE
 from .funk import FunkIE
 from .funker530 import Funker530IE
@@ -1093,7 +1099,10 @@ from .markiza import (
 from .massengeschmacktv import MassengeschmackTVIE
 from .masters import MastersIE
 from .matchtv import MatchTVIE
-from .mave import MaveIE
+from .mave import (
+    MaveChannelIE,
+    MaveIE,
+)
 from .mbn import MBNIE
 from .mdr import MDRIE
 from .medaltv import MedalTVIE
@@ -1276,6 +1285,10 @@ from .nest import (
     NestClipIE,
     NestIE,
 )
+from .netapp import (
+    NetAppCollectionIE,
+    NetAppVideoIE,
+)
 from .neteasemusic import (
     NetEaseMusicAlbumIE,
     NetEaseMusicDjRadioIE,
@@ -1368,6 +1381,7 @@ from .nova import (
     NovaIE,
 )
 from .novaplay import NovaPlayIE
+from .nowcanal import NowCanalIE
 from .nowness import (
     NownessIE,
     NownessPlaylistIE,
@@ -2521,6 +2535,7 @@ from .yappy import (
     YappyIE,
     YappyProfileIE,
 )
+from .yfanefa import YfanefaIE
 from .yle_areena import YleAreenaIE
 from .youjizz import YouJizzIE
 from .youku import (
