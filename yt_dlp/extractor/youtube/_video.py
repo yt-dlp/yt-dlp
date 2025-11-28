@@ -111,6 +111,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             {invidious}
                          )/
                          |(?:www\.)?cleanvideosearch\.com/media/action/yt/watch\?videoId=
+                         |(?:www\.)?listenonrepeat.com/(?:watch)?\?v=
                          )
                      )?                                                       # all until now is optional -> you can pass the naked ID
                      (?P<id>[0-9A-Za-z_-]{{11}})                              # here is it! the YouTube video ID
