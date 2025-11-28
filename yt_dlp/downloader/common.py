@@ -49,6 +49,9 @@ class FileDownloader:
     verbose:            Print additional info to stdout.
     quiet:              Do not print messages to stdout.
     ratelimit:          Download speed limit, in bytes/sec.
+    ratelimit_per_fragment: When True, divide rate limit by concurrent fragments for
+                        smoother rate limiting with HLS/DASH. When None, auto-enabled
+                        for fragmented downloads. When False, disabled.
     throttledratelimit: Assume the download is being throttled below this speed (bytes/sec)
     retries:            Number of times to retry for expected network errors.
                         Default is 0 for API, but 10 for CLI
@@ -208,10 +211,34 @@ class FileDownloader:
         elapsed = now - start_time
         if elapsed <= 0.0:
             return
+        
+        # If per-fragment rate limiting is enabled, divide rate limit by concurrent fragments
+        # This prevents network bursts when downloading HLS/DASH fragments concurrently
+        ratelimit_per_fragment = self.params.get('ratelimit_per_fragment')
+        concurrent_frags = self.params.get('concurrent_fragment_downloads', 1)
+        original_rate_limit = rate_limit
+        
+        if ratelimit_per_fragment and concurrent_frags > 1:
+            rate_limit = rate_limit / concurrent_frags
+            # Track if we've shown the info message (only once per download)
+            if not hasattr(self, '_rate_limit_info_shown'):
+                from ..utils import format_bytes
+                self.to_screen(
+                    f'[rate-limit] Per-fragment rate limiting enabled: '
+                    f'{format_bytes(original_rate_limit)}/s total, '
+                    f'{format_bytes(rate_limit)}/s per fragment ({concurrent_frags} concurrent)')
+                self._rate_limit_info_shown = True
+        
         speed = float(byte_counter) / elapsed
         if speed > rate_limit:
             sleep_time = float(byte_counter) / rate_limit - elapsed
             if sleep_time > 0:
+                # Only show verbose message if significantly over limit
+                if self.params.get('verbose') and sleep_time > 0.5:
+                    from ..utils import format_bytes
+                    self.to_screen(
+                        f'[rate-limit] Throttling: {format_bytes(speed)}/s exceeds limit '
+                        f'({format_bytes(rate_limit)}/s), sleeping {sleep_time:.2f}s')
                 time.sleep(sleep_time)
 
     def temp_name(self, filename):

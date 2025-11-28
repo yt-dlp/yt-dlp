@@ -163,6 +163,26 @@ class FragmentFD(FileDownloader):
         else:
             total_frags_str = 'unknown (live)'
         self.to_screen(f'[{self.FD_NAME}] Total fragments: {total_frags_str}')
+        
+        # Auto-enable per-fragment rate limiting for fragmented downloads
+        # This provides smoother rate limiting and prevents network bursts
+        ratelimit = self.params.get('ratelimit')
+        ratelimit_per_fragment = self.params.get('ratelimit_per_fragment')
+        concurrent_frags = self.params.get('concurrent_fragment_downloads', 1)
+        
+        if ratelimit and ratelimit_per_fragment is None and concurrent_frags > 1:
+            # Auto-enable per-fragment rate limiting when:
+            # - Rate limit is set
+            # - User hasn't explicitly disabled it
+            # - Multiple fragments will download concurrently
+            self.params['ratelimit_per_fragment'] = True
+            from ..utils import format_bytes
+            self.to_screen(
+                f'[rate-limit] Auto-enabled per-fragment rate limiting: '
+                f'{format_bytes(ratelimit)}/s total, '
+                f'{format_bytes(ratelimit / concurrent_frags)}/s per fragment '
+                f'({concurrent_frags} concurrent)')
+        
         self.report_destination(ctx['filename'])
         dl = HttpQuietDownloader(self.ydl, {
             **self.params,
