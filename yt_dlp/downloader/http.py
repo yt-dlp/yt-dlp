@@ -319,12 +319,25 @@ class HttpFD(FileDownloader):
                         ctx.throttle_start = now
                     elif now - ctx.throttle_start > 3:
                         if ctx.stream is not None and ctx.tmpfilename != '-':
+                            if ctx.stream is not None:
+                                try:
+                                    ctx.stream.close()
+                                except:
+                                    pass
                             ctx.stream.close()
                         raise ThrottledDownload
                 elif speed:
                     ctx.throttle_start = None
 
             if ctx.stream is None:
+                if 'Frag' in filename:
+                    # create empty tmp segment
+                    if ctx.tmpfilename != '-' and ctx.filename:
+                        try:
+                            open(ctx.filename, 'wb').close()
+                        except OSError:
+                            pass
+                    return True
                 self.to_stderr('\n')
                 self.report_error('Did not get any data blocks')
                 return False
@@ -333,7 +346,7 @@ class HttpFD(FileDownloader):
                 ctx.resume_len = byte_counter
                 raise NextFragment
 
-            if ctx.tmpfilename != '-':
+            if ctx.tmpfilename != '-' and ctx.stream is not None:
                 ctx.stream.close()
 
             if data_len is not None and byte_counter != data_len:
