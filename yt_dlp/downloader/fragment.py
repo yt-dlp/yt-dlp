@@ -473,7 +473,17 @@ class FragmentFD(FileDownloader):
             if frag_content:
                 self._append_fragment(ctx, pack_func(frag_content, frag_index))
             elif not is_fatal(frag_index - 1):
-                self.report_skip_fragment(frag_index, 'fragment not found')
+                # allow the last YouTube fragment to be empty
+                is_youtube = 'googlevideo.com' in info_dict.get('url', '')
+                fragment_count = ctx.get('fragment_count') or ctx.get('total_frags')
+                is_last_fragment = fragment_count and frag_index == fragment_count
+                if is_youtube and is_last_fragment:
+                    self.to_screen(f'[download] Empty last YouTube fragment {frag_index}, skipping')
+                    if not self.params.get('keep_fragments', False):
+                        self.try_remove(ctx['fragment_filename_sanitized'])
+                    #del ctx['fragment_filename_sanitized']
+                else:
+                    self.report_skip_fragment(frag_index, 'fragment not found')
             else:
                 ctx['dest_stream'].close()
                 self.report_error(f'fragment {frag_index} not found, unable to continue')
