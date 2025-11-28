@@ -1,6 +1,7 @@
 import os
 import random
 import time
+import contextlib
 
 from .common import FileDownloader
 from ..networking import Request
@@ -320,10 +321,8 @@ class HttpFD(FileDownloader):
                     elif now - ctx.throttle_start > 3:
                         if ctx.stream is not None and ctx.tmpfilename != '-':
                             if ctx.stream is not None:
-                                try:
+                                with contextlib.suppress(BaseException):
                                     ctx.stream.close()
-                                except:
-                                    pass
                             ctx.stream.close()
                         raise ThrottledDownload
                 elif speed:
@@ -333,10 +332,8 @@ class HttpFD(FileDownloader):
                 if 'Frag' in filename:
                     # create empty tmp segment
                     if ctx.tmpfilename != '-' and ctx.filename:
-                        try:
+                        with contextlib.suppress(OSError):
                             open(ctx.filename, 'wb').close()
-                        except OSError:
-                            pass
                     return True
                 self.to_stderr('\n')
                 self.report_error('Did not get any data blocks')
