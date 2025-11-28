@@ -969,6 +969,16 @@ def create_parser():
         dest='ratelimit', metavar='RATE',
         help='Maximum download rate in bytes per second, e.g. 50K or 4.2M')
     downloader.add_option(
+        '--rate-limit-per-fragment',
+        action='store_true', dest='ratelimit_per_fragment', default=None,
+        help='Divide rate limit by number of concurrent fragments for smoother rate limiting with HLS/DASH. '
+             'When enabled, each fragment gets its fair share of the rate limit, preventing network bursts. '
+             'Automatically enabled for fragmented downloads when --limit-rate is set (default: auto)')
+    downloader.add_option(
+        '--no-rate-limit-per-fragment',
+        action='store_false', dest='ratelimit_per_fragment',
+        help='Disable automatic per-fragment rate limiting for fragmented downloads')
+    downloader.add_option(
         '--throttled-rate',
         dest='throttledratelimit', metavar='RATE',
         help='Minimum download rate in bytes per second below which throttling is assumed and the video data is re-extracted, e.g. 100K')
