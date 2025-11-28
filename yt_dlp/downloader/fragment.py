@@ -474,7 +474,8 @@ class FragmentFD(FileDownloader):
                 self._append_fragment(ctx, pack_func(frag_content, frag_index))
             elif not is_fatal(frag_index - 1):
                 # allow the last YouTube fragment to be empty
-                is_youtube = 'googlevideo.com' in info_dict.get('url', '')
+                extractor = info_dict.get('extractor_key') or info_dict.get('extractor')
+                is_youtube = extractor and extractor.lower().startswith('youtube')
                 fragment_count = ctx.get('fragment_count') or ctx.get('total_frags')
                 is_last_fragment = fragment_count and frag_index == fragment_count
                 if is_youtube and is_last_fragment:
