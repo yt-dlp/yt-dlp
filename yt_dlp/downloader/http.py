@@ -329,7 +329,7 @@ class HttpFD(FileDownloader):
                     ctx.throttle_start = None
 
             if ctx.stream is None:
-                if 'Frag' in filename:
+                if 'Frag' in filename and 200 <= ctx.data.status < 300:
                     # create empty tmp segment
                     if ctx.tmpfilename != '-' and ctx.filename:
                         with contextlib.suppress(OSError):
