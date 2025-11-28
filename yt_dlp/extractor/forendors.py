@@ -1,10 +1,9 @@
 import functools
-import itertools
 import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
+    InAdvancePagedList,
     clean_html,
     format_field,
     int_or_none,
@@ -225,40 +224,45 @@ class ForendorsChannelIE(ForendorsBaseIE):
             if playback_url:
                 yield playback_url, media_type
 
-    def _entries(self, slug):
-        """Generator for channel entries"""
-        for page_num in itertools.count(1):
+    def _fetch_page(self, slug, first_page_data, page_num):
+        """Fetch a single page of channel entries"""
+        # Reuse first page data if available to avoid duplicate API call
+        if page_num == 0 and first_page_data:
+            page_data = first_page_data
+        else:
             page_data = self._download_json(
                 f'{self._API_BASE}/v2/detail/user/{slug}/posts',
-                slug, note=f'Downloading page {page_num}',
-                headers=self._api_headers, query={'page': page_num})
+                slug, note=f'Downloading page {page_num + 1}',
+                headers=self._api_headers, query={'page': page_num + 1})
 
-            for post in page_data.get('data', []):
-                post_id = post.get('hash')
-                if not post_id:
-                    self.to_screen('Skipping post - no hash found')
-                    continue
-                # Extract directly from channel entry
-                try:
-                    result = self._extract_post(post_id, post)
-                except ExtractorError as error:
-                    # Warn about entries that raised no formats or access denied
-                    self.report_warning(error)
-                    continue
-                else:
-                    if result:
-                        yield result
+        for post in page_data.get('data', []):
+            post_id = post.get('hash')
+            if not post_id:
+                continue
 
-            # Check if we've reached the last page
-            current_page = page_data.get('current_page', page_num)
-            last_page = page_data.get('last_page', current_page)
-            if current_page >= last_page:
-                break
+            # Yield url_result for each post to preserve page size for InAdvancePagedList
+            # Individual post extraction will handle non-media posts and failures
+            yield self.url_result(
+                f'{self._BASE_URL}/p/{post_id}',
+                ForendorsIE, post_id,
+                post.get('title'))
 
     def _real_extract(self, url):
         slug = self._match_id(url)
         self._ensure_csrf_token(url, slug)
 
-        # Return channel
-        return self.playlist_result(self._entries(slug),
-                                    playlist_id=slug)
+        # Fetch first page to get pagination info
+        first_page = self._download_json(
+            f'{self._API_BASE}/v2/detail/user/{slug}/posts',
+            slug, note='Downloading page 1',
+            headers=self._api_headers, query={'page': 1})
+
+        page_count = first_page.get('last_page', 1)
+        per_page = first_page.get('per_page', 20)
+
+        # Return channel with InAdvancePagedList for proper playlist parameter handling
+        return self.playlist_result(
+            InAdvancePagedList(
+                functools.partial(self._fetch_page, slug, first_page),
+                page_count, per_page),
+            playlist_id=slug)
