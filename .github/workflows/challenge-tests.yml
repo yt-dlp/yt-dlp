@@ -35,7 +35,7 @@ jobs:
     env:
       QJS_VERSION: '2025-04-26'  # Earliest version with rope strings
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
       with:
