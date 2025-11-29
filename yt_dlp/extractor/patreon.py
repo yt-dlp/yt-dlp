@@ -598,7 +598,8 @@ class PatreonCampaignIE(PatreonBaseIE):
                 'props', 'pageProps', 'bootstrapEnvelope', 'pageBootstrap', 'campaign', 'data', 'id', {str}))
             if not campaign_id:
                 campaign_id = traverse_obj(self._search_nextjs_v13_data(webpage, vanity), (
-                    lambda _, v: v['type'] == 'campaign', 'id', {str}, any, {require('campaign ID')}))
+                    ((..., 'value', 'campaign', 'data'), lambda _, v: v['type'] == 'campaign'),
+                    'id', {str}, any, {require('campaign ID')}))
 
         params = {
             'json-api-use-default-includes': 'false',
