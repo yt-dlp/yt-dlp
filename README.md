@@ -483,7 +483,7 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     two-letter ISO 3166-2 country code
 
 ## Video Selection:
-    -I, --playlist-items ITEM_SPEC  Comma separated playlist_index of the items
+    -I, --playlist-items ITEM_SPEC  Comma-separated playlist_index of the items
                                     to download. You can specify a range using
                                     "[START]:[STOP][:STEP]". For backward
                                     compatibility, START-STOP is also supported.
