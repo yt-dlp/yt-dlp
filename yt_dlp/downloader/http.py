@@ -330,7 +330,7 @@ class HttpFD(FileDownloader):
                 headers = getattr(getattr(ctx, 'data', None), 'headers', None)
                 details = f" | CL: {headers.get('Content-Length')}" if headers and headers.get('Content-Length') else ''
                 ctype = f" | CT: {headers.get('Content-Type')}" if headers and headers.get('Content-Type') else ''
-                self.report_error(f"[download] Did not get any data blocks{status}{details}{ctype}")
+                self.report_error(f'[download] Did not get any data blocks{status}{details}{ctype}')
                 return False
 
             if not is_test and ctx.chunk_size and ctx.content_len is not None and byte_counter < ctx.content_len:
