@@ -3259,14 +3259,19 @@ class InfoExtractor:
         scheme_id = cp_e.get('schemeIdUri')
         cenc_info = info.get('dash_cenc', {})
         if scheme_id == 'urn:mpeg:dash:mp4protection:2011':
-            if cp_e.get('value') == 'cenc':
+            if cp_e.get('value') in ('cenc', 'cbcs'):
                 # ISO/IEC 23009-1 MPEG Common Encryption (CENC)
                 if not cenc_info.get('key_ids'):
                     try:
-                        default_kid = uuid.UUID(cp_e.get('{urn:mpeg:cenc:2013}default_KID')).hex
+                        default_kid = uuid.UUID(cp_e.get(f'{{urn:mpeg:{cp_e.get("value")}:2013}}default_KID')).hex
                         cenc_info['key_ids'] = [default_kid]
                     except (ValueError, TypeError):
-                        pass
+                        # It can still be under the cenc namespace
+                        try:
+                            default_kid = uuid.UUID(cp_e.get('{urn:mpeg:cenc:2013}default_KID')).hex
+                            cenc_info['key_ids'] = [default_kid]
+                        except (ValueError, TypeError):
+                            pass
         elif scheme_id == 'urn:uuid:e2719d58-a985-b3c9-781a-b030af78d30e':
             # Clear Key DASH-IF
             for tag, ns in itertools.product(
@@ -3293,6 +3298,10 @@ class InfoExtractor:
                     cenc_info['key_ids'] = kids
                 except (ValueError, TypeError, struct.error):
                     pass
+            elif cp_e.get('value') == 'ClearKey1.0':
+                laurl = cp_e.find(self._xpath_ns('Laurl', 'http://dashif.org/guidelines/clearKey'))
+                assert laurl.attrib['Lic_type'] == 'EME-1.0'
+                cenc_info['laurl'] = laurl.text
         elif scheme_id == 'urn:mpeg:dash:sea:2012':
             # ISO/IEC 23009-4 DASH Segment Encryption and Authentication (AES-128-CBC)
             sea_ns = 'urn:mpeg:dash:schema:sea:2012'

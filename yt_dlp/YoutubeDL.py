@@ -3506,6 +3506,7 @@ class YoutubeDL:
                                 f'You have requested downloading multiple formats to stdout {reason}. '
                                 'The formats will be streamed one after the other')
                             fname = temp_filename
+                        first_cenc = next((f['dash_cenc'] for f in info_dict['requested_formats'] if 'dash_cenc' in f), None)
                         for f in info_dict['requested_formats']:
                             new_info = dict(info_dict)
                             del new_info['requested_formats']
@@ -3522,6 +3523,14 @@ class YoutubeDL:
                             info_dict['__real_download'] = info_dict['__real_download'] or real_download
                             if new_info.get('dash_cenc', {}).get('key'):
                                 info_dict['__files_to_cenc_decrypt'].append((fname, new_info['dash_cenc']['key']))
+                            else:
+                                # If a file is encrypted but not specified as such in the manifest, fallback to another key
+                                # This is the same observed behavior as Chrome
+                                with open(fname, 'rb') as f:
+                                    if re.search(br'schm\x00\x00\x00\x00(cbcs|cenc)', f.read()):
+                                        if not first_cenc:
+                                            raise ExtractorError('Cannot decrypt this format')
+                                        info_dict['__files_to_cenc_decrypt'].append((fname, first_cenc['key']))
                             success = success and partial_success
 
                     if downloaded and info_dict['__files_to_cenc_decrypt'] and decrypter.available:
