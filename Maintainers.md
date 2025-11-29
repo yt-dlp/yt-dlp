@@ -8,9 +8,7 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 
 Core Maintainers are responsible for reviewing and merging contributions, publishing releases, and steering the overall direction of the project.
 
-**You can contact the core maintainers via `maintainers@yt-dlp.org`.**
-
-This is **NOT** a support channel. [Open an issue](https://github.com/yt-dlp/yt-dlp/issues/new/choose) if you need help or want to report a bug.
+**You can contact the core maintainers via `maintainers@yt-dlp.org`.** This email address is **NOT** a support channel. [Open an issue](https://github.com/yt-dlp/yt-dlp/issues/new/choose) if you need help or want to report a bug.
 
 ### [coletdjnz](https://github.com/coletdjnz)
 
