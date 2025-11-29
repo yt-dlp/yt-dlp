@@ -42,7 +42,7 @@ $ yt-dlp -vU <your command line>
 [debug] Encodings: locale cp65001, fs utf-8, pref cp65001, out utf-8, error utf-8, screen utf-8
 [debug] yt-dlp version nightly@... from yt-dlp/yt-dlp-nightly-builds [1a176d874] (win_exe)
 [debug] Python 3.10.11 (CPython AMD64 64bit) - Windows-10-10.0.20348-SP0 (OpenSSL 1.1.1t  7 Feb 2023)
-[debug] exe versions: ffmpeg 7.0.2 (sets), ffprobe 7.0.2
+[debug] exe versions: ffmpeg 7.0.2 (setts), ffprobe 7.0.2
 [debug] Optional libraries: Cryptodome-3.21.0, brotli-1.1.0, certifi-2024.08.30, curl_cffi-0.5.10, mutagen-1.47.0, requests-2.32.3, sqlite3-3.40.1, urllib3-2.2.3, websockets-13.1
 [debug] Proxy map: {}
 [debug] Request Handlers: urllib, requests, websockets, curl_cffi
