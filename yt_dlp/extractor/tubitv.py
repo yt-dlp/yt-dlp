@@ -15,7 +15,7 @@ from ..utils import (
 
 class TubiTvIE(InfoExtractor):
     IE_NAME = 'tubitv'
-    _VALID_URL = r'https?://(?:www\.)?tubitv\.com/(?P<type>video|movies|tv-shows)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?tubitv\.com/(?:[A-Za-z0-9_-]+/)?(?P<type>video|movies|tv-shows)/(?P<id>\d+)'
     _LOGIN_URL = 'http://tubitv.com/login'
     _NETRC_MACHINE = 'tubitv'
     _TESTS = [{
