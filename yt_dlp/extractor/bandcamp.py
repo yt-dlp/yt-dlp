@@ -5,7 +5,6 @@ import time
 
 from .common import InfoExtractor
 from ..utils import (
-    KNOWN_EXTENSIONS,
     ExtractorError,
     clean_html,
     extract_attributes,
@@ -411,7 +410,7 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
 
 class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'Bandcamp:weekly'
-    _VALID_URL = r'https?://(?:www\.)?bandcamp\.com/?\?(?:.*?&)?show=(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?bandcamp\.com/?radio?\?(?:.*?&)?show=(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://bandcamp.com/?show=224',
         'md5': '61acc9a002bed93986b91168aa3ab433',
@@ -436,45 +435,49 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
-        webpage = self._download_webpage(url, show_id)
+        show_data = self._download_json(
+            'https://bandcamp.com/api/bcradio_api/1/get_show',
+            show_id,
+            'Downloading Show Data.',
+            data=json.dumps({'id': show_id}).encode(),
+            headers={
+                'Content-Type': 'application/json',
+                'Origin': 'https://bandcamp.com',
+                'Referer': 'https://bandcamp.com/',
+            },
+        )
+        raw_metadata = self._extract_data_attr(
+            self._download_webpage(
+                url,
+                show_id,
+                'Downloading Show Metadata.',
+            ), show_id, 'blob',
+        )
+        metadata = None
+        for mb in traverse_obj(raw_metadata, ('appData', 'shows')):
+            if int(mb.get('showId')) == int(show_id):
+                metadata = mb
 
-        blob = self._extract_data_attr(webpage, show_id, 'blob')
-
-        show = blob['bcw_data'][show_id]
-
-        formats = []
-        for format_id, format_url in show['audio_stream'].items():
-            if not url_or_none(format_url):
-                continue
-            for known_ext in KNOWN_EXTENSIONS:
-                if known_ext in format_id:
-                    ext = known_ext
-                    break
-            else:
-                ext = None
-            formats.append({
-                'format_id': format_id,
-                'url': format_url,
-                'ext': ext,
-                'vcodec': 'none',
-            })
-
-        title = show.get('audio_title') or 'Bandcamp Weekly'
-        subtitle = show.get('subtitle')
-        if subtitle:
-            title += f' - {subtitle}'
+        audio_data = show_data['radioShowAudio']
+        thum_id = metadata.get('imageId') or None
+        if thum_id:
+            thum_url = f'https://f4.bcbits.com/img/000{thum_id}_171.jpg'
 
         return {
             'id': show_id,
-            'title': title,
-            'description': show.get('desc') or show.get('short_desc'),
-            'duration': float_or_none(show.get('audio_duration')),
+            'title': metadata.get('title'),
+            'thumbnail': thum_url or None,
+            'description': metadata.get('desc') or metadata.get('short_desc'),
+            'duration': float_or_none(show_data.get('duration')),
             'is_live': False,
-            'release_date': unified_strdate(show.get('published_date')),
+            'release_date': unified_strdate(metadata.get('date')),
+            'timestamp': unified_timestamp(metadata.get('date')),
             'series': 'Bandcamp Weekly',
-            'episode': show.get('subtitle'),
             'episode_id': show_id,
-            'formats': formats,
+            'url': audio_data.get('streamUrl'),
+            'ext': 'mp3',
+            'vcodec': 'none',
+            'format_id': f'mp3-{show_id}',
         }
 
 
