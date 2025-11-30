@@ -652,15 +652,15 @@ class PornHubPagedVideoListIE(PornHubPagedPlaylistBaseIE):
         'url': 'http://www.pornhub.com/users/rushandlia/videos',
         'only_matching': True,
     }, {
-        'url': 'https://www.pornhub.com/pornstar/jenny-blighe/videos',
+        'url': 'https://www.pornhub.com/pornstar/mia-malkova/videos',
         'info_dict': {
-            'id': 'pornstar/jenny-blighe/videos',
+            'id': 'pornstar/mia-malkova/videos',
         },
-        'playlist_mincount': 149,
+        'playlist_mincount': 40,
     }, {
-        'url': 'https://www.pornhub.com/pornstar/jenny-blighe/videos?page=3',
+        'url': 'https://www.pornhub.com/pornstar/mia-malkova/videos?page=3',
         'info_dict': {
-            'id': 'pornstar/jenny-blighe/videos',
+            'id': 'pornstar/mia-malkova/videos',
         },
         'playlist_mincount': 40,
     }, {
