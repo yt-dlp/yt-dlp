@@ -4123,7 +4123,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         automatic_captions, base_url, trans_code, trans_name, client_name,
                         pot_params if orig_lang == orig_trans_code else {'tlang': trans_code, **pot_params})
 
-                # Workaround for new automatic captions languages not yet in 'translationLanguages'
+                # Extract automatic captions when the language is not in 'translationLanguages'
                 # e.g. Cantonese [yue], see https://github.com/yt-dlp/yt-dlp/issues/14889
                 lang_code = remove_start(lang_code, 'a-')
                 if is_manual_subs or not lang_code or lang_code in automatic_captions:
