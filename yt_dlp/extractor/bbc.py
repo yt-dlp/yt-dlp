@@ -438,17 +438,66 @@ class BBCCoUkIE(InfoExtractor):
                 subtitles = self.extract_subtitles(media, programme_id)
         return formats, subtitles
 
-    def _download_playlist(self, playlist_id):
-        try:
-            playlist = self._download_json(
-                f'http://www.bbc.co.uk/programmes/{playlist_id}/playlist.json',
-                playlist_id, 'Downloading playlist JSON')
-            formats = []
-            subtitles = {}
+    def _download_playlist(self, playlist_id, webpage):
+        playlist = self._download_json(
+            f'http://www.bbc.co.uk/programmes/{playlist_id}/playlist.json',
+            playlist_id, 'Downloading playlist JSON')
 
+        subtitles = {}
+        programme_id = None
+        title = None
+        description = None
+        duration = None
+
+        def _parse_formats(programme_id, types=None):
+            formats = []
+            version_formats, version_subtitles = self._download_media_selector(programme_id)
+            types = types or 'Original'
+            for f in version_formats:
+                f['format_note'] = types
+                if any('AudioDescribed' in x for x in types):
+                    f['language_preference'] = -10
+
+            formats += version_formats
+            for tag, subformats in (version_subtitles or {}).items():
+                subtitles.setdefault(tag, []).extend(subformats)
+            return formats, subtitles
+
+        # Fallback when there is no VPID in json response.
+        if not traverse_obj(playlist, ('defaultAvailableVersion')):
+            episode_block = self._search_regex(
+                r'"episode"\s*:\s*\{(.*?)\}\s*,\s*"relatedEpisodes"',
+                webpage,
+                'episode',
+                fatal=False,
+            )
+            episode_json = {}
+            if episode_block:
+                episode_json = self._parse_json('{' + episode_block + '}', playlist_id)
+
+            description = traverse_obj(episode_json, ('synopses', 'large'))
+            programme_id = self._search_regex(
+                r'"id"\s*:\s*"([0-9a-z]{8})"',
+                self._search_regex(
+                    r'"versions"\s*:\s*\[\s*(\{[^]]*"id"\s*:\s*"[0-9a-z]{8}".*?)\]\s*,',
+                    webpage,
+                    'versions',
+                    fatal=False,
+                ),
+                'pid',
+                fatal=False)
+            duration = int_or_none(self._search_regex(
+                r'<span[^>]*episode-metadata__text[^>]*>\s*([^<]+)\s*</span>',
+                webpage,
+                'duration',
+                fatal=False,
+            ))
+
+            formats, subtitles = _parse_formats(programme_id)
+        else:
             for version in playlist.get('allAvailableVersions', []):
                 smp_config = version['smpConfig']
-                title = smp_config['title']
+                title = smp_config['title'] or None
                 description = smp_config['summary']
                 for item in smp_config['items']:
                     kind = item['kind']
@@ -456,23 +505,9 @@ class BBCCoUkIE(InfoExtractor):
                         continue
                     programme_id = item.get('vpid')
                     duration = int_or_none(item.get('duration'))
-                    version_formats, version_subtitles = self._download_media_selector(programme_id)
                     types = version['types']
-                    for f in version_formats:
-                        f['format_note'] = ', '.join(types)
-                        if any('AudioDescribed' in x for x in types):
-                            f['language_preference'] = -10
-                    formats += version_formats
-                    for tag, subformats in (version_subtitles or {}).items():
-                        subtitles.setdefault(tag, []).extend(subformats)
-
-            return programme_id, title, description, duration, formats, subtitles
-        except ExtractorError as ee:
-            if not (isinstance(ee.cause, HTTPError) and ee.cause.status == 404):
-                raise
-
-        # fallback to legacy playlist
-        return self._process_legacy_playlist(playlist_id)
+                    formats, subtitles = _parse_formats(programme_id, types)
+        return programme_id, title, description, duration, formats, subtitles
 
     def _process_legacy_playlist_url(self, url, display_id):
         playlist = self._download_legacy_playlist_url(url, display_id)
@@ -569,7 +604,7 @@ class BBCCoUkIE(InfoExtractor):
             if not description:
                 description = self._html_search_meta('description', webpage)
         else:
-            programme_id, title, description, duration, formats, subtitles = self._download_playlist(group_id)
+            programme_id, title, description, duration, formats, subtitles = self._download_playlist(group_id, webpage)
 
         return {
             'id': programme_id,
