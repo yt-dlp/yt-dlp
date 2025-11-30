@@ -226,6 +226,7 @@ from .beeg import BeegIE
 from .behindkink import BehindKinkIE
 from .berufetv import BerufeTVIE
 from .bet import BetIE
+from .betacast import BetaCastIE
 from .bfi import BFIPlayerIE
 from .bfmtv import (
     BFMTVIE,
