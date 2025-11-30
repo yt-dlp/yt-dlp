@@ -1701,21 +1701,32 @@ class PeerTubePlaylistIE(InfoExtractor):
             self._API_BASE % (host, base, name, path), name, **kwargs)
 
     def fetch_page(self, host, playlist_id, playlist_type, page):
-        page += 1
-        video_data = self.call_api(
-            host, playlist_id,
-            f'/videos?sort=-createdAt&start={self._PAGE_SIZE * (page - 1)}&count={self._PAGE_SIZE}&nsfw=both',
-            playlist_type, note=f'Downloading page {page}').get('data', [])
-        for video in video_data:
-            short_uuid = video.get('shortUUID') or try_get(video, lambda x: x['video']['shortUUID'])
-            video_title = video.get('name') or try_get(video, lambda x: x['video']['name'])
-            yield self.url_result(
-                f'https://{host}/w/{short_uuid}', PeerTubeIE.ie_key(),
-                video_id=short_uuid, video_title=video_title)
+            page += 1
+
+            video_data = self.call_api(
+                host, playlist_id.split('?', 1)[0],
+                f'/videos?start={self._PAGE_SIZE * (page - 1)}&count={self._PAGE_SIZE}&sort=-createdAt&nsfw=both',
+                playlist_type, note=f'Downloading page {page}').get('data', [])
+
+            query_str = playlist_id.split('?', 1)[-1] if '?' in playlist_id else ''
+            playlist_pos = None
+            for param in query_str.split('&'):
+                if param.startswith('playlistPosition='):
+                    playlist_pos = int(param.split('=', 1)[1]) - 1  # 1-based to 0-based
+                    break
+
+            if playlist_pos is not None and 0 <= playlist_pos < len(video_data):
+                video_data = [video_data[playlist_pos]]
+
+            for video in video_data:
+                short_uuid = video.get('shortUUID') or try_get(video, lambda x: x['video']['shortUUID'])
+                video_title = video.get('name') or try_get(video, lambda x: x['video']['name'])
+                yield self.url_result(
+                    f'https://{host}/w/{short_uuid}', PeerTubeIE.ie_key(),
+                    video_id=short_uuid, video_title=video_title)
 
     def _extract_playlist(self, host, playlist_type, playlist_id):
         info = self.call_api(host, playlist_id, '', playlist_type, note='Downloading playlist information', fatal=False)
-
         playlist_title = info.get('displayName')
         playlist_description = info.get('description')
         playlist_timestamp = unified_timestamp(info.get('createdAt'))
@@ -1732,4 +1743,4 @@ class PeerTubePlaylistIE(InfoExtractor):
 
     def _real_extract(self, url):
         playlist_type, host, playlist_id = self._match_valid_url(url).group('type', 'host', 'id')
-        return self._extract_playlist(host, self._TYPES[playlist_type], playlist_id)
+        return self._extract_playlist(host, self._TYPES[playlist_type], playlist_id.split('?', 1)[0])
