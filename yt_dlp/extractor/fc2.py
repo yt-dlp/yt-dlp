@@ -207,7 +207,7 @@ class FC2LiveIE(InfoExtractor):
                 'ipv6': '',
             }), headers={'X-Requested-With': 'XMLHttpRequest'})
         # A non-zero 'status' indicates the stream is not live, so check truthiness
-        if traverse_obj(control_server, ('status', {int})) and 'orz_raw' not in control_server:
+        if traverse_obj(control_server, ('status', {int})) and 'control_token' not in control_server:
             raise UserNotLive(video_id=video_id)
         self._set_cookie('live.fc2.com', 'l_ortkn', control_server['orz_raw'])
 
