@@ -562,6 +562,7 @@ from .dw import (
 )
 from .ebaumsworld import EbaumsWorldIE
 from .ebay import EbayIE
+from .educast import EducastChannelIE, EducastIE, EducastResultsIE
 from .egghead import (
     EggheadCourseIE,
     EggheadLessonIE,
