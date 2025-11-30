@@ -320,7 +320,8 @@ class RedditIE(InfoExtractor):
                 self.raise_login_required('Private subreddit; an account that has been approved is required')
             else:
                 raise ExtractorError(f'HTTP Error 403 Forbidden; reason given: {reason}')
-
+        if not any(traverse_obj(c, ('data', 'media')) or traverse_obj(c, ('data', 'secure_media')) for c in traverse_obj(data, (0, 'data', 'children')) or []):
+            raise self.raise_no_formats('No video Found in this Post')
         data = data[0]['data']['children'][0]['data']
         video_url = data['url']
 
