@@ -17,8 +17,8 @@ on:
 permissions:
   contents: read
 env:
-  ACTIONLINT_VERSION: "1.7.7"
-  ACTIONLINT_SHA256SUM: 023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757
+  ACTIONLINT_VERSION: "1.7.8"
+  ACTIONLINT_SHA256SUM: be92c2652ab7b6d08425428797ceabeb16e31a781c07bc388456b4e592f3e36a
   ACTIONLINT_REPO: https://github.com/rhysd/actionlint
 
 jobs:

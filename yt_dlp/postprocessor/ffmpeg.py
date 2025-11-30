@@ -192,7 +192,10 @@ class FFmpegPostProcessor(PostProcessor):
 
     @property
     def available(self):
-        return bool(self._ffmpeg_location.get()) or self.basename is not None
+        # If we return that ffmpeg is available, then the basename property *must* be run
+        # (as doing so has side effects), and its value can never be None
+        # See: https://github.com/yt-dlp/yt-dlp/issues/12829
+        return self.basename is not None
 
     @property
     def executable(self):

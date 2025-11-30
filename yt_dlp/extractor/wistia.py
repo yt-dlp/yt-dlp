@@ -339,11 +339,20 @@ class WistiaChannelIE(WistiaBaseIE):
             'title': 'The Roof S2: The Modern CRO',
             'thumbnail': r're:https?://embed(?:-ssl)?\.wistia\.com/.+\.(?:jpg|png)',
             'duration': 86.487,
-            'description': 'A sales leader on The Roof? Man, they really must be letting anyone up here this season.\n',
+            'description': 'A sales leader on The Roof? Man, they really must be letting anyone up here this season. ',
             'timestamp': 1619790290,
             'upload_date': '20210430',
         },
         'params': {'noplaylist': True, 'skip_download': True},
+    }, {
+        # Channel with episodes structure instead of videos
+        'url': 'https://fast.wistia.net/embed/channel/sapab9p6qd',
+        'info_dict': {
+            'id': 'sapab9p6qd',
+            'title': 'Credo: An RCIA Program',
+            'description': '\n',
+        },
+        'playlist_mincount': 80,
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://www.profitwell.com/recur/boxed-out',
@@ -399,8 +408,7 @@ class WistiaChannelIE(WistiaBaseIE):
 
         entries = [
             self.url_result(f'wistia:{video["hashedId"]}', WistiaIE, title=video.get('name'))
-            for video in traverse_obj(series, ('sections', ..., 'videos', ...)) or []
-            if video.get('hashedId')
+            for video in traverse_obj(series, ('sections', ..., ('videos', 'episodes'), lambda _, v: v['hashedId']))
         ]
 
         return self.playlist_result(

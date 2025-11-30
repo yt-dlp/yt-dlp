@@ -56,6 +56,8 @@ jobs:
           python-version: pypy-3.11
     steps:
     - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
       with:
@@ -65,6 +67,25 @@ jobs:
     - name: Run tests
       timeout-minutes: 15
       continue-on-error: False
+      env:
+        source: ${{ (github.event_name == 'push' && github.event.before) || 'origin/master' }}
+        target: ${{ (github.event_name == 'push' && github.event.after) || 'HEAD' }}
+      shell: bash
       run: |
+        flags=()
+        # Check if a networking file is involved
+        patterns="\
+        ^yt_dlp/networking/
+        ^yt_dlp/utils/networking\.py$
+        ^test/test_http_proxy\.py$
+        ^test/test_networking\.py$
+        ^test/test_networking_utils\.py$
+        ^test/test_socks\.py$
+        ^test/test_websockets\.py$
+        ^pyproject\.toml$
+        "
+        if git diff --name-only "${source}" "${target}" | grep -Ef <(printf '%s' "${patterns}"); then
+          flags+=(--flaky)
+        fi
         python3 -m yt_dlp -v || true  # Print debug head
-        python3 ./devscripts/run_tests.py --pytest-args '--reruns 2 --reruns-delay 3.0' core
+        python3 -m devscripts.run_tests "${flags[@]}" --pytest-args '--reruns 2 --reruns-delay 3.0' core
