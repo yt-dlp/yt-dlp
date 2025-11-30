@@ -35,8 +35,8 @@ class DenoJCP(EJSBaseJCP, BuiltinIEContentProvider):
     JS_RUNTIME_NAME = 'deno'
 
     _DENO_BASE_OPTIONS = [
-        '--ext=js', '--no-code-cache', '--no-prompt', '--no-remote',
-        '--no-lock', '--node-modules-dir=none', '--no-config',
+        '--ext=js', '--no-prompt', '--no-remote',
+        '--no-lock', '--no-config',
     ]
     DENO_NPM_LIB_FILENAME = 'yt.solver.deno.lib.js'
     _NPM_PACKAGES_CACHED = False
@@ -84,6 +84,10 @@ class DenoJCP(EJSBaseJCP, BuiltinIEContentProvider):
         # XXX: Convert this extractor-arg into a general option if/when a JSI framework is implemented
         if self.ejs_setting('jitless', ['false']) != ['false']:
             options.append('--v8-flags=--jitless')
+        if self.runtime_info.version_tuple >= (1, 43, 0):
+            options.append('--no-code-cache')
+        if self.runtime_info.version_tuple >= (2, 0, 0):
+            options.append('--node-modules-dir=none')
         return self._run_deno(stdin, options)
 
     def _get_env_options(self) -> dict[str, str]:
