@@ -62,6 +62,20 @@ class SubstackIE(InfoExtractor):
             'uploader': 'Persuasion',
             'uploader_id': '61579',
         },
+    }, {
+        # Podcast with video where podcast_url is not resolvable
+        'url': 'https://mellowkat.substack.com/p/theyre-all-compromised-wake-up',
+        'md5': '7627f28352ed05c4cfc799bb1fc5822c',
+        'info_dict': {
+            'id': '180331920',
+            'ext': 'mp4',
+            'title': 'They\'re ALL compromised. Wake up.',
+            'description': 'Watch now | Left vs. Right is theater. Many more links in this post! Click "view post" to read.',
+            'thumbnail': r're:https://substackcdn\.com/image/.+\.png',
+            'uploader': 'MellowKat\'s Newsletter',
+            'uploader_id': '1075591',
+        },
+        'expected_warnings': ['Podcast URL is invalid'],
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://www.mollymovieclub.com/p/interstellar',
@@ -85,20 +99,6 @@ class SubstackIE(InfoExtractor):
             'uploader': 'Blocked and Reported',
             'uploader_id': '500230',
         },
-    }, {
-        # Podcast with video where podcast_url is not resolvable
-        'url': 'https://mellowkat.substack.com/p/theyre-all-compromised-wake-up',
-        'md5': '7627f28352ed05c4cfc799bb1fc5822c',
-        'info_dict': {
-            'id': '180331920',
-            'ext': 'mp4',
-            'title': 'They\'re ALL compromised. Wake up.',
-            'description': 'Watch now | Left vs. Right is theater. Many more links in this post! Click "view post" to read.',
-            'thumbnail': r're:https://substackcdn\.com/image/.+\.png',
-            'uploader': 'MellowKat\'s Newsletter',
-            'uploader_id': '1075591',
-        },
-        'expected_warnings': ['Podcast URL is invalid'],
     }]
 
     @classmethod
