@@ -85,6 +85,20 @@ class SubstackIE(InfoExtractor):
             'uploader': 'Blocked and Reported',
             'uploader_id': '500230',
         },
+    }, {
+        # Podcast with video where podcast_url is not resolvable
+        'url': 'https://mellowkat.substack.com/p/theyre-all-compromised-wake-up',
+        'md5': '7627f28352ed05c4cfc799bb1fc5822c',
+        'info_dict': {
+            'id': '180331920',
+            'ext': 'mp4',
+            'title': 'They\'re ALL compromised. Wake up.',
+            'description': 'Watch now | Left vs. Right is theater. Many more links in this post! Click "view post" to read.',
+            'thumbnail': r're:https://substackcdn\.com/image/.+\.png',
+            'uploader': 'MellowKat\'s Newsletter',
+            'uploader_id': '1075591',
+        },
+        'expected_warnings': ['Podcast URL is invalid']
     }]
 
     @classmethod
@@ -130,18 +144,22 @@ class SubstackIE(InfoExtractor):
 
         post_type = webpage_info['post']['type']
         formats, subtitles = [], {}
-        if webpage_info['post'].get('videoUpload'):
-            formats, subtitles = self._extract_video_formats(webpage_info['post']['videoUpload']['id'], canonical_url)
+        if webpage_info['post'].get('video_upload_id'):
+            formats, subtitles = self._extract_video_formats(webpage_info['post']['video_upload_id'], canonical_url)
         if webpage_info['post'].get('podcast_url'):
             fmt = {'url': webpage_info['post']['podcast_url']}
-            if not determine_ext(fmt['url'], default_ext=None):
+            if not (ext := determine_ext(fmt['url'], default_ext=None)):
                 # The redirected format URL expires but the original URL doesn't,
                 # so we only want to extract the extension from this request
-                fmt['ext'] = determine_ext(self._request_webpage(
-                    HEADRequest(fmt['url']), display_id,
-                    'Resolving podcast file extension',
-                    'Podcast URL is invalid').url)
-            formats.append(fmt)
+                fatal = not formats
+                podcast_url_src = self._request_webpage(HEADRequest(fmt['url']), display_id,
+                    'Resolving podcast file extension', 'Podcast URL is invalid', fatal=fatal)
+                if podcast_url_src:
+                    ext = determine_ext(podcast_url_src.url)
+            if ext:
+                fmt['ext'] = ext
+                formats.append(fmt)
+
         if not formats:
             self.raise_no_formats(f'Page type "{post_type}" is not supported')
 
