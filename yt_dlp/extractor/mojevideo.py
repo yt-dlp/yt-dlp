@@ -92,7 +92,7 @@ class MojevideoIE(InfoExtractor):
             contains_pattern=r'\[(?s:.+)\]', transform_source=js_to_json)
 
         formats = []
-        for video_hash, (suffix, quality, format_note) in zip(video_hashes, [
+        for video_hash, (suffix, quality, format_note) in zip(video_hashes, [  # noqa: B905
             ('', 1, 'normálna kvalita'),
             ('_lq', 0, 'nízka kvalita'),
             ('_hd', 2, 'HD-720p'),
