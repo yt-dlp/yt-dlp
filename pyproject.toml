@@ -69,7 +69,7 @@ build = [
     "build",
     "hatchling>=1.27.0",
     "pip",
-    "setuptools>=71.0.2,<81",  # See https://github.com/pyinstaller/pyinstaller/issues/9149
+    "setuptools>=71.0.2",
     "wheel",
 ]
 dev = [
@@ -86,7 +86,7 @@ test = [
     "pytest-rerunfailures~=14.0",
 ]
 pyinstaller = [
-    "pyinstaller>=6.13.0",  # Windows temp cleanup fixed in 6.13.0
+    "pyinstaller>=6.17.0",  # 6.17.0+ needed for compat with setuptools 81+
 ]
 
 [project.urls]
