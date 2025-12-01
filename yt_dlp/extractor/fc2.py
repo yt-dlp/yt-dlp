@@ -5,6 +5,7 @@ from .common import InfoExtractor
 from ..networking import Request
 from ..utils import (
     ExtractorError,
+    UserNotLive,
     js_to_json,
     traverse_obj,
     update_url_query,
@@ -205,6 +206,9 @@ class FC2LiveIE(InfoExtractor):
                 'client_app': 'browser_hls',
                 'ipv6': '',
             }), headers={'X-Requested-With': 'XMLHttpRequest'})
+        # A non-zero 'status' indicates the stream is not live, so check truthiness
+        if traverse_obj(control_server, ('status', {int})) and 'control_token' not in control_server:
+            raise UserNotLive(video_id=video_id)
         self._set_cookie('live.fc2.com', 'l_ortkn', control_server['orz_raw'])
 
         ws_url = update_url_query(control_server['url'], {'control_token': control_server['control_token']})

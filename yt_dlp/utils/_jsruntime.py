@@ -1,21 +1,61 @@
 from __future__ import annotations
+
 import abc
 import dataclasses
 import functools
 import os.path
+import sys
 
 from ._utils import _get_exe_version_output, detect_exe_version, int_or_none
 
 
-# NOT public API
-def runtime_version_tuple(v):
+def _runtime_version_tuple(v):
     # NB: will return (0,) if `v` is an invalid version string
     return tuple(int_or_none(x, default=0) for x in v.split('.'))
 
 
+_FALLBACK_PATHEXT = ('.COM', '.EXE', '.BAT', '.CMD')
+
+
+def _find_exe(basename: str) -> str:
+    if os.name != 'nt':
+        return basename
+
+    paths: list[str] = []
+
+    # binary dir
+    if getattr(sys, 'frozen', False):
+        paths.append(os.path.dirname(sys.executable))
+    # cwd
+    paths.append(os.getcwd())
+    # PATH items
+    if path := os.environ.get('PATH'):
+        paths.extend(filter(None, path.split(os.path.pathsep)))
+
+    pathext = os.environ.get('PATHEXT')
+    if pathext is None:
+        exts = _FALLBACK_PATHEXT
+    else:
+        exts = tuple(ext for ext in pathext.split(os.pathsep) if ext)
+
+    visited = []
+    for path in map(os.path.realpath, paths):
+        normed = os.path.normcase(path)
+        if normed in visited:
+            continue
+        visited.append(normed)
+
+        for ext in exts:
+            binary = os.path.join(path, f'{basename}{ext}')
+            if os.access(binary, os.F_OK | os.X_OK) and not os.path.isdir(binary):
+                return binary
+
+    return basename
+
+
 def _determine_runtime_path(path, basename):
     if not path:
-        return basename
+        return _find_exe(basename)
     if os.path.isdir(path):
         return os.path.join(path, basename)
     return path
@@ -52,7 +92,7 @@ class DenoJsRuntime(JsRuntime):
         if not out:
             return None
         version = detect_exe_version(out, r'^deno (\S+)', 'unknown')
-        vt = runtime_version_tuple(version)
+        vt = _runtime_version_tuple(version)
         return JsRuntimeInfo(
             name='deno', path=path, version=version, version_tuple=vt,
             supported=vt >= self.MIN_SUPPORTED_VERSION)
@@ -67,7 +107,7 @@ class BunJsRuntime(JsRuntime):
         if not out:
             return None
         version = detect_exe_version(out, r'^(\S+)', 'unknown')
-        vt = runtime_version_tuple(version)
+        vt = _runtime_version_tuple(version)
         return JsRuntimeInfo(
             name='bun', path=path, version=version, version_tuple=vt,
             supported=vt >= self.MIN_SUPPORTED_VERSION)
@@ -82,7 +122,7 @@ class NodeJsRuntime(JsRuntime):
         if not out:
             return None
         version = detect_exe_version(out, r'^v(\S+)', 'unknown')
-        vt = runtime_version_tuple(version)
+        vt = _runtime_version_tuple(version)
         return JsRuntimeInfo(
             name='node', path=path, version=version, version_tuple=vt,
             supported=vt >= self.MIN_SUPPORTED_VERSION)
@@ -100,7 +140,7 @@ class QuickJsRuntime(JsRuntime):
         is_ng = 'QuickJS-ng' in out
 
         version = detect_exe_version(out, r'^QuickJS(?:-ng)?\s+version\s+(\S+)', 'unknown')
-        vt = runtime_version_tuple(version.replace('-', '.'))
+        vt = _runtime_version_tuple(version.replace('-', '.'))
         if is_ng:
             return JsRuntimeInfo(
                 name='quickjs-ng', path=path, version=version, version_tuple=vt,
