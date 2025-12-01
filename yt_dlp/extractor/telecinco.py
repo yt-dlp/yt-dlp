@@ -46,7 +46,7 @@ class TelecincoBaseIE(InfoExtractor):
                 error_code = traverse_obj(
                     self._webpage_read_content(error.cause.response, caronte['cerbero'], video_id, fatal=False),
                     ({json.loads}, 'code', {int}))
-                if error_code in (4038, 40313):
+                if error_code in (4036, 4038, 40313):
                     self.raise_geo_restricted(countries=['ES'])
             raise
 
@@ -140,7 +140,7 @@ class TelecincoIE(TelecincoBaseIE):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
+        webpage = self._download_webpage(url, display_id, impersonate=True)
         article = self._search_json(
             r'window\.\$REACTBASE_STATE\.article(?:_multisite)?\s*=',
             webpage, 'article', display_id)['article']

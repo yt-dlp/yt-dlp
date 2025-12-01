@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import contextlib
 import functools
 import http.client
 import logging
 import re
-import socket
 import warnings
 
 from ..dependencies import brotli, requests, urllib3
@@ -20,9 +18,9 @@ if urllib3 is None:
 
 urllib3_version = tuple(int_or_none(x, default=0) for x in urllib3.__version__.split('.'))
 
-if urllib3_version < (1, 26, 17):
+if urllib3_version < (2, 0, 2):
     urllib3._yt_dlp__version = f'{urllib3.__version__} (unsupported)'
-    raise ImportError('Only urllib3 >= 1.26.17 is supported')
+    raise ImportError('Only urllib3 >= 2.0.2 is supported')
 
 if requests.__build__ < 0x023202:
     requests._yt_dlp__version = f'{requests.__version__} (unsupported)'
@@ -101,27 +99,10 @@ class Urllib3PercentREOverride:
 # https://github.com/urllib3/urllib3/commit/a2697e7c6b275f05879b60f593c5854a816489f0
 import urllib3.util.url
 
-if hasattr(urllib3.util.url, 'PERCENT_RE'):
-    urllib3.util.url.PERCENT_RE = Urllib3PercentREOverride(urllib3.util.url.PERCENT_RE)
-elif hasattr(urllib3.util.url, '_PERCENT_RE'):  # urllib3 >= 2.0.0
+if hasattr(urllib3.util.url, '_PERCENT_RE'):  # was 'PERCENT_RE' in urllib3 < 2.0.0
     urllib3.util.url._PERCENT_RE = Urllib3PercentREOverride(urllib3.util.url._PERCENT_RE)
 else:
-    warnings.warn('Failed to patch PERCENT_RE in urllib3 (does the attribute exist?)' + bug_reports_message())
-
-'''
-Workaround for issue in urllib.util.ssl_.py: ssl_wrap_context does not pass
-server_hostname to SSLContext.wrap_socket if server_hostname is an IP,
-however this is an issue because we set check_hostname to True in our SSLContext.
-
-Monkey-patching IS_SECURETRANSPORT forces ssl_wrap_context to pass server_hostname regardless.
-
-This has been fixed in urllib3 2.0+.
-See: https://github.com/urllib3/urllib3/issues/517
-'''
-
-if urllib3_version < (2, 0, 0):
-    with contextlib.suppress(Exception):
-        urllib3.util.IS_SECURETRANSPORT = urllib3.util.ssl_.IS_SECURETRANSPORT = True
+    warnings.warn('Failed to patch _PERCENT_RE in urllib3 (does the attribute exist?)' + bug_reports_message())
 
 
 # Requests will not automatically handle no_proxy by default
@@ -138,11 +119,22 @@ class RequestsResponseAdapter(Response):
 
         self._requests_response = res
 
+    def _real_read(self, amt: int | None = None) -> bytes:
+        # Work around issue with `.read(amt)` then `.read()`
+        # See: https://github.com/urllib3/urllib3/issues/3636
+        if amt is None:
+            # compat: py3.9: Python 3.9 preallocates the whole read buffer, read in chunks
+            read_chunk = functools.partial(self.fp.read, 1 << 20, decode_content=True)
+            return b''.join(iter(read_chunk, b''))
+        # Interact with urllib3 response directly.
+        return self.fp.read(amt, decode_content=True)
+
     def read(self, amt: int | None = None):
         try:
-            # Interact with urllib3 response directly.
-            return self.fp.read(amt, decode_content=True)
-
+            data = self._real_read(amt)
+            if self.fp.closed:
+                self.close()
+            return data
         # See urllib3.response.HTTPResponse.read() for exceptions raised on read
         except urllib3.exceptions.SSLError as e:
             raise SSLError(cause=e) from e
@@ -307,7 +299,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
             max_retries=urllib3.util.retry.Retry(False),
         )
         session.adapters.clear()
-        session.headers = requests.models.CaseInsensitiveDict({'Connection': 'keep-alive'})
+        session.headers = requests.models.CaseInsensitiveDict()
         session.mount('https://', http_adapter)
         session.mount('http://', http_adapter)
         session.cookies = cookiejar
@@ -316,6 +308,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
 
     def _prepare_headers(self, _, headers):
         add_accept_encoding_header(headers, SUPPORTED_ENCODINGS)
+        headers.setdefault('Connection', 'keep-alive')
 
     def _send(self, request):
 
@@ -389,7 +382,7 @@ class SocksHTTPConnection(urllib3.connection.HTTPConnection):
                 source_address=self.source_address,
                 _create_socket_func=functools.partial(
                     create_socks_proxy_socket, (self.host, self.port), self._proxy_args))
-        except (socket.timeout, TimeoutError) as e:
+        except TimeoutError as e:
             raise urllib3.exceptions.ConnectTimeoutError(
                 self, f'Connection to {self.host} timed out. (connect timeout={self.timeout})') from e
         except SocksProxyError as e:
