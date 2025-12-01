@@ -73,6 +73,9 @@ class TubiTvIE(InfoExtractor):
             'release_year': 1979,
         },
         'skip': 'Content Unavailable',
+    }, {
+        'url': 'https://tubitv.com/es-mx/tv-shows/477363/s01-e03-jacob-dos-dos-y-la-tarjets-de-hockey-robada',
+        'only_matching': True,
     }]
 
     # DRM formats are included only to raise appropriate error
