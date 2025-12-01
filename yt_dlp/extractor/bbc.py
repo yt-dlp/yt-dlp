@@ -465,39 +465,33 @@ class BBCCoUkIE(InfoExtractor):
 
         # Fallback when there is no VPID in json response.
         if not traverse_obj(playlist, ('defaultAvailableVersion')):
-            episode_block = self._search_regex(
-                r'"episode"\s*:\s*\{(.*?)\}\s*,\s*"relatedEpisodes"',
-                webpage,
-                'episode',
+            episode_block = self._search_json(
+                start_pattern=r'"episode"*:*',
+                string=webpage,
+                name='episode',
+                video_id=playlist_id,
+                contains_pattern=r'\{(.*?)\}',
+                end_pattern=r',"relatedEpisodes"*',
                 fatal=False,
             )
-            episode_json = {}
-            if episode_block:
-                episode_json = self._parse_json('{' + episode_block + '}', playlist_id)
-
-            description = traverse_obj(episode_json, ('synopses', 'large'))
+            description = traverse_obj(episode_block, ('synopses', 'large'))
             programme_id = self._search_regex(
-                r'"id"\s*:\s*"([0-9a-z]{8})"',
-                self._search_regex(
-                    r'"versions"\s*:\s*\[\s*(\{[^]]*"id"\s*:\s*"[0-9a-z]{8}".*?)\]\s*,',
-                    webpage,
-                    'versions',
-                    fatal=False,
-                ),
-                'pid',
-                fatal=False)
+                r'"versions"\s*:\s*\[\s*\{\s*"id"\s*:\s*"([0-9a-z]{8})"',
+                webpage,
+                'programme id',
+                fatal=False,
+            )
             duration = int_or_none(self._search_regex(
                 r'<span[^>]*episode-metadata__text[^>]*>\s*([^<]+)\s*</span>',
                 webpage,
                 'duration',
                 fatal=False,
             ))
-
             formats, subtitles = _parse_formats(programme_id)
         else:
             for version in playlist.get('allAvailableVersions', []):
                 smp_config = version['smpConfig']
-                title = smp_config['title'] or None
+                title = smp_config['title']
                 description = smp_config['summary']
                 for item in smp_config['items']:
                     kind = item['kind']
