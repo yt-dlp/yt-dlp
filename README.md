@@ -1871,7 +1871,6 @@ The following extractors use this feature:
 * `pot_trace`: Enable debug logging for PO Token fetching. Either `true` or `false` (default)
 * `fetch_pot`: Policy to use for fetching a PO Token from providers. One of `always` (always try fetch a PO Token regardless if the client requires one for the given context), `never` (never fetch a PO Token), or `auto` (default; only fetch a PO Token if the client requires one for the given context)
 * `jsc_trace`: Enable debug logging for JS Challenge fetching. Either `true` or `false` (default)
-* `request_no_ads`: Skip preroll ads to eliminate the mandatory wait period before download. Either `true` (the default if unauthenticated) or `false`. The default is `false` when logged-in cookies have been passed to yt-dlp, since `true` will result in a loss of premium formats
 
 #### youtube-ejs
 * `jitless`: Run suported Javascript engines in JIT-less mode. Supported runtimes are `deno`, `node` and `bun`. Provides better security at the cost of performance/speed. Do note that `node` and `bun` are still considered unsecure. Either `true` or `false` (default)

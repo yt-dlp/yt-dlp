@@ -2628,29 +2628,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _get_checkok_params():
         return {'contentCheckOk': True, 'racyCheckOk': True}
 
-    def _generate_player_context(self, sts=None):
+    @classmethod
+    def _generate_player_context(cls, sts=None):
         context = {
             'html5Preference': 'HTML5_PREF_WANTS',
         }
         if sts is not None:
             context['signatureTimestamp'] = sts
-
-        playback_context = {
-            'contentPlaybackContext': context,
-        }
-
-        # The 'adPlaybackContext'/'request_no_ads' workaround results in a loss of premium formats.
-        # Only default to 'true' if the user is unauthenticated, since we can't reliably detect all
-        # types of premium accounts (e.g. YTMusic Premium), and since premium users don't have ads.
-        default_arg_value = 'false' if self.is_authenticated else 'true'
-        if self._configuration_arg('request_no_ads', [default_arg_value])[0] != 'false':
-            playback_context['adPlaybackContext'] = {
-                'pyv': True,
-            }
-
         return {
-            'playbackContext': playback_context,
-            **self._get_checkok_params(),
+            'playbackContext': {
+                'contentPlaybackContext': context,
+            },
+            **cls._get_checkok_params(),
         }
 
     def _get_config_po_token(self, client: str, context: _PoTokenContext):
