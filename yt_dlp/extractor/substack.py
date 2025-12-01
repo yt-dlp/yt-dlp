@@ -98,7 +98,7 @@ class SubstackIE(InfoExtractor):
             'uploader': 'MellowKat\'s Newsletter',
             'uploader_id': '1075591',
         },
-        'expected_warnings': ['Podcast URL is invalid']
+        'expected_warnings': ['Podcast URL is invalid'],
     }]
 
     @classmethod
