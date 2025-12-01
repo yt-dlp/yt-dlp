@@ -153,7 +153,8 @@ class SubstackIE(InfoExtractor):
                 # so we only want to extract the extension from this request
                 fatal = not formats
                 podcast_url_src = self._request_webpage(HEADRequest(fmt['url']), display_id,
-                    'Resolving podcast file extension', 'Podcast URL is invalid', fatal=fatal)
+                                                        'Resolving podcast file extension',
+                                                        'Podcast URL is invalid', fatal=fatal)
                 if podcast_url_src:
                     ext = determine_ext(podcast_url_src.url)
             if ext:
