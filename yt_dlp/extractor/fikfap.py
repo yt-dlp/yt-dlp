@@ -37,7 +37,7 @@ class FikfapBaseIE(InfoExtractor):
                 'Referer': 'https://fikfap.com/',
             })
 
-        yield {
+        return {
             'id': video_id,
             'formats': formats,
             'title': post.get('label'),
@@ -64,32 +64,26 @@ class FikfapIE(FikfapBaseIE):
     def _real_extract(self, url):
         _, postid = self._match_valid_url(url).groups()
         data = self._call_api(f'/posts/{postid}', postid)
-        return next(self._extract_post(data, postid))
+        return self._extract_post(data, postid)
 
 
 class FikfapPlaylistBaseIE(FikfapBaseIE):
     def _real_extract(self, url):
         video_id = self._match_valid_url(url).group('id')
         amount = 21
+        after_state = ''
 
         def fetch_page(page):
-            after_id = None
-            if after_id is None:
-                path = f'/{self._MIDDLE_NAME}/{video_id}/posts?amount={amount}'
-            else:
-                path = f'/{self._MIDDLE_NAME}/{video_id}/posts?amount={amount}&afterId={after_id}'
+            nonlocal after_state
+            path = f'/{self._MIDDLE_NAME}/{video_id}/posts?amount={amount}&afterId={after_state}'
 
             data = self._call_api(path, video_id, f'Downloading Page {page}')
             if not data:
                 return []
 
-            after_id = data[-1].get('postId')
+            after_state = data[-1].get('postId')
 
-            entries = []
-            for pst in data:
-                entries.extend(self._extract_post(pst, video_id))
-
-            return entries
+            return [self._extract_post(pst, video_id) for pst in data]
 
         return self.playlist_result(
             OnDemandPagedList(fetch_page, 21),
