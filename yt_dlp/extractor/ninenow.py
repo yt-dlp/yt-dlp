@@ -139,3 +139,57 @@ class NineNowIE(InfoExtractor):
                 }),
             }),
         }
+
+
+class NineNowLiveIE(InfoExtractor):
+    IE_NAME = '9now:live'
+    _VALID_URL = r'https?://[^.]*.9now.com.au/live/(?P<slug>[^\/?#]+)'
+    _GEO_BYPASS = False
+    TESTS = [{
+        'url': 'https://www.9now.com.au/live/channel-9',
+        'info_dict': {
+            'id': 'channel-9',
+            'formats': list,
+            'subtitles': dict,
+            'is_live': True,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://www.9now.com.au/live/60-minutes-australial',
+        'only_matching': True,
+    }]
+    _SELF_API_BASE = 'https://api.9now.com.au'
+
+    def _real_extract(self, url):
+        slug = self._match_valid_url(url).group('slug')
+
+        live_stream_data = self._download_json(
+            f'{self._SELF_API_BASE}/web/live-experience?device=web&slug={slug}',
+            slug,
+            f'Downloading {slug} Data',
+            errnote=f'The {slug} is currently Not Live.',
+        )
+        video_data = traverse_obj(live_stream_data, ('data', 'getLXP', 'stream'))
+        if traverse_obj(video_data, ('video', 'drm')):
+            self.report_drm(slug)
+        metadata = traverse_obj(video_data, ('display', 'listings', 0))
+        formats, subtitls = self._extract_m3u8_formats_and_subtitles(
+            traverse_obj(
+                video_data,
+                ('video', 'url'),
+            ),
+            slug,
+            live=True,
+            fatal=False,
+        )
+        return {
+            'id': slug,
+            'title': metadata.get('title'),
+            'description': metadata.get('description'),
+            'formats': formats,
+            'subtitles': subtitls,
+            'is_live': True,
+            'release_timestamp': parse_iso8601(metadata.get('startDate')),
+        }
