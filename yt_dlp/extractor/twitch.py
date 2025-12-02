@@ -43,6 +43,7 @@ class TwitchBaseIE(InfoExtractor):
     _OPERATION_HASHES = {
         'CollectionSideBar': '016e1e4ccee0eb4698eb3bf1a04dc1c077fb746c78c82bac9a8f0289658fbd1a',
         'FilterableVideoTower_Videos': '67004f7881e65c297936f32c75246470629557a393788fb5a69d6d9a25a8fd5f',
+        'ClipsCards__Game': 'cc14976959c8f31c617e956a7c4c32216c3e04f6b586088b7bf49561c35e841b',
         'ClipsCards__User': '90c33f5e6465122fba8f9371e2a97076f9ed06c6fed3788d002ab9eba8f91d88',
         'ShareClipRenderStatus': '1844261bb449fa51e6167040311da4a7a5f1c34fe71c71a3e0c4f551bc30c698',
         'ChannelCollectionsContent': '5247910a19b1cd2b760939bf4cba4dcbd3d13bdf8c266decd16956f6ef814077',
