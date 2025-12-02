@@ -85,7 +85,7 @@ def main():
             print(target)
         return
 
-    pip_args = [sys.executable, '-m', 'pip', 'install', '-U']
+    pip_args = [sys.executable, '-m', 'pip', 'install', '-U', '--break-system-packages']
     if args.user:
         pip_args.append('--user')
     pip_args.extend(targets)
