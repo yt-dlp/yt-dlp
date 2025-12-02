@@ -1369,8 +1369,8 @@ from .ninecninemedia import (
 from .ninegag import NineGagIE
 from .ninenews import NineNewsIE
 from .ninenow import (
-    NineNowIEm,
-    NineNowLiveIEe,
+    NineNowIE,
+    NineNowLiveIE,
 )
 from .nintendo import NintendoIE
 from .nitter import NitterIE
