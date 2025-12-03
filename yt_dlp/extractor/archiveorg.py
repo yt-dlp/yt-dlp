@@ -705,6 +705,23 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'upload_date': '20160107',
             },
         }, {
+            # videoinfo api returns dict instead of list
+            'url': 'https://web.archive.org/web/20240922160632/https://www.youtube.com/watch?v=z7hzvTL3k1k',
+            'info_dict': {
+                'id': 'z7hzvTL3k1k',
+                'ext': 'webm',
+                'title': 'Praise the Lord and Pass the Ammunition (BARRXN REMIX)',
+                'description': 'md5:45dbf2c71c23b0734c8dfb82dd1e94b6',
+                'uploader': 'Barrxn',
+                'uploader_id': 'TheRockstar6086',
+                'uploader_url': 'https://www.youtube.com/user/TheRockstar6086',
+                'channel_id': 'UCjJPGUTtvR9uizmawn2ThqA',
+                'channel_url': 'https://www.youtube.com/channel/UCjJPGUTtvR9uizmawn2ThqA',
+                'duration': 125,
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'upload_date': '20201207',
+            },
+        }, {
             'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
             'only_matching': True,
         }, {
@@ -1090,7 +1107,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         info['thumbnails'] = self._extract_thumbnails(video_id)
 
         formats = []
-        for fmt in traverse_obj(video_info, ('formats', lambda _, v: url_or_none(v['url']))):
+        for fmt in traverse_obj(video_info, ('formats', (None, ...), lambda _, v: url_or_none(v['url']))):
             format_id = traverse_obj(fmt, ('url', {parse_qs}, 'itag', 0))
             formats.append({
                 'format_id': format_id,
