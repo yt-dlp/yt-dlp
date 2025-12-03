@@ -1077,7 +1077,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         capture_dates.extend([self._OLDEST_CAPTURE_DATE, self._NEWEST_CAPTURE_DATE])
         return orderedSet(filter(None, capture_dates))
 
-    def _parse_fmt(self, fmt, extra_info={}):
+    def _parse_fmt(self, fmt, extra_info=None):
         format_id = traverse_obj(fmt, ('url', {parse_qs}, 'itag', 0))
         return {
             'format_id': format_id,
@@ -1087,7 +1087,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'ext': ('ext', {str}),
                 'filesize': ('url', {parse_qs}, 'clen', 0, {int_or_none}),
             }),
-            **extra_info,
+            **(extra_info or {}),
         }
 
     def _real_extract(self, url):
