@@ -605,7 +605,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         'Unavailable videos are hidden',
     }
 
-    _YT_HANDLE_RE = r'@[\w.-]{3,30}'  # https://support.google.com/youtube/answer/11585688?hl=en
+    _YT_HANDLE_SPECIAL_CHARS = '_.·-'
     _YT_CHANNEL_UCID_RE = r'UC[\w-]{22}'
 
     _NETRC_MACHINE = 'youtube'
@@ -616,12 +616,33 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return self._search_regex(rf'^({self._YT_CHANNEL_UCID_RE})$', ucid, 'UC-id', default=None)
 
     def handle_or_none(self, handle):
-        return self._search_regex(rf'^({self._YT_HANDLE_RE})$', urllib.parse.unquote(handle or ''),
-                                  '@-handle', default=None)
+        """
+        Ref: https://support.google.com/youtube/answer/11585688?hl=en
+        """
+        if not isinstance(handle, str) or not handle.startswith('@'):
+            return None
+
+        name = urllib.parse.unquote(handle[1:])
+
+        try:
+            name_length = len(name.encode())
+        except ValueError:
+            name_length = 0
+
+        if (
+            name_length < 3
+            or name_length > 30
+            or name.startswith(tuple(self._YT_HANDLE_SPECIAL_CHARS))
+            or name.endswith(tuple(self._YT_HANDLE_SPECIAL_CHARS))
+            or not re.fullmatch(fr'[\w{self._YT_HANDLE_SPECIAL_CHARS}]+', name)
+        ):
+            return None
+
+        return f'@{name}'
 
     def handle_from_url(self, url):
-        return self._search_regex(rf'^(?:https?://(?:www\.)?youtube\.com)?/({self._YT_HANDLE_RE})',
-                                  urllib.parse.unquote(url or ''), 'channel handle', default=None)
+        return self.handle_or_none(self._search_regex(r'^(?:https?://(?:www\.)?youtube\.com)?/(.+)',
+                                   url, 'channel handle', default=None))
 
     def ucid_from_url(self, url):
         return self._search_regex(rf'^(?:https?://(?:www\.)?youtube\.com)?/({self._YT_CHANNEL_UCID_RE})',
