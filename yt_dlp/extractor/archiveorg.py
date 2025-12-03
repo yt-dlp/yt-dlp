@@ -1077,6 +1077,19 @@ class YoutubeWebArchiveIE(InfoExtractor):
         capture_dates.extend([self._OLDEST_CAPTURE_DATE, self._NEWEST_CAPTURE_DATE])
         return orderedSet(filter(None, capture_dates))
 
+    def _parse_fmt(self, fmt, extra_info={}):
+        format_id = traverse_obj(fmt, ('url', {parse_qs}, 'itag', 0))
+        return {
+            'format_id': format_id,
+            **self._FORMATS.get(format_id, {}),
+            **traverse_obj(fmt, {
+                'url': ('url', {lambda x: f'https://web.archive.org/web/2id_/{x}'}),
+                'ext': ('ext', {str}),
+                'filesize': ('url', {parse_qs}, 'clen', 0, {int_or_none}),
+            }),
+            **extra_info,
+        }
+
     def _real_extract(self, url):
         video_id, url_date, url_date_2 = self._match_valid_url(url).group('id', 'date', 'date2')
         url_date = url_date or url_date_2
@@ -1107,17 +1120,14 @@ class YoutubeWebArchiveIE(InfoExtractor):
         info['thumbnails'] = self._extract_thumbnails(video_id)
 
         formats = []
-        for fmt in traverse_obj(video_info, ('formats', (None, ...), lambda _, v: url_or_none(v['url']))):
-            format_id = traverse_obj(fmt, ('url', {parse_qs}, 'itag', 0))
-            formats.append({
-                'format_id': format_id,
-                **self._FORMATS.get(format_id, {}),
-                **traverse_obj(fmt, {
-                    'url': ('url', {lambda x: f'https://web.archive.org/web/2id_/{x}'}),
-                    'ext': ('ext', {str}),
-                    'filesize': ('url', {parse_qs}, 'clen', 0, {int_or_none}),
-                }),
-            })
+        if video_info.get('dmux'):
+            for vf in traverse_obj(video_info, ('formats', 'video', lambda _, v: url_or_none(v['url']))):
+                formats.append(self._parse_fmt(vf, {'acodec': 'none'}))
+            for af in traverse_obj(video_info, ('formats', 'audio', lambda _, v: url_or_none(v['url']))):
+                formats.append(self._parse_fmt(af, {'vcodec': 'none'}))
+        else:
+            for fmt in traverse_obj(video_info, ('formats', lambda _, v: url_or_none(v['url']))):
+                formats.append(self._parse_fmt(fmt))
         info['formats'] = formats
 
         return info
