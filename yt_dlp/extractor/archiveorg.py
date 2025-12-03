@@ -705,7 +705,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'upload_date': '20160107',
             },
         }, {
-            # videoinfo api returns dict instead of list
+            # dmuxed formats
             'url': 'https://web.archive.org/web/20240922160632/https://www.youtube.com/watch?v=z7hzvTL3k1k',
             'info_dict': {
                 'id': 'z7hzvTL3k1k',
