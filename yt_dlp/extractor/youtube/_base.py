@@ -158,8 +158,8 @@ INNERTUBE_CLIENTS = {
                 recommended=True,
             ),
         },
-        'SUPPORTS_AD_PLAYBACK_CONTEXT': True,
         'SUPPORTS_COOKIES': True,
+        'SUPPORTS_AD_PLAYBACK_CONTEXT': True,
     },
     # This client now requires sign-in for every video
     'web_creator': {
@@ -416,9 +416,9 @@ def build_innertube_clients():
         ytcfg.setdefault('SUBS_PO_TOKEN_POLICY', SubsPoTokenPolicy())
         ytcfg.setdefault('REQUIRE_AUTH', False)
         ytcfg.setdefault('SUPPORTS_COOKIES', False)
+        ytcfg.setdefault('SUPPORTS_AD_PLAYBACK_CONTEXT', False)
         ytcfg.setdefault('PLAYER_PARAMS', None)
         ytcfg.setdefault('AUTHENTICATED_USER_AGENT', None)
-        ytcfg.setdefault('SUPPORTS_AD_PLAYBACK_CONTEXT', False)
         ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
 
         _, base_client, variant = _split_innertube_client(client)

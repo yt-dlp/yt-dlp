@@ -2879,6 +2879,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             and traverse_obj(INNERTUBE_CLIENTS, (client, 'SUPPORTS_AD_PLAYBACK_CONTEXT', {bool})))
 
         yt_query.update(self._generate_player_context(sts, use_ad_playback_context))
+
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
             ytcfg=player_ytcfg, headers=headers, fatal=True,
