@@ -52,9 +52,13 @@ class CCCIE(InfoExtractor):
                     format_id += '-' + folder
                 else:
                     format_id = folder
-            vcodec = 'h264' if 'h264' in folder else (
-                'none' if folder in ('mp3', 'opus') else None
-            )
+            vcodec = None
+            if 'av1' in folder:
+                vcodec = 'av1'
+            elif 'h264' in folder:
+                vcodec = 'h264'
+            elif folder in ('mp3', 'opus'):
+                vcodec = 'none'
             formats.append({
                 'format_id': format_id,
                 'url': recording_url,
