@@ -721,6 +721,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
                 'upload_date': '20201207',
             },
+            'params': {'format': 'bv'},
         }, {
             'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
             'only_matching': True,
