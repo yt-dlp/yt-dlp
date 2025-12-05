@@ -239,6 +239,7 @@ def _firefox_based_browser_settings(browser_name):
             'firefox': [
                 os.path.join(config, 'mozilla/firefox'),
                 os.path.expanduser('~/.mozilla/firefox'),
+                os.path.join(flatpak_root, 'org.mozilla.firefox/config/mozilla/firefox'),
                 os.path.join(flatpak_root, 'org.mozilla.firefox/.mozilla/firefox'),
                 os.path.join(snap_root, 'firefox/common/.mozilla/firefox'),
             ],
