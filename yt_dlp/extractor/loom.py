@@ -349,7 +349,7 @@ class LoomIE(InfoExtractor):
 
     def _get_subtitles(self, video_id):
         subs_data = self._call_graphql_api(
-            'FetchVideoTranscript', video_id, 'Downloading GraphQL subtitles data')
+            'FetchVideoTranscript', video_id, 'Downloading GraphQL subtitles JSON', fatal=False)
         return filter_dict({
             'en': traverse_obj(subs_data, (
                 'data', 'fetchVideoTranscript',
