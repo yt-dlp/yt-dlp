@@ -75,6 +75,7 @@ from .afreecatv import (
     AfreecaTVLiveIE,
     AfreecaTVUserIE,
 )
+from .agalega import AGalegaIE
 from .agora import (
     TokFMAuditionIE,
     TokFMPodcastIE,
@@ -268,6 +269,7 @@ from .bitchute import (
     BitChuteChannelIE,
     BitChuteIE,
 )
+from .bitmovin import BitmovinIE
 from .blackboardcollaborate import (
     BlackboardCollaborateIE,
     BlackboardCollaborateLaunchIE,
@@ -640,7 +642,10 @@ from .filmon import (
     FilmOnIE,
 )
 from .filmweb import FilmwebIE
-from .firsttv import FirstTVIE
+from .firsttv import (
+    FirstTVIE,
+    FirstTVLiveIE,
+)
 from .fivetv import FiveTVIE
 from .flextv import FlexTVIE
 from .flickr import FlickrIE
@@ -686,6 +691,10 @@ from .frontendmasters import (
     FrontendMastersCourseIE,
     FrontendMastersIE,
     FrontendMastersLessonIE,
+)
+from .frontro import (
+    TheChosenGroupIE,
+    TheChosenIE,
 )
 from .fujitv import FujiTVFODPlus7IE
 from .funk import FunkIE
@@ -1090,7 +1099,10 @@ from .markiza import (
 from .massengeschmacktv import MassengeschmackTVIE
 from .masters import MastersIE
 from .matchtv import MatchTVIE
-from .mave import MaveIE
+from .mave import (
+    MaveChannelIE,
+    MaveIE,
+)
 from .mbn import MBNIE
 from .mdr import MDRIE
 from .medaltv import MedalTVIE
@@ -1197,6 +1209,7 @@ from .musicdex import (
     MusicdexPlaylistIE,
     MusicdexSongIE,
 )
+from .mux import MuxIE
 from .mx3 import (
     Mx3IE,
     Mx3NeoIE,
@@ -1271,6 +1284,10 @@ from .nerdcubed import NerdCubedFeedIE
 from .nest import (
     NestClipIE,
     NestIE,
+)
+from .netapp import (
+    NetAppCollectionIE,
+    NetAppVideoIE,
 )
 from .neteasemusic import (
     NetEaseMusicAlbumIE,
@@ -1364,6 +1381,7 @@ from .nova import (
     NovaIE,
 )
 from .novaplay import NovaPlayIE
+from .nowcanal import NowCanalIE
 from .nowness import (
     NownessIE,
     NownessPlaylistIE,
@@ -2517,6 +2535,7 @@ from .yappy import (
     YappyIE,
     YappyProfileIE,
 )
+from .yfanefa import YfanefaIE
 from .yle_areena import YleAreenaIE
 from .youjizz import YouJizzIE
 from .youku import (

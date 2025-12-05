@@ -312,6 +312,7 @@ class TestRequestHandlerBase:
 
 
 @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', os.name == 'nt', reason='segfaults')
 class TestHTTPRequestHandler(TestRequestHandlerBase):
 
     def test_verify_cert(self, handler):
@@ -754,8 +755,20 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                 assert res.read(0) == b''
                 assert res.read() == b'<video src="/vid.mp4" /></html>'
 
+    def test_partial_read_greater_than_response_then_full_read(self, handler):
+        with handler() as rh:
+            for encoding in ('', 'gzip', 'deflate'):
+                res = validate_and_send(rh, Request(
+                    f'http://127.0.0.1:{self.http_port}/content-encoding',
+                    headers={'ytdl-encoding': encoding}))
+                assert res.headers.get('Content-Encoding') == encoding
+                assert res.read(512) == b'<html><video src="/vid.mp4" /></html>'
+                assert res.read(0) == b''
+                assert res.read() == b''
+
 
 @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', reason='segfaults')
 class TestClientCertificate:
     @classmethod
     def setup_class(cls):
@@ -918,6 +931,28 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
             assert res.fp.fp is None
             assert res.closed
 
+    def test_data_uri_partial_read_then_full_read(self, handler):
+        with handler() as rh:
+            res = validate_and_send(rh, Request('data:text/plain,hello%20world'))
+            assert res.read(6) == b'hello '
+            assert res.read(0) == b''
+            assert res.read() == b'world'
+            # Should automatically close the underlying file object
+            assert res.fp.closed
+            assert res.closed
+
+    def test_data_uri_partial_read_greater_than_response_then_full_read(self, handler):
+        with handler() as rh:
+            res = validate_and_send(rh, Request('data:text/plain,hello%20world'))
+            assert res.read(512) == b'hello world'
+            # Response and its underlying file object should already be closed now
+            assert res.fp.closed
+            assert res.closed
+            assert res.read(0) == b''
+            assert res.read() == b''
+            assert res.fp.closed
+            assert res.closed
+
     def test_http_error_returns_content(self, handler):
         # urllib HTTPError will try close the underlying response if reference to the HTTPError object is lost
         def get_response():
@@ -1060,6 +1095,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
 
 
 @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', os.name == 'nt', reason='segfaults')
 class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
 
     @pytest.mark.parametrize('params,extensions', [
