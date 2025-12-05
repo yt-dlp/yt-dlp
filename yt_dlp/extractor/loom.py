@@ -1,4 +1,3 @@
-import base64
 import json
 import textwrap
 import urllib.parse
@@ -258,10 +257,6 @@ class LoomIE(InfoExtractor):
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
                 'x-loom-request-source': f'loom_web_{self._APOLLO_GRAPHQL_VERSION}',
-                'x-loom-entity-routing': base64.b64encode(json.dumps({
-                    'entityType': 'video',
-                    'entityId': video_id,
-                }, separators=(',', ':')).encode()).decode().rstrip('='),
                 'apollographql-client-name': 'web',
                 'apollographql-client-version': self._APOLLO_GRAPHQL_VERSION,
                 'graphql-operation-name': operation_name,
