@@ -38,12 +38,13 @@ class YandexRuntimeStrmIE(InfoExtractor):
 
             live_from_start = self.get_param('live_from_start', False)
             stream_type = stream.get('type')
-            # dash is too complicated
-            #
-            # if stream_type == 'dash':
-            #     dash_formats = self._extract_mpd_formats(
-            #         s_url, video_id, mpd_id='dash', fatal=False)
-            #     formats.extend(dash_formats)
+            if stream_type == 'dash':
+                dash_formats = self._extract_mpd_formats(
+                    s_url, video_id, mpd_id='dash', fatal=False)
+                for f in dash_formats:
+                    # dash is too complicated to make it work with live-from-start
+                    f['preference'] = -1000
+                formats.extend(dash_formats)
             if stream_type == 'hls':
                 hls_formats = self._extract_m3u8_formats(
                     s_url, video_id, 'mp4', m3u8_id='hls', fatal=False, live=True)
