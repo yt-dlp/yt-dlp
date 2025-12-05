@@ -234,13 +234,16 @@ def _firefox_based_browser_settings(browser_name):
     else:
         flatpak_root = os.path.expanduser('~/.var/app')
         snap_root = os.path.expanduser('~/snap')
+        config = _config_home()
         browser_dirs = {
             'firefox': [
+                os.path.join(config, 'mozilla/firefox'),
                 os.path.expanduser('~/.mozilla/firefox'),
                 os.path.join(flatpak_root, 'org.mozilla.firefox/.mozilla/firefox'),
                 os.path.join(snap_root, 'firefox/common/.mozilla/firefox'),
             ],
             'librewolf': [
+                # librewolf does not follow the XDG specification yet: https://codeberg.org/librewolf/issues/issues/2682
                 os.path.expanduser('~/.librewolf'),
                 os.path.join(flatpak_root, 'io.gitlab.librewolf-community/.librewolf'),
                 # not published on snapcraft
