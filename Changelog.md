@@ -64,7 +64,7 @@ yt-dlp now requires users to have an external JavaScript runtime (e.g. Deno) ins
 - **build**: [Bump musllinux Python version to 3.14](https://github.com/yt-dlp/yt-dlp/commit/646904cd3a79429ec5fdc43f904b3f57ae213f34) ([#14623](https://github.com/yt-dlp/yt-dlp/issues/14623)) by [bashonly](https://github.com/bashonly)
 - **cleanup**
     - Miscellaneous
-        - [c63b4e2](https://github.com/yt-dlp/yt-dlp/commit/c63b4e2a2b81cc78397c8709ef53ffd29bada213) by [bashonly](https://github.com/bashonly), [matyb08](https://github.com/matyb08), [sepro](https://github.com/sepro)
+        - [c63b4e2](https://github.com/yt-dlp/yt-dlp/commit/c63b4e2a2b81cc78397c8709ef53ffd29bada213) by [bashonly](https://github.com/bashonly), [matyb08](https://github.com/matyb08), [seproDev](https://github.com/seproDev)
         - [335653b](https://github.com/yt-dlp/yt-dlp/commit/335653be82d5ef999cfc2879d005397402eebec1) by [bashonly](https://github.com/bashonly), [seproDev](https://github.com/seproDev)
 - **devscripts**: [Improve `install_deps` script](https://github.com/yt-dlp/yt-dlp/commit/73922e66e437fb4bb618bdc119a96375081bf508) ([#14766](https://github.com/yt-dlp/yt-dlp/issues/14766)) by [bashonly](https://github.com/bashonly)
 - **test**: [Skip flaky tests if source unchanged](https://github.com/yt-dlp/yt-dlp/commit/ade8c2b36ff300edef87d48fd1ba835ac35c5b63) ([#14970](https://github.com/yt-dlp/yt-dlp/issues/14970)) by [bashonly](https://github.com/bashonly), [Grub4K](https://github.com/Grub4K)
