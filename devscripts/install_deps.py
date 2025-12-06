@@ -25,16 +25,16 @@ def parse_args():
         '-e', '--exclude-dependency', metavar='DEPENDENCY', action='append',
         help='exclude a dependency (can be used multiple times)')
     parser.add_argument(
-        '-i', '--include-group', metavar='GROUP', action='append',
-        help='include an optional dependency group (can be used multiple times)')
+        '-i', '--include-extra', metavar='EXTRA', action='append',
+        help='include an extra/optional-dependencies list (can be used multiple times)')
     parser.add_argument(
         '-c', '--cherry-pick', metavar='DEPENDENCY', action='append',
         help=(
             'only include a specific dependency from the resulting dependency list '
             '(can be used multiple times)'))
     parser.add_argument(
-        '-o', '--only-optional-groups', action='store_true',
-        help='omit default dependencies unless the "default" group is specified with --include-group')
+        '-o', '--omit-default', action='store_true',
+        help='omit the "default" extra unless it is explicitly included (it is included by default)')
     parser.add_argument(
         '-p', '--print', action='store_true',
         help='only print requirements to stdout')
@@ -51,27 +51,27 @@ def uniq(arg) -> dict[str, None]:
 def main():
     args = parse_args()
     project_table = parse_toml(read_file(args.input))['project']
-    recursive_pattern = re.compile(rf'{project_table["name"]}\[(?P<group_name>[\w-]+)\]')
-    optional_groups = project_table['optional-dependencies']
+    recursive_pattern = re.compile(rf'{project_table["name"]}\[(?P<extra_name>[\w-]+)\]')
+    extras = project_table['optional-dependencies']
 
     excludes = uniq(args.exclude_dependency)
     only_includes = uniq(args.cherry_pick)
-    include_groups = uniq(args.include_group)
+    include_extras = uniq(args.include_extra)
 
-    def yield_deps(group):
-        for dep in group:
+    def yield_deps(extra):
+        for dep in extra:
             if mobj := recursive_pattern.fullmatch(dep):
-                yield from optional_groups.get(mobj.group('group_name'), ())
+                yield from extras.get(mobj.group('extra_name'), ())
             else:
                 yield dep
 
     targets = {}
-    if not args.only_optional_groups:
+    if not args.omit_default:
         # legacy: 'dependencies' is empty now
         targets.update(dict.fromkeys(project_table['dependencies']))
-        targets.update(dict.fromkeys(yield_deps(optional_groups['default'])))
+        targets.update(dict.fromkeys(yield_deps(extras['default'])))
 
-    for include in filter(None, map(optional_groups.get, include_groups)):
+    for include in filter(None, map(extras.get, include_extras)):
         targets.update(dict.fromkeys(yield_deps(include)))
 
     def target_filter(target):

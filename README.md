@@ -265,7 +265,7 @@ To build the standalone executable, you must have Python and `pyinstaller` (plus
 You can run the following commands:
 
 ```
-python devscripts/install_deps.py --include-group pyinstaller
+python devscripts/install_deps.py --include-extra pyinstaller
 python devscripts/make_lazy_extractors.py
 python -m bundle.pyinstaller
 ```
