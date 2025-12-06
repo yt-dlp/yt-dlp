@@ -119,17 +119,22 @@ class RequestsResponseAdapter(Response):
 
         self._requests_response = res
 
+    def _real_read(self, amt: int | None = None) -> bytes:
+        # Work around issue with `.read(amt)` then `.read()`
+        # See: https://github.com/urllib3/urllib3/issues/3636
+        if amt is None:
+            # compat: py3.9: Python 3.9 preallocates the whole read buffer, read in chunks
+            read_chunk = functools.partial(self.fp.read, 1 << 20, decode_content=True)
+            return b''.join(iter(read_chunk, b''))
+        # Interact with urllib3 response directly.
+        return self.fp.read(amt, decode_content=True)
+
     def read(self, amt: int | None = None):
         try:
-            # Work around issue with `.read(amt)` then `.read()`
-            # See: https://github.com/urllib3/urllib3/issues/3636
-            if amt is None:
-                # compat: py3.9: Python 3.9 preallocates the whole read buffer, read in chunks
-                read_chunk = functools.partial(self.fp.read, 1 << 20, decode_content=True)
-                return b''.join(iter(read_chunk, b''))
-            # Interact with urllib3 response directly.
-            return self.fp.read(amt, decode_content=True)
-
+            data = self._real_read(amt)
+            if self.fp.closed:
+                self.close()
+            return data
         # See urllib3.response.HTTPResponse.read() for exceptions raised on read
         except urllib3.exceptions.SSLError as e:
             raise SSLError(cause=e) from e

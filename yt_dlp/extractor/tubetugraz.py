@@ -136,8 +136,10 @@ class TubeTuGrazIE(TubeTuGrazBaseIE):
     IE_DESC = 'tube.tugraz.at'
 
     _VALID_URL = r'''(?x)
-        https?://tube\.tugraz\.at/paella/ui/watch.html\?id=
-        (?P<id>[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12})
+        https?://tube\.tugraz\.at/(?:
+            paella/ui/watch\.html\?(?:[^#]*&)?id=|
+            portal/watch/
+        )(?P<id>[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12})
     '''
     _TESTS = [
         {
@@ -149,9 +151,9 @@ class TubeTuGrazIE(TubeTuGrazBaseIE):
                 'title': '#6 (23.11.2017)',
                 'episode': '#6 (23.11.2017)',
                 'series': '[INB03001UF] Einführung in die strukturierte Programmierung',
-                'creator': 'Safran C',
                 'duration': 3295818,
                 'series_id': 'b1192fff-2aa7-4bf0-a5cf-7b15c3bd3b34',
+                'creators': ['Safran C'],
             },
         }, {
             'url': 'https://tube.tugraz.at/paella/ui/watch.html?id=2df6d787-e56a-428d-8ef4-d57f07eef238',
@@ -162,6 +164,10 @@ class TubeTuGrazIE(TubeTuGrazBaseIE):
                 'ext': 'mp4',
             },
             'expected_warnings': ['Extractor failed to obtain "title"'],
+        }, {
+            # Portal URL format
+            'url': 'https://tube.tugraz.at/portal/watch/ab28ec60-8cbe-4f1a-9b96-a95add56c612',
+            'only_matching': True,
         },
     ]
 
