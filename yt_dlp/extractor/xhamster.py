@@ -3,6 +3,7 @@ import codecs
 import itertools
 import re
 import string
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -219,11 +220,22 @@ class XHamsterIE(InfoExtractor):
     _XOR_KEY = b'xh7999'
 
     def _decipher_format_url(self, format_url, format_id):
+        hex_string, path_remainder = None, None
+        parsed_url = urllib.parse.urlparse(format_url)
+
         if all(char in string.hexdigits for char in format_url):
-            byte_data = bytes.fromhex(format_url)
+            hex_string = format_url
+        elif mobj := re.match(r'/(?P<hex>[0-9a-fA-F]{12,})(?P<rem>[/,].+)', parsed_url.path):
+            hex_string, path_remainder = mobj.group('hex', 'rem')
+
+        if hex_string:
+            byte_data = bytes.fromhex(hex_string)
             seed = int.from_bytes(byte_data[1:5], byteorder='little', signed=True)
             byte_gen = _ByteGenerator(byte_data[0], seed)
-            return bytearray(byte ^ next(byte_gen) for byte in byte_data[5:]).decode('latin-1')
+            deciphered = bytearray(byte ^ next(byte_gen) for byte in byte_data[5:]).decode('latin-1')
+            if not path_remainder:
+                return deciphered
+            return parsed_url._replace(path=f'/{deciphered}{path_remainder}').geturl()
 
         cipher_type, _, ciphertext = try_call(
             lambda: base64.b64decode(format_url).decode().partition('_')) or [None] * 3
@@ -364,8 +376,10 @@ class XHamsterIE(InfoExtractor):
                                     'height': get_height(quality),
                                     'filesize': format_sizes.get(quality),
                                     'http_headers': {
-                                        'Referer': standard_url,
+                                        'Referer': urlh.url,
                                     },
+                                    # TODO: Remove this when resolved on the site's end
+                                    '__needs_testing': True,
                                 })
 
             categories_list = video.get('categories')
@@ -402,7 +416,8 @@ class XHamsterIE(InfoExtractor):
                 'age_limit': age_limit if age_limit is not None else 18,
                 'categories': categories,
                 'formats': self._fixup_formats(formats),
-                '_format_sort_fields': ('res', 'proto', 'tbr'),
+                # TODO: Revert to ('res', 'proto', 'tbr') when HTTP formats problem is resolved
+                '_format_sort_fields': ('res', 'proto:m3u8', 'tbr'),
             }
 
         # Old layout fallback
