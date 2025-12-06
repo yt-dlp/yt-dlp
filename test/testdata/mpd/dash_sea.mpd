@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<MPD
+	xmlns="urn:mpeg:dash:schema:mpd:2011"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" profiles="urn:mpeg:dash:profile:isoff-live:2011" type="static"
+	xmlns:sea="urn:mpeg:dash:schema:sea:2012" mediaPresentationDuration="PT3M32.949S" minBufferTime="PT3S">
+	<Period>
+		<AdaptationSet id="1" group="5" profiles="ccff" bitstreamSwitching="false" segmentAlignment="true" contentType="audio" mimeType="audio/mp4" codecs="mp4a.40.2" lang="en">
+			<ContentProtection schemeIdUri="urn:mpeg:dash:sea:2012">
+				<sea:SegmentEncryption schemeIdUri="urn:mpeg:dash:sea:aes128-cbc:2013"/>
+				<sea:KeySystem keySystemUri="urn:mpeg:dash:sea:keysys:http:2013"/>
+				<sea:CryptoPeriod keyUriTemplate="https://zavideoplatform.keydelivery.eastus.media.azure.net/?kid=9280864f-064e-48c0-97e0-f2bcb1d8d012" IV="0x7BD31E102B0CE9CCD39691782533656C"/>
+			</ContentProtection>
+			<Label>aac_eng_2_127999_2_1</Label>
+			<SegmentTemplate timescale="10000000" media="QualityLevels($Bandwidth$)/Fragments(aac_eng_2_127999_2_1=$Time$,format=mpd-time-csf)" initialization="QualityLevels($Bandwidth$)/Fragments(aac_eng_2_127999_2_1=i,format=mpd-time-csf)">
+				<SegmentTimeline>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333" r="1"/>
+					<S d="20053334"/>
+					<S d="20053333"/>
+					<S d="3840000"/>
+				</SegmentTimeline>
+			</SegmentTemplate>
+			<Representation id="5_A_aac_eng_2_127999_2_1_1" bandwidth="127999" audioSamplingRate="48000"/>
+		</AdaptationSet>
+		<AdaptationSet id="2" group="1" profiles="ccff" bitstreamSwitching="false" segmentAlignment="true" contentType="video" mimeType="video/mp4" codecs="avc1.640028" maxWidth="1920" maxHeight="1080" startWithSAP="1">
+			<ContentProtection schemeIdUri="urn:mpeg:dash:sea:2012">
+				<sea:SegmentEncryption schemeIdUri="urn:mpeg:dash:sea:aes128-cbc:2013"/>
+				<sea:KeySystem keySystemUri="urn:mpeg:dash:sea:keysys:http:2013"/>
+				<sea:CryptoPeriod keyUriTemplate="https://zavideoplatform.keydelivery.eastus.media.azure.net/?kid=9280864f-064e-48c0-97e0-f2bcb1d8d012" IV="0x7BD31E102B0CE9CCD39691782533656C"/>
+			</ContentProtection>
+			<SegmentTemplate timescale="10000000" media="QualityLevels($Bandwidth$)/Fragments(video=$Time$,format=mpd-time-csf)" initialization="QualityLevels($Bandwidth$)/Fragments(video=i,format=mpd-time-csf)">
+				<SegmentTimeline>
+					<S d="20000000" r="105"/>
+					<S d="8666666"/>
+				</SegmentTimeline>
+			</SegmentTemplate>
+			<Representation id="1_V_video_1" bandwidth="628102" width="1920" height="1080"/>
+			<Representation id="1_V_video_2" bandwidth="422519" codecs="avc1.64001F" width="1280" height="720"/>
+			<Representation id="1_V_video_3" bandwidth="258591" codecs="avc1.64001F" width="960" height="540"/>
+		</AdaptationSet>
+	</Period>
+</MPD>
