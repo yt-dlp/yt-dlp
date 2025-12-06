@@ -9,6 +9,7 @@ class AlibabaIE(InfoExtractor):
         'url': 'https://www.alibaba.com/product-detail/Kids-Entertainment-Bouncer-Bouncy-Castle-Waterslide_1601271126969.html',
         'info_dict': {
             'id': '6000280444270',
+            'display_id': '1601271126969',
             'ext': 'mp4',
             'title': 'Kids Entertainment Bouncer Bouncy Castle Waterslide Juex Gonflables Commercial Inflatable Tropical Water Slide',
             'duration': 30,
@@ -17,30 +18,25 @@ class AlibabaIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
         product_data = self._search_json(
-            r'window\.detailData\s*=', webpage, 'detail data', video_id)['globalData']['product']
+            r'window\.detailData\s*=', webpage, 'detail data', display_id)['globalData']['product']
 
-        product_title = traverse_obj(product_data, ('subject', {str}))
-
-        videos = traverse_obj(product_data, ('mediaItems', lambda _, v: v['type'] == 'video' and v['videoId']))
-        entries = []
-        for video in videos:
-            entries.append({
-                **traverse_obj(video, {
-                    'id': ('videoId', {int}, {str_or_none}),
-                    'duration': ('duration', {int_or_none}),
-                    'thumbnail': ('videoCoverUrl', {url_or_none}),
-                    'formats': ('videoUrl', lambda _, v: url_or_none(v['videoUrl']), {
-                        'url': 'videoUrl',
-                        'format_id': ('definition', {str_or_none}),
-                        'tbr': ('bitrate', {int_or_none}),
-                        'width': ('width', {int_or_none}),
-                        'height': ('height', {int_or_none}),
-                        'filesize': ('length', {int_or_none}),
-                    }),
+        return {
+            **traverse_obj(product_data, ('mediaItems', lambda _, v: v['type'] == 'video' and v['videoId'], any, {
+                'id': ('videoId', {int}, {str_or_none}),
+                'duration': ('duration', {int_or_none}),
+                'thumbnail': ('videoCoverUrl', {url_or_none}),
+                'formats': ('videoUrl', lambda _, v: url_or_none(v['videoUrl']), {
+                    'url': 'videoUrl',
+                    'format_id': ('definition', {str_or_none}),
+                    'tbr': ('bitrate', {int_or_none}),
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                    'filesize': ('length', {int_or_none}),
                 }),
-                'title': product_title,
-            })
-        return self.playlist_result(entries, video_id, product_title)
+            })),
+            'title': traverse_obj(product_data, ('subject', {str})),
+            'display_id': display_id,
+        }
