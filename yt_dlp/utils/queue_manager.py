@@ -6,7 +6,7 @@ import tempfile
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from ..compat import compat_expanduser
 
@@ -124,28 +124,48 @@ class PersistentQueue:
         except (IOError, OSError) as e:
             raise RuntimeError(f'Failed to save queue file: {e}') from e
 
-    def add(self, url: str, options: Optional[Dict] = None, priority: str = 'normal') -> str:
+    def add(self, url: str, options: Optional[Dict] = None, priority: str = 'normal', update_existing: bool = True) -> Tuple[str, bool]:
         """
-        Add URL to queue.
+        Add URL to queue. If URL already exists and update_existing is True, updates the existing item.
         
         Args:
             url: URL to add
             options: Download options dictionary
             priority: Priority level (high, normal, low)
+            update_existing: If True, update existing item with same URL instead of creating duplicate
             
         Returns:
-            Item ID
+            Tuple of (item_id, was_updated) where was_updated is True if existing item was updated
         """
-        item_id = str(uuid.uuid4())
-        item = QueueItem(
-            id=item_id,
-            url=url,
-            priority=priority,
-            options=options or {}
-        )
-        self._items[item_id] = item
-        self._save()
-        return item_id
+        # Check if URL already exists
+        existing_item = self.get_by_url(url) if update_existing else None
+        
+        if existing_item:
+            # Update existing item
+            existing_item.options = options or {}
+            existing_item.priority = priority
+            # Reset status to pending if it was completed or failed
+            if existing_item.status in ('completed', 'failed'):
+                existing_item.status = 'pending'
+                existing_item.started_at = None
+                existing_item.completed_at = None
+                existing_item.error_message = None
+            # Update added_at timestamp
+            existing_item.added_at = time.time()
+            self._save()
+            return existing_item.id, True
+        else:
+            # Create new item
+            item_id = str(uuid.uuid4())
+            item = QueueItem(
+                id=item_id,
+                url=url,
+                priority=priority,
+                options=options or {}
+            )
+            self._items[item_id] = item
+            self._save()
+            return item_id, False
 
     def remove(self, item_id: str) -> bool:
         """
@@ -166,6 +186,13 @@ class PersistentQueue:
     def get(self, item_id: str) -> Optional[QueueItem]:
         """Get item by ID."""
         return self._items.get(item_id)
+
+    def get_by_url(self, url: str) -> Optional[QueueItem]:
+        """Get item by URL."""
+        for item in self._items.values():
+            if item.url == url:
+                return item
+        return None
 
     def get_all(self, status: Optional[str] = None) -> List[QueueItem]:
         """

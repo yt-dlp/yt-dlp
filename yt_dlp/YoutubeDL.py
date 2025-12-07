@@ -4550,13 +4550,21 @@ class YoutubeDL:
 
         priority = self.params.get('queue_priority', 'normal')
         count = 0
+        updated_count = 0
         for url in urls:
-            item_id = self.queue.add(url, options_to_save, priority)
-            self.to_screen(f'Added to queue [{item_id[:8]}]: {url}')
+            item_id, was_updated = self.queue.add(url, options_to_save, priority, update_existing=True)
+            if was_updated:
+                self.to_screen(f'Updated queue item [{item_id[:8]}]: {url}')
+                updated_count += 1
+            else:
+                self.to_screen(f'Added to queue [{item_id[:8]}]: {url}')
             count += 1
 
         stats = self.queue.get_stats()
-        self.to_screen(f'Queue now contains {stats["total"]} items ({stats["pending"]} pending)')
+        if updated_count > 0:
+            self.to_screen(f'Queue now contains {stats["total"]} items ({stats["pending"]} pending) - {updated_count} updated, {count - updated_count} new')
+        else:
+            self.to_screen(f'Queue now contains {stats["total"]} items ({stats["pending"]} pending)')
 
     def show_queue_status(self):
         """Show current queue status with detailed statistics"""
