@@ -15,10 +15,10 @@ jobs:
       with:
         python-version: '3.10'
     - name: Install test requirements
-      run: python3 ./devscripts/install_deps.py --include dev
+      run: python ./devscripts/install_deps.py --include-group dev
     - name: Run tests
       continue-on-error: true
-      run: python3 ./devscripts/run_tests.py download
+      run: python ./devscripts/run_tests.py download
 
   full:
     name: Full Download Tests
@@ -42,7 +42,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install test requirements
-      run: python3 ./devscripts/install_deps.py --include dev
+      run: python ./devscripts/install_deps.py --include-group dev
     - name: Run tests
       continue-on-error: true
-      run: python3 ./devscripts/run_tests.py download
+      run: python ./devscripts/run_tests.py download
