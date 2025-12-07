@@ -217,8 +217,10 @@ def _firefox_browser_dirs():
             os.path.join(_config_home(), 'mozilla/firefox'),
             # Existing FF version<=146 installations
             '~/.mozilla/firefox',
+            # Flatpak XDG: https://docs.flatpak.org/en/latest/conventions.html#xdg-base-directories
             '~/.var/app/org.mozilla.firefox/config/mozilla/firefox',
             '~/.var/app/org.mozilla.firefox/.mozilla/firefox',
+            # Snap installations do not respect the XDG base directory specification
             '~/snap/firefox/common/.mozilla/firefox',
         ))
 
