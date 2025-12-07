@@ -331,7 +331,7 @@ class ArteTVPlaylistIE(ArteTVBaseIE):
                     'ie_key': ArteTVIE.ie_key(),
                     **traverse_obj(video, {
                         'url': ('link', 'url', {str}),
-                        'id': ('providerId'),
+                        'id': ('providerId', {str}),
                         'title': ('title', {str}),
                         'alt_title': ('subtitle', {str}),
                         'duration': ('duration', 'seconds', {int_or_none}),
