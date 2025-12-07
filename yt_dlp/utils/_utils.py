@@ -2896,7 +2896,7 @@ def limit_length(s, length):
 
 
 def version_tuple(v, *, lenient=False):
-    parse = int_or_none(default=0) if lenient else int
+    parse = int_or_none(default=-1) if lenient else int
     return tuple(parse(e) for e in re.split(r'[-.]', v))
 
 
