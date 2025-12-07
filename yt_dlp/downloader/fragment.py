@@ -11,7 +11,7 @@ from .http import HttpFD
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..networking import Request
 from ..networking.exceptions import HTTPError, IncompleteRead
-from ..utils import DownloadError, RetryManager, traverse_obj
+from ..utils import DownloadError, RetryManager, format_bytes, traverse_obj
 from ..utils.networking import HTTPHeaderDict
 from ..utils.progress import ProgressCalculator
 
@@ -164,8 +164,37 @@ class FragmentFD(FileDownloader):
             total_frags_str = 'unknown (live)'
         self.to_screen(f'[{self.FD_NAME}] Total fragments: {total_frags_str}')
         self.report_destination(ctx['filename'])
+        
+        # Auto-detect and enable per-fragment rate limiting
+        params = self.params.copy()
+        ratelimit = params.get('ratelimit')
+        concurrent_fragments = params.get('concurrent_fragment_downloads', 1)
+        ratelimit_per_fragment = params.get('ratelimit_per_fragment')
+        
+        # Auto-enable per-fragment rate limiting if:
+        # 1. Rate limit is set
+        # 2. Multiple fragments download concurrently
+        # 3. Not explicitly disabled
+        if ratelimit and concurrent_fragments > 1 and ratelimit_per_fragment is not False:
+            if ratelimit_per_fragment is None:
+                # Auto-enable
+                params['ratelimit_per_fragment'] = True
+                per_fragment_rate = ratelimit / concurrent_fragments
+                total_rate_str = format_bytes(ratelimit)
+                per_frag_rate_str = format_bytes(per_fragment_rate)
+                self.to_screen(f'[rate-limit] Auto-enabled per-fragment rate limiting: {total_rate_str}/s total, {per_frag_rate_str}/s per fragment ({concurrent_fragments} concurrent)')
+            elif ratelimit_per_fragment is True:
+                # Explicitly enabled
+                per_fragment_rate = ratelimit / concurrent_fragments
+                total_rate_str = format_bytes(ratelimit)
+                per_frag_rate_str = format_bytes(per_fragment_rate)
+                self.to_screen(f'[rate-limit] Per-fragment rate limiting: {total_rate_str}/s total → {per_frag_rate_str}/s per fragment ({concurrent_fragments} concurrent)')
+            
+            # Divide rate limit by concurrent fragments for each fragment downloader
+            params['ratelimit'] = ratelimit / concurrent_fragments
+        
         dl = HttpQuietDownloader(self.ydl, {
-            **self.params,
+            **params,
             'noprogress': True,
             'test': False,
             'sleep_interval': 0,

@@ -837,6 +837,7 @@ def parse_options(argv=None):
         'allowed_extractors': opts.allowed_extractors or ['default'],
         'ratelimit': opts.ratelimit,
         'throttledratelimit': opts.throttledratelimit,
+        'ratelimit_per_fragment': opts.ratelimit_per_fragment,
         'overwrites': opts.overwrites,
         'retries': opts.retries,
         'file_access_retries': opts.file_access_retries,

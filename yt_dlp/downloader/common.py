@@ -199,7 +199,11 @@ class FileDownloader:
         return parse_bytes(bytestr)
 
     def slow_down(self, start_time, now, byte_counter):
-        """Sleep if the download speed is over the rate limit."""
+        """Sleep if the download speed is over the rate limit.
+        
+        Supports per-fragment rate limiting when ratelimit_per_fragment is enabled.
+        In that case, rate_limit should already be divided by the number of concurrent fragments.
+        """
         rate_limit = self.params.get('ratelimit')
         if rate_limit is None or byte_counter == 0:
             return
@@ -209,9 +213,21 @@ class FileDownloader:
         if elapsed <= 0.0:
             return
         speed = float(byte_counter) / elapsed
-        if speed > rate_limit:
-            sleep_time = float(byte_counter) / rate_limit - elapsed
+        
+        # Use per-fragment rate limit if enabled
+        effective_rate_limit = rate_limit
+        if self.params.get('ratelimit_per_fragment'):
+            # rate_limit should already be divided by concurrent fragments
+            effective_rate_limit = rate_limit
+        
+        if speed > effective_rate_limit:
+            sleep_time = float(byte_counter) / effective_rate_limit - elapsed
             if sleep_time > 0:
+                # Show verbose throttling message if verbose mode is enabled
+                if self.params.get('verbose'):
+                    speed_str = format_bytes(speed)
+                    limit_str = format_bytes(effective_rate_limit)
+                    self.to_screen(f'[rate-limit] Throttling: {speed_str}/s exceeds limit ({limit_str}/s), sleeping {sleep_time:.2f}s')
                 time.sleep(sleep_time)
 
     def temp_name(self, filename):

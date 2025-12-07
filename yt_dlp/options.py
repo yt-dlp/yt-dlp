@@ -1015,6 +1015,12 @@ def create_parser():
         dest='throttledratelimit', metavar='RATE',
         help='Minimum download rate in bytes per second below which throttling is assumed and the video data is re-extracted, e.g. 100K')
     downloader.add_option(
+        '--rate-limit-per-fragment', action='store_true', dest='ratelimit_per_fragment', default=None,
+        help='Divide rate limit among concurrent fragments (default: auto-enabled for fragmented downloads)')
+    downloader.add_option(
+        '--no-rate-limit-per-fragment', action='store_false', dest='ratelimit_per_fragment',
+        help='Disable per-fragment rate limiting (use old behavior)')
+    downloader.add_option(
         '-R', '--retries',
         dest='retries', metavar='RETRIES', default=10,
         help='Number of retries (default is %default), or "infinite"')
