@@ -172,20 +172,40 @@ class PersistentQueue:
         Remove item from queue.
         
         Args:
-            item_id: Item ID to remove
+            item_id: Item ID to remove (full ID or first 8 characters)
             
         Returns:
             True if item was removed, False if not found
         """
+        # Try exact match first
         if item_id in self._items:
             del self._items[item_id]
             self._save()
             return True
+        
+        # Try partial match (first 8 characters)
+        if len(item_id) == 8:
+            for existing_id in list(self._items.keys()):
+                if existing_id.startswith(item_id):
+                    del self._items[existing_id]
+                    self._save()
+                    return True
+        
         return False
 
     def get(self, item_id: str) -> Optional[QueueItem]:
-        """Get item by ID."""
-        return self._items.get(item_id)
+        """Get item by ID (full ID or first 8 characters)."""
+        # Try exact match first
+        if item_id in self._items:
+            return self._items[item_id]
+        
+        # Try partial match (first 8 characters)
+        if len(item_id) == 8:
+            for existing_id, item in self._items.items():
+                if existing_id.startswith(item_id):
+                    return item
+        
+        return None
 
     def get_by_url(self, url: str) -> Optional[QueueItem]:
         """Get item by URL."""
@@ -242,15 +262,25 @@ class PersistentQueue:
         Reset item to pending status for retry.
         
         Args:
-            item_id: Item ID to retry
+            item_id: Item ID to retry (full ID or first 8 characters)
             
         Returns:
             True if item was reset, False if not found
         """
-        if item_id not in self._items:
+        # Try exact match first
+        if item_id in self._items:
+            item = self._items[item_id]
+        elif len(item_id) == 8:
+            # Try partial match (first 8 characters)
+            for existing_id, existing_item in self._items.items():
+                if existing_id.startswith(item_id):
+                    item = existing_item
+                    break
+            else:
+                return False
+        else:
             return False
         
-        item = self._items[item_id]
         item.status = 'pending'
         item.started_at = None
         item.completed_at = None
@@ -288,6 +318,7 @@ class PersistentQueue:
     def load_from_file(self, file_path: str, options: Optional[Dict] = None, priority: str = 'normal') -> int:
         """
         Load URLs from text file into queue.
+        Uses read_batch_urls for proper comment and BOM handling.
         
         Args:
             file_path: Path to text file with URLs (one per line)
@@ -297,14 +328,16 @@ class PersistentQueue:
         Returns:
             Number of URLs added
         """
+        from ._utils import read_batch_urls
+        
         count = 0
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                for line in f:
-                    url = line.strip()
-                    if url and not url.startswith('#'):  # Skip empty lines and comments
-                        self.add(url, options, priority)
-                        count += 1
+            expanded_path = os.path.abspath(os.path.expanduser(file_path))
+            with open(expanded_path, 'r', encoding='utf-8', errors='ignore') as f:
+                urls = read_batch_urls(f)
+                for url in urls:
+                    self.add(url, options, priority, update_existing=True)
+                    count += 1
             return count
         except (IOError, OSError) as e:
             raise RuntimeError(f'Failed to load URLs from file: {e}') from e

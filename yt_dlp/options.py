@@ -1935,7 +1935,7 @@ def create_parser():
 
     queue_group.add_option(
         '--add-to-queue', action='store_true', dest='add_to_queue', default=False,
-        help='Add URLs to queue instead of downloading immediately')
+        help='Add URLs to queue instead of downloading immediately. Can accept file paths to read URLs from text files (one URL per line)')
 
     queue_group.add_option(
         '--queue-status', action='store_true', dest='queue_status', default=False,

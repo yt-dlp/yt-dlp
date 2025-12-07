@@ -4524,7 +4524,9 @@ class YoutubeDL:
         return ret
 
     def add_to_queue(self, urls):
-        """Add URLs to persistent queue with current options"""
+        """Add URLs to persistent queue with current options. Supports file paths to read URLs from text files."""
+        from .utils._utils import read_batch_urls
+        
         urls = variadic(urls)
         if not urls:
             self.to_screen('No URLs provided')
@@ -4551,7 +4553,53 @@ class YoutubeDL:
         priority = self.params.get('queue_priority', 'normal')
         count = 0
         updated_count = 0
-        for url in urls:
+        processed_urls = []
+        
+        # Process each input: check if it's a URL first, otherwise check if it's a file
+        for url_or_file in urls:
+            # Check if it looks like a URL (has a scheme like http://, https://, etc.)
+            is_url = bool(re.match(r'(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?|wss?):)?//', url_or_file.strip()))
+            
+            if is_url:
+                # It's a URL - add directly
+                processed_urls.append(url_or_file)
+            else:
+                # Not a URL - check if it's a file path
+                # Try to open it as a file first (more reliable than checking existence)
+                expanded_path = expand_path(url_or_file)
+                file_opened = False
+                try:
+                    with open(expanded_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        file_urls = read_batch_urls(f)
+                        file_opened = True
+                        if not file_urls:
+                            self.report_warning(f'No URLs found in file: {url_or_file}')
+                        else:
+                            processed_urls.extend(file_urls)
+                            self.to_screen(f'Read {len(file_urls)} URLs from file: {url_or_file}')
+                except FileNotFoundError:
+                    # File doesn't exist - check if it looks like a file path
+                    # If it has a file extension and no URL-like characters, it's probably a file path
+                    looks_like_file = ('.' in url_or_file and 
+                                     '/' not in url_or_file and 
+                                     '\\' not in url_or_file and
+                                     ':' not in url_or_file and
+                                     not url_or_file.startswith('//') and
+                                     len(url_or_file.split('.')) > 1)  # Has extension
+                    if looks_like_file:
+                        # Looks like a file path but file doesn't exist - error out
+                        self.report_error(f'File not found: {url_or_file}. Please create the file or provide a valid URL.')
+                        continue
+                    else:
+                        # Doesn't look like a file - treat as URL or extractor name
+                        processed_urls.append(url_or_file)
+                except (IOError, OSError) as e:
+                    # File exists but can't be read
+                    self.report_error(f'Failed to read file {url_or_file}: {e}')
+                    continue
+        
+        # Add all processed URLs to queue
+        for url in processed_urls:
             item_id, was_updated = self.queue.add(url, options_to_save, priority, update_existing=True)
             if was_updated:
                 self.to_screen(f'Updated queue item [{item_id[:8]}]: {url}')
