@@ -15,7 +15,7 @@ jobs:
       with:
         python-version: '3.10'
     - name: Install test requirements
-      run: python ./devscripts/install_deps.py --only-optional-groups --include-group test
+      run: python ./devscripts/install_deps.py --omit-default --include-extra test
     - name: Run tests
       timeout-minutes: 15
       run: |
@@ -31,7 +31,7 @@ jobs:
       with:
         python-version: '3.10'
     - name: Install dev dependencies
-      run: python ./devscripts/install_deps.py --only-optional-groups --include-group static-analysis
+      run: python ./devscripts/install_deps.py --omit-default --include-extra static-analysis
     - name: Make lazy extractors
       run: python ./devscripts/make_lazy_extractors.py
     - name: Run ruff

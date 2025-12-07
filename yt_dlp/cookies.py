@@ -212,9 +212,16 @@ def _firefox_browser_dirs():
 
     else:
         yield from map(os.path.expanduser, (
+            # New installations of FF147+ respect the XDG base directory specification
+            # Ref: https://bugzilla.mozilla.org/show_bug.cgi?id=259356
+            os.path.join(_config_home(), 'mozilla/firefox'),
+            # Existing FF version<=146 installations
             '~/.mozilla/firefox',
-            '~/snap/firefox/common/.mozilla/firefox',
+            # Flatpak XDG: https://docs.flatpak.org/en/latest/conventions.html#xdg-base-directories
+            '~/.var/app/org.mozilla.firefox/config/mozilla/firefox',
             '~/.var/app/org.mozilla.firefox/.mozilla/firefox',
+            # Snap installations do not respect the XDG base directory specification
+            '~/snap/firefox/common/.mozilla/firefox',
         ))
 
 
