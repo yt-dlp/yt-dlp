@@ -957,6 +957,8 @@ def parse_options(argv=None):
         '_warnings': warnings,
         '_deprecation_warnings': deprecation_warnings,
         'compat_opts': opts.compat_opts,
+        'queue_file': opts.queue_file,
+        'queue_priority': opts.queue_priority,
     })
 
 
@@ -979,6 +981,34 @@ def _real_main(argv=None):
         _load_all_plugins()
 
     with YoutubeDL(ydl_opts) as ydl:
+        # Handle queue operations before normal processing
+        if opts.queue_status:
+            ydl.show_queue_status()
+            return 0
+
+        if opts.queue_remove:
+            ydl.remove_queue_item(opts.queue_remove)
+            return 0
+
+        if opts.queue_retry:
+            ydl.retry_queue_items(opts.queue_retry)
+            return 0
+
+        if opts.queue_clear:
+            ydl.clear_queue()
+            return 0
+
+        if opts.load_queue_from_file:
+            ydl.load_queue_from_file(opts.load_queue_from_file)
+            return 0
+
+        if opts.add_to_queue:
+            ydl.add_to_queue(all_urls)
+            return 0
+
+        if opts.process_queue:
+            return ydl.process_queue()
+
         pre_process = opts.update_self or opts.rm_cachedir
         actual_use = all_urls or opts.load_info_filename
 

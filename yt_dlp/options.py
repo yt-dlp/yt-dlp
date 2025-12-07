@@ -1928,6 +1928,48 @@ def create_parser():
             'Pass ARGS arguments to the IE_KEY extractor. See "EXTRACTOR ARGUMENTS" for details. '
             'You can use this option multiple times to give arguments for different extractors'))
 
+    # Add queue management group
+    queue_group = optparse.OptionGroup(parser, 'Queue Management', description=(
+        'Persistent download queue that survives yt-dlp restarts. '
+        'Queue is stored in ~/.yt-dlp-queue.json by default.'))
+
+    queue_group.add_option(
+        '--add-to-queue', action='store_true', dest='add_to_queue', default=False,
+        help='Add URLs to queue instead of downloading immediately')
+
+    queue_group.add_option(
+        '--queue-status', action='store_true', dest='queue_status', default=False,
+        help='Show current queue status and exit')
+
+    queue_group.add_option(
+        '--process-queue', action='store_true', dest='process_queue', default=False,
+        help='Download all pending URLs in queue and exit')
+
+    queue_group.add_option(
+        '--queue-remove', metavar='ID', dest='queue_remove', default=None,
+        help='Remove specific item from queue by ID')
+
+    queue_group.add_option(
+        '--queue-retry', metavar='ID|all', dest='queue_retry', default=None,
+        help='Retry failed items. Use "all" to retry all failed items, or specific ID')
+
+    queue_group.add_option(
+        '--queue-clear', action='store_true', dest='queue_clear', default=False,
+        help='Clear all items from queue')
+
+    queue_group.add_option(
+        '--load-queue-from-file', metavar='FILE', dest='load_queue_from_file', default=None,
+        help='Load URLs from text file into queue (one URL per line)')
+
+    queue_group.add_option(
+        '--queue-file', metavar='FILE', dest='queue_file', default=None,
+        help='Path to queue file (default: ~/.yt-dlp-queue.json)')
+
+    queue_group.add_option(
+        '--queue-priority', metavar='PRIORITY', dest='queue_priority', default='normal',
+        choices=['high', 'normal', 'low'],
+        help='Priority level for items added to queue (default: normal)')
+
     def _deprecated_option_callback(option, opt_str, value, parser):
         current = getattr(parser.values, '_deprecated_options', [])
         parser.values._deprecated_options = [*current, opt_str]
@@ -1994,6 +2036,7 @@ def create_parser():
     parser.add_option_group(postproc)
     parser.add_option_group(sponsorblock)
     parser.add_option_group(extractor)
+    parser.add_option_group(queue_group)
 
     return parser
 

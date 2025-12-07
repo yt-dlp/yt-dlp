@@ -177,6 +177,7 @@ from .utils.networking import (
     std_headers,
 )
 from .version import CHANNEL, ORIGIN, RELEASE_GIT_HEAD, VARIANT, __version__
+from .utils.queue_manager import PersistentQueue
 
 if os.name == 'nt':
     import ctypes
@@ -650,6 +651,12 @@ class YoutubeDL:
         self._playlist_urls = set()
         self.cache = Cache(self)
         self.__header_cookies = []
+
+        # Initialize persistent queue
+        queue_file = params.get('queue_file') if params else None
+        self.queue = PersistentQueue(queue_file)
+        self._processing_queue = False
+        self._current_queue_item_id = None
 
         # compat for API: load plugins if they have not already
         if not all_plugins_loaded.value:
@@ -3650,6 +3657,19 @@ class YoutubeDL:
 
     def download(self, url_list):
         """Download a given list of URLs."""
+        # Handle queue operations first (but skip if already processing queue)
+        if not self._processing_queue:
+            if self.params.get('queue_status'):
+                self.show_queue_status()
+                return 0
+
+            if self.params.get('add_to_queue'):
+                self.add_to_queue(url_list)
+                return 0
+
+            if self.params.get('process_queue'):
+                return self.process_queue()
+
         url_list = variadic(url_list)  # Passing a single URL is a common mistake
         outtmpl = self.params['outtmpl']['default']
         if (len(url_list) > 1
@@ -4502,3 +4522,191 @@ class YoutubeDL:
             if ret and not write_all:
                 break
         return ret
+
+    def add_to_queue(self, urls):
+        """Add URLs to persistent queue with current options"""
+        urls = variadic(urls)
+        if not urls:
+            self.to_screen('No URLs provided')
+            return
+
+        # Extract relevant options to save with queue item
+        options_to_save = {}
+        option_keys = [
+            'format', 'format_sort', 'format_sort_force', 'videoformat', 'audioformat',
+            'outtmpl', 'paths', 'subtitleslangs', 'writesubtitles', 'writeautomaticsub',
+            'extractaudio', 'audioformat', 'audioquality', 'recodevideo', 'postprocessors',
+            'prefer_free_formats', 'keepvideo', 'noplaylist', 'playlist_items', 'playliststart',
+            'playlistend', 'playlistreverse', 'playlistrandom', 'matchtitle', 'rejecttitle',
+            'min_filesize', 'max_filesize', 'date', 'datebefore', 'dateafter',
+            'min_views', 'max_views', 'match_filter', 'no_warnings', 'ignoreerrors',
+            'extract_flat', 'skip_download', 'writeinfojson', 'writedescription', 'writeannotations',
+            'writethumbnail', 'write_all_thumbnails', 'writesubtitles', 'writeautomaticsub',
+            'listsubtitles', 'subtitleslangs', 'subtitlesformat', 'writecomments',
+        ]
+        for key in option_keys:
+            if key in self.params:
+                options_to_save[key] = self.params[key]
+
+        priority = self.params.get('queue_priority', 'normal')
+        count = 0
+        for url in urls:
+            item_id = self.queue.add(url, options_to_save, priority)
+            self.to_screen(f'Added to queue [{item_id[:8]}]: {url}')
+            count += 1
+
+        stats = self.queue.get_stats()
+        self.to_screen(f'Queue now contains {stats["total"]} items ({stats["pending"]} pending)')
+
+    def show_queue_status(self):
+        """Show current queue status with detailed statistics"""
+        stats = self.queue.get_stats()
+        
+        if stats['total'] == 0:
+            self.to_screen('Queue is empty')
+            return
+
+        self.to_screen(f'Queue Status: {stats["total"]} total items')
+        self.to_screen(f'  Pending: {stats["pending"]}')
+        self.to_screen(f'  Downloading: {stats["downloading"]}')
+        self.to_screen(f'  Completed: {stats["completed"]}')
+        self.to_screen(f'  Failed: {stats["failed"]}')
+        self.to_screen('')
+
+        # Show pending items
+        pending_items = self.queue.get_all('pending')
+        if pending_items:
+            self.to_screen('Pending items:')
+            for item in pending_items[:20]:  # Show first 20
+                priority_marker = {'high': '!', 'normal': ' ', 'low': '-'}.get(item.priority, ' ')
+                self.to_screen(f'  {priority_marker} [{item.id[:8]}] {item.url}')
+            if len(pending_items) > 20:
+                self.to_screen(f'  ... and {len(pending_items) - 20} more')
+
+        # Show failed items
+        failed_items = self.queue.get_all('failed')
+        if failed_items:
+            self.to_screen('')
+            self.to_screen('Failed items:')
+            for item in failed_items[:10]:  # Show first 10
+                error = item.error_message or 'Unknown error'
+                self.to_screen(f'  [{item.id[:8]}] {item.url}')
+                self.to_screen(f'      Error: {error}')
+
+    def process_queue(self):
+        """Download all pending URLs in queue"""
+        pending_items = self.queue.get_all('pending')
+        
+        if not pending_items:
+            self.to_screen('Queue is empty (no pending items)')
+            return 0
+
+        self.to_screen(f'Processing {len(pending_items)} items from queue...')
+
+        # Set flag to prevent recursion when calling download
+        self._processing_queue = True
+        try:
+            # Process each URL in queue
+            for i, item in enumerate(pending_items, 1):
+                self._current_queue_item_id = item.id
+                self.queue.update_status(item.id, 'downloading')
+                
+                self.to_screen(f'[{i}/{len(pending_items)}] Downloading: {item.url}')
+                
+                # Save current params and restore item-specific options
+                original_params = self.params.copy()
+                try:
+                    # Merge item options with current params (item options take precedence)
+                    item_params = {**self.params, **item.options}
+                    self.params = item_params
+                    
+                    result = self.download([item.url])
+                    
+                    if result == 0:
+                        self.queue.update_status(item.id, 'completed')
+                        self.to_screen(f'[{i}/{len(pending_items)}] Completed: {item.url}')
+                    else:
+                        self.queue.update_status(item.id, 'failed', f'Download returned code {result}')
+                        self.to_screen(f'[{i}/{len(pending_items)}] Failed: {item.url}')
+                except Exception as e:
+                    error_msg = str(e)
+                    self.queue.update_status(item.id, 'failed', error_msg)
+                    self.to_screen(f'[{i}/{len(pending_items)}] Error: {item.url} - {error_msg}')
+                finally:
+                    # Restore original params
+                    self.params = original_params
+                    self._current_queue_item_id = None
+        finally:
+            self._processing_queue = False
+
+        self.to_screen('Queue processing complete')
+        return 0
+
+    def remove_queue_item(self, item_id):
+        """Remove item from queue by ID"""
+        if self.queue.remove(item_id):
+            self.to_screen(f'Removed item [{item_id[:8]}] from queue')
+            return True
+        else:
+            self.to_screen(f'Item [{item_id[:8]}] not found in queue')
+            return False
+
+    def retry_queue_items(self, item_ids_or_all):
+        """Retry failed items in queue"""
+        if item_ids_or_all == 'all':
+            failed_items = self.queue.get_all('failed')
+            if not failed_items:
+                self.to_screen('No failed items to retry')
+                return 0
+            
+            count = 0
+            for item in failed_items:
+                if self.queue.retry(item.id):
+                    count += 1
+            self.to_screen(f'Reset {count} failed items to pending status')
+            return count
+        else:
+            # Single item ID
+            item_ids = variadic(item_ids_or_all)
+            count = 0
+            for item_id in item_ids:
+                if self.queue.retry(item_id):
+                    self.to_screen(f'Reset item [{item_id[:8]}] to pending status')
+                    count += 1
+                else:
+                    self.to_screen(f'Item [{item_id[:8]}] not found or not failed')
+            return count
+
+    def clear_queue(self, status=None):
+        """Clear items from queue, optionally filtered by status"""
+        if status:
+            before_count = self.queue.get_stats()['total']
+            self.queue.clear(status)
+            after_count = self.queue.get_stats()['total']
+            removed = before_count - after_count
+            self.to_screen(f'Cleared {removed} {status} items from queue')
+        else:
+            before_count = self.queue.get_stats()['total']
+            self.queue.clear()
+            self.to_screen(f'Cleared all {before_count} items from queue')
+
+    def load_queue_from_file(self, file_path):
+        """Load URLs from text file into queue"""
+        try:
+            # Extract options to save with items
+            options_to_save = {}
+            option_keys = [
+                'format', 'format_sort', 'outtmpl', 'paths', 'subtitleslangs',
+                'writesubtitles', 'writeautomaticsub', 'extractaudio', 'audioformat',
+            ]
+            for key in option_keys:
+                if key in self.params:
+                    options_to_save[key] = self.params[key]
+
+            priority = self.params.get('queue_priority', 'normal')
+            count = self.queue.load_from_file(file_path, options_to_save, priority)
+            self.to_screen(f'Loaded {count} URLs from {file_path} into queue')
+            return count
+        except Exception as e:
+            self.report_error(f'Failed to load queue from file: {e}')
+            return 0
