@@ -42,7 +42,6 @@ class BNRNewsIE(InfoExtractor):
                 'title': audio.get('title'),
                 'url': audio.get('url'),
                 'ext': ext,
-                'vcodec': 'none',
             }
 
     def _get_single_audio(self, url, audio_id):
@@ -56,7 +55,7 @@ class BNRNewsIE(InfoExtractor):
                 'thumbnail': ('MainImageInstance', 'Id', {str}, {lambda x: f'https://bnrnews.bg/api/media/{x}'}),
             }))
 
-            audio_list = traverse_obj(data_field, (
+            audio_list: list[dict[str, str]] = traverse_obj(data_field, (
                 'Sections',
                 lambda _, v: v.get('SectionType') == 'Audio',
                 {
