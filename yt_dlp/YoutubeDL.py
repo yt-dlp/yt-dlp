@@ -4726,11 +4726,13 @@ class YoutubeDL:
             item_ids = variadic(item_ids_or_all)
             count = 0
             for item_id in item_ids:
-                if self.queue.retry(item_id):
-                    self.to_screen(f'Reset item [{item_id[:8]}] to pending status')
+                if isinstance(item_id, str) and self.queue.retry(item_id):
+                    display_id = item_id[:8] if len(item_id) >= 8 else item_id
+                    self.to_screen(f'Reset item [{display_id}] to pending status')
                     count += 1
                 else:
-                    self.to_screen(f'Item [{item_id[:8]}] not found or not failed')
+                    display_id = item_id[:8] if isinstance(item_id, str) and len(item_id) >= 8 else str(item_id)
+                    self.to_screen(f'Item [{display_id}] not found or not failed')
             return count
 
     def clear_queue(self, status=None):

@@ -267,6 +267,10 @@ class PersistentQueue:
         Returns:
             True if item was reset, False if not found
         """
+        # Ensure item_id is a string
+        if not isinstance(item_id, str):
+            return False
+            
         # Try exact match first
         if item_id in self._items:
             item = self._items[item_id]
