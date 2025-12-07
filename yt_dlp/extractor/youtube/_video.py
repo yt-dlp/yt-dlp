@@ -2914,10 +2914,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if not (requested_clients or excluded_clients) and default_clients == self._DEFAULT_JSLESS_CLIENTS:
             self.report_warning(
-                f'No supported JavaScript runtime could be found. YouTube extraction without '
-                f'a JS runtime has been deprecated, and some formats may be missing. '
-                f'See  {_EJS_WIKI_URL}  for details on installing one. To silence this warning, '
-                f'you can use  --extractor-args "youtube:player_client=default"', only_once=True)
+                f'No supported JavaScript runtime could be found. Only deno is enabled by default; '
+                f'to use another runtime add  --js-runtimes RUNTIME[:PATH]  to your command/config. '
+                f'YouTube extraction without a JS runtime has been deprecated, and some formats may be missing. '
+                f'See  {_EJS_WIKI_URL}  for details on installing one', only_once=True)
 
         if not requested_clients:
             requested_clients.extend(default_clients)
