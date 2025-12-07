@@ -609,7 +609,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
         ext = info['ext']
         sub_langs, sub_names, sub_filenames = [], [], []
-        default_lang = info.get("language")
+        default_lang = info.get('language')
         default_index = -1  # no default subs yet
         webm_vtt_warn = False
         mp4_ass_warn = False
