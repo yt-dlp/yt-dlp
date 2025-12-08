@@ -6,12 +6,7 @@ import functools
 import os.path
 import sys
 
-from ._utils import _get_exe_version_output, detect_exe_version, int_or_none
-
-
-def _runtime_version_tuple(v):
-    # NB: will return (0,) if `v` is an invalid version string
-    return tuple(int_or_none(x, default=0) for x in v.split('.'))
+from ._utils import _get_exe_version_output, detect_exe_version, version_tuple
 
 
 _FALLBACK_PATHEXT = ('.COM', '.EXE', '.BAT', '.CMD')
@@ -92,7 +87,7 @@ class DenoJsRuntime(JsRuntime):
         if not out:
             return None
         version = detect_exe_version(out, r'^deno (\S+)', 'unknown')
-        vt = _runtime_version_tuple(version)
+        vt = version_tuple(version, lenient=True)
         return JsRuntimeInfo(
             name='deno', path=path, version=version, version_tuple=vt,
             supported=vt >= self.MIN_SUPPORTED_VERSION)
@@ -107,7 +102,7 @@ class BunJsRuntime(JsRuntime):
         if not out:
             return None
         version = detect_exe_version(out, r'^(\S+)', 'unknown')
-        vt = _runtime_version_tuple(version)
+        vt = version_tuple(version, lenient=True)
         return JsRuntimeInfo(
             name='bun', path=path, version=version, version_tuple=vt,
             supported=vt >= self.MIN_SUPPORTED_VERSION)
@@ -122,7 +117,7 @@ class NodeJsRuntime(JsRuntime):
         if not out:
             return None
         version = detect_exe_version(out, r'^v(\S+)', 'unknown')
-        vt = _runtime_version_tuple(version)
+        vt = version_tuple(version, lenient=True)
         return JsRuntimeInfo(
             name='node', path=path, version=version, version_tuple=vt,
             supported=vt >= self.MIN_SUPPORTED_VERSION)
@@ -140,7 +135,7 @@ class QuickJsRuntime(JsRuntime):
         is_ng = 'QuickJS-ng' in out
 
         version = detect_exe_version(out, r'^QuickJS(?:-ng)?\s+version\s+(\S+)', 'unknown')
-        vt = _runtime_version_tuple(version.replace('-', '.'))
+        vt = version_tuple(version, lenient=True)
         if is_ng:
             return JsRuntimeInfo(
                 name='quickjs-ng', path=path, version=version, version_tuple=vt,
