@@ -221,7 +221,7 @@ class SRGSSRArticleIE(InfoExtractor):
             'id': '50b20dc8-f05b-4972-bf03-e438ff2833eb',
             'ext': 'mp3',
             'title': 'Polizei geht gegen kriminelle Webshops vor',
-            'description': 'md5:c22e394a96484e154945cb043c36edcf',
+            'description': 'md5:db6af1fa722665a28f2664abc62cf23f',
             'upload_date': '20210223',
             'timestamp': 1614099600,
             'duration': 238.08,
@@ -255,6 +255,119 @@ class SRGSSRArticleIE(InfoExtractor):
             'upload_date': '20251207',
             'timestamp': 1765099860,
             'duration': 222.096,
+            'thumbnail': r're:^https?://.*',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # RTS archives video
+        'url': 'https://www.rts.ch/archives/1968/video/les-enfants-terribles-26185584.html',
+        'info_dict': {
+            'id': '3449373',
+            'ext': 'mp4',
+            'duration': 1488.0,
+            'title': 'Les Enfants Terribles',
+            'description': 'md5:6888f67415f6fa4522a8319ba60ad812',
+            'upload_date': '19680921',
+            'timestamp': -40280400,
+            'thumbnail': r're:^https?://.*',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # RTS emissions playlist page
+        'url': 'https://www.rts.ch/emissions/passe-moi-les-jumelles/',
+        'info_dict': {
+            'id': '14394276',
+            'ext': 'mp4',
+            'title': 'La collection d\'animaux congelés',
+            'description': 'md5:21271c97fb61b70a72ca364ee412e0f2',
+            'upload_date': '20231006',
+            'timestamp': 1696616042,
+            'duration': 93.96,
+            'thumbnail': r're:^https?://.*',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # RTS emissions video with UUID
+        'url': 'https://www.rts.ch/emissions/passe-moi-les-jumelles/2025/video/priorat-le-vin-de-pierre-29079223.html',
+        'info_dict': {
+            'id': 'f12db31c-6797-3239-8989-5a9385c031f8',
+            'ext': 'mp4',
+            'title': 'Priorat, le vin de pierre',
+            'description': 'md5:cadc440f33cbe2f73b26017845fda062',
+            'upload_date': '20251205',
+            'timestamp': 1764961936,
+            'duration': 2968.32,
+            'thumbnail': r're:^https?://.*',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # RTS sport video
+        'url': 'https://www.rts.ch/sport/2014/video/1-2-kloten-fribourg-5-2-second-but-pour-gotteron-par-kwiatowski-27083339.html',
+        'info_dict': {
+            'id': '5745975',
+            'ext': 'mp4',
+            'duration': 48,
+            'title': '1/2, Kloten - Fribourg (5-2): second but pour Gottéron par Kwiatowski',
+            'description': 'Hockey - Playoff',
+            'upload_date': '20140403',
+            'timestamp': 1396556882,
+            'thumbnail': r're:^https?://.*',
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'skip': 'Blocked outside Switzerland',
+    }, {
+        # RTS play URL with urn parameter (also works via SRGSSRArticleIE)
+        'url': 'https://www.rts.ch/play/tv/lactu-en-video/video/londres-cachee-par-un-epais-smog?urn=urn:rts:video:5745356',
+        'info_dict': {
+            'id': '5745356',
+            'ext': 'mp4',
+            'duration': 33.76,
+            'title': 'Londres cachée par un épais smog',
+            'description': 'md5:ae31051ce88bb0a91df5ef31c75c3341',
+            'upload_date': '20140403',
+            'timestamp': 1396491300,
+            'thumbnail': r're:^https?://.*',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # RTS audio podcast
+        'url': 'https://www.rts.ch/audio-podcast/2014/audio/urban-hippie-de-damien-krisl-25342474.html',
+        'info_dict': {
+            'id': '5706148',
+            'ext': 'mp3',
+            'duration': 123.0,
+            'title': '"Urban Hippie", de Damien Krisl',
+            'description': 'md5:9897f89795b938da157c595ee9e957c5',
+            'upload_date': '20140403',
+            'timestamp': 1396546481,
+            'thumbnail': r're:^https?://.*',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # RTS sport article with video playlist
+        'url': 'https://www.rts.ch/sport/hockey/6693917-hockey-davos-decroche-son-31e-titre-de-champion-de-suisse.html',
+        'info_dict': {
+            'id': '6694753',
+            'ext': 'mp4',
+            'title': 'Hockey / Play off: le HC Davos a remporté la 31ème victoire de son histoire face à Zurich',
+            'description': 'md5:8611cd9ec6fa095d4dd84310c180bf46',
+            'upload_date': '20150411',
+            'timestamp': 1428784500,
+            'duration': 388.04,
             'thumbnail': r're:^https?://.*',
         },
         'params': {
