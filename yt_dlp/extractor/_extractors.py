@@ -1960,6 +1960,7 @@ from .sproutvideo import (
 )
 from .srgssr import (
     SRGSSRIE,
+    SRGSSRArticleIE,
     SRGSSRPlayIE,
 )
 from .srmediathek import SRMediathekIE
