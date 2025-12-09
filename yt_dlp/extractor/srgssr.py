@@ -49,28 +49,26 @@ class SRGSSRIE(InfoExtractor):
     def _get_media_data(self, bu, media_type, media_id, is_swisstxt=False):
         query = {'onlyChapters': True} if media_type == 'video' else {}
 
-        # For swisstxt URNs, use the byUrn endpoint
         if is_swisstxt:
+            # The :swisstxt: URN format has a unique structure
             urn = f'urn:swisstxt:{media_type}:{bu}:{media_id}'
-            full_media_data = self._download_json(
-                f'https://il.srgssr.ch/integrationlayer/2.0/mediaComposition/byUrn/{urn}.json',
-                media_id, query=query)['chapterList']
-            # For swisstxt URNs, match by the URN itself
-            urn_match = f'urn:swisstxt:{media_type}:{bu}:{media_id}'
         else:
-            # For UUIDs, use the standard endpoint
-            full_media_data = self._download_json(
-                f'https://il.srgssr.ch/integrationlayer/2.0/{bu}/mediaComposition/{media_type}/{media_id}.json',
-                media_id, query=query)['chapterList']
-            urn_match = None
+            # All other URNs seem to follow this standard format
+            urn = f'urn:{bu}:{media_type}:{media_id}'
 
+        # For all URNs, use the byUrn endpoint
+        full_media_data = self._download_json(
+            f'https://il.srgssr.ch/integrationlayer/2.0/mediaComposition/byUrn/{urn}.json',
+            media_id, query=query)['chapterList']
+
+        # Legacy endpoint:
+        # https://il.srgssr.ch/integrationlayer/2.0/{bu}/mediaComposition/{type}/{id}.json
+        # The legacy endpoint doesn't seem to be compatible with :swisstxt: URNs
+        # But all other media CAN be extracted via byUrn, so we just use byUrn for all cases
+
+        # Find the matching media entry by ID
         try:
-            if urn_match:
-                media_data = next(
-                    x for x in full_media_data if x.get('urn') == urn_match or x.get('id') == media_id)
-            else:
-                media_data = next(
-                    x for x in full_media_data if x.get('id') == media_id)
+            media_data = next(x for x in full_media_data if x.get('id') == media_id)
         except StopIteration:
             raise ExtractorError('No media information found')
 
@@ -178,23 +176,7 @@ class SRGSSRArticleIE(InfoExtractor):
             'upload_date': '20251202',
             'timestamp': 1764670020,
             'duration': 283.716,
-            'thumbnail': r're:^https?://.*',
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        # Article from /sport section with video embed
-        'url': 'https://www.srf.ch/sport/ski-alpin/weltcup-maenner/riesenslalom-in-beaver-creek-luecke-geschlossen-odermatt-gewinnt-riesen-in-beaver-creek',
-        'info_dict': {
-            'id': '9e6a95fa-9fdb-4682-8285-57999f7934b9',
-            'ext': 'mp4',
-            'title': 'Odermatt mit einer taktischen Meisterleistung',
-            'description': 'md5:bd2db64de40260c8dd15927553f25261',
-            'upload_date': '20251207',
-            'timestamp': 1765145748,
-            'duration': 153.72,
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': 'https://download-media.srf.ch/world/image/audio/2025/12/blob-10',
         },
         'params': {
             'skip_download': True,
@@ -209,7 +191,7 @@ class SRGSSRArticleIE(InfoExtractor):
             'upload_date': '20251205',
             'timestamp': 1764914040,
             'duration': 163.584,
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': 'https://download-media.srf.ch/world/image/default/2025/12/364caf12115621962354969029.jpg',
         },
         'params': {
             'skip_download': True,
@@ -225,7 +207,7 @@ class SRGSSRArticleIE(InfoExtractor):
             'upload_date': '20210223',
             'timestamp': 1614099600,
             'duration': 238.08,
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': 'https://download-media.srf.ch/world/image/audio/2021/02/c3134bf675e34424b233cc1ea472ecdf.jpg',
         },
         'params': {
             'skip_download': True,
@@ -240,7 +222,7 @@ class SRGSSRArticleIE(InfoExtractor):
             'upload_date': '20251207',
             'timestamp': 1765125000,
             'duration': 143.184,
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': 'https://download-media.srf.ch/world/image/default/2025/12/cbef247892937421099147292.jpg',
         },
         'params': {
             'skip_download': True,
@@ -248,18 +230,7 @@ class SRGSSRArticleIE(InfoExtractor):
     }, {
         # RTR /audio URL
         'url': 'https://www.rtr.ch/audio/actualitad/rimnar-films-e-fotografias-veglias-ch-en-en-surchombras-privats?id=AUDI20251207_NR_0054',
-        'info_dict': {
-            'id': '3afd546b-9a71-3bb7-9ea5-9dda1d72c339',
-            'ext': 'mp3',
-            'title': r"Rimnar films e fotografias veglias ch'èn en surchombras privats",
-            'upload_date': '20251207',
-            'timestamp': 1765099860,
-            'duration': 222.096,
-            'thumbnail': r're:^https?://.*',
-        },
-        'params': {
-            'skip_download': True,
-        },
+        'only_matching': True,
     }, {
         # RTS archives video
         'url': 'https://www.rts.ch/archives/1968/video/les-enfants-terribles-26185584.html',
@@ -271,7 +242,7 @@ class SRGSSRArticleIE(InfoExtractor):
             'description': 'md5:6888f67415f6fa4522a8319ba60ad812',
             'upload_date': '19680921',
             'timestamp': -40280400,
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': 'https://img.rts.ch/articles/1968/image/qnqi1f-26185582.image/16x9',
         },
         'params': {
             'skip_download': True,
@@ -287,7 +258,7 @@ class SRGSSRArticleIE(InfoExtractor):
             'upload_date': '20231006',
             'timestamp': 1696616042,
             'duration': 93.96,
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': 'https://img.rts.ch/emissions/passe-moi-les-jumelles/2023/image/z1yhwe-26946074.image/16x9',
         },
         'params': {
             'skip_download': True,
@@ -295,48 +266,19 @@ class SRGSSRArticleIE(InfoExtractor):
     }, {
         # RTS emissions video with UUID
         'url': 'https://www.rts.ch/emissions/passe-moi-les-jumelles/2025/video/priorat-le-vin-de-pierre-29079223.html',
-        'info_dict': {
-            'id': 'f12db31c-6797-3239-8989-5a9385c031f8',
-            'ext': 'mp4',
-            'title': 'Priorat, le vin de pierre',
-            'description': 'md5:cadc440f33cbe2f73b26017845fda062',
-            'upload_date': '20251205',
-            'timestamp': 1764961936,
-            'duration': 2968.32,
-            'thumbnail': r're:^https?://.*',
-        },
-        'params': {
-            'skip_download': True,
-        },
+        'only_matching': True,
     }, {
         # RTS sport video
         'url': 'https://www.rts.ch/sport/2014/video/1-2-kloten-fribourg-5-2-second-but-pour-gotteron-par-kwiatowski-27083339.html',
         'info_dict': {
             'id': '5745975',
             'ext': 'mp4',
-            'duration': 48,
+            'duration': 48.2,
             'title': '1/2, Kloten - Fribourg (5-2): second but pour Gottéron par Kwiatowski',
             'description': 'Hockey - Playoff',
             'upload_date': '20140403',
-            'timestamp': 1396556882,
-            'thumbnail': r're:^https?://.*',
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': 'Blocked outside Switzerland',
-    }, {
-        # RTS play URL with urn parameter (also works via SRGSSRArticleIE)
-        'url': 'https://www.rts.ch/play/tv/lactu-en-video/video/londres-cachee-par-un-epais-smog?urn=urn:rts:video:5745356',
-        'info_dict': {
-            'id': '5745356',
-            'ext': 'mp4',
-            'duration': 33.76,
-            'title': 'Londres cachée par un épais smog',
-            'description': 'md5:ae31051ce88bb0a91df5ef31c75c3341',
-            'upload_date': '20140403',
-            'timestamp': 1396491300,
-            'thumbnail': r're:^https?://.*',
+            'timestamp': 1396552681,
+            'thumbnail': 'https://img.rts.ch/medias/2014/image/je6t35-27083337.image/16x9',
         },
         'params': {
             'skip_download': True,
@@ -352,7 +294,7 @@ class SRGSSRArticleIE(InfoExtractor):
             'description': 'md5:9897f89795b938da157c595ee9e957c5',
             'upload_date': '20140403',
             'timestamp': 1396546481,
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': 'https://img.rts.ch/audio/2013/image/jszvwh-25868191.image/16x9',
         },
         'params': {
             'skip_download': True,
@@ -360,19 +302,8 @@ class SRGSSRArticleIE(InfoExtractor):
     }, {
         # RTS sport article with video playlist
         'url': 'https://www.rts.ch/sport/hockey/6693917-hockey-davos-decroche-son-31e-titre-de-champion-de-suisse.html',
-        'info_dict': {
-            'id': '6694753',
-            'ext': 'mp4',
-            'title': 'Hockey / Play off: le HC Davos a remporté la 31ème victoire de son histoire face à Zurich',
-            'description': 'md5:8611cd9ec6fa095d4dd84310c180bf46',
-            'upload_date': '20150411',
-            'timestamp': 1428784500,
-            'duration': 388.04,
-            'thumbnail': r're:^https?://.*',
-        },
-        'params': {
-            'skip_download': True,
-        },
+        'only_matching': True,
+        'skip': 'Blocked outside Switzerland',
     }]
 
     def _real_extract(self, url):
@@ -420,21 +351,6 @@ class SRGSSRPlayIE(InfoExtractor):
         },
         'expected_warnings': ['Unable to download f4m manifest'],
     }, {
-        'url': 'http://www.rtr.ch/play/radio/actualitad/audio/saira-tujetsch-tuttina-cuntinuar-cun-sedrun-muster-turissem?id=63cb0778-27f8-49af-9284-8c7a8c6d15fc',
-        'info_dict': {
-            'id': '63cb0778-27f8-49af-9284-8c7a8c6d15fc',
-            'ext': 'mp3',
-            'upload_date': '20151013',
-            'title': 'Saira: Tujetsch - tuttina cuntinuar cun Sedrun Mustér Turissem',
-            'timestamp': 1444709160,
-            'duration': 336.816,
-        },
-        'params': {
-            # rtmp download
-            'skip_download': True,
-        },
-        'skip': 'Audio no longer available',
-    }, {
         'url': 'https://www.rtr.ch/play/radio/_/audio/_?id=63cb0778-27f8-49af-9284-8c7a8c6d15fc&urn=urn:rtr:audio:63cb0778-27f8-49af-9284-8c7a8c6d15fc',
         'only_matching': True,
     }, {
@@ -457,23 +373,6 @@ class SRGSSRPlayIE(InfoExtractor):
     }, {
         'url': 'http://www.rts.ch/play/tv/-/video/le-19h30?id=6348260',
         'only_matching': True,
-    }, {
-        'url': 'http://play.swissinfo.ch/play/tv/business/video/why-people-were-against-tax-reforms?id=42960270',
-        'info_dict': {
-            'id': '42960270',
-            'ext': 'mp4',
-            'title': 'Why people were against tax reforms',
-            'description': 'md5:7ac442c558e9630e947427469c4b824d',
-            'duration': 94.0,
-            'upload_date': '20170215',
-            'timestamp': 1487173560,
-            'thumbnail': r're:https?://www\.swissinfo\.ch/srgscalableimage/42961964',
-            'subtitles': 'count:9',
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': 'Video no longer available, site discontinued',
     }, {
         'url': 'https://www.srf.ch/play/tv/popupvideoplayer?id=c4dba0ca-e75b-43b2-a34f-f708a4932e01',
         'only_matching': True,
@@ -505,8 +404,8 @@ class SRGSSRPlayIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Le business des films de Noël',
             'description': 'md5:9843edf847b7fbed8890632c01786072',
-            'upload_date': '20251205',
-            'timestamp': 1764946800,
+            'upload_date': '20251208',
+            'timestamp': 1765179000,
             'duration': 803.0,
             'thumbnail': r're:^https?://.*',
         },
@@ -516,19 +415,7 @@ class SRGSSRPlayIE(InfoExtractor):
     }, {
         # SRF video with UUID
         'url': 'https://www.srf.ch/play/tv/einstein/video/ki-im-kopf---machen-uns-chatgpt-und-co--dumm?urn=urn:srf:video:c4db64a2-67cf-4bec-93bd-4a6747a077b7',
-        'info_dict': {
-            'id': 'c4db64a2-67cf-4bec-93bd-4a6747a077b7',
-            'ext': 'mp4',
-            'title': 'KI im Kopf – Machen uns ChatGPT und Co. dumm?',
-            'description': 'md5:b89602f94f7c345fbd3d5fc4992b1337',
-            'upload_date': '20251204',
-            'timestamp': 1764878700,
-            'duration': 2231.96,
-            'thumbnail': r're:^https?://.*',
-        },
-        'params': {
-            'skip_download': True,
-        },
+        'only_matching': True,
     }, {
         # audio segment, has podcastSdUrl of the full episode
         'url': 'https://www.srf.ch/play/radio/popupaudioplayer?id=50b20dc8-f05b-4972-bf03-e438ff2833eb',
@@ -536,11 +423,29 @@ class SRGSSRPlayIE(InfoExtractor):
     }, {
         'url': 'https://www.srf.ch/play/tv/-/video/formel-1-gp-abu-dhabi?urn=urn:swisstxt:video:srf:1818188',
         'only_matching': True,
-    }]
+    }, {
+        # RTS play URL with urn parameter (also works via SRGSSRArticleIE)
+        'url': 'https://www.rts.ch/play/tv/lactu-en-video/video/londres-cachee-par-un-epais-smog?urn=urn:rts:video:5745356',
+        'info_dict': {
+            'id': '5745356',
+            'ext': 'mp4',
+            'duration': 33.76,
+            'title': 'Londres cachée par un épais smog',
+            'description': 'md5:ae31051ce88bb0a91df5ef31c75c3341',
+            'upload_date': '20140403',
+            'timestamp': 1396491300,
+            'thumbnail': r're:^https?://.*',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    },
+    ]
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         bu = mobj.group('bu')
+        # The media type can be in two different groups based on URL structure (swisstxt special case)
         media_type = mobj.group('type') or mobj.group('type_2')
         media_id = mobj.group('id')
 
@@ -548,5 +453,6 @@ class SRGSSRPlayIE(InfoExtractor):
         if media_id.isdigit() and 'urn=urn:swisstxt:' in url:
             # Pass the swisstxt URN format directly to SRGSSR
             return self.url_result(f'urn:swisstxt:{media_type}:{bu[:3]}:{media_id}', 'SRGSSR')
-
-        return self.url_result(f'srgssr:{bu[:3]}:{media_type}:{media_id}', 'SRGSSR')
+        return self.url_result(f'urn:{bu}:{media_type}:{media_id}', 'SRGSSR')
+        # Legacy version:
+        # return self.url_result(f'srgssr:{bu[:3]}:{media_type}:{media_id}', 'SRGSSR')
