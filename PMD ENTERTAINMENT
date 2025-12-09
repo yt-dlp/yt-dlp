@@ -1,0 +1,127 @@
+import React from "react";
+
+// Single-file React landing page for **PMD Entertainment**
+// Tailwind CSS required in the project. Default export is a ready-to-preview component.
+
+export default function PMDEnterpriseLanding() {
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-900">
+      {/* NAVBAR */}
+      <header className="bg-white shadow-sm">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-lg bg-gradient-to-tr from-red-600 to-yellow-400 flex items-center justify-center text-white font-extrabold">PMD</div>
+            <div>
+              <h1 className="text-lg font-semibold">PMD Entertainment</h1>
+              <p className="text-xs text-gray-500">Music · Distribution · Artist Services</p>
+            </div>
+          </div>
+
+          <nav className="hidden md:flex items-center gap-6 text-sm">
+            <a href="#services" className="hover:text-red-600">Services</a>
+            <a href="#artists" className="hover:text-red-600">Artists</a>
+            <a href="#clients" className="hover:text-red-600">Clients</a>
+            <a href="#contact" className="hover:text-red-600">Contact</a>
+            <button className="ml-3 px-4 py-2 rounded-md border font-medium">Sign In</button>
+          </nav>
+
+          <button className="md:hidden p-2 rounded-md border">Menu</button>
+        </div>
+      </header>
+
+      {/* HERO */}
+      <section className="relative bg-white">
+        <div className="max-w-6xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          <div>
+            <h2 className="text-4xl font-extrabold leading-tight">PMD Entertainment — Your music, everywhere.</h2>
+            <p className="mt-4 text-gray-600">We help artists and labels distribute music, grow YouTube/streaming revenue, and protect copyrights worldwide. Simple contracts. Transparent reporting. Local support.</p>
+
+            <div className="mt-6 flex gap-3">
+              <a href="#contact" className="px-5 py-3 rounded-md bg-red-600 text-white font-medium">Get Started</a>
+              <a href="#services" className="px-5 py-3 rounded-md border font-medium">Our Services</a>
+            </div>
+
+            <div className="mt-6 text-sm text-gray-500">
+              <span className="font-medium">Serving:</span> YouTube CMS · Spotify · Apple Music · Amazon Music · Gaana · JioSaavn
+            </div>
+          </div>
+
+          <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-br from-gray-100 to-white p-8">
+            <div className="h-64 bg-[url('https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=1400&auto=format&fit=crop&s=')] bg-cover bg-center rounded-md"></div>
+            <div className="mt-4 text-gray-600 text-sm">Professional distribution, playlist pitching, channel optimization and rights management — all under one roof.</div>
+          </div>
+        </div>
+      </section>
+
+      {/* SERVICES */}
+      <section id="services" className="max-w-6xl mx-auto px-6 py-12">
+        <h3 className="text-2xl font-bold">What we do</h3>
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="p-6 bg-white rounded-lg shadow-sm">
+            <h4 className="font-semibold">Global Music Distribution</h4>
+            <p className="mt-2 text-sm text-gray-600">Deliver your music to major streaming platforms, stores and telcos with transparent royalty reporting.</p>
+          </div>
+
+          <div className="p-6 bg-white rounded-lg shadow-sm">
+            <h4 className="font-semibold">YouTube CMS & Channel Services</h4>
+            <p className="mt-2 text-sm text-gray-600">CMS setup, Content ID, revenue claims, channel optimization and audience growth strategies tailored for creators.</p>
+          </div>
+
+          <div className="p-6 bg-white rounded-lg shadow-sm">
+            <h4 className="font-semibold">Copyright & Rights Management</h4>
+            <p className="mt-2 text-sm text-gray-600">Protect your work with copyright registration assistance and Content ID enforcement across platforms.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* ARTISTS / CLIENTS */}
+      <section id="artists" className="bg-gray-50 border-t border-gray-100">
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          <h3 className="text-2xl font-bold">Our Artists & Partners</h3>
+          <p className="mt-3 text-gray-600">We work with independent artists, labels and content creators. Below are some highlights and success stories.</p>
+
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-white rounded-lg shadow-sm">
+              <div className="h-36 bg-gray-200 rounded-md flex items-center justify-center">Artist 1</div>
+              <div className="mt-3 text-sm text-gray-600">Channel growth, playlist placements.</div>
+            </div>
+            <div className="p-4 bg-white rounded-lg shadow-sm">
+              <div className="h-36 bg-gray-200 rounded-md flex items-center justify-center">Artist 2</div>
+              <div className="mt-3 text-sm text-gray-600">Regional promotions & sync licensing.</div>
+            </div>
+            <div className="p-4 bg-white rounded-lg shadow-sm">
+              <div className="h-36 bg-gray-200 rounded-md flex items-center justify-center">Label</div>
+              <div className="mt-3 text-sm text-gray-600">Catalog management & royalty splits.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CONTACT */}
+      <section id="contact" className="max-w-4xl mx-auto px-6 py-12">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-xl font-bold">Contact PMD Entertainment</h3>
+          <p className="mt-2 text-sm text-gray-600">Send us details about your release or artist project and we'll get back with a clear plan and pricing.</p>
+
+          <form className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input className="p-3 border rounded-md" placeholder="Your name" />
+            <input className="p-3 border rounded-md" placeholder="Email" />
+            <input className="p-3 border rounded-md md:col-span-2" placeholder="Artist / Brand name" />
+            <textarea className="p-3 border rounded-md md:col-span-2" rows={4} placeholder="Tell us about your project"></textarea>
+            <button type="submit" className="md:col-span-2 px-5 py-3 rounded-md bg-red-600 text-white font-medium">Send Message</button>
+          </form>
+
+          <div className="mt-6 text-sm text-gray-500">Or email us at <span className="font-medium">contact@pmdentertainment.com</span> — or call +91 98765 43210</div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="mt-12 bg-white border-t">
+        <div className="max-w-6xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between text-sm text-gray-600">
+          <div>© {new Date().getFullYear()} PMD Entertainment</div>
+          <div className="mt-3 md:mt-0">Registered office · City, State · GSTIN: 00AAAAA0000A1Z0</div>
+        </div>
+      </footer>
+    </div>
+  );
+}
