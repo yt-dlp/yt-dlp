@@ -1432,7 +1432,10 @@ from .nytimes import (
     NYTimesIE,
 )
 from .nzherald import NZHeraldIE
-from .nzonscreen import NZOnScreenIE
+from .nzonscreen import (
+    NZOnScreenIE,
+    NZOnScreenVideoIE,
+)
 from .nzz import NZZIE
 from .odkmedia import OnDemandChinaEpisodeIE
 from .odnoklassniki import OdnoklassnikiIE
