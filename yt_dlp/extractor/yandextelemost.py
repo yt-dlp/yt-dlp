@@ -19,6 +19,17 @@ class YandexRuntimeStrmIE(InfoExtractor):
             'live_status': 'is_live',
         },
         'params': {'skip_download': True},
+        'only_matching': True,  # live stream ended
+    }, {
+        'url': 'https://runtime.strm.yandex.ru/player/episode/vpleontotb3a42ftvjod',
+        'info_dict': {
+            'id': 'vpleontotb3a42ftvjod',
+            'ext': 'mp4',
+            # match any timestamp appended for live streams
+            'title': r're:^64c006b42f044dd589723e6efeea332a.*',
+            'live_status': 'is_live',
+        },
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
@@ -38,21 +49,36 @@ class YandexRuntimeStrmIE(InfoExtractor):
 
             live_from_start = self.get_param('live_from_start', False)
             stream_type = stream.get('type')
+
             if stream_type == 'dash':
                 dash_formats = self._extract_mpd_formats(
                     s_url, video_id, mpd_id='dash', fatal=False)
                 for f in dash_formats:
-                    # dash is too complicated to make it work with live-from-start
-                    f['preference'] = -1000
+                    f['preference'] = -2
+                    # TODO: live from start
                 formats.extend(dash_formats)
+
             if stream_type == 'hls':
                 hls_formats = self._extract_m3u8_formats(
                     s_url, video_id, 'mp4', m3u8_id='hls', fatal=False, live=True)
-                if live_from_start:
-                    for f in hls_formats:
-                        f.setdefault('downloader_options', {}).update({'ffmpeg_args': ['-live_start_index', '0']})
-                        f['is_from_start'] = True
+                for f in hls_formats:
+                    f['preference'] = -1
+                    dl_opts = f.setdefault('downloader_options', {})
+                    ffmpeg_args = dl_opts.get('ffmpeg_args', [])
+                    ffmpeg_args.extend([
+                        # suppress annoying network logs
+                        '-loglevel', 'warning',
+                        '-stats',
+                    ])
+                    if live_from_start:
+                        ffmpeg_args.extend(['-live_start_index', '0'])
+
+                    dl_opts['ffmpeg_args'] = ffmpeg_args
                 formats.extend(hls_formats)
+
+        if live_from_start:
+            for f in formats:
+                f['is_from_start'] = True
 
         return {
             'id': video_id,
@@ -70,6 +96,17 @@ class YandexTelemostIE(InfoExtractor):
         'url': 'https://telemost.yandex.ru/live/ed3ab5fc53624ae19e4b65886bf4bb70',
         'info_dict': {
             'id': 'vple3e7omvkythqefn4a',
+            'ext': 'mp4',
+            # match any timestamp appended for live streams
+            'title': r're:^Подготовка к аттестации.*',
+            'live_status': 'is_live',
+        },
+        'params': {'skip_download': True},
+        'only_matching': True,
+    }, {
+        'url': 'https://telemost.yandex.ru/live/64c006b42f044dd589723e6efeea332a',
+        'info_dict': {
+            'id': 'vpleontotb3a42ftvjod',
             'ext': 'mp4',
             # match any timestamp appended for live streams
             'title': r're:^Подготовка к аттестации.*',
