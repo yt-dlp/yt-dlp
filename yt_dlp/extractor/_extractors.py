@@ -608,6 +608,7 @@ from .ettutv import EttuTvIE
 from .europa import (
     EuropaIE,
     EuroParlWebstreamIE,
+    EuropeanCommissionIE,
 )
 from .europeantour import EuropeanTourIE
 from .eurosport import EurosportIE
