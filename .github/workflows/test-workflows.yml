@@ -17,8 +17,8 @@ on:
 permissions:
   contents: read
 env:
-  ACTIONLINT_VERSION: "1.7.8"
-  ACTIONLINT_SHA256SUM: be92c2652ab7b6d08425428797ceabeb16e31a781c07bc388456b4e592f3e36a
+  ACTIONLINT_VERSION: "1.7.9"
+  ACTIONLINT_SHA256SUM: 233b280d05e100837f4af1433c7b40a5dcb306e3aa68fb4f17f8a7f45a7df7b4
   ACTIONLINT_REPO: https://github.com/rhysd/actionlint
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
     name: Check workflows
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: "3.10"  # Keep this in sync with release.yml's prepare job
@@ -34,7 +34,7 @@ jobs:
         env:
           ACTIONLINT_TARBALL: ${{ format('actionlint_{0}_linux_amd64.tar.gz', env.ACTIONLINT_VERSION) }}
         run: |
-          python -m devscripts.install_deps --only-optional-groups --include-group test
+          python -m devscripts.install_deps --omit-default --include-extra test
           sudo apt -y install shellcheck
           python -m pip install -U pyflakes
           curl -LO "${ACTIONLINT_REPO}/releases/download/v${ACTIONLINT_VERSION}/${ACTIONLINT_TARBALL}"
