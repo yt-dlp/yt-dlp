@@ -47,6 +47,7 @@ import xml.etree.ElementTree
 from . import traversal
 
 from ..compat import (
+    compat_datetime_from_timestamp,
     compat_etree_fromstring,
     compat_expanduser,
     compat_HTMLParseError,
@@ -94,7 +95,7 @@ TIMEZONE_NAMES = {
 # needed for sanitizing filenames in restricted mode
 ACCENT_CHARS = dict(zip('ÂÃÄÀÁÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖŐØŒÙÚÛÜŰÝÞßàáâãäåæçèéêëìíîïðñòóôõöőøœùúûüűýþÿ',
                         itertools.chain('AAAAAA', ['AE'], 'CEEEEIIIIDNOOOOOOO', ['OE'], 'UUUUUY', ['TH', 'ss'],
-                                        'aaaaaa', ['ae'], 'ceeeeiiiionooooooo', ['oe'], 'uuuuuy', ['th'], 'y')))
+                                        'aaaaaa', ['ae'], 'ceeeeiiiionooooooo', ['oe'], 'uuuuuy', ['th'], 'y'), strict=True))
 
 DATE_FORMATS = (
     '%d %B %Y',
@@ -875,13 +876,19 @@ class Popen(subprocess.Popen):
             kwargs.setdefault('encoding', 'utf-8')
             kwargs.setdefault('errors', 'replace')
 
-        if shell and os.name == 'nt' and kwargs.get('executable') is None:
-            if not isinstance(args, str):
-                args = shell_quote(args, shell=True)
-            shell = False
-            # Set variable for `cmd.exe` newline escaping (see `utils.shell_quote`)
-            env['='] = '"^\n\n"'
-            args = f'{self.__comspec()} /Q /S /D /V:OFF /E:ON /C "{args}"'
+        if os.name == 'nt' and kwargs.get('executable') is None:
+            # Must apply shell escaping if we are trying to run a batch file
+            # These conditions should be very specific to limit impact
+            if not shell and isinstance(args, list) and args and args[0].lower().endswith(('.bat', '.cmd')):
+                shell = True
+
+            if shell:
+                if not isinstance(args, str):
+                    args = shell_quote(args, shell=True)
+                shell = False
+                # Set variable for `cmd.exe` newline escaping (see `utils.shell_quote`)
+                env['='] = '"^\n\n"'
+                args = f'{self.__comspec()} /Q /S /D /V:OFF /E:ON /C "{args}"'
 
         super().__init__(args, *remaining, env=env, shell=shell, **kwargs, startupinfo=self._startupinfo)
 
@@ -1376,6 +1383,7 @@ def datetime_round(dt_, precision='day'):
     if precision == 'microsecond':
         return dt_
 
+    time_scale = 1_000_000
     unit_seconds = {
         'day': 86400,
         'hour': 3600,
@@ -1383,8 +1391,8 @@ def datetime_round(dt_, precision='day'):
         'second': 1,
     }
     roundto = lambda x, n: ((x + n / 2) // n) * n
-    timestamp = roundto(calendar.timegm(dt_.timetuple()), unit_seconds[precision])
-    return dt.datetime.fromtimestamp(timestamp, dt.timezone.utc)
+    timestamp = roundto(calendar.timegm(dt_.timetuple()) + dt_.microsecond / time_scale, unit_seconds[precision])
+    return compat_datetime_from_timestamp(timestamp)
 
 
 def hyphenate_date(date_str):
@@ -2056,18 +2064,13 @@ def strftime_or_none(timestamp, date_format='%Y%m%d', default=None):
     datetime_object = None
     try:
         if isinstance(timestamp, (int, float)):  # unix timestamp
-            # Using naive datetime here can break timestamp() in Windows
-            # Ref: https://github.com/yt-dlp/yt-dlp/issues/5185, https://github.com/python/cpython/issues/94414
-            # Also, dt.datetime.fromtimestamp breaks for negative timestamps
-            # Ref: https://github.com/yt-dlp/yt-dlp/issues/6706#issuecomment-1496842642
-            datetime_object = (dt.datetime.fromtimestamp(0, dt.timezone.utc)
-                               + dt.timedelta(seconds=timestamp))
+            datetime_object = compat_datetime_from_timestamp(timestamp)
         elif isinstance(timestamp, str):  # assume YYYYMMDD
             datetime_object = dt.datetime.strptime(timestamp, '%Y%m%d')
         date_format = re.sub(  # Support %s on windows
             r'(?<!%)(%%)*%s', rf'\g<1>{int(datetime_object.timestamp())}', date_format)
         return datetime_object.strftime(date_format)
-    except (ValueError, TypeError, AttributeError):
+    except (ValueError, TypeError, AttributeError, OverflowError, OSError):
         return default
 
 
@@ -2153,14 +2156,14 @@ def check_executable(exe, args=[]):
     return exe
 
 
-def _get_exe_version_output(exe, args):
+def _get_exe_version_output(exe, args, ignore_return_code=False):
     try:
         # STDIN should be redirected too. On UNIX-like systems, ffmpeg triggers
         # SIGTTOU if yt-dlp is run in the background.
         # See https://github.com/ytdl-org/youtube-dl/issues/955#issuecomment-209789656
         stdout, _, ret = Popen.run([encodeArgument(exe), *args], text=True,
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        if ret:
+        if not ignore_return_code and ret:
             return None
     except OSError:
         return False
@@ -2418,7 +2421,7 @@ class PlaylistEntries:
         if self.is_incomplete:
             assert self.is_exhausted
             self._entries = [self.MissingEntry] * max(requested_entries or [0])
-            for i, entry in zip(requested_entries, entries):
+            for i, entry in zip(requested_entries, entries):  # noqa: B905
                 self._entries[i - 1] = entry
         elif isinstance(entries, (list, PagedList, LazyList)):
             self._entries = entries
@@ -2892,8 +2895,9 @@ def limit_length(s, length):
     return s
 
 
-def version_tuple(v):
-    return tuple(int(e) for e in re.split(r'[-.]', v))
+def version_tuple(v, *, lenient=False):
+    parse = int_or_none(default=-1) if lenient else int
+    return tuple(parse(e) for e in re.split(r'[-.]', v))
 
 
 def is_outdated_version(version, limit, assume_new=True):
@@ -2948,6 +2952,7 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'x-ms-asf': 'asf',
         'x-ms-wmv': 'wmv',
         'x-msvideo': 'avi',
+        'vnd.dlna.mpeg-tts': 'mpeg',
 
         # application (streaming playlists)
         'dash+xml': 'mpd',
@@ -3186,7 +3191,7 @@ def render_table(header_row, data, delim=False, extra_gap=0, hide_empty=False):
         return len(remove_terminal_sequences(string).replace('\t', ''))
 
     def get_max_lens(table):
-        return [max(width(str(v)) for v in col) for col in zip(*table)]
+        return [max(width(str(v)) for v in col) for col in zip(*table, strict=True)]
 
     def filter_using_list(row, filter_array):
         return [col for take, col in itertools.zip_longest(filter_array, row, fillvalue=True) if take]
@@ -3542,7 +3547,7 @@ def dfxp2srt(dfxp_data):
             continue
         default_style.update(style)
 
-    for para, index in zip(paras, itertools.count(1)):
+    for para, index in zip(paras, itertools.count(1), strict=False):
         begin_time = parse_dfxp_time_expr(para.attrib.get('begin'))
         end_time = parse_dfxp_time_expr(para.attrib.get('end'))
         dur = parse_dfxp_time_expr(para.attrib.get('dur'))
@@ -4739,27 +4744,41 @@ def time_seconds(**kwargs):
     return time.time() + dt.timedelta(**kwargs).total_seconds()
 
 
-# create a JSON Web Signature (jws) with HS256 algorithm
-# the resulting format is in JWS Compact Serialization
 # implemented following JWT https://www.rfc-editor.org/rfc/rfc7519.html
 # implemented following JWS https://www.rfc-editor.org/rfc/rfc7515.html
-def jwt_encode_hs256(payload_data, key, headers={}):
+def jwt_encode(payload_data, key, *, alg='HS256', headers=None):
+    assert alg in ('HS256',), f'Unsupported algorithm "{alg}"'
+
+    def jwt_json_bytes(obj):
+        return json.dumps(obj, separators=(',', ':')).encode()
+
+    def jwt_b64encode(bytestring):
+        return base64.urlsafe_b64encode(bytestring).rstrip(b'=')
+
     header_data = {
-        'alg': 'HS256',
+        'alg': alg,
         'typ': 'JWT',
     }
     if headers:
-        header_data.update(headers)
-    header_b64 = base64.b64encode(json.dumps(header_data).encode())
-    payload_b64 = base64.b64encode(json.dumps(payload_data).encode())
+        # Allow re-ordering of keys if both 'alg' and 'typ' are present
+        if 'alg' in headers and 'typ' in headers:
+            header_data = headers
+        else:
+            header_data.update(headers)
+
+    header_b64 = jwt_b64encode(jwt_json_bytes(header_data))
+    payload_b64 = jwt_b64encode(jwt_json_bytes(payload_data))
+
+    # HS256 is the only algorithm currently supported
     h = hmac.new(key.encode(), header_b64 + b'.' + payload_b64, hashlib.sha256)
-    signature_b64 = base64.b64encode(h.digest())
-    return header_b64 + b'.' + payload_b64 + b'.' + signature_b64
+    signature_b64 = jwt_b64encode(h.digest())
+
+    return (header_b64 + b'.' + payload_b64 + b'.' + signature_b64).decode()
 
 
 # can be extended in future to verify the signature and parse header and return the algorithm used if it's not HS256
 def jwt_decode_hs256(jwt):
-    header_b64, payload_b64, signature_b64 = jwt.split('.')
+    _header_b64, payload_b64, _signature_b64 = jwt.split('.')
     # add trailing ='s that may have been stripped, superfluous ='s are ignored
     return json.loads(base64.urlsafe_b64decode(f'{payload_b64}==='))
 
@@ -4842,7 +4861,7 @@ def scale_thumbnails_to_max_format_width(formats, thumbnails, url_width_re):
     return [
         merge_dicts(
             {'url': re.sub(url_width_re, str(max_dimensions[0]), thumbnail['url'])},
-            dict(zip(_keys, max_dimensions)), thumbnail)
+            dict(zip(_keys, max_dimensions, strict=True)), thumbnail)
         for thumbnail in thumbnails
     ]
 
