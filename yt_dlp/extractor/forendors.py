@@ -74,7 +74,7 @@ class ForendorsBaseIE(InfoExtractor):
 
         return {
             'id': post_id,
-            'title': post.get('title') or post_id,
+            'title': post.get('title'),
             'description': self._extract_description(post),
             'thumbnails': self._extract_thumbnails(post),
             'formats': formats,
