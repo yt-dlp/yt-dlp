@@ -459,8 +459,7 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
 
         audio_data = show_data['radioShowAudio']
         thum_id = metadata.get('imageId')
-        if thum_id:
-            thum_url = f'https://f4.bcbits.com/img/000{thum_id}_171.jpg'
+        thum_url = f'https://f4.bcbits.com/img/000{thum_id}_171.jpg' if thum_id else None
 
         return {
             'id': show_id,
