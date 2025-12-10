@@ -9,13 +9,13 @@ jobs:
     if: "contains(github.event.head_commit.message, 'ci run dl')"
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
         python-version: '3.10'
     - name: Install test requirements
-      run: python ./devscripts/install_deps.py --include-group dev
+      run: python ./devscripts/install_deps.py --include-extra dev
     - name: Run tests
       continue-on-error: true
       run: python ./devscripts/run_tests.py download
@@ -36,13 +36,13 @@ jobs:
         - os: windows-latest
           python-version: pypy-3.11
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install test requirements
-      run: python ./devscripts/install_deps.py --include-group dev
+      run: python ./devscripts/install_deps.py --include-extra dev
     - name: Run tests
       continue-on-error: true
       run: python ./devscripts/run_tests.py download
