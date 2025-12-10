@@ -125,7 +125,7 @@ def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(),
 
 
 def _extract_firefox_cookies(profile, container, logger):
-    MAX_SUPPORTED_DB_SCHEMA_VERSION = 16
+    MAX_SUPPORTED_DB_SCHEMA_VERSION = 17
 
     logger.info('Extracting cookies from firefox')
     if not sqlite3:
@@ -166,6 +166,8 @@ def _extract_firefox_cookies(profile, container, logger):
             db_schema_version = cursor.execute('PRAGMA user_version;').fetchone()[0]
             if db_schema_version > MAX_SUPPORTED_DB_SCHEMA_VERSION:
                 logger.warning(f'Possibly unsupported firefox cookies database version: {db_schema_version}')
+            else:
+                logger.debug(f'Firefox cookies database version: {db_schema_version}')
             if isinstance(container_id, int):
                 logger.debug(
                     f'Only loading cookies from firefox container "{container}", ID {container_id}')
@@ -210,9 +212,16 @@ def _firefox_browser_dirs():
 
     else:
         yield from map(os.path.expanduser, (
+            # New installations of FF147+ respect the XDG base directory specification
+            # Ref: https://bugzilla.mozilla.org/show_bug.cgi?id=259356
+            os.path.join(_config_home(), 'mozilla/firefox'),
+            # Existing FF version<=146 installations
             '~/.mozilla/firefox',
-            '~/snap/firefox/common/.mozilla/firefox',
+            # Flatpak XDG: https://docs.flatpak.org/en/latest/conventions.html#xdg-base-directories
+            '~/.var/app/org.mozilla.firefox/config/mozilla/firefox',
             '~/.var/app/org.mozilla.firefox/.mozilla/firefox',
+            # Snap installations do not respect the XDG base directory specification
+            '~/snap/firefox/common/.mozilla/firefox',
         ))
 
 
@@ -557,7 +566,7 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
 
 
 def _extract_safari_cookies(profile, logger):
-    if sys.platform != 'darwin':
+    if sys.platform not in ('darwin', 'ios'):
         raise ValueError(f'unsupported platform: {sys.platform}')
 
     if profile:

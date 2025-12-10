@@ -13,6 +13,8 @@ from PyInstaller.__main__ import run as run_pyinstaller
 from devscripts.utils import read_version
 
 OS_NAME, MACHINE, ARCH = sys.platform, platform.machine().lower(), platform.architecture()[0][:2]
+if OS_NAME == 'linux' and platform.libc_ver()[0] != 'glibc':
+    OS_NAME = 'musllinux'
 if MACHINE in ('x86', 'x86_64', 'amd64', 'i386', 'i686'):
     MACHINE = 'x86' if ARCH == '32' else ''
 
@@ -127,7 +129,6 @@ def windows_set_version(exe, version):
                 StringStruct('FileDescription', 'yt-dlp%s' % (MACHINE and f' ({MACHINE})')),
                 StringStruct('FileVersion', version),
                 StringStruct('InternalName', f'yt-dlp{suffix}'),
-                StringStruct('LegalCopyright', 'pukkandan.ytdlp@gmail.com | UNLICENSE'),
                 StringStruct('OriginalFilename', f'yt-dlp{suffix}.exe'),
                 StringStruct('ProductName', f'yt-dlp{suffix}'),
                 StringStruct(
