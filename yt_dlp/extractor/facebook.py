@@ -770,6 +770,15 @@ class FacebookIE(InfoExtractor):
                     media = attachment.get(key) or {}
                     if media.get('__typename') == 'Video':
                         return parse_graphql_video(media)
+                    elif media := traverse_obj(attachment, ('style_infos', 0, 'fb_shorts_story', 'short_form_video_context', 'playback_video')):
+                        return parse_graphql_video(media)
+                    else:
+                        media = traverse_obj(
+                            attachment,
+                            ('subattachments', ..., 'multi_share_media_card_renderer', 'attachment', 'media'),
+                        )
+                        media = [m for m in media if m.get('__typename') == 'Video']
+                        return parse_graphql_video(media[0] if media else None)
 
                 nodes = variadic(traverse_obj(data, 'nodes', 'node') or [])
                 attachments = traverse_obj(nodes, (
