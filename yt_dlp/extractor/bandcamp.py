@@ -453,10 +453,9 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                 'Downloading Show Metadata.',
             ), show_id, 'blob',
         )
-        metadata = None
-        for mb in traverse_obj(raw_metadata, ('appData', 'shows')):
-            if int(mb.get('showId')) == int(show_id):
-                metadata = mb
+        metadata = traverse_obj(raw_metadata, (
+            'appData', 'shows', lambda _, mb: int(mb.get('showId')) == int(show_id),
+            any))
 
         audio_data = show_data['radioShowAudio']
         thum_id = metadata.get('imageId') or None
