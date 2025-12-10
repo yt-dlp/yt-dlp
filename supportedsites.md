@@ -12,6 +12,7 @@ The only reliable way to check if a site is supported is to try it.
  - **17live:vod**
  - **1News**: 1news.co.nz article videos
  - **1tv**: Первый канал
+ - **1tv:live**: Первый канал (прямой эфир)
  - **20min**: (**Currently broken**)
  - **23video**
  - **247sports**: (**Currently broken**)
@@ -20,7 +21,6 @@ The only reliable way to check if a site is supported is to try it.
  - **3sat**
  - **4tube**
  - **56.com**
- - **6play**
  - **7plus**
  - **8tracks**
  - **9c9media**
@@ -50,8 +50,10 @@ The only reliable way to check if a site is supported is to try it.
  - **aenetworks:collection**
  - **aenetworks:show**
  - **AeonCo**
+ - **agalega:videos**
  - **AirTV**
  - **AitubeKZVideo**
+ - **Alibaba**
  - **AliExpressLive**
  - **AlJazeera**
  - **Allocine**
@@ -86,7 +88,7 @@ The only reliable way to check if a site is supported is to try it.
  - **aol.com**: Yahoo screen and movies (**Currently broken**)
  - **APA**
  - **Aparat**
- - **AppleConnect**
+ - **apple:​music:connect**: Apple Music Connect
  - **AppleDaily**: 臺灣蘋果日報
  - **ApplePodcasts**
  - **appletrailers**
@@ -94,6 +96,8 @@ The only reliable way to check if a site is supported is to try it.
  - **archive.org**: archive.org video and audio
  - **ArcPublishing**
  - **ARD**
+ - **ARDAudiothek**
+ - **ARDAudiothekPlaylist**
  - **ARDMediathek**
  - **ARDMediathekCollection**
  - **Art19**
@@ -188,6 +192,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Biography**
  - **BitChute**
  - **BitChuteChannel**
+ - **Bitmovin**
  - **BlackboardCollaborate**
  - **BlackboardCollaborateLaunch**
  - **BleacherReport**: (**Currently broken**)
@@ -243,6 +248,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Canalsurmas**
  - **CaracolTvPlay**: [*caracoltv-play*](## "netrc machine")
  - **cbc.ca**
+ - **cbc.ca:listen**
  - **cbc.ca:player**
  - **cbc.ca:​player:playlist**
  - **CBS**: (**Currently broken**)
@@ -299,7 +305,6 @@ The only reliable way to check if a site is supported is to try it.
  - **cpac**
  - **cpac:playlist**
  - **Cracked**
- - **Crackle**
  - **Craftsy**
  - **CrooksAndLiars**
  - **CrowdBunker**
@@ -314,8 +319,6 @@ The only reliable way to check if a site is supported is to try it.
  - **curiositystream**: [*curiositystream*](## "netrc machine")
  - **curiositystream:collections**: [*curiositystream*](## "netrc machine")
  - **curiositystream:series**: [*curiositystream*](## "netrc machine")
- - **cwtv**
- - **cwtv:movie**
  - **Cybrary**: [*cybrary*](## "netrc machine")
  - **CybraryCourse**: [*cybrary*](## "netrc machine")
  - **DacastPlaylist**
@@ -450,7 +453,6 @@ The only reliable way to check if a site is supported is to try it.
  - **Filmweb**
  - **FiveThirtyEight**
  - **FiveTV**
- - **FlexTV**
  - **Flickr**
  - **Floatplane**
  - **FloatplaneChannel**
@@ -537,7 +539,6 @@ The only reliable way to check if a site is supported is to try it.
  - **google:​podcasts:feed**
  - **GoogleDrive**
  - **GoogleDrive:Folder**
- - **GoPlay**: [*goplay*](## "netrc machine")
  - **GoPro**
  - **Goshgay**
  - **GoToStage**
@@ -584,6 +585,11 @@ The only reliable way to check if a site is supported is to try it.
  - **Hypem**
  - **Hytale**
  - **Icareus**
+ - **IdagioAlbum**
+ - **IdagioPersonalPlaylist**
+ - **IdagioPlaylist**
+ - **IdagioRecording**
+ - **IdagioTrack**
  - **IdolPlus**
  - **iflix:episode**
  - **IflixSeries**
@@ -728,7 +734,7 @@ The only reliable way to check if a site is supported is to try it.
  - **loc**: Library of Congress
  - **Loco**
  - **loom**
- - **loom:folder**
+ - **loom:folder**: (**Currently broken**)
  - **LoveHomePorn**
  - **LRTRadio**
  - **LRTStream**
@@ -759,7 +765,8 @@ The only reliable way to check if a site is supported is to try it.
  - **massengeschmack.tv**
  - **Masters**
  - **MatchTV**
- - **Mave**
+ - **mave**
+ - **mave:channel**
  - **MBN**: mbn.co.kr (매일방송)
  - **MDR**: MDR.DE
  - **MedalTV**
@@ -798,7 +805,6 @@ The only reliable way to check if a site is supported is to try it.
  - **mirrativ**
  - **mirrativ:user**
  - **MirrorCoUK**
- - **MiTele**: mitele.es
  - **mixch**
  - **mixch:archive**
  - **mixch:movie**
@@ -844,6 +850,7 @@ The only reliable way to check if a site is supported is to try it.
  - **MusicdexArtist**
  - **MusicdexPlaylist**
  - **MusicdexSong**
+ - **Mux**
  - **Mx3**
  - **Mx3Neo**
  - **Mx3Volksmusik**
@@ -858,6 +865,7 @@ The only reliable way to check if a site is supported is to try it.
  - **n-tv.de**
  - **N1Info:article**
  - **N1InfoAsset**
+ - **NascarClassics**
  - **Nate**
  - **NateProgram**
  - **natgeo:video**
@@ -891,6 +899,8 @@ The only reliable way to check if a site is supported is to try it.
  - **NerdCubedFeed**
  - **Nest**
  - **NestClip**
+ - **NetAppCollection**
+ - **NetAppVideo**
  - **netease:album**: 网易云音乐 - 专辑
  - **netease:djradio**: 网易云音乐 - 电台
  - **netease:mv**: 网易云音乐 - MV
@@ -958,6 +968,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Nova**: TN.cz, Prásk.tv, Nova.cz, Novaplus.cz, FANDA.tv, Krásná.cz and Doma.cz
  - **NovaEmbed**
  - **NovaPlay**
+ - **NowCanal**
  - **nowness**
  - **nowness:playlist**
  - **nowness:series**
@@ -1009,6 +1020,7 @@ The only reliable way to check if a site is supported is to try it.
  - **onet.tv:channel**
  - **OnetMVP**
  - **OnionStudios**
+ - **onsen**: [*onsen*](## "netrc machine") インターネットラジオステーション＜音泉＞
  - **Opencast**
  - **OpencastPlaylist**
  - **openrec**
@@ -1033,8 +1045,6 @@ The only reliable way to check if a site is supported is to try it.
  - **Panopto**
  - **PanoptoList**
  - **PanoptoPlaylist**
- - **ParamountPlus**
- - **ParamountPlusSeries**
  - **ParamountPressExpress**
  - **Parler**: Posts on parler.com
  - **parliamentlive.tv**: UK parliament videos
@@ -1069,11 +1079,10 @@ The only reliable way to check if a site is supported is to try it.
  - **PinterestCollection**
  - **PiramideTV**
  - **PiramideTVChannel**
- - **pixiv:sketch**
- - **pixiv:​sketch:user**
  - **PlanetMarathi**
  - **Platzi**: [*platzi*](## "netrc machine")
  - **PlatziCourse**: [*platzi*](## "netrc machine")
+ - **play.tv**: [*goplay*](## "netrc machine") PLAY (formerly goplay.be)
  - **player.sky.it**
  - **PlayerFm**
  - **playeur**
@@ -1257,7 +1266,6 @@ The only reliable way to check if a site is supported is to try it.
  - **rutube:person**: Rutube person videos
  - **rutube:playlist**: Rutube playlists
  - **rutube:tags**: Rutube tags
- - **RUTV**: RUTV.RU
  - **Ruutu**: (**Currently broken**)
  - **Ruv**
  - **ruv.is:spila**
@@ -1332,7 +1340,10 @@ The only reliable way to check if a site is supported is to try it.
  - **Slideshare**
  - **SlidesLive**
  - **Slutload**
- - **Smotrim**
+ - **smotrim**
+ - **smotrim:audio**
+ - **smotrim:live**
+ - **smotrim:playlist**
  - **SnapchatSpotlight**
  - **Snotr**
  - **SoftWhiteUnderbelly**: [*softwhiteunderbelly*](## "netrc machine")
@@ -1369,9 +1380,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Spiegel**
  - **Sport5**
  - **SportBox**: (**Currently broken**)
- - **SportDeutschland**
- - **spotify**: Spotify episodes (**Currently broken**)
- - **spotify:show**: Spotify shows (**Currently broken**)
+ - **sporteurope**
  - **Spreaker**
  - **SpreakerShow**
  - **SpringboardPlatform**
@@ -1459,6 +1468,8 @@ The only reliable way to check if a site is supported is to try it.
  - **TFO**: (**Currently broken**)
  - **theatercomplextown:ppv**: [*theatercomplextown*](## "netrc machine")
  - **theatercomplextown:vod**: [*theatercomplextown*](## "netrc machine")
+ - **TheChosen**
+ - **TheChosenGroup**
  - **TheGuardianPodcast**
  - **TheGuardianPodcastPlaylist**
  - **TheHighWire**
@@ -1510,15 +1521,17 @@ The only reliable way to check if a site is supported is to try it.
  - **TrueID**
  - **TruNews**
  - **Truth**
+ - **ttinglive**: 띵라이브 (formerly FlexTV)
  - **Tube8**: (**Currently broken**)
  - **TubeTuGraz**: [*tubetugraz*](## "netrc machine") tube.tugraz.at
  - **TubeTuGrazSeries**: [*tubetugraz*](## "netrc machine")
  - **tubitv**: [*tubitv*](## "netrc machine")
  - **tubitv:series**
  - **Tumblr**: [*tumblr*](## "netrc machine")
- - **TuneInPodcast**
- - **TuneInPodcastEpisode**
- - **TuneInStation**
+ - **tunein:embed**
+ - **tunein:podcast**
+ - **tunein:​podcast:program**
+ - **tunein:station**
  - **tv.dfb.de**
  - **TV2**
  - **TV2Article**
@@ -1542,7 +1555,7 @@ The only reliable way to check if a site is supported is to try it.
  - **tvigle**: Интернет-телевидение Tvigle.ru
  - **TVIPlayer**
  - **TVN24**: (**Currently broken**)
- - **TVNoe**: (**Currently broken**)
+ - **tvnoe**: Televize Noe
  - **tvopengr:embed**: tvopen.gr embedded videos
  - **tvopengr:watch**: tvopen.gr (and ethnos.gr) videos
  - **tvp**: Telewizja Polska
@@ -1560,12 +1573,12 @@ The only reliable way to check if a site is supported is to try it.
  - **TwitCastingLive**
  - **TwitCastingUser**
  - **twitch:clips**: [*twitch*](## "netrc machine")
+ - **twitch:collection**: [*twitch*](## "netrc machine")
  - **twitch:stream**: [*twitch*](## "netrc machine")
+ - **twitch:videos**: [*twitch*](## "netrc machine")
+ - **twitch:​videos:clips**: [*twitch*](## "netrc machine")
+ - **twitch:​videos:collections**: [*twitch*](## "netrc machine")
  - **twitch:vod**: [*twitch*](## "netrc machine")
- - **TwitchCollection**: [*twitch*](## "netrc machine")
- - **TwitchVideos**: [*twitch*](## "netrc machine")
- - **TwitchVideosClips**: [*twitch*](## "netrc machine")
- - **TwitchVideosCollections**: [*twitch*](## "netrc machine")
  - **twitter**: [*twitter*](## "netrc machine")
  - **twitter:amplify**: [*twitter*](## "netrc machine")
  - **twitter:broadcast**: [*twitter*](## "netrc machine")
@@ -1600,7 +1613,8 @@ The only reliable way to check if a site is supported is to try it.
  - **Varzesh3**: (**Currently broken**)
  - **Vbox7**
  - **Veo**
- - **Vesti**: Вести.Ru (**Currently broken**)
+ - **Vevo**
+ - **VevoPlaylist**
  - **VGTV**: VGTV, BTTV, FTV, Aftenposten and Aftonbladet
  - **vh1.com**
  - **vhx:embed**: [*vimeo*](## "netrc machine")
@@ -1746,7 +1760,6 @@ The only reliable way to check if a site is supported is to try it.
  - **wykop:​dig:comment**
  - **wykop:post**
  - **wykop:​post:comment**
- - **Xanimu**
  - **XboxClips**
  - **XHamster**
  - **XHamsterEmbed**
@@ -1774,6 +1787,7 @@ The only reliable way to check if a site is supported is to try it.
  - **YapFiles**: (**Currently broken**)
  - **Yappy**: (**Currently broken**)
  - **YappyProfile**
+ - **yfanefa**
  - **YleAreena**
  - **YouJizz**
  - **youku**: 优酷

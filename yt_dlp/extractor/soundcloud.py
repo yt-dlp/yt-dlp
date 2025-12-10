@@ -438,7 +438,7 @@ class SoundcloudIE(SoundcloudBaseIE):
                             (?P<title>[\w\d-]+)
                             (?:/(?P<token>(?!(?:albums|sets|recommended))[^?]+?))?
                             (?:[?].*)?$)
-                       |(?:api(?:-v2)?\.soundcloud\.com/tracks/(?P<track_id>\d+)
+                       |(?:api(?:-v2)?\.soundcloud\.com/tracks/(?:soundcloud%3Atracks%3A)?(?P<track_id>\d+)
                           (?:/?\?secret_token=(?P<secret_token>[^&]+))?)
                     )
                     '''
@@ -691,6 +691,9 @@ class SoundcloudIE(SoundcloudBaseIE):
     }, {
         # Go+ (account with active subscription needed)
         'url': 'https://soundcloud.com/taylorswiftofficial/look-what-you-made-me-do',
+        'only_matching': True,
+    }, {
+        'url': 'https://api.soundcloud.com/tracks/soundcloud%3Atracks%3A1083788353',
         'only_matching': True,
     }]
 
@@ -1061,7 +1064,7 @@ class SoundcloudRelatedIE(SoundcloudPagedPlaylistBaseIE):
 
 
 class SoundcloudPlaylistIE(SoundcloudPlaylistBaseIE):
-    _VALID_URL = r'https?://api(?:-v2)?\.soundcloud\.com/playlists/(?P<id>[0-9]+)(?:/?\?secret_token=(?P<token>[^&]+?))?$'
+    _VALID_URL = r'https?://api(?:-v2)?\.soundcloud\.com/playlists/(?:soundcloud(?:%3A|:)playlists(?:%3A|:))?(?P<id>[0-9]+)(?:/?\?secret_token=(?P<token>[^&]+?))?$'
     IE_NAME = 'soundcloud:playlist'
     _TESTS = [{
         'url': 'https://api.soundcloud.com/playlists/4110309',
@@ -1076,6 +1079,12 @@ class SoundcloudPlaylistIE(SoundcloudPlaylistBaseIE):
             'album': 'TILT Brass - Bowery Poetry Club, August \'03 [Non-Site SCR 02]',
         },
         'playlist_count': 6,
+    }, {
+        'url': 'https://api.soundcloud.com/playlists/soundcloud%3Aplaylists%3A1759227795',
+        'only_matching': True,
+    }, {
+        'url': 'https://api.soundcloud.com/playlists/soundcloud:playlists:2104769627?secret_token=s-wmpCLuExeYX',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
