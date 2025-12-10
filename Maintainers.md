@@ -8,7 +8,7 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 
 Core Maintainers are responsible for reviewing and merging contributions, publishing releases, and steering the overall direction of the project.
 
-**You can contact the core maintainers via `maintainers@yt-dlp.org`.**
+**You can contact the core maintainers via `maintainers@yt-dlp.org`.** This email address is **NOT** a support channel. [Open an issue](https://github.com/yt-dlp/yt-dlp/issues/new/choose) if you need help or want to report a bug.
 
 ### [coletdjnz](https://github.com/coletdjnz)
 
@@ -16,6 +16,7 @@ Core Maintainers are responsible for reviewing and merging contributions, publis
 
 * Overhauled the networking stack and implemented support for `requests` and `curl_cffi` (`--impersonate`) HTTP clients
 * Reworked the plugin architecture to support installing plugins across all yt-dlp distributions (exe, pip, etc.)
+* Implemented support for external JavaScript runtimes/engines
 * Maintains support for YouTube
 * Added and fixed support for various other sites
 
@@ -23,9 +24,10 @@ Core Maintainers are responsible for reviewing and merging contributions, publis
 
 * Rewrote and maintains the build/release workflows and the self-updater: executables, automated/nightly/master releases, `--update-to`
 * Overhauled external downloader cookie handling
+* Helped in implementing support for external JavaScript runtimes/engines
 * Added `--cookies-from-browser` support for Firefox containers
-* Overhauled and maintains support for sites like Youtube, Vimeo, Twitter, TikTok, etc
-* Added support for sites like Dacast, Kick, Loom, SproutVideo, Triller, Weverse, etc
+* Maintains support for sites like YouTube, Vimeo, Twitter, TikTok, etc
+* Added support for various sites
 
 
 ### [Grub4K](https://github.com/Grub4K)
@@ -35,12 +37,14 @@ Core Maintainers are responsible for reviewing and merging contributions, publis
 * `--update-to`, self-updater rewrite, automated/nightly/master releases
 * Reworked internals like `traverse_obj`, various core refactors and bugs fixes
 * Implemented proper progress reporting for parallel downloads
+* Implemented support for external JavaScript runtimes/engines
 * Improved/fixed/added Bundestag, crunchyroll, pr0gramm, Twitter, WrestleUniverse etc
 
 
 ### [sepro](https://github.com/seproDev)
 
 * UX improvements: Warn when ffmpeg is missing, warn when double-clicking exe
+* Helped in implementing support for external JavaScript runtimes/engines
 * Code cleanup: Remove dead extractors, mark extractors as broken, enable/apply ruff rules
 * Improved/fixed/added ArdMediathek, DRTV, Floatplane, MagentaMusik, Naver, Nebula, OnDemandKorea, Vbox7 etc
 

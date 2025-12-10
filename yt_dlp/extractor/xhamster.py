@@ -1,8 +1,6 @@
-import base64
-import codecs
 import itertools
 import re
-import string
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -16,7 +14,6 @@ from ..utils import (
     join_nonempty,
     parse_duration,
     str_or_none,
-    try_call,
     try_get,
     unified_strdate,
     url_or_none,
@@ -32,7 +29,7 @@ class _ByteGenerator:
         try:
             self._algorithm = getattr(self, f'_algo{algo_id}')
         except AttributeError:
-            raise ExtractorError(f'Unknown algorithm ID: {algo_id}')
+            raise ExtractorError(f'Unknown algorithm ID "{algo_id}"')
         self._s = to_signed_32(seed)
 
     def _algo1(self, s):
@@ -59,6 +56,37 @@ class _ByteGenerator:
         s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 13))
         s = to_signed_32(s * to_signed_32(0xc2b2ae3d))
         return to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 16))
+
+    def _algo4(self, s):
+        # Custom scrambling function involving a left rotation (ROL)
+        s = self._s = to_signed_32(s + 0x6d2b79f5)
+        s = to_signed_32((s << 7) | ((s & 0xFFFFFFFF) >> 25))  # ROL 7
+        s = to_signed_32(s + 0x9e3779b9)
+        s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 11))
+        return to_signed_32(s * 0x27d4eb2d)
+
+    def _algo5(self, s):
+        # xorshift variant with a final addition
+        s = to_signed_32(s ^ (s << 7))
+        s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 9))
+        s = to_signed_32(s ^ (s << 8))
+        s = self._s = to_signed_32(s + 0xa5a5a5a5)
+        return s
+
+    def _algo6(self, s):
+        # LCG (a=0x2c9277b5, c=0xac564b05) with a variable right shift scrambler
+        s = self._s = to_signed_32(s * to_signed_32(0x2c9277b5) + to_signed_32(0xac564b05))
+        s2 = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 18))
+        shift = (s & 0xFFFFFFFF) >> 27 & 31
+        return to_signed_32((s2 & 0xFFFFFFFF) >> shift)
+
+    def _algo7(self, s):
+        # Weyl Sequence (k=0x9e3779b9) + custom multiply-xor-shift mixing function
+        s = self._s = to_signed_32(s + to_signed_32(0x9e3779b9))
+        e = to_signed_32(s ^ (s << 5))
+        e = to_signed_32(e * to_signed_32(0x7feb352d))
+        e = to_signed_32(e ^ ((e & 0xFFFFFFFF) >> 15))
+        return to_signed_32(e * to_signed_32(0x846ca68b))
 
     def __next__(self):
         return self._algorithm(self._s) & 0xFF
@@ -185,32 +213,28 @@ class XHamsterIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    _XOR_KEY = b'xh7999'
-
     def _decipher_format_url(self, format_url, format_id):
-        if all(char in string.hexdigits for char in format_url):
-            byte_data = bytes.fromhex(format_url)
-            seed = int.from_bytes(byte_data[1:5], byteorder='little', signed=True)
-            byte_gen = _ByteGenerator(byte_data[0], seed)
-            return bytearray(byte ^ next(byte_gen) for byte in byte_data[5:]).decode('latin-1')
+        parsed_url = urllib.parse.urlparse(format_url)
 
-        cipher_type, _, ciphertext = try_call(
-            lambda: base64.b64decode(format_url).decode().partition('_')) or [None] * 3
-
-        if not cipher_type or not ciphertext:
-            self.report_warning(f'Skipping format "{format_id}": failed to decipher URL')
+        hex_string, path_remainder = self._search_regex(
+            r'^/(?P<hex>[0-9a-fA-F]{12,})(?P<rem>[/,].+)$', parsed_url.path, 'url components',
+            default=(None, None), group=('hex', 'rem'))
+        if not hex_string:
+            self.report_warning(f'Skipping format "{format_id}": unsupported URL format')
             return None
 
-        if cipher_type == 'xor':
-            return bytes(
-                a ^ b for a, b in
-                zip(ciphertext.encode(), itertools.cycle(self._XOR_KEY))).decode()
+        byte_data = bytes.fromhex(hex_string)
+        seed = int.from_bytes(byte_data[1:5], byteorder='little', signed=True)
 
-        if cipher_type == 'rot13':
-            return codecs.decode(ciphertext, cipher_type)
+        try:
+            byte_gen = _ByteGenerator(byte_data[0], seed)
+        except ExtractorError as e:
+            self.report_warning(f'Skipping format "{format_id}": {e.msg}')
+            return None
 
-        self.report_warning(f'Skipping format "{format_id}": unsupported cipher type "{cipher_type}"')
-        return None
+        deciphered = bytearray(byte ^ next(byte_gen) for byte in byte_data[5:]).decode('latin-1')
+
+        return parsed_url._replace(path=f'/{deciphered}{path_remainder}').geturl()
 
     def _fixup_formats(self, formats):
         for f in formats:
@@ -333,8 +357,11 @@ class XHamsterIE(InfoExtractor):
                                     'height': get_height(quality),
                                     'filesize': format_sizes.get(quality),
                                     'http_headers': {
-                                        'Referer': standard_url,
+                                        'Referer': urlh.url,
                                     },
+                                    # HTTP formats return "Wrong key" error even when deciphered by site JS
+                                    # TODO: Remove this when resolved on the site's end
+                                    '__needs_testing': True,
                                 })
 
             categories_list = video.get('categories')
@@ -371,7 +398,8 @@ class XHamsterIE(InfoExtractor):
                 'age_limit': age_limit if age_limit is not None else 18,
                 'categories': categories,
                 'formats': self._fixup_formats(formats),
-                '_format_sort_fields': ('res', 'proto', 'tbr'),
+                # TODO: Revert to ('res', 'proto', 'tbr') when HTTP formats problem is resolved
+                '_format_sort_fields': ('res', 'proto:m3u8', 'tbr'),
             }
 
         # Old layout fallback
