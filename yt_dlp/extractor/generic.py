@@ -772,8 +772,8 @@ class GenericIE(InfoExtractor):
 
             if default_search in ('auto', 'auto_warning', 'fixup_error'):
                 if re.match(r'[^\s/]+\.[^\s/]+/', url):
-                    self.report_warning('The url doesn\'t specify the protocol, trying with http')
-                    return self.url_result('http://' + url)
+                    self.report_warning('The url doesn\'t specify the protocol, trying with https')
+                    return self.url_result('https://' + url)
                 elif default_search != 'fixup_error':
                     if default_search == 'auto_warning':
                         if re.match(r'^(?:url|URL)$', url):
@@ -786,9 +786,7 @@ class GenericIE(InfoExtractor):
                     return self.url_result('ytsearch:' + url)
 
             if default_search in ('error', 'fixup_error'):
-                raise ExtractorError(
-                    f'{url!r} is not a valid URL. '
-                    f'Set --default-search "ytsearch" (or run  yt-dlp "ytsearch:{url}" ) to search YouTube', expected=True)
+                raise ExtractorError(f'{url!r} is not a valid URL', expected=True)
             else:
                 if ':' not in default_search:
                     default_search += ':'
