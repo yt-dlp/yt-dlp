@@ -610,7 +610,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         ext = info['ext']
         sub_langs, sub_names, sub_filenames = [], [], []
         default_lang = info.get('language').split('+')[0]
-        default_index = -1  # no default subs yet
+        default_index = 0
         webm_vtt_warn = False
         mp4_ass_warn = False
 
@@ -621,15 +621,12 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             sub_ext = sub_info['ext']
             if sub_ext == 'json':
                 self.report_warning('JSON subtitles cannot be embedded')
-            elif lang == default_lang and (ext != 'webm' or (ext == 'webm' and sub_ext == 'vtt')):
-                default_index += 1
-                sub_langs.insert(default_index, lang)
-                sub_names.insert(default_index, sub_info.get('name'))
-                sub_filenames.insert(default_index, sub_info['filepath'])
             elif ext != 'webm' or (ext == 'webm' and sub_ext == 'vtt'):
-                sub_langs.append(lang)
-                sub_names.append(sub_info.get('name'))
-                sub_filenames.append(sub_info['filepath'])
+                default_index, i = (default_index + 1, default_index) if \
+                    lang.split('-')[0] == default_lang else (default_index,len(sub_langs))
+                sub_langs.insert(i, lang)
+                sub_names.insert(i, sub_info.get('name'))
+                sub_filenames.insert(i, sub_info['filepath'])
             else:
                 if not webm_vtt_warn and ext == 'webm' and sub_ext != 'vtt':
                     webm_vtt_warn = True
