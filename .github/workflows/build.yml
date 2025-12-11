@@ -262,7 +262,7 @@ jobs:
       - name: Cache requirements
         if: matrix.cache_requirements
         id: cache-venv
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
         with:
@@ -325,7 +325,7 @@ jobs:
 
       - name: Cache requirements
         id: cache-venv
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
         with:
@@ -459,7 +459,7 @@ jobs:
       - name: Cache requirements
         id: cache-venv
         if: matrix.arch == 'arm64'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
         with:
