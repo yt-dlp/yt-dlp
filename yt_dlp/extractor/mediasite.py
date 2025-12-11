@@ -31,6 +31,9 @@ class MediasiteIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Lecture: Tuesday, September 20, 2016 - Sir Andrew Wiles',
                 'description': 'Sir Andrew Wiles: “Equations in arithmetic”\\n\\nI will describe some of the interactions between modern number theory and the problem of solving equations in rational numbers or integers\\u0027.',
+                'thumbnail': 'https://hitsmediaweb.h-its.org/Mediasite/FileServer/Presentation/2db6c271681e4f199af3c60d1f82869b1d/423e2016-e080-4ca8-a9bc-b50c39b87caa.jpg?playbackTicket=1b6a49d3e6074616af4dae9cf6952967',
+                'cast': ['Sir Andrew J. Miles, Silver Plaque of the IMU, 1998 | Abel Prize, 2016'],
+                'duration': 2978.0,
                 'timestamp': 1474268400.0,
                 'upload_date': '20160919',
             },
@@ -44,6 +47,7 @@ class MediasiteIE(InfoExtractor):
                 'title': '5) IT-forum 2015-Dag 1  - Dungbeetle -  How and why Rain created a tiny bug tracker for Unity',
                 'timestamp': 1430311380.0,
             },
+            'skip': 'no longer exist',
         },
         {
             'url': 'https://collegerama.tudelft.nl/Mediasite/Play/585a43626e544bdd97aeb71a0ec907a01d',
@@ -54,9 +58,14 @@ class MediasiteIE(InfoExtractor):
                 'title': 'Een nieuwe wereld: waarden, bewustzijn en techniek van de mensheid 2.0.',
                 'description': '',
                 'thumbnail': r're:^https?://.*\.jpg(?:\?.*)?$',
+                'cast': ['H. Wijffels'],
                 'duration': 7713.088,
                 'timestamp': 1413309600,
                 'upload_date': '20141014',
+            },
+            'params': {
+                # format 'video1-1.1' HTTP Error 400: Bad Request
+                'skip_download': True,
             },
         },
         {
@@ -68,9 +77,13 @@ class MediasiteIE(InfoExtractor):
                 'title': '64ste Vakantiecursus: Afvalwater',
                 'description': 'md5:7fd774865cc69d972f542b157c328305',
                 'thumbnail': r're:^https?://.*\.jpg(?:\?.*?)?$',
+                'cast': ['D.J. van den Berg', 'L.C. Rietveld', 'D. van Halem', 'N.C. van de Giesen', 'J.Q.J.C. Verberk'],
                 'duration': 10853,
                 'timestamp': 1326446400,
                 'upload_date': '20120113',
+            },
+            'params': {
+                'skip_download': True,
             },
         },
         {
@@ -79,11 +92,17 @@ class MediasiteIE(InfoExtractor):
             'info_dict': {
                 'id': '24aace4429fc450fb5b38cdbf424a66e1d',
                 'ext': 'mp4',
-                'title': 'Xyce Software Training - Section 1',
+                'title': 'Xyce Software Training - Section 1 - Apr. 2012',
                 'description': r're:(?s)SAND Number: SAND 2013-7800.{200,}',
-                'upload_date': '20120409',
-                'timestamp': 1333983600,
+                'thumbnail': 'https://digitalops.sandia.gov/Mediasite/FileServer/Presentation/24aace4429fc450fb5b38cdbf424a66e1d/8590199d-2a48-492c-8614-05c502dea8c0.jpg?playbackTicket=aecb83175ff740daace12a13101c2a7f',
+                'cast': ['01400 Computation, Computers \\u0026 Math'],
                 'duration': 7794,
+                'timestamp': 1333983600,
+                'upload_date': '20120409',
+            },
+            'params': {
+                # format 'video1-1.0' HTTP Error 400: Bad Request
+                'skip_download': True,
             },
         },
         {
@@ -267,7 +286,6 @@ class MediasiteIE(InfoExtractor):
                 })
             formats.extend(stream_formats)
 
-        # XXX: Presentation['Presenters']
         # XXX: Presentation['Transcript']
 
         return {
@@ -278,6 +296,7 @@ class MediasiteIE(InfoExtractor):
             'timestamp': float_or_none(presentation.get('UnixTime'), 1000),
             'formats': formats,
             'thumbnails': thumbnails,
+            'cast': traverse_obj(presentation, ('Presenters', ..., 'Name', {str})),
         }
 
 
