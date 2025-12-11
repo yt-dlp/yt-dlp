@@ -87,6 +87,7 @@ from .aitube import AitubeKZVideoIE
 from .alibaba import AlibabaIE
 from .aliexpress import AliExpressLiveIE
 from .aljazeera import AlJazeeraIE
+from .alkass import AlkassLiveIE
 from .allocine import AllocineIE
 from .allstar import (
     AllstarIE,
