@@ -146,7 +146,7 @@ class TelecincoIE(TelecincoBaseIE):
         )).get('props')
         props = json.loads(props)
         props = {
-            'dataMediaId': traverse_obj(props, ('content' , 1, 'dataMediaId', 1)),
+            'dataMediaId': traverse_obj(props, ('content', 1, 'dataMediaId', 1)),
             'dataConfig': traverse_obj(props, ('content', 1, 'dataConfig', 1)),
         }
         info = self._parse_content(props, url)
