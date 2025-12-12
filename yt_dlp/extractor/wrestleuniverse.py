@@ -191,11 +191,9 @@ class WrestleUniverseVODIE(WrestleUniverseBaseIE):
     def _real_extract(self, url):
         lang, video_id = self._match_valid_url(url).group('lang', 'id')
         metadata = self._download_metadata(url, video_id, lang, 'videoEpisodeFallbackData')
-        video_data = self._call_api(video_id, ':watch', 'watch', data={'deviceId': self._DEVICE_ID})
 
-        return {
+        info {
             'id': video_id,
-            'formats': self._get_formats(video_data, ('protocolHls', 'url', {url_or_none}), video_id),
             **traverse_obj(metadata, {
                 'title': ('displayName', {str}),
                 'description': ('description', {str}),
@@ -212,7 +210,35 @@ class WrestleUniverseVODIE(WrestleUniverseBaseIE):
                 }),
             }),
         }
+        try:
+            decrypt = None
+            video_data = self._call_api(video_id, ':watch', 'watch', data={'deviceId': self._DEVICE_ID})
+        except ExtractorError as e:
+            # try the encrypted API if normal API fails
+            # there might be a better approach than trial and error
+            if "400" not in str(e):
+                # fails with a HTTP 400 error
+                # unclear if this is always the case
+                raise
+            video_data, decrypt = self._call_encrypted_api(
+                video_id, ':watch', 'watch', data={'deviceId': self._DEVICE_ID, 'method': 1}
+            )
+        info['formats'] = self._get_formats(
+            video_data, ('protocolHls', 'url', {url_or_none}), video_id
+        )
 
+        if decrypt:
+            # unlike PPV streams, these seem to have the key under 'protocolHls'
+            hls_aes_key = traverse_obj(video_data, ('protocolHls', 'key', {decrypt}))
+            if hls_aes_key:
+                info['hls_aes'] = {
+                    'key': hls_aes_key,
+                    'iv': traverse_obj(video_data, ('protocolHls', 'iv', {decrypt})),
+                }
+            elif traverse_obj(video_data, ('protocolHls', 'encryptType', {int})):
+                self.report_warning('HLS AES-128 key was not found in API response')
+ 
+        return info
 
 class WrestleUniversePPVIE(WrestleUniverseBaseIE):
     _VALID_URL = WrestleUniverseBaseIE._VALID_URL_TMPL % 'lives'
