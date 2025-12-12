@@ -5,10 +5,8 @@ from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
-    clean_html,
+    extract_attributes,
     int_or_none,
-    join_nonempty,
-    str_or_none,
     traverse_obj,
     update_url,
     url_or_none,
@@ -140,27 +138,19 @@ class TelecincoIE(TelecincoBaseIE):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id, impersonate=True)
-        article = self._search_json(
-            r'window\.\$REACTBASE_STATE\.article(?:_multisite)?\s*=',
-            webpage, 'article', display_id)['article']
-        description = traverse_obj(article, ('leadParagraph', {clean_html}, filter))
-
-        if article.get('editorialType') != 'VID':
-            entries = []
-
-            for p in traverse_obj(article, ((('opening', all), 'body'), lambda _, v: v['content'])):
-                content = p['content']
-                type_ = p.get('type')
-                if type_ == 'paragraph' and isinstance(content, str):
-                    description = join_nonempty(description, content, delim='')
-                elif type_ == 'video' and isinstance(content, dict):
-                    entries.append(self._parse_content(content, url))
-
-            return self.playlist_result(
-                entries, str_or_none(article.get('id')),
-                traverse_obj(article, ('title', {str})), clean_html(description))
-
-        info = self._parse_content(article['opening']['content'], url)
-        info['description'] = description
-        return info
+        webpage = self._download_webpage(url, display_id, impersonate=True) 
+        props = extract_attributes(self._search_regex(
+            r'(<astro-island[^>]+component-export="EmbeddedVideo"[\s\S]*?>)',
+            webpage,
+            'astro-island'
+        )).get('props')
+        props = json.loads(props)
+        props = {
+            'dataMediaId': traverse_obj(props, ('content' , 1, 'dataMediaId', 1)),
+            'dataConfig': traverse_obj(props, ('content', 1, 'dataConfig', 1)),
+        }
+        info = self._parse_content(props, url)
+        return {
+            **info,
+            'description': self._html_search_meta('description', webpage, 'description'),
+        }
