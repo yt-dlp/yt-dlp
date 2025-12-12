@@ -191,7 +191,6 @@ class WrestleUniverseVODIE(WrestleUniverseBaseIE):
     def _real_extract(self, url):
         lang, video_id = self._match_valid_url(url).group('lang', 'id')
         metadata = self._download_metadata(url, video_id, lang, 'videoEpisodeFallbackData')
-
         info {
             'id': video_id,
             **traverse_obj(metadata, {
