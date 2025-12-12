@@ -138,11 +138,11 @@ class TelecincoIE(TelecincoBaseIE):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id, impersonate=True) 
+        webpage = self._download_webpage(url, display_id, impersonate=True)
         props = extract_attributes(self._search_regex(
             r'(<astro-island[^>]+component-export="EmbeddedVideo"[\s\S]*?>)',
             webpage,
-            'astro-island'
+            'astro-island',
         )).get('props')
         props = json.loads(props)
         props = {
