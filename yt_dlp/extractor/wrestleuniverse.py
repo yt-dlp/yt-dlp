@@ -191,7 +191,7 @@ class WrestleUniverseVODIE(WrestleUniverseBaseIE):
     def _real_extract(self, url):
         lang, video_id = self._match_valid_url(url).group('lang', 'id')
         metadata = self._download_metadata(url, video_id, lang, 'videoEpisodeFallbackData')
-        info {
+        info = {
             'id': video_id,
             **traverse_obj(metadata, {
                 'title': ('displayName', {str}),
@@ -236,7 +236,6 @@ class WrestleUniverseVODIE(WrestleUniverseBaseIE):
                 }
             elif traverse_obj(video_data, ('protocolHls', 'encryptType', {int})):
                 self.report_warning('HLS AES-128 key was not found in API response')
- 
         return info
 
 class WrestleUniversePPVIE(WrestleUniverseBaseIE):
