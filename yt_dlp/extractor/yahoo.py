@@ -177,15 +177,16 @@ class YahooIE(InfoExtractor):
     }]
 
     def _extract_yahoo_video(self, video_id, country):
-        video = self._download_json(
-            f'https://{country}.yahoo.com/_td/api/resource/VideoService.videos;view=full;video_ids=["{video_id}"]',
-            video_id, 'Downloading video JSON metadata')[0]
-        title = video['title']
+        data = self._download_json(
+            f'https://video-api.yql.yahoo.com/v1/video/sapi/streams/{video_id}',
+            video_id, 'Downloading video metadata', fatal=False)
+        meta = traverse_obj(data, ('query', 'results', 'mediaObj', 0, 'meta'))
+        title = meta['title']
 
         if country == 'malaysia':
             country = 'my'
 
-        is_live = video.get('live_state') == 'live'
+        is_live = data.get('uplynk_live')
         fmts = ('m3u8',) if is_live else ('webm', 'mp4')
 
         urls = []
@@ -231,43 +232,21 @@ class YahooIE(InfoExtractor):
                     'ext': mimetype2ext(cc.get('content_type')),
                 })
 
-        streaming_url = video.get('streaming_url')
-        if streaming_url and not is_live:
-            formats.extend(self._extract_m3u8_formats(
-                streaming_url, video_id, 'mp4',
-                'm3u8_native', m3u8_id='hls', fatal=False))
-
         if not formats and msg == 'geo restricted':
             self.raise_geo_restricted(metadata_available=True)
-
-        thumbnails = []
-        for thumb in video.get('thumbnails', []):
-            thumb_url = thumb.get('url')
-            if not thumb_url:
-                continue
-            thumbnails.append({
-                'id': thumb.get('tag'),
-                'url': thumb.get('url'),
-                'width': int_or_none(thumb.get('width')),
-                'height': int_or_none(thumb.get('height')),
-            })
-
-        series_info = video.get('series_info') or {}
 
         return {
             'id': video_id,
             'title': title,
             'formats': formats,
-            'thumbnails': thumbnails,
-            'description': clean_html(video.get('description')),
-            'timestamp': parse_iso8601(video.get('publish_time')),
+            'description': clean_html(meta.get('description')),
+            'thumbnail': meta.get('thumbnail'),
+            'timestamp': parse_iso8601(meta.get('publish_time')),
             'subtitles': subtitles,
-            'duration': int_or_none(video.get('duration')),
-            'view_count': int_or_none(video.get('view_count')),
+            'duration': int_or_none(meta.get('duration')),
+            'view_count': int_or_none(meta.get('view_count')),
             'is_live': is_live,
-            'series': video.get('show_name'),
-            'season_number': int_or_none(series_info.get('season_number')),
-            'episode_number': int_or_none(series_info.get('episode_number')),
+            'series': meta.get('show_name'),
         }
 
     def _real_extract(self, url):
@@ -282,7 +261,6 @@ class YahooIE(InfoExtractor):
             'Downloading content JSON metadata', query={
                 'url': url,
             })['items'][0]
-
         item = items['data']['partnerData']
         if item.get('type') != 'video':
             entries = []
