@@ -35,7 +35,7 @@ class DropboxIE(InfoExtractor):
         }, {
             'url': 'https://www.dropbox.com/e/scl/fi/r2kd2skcy5ylbbta5y1pz/DJI_0003.MP4?dl=0&rlkey=wcdgqangn7t3lnmmv6li9mu9h',
             'only_matching': True,
-        },{
+        }, {
             'url': 'https://www.dropbox.com/scl/fo/zjfqse5txqfd7twa8iewj/AOfZzSYWUSKle2HD7XF7kzQ/A-BEAT%20C.mp4?rlkey=6tg3jkp4tv6a5vt58a6dag0mm&dl=0',
             'only_matching': True,
         },
