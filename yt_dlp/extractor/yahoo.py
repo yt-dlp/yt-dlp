@@ -182,7 +182,7 @@ class YahooIE(InfoExtractor):
         if country == 'malaysia':
             country = 'my'
 
-        is_live = data.get('uplynk_live')
+        is_live = video.get('uplynk_live')
         fmts = ('m3u8',) if is_live else ('webm', 'mp4')
 
         urls = []
