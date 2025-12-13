@@ -115,8 +115,6 @@ class YahooIE(InfoExtractor):
             'timestamp': 1440436550,
             'upload_date': '20150824',
             'series': 'Communitary',
-            'season_number': 6,
-            'episode_number': 1,
         },
         'skip': 'No longer exists',
     }, {
