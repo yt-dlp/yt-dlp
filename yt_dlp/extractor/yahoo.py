@@ -179,10 +179,8 @@ class YahooIE(InfoExtractor):
     def _extract_yahoo_video(self, video_id, country):
         data = self._download_json(
             f'https://video-api.yql.yahoo.com/v1/video/sapi/streams/{video_id}',
-            video_id, 'Downloading video metadata', fatal=False)
-        meta = traverse_obj(data, ('query', 'results', 'mediaObj', 0, 'meta'))
-        title = meta['title']
-
+            video_id, 'Downloading video JSON metadata')
+        video = traverse_obj(data, ('query', 'results', 'mediaObj', 0, 'meta'))
         if country == 'malaysia':
             country = 'my'
 
@@ -237,16 +235,16 @@ class YahooIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': title,
+            'title': video.get('title') or '',
             'formats': formats,
-            'description': clean_html(meta.get('description')),
-            'thumbnail': meta.get('thumbnail'),
-            'timestamp': parse_iso8601(meta.get('publish_time')),
+            'description': clean_html(video.get('description')),
+            'thumbnail': video.get('thumbnail'),
+            'timestamp': parse_iso8601(video.get('publish_time')),
             'subtitles': subtitles,
-            'duration': int_or_none(meta.get('duration')),
-            'view_count': int_or_none(meta.get('view_count')),
+            'duration': int_or_none(video.get('duration')),
+            'view_count': int_or_none(video.get('view_count')),
             'is_live': is_live,
-            'series': meta.get('show_name'),
+            'series': video.get('show_name'),
         }
 
     def _real_extract(self, url):
