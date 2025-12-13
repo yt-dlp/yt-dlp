@@ -3026,6 +3026,10 @@ class YoutubeDL:
         format_selector = self.format_selector
         while True:
             if interactive_format_selection:
+                if not formats:
+                    # Bypass interactive format selection if no formats & --ignore-no-formats-error
+                    formats_to_download = None
+                    break
                 req_format = input(self._format_screen('\nEnter format selector ', self.Styles.EMPHASIS)
                                    + '(Press ENTER for default, or Ctrl+C to quit)'
                                    + self._format_screen(': ', self.Styles.EMPHASIS))
