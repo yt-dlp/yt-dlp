@@ -1212,7 +1212,7 @@ def create_parser():
         help='Maximum number of seconds to sleep. Can only be used along with --min-sleep-interval')
     workarounds.add_option(
         '--sleep-subtitles', metavar='SECONDS',
-        dest='sleep_interval_subtitles', default=0, type=int,
+        dest='sleep_interval_subtitles', default=0, type=float,
         help='Number of seconds to sleep before each subtitle download')
 
     verbosity = optparse.OptionGroup(parser, 'Verbosity and Simulation Options')
