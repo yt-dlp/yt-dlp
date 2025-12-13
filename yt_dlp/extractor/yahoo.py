@@ -257,6 +257,7 @@ class YahooIE(InfoExtractor):
             'Downloading content JSON metadata', query={
                 'url': url,
             })['items'][0]
+
         item = items['data']['partnerData']
         if item.get('type') != 'video':
             entries = []
