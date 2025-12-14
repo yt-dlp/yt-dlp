@@ -55,7 +55,7 @@ jobs:
         - os: windows-latest
           python-version: pypy-3.11
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
@@ -63,7 +63,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install test requirements
-      run: python ./devscripts/install_deps.py --include-group test --include-group curl-cffi
+      run: python ./devscripts/install_deps.py --include-extra test --include-extra curl-cffi
     - name: Run tests
       timeout-minutes: 15
       continue-on-error: False

@@ -203,7 +203,7 @@ Python versions 3.10+ (CPython) and 3.11+ (PyPy) are supported. Other versions a
 On Windows, [Microsoft Visual C++ 2010 SP1 Redistributable Package (x86)](https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x86.exe) is also necessary to run yt-dlp. You probably already have this, but if the executable throws an error due to missing `MSVCR100.dll` you need to install it manually.
 -->
 
-While all the other dependencies are optional, `ffmpeg`, `ffprobe`, `yt-dlp-ejs` and a JavaScript runtime are highly recommended
+While all the other dependencies are optional, `ffmpeg`, `ffprobe`, `yt-dlp-ejs` and a supported JavaScript runtime/engine are highly recommended
 
 ### Strongly recommended
 
@@ -215,7 +215,7 @@ While all the other dependencies are optional, `ffmpeg`, `ffprobe`, `yt-dlp-ejs`
 
 * [**yt-dlp-ejs**](https://github.com/yt-dlp/ejs) - Required for deciphering YouTube n/sig values. Licensed under [Unlicense](https://github.com/yt-dlp/ejs/blob/main/LICENSE), bundles [MIT](https://github.com/davidbonnet/astring/blob/main/LICENSE) and [ISC](https://github.com/meriyah/meriyah/blob/main/LICENSE.md) components.
 
-    A JavaScript runtime like [**deno**](https://deno.land) (recommended), [**node.js**](https://nodejs.org), [**bun**](https://bun.sh), or [**QuickJS**](https://bellard.org/quickjs/) is also required to run yt-dlp-ejs. See [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/EJS).
+    A JavaScript runtime/engine like [**deno**](https://deno.land) (recommended), [**node.js**](https://nodejs.org), [**bun**](https://bun.sh), or [**QuickJS**](https://bellard.org/quickjs/) is also required to run yt-dlp-ejs. See [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/EJS).
 
 ### Networking
 * [**certifi**](https://github.com/certifi/python-certifi)\* - Provides Mozilla's root certificate bundle. Licensed under [MPLv2](https://github.com/certifi/python-certifi/blob/master/LICENSE)
@@ -228,7 +228,7 @@ While all the other dependencies are optional, `ffmpeg`, `ffprobe`, `yt-dlp-ejs`
 The following provide support for impersonating browser requests. This may be required for some sites that employ TLS fingerprinting.
 
 * [**curl_cffi**](https://github.com/lexiforest/curl_cffi) (recommended) - Python binding for [curl-impersonate](https://github.com/lexiforest/curl-impersonate). Provides impersonation targets for Chrome, Edge and Safari. Licensed under [MIT](https://github.com/lexiforest/curl_cffi/blob/main/LICENSE)
-  * Can be installed with the `curl-cffi` group, e.g. `pip install "yt-dlp[default,curl-cffi]"`
+  * Can be installed with the `curl-cffi` extra, e.g. `pip install "yt-dlp[default,curl-cffi]"`
   * Currently included in most builds *except* `yt-dlp` (Unix zipimport binary), `yt-dlp_x86` (Windows 32-bit) and `yt-dlp_musllinux_aarch64`
 
 
@@ -265,7 +265,7 @@ To build the standalone executable, you must have Python and `pyinstaller` (plus
 You can run the following commands:
 
 ```
-python devscripts/install_deps.py --include-group pyinstaller
+python devscripts/install_deps.py --include-extra pyinstaller
 python devscripts/make_lazy_extractors.py
 python -m bundle.pyinstaller
 ```
@@ -483,7 +483,7 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     two-letter ISO 3166-2 country code
 
 ## Video Selection:
-    -I, --playlist-items ITEM_SPEC  Comma separated playlist_index of the items
+    -I, --playlist-items ITEM_SPEC  Comma-separated playlist_index of the items
                                     to download. You can specify a range using
                                     "[START]:[STOP][:STEP]". For backward
                                     compatibility, START-STOP is also supported.
@@ -1299,7 +1299,7 @@ The field names themselves (the part inside the parenthesis) can also have some 
 
 1. **Default**: A literal default value can be specified for when the field is empty using a `|` separator. This overrides `--output-na-placeholder`. E.g. `%(uploader|Unknown)s`
 
-1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, yt-dlp additionally supports converting to `B` = **B**ytes, `j` = **j**son (flag `#` for pretty-printing, `+` for Unicode), `h` = HTML escaping, `l` = a comma separated **l**ist (flag `#` for `\n` newline-separated), `q` = a string **q**uoted for the terminal (flag `#` to split a list into different arguments), `D` = add **D**ecimal suffixes (e.g. 10M) (flag `#` to use 1024 as factor), and `S` = **S**anitize as filename (flag `#` for restricted)
+1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, yt-dlp additionally supports converting to `B` = **B**ytes, `j` = **j**son (flag `#` for pretty-printing, `+` for Unicode), `h` = HTML escaping, `l` = a comma-separated **l**ist (flag `#` for `\n` newline-separated), `q` = a string **q**uoted for the terminal (flag `#` to split a list into different arguments), `D` = add **D**ecimal suffixes (e.g. 10M) (flag `#` to use 1024 as factor), and `S` = **S**anitize as filename (flag `#` for restricted)
 
 1. **Unicode normalization**: The format type `U` can be used for NFC [Unicode normalization](https://docs.python.org/3/library/unicodedata.html#unicodedata.normalize). The alternate form flag (`#`) changes the normalization to NFD and the conversion flag `+` can be used for NFKC/NFKD compatibility equivalence normalization. E.g. `%(title)+.100U` is NFKC
 
@@ -1798,8 +1798,8 @@ Metadata fields            | From
 `track`                    | `track_number`
 `artist`                   | `artist`, `artists`, `creator`, `creators`, `uploader` or `uploader_id`
 `composer`                 | `composer` or `composers`
-`genre`                    | `genre` or `genres`
-`album`                    | `album`
+`genre`                    | `genre`, `genres`, `categories` or `tags`
+`album`                    | `album` or `series`
 `album_artist`             | `album_artist` or `album_artists`
 `disc`                     | `disc_number`
 `show`                     | `series`
@@ -1852,7 +1852,7 @@ The following extractors use this feature:
 #### youtube
 * `lang`: Prefer translated metadata (`title`, `description` etc) of this language code (case-sensitive). By default, the video primary language metadata is preferred, with a fallback to `en` translated. See [youtube/_base.py](https://github.com/yt-dlp/yt-dlp/blob/415b4c9f955b1a0391204bd24a7132590e7b3bdb/yt_dlp/extractor/youtube/_base.py#L402-L409) for the list of supported content language codes
 * `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and [auto-translated subtitles](https://github.com/yt-dlp/yt-dlp/issues/4090#issuecomment-1158102032) respectively
-* `player_client`: Clients to extract video data from. The currently available clients are `web`, `web_safari`, `web_embedded`, `web_music`, `web_creator`, `mweb`, `ios`, `android`, `android_sdkless`, `android_vr`, `tv`, `tv_simply`, `tv_downgraded`, and `tv_embedded`. By default, `tv,android_sdkless,web` is used. If no JavaScript runtime is available, then `android_sdkless,web_safari,web` is used. If logged-in cookies are passed to yt-dlp, then `tv_downgraded,web_safari,web` is used for free accounts and `tv_downgraded,web_creator,web` is used for premium accounts. The `web_music` client is added for `music.youtube.com` URLs when logged-in cookies are used. The `web_embedded` client is added for age-restricted videos but only works if the video is embeddable. The `tv_embedded` and `web_creator` clients are added for age-restricted videos if account age-verification is required. Some clients, such as `web` and `web_music`, require a `po_token` for their formats to be downloadable. Some clients, such as `web_creator`, will only work with authentication. Not all clients support authentication via cookies. You can use `default` for the default clients, or you can use `all` for all clients (not recommended). You can prefix a client with `-` to exclude it, e.g. `youtube:player_client=default,-ios`
+* `player_client`: Clients to extract video data from. The currently available clients are `web`, `web_safari`, `web_embedded`, `web_music`, `web_creator`, `mweb`, `ios`, `android`, `android_sdkless`, `android_vr`, `tv`, `tv_simply`, `tv_downgraded`, and `tv_embedded`. By default, `tv,android_sdkless,web` is used. If no JavaScript runtime/engine is available, then `android_sdkless,web_safari,web` is used. If logged-in cookies are passed to yt-dlp, then `tv_downgraded,web_safari,web` is used for free accounts and `tv_downgraded,web_creator,web` is used for premium accounts. The `web_music` client is added for `music.youtube.com` URLs when logged-in cookies are used. The `web_embedded` client is added for age-restricted videos but only works if the video is embeddable. The `tv_embedded` and `web_creator` clients are added for age-restricted videos if account age-verification is required. Some clients, such as `web` and `web_music`, require a `po_token` for their formats to be downloadable. Some clients, such as `web_creator`, will only work with authentication. Not all clients support authentication via cookies. You can use `default` for the default clients, or you can use `all` for all clients (not recommended). You can prefix a client with `-` to exclude it, e.g. `youtube:player_client=default,-ios`
 * `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player), `initial_data` (skip initial data/next ep request). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause issues such as missing formats or metadata.  See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) and [#12826](https://github.com/yt-dlp/yt-dlp/issues/12826) for more details
 * `webpage_skip`: Skip extraction of embedded webpage data. One or both of `player_response`, `initial_data`. These options are for testing purposes and don't skip any network requests
 * `player_params`: YouTube player parameters to use for player requests. Will overwrite any default ones set by yt-dlp.
@@ -1867,14 +1867,14 @@ The following extractors use this feature:
 * `raise_incomplete_data`: `Incomplete Data Received` raises an error instead of reporting a warning
 * `data_sync_id`: Overrides the account Data Sync ID used in Innertube API requests. This may be needed if you are using an account with `youtube:player_skip=webpage,configs` or `youtubetab:skip=webpage`
 * `visitor_data`: Overrides the Visitor Data used in Innertube API requests. This should be used with `player_skip=webpage,configs` and without cookies. Note: this may have adverse effects if used improperly. If a session from a browser is wanted, you should pass cookies instead (which contain the Visitor ID)
-* `po_token`:  Proof of Origin (PO) Token(s) to use. Comma seperated list of PO Tokens in the format `CLIENT.CONTEXT+PO_TOKEN`, e.g. `youtube:po_token=web.gvs+XXX,web.player=XXX,web_safari.gvs+YYY`. Context can be any of `gvs` (Google Video Server URLs), `player` (Innertube player request) or `subs` (Subtitles)
+* `po_token`:  Proof of Origin (PO) Token(s) to use. Comma-separated list of PO Tokens in the format `CLIENT.CONTEXT+PO_TOKEN`, e.g. `youtube:po_token=web.gvs+XXX,web.player=XXX,web_safari.gvs+YYY`. Context can be any of `gvs` (Google Video Server URLs), `player` (Innertube player request) or `subs` (Subtitles)
 * `pot_trace`: Enable debug logging for PO Token fetching. Either `true` or `false` (default)
 * `fetch_pot`: Policy to use for fetching a PO Token from providers. One of `always` (always try fetch a PO Token regardless if the client requires one for the given context), `never` (never fetch a PO Token), or `auto` (default; only fetch a PO Token if the client requires one for the given context)
 * `jsc_trace`: Enable debug logging for JS Challenge fetching. Either `true` or `false` (default)
 * `use_ad_playback_context`: Skip preroll ads to eliminate the mandatory wait period before download. Do NOT use this when passing premium account cookies to yt-dlp, as it will result in a loss of premium formats. Only effective with the `web`, `web_safari`, `web_music` and `mweb` player clients. Either `true` or `false` (default)
 
 #### youtube-ejs
-* `jitless`: Run suported Javascript engines in JIT-less mode. Supported runtimes are `deno`, `node` and `bun`. Provides better security at the cost of performance/speed. Do note that `node` and `bun` are still considered unsecure. Either `true` or `false` (default)
+* `jitless`: Run supported Javascript engines in JIT-less mode. Supported runtimes are `deno`, `node` and `bun`. Provides better security at the cost of performance/speed. Do note that `node` and `bun` are still considered insecure. Either `true` or `false` (default)
 
 #### youtubepot-webpo
 * `bind_to_visitor_id`: Whether to use the Visitor ID instead of Visitor Data for caching WebPO tokens. Either `true` (default) or `false`

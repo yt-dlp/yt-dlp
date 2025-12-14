@@ -196,7 +196,7 @@ jobs:
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Needed for changelog
 
@@ -257,7 +257,7 @@ jobs:
       SKIP_ONEFILE_BUILD: ${{ (!matrix.onefile && '1') || '' }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Cache requirements
         if: matrix.cache_requirements
@@ -320,7 +320,7 @@ jobs:
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # NB: Building universal2 does not work with python from actions/setup-python
 
       - name: Cache requirements
@@ -343,14 +343,14 @@ jobs:
           brew uninstall --ignore-dependencies python3
           python3 -m venv ~/yt-dlp-build-venv
           source ~/yt-dlp-build-venv/bin/activate
-          python3 devscripts/install_deps.py --only-optional-groups --include-group build
-          python3 devscripts/install_deps.py --print --include-group pyinstaller > requirements.txt
+          python3 devscripts/install_deps.py --omit-default --include-extra build
+          python3 devscripts/install_deps.py --print --include-extra pyinstaller > requirements.txt
           # We need to ignore wheels otherwise we break universal2 builds
           python3 -m pip install -U --no-binary :all: -r requirements.txt
           # We need to fuse our own universal2 wheels for curl_cffi
           python3 -m pip install -U 'delocate==0.11.0'
           mkdir curl_cffi_whls curl_cffi_universal2
-          python3 devscripts/install_deps.py --print --only-optional-groups --include-group curl-cffi > requirements.txt
+          python3 devscripts/install_deps.py --print --omit-default --include-extra curl-cffi > requirements.txt
           for platform in "macosx_11_0_arm64" "macosx_11_0_x86_64"; do
             python3 -m pip download \
               --only-binary=:all: \
@@ -450,7 +450,7 @@ jobs:
       PYI_WHEEL: pyinstaller-${{ matrix.pyi_version }}-py3-none-${{ matrix.platform_tag }}.whl
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python_version }}
@@ -484,11 +484,11 @@ jobs:
           mkdir /pyi-wheels
           python -m pip download -d /pyi-wheels --no-deps --require-hashes "pyinstaller@${Env:PYI_URL}#sha256=${Env:PYI_HASH}"
           python -m pip install --force-reinstall -U "/pyi-wheels/${Env:PYI_WHEEL}"
-          python devscripts/install_deps.py --only-optional-groups --include-group build
+          python devscripts/install_deps.py --omit-default --include-extra build
           if ("${Env:ARCH}" -eq "x86") {
             python devscripts/install_deps.py
           } else {
-            python devscripts/install_deps.py --include-group curl-cffi
+            python devscripts/install_deps.py --include-extra curl-cffi
           }
 
       - name: Prepare
