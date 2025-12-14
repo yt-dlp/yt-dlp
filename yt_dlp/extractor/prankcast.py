@@ -1,8 +1,8 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import float_or_none, parse_iso8601, str_or_none, try_call
-from ..utils.traversal import traverse_obj
+from ..utils import float_or_none, parse_iso8601, str_or_none, try_call, url_or_none
+from ..utils.traversal import traverse_obj, value
 
 
 class PrankCastIE(InfoExtractor):
@@ -100,8 +100,37 @@ class PrankCastPostIE(InfoExtractor):
             'duration': 263.287,
             'cast': ['despicabledogs'],
             'description': 'https://imgur.com/a/vtxLvKU',
-            'categories': [],
             'upload_date': '20240104',
+        },
+    }, {
+        'url': 'https://prankcast.com/drtomservo/posts/11988-butteye-s-late-night-stank-episode-1-part-1-',
+        'info_dict': {
+            'id': '11988',
+            'ext': 'mp3',
+            'title': 'Butteye\'s Late Night Stank Episode 1 (Part 1)',
+            'display_id': 'butteye-s-late-night-stank-episode-1-part-1-',
+            'timestamp': 1754238686,
+            'uploader': 'DrTomServo',
+            'channel_id': '136',
+            'duration': 2176.464,
+            'cast': ['DrTomServo'],
+            'description': '',
+            'upload_date': '20250803',
+        },
+    }, {
+        'url': 'https://prankcast.com/drtomservo/posts/12105-butteye-s-late-night-stank-episode-08-16-2025-part-2',
+        'info_dict': {
+            'id': '12105',
+            'ext': 'mp3',
+            'title': 'Butteye\'s Late Night Stank Episode 08-16-2025 Part 2',
+            'display_id': 'butteye-s-late-night-stank-episode-08-16-2025-part-2',
+            'timestamp': 1755453505,
+            'uploader': 'DrTomServo',
+            'channel_id': '136',
+            'duration': 19018.392,
+            'cast': ['DrTomServo'],
+            'description': '',
+            'upload_date': '20250817',
         },
     }]
 
@@ -112,26 +141,28 @@ class PrankCastPostIE(InfoExtractor):
         post = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['ssr_data_posts']
         content = self._parse_json(post['post_contents_json'], video_id)[0]
 
-        uploader = post.get('user_name')
-        guests_json = traverse_obj(content, ('guests_json', {json.loads}, {dict})) or {}
-
         return {
             'id': video_id,
-            'title': post.get('post_title') or self._og_search_title(webpage),
             'display_id': display_id,
-            'url': content.get('url'),
-            'timestamp': parse_iso8601(content.get('start_date') or content.get('crdate'), ' '),
-            'uploader': uploader,
-            'channel_id': str_or_none(post.get('user_id')),
-            'duration': float_or_none(content.get('duration')),
-            'cast': list(filter(None, [uploader, *traverse_obj(guests_json, (..., 'name'))])),
-            'description': post.get('post_body'),
-            'categories': list(filter(None, [content.get('category')])),
-            'tags': try_call(lambda: list(filter('', post['post_tags'].split(',')))),
-            'subtitles': {
-                'live_chat': [{
-                    'url': f'https://prankcast.com/api/private/chat/select-broadcast?id={post["content_id"]}&cache=',
-                    'ext': 'json',
-                }],
-            } if post.get('content_id') else None,
+            'title': self._og_search_title(webpage),
+            **traverse_obj(post, {
+                'title': ('post_title', {str}),
+                'description': ('post_body', {str}),
+                'tags': ('post_tags', {lambda x: x.split(',')}, ..., {str.strip}, filter),
+                'channel_id': ('user_id', {int}, {str_or_none}),
+                'uploader': ('user_name', {str}),
+            }),
+            **traverse_obj(content, {
+                'url': (('secure_url', 'url'), {url_or_none}, any),
+                'timestamp': ((
+                    (('start_date', 'crdate'), {parse_iso8601(delimiter=' ')}),
+                    ('created_at', {parse_iso8601}),
+                ), any),
+                'duration': ('duration', {float_or_none}),
+                'categories': ('category', {str}, filter, all, filter),
+                'cast': ((
+                    {value(post.get('user_name'))},
+                    ('guests_json', {json.loads}, ..., 'name'),
+                ), {str}, filter),
+            }),
         }

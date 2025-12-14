@@ -248,35 +248,17 @@ class SlidesLiveIE(InfoExtractor):
             'skip_download': 'm3u8',
         },
     }, {
-        # /v3/ slides, .jpg and .png, service_name = youtube
+        # /v3/ slides, .jpg and .png, formerly service_name = youtube, now native
         'url': 'https://slideslive.com/embed/38932460/',
         'info_dict': {
-            'id': 'RTPdrgkyTiE',
-            'display_id': '38932460',
+            'id': '38932460',
             'ext': 'mp4',
             'title': 'Active Learning for Hierarchical Multi-Label Classification',
-            'description': 'Watch full version of this video at https://slideslive.com/38932460.',
-            'channel': 'SlidesLive Videos - A',
-            'channel_id': 'UC62SdArr41t_-_fX40QCLRw',
-            'channel_url': 'https://www.youtube.com/channel/UC62SdArr41t_-_fX40QCLRw',
-            'uploader': 'SlidesLive Videos - A',
-            'uploader_id': '@slideslivevideos-a6075',
-            'uploader_url': 'https://www.youtube.com/@slideslivevideos-a6075',
-            'upload_date': '20200903',
-            'timestamp': 1697805922,
-            'duration': 942,
-            'age_limit': 0,
-            'live_status': 'not_live',
-            'playable_in_embed': True,
-            'availability': 'unlisted',
-            'categories': ['People & Blogs'],
-            'tags': [],
-            'channel_follower_count': int,
-            'like_count': int,
-            'view_count': int,
-            'thumbnail': r're:^https?://.*\.(?:jpg|png|webp)',
-            'thumbnails': 'count:21',
+            'duration': 941,
+            'thumbnail': r're:https?://.+/.+\.(?:jpg|png)',
             'chapters': 'count:20',
+            'timestamp': 1708338974,
+            'upload_date': '20240219',
         },
         'params': {
             'skip_download': 'm3u8',
@@ -425,7 +407,7 @@ class SlidesLiveIE(InfoExtractor):
 
         player_token = self._search_regex(r'data-player-token="([^"]+)"', webpage, 'player token')
         player_data = self._download_webpage(
-            f'https://ben.slideslive.com/player/{video_id}', video_id,
+            f'https://slideslive.com/player/{video_id}', video_id,
             note='Downloading player info', query={'player_token': player_token})
         player_info = self._extract_custom_m3u8_info(player_data)
 
@@ -525,7 +507,7 @@ class SlidesLiveIE(InfoExtractor):
             yield info
 
             service_data = self._download_json(
-                f'https://ben.slideslive.com/player/{video_id}/slides_video_service_data',
+                f'https://slideslive.com/player/{video_id}/slides_video_service_data',
                 video_id, fatal=False, query={
                     'player_token': player_token,
                     'videos': ','.join(video_slides),

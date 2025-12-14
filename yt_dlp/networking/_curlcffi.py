@@ -96,7 +96,10 @@ class CurlCFFIResponseAdapter(Response):
 
     def read(self, amt=None):
         try:
-            return self.fp.read(amt)
+            res = self.fp.read(amt)
+            if self.fp.closed:
+                self.close()
+            return res
         except curl_cffi.requests.errors.RequestsError as e:
             if e.code == CurlECode.PARTIAL_FILE:
                 content_length = e.response and int_or_none(e.response.headers.get('Content-Length'))

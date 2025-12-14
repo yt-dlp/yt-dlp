@@ -182,13 +182,13 @@ class TubiTvShowIE(InfoExtractor):
         webpage = self._download_webpage(show_url, playlist_id)
 
         data = self._search_json(
-            r'window\.__data\s*=', webpage, 'data', playlist_id,
-            transform_source=js_to_json)['video']
+            r'window\.__REACT_QUERY_STATE__\s*=', webpage, 'data', playlist_id,
+            transform_source=js_to_json)['queries'][0]['state']['data']
 
         # v['number'] is already a decimal string, but stringify to protect against API changes
         path = [lambda _, v: str(v['number']) == selected_season] if selected_season else [..., {dict}]
 
-        for season in traverse_obj(data, ('byId', lambda _, v: v['type'] == 's', 'seasons', *path)):
+        for season in traverse_obj(data, ('seasons', *path)):
             season_number = int_or_none(season.get('number'))
             for episode in traverse_obj(season, ('episodes', lambda _, v: v['id'])):
                 episode_id = episode['id']

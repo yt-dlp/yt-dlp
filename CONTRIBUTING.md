@@ -177,7 +177,7 @@ While it is strongly recommended to use `hatch` for yt-dlp development, if you a
 
 ```shell
 # To only install development dependencies:
-$ python -m devscripts.install_deps --include dev
+$ python -m devscripts.install_deps --include-extra dev
 
 # Or, for an editable install plus dev dependencies:
 $ python -m pip install -e ".[default,dev]"
@@ -284,7 +284,7 @@ After you have ensured this site is distributing its content legally, you can fo
 
     You can use `hatch fmt` to automatically fix problems. Rules that the linter/formatter enforces should not be disabled with `# noqa` unless a maintainer requests it. The only exception allowed is for old/printf-style string formatting in GraphQL query templates (use `# noqa: UP031`).
 
-1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython >=3.9 and PyPy >=3.11. Backward compatibility is not required for even older versions of Python.
+1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython >=3.10 and PyPy >=3.11. Backward compatibility is not required for even older versions of Python.
 1. When the tests pass, [add](https://git-scm.com/docs/git-add) the new files, [commit](https://git-scm.com/docs/git-commit) them and [push](https://git-scm.com/docs/git-push) the result, like this:
 
     ```shell
@@ -763,7 +763,7 @@ Wrap all extracted numeric data into safe functions from [`yt_dlp/utils/`](yt_dl
 
 Use `url_or_none` for safe URL processing.
 
-Use `traverse_obj` and `try_call` (superseeds `dict_get` and `try_get`) for safe metadata extraction from parsed JSON.
+Use `traverse_obj` and `try_call` (supersedes `dict_get` and `try_get`) for safe metadata extraction from parsed JSON.
 
 Use `unified_strdate` for uniform `upload_date` or any `YYYYMMDD` meta field extraction, `unified_timestamp` for uniform `timestamp` extraction, `parse_filesize` for `filesize` extraction, `parse_count` for count meta fields extraction, `parse_resolution`, `parse_duration` for `duration` extraction, `parse_age_limit` for `age_limit` extraction.
 

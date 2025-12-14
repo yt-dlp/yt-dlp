@@ -186,7 +186,7 @@ _OPERATORS = {  # None => Defined in JSInterpreter._operator
 _COMP_OPERATORS = {'===', '!==', '==', '!=', '<=', '>=', '<', '>'}
 
 _NAME_RE = r'[a-zA-Z_$][\w$]*'
-_MATCHING_PARENS = dict(zip(*zip('()', '{}', '[]')))
+_MATCHING_PARENS = dict(zip(*zip('()', '{}', '[]', strict=True), strict=True))
 _QUOTES = '\'"/'
 _NESTED_BRACKETS = r'[^[\]]+(?:\[[^[\]]+(?:\[[^\]]+\])?\])?'
 

@@ -101,8 +101,8 @@ class SproutVideoIE(InfoExtractor):
         webpage = self._download_webpage(
             url, video_id, headers=traverse_obj(smuggled_data, {'Referer': 'referer'}))
         data = self._search_json(
-            r'(?:var|const|let)\s+(?:dat|(?:player|video)Info|)\s*=\s*["\']', webpage, 'player info',
-            video_id, contains_pattern=r'[A-Za-z0-9+/=]+', end_pattern=r'["\'];',
+            r'(?:window\.|(?:var|const|let)\s+)(?:dat|(?:player|video)Info|)\s*=\s*["\']', webpage,
+            'player info', video_id, contains_pattern=r'[A-Za-z0-9+/=]+', end_pattern=r'["\'];',
             transform_source=lambda x: base64.b64decode(x).decode())
 
         # SproutVideo may send player info for 'SMPTE Color Monitor Test' [a791d7b71b12ecc52e]

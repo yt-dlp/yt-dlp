@@ -63,7 +63,7 @@ class NBCUniversalBaseIE(ThePlatformBaseIE):
         # formats='mpeg4' will return either a working m3u8 URL or an m3u8 template for non-DRM HLS
         # formats='m3u+none,mpeg4' may return DRM HLS but w/the "folders" needed for non-DRM template
         query['formats'] = 'm3u+none,mpeg4'
-        m3u8_url = self._download_nbcu_smil_and_extract_m3u8_url(tp_path, video_id, query)
+        orig_m3u8_url = m3u8_url = self._download_nbcu_smil_and_extract_m3u8_url(tp_path, video_id, query)
 
         if mobj := re.fullmatch(self._M3U8_RE, m3u8_url):
             query['formats'] = 'mpeg4'
@@ -76,7 +76,17 @@ class NBCUniversalBaseIE(ThePlatformBaseIE):
         if '/mpeg_cenc' in m3u8_url or '/mpeg_cbcs' in m3u8_url:
             self.report_drm(video_id)
 
-        return self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4', m3u8_id='hls')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            m3u8_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+
+        if not formats and m3u8_url != orig_m3u8_url:
+            orig_fmts, subtitles = self._extract_m3u8_formats_and_subtitles(
+                orig_m3u8_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+            formats = [f for f in orig_fmts if not f.get('has_drm')]
+            if orig_fmts and not formats:
+                self.report_drm(video_id)
+
+        return formats, subtitles
 
     def _extract_nbcu_video(self, url, display_id, old_ie_key=None):
         webpage = self._download_webpage(url, display_id)

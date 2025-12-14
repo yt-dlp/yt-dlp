@@ -31,7 +31,7 @@ from ..utils.traversal import require, traverse_obj, trim_str
 
 class CBCIE(InfoExtractor):
     IE_NAME = 'cbc.ca'
-    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(?!player/)(?:[^/]+/)+(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(?!player/|listen/|i/caffeine/syndicate/)(?:[^/?#]+/)+(?P<id>[^/?#]+)'
     _TESTS = [{
         # with mediaId
         'url': 'http://www.cbc.ca/22minutes/videos/clips-season-23/don-cherry-play-offs',
@@ -111,10 +111,6 @@ class CBCIE(InfoExtractor):
         },
         'playlist_mincount': 6,
     }]
-
-    @classmethod
-    def suitable(cls, url):
-        return False if CBCPlayerIE.suitable(url) else super().suitable(url)
 
     def _extract_player_init(self, player_init, display_id):
         player_info = self._parse_json(player_init, display_id, js_to_json)
@@ -911,5 +907,65 @@ class CBCGemLiveIE(InfoExtractor):
                 'title': ('title', {str}),
                 'description': ('description', {str}),
                 'thumbnail': ('images', 'card', 'url'),
+            }),
+        }
+
+
+class CBCListenIE(InfoExtractor):
+    IE_NAME = 'cbc.ca:listen'
+    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/listen/(?:cbc-podcasts|live-radio)/[\w-]+/[\w-]+/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.cbc.ca/listen/cbc-podcasts/1353-the-naked-emperor/episode/16142603-introducing-understood-who-broke-the-internet',
+        'info_dict': {
+            'id': '16142603',
+            'title': 'Introducing Understood: Who Broke the Internet?',
+            'ext': 'mp3',
+            'description': 'md5:c605117500084e43f08a950adc6a708c',
+            'duration': 229,
+            'timestamp': 1745812800,
+            'release_timestamp': 1745827200,
+            'release_date': '20250428',
+            'upload_date': '20250428',
+        },
+    }, {
+        'url': 'https://www.cbc.ca/listen/live-radio/1-64-the-house/clip/16170773-should-canada-suck-stand-donald-trump',
+        'info_dict': {
+            'id': '16170773',
+            'title': 'Should Canada suck up or stand up to Donald Trump?',
+            'ext': 'mp3',
+            'description': 'md5:7385194f1cdda8df27ba3764b35e7976',
+            'duration': 3159,
+            'timestamp': 1758340800,
+            'release_timestamp': 1758254400,
+            'release_date': '20250919',
+            'upload_date': '20250920',
+        },
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+
+        response = self._download_json(
+            f'https://www.cbc.ca/listen/api/v1/clips/{video_id}', video_id, fatal=False)
+        data = traverse_obj(response, ('data', {dict}))
+        if not data:
+            self.report_warning('API failed to return data. Falling back to webpage parsing')
+            webpage = self._download_webpage(url, video_id)
+            preloaded_state = self._search_json(
+                r'window\.__PRELOADED_STATE__\s*=', webpage, 'preloaded state',
+                video_id, transform_source=js_to_json)
+            data = traverse_obj(preloaded_state, (
+                ('podcastDetailData', 'showDetailData'), ..., 'episodes',
+                lambda _, v: str(v['clipID']) == video_id, any, {require('episode data')}))
+
+        return {
+            'id': video_id,
+            **traverse_obj(data, {
+                'url': (('src', 'url'), {url_or_none}, any),
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+                'release_timestamp': ('releasedAt', {int_or_none(scale=1000)}),
+                'timestamp': ('airdate', {int_or_none(scale=1000)}),
+                'duration': ('duration', {int_or_none}),
             }),
         }
