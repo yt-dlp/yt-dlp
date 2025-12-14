@@ -3,13 +3,14 @@ on:
   issues:
     types: [opened]
 
-permissions:
-  issues: write
+permissions: {}
 
 jobs:
   lockdown:
     name: Issue Lockdown
     if: vars.ISSUE_LOCKDOWN
+    permissions:
+      issues: write
     runs-on: ubuntu-latest
     steps:
       - name: "Lock new issue"

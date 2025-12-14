@@ -9,6 +9,8 @@ on:
   schedule:
     - cron: '59 11 * * 5'
 
+permissions: {}
+
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
@@ -26,6 +28,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
+      with:
+        persist-credentials: false
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4

@@ -1,15 +1,19 @@
 name: Download Tests
 on: [push, pull_request]
-permissions:
-  contents: read
+
+permissions: {}
 
 jobs:
   quick:
     name: Quick Download Tests
     if: "contains(github.event.head_commit.message, 'ci run dl')"
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
+      with:
+        persist-credentials: false
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
@@ -23,6 +27,8 @@ jobs:
   full:
     name: Full Download Tests
     if: "contains(github.event.head_commit.message, 'ci run dl all')"
+    permissions:
+      contents: read
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -37,6 +43,8 @@ jobs:
           python-version: pypy-3.11
     steps:
     - uses: actions/checkout@v6
+      with:
+        persist-credentials: false
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
       with:
