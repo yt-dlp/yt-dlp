@@ -630,7 +630,7 @@ class VKUserVideosIE(VKBaseIE):
         'url': 'https://vkvideo.ru/playlist/-51890028_-2',
         'only_matching': True,
     }]
-    API_BASE = 'https://api.vkvideo.ru/method'
+    API_BASE = 'https://api.vk.com/method'
     API_Version = 5.269
 
     def _get_playlist_payload_and_url(self, owner_id, album_id, access_token, offset=0):
@@ -664,7 +664,7 @@ class VKUserVideosIE(VKBaseIE):
                 'access_token': access_token,
             }
 
-    # Copied and Modified from VKIE Line No. 518
+    # Copied and Modified from VKIE Line No. 512
     def _parse_videos(self, data, video_id):
         formats = []
         subtitles = {}
