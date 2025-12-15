@@ -90,11 +90,14 @@ class VKBaseIE(InfoExtractor):
     def _get_access_token(self, video_id):
         try:
             data = self._download_json(
-                'https://login.vk.com/?act=get_anonym_token&client_secret=o557NLIkAErNhakXrQ7A& \
-                client_id=52461373&scopes=audio_anonymous%2Cvideo_anonymous%2Cphotos_anonymous%2Cprofile_anonymous \
-                &isApiOauthAnonymEnabled=false&version=1&app_id=6287487',
+                'https://login.vk.com/?act=get_anonym_token&client_secret=o557NLIkAErNhakXrQ7A'
+                '&client_id=52461373&scopes=audio_anonymous%2Cvideo_anonymous%2Cphotos_anonymous%2Cprofile_anonymous',
                 video_id,
                 note='Downloading Guest Token',
+                headers={
+                    'Referer': 'https://vkvideo.ru/',
+                    'Origin': 'https://vkvideo.ru',
+                },
             )
             return data['data']['access_token']
         except Exception:
