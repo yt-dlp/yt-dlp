@@ -35,7 +35,7 @@ jobs:
     env:
       QJS_VERSION: '2025-04-26'  # Earliest version with rope strings
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
       with:
@@ -67,7 +67,7 @@ jobs:
           unzip quickjs.zip
     - name: Install test requirements
       run: |
-        python ./devscripts/install_deps.py --print --only-optional-groups --include-group test > requirements.txt
+        python ./devscripts/install_deps.py --print --omit-default --include-extra test > requirements.txt
         python ./devscripts/install_deps.py --print -c certifi -c requests -c urllib3 -c yt-dlp-ejs >> requirements.txt
         python -m pip install -U -r requirements.txt
     - name: Run tests

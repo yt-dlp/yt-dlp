@@ -75,7 +75,7 @@ jobs:
       head_sha: ${{ steps.get_target.outputs.head_sha }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -170,7 +170,7 @@ jobs:
       id-token: write  # mandatory for trusted publishing
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v6
@@ -180,7 +180,7 @@ jobs:
       - name: Install Requirements
         run: |
           sudo apt -y install pandoc man
-          python devscripts/install_deps.py --only-optional-groups --include-group build
+          python devscripts/install_deps.py --omit-default --include-extra build
 
       - name: Prepare
         env:
@@ -233,7 +233,7 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
       HEAD_SHA: ${{ needs.prepare.outputs.head_sha }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - uses: actions/download-artifact@v5
