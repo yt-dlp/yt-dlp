@@ -10,23 +10,11 @@ from ..utils.traversal import traverse_obj
 class YandexRuntimeStrmIE(InfoExtractor):
     _VALID_URL = r'https?://runtime\.strm\.yandex\.ru/player/[a-z]+/(?P<id>[a-z0-9]+)'
     _TESTS = [{
-        'url': 'https://runtime.strm.yandex.ru/player/episode/vple3e7omvkythqefn4a',
+        'url': 'https://runtime.strm.yandex.ru/player/episode/vplege43k2rsf45ao43x',
         'info_dict': {
-            'id': 'vple3e7omvkythqefn4a',
+            'id': 'vplege43k2rsf45ao43x',
             'ext': 'mp4',
-            # match any timestamp appended for live streams
-            'title': r're:^ed3ab5fc53624ae19e4b65886bf4bb70.*',
-            'live_status': 'is_live',
-        },
-        'params': {'skip_download': True},
-        'only_matching': True,  # live stream ended
-    }, {
-        'url': 'https://runtime.strm.yandex.ru/player/episode/vpleontotb3a42ftvjod',
-        'info_dict': {
-            'id': 'vpleontotb3a42ftvjod',
-            'ext': 'mp4',
-            # match any timestamp appended for live streams
-            'title': r're:^64c006b42f044dd589723e6efeea332a.*',
+            'title': r're:^85a94a0aec3e473588a0b507021208b1-0 \d{4}-\d\d-\d\d \d\d:\d\d',
             'live_status': 'is_live',
         },
         'params': {'skip_download': True},
@@ -35,27 +23,21 @@ class YandexRuntimeStrmIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        playlist = self._search_json(
-            r'window\.CloudVideo\.hydratePage\s*\(',
-            webpage, 'playlist', video_id, transform_source=js_to_json)
-        content = traverse_obj(playlist, ('firstItemData', 'content'))
+        content = self._search_json(
+            r'window\.CloudVideo\.hydratePage\s*\(', webpage, 'playlist',
+            video_id, transform_source=js_to_json)['firstItemData']['content']
+
+        live_from_start = self.get_param('live_from_start', False)
 
         formats = []
-        streams = content.get('streams', [])
-        for stream in streams:
-            s_url = url_or_none(stream.get('url'))
-            if not s_url:
-                continue
+        for stream in traverse_obj(content, ('streams', lambda _, v: url_or_none(v['url']))):
+            s_url = stream['url']
 
-            live_from_start = self.get_param('live_from_start', False)
             stream_type = stream.get('type')
 
             if stream_type == 'dash':
                 dash_formats = self._extract_mpd_formats(
                     s_url, video_id, mpd_id='dash', fatal=False)
-                for f in dash_formats:
-                    f['preference'] = -2
-                    # TODO: live from start
                 formats.extend(dash_formats)
 
             if stream_type == 'hls':
@@ -65,20 +47,15 @@ class YandexRuntimeStrmIE(InfoExtractor):
                     f['preference'] = -1
                     dl_opts = f.setdefault('downloader_options', {})
                     ffmpeg_args = dl_opts.get('ffmpeg_args', [])
-                    ffmpeg_args.extend([
-                        # suppress annoying network logs
-                        '-loglevel', 'warning',
-                        '-stats',
-                    ])
                     if live_from_start:
                         ffmpeg_args.extend(['-live_start_index', '0'])
 
                     dl_opts['ffmpeg_args'] = ffmpeg_args
-                formats.extend(hls_formats)
 
-        if live_from_start:
-            for f in formats:
-                f['is_from_start'] = True
+                    if live_from_start:
+                        f['is_from_start'] = True
+
+                formats.extend(hls_formats)
 
         return {
             'id': video_id,
@@ -93,23 +70,12 @@ class YandexRuntimeStrmIE(InfoExtractor):
 class YandexTelemostIE(InfoExtractor):
     _VALID_URL = r'https?://telemost\.yandex\.ru/live/(?P<id>[a-zA-Z0-9]+)'
     _TESTS = [{
-        'url': 'https://telemost.yandex.ru/live/ed3ab5fc53624ae19e4b65886bf4bb70',
+        'url': 'https://telemost.yandex.ru/live/85a94a0aec3e473588a0b507021208b1',
         'info_dict': {
-            'id': 'vple3e7omvkythqefn4a',
+            'id': 'vplege43k2rsf45ao43x',
             'ext': 'mp4',
             # match any timestamp appended for live streams
-            'title': r're:^Подготовка к аттестации.*',
-            'live_status': 'is_live',
-        },
-        'params': {'skip_download': True},
-        'only_matching': True,
-    }, {
-        'url': 'https://telemost.yandex.ru/live/64c006b42f044dd589723e6efeea332a',
-        'info_dict': {
-            'id': 'vpleontotb3a42ftvjod',
-            'ext': 'mp4',
-            # match any timestamp appended for live streams
-            'title': r're:^Подготовка к аттестации.*',
+            'title': r're:^Подготовка к аттестации по МО. День 8. Афанасьев О.Н. Афанасьев О.Н. Коптевская Г.Л. \d{4}-\d\d-\d\d \d\d:\d\d',
             'live_status': 'is_live',
         },
         'params': {'skip_download': True},
