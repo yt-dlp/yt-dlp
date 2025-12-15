@@ -87,6 +87,19 @@ class VKBaseIE(InfoExtractor):
             raise ExtractorError(clean_html(payload[0][1:-1]), expected=True)
         return payload
 
+    def _get_access_token(self, video_id):
+        try:
+            data = self._download_json(
+                'https://login.vk.com/?act=get_anonym_token&client_secret=o557NLIkAErNhakXrQ7A& \
+                client_id=52461373&scopes=audio_anonymous%2Cvideo_anonymous%2Cphotos_anonymous%2Cprofile_anonymous \
+                &isApiOauthAnonymEnabled=false&version=1&app_id=6287487',
+                video_id,
+                note='Downloading Guest Token',
+            )
+            return data['data']['access_token']
+        except Exception:
+            raise ExtractorError('Failed To Download Guest token')
+
 
 class VKIE(VKBaseIE):
     IE_NAME = 'vk'
@@ -594,6 +607,17 @@ class VKUserVideosIE(VKBaseIE):
         },
         'playlist_mincount': 33,
     }, {
+    }, {
+        'url': 'https://vkvideo.ru/playlist/-174476437_10',
+        'info_dict': {
+            'id': '-174476437_playlist_10',
+        },
+        'playlist_mincount': 18,
+    }, {
+        'url': 'https://vkvideo.ru/@fantv_ru',
+        'only_matching': True,
+    }, {
+    }, {
         'url': 'https://vk.com/video/@gorkyfilmstudio/all',
         'only_matching': True,
     }, {
@@ -606,39 +630,143 @@ class VKUserVideosIE(VKBaseIE):
         'url': 'https://vkvideo.ru/playlist/-51890028_-2',
         'only_matching': True,
     }]
-    _VIDEO = collections.namedtuple('Video', ['owner_id', 'id'])
+    API_BASE = 'https://api.vkvideo.ru/method'
+    API_Version = 5.269
 
-    def _entries(self, page_id, section):
-        video_list_json = self._download_payload('al_video', page_id, {
-            'act': 'load_videos_silent',
-            'offset': 0,
-            'oid': page_id,
-            'section': section,
-        })[0][section]
-        count = video_list_json['count']
-        total = video_list_json['total']
-        video_list = video_list_json['list']
+    def _get_playlist_payload_and_url(self, owner_id, album_id, access_token, offset=0):
+        url = f'{self.API_BASE}/video.getFromAlbum'
+        return url, {
+            'v': self.API_Version,
+            'album_id': album_id,
+            'fields': 'is_esia_verified,is_sber_verified,is_tinkoff_verified,photo_50,verified',
+            'owner_id': owner_id,
+            'access_token': access_token,
+            'offset': offset,
+            'count': 50,
+        }
 
+    def _get_user_payload_and_url(self, url, access_token, start_from=None, section_id=None):
+        if url:
+            return f'{self.API_BASE}/catalog.getVideo', {
+                'v': self.API_Version,
+                'need_blocks': 1,
+                'url': url,
+                'owner_id': 0,
+                'access_token': access_token,
+            }
+        else:
+            return f'{self.API_BASE}/catalog.getSection', {
+                'v': self.API_Version,
+                'need_blocks': 1,
+                'section_id': section_id,
+                'start_from': start_from,
+                'owner_id': 1,
+                'access_token': access_token,
+            }
+
+    # Copied and Modified from VKIE Line No. 518
+    def _parse_videos(self, data, video_id):
+        formats = []
+        subtitles = {}
+        video_data = data.get('files') or traverse_obj(data, ('video', 'files'))
+        for format_id, format_url in video_data.items():
+            format_url = url_or_none(format_url)
+            if not format_url or not format_url.startswith(('http', '//', 'rtmp')):
+                continue
+            if (format_id.startswith(('url', 'cache'))
+                    or format_id in ('extra_data', 'live_mp4', 'postlive_mp4')):
+                height = int_or_none(self._search_regex(
+                    r'^(?:url|cache)(\d+)', format_id, 'height', default=None))
+                formats.append({
+                    'format_id': format_id,
+                    'url': format_url,
+                    'ext': 'mp4',
+                    'source_preference': 1,
+                    'height': height,
+                })
+            elif format_id.startswith('hls') and format_id != 'hls_live_playback':
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    format_url, video_id, 'mp4', 'm3u8_native',
+                    m3u8_id=format_id, fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
+            elif format_id.startswith('dash') and format_id not in ('dash_live_playback', 'dash_uni'):
+                fmts, subs = self._extract_mpd_formats_and_subtitles(
+                    format_url, video_id, mpd_id=format_id, fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
+            elif format_id == 'rtmp':
+                formats.append({
+                    'format_id': format_id,
+                    'url': format_url,
+                    'ext': 'flv',
+                })
+
+        for sub in data.get('subs') or {}:
+            subtitles.setdefault(sub.get('lang', 'en'), []).append({
+                'ext': sub.get('title', '.srt').split('.')[-1],
+                'url': url_or_none(sub.get('url')),
+            })
+
+        return {
+            'id': video_id,
+            'formats': formats,
+            'subtitles': subtitles,
+            'title': data.get('title'),
+            'description': data.get('description'),
+            'uploaded_date': data.get('date'),
+            'duration': data.get('duration'),
+            'comments': data.get('comments'),
+            'thumbnails': data.get('image'),
+            'views': data.get('views'),
+        }
+
+    def _entries(self, url, page_id, section, album_id=None):
+        access_token = self._get_access_token(page_id)
+        url, payload = self._get_playlist_payload_and_url(page_id, album_id, access_token) \
+            if section.startswith('play') else self._get_user_payload_and_url(url, access_token)
+
+        next_token = None
+        section_id = None
+        data = self._download_json(
+            url,
+            page_id,
+            query=payload,
+            headers={
+                'content-type': 'application/x-www-form-urlencoded',
+                'origin': 'https://vkvideo.ru',
+            },
+        )['response']
+        video_list = traverse_obj(data, ('catalog', 'videos', {list}), ('videos', {list}), ('items', {list}))
+        count = len(video_list)
+        total = traverse_obj(data, ('albums', 0, 'count', {int}), ('count', {int}))
+        next_token = traverse_obj(data, ('catalogsections', 0, 'next_from'), (('catalog', 'sections', 1, 'next_from')))
+        section_id = traverse_obj(data, ('catalog', 'default_section'))
         while True:
             for video in video_list:
-                v = self._VIDEO._make(video[:2])
-                video_id = '%d_%d' % (v.owner_id, v.id)
-                yield self.url_result(
-                    'https://vk.com/video' + video_id, VKIE.ie_key(), video_id)
+                yield self._parse_videos(video, page_id)
             if count >= total:
                 break
-            video_list_json = self._download_payload('al_video', page_id, {
-                'act': 'load_videos_silent',
-                'offset': count,
-                'oid': page_id,
-                'section': section,
-            })[0][section]
-            new_count = video_list_json['count']
+            url, payload = self._get_playlist_payload_and_url(page_id, album_id, access_token, offset=count) \
+                if section.startswith('play') else self._get_user_payload_and_url(None, access_token, next_token, section_id=section_id)
+            video_list_json = self._download_json(
+                url,
+                page_id,
+                query=payload,
+                headers={
+                    'content-type': 'application/x-www-form-urlencoded',
+                    'origin': 'https://vkvideo.ru',
+                },
+            )['response']
+            video_list = traverse_obj(video_list_json, ('videos'), ('items',))
+            if not video_list:
+                break
+            new_count = len(video_list)
+            next_token = traverse_obj(video_list_json, ('section', 'next_from'))
             if not new_count:
                 self.to_screen(f'{page_id}: Skipping {total - count} unavailable videos')
                 break
             count += new_count
-            video_list = video_list_json['list']
 
     def _real_extract(self, url):
         u_id = self._match_id(url)
@@ -649,12 +777,13 @@ class VKUserVideosIE(VKBaseIE):
                 self._search_json(r'\bvar newCur\s*=', webpage, 'cursor data', u_id),
                 ('oid', {int}, {str_or_none}, {require('page id')}))
             section = traverse_obj(parse_qs(url), ('section', 0)) or 'all'
+            album_id = None
         else:
             page_id, _, section = u_id.partition('_')
+            album_id = section
             section = f'playlist_{section}'
-
         playlist_title = clean_html(get_element_by_class('VideoInfoPanel__title', webpage))
-        return self.playlist_result(self._entries(page_id, section), f'{page_id}_{section}', playlist_title)
+        return self.playlist_result(self._entries(url, page_id, section, album_id), f'{page_id}_{section}', playlist_title)
 
 
 class VKWallPostIE(VKBaseIE):
