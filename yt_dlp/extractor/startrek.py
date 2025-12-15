@@ -1,76 +1,76 @@
 from .common import InfoExtractor
-from ..utils import int_or_none, urljoin
+from .youtube import YoutubeIE
+from ..utils import (
+    clean_html,
+    parse_iso8601,
+    update_url,
+    url_or_none,
+)
+from ..utils.traversal import subs_list_to_dict, traverse_obj
 
 
 class StarTrekIE(InfoExtractor):
-    _WORKING = False
-    _VALID_URL = r'(?P<base>https?://(?:intl|www)\.startrek\.com)/videos/(?P<id>[^/]+)'
+    IE_NAME = 'startrek'
+    IE_DESC = 'STAR TREK'
+    _VALID_URL = r'https?://(?:www\.)?startrek\.com(?:/en-(?:ca|un))?/videos/(?P<id>[^/?#]+)'
     _TESTS = [{
-        'url': 'https://intl.startrek.com/videos/watch-welcoming-jess-bush-to-the-ready-room',
-        'md5': '491df5035c9d4dc7f63c79caaf9c839e',
+        'url': 'https://www.startrek.com/en-un/videos/official-trailer-star-trek-lower-decks-season-4',
         'info_dict': {
-            'id': 'watch-welcoming-jess-bush-to-the-ready-room',
+            'id': 'official-trailer-star-trek-lower-decks-season-4',
             'ext': 'mp4',
-            'title': 'WATCH: Welcoming Jess Bush to The Ready Room',
-            'duration': 1888,
-            'timestamp': 1655388000,
-            'upload_date': '20220616',
-            'description': 'md5:1ffee884e3920afbdd6dd04e926a1221',
-            'thumbnail': r're:https://(?:intl|www)\.startrek\.com/sites/default/files/styles/video_1920x1080/public/images/2022-06/pp_14794_rr_thumb_107_yt_16x9\.jpg(?:\?.+)?',
-            'subtitles': {'en-US': [{
-                'url': r're:https://(?:intl|www)\.startrek\.com/sites/default/files/video/captions/2022-06/TRR_SNW_107_v4\.vtt',
-            }, {
-                'url': 'https://media.startrek.com/2022/06/16/2043801155561/1069981_hls/trr_snw_107_v4-c4bfc25d/stream_vtt.m3u8',
-            }]},
+            'title': 'Official Trailer | Star Trek: Lower Decks - Season 4',
+            'alt_title': 'md5:dd7e3191aaaf9e95db16fc3abd5ef68b',
+            'categories': ['TRAILERS'],
+            'description': 'md5:563d7856ddab99bee7a5e50f45531757',
+            'release_date': '20230722',
+            'release_timestamp': 1690033200,
+            'series': 'Star Trek: Lower Decks',
+            'series_id': 'star-trek-lower-decks',
+            'thumbnail': r're:https?://.+\.(?:jpg|png)',
         },
     }, {
-        'url': 'https://www.startrek.com/videos/watch-ethan-peck-and-gia-sandhu-beam-down-to-the-ready-room',
-        'md5': 'f5ad74fbb86e91e0882fc0a333178d1d',
+        'url': 'https://www.startrek.com/en-ca/videos/my-first-contact-senator-cory-booker',
         'info_dict': {
-            'id': 'watch-ethan-peck-and-gia-sandhu-beam-down-to-the-ready-room',
+            'id': 'my-first-contact-senator-cory-booker',
             'ext': 'mp4',
-            'title': 'WATCH: Ethan Peck and Gia Sandhu Beam Down to The Ready Room',
-            'duration': 1986,
-            'timestamp': 1654221600,
-            'upload_date': '20220603',
-            'description': 'md5:b3aa0edacfe119386567362dec8ed51b',
-            'thumbnail': r're:https://www\.startrek\.com/sites/default/files/styles/video_1920x1080/public/images/2022-06/pp_14792_rr_thumb_105_yt_16x9_1.jpg(?:\?.+)?',
-            'subtitles': {'en-US': [{
-                'url': r're:https://(?:intl|www)\.startrek\.com/sites/default/files/video/captions/2022-06/TRR_SNW_105_v5\.vtt',
-            }]},
+            'title': 'My First Contact: Senator Cory Booker',
+            'alt_title': 'md5:fe74a8bdb0afab421c6e159a7680db4d',
+            'categories': ['MY FIRST CONTACT'],
+            'description': 'md5:a3992ab3b3e0395925d71156bbc018ce',
+            'release_date': '20250401',
+            'release_timestamp': 1743512400,
+            'series': 'Star Trek: The Original Series',
+            'series_id': 'star-trek-the-original-series',
+            'thumbnail': r're:https?://.+\.(?:jpg|png)',
         },
     }]
 
     def _real_extract(self, url):
-        urlbase, video_id = self._match_valid_url(url).group('base', 'id')
+        video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        player = self._search_regex(
-            r'(<\s*div\s+id\s*=\s*"cvp-player-[^<]+<\s*/div\s*>)', webpage, 'player')
+        page_props = self._search_nextjs_data(webpage, video_id)['props']['pageProps']
+        video_data = page_props['video']['data']
+        if youtube_id := video_data.get('youtube_video_id'):
+            return self.url_result(youtube_id, YoutubeIE)
 
-        hls = self._html_search_regex(r'\bdata-hls\s*=\s*"([^"]+)"', player, 'HLS URL')
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls, video_id, 'mp4')
-
-        captions = self._html_search_regex(
-            r'\bdata-captions-url\s*=\s*"([^"]+)"', player, 'captions URL', fatal=False)
-        if captions:
-            subtitles.setdefault('en-US', [])[:0] = [{'url': urljoin(urlbase, captions)}]
-
-        # NB: Most of the data in the json_ld is undesirable
-        json_ld = self._search_json_ld(webpage, video_id, fatal=False)
+        series_id = traverse_obj(video_data, (
+            'series_and_movies', ..., 'series_or_movie', 'slug', {str}, any))
 
         return {
             'id': video_id,
-            'title': self._html_search_regex(
-                r'\bdata-title\s*=\s*"([^"]+)"', player, 'title', json_ld.get('title')),
-            'description': self._html_search_regex(
-                r'(?s)<\s*div\s+class\s*=\s*"header-body"\s*>(.+?)<\s*/div\s*>',
-                webpage, 'description', fatal=False),
-            'duration': int_or_none(self._html_search_regex(
-                r'\bdata-duration\s*=\s*"(\d+)"', player, 'duration', fatal=False)),
-            'formats': formats,
-            'subtitles': subtitles,
-            'thumbnail': urljoin(urlbase, self._html_search_regex(
-                r'\bdata-poster-url\s*=\s*"([^"]+)"', player, 'thumbnail', fatal=False)),
-            'timestamp': json_ld.get('timestamp'),
+            'series': traverse_obj(page_props, (
+                'queried', 'header', 'tab3', 'slices', ..., 'items',
+                lambda _, v: v['link']['slug'] == series_id, 'link_copy', {str}, any)),
+            'series_id': series_id,
+            **traverse_obj(video_data, {
+                'title': ('title', ..., 'text', {clean_html}, any),
+                'alt_title': ('subhead', ..., 'text', {clean_html}, any),
+                'categories': ('category', 'data', 'category_name', {str.upper}, filter, all),
+                'description': ('slices', ..., 'primary', 'content', ..., 'text', {clean_html}, any),
+                'release_timestamp': ('published', {parse_iso8601}),
+                'subtitles': ({'url': 'legacy_subtitle_file'}, all, {subs_list_to_dict(lang='en')}),
+                'thumbnail': ('poster_frame', 'url', {url_or_none}, {update_url(query=None)}),
+                'url': ('legacy_video_url', {url_or_none}),
+            }),
         }

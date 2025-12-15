@@ -14,59 +14,69 @@ class VideocampusSachsenIE(InfoExtractor):
         'corporate.demo.vimp.com',
         'dancehalldatabase.com',
         'drehzahl.tv',
-        'educhannel.hs-gesundheit.de',
+        'educhannel.hs-gesundheit.de',  # Hochschule für Gesundheit NRW
         'emedia.ls.haw-hamburg.de',
         'globale-evolution.net',
         'hohu.tv',
         'htvideos.hightechhigh.org',
         'k210039.vimp.mivitec.net',
         'media.cmslegal.com',
-        'media.hs-furtwangen.de',
-        'media.hwr-berlin.de',
+        'media.fh-swf.de',  # Fachhochschule Südwestfalen
+        'media.hs-furtwangen.de',  # Hochschule Furtwangen
+        'media.hwr-berlin.de',  # Hochschule für Wirtschaft und Recht Berlin
         'mediathek.dkfz.de',
-        'mediathek.htw-berlin.de',
+        'mediathek.htw-berlin.de',  # Hochschule für Technik und Wirtschaft Berlin
         'mediathek.polizei-bw.de',
-        'medien.hs-merseburg.de',
-        'mportal.europa-uni.de',
+        'medien.hs-merseburg.de',  # Hochschule Merseburg
+        'mitmedia.manukau.ac.nz',  # Manukau Institute of Technology Auckland (NZ)
+        'mportal.europa-uni.de',  # Europa-Universität Viadrina
         'pacific.demo.vimp.com',
         'slctv.com',
         'streaming.prairiesouth.ca',
         'tube.isbonline.cn',
-        'univideo.uni-kassel.de',
+        'univideo.uni-kassel.de',  # Universität Kassel
         'ursula2.genetics.emory.edu',
         'ursulablicklevideoarchiv.com',
         'v.agrarumweltpaedagogik.at',
         'video.eplay-tv.de',
-        'video.fh-dortmund.de',
-        'video.hs-offenburg.de',
-        'video.hs-pforzheim.de',
-        'video.hspv.nrw.de',
+        'video.fh-dortmund.de',  # Fachhochschule Dortmund
+        'video.hs-nb.de',  # Hochschule Neubrandenburg
+        'video.hs-offenburg.de',  # Hochschule Offenburg
+        'video.hs-pforzheim.de',  # Hochschule Pforzheim
+        'video.hspv.nrw.de',  # Hochschule für Polizei und öffentliche Verwaltung NRW
         'video.irtshdf.fr',
         'video.pareygo.de',
-        'video.tu-freiberg.de',
-        'videocampus.sachsen.de',
-        'videoportal.uni-freiburg.de',
-        'videoportal.vm.uni-freiburg.de',
+        'video.tu-dortmund.de',  # Technische Universität Dortmund
+        'video.tu-freiberg.de',  # Technische Universität Bergakademie Freiberg
+        'videocampus.sachsen.de',  # Video Campus Sachsen (gemeinsame Videoplattform sächsischer Universitäten, Hochschulen und der Berufsakademie Sachsen)
+        'videoportal.uni-freiburg.de',  # Albert-Ludwigs-Universität Freiburg
+        'videoportal.vm.uni-freiburg.de',  # Albert-Ludwigs-Universität Freiburg
         'videos.duoc.cl',
-        'videos.uni-paderborn.de',
+        'videos.uni-paderborn.de',  # Universität Paderborn
         'vimp-bemus.udk-berlin.de',
         'vimp.aekwl.de',
         'vimp.hs-mittweida.de',
-        'vimp.oth-regensburg.de',
-        'vimp.ph-heidelberg.de',
+        'vimp.landesfilmdienste.de',
+        'vimp.oth-regensburg.de',  # Ostbayerische Technische Hochschule Regensburg
+        'vimp.ph-heidelberg.de',  # Pädagogische Hochschule Heidelberg
         'vimp.sma-events.com',
         'vimp.weka-fachmedien.de',
+        'vimpdesk.com',
         'webtv.univ-montp3.fr',
-        'www.b-tu.de/media',
+        'www.b-tu.de/media',  # Brandenburgische Technische Universität Cottbus-Senftenberg
         'www.bergauf.tv',
         'www.bigcitytv.de',
         'www.cad-videos.de',
         'www.drehzahl.tv',
-        'www.fh-bielefeld.de/medienportal',
         'www.hohu.tv',
+        'www.hsbi.de/medienportal',  # Hochschule Bielefeld
+        'www.logistic.tv',
         'www.orvovideo.com',
+        'www.printtube.co.uk',
         'www.rwe.tv',
         'www.salzi.tv',
+        'www.signtube.co.uk',
+        'www.twb-power.com',
         'www.wenglor-media.com',
         'www2.univ-sba.dz',
     )
@@ -188,22 +198,23 @@ class VideocampusSachsenIE(InfoExtractor):
 class ViMPPlaylistIE(InfoExtractor):
     IE_NAME = 'ViMP:Playlist'
     _VALID_URL = r'''(?x)(?P<host>https?://(?:{}))/(?:
-        album/view/aid/(?P<album_id>[0-9]+)|
-        (?P<mode>category|channel)/(?P<name>[\w-]+)/(?P<id>[0-9]+)
+        (?P<mode1>album)/view/aid/(?P<album_id>[0-9]+)|
+        (?P<mode2>category|channel)/(?P<name>[\w-]+)/(?P<channel_id>[0-9]+)|
+        (?P<mode3>tag)/(?P<tag_id>[0-9]+)
     )'''.format('|'.join(map(re.escape, VideocampusSachsenIE._INSTANCES)))
 
     _TESTS = [{
         'url': 'https://vimp.oth-regensburg.de/channel/Designtheorie-1-SoSe-2020/3',
         'info_dict': {
             'id': 'channel-3',
-            'title': 'Designtheorie 1 SoSe 2020 :: Channels :: ViMP OTH Regensburg',
+            'title': 'Designtheorie 1 SoSe 2020 - Channels - ViMP OTH Regensburg',
         },
         'playlist_mincount': 9,
     }, {
-        'url': 'https://www.fh-bielefeld.de/medienportal/album/view/aid/208',
+        'url': 'https://www.hsbi.de/medienportal/album/view/aid/208',
         'info_dict': {
             'id': 'album-208',
-            'title': 'KG Praktikum ABT/MEC :: Playlists :: FH-Medienportal',
+            'title': 'KG Praktikum ABT/MEC - Playlists - HSBI-Medienportal',
         },
         'playlist_mincount': 4,
     }, {
@@ -213,6 +224,13 @@ class ViMPPlaylistIE(InfoExtractor):
             'title': 'Online-Seminare ONYX - BPS - Bildungseinrichtungen - VCS',
         },
         'playlist_mincount': 7,
+    }, {
+        'url': 'https://videocampus.sachsen.de/tag/26902',
+        'info_dict': {
+            'id': 'tag-26902',
+            'title': 'advanced mobile and v2x communication - Tags - VCS',
+        },
+        'playlist_mincount': 6,
     }]
     _PAGE_SIZE = 10
 
@@ -220,34 +238,37 @@ class ViMPPlaylistIE(InfoExtractor):
         webpage = self._download_webpage(
             f'{host}/media/ajax/component/boxList/{url_part}', playlist_id,
             query={'page': page, 'page_only': 1}, data=urlencode_postdata(data))
-        urls = re.findall(r'"([^"]+/video/[^"]+)"', webpage)
+        urls = re.findall(r'"([^"]*/video/[^"]+)"', webpage)
 
         for url in urls:
             yield self.url_result(host + url, VideocampusSachsenIE)
 
     def _real_extract(self, url):
-        host, album_id, mode, name, playlist_id = self._match_valid_url(url).group(
-            'host', 'album_id', 'mode', 'name', 'id')
+        host, album_id, name, channel_id, tag_id, mode1, mode2, mode3 = self._match_valid_url(url).group(
+            'host', 'album_id', 'name', 'channel_id', 'tag_id', 'mode1', 'mode2', 'mode3')
 
-        webpage = self._download_webpage(url, album_id or playlist_id, fatal=False) or ''
+        mode = mode1 or mode2 or mode3
+        playlist_id = album_id or channel_id or tag_id
+
+        webpage = self._download_webpage(url, playlist_id, fatal=False) or ''
         title = (self._html_search_meta('title', webpage, fatal=False)
                  or self._html_extract_title(webpage))
 
         url_part = (f'aid/{album_id}' if album_id
-                    else f'category/{name}/category_id/{playlist_id}' if mode == 'category'
-                    else f'title/{name}/channel/{playlist_id}')
+                    else f'category/{name}/category_id/{channel_id}' if mode == 'category'
+                    else f'title/{name}/channel/{channel_id}' if mode == 'channel'
+                    else f'tag/{tag_id}')
 
-        mode = mode or 'album'
         data = {
             'vars[mode]': mode,
-            f'vars[{mode}]': album_id or playlist_id,
-            'vars[context]': '4' if album_id else '1' if mode == 'category' else '3',
-            'vars[context_id]': album_id or playlist_id,
+            f'vars[{mode}]': playlist_id,
+            'vars[context]': '4' if album_id else '1' if mode == 'category' else '3' if mode == 'album' else '0',
+            'vars[context_id]': playlist_id,
             'vars[layout]': 'thumb',
             'vars[per_page][thumb]': str(self._PAGE_SIZE),
         }
 
         return self.playlist_result(
             OnDemandPagedList(functools.partial(
-                self._fetch_page, host, url_part, album_id or playlist_id, data), self._PAGE_SIZE),
-            playlist_title=title, id=f'{mode}-{album_id or playlist_id}')
+                self._fetch_page, host, url_part, playlist_id, data), self._PAGE_SIZE),
+            playlist_title=title, id=f'{mode}-{playlist_id}')

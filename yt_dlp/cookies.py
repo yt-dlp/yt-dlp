@@ -125,6 +125,8 @@ def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(),
 
 
 def _extract_firefox_cookies(profile, container, logger):
+    MAX_SUPPORTED_DB_SCHEMA_VERSION = 17
+
     logger.info('Extracting cookies from firefox')
     if not sqlite3:
         logger.warning('Cannot extract cookies from firefox without sqlite3 support. '
@@ -159,9 +161,13 @@ def _extract_firefox_cookies(profile, container, logger):
             raise ValueError(f'could not find firefox container "{container}" in containers.json')
 
     with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
-        cursor = None
-        try:
-            cursor = _open_database_copy(cookie_database_path, tmpdir)
+        cursor = _open_database_copy(cookie_database_path, tmpdir)
+        with contextlib.closing(cursor.connection):
+            db_schema_version = cursor.execute('PRAGMA user_version;').fetchone()[0]
+            if db_schema_version > MAX_SUPPORTED_DB_SCHEMA_VERSION:
+                logger.warning(f'Possibly unsupported firefox cookies database version: {db_schema_version}')
+            else:
+                logger.debug(f'Firefox cookies database version: {db_schema_version}')
             if isinstance(container_id, int):
                 logger.debug(
                     f'Only loading cookies from firefox container "{container}", ID {container_id}')
@@ -180,6 +186,10 @@ def _extract_firefox_cookies(profile, container, logger):
                 total_cookie_count = len(table)
                 for i, (host, name, value, path, expiry, is_secure) in enumerate(table):
                     progress_bar.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
+                    # FF142 upgraded cookies DB to schema version 16 and started using milliseconds for cookie expiry
+                    # Ref: https://github.com/mozilla-firefox/firefox/commit/5869af852cd20425165837f6c2d9971f3efba83d
+                    if db_schema_version >= 16 and expiry is not None:
+                        expiry /= 1000
                     cookie = http.cookiejar.Cookie(
                         version=0, name=name, value=value, port=None, port_specified=False,
                         domain=host, domain_specified=bool(host), domain_initial_dot=host.startswith('.'),
@@ -188,23 +198,30 @@ def _extract_firefox_cookies(profile, container, logger):
                     jar.set_cookie(cookie)
             logger.info(f'Extracted {len(jar)} cookies from firefox')
             return jar
-        finally:
-            if cursor is not None:
-                cursor.connection.close()
 
 
 def _firefox_browser_dirs():
     if sys.platform in ('cygwin', 'win32'):
-        yield os.path.expandvars(R'%APPDATA%\Mozilla\Firefox\Profiles')
+        yield from map(os.path.expandvars, (
+            R'%APPDATA%\Mozilla\Firefox\Profiles',
+            R'%LOCALAPPDATA%\Packages\Mozilla.Firefox_n80bbvh6b1yt2\LocalCache\Roaming\Mozilla\Firefox\Profiles',
+        ))
 
     elif sys.platform == 'darwin':
         yield os.path.expanduser('~/Library/Application Support/Firefox/Profiles')
 
     else:
         yield from map(os.path.expanduser, (
+            # New installations of FF147+ respect the XDG base directory specification
+            # Ref: https://bugzilla.mozilla.org/show_bug.cgi?id=259356
+            os.path.join(_config_home(), 'mozilla/firefox'),
+            # Existing FF version<=146 installations
             '~/.mozilla/firefox',
-            '~/snap/firefox/common/.mozilla/firefox',
+            # Flatpak XDG: https://docs.flatpak.org/en/latest/conventions.html#xdg-base-directories
+            '~/.var/app/org.mozilla.firefox/config/mozilla/firefox',
             '~/.var/app/org.mozilla.firefox/.mozilla/firefox',
+            # Snap installations do not respect the XDG base directory specification
+            '~/snap/firefox/common/.mozilla/firefox',
         ))
 
 
@@ -549,7 +566,7 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
 
 
 def _extract_safari_cookies(profile, logger):
-    if sys.platform != 'darwin':
+    if sys.platform not in ('darwin', 'ios'):
         raise ValueError(f'unsupported platform: {sys.platform}')
 
     if profile:
@@ -761,11 +778,11 @@ def _get_linux_desktop_environment(env, logger):
     GetDesktopEnvironment
     """
     xdg_current_desktop = env.get('XDG_CURRENT_DESKTOP', None)
-    desktop_session = env.get('DESKTOP_SESSION', None)
+    desktop_session = env.get('DESKTOP_SESSION', '')
     if xdg_current_desktop is not None:
         for part in map(str.strip, xdg_current_desktop.split(':')):
             if part == 'Unity':
-                if desktop_session is not None and 'gnome-fallback' in desktop_session:
+                if 'gnome-fallback' in desktop_session:
                     return _LinuxDesktopEnvironment.GNOME
                 else:
                     return _LinuxDesktopEnvironment.UNITY
@@ -794,35 +811,34 @@ def _get_linux_desktop_environment(env, logger):
                 return _LinuxDesktopEnvironment.UKUI
             elif part == 'LXQt':
                 return _LinuxDesktopEnvironment.LXQT
-        logger.info(f'XDG_CURRENT_DESKTOP is set to an unknown value: "{xdg_current_desktop}"')
+        logger.debug(f'XDG_CURRENT_DESKTOP is set to an unknown value: "{xdg_current_desktop}"')
 
-    elif desktop_session is not None:
-        if desktop_session == 'deepin':
-            return _LinuxDesktopEnvironment.DEEPIN
-        elif desktop_session in ('mate', 'gnome'):
-            return _LinuxDesktopEnvironment.GNOME
-        elif desktop_session in ('kde4', 'kde-plasma'):
+    if desktop_session == 'deepin':
+        return _LinuxDesktopEnvironment.DEEPIN
+    elif desktop_session in ('mate', 'gnome'):
+        return _LinuxDesktopEnvironment.GNOME
+    elif desktop_session in ('kde4', 'kde-plasma'):
+        return _LinuxDesktopEnvironment.KDE4
+    elif desktop_session == 'kde':
+        if 'KDE_SESSION_VERSION' in env:
             return _LinuxDesktopEnvironment.KDE4
-        elif desktop_session == 'kde':
-            if 'KDE_SESSION_VERSION' in env:
-                return _LinuxDesktopEnvironment.KDE4
-            else:
-                return _LinuxDesktopEnvironment.KDE3
-        elif 'xfce' in desktop_session or desktop_session == 'xubuntu':
-            return _LinuxDesktopEnvironment.XFCE
-        elif desktop_session == 'ukui':
-            return _LinuxDesktopEnvironment.UKUI
         else:
-            logger.info(f'DESKTOP_SESSION is set to an unknown value: "{desktop_session}"')
-
+            return _LinuxDesktopEnvironment.KDE3
+    elif 'xfce' in desktop_session or desktop_session == 'xubuntu':
+        return _LinuxDesktopEnvironment.XFCE
+    elif desktop_session == 'ukui':
+        return _LinuxDesktopEnvironment.UKUI
     else:
-        if 'GNOME_DESKTOP_SESSION_ID' in env:
-            return _LinuxDesktopEnvironment.GNOME
-        elif 'KDE_FULL_SESSION' in env:
-            if 'KDE_SESSION_VERSION' in env:
-                return _LinuxDesktopEnvironment.KDE4
-            else:
-                return _LinuxDesktopEnvironment.KDE3
+        logger.debug(f'DESKTOP_SESSION is set to an unknown value: "{desktop_session}"')
+
+    if 'GNOME_DESKTOP_SESSION_ID' in env:
+        return _LinuxDesktopEnvironment.GNOME
+    elif 'KDE_FULL_SESSION' in env:
+        if 'KDE_SESSION_VERSION' in env:
+            return _LinuxDesktopEnvironment.KDE4
+        else:
+            return _LinuxDesktopEnvironment.KDE3
+
     return _LinuxDesktopEnvironment.OTHER
 
 
@@ -1276,8 +1292,8 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
     def _really_save(self, f, ignore_discard, ignore_expires):
         now = time.time()
         for cookie in self:
-            if (not ignore_discard and cookie.discard
-                    or not ignore_expires and cookie.is_expired(now)):
+            if ((not ignore_discard and cookie.discard)
+                    or (not ignore_expires and cookie.is_expired(now))):
                 continue
             name, value = cookie.name, cookie.value
             if value is None:
@@ -1333,7 +1349,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
             if len(cookie_list) != self._ENTRY_LEN:
                 raise http.cookiejar.LoadError(f'invalid length {len(cookie_list)}')
             cookie = self._CookieFileEntry(*cookie_list)
-            if cookie.expires_at and not cookie.expires_at.isdigit():
+            if cookie.expires_at and not re.fullmatch(r'[0-9]+(?:\.[0-9]+)?', cookie.expires_at):
                 raise http.cookiejar.LoadError(f'invalid expires at {cookie.expires_at}')
             return line
 
