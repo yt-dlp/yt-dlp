@@ -747,7 +747,10 @@ class VKUserVideosIE(VKBaseIE):
         section_id = traverse_obj(data, ('catalog', 'default_section'))
         while True:
             for video in video_list:
-                yield self._parse_videos(video, page_id)
+                vid = video.get('id')
+                void = video.get('owner_id')
+                video_id = f'{void}_{vid}'
+                yield self._parse_videos(video, video_id)
             if count >= total:
                 break
             url, payload = self._get_playlist_payload_and_url(page_id, album_id, access_token, offset=count) \
