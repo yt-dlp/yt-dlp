@@ -9,6 +9,7 @@ from ..utils import (
     clean_html,
     extract_attributes,
     float_or_none,
+    format_field,
     int_or_none,
     parse_filesize,
     str_or_none,
@@ -410,7 +411,7 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
 
 class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'Bandcamp:weekly'
-    _VALID_URL = r'https?://(?:www\.)?bandcamp\.com/radio/?\?(?:[^#]+&)?show=(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?bandcamp\.com(?:/radio)?/?\?.*?(?<=[?&])show=(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://bandcamp.com/radio?show=224',
         'md5': '61acc9a002bed93986b91168aa3ab433',
@@ -431,45 +432,36 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     }, {
         'url': 'https://bandcamp.com/?blah/blah@&show=228',
         'only_matching': True,
+    }, {
+        'url': 'https://bandcamp.com/radio/?foo=bar&show=224',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
-        show_data = self._download_json(
+        audio_data = self._download_json(
             'https://bandcamp.com/api/bcradio_api/1/get_show',
-            show_id,
-            'Downloading Show Data.',
+            show_id, 'Downloading radio show JSON',
             data=json.dumps({'id': show_id}).encode(),
-            headers={
-                'Content-Type': 'application/json',
-                'Origin': 'https://bandcamp.com',
-                'Referer': 'https://bandcamp.com/',
-            },
-        )
+            headers={'Content-Type': 'application/json'})['radioShowAudio']
         raw_metadata = self._extract_data_attr(
             self._download_webpage(url, show_id, fatal=False), show_id, 'blob', fatal=False)
         metadata = traverse_obj(raw_metadata, (
             'appData', 'shows', lambda _, v: str(v['showId']) == show_id, any)) or {}
-
-        audio_data = show_data['radioShowAudio']
-        thum_id = metadata.get('imageId')
-        thum_url = f'https://f4.bcbits.com/img/000{thum_id}_171.jpg' if thum_id else None
+        thumbnail = format_field(metadata, 'imageId', 'https://f4.bcbits.com/img/%s_0.jpg', default=None)
 
         return {
             'id': show_id,
-            'title': metadata.get('title'),
-            'thumbnail': thum_url or None,
+            'title': metadata.get('title') or audio_data.get('title'),
+            'thumbnail': thumbnail,
             'description': metadata.get('desc') or metadata.get('short_desc'),
-            'duration': float_or_none(show_data.get('duration')),
+            'duration': float_or_none(metadata.get('duration')),
             'is_live': False,
-            'release_date': unified_strdate(metadata.get('date')),
-            'timestamp': unified_timestamp(metadata.get('date')),
+            'release_timestamp': int(unified_strdate(audio_data.get('date')) or unified_strdate(metadata.get('date'))),
             'series': 'Bandcamp Weekly',
             'episode_id': show_id,
             'url': audio_data.get('streamUrl'),
             'ext': 'mp3',
-            'vcodec': 'none',
-            'format_id': f'mp3-{show_id}',
         }
 
 
