@@ -441,6 +441,9 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
             show_id, 'Downloading radio show JSON',
             data=json.dumps({'id': show_id}).encode(),
             headers={'Content-Type': 'application/json'})['radioShowAudio']
+        audio_url = audio_data.get('streamUrl')
+        if not audio_url:
+            raise ExtractorError('Audio not found.')
         raw_metadata = self._extract_data_attr(
             self._download_webpage(url, show_id, fatal=False), show_id, 'blob', fatal=False)
         metadata = traverse_obj(raw_metadata, (
@@ -457,7 +460,7 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
             'release_timestamp': int(unified_strdate(audio_data.get('date')) or unified_strdate(metadata.get('date'))),
             'series': 'Bandcamp Weekly',
             'episode_id': show_id,
-            'url': audio_data.get('streamUrl'),
+            'url': audio_url,
             'ext': 'mp3',
         }
 
