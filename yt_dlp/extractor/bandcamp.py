@@ -412,7 +412,7 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'Bandcamp:weekly'
     _VALID_URL = r'https?://(?:www\.)?bandcamp\.com/radio/?\?(?:[^#]+&)?show=(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://bandcamp.com/?show=224',
+        'url': 'https://bandcamp.com/radio?show=224',
         'md5': '61acc9a002bed93986b91168aa3ab433',
         'info_dict': {
             'id': '224',
