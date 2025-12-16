@@ -443,7 +443,7 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
             headers={'Content-Type': 'application/json'})['radioShowAudio']
         audio_url = audio_data.get('streamUrl')
         if not audio_url:
-            raise ExtractorError('Audio not found.')
+            raise ExtractorError('Audio Url not found.')
         raw_metadata = self._extract_data_attr(
             self._download_webpage(url, show_id, fatal=False), show_id, 'blob', fatal=False)
         metadata = traverse_obj(raw_metadata, (
