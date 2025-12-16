@@ -90,9 +90,14 @@ class VKBaseIE(InfoExtractor):
     def _get_access_token(self, video_id):
         try:
             data = self._download_json(
-                'https://login.vk.com/?act=get_anonym_token&client_secret=o557NLIkAErNhakXrQ7A'
-                '&client_id=52461373&scopes=audio_anonymous%2Cvideo_anonymous%2Cphotos_anonymous%2Cprofile_anonymous',
-                video_id,
+                'https://login.vk.com',
+                query={
+                    'act': 'get_anonym_token',
+                    'client_secret': 'o557NLIkAErNhakXrQ7A',
+                    'client_id': '52461373',
+                    'scopes': 'audio_anonymous%2Cvideo_anonymous%2Cphotos_anonymous%2Cprofile_anonymous',
+                },
+                video_id=video_id,
                 note='Downloading Guest Token',
                 headers={
                     'Referer': 'https://vkvideo.ru/',
@@ -102,6 +107,49 @@ class VKBaseIE(InfoExtractor):
             return data['data']['access_token']
         except Exception:
             raise ExtractorError('Failed To Download Guest token')
+
+    def _parse_formats_and_subtiles(self, video_id, data, is_live=False):
+        formats = []
+        subtitles = {}
+        for format_id, format_url in data.items():
+            format_url = url_or_none(format_url)
+            if not format_url or not format_url.startswith(('http', '//', 'rtmp')):
+                continue
+            if (format_id.startswith(('url', 'cache'))
+                    or format_id in ('extra_data', 'live_mp4', 'postlive_mp4')):
+                height = int_or_none(self._search_regex(
+                    r'^(?:url|cache)(\d+)', format_id, 'height', default=None))
+                formats.append({
+                    'format_id': format_id,
+                    'url': format_url,
+                    'ext': 'mp4',
+                    'source_preference': 1,
+                    'height': height,
+                })
+            elif format_id.startswith('hls') and format_id != 'hls_live_playback':
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    format_url, video_id, 'mp4', 'm3u8_native',
+                    m3u8_id=format_id, fatal=False, live=is_live)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
+            elif format_id.startswith('dash') and format_id not in ('dash_live_playback', 'dash_uni'):
+                fmts, subs = self._extract_mpd_formats_and_subtitles(
+                    format_url, video_id, mpd_id=format_id, fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
+            elif format_id == 'rtmp':
+                formats.append({
+                    'format_id': format_id,
+                    'url': format_url,
+                    'ext': 'flv',
+                })
+
+        for sub in data.get('subs') or {}:
+            subtitles.setdefault(sub.get('lang', 'en'), []).append({
+                'ext': sub.get('title', '.srt').split('.')[-1],
+                'url': url_or_none(sub.get('url')),
+            })
+        return formats, subtitles
 
 
 class VKIE(VKBaseIE):
@@ -512,46 +560,7 @@ class VKIE(VKBaseIE):
             r'class=["\']mv_views_count[^>]+>\s*([\d,.]+)',
             info_page, 'view count', default=None))
 
-        formats = []
-        subtitles = {}
-        for format_id, format_url in data.items():
-            format_url = url_or_none(format_url)
-            if not format_url or not format_url.startswith(('http', '//', 'rtmp')):
-                continue
-            if (format_id.startswith(('url', 'cache'))
-                    or format_id in ('extra_data', 'live_mp4', 'postlive_mp4')):
-                height = int_or_none(self._search_regex(
-                    r'^(?:url|cache)(\d+)', format_id, 'height', default=None))
-                formats.append({
-                    'format_id': format_id,
-                    'url': format_url,
-                    'ext': 'mp4',
-                    'source_preference': 1,
-                    'height': height,
-                })
-            elif format_id.startswith('hls') and format_id != 'hls_live_playback':
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    format_url, video_id, 'mp4', 'm3u8_native',
-                    m3u8_id=format_id, fatal=False, live=is_live)
-                formats.extend(fmts)
-                self._merge_subtitles(subs, target=subtitles)
-            elif format_id.startswith('dash') and format_id not in ('dash_live_playback', 'dash_uni'):
-                fmts, subs = self._extract_mpd_formats_and_subtitles(
-                    format_url, video_id, mpd_id=format_id, fatal=False)
-                formats.extend(fmts)
-                self._merge_subtitles(subs, target=subtitles)
-            elif format_id == 'rtmp':
-                formats.append({
-                    'format_id': format_id,
-                    'url': format_url,
-                    'ext': 'flv',
-                })
-
-        for sub in data.get('subs') or {}:
-            subtitles.setdefault(sub.get('lang', 'en'), []).append({
-                'ext': sub.get('title', '.srt').split('.')[-1],
-                'url': url_or_none(sub.get('url')),
-            })
+        formats, subtitles = self._parse_formats_and_subtiles(video_id, data, is_live)
 
         return {
             'id': video_id,
@@ -667,50 +676,9 @@ class VKUserVideosIE(VKBaseIE):
                 'access_token': access_token,
             }
 
-    # Copied and Modified from VKIE Line No. 512
     def _parse_videos(self, data, video_id):
-        formats = []
-        subtitles = {}
-        video_data = data.get('files') or traverse_obj(data, ('video', 'files'))
-        for format_id, format_url in video_data.items():
-            format_url = url_or_none(format_url)
-            if not format_url or not format_url.startswith(('http', '//', 'rtmp')):
-                continue
-            if (format_id.startswith(('url', 'cache'))
-                    or format_id in ('extra_data', 'live_mp4', 'postlive_mp4')):
-                height = int_or_none(self._search_regex(
-                    r'^(?:url|cache)(\d+)', format_id, 'height', default=None))
-                formats.append({
-                    'format_id': format_id,
-                    'url': format_url,
-                    'ext': 'mp4',
-                    'source_preference': 1,
-                    'height': height,
-                })
-            elif format_id.startswith('hls') and format_id != 'hls_live_playback':
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    format_url, video_id, 'mp4', 'm3u8_native',
-                    m3u8_id=format_id, fatal=False)
-                formats.extend(fmts)
-                self._merge_subtitles(subs, target=subtitles)
-            elif format_id.startswith('dash') and format_id not in ('dash_live_playback', 'dash_uni'):
-                fmts, subs = self._extract_mpd_formats_and_subtitles(
-                    format_url, video_id, mpd_id=format_id, fatal=False)
-                formats.extend(fmts)
-                self._merge_subtitles(subs, target=subtitles)
-            elif format_id == 'rtmp':
-                formats.append({
-                    'format_id': format_id,
-                    'url': format_url,
-                    'ext': 'flv',
-                })
-
-        for sub in data.get('subs') or {}:
-            subtitles.setdefault(sub.get('lang', 'en'), []).append({
-                'ext': sub.get('title', '.srt').split('.')[-1],
-                'url': url_or_none(sub.get('url')),
-            })
-
+        video_data = traverse_obj(data, ('files'), ('video', 'files'))
+        formats, subtitles = self._parse_formats_and_subtiles(video_id, video_data)
         return {
             'id': video_id,
             'formats': formats,
@@ -726,8 +694,10 @@ class VKUserVideosIE(VKBaseIE):
 
     def _entries(self, url, page_id, section, album_id=None):
         access_token = self._get_access_token(page_id)
-        url, payload = self._get_playlist_payload_and_url(page_id, album_id, access_token) \
-            if section.startswith('play') else self._get_user_payload_and_url(url, access_token)
+        if  section.startswith('play'):
+             url, payload = self._get_playlist_payload_and_url(page_id, album_id, access_token)
+        else:
+             url, payload = self._get_user_payload_and_url(url, access_token)
 
         next_token = None
         section_id = None
