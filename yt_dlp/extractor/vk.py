@@ -619,7 +619,6 @@ class VKUserVideosIE(VKBaseIE):
         },
         'playlist_mincount': 33,
     }, {
-    }, {
         'url': 'https://vkvideo.ru/playlist/-174476437_10',
         'info_dict': {
             'id': '-174476437_playlist_10',
