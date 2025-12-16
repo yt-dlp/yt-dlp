@@ -629,7 +629,6 @@ class VKUserVideosIE(VKBaseIE):
         'url': 'https://vkvideo.ru/@fantv_ru',
         'only_matching': True,
     }, {
-    }, {
         'url': 'https://vk.com/video/@gorkyfilmstudio/all',
         'only_matching': True,
     }, {
@@ -694,10 +693,10 @@ class VKUserVideosIE(VKBaseIE):
 
     def _entries(self, url, page_id, section, album_id=None):
         access_token = self._get_access_token(page_id)
-        if  section.startswith('play'):
-             url, payload = self._get_playlist_payload_and_url(page_id, album_id, access_token)
+        if section.startswith('play'):
+            url, payload = self._get_playlist_payload_and_url(page_id, album_id, access_token)
         else:
-             url, payload = self._get_user_payload_and_url(url, access_token)
+            url, payload = self._get_user_payload_and_url(url, access_token)
 
         next_token = None
         section_id = None
@@ -723,8 +722,10 @@ class VKUserVideosIE(VKBaseIE):
                 yield self._parse_videos(video, video_id)
             if count >= total:
                 break
-            url, payload = self._get_playlist_payload_and_url(page_id, album_id, access_token, offset=count) \
-                if section.startswith('play') else self._get_user_payload_and_url(None, access_token, next_token, section_id=section_id)
+            if section.startswith('play'):
+                url, payload = self._get_playlist_payload_and_url(page_id, album_id, access_token, offset=count)
+            else:
+                url, payload = self._get_user_payload_and_url(None, access_token, next_token, section_id=section_id)
             video_list_json = self._download_json(
                 url,
                 page_id,
