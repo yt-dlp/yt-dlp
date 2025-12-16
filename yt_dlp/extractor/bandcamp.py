@@ -447,12 +447,7 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
             },
         )
         raw_metadata = self._extract_data_attr(
-            self._download_webpage(
-                url,
-                show_id,
-                'Downloading Show Metadata.',
-            ), show_id, 'blob',
-        )
+            self._download_webpage(url, show_id, fatal=False), show_id, 'blob', fatal=False)
         metadata = traverse_obj(raw_metadata, (
             'appData', 'shows', lambda _, mb: int(mb.get('showId')) == int(show_id),
             any))
