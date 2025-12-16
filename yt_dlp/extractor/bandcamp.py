@@ -411,7 +411,7 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
 
 class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'Bandcamp:weekly'
-    _VALID_URL = r'https?://(?:www\.)?bandcamp\.com(?:/radio)?/?\?.*?(?<=[?&])show=(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?bandcamp\.com/radio/?\?(?:[^#]+&)?show=(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://bandcamp.com/radio?show=224',
         'md5': '61acc9a002bed93986b91168aa3ab433',
@@ -429,9 +429,6 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
         'params': {
             'format': 'mp3-128',
         },
-    }, {
-        'url': 'https://bandcamp.com/?blah/blah@&show=228',
-        'only_matching': True,
     }, {
         'url': 'https://bandcamp.com/radio/?foo=bar&show=224',
         'only_matching': True,
