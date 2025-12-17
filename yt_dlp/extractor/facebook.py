@@ -770,15 +770,6 @@ class FacebookIE(InfoExtractor):
                     media = attachment.get(key) or {}
                     if media.get('__typename') == 'Video':
                         return parse_graphql_video(media)
-                    elif media := traverse_obj(attachment, ('style_infos', 0, 'fb_shorts_story', 'short_form_video_context', 'playback_video')):
-                        return parse_graphql_video(media)
-                    else:
-                        media = traverse_obj(
-                            attachment,
-                            ('subattachments', ..., 'multi_share_media_card_renderer', 'attachment', 'media'),
-                        )
-                        media = [m for m in media if m.get('__typename') == 'Video']
-                        return parse_graphql_video(media[0] if media else None)
 
                 nodes = variadic(traverse_obj(data, 'nodes', 'node') or [])
                 attachments = traverse_obj(nodes, (
@@ -788,6 +779,19 @@ class FacebookIE(InfoExtractor):
                 for attachment in attachments:
                     ns = traverse_obj(attachment, ('all_subattachments', 'nodes', ..., {dict}),
                                       ('target', 'attachments', ..., 'styles', 'attachment', {dict}))
+                    if not ns:
+                        ns = traverse_obj(attachment, ('subattachments', ..., 'multi_share_media_card_renderer', 'attachment', {dict}))
+                    if not ns:
+                        ns = []
+                        style_infos = traverse_obj(attachment, ('style_infos'))
+                        for info in style_infos:
+                            video_data = traverse_obj(info, ('fb_shorts_story', 'short_form_video_context', 'playback_video', {dict}))
+                            if info.get('__typename') == 'FBShortsShareAttachmentStyleInfo' and video_data:
+                                ns.append({
+                                    'media': {
+                                        '__typename': 'Video',
+                                        **video_data,
+                                    }})
                     for n in ns:
                         parse_attachment(n)
                     parse_attachment(attachment)
