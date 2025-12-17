@@ -178,11 +178,11 @@ class VKBaseIE(InfoExtractor):
                     'ext': 'flv',
                 })
 
-        for sub in data.get('subs') or {}:
-            subtitles.setdefault(sub.get('lang', 'en'), []).append({
-                'ext': sub.get('title', '.srt').split('.')[-1],
-                'url': url_or_none(sub.get('url')),
-            })
+        subtitles = traverse_obj(data, ('subs', ..., {
+            'ext': ('title', {lambda s: s.rpartition('.')[-1]}),
+            'url': ('url', {url_or_none}),
+            'id': 'lang',
+        }, all, {subs_list_to_dict(lang='en', ext='srt')}))
         return formats, subtitles
 
 
