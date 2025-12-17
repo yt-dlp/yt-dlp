@@ -18,6 +18,7 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     jwt_decode_hs256,
+    subs_list_to_dict,
     parse_qs,
     parse_resolution,
     str_or_none,
