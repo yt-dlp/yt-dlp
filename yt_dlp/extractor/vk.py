@@ -686,7 +686,7 @@ class VKUserVideosIE(VKBaseIE):
             'uploaded_date': data.get('date'),
             'duration': data.get('duration'),
             'comments': data.get('comments'),
-            'thumbnails': data.get('image'),
+            'thumbnail': data.get('image'),
             'views': data.get('views'),
         }
 
