@@ -382,7 +382,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                         ('accessibilityText', {lambda x: re.fullmatch(r'(.+), (?:[\d,.]+(?:[KM]| million)?|No) views? - play Short', x)}, 1)), any),
                     'view_count': ('overlayMetadata', 'secondaryText', 'content', {parse_count}),
                 }),
-                thumbnails=self._extract_thumbnails(renderer, 'thumbnail', final_key='sources'))
+                thumbnails=self._extract_thumbnails(
+                    renderer, ('thumbnailViewModel', 'thumbnailViewModel', 'image'), final_key='sources'))
             return
 
     def _video_entry(self, video_renderer):
@@ -1585,7 +1586,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_count': 50,
         'expected_warnings': ['YouTube Music is not directly supported'],
     }, {
-        # TODO: fix test suite, 208163447408c78673b08c172beafe5c310fb167 broke this test
         'note': 'unlisted single video playlist',
         'url': 'https://www.youtube.com/playlist?list=PLt5yu3-wZAlQLfIN0MMgp0wVV6MP3bM4_',
         'info_dict': {
@@ -1885,8 +1885,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 30,
     }, {
         # Shorts url result in shorts tab
-        # TODO: Fix channel id extraction
-        # TODO: fix test suite, 208163447408c78673b08c172beafe5c310fb167 broke this test
         'url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA/shorts',
         'info_dict': {
             'id': 'UCiu-3thuViMebBjw_5nWYrA',
@@ -1915,7 +1913,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'params': {'extract_flat': True},
     }, {
         # Live video status should be extracted
-        # TODO: fix test suite, 208163447408c78673b08c172beafe5c310fb167 broke this test
         'url': 'https://www.youtube.com/channel/UCQvWX73GQygcwXOTSf_VDVg/live',
         'info_dict': {
             'id': 'UCQvWX73GQygcwXOTSf_VDVg',
