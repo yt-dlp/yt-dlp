@@ -125,7 +125,7 @@ class NebulaBaseIE(InfoExtractor):
 
 class NebulaIE(NebulaBaseIE):
     IE_NAME = 'nebula:video'
-    _VALID_URL = rf'{_BASE_URL_RE}/videos/(?P<id>[\w-]+)'
+    _VALID_URL = rf'{_BASE_URL_RE}/(?:embed/)?videos/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://nebula.tv/videos/that-time-disney-remade-beauty-and-the-beast',
         'info_dict': {
@@ -478,3 +478,36 @@ class NebulaChannelIE(NebulaBaseIE):
             playlist_id=collection_slug,
             playlist_title=channel.get('title'),
             playlist_description=channel.get('description'))
+
+
+class NebulaSeasonIE(NebulaBaseIE):
+    IE_NAME = 'nebula:seasons'
+    _VALID_URL = rf'{_BASE_URL_RE}/(?P<sn>\w+)/?season/(?P<sid>\d+)'
+    _TESTS = [{
+        'url': 'https://nebula.tv/jetlag/season/15',
+        'info_dict': {
+            'id': 'jetlag_15',
+        },
+        'playlist_count': 6,
+    }, {
+        'url': 'https://nebula.tv/jetlag/season/14',
+        'info_dict': {
+            'id': 'jetlag_14',
+        },
+        'playlist_mincount': 6,
+    }, {
+        'url': 'https://nebula.tv/jetlag/season/10',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        season_name, season_id = self._match_valid_url(url).group('sn', 'sid')
+        video_id = f'{season_name}_{season_id}'
+        data = self._call_api(f'https://content.api.nebula.app/content/{season_name}/season/{season_id}', video_id)
+        if not data.get('episodes'):
+            raise ExtractorError('No Episodes Found')
+        return self.playlist_result((
+            self.url_result(f'https://nebula.tv/{traverse_obj(ep, ("video", "app_path"))}')
+            for ep in traverse_obj(data, ('episodes')) if ep.get('video')),
+            video_id, data.get('video_channel_slug'), data.get('short_description'),
+        )
