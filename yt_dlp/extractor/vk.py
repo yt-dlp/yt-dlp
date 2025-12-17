@@ -17,6 +17,7 @@ from ..utils import (
     get_element_html_by_id,
     int_or_none,
     join_nonempty,
+    jwt_decode_hs256,
     parse_qs,
     parse_resolution,
     str_or_none,
@@ -24,7 +25,6 @@ from ..utils import (
     try_call,
     unescapeHTML,
     unified_timestamp,
-    jwt_decode_hs256,
     update_url_query,
     url_or_none,
     urlencode_postdata,
@@ -95,18 +95,18 @@ class VKBaseIE(InfoExtractor):
         else:
             return jwt_decode_hs256(token)['exp'] - time.time() < 300
 
-    def _call_api(self, id, path, payload=None):
+    def _call_api(self, vid, path, payload=None):
         if self._validate_jwt(self._guess_token):
             self.write_debug('Refreshing guest token')
             self._guess_token = self._get_access_token()
         data = self._download_json(
             f'{self.API_BASE}/{path}',
-            id,
+            vid,
             query={
                 'v': self.API_VERSION,
                 'client_id': '52461373',
                 'access_token': self._guess_token,
-                **(payload or {})
+                **(payload or {}),
             },
             headers={
                 'content-type': 'application/x-www-form-urlencoded',
@@ -676,6 +676,7 @@ class VKUserVideosIE(VKBaseIE):
         'url': 'https://vkvideo.ru/playlist/-51890028_-2',
         'only_matching': True,
     }]
+
     def _real_initialize(self):
         self._guess_token = self._get_access_token()
 
@@ -700,8 +701,8 @@ class VKUserVideosIE(VKBaseIE):
                 'count': 50,
             }
 
-    def _parse_videos(self,data, video_id):
-        video_data = traverse_obj(data, ('files'), ('video', 'files'),)
+    def _parse_videos(self, data, video_id):
+        video_data = traverse_obj(data, ('files'), ('video', 'files'))
         formats, subtitles = self._parse_formats_and_subtitles(video_id, video_data)
         return {
             'id': video_id,
@@ -721,7 +722,7 @@ class VKUserVideosIE(VKBaseIE):
         data = self._call_api(page_id, path, payload)
         video_list = traverse_obj(data, ('catalog', 'videos', {list}), ('videos', {list}), ('items', {list}))
         remaining = traverse_obj(data, ('albums', 0, 'count', {int}), ('count', {int})) or 0
-        album_count = len(video_list) # Only for Playlist it uses offset.
+        album_count = len(video_list)  # Only for Playlist it uses offset.
         next_token = traverse_obj(data, ('catalogsections', 0, 'next_from'), ('catalog', 'sections', 1, 'next_from'))
         section_id = traverse_obj(data, ('catalog', 'default_section'))
         while remaining > 0:
