@@ -1,6 +1,7 @@
 import collections
 import hashlib
 import re
+import time
 
 from .common import InfoExtractor
 from .dailymotion import DailymotionIE
@@ -23,6 +24,7 @@ from ..utils import (
     try_call,
     unescapeHTML,
     unified_timestamp,
+    jwt_decode_hs256,
     update_url_query,
     url_or_none,
     urlencode_postdata,
@@ -87,28 +89,60 @@ class VKBaseIE(InfoExtractor):
             raise ExtractorError(clean_html(payload[0][1:-1]), expected=True)
         return payload
 
-    def _get_access_token(self, video_id):
+    def _validate_jwt(self, token):
+        if 'anonym.' in token:
+            return jwt_decode_hs256(token.replace('anonym.', ''))['exp'] - time.time() < 300
+        else:
+            return jwt_decode_hs256(token)['exp'] - time.time() < 300
+
+    def _call_api(self, id, path, payload=None):
+        if self._validate_jwt(self._guess_token):
+            self.write_debug('Refreshing guest token')
+            self._guess_token = self._get_access_token()
+        data = self._download_json(
+            f'{self.API_BASE}/{path}',
+            id,
+            query={
+                'v': self.API_VERSION,
+                'client_id': '52461373',
+                'access_token': self._guess_token,
+                **(payload or {})
+            },
+            headers={
+                'content-type': 'application/x-www-form-urlencoded',
+            })
+        response = traverse_obj(data, ('response', {dict}))
+        if not response:
+            raise ExtractorError('Unexpected response from VK API')
+        return response
+
+    def _get_access_token(self):
         try:
             data = self._download_json(
                 'https://login.vk.com',
+                None,
                 query={
                     'act': 'get_anonym_token',
                     'client_secret': 'o557NLIkAErNhakXrQ7A',
-                    'client_id': '52461373',
-                    'scopes': 'audio_anonymous%2Cvideo_anonymous%2Cphotos_anonymous%2Cprofile_anonymous',
+                    'client_id': 52461373,
+                    'scopes': 'scopes=audio_anonymous,video_anonymous,photos_anonymous,profile_anonymous',
                 },
-                video_id=video_id,
-                note='Downloading Guest Token',
+                note='Downloading Guest token',
                 headers={
                     'Referer': 'https://vkvideo.ru/',
                     'Origin': 'https://vkvideo.ru',
                 },
             )
             return data['data']['access_token']
-        except Exception:
-            raise ExtractorError('Failed To Download Guest token')
+        except Exception as e:
+            msg = 'Failed to download Guest token'
+            if isinstance(e, ExtractorError):
+                e.msg = msg
+            else:
+                e = ExtractorError(msg, cause=e)
+            raise e
 
-    def _parse_formats_and_subtiles(self, video_id, data, is_live=False):
+    def _parse_formats_and_subtitles(self, video_id, data, is_live=False):
         formats = []
         subtitles = {}
         for format_id, format_url in data.items():
@@ -560,7 +594,7 @@ class VKIE(VKBaseIE):
             r'class=["\']mv_views_count[^>]+>\s*([\d,.]+)',
             info_page, 'view count', default=None))
 
-        formats, subtitles = self._parse_formats_and_subtiles(video_id, data, is_live)
+        formats, subtitles = self._parse_formats_and_subtitles(video_id, data, is_live)
 
         return {
             'id': video_id,
@@ -600,6 +634,8 @@ class VKUserVideosIE(VKBaseIE):
         rf'{_BASE_URL_RE}/playlist/(?P<id>-?\d+_-?\d+)',
         rf'{_BASE_URL_RE}/(?P<id>@[^/?#]+)(?:/all)?/?(?!\?.*\bz=video)(?:[?#]|$)',
     ]
+    API_BASE = 'https://api.vk.com/method'
+    API_VERSION = 5.269
     _TESTS = [{
         'url': 'https://vk.com/video/@mobidevices',
         'info_dict': {
@@ -640,109 +676,71 @@ class VKUserVideosIE(VKBaseIE):
         'url': 'https://vkvideo.ru/playlist/-51890028_-2',
         'only_matching': True,
     }]
-    API_BASE = 'https://api.vk.com/method'
-    API_Version = 5.269
+    def _real_initialize(self):
+        self._guess_token = self._get_access_token()
 
-    def _get_playlist_payload_and_url(self, owner_id, album_id, access_token, offset=0):
-        url = f'{self.API_BASE}/video.getFromAlbum'
-        return url, {
-            'v': self.API_Version,
-            'album_id': album_id,
-            'fields': 'is_esia_verified,is_sber_verified,is_tinkoff_verified,photo_50,verified',
-            'owner_id': owner_id,
-            'access_token': access_token,
-            'offset': offset,
-            'count': 50,
-        }
-
-    def _get_user_payload_and_url(self, url, access_token, start_from=None, section_id=None):
-        if url:
-            return f'{self.API_BASE}/catalog.getVideo', {
-                'v': self.API_Version,
+    def _get_payload_and_path(self, section_name, url, owner_id, album_id, offset=0, start_from=None, section_id=None):
+        if not section_name.startswith('play') and url:
+            return 'catalog.getVideo', {
                 'need_blocks': 1,
                 'url': url,
                 'owner_id': 0,
-                'access_token': access_token,
             }
-        else:
-            return f'{self.API_BASE}/catalog.getSection', {
-                'v': self.API_Version,
-                'need_blocks': 1,
+        elif not section_name.startswith('play') and not url:
+            return 'catalog.getSection', {
                 'section_id': section_id,
                 'start_from': start_from,
-                'owner_id': 1,
-                'access_token': access_token,
+            }
+        else:
+            return 'video.getFromAlbum', {
+                'album_id': album_id,
+                'fields': 'is_esia_verified,is_sber_verified,is_tinkoff_verified,photo_50,verified',
+                'owner_id': owner_id,
+                'offset': offset,
+                'count': 50,
             }
 
-    def _parse_videos(self, data, video_id):
-        video_data = traverse_obj(data, ('files'), ('video', 'files'))
-        formats, subtitles = self._parse_formats_and_subtiles(video_id, video_data)
+    def _parse_videos(self,data, video_id):
+        video_data = traverse_obj(data, ('files'), ('video', 'files'),)
+        formats, subtitles = self._parse_formats_and_subtitles(video_id, video_data)
         return {
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
             'title': data.get('title'),
             'description': data.get('description'),
-            'uploaded_date': data.get('date'),
+            'timestamp': data.get('date'),
             'duration': data.get('duration'),
             'comments': data.get('comments'),
             'thumbnails': data.get('image'),
-            'views': data.get('views'),
+            'view_count': data.get('views'),
         }
 
     def _entries(self, url, page_id, section, album_id=None):
-        access_token = self._get_access_token(page_id)
-        if section.startswith('play'):
-            url, payload = self._get_playlist_payload_and_url(page_id, album_id, access_token)
-        else:
-            url, payload = self._get_user_payload_and_url(url, access_token)
-
-        next_token = None
-        section_id = None
-        data = self._download_json(
-            url,
-            page_id,
-            query=payload,
-            headers={
-                'content-type': 'application/x-www-form-urlencoded',
-                'origin': 'https://vkvideo.ru',
-            },
-        )['response']
+        path, payload = self._get_payload_and_path(section, url, page_id, album_id)
+        data = self._call_api(page_id, path, payload)
         video_list = traverse_obj(data, ('catalog', 'videos', {list}), ('videos', {list}), ('items', {list}))
-        count = len(video_list)
-        total = traverse_obj(data, ('albums', 0, 'count', {int}), ('count', {int}))
-        next_token = traverse_obj(data, ('catalogsections', 0, 'next_from'), (('catalog', 'sections', 1, 'next_from')))
+        remaining = traverse_obj(data, ('albums', 0, 'count', {int}), ('count', {int})) or 0
+        album_count = len(video_list) # Only for Playlist it uses offset.
+        next_token = traverse_obj(data, ('catalogsections', 0, 'next_from'), ('catalog', 'sections', 1, 'next_from'))
         section_id = traverse_obj(data, ('catalog', 'default_section'))
-        while True:
+        while remaining > 0:
             for video in video_list:
-                vid = video.get('id')
-                void = video.get('owner_id')
+                vid = video.get('id') or traverse_obj(video, ('video', 'id', {int}))
+                void = video.get('owner_id') or traverse_obj(video, ('video', 'owner_id', {int}))
                 video_id = f'{void}_{vid}'
                 yield self._parse_videos(video, video_id)
-            if count >= total:
+                remaining -= 1
+            if remaining <= 0:
                 break
-            if section.startswith('play'):
-                url, payload = self._get_playlist_payload_and_url(page_id, album_id, access_token, offset=count)
-            else:
-                url, payload = self._get_user_payload_and_url(None, access_token, next_token, section_id=section_id)
-            video_list_json = self._download_json(
-                url,
-                page_id,
-                query=payload,
-                headers={
-                    'content-type': 'application/x-www-form-urlencoded',
-                    'origin': 'https://vkvideo.ru',
-                },
-            )['response']
+            path, payload = self._get_payload_and_path(section, None, page_id, album_id, album_count, next_token, section_id)
+            video_list_json = self._call_api(page_id, path, payload)
             video_list = traverse_obj(video_list_json, ('videos'), ('items',))
+            album_count += len(video_list)
             if not video_list:
+                self.to_screen(f'{page_id}: Skipping {remaining} unavailable videos')
                 break
-            new_count = len(video_list)
             next_token = traverse_obj(video_list_json, ('section', 'next_from'))
-            if not new_count:
-                self.to_screen(f'{page_id}: Skipping {total - count} unavailable videos')
-                break
-            count += new_count
 
     def _real_extract(self, url):
         u_id = self._match_id(url)
