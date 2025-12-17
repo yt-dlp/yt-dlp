@@ -495,8 +495,6 @@ class BrightcoveLegacyIE(InfoExtractor):
 
 class BrightcoveNewBaseIE(AdobePassIE):
     def _parse_brightcove_metadata(self, json_data, video_id, headers={}):
-        title = json_data['name'].strip()
-
         formats, subtitles = [], {}
         sources = json_data.get('sources') or []
         for source in sources:
@@ -600,16 +598,18 @@ class BrightcoveNewBaseIE(AdobePassIE):
 
         return {
             'id': video_id,
-            'title': title,
-            'description': clean_html(json_data.get('description')),
             'thumbnails': thumbnails,
             'duration': duration,
-            'timestamp': parse_iso8601(json_data.get('published_at')),
-            'uploader_id': json_data.get('account_id'),
             'formats': formats,
             'subtitles': subtitles,
-            'tags': json_data.get('tags', []),
             'is_live': is_live,
+            **traverse_obj(json_data, {
+                'title': ('name', {clean_html}),
+                'description': ('description', {clean_html}),
+                'tags': ('tags', ..., {str}, filter, all, filter),
+                'timestamp': ('published_at', {parse_iso8601}),
+                'uploader_id': ('account_id', {str}),
+            }),
         }
 
 
@@ -645,10 +645,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
             'uploader_id': '4036320279001',
             'formats': 'mincount:39',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
+        'skip': '404 Not Found',
     }, {
         # playlist stream
         'url': 'https://players.brightcove.net/1752604059001/S13cJdUBz_default/index.html?playlistId=5718313430001',
@@ -709,7 +706,6 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
                 'ext': 'mp4',
                 'title': 'TGD_01-032_5',
                 'thumbnail': r're:^https?://.*\.jpg$',
-                'tags': [],
                 'timestamp': 1646078943,
                 'uploader_id': '1569565978001',
                 'upload_date': '20220228',
@@ -721,7 +717,6 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
                 'ext': 'mp4',
                 'title': 'TGD 01-087 (Airs 05.25.22)_Segment 5',
                 'thumbnail': r're:^https?://.*\.jpg$',
-                'tags': [],
                 'timestamp': 1651604591,
                 'uploader_id': '1569565978001',
                 'upload_date': '20220503',

@@ -51,6 +51,7 @@ class TV5UnisBaseIE(InfoExtractor):
 
 
 class TV5UnisVideoIE(TV5UnisBaseIE):
+    _WORKING = False
     IE_NAME = 'tv5unis:video'
     _VALID_URL = r'https?://(?:www\.)?tv5unis\.ca/videos/[^/]+/(?P<id>\d+)'
     _TEST = {
@@ -71,6 +72,7 @@ class TV5UnisVideoIE(TV5UnisBaseIE):
 
 
 class TV5UnisIE(TV5UnisBaseIE):
+    _WORKING = False
     IE_NAME = 'tv5unis'
     _VALID_URL = r'https?://(?:www\.)?tv5unis\.ca/videos/(?P<id>[^/]+)(?:/saisons/(?P<season_number>\d+)/episodes/(?P<episode_number>\d+))?/?(?:[?#&]|$)'
     _TESTS = [{

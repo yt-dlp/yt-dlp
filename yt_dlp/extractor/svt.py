@@ -88,7 +88,7 @@ class SVTBaseIE(InfoExtractor):
             'id': video_id,
             'title': title,
             'formats': formats,
-            'subtitles': subtitles,
+            'subtitles': self._fixup_subtitles(subtitles),
             'duration': duration,
             'timestamp': timestamp,
             'age_limit': age_limit,
@@ -98,6 +98,16 @@ class SVTBaseIE(InfoExtractor):
             'episode_number': episode_number,
             'is_live': is_live,
         }
+
+    @staticmethod
+    def _fixup_subtitles(subtitles):
+        # See: https://github.com/yt-dlp/yt-dlp/issues/14020
+        fixed_subtitles = {}
+        for lang, subs in subtitles.items():
+            for sub in subs:
+                fixed_lang = f'{lang}-forced' if 'text-open' in sub['url'] else lang
+                fixed_subtitles.setdefault(fixed_lang, []).append(sub)
+        return fixed_subtitles
 
 
 class SVTPlayIE(SVTBaseIE):
@@ -115,6 +125,26 @@ class SVTPlayIE(SVTBaseIE):
                     )
                     '''
     _TESTS = [{
+        'url': 'https://www.svtplay.se/video/eXYgwZb/sverige-och-kriget/1-utbrottet',
+        'md5': '2382036fd6f8c994856c323fe51c426e',
+        'info_dict': {
+            'id': 'ePBvGRq',
+            'ext': 'mp4',
+            'title': '1. Utbrottet',
+            'description': 'md5:02291cc3159dbc9aa95d564e77a8a92b',
+            'series': 'Sverige och kriget',
+            'episode': '1. Utbrottet',
+            'timestamp': 1746921600,
+            'upload_date': '20250511',
+            'duration': 3585,
+            'thumbnail': r're:^https?://(?:.*[\.-]jpg|www.svtstatic.se/image/.*)$',
+            'age_limit': 0,
+            'subtitles': {'sv': 'count:3', 'sv-forced': 'count:3'},
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
         'url': 'https://www.svtplay.se/video/30479064',
         'md5': '2382036fd6f8c994856c323fe51c426e',
         'info_dict': {

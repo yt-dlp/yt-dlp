@@ -22,11 +22,7 @@ class UDNEmbedIE(InfoExtractor):
             'title': '生物老師男變女 全校挺"做自己"',
             'thumbnail': r're:^https?://.*\.jpg$',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
-        'expected_warnings': ['Failed to parse JSON Expecting value'],
+        'skip': 'Invalid URL',
     }, {
         'url': 'https://video.udn.com/embed/news/300040',
         'only_matching': True,
@@ -34,6 +30,18 @@ class UDNEmbedIE(InfoExtractor):
         # From https://video.udn.com/news/303776
         'url': 'https://video.udn.com/play/news/303776',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Update _VALID_URL
+        'url': 'https://video.udn.com/news/1308561',
+        'info_dict': {
+            'id': '1308561',
+            'ext': 'mp4',
+            'title': '影／丹娜絲颱風暴風圈擴大 上午8:30發布海警',
+            'thumbnail': r're:https?://cdn\.udn\.com/img/.+\.jpg',
+        },
+        'expected_warnings': ['Failed to parse JSON'],
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):

@@ -321,7 +321,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
                 f'Only {video_type} will be downloaded. '
                 f'To download everything from the series, remove "/{video_type}" from the URL')
 
-        series_meta, meta_paths = self._call_api(
+        series_meta, _ = self._call_api(
             f'https://api.rctiplus.com/api/v1/program/{series_id}/detail', display_id, 'Downloading series metadata')
         metadata = {
             'age_limit': try_get(series_meta, lambda x: self._AGE_RATINGS[x['age_restriction'][0]['code']]),
