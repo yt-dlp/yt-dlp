@@ -665,14 +665,16 @@ class FacebookIE(InfoExtractor):
                 entries = []
 
                 def parse_graphql_video(video):
-                    v_id = video.get('videoId') or video.get('id') or video_id
-                    reel_info = traverse_obj(
-                        video, ('creation_story', 'short_form_video_context', 'playback_video', {dict}))
-                    if reel_info:
-                        video = video['creation_story']
-                        video['owner'] = traverse_obj(video, ('short_form_video_context', 'video_owner'))
-                        video.update(reel_info)
+                    for story_key in ('fb_shorts_story', 'creation_story'):
+                        reel_info = traverse_obj(
+                            video, (story_key, 'short_form_video_context', 'playback_video', {dict}))
+                        if reel_info:
+                            video = video[story_key]
+                            video['owner'] = traverse_obj(video, ('short_form_video_context', 'video_owner'))
+                            video.update(reel_info)
+                            break
 
+                    v_id = video.get('videoId') or video.get('id') or video_id
                     formats = []
                     q = qualities(['sd', 'hd'])
 
@@ -782,19 +784,12 @@ class FacebookIE(InfoExtractor):
                         ('all_subattachments', 'nodes', ..., {dict}),
                         ('target', 'attachments', ..., 'styles', 'attachment', {dict}),
                         ('subattachments', ..., 'multi_share_media_card_renderer', 'attachment', {dict}))
-                    if not ns:
-                        ns = []
-                        style_infos = traverse_obj(attachment, ('style_infos'))
-                        for info in style_infos:
-                            video_data = traverse_obj(info, ('fb_shorts_story', 'short_form_video_context', 'playback_video', {dict}))
-                            if info.get('__typename') == 'FBShortsShareAttachmentStyleInfo' and video_data:
-                                ns.append({
-                                    'media': {
-                                        '__typename': 'Video',
-                                        **video_data,
-                                    }})
                     for n in ns:
                         parse_attachment(n)
+                    for story in traverse_obj(attachment, (
+                        'style_infos', lambda _, v: v['__typename'] == 'FBShortsShareAttachmentStyleInfo',
+                    )):
+                        parse_graphql_video(story)
                     parse_attachment(attachment)
 
                 edges = try_get(data, lambda x: x['mediaset']['currMedia']['edges'], list) or []
