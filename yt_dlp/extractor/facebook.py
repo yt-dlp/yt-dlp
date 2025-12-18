@@ -777,10 +777,11 @@ class FacebookIE(InfoExtractor):
                     ..., ('styles', 'style_type_renderer', ('throwbackStyles', 'attachment_target_renderer')),
                     'attachment', {dict}))
                 for attachment in attachments:
-                    ns = traverse_obj(attachment, ('all_subattachments', 'nodes', ..., {dict}),
-                                      ('target', 'attachments', ..., 'styles', 'attachment', {dict}))
-                    if not ns:
-                        ns = traverse_obj(attachment, ('subattachments', ..., 'multi_share_media_card_renderer', 'attachment', {dict}))
+                    ns = traverse_obj(
+                        attachment,
+                        ('all_subattachments', 'nodes', ..., {dict}),
+                        ('target', 'attachments', ..., 'styles', 'attachment', {dict}),
+                        ('subattachments', ..., 'multi_share_media_card_renderer', 'attachment', {dict}))
                     if not ns:
                         ns = []
                         style_infos = traverse_obj(attachment, ('style_infos'))
