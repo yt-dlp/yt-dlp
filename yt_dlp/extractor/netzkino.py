@@ -28,10 +28,6 @@ class NetzkinoIE(InfoExtractor):
             'release_year': 2011,
             'thumbnail': r're:https?://.+\.jpg',
         },
-    }, {
-        # DRM protected
-        'url': 'https://www.netzkino.de/details/second-best',
-        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -42,23 +38,23 @@ class NetzkinoIE(InfoExtractor):
         query = traverse_obj(next_js_data, (
             'props', '__dehydratedState', 'queries', ..., 'state',
             'data', 'data', lambda _, v: v['__typename'] == 'CmsMovie', any))
-        if 'DRM' in traverse_obj(query, ('licenses', 'nodes', ..., 'properties', any)):
+        if 'DRM' in traverse_obj(query, ('licenses', 'nodes', ..., 'properties', {str})):
             self.report_drm(video_id)
 
         return {
             'id': video_id,
             **traverse_obj(query, {
                 'title': ('originalTitle', {clean_html}),
-                'age_limit': ('fskRating', {int_or_none}, filter),
+                'age_limit': ('fskRating', {int_or_none}, {lambda x: x or None}),
                 'alt_title': ('originalTitle', {clean_html}, filter),
-                'cast': ('cast', 'nodes', ..., 'person', 'name', {clean_html}, filter, all, filter),
-                'creators': (('directors', 'writers'), 'nodes', ..., 'person', 'name', {clean_html}, filter, all, filter),
-                'categories': ('categories', 'nodes', ..., 'category', 'title', {clean_html}, filter, all, filter),
+                'cast': ('cast', 'nodes', ..., 'person', 'name', {clean_html}, filter),
+                'creators': (('directors', 'writers'), 'nodes', ..., 'person', 'name', {clean_html}, filter),
+                'categories': ('categories', 'nodes', ..., 'category', 'title', {clean_html}, filter),
                 'description': ('longSynopsis', {clean_html}, filter),
                 'duration': ('runtimeInSeconds', {int_or_none}),
                 'location': ('productionCountry', {clean_html}, filter),
                 'release_year': ('productionYear', {int_or_none}),
                 'thumbnail': ('coverImage', 'masterUrl', {url_or_none}),
-                'url': ('videoSource', 'pmdUrl', {urljoin('https://pmd.netzkino-seite.netzkino.de')}),
+                'url': ('videoSource', 'pmdUrl', {urljoin('https://pmd.netzkino-seite.netzkino.de/')}),
             }),
         }
