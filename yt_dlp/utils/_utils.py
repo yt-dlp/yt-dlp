@@ -1262,6 +1262,7 @@ def unified_strdate(date_str, day_first=True):
         return str(upload_date)
 
 
+@partial_application
 def unified_timestamp(date_str, day_first=True, tz_offset=None):
     if not isinstance(date_str, str):
         return None
