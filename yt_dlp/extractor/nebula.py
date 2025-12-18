@@ -517,7 +517,7 @@ class NebulaSeasonIE(NebulaBaseIE):
 
     def _real_extract(self, url):
         season_name, season_id = self._match_valid_url(url).group('series', 'season_number')
-        video_id = f'{season_name}_{season_id}'
+        playlist_id = f'{series}_{season_number}'
         data = self._call_api(f'https://content.api.nebula.app/content/{season_name}/season/{season_id}', video_id)
         if not traverse_obj(data, ('episodes'), ('extras'), ('trailers')):
             traverse_obj(data, ('episodes'), ('extras'), ('trailers'))
