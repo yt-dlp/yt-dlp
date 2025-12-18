@@ -511,12 +511,8 @@ class NebulaSeasonIE(NebulaBaseIE):
             **self._extract_video_metadata(item))
 
     def _entries(self, data):
-        base_url = 'https://nebula.tv/videos'
         for episode in traverse_obj(data, ('episodes', lambda _, v: v['id'])):
-            episode_id = traverse_obj(episode, ('video', 'id'))
-            metadata = self._extract_video_metadata(episode)
-            yield self.url_result(smuggle_url(f'{base_url}/{episode_id}',{'id': episode_id}),
-                NebulaIE, episode_id, url_transparent=True,**metadata)
+            yield self._build_url_result(episode)
         for extra in traverse_obj(data, ('extras', ..., 'items', lambda _, v: v['id'])):
             yield self._build_url_result(extra)
         for trailer in traverse_obj(data, ('trailers', lambda _, v: v['id'])):
