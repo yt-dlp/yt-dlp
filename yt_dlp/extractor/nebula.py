@@ -505,21 +505,21 @@ class NebulaSeasonIE(NebulaBaseIE):
         for episode in traverse_obj(data, ('episodes')):
             episode_id = traverse_obj(episode, ('video', 'id'))
             yield self.url_result(smuggle_url(f'{base_url}/videos/{episode_id}', {'id': episode_id}),
-                NebulaIE, episode_id)
+                                  NebulaIE, episode_id)
         for extra in traverse_obj(data, ('extras')):
             extra_id = traverse_obj(extra, ('items', ..., 'id'))[0]
             yield self.url_result(smuggle_url(f'{base_url}/videos/{extra_id}', {'id': extra_id}),
-                NebulaIE, extra_id)
+                                  NebulaIE, extra_id)
         for trailer in traverse_obj(data, ('trailers')):
             trailer_id = trailer.get('id')
             yield self.url_result(smuggle_url(f'{base_url}/videos/{trailer_id}', {'id': trailer_id}),
-                NebulaIE, trailer_id)
+                                  NebulaIE, trailer_id)
 
     def _real_extract(self, url):
         season_name, season_id = self._match_valid_url(url).group('series', 'season_number')
-        playlist_id = f'{series}_{season_number}'
-        data = self._call_api(f'https://content.api.nebula.app/content/{season_name}/season/{season_id}', video_id)
+        playlist_id = f'{season_name}_{season_id}'
+        data = self._call_api(f'https://content.api.nebula.app/content/{season_name}/season/{season_id}', playlist_id)
         if not traverse_obj(data, ('episodes'), ('extras'), ('trailers')):
             traverse_obj(data, ('episodes'), ('extras'), ('trailers'))
             raise ExtractorError('No Episodes, Outtakes, Trailes Found.')
-        return self.playlist_result(self._entries(data), video_id, data.get('video_channel_slug'), data.get('short_description'))
+        return self.playlist_result(self._entries(data), playlist_id, data.get('video_channel_slug'), data.get('short_description'))
