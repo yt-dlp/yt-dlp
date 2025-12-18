@@ -1279,6 +1279,7 @@ from .nebula import (
     NebulaClassIE,
     NebulaIE,
     NebulaSubscriptionsIE,
+    NebulaSeasonIE,
 )
 from .nekohacker import NekoHackerIE
 from .nerdcubed import NerdCubedFeedIE
