@@ -501,21 +501,21 @@ class NebulaSeasonIE(NebulaBaseIE):
     }]
 
     def _entries(self, data):
-        base_url = 'https://nebula.tv'
+        base_url = 'https://nebula.tv/videos'
         for episode in traverse_obj(data, ('episodes')):
             episode_id = traverse_obj(episode, ('video', 'id'))
             metadata = self._extract_video_metadata(episode)
-            yield self.url_result(smuggle_url(f'{base_url}/videos/{episode_id}', {'id': episode_id}),
+            yield self.url_result(smuggle_url(f'{base_url}/{episode_id}', {'id': episode_id}),
                                   NebulaIE, episode_id, url_transparent=True, **metadata)
         for extra in traverse_obj(data, ('extras')):
             extra_id = traverse_obj(extra, ('items', ..., 'id'))[0]
             metadata = self._extract_video_metadata(traverse_obj(extra, ('items', 0)))
-            yield self.url_result(smuggle_url(f'{base_url}/videos/{extra_id}', {'id': extra_id}),
+            yield self.url_result(smuggle_url(f'{base_url}/{extra_id}', {'id': extra_id}),
                                   NebulaIE, extra_id, url_transparent=True, **metadata)
         for trailer in traverse_obj(data, ('trailers')):
             trailer_id = trailer.get('id')
             metadata = self._extract_video_metadata(trailer)
-            yield self.url_result(smuggle_url(f'{base_url}/videos/{trailer_id}', {'id': trailer_id}),
+            yield self.url_result(smuggle_url(f'{base_url}/{trailer_id}', {'id': trailer_id}),
                                   NebulaIE, trailer_id, url_transparent=True, **metadata)
 
     def _real_extract(self, url):
