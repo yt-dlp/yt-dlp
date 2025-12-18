@@ -45,7 +45,7 @@ class NetzkinoIE(InfoExtractor):
             'id': video_id,
             **traverse_obj(query, {
                 'title': ('originalTitle', {clean_html}),
-                'age_limit': ('fskRating', {int_or_none}, {lambda x: x or None}),
+                'age_limit': ('fskRating', {int_or_none}),
                 'alt_title': ('originalTitle', {clean_html}, filter),
                 'cast': ('cast', 'nodes', ..., 'person', 'name', {clean_html}, filter),
                 'creators': (('directors', 'writers'), 'nodes', ..., 'person', 'name', {clean_html}, filter),
