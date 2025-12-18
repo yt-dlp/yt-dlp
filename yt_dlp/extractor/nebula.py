@@ -500,29 +500,38 @@ class NebulaSeasonIE(NebulaBaseIE):
         'playlist_mincount': 8,
     }]
 
+    def _build_url_result(self, item):
+        url = (
+            traverse_obj(item, ('share_url', {url_or_none}))
+            or urljoin('https://nebula.tv/', item.get('app_path'))
+            or f'https://nebula.tv/videos/{item["slug"]}')
+        return self.url_result(
+            smuggle_url(url, {'id': item['id']}),
+            NebulaIE, url_transparent=True,
+            **self._extract_video_metadata(item))
+
     def _entries(self, data):
         base_url = 'https://nebula.tv/videos'
-        for episode in traverse_obj(data, ('episodes')):
+        for episode in traverse_obj(data, ('episodes', lambda _, v: v['id'])):
             episode_id = traverse_obj(episode, ('video', 'id'))
             metadata = self._extract_video_metadata(episode)
-            yield self.url_result(smuggle_url(f'{base_url}/{episode_id}', {'id': episode_id}),
-                                  NebulaIE, episode_id, url_transparent=True, **metadata)
-        for extra in traverse_obj(data, ('extras')):
-            extra_id = traverse_obj(extra, ('items', ..., 'id'))[0]
-            metadata = self._extract_video_metadata(traverse_obj(extra, ('items', 0)))
-            yield self.url_result(smuggle_url(f'{base_url}/{extra_id}', {'id': extra_id}),
-                                  NebulaIE, extra_id, url_transparent=True, **metadata)
-        for trailer in traverse_obj(data, ('trailers')):
-            trailer_id = trailer.get('id')
-            metadata = self._extract_video_metadata(trailer)
-            yield self.url_result(smuggle_url(f'{base_url}/{trailer_id}', {'id': trailer_id}),
-                                  NebulaIE, trailer_id, url_transparent=True, **metadata)
+            yield self.url_result(smuggle_url(f'{base_url}/{episode_id}',{'id': episode_id}),
+                NebulaIE, episode_id, url_transparent=True,**metadata)
+        for extra in traverse_obj(data, ('extras', ..., 'items', lambda _, v: v['id'])):
+            yield self._build_url_result(extra)
+        for trailer in traverse_obj(data, ('trailers', lambda _, v: v['id'])):
+            yield self._build_url_result(trailer)
 
     def _real_extract(self, url):
-        season_name, season_id = self._match_valid_url(url).group('series', 'season_number')
-        playlist_id = f'{season_name}_{season_id}'
-        data = self._call_api(f'https://content.api.nebula.app/content/{season_name}/season/{season_id}', playlist_id)
+        series, season_id = self._match_valid_url(url).group('series', 'season_number')
+        playlist_id = f'{series}_{season_id}'
+        data = self._call_api(f'https://content.api.nebula.app/content/{series}/season/{season_id}', playlist_id)
         if not traverse_obj(data, ('episodes'), ('extras'), ('trailers')):
             traverse_obj(data, ('episodes'), ('extras'), ('trailers'))
             raise ExtractorError('No Episodes, Outtakes, Trailes Found.')
-        return self.playlist_result(self._entries(data), playlist_id, data.get('video_channel_slug'), data.get('short_description'))
+        return self.playlist_result(
+            self._entries(data), playlist_id,
+            **traverse_obj(data, {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+            }))
