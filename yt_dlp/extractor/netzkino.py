@@ -10,7 +10,7 @@ from ..utils.traversal import traverse_obj
 
 class NetzkinoIE(InfoExtractor):
     _GEO_COUNTRIES = ['DE']
-    _VALID_URL = r'https?://(?:www\.)?netzkino\.de/details/(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?netzkino\.de/details/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.netzkino.de/details/snow-beast',
         'md5': '1a4c90fe40d3ccabce163287e45e56dd',
