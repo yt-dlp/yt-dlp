@@ -226,6 +226,9 @@ class NebulaIE(NebulaBaseIE):
     }, {
         'url': 'https://beta.nebula.tv/videos/money-episode-1-the-draw',
         'only_matching': True,
+    }, {
+        'url': 'https://nebula.tv/embed/videos/jetlag-season-16-trailer',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -482,32 +485,40 @@ class NebulaChannelIE(NebulaBaseIE):
 
 class NebulaSeasonIE(NebulaBaseIE):
     IE_NAME = 'nebula:seasons'
-    _VALID_URL = rf'{_BASE_URL_RE}/(?P<sn>\w+)/?season/(?P<sid>\d+)'
+    _VALID_URL = rf'{_BASE_URL_RE}/(?P<series>\w+)/?season/(?P<season_number>\d+)'
     _TESTS = [{
         'url': 'https://nebula.tv/jetlag/season/15',
         'info_dict': {
             'id': 'jetlag_15',
         },
-        'playlist_count': 6,
+        'playlist_count': 8,
     }, {
         'url': 'https://nebula.tv/jetlag/season/14',
         'info_dict': {
             'id': 'jetlag_14',
         },
-        'playlist_mincount': 6,
-    }, {
-        'url': 'https://nebula.tv/jetlag/season/10',
-        'only_matching': True,
+        'playlist_mincount': 8,
     }]
 
+    def _entries(self, data):
+        base_url = 'https://nebula.tv'
+        for episode in traverse_obj(data, ('episodes')):
+            episode_id = traverse_obj(episode, ('video', 'id'))
+            yield self.url_result(smuggle_url(f'{base_url}/videos/{episode_id}', {'id': episode_id}),
+                NebulaIE, episode_id)
+        for extra in traverse_obj(data, ('extras')):
+            extra_id = traverse_obj(extra, ('items', ..., 'id'))[0]
+            yield self.url_result(smuggle_url(f'{base_url}/videos/{extra_id}', {'id': extra_id}),
+                NebulaIE, extra_id)
+        for trailer in traverse_obj(data, ('trailers')):
+            trailer_id = trailer.get('id')
+            yield self.url_result(smuggle_url(f'{base_url}/videos/{trailer_id}', {'id': trailer_id}),
+                NebulaIE, trailer_id)
+
     def _real_extract(self, url):
-        season_name, season_id = self._match_valid_url(url).group('sn', 'sid')
+        season_name, season_id = self._match_valid_url(url).group('series', 'season_number')
         video_id = f'{season_name}_{season_id}'
         data = self._call_api(f'https://content.api.nebula.app/content/{season_name}/season/{season_id}', video_id)
-        if not data.get('episodes'):
-            raise ExtractorError('No Episodes Found')
-        return self.playlist_result((
-            self.url_result(f'https://nebula.tv/{traverse_obj(ep, ("video", "app_path"))}')
-            for ep in traverse_obj(data, ('episodes')) if ep.get('video')),
-            video_id, data.get('video_channel_slug'), data.get('short_description'),
-        )
+        if not traverse_obj(data, ('episodes'), ('extras'), ('trailers')):
+            raise ExtractorError('No Episodes, Outtakes, Trailes Found.')
+        return self.playlist_result(self._entries(data), video_id, data.get('video_channel_slug'), data.get('short_description'))
