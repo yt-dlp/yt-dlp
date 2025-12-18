@@ -463,6 +463,24 @@ class FacebookIE(InfoExtractor):
             'view_count': int,
         },
         'params': {'extractor_args': {'generic': {'impersonate': ['chrome']}}},
+    }, {
+        'url': 'https://www.facebook.com/permalink.php?story_fbid=pfbid034C2PVBhr311C2jo91sBMNwfvcBeLmspzTXLikp37aEqKsdh47mW7ZX8hcS3Ba8Uul&id=61573780995993',
+        'info_dict': {
+            'id': '895216832928155',
+            'ext': 'mp4',
+            'title': 'Haizz',
+            'uploader_id': '61573780995993',
+        },
+        'params': {'skip_download': True},
+    }, {
+        'url': 'https://www.facebook.com/100065192253855/posts/1165672128949185/?rdid=iLySVLxSX77GPmmj',
+        'info_dict': {
+            'id': '1451622962548421',
+            'ext': 'mp4',
+            'title': 'Stefan Paraschivescu',
+            'uploader_id': '100065192253855',
+        },
+        'params': {'skip_download': True},
     }]
     _SUPPORTED_PAGLETS_REGEX = r'(?:pagelet_group_mall|permalink_video_pagelet|hyperfeed_story_id_[0-9a-f]+)'
     _api_config = {
