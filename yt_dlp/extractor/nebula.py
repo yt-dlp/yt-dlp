@@ -520,5 +520,6 @@ class NebulaSeasonIE(NebulaBaseIE):
         video_id = f'{season_name}_{season_id}'
         data = self._call_api(f'https://content.api.nebula.app/content/{season_name}/season/{season_id}', video_id)
         if not traverse_obj(data, ('episodes'), ('extras'), ('trailers')):
+            traverse_obj(data, ('episodes'), ('extras'), ('trailers'))
             raise ExtractorError('No Episodes, Outtakes, Trailes Found.')
         return self.playlist_result(self._entries(data), video_id, data.get('video_channel_slug'), data.get('short_description'))
