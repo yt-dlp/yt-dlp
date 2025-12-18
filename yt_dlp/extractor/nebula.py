@@ -481,7 +481,7 @@ class NebulaChannelIE(NebulaBaseIE):
 
 
 class NebulaSeasonIE(NebulaBaseIE):
-    IE_NAME = 'nebula:seasons'
+    IE_NAME = 'nebula:season'
     _VALID_URL = rf'{_BASE_URL_RE}/(?P<sn>\w+)/?season/(?P<sid>\d+)'
     _TESTS = [{
         'url': 'https://nebula.tv/jetlag/season/15',
