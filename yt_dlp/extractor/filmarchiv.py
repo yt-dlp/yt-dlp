@@ -8,7 +8,7 @@ from ..utils.traversal import (
 
 
 class FilmArchivIE(InfoExtractor):
-    IE_NAME = 'FILMARCHIV ON'
+    IE_DESC = 'FILMARCHIV ON'
     _VALID_URL = r'https?://(?:www\.)?filmarchiv\.at/de/filmarchiv-on/video/(?P<id>f_[0-9a-zA-Z]{5,})'
     _TESTS = [{
         'url': 'https://www.filmarchiv.at/de/filmarchiv-on/video/f_0305p7xKrXUPBwoNE9x6mh',
