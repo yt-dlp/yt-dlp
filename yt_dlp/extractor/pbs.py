@@ -181,7 +181,7 @@ class PBSIE(InfoExtractor):
     )
 
     IE_NAME = 'pbs'
-    IE_DESC = 'Public Broadcasting Service (PBS) and member stations: {}'.format(', '.join(list(zip(*_STATIONS))[1]))
+    IE_DESC = 'Public Broadcasting Service (PBS) and member stations: {}'.format(', '.join(list(zip(*_STATIONS, strict=True))[1]))
 
     _VALID_URL = r'''(?x)https?://
         (?:
@@ -193,7 +193,7 @@ class PBSIE(InfoExtractor):
               (?:[^/?#]+/){{1,5}}(?P<presumptive_id>[^/?#]+?)(?:\.html)?/?(?:$|[?#])
             )
         )
-    '''.format('|'.join(next(zip(*_STATIONS))))
+    '''.format('|'.join(next(zip(*_STATIONS, strict=True))))
 
     _GEO_COUNTRIES = ['US']
 
