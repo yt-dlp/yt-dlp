@@ -37,7 +37,7 @@ class FilmArchivIE(InfoExtractor):
         webpage = self._download_webpage(url, media_id)
         path = '/'.join((media_id[:6], media_id[6:]))
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            f'https://cdn.filmarchiv.at/{path}_sv1/playlist.m3u8', media_id)
+            f'https://cdn.filmarchiv.at/{path}_v1_sv1/playlist.m3u8', media_id)
 
         return {
             'id': media_id,
