@@ -1271,8 +1271,8 @@ def unified_timestamp(date_str, day_first=True, tz_offset=None):
         r'(?i)[,|]|(mon|tues?|wed(nes)?|thu(rs)?|fri|sat(ur)?|sun)(day)?', '', date_str))
 
     pm_delta = 12 if re.search(r'(?i)PM', date_str) else 0
-    default = dt.timedelta(hours=tz_offset) if tz_offset is not None else None
-    timezone, date_str = extract_timezone(date_str, default=default)
+    timezone, date_str = extract_timezone(
+        date_str, default=dt.timedelta(hours=tz_offset) if tz_offset else None)
 
     # Remove AM/PM + timezone
     date_str = re.sub(r'(?i)\s*(?:AM|PM)(?:\s+[A-Z]+)?', '', date_str)
