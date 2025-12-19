@@ -209,7 +209,7 @@ jobs:
 
       - name: Upload artifacts
         if: github.event_name != 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: build-pypi
           path: |
@@ -236,7 +236,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         with:
           path: artifact
           pattern: build-*
