@@ -607,7 +607,7 @@ class NetEaseMusicDjRadioIE(NetEaseMusicBaseIE):
     IE_NAME = 'netease:djradio'
     IE_DESC = '网易云音乐 - 电台'
     _VALID_URL = r'https?://music\.163\.com/(?:#/)?djradio\?id=(?P<id>[0-9]+)'
-    _TEST = {
+    _TEST = [{
         'url': 'http://music.163.com/#/djradio?id=42',
         'info_dict': {
             'id': '42',
@@ -615,7 +615,13 @@ class NetEaseMusicDjRadioIE(NetEaseMusicBaseIE):
             'description': 'md5:c7381ebd7989f9f367668a5aee7d5f08',
         },
         'playlist_mincount': 40,
-    }
+    }, {
+        'url': 'https://music.163.com/#/dj?id=3706179315',
+        'info_dict': {
+            'id': '3706179315',
+        },
+        'playlist_mincount': 2,
+    }]
     _PAGE_SIZE = 1000
 
     def _real_extract(self, url):
