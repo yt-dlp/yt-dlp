@@ -35,12 +35,6 @@ class FilmArchivIE(InfoExtractor):
     def _real_extract(self, url):
         media_id = self._match_id(url)
         webpage = self._download_webpage(url, media_id)
-
-        description = traverse_obj(webpage, (
-            {find_elements(tag='div', attr='class', value=r'.*\bborder-base-content\b', regex=True)}, ...,
-            {find_elements(tag='div', attr='class', value=r'.*\bprose\b', html=False, regex=True)}, ...,
-            {clean_html}, any))
-
         path = '/'.join((media_id[:6], media_id[6:]))
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             f'https://cdn.filmarchiv.at/{path}_sv1/playlist.m3u8', media_id)
@@ -48,7 +42,10 @@ class FilmArchivIE(InfoExtractor):
         return {
             'id': media_id,
             'title': traverse_obj(webpage, ({find_element(tag='title-div')}, {clean_html})),
-            'description': description,
+            'description': traverse_obj(webpage, (
+                {find_elements(tag='div', attr='class', value=r'.*\bborder-base-content\b', regex=True)}, ...,
+                {find_elements(tag='div', attr='class', value=r'.*\bprose\b', html=False, regex=True)}, ...,
+                {clean_html}, any)),
             'thumbnail': f'https://cdn.filmarchiv.at/{path}_v1/poster.jpg',
             'formats': formats,
             'subtitles': subtitles,
