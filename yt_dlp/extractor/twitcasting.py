@@ -316,9 +316,13 @@ class TwitCastingUserIE(InfoExtractor):
             for mobj in matches:
                 yield self.url_result(urljoin(base_url, mobj.group('url')))
 
+            paging_section = get_element_by_class('tw-pager', webpage)
             next_url = self._search_regex(
-                r'<a href="(/%s/show/%d-\d+)[?"]' % (re.escape(uploader_id), page_num),
-                webpage, 'next url', default=None)
+                rf'<a href="([^"]+&page={page_num}-\d+)',
+                paging_section,
+                'next url',
+                default=None,
+            )
             next_url = urljoin(base_url, next_url)
             if not next_url:
                 return
