@@ -431,6 +431,10 @@ from .cpac import (
 )
 from .cracked import CrackedIE
 from .craftsy import CraftsyIE
+from .createacademy import (
+    CreateAcademyCourseIE,
+    CreateAcademyIE,
+)
 from .crooksandliars import CrooksAndLiarsIE
 from .crowdbunker import (
     CrowdBunkerChannelIE,
