@@ -2,12 +2,14 @@ name: Release (nightly)
 on:
   schedule:
     - cron: '23 23 * * *'
-permissions:
-  contents: read
+
+permissions: {}
 
 jobs:
   check_nightly:
     if: vars.BUILD_NIGHTLY
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     outputs:
       commit: ${{ steps.check_for_new_commits.outputs.commit }}
@@ -15,6 +17,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Check for new commits
         id: check_for_new_commits
         run: |
@@ -35,25 +38,25 @@ jobs:
   release:
     needs: [check_nightly]
     if: ${{ needs.check_nightly.outputs.commit }}
+    permissions:
+      contents: write
+      id-token: write  # mandatory for trusted publishing
     uses: ./.github/workflows/release.yml
     with:
       prerelease: true
       source: ${{ (github.repository != 'yt-dlp/yt-dlp' && vars.NIGHTLY_ARCHIVE_REPO) || 'nightly' }}
       target: 'nightly'
-    permissions:
-      contents: write
-      id-token: write  # mandatory for trusted publishing
     secrets: inherit
 
   publish_pypi:
     needs: [release]
     if: vars.NIGHTLY_PYPI_PROJECT
-    runs-on: ubuntu-latest
     permissions:
       id-token: write  # mandatory for trusted publishing
+    runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         with:
           path: dist
           name: build-pypi

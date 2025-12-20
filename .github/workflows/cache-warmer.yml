@@ -4,10 +4,14 @@ on:
   schedule:
     - cron: '0 22 1,6,11,16,21,27 * *'
 
+permissions: {}
+
 jobs:
   build:
     if: |
       vars.KEEP_CACHE_WARM || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
     uses: ./.github/workflows/build.yml
     with:
       version: '999999'
@@ -19,5 +23,3 @@ jobs:
       musllinux: false
       macos: true
       windows: true
-    permissions:
-      contents: read
