@@ -48,7 +48,6 @@ class FujiTVFODPlus7IE(InfoExtractor):
     def _real_extract(self, url):
         series_id, video_id = self._match_valid_url(url).groups()
         self._request_webpage(HEADRequest(self._FRONTEND_URL), video_id)
-        token = None
         cookies = self._get_cookies(self._FRONTEND_URL)
         # use UT token if available, else fall back to CT token
         token = cookies.get('UT').value if cookies and 'UT' in cookies else None
