@@ -112,6 +112,20 @@ class YahooIE(InfoExtractor):
             },
         }],
     }, {
+        'url': 'https://sports.yahoo.com/video/rams-lose-grip-nfcs-top-174614409.html',
+        'info_dict': {
+            'id': '6b15f100-cf5c-3ad0-9c96-87cbd2f72d4a',
+            'ext': 'mp4',
+            'display_id': 'rams-lose-grip-nfcs-top-174614409',
+            'title': 'Rams lose their grip on NFC\'s top seed — can they still secure the bye?',
+            'description': 'md5:5f4f98ab3c4de80e54c105b6bbb1d024',
+            'view_count': int,
+            'duration': 85,
+            'thumbnail': 'https://s.yimg.com/os/creatr-uploaded-images/2025-12/94fc4840-dd02-11f0-beff-38ba3a4992e3',
+            'timestamp': 1766166374,
+            'upload_date': '20251219',
+        },
+    }, {
         'url': 'https://malaysia.news.yahoo.com/video/bystanders-help-ontario-policeman-bust-190932818.html',
         'only_matching': True,
     }, {
