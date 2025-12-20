@@ -11,10 +11,12 @@ from ..utils import (
     float_or_none,
     format_field,
     int_or_none,
+    join_nonempty,
     parse_filesize,
+    parse_qs,
     str_or_none,
+    strftime_or_none,
     try_get,
-    unified_strdate,
     unified_timestamp,
     update_url_query,
     url_or_none,
@@ -418,13 +420,14 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
         'info_dict': {
             'id': '224',
             'ext': 'mp3',
-            'title': 'BC Weekly April 4th 2017 - Magic Moments',
+            'title': 'Bandcamp Weekly, 2017-04-04',
             'description': 'md5:5d48150916e8e02d030623a48512c874',
-            'duration': 5829.77,
-            'release_date': '20170404',
+            'thumbnail': 'https://f4.bcbits.com/img/9982549_0.jpg',
             'series': 'Bandcamp Weekly',
-            'episode': 'Magic Moments',
             'episode_id': '224',
+            'release_timestamp': 1491264000,
+            'release_date': '20170404',
+            'duration': 5829.77,
         },
         'params': {
             'format': 'mp3-128',
@@ -441,27 +444,36 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
             show_id, 'Downloading radio show JSON',
             data=json.dumps({'id': show_id}).encode(),
             headers={'Content-Type': 'application/json'})['radioShowAudio']
-        audio_url = audio_data.get('streamUrl')
-        if not audio_url:
-            raise ExtractorError('Audio Url not found.')
-        raw_metadata = self._extract_data_attr(
-            self._download_webpage(url, show_id, fatal=False), show_id, 'blob', fatal=False)
-        metadata = traverse_obj(raw_metadata, (
-            'appData', 'shows', lambda _, v: str(v['showId']) == show_id, any)) or {}
-        thumbnail = format_field(metadata, 'imageId', 'https://f4.bcbits.com/img/%s_0.jpg', default=None)
+
+        stream_url = audio_data['streamUrl']
+        format_id = traverse_obj(stream_url, ({parse_qs}, 'enc', -1))
+        encoding, _, bitrate_str = (format_id or '').partition('-')
+
+        webpage = self._download_webpage(url, show_id, fatal=False)
+        metadata = traverse_obj(
+            self._extract_data_attr(webpage, show_id, 'blob', fatal=False),
+            ('appData', 'shows', lambda _, v: str(v['showId']) == show_id, any)) or {}
+
+        series_title = audio_data.get('title') or metadata.get('title')
+        release_timestamp = unified_timestamp(audio_data.get('date')) or unified_timestamp(metadata.get('date'))
 
         return {
             'id': show_id,
-            'title': metadata.get('title') or audio_data.get('title'),
-            'thumbnail': thumbnail,
-            'description': metadata.get('desc') or metadata.get('short_desc'),
-            'duration': float_or_none(metadata.get('duration')),
-            'is_live': False,
-            'release_timestamp': int(unified_strdate(audio_data.get('date')) or unified_strdate(metadata.get('date'))),
-            'series': 'Bandcamp Weekly',
             'episode_id': show_id,
-            'url': audio_url,
-            'ext': 'mp3',
+            'title': join_nonempty(series_title, strftime_or_none(release_timestamp, '%Y-%m-%d'), delim=', '),
+            'series': series_title,
+            'thumbnail': format_field(metadata, 'imageId', 'https://f4.bcbits.com/img/%s_0.jpg', default=None),
+            'description': metadata.get('desc') or metadata.get('short_desc'),
+            'duration': float_or_none(audio_data.get('duration')),
+            'release_timestamp': release_timestamp,
+            'formats': [{
+                'url': stream_url,
+                'format_id': format_id,
+                'ext': encoding or 'mp3',
+                'acodec': encoding or None,
+                'vcodec': 'none',
+                'abr': int_or_none(bitrate_str),
+            }],
         }
 
 
