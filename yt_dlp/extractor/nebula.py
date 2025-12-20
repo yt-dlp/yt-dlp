@@ -487,14 +487,18 @@ class NebulaSeasonIE(NebulaBaseIE):
         'url': 'https://nebula.tv/jetlag/season/15',
         'info_dict': {
             'id': 'jetlag_15',
+            'title': 'Tag: All Stars',
+            'description': 'md5:5aa5b8abf3de71756448dc44ffebb674',
         },
         'playlist_count': 8,
     }, {
         'url': 'https://nebula.tv/jetlag/season/14',
         'info_dict': {
             'id': 'jetlag_14',
+            'title': 'Snake',
+            'description': 'md5:6da9040f1c2ac559579738bfb6919d1e',
         },
-        'playlist_mincount': 8,
+        'playlist_count': 8,
     }]
 
     def _build_url_result(self, item):
