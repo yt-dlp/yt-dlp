@@ -125,7 +125,7 @@ class NebulaBaseIE(InfoExtractor):
 
 class NebulaIE(NebulaBaseIE):
     IE_NAME = 'nebula:video'
-    _VALID_URL = rf'{_BASE_URL_RE}/(?:embed/)?videos/(?P<id>[\w-]+)'
+    _VALID_URL = rf'{_BASE_URL_RE}/videos/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://nebula.tv/videos/that-time-disney-remade-beauty-and-the-beast',
         'info_dict': {
@@ -225,9 +225,6 @@ class NebulaIE(NebulaBaseIE):
         'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://beta.nebula.tv/videos/money-episode-1-the-draw',
-        'only_matching': True,
-    }, {
-        'url': 'https://nebula.tv/embed/videos/jetlag-season-16-trailer',
         'only_matching': True,
     }]
 
