@@ -511,7 +511,7 @@ class NebulaSeasonIE(NebulaBaseIE):
             **self._extract_video_metadata(item))
 
     def _entries(self, data):
-        for episode in traverse_obj(data, ('episodes', lambda _, v: v['id'])):
+        for episode in traverse_obj(data, ('episodes', lambda _, v: v['video']['id'], 'video')):
             yield self._build_url_result(episode)
         for extra in traverse_obj(data, ('extras', ..., 'items', lambda _, v: v['id'])):
             yield self._build_url_result(extra)
@@ -521,10 +521,9 @@ class NebulaSeasonIE(NebulaBaseIE):
     def _real_extract(self, url):
         series, season_id = self._match_valid_url(url).group('series', 'season_number')
         playlist_id = f'{series}_{season_id}'
-        data = self._call_api(f'https://content.api.nebula.app/content/{series}/season/{season_id}', playlist_id)
-        if not traverse_obj(data, ('episodes'), ('extras'), ('trailers')):
-            traverse_obj(data, ('episodes'), ('extras'), ('trailers'))
-            raise ExtractorError('No Episodes, Outtakes, Trailes Found.')
+        data = self._call_api(
+            f'https://content.api.nebula.app/content/{series}/season/{season_id}', playlist_id)
+
         return self.playlist_result(
             self._entries(data), playlist_id,
             **traverse_obj(data, {
