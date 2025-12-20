@@ -13,6 +13,7 @@ from ..utils import (
     parse_iso8601,
     traverse_obj,
     try_get,
+    update_url,
     url_or_none,
 )
 
@@ -33,7 +34,7 @@ class YahooIE(InfoExtractor):
             'upload_date': '20131129',
             'display_id': 'china-moses-crazy-blues-104538833',
             'view_count': int,
-            'thumbnail': r're:http://media\.zenfs\.com/.+',
+            'thumbnail': r're:https://media\.zenfs\.com/.+',
         },
     }, {
         'url': 'https://www.yahoo.com/movies/v/true-story-trailer-173000497.html',
@@ -48,7 +49,7 @@ class YahooIE(InfoExtractor):
             'upload_date': '20141218',
             'display_id': 'true-story-trailer-173000497',
             'view_count': int,
-            'thumbnail': r're:http://media\.zenfs\.com/.+\.jpg',
+            'thumbnail': r're:https://media\.zenfs\.com/.+\.jpg',
         },
     }, {
         'url': 'https://gma.yahoo.com/pizza-delivery-man-surprised-huge-tip-college-kids-195200785.html',
@@ -179,16 +180,18 @@ class YahooIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': traverse_obj(video, ('title', {clean_html})),
             'formats': formats,
-            'description': clean_html(video.get('description')),
-            'thumbnail': url_or_none(video.get('thumbnail')),
-            'timestamp': parse_iso8601(video.get('publish_time')),
             'subtitles': subtitles,
-            'duration': int_or_none(video.get('duration')),
-            'view_count': int_or_none(video.get('view_count')),
             'is_live': is_live,
-            'series': traverse_obj(video, ('show_name', {str}, filter)),
+            **traverse_obj(video, {
+                'title': ('title', {clean_html}),
+                'description': ('description', {clean_html}),
+                'thumbnail': ('thumbnail', {url_or_none}, {update_url(scheme='https')}),
+                'timestamp': ('publish_time', {parse_iso8601}),
+                'duration': ('duration', {int_or_none}),
+                'view_count': ('view_count', {int_or_none}),
+                'series': ('show_name', {str}, filter),
+            }),
         }
 
     def _real_extract(self, url):
