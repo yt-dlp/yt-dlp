@@ -876,13 +876,19 @@ class Popen(subprocess.Popen):
             kwargs.setdefault('encoding', 'utf-8')
             kwargs.setdefault('errors', 'replace')
 
-        if shell and os.name == 'nt' and kwargs.get('executable') is None:
-            if not isinstance(args, str):
-                args = shell_quote(args, shell=True)
-            shell = False
-            # Set variable for `cmd.exe` newline escaping (see `utils.shell_quote`)
-            env['='] = '"^\n\n"'
-            args = f'{self.__comspec()} /Q /S /D /V:OFF /E:ON /C "{args}"'
+        if os.name == 'nt' and kwargs.get('executable') is None:
+            # Must apply shell escaping if we are trying to run a batch file
+            # These conditions should be very specific to limit impact
+            if not shell and isinstance(args, list) and args and args[0].lower().endswith(('.bat', '.cmd')):
+                shell = True
+
+            if shell:
+                if not isinstance(args, str):
+                    args = shell_quote(args, shell=True)
+                shell = False
+                # Set variable for `cmd.exe` newline escaping (see `utils.shell_quote`)
+                env['='] = '"^\n\n"'
+                args = f'{self.__comspec()} /Q /S /D /V:OFF /E:ON /C "{args}"'
 
         super().__init__(args, *remaining, env=env, shell=shell, **kwargs, startupinfo=self._startupinfo)
 
@@ -2150,14 +2156,14 @@ def check_executable(exe, args=[]):
     return exe
 
 
-def _get_exe_version_output(exe, args):
+def _get_exe_version_output(exe, args, ignore_return_code=False):
     try:
         # STDIN should be redirected too. On UNIX-like systems, ffmpeg triggers
         # SIGTTOU if yt-dlp is run in the background.
         # See https://github.com/ytdl-org/youtube-dl/issues/955#issuecomment-209789656
         stdout, _, ret = Popen.run([encodeArgument(exe), *args], text=True,
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        if ret:
+        if not ignore_return_code and ret:
             return None
     except OSError:
         return False
@@ -2889,8 +2895,9 @@ def limit_length(s, length):
     return s
 
 
-def version_tuple(v):
-    return tuple(int(e) for e in re.split(r'[-.]', v))
+def version_tuple(v, *, lenient=False):
+    parse = int_or_none(default=-1) if lenient else int
+    return tuple(parse(e) for e in re.split(r'[-.]', v))
 
 
 def is_outdated_version(version, limit, assume_new=True):

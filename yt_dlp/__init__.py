@@ -61,8 +61,15 @@ from .utils import (
     shell_quote,
     variadic,
     write_string,
+
 )
 from .utils._utils import _UnsafeExtensionError
+from .utils._jsruntime import (
+    BunJsRuntime as _BunJsRuntime,
+    DenoJsRuntime as _DenoJsRuntime,
+    NodeJsRuntime as _NodeJsRuntime,
+    QuickJsRuntime as _QuickJsRuntime,
+)
 from .YoutubeDL import YoutubeDL
 
 
@@ -773,6 +780,10 @@ def parse_options(argv=None):
         else opts.audioformat if (opts.extractaudio and opts.audioformat in FFmpegExtractAudioPP.SUPPORTED_EXTS)
         else None)
 
+    js_runtimes = {
+        runtime.lower(): {'path': path} for runtime, path in (
+            [*arg.split(':', 1), None][:2] for arg in opts.js_runtimes)}
+
     return ParsedOptions(parser, opts, urls, {
         'usenetrc': opts.usenetrc,
         'netrc_location': opts.netrc_location,
@@ -940,6 +951,8 @@ def parse_options(argv=None):
         'geo_bypass_country': opts.geo_bypass_country,
         'geo_bypass_ip_block': opts.geo_bypass_ip_block,
         'useid': opts.useid or None,
+        'js_runtimes': js_runtimes,
+        'remote_components': opts.remote_components,
         'warn_when_outdated': opts.update_self is None,
         '_warnings': warnings,
         '_deprecation_warnings': deprecation_warnings,
@@ -1080,6 +1093,16 @@ def main(argv=None):
 
 
 from .extractor import gen_extractors, list_extractors
+
+# Register JS runtimes and remote components
+from .globals import supported_js_runtimes, supported_remote_components
+supported_js_runtimes.value['deno'] = _DenoJsRuntime
+supported_js_runtimes.value['node'] = _NodeJsRuntime
+supported_js_runtimes.value['bun'] = _BunJsRuntime
+supported_js_runtimes.value['quickjs'] = _QuickJsRuntime
+
+supported_remote_components.value.append('ejs:github')
+supported_remote_components.value.append('ejs:npm')
 
 __all__ = [
     'YoutubeDL',

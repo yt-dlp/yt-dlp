@@ -70,7 +70,17 @@ def _get_variant_and_executable_path():
             return 'linux_static_exe', static_exe_path
 
         # We know it's a PyInstaller bundle, but is it "onedir" or "onefile"?
-        suffix = 'dir' if sys._MEIPASS == os.path.dirname(path) else 'exe'
+        if (
+            # PyInstaller >= 6.0.0 sets sys._MEIPASS for onedir to its `_internal` subdirectory
+            # Ref: https://pyinstaller.org/en/v6.0.0/CHANGES.html#incompatible-changes
+            sys._MEIPASS == f'{os.path.dirname(path)}/_internal'
+            # compat: PyInstaller < 6.0.0
+            or sys._MEIPASS == os.path.dirname(path)
+        ):
+            suffix = 'dir'
+        else:
+            suffix = 'exe'
+
         system_platform = remove_end(sys.platform, '32')
 
         if system_platform == 'darwin':
@@ -133,8 +143,9 @@ _FILE_SUFFIXES = {
 
 _NON_UPDATEABLE_REASONS = {
     **dict.fromkeys(_FILE_SUFFIXES),  # Updatable
-    **{variant: f'Auto-update is not supported for unpackaged {name} executable; Re-download the latest release'
-       for variant, name in {'win32_dir': 'Windows', 'darwin_dir': 'MacOS', 'linux_dir': 'Linux'}.items()},
+    **dict.fromkeys(
+        ['linux_armv7l_dir', *(f'{variant[:-4]}_dir' for variant in _FILE_SUFFIXES if variant.endswith('_exe'))],
+        'Auto-update is not supported for unpackaged executables; Re-download the latest release'),
     'py2exe': 'py2exe is no longer supported by yt-dlp; This executable cannot be updated',
     'source': 'You cannot update when running from source code; Use git to pull the latest changes',
     'unknown': 'You installed yt-dlp from a manual build or with a package manager; Use that to update',

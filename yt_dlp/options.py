@@ -441,7 +441,7 @@ def create_parser():
             '("-" for stdin). Can be used multiple times and inside other configuration files'))
     general.add_option(
         '--plugin-dirs',
-        metavar='PATH',
+        metavar='DIR',
         dest='plugin_dirs',
         action='callback',
         callback=_list_from_options_callback,
@@ -456,6 +456,48 @@ def create_parser():
         '--no-plugin-dirs',
         dest='plugin_dirs', action='store_const', const=[],
         help='Clear plugin directories to search, including defaults and those provided by previous --plugin-dirs')
+    general.add_option(
+        '--js-runtimes',
+        metavar='RUNTIME[:PATH]',
+        dest='js_runtimes',
+        action='callback',
+        callback=_list_from_options_callback,
+        type='str',
+        callback_kwargs={'delim': None},
+        default=['deno'],
+        help=(
+            'Additional JavaScript runtime to enable, with an optional location for the runtime '
+            '(either the path to the binary or its containing directory). '
+            'This option can be used multiple times to enable multiple runtimes. '
+            'Supported runtimes are (in order of priority, from highest to lowest): deno, node, quickjs, bun. '
+            'Only "deno" is enabled by default. The highest priority runtime that is both enabled and '
+            'available will be used. In order to use a lower priority runtime when "deno" is available, '
+            '--no-js-runtimes needs to be passed before enabling other runtimes'))
+    general.add_option(
+        '--no-js-runtimes',
+        dest='js_runtimes', action='store_const', const=[],
+        help='Clear JavaScript runtimes to enable, including defaults and those provided by previous --js-runtimes')
+    general.add_option(
+        '--remote-components',
+        metavar='COMPONENT',
+        dest='remote_components',
+        action='callback',
+        callback=_list_from_options_callback,
+        type='str',
+        callback_kwargs={'delim': None},
+        default=[],
+        help=(
+            'Remote components to allow yt-dlp to fetch when required. '
+            'This option is currently not needed if you are using an official executable '
+            'or have the requisite version of the yt-dlp-ejs package installed. '
+            'You can use this option multiple times to allow multiple components. '
+            'Supported values: ejs:npm (external JavaScript components from npm), '
+            'ejs:github (external JavaScript components from yt-dlp-ejs GitHub). '
+            'By default, no remote components are allowed'))
+    general.add_option(
+        '--no-remote-components',
+        dest='remote_components', action='store_const', const=[],
+        help='Disallow fetching of all remote components, including any previously allowed by --remote-components or defaults.')
     general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
@@ -647,7 +689,7 @@ def create_parser():
         '-I', '--playlist-items',
         dest='playlist_items', metavar='ITEM_SPEC', default=None,
         help=(
-            'Comma separated playlist_index of the items to download. '
+            'Comma-separated playlist_index of the items to download. '
             'You can specify a range using "[START]:[STOP][:STEP]". For backward compatibility, START-STOP is also supported. '
             'Use negative indices to count from the right and negative STEP to download in reverse order. '
             'E.g. "-I 1:3,7,-5::2" used on a playlist of size 15 will download the items at index 1,2,3,7,11,13,15'))
@@ -1170,7 +1212,7 @@ def create_parser():
         help='Maximum number of seconds to sleep. Can only be used along with --min-sleep-interval')
     workarounds.add_option(
         '--sleep-subtitles', metavar='SECONDS',
-        dest='sleep_interval_subtitles', default=0, type=int,
+        dest='sleep_interval_subtitles', default=0, type=float,
         help='Number of seconds to sleep before each subtitle download')
 
     verbosity = optparse.OptionGroup(parser, 'Verbosity and Simulation Options')

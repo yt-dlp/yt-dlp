@@ -1403,6 +1403,9 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(version_tuple('1'), (1,))
         self.assertEqual(version_tuple('10.23.344'), (10, 23, 344))
         self.assertEqual(version_tuple('10.1-6'), (10, 1, 6))  # avconv style
+        self.assertEqual(version_tuple('invalid', lenient=True), (-1,))
+        self.assertEqual(version_tuple('1.2.3', lenient=True), (1, 2, 3))
+        self.assertEqual(version_tuple('12.34-something', lenient=True), (12, 34, -1))
 
     def test_detect_exe_version(self):
         self.assertEqual(detect_exe_version('''ffmpeg version 1.2.1
