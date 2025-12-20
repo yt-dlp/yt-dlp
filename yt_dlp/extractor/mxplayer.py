@@ -7,7 +7,39 @@ from ..utils import (
 )
 
 
-class MxplayerIE(InfoExtractor):
+class MxplayerBaseIE(InfoExtractor):
+
+    def _parse_video_data(self, video_id, data_json, display_id=None):
+        formats, subtitles = [], {}
+        m3u8_url = urljoin('https://llvod.mxplay.com/', traverse_obj(
+            data_json, ('stream', (('thirdParty', 'hlsUrl'), ('hls', 'high'))), get_all=False))
+        if m3u8_url:
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, display_id, 'mp4', fatal=False)
+        mpd_url = urljoin('https://llvod.mxplay.com/', traverse_obj(
+            data_json, ('stream', (('thirdParty', 'dashUrl'), ('dash', 'high'))), get_all=False))
+        if mpd_url:
+            fmts, subs = self._extract_mpd_formats_and_subtitles(mpd_url, display_id, fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
+
+        season = traverse_obj(data_json, ('container', 'title'))
+        return {
+            'id': video_id,
+            'title': data_json.get('title'),
+            'formats': formats,
+            'subtitles': subtitles,
+            'display_id': display_id,
+            'duration': data_json.get('duration'),
+            'series': traverse_obj(data_json, ('container', 'container', 'title')),
+            'description': data_json.get('description'),
+            'season': season,
+            'season_number': int_or_none(
+                self._search_regex(r'Season (\d+)', season, 'Season Number', default=None)),
+            'episode_number': data_json.get('sequence') or None,
+        }
+
+
+class MxplayerIE(MxplayerBaseIE):
     _VALID_URL = r'https?://(?:www\.)?mxplayer\.in/(?P<type>movie|show/[-\w]+/[-\w]+)/(?P<display_id>[-\w]+)-(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.mxplayer.in/show/watch-my-girlfriend-is-an-alien-hindi-dubbed/season-1/episode-1-online-9d2013d31d5835bb8400e3b3c5e7bb72',
@@ -168,36 +200,10 @@ class MxplayerIE(InfoExtractor):
         data_json = self._download_json(
             f'https://api.mxplay.com/v1/web/detail/video?type={video_type}&id={video_id}', display_id)
 
-        formats, subtitles = [], {}
-        m3u8_url = urljoin('https://llvod.mxplay.com/', traverse_obj(
-            data_json, ('stream', (('thirdParty', 'hlsUrl'), ('hls', 'high'))), get_all=False))
-        if m3u8_url:
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, display_id, 'mp4', fatal=False)
-        mpd_url = urljoin('https://llvod.mxplay.com/', traverse_obj(
-            data_json, ('stream', (('thirdParty', 'dashUrl'), ('dash', 'high'))), get_all=False))
-        if mpd_url:
-            fmts, subs = self._extract_mpd_formats_and_subtitles(mpd_url, display_id, fatal=False)
-            formats.extend(fmts)
-            self._merge_subtitles(subs, target=subtitles)
-
-        season = traverse_obj(data_json, ('container', 'title'))
-        return {
-            'id': video_id,
-            'title': data_json.get('title'),
-            'formats': formats,
-            'subtitles': subtitles,
-            'display_id': display_id,
-            'duration': data_json.get('duration'),
-            'series': traverse_obj(data_json, ('container', 'container', 'title')),
-            'description': data_json.get('description'),
-            'season': season,
-            'season_number': int_or_none(
-                self._search_regex(r'Season (\d+)', season, 'Season Number', default=None)),
-            'episode_number': data_json.get('sequence') or None,
-        }
+        return self._parse_video_data(video_id, data_json, display_id)
 
 
-class MxplayerShowIE(InfoExtractor):
+class MxplayerShowIE(MxplayerBaseIE):
     _VALID_URL = r'https?://(?:www\.)?mxplayer\.in/show/(?P<display_id>[-\w]+)-(?P<id>\w+)/?(?:$|[#?])'
     _TESTS = [{
         'url': 'https://www.mxplayer.in/show/watch-chakravartin-ashoka-samrat-series-online-a8f44e3cc0814b5601d17772cedf5417',
@@ -205,6 +211,13 @@ class MxplayerShowIE(InfoExtractor):
         'info_dict': {
             'id': 'a8f44e3cc0814b5601d17772cedf5417',
             'title': 'Watch Chakravartin Ashoka Samrat Series Online',
+        },
+    }, {
+        'url': 'https://www.mxplayer.in/show/watch-perfect-and-casual-series-online-260fa26a09b787550d5be90013fd2d4b',
+        'playlist_mincount': 24,
+        'info_dict': {
+            'id': '260fa26a09b787550d5be90013fd2d4b',
+            'title': 'Watch Perfect And Casual Series Online',
         },
     }]
 
@@ -227,10 +240,7 @@ class MxplayerShowIE(InfoExtractor):
                     headers={'Referer': 'https://mxplayer.in'},
                     note=f'Downloading JSON metadata page {page_num}')
                 for episode in season_json.get('items') or []:
-                    video_url = episode['webUrl']
-                    yield self.url_result(
-                        f'https://mxplayer.in{video_url}',
-                        ie=MxplayerIE.ie_key(), video_id=video_url.split('-')[-1])
+                    yield self._parse_video_data(episode.get('id'), episode, None)
                 next_url = season_json.get('next')
 
     def _real_extract(self, url):
