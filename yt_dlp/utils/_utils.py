@@ -1263,7 +1263,7 @@ def unified_strdate(date_str, day_first=True):
 
 
 @partial_application
-def unified_timestamp(date_str, day_first=True, tz_offset=None):
+def unified_timestamp(date_str, day_first=True, tz_offset=0):
     if not isinstance(date_str, str):
         return None
 
