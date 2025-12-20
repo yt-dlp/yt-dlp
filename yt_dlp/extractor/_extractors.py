@@ -1279,6 +1279,7 @@ from .nebula import (
     NebulaChannelIE,
     NebulaClassIE,
     NebulaIE,
+    NebulaSeasonIE,
     NebulaSubscriptionsIE,
 )
 from .nekohacker import NekoHackerIE
