@@ -127,6 +127,7 @@ class ZDFBaseIE(InfoExtractor):
                                 **parse_codecs(quality.get('mimeCodec')),
                                 'height': height,
                                 'width': width,
+                                'filesize': int_or_none(variant.get('filesize')),
                                 'format_id': join_nonempty('http', stream.get('type')),
                                 'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None)),
                             }]
