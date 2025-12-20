@@ -61,7 +61,7 @@ class YahooIE(InfoExtractor):
         },
         'skip': 'No longer exists',
     }, {
-        'url': 'http://news.yahoo.com/video/china-moses-crazy-blues-104538833.html',
+        'url': 'https://news.yahoo.com/video/china-moses-crazy-blues-104538833.html',
         'md5': '88e209b417f173d86186bef6e4d1f160',
         'info_dict': {
             'id': 'f885cf7f-43d4-3450-9fac-46ac30ece521',
@@ -69,27 +69,33 @@ class YahooIE(InfoExtractor):
             'title': 'China Moses Is Crazy About the Blues',
             'description': 'md5:9900ab8cd5808175c7b3fe55b979bed0',
             'duration': 128,
-            'timestamp': 1385722202,
+            'timestamp': 1385721938,
             'upload_date': '20131129',
+            'display_id': 'china-moses-crazy-blues-104538833',
+            'view_count': int,
+            'thumbnail': r're:http://media\.zenfs\.com/.+',
         },
     }, {
         'url': 'https://www.yahoo.com/movies/v/true-story-trailer-173000497.html',
-        'md5': '2a9752f74cb898af5d1083ea9f661b58',
+        # 'md5': '989396ae73d20c6f057746fb226aa215',  # varies between this and 'b17ac378b1134fa44370fb27db09a744'
         'info_dict': {
             'id': '071c4013-ce30-3a93-a5b2-e0413cd4a9d1',
             'ext': 'mp4',
             'title': '\'True Story\' Trailer',
             'description': 'True Story',
             'duration': 150,
-            'timestamp': 1418919206,
+            'timestamp': 1418923800,
             'upload_date': '20141218',
+            'display_id': 'true-story-trailer-173000497',
+            'view_count': int,
+            'thumbnail': r're:http://media\.zenfs\.com/.+\.jpg',
         },
     }, {
         'url': 'https://gma.yahoo.com/pizza-delivery-man-surprised-huge-tip-college-kids-195200785.html',
         'only_matching': True,
     }, {
         'note': 'NBC Sports embeds',
-        'url': 'http://sports.yahoo.com/blogs/ncaab-the-dagger/tyler-kalinoski-s-buzzer-beater-caps-davidson-s-comeback-win-185609842.html?guid=nbc_cbk_davidsonbuzzerbeater_150313',
+        'url': 'https://sports.yahoo.com/blogs/ncaab-the-dagger/tyler-kalinoski-s-buzzer-beater-caps-davidson-s-comeback-win-185609842.html?guid=nbc_cbk_davidsonbuzzerbeater_150313',
         'info_dict': {
             'id': '9CsDKds0kvHI',
             'ext': 'flv',
@@ -99,6 +105,7 @@ class YahooIE(InfoExtractor):
             'uploader': 'NBCU-SPORTS',
             'timestamp': 1426270238,
         },
+        'skip': 'Page no longer has video',
     }, {
         'url': 'https://tw.news.yahoo.com/-100120367.html',
         'only_matching': True,
@@ -127,12 +134,16 @@ class YahooIE(InfoExtractor):
             'description': '中文版預',
             'timestamp': 1476696196,
             'upload_date': '20161017',
+            'view_count': int,
+            'duration': 141,
+            'thumbnail': r're:https://media\.zenfs\.com/.+\.jpg',
+            'series': '電影',
+            'display_id': '單車天使-中文版預-092316541',
         },
         'params': {
             'skip_download': True,
         },
     }, {
-        # Contains both a Yahoo hosted video and multiple Youtube embeds
         'url': 'https://www.yahoo.com/entertainment/gwen-stefani-reveals-the-pop-hit-she-passed-on-assigns-it-to-her-voice-contestant-instead-033045672.html',
         'info_dict': {
             'id': '46c5d95a-528f-3d03-b732-732fcadd51de',
@@ -145,24 +156,15 @@ class YahooIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Gwen Stefani reveals she turned down one of Sia\'s best songs',
                 'description': 'On "The Voice" Tuesday, Gwen Stefani told Taylor Swift which Sia hit was almost hers.',
-                'timestamp': 1572406500,
+                'timestamp': 1572406499,
                 'upload_date': '20191030',
-            },
-        }, {
-            'info_dict': {
-                'id': '352CFDOQrKg',
-                'ext': 'mp4',
-                'title': 'Kyndal Inskeep "Performs the Hell Out of" Sia\'s "Elastic Heart" - The Voice Knockouts 2019',
-                'description': 'md5:7fe8e3d5806f96002e55f190d1d94479',
-                'uploader': 'The Voice',
-                'uploader_id': 'NBCTheVoice',
-                'upload_date': '20191029',
+                'display_id': 'gwen-stefani-reveals-she-turned-033459311',
+                'view_count': int,
+                'duration': 97,
+                'thumbnail': 'https://s.yimg.com/os/creatr-uploaded-images/2019-10/348bb330-fac6-11e9-8d27-38e85d573702',
+                'series': 'Last Night Now',
             },
         }],
-        'params': {
-            'playlistend': 2,
-        },
-        'expected_warnings': ['HTTP Error 404', 'Ignoring subtitle tracks'],
     }, {
         'url': 'https://malaysia.news.yahoo.com/video/bystanders-help-ontario-policeman-bust-190932818.html',
         'only_matching': True,
