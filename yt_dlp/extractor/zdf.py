@@ -193,8 +193,10 @@ class ZDFBaseIE(InfoExtractor):
 class ZDFIE(ZDFBaseIE):
     _VALID_URL = [
         r'https?://(?:www\.)?zdf\.de/(?:video|play)/(?:[^/?#]+/)*(?P<id>[^/?#]+)',
-        # /nachrichten/ sub-site URLs and legacy redirects from before the redesign in 2025-03
+        # Legacy redirects from before the redesign in 2025-03 or from before sister sites moved to their own domains
         r'https?://(?:www\.)?zdf\.de/(?:[^/?#]+/)*(?P<id>[^/?#]+)\.html',
+        # Sister sites
+        r'https?://(?:www\.)?(?:zdfheute|logo)\.de/(?:[^/?#]+/)*(?P<id>[^/?#]+)\.html',
     ]
     IE_NAME = 'zdf'
     _TESTS = [{
@@ -336,21 +338,6 @@ class ZDFIE(ZDFBaseIE):
             '_old_archive_ids': ['zdf 211219_sendung_hjo'],
         },
     }, {
-        # Video that requires fallback extraction
-        'url': 'https://www.zdf.de/nachrichten/politik/deutschland/koalitionsverhandlungen-spd-cdu-csu-dobrindt-100.html',
-        'md5': 'c3a78514dd993a5781aa3afe50db51e2',
-        'info_dict': {
-            'id': 'koalitionsverhandlungen-spd-cdu-csu-dobrindt-100',
-            'ext': 'mp4',
-            'title': 'Dobrindt schließt Steuererhöhungen aus',
-            'description': 'md5:9a117646d7b8df6bc902eb543a9c9023',
-            'duration': 325,
-            'thumbnail': r're:https://www\.zdfheute\.de/assets/dobrindt-csu-berlin-direkt-100~1920x1080\?cb=\d+',
-            'timestamp': 1743374520,
-            'upload_date': '20250330',
-            '_old_archive_ids': ['zdf 250330_clip_2_bdi'],
-        },
-    }, {
         # FUNK video (hosted on a different CDN, has atypical PTMD and HLS files)
         'url': 'https://www.zdf.de/video/serien/funk-collection-funk-11790-1596/funk-alles-ist-verzaubert-102',
         'md5': '57af4423db0455a3975d2dc4578536bc',
@@ -370,6 +357,82 @@ class ZDFIE(ZDFBaseIE):
             'timestamp': 1635520560,
             'upload_date': '20211029',
             '_old_archive_ids': ['zdf video_funk_1770473'],
+        },
+    }, {
+        # zdfheute video, also available on zdf.de
+        'url': 'https://www.zdfheute.de/video/heute-journal/heute-journal-vom-19-dezember-2025-100.html',
+        'md5': '47af8c2cfa30abf74501170f62754c63',
+        'info_dict': {
+            'id': 'heute-journal-vom-19-dezember-2025-100',
+            'ext': 'mp4',
+            'title': 'heute journal vom 19. Dezember 2025',
+            'description': 'md5:fd0dfbce0783486db839ff9140a8074b',
+            'duration': 1780.0,
+            'thumbnail': 'https://epg-image.zdf.de/fotobase-webdelivery/images/273e5545-16e7-4ca3-898e-52fe9e06d964?layout=2400x1350',
+            'chapters': 'count:10',
+            'series': 'heute journal',
+            'series_id': 'heute-journal-104',
+            'season': 'Season 2025',
+            'season_number': 2025,
+            'episode': 'Episode 365',
+            'episode_number': 365,
+            'timestamp': 1766178000,
+            'upload_date': '20251219',
+            '_old_archive_ids': ['zdf 251219_2200_sendung_hjo'],
+        },
+    }, {
+        # zdfheute video, not available on zdf.de (uses the fallback extraction path)
+        'url': 'https://www.zdf.de/nachrichten/politik/deutschland/koalitionsverhandlungen-spd-cdu-csu-dobrindt-100.html',
+        'md5': 'c3a78514dd993a5781aa3afe50db51e2',
+        'info_dict': {
+            'id': 'koalitionsverhandlungen-spd-cdu-csu-dobrindt-100',
+            'ext': 'mp4',
+            'title': 'Dobrindt schließt Steuererhöhungen aus',
+            'description': 'md5:9a117646d7b8df6bc902eb543a9c9023',
+            'duration': 325,
+            'thumbnail': r're:https://www\.zdfheute\.de/assets/dobrindt-csu-berlin-direkt-100~1920x1080\?cb=\d+',
+            'timestamp': 1743374520,
+            'upload_date': '20250330',
+            '_old_archive_ids': ['zdf 250330_clip_2_bdi'],
+        },
+    }, {
+        # logo! video, also available on zdf.de
+        'url': 'https://www.logo.de/logo-vom-freitag-19-dezember-2025-102.html',
+        'md5': 'cfb1a0988b1249f052a437a55851134b',
+        'info_dict': {
+            'id': 'logo-vom-freitag-19-dezember-2025-102',
+            'ext': 'mp4',
+            'title': 'logo! vom Freitag, 19. Dezember 2025',
+            'description': 'md5:971428cb563e924c153580f23870c613',
+            'duration': 490.0,
+            'thumbnail': r're:https://www\.zdf\.de/assets/iran-rote-erde-sendung-19-dezember-2025-100~original\?cb=\d+',
+            'chapters': 'count:7',
+            'series': 'logo!',
+            'series_id': 'logo-154',
+            'season': 'Season 2025',
+            'season_number': 2025,
+            'episode': 'Episode 382',
+            'episode_number': 382,
+            'timestamp': 1766168700,
+            'upload_date': '20251219',
+            '_old_archive_ids': ['zdf 251219_1925_sendung_log'],
+        },
+    }, {
+        # logo! video, not available on zdf.de (uses the fallback extraction path)
+        'url': 'https://www.logo.de/kinderreporter-vivaan-trifft-alina-grijseels-100.html',
+        'md5': '094cea026babb67aa25fd0108400bc12',
+        'info_dict': {
+            'id': 'kinderreporter-vivaan-trifft-alina-grijseels-100',
+            'ext': 'mp4',
+            'title': 'Vivaan trifft Handballerin Alina Grijseels',
+            'description': 'md5:9572e7f4340dda823ea4091a76624da6',
+            'duration': 166.0,
+            'thumbnail': r're:https://www\.zdf\.de/assets/vivaan-alina-grijseels-100~original\?cb=\d+',
+            'series': 'logo!',
+            'series_id': 'logo-154',
+            'timestamp': 1766236320,
+            'upload_date': '20251220',
+            '_old_archive_ids': ['zdf 251219_kr_alina_grijseels_neu_log'],
         },
     }, {
         # Same as https://www.phoenix.de/sendungen/ereignisse/corona-nachgehakt/wohin-fuehrt-der-protest-in-der-pandemie-a-2050630.html
