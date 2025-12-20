@@ -18,49 +18,9 @@ from ..utils import (
 
 
 class YahooIE(InfoExtractor):
-    IE_DESC = 'Yahoo screen and movies'
+    IE_NAME = 'yahoo'
     _VALID_URL = r'(?P<url>https?://(?:(?P<country>[a-zA-Z]{2}(?:-[a-zA-Z]{2})?|malaysia)\.)?(?:[\da-zA-Z_-]+\.)?yahoo\.com/(?:[^/]+/)*(?P<id>[^?&#]*-[0-9]+(?:-[a-z]+)?)\.html)'
-    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>https?://(?:screen|movies)\.yahoo\.com/.+?\.html\?format=embed)\1']
-
     _TESTS = [{
-        'url': 'http://screen.yahoo.com/julian-smith-travis-legg-watch-214727115.html',
-        'info_dict': {
-            'id': '2d25e626-2378-391f-ada0-ddaf1417e588',
-            'ext': 'mp4',
-            'title': 'Julian Smith & Travis Legg Watch Julian Smith',
-            'description': 'Julian and Travis watch Julian Smith',
-            'duration': 6863,
-            'timestamp': 1369812016,
-            'upload_date': '20130529',
-        },
-        'skip': 'No longer exists',
-    }, {
-        'url': 'https://screen.yahoo.com/community/community-sizzle-reel-203225340.html?format=embed',
-        'md5': '7993e572fac98e044588d0b5260f4352',
-        'info_dict': {
-            'id': '4fe78544-8d48-39d8-97cd-13f205d9fcdb',
-            'ext': 'mp4',
-            'title': "Yahoo Saves 'Community'",
-            'description': 'md5:4d4145af2fd3de00cbb6c1d664105053',
-            'duration': 170,
-            'timestamp': 1406838636,
-            'upload_date': '20140731',
-        },
-        'skip': 'Unfortunately, this video is not available in your region',
-    }, {
-        'url': 'https://uk.screen.yahoo.com/editor-picks/cute-raccoon-freed-drain-using-091756545.html',
-        'md5': '71298482f7c64cbb7fa064e4553ff1c1',
-        'info_dict': {
-            'id': 'b3affa53-2e14-3590-852b-0e0db6cd1a58',
-            'ext': 'webm',
-            'title': 'Cute Raccoon Freed From Drain\u00a0Using Angle Grinder',
-            'description': 'md5:f66c890e1490f4910a9953c941dee944',
-            'duration': 97,
-            'timestamp': 1414489862,
-            'upload_date': '20141028',
-        },
-        'skip': 'No longer exists',
-    }, {
         'url': 'https://news.yahoo.com/video/china-moses-crazy-blues-104538833.html',
         'md5': '88e209b417f173d86186bef6e4d1f160',
         'info_dict': {
@@ -109,21 +69,6 @@ class YahooIE(InfoExtractor):
     }, {
         'url': 'https://tw.news.yahoo.com/-100120367.html',
         'only_matching': True,
-    }, {
-        # Query result is embedded in webpage, but explicit request to video API fails with geo restriction
-        'url': 'https://screen.yahoo.com/community/communitary-community-episode-1-ladders-154501237.html',
-        'md5': '4fbafb9c9b6f07aa8f870629f6671b35',
-        'info_dict': {
-            'id': '1f32853c-a271-3eef-8cb6-f6d6872cb504',
-            'ext': 'mp4',
-            'title': 'Communitary - Community Episode 1: Ladders',
-            'description': 'md5:8fc39608213295748e1e289807838c97',
-            'duration': 1646,
-            'timestamp': 1440436550,
-            'upload_date': '20150824',
-            'series': 'Communitary',
-        },
-        'skip': 'No longer exists',
     }, {
         # ytwnews://cavideo/
         'url': 'https://tw.video.yahoo.com/movie-tw/單車天使-中文版預-092316541.html',
@@ -297,14 +242,13 @@ class YahooIE(InfoExtractor):
 
 
 class YahooSearchIE(SearchInfoExtractor):
-    IE_DESC = 'Yahoo screen search'
     _MAX_RESULTS = 1000
-    IE_NAME = 'screen.yahoo:search'
+    IE_NAME = 'yahoo:search'
     _SEARCH_KEY = 'yvsearch'
 
     def _search_results(self, query):
         for pagenum in itertools.count(0):
-            result_url = f'http://video.search.yahoo.com/search/?p={urllib.parse.quote_plus(query)}&fr=screen&o=js&gs=0&b={pagenum * 30}'
+            result_url = f'https://video.search.yahoo.com/search/?p={urllib.parse.quote_plus(query)}&fr=screen&o=js&gs=0&b={pagenum * 30}'
             info = self._download_json(result_url, query,
                                        note='Downloading results page ' + str(pagenum + 1))
             yield from (self.url_result(result['rurl']) for result in info['results'])
