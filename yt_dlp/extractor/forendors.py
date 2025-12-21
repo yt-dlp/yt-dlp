@@ -5,6 +5,7 @@ from ..utils import (
     InAdvancePagedList,
     clean_html,
     int_or_none,
+    join_nonempty,
     unified_strdate,
     unified_timestamp,
     url_or_none,
@@ -48,9 +49,11 @@ class ForendorsBaseIE(InfoExtractor):
 
         return {
             'id': post_id,
-            'description': self._extract_description(post),
             'formats': formats,
             'subtitles': subtitles,
+            'description': join_nonempty(*traverse_obj(
+                post, ('components', lambda _, v: v.get('type') == 'text', 'text', {clean_html}),
+            ), delim='\n\n') or None,
             # Thumbnails location differs by endpoint:
             # - Post detail (/v2/detail/post/): cover is in components[].cover (video components)
             # - Channel posts (/v2/detail/user/.../posts): cover is at post level
@@ -82,7 +85,7 @@ class ForendorsIE(ForendorsBaseIE):
             'id': '733045644230530172',
             'ext': 'mp4',
             'title': 'Představujeme vám nový editor příspěvků!',
-            'description': 'md5:80105dc0c173aa0ea7a24bd5d11708d3',
+            'description': 'md5:1acbacd98f526d4599a30c073bb3d595',
             'thumbnail': r're:https://.*\.jpg',
             'channel': 'Forendors',
             'channel_id': 'forendors',
@@ -116,13 +119,6 @@ class ForendorsIE(ForendorsBaseIE):
         },
         'skip': 'The post does not have any audio or video',
     }]
-
-    def _extract_description(self, post):
-        components = post.get('components', [])
-        for component in components:
-            if component.get('type') == 'text':
-                return clean_html(component.get('text'))
-        return None
 
     def _extract_formats(self, post_id, post):
         # In posts "components" is a list
