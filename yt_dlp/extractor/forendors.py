@@ -56,7 +56,7 @@ class ForendorsBaseIE(InfoExtractor):
         if not formats:
             self.raise_no_formats('The post does not have any audio or video', expected=True, video_id=post_id)
 
-        author = traverse_obj(post, 'author', expected_type=dict)
+        author = traverse_obj(post, 'author_info', expected_type=dict)
         handle = traverse_obj(author, 'handle')
 
         return {
@@ -85,7 +85,9 @@ class ForendorsIE(ForendorsBaseIE):
             'ext': 'mp4',
             'title': 'Představujeme vám nový editor příspěvků!',
             'description': 'md5:80105dc0c173aa0ea7a24bd5d11708d3',
-            'channel_url': str,
+            'channel': 'Forendors',
+            'channel_id': 'forendors',
+            'channel_url': 'https://www.forendors.cz/forendors',
             'comment_count': int,
             'like_count': int,
             'modified_timestamp': int,
@@ -214,7 +216,7 @@ class ForendorsChannelIE(ForendorsBaseIE):
             query={'page': 1})
 
         page_count = first_page.get('last_page', 1)
-        per_page = first_page.get('per_page', 20)
+        per_page = first_page.get('per_page', 10)
 
         # Return channel with InAdvancePagedList for proper playlist parameter handling
         return self.playlist_result(
