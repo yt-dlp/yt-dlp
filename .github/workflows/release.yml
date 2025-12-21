@@ -56,8 +56,7 @@ on:
         default: false
         type: boolean
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   prepare:
@@ -150,29 +149,31 @@ jobs:
         run: git push origin "${GITHUB_EVENT_REF}"
 
   build:
-    needs: prepare
+    needs: [prepare]
+    permissions:
+      contents: read
     uses: ./.github/workflows/build.yml
     with:
       version: ${{ needs.prepare.outputs.version }}
       channel: ${{ needs.prepare.outputs.channel }}
       origin: ${{ needs.prepare.outputs.target_repo }}
       linux_armv7l: ${{ inputs.linux_armv7l }}
-    permissions:
-      contents: read
     secrets:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 
   publish_pypi:
     needs: [prepare, build]
     if: ${{ needs.prepare.outputs.pypi_project }}
-    runs-on: ubuntu-latest
     permissions:
+      contents: read
       id-token: write  # mandatory for trusted publishing
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v6
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Needed for changelog
+          persist-credentials: false
       - uses: actions/setup-python@v6
         with:
           python-version: "3.10"
@@ -209,7 +210,7 @@ jobs:
 
       - name: Upload artifacts
         if: github.event_name != 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: build-pypi
           path: |
@@ -236,7 +237,8 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: actions/download-artifact@v5
+          persist-credentials: false
+      - uses: actions/download-artifact@v7
         with:
           path: artifact
           pattern: build-*

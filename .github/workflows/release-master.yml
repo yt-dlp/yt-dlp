@@ -14,31 +14,31 @@ on:
       - ".github/workflows/release-master.yml"
 concurrency:
   group: release-master
-permissions:
-  contents: read
+
+permissions: {}
 
 jobs:
   release:
     if: vars.BUILD_MASTER
+    permissions:
+      contents: write
+      id-token: write  # mandatory for trusted publishing
     uses: ./.github/workflows/release.yml
     with:
       prerelease: true
       source: ${{ (github.repository != 'yt-dlp/yt-dlp' && vars.MASTER_ARCHIVE_REPO) || 'master' }}
       target: 'master'
-    permissions:
-      contents: write
-      id-token: write  # mandatory for trusted publishing
     secrets: inherit
 
   publish_pypi:
     needs: [release]
     if: vars.MASTER_PYPI_PROJECT
-    runs-on: ubuntu-latest
     permissions:
       id-token: write  # mandatory for trusted publishing
+    runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         with:
           path: dist
           name: build-pypi
