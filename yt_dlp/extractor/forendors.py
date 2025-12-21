@@ -105,7 +105,7 @@ class ForendorsBaseIE(InfoExtractor):
 
 
 class ForendorsIE(ForendorsBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?forendors\.cz/p/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?forendors\.cz/p/(?P<id>[\da-f]+)'
     _TESTS = [{
         'url': 'https://www.forendors.cz/p/733045644230530172',
         'info_dict': {
@@ -170,6 +170,9 @@ class ForendorsIE(ForendorsBaseIE):
         'skip': 'Requires authentication',
     }, {
         'url': 'https://forendors.cz/p/987654321',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.forendors.cz/p/b76594c2ec7d23f47d61df1fe5526ec4',
         'only_matching': True,
     }, {
         'url': 'https://www.forendors.cz/p/0e111e7be34de04a8b2cfdd254eecfb9',
