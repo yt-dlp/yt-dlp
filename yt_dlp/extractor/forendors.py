@@ -16,12 +16,13 @@ class ForendorsBaseIE(InfoExtractor):
     _API_BASE = 'https://api.forendors.cz'
     _BASE_URL = 'https://www.forendors.cz'
 
-    @functools.cached_property
-    def _api_headers(self):
-        return {
-            'Accept': 'application/json, text/plain, */*',
-            'Referer': f'{self._BASE_URL}/',
-        }
+    def _call_api(self, endpoint, video_id, note='Downloading API JSON', query=None):
+        return self._download_json(
+            f'{self._API_BASE}/{endpoint}', video_id, note=note,
+            headers={
+                'Accept': 'application/json, text/plain, */*',
+                'Referer': f'{self._BASE_URL}/',
+            }, query=query)
 
     def _extract_thumbnails(self, post):
         cover = post.get('cover', {})
@@ -133,9 +134,9 @@ class ForendorsIE(ForendorsBaseIE):
             if not detail_id or component_type not in ('video', 'audio'):
                 continue
 
-            component_data = self._download_json(
-                f'{self._API_BASE}/post/video/{detail_id}?type=url',
-                post_id, note=f'Downloading {component_type} playback info', headers=self._api_headers)
+            component_data = self._call_api(
+                f'post/video/{detail_id}?type=url',
+                post_id, note=f'Downloading {component_type} playback info')
 
             playback_url = component_data.get('playback_url')
             if playback_url:
@@ -144,10 +145,9 @@ class ForendorsIE(ForendorsBaseIE):
     def _real_extract(self, url):
         post_id = self._match_id(url)
 
-        # Fetch post metadata from API
-        post = self._download_json(
-            f'{self._API_BASE}/v2/detail/post/{post_id}',
-            post_id, note='Downloading post metadata', headers=self._api_headers)
+        post = self._call_api(
+            f'v2/detail/post/{post_id}',
+            post_id, note='Downloading post metadata')
 
         return self._extract_post(post_id, post)
 
@@ -188,10 +188,10 @@ class ForendorsChannelIE(ForendorsBaseIE):
         if page_num == 0 and first_page_data:
             page_data = first_page_data
         else:
-            page_data = self._download_json(
-                f'{self._API_BASE}/v2/detail/user/{slug}/posts',
+            page_data = self._call_api(
+                f'v2/detail/user/{slug}/posts',
                 slug, note=f'Downloading page {page_num + 1}',
-                headers=self._api_headers, query={'page': page_num + 1})
+                query={'page': page_num + 1})
 
         for post in page_data.get('data', []):
             post_id = post.get('hash')
@@ -208,11 +208,10 @@ class ForendorsChannelIE(ForendorsBaseIE):
     def _real_extract(self, url):
         slug = self._match_id(url)
 
-        # Fetch first page to get pagination info
-        first_page = self._download_json(
-            f'{self._API_BASE}/v2/detail/user/{slug}/posts',
+        first_page = self._call_api(
+            f'v2/detail/user/{slug}/posts',
             slug, note='Downloading page 1',
-            headers=self._api_headers, query={'page': 1})
+            query={'page': 1})
 
         page_count = first_page.get('last_page', 1)
         per_page = first_page.get('per_page', 20)
