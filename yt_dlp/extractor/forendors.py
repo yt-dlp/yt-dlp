@@ -196,7 +196,7 @@ class ForendorsIE(ForendorsBaseIE):
 
 class ForendorsChannelIE(ForendorsBaseIE):
     IE_NAME = 'forendors:channel'
-    _VALID_URL = r'https?://(?:www\.)?forendors\.cz/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?forendors\.cz/(?!p/)(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.forendors.cz/forendors',
         'info_dict': {
@@ -228,10 +228,6 @@ class ForendorsChannelIE(ForendorsBaseIE):
         'url': 'https://forendors.cz/somechannel',
         'only_matching': True,
     }]
-
-    @classmethod
-    def suitable(cls, url):
-        return not ForendorsIE.suitable(url) and super().suitable(url)
 
     def _fetch_page(self, slug, first_page_data, page_num):
         # Reuse first page data if available to avoid duplicate API call
