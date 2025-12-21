@@ -31,10 +31,12 @@ class ForendorsBaseIE(InfoExtractor):
                 'This video is not available. Authentication may be required.',
                 metadata_available=True)
 
+        # Description is only for entries, not for playlist
+        description = join_nonempty(*traverse_obj(
+            post, ('components', lambda _, v: v.get('type') == 'text', 'text', {clean_html}),
+        ), delim='\n\n') or None
+
         common_metadata = {
-            'description': join_nonempty(*traverse_obj(
-                post, ('components', lambda _, v: v.get('type') == 'text', 'text', {clean_html}),
-            ), delim='\n\n') or None,
             # Thumbnails location differs by endpoint:
             # - Post detail (/v2/detail/post/): cover is in components[].cover (extracted per-entry below)
             # - Channel posts (/v2/detail/user/.../posts): cover is at post level (extracted here)
@@ -82,6 +84,7 @@ class ForendorsBaseIE(InfoExtractor):
                 'id': f'{post_id}-{idx}-{detail_id}',
                 'formats': formats,
                 'subtitles': subtitles,
+                'description': description,
                 **common_metadata,
                 **traverse_obj(component, {
                     'duration': ('length', {int_or_none}),
@@ -111,7 +114,6 @@ class ForendorsIE(ForendorsBaseIE):
         'info_dict': {
             'id': '733045644230530172',
             'title': 'Představujeme vám nový editor příspěvků!',
-            'description': 'md5:1acbacd98f526d4599a30c073bb3d595',
             'channel': 'Forendors',
             'channel_id': 'forendors',
             'channel_url': 'https://www.forendors.cz/forendors',
