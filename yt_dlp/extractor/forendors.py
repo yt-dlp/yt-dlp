@@ -14,7 +14,6 @@ from ..utils.traversal import traverse_obj
 
 
 class ForendorsBaseIE(InfoExtractor):
-    _NETRC_MACHINE = 'forendors'
     _API_BASE = 'https://api.forendors.cz'
     _BASE_URL = 'https://www.forendors.cz'
 
@@ -36,7 +35,6 @@ class ForendorsBaseIE(InfoExtractor):
             self._request_webpage(url, page_id, note='Requesting CSRF token cookie')
 
     def _extract_thumbnails(self, post):
-        """Extract thumbnails from post cover"""
         cover = post.get('cover', {})
         thumbnails = []
         if isinstance(cover, dict):
@@ -47,8 +45,7 @@ class ForendorsBaseIE(InfoExtractor):
         return thumbnails
 
     def _extract_post(self, post_id, post):
-        """Extract data from a post"""
-        if 'is_accessible' in post and post.get('is_accessible') is False:
+        if post.get('is_accessible') is False:
             self.raise_login_required(
                 'This video is not available. Authentication may be required.',
                 metadata_available=True)
@@ -130,7 +127,6 @@ class ForendorsIE(ForendorsBaseIE):
     }]
 
     def _extract_description(self, post):
-        """Extract description from text component"""
         components = post.get('components', [])
         for component in components:
             if component.get('type') == 'text':
@@ -138,7 +134,6 @@ class ForendorsIE(ForendorsBaseIE):
         return None
 
     def _extract_formats(self, post_id, post):
-        """Yield playback URLs from post components"""
         # In posts "components" is a list
         components = post.get('components', [])
 
@@ -200,32 +195,7 @@ class ForendorsChannelIE(ForendorsBaseIE):
     def suitable(cls, url):
         return not ForendorsIE.suitable(url) and super().suitable(url)
 
-    def _extract_description(self, post):
-        """Extract description from perex field"""
-        return clean_html(post.get('perex'))
-
-    def _extract_formats(self, post_id, post):
-        """Yield playback URLs from post component"""
-        # In channel entries, "component" is a dict
-        component = post.get('component') or {}
-
-        for media_type in ('audio', 'video'):
-            media_data = component.get(media_type, {})
-            detail_id = media_data.get('detail_id')
-
-            if not detail_id:
-                continue
-
-            component_data = self._download_json(
-                f'{self._API_BASE}/post/video/{detail_id}?type=url',
-                post_id, note=f'Downloading {media_type} playback info', headers=self._api_headers)
-
-            playback_url = component_data.get('playback_url')
-            if playback_url:
-                yield playback_url, media_type
-
     def _fetch_page(self, slug, first_page_data, page_num):
-        """Fetch a single page of channel entries"""
         # Reuse first page data if available to avoid duplicate API call
         if page_num == 0 and first_page_data:
             page_data = first_page_data
