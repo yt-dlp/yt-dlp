@@ -4,7 +4,6 @@ from .common import InfoExtractor
 from ..utils import (
     InAdvancePagedList,
     clean_html,
-    format_field,
     int_or_none,
     unified_strdate,
     unified_timestamp,
@@ -56,23 +55,22 @@ class ForendorsBaseIE(InfoExtractor):
         if not formats:
             self.raise_no_formats('The post does not have any audio or video', expected=True, video_id=post_id)
 
-        author = traverse_obj(post, 'author_info', expected_type=dict)
-        handle = traverse_obj(author, 'handle')
-
         return {
             'id': post_id,
-            'title': post.get('title'),
             'description': self._extract_description(post),
             'thumbnails': self._extract_thumbnails(post),
             'formats': formats,
             'subtitles': subtitles,
-            'modified_timestamp': unified_timestamp(post.get('published_at')),
-            'modified_date': unified_strdate(post.get('published_at')),
-            'channel': traverse_obj(author, 'name'),
-            'channel_id': handle,
-            'channel_url': format_field(handle, None, f'{self._BASE_URL}/%s'),
-            'like_count': int_or_none(post.get('likes_count')),
-            'comment_count': int_or_none(post.get('comments_count')),
+            **traverse_obj(post, {
+                'title': ('title', {str}),
+                'modified_timestamp': ('published_at', {unified_timestamp}),
+                'modified_date': ('published_at', {unified_strdate}),
+                'channel': ('author_info', 'name'),
+                'channel_id': ('author_info', 'handle'),
+                'channel_url': ('author_info', 'handle', {lambda x: f'{self._BASE_URL}/{x}'}),
+                'like_count': ('likes_count', {int_or_none}),
+                'comment_count': ('comments_count', {int_or_none}),
+            }),
         }
 
 
