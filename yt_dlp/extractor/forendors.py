@@ -7,6 +7,7 @@ from ..utils import (
     int_or_none,
     unified_strdate,
     unified_timestamp,
+    url_or_none,
 )
 from ..utils.traversal import traverse_obj
 
@@ -22,16 +23,6 @@ class ForendorsBaseIE(InfoExtractor):
                 'Accept': 'application/json, text/plain, */*',
                 'Referer': f'{self._BASE_URL}/',
             }, query=query)
-
-    def _extract_thumbnails(self, post):
-        cover = post.get('cover', {})
-        thumbnails = []
-        if isinstance(cover, dict):
-            if cover.get('desktop'):
-                thumbnails.append({'id': 'desktop', 'url': cover.get('desktop')})
-            if cover.get('mobile'):
-                thumbnails.append({'id': 'mobile', 'url': cover.get('mobile')})
-        return thumbnails
 
     def _extract_post(self, post_id, post):
         if post.get('is_accessible') is False:
@@ -58,11 +49,20 @@ class ForendorsBaseIE(InfoExtractor):
         return {
             'id': post_id,
             'description': self._extract_description(post),
-            'thumbnails': self._extract_thumbnails(post),
             'formats': formats,
             'subtitles': subtitles,
+            # Thumbnails location differs by endpoint:
+            # - Post detail (/v2/detail/post/): cover is in components[].cover (video components)
+            # - Channel posts (/v2/detail/user/.../posts): cover is at post level
             **traverse_obj(post, {
                 'title': ('title', {str}),
+                'thumbnails': ((('cover',), ('components', ..., 'cover')), ({
+                    'url': ('desktop', {url_or_none}),
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                }, {
+                    'url': ('mobile', {url_or_none}),
+                })),
                 'modified_timestamp': ('published_at', {unified_timestamp}),
                 'modified_date': ('published_at', {unified_strdate}),
                 'channel': ('author_info', 'name'),
@@ -83,6 +83,7 @@ class ForendorsIE(ForendorsBaseIE):
             'ext': 'mp4',
             'title': 'Představujeme vám nový editor příspěvků!',
             'description': 'md5:80105dc0c173aa0ea7a24bd5d11708d3',
+            'thumbnail': r're:https://.*\.jpg',
             'channel': 'Forendors',
             'channel_id': 'forendors',
             'channel_url': 'https://www.forendors.cz/forendors',
@@ -161,6 +162,14 @@ class ForendorsChannelIE(ForendorsBaseIE):
             'id': 'forendors',
         },
         'playlist_mincount': 1,
+        'playlist': [{
+            'info_dict': {
+                'id': '733045644230530172',
+                'ext': 'mp4',
+                'title': 'Představujeme vám nový editor příspěvků!',
+                'thumbnail': r're:https://.*\.jpg',
+            },
+        }],
         'params': {
             'skip_download': True,
         },
