@@ -77,7 +77,7 @@ class ForendorsBaseIE(InfoExtractor):
 
 
 class ForendorsIE(ForendorsBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?forendors\.cz/p/(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?forendors\.cz/p/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.forendors.cz/p/733045644230530172',
         'info_dict': {
@@ -156,7 +156,7 @@ class ForendorsIE(ForendorsBaseIE):
 
 class ForendorsChannelIE(ForendorsBaseIE):
     IE_NAME = 'forendors:channel'
-    _VALID_URL = r'https?://(?:www\.)?forendors\.cz/(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?forendors\.cz/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.forendors.cz/forendors',
         'info_dict': {
