@@ -1,5 +1,4 @@
 import functools
-import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -19,20 +18,10 @@ class ForendorsBaseIE(InfoExtractor):
 
     @functools.cached_property
     def _api_headers(self):
-        """Get API headers with CSRF token from cookies"""
-        csrf_token = self._get_cookies(self._API_BASE).get('XSRF-TOKEN')
-        headers = {
+        return {
             'Accept': 'application/json, text/plain, */*',
             'Referer': f'{self._BASE_URL}/',
         }
-        if csrf_token:
-            headers['x-xsrf-token'] = urllib.parse.unquote(csrf_token.value)
-        return headers
-
-    def _ensure_csrf_token(self, url, page_id):
-        """Ensure CSRF token cookie is set by requesting the page if needed"""
-        if not self._get_cookies(self._API_BASE).get('XSRF-TOKEN'):
-            self._request_webpage(url, page_id, note='Requesting CSRF token cookie')
 
     def _extract_thumbnails(self, post):
         cover = post.get('cover', {})
@@ -154,7 +143,6 @@ class ForendorsIE(ForendorsBaseIE):
 
     def _real_extract(self, url):
         post_id = self._match_id(url)
-        self._ensure_csrf_token(url, post_id)
 
         # Fetch post metadata from API
         post = self._download_json(
@@ -219,7 +207,6 @@ class ForendorsChannelIE(ForendorsBaseIE):
 
     def _real_extract(self, url):
         slug = self._match_id(url)
-        self._ensure_csrf_token(url, slug)
 
         # Fetch first page to get pagination info
         first_page = self._download_json(
