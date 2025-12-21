@@ -77,7 +77,7 @@ STREAMING_DATA_FETCH_GVS_PO_TOKEN = '__yt_dlp_fetch_gvs_po_token'
 STREAMING_DATA_PLAYER_TOKEN_PROVIDED = '__yt_dlp_player_token_provided'
 STREAMING_DATA_INNERTUBE_CONTEXT = '__yt_dlp_innertube_context'
 STREAMING_DATA_IS_PREMIUM_SUBSCRIBER = '__yt_dlp_is_premium_subscriber'
-STREAMING_DATA_FETCHED_TIMESTAMP = '__yt_dlp_fetched_timestamp'
+STREAMING_DATA_AVAILABLE_AT_TIMESTAMP = '__yt_dlp_available_at_timestamp'
 
 PO_TOKEN_GUIDE_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide'
 
@@ -2631,7 +2631,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return {'contentCheckOk': True, 'racyCheckOk': True}
 
     @classmethod
-    def _generate_player_context(cls, sts=None, reload_playback_token=None):
+    def _generate_player_context(cls, sts=None, reload_playback_token=None, use_ad_playback_context=False):
         content_playback_context = {
             'html5Preference': 'HTML5_PREF_WANTS',
         }
@@ -2646,6 +2646,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if reload_playback_token:
             playback_context['reloadPlaybackContext'] = {
                 'reloadPlaybackParams': {'token': reload_playback_token},
+            }
+
+        if use_ad_playback_context:
+            playback_context['adPlaybackContext'] = {
+                'pyv': True,
             }
 
         return {
@@ -2879,7 +2884,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             yt_query['serviceIntegrityDimensions'] = {'poToken': po_token}
 
         sts = self._extract_signature_timestamp(video_id, player_url, webpage_ytcfg, fatal=False) if player_url else None
-        yt_query.update(self._generate_player_context(sts, reload_playback_token))
+
+        use_ad_playback_context = (
+            self._configuration_arg('use_ad_playback_context', ['false'])[0] != 'false'
+            and traverse_obj(INNERTUBE_CLIENTS, (client, 'SUPPORTS_AD_PLAYBACK_CONTEXT', {bool})))
+
+        yt_query.update(
+            self._generate_player_context(
+                sts=sts,
+                reload_playback_token=reload_playback_token,
+                use_ad_playback_context=use_ad_playback_context))
+
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
             ytcfg=player_ytcfg, headers=headers, fatal=True,
@@ -2914,10 +2929,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if not (requested_clients or excluded_clients) and default_clients == self._DEFAULT_JSLESS_CLIENTS:
             self.report_warning(
-                f'No supported JavaScript runtime could be found. YouTube extraction without '
-                f'a JS runtime has been deprecated, and some formats may be missing. '
-                f'See  {_EJS_WIKI_URL}  for details on installing one. To silence this warning, '
-                f'you can use  --extractor-args "youtube:player_client=default"', only_once=True)
+                f'No supported JavaScript runtime could be found. Only deno is enabled by default; '
+                f'to use another runtime add  --js-runtimes RUNTIME[:PATH]  to your command/config. '
+                f'YouTube extraction without a JS runtime has been deprecated, and some formats may be missing. '
+                f'See  {_EJS_WIKI_URL}  for details on installing one', only_once=True)
 
         if not requested_clients:
             requested_clients.extend(default_clients)
@@ -3050,7 +3065,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             elif pr:
                 # Save client details for introspection later
                 innertube_context = traverse_obj(player_ytcfg or self._get_default_ytcfg(client), 'INNERTUBE_CONTEXT')
-                fetched_timestamp = int(time.time())
                 sd = pr.setdefault('streamingData', {})
                 sd[STREAMING_DATA_CLIENT_NAME] = client
                 sd[STREAMING_DATA_FETCH_GVS_PO_TOKEN] = fetch_gvs_po_token_func
@@ -3058,7 +3072,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 sd[STREAMING_DATA_INNERTUBE_CONTEXT] = innertube_context
                 sd[STREAMING_DATA_FETCH_SUBS_PO_TOKEN] = fetch_subs_po_token_func
                 sd[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER] = is_premium_subscriber
-                sd[STREAMING_DATA_FETCHED_TIMESTAMP] = fetched_timestamp
+                sd[STREAMING_DATA_AVAILABLE_AT_TIMESTAMP] = self._get_available_at_timestamp(pr, video_id, client)
                 for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
                     f[STREAMING_DATA_CLIENT_NAME] = client
                     f[STREAMING_DATA_FETCH_GVS_PO_TOKEN] = fetch_gvs_po_token_func
@@ -3186,6 +3200,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._downloader.deprecated_feature('[youtube] include_duplicate_formats extractor argument is deprecated. '
                                                 'Use formats=duplicate extractor argument instead')
 
+        def is_super_resolution(f_url):
+            return '1' in traverse_obj(f_url, ({parse_qs}, 'xtags', ..., {urllib.parse.parse_qs}, 'sr', ...))
+
         def solve_sig(s, spec):
             return ''.join(s[i] for i in spec)
 
@@ -3204,9 +3221,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         # save pots per client to avoid fetching again
         gvs_pots = {}
-
-        # For handling potential pre-playback required waiting period
-        playback_wait = int_or_none(self._configuration_arg('playback_wait', [None])[0], default=6)
 
         def get_language_code_and_preference(fmt_stream):
             audio_track = fmt_stream.get('audioTrack') or {}
@@ -3233,13 +3247,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             player_token_provided = streaming_data[STREAMING_DATA_PLAYER_TOKEN_PROVIDED]
             client_name = streaming_data.get(STREAMING_DATA_CLIENT_NAME)
             innertube_context = streaming_data.get(STREAMING_DATA_INNERTUBE_CONTEXT)
-            available_at = streaming_data[STREAMING_DATA_FETCHED_TIMESTAMP] + playback_wait
+            available_at = streaming_data[STREAMING_DATA_AVAILABLE_AT_TIMESTAMP]
             streaming_formats = traverse_obj(streaming_data, (('formats', 'adaptiveFormats'), ...))
 
             def get_stream_id(fmt_stream):
                 return str_or_none(fmt_stream.get('itag')), traverse_obj(fmt_stream, 'audioTrack', 'id'), fmt_stream.get('isDrc')
 
-            def process_format_stream(fmt_stream, proto, missing_pot):
+            def process_format_stream(fmt_stream, proto, missing_pot, super_resolution=False):
                 itag = str_or_none(fmt_stream.get('itag'))
                 audio_track = fmt_stream.get('audioTrack') or {}
                 quality = fmt_stream.get('quality')
@@ -3290,10 +3304,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 dct = {
                     'asr': int_or_none(fmt_stream.get('audioSampleRate')),
                     'filesize': int_or_none(fmt_stream.get('contentLength')),
-                    'format_id': f'{itag}{"-drc" if fmt_stream.get("isDrc") else ""}',
+                    'format_id': join_nonempty(itag, (
+                        'drc' if fmt_stream.get('isDrc')
+                        else 'sr' if super_resolution
+                        else None)),
                     'format_note': join_nonempty(
                         join_nonempty(audio_track.get('displayName'), audio_track.get('audioIsDefault') and '(default)', delim=' '),
-                        name, fmt_stream.get('isDrc') and 'DRC',
+                        name, fmt_stream.get('isDrc') and 'DRC', super_resolution and 'AI-upscaled',
                         try_get(fmt_stream, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                         try_get(fmt_stream, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
                         is_damaged and 'DAMAGED', missing_pot and 'MISSING POT',
@@ -3379,7 +3396,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             self.report_warning(msg, video_id, only_once=True)
                             continue
 
-                    fmt = process_format_stream(fmt_stream, proto, missing_pot=require_po_token and not po_token)
+                    fmt = process_format_stream(
+                        fmt_stream, proto, missing_pot=require_po_token and not po_token,
+                        super_resolution=is_super_resolution(fmt_url))
                     if not fmt:
                         continue
 
@@ -3782,6 +3801,36 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 }))
         return webpage
 
+    def _get_available_at_timestamp(self, player_response, video_id, client):
+        now = time.time()
+        wait_seconds = 0
+
+        for renderer in traverse_obj(player_response, (
+            'adSlots', lambda _, v: v['adSlotRenderer']['adSlotMetadata']['triggerEvent'] == 'SLOT_TRIGGER_EVENT_BEFORE_CONTENT',
+            'adSlotRenderer', 'fulfillmentContent', 'fulfilledLayout', 'playerBytesAdLayoutRenderer', 'renderingContent', (
+                None,
+                ('playerBytesSequentialLayoutRenderer', 'sequentialLayouts', ..., 'playerBytesAdLayoutRenderer', 'renderingContent'),
+            ), 'instreamVideoAdRenderer', {dict},
+        )):
+            duration = traverse_obj(renderer, ('playerVars', {urllib.parse.parse_qs}, 'length_seconds', -1, {int_or_none}))
+            ad = 'an ad' if duration is None else f'a {duration}s ad'
+
+            skip_time = traverse_obj(renderer, ('skipOffsetMilliseconds', {float_or_none(scale=1000)}))
+            if skip_time is not None:
+                # YT allows skipping this ad; use the wait-until-skip time instead of full ad duration
+                skip_time = skip_time if skip_time % 1 else int(skip_time)
+                ad += f' skippable after {skip_time}s'
+                duration = skip_time
+
+            if duration is not None:
+                self.write_debug(f'{video_id}: Detected {ad} for {client}')
+                wait_seconds += duration
+
+        if wait_seconds:
+            return math.ceil(now) + wait_seconds
+
+        return int(now)
+
     def _list_formats(self, video_id, microformats, video_details, player_responses, player_url, duration=None):
         live_broadcast_details = traverse_obj(microformats, (..., 'liveBroadcastDetails'))
         is_live = get_first(video_details, 'isLive')
@@ -4132,6 +4181,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     STREAMING_DATA_CLIENT_NAME: client_name,
                 })
 
+        def set_audio_lang_from_orig_subs_lang(lang_code):
+            for f in formats:
+                if f.get('acodec') != 'none' and not f.get('language'):
+                    f['language'] = lang_code
+
         subtitles = {}
         skipped_subs_clients = set()
 
@@ -4191,7 +4245,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                 orig_lang = qs.get('lang', [None])[-1]
                 lang_name = self._get_text(caption_track, 'name', max_runs=1)
-                if caption_track.get('kind') != 'asr':
+                is_manual_subs = caption_track.get('kind') != 'asr'
+                if is_manual_subs:
                     if not lang_code:
                         continue
                     process_language(
@@ -4202,16 +4257,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not trans_code:
                         continue
                     orig_trans_code = trans_code
-                    if caption_track.get('kind') != 'asr' and trans_code != 'und':
+                    if is_manual_subs and trans_code != 'und':
                         if not get_translated_subs:
                             continue
                         trans_code += f'-{lang_code}'
                         trans_name += format_field(lang_name, None, ' from %s')
                     if lang_code == f'a-{orig_trans_code}':
                         # Set audio language based on original subtitles
-                        for f in formats:
-                            if f.get('acodec') != 'none' and not f.get('language'):
-                                f['language'] = orig_trans_code
+                        set_audio_lang_from_orig_subs_lang(orig_trans_code)
                         # Add an "-orig" label to the original language so that it can be distinguished.
                         # The subs are returned without "-orig" as well for compatibility
                         process_language(
@@ -4221,6 +4274,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     process_language(
                         automatic_captions, base_url, trans_code, trans_name, client_name,
                         pot_params if orig_lang == orig_trans_code else {'tlang': trans_code, **pot_params})
+
+                # Extract automatic captions when the language is not in 'translationLanguages'
+                # e.g. Cantonese [yue], see https://github.com/yt-dlp/yt-dlp/issues/14889
+                lang_code = remove_start(lang_code, 'a-')
+                if is_manual_subs or not lang_code or lang_code in automatic_captions:
+                    continue
+                lang_name = remove_end(lang_name, ' (auto-generated)')
+                if caption_track.get('isTranslatable'):
+                    # We can assume this is the original audio language
+                    set_audio_lang_from_orig_subs_lang(lang_code)
+                    process_language(
+                        automatic_captions, base_url, f'{lang_code}-orig',
+                        f'{lang_name} (Original)', client_name, pot_params)
+                process_language(
+                    automatic_captions, base_url, lang_code, lang_name, client_name, pot_params)
 
             # Avoid duplication if we've already got everything we need
             need_subs_langs.difference_update(subtitles)

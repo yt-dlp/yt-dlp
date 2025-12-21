@@ -528,7 +528,7 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
 class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
     IE_NAME = 'netease:program'
     IE_DESC = '网易云音乐 - 电台节目'
-    _VALID_URL = r'https?://music\.163\.com/(?:#/)?program\?id=(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://music\.163\.com/(?:#/)?(?:dj|program)\?id=(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'http://music.163.com/#/program?id=10109055',
         'info_dict': {
@@ -572,6 +572,9 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
         'params': {
             'noplaylist': True,
         },
+    }, {
+        'url': 'https://music.163.com/#/dj?id=3706179315',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
