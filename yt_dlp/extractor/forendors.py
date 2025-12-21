@@ -31,35 +31,16 @@ class ForendorsBaseIE(InfoExtractor):
                 'This video is not available. Authentication may be required.',
                 metadata_available=True)
 
-        formats = []
-        subtitles = {}
-
-        for playback_url, media_type in self._extract_formats(post_id, post):
-            component_formats, component_subtitles = self._extract_m3u8_formats_and_subtitles(
-                playback_url, post_id, 'mp4', m3u8_id=f'hls-{media_type}')
-
-            if component_formats:
-                formats.extend(component_formats)
-            if component_subtitles:
-                for lang, subs in component_subtitles.items():
-                    subtitles.setdefault(lang, []).extend(subs)
-
-        if not formats:
-            self.raise_no_formats('The post does not have any audio or video', expected=True, video_id=post_id)
-
-        return {
-            'id': post_id,
-            'formats': formats,
-            'subtitles': subtitles,
+        common_metadata = {
             'description': join_nonempty(*traverse_obj(
                 post, ('components', lambda _, v: v.get('type') == 'text', 'text', {clean_html}),
             ), delim='\n\n') or None,
             # Thumbnails location differs by endpoint:
-            # - Post detail (/v2/detail/post/): cover is in components[].cover (video components)
-            # - Channel posts (/v2/detail/user/.../posts): cover is at post level
+            # - Post detail (/v2/detail/post/): cover is in components[].cover (extracted per-entry below)
+            # - Channel posts (/v2/detail/user/.../posts): cover is at post level (extracted here)
             **traverse_obj(post, {
                 'title': ('title', {str}),
-                'thumbnails': ((('cover',), ('components', ..., 'cover')), ({
+                'thumbnails': ('cover', ({
                     'url': ('desktop', {url_or_none}),
                     'width': ('width', {int_or_none}),
                     'height': ('height', {int_or_none}),
@@ -76,6 +57,52 @@ class ForendorsBaseIE(InfoExtractor):
             }),
         }
 
+        entries = []
+        for idx, component in enumerate(
+                traverse_obj(post, ('components', lambda _, v: v.get('detail_id') and v['type'] in ('video', 'audio'))),
+                start=1):
+            media_type = component['type']
+            detail_id = component['detail_id']
+
+            component_data = self._call_api(
+                f'post/video/{detail_id}?type=url',
+                post_id, note=f'Downloading {media_type} playback info')
+
+            playback_url = component_data.get('playback_url')
+            if not playback_url:
+                continue
+
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                playback_url, post_id, 'mp4', m3u8_id=f'hls-{media_type}')
+
+            if not formats:
+                continue
+
+            entries.append({
+                'id': f'{post_id}-{idx}-{detail_id}',
+                'formats': formats,
+                'subtitles': subtitles,
+                **common_metadata,
+                **traverse_obj(component, {
+                    'duration': ('length', {int_or_none}),
+                    'thumbnails': ('cover', ({
+                        'url': ('desktop', {url_or_none}),
+                        'width': ('width', {int_or_none}),
+                        'height': ('height', {int_or_none}),
+                    }, {
+                        'url': ('mobile', {url_or_none}),
+                    })),
+                }),
+            })
+
+        if not entries:
+            self.raise_no_formats('The post does not have any audio or video', expected=True, video_id=post_id)
+
+        if len(entries) == 1:
+            return {**entries[0], 'id': post_id}
+
+        return self.playlist_result(entries, post_id, **common_metadata)
+
 
 class ForendorsIE(ForendorsBaseIE):
     _VALID_URL = r'https?://(?:www\.)?forendors\.cz/p/(?P<id>[^/?#]+)'
@@ -83,10 +110,8 @@ class ForendorsIE(ForendorsBaseIE):
         'url': 'https://www.forendors.cz/p/733045644230530172',
         'info_dict': {
             'id': '733045644230530172',
-            'ext': 'mp4',
             'title': 'Představujeme vám nový editor příspěvků!',
             'description': 'md5:1acbacd98f526d4599a30c073bb3d595',
-            'thumbnail': r're:https://.*\.jpg',
             'channel': 'Forendors',
             'channel_id': 'forendors',
             'channel_url': 'https://www.forendors.cz/forendors',
@@ -95,6 +120,40 @@ class ForendorsIE(ForendorsBaseIE):
             'modified_timestamp': int,
             'modified_date': str,
         },
+        'playlist_count': 2,
+        'playlist': [{
+            'info_dict': {
+                'id': '733045644230530172-1-18084',
+                'ext': 'mp4',
+                'title': 'Představujeme vám nový editor příspěvků!',
+                'description': 'md5:1acbacd98f526d4599a30c073bb3d595',
+                'thumbnail': r're:https://.*\.jpg',
+                'channel': 'Forendors',
+                'channel_id': 'forendors',
+                'channel_url': 'https://www.forendors.cz/forendors',
+                'duration': 61,
+                'comment_count': int,
+                'like_count': int,
+                'modified_timestamp': int,
+                'modified_date': str,
+            },
+        }, {
+            # Note: audio component has no cover/thumbnail in API response
+            'info_dict': {
+                'id': '733045644230530172-2-18085',
+                'ext': 'mp4',
+                'title': 'Představujeme vám nový editor příspěvků!',
+                'description': 'md5:1acbacd98f526d4599a30c073bb3d595',
+                'channel': 'Forendors',
+                'channel_id': 'forendors',
+                'channel_url': 'https://www.forendors.cz/forendors',
+                'duration': 13,
+                'comment_count': int,
+                'like_count': int,
+                'modified_timestamp': int,
+                'modified_date': str,
+            },
+        }],
         'params': {
             'skip_download': True,
         },
@@ -119,25 +178,6 @@ class ForendorsIE(ForendorsBaseIE):
         },
         'skip': 'The post does not have any audio or video',
     }]
-
-    def _extract_formats(self, post_id, post):
-        # In posts "components" is a list
-        components = post.get('components', [])
-
-        for component in components:
-            component_type = component.get('type')
-            detail_id = component.get('detail_id')
-
-            if not detail_id or component_type not in ('video', 'audio'):
-                continue
-
-            component_data = self._call_api(
-                f'post/video/{detail_id}?type=url',
-                post_id, note=f'Downloading {component_type} playback info')
-
-            playback_url = component_data.get('playback_url')
-            if playback_url:
-                yield playback_url, component_type
 
     def _real_extract(self, url):
         post_id = self._match_id(url)
