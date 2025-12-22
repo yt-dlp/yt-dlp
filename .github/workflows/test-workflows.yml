@@ -19,6 +19,10 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: test-workflows-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   ACTIONLINT_VERSION: "1.7.9"
   ACTIONLINT_SHA256SUM: 233b280d05e100837f4af1433c7b40a5dcb306e3aa68fb4f17f8a7f45a7df7b4

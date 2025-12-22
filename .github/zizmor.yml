@@ -1,4 +1,11 @@
 rules:
+  concurrency-limits:
+    ignore:
+      - .github/workflows/build.yml
+      - .github/workflows/issue-lockdown.yml
+      - .github/workflows/release-nightly.yml
+      - .github/workflows/release.yml
+      - .github/workflows/sanitize-comment.yml
   unpinned-uses:
     config:
       policies:
