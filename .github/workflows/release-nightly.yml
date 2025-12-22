@@ -7,6 +7,7 @@ permissions: {}
 
 jobs:
   check_nightly:
+    name: Check for new commits
     if: vars.BUILD_NIGHTLY
     permissions:
       contents: read
@@ -36,6 +37,7 @@ jobs:
           echo "commit=$(git log --format=%H -1 --since="24 hours ago" -- "${relevant_files[@]}")" | tee "$GITHUB_OUTPUT"
 
   release:
+    name: Publish Github release
     needs: [check_nightly]
     if: ${{ needs.check_nightly.outputs.commit }}
     permissions:
@@ -51,6 +53,7 @@ jobs:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 
   publish_pypi:
+    name: Publish to PyPI
     needs: [release]
     if: vars.NIGHTLY_PYPI_PROJECT
     permissions:

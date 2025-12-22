@@ -65,6 +65,7 @@ permissions: {}
 
 jobs:
   prepare:
+    name: Prepare
     permissions:
       contents: write  # Needed to git-push the release commit
     runs-on: ubuntu-latest
@@ -152,6 +153,7 @@ jobs:
         run: git push origin "${GITHUB_EVENT_REF}"
 
   build:
+    name: Build
     needs: [prepare]
     permissions:
       contents: read
@@ -165,6 +167,7 @@ jobs:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 
   publish_pypi:
+    name: Publish to PyPI
     needs: [prepare, build]
     if: ${{ needs.prepare.outputs.pypi_project }}
     permissions:
@@ -227,6 +230,7 @@ jobs:
           verbose: true
 
   publish:
+    name: Publish Github release
     needs: [prepare, build]
     permissions:
       contents: write  # Needed by gh to publish release to Github

@@ -19,6 +19,7 @@ permissions: {}
 
 jobs:
   release:
+    name: Publish Github release
     if: vars.BUILD_MASTER
     permissions:
       contents: write  # May be needed to publish release
@@ -33,6 +34,7 @@ jobs:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 
   publish_pypi:
+    name: Publish to PyPI
     needs: [release]
     if: vars.MASTER_PYPI_PROJECT
     permissions:
