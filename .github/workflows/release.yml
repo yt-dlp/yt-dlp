@@ -22,6 +22,11 @@ on:
         required: false
         default: true
         type: boolean
+    secrets:
+      ARCHIVE_REPO_TOKEN:
+        required: false
+      GPG_SIGNING_KEY:
+        required: false
   workflow_dispatch:
     inputs:
       source:
@@ -67,7 +72,6 @@ jobs:
       channel: ${{ steps.setup_variables.outputs.channel }}
       version: ${{ steps.setup_variables.outputs.version }}
       target_repo: ${{ steps.setup_variables.outputs.target_repo }}
-      target_repo_token: ${{ steps.setup_variables.outputs.target_repo_token }}
       target_tag: ${{ steps.setup_variables.outputs.target_tag }}
       pypi_project: ${{ steps.setup_variables.outputs.pypi_project }}
       pypi_suffix: ${{ steps.setup_variables.outputs.pypi_suffix }}
@@ -104,8 +108,6 @@ jobs:
           TARGET_PYPI_SUFFIX: ${{ vars[format('{0}_pypi_suffix', steps.process_inputs.outputs.target_repo)] }}
           SOURCE_ARCHIVE_REPO: ${{ vars[format('{0}_archive_repo', steps.process_inputs.outputs.source_repo)] }}
           TARGET_ARCHIVE_REPO: ${{ vars[format('{0}_archive_repo', steps.process_inputs.outputs.target_repo)] }}
-          HAS_SOURCE_ARCHIVE_REPO_TOKEN: ${{ !!secrets[format('{0}_archive_repo_token', steps.process_inputs.outputs.source_repo)] }}
-          HAS_TARGET_ARCHIVE_REPO_TOKEN: ${{ !!secrets[format('{0}_archive_repo_token', steps.process_inputs.outputs.target_repo)] }}
           HAS_ARCHIVE_REPO_TOKEN: ${{ !!secrets.ARCHIVE_REPO_TOKEN }}
         run: |
           python -m devscripts.setup_variables
@@ -285,7 +287,7 @@ jobs:
 
       - name: Publish to archive repo
         env:
-          GH_TOKEN: ${{ secrets[needs.prepare.outputs.target_repo_token] }}
+          GH_TOKEN: ${{ secrets.ARCHIVE_REPO_TOKEN }}
           GH_REPO: ${{ needs.prepare.outputs.target_repo }}
           TITLE_PREFIX: ${{ startswith(env.TARGET_REPO, 'yt-dlp/') && 'yt-dlp ' || '' }}
           TITLE: ${{ inputs.target != env.TARGET_REPO && inputs.target || needs.prepare.outputs.channel }}

@@ -28,7 +28,9 @@ jobs:
       prerelease: true
       source: ${{ (github.repository != 'yt-dlp/yt-dlp' && vars.MASTER_ARCHIVE_REPO) || 'master' }}
       target: 'master'
-    secrets: inherit
+    secrets:
+      ARCHIVE_REPO_TOKEN: ${{ secrets.ARCHIVE_REPO_TOKEN }}
+      GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 
   publish_pypi:
     needs: [release]
