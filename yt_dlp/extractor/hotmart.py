@@ -26,20 +26,20 @@ class HotmartEmbedIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            url, video_id, note='Downloading Hotmart embed page'
+            url, video_id, note='Downloading Hotmart embed page',
         )
 
         next_data = self._search_regex(
             r'<script[^>]+id="__NEXT_DATA__"[^>]*>(?P<json>{.+?})</script>',
             webpage,
             'NEXT_DATA',
-            group='json'
+            group='json',
         )
 
         data = json.loads(next_data)
 
         app_data = traverse_obj(
-            data, ('props', 'pageProps', 'applicationData')
+            data, ('props', 'pageProps', 'applicationData'),
         )
         if not app_data:
             raise ExtractorError('Unable to find applicationData')
