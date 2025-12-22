@@ -53,6 +53,7 @@ jobs:
       with:
         # minimum supported version is 1.0.31 but earliest available Windows version is 1.1.0
         bun-version: ${{ (matrix.os == 'windows-latest' && '1.1.0') || '1.0.31' }}
+        no-cache: true
     - name: Install Node
       uses: actions/setup-node@v6
       with:

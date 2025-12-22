@@ -265,20 +265,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Cache requirements
-        if: matrix.cache_requirements
-        id: cache-venv
-        uses: actions/cache@v5
-        env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
-        with:
-          path: |
-            venv
-          key: cache-reqs-${{ matrix.os }}_${{ matrix.arch }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
-          restore-keys: |
-            cache-reqs-${{ matrix.os }}_${{ matrix.arch }}-${{ github.ref }}-
-            cache-reqs-${{ matrix.os }}_${{ matrix.arch }}-
-
       - name: Set up QEMU
         if: matrix.qemu_platform
         uses: docker/setup-qemu-action@v3
@@ -331,19 +317,6 @@ jobs:
           persist-credentials: false
 
       # NB: Building universal2 does not work with python from actions/setup-python
-
-      - name: Cache requirements
-        id: cache-venv
-        uses: actions/cache@v5
-        env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
-        with:
-          path: |
-            ~/yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
-          restore-keys: |
-            cache-reqs-${{ github.job }}-${{ github.ref }}-
-            cache-reqs-${{ github.job }}-
 
       - name: Install Requirements
         run: |
@@ -467,20 +440,6 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.arch }}
-
-      - name: Cache requirements
-        id: cache-venv
-        if: matrix.arch == 'arm64'
-        uses: actions/cache@v5
-        env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
-        with:
-          path: |
-            /yt-dlp-build-venv
-          key: ${{ env.BASE_CACHE_KEY }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
-          restore-keys: |
-            ${{ env.BASE_CACHE_KEY }}-${{ github.ref }}-
-            ${{ env.BASE_CACHE_KEY }}-
 
       - name: Install Requirements
         env:
