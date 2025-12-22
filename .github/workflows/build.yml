@@ -489,6 +489,8 @@ jobs:
           PYI_HASH: ${{ matrix.pyi_hash }}
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           python -m venv /yt-dlp-build-venv
           /yt-dlp-build-venv/Scripts/Activate.ps1
           python -m pip install -U pip
@@ -506,12 +508,16 @@ jobs:
       - name: Prepare
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           python devscripts/update-version.py -c "${Env:CHANNEL}" -r "${Env:ORIGIN}" "${Env:VERSION}"
           python devscripts/make_lazy_extractors.py
 
       - name: Build
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           /yt-dlp-build-venv/Scripts/Activate.ps1
           python -m bundle.pyinstaller
           python -m bundle.pyinstaller --onedir
@@ -521,6 +527,8 @@ jobs:
         if: vars.UPDATE_TO_VERIFICATION
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           $name = "yt-dlp${Env:SUFFIX}"
           Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
           $version = & "./dist/${name}.exe" --version
