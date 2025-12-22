@@ -1,0 +1,10 @@
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        "actions/*": ref-pin
+        "docker/*": ref-pin
+        "github/*": ref-pin
+        "pypa/*": ref-pin
+        "yt-dlp/*": ref-pin
+        "*": hash-pin

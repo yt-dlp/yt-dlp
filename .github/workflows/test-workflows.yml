@@ -1,6 +1,7 @@
 name: Test and lint workflows
 on:
   push:
+    branches: [master]
     paths:
       - .github/workflows/*
       - bundle/docker/linux/*.sh
@@ -8,6 +9,7 @@ on:
       - devscripts/setup_variables_tests.py
       - devscripts/utils.py
   pull_request:
+    branches: [master]
     paths:
       - .github/workflows/*
       - bundle/docker/linux/*.sh
@@ -55,3 +57,18 @@ jobs:
       - name: Test GHA devscripts
         run: |
           pytest -Werror --tb=short --color=yes devscripts/setup_variables_tests.py
+  zizmor:
+    name: Run zizmor
+    permissions:
+      contents: read
+      actions: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@e639db99335bc9038abc0e066dfcd72e23d26fb4  # v0.3.0
+        with:
+          advanced-security: false
+          persona: pedantic
