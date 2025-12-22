@@ -26,7 +26,7 @@ services:
       platforms:
         - "linux/amd64"
       args:
-        VERIFYIMAGE: quay.io/pypa/manylinux2014_x86_64:latest
+        VERIFYIMAGE: quay.io/pypa/manylinux2014_x86_64:2025.12.19-1
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
@@ -61,7 +61,7 @@ services:
       platforms:
         - "linux/arm64"
       args:
-        VERIFYIMAGE: quay.io/pypa/manylinux2014_aarch64:latest
+        VERIFYIMAGE: quay.io/pypa/manylinux2014_aarch64:2025.12.19-1
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
