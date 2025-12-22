@@ -610,6 +610,23 @@ def create_parser():
             'Use the specified HTTP/HTTPS/SOCKS proxy. To enable SOCKS proxy, specify a proper scheme, '
             'e.g. socks5://user:pass@127.0.0.1:1080/. Pass in an empty string (--proxy "") for direct connection'))
     network.add_option(
+        '--info-proxy', dest='info_proxy',
+        default=None, metavar='URL',
+        help=(
+            'Use the specified HTTP/HTTPS/SOCKS proxy. To enable SOCKS proxy, specify a proper scheme, '
+            'e.g. socks5://user:pass@127.0.0.1:1080/. Pass in an empty string (--proxy "") for direct connection'))
+    network.add_option(
+        '--x-json-errors', dest='x_json_errors',
+        default=None,
+        help=(
+            'Enable json output for report_error'))
+    network.add_option(
+        '--download-proxy', dest='download_proxy',
+        default=None, metavar='URL',
+        help=(
+            'Use the specified HTTP/HTTPS/SOCKS proxy. To enable SOCKS proxy, specify a proper scheme, '
+            'e.g. socks5://user:pass@127.0.0.1:1080/. Pass in an empty string (--proxy "") for direct connection'))
+    network.add_option(
         '--socket-timeout',
         dest='socket_timeout', type=float, default=None, metavar='SECONDS',
         help='Time to wait before giving up, in seconds')

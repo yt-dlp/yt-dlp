@@ -650,6 +650,10 @@ class YoutubeDL:
         self._playlist_urls = set()
         self.cache = Cache(self)
         self.__header_cookies = []
+        self.last_stage = 'preparing'
+        self.info_proxy = self.params.get('info_proxy')
+        self.download_proxy = self.params.get('download_proxy')
+        self.x_json_errors = self.params.get('x_json_errors')
 
         # compat for API: load plugins if they have not already
         if not all_plugins_loaded.value:
@@ -849,6 +853,9 @@ class YoutubeDL:
             return archive
 
         self.archive = preload_download_archive(self.params.get('download_archive'))
+
+        self.info_proxy = self.params.get('info_proxy')
+        self.download_proxy = self.params.get('download_proxy')
 
     def _clean_js_runtimes(self, runtimes):
         if not (
@@ -1151,6 +1158,15 @@ class YoutubeDL:
         Do the same as trouble, but prefixes the message with 'ERROR:', colored
         in red if stderr is a tty file.
         """
+
+        if self.x_json_errors:
+            message = {'error': message, 'stage': self.last_stage}
+            if self.last_stage:
+                message['stage'] = self.last_stage
+
+            msg = json.dumps(message)
+            self.to_stderr(f'{msg}', *args, **kwargs)
+
         self.trouble(f'{self._format_err("ERROR:", self.Styles.ERROR)} {message}', *args, **kwargs)
 
     def write_debug(self, message, only_once=False):
@@ -1823,12 +1839,36 @@ class YoutubeDL:
             cookie.domain = f'.{parsed.hostname}'
             self.cookiejar.set_cookie(cookie)
 
+    @contextlib.contextmanager
+    def override_proxy(self, proxy, stage):
+        """
+        Temporarily override the proxy for the given stage.
+        Logs the stage and proxy in use, clears the cached proxies and request director so that
+        new requests use the updated proxy settings.
+        """
+        original = self.params.get('proxy')
+        print(f"[info] {stage} stage: Using proxy: {proxy if proxy else 'None'}", flush=True)
+        if proxy is not None:
+            self.params['proxy'] = proxy
+        # Remove cached properties so they are rebuilt with the new proxy settings
+        self.__dict__.pop('proxies', None)
+        self.__dict__.pop('_request_director', None)
+        try:
+            yield
+        finally:
+            # Restore original proxy setting
+            self.params['proxy'] = original
+            self.__dict__.pop('proxies', None)
+            self.__dict__.pop('_request_director', None)
+            print(f"[info] {stage} stage: Restored proxy to: {original if original else 'None'}", flush=True)
+
     @_handle_extraction_exceptions
     def __extract_info(self, url, ie, download, extra_info, process):
         self._apply_header_cookies(url)
-
         try:
-            ie_result = ie.extract(url)
+            with self.override_proxy(self.params.get('info_proxy'), 'Info extraction'):
+                self.last_stage = 'info'
+                ie_result = ie.extract(url)
         except UserNotLive as e:
             if process:
                 if self.params.get('wait_for_video'):
@@ -3279,7 +3319,10 @@ class YoutubeDL:
         new_info = self._copy_infodict(info)
         if new_info.get('http_headers') is None:
             new_info['http_headers'] = self._calc_headers(new_info)
-        return fd.download(name, new_info, subtitle)
+        # Wrap the downloader call with the download proxy override
+        with self.override_proxy(self.params.get('download_proxy'), 'Download'):
+            self.last_stage = 'download'
+            return fd.download(name, new_info, subtitle)
 
     def existing_file(self, filepaths, *, default_overwrite=True):
         existing_files = list(filter(os.path.exists, orderedSet(filepaths)))
