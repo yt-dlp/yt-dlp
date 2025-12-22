@@ -77,6 +77,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          persist-credentials: true  # Needed to git-push the release commit
 
       - uses: actions/setup-python@v6
         with:
