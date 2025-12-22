@@ -15,4 +15,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Sanitize comment
-        uses: yt-dlp/sanitize-comment@v1
+        uses: yt-dlp/sanitize-comment@4536c691101b89f5373d50fe8a7980cae146346b  # v1.0.0

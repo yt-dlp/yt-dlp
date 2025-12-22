@@ -197,12 +197,12 @@ jobs:
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           fetch-depth: 0  # Needed for changelog
           persist-credentials: false
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version: "3.10"
 
@@ -231,7 +231,7 @@ jobs:
           [[ "${version}" != "${downgraded_version}" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: build-bin-${{ github.job }}
           path: |
@@ -261,13 +261,13 @@ jobs:
       SKIP_ONEFILE_BUILD: ${{ (!matrix.onefile && '1') || '' }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           persist-credentials: false
 
       - name: Set up QEMU
         if: matrix.qemu_platform
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130  # v3.7.0
         with:
           platforms: ${{ matrix.qemu_platform }}
 
@@ -292,7 +292,7 @@ jobs:
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: build-bin-${{ matrix.os }}_${{ matrix.arch }}
           path: |
@@ -312,7 +312,7 @@ jobs:
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           persist-credentials: false
 
@@ -381,7 +381,7 @@ jobs:
           [[ "$version" != "$downgraded_version" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: build-bin-${{ github.job }}
           path: |
@@ -432,11 +432,11 @@ jobs:
       PYI_WHEEL: pyinstaller-${{ matrix.pyi_version }}-py3-none-${{ matrix.platform_tag }}.whl
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           persist-credentials: false
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.arch }}
@@ -498,7 +498,7 @@ jobs:
           }
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: build-bin-${{ github.job }}-${{ matrix.arch }}
           path: |
@@ -517,7 +517,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131  # v7.0.0
         with:
           path: artifact
           pattern: build-bin-*
@@ -585,7 +585,7 @@ jobs:
           done
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: build-${{ github.job }}
           path: |
