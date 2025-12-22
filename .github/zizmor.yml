@@ -6,6 +6,9 @@ rules:
       - .github/workflows/release-nightly.yml
       - .github/workflows/release.yml
       - .github/workflows/sanitize-comment.yml
+  obfuscation:
+    ignore:
+      - .github/workflows/release.yml
   unpinned-uses:
     config:
       policies:
