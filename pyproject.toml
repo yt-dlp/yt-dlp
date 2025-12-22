@@ -405,8 +405,3 @@ addopts = [
 markers = [
     "download",
 ]
-
-[dependency-groups]
-dev = [
-    "ruff>=0.14.10",
-]
