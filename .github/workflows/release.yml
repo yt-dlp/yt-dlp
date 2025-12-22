@@ -66,7 +66,7 @@ permissions: {}
 jobs:
   prepare:
     permissions:
-      contents: write
+      contents: write  # Needed to git-push the release commit
     runs-on: ubuntu-latest
     outputs:
       channel: ${{ steps.setup_variables.outputs.channel }}
@@ -169,7 +169,7 @@ jobs:
     if: ${{ needs.prepare.outputs.pypi_project }}
     permissions:
       contents: read
-      id-token: write  # mandatory for trusted publishing
+      id-token: write  # Needed for trusted publishing
     runs-on: ubuntu-latest
 
     steps:
@@ -229,7 +229,7 @@ jobs:
   publish:
     needs: [prepare, build]
     permissions:
-      contents: write
+      contents: write  # Needed by gh to publish release to Github
     runs-on: ubuntu-latest
     env:
       TARGET_REPO: ${{ needs.prepare.outputs.target_repo }}

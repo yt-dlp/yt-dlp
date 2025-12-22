@@ -20,9 +20,9 @@ jobs:
     name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
     permissions:
-      actions: read
+      actions: read  # Needed by github/codeql-action if repository is private
       contents: read
-      security-events: write
+      security-events: write  # Needed to use github/codeql-action with Github Advanced Security
 
     strategy:
       fail-fast: false

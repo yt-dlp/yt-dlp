@@ -11,7 +11,7 @@ jobs:
     name: Sanitize comment
     if: vars.SANITIZE_COMMENT && !github.event.issue.pull_request
     permissions:
-      issues: write
+      issues: write  # Needed by yt-dlp/sanitize-comment to edit comments
     runs-on: ubuntu-latest
     steps:
       - name: Sanitize comment
