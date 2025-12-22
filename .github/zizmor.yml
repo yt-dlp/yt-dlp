@@ -1,17 +1,17 @@
 rules:
   anonymous-definition:
     ignore:
-      - .github/workflows/build.yml  # Use auto-generated job names from matrix elements
+      - build.yml  # Use auto-generated job names from matrix elements
   concurrency-limits:
     ignore:
-      - .github/workflows/build.yml             # Can only be triggered by maintainers or cronjob
-      - .github/workflows/issue-lockdown.yml    # It *should* run for *every* new issue
-      - .github/workflows/release-nightly.yml   # Can only be triggered by once-daily cronjob
-      - .github/workflows/release.yml           # Can only be triggered by maintainers or cronjob
-      - .github/workflows/sanitize-comment.yml  # It *should* run for *every* new comment/edit
+      - build.yml             # Can only be triggered by maintainers or cronjob
+      - issue-lockdown.yml    # It *should* run for *every* new issue
+      - release-nightly.yml   # Can only be triggered by once-daily cronjob
+      - release.yml           # Can only be triggered by maintainers or cronjob
+      - sanitize-comment.yml  # It *should* run for *every* new comment/edit
   obfuscation:
     ignore:
-      - .github/workflows/release.yml  # Not actual obfuscation
+      - release.yml  # Not actual obfuscation
   unpinned-uses:
     config:
       policies:
