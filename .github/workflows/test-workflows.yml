@@ -3,6 +3,7 @@ on:
   push:
     branches: [master]
     paths:
+      - .github/*.yml
       - .github/workflows/*
       - bundle/docker/linux/*.sh
       - devscripts/setup_variables.py
@@ -11,6 +12,7 @@ on:
   pull_request:
     branches: [master]
     paths:
+      - .github/*.yml
       - .github/workflows/*
       - bundle/docker/linux/*.sh
       - devscripts/setup_variables.py
