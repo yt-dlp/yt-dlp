@@ -76,3 +76,4 @@ jobs:
         with:
           advanced-security: false
           persona: pedantic
+          version: v1.19.0
