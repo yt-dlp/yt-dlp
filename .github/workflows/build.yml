@@ -145,7 +145,6 @@ jobs:
                   'runner': 'ubuntu-24.04-arm',
                   'qemu_platform': 'linux/arm/v7',
                   'onefile': False,
-                  'cache_requirements': True,
                   'update_to': 'yt-dlp/yt-dlp@2023.03.04',
               }],
               'musllinux': [{
@@ -174,7 +173,6 @@ jobs:
               exe.setdefault('qemu_platform', None)
               exe.setdefault('onefile', True)
               exe.setdefault('onedir', True)
-              exe.setdefault('cache_requirements', False)
               exe.setdefault('python_version', os.environ['PYTHON_VERSION'])
               exe.setdefault('update_to', os.environ['UPDATE_TO'])
           if not any(INPUTS.get(key) for key in EXE_MAP):
