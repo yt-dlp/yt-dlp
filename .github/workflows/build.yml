@@ -267,6 +267,8 @@ jobs:
         if: matrix.qemu_platform
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130  # v3.7.0
         with:
+          image: tonistiigi/binfmt:qemu-v10.0.4-56@sha256:30cc9a4d03765acac9be2ed0afc23af1ad018aed2c28ea4be8c2eb9afe03fbd1
+          cache-image: false
           platforms: ${{ matrix.qemu_platform }}
 
       - name: Build executable
