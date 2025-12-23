@@ -1,0 +1,7 @@
+# PMOVES Repository Code Owners
+* @POWERFULMOVES/pmoves-core
+*.py @POWERFULMOVES/pmoves-python
+*.ts @POWERFULMOVES/pmoves-frontend
+*.tsx @POWERFULMOVES/pmoves-frontend
+Dockerfile @POWERFULMOVES/pmoves-infra
+docker-compose*.yml @POWERFULMOVES/pmoves-infra
