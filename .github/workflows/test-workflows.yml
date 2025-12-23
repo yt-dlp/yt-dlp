@@ -46,6 +46,7 @@ jobs:
       - name: Install requirements
         env:
           ACTIONLINT_TARBALL: ${{ format('actionlint_{0}_linux_amd64.tar.gz', env.ACTIONLINT_VERSION) }}
+        shell: bash
         run: |
           python -m devscripts.install_deps --omit-default --include-extra test
           sudo apt -y install shellcheck
@@ -63,6 +64,7 @@ jobs:
       - name: Test GHA devscripts
         run: |
           pytest -Werror --tb=short --color=yes devscripts/setup_variables_tests.py
+
   zizmor:
     name: Run zizmor
     permissions:
