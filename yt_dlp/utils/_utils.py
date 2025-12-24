@@ -1262,7 +1262,8 @@ def unified_strdate(date_str, day_first=True):
         return str(upload_date)
 
 
-def unified_timestamp(date_str, day_first=True):
+@partial_application
+def unified_timestamp(date_str, day_first=True, tz_offset=0):
     if not isinstance(date_str, str):
         return None
 
@@ -1270,7 +1271,8 @@ def unified_timestamp(date_str, day_first=True):
         r'(?i)[,|]|(mon|tues?|wed(nes)?|thu(rs)?|fri|sat(ur)?|sun)(day)?', '', date_str))
 
     pm_delta = 12 if re.search(r'(?i)PM', date_str) else 0
-    timezone, date_str = extract_timezone(date_str)
+    timezone, date_str = extract_timezone(
+        date_str, default=dt.timedelta(hours=tz_offset) if tz_offset else None)
 
     # Remove AM/PM + timezone
     date_str = re.sub(r'(?i)\s*(?:AM|PM)(?:\s+[A-Z]+)?', '', date_str)
