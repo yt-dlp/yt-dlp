@@ -723,7 +723,7 @@ class SabrStream:
             return
 
         self.logger.debug(
-            f'Requesting player response refresh as SABR URL is due to expire in {self.expiry_threshold_sec} seconds')
+            f'Requesting player response refresh as SABR URL is due to expire within {self.expiry_threshold_sec} seconds')
         yield RefreshPlayerResponseSabrPart(reason=RefreshPlayerResponseSabrPart.Reason.SABR_URL_EXPIRY)
 
     def _log_part(self, part: UMPPart, msg=None, protobug_obj=None, data=None):
