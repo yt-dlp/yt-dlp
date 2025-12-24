@@ -22,8 +22,8 @@ on:
       - yt_dlp/extractor/__init__.py
       - yt_dlp/extractor/common.py
       - yt_dlp/extractor/extractors.py
-permissions:
-  contents: read
+
+permissions: {}
 
 concurrency:
   group: core-${{ github.event.pull_request.number || github.ref }}
@@ -33,6 +33,8 @@ jobs:
   tests:
     name: Core Tests
     if: "!contains(github.event.head_commit.message, 'ci skip')"
+    permissions:
+      contents: read
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -55,16 +57,38 @@ jobs:
         - os: windows-latest
           python-version: pypy-3.11
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+        persist-credentials: false
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install test requirements
-      run: python ./devscripts/install_deps.py --include-group test --include-group curl-cffi
+      run: python ./devscripts/install_deps.py --include-extra test --include-extra curl-cffi
     - name: Run tests
       timeout-minutes: 15
       continue-on-error: False
+      env:
+        source: ${{ (github.event_name == 'push' && github.event.before) || 'origin/master' }}
+        target: ${{ (github.event_name == 'push' && github.event.after) || 'HEAD' }}
+      shell: bash
       run: |
+        flags=()
+        # Check if a networking file is involved
+        patterns="\
+        ^yt_dlp/networking/
+        ^yt_dlp/utils/networking\.py$
+        ^test/test_http_proxy\.py$
+        ^test/test_networking\.py$
+        ^test/test_networking_utils\.py$
+        ^test/test_socks\.py$
+        ^test/test_websockets\.py$
+        ^pyproject\.toml$
+        "
+        if git diff --name-only "${source}" "${target}" | grep -Ef <(printf '%s' "${patterns}"); then
+          flags+=(--flaky)
+        fi
         python3 -m yt_dlp -v || true  # Print debug head
-        python3 ./devscripts/run_tests.py --pytest-args '--reruns 2 --reruns-delay 3.0' core
+        python3 -m devscripts.run_tests "${flags[@]}" --pytest-args '--reruns 2 --reruns-delay 3.0' core

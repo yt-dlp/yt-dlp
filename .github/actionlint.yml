@@ -1,9 +1,3 @@
-self-hosted-runner:
-  labels:
-    # Workaround for the outdated runner list in actionlint v1.7.7
-    # Ref: https://github.com/rhysd/actionlint/issues/533
-    - windows-11-arm
-
 config-variables:
   - KEEP_CACHE_WARM
   - PUSH_VERSION_COMMIT

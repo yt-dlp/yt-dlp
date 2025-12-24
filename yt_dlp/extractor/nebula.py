@@ -478,3 +478,56 @@ class NebulaChannelIE(NebulaBaseIE):
             playlist_id=collection_slug,
             playlist_title=channel.get('title'),
             playlist_description=channel.get('description'))
+
+
+class NebulaSeasonIE(NebulaBaseIE):
+    IE_NAME = 'nebula:season'
+    _VALID_URL = rf'{_BASE_URL_RE}/(?P<series>[\w-]+)/season/(?P<season_number>\d+)'
+    _TESTS = [{
+        'url': 'https://nebula.tv/jetlag/season/15',
+        'info_dict': {
+            'id': 'jetlag_15',
+            'title': 'Tag: All Stars',
+            'description': 'md5:5aa5b8abf3de71756448dc44ffebb674',
+        },
+        'playlist_count': 8,
+    }, {
+        'url': 'https://nebula.tv/jetlag/season/14',
+        'info_dict': {
+            'id': 'jetlag_14',
+            'title': 'Snake',
+            'description': 'md5:6da9040f1c2ac559579738bfb6919d1e',
+        },
+        'playlist_count': 8,
+    }]
+
+    def _build_url_result(self, item):
+        url = (
+            traverse_obj(item, ('share_url', {url_or_none}))
+            or urljoin('https://nebula.tv/', item.get('app_path'))
+            or f'https://nebula.tv/videos/{item["slug"]}')
+        return self.url_result(
+            smuggle_url(url, {'id': item['id']}),
+            NebulaIE, url_transparent=True,
+            **self._extract_video_metadata(item))
+
+    def _entries(self, data):
+        for episode in traverse_obj(data, ('episodes', lambda _, v: v['video']['id'], 'video')):
+            yield self._build_url_result(episode)
+        for extra in traverse_obj(data, ('extras', ..., 'items', lambda _, v: v['id'])):
+            yield self._build_url_result(extra)
+        for trailer in traverse_obj(data, ('trailers', lambda _, v: v['id'])):
+            yield self._build_url_result(trailer)
+
+    def _real_extract(self, url):
+        series, season_id = self._match_valid_url(url).group('series', 'season_number')
+        playlist_id = f'{series}_{season_id}'
+        data = self._call_api(
+            f'https://content.api.nebula.app/content/{series}/season/{season_id}', playlist_id)
+
+        return self.playlist_result(
+            self._entries(data), playlist_id,
+            **traverse_obj(data, {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+            }))

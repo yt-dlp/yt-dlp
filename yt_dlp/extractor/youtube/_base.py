@@ -104,6 +104,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'SUPPORTS_COOKIES': True,
+        'SUPPORTS_AD_PLAYBACK_CONTEXT': True,
         **WEB_PO_TOKEN_POLICIES,
     },
     # Safari UA returns pre-merged video+audio 144p/240p/360p/720p/1080p HLS formats
@@ -117,6 +118,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'SUPPORTS_COOKIES': True,
+        'SUPPORTS_AD_PLAYBACK_CONTEXT': True,
         **WEB_PO_TOKEN_POLICIES,
     },
     'web_embedded': {
@@ -157,6 +159,7 @@ INNERTUBE_CLIENTS = {
             ),
         },
         'SUPPORTS_COOKIES': True,
+        'SUPPORTS_AD_PLAYBACK_CONTEXT': True,
     },
     # This client now requires sign-in for every video
     'web_creator': {
@@ -313,6 +316,7 @@ INNERTUBE_CLIENTS = {
             ),
         },
         'SUPPORTS_COOKIES': True,
+        'SUPPORTS_AD_PLAYBACK_CONTEXT': True,
     },
     'tv': {
         'INNERTUBE_CONTEXT': {
@@ -326,6 +330,17 @@ INNERTUBE_CLIENTS = {
         'SUPPORTS_COOKIES': True,
         # See: https://github.com/youtube/cobalt/blob/main/cobalt/browser/user_agent/user_agent_platform_info.cc#L506
         'AUTHENTICATED_USER_AGENT': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/25.lts.30.1034943-gold (unlike Gecko), Unknown_TV_Unknown_0/Unknown (Unknown, Unknown)',
+    },
+    'tv_downgraded': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'TVHTML5',
+                'clientVersion': '5.20251105',
+                'userAgent': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
+        'SUPPORTS_COOKIES': True,
     },
     'tv_simply': {
         'INNERTUBE_CONTEXT': {
@@ -401,6 +416,7 @@ def build_innertube_clients():
         ytcfg.setdefault('SUBS_PO_TOKEN_POLICY', SubsPoTokenPolicy())
         ytcfg.setdefault('REQUIRE_AUTH', False)
         ytcfg.setdefault('SUPPORTS_COOKIES', False)
+        ytcfg.setdefault('SUPPORTS_AD_PLAYBACK_CONTEXT', False)
         ytcfg.setdefault('PLAYER_PARAMS', None)
         ytcfg.setdefault('AUTHENTICATED_USER_AGENT', None)
         ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
