@@ -3,10 +3,12 @@ import base64
 import dataclasses
 import io
 import time
+from unittest.mock import MagicMock
 import protobug
 import pytest
 from yt_dlp import int_or_none
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import SabrStreamError
+from yt_dlp.networking.exceptions import TransportError, HTTPError, RequestError
 
 from yt_dlp.extractor.youtube._streaming.sabr.models import AudioSelector, VideoSelector
 from yt_dlp.extractor.youtube._streaming.sabr.part import (
@@ -42,6 +44,11 @@ DEFAULT_DURATION_MS = 10000
 DEFAULT_INIT_SEGMENT_DATA = b'example-init-segment'
 
 
+def extract_rn(url: str) -> int:
+    qs = parse_qs(url)
+    return int_or_none(qs.get('rn', ['1'])[0]) or 1
+
+
 @dataclasses.dataclass
 class SabrRequestDetails:
     request: Request
@@ -58,7 +65,7 @@ class SabrRequestHandler:
 
     def send(self, request: Request) -> Response:
         try:
-            vpabr, parts, response_code = self.sabr_response_processor.process_request(request.data, request.url)
+            vpabr, parts, response_code = self.sabr_response_processor.process_request(request.data, request.url, len(self.request_history) + 1)
         except Exception as e:
             self.request_history.append(
                 SabrRequestDetails(request=request, error=e))
@@ -95,7 +102,7 @@ class SabrResponseProcessor:
     def __init__(self, options: dict | None = None):
         self.options = options or {}
 
-    def process_request(self, data: bytes, url: str) -> tuple[VideoPlaybackAbrRequest | None, list[UMPPart], int]:
+    def process_request(self, data: bytes, url: str, request_number: int) -> tuple[VideoPlaybackAbrRequest | None, list[UMPPart], int]:
         try:
             vpabr = protobug.loads(data, VideoPlaybackAbrRequest)
         except Exception:
@@ -103,9 +110,9 @@ class SabrResponseProcessor:
             # TODO: confirm GVS behaviour when VideoPlaybackAbrRequest is malformed
             return None, [UMPPart(data=io.BytesIO(error_part), part_id=UMPPartId.SABR_ERROR, size=len(error_part))], 200
 
-        return vpabr, self.get_parts(vpabr, url), 200
+        return vpabr, self.get_parts(vpabr, url, request_number), 200
 
-    def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str) -> list[UMPPart]:
+    def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str, request_number: int) -> list[UMPPart]:
         raise NotImplementedError
 
     def determine_formats(self, vpabr: VideoPlaybackAbrRequest) -> tuple[FormatId, FormatId]:
@@ -277,7 +284,7 @@ class SabrResponseProcessor:
 
 
 class BasicAudioVideoProfile(SabrResponseProcessor):
-    def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str) -> list[UMPPart]:
+    def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str, request_number: int) -> list[UMPPart]:
         audio_format_id, video_format_id = self.determine_formats(vpabr)
         fim_parts = self.get_format_initialization_metadata_parts(
             audio_format_id=audio_format_id,
@@ -317,23 +324,22 @@ class SabrRedirectAVProfile(BasicAudioVideoProfile):
         3: {'url': 'https://redirect.example.com/final', 'replace': True},
     }
 
-    def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str) -> list[UMPPart]:
+    def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str, request_number: int) -> list[UMPPart]:
         redirects = self.options.get('redirects', self.DEFAULT_REDIRECTS)
-        parts = super().get_parts(vpabr, url)
-        rn = int_or_none(parse_qs(url).get('rn', ['1'])[0])
+        parts = super().get_parts(vpabr, url, request_number)
 
         # Guard to ensure the redirect is followed correctly.
         # Get the last redirect_url based on the rn.
         expected_url = None
         for redirect_rn in sorted(redirects.keys(), reverse=True):
-            if rn > redirect_rn:
+            if request_number > redirect_rn:
                 expected_url = redirects[redirect_rn]['url']
                 break
         if expected_url and not url.startswith(expected_url):
-            raise Exception(f'Unexpected URL {url} for request number {rn}, expected to start with {expected_url}')
+            raise Exception(f'Unexpected URL {url} for request number {request_number}, expected to start with {expected_url}')
 
         # Handle redirects based on request number
-        redirect = redirects.get(rn)
+        redirect = redirects.get(request_number)
         if redirect:
             data = protobug.dumps(SabrRedirect(redirect_url=redirect['url']))
             part = UMPPart(
@@ -346,6 +352,31 @@ class SabrRedirectAVProfile(BasicAudioVideoProfile):
             else:
                 parts.append(part)
         return parts
+
+
+class RequestRetryAVProfile(BasicAudioVideoProfile):
+    """Test helper profile that injects an error on a particular request number (default 2).
+
+    Used to simulate *request* errors to test retry logic.
+
+    Options:
+    mode: 'transport' | 'http' | 'request'
+    status: int | None (default None) - HTTP status code to use for 'http' mode
+    rn: list of request numbers to inject errors on (default [2])
+    """
+
+    def process_request(self, data: bytes, url: str, request_number: int) -> tuple[VideoPlaybackAbrRequest | None, list[UMPPart], int]:
+        mode = self.options.get('mode', 'transport')
+        status = self.options.get('status')
+        if request_number in self.options.get('rn', [2]):
+            if mode == 'transport':
+                raise TransportError(cause='simulated transport error')
+            elif mode == 'http':
+                resp = Response(fp=io.BytesIO(b''), url=url, headers={}, status=status or 500)
+                raise HTTPError(response=resp)
+            elif mode == 'request':
+                raise RequestError(msg='simulated request error')
+        return super().process_request(data, url, request_number)
 
 
 def assert_media_sequence_in_order(parts, format_selector: AudioSelector | VideoSelector, expected_total_segments: int):
@@ -658,7 +689,7 @@ class TestStream:
         )
 
         assert sabr_stream.processor.is_live is True
-        with pytest.raises(SabrStreamError, 'Broadcast ID changed from 1 to 2. The download will need to be restarted.'):
+        with pytest.raises(SabrStreamError, match=r'Broadcast ID changed from 1 to 2\. The download will need to be restarted\.'):
             sabr_stream.url = 'https://example.com/sabr?source=yt_live_broadcast&id=2'
 
     def test_sabr_expiry_refresh_player_response(self, logger, client_info):
@@ -728,3 +759,279 @@ class TestStream:
         )
         parts = list(sabr_stream.iter_parts())
         assert all(not isinstance(part, RefreshPlayerResponseSabrPart) for part in parts)
+
+    class TestRequestRetries:
+        def test_sabr_retry_on_transport_error(self, logger, client_info):
+            # Should retry on TransportError occurring during request
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': [2]}),
+                client_info=client_info,
+                logger=logger,
+            )
+            audio_selector, video_selector = selectors
+
+            # Should complete successfully
+            parts = list(sabr_stream.iter_parts())
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS)
+
+            # Find the first request that recorded an error
+            i_err = next(i for i, d in enumerate(rh.request_history) if d.error is not None)
+
+            request = rh.request_history[i_err]
+            assert isinstance(request.error, TransportError)
+            assert request.error.cause == 'simulated transport error'
+
+            # There should be a retry request recorded immediately after the error
+            retried_request = rh.request_history[i_err + 1]
+            assert retried_request.error is None
+
+            # The video_playback_abr_request should be the same for both requests - no changes in state (e.g playback time)
+            assert request.request.data == retried_request.request.data
+
+            # Should log the retry attempt
+            logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (1/10)...')
+
+        def test_sabr_retry_on_http_5xx(self, logger, client_info):
+            # Should retry on HTTP 5xx errors
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                sabr_response_processor=RequestRetryAVProfile({'mode': 'http', 'status': 500, 'rn': [2]}),
+                client_info=client_info,
+                logger=logger,
+            )
+
+            parts = list(sabr_stream.iter_parts())
+            audio_selector, video_selector = selectors
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS)
+
+            # Find the first request that recorded an error
+            i_err = next(i for i, d in enumerate(rh.request_history) if d.error is not None)
+
+            request = rh.request_history[i_err]
+            assert isinstance(request.error, HTTPError)
+            assert request.error.status == 500
+
+            # There should be a retry request recorded immediately after the error
+            retried_request = rh.request_history[i_err + 1]
+            assert retried_request.error is None
+            # The video_playback_abr_request should be the same for both requests - no changes in state (e.g playback time)
+            assert request.request.data == retried_request.request.data
+            # Should log the retry attempt
+            logger.warning.assert_any_call('[sabr] Got error: HTTP Error 500: Internal Server Error. Retrying (1/10)...')
+
+        def test_sabr_no_retry_on_http_4xx(self, logger, client_info):
+            # Should NOT retry on HTTP 4xx errors and should raise SabrStreamError
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                sabr_response_processor=RequestRetryAVProfile({'mode': 'http', 'status': 404, 'rn': [2]}),
+                client_info=client_info,
+                logger=logger,
+            )
+
+            with pytest.raises(SabrStreamError, match=r'404'):
+                list(sabr_stream.iter_parts())
+
+            # Ensure the failing request was recorded and no retry was attempted
+            assert len(rh.request_history) >= 1
+            i_err = next(i for i, d in enumerate(rh.request_history) if d.error is not None)
+            assert isinstance(rh.request_history[i_err].error, HTTPError)
+            assert rh.request_history[i_err].error.status == 404
+            assert len(rh.request_history) == i_err + 1
+
+        def test_sabr_no_retry_on_request_error(self, logger, client_info):
+            # Should NOT retry on RequestError (non-network error)
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                sabr_response_processor=RequestRetryAVProfile({'mode': 'request', 'rn': [2]}),
+                client_info=client_info,
+                logger=logger,
+            )
+            # We don't currently wrap in SabrStreamError as could be client issue
+            with pytest.raises(RequestError, match='simulated request error'):
+                list(sabr_stream.iter_parts())
+
+            # Ensure the failing request was recorded and no retry was attempted
+            assert len(rh.request_history) >= 1
+            i_err = next(i for i, d in enumerate(rh.request_history) if d.error is not None)
+            assert isinstance(rh.request_history[i_err].error, RequestError)
+            assert len(rh.request_history) == i_err + 1
+
+        def test_sabr_multiple_retries(self, logger, client_info):
+            # Should retry multiple times on consecutive errors
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': [2, 3, 4]}),
+                client_info=client_info,
+                logger=logger,
+            )
+            audio_selector, video_selector = selectors
+
+            # Should complete successfully
+            parts = list(sabr_stream.iter_parts())
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS)
+
+            # Find the requests that recorded errors
+            error_requests = [d for d in rh.request_history if d.error is not None]
+            assert len(error_requests) == 3
+            for request in error_requests:
+                assert isinstance(request.error, TransportError)
+                assert request.error.cause == 'simulated transport error'
+
+            # There should be a retry request recorded immediately after the three errors
+            last_error_request = error_requests[-1]
+            retried_request = rh.request_history[rh.request_history.index(last_error_request) + 1]
+            assert retried_request.error is None
+            # The video_playback_abr_request should be the same for all requests - no changes in state (e.g playback time)
+            assert error_requests[0].request.data == retried_request.request.data
+
+            # Should log each retry attempt
+            logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (1/10)...')
+            logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (2/10)...')
+            logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (3/10)...')
+
+        def test_sabr_reset_retry_counter(self, logger, client_info):
+            # Should reset the retry counter after a successful request
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': [2, 4]}),
+                client_info=client_info,
+                logger=logger,
+            )
+            audio_selector, video_selector = selectors
+
+            # Should complete successfully
+            parts = list(sabr_stream.iter_parts())
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS)
+
+            # Find the requests that recorded errors
+            error_requests = [d for d in rh.request_history if d.error is not None]
+            assert len(error_requests) == 2
+            for request in error_requests:
+                assert isinstance(request.error, TransportError)
+                assert request.error.cause == 'simulated transport error'
+
+            # There should be a retry request recorded immediately after each error
+            first_error_request = error_requests[0]
+            first_retried_request = rh.request_history[rh.request_history.index(first_error_request) + 1]
+            assert first_retried_request.error is None
+            second_error_request = error_requests[1]
+            second_retried_request = rh.request_history[rh.request_history.index(second_error_request) + 1]
+            assert second_retried_request.error is None
+
+            # Should log each retry attempt with correct counts
+            logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (1/10)...')
+            logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (1/10)...')
+
+        def test_sabr_exceed_max_retries(self, logger, client_info):
+            # Should raise SabrStreamError after exceeding max retries
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(2, 15))}),
+                client_info=client_info,
+                logger=logger,
+            )
+
+            with pytest.raises(TransportError, match='simulated transport error'):
+                list(sabr_stream.iter_parts())
+
+            # There should be max_retry + 1 error requests recorded
+            error_requests = [d for d in rh.request_history if d.error is not None]
+            assert len(error_requests) == 11  # Default max retries is 10
+            for request in error_requests:
+                assert isinstance(request.error, TransportError)
+                assert request.error.cause == 'simulated transport error'
+
+            # Should log each retry attempt
+            for i in range(1, 11):
+                logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/10)...')
+
+        def test_sabr_http_retries_option(self, logger, client_info):
+            # Should respect the http_retries option for max retries
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(2, 8))}),
+                client_info=client_info,
+                logger=logger,
+                http_retries=5,
+            )
+
+            with pytest.raises(TransportError, match='simulated transport error'):
+                list(sabr_stream.iter_parts())
+
+            # There should be http_retries + 1 error requests recorded
+            error_requests = [d for d in rh.request_history if d.error is not None]
+            assert len(error_requests) == 6  # http_retries is set to 5
+            for request in error_requests:
+                assert isinstance(request.error, TransportError)
+                assert request.error.cause == 'simulated transport error'
+
+            # Should log each retry attempt
+            for i in range(1, 6):
+                logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/5)...')
+
+        def test_sabr_http_retry_sleep_func(self, logger, client_info):
+            # Should call the retry_sleep_func between retries to get the sleep duration
+            # For this test, we want to return 0.001 as the sleep
+            sleep_mock = MagicMock()
+            sleep_mock.side_effect = lambda n: 0.001
+
+            sabr_stream, _, __ = setup_sabr_stream_av(
+                sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': [2, 3]}),
+                client_info=client_info,
+                logger=logger,
+                http_retries=3,
+                retry_sleep_func=sleep_mock,
+            )
+            # Should complete successfully
+            list(sabr_stream.iter_parts())
+            # sleep_mock should be called 2 times (for the two retries)
+            assert sleep_mock.call_count == 2
+            sleep_mock.assert_any_call(n=0)
+            sleep_mock.assert_any_call(n=1)
+
+            # Check logs for retry attempts
+            logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (1/3)...')
+            logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (2/3)...')
+            # Should log the sleep
+            logger.info.assert_any_call('Sleeping 0.00 seconds ...')
+
+        def test_sabr_expiry_on_retry(self, logger, client_info):
+            # Should check for expiry before retrying and yield RefreshPlayerResponseSabrPart if within threshold
+            expires_at = int(time.time() + 30)  # 30 seconds from now
+            sabr_stream, _, __ = setup_sabr_stream_av(
+                sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(7))}),
+                client_info=client_info,
+                logger=logger,
+                url=f'https://example.com/sabr?expire={int(expires_at)}',
+                http_retries=5,
+                # By default, expiry threshold is 60 seconds
+            )
+
+            # Retrieve all parts until we fail
+            parts = []
+            with pytest.raises(TransportError, match='simulated transport error'):
+                for part in sabr_stream.iter_parts():
+                    parts.append(part)
+
+            # Should get 6 RefreshPlayerResponseSabrPart parts before failing
+            # (If the check was AFTER the retry was triggered, we would only get 1)
+            refresh_parts = [part for part in parts if isinstance(part, RefreshPlayerResponseSabrPart)]
+            assert len(refresh_parts) == 6
+
+        def test_sabr_increment_rn_on_retry(self, logger, client_info):
+            # Should increment the "rn" parameter on each retry request
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': [2, 3, 4]}),
+                client_info=client_info,
+                logger=logger,
+            )
+
+            # Should complete successfully
+            list(sabr_stream.iter_parts())
+
+            # Find the requests that recorded errors
+            error_requests = [d for d in rh.request_history if d.error is not None]
+            assert len(error_requests) == 3
+
+            # Check that the "rn" parameter increments correctly
+            for i, request_details in enumerate(rh.request_history):
+                expected_rn = i + 1
+                actual_rn = extract_rn(request_details.request.url)
+                assert actual_rn == expected_rn, f'Expected rn={expected_rn}, got rn={actual_rn}'

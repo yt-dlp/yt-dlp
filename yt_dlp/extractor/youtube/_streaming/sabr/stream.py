@@ -67,7 +67,7 @@ class SabrStream:
     @param live_end_segment_tolerance: The number of segments before the live head segment at which the livestream is allowed to end. Defaults to 10.
     @param post_live: Whether the live stream is in post-live mode. Used to determine how to handle the end of the stream.
     @param video_id: The video ID of the YouTube video. Used for validating received data is for the correct video.
-    @param retry_sleep_func: A function to sleep between retries. If None, will not sleep between retries.
+    @param retry_sleep_func: A function to calculate sleep time between retries. Takes the retry count as an argument.
     @param expiry_threshold_sec: The number of seconds before the GVS expiry to consider it expired. Defaults to 1 minute.
     """
 
@@ -123,7 +123,7 @@ class SabrStream:
         live_end_segment_tolerance: int | None = None,
         post_live: bool = False,
         video_id: str | None = None,
-        retry_sleep_func: int | None = None,
+        retry_sleep_func: typing.Callable[[int], int] | None = None,
         expiry_threshold_sec: int | None = None,
     ):
 
@@ -157,7 +157,7 @@ class SabrStream:
         if self.max_empty_requests <= 0:
             raise ValueError('max_empty_requests must be greater than 0')
         self.retry_sleep_func = retry_sleep_func
-        self._request_number = 1
+        self._request_number = 0
 
         # Whether we got any new (not consumed) segments in the request.
         self._received_new_segments = False
@@ -239,6 +239,7 @@ class SabrStream:
 
             response = None
             try:
+                self._request_number += 1
                 response = self._urlopen(
                     Request(
                         url=self.url,
@@ -252,7 +253,6 @@ class SabrStream:
                         },
                     ),
                 )
-                self._request_number += 1
             except TransportError as e:
                 self._current_http_retry.error = e
             except HTTPError as e:
