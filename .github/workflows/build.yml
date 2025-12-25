@@ -183,6 +183,7 @@ jobs:
               f.write(f'matrix={json.dumps(matrix)}')
 
   unix:
+    name: unix
     needs: [process]
     if: inputs.unix
     permissions:
@@ -300,6 +301,7 @@ jobs:
           compression-level: 0
 
   macos:
+    name: macos
     needs: [process]
     if: inputs.macos
     permissions:
@@ -507,6 +509,7 @@ jobs:
           compression-level: 0
 
   meta_files:
+    name: Metadata files
     needs:
       - process
       - unix

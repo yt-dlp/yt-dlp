@@ -1,7 +1,4 @@
 rules:
-  anonymous-definition:
-    ignore:
-      - build.yml  # Use auto-generated job names from matrix elements
   concurrency-limits:
     ignore:
       - build.yml             # Can only be triggered by maintainers or cronjob
