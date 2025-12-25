@@ -27,7 +27,7 @@ from ..utils.traversal import traverse_obj
 
 
 class CDAIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:www\.)?cda\.pl/video|ebd\.cda\.pl/[0-9]+x[0-9]+)/(?P<id>[0-9a-z]+)'
+    _VALID_URL = r'https?://(?:(?:(?:www|m)\.)?cda\.pl/video|ebd\.cda\.pl/[0-9]+x[0-9]+)/(?P<id>[0-9a-z]+)'
     _NETRC_MACHINE = 'cdapl'
 
     _BASE_URL = 'https://www.cda.pl'
@@ -109,6 +109,9 @@ class CDAIE(InfoExtractor):
         },
     }, {
         'url': 'http://ebd.cda.pl/0x0/5749950c',
+        'only_matching': True,
+    }, {
+        'url': 'https://m.cda.pl/video/617297677',
         'only_matching': True,
     }]
 
@@ -367,35 +370,35 @@ class CDAIE(InfoExtractor):
 
 class CDAFolderIE(InfoExtractor):
     _MAX_PAGE_SIZE = 36
-    _VALID_URL = r'https?://(?:www\.)?cda\.pl/(?P<channel>[\w-]+)/folder/(?P<id>\d+)'
-    _TESTS = [
-        {
-            'url': 'https://www.cda.pl/domino264/folder/31188385',
-            'info_dict': {
-                'id': '31188385',
-                'title': 'SERIA DRUGA',
-            },
-            'playlist_mincount': 13,
+    _VALID_URL = r'https?://(?:(?:www|m)\.)?cda\.pl/(?P<channel>[\w-]+)/folder/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.cda.pl/domino264/folder/31188385',
+        'info_dict': {
+            'id': '31188385',
+            'title': 'SERIA DRUGA',
         },
-        {
-            'url': 'https://www.cda.pl/smiechawaTV/folder/2664592/vfilm',
-            'info_dict': {
-                'id': '2664592',
-                'title': 'VideoDowcipy - wszystkie odcinki',
-            },
-            'playlist_mincount': 71,
+        'playlist_mincount': 13,
+    }, {
+        'url': 'https://www.cda.pl/smiechawaTV/folder/2664592/vfilm',
+        'info_dict': {
+            'id': '2664592',
+            'title': 'VideoDowcipy - wszystkie odcinki',
         },
-        {
-            'url': 'https://www.cda.pl/DeliciousBeauty/folder/19129979/vfilm',
-            'info_dict': {
-                'id': '19129979',
-                'title': 'TESTY KOSMETYKÓW',
-            },
-            'playlist_mincount': 139,
-        }, {
-            'url': 'https://www.cda.pl/FILMY-SERIALE-ANIME-KRESKOWKI-BAJKI/folder/18493422',
-            'only_matching': True,
-        }]
+        'playlist_mincount': 71,
+    }, {
+        'url': 'https://www.cda.pl/DeliciousBeauty/folder/19129979/vfilm',
+        'info_dict': {
+            'id': '19129979',
+            'title': 'TESTY KOSMETYKÓW',
+        },
+        'playlist_mincount': 139,
+    }, {
+        'url': 'https://www.cda.pl/FILMY-SERIALE-ANIME-KRESKOWKI-BAJKI/folder/18493422',
+        'only_matching': True,
+    }, {
+        'url': 'https://m.cda.pl/smiechawaTV/folder/2664592/vfilm',
+        'only_matching': True,
+    }]
 
     def _real_extract(self, url):
         folder_id, channel = self._match_valid_url(url).group('id', 'channel')
