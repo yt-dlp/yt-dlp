@@ -78,6 +78,7 @@ permissions: {}
 
 jobs:
   process:
+    name: Process
     runs-on: ubuntu-latest
     outputs:
       origin: ${{ steps.process_inputs.outputs.origin }}
