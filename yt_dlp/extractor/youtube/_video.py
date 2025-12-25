@@ -2629,16 +2629,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return {'contentCheckOk': True, 'racyCheckOk': True}
 
     @classmethod
-    def _generate_player_context(cls, sts=None):
+    def _generate_player_context(cls, sts=None, use_ad_playback_context=False):
         context = {
             'html5Preference': 'HTML5_PREF_WANTS',
         }
         if sts is not None:
             context['signatureTimestamp'] = sts
+
+        playback_context = {
+            'contentPlaybackContext': context,
+        }
+        if use_ad_playback_context:
+            playback_context['adPlaybackContext'] = {
+                'pyv': True,
+            }
+
         return {
-            'playbackContext': {
-                'contentPlaybackContext': context,
-            },
+            'playbackContext': playback_context,
             **cls._get_checkok_params(),
         }
 
@@ -2866,7 +2873,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             yt_query['serviceIntegrityDimensions'] = {'poToken': po_token}
 
         sts = self._extract_signature_timestamp(video_id, player_url, webpage_ytcfg, fatal=False) if player_url else None
-        yt_query.update(self._generate_player_context(sts))
+
+        use_ad_playback_context = (
+            self._configuration_arg('use_ad_playback_context', ['false'])[0] != 'false'
+            and traverse_obj(INNERTUBE_CLIENTS, (client, 'SUPPORTS_AD_PLAYBACK_CONTEXT', {bool})))
+
+        yt_query.update(self._generate_player_context(sts, use_ad_playback_context))
+
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
             ytcfg=player_ytcfg, headers=headers, fatal=True,
@@ -2901,10 +2914,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if not (requested_clients or excluded_clients) and default_clients == self._DEFAULT_JSLESS_CLIENTS:
             self.report_warning(
-                f'No supported JavaScript runtime could be found. YouTube extraction without '
-                f'a JS runtime has been deprecated, and some formats may be missing. '
-                f'See  {_EJS_WIKI_URL}  for details on installing one. To silence this warning, '
-                f'you can use  --extractor-args "youtube:player_client=default"', only_once=True)
+                f'No supported JavaScript runtime could be found. Only deno is enabled by default; '
+                f'to use another runtime add  --js-runtimes RUNTIME[:PATH]  to your command/config. '
+                f'YouTube extraction without a JS runtime has been deprecated, and some formats may be missing. '
+                f'See  {_EJS_WIKI_URL}  for details on installing one', only_once=True)
 
         if not requested_clients:
             requested_clients.extend(default_clients)

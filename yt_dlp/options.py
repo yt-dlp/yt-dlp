@@ -689,7 +689,7 @@ def create_parser():
         '-I', '--playlist-items',
         dest='playlist_items', metavar='ITEM_SPEC', default=None,
         help=(
-            'Comma separated playlist_index of the items to download. '
+            'Comma-separated playlist_index of the items to download. '
             'You can specify a range using "[START]:[STOP][:STEP]". For backward compatibility, START-STOP is also supported. '
             'Use negative indices to count from the right and negative STEP to download in reverse order. '
             'E.g. "-I 1:3,7,-5::2" used on a playlist of size 15 will download the items at index 1,2,3,7,11,13,15'))
@@ -1212,7 +1212,7 @@ def create_parser():
         help='Maximum number of seconds to sleep. Can only be used along with --min-sleep-interval')
     workarounds.add_option(
         '--sleep-subtitles', metavar='SECONDS',
-        dest='sleep_interval_subtitles', default=0, type=int,
+        dest='sleep_interval_subtitles', default=0, type=float,
         help='Number of seconds to sleep before each subtitle download')
 
     verbosity = optparse.OptionGroup(parser, 'Verbosity and Simulation Options')

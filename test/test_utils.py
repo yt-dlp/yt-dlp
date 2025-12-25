@@ -489,6 +489,10 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(unified_timestamp('Wednesday 31 December 1969 18:01:26 MDT'), 86)
         self.assertEqual(unified_timestamp('12/31/1969 20:01:18 EDT', False), 78)
 
+        self.assertEqual(unified_timestamp('2026-01-01 00:00:00', tz_offset=0), 1767225600)
+        self.assertEqual(unified_timestamp('2026-01-01 00:00:00', tz_offset=8), 1767196800)
+        self.assertEqual(unified_timestamp('2026-01-01 00:00:00 +0800', tz_offset=-5), 1767196800)
+
     def test_determine_ext(self):
         self.assertEqual(determine_ext('http://example.com/foo/bar.mp4/?download'), 'mp4')
         self.assertEqual(determine_ext('http://example.com/foo/bar/?download', None), None)
@@ -1403,6 +1407,9 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(version_tuple('1'), (1,))
         self.assertEqual(version_tuple('10.23.344'), (10, 23, 344))
         self.assertEqual(version_tuple('10.1-6'), (10, 1, 6))  # avconv style
+        self.assertEqual(version_tuple('invalid', lenient=True), (-1,))
+        self.assertEqual(version_tuple('1.2.3', lenient=True), (1, 2, 3))
+        self.assertEqual(version_tuple('12.34-something', lenient=True), (12, 34, -1))
 
     def test_detect_exe_version(self):
         self.assertEqual(detect_exe_version('''ffmpeg version 1.2.1
