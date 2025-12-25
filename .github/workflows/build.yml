@@ -527,6 +527,7 @@ jobs:
           merge-multiple: true
 
       - name: Make SHA2-SUMS files
+        shell: bash
         run: |
           cd ./artifact/
           # make sure SHA sums are also printed to stdout

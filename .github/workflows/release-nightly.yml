@@ -21,6 +21,7 @@ jobs:
           persist-credentials: false
       - name: Check for new commits
         id: check_for_new_commits
+        shell: bash
         run: |
           relevant_files=(
             "yt_dlp/*.py"

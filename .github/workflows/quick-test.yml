@@ -53,4 +53,5 @@ jobs:
     - name: Run autopep8
       run: autopep8 --diff .
     - name: Check file mode
+      shell: bash
       run: git ls-files --format="%(objectmode) %(path)" yt_dlp/ | ( ! grep -v "^100644" )
