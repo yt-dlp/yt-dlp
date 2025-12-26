@@ -16,7 +16,6 @@ import random
 import re
 import subprocess
 import sys
-import time
 import types
 import urllib.parse
 import urllib.request
@@ -102,6 +101,7 @@ from ..utils import (
 )
 from ..utils._utils import _request_dump_filename
 from ..utils.jslib import devalue
+from ..utils.progress import sleep
 
 
 class InfoExtractor:
@@ -870,7 +870,7 @@ class InfoExtractor:
             sleep_interval = self.get_param('sleep_interval_requests') or 0
             if sleep_interval > 0:
                 self.to_screen(f'Sleeping {sleep_interval} seconds ...')
-                time.sleep(sleep_interval)
+                sleep(self._downloader, sleep_interval)
         else:
             self._downloader._first_webpage_request = False
 
@@ -2016,7 +2016,7 @@ class InfoExtractor:
             msg_template = '%(video_id)s: Waiting for %(timeout)s seconds'
         msg = msg_template % {'video_id': video_id, 'timeout': timeout}
         self.to_screen(msg)
-        time.sleep(timeout)
+        sleep(self._downloader, timeout, 'Waiting for')
 
     def _extract_f4m_formats(self, manifest_url, video_id, preference=None, quality=None, f4m_id=None,
                              transform_source=lambda s: fix_xml_ampersands(s).strip(),
