@@ -284,6 +284,10 @@ from .blogger import BloggerIE
 from .bloomberg import BloombergIE
 from .bluesky import BlueskyIE
 from .bokecc import BokeCCIE
+from .boundhub import (
+    BoundHubIE,
+    BoundHubPlaylistIE,
+)
 from .bongacams import BongaCamsIE
 from .boosty import BoostyIE
 from .bostonglobe import BostonGlobeIE
