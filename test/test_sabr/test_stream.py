@@ -58,6 +58,25 @@ class SabrRequestDetails:
     error: Exception | None = None
 
 
+class MockBaseIO(io.BytesIO):
+    # Raises an error on read at the end of the stream to simulate transport errors.
+    _error = None
+
+    @property
+    def error(self):
+        return self._error
+
+    @error.setter
+    def error(self, value):
+        self._error = value
+
+    def read(self, size=-1):
+        data = super().read(size)
+        if self._error and (self.tell() == self.getbuffer().nbytes):
+            raise self._error
+        return data
+
+
 class SabrRequestHandler:
     def __init__(self, sabr_response_processor: SabrResponseProcessor):
         self.sabr_response_processor = sabr_response_processor
@@ -71,9 +90,15 @@ class SabrRequestHandler:
                 SabrRequestDetails(request=request, error=e))
             raise e
 
-        fp = io.BytesIO()
+        response_error = None
+        fp = MockBaseIO()
         with UMPEncoder(fp) as encoder:
             for part in parts:
+                if isinstance(part, Exception):
+                    fp.error = part
+                    response_error = part
+                    parts.remove(part)
+                    break
                 encoder.write_part(part)
 
         response = Response(
@@ -91,6 +116,7 @@ class SabrRequestHandler:
             request=request,
             response=response,
             parts=parts,
+            error=response_error,
             vpabr=vpabr,
         ))
 
@@ -102,7 +128,7 @@ class SabrResponseProcessor:
     def __init__(self, options: dict | None = None):
         self.options = options or {}
 
-    def process_request(self, data: bytes, url: str, request_number: int) -> tuple[VideoPlaybackAbrRequest | None, list[UMPPart], int]:
+    def process_request(self, data: bytes, url: str, request_number: int) -> tuple[VideoPlaybackAbrRequest | None, list[UMPPart | Exception], int]:
         try:
             vpabr = protobug.loads(data, VideoPlaybackAbrRequest)
         except Exception:
@@ -379,38 +405,57 @@ class RequestRetryAVProfile(BasicAudioVideoProfile):
         return super().process_request(data, url, request_number)
 
 
-def assert_media_sequence_in_order(parts, format_selector: AudioSelector | VideoSelector, expected_total_segments: int):
+class CustomAVProfile(BasicAudioVideoProfile):
+    # Allow a test to modify the parts returned via a function
+    def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str, request_number: int) -> list[UMPPart | Exception]:
+        parts = super().get_parts(vpabr, url, request_number)
+        custom_parts_function = self.options.get('custom_parts_function')
+        if custom_parts_function:
+            parts = custom_parts_function(parts, vpabr, url, request_number)
+        return parts
+
+
+def assert_media_sequence_in_order(parts, format_selector: AudioSelector | VideoSelector, expected_total_segments: int, allow_retry=False):
     # Checks that for the given format_selector, the media segments are in order:
     # MediaSegmentInitSabrPart -> MediaSegmentDataSabrPart* -> MediaSegmentEndSabrPart
 
     total_segments = 0
     current_segment = [None, [], None]
 
+    total_retried_segments = 0
+
     for part in parts:
         if isinstance(part, MediaSegmentInitSabrPart):
             if part.format_selector == format_selector:
                 if current_segment[0] is not None:
-                    assert current_segment[2] is not None
+                    if not allow_retry:
+                        assert current_segment[2] is not None, 'Previous Media segment end part missing'
                     if current_segment[0].sequence_number is None:
-                        assert part.sequence_number == 1
+                        assert part.sequence_number == 1, 'Media segment init part sequence number should be 1 after unknown sequence number'
+                    elif not allow_retry:
+                        assert part.sequence_number == current_segment[0].sequence_number + 1, 'Media segment init part sequence number out of order'
                     else:
-                        assert part.sequence_number == current_segment[0].sequence_number + 1
+                        # Allowed to be current or next sequence number
+                        if part.sequence_number == current_segment[0].sequence_number:
+                            total_retried_segments += 1
+                        assert part.sequence_number in (current_segment[0].sequence_number, current_segment[0].sequence_number + 1), 'Media segment init part sequence number out of order'
                 current_segment = [part, [], None]
                 total_segments += 1
         elif isinstance(part, MediaSegmentDataSabrPart):
             if part.format_selector == format_selector:
-                assert current_segment[0] is not None
-                assert part.sequence_number == current_segment[0].sequence_number
+                assert current_segment[0] is not None, 'Media segment data part without init part'
+                assert part.sequence_number == current_segment[0].sequence_number, 'Media segment data part sequence number mismatch'
                 current_segment[1].append(part)
         elif isinstance(part, MediaSegmentEndSabrPart):
             if part.format_selector == format_selector:
-                assert current_segment[0] is not None
-                assert current_segment[1]
-                assert current_segment[2] is None
-                assert part.sequence_number == current_segment[0].sequence_number
+                assert current_segment[0] is not None, 'Media segment end part without init part'
+                assert current_segment[1], 'Media segment end part without data parts'
+                assert current_segment[2] is None, 'Multiple Media segment end parts for the same segment'
+                assert part.sequence_number == current_segment[0].sequence_number, 'Media segment end part sequence number mismatch'
                 current_segment[2] = part
 
-    assert current_segment[0].sequence_number == current_segment[0].total_segments == expected_total_segments == (total_segments - 1)
+    assert current_segment[0].sequence_number == current_segment[0].total_segments, 'Last media segment sequence number does not match total segments'
+    assert total_segments - total_retried_segments - 1 == expected_total_segments, f'Expected {expected_total_segments} segments, got {total_segments}'
 
 
 def setup_sabr_stream_av(
@@ -1035,3 +1080,58 @@ class TestStream:
                 expected_rn = i + 1
                 actual_rn = extract_rn(request_details.request.url)
                 assert actual_rn == expected_rn, f'Expected rn={expected_rn}, got rn={actual_rn}'
+
+    class TestResponseRetries:
+
+        def test_sabr_retry_on_response_error(self, logger, client_info):
+            # Should retry on SabrResponseError occurring during response processing
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                sabr_response_processor=CustomAVProfile({'custom_parts_function': lambda parts, vpabr, url, request_number: [TransportError('simulated SABR response error')] if request_number == 2 else parts}),
+                client_info=client_info,
+                logger=logger,
+            )
+            audio_selector, video_selector = selectors
+
+            # Should complete successfully
+            parts = list(sabr_stream.iter_parts())
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS)
+
+            # Find the first request that recorded an error
+            i_err = next(i for i, d in enumerate(rh.request_history) if d.error is not None)
+
+            request = rh.request_history[i_err]
+            assert isinstance(request.error, TransportError)
+            assert request.error.msg == 'simulated SABR response error'
+
+            # There should be a retry request recorded immediately after the error
+            retried_request = rh.request_history[i_err + 1]
+            assert retried_request.error is None
+
+            # The video_playback_abr_request should be the same for both requests - no changes in state (e.g playback time)
+            # (as the error was during before any parts were processed)
+            assert request.request.data == retried_request.request.data
+
+            # Should log the retry attempt
+            logger.warning.assert_any_call('[sabr] Got error: simulated SABR response error. Retrying (1/10)...')
+
+        def test_sabr_retry_on_response_read_failure_end(self, logger, client_info):
+            # Should retry when the response stream raises an error at the end of reading
+            # This should trigger a partial segment error as we fail to get the last part
+            def inject_read_error(parts, vpabr, url, request_number):
+                if request_number != 2:
+                    return parts
+                return [*parts, TransportError('simulated read error')]
+
+            sabr_stream, _, selectors = setup_sabr_stream_av(
+                sabr_response_processor=CustomAVProfile({'custom_parts_function': inject_read_error}),
+                client_info=client_info,
+                logger=logger,
+            )
+            audio_selector, video_selector = selectors
+
+            parts = list(sabr_stream.iter_parts())
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS, allow_retry=True)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS, allow_retry=True)
+
+            logger.warning.assert_any_call('[sabr] Got error: Received partial segments: FormatId(itag=248, lmt=456, xtags=None): 3. Retrying (1/10)...')
