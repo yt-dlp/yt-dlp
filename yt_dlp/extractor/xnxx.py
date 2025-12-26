@@ -1,83 +1,102 @@
-import re
-
 from .common import InfoExtractor
-from ..utils import (
-    NO_DEFAULT,
-    determine_ext,
-    int_or_none,
-    str_to_int,
-)
+from ..utils import determine_ext, str_to_int, url_or_none
 
 
 class XNXXIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:video|www)\.xnxx3?\.com/video-?(?P<id>[0-9a-z]+)/'
-    _TESTS = [{
-        'url': 'http://www.xnxx.com/video-55awb78/skyrim_test_video',
-        'md5': '7583e96c15c0f21e9da3453d9920fbba',
-        'info_dict': {
-            'id': '55awb78',
-            'ext': 'mp4',
-            'title': 'Skyrim Test Video',
-            'thumbnail': r're:^https?://.*\.jpg',
-            'duration': 469,
-            'view_count': int,
-            'age_limit': 18,
+    _VALID_URL = (
+        r"https?://(?:\w{2,}\.)?xnxx\w{0,}\.(?:\w{2,})/video-(?P<id>[^/]+)/(?:.*)?"
+    )
+    _TESTS = [
+        {
+            "url": "https://www.xnxx.com/video-ef92b3f/fitnessrooms_yoga_master_teaches_young_student_sexual_techniques",
+            "info_dict": {
+                "id": "ef92b3f",
+                "title": "FitnessRooms Yoga master teaches young student sexual techniques",
+                "thumbnail": r"re:https?://.*\.jpg$",
+                "duration": 724,
+                "age_limit": 19,
+                "ext": "mp4",
+            },
         },
-    }, {
-        'url': 'http://video.xnxx.com/video1135332/lida_naked_funny_actress_5_',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.xnxx.com/video-55awb78/',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.xnxx3.com/video-55awb78/',
-        'only_matching': True,
-    }]
+        {
+            "url": "https://xnxx.health/video-1bms31db/best_passionate_doggystyle_comp_",
+            "info_dict": {
+                "id": "1bms31db",
+                "title": "BEST PASSIONATE DOGGYSTYLE COMP!",
+                "thumbnail": r"re:https?://.*\.jpg$",
+                "duration": 516,
+                "age_limit": 19,
+                "ext": "mp4",
+            },
+        },
+    ]
+
+    @staticmethod
+    def __html5prop_(prop: str) -> str:
+        return rf'html5player\.set{prop}\((["\'])(.+?)\1\);'  # 1st group is quote
+
+    def __get_html5prop(
+        self, webpage, *props, prop_name="html5player", fatal=False, default=""
+    ):
+        patterns = [self.__html5prop_(p) for p in props]
+        return self._search_regex(
+            patterns, webpage, name=prop_name, fatal=fatal, default=default, group=2  # type: ignore
+        )
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id, tries=10, timeout=1)  # type: ignore
 
-        webpage = self._download_webpage(url, video_id)
-
-        def get(meta, default=NO_DEFAULT, fatal=True):
-            return self._search_regex(
-                rf'set{meta}\s*\(\s*(["\'])(?P<value>(?:(?!\1).)+)\1',
-                webpage, meta, default=default, fatal=fatal, group='value')
-
-        title = self._og_search_title(
-            webpage, default=None) or get('VideoTitle')
+        title: str = str(
+            self._og_search_property("title", webpage, "Title", fatal=False)
+            or self._html_search_meta("title", webpage, fatal=False)
+            or video_id
+        )
+        thumbnail = url_or_none(
+            self._og_search_property("image", webpage, "Thumbnail", fatal=False)
+            or self._html_search_meta("image", webpage, "Thumbnail", fatal=False)
+            or self.__get_html5prop(
+                webpage, "ThumbUrl", "ThumbUrl169", prop_name="Thumbnail"
+            )
+        )
+        duration = str_to_int(
+            self._og_search_property("duration", webpage, "Duration", fatal=False)
+            or self._html_search_meta("duration", webpage, "Duration", fatal=False)
+        )
 
         formats = []
-        for mobj in re.finditer(
-                r'setVideo(?:Url(?P<id>Low|High)|HLS)\s*\(\s*(?P<q>["\'])(?P<url>(?:https?:)?//.+?)(?P=q)', webpage):
-            format_url = mobj.group('url')
-            if determine_ext(format_url) == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
-                    format_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                    quality=1, m3u8_id='hls', fatal=False))
-            else:
-                format_id = mobj.group('id')
-                if format_id:
-                    format_id = format_id.lower()
-                formats.append({
-                    'url': format_url,
-                    'format_id': format_id,
-                    'quality': -1 if format_id == 'low' else 0,
-                })
+        for format_spec in ["VideoHLS", "VideoUrlHigh", "VideoUrlLow"]:
+            url = self.__get_html5prop(webpage, format_spec, prop_name="Content Url")
+            ext = determine_ext(url)
+            if not url:
+                continue
 
-        thumbnail = self._og_search_thumbnail(webpage, default=None) or get(
-            'ThumbUrl', fatal=False) or get('ThumbUrl169', fatal=False)
-        duration = int_or_none(self._og_search_property('duration', webpage))
-        view_count = str_to_int(self._search_regex(
-            r'id=["\']nb-views-number[^>]+>([\d,.]+)', webpage, 'view count',
-            default=None))
+            if ext in ("m3u8", "hls"):
+                formats.extend(
+                    self._extract_m3u8_formats(
+                        url,
+                        video_id,
+                        "mp4",
+                        entry_protocol="m3u8_native",
+                        quality=1,
+                        m3u8_id="hls",
+                        fatal=False,
+                    )
+                )
+            else:
+                formats.append(
+                    {
+                        "format_id": str(hash(url)),
+                        "url": url,
+                        "quality": -1 if "low" in format_spec.lower() else 0,
+                    }
+                )
 
         return {
-            'id': video_id,
-            'title': title,
-            'thumbnail': thumbnail,
-            'duration': duration,
-            'view_count': view_count,
-            'age_limit': 18,
-            'formats': formats,
+            "id": video_id,
+            "title": title,
+            "thumbnail": thumbnail,
+            "duration": duration,
+            "age_limit": 19,
+            "formats": formats,
         }
