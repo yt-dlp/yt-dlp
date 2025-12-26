@@ -51,7 +51,6 @@ class PicartoIE(InfoExtractor):
 
         if metadata.get('online') == 0:
             raise ExtractorError('Stream is offline', expected=True)
-        title = metadata.get('title')
 
         cdn_data = self._download_json(''.join((
             update_url(data['getLoadBalancerUrl']['url'], scheme='https'),
