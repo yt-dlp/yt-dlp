@@ -159,7 +159,7 @@ class PicartoVodIE(InfoExtractor):
             'id': video_id,
             **traverse_obj(data, {
                 'id': ('id', {str_or_none}),
-                'title': ('title', {strip_or_none}),
+                'title': ('title', {str.strip}),
                 'thumbnail': 'video_recording_image_url',
                 'channel': ('channel', 'name', {str}),
                 'age_limit': ('adult', {lambda x: 18 if x else 0}),
