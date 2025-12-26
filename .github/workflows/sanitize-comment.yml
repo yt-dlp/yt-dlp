@@ -4,13 +4,14 @@ on:
   issue_comment:
     types: [created, edited]
 
-permissions:
-  issues: write
+permissions: {}
 
 jobs:
   sanitize-comment:
     name: Sanitize comment
     if: vars.SANITIZE_COMMENT && !github.event.issue.pull_request
+    permissions:
+      issues: write
     runs-on: ubuntu-latest
     steps:
       - name: Sanitize comment
