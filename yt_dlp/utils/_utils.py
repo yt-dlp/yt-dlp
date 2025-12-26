@@ -3004,6 +3004,8 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'ttaf+xml': 'dfxp',
         'ttml+xml': 'ttml',
         'x-ms-sami': 'sami',
+        'x-subrip': 'srt',
+        'x-srt': 'srt',
 
         # misc
         'gzip': 'gz',
