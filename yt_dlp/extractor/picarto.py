@@ -80,7 +80,7 @@ class PicartoIE(InfoExtractor):
 
         return {
             'id': channel_id,
-            'title': strip_or_none(title),
+            'title': strip_or_none(metadata.get('title')),
             'is_live': True,
             'channel': channel_id,
             'channel_id': metadata.get('id'),
