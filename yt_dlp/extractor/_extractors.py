@@ -801,6 +801,7 @@ from .hollywoodreporter import (
     HollywoodReporterPlaylistIE,
 )
 from .holodex import HolodexIE
+from .hotmart import HotmartEmbedIE
 from .hotnewhiphop import HotNewHipHopIE
 from .hotstar import (
     HotStarIE,
