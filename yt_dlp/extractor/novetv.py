@@ -22,6 +22,10 @@ class NoveTVBase(InfoExtractor):
                 formats.extend(self._extract_m3u8_formats(fmt['url'], video_id))
             elif fmt.get('type') == 'dash':
                 formats.extend(self._extract_mpd_formats(fmt['url'], video_id))
+            for fm in formats:
+                fm.setdefault('acodec', 'aac')
+                if not fm.get('ext'):
+                    fm['ext'] = 'm4a'
         return formats
 
 
