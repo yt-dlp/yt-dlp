@@ -10,7 +10,7 @@ jobs:
     name: Issue Lockdown
     if: vars.ISSUE_LOCKDOWN
     permissions:
-      issues: write
+      issues: write  # Needed to lock issues
     runs-on: ubuntu-latest
     steps:
       - name: "Lock new issue"

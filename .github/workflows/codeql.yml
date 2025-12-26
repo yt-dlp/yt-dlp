@@ -11,14 +11,18 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: codeql-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
     permissions:
-      actions: read
+      actions: read  # Needed by github/codeql-action if repository is private
       contents: read
-      security-events: write
+      security-events: write  # Needed to use github/codeql-action with Github Advanced Security
 
     strategy:
       fail-fast: false
@@ -27,17 +31,17 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
       with:
         persist-credentials: false
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v4
+      uses: github/codeql-action/init@5d4e8d1aca955e8d8589aabd499c5cae939e33c7  #  v4.31.9
       with:
         languages: ${{ matrix.language }}
         build-mode: none
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v4
+      uses: github/codeql-action/analyze@5d4e8d1aca955e8d8589aabd499c5cae939e33c7  #  v4.31.9
       with:
         category: "/language:${{matrix.language}}"

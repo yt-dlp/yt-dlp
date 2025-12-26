@@ -78,6 +78,7 @@ permissions: {}
 
 jobs:
   process:
+    name: Process
     runs-on: ubuntu-latest
     outputs:
       origin: ${{ steps.process_inputs.outputs.origin }}
@@ -145,7 +146,6 @@ jobs:
                   'runner': 'ubuntu-24.04-arm',
                   'qemu_platform': 'linux/arm/v7',
                   'onefile': False,
-                  'cache_requirements': True,
                   'update_to': 'yt-dlp/yt-dlp@2023.03.04',
               }],
               'musllinux': [{
@@ -174,7 +174,6 @@ jobs:
               exe.setdefault('qemu_platform', None)
               exe.setdefault('onefile', True)
               exe.setdefault('onedir', True)
-              exe.setdefault('cache_requirements', False)
               exe.setdefault('python_version', os.environ['PYTHON_VERSION'])
               exe.setdefault('update_to', os.environ['UPDATE_TO'])
           if not any(INPUTS.get(key) for key in EXE_MAP):
@@ -185,6 +184,7 @@ jobs:
               f.write(f'matrix={json.dumps(matrix)}')
 
   unix:
+    name: unix
     needs: [process]
     if: inputs.unix
     permissions:
@@ -197,12 +197,12 @@ jobs:
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           fetch-depth: 0  # Needed for changelog
           persist-credentials: false
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version: "3.10"
 
@@ -231,7 +231,7 @@ jobs:
           [[ "${version}" != "${downgraded_version}" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: build-bin-${{ github.job }}
           path: |
@@ -261,28 +261,16 @@ jobs:
       SKIP_ONEFILE_BUILD: ${{ (!matrix.onefile && '1') || '' }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           persist-credentials: false
 
-      - name: Cache requirements
-        if: matrix.cache_requirements
-        id: cache-venv
-        uses: actions/cache@v5
-        env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
-        with:
-          path: |
-            venv
-          key: cache-reqs-${{ matrix.os }}_${{ matrix.arch }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
-          restore-keys: |
-            cache-reqs-${{ matrix.os }}_${{ matrix.arch }}-${{ github.ref }}-
-            cache-reqs-${{ matrix.os }}_${{ matrix.arch }}-
-
       - name: Set up QEMU
         if: matrix.qemu_platform
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130  # v3.7.0
         with:
+          image: tonistiigi/binfmt:qemu-v10.0.4-56@sha256:30cc9a4d03765acac9be2ed0afc23af1ad018aed2c28ea4be8c2eb9afe03fbd1
+          cache-image: false
           platforms: ${{ matrix.qemu_platform }}
 
       - name: Build executable
@@ -306,7 +294,7 @@ jobs:
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: build-bin-${{ matrix.os }}_${{ matrix.arch }}
           path: |
@@ -314,6 +302,7 @@ jobs:
           compression-level: 0
 
   macos:
+    name: macos
     needs: [process]
     if: inputs.macos
     permissions:
@@ -326,24 +315,11 @@ jobs:
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           persist-credentials: false
 
       # NB: Building universal2 does not work with python from actions/setup-python
-
-      - name: Cache requirements
-        id: cache-venv
-        uses: actions/cache@v5
-        env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
-        with:
-          path: |
-            ~/yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
-          restore-keys: |
-            cache-reqs-${{ github.job }}-${{ github.ref }}-
-            cache-reqs-${{ github.job }}-
 
       - name: Install Requirements
         run: |
@@ -408,7 +384,7 @@ jobs:
           [[ "$version" != "$downgraded_version" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: build-bin-${{ github.job }}
           path: |
@@ -459,28 +435,14 @@ jobs:
       PYI_WHEEL: pyinstaller-${{ matrix.pyi_version }}-py3-none-${{ matrix.platform_tag }}.whl
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           persist-credentials: false
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.arch }}
-
-      - name: Cache requirements
-        id: cache-venv
-        if: matrix.arch == 'arm64'
-        uses: actions/cache@v5
-        env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
-        with:
-          path: |
-            /yt-dlp-build-venv
-          key: ${{ env.BASE_CACHE_KEY }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
-          restore-keys: |
-            ${{ env.BASE_CACHE_KEY }}-${{ github.ref }}-
-            ${{ env.BASE_CACHE_KEY }}-
 
       - name: Install Requirements
         env:
@@ -489,6 +451,8 @@ jobs:
           PYI_HASH: ${{ matrix.pyi_hash }}
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           python -m venv /yt-dlp-build-venv
           /yt-dlp-build-venv/Scripts/Activate.ps1
           python -m pip install -U pip
@@ -506,12 +470,16 @@ jobs:
       - name: Prepare
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           python devscripts/update-version.py -c "${Env:CHANNEL}" -r "${Env:ORIGIN}" "${Env:VERSION}"
           python devscripts/make_lazy_extractors.py
 
       - name: Build
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           /yt-dlp-build-venv/Scripts/Activate.ps1
           python -m bundle.pyinstaller
           python -m bundle.pyinstaller --onedir
@@ -521,6 +489,8 @@ jobs:
         if: vars.UPDATE_TO_VERIFICATION
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           $name = "yt-dlp${Env:SUFFIX}"
           Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
           $version = & "./dist/${name}.exe" --version
@@ -531,7 +501,7 @@ jobs:
           }
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: build-bin-${{ github.job }}-${{ matrix.arch }}
           path: |
@@ -540,6 +510,7 @@ jobs:
           compression-level: 0
 
   meta_files:
+    name: Metadata files
     needs:
       - process
       - unix
@@ -550,13 +521,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131  # v7.0.0
         with:
           path: artifact
           pattern: build-bin-*
           merge-multiple: true
 
       - name: Make SHA2-SUMS files
+        shell: bash
         run: |
           cd ./artifact/
           # make sure SHA sums are also printed to stdout
@@ -618,7 +590,7 @@ jobs:
           done
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: build-${{ github.job }}
           path: |

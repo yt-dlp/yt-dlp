@@ -3,6 +3,10 @@ on: [push, pull_request]
 
 permissions: {}
 
+concurrency:
+  group: quick-test-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   tests:
     name: Core Test
@@ -11,17 +15,19 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
       with:
         persist-credentials: false
     - name: Set up Python 3.10
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
       with:
         python-version: '3.10'
     - name: Install test requirements
+      shell: bash
       run: python ./devscripts/install_deps.py --omit-default --include-extra test
     - name: Run tests
       timeout-minutes: 15
+      shell: bash
       run: |
         python3 -m yt_dlp -v || true
         python3 ./devscripts/run_tests.py --pytest-args '--reruns 2 --reruns-delay 3.0' core
@@ -32,10 +38,10 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
       with:
         persist-credentials: false
-    - uses: actions/setup-python@v6
+    - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
       with:
         python-version: '3.10'
     - name: Install dev dependencies
@@ -47,4 +53,5 @@ jobs:
     - name: Run autopep8
       run: autopep8 --diff .
     - name: Check file mode
+      shell: bash
       run: git ls-files --format="%(objectmode) %(path)" yt_dlp/ | ( ! grep -v "^100644" )
