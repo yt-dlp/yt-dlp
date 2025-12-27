@@ -2492,15 +2492,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     comment_thread_renderer, lambda x: x['replies']['commentRepliesRenderer'], dict)
 
                 if comment_replies_renderer:
-                    # Recursively extract from `commentThreadRenderer`s in `subThreads`
                     subthreads = traverse_obj(comment_replies_renderer, (
                         'subThreads', lambda _, v: v['commentThreadRenderer']))
+                    # Recursively extract from `commentThreadRenderer`s in `subThreads`
                     if subthreads:
                         # The inner `extract_thread` call will increment tracker counts and then hit
                         # the "Recursively extract from `continuationItemRenderer`s" code path below
                         for entry in extract_thread(subthreads, entity_payloads):
                             if entry:
                                 yield entry
+                        # All of the subThreads' `continuationItemRenderer`s were nested within
+                        # `commentThreadRenderer`s and are now exhausted, so avoid unnecessary recursion below
+                        continue
 
                     tracker['current_page_thread'] += 1
                     # Recursively extract from `continuationItemRenderer`s in `subThreads`
