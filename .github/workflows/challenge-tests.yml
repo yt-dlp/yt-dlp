@@ -16,8 +16,8 @@ on:
       - yt_dlp/extractor/youtube/jsc/**.py
       - yt_dlp/extractor/youtube/pot/**.py
       - yt_dlp/utils/_jsruntime.py
-permissions:
-  contents: read
+
+permissions: {}
 
 concurrency:
   group: challenge-tests-${{ github.event.pull_request.number || github.ref }}
@@ -26,6 +26,8 @@ concurrency:
 jobs:
   tests:
     name: Challenge Tests
+    permissions:
+      contents: read
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -35,7 +37,9 @@ jobs:
     env:
       QJS_VERSION: '2025-04-26'  # Earliest version with rope strings
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
+      with:
+        persist-credentials: false
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
       with:
@@ -67,7 +71,7 @@ jobs:
           unzip quickjs.zip
     - name: Install test requirements
       run: |
-        python ./devscripts/install_deps.py --print --only-optional-groups --include-group test > requirements.txt
+        python ./devscripts/install_deps.py --print --omit-default --include-extra test > requirements.txt
         python ./devscripts/install_deps.py --print -c certifi -c requests -c urllib3 -c yt-dlp-ejs >> requirements.txt
         python -m pip install -U -r requirements.txt
     - name: Run tests

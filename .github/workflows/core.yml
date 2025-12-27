@@ -22,8 +22,8 @@ on:
       - yt_dlp/extractor/__init__.py
       - yt_dlp/extractor/common.py
       - yt_dlp/extractor/extractors.py
-permissions:
-  contents: read
+
+permissions: {}
 
 concurrency:
   group: core-${{ github.event.pull_request.number || github.ref }}
@@ -33,6 +33,8 @@ jobs:
   tests:
     name: Core Tests
     if: "!contains(github.event.head_commit.message, 'ci skip')"
+    permissions:
+      contents: read
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -55,15 +57,16 @@ jobs:
         - os: windows-latest
           python-version: pypy-3.11
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
+        persist-credentials: false
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install test requirements
-      run: python ./devscripts/install_deps.py --include-group test --include-group curl-cffi
+      run: python ./devscripts/install_deps.py --include-extra test --include-extra curl-cffi
     - name: Run tests
       timeout-minutes: 15
       continue-on-error: False
