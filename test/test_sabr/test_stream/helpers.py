@@ -4,7 +4,8 @@ import dataclasses
 import io
 import protobug
 from yt_dlp import int_or_none
-from yt_dlp.extractor.youtube._proto.videostreaming import VideoPlaybackAbrRequest, SabrError, FormatId, FormatInitializationMetadata, MediaHeader, SabrRedirect
+from yt_dlp.extractor.youtube._proto.innertube import NextRequestPolicy
+from yt_dlp.extractor.youtube._proto.videostreaming import VideoPlaybackAbrRequest, SabrError, FormatId, FormatInitializationMetadata, MediaHeader, SabrRedirect, SabrContextUpdate, SabrContextSendingPolicy
 from yt_dlp.extractor.youtube._streaming.sabr.models import AudioSelector, VideoSelector
 from yt_dlp.extractor.youtube._streaming.sabr.part import MediaSegmentInitSabrPart, MediaSegmentDataSabrPart, MediaSegmentEndSabrPart
 from yt_dlp.extractor.youtube._streaming.ump import UMPEncoder, UMPPart, UMPPartId, write_varint
@@ -381,6 +382,98 @@ class RequestRetryAVProfile(BasicAudioVideoProfile):
             elif mode == 'request':
                 raise RequestError(msg='simulated request error')
         return super().process_request(data, url, request_number)
+
+
+class AdWaitAVProfile(BasicAudioVideoProfile):
+
+    # Note: GVS Server requires client to wait the specified time before continuing
+    # For test purposes we can assert this happens on the client side.
+
+    CONTEXT_UPDATE_DATA = b'context-update-data'
+    CONTEXT_UPDATE_TYPE = 5
+    CONTEXT_UPDATE_SCOPE = SabrContextUpdate.SabrContextScope.SABR_CONTEXT_SCOPE_CONTENT_ADS
+    AD_WAIT_TIME = 10
+
+    # Returns a SabrContextUpdate and required the context update to be passed in the vpabr before continuing
+    def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str, request_number: int) -> list[UMPPart | Exception]:
+        if vpabr.streamer_context.sabr_contexts and any(
+            context.type == self.CONTEXT_UPDATE_TYPE
+            and context.value == self.CONTEXT_UPDATE_DATA
+            for context in vpabr.streamer_context.sabr_contexts
+        ):
+            # Context update provided, continue with normal processing
+            return super().get_parts(vpabr, url, request_number)
+        else:
+            # Context update not provided yet, return the wait part
+            return self.generate_ad_wait_parts()
+
+    def generate_ad_wait_parts(self) -> list[UMPPart]:
+        parts = []
+        context_update = protobug.dumps(SabrContextUpdate(
+            type=self.CONTEXT_UPDATE_TYPE,
+            scope=self.CONTEXT_UPDATE_SCOPE,
+            value=self.CONTEXT_UPDATE_DATA,
+            write_policy=SabrContextUpdate.SabrContextWritePolicy.SABR_CONTEXT_WRITE_POLICY_OVERWRITE,
+            send_by_default=True,
+        ))
+        parts.append(UMPPart(
+            part_id=UMPPartId.SABR_CONTEXT_UPDATE,
+            size=len(context_update),
+            data=io.BytesIO(context_update),
+        ))
+
+        # NextRequestPolicy part to indicate wait time
+        next_request_policy_data = protobug.dumps(NextRequestPolicy(
+            backoff_time_ms=self.AD_WAIT_TIME,
+        ))
+        parts.append(UMPPart(
+            part_id=UMPPartId.NEXT_REQUEST_POLICY,
+            size=len(next_request_policy_data),
+            data=io.BytesIO(next_request_policy_data),
+        ))
+        return parts
+
+
+class SabrContextSendingPolicyAVProfile(BasicAudioVideoProfile):
+    # Returns a SabrContextUpdate part on the first request, then a followup policy to disable it
+    CONTEXT_UPDATE_DATA = b'context-update-data'
+    CONTEXT_UPDATE_TYPE = 1
+    CONTEXT_UPDATE_SCOPE = SabrContextUpdate.SabrContextScope.SABR_CONTEXT_SCOPE_PLAYBACK
+
+    REQUEST_ADD_CONTEXT_UPDATE = 1
+    REQUEST_DISABLE_CONTEXT_UPDATE = 3
+
+    def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str, request_number: int) -> list[UMPPart | Exception]:
+        parts = []
+        if request_number == self.REQUEST_ADD_CONTEXT_UPDATE:
+            parts.append(self.create_context_update())
+        elif request_number == self.REQUEST_DISABLE_CONTEXT_UPDATE:
+            parts.append(self.create_disable_context())
+        parts.extend(super().get_parts(vpabr, url, request_number))
+        return parts
+
+    def create_context_update(self):
+        context_update = protobug.dumps(SabrContextUpdate(
+            type=self.CONTEXT_UPDATE_TYPE,
+            scope=self.CONTEXT_UPDATE_SCOPE,
+            value=self.CONTEXT_UPDATE_DATA,
+            write_policy=SabrContextUpdate.SabrContextWritePolicy.SABR_CONTEXT_WRITE_POLICY_OVERWRITE,
+            send_by_default=True,
+        ))
+        return UMPPart(
+            part_id=UMPPartId.SABR_CONTEXT_UPDATE,
+            size=len(context_update),
+            data=io.BytesIO(context_update),
+        )
+
+    def create_disable_context(self):
+        sending_policy = protobug.dumps(SabrContextSendingPolicy(
+            stop_policy=[self.CONTEXT_UPDATE_TYPE]))
+        return UMPPart(
+            part_id=UMPPartId.SABR_CONTEXT_SENDING_POLICY,
+            size=len(sending_policy),
+            data=io.BytesIO(sending_policy),
+        )
 
 
 class CustomAVProfile(BasicAudioVideoProfile):

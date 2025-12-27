@@ -4,7 +4,21 @@ import time
 from unittest.mock import MagicMock
 import protobug
 import pytest
-from test.test_sabr.test_stream.helpers import VIDEO_PLAYBACK_USTREAMER_CONFIG, DEFAULT_NUM_AUDIO_SEGMENTS, DEFAULT_NUM_VIDEO_SEGMENTS, extract_rn, SabrRequestHandler, BasicAudioVideoProfile, SabrRedirectAVProfile, RequestRetryAVProfile, CustomAVProfile, assert_media_sequence_in_order, create_inject_read_error
+from test.test_sabr.test_stream.helpers import (
+    VIDEO_PLAYBACK_USTREAMER_CONFIG,
+    DEFAULT_NUM_AUDIO_SEGMENTS,
+    DEFAULT_NUM_VIDEO_SEGMENTS,
+    extract_rn,
+    SabrRequestHandler,
+    BasicAudioVideoProfile,
+    SabrRedirectAVProfile,
+    RequestRetryAVProfile,
+    CustomAVProfile,
+    assert_media_sequence_in_order,
+    create_inject_read_error,
+    AdWaitAVProfile,
+    SabrContextSendingPolicyAVProfile,
+)
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import SabrStreamError
 from yt_dlp.extractor.youtube._streaming.ump import UMPPartId, UMPPart
 from yt_dlp.networking.exceptions import TransportError, HTTPError, RequestError
@@ -20,6 +34,7 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     BufferedRange,
     TimeRange,
     SabrError,
+    SabrContext,
 )
 from yt_dlp.utils import parse_qs
 
@@ -304,73 +319,74 @@ class TestStream:
         with pytest.raises(SabrStreamError, match=r'Broadcast ID changed from 1 to 2\. The download will need to be restarted\.'):
             sabr_stream.url = 'https://example.com/sabr?source=yt_live_broadcast&id=2'
 
-    def test_sabr_expiry_refresh_player_response(self, logger, client_info):
-        # Should yield a refresh player response part if within the expiry time
-        # This should occur before the next request
-        expires_at = int(time.time() + 30)  # 30 seconds from now
-        sabr_stream, rh, _ = setup_sabr_stream_av(
-            client_info=client_info,
-            logger=logger,
-            url=f'https://example.com/sabr?expire={int(expires_at)}',
-            # By default, expiry threshold is 60 seconds
-        )
-        # Retrieve parts until we get a RefreshPlayerResponseSabrPart
-        refresh_part = None
-        while not refresh_part:
-            part = next(sabr_stream.iter_parts())
-            if isinstance(part, RefreshPlayerResponseSabrPart):
-                refresh_part = part
-        # Should be no requests made so far as checking expiry happens before request
-        assert len(rh.request_history) == 0
-        assert refresh_part is not None
-        assert refresh_part.reason == RefreshPlayerResponseSabrPart.Reason.SABR_URL_EXPIRY
-        logger.debug.assert_called_with(r'Requesting player response refresh as SABR URL is due to expire within 60 seconds')
+    class TestExpiry:
+        def test_sabr_expiry_refresh_player_response(self, logger, client_info):
+            # Should yield a refresh player response part if within the expiry time
+            # This should occur before the next request
+            expires_at = int(time.time() + 30)  # 30 seconds from now
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                client_info=client_info,
+                logger=logger,
+                url=f'https://example.com/sabr?expire={int(expires_at)}',
+                # By default, expiry threshold is 60 seconds
+            )
+            # Retrieve parts until we get a RefreshPlayerResponseSabrPart
+            refresh_part = None
+            while not refresh_part:
+                part = next(sabr_stream.iter_parts())
+                if isinstance(part, RefreshPlayerResponseSabrPart):
+                    refresh_part = part
+            # Should be no requests made so far as checking expiry happens before request
+            assert len(rh.request_history) == 0
+            assert refresh_part is not None
+            assert refresh_part.reason == RefreshPlayerResponseSabrPart.Reason.SABR_URL_EXPIRY
+            logger.debug.assert_called_with(r'Requesting player response refresh as SABR URL is due to expire within 60 seconds')
 
-    def test_sabr_expiry_threshold_sec(self, logger, client_info):
-        # Should use the configured expiry threshold seconds when determining to refresh player response
-        expires_at = int(time.time() + 100)  # 100 seconds from now
-        sabr_stream, rh, _ = setup_sabr_stream_av(
-            client_info=client_info,
-            logger=logger,
-            url=f'https://example.com/sabr?expire={int(expires_at)}',
-            expiry_threshold_sec=120,  # Set threshold to 2 minutes
-        )
+        def test_sabr_expiry_threshold_sec(self, logger, client_info):
+            # Should use the configured expiry threshold seconds when determining to refresh player response
+            expires_at = int(time.time() + 100)  # 100 seconds from now
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                client_info=client_info,
+                logger=logger,
+                url=f'https://example.com/sabr?expire={int(expires_at)}',
+                expiry_threshold_sec=120,  # Set threshold to 2 minutes
+            )
 
-        # Retrieve parts until we get a RefreshPlayerResponseSabrPart
-        refresh_part = None
-        while not refresh_part:
-            part = next(sabr_stream.iter_parts())
-            if isinstance(part, RefreshPlayerResponseSabrPart):
-                refresh_part = part
-        # Should be no requests made so far as checking expiry happens before request
-        assert len(rh.request_history) == 0
-        assert refresh_part is not None
-        assert refresh_part.reason == RefreshPlayerResponseSabrPart.Reason.SABR_URL_EXPIRY
-        logger.debug.assert_called_with(r'Requesting player response refresh as SABR URL is due to expire within 120 seconds')
+            # Retrieve parts until we get a RefreshPlayerResponseSabrPart
+            refresh_part = None
+            while not refresh_part:
+                part = next(sabr_stream.iter_parts())
+                if isinstance(part, RefreshPlayerResponseSabrPart):
+                    refresh_part = part
+            # Should be no requests made so far as checking expiry happens before request
+            assert len(rh.request_history) == 0
+            assert refresh_part is not None
+            assert refresh_part.reason == RefreshPlayerResponseSabrPart.Reason.SABR_URL_EXPIRY
+            logger.debug.assert_called_with(r'Requesting player response refresh as SABR URL is due to expire within 120 seconds')
 
-    def test_sabr_no_expiry_in_url(self, logger, client_info):
-        # Should not yield a refresh player response part if no expiry in URL
-        # It should log a warning about missing expiry
-        sabr_stream, _, _ = setup_sabr_stream_av(
-            client_info=client_info,
-            logger=logger,
-            url='https://example.com/sabr',
-        )
-        parts = list(sabr_stream.iter_parts())
-        assert all(not isinstance(part, RefreshPlayerResponseSabrPart) for part in parts)
-        logger.warning.assert_called_with('No expiry timestamp found in SABR URL. Will not be able to refresh.', once=True)
+        def test_sabr_no_expiry_in_url(self, logger, client_info):
+            # Should not yield a refresh player response part if no expiry in URL
+            # It should log a warning about missing expiry
+            sabr_stream, _, _ = setup_sabr_stream_av(
+                client_info=client_info,
+                logger=logger,
+                url='https://example.com/sabr',
+            )
+            parts = list(sabr_stream.iter_parts())
+            assert all(not isinstance(part, RefreshPlayerResponseSabrPart) for part in parts)
+            logger.warning.assert_called_with('No expiry timestamp found in SABR URL. Will not be able to refresh.', once=True)
 
-    def test_sabr_not_expired(self, logger, client_info):
-        # Should not yield a refresh player response part if not within the expiry threshold
-        expires_at = int(time.time() + 300)  # 5 minutes from now
-        sabr_stream, _, _ = setup_sabr_stream_av(
-            client_info=client_info,
-            logger=logger,
-            url=f'https://example.com/sabr?expire={int(expires_at)}',
-            # By default, expiry threshold is 60 seconds
-        )
-        parts = list(sabr_stream.iter_parts())
-        assert all(not isinstance(part, RefreshPlayerResponseSabrPart) for part in parts)
+        def test_sabr_not_expired(self, logger, client_info):
+            # Should not yield a refresh player response part if not within the expiry threshold
+            expires_at = int(time.time() + 300)  # 5 minutes from now
+            sabr_stream, _, _ = setup_sabr_stream_av(
+                client_info=client_info,
+                logger=logger,
+                url=f'https://example.com/sabr?expire={int(expires_at)}',
+                # By default, expiry threshold is 60 seconds
+            )
+            parts = list(sabr_stream.iter_parts())
+            assert all(not isinstance(part, RefreshPlayerResponseSabrPart) for part in parts)
 
     class TestRequestRetries:
         def test_sabr_retry_on_transport_error(self, logger, client_info):
@@ -937,3 +953,96 @@ class TestStream:
                 logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/10)...')
 
             logger.warning.assert_any_call('Falling back to host rr1---sn-7654321.googlevideo.com')
+
+        def test_sabr_gvs_fallback_no_fallback_available(self, logger, client_info):
+            # Should not fallback if there are no fallback options available
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(2, 15))}),
+                client_info=client_info,
+                logger=logger,
+                url='https://rr6---sn-6942067.googlevideo.com',
+            )
+
+            with pytest.raises(TransportError, match='simulated transport error'):
+                list(sabr_stream.iter_parts())
+
+            # There should be 11 error requests recorded
+            error_requests = [d for d in rh.request_history if d.error is not None]
+            assert len(error_requests) == 11
+            for request in error_requests:
+                assert isinstance(request.error, TransportError)
+                assert request.error.cause == 'simulated transport error'
+
+            # All should have the same host
+            for request in error_requests:
+                assert 'rr6---sn-6942067.googlevideo.com' in request.request.url
+
+            assert not any('Falling back to host' in call.args[0] for call in logger.warning.call_args_list)
+            assert logger.debug.assert_any_call('No more fallback hosts available')
+
+    class TestAdWait:
+        def test_sabr_ad_wait(self, logger, client_info):
+            # Should send back SabrContextUpdate and wait the specified time in the next request policy
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                sabr_response_processor=AdWaitAVProfile(),
+                client_info=client_info,
+                logger=logger,
+            )
+            audio_selector, video_selector = selectors
+
+            parts = list(sabr_stream.iter_parts())
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+            logger.warning.assert_any_call(
+                'Received a SABR Context Update. YouTube is likely trying to force ads on the client. This may cause issues with playback.')
+
+            # Second request should be sending the ad wait sabr context update
+            ad_wait_request_vpabr = rh.request_history[1].vpabr
+            assert len(ad_wait_request_vpabr.streamer_context.sabr_contexts) == 1
+            assert ad_wait_request_vpabr.streamer_context.sabr_contexts[0] == SabrContext(
+                type=AdWaitAVProfile.CONTEXT_UPDATE_TYPE,
+                value=AdWaitAVProfile.CONTEXT_UPDATE_DATA,
+            )
+
+            # SabrStream rounds up the wait time to nearest second
+            logger.info.assert_any_call('The server is requiring yt-dlp to wait 1 seconds before continuing due to ad enforcement')
+
+            assert AdWaitAVProfile.CONTEXT_UPDATE_TYPE in sabr_stream.processor.sabr_context_updates
+            assert sabr_stream.processor.sabr_context_updates[5].value == AdWaitAVProfile.CONTEXT_UPDATE_DATA
+            assert sabr_stream.processor.sabr_context_updates[5].scope >= AdWaitAVProfile.CONTEXT_UPDATE_SCOPE
+            assert AdWaitAVProfile.CONTEXT_UPDATE_TYPE in sabr_stream.processor.sabr_contexts_to_send
+
+        def test_sabr_sending_policy(self, logger, client_info):
+            # Should respect the sending policy part to update sabr context state
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                sabr_response_processor=SabrContextSendingPolicyAVProfile(),
+                client_info=client_info,
+                logger=logger,
+            )
+            audio_selector, video_selector = selectors
+            parts = list(sabr_stream.iter_parts())
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+
+            context_update_type = SabrContextSendingPolicyAVProfile.CONTEXT_UPDATE_TYPE
+
+            # Request should include the sabr context update
+            added_request_vpabr = rh.request_history[SabrContextSendingPolicyAVProfile.REQUEST_ADD_CONTEXT_UPDATE].vpabr
+            assert len(added_request_vpabr.streamer_context.sabr_contexts) == 1
+            assert added_request_vpabr.streamer_context.sabr_contexts[0] == SabrContext(
+                type=context_update_type,
+                value=SabrContextSendingPolicyAVProfile.CONTEXT_UPDATE_DATA,
+            )
+
+            # Later request should remove it as per the policy that was sent by the server
+            removed_request_vpabr = rh.request_history[SabrContextSendingPolicyAVProfile.REQUEST_DISABLE_CONTEXT_UPDATE].vpabr
+            assert len(removed_request_vpabr.streamer_context.sabr_contexts) == 0
+
+            # Should still be stored in the processor but not sent
+            assert context_update_type in sabr_stream.processor.sabr_context_updates
+            assert sabr_stream.processor.sabr_context_updates[context_update_type].value == SabrContextSendingPolicyAVProfile.CONTEXT_UPDATE_DATA
+            assert sabr_stream.processor.sabr_context_updates[context_update_type].scope >= SabrContextSendingPolicyAVProfile.CONTEXT_UPDATE_SCOPE
+
+            logger.debug.assert_any_call(f'Server requested to disable SABR Context Update for type {context_update_type}')
+
+            assert len(sabr_stream.processor.sabr_contexts_to_send) == 0
