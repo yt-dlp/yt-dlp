@@ -75,6 +75,7 @@ from .afreecatv import (
     AfreecaTVLiveIE,
     AfreecaTVUserIE,
 )
+from .agalega import AGalegaIE
 from .agora import (
     TokFMAuditionIE,
     TokFMPodcastIE,
@@ -83,6 +84,7 @@ from .agora import (
 )
 from .airtv import AirTVIE
 from .aitube import AitubeKZVideoIE
+from .alibaba import AlibabaIE
 from .aliexpress import AliExpressLiveIE
 from .aljazeera import AlJazeeraIE
 from .allocine import AllocineIE
@@ -636,6 +638,7 @@ from .fc2 import (
 )
 from .fczenit import FczenitIE
 from .fifa import FifaIE
+from .filmarchiv import FilmArchivIE
 from .filmon import (
     FilmOnChannelIE,
     FilmOnIE,
@@ -1084,11 +1087,6 @@ from .mangomolo import (
     MangomoloLiveIE,
     MangomoloVideoIE,
 )
-from .manoto import (
-    ManotoTVIE,
-    ManotoTVLiveIE,
-    ManotoTVShowIE,
-)
 from .manyvids import ManyVidsIE
 from .maoritv import MaoriTVIE
 from .markiza import (
@@ -1276,6 +1274,7 @@ from .nebula import (
     NebulaChannelIE,
     NebulaClassIE,
     NebulaIE,
+    NebulaSeasonIE,
     NebulaSubscriptionsIE,
 )
 from .nekohacker import NekoHackerIE
@@ -1310,12 +1309,6 @@ from .newgrounds import (
 )
 from .newspicks import NewsPicksIE
 from .newsy import NewsyIE
-from .nextmedia import (
-    AppleDailyIE,
-    NextMediaActionNewsIE,
-    NextMediaIE,
-    NextTVIE,
-)
 from .nexx import (
     NexxEmbedIE,
     NexxIE,
