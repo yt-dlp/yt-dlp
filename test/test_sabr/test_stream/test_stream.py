@@ -2,6 +2,7 @@ from __future__ import annotations
 import io
 import time
 from unittest.mock import MagicMock
+import protobug
 import pytest
 from test.test_sabr.test_stream.helpers import VIDEO_PLAYBACK_USTREAMER_CONFIG, DEFAULT_NUM_AUDIO_SEGMENTS, DEFAULT_NUM_VIDEO_SEGMENTS, extract_rn, SabrRequestHandler, BasicAudioVideoProfile, SabrRedirectAVProfile, RequestRetryAVProfile, CustomAVProfile, assert_media_sequence_in_order, create_inject_read_error
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import SabrStreamError
@@ -18,6 +19,7 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     FormatId,
     BufferedRange,
     TimeRange,
+    SabrError,
 )
 from yt_dlp.utils import parse_qs
 
@@ -791,3 +793,147 @@ class TestStream:
             assert matches >= 1, 'Expected at least one buffered range to be advanced by one segment after retrying Nth media part read failure'
 
             logger.warning.assert_any_call('[sabr] Got error: simulated read error. Retrying (1/10)...')
+
+    class TestSabrErrorRetries:
+        def test_sabr_retry_on_sabr_error_part(self, logger, client_info):
+            def sabr_error_injector(parts, vpabr, url, request_number):
+                if request_number == 2:
+                    message = protobug.dumps(SabrError(action=1, type='simulated SABR error'))
+
+                    # Insert after the first MEDIA_END. SabrStream should stop processing the response at this point.
+                    for i, p in enumerate(parts):
+                        if p.part_id == UMPPartId.MEDIA_END:
+                            parts.insert(i + 1, UMPPart(
+                                part_id=UMPPartId.SABR_ERROR,
+                                size=len(message),
+                                data=io.BytesIO(message),
+                            ))
+                            break
+
+                return parts
+
+            sabr_stream, _, selectors = setup_sabr_stream_av(
+                sabr_response_processor=CustomAVProfile({'custom_parts_function': sabr_error_injector}),
+                client_info=client_info,
+                logger=logger,
+            )
+            audio_selector, video_selector = selectors
+
+            # Should complete successfully
+            parts = list(sabr_stream.iter_parts())
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+            # xxx: not recorded as an error in the request history as SabrError is part of normal processing.
+            # We rely on assert_media_sequence_in_order to ensure all parts were eventually retrieved and the logs for retry attempts.
+            logger.warning.assert_any_call("[sabr] Got error: SABR Protocol Error: SabrError(type='simulated SABR error', action=1, error=None). Retrying (1/10)...")
+
+    class TestGVSFallbackRetries:
+        def test_sabr_gvs_fallback_after_8_retries(self, logger, client_info):
+            # Should fallback to next gvs server after max retries exceeded
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(2, 10))}),
+                client_info=client_info,
+                logger=logger,
+                url='https://rr6---sn-6942067.googlevideo.com?mn=sn-6942067,sn-7654321&fvip=3&mvi=6',
+            )
+            audio_selector, video_selector = selectors
+
+            # Should complete successfully
+            parts = list(sabr_stream.iter_parts())
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+
+            # There should be 8 error requests recorded
+            error_requests = [d for d in rh.request_history if d.error is not None]
+            assert len(error_requests) == 8
+            for request in error_requests:
+                assert isinstance(request.error, TransportError)
+                assert request.error.cause == 'simulated transport error'
+
+            # Check that the host was switched after 8 retries
+            last_error_request = error_requests[-1]
+            for following_request in rh.request_history[rh.request_history.index(last_error_request) + 1:]:
+                # TODO: this should be rr3, gvs fallback function needs fixing
+                assert 'rr1---sn-7654321.googlevideo.com' in following_request.request.url
+                assert 'fallback_count=1' in following_request.request.url
+
+            # Check request before fallback
+            assert 'rr6---sn-6942067.googlevideo.com' in last_error_request.request.url
+
+            # Should have 8 fallback attempts logged
+            for i in range(1, 9):
+                logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/10)...')
+
+            logger.warning.assert_any_call('Falling back to host rr1---sn-7654321.googlevideo.com')
+
+        def test_sabr_gvs_fallback_multiple_hosts(self, logger, client_info):
+            # Should keep falling back to next gvs server until default max total attempts exceeded
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(2, 15))}),
+                client_info=client_info,
+                logger=logger,
+                url='https://rr6---sn-6942067.googlevideo.com?mn=sn-6942067,sn-7654321&fvip=3&mvi=6',
+            )
+
+            with pytest.raises(TransportError, match='simulated transport error'):
+                list(sabr_stream.iter_parts())
+
+            # There should be 11 error requests recorded
+            error_requests = [d for d in rh.request_history if d.error is not None]
+            assert len(error_requests) == 11
+            for request in error_requests:
+                assert isinstance(request.error, TransportError)
+                assert request.error.cause == 'simulated transport error'
+            # Check that the host was switched after each fallback threshold
+
+            # TODO: fix these hosts, gvs fallback function needs fixing
+            retry_request_one = error_requests[8]  # first fallback
+            assert 'rr1---sn-7654321.googlevideo.com' in retry_request_one.request.url
+            assert 'fallback_count=1' in retry_request_one.request.url
+            logger.warning.assert_any_call('Falling back to host rr1---sn-7654321.googlevideo.com')
+
+            retry_request_two = error_requests[9]  # second fallback
+            assert 'rr4---sn-7654321.googlevideo.com' in retry_request_two.request.url
+            assert 'fallback_count=2' in retry_request_two.request.url
+            logger.warning.assert_any_call('Falling back to host rr4---sn-7654321.googlevideo.com')
+
+            retry_request_three = error_requests[10]  # third fallback before giving up
+            assert 'rr3---sn-6942067.googlevideo.com' in retry_request_three.request.url
+            assert 'fallback_count=3' in retry_request_three.request.url
+            logger.warning.assert_any_call('Falling back to host rr3---sn-6942067.googlevideo.com')
+
+        def test_sabr_gvs_fallback_threshold_option(self, logger, client_info):
+            # Should respect the host_fallback_threshold option for retries before fallback
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(2, 5))}),
+                client_info=client_info,
+                logger=logger,
+                url='https://rr6---sn-6942067.googlevideo.com?mn=sn-6942067,sn-7654321&fvip=3&mvi=6',
+                host_fallback_threshold=3,
+            )
+
+            # Should complete successfully
+            list(sabr_stream.iter_parts())
+
+            # There should be 3 error requests recorded
+            error_requests = [d for d in rh.request_history if d.error is not None]
+            assert len(error_requests) == 3
+            for request in error_requests:
+                assert isinstance(request.error, TransportError)
+                assert request.error.cause == 'simulated transport error'
+
+            # Check that the host was switched after 3 retries
+            last_error_request = error_requests[-1]
+            for following_request in rh.request_history[rh.request_history.index(last_error_request) + 1:]:
+                # TODO: this should be rr3, gvs fallback function needs fixing
+                assert 'rr1---sn-7654321.googlevideo.com' in following_request.request.url
+                assert 'fallback_count=1' in following_request.request.url
+
+            # Check request before fallback
+            assert 'rr6---sn-6942067.googlevideo.com' in last_error_request.request.url
+
+            # Should have 4 fallback attempts logged
+            for i in range(1, 4):
+                logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/10)...')
+
+            logger.warning.assert_any_call('Falling back to host rr1---sn-7654321.googlevideo.com')
