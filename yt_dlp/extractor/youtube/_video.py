@@ -3307,6 +3307,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             def process_https_formats():
                 proto = 'https'
                 https_fmts = []
+                skip_player_js = 'js' in self._configuration_arg('player_skip')
+
                 for fmt_stream in streaming_formats:
                     if fmt_stream.get('targetDurationSec'):
                         continue
@@ -3344,13 +3346,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         sc = urllib.parse.parse_qs(fmt_stream.get('signatureCipher'))
                         fmt_url = url_or_none(try_get(sc, lambda x: x['url'][0]))
                         encrypted_sig = try_get(sc, lambda x: x['s'][0])
-                        if not all((sc, fmt_url, player_url, encrypted_sig)):
-                            msg = f'Some {client_name} client https formats have been skipped as they are missing a url. '
+                        if not all((sc, fmt_url, skip_player_js or player_url, encrypted_sig)):
+                            msg = f'Some {client_name} client https formats have been skipped as they are missing a URL. '
                             if client_name in ('web', 'web_safari'):
                                 msg += 'YouTube is forcing SABR streaming for this client. '
                             else:
                                 msg += (
-                                    f'YouTube may have enabled the SABR-only or Server-Side Ad Placement experiment for '
+                                    f'YouTube may have enabled the SABR-only streaming experiment for '
                                     f'{"your account" if self.is_authenticated else "the current session"}. '
                                 )
                             msg += 'See  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details'
@@ -3366,6 +3368,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # signature
                     # Attempt to load sig spec from cache
                     if encrypted_sig:
+                        if skip_player_js:
+                            continue
                         spec_cache_id = self._sig_spec_cache_id(player_url, len(encrypted_sig))
                         spec = self._load_sig_spec_from_cache(spec_cache_id)
                         if spec:
@@ -3379,6 +3383,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # n challenge
                     query = parse_qs(fmt_url)
                     if query.get('n'):
+                        if skip_player_js:
+                            continue
                         n_challenge = query['n'][0]
                         if n_challenge in self._player_cache:
                             fmt_url = update_url_query(fmt_url, {'n': self._player_cache[n_challenge]})
