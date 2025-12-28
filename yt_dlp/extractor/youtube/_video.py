@@ -2472,6 +2472,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         def extract_thread(contents, entity_payloads):
             if not parent:
                 tracker['current_page_thread'] = 0
+
+            if max_depth < tracker['current_depth']:
+                return
+
             for content in contents:
                 if not parent and tracker['total_parent_comments'] >= max_parents:
                     yield
@@ -2531,22 +2535,24 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'subThreads', lambda _, v: v['commentThreadRenderer']))
                     # Recursively extract from `commentThreadRenderer`s in `subThreads`
                     if subthreads:
-                        # The inner `extract_thread` call will increment tracker counts and then hit
-                        # the "Recursively extract from `continuationItemRenderer`s" code path below
+                        tracker['current_depth'] += 1
                         for entry in extract_thread(subthreads, entity_payloads):
                             if entry:
                                 yield entry
-                        # All of the subThreads' `continuationItemRenderer`s were nested within
+                        tracker['current_depth'] -= 1
+                        # All of the subThreads' `continuationItemRenderer`s were within the nested
                         # `commentThreadRenderer`s and are now exhausted, so avoid unnecessary recursion below
                         continue
 
                     tracker['current_page_thread'] += 1
+                    tracker['current_depth'] += 1
                     # Recursively extract from `continuationItemRenderer`s in `subThreads`
                     comment_entries_iter = self._comment_entries(
                         comment_replies_renderer, ytcfg, video_id,
                         parent=comment.get('id'), tracker=tracker)
                     yield from itertools.islice(comment_entries_iter, min(
                         max_replies_per_thread, max(0, max_replies - tracker['total_reply_comments'])))
+                    tracker['current_depth'] -= 1
 
         # Keeps track of counts across recursive calls
         if not tracker:
@@ -2558,19 +2564,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'total_reply_comments': 0,
                 'seen_comment_ids': set(),
                 'pinned_comment_ids': set(),
+                'current_depth': 1,
             }
 
-        # TODO: Deprecated
-        # YouTube comments have a max depth of 2
-        max_depth = int_or_none(get_single_config_arg('max_comment_depth'))
-        if max_depth:
-            self._downloader.deprecated_feature('[youtube] max_comment_depth extractor argument is deprecated. '
-                                                'Set max replies in the max-comments extractor argument instead')
-        if max_depth == 1 and parent:
-            return
+        _max_comments, max_parents, max_replies, max_replies_per_thread, max_depth, *_ = (
+            int_or_none(p, default=sys.maxsize) for p in self._configuration_arg('max_comments') + [''] * 5)
 
-        _max_comments, max_parents, max_replies, max_replies_per_thread, *_ = (
-            int_or_none(p, default=sys.maxsize) for p in self._configuration_arg('max_comments') + [''] * 4)
+        if max_depth < tracker['current_depth']:
+            return
 
         continuation = self._extract_continuation(root_continuation_data)
 
