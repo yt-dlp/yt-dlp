@@ -2550,7 +2550,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # Recursively extract from `continuationItemRenderer`s in `subThreads`
                     comment_entries_iter = self._comment_entries(
                         comment_replies_renderer, ytcfg, video_id,
-                        parent=comment.get('id'), tracker=tracker)
+                        parent=comment_id, tracker=tracker)
                     yield from itertools.islice(comment_entries_iter, min(
                         max_replies_per_thread, max(0, max_replies - tracker['total_reply_comments'])))
                     tracker['current_depth'] -= 1
