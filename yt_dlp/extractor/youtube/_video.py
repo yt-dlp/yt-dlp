@@ -1660,6 +1660,41 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'live_status': 'not_live',
         },
         'params': {'skip_download': True},
+    }, {
+        # Threaded comments with 4 levels of depth
+        'url': 'https://www.youtube.com/watch?v=f6HNySwZV4c',
+        'info_dict': {
+            'id': 'f6HNySwZV4c',
+            'ext': 'mp4',
+            'title': 'dlptestvideo2',
+            'description': '',
+            'media_type': 'video',
+            'uploader': 'cole-dlp-test-acc',
+            'uploader_id': '@coletdjnz',
+            'uploader_url': 'https://www.youtube.com/@coletdjnz',
+            'channel': 'cole-dlp-test-acc',
+            'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 5,
+            'thumbnail': 'https://i.ytimg.com/vi/f6HNySwZV4c/maxresdefault.jpg',
+            'categories': ['People & Blogs'],
+            'tags': [],
+            'timestamp': 1709856007,
+            'upload_date': '20240308',
+            'release_timestamp': 1709856007,
+            'release_date': '20240308',
+            'playable_in_embed': True,
+            'availability': 'public',
+            'live_status': 'not_live',
+            'comment_count': 15,
+        },
+        'params': {
+            'skip_download': True,
+            'getcomments': True,
+        },
     }]
     _WEBPAGE_TESTS = [{
         # <object>
