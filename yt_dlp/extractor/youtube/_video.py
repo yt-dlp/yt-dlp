@@ -2519,6 +2519,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'Detected YouTube comments looping. Stopping comment extraction '
                         f'{"for this thread" if parent else ""} as we probably cannot get any more.')
                     yield
+                    break  # Safeguard for recursive call in subthreads code path below
                 else:
                     tracker['seen_comment_ids'].add(comment['id'])
 
