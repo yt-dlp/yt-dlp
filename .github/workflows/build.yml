@@ -74,8 +74,7 @@ on:
         default: true
         type: boolean
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   process:
@@ -186,8 +185,10 @@ jobs:
               f.write(f'matrix={json.dumps(matrix)}')
 
   unix:
-    needs: process
+    needs: [process]
     if: inputs.unix
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     env:
       CHANNEL: ${{ inputs.channel }}
@@ -199,6 +200,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Needed for changelog
+          persist-credentials: false
 
       - uses: actions/setup-python@v6
         with:
@@ -229,7 +231,7 @@ jobs:
           [[ "${version}" != "${downgraded_version}" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: build-bin-${{ github.job }}
           path: |
@@ -239,8 +241,10 @@ jobs:
 
   linux:
     name: ${{ matrix.os }} (${{ matrix.arch }})
+    needs: [process]
     if: inputs.linux || inputs.linux_armv7l || inputs.musllinux
-    needs: process
+    permissions:
+      contents: read
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -258,11 +262,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Cache requirements
         if: matrix.cache_requirements
         id: cache-venv
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
         with:
@@ -300,7 +306,7 @@ jobs:
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: build-bin-${{ matrix.os }}_${{ matrix.arch }}
           path: |
@@ -308,7 +314,7 @@ jobs:
           compression-level: 0
 
   macos:
-    needs: process
+    needs: [process]
     if: inputs.macos
     permissions:
       contents: read
@@ -321,11 +327,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
       # NB: Building universal2 does not work with python from actions/setup-python
 
       - name: Cache requirements
         id: cache-venv
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
         with:
@@ -399,7 +408,7 @@ jobs:
           [[ "$version" != "$downgraded_version" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: build-bin-${{ github.job }}
           path: |
@@ -409,7 +418,7 @@ jobs:
 
   windows:
     name: windows (${{ matrix.arch }})
-    needs: process
+    needs: [process]
     if: inputs.windows
     permissions:
       contents: read
@@ -451,6 +460,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python_version }}
@@ -459,7 +471,7 @@ jobs:
       - name: Cache requirements
         id: cache-venv
         if: matrix.arch == 'arm64'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
         with:
@@ -519,7 +531,7 @@ jobs:
           }
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: build-bin-${{ github.job }}-${{ matrix.arch }}
           path: |
@@ -528,17 +540,17 @@ jobs:
           compression-level: 0
 
   meta_files:
-    if: always() && !cancelled()
     needs:
       - process
       - unix
       - linux
       - macos
       - windows
+    if: always() && !failure() && !cancelled()
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         with:
           path: artifact
           pattern: build-bin-*
@@ -600,13 +612,13 @@ jobs:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
         if: env.GPG_SIGNING_KEY
         run: |
-          gpg --batch --import <<< "${{ secrets.GPG_SIGNING_KEY }}"
+          gpg --batch --import <<< "${GPG_SIGNING_KEY}"
           for signfile in ./SHA*SUMS; do
             gpg --batch --detach-sign "$signfile"
           done
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: build-${{ github.job }}
           path: |
