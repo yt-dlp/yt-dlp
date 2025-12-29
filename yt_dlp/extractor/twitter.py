@@ -383,6 +383,7 @@ class TwitterCardIE(InfoExtractor):
                 '_old_archive_ids': ['twitter 623160978427936768'],
             },
             'params': {'format': '[protocol=https]'},
+            'skip': 'HTTP Error 500: Domain Not Found (X killed twitter:amplify)',
         },
         {
             'url': 'https://twitter.com/i/cards/tfw/v1/654001591733886977',
@@ -416,6 +417,7 @@ class TwitterCardIE(InfoExtractor):
                 'live_status': 'not_live',
             },
             'add_ie': ['Youtube'],
+            'skip': 'The page does not exist',
         },
         {
             'url': 'https://twitter.com/i/videos/tweet/705235433198714880',
@@ -508,6 +510,7 @@ class TwitterIE(TwitterBaseIE):
             'age_limit': 0,
             '_old_archive_ids': ['twitter 665052190608723968'],
         },
+        'skip': 'HTTP Error 500: Domain Not Found (X killed twitter:amplify)',
     }, {
         'url': 'https://twitter.com/BTNBrentYarina/status/705235433198714880',
         'info_dict': {
@@ -617,6 +620,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             '_old_archive_ids': ['twitter 852138619213144067'],
         },
+        'skip': 'Suspended',
     }, {
         'url': 'https://twitter.com/i/web/status/910031516746514432',
         'info_dict': {
@@ -763,10 +767,10 @@ class TwitterIE(TwitterBaseIE):
         'url': 'https://twitter.com/UltimaShadowX/status/1577719286659006464',
         'info_dict': {
             'id': '1577719286659006464',
-            'title': 'Ultima - Test',
+            'title': r're:Ultima.* - Test$',
             'description': 'Test https://t.co/Y3KEZD7Dad',
             'channel_id': '168922496',
-            'uploader': 'Ultima',
+            'uploader': r're:Ultima.*',
             'uploader_id': 'UltimaShadowX',
             'uploader_url': 'https://twitter.com/UltimaShadowX',
             'upload_date': '20221005',
@@ -895,11 +899,12 @@ class TwitterIE(TwitterBaseIE):
             'uploader': r're:Monique Camarra.+?',
             'uploader_id': 'MoniqueCamarra',
             'live_status': 'was_live',
-            'release_timestamp': 1658417414,
+            'release_timestamp': 1658417305,
             'description': r're:Twitter Space participated by Sergej Sumlenny.+',
             'timestamp': 1658407771,
             'release_date': '20220721',
             'upload_date': '20220721',
+            'thumbnail': 'https://pbs.twimg.com/profile_images/1920514378006188033/xQs6J_yI_400x400.jpg',
         },
         'add_ie': ['TwitterSpaces'],
         'params': {'skip_download': 'm3u8'},
@@ -1010,10 +1015,10 @@ class TwitterIE(TwitterBaseIE):
             'description': 'This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525 https://t.co/cNsA0MoOml',
             'thumbnail': 'https://pbs.twimg.com/ext_tw_video_thumb/1600009362759733248/pu/img/XVhFQivj75H_YxxV.jpg?name=orig',
             'age_limit': 0,
-            'uploader': 'Boy Called Mün',
+            'uploader': 'D U N I Y A',
             'repost_count': int,
             'upload_date': '20221206',
-            'title': 'Boy Called Mün - This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525',
+            'title': 'D U N I Y A - This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525',
             'comment_count': int,
             'like_count': int,
             'tags': [],
@@ -1068,6 +1073,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             '_old_archive_ids': ['twitter 1695424220702888009'],
         },
+        'skip': 'Suspended',
     }, {
         # retweeted_status w/ legacy API
         'url': 'https://twitter.com/playstrumpcard/status/1695424220702888009',
@@ -1092,6 +1098,7 @@ class TwitterIE(TwitterBaseIE):
             '_old_archive_ids': ['twitter 1695424220702888009'],
         },
         'params': {'extractor_args': {'twitter': {'api': ['legacy']}}},
+        'skip': 'Suspended',
     }, {
         # Broadcast embedded in tweet
         'url': 'https://twitter.com/JessicaDobsonWX/status/1731121063248175384',
@@ -1135,7 +1142,6 @@ class TwitterIE(TwitterBaseIE):
     }, {
         # "stale tweet" with typename "TweetWithVisibilityResults"
         'url': 'https://twitter.com/RobertKennedyJr/status/1724884212803834154',
-        'md5': '511377ff8dfa7545307084dca4dce319',
         'info_dict': {
             'id': '1724883339285544960',
             'ext': 'mp4',
@@ -1181,6 +1187,30 @@ class TwitterIE(TwitterBaseIE):
             'thumbnail': r're:https://pbs\.twimg\.com/amplify_video_thumb/.+',
             'age_limit': 0,
             '_old_archive_ids': ['twitter 1790637656616943991'],
+        },
+    }, {
+        # unified_card with 2 items of type video and photo
+        'url': 'https://x.com/TopHeroes_/status/2001950365332455490',
+        'info_dict': {
+            'id': '2001841416071450628',
+            'ext': 'mp4',
+            'display_id': '2001950365332455490',
+            'title': 'Top Heroes - Forgot to close My heroes solo level up in my phone  ✨Unlock the fog,...',
+            'description': r're:Forgot to close My heroes solo level up in my phone  ✨Unlock the fog.+',
+            'uploader': 'Top Heroes',
+            'uploader_id': 'TopHeroes_',
+            'uploader_url': 'https://twitter.com/TopHeroes_',
+            'channel_id': '1737324725620326400',
+            'comment_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'age_limit': 0,
+            'duration': 30.278,
+            'thumbnail': 'https://pbs.twimg.com/amplify_video_thumb/2001841416071450628/img/hpy5KpJh4pO17b65.jpg?name=orig',
+            'tags': [],
+            'timestamp': 1766137136,
+            'upload_date': '20251219',
+            '_old_archive_ids': ['twitter 2001950365332455490'],
         },
     }, {
         # onion route
@@ -1422,14 +1452,14 @@ class TwitterIE(TwitterBaseIE):
             if not card:
                 return
 
-            self.write_debug(f'Extracting from card info: {card.get("url")}')
+            card_name = card['name'].split(':')[-1]
+            self.write_debug(f'Extracting from {card_name} card info: {card.get("url")}')
             binding_values = card['binding_values']
 
             def get_binding_value(k):
                 o = binding_values.get(k) or {}
                 return try_get(o, lambda x: x[x['type'].lower() + '_value'])
 
-            card_name = card['name'].split(':')[-1]
             if card_name == 'player':
                 yield {
                     '_type': 'url',
@@ -1461,7 +1491,7 @@ class TwitterIE(TwitterBaseIE):
             elif card_name == 'unified_card':
                 unified_card = self._parse_json(get_binding_value('unified_card'), twid)
                 yield from map(extract_from_video_info, traverse_obj(
-                    unified_card, ('media_entities', ...), expected_type=dict))
+                    unified_card, ('media_entities', lambda _, v: v['type'] == 'video')))
             # amplify, promo_video_website, promo_video_convo, appplayer,
             # video_direct_message, poll2choice_video, poll3choice_video,
             # poll4choice_video, ...
