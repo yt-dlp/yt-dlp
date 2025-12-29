@@ -1660,6 +1660,41 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'live_status': 'not_live',
         },
         'params': {'skip_download': True},
+    }, {
+        # Threaded comments with 4 levels of depth
+        'url': 'https://www.youtube.com/watch?v=f6HNySwZV4c',
+        'info_dict': {
+            'id': 'f6HNySwZV4c',
+            'ext': 'mp4',
+            'title': 'dlptestvideo2',
+            'description': '',
+            'media_type': 'video',
+            'uploader': 'cole-dlp-test-acc',
+            'uploader_id': '@coletdjnz',
+            'uploader_url': 'https://www.youtube.com/@coletdjnz',
+            'channel': 'cole-dlp-test-acc',
+            'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 5,
+            'thumbnail': 'https://i.ytimg.com/vi/f6HNySwZV4c/maxresdefault.jpg',
+            'categories': ['People & Blogs'],
+            'tags': [],
+            'timestamp': 1709856007,
+            'upload_date': '20240308',
+            'release_timestamp': 1709856007,
+            'release_date': '20240308',
+            'playable_in_embed': True,
+            'availability': 'public',
+            'live_status': 'not_live',
+            'comment_count': 15,
+        },
+        'params': {
+            'skip_download': True,
+            'getcomments': True,
+        },
     }]
     _WEBPAGE_TESTS = [{
         # <object>
@@ -2437,6 +2472,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         def extract_thread(contents, entity_payloads):
             if not parent:
                 tracker['current_page_thread'] = 0
+
+            if max_depth < tracker['current_depth']:
+                return
+
             for content in contents:
                 if not parent and tracker['total_parent_comments'] >= max_parents:
                     yield
@@ -2480,6 +2519,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'Detected YouTube comments looping. Stopping comment extraction '
                         f'{"for this thread" if parent else ""} as we probably cannot get any more.')
                     yield
+                    break  # Safeguard for recursive call in subthreads code path below
                 else:
                     tracker['seen_comment_ids'].add(comment['id'])
 
@@ -2492,12 +2532,28 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     comment_thread_renderer, lambda x: x['replies']['commentRepliesRenderer'], dict)
 
                 if comment_replies_renderer:
+                    subthreads = traverse_obj(comment_replies_renderer, (
+                        'subThreads', lambda _, v: v['commentThreadRenderer']))
+                    # Recursively extract from `commentThreadRenderer`s in `subThreads`
+                    if subthreads:
+                        tracker['current_depth'] += 1
+                        for entry in extract_thread(subthreads, entity_payloads):
+                            if entry:
+                                yield entry
+                        tracker['current_depth'] -= 1
+                        # All of the subThreads' `continuationItemRenderer`s were within the nested
+                        # `commentThreadRenderer`s and are now exhausted, so avoid unnecessary recursion below
+                        continue
+
                     tracker['current_page_thread'] += 1
+                    tracker['current_depth'] += 1
+                    # Recursively extract from `continuationItemRenderer`s in `subThreads`
                     comment_entries_iter = self._comment_entries(
                         comment_replies_renderer, ytcfg, video_id,
-                        parent=comment.get('id'), tracker=tracker)
+                        parent=comment_id, tracker=tracker)
                     yield from itertools.islice(comment_entries_iter, min(
                         max_replies_per_thread, max(0, max_replies - tracker['total_reply_comments'])))
+                    tracker['current_depth'] -= 1
 
         # Keeps track of counts across recursive calls
         if not tracker:
@@ -2509,19 +2565,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'total_reply_comments': 0,
                 'seen_comment_ids': set(),
                 'pinned_comment_ids': set(),
+                'current_depth': 1,
             }
 
-        # TODO: Deprecated
-        # YouTube comments have a max depth of 2
-        max_depth = int_or_none(get_single_config_arg('max_comment_depth'))
-        if max_depth:
-            self._downloader.deprecated_feature('[youtube] max_comment_depth extractor argument is deprecated. '
-                                                'Set max replies in the max-comments extractor argument instead')
-        if max_depth == 1 and parent:
-            return
+        _max_comments, max_parents, max_replies, max_replies_per_thread, max_depth, *_ = (
+            int_or_none(p, default=sys.maxsize) for p in self._configuration_arg('max_comments') + [''] * 5)
 
-        _max_comments, max_parents, max_replies, max_replies_per_thread, *_ = (
-            int_or_none(p, default=sys.maxsize) for p in self._configuration_arg('max_comments') + [''] * 4)
+        if max_depth < tracker['current_depth']:
+            return
 
         continuation = self._extract_continuation(root_continuation_data)
 
@@ -2550,6 +2601,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     note_prefix = '    Downloading comment API JSON reply thread %d %s' % (
                         tracker['current_page_thread'], comment_prog_str)
             else:
+                # TODO: `parent` is only truthy in this code path with YT's legacy (non-threaded) comment view
                 note_prefix = '{}Downloading comment{} API JSON page {} {}'.format(
                     '       ' if parent else '', ' replies' if parent else '',
                     page_num, comment_prog_str)
@@ -2566,6 +2618,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     ep='next', ytcfg=ytcfg, headers=headers, note=note_prefix,
                     check_get_keys=check_get_keys)
             except ExtractorError as e:
+                # TODO: This code path is not reached since eb5bdbfa70126c7d5355cc0954b63720522e462c
                 # Ignore incomplete data error for replies if retries didn't work.
                 # This is to allow any other parent comments and comment threads to be downloaded.
                 # See: https://github.com/yt-dlp/yt-dlp/issues/4669
