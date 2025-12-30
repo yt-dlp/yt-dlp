@@ -22,6 +22,11 @@ on:
         required: false
         default: true
         type: boolean
+    secrets:
+      ARCHIVE_REPO_TOKEN:
+        required: false
+      GPG_SIGNING_KEY:
+        required: false
   workflow_dispatch:
     inputs:
       source:
@@ -60,25 +65,26 @@ permissions: {}
 
 jobs:
   prepare:
+    name: Prepare
     permissions:
-      contents: write
+      contents: write  # Needed to git-push the release commit
     runs-on: ubuntu-latest
     outputs:
       channel: ${{ steps.setup_variables.outputs.channel }}
       version: ${{ steps.setup_variables.outputs.version }}
       target_repo: ${{ steps.setup_variables.outputs.target_repo }}
-      target_repo_token: ${{ steps.setup_variables.outputs.target_repo_token }}
       target_tag: ${{ steps.setup_variables.outputs.target_tag }}
       pypi_project: ${{ steps.setup_variables.outputs.pypi_project }}
       pypi_suffix: ${{ steps.setup_variables.outputs.pypi_suffix }}
       head_sha: ${{ steps.get_target.outputs.head_sha }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           fetch-depth: 0
+          persist-credentials: true  # Needed to git-push the release commit
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version: "3.10"  # Keep this in sync with test-workflows.yml
 
@@ -103,8 +109,6 @@ jobs:
           TARGET_PYPI_SUFFIX: ${{ vars[format('{0}_pypi_suffix', steps.process_inputs.outputs.target_repo)] }}
           SOURCE_ARCHIVE_REPO: ${{ vars[format('{0}_archive_repo', steps.process_inputs.outputs.source_repo)] }}
           TARGET_ARCHIVE_REPO: ${{ vars[format('{0}_archive_repo', steps.process_inputs.outputs.target_repo)] }}
-          HAS_SOURCE_ARCHIVE_REPO_TOKEN: ${{ !!secrets[format('{0}_archive_repo_token', steps.process_inputs.outputs.source_repo)] }}
-          HAS_TARGET_ARCHIVE_REPO_TOKEN: ${{ !!secrets[format('{0}_archive_repo_token', steps.process_inputs.outputs.target_repo)] }}
           HAS_ARCHIVE_REPO_TOKEN: ${{ !!secrets.ARCHIVE_REPO_TOKEN }}
         run: |
           python -m devscripts.setup_variables
@@ -149,6 +153,7 @@ jobs:
         run: git push origin "${GITHUB_EVENT_REF}"
 
   build:
+    name: Build
     needs: [prepare]
     permissions:
       contents: read
@@ -162,19 +167,20 @@ jobs:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 
   publish_pypi:
+    name: Publish to PyPI
     needs: [prepare, build]
     if: ${{ needs.prepare.outputs.pypi_project }}
     permissions:
       contents: read
-      id-token: write  # mandatory for trusted publishing
+      id-token: write  # Needed for trusted publishing
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           fetch-depth: 0  # Needed for changelog
           persist-credentials: false
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version: "3.10"
 
@@ -210,7 +216,7 @@ jobs:
 
       - name: Upload artifacts
         if: github.event_name != 'workflow_dispatch'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: build-pypi
           path: |
@@ -219,14 +225,15 @@ jobs:
 
       - name: Publish to PyPI
         if: github.event_name == 'workflow_dispatch'
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # v1.13.0
         with:
           verbose: true
 
   publish:
+    name: Publish Github release
     needs: [prepare, build]
     permissions:
-      contents: write
+      contents: write  # Needed by gh to publish release to Github
     runs-on: ubuntu-latest
     env:
       TARGET_REPO: ${{ needs.prepare.outputs.target_repo }}
@@ -234,16 +241,16 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
       HEAD_SHA: ${{ needs.prepare.outputs.head_sha }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131  # v7.0.0
         with:
           path: artifact
           pattern: build-*
           merge-multiple: true
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version: "3.10"
 
@@ -284,7 +291,7 @@ jobs:
 
       - name: Publish to archive repo
         env:
-          GH_TOKEN: ${{ secrets[needs.prepare.outputs.target_repo_token] }}
+          GH_TOKEN: ${{ secrets.ARCHIVE_REPO_TOKEN }}
           GH_REPO: ${{ needs.prepare.outputs.target_repo }}
           TITLE_PREFIX: ${{ startswith(env.TARGET_REPO, 'yt-dlp/') && 'yt-dlp ' || '' }}
           TITLE: ${{ inputs.target != env.TARGET_REPO && inputs.target || needs.prepare.outputs.channel }}
