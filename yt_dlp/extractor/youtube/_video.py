@@ -2469,11 +2469,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 break
             return _continuation
 
-        def extract_thread(contents, entity_payloads, parent, depth):
+        def extract_thread(contents, entity_payloads, parent, thread_depth):
             if not parent:
                 tracker['current_page_thread'] = 0
 
-            if max_depth < depth:
+            if max_depth < thread_depth:
                 return
 
             for content in contents:
@@ -2536,7 +2536,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'subThreads', lambda _, v: v['commentThreadRenderer']))
                     # Recursively extract from `commentThreadRenderer`s in `subThreads`
                     if subthreads:
-                        for entry in extract_thread(subthreads, entity_payloads, comment_id, depth + 1):
+                        for entry in extract_thread(subthreads, entity_payloads, comment_id, thread_depth + 1):
                             if entry:
                                 yield entry
                         # All of the subThreads' `continuationItemRenderer`s were within the nested
@@ -2547,7 +2547,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # Recursively extract from `continuationItemRenderer`s in `subThreads`
                     comment_entries_iter = self._comment_entries(
                         comment_replies_renderer, ytcfg, video_id,
-                        parent=comment_id, tracker=tracker, depth=depth + 1)
+                        parent=comment_id, tracker=tracker, depth=thread_depth + 1)
                     yield from itertools.islice(comment_entries_iter, min(
                         max_replies_per_thread, max(0, max_replies - tracker['total_reply_comments'])))
 
