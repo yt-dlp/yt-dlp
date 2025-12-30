@@ -383,7 +383,6 @@ class TwitterCardIE(InfoExtractor):
                 '_old_archive_ids': ['twitter 623160978427936768'],
             },
             'params': {'format': '[protocol=https]'},
-            'skip': 'HTTP Error 500: Domain Not Found (X killed twitter:amplify)',
         },
         {
             'url': 'https://twitter.com/i/cards/tfw/v1/654001591733886977',
@@ -510,7 +509,6 @@ class TwitterIE(TwitterBaseIE):
             'age_limit': 0,
             '_old_archive_ids': ['twitter 665052190608723968'],
         },
-        'skip': 'HTTP Error 500: Domain Not Found (X killed twitter:amplify)',
     }, {
         'url': 'https://twitter.com/BTNBrentYarina/status/705235433198714880',
         'info_dict': {
