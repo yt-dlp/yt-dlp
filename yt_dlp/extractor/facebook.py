@@ -4,8 +4,6 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import compat_etree_fromstring
-from ..networking import Request
-from ..networking.exceptions import network_exceptions
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -64,9 +62,6 @@ class FacebookIE(InfoExtractor):
                 class=(?P<q1>[\'"])[^\'"]*\bfb-(?:video|post)\b[^\'"]*(?P=q1)[^>]+
                 data-href=(?P<q2>[\'"])(?P<url>(?:https?:)?//(?:www\.)?facebook.com/.+?)(?P=q2)''',
     ]
-    _LOGIN_URL = 'https://www.facebook.com/login.php?next=http%3A%2F%2Ffacebook.com%2Fhome.php&login_attempt=1'
-    _CHECKPOINT_URL = 'https://www.facebook.com/checkpoint/?next=http%3A%2F%2Ffacebook.com%2Fhome.php&_fb_noscript=1'
-    _NETRC_MACHINE = 'facebook'
     IE_NAME = 'facebook'
 
     _VIDEO_PAGE_TEMPLATE = 'https://www.facebook.com/video/video.php?v=%s'
@@ -468,65 +463,6 @@ class FacebookIE(InfoExtractor):
     _api_config = {
         'graphURI': '/api/graphql/',
     }
-
-    def _perform_login(self, username, password):
-        login_page_req = Request(self._LOGIN_URL)
-        self._set_cookie('facebook.com', 'locale', 'en_US')
-        login_page = self._download_webpage(login_page_req, None,
-                                            note='Downloading login page',
-                                            errnote='Unable to download login page')
-        lsd = self._search_regex(
-            r'<input type="hidden" name="lsd" value="([^"]*)"',
-            login_page, 'lsd')
-        lgnrnd = self._search_regex(r'name="lgnrnd" value="([^"]*?)"', login_page, 'lgnrnd')
-
-        login_form = {
-            'email': username,
-            'pass': password,
-            'lsd': lsd,
-            'lgnrnd': lgnrnd,
-            'next': 'http://facebook.com/home.php',
-            'default_persistent': '0',
-            'legacy_return': '1',
-            'timezone': '-60',
-            'trynum': '1',
-        }
-        request = Request(self._LOGIN_URL, urlencode_postdata(login_form))
-        request.headers['Content-Type'] = 'application/x-www-form-urlencoded'
-        try:
-            login_results = self._download_webpage(request, None,
-                                                   note='Logging in', errnote='unable to fetch login page')
-            if re.search(r'<form(.*)name="login"(.*)</form>', login_results) is not None:
-                error = self._html_search_regex(
-                    r'(?s)<div[^>]+class=(["\']).*?login_error_box.*?\1[^>]*><div[^>]*>.*?</div><div[^>]*>(?P<error>.+?)</div>',
-                    login_results, 'login error', default=None, group='error')
-                if error:
-                    raise ExtractorError(f'Unable to login: {error}', expected=True)
-                self.report_warning('unable to log in: bad username/password, or exceeded login rate limit (~3/min). Check credentials or wait.')
-                return
-
-            fb_dtsg = self._search_regex(
-                r'name="fb_dtsg" value="(.+?)"', login_results, 'fb_dtsg', default=None)
-            h = self._search_regex(
-                r'name="h"\s+(?:\w+="[^"]+"\s+)*?value="([^"]+)"', login_results, 'h', default=None)
-
-            if not fb_dtsg or not h:
-                return
-
-            check_form = {
-                'fb_dtsg': fb_dtsg,
-                'h': h,
-                'name_action_selected': 'dont_save',
-            }
-            check_req = Request(self._CHECKPOINT_URL, urlencode_postdata(check_form))
-            check_req.headers['Content-Type'] = 'application/x-www-form-urlencoded'
-            check_response = self._download_webpage(check_req, None,
-                                                    note='Confirming login')
-            if re.search(r'id="checkpointSubmitButton"', check_response) is not None:
-                self.report_warning('Unable to confirm login, you have to login in your browser and authorize the login.')
-        except network_exceptions as err:
-            self.report_warning(f'unable to log in: {err}')
-            return
 
     def _extract_from_url(self, url, video_id):
         webpage = self._download_webpage(
