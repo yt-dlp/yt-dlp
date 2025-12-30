@@ -482,7 +482,7 @@ class NebulaChannelIE(NebulaBaseIE):
 
 class NebulaSeasonIE(NebulaBaseIE):
     IE_NAME = 'nebula:season'
-    _VALID_URL = rf'{_BASE_URL_RE}/(?P<series>[\w-]+)/season/(?P<season_number>[-\d]+)'
+    _VALID_URL = rf'{_BASE_URL_RE}/(?P<series>[\w-]+)/season/(?P<season_number>[\w-]+)'
     _TESTS = [{
         'url': 'https://nebula.tv/jetlag/season/15',
         'info_dict': {
