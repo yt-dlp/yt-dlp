@@ -2521,7 +2521,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     yield
                     break  # Safeguard for recursive call in subthreads code path below
                 else:
-                    tracker['seen_comment_ids'].add(comment['id'])
+                    tracker['seen_comment_ids'].add(comment_id)
 
                 tracker['running_total'] += 1
                 tracker['total_reply_comments' if thread_parent else 'total_parent_comments'] += 1
