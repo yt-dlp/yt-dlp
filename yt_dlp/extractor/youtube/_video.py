@@ -2469,15 +2469,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 break
             return _continuation
 
-        def extract_thread(contents, entity_payloads, parent, thread_depth):
-            if not parent:
+        def extract_thread(contents, entity_payloads, thread_parent, thread_depth):
+            if not thread_parent:
                 tracker['current_page_thread'] = 0
 
             if max_depth < thread_depth:
                 return
 
             for content in contents:
-                if not parent and tracker['total_parent_comments'] >= max_parents:
+                if not thread_parent and tracker['total_parent_comments'] >= max_parents:
                     yield
                 comment_thread_renderer = try_get(content, lambda x: x['commentThreadRenderer'])
 
@@ -2487,7 +2487,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         (comment_thread_renderer, content), [['commentRenderer', ('comment', 'commentRenderer')]],
                         expected_type=dict, default={})
 
-                    comment = self._extract_comment_old(comment_renderer, parent)
+                    comment = self._extract_comment_old(comment_renderer, thread_parent)
 
                 # new comment format
                 else:
@@ -2498,7 +2498,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not comment_keys:
                         continue
                     entities = traverse_obj(entity_payloads, lambda _, v: v['entityKey'] in comment_keys)
-                    comment = self._extract_comment(entities, parent)
+                    comment = self._extract_comment(entities, thread_parent)
                     if comment:
                         comment['is_pinned'] = traverse_obj(view_model, ('pinnedText', {str})) is not None
 
@@ -2517,14 +2517,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
                     self.report_warning(
                         'Detected YouTube comments looping. Stopping comment extraction '
-                        f'{"for this thread" if parent else ""} as we probably cannot get any more.')
+                        f'{"for this thread" if thread_parent else ""} as we probably cannot get any more.')
                     yield
                     break  # Safeguard for recursive call in subthreads code path below
                 else:
                     tracker['seen_comment_ids'].add(comment['id'])
 
                 tracker['running_total'] += 1
-                tracker['total_reply_comments' if parent else 'total_parent_comments'] += 1
+                tracker['total_reply_comments' if thread_parent else 'total_parent_comments'] += 1
                 yield comment
 
                 # Attempt to get the replies
