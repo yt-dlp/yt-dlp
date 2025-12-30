@@ -2469,7 +2469,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 break
             return _continuation
 
-        def extract_thread(contents, entity_payloads):
+        def extract_thread(contents, entity_payloads, parent):
             if not parent:
                 tracker['current_page_thread'] = 0
 
@@ -2537,7 +2537,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # Recursively extract from `commentThreadRenderer`s in `subThreads`
                     if subthreads:
                         tracker['current_depth'] += 1
-                        for entry in extract_thread(subthreads, entity_payloads):
+                        for entry in extract_thread(subthreads, entity_payloads, comment_id):
                             if entry:
                                 yield entry
                         tracker['current_depth'] -= 1
@@ -2645,7 +2645,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         break
                     continue
 
-                for entry in extract_thread(continuation_items, mutations):
+                for entry in extract_thread(continuation_items, mutations, parent):
                     if not entry:
                         return
                     yield entry
