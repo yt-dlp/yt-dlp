@@ -2437,7 +2437,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return info
 
-    def _comment_entries(self, root_continuation_data, ytcfg, video_id, parent=None, tracker=None):
+    def _comment_entries(self, root_continuation_data, ytcfg, video_id, parent=None, tracker=None, depth=1):
 
         get_single_config_arg = lambda c: self._configuration_arg(c, [''])[0]
 
@@ -2469,15 +2469,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 break
             return _continuation
 
-        def extract_thread(contents, entity_payloads):
-            if not parent:
+        def extract_thread(contents, entity_payloads, thread_parent, thread_depth):
+            if not thread_parent:
                 tracker['current_page_thread'] = 0
 
-            if max_depth < tracker['current_depth']:
+            if max_depth < thread_depth:
                 return
 
             for content in contents:
-                if not parent and tracker['total_parent_comments'] >= max_parents:
+                if not thread_parent and tracker['total_parent_comments'] >= max_parents:
                     yield
                 comment_thread_renderer = try_get(content, lambda x: x['commentThreadRenderer'])
 
@@ -2487,7 +2487,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         (comment_thread_renderer, content), [['commentRenderer', ('comment', 'commentRenderer')]],
                         expected_type=dict, default={})
 
-                    comment = self._extract_comment_old(comment_renderer, parent)
+                    comment = self._extract_comment_old(comment_renderer, thread_parent)
 
                 # new comment format
                 else:
@@ -2498,7 +2498,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not comment_keys:
                         continue
                     entities = traverse_obj(entity_payloads, lambda _, v: v['entityKey'] in comment_keys)
-                    comment = self._extract_comment(entities, parent)
+                    comment = self._extract_comment(entities, thread_parent)
                     if comment:
                         comment['is_pinned'] = traverse_obj(view_model, ('pinnedText', {str})) is not None
 
@@ -2517,14 +2517,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
                     self.report_warning(
                         'Detected YouTube comments looping. Stopping comment extraction '
-                        f'{"for this thread" if parent else ""} as we probably cannot get any more.')
+                        f'{"for this thread" if thread_parent else ""} as we probably cannot get any more.')
                     yield
                     break  # Safeguard for recursive call in subthreads code path below
                 else:
-                    tracker['seen_comment_ids'].add(comment['id'])
+                    tracker['seen_comment_ids'].add(comment_id)
 
                 tracker['running_total'] += 1
-                tracker['total_reply_comments' if parent else 'total_parent_comments'] += 1
+                tracker['total_reply_comments' if thread_parent else 'total_parent_comments'] += 1
                 yield comment
 
                 # Attempt to get the replies
@@ -2536,24 +2536,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'subThreads', lambda _, v: v['commentThreadRenderer']))
                     # Recursively extract from `commentThreadRenderer`s in `subThreads`
                     if subthreads:
-                        tracker['current_depth'] += 1
-                        for entry in extract_thread(subthreads, entity_payloads):
+                        for entry in extract_thread(subthreads, entity_payloads, comment_id, thread_depth + 1):
                             if entry:
                                 yield entry
-                        tracker['current_depth'] -= 1
                         # All of the subThreads' `continuationItemRenderer`s were within the nested
                         # `commentThreadRenderer`s and are now exhausted, so avoid unnecessary recursion below
                         continue
 
                     tracker['current_page_thread'] += 1
-                    tracker['current_depth'] += 1
                     # Recursively extract from `continuationItemRenderer`s in `subThreads`
                     comment_entries_iter = self._comment_entries(
                         comment_replies_renderer, ytcfg, video_id,
-                        parent=comment_id, tracker=tracker)
+                        parent=comment_id, tracker=tracker, depth=thread_depth + 1)
                     yield from itertools.islice(comment_entries_iter, min(
                         max_replies_per_thread, max(0, max_replies - tracker['total_reply_comments'])))
-                    tracker['current_depth'] -= 1
 
         # Keeps track of counts across recursive calls
         if not tracker:
@@ -2565,13 +2561,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'total_reply_comments': 0,
                 'seen_comment_ids': set(),
                 'pinned_comment_ids': set(),
-                'current_depth': 1,
             }
 
         _max_comments, max_parents, max_replies, max_replies_per_thread, max_depth, *_ = (
             int_or_none(p, default=sys.maxsize) for p in self._configuration_arg('max_comments') + [''] * 5)
 
-        if max_depth < tracker['current_depth']:
+        if max_depth < depth:
             return
 
         continuation = self._extract_continuation(root_continuation_data)
@@ -2645,7 +2640,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         break
                     continue
 
-                for entry in extract_thread(continuation_items, mutations):
+                for entry in extract_thread(continuation_items, mutations, parent, depth):
                     if not entry:
                         return
                     yield entry
