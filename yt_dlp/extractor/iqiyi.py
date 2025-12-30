@@ -37,8 +37,6 @@ class IqiyiIE(InfoExtractor):
 
     _VALID_URL = r'https?://(?:(?:[^.]+\.)?iqiyi\.com|www\.pps\.tv)/.+\.html'
 
-    _NETRC_MACHINE = 'iqiyi'
-
     _TESTS = [{
         'url': 'http://www.iqiyi.com/v_19rrojlavg.html',
         # MD5 checksum differs on my machine and Travis CI
