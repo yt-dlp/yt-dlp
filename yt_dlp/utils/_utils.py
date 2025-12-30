@@ -4478,7 +4478,7 @@ def decode_packed_codes(code):
         symbol_table[base_n_count] = symbols[count] or base_n_count
 
     return re.sub(
-        r'\b(\w+)\b', lambda mobj: symbol_table[mobj.group(0)],
+        r'\b(\w+)\b', lambda mobj: symbol_table.get(mobj.group(0), mobj.group(0)),
         obfuscated_code)
 
 
