@@ -62,7 +62,7 @@ jobs:
               --since="24 hours ago"
             )
           fi
-          echo "commit=$(git log --format=%H -1 "{limit_args[@]}" -- "${relevant_files[@]}")" | tee -a "${GITHUB_OUTPUT}"
+          echo "commit=$(git log --format=%H -1 "${limit_args[@]}" -- "${relevant_files[@]}")" | tee -a "${GITHUB_OUTPUT}"
 
       - name: Record new nightly commit hash
         run: |
