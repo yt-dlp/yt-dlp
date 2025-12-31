@@ -1725,6 +1725,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'live_status': 'not_live',
             'comment_count': 9,  # XXX: minimum
         },
+        'params': {
+            'skip_download': True,
+            'getcomments': True,
+        },
     }]
     _WEBPAGE_TESTS = [{
         # <object>
