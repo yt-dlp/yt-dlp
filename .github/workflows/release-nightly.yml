@@ -2,6 +2,7 @@ name: Release (nightly)
 on:
   schedule:
     - cron: '23 23 * * *'
+  workflow_dispatch:
 
 permissions: {}
 
@@ -19,6 +20,23 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+
+      - name: Get current time
+        id: get_timestamp
+        shell: bash
+        run: |
+          echo "timestamp=$(date +%s.%N)" | tee -a "${GITHUB_OUTPUT}"
+
+      - name: Cache nightly commit hash
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb  # v5.0.1
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
+        with:
+          path: .nightly_commit_hash
+          key: release-nightly-${{ steps.get_timestamp.outputs.timestamp }}
+          restore-keys: |
+            release-nightly-
+
       - name: Check for new commits
         id: check_for_new_commits
         shell: bash
@@ -35,7 +53,20 @@ jobs:
             ".github/workflows/release.yml"
             ".github/workflows/release-nightly.yml"
           )
-          echo "commit=$(git log --format=%H -1 --since="24 hours ago" -- "${relevant_files[@]}")" | tee "$GITHUB_OUTPUT"
+          if [[ -f .nightly_commit_hash ]]; then
+            limit_args=(
+              "$(cat .nightly_commit_hash)..HEAD"
+            )
+          else
+            limit_args=(
+              --since="24 hours ago"
+            )
+          fi
+          echo "commit=$(git log --format=%H -1 "{limit_args[@]}" -- "${relevant_files[@]}")" | tee -a "${GITHUB_OUTPUT}"
+
+      - name: Record new nightly commit hash
+        run: |
+          git log --format=%H -1 > .nightly_commit_hash
 
   release:
     name: Publish Github release
@@ -66,6 +97,7 @@ jobs:
         with:
           path: dist
           name: build-pypi
+
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # v1.13.0
         with:
