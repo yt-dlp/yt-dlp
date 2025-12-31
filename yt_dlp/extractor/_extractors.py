@@ -872,6 +872,7 @@ from .infoq import InfoQIE
 from .instagram import (
     InstagramIE,
     InstagramIOSIE,
+    InstagramLiveIE,
     InstagramStoryIE,
     InstagramTagIE,
     InstagramUserIE,
