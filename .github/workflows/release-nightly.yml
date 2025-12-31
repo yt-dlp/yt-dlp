@@ -65,8 +65,7 @@ jobs:
           echo "commit=$(git log --format=%H -1 "${limit_args[@]}" -- "${relevant_files[@]}")" | tee -a "${GITHUB_OUTPUT}"
 
       - name: Record new nightly commit hash
-        run: |
-          git log --format=%H -1 > .nightly_commit_hash
+        run: git rev-parse HEAD > .nightly_commit_hash
 
   release:
     name: Publish Github release
