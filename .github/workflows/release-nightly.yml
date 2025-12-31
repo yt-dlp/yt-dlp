@@ -7,6 +7,7 @@ permissions: {}
 
 jobs:
   check_nightly:
+    name: Check for new commits
     if: vars.BUILD_NIGHTLY
     permissions:
       contents: read
@@ -14,12 +15,13 @@ jobs:
     outputs:
       commit: ${{ steps.check_for_new_commits.outputs.commit }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
       - name: Check for new commits
         id: check_for_new_commits
+        shell: bash
         run: |
           relevant_files=(
             "yt_dlp/*.py"
@@ -36,31 +38,35 @@ jobs:
           echo "commit=$(git log --format=%H -1 --since="24 hours ago" -- "${relevant_files[@]}")" | tee "$GITHUB_OUTPUT"
 
   release:
+    name: Publish Github release
     needs: [check_nightly]
     if: ${{ needs.check_nightly.outputs.commit }}
     permissions:
-      contents: write
-      id-token: write  # mandatory for trusted publishing
+      contents: write  # May be needed to publish release
+      id-token: write  # Needed for trusted publishing
     uses: ./.github/workflows/release.yml
     with:
       prerelease: true
       source: ${{ (github.repository != 'yt-dlp/yt-dlp' && vars.NIGHTLY_ARCHIVE_REPO) || 'nightly' }}
       target: 'nightly'
-    secrets: inherit
+    secrets:
+      ARCHIVE_REPO_TOKEN: ${{ secrets.ARCHIVE_REPO_TOKEN }}
+      GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 
   publish_pypi:
+    name: Publish to PyPI
     needs: [release]
     if: vars.NIGHTLY_PYPI_PROJECT
     permissions:
-      id-token: write  # mandatory for trusted publishing
+      id-token: write  # Needed for trusted publishing
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131  # v7.0.0
         with:
           path: dist
           name: build-pypi
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # v1.13.0
         with:
           verbose: true
