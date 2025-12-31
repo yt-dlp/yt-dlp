@@ -5,14 +5,14 @@ from ..utils import (
     filter_dict,
     int_or_none,
     parse_iso8601,
-    traverse_obj,
     url_or_none,
     urlencode_postdata,
 )
+from ..utils.traversal import traverse_obj
 
 
 class PandaTvIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.|m\.)?pandalive\.co\.kr/play/(?P<id>[\da-z]+)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?pandalive\.co\.kr/play/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.pandalive.co.kr/play/bebenim',
         'info_dict': {
@@ -40,9 +40,7 @@ class PandaTvIE(InfoExtractor):
                 'password': self.get_param('videopassword'),
             })), expected_status=400)
 
-        if not video_meta.get('result'):
-            error_code = traverse_obj(video_meta, ('errorData', 'code', {str}))
-            error_msg = video_meta.get('message')
+        if error_code := traverse_obj(video_meta, ('errorData', 'code', {str})):
             if error_code == 'castEnd':
                 raise UserNotLive(video_id=channel_id)
             elif error_code == 'needAdult':
@@ -58,6 +56,7 @@ class PandaTvIE(InfoExtractor):
             elif error_code == 'wrongPw':
                 raise ExtractorError('Wrong password', expected=True)
             else:
+                error_msg = video_meta.get('message')
                 raise ExtractorError(f'API returned an error code: {error_code} with error message: {error_msg}')
 
         http_headers = {'Origin': 'https://www.pandalive.co.kr'}
@@ -68,12 +67,12 @@ class PandaTvIE(InfoExtractor):
             'formats': self._extract_m3u8_formats(
                 video_meta['PlayList']['hls'][0]['url'], channel_id, 'mp4', headers=http_headers, live=True),
             'http_headers': http_headers,
-            **traverse_obj(video_meta.get('media'), {
+            **traverse_obj(video_meta, ('media', {
                 'title': ('title', {str}),
                 'release_timestamp': ('startTime', {parse_iso8601(delim=' ')}),
                 'thumbnail': ('ivsThumbnail', {url_or_none}),
                 'channel': ('userNick', {str}),
                 'concurrent_view_count': ('user', {int_or_none}),
                 'like_count': ('likeCnt', {int_or_none}),
-            }),
+            })),
         }
