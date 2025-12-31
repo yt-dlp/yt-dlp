@@ -13,6 +13,7 @@ from ..utils.traversal import traverse_obj
 
 
 class PandaTvIE(InfoExtractor):
+    IE_DESC = 'pandalive.co.kr (팬더티비)'
     _VALID_URL = r'https?://(?:www\.|m\.)?pandalive\.co\.kr/play/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.pandalive.co.kr/play/bebenim',
