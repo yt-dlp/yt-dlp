@@ -1661,7 +1661,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         },
         'params': {'skip_download': True},
     }, {
-        # Threaded comments with 4 levels of depth
+        # Comment subthreads with 4 levels of depth
         'url': 'https://www.youtube.com/watch?v=f6HNySwZV4c',
         'info_dict': {
             'id': 'f6HNySwZV4c',
@@ -1675,6 +1675,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'channel': 'cole-dlp-test-acc',
             'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
             'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'channel_follower_count': int,
             'view_count': int,
             'like_count': int,
             'age_limit': 0,
@@ -1689,11 +1690,40 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'playable_in_embed': True,
             'availability': 'public',
             'live_status': 'not_live',
-            'comment_count': 15,
+            'comment_count': 15,  # XXX: minimum
         },
         'params': {
             'skip_download': True,
             'getcomments': True,
+        },
+    }, {
+        # Comments: `subThreads` containing `commentThreadRenderer`s AND `continuationItemRenderer`
+        'url': 'https://www.youtube.com/watch?v=3dHQb2Nhma0',
+        'info_dict': {
+            'id': '3dHQb2Nhma0',
+            'ext': 'mp4',
+            'title': 'Tɪtle',
+            'description': '',
+            'media_type': 'video',
+            'uploader': 'abcdefg',
+            'uploader_id': '@abcdefg-d5t2c',
+            'uploader_url': 'https://www.youtube.com/@abcdefg-d5t2c',
+            'channel': 'abcdefg',
+            'channel_id': 'UCayEJzV8XSSJkPdA7OAsbew',
+            'channel_url': 'https://www.youtube.com/channel/UCayEJzV8XSSJkPdA7OAsbew',
+            'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 12,
+            'thumbnail': 'https://i.ytimg.com/vi/3dHQb2Nhma0/maxresdefault.jpg',
+            'categories': ['People & Blogs'],
+            'tags': [],
+            'timestamp': 1767158812,
+            'upload_date': '20251231',
+            'playable_in_embed': True,
+            'availability': 'unlisted',
+            'live_status': 'not_live',
+            'comment_count': 9,  # XXX: minimum
         },
     }]
     _WEBPAGE_TESTS = [{
@@ -2532,19 +2562,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     comment_thread_renderer, lambda x: x['replies']['commentRepliesRenderer'], dict)
 
                 if comment_replies_renderer:
-                    subthreads = traverse_obj(comment_replies_renderer, (
-                        'subThreads', lambda _, v: v['commentThreadRenderer']))
+                    subthreads = traverse_obj(comment_replies_renderer, ('subThreads', ..., {dict}))
                     # Recursively extract from `commentThreadRenderer`s in `subThreads`
-                    if subthreads:
-                        for entry in extract_thread(subthreads, entity_payloads, comment_id, thread_depth + 1):
+                    if threads := traverse_obj(subthreads, lambda _, v: v['commentThreadRenderer']):
+                        for entry in extract_thread(threads, entity_payloads, comment_id, thread_depth + 1):
                             if entry:
                                 yield entry
-                        # All of the subThreads' `continuationItemRenderer`s were within the nested
-                        # `commentThreadRenderer`s and are now exhausted, so avoid unnecessary recursion below
-                        continue
+                        if not traverse_obj(subthreads, lambda _, v: v['continuationItemRenderer']):
+                            # All of the subThreads' `continuationItemRenderer`s were within the nested
+                            # `commentThreadRenderer`s and are now exhausted, so avoid unnecessary recursion below
+                            continue
 
                     tracker['current_page_thread'] += 1
-                    # Recursively extract from `continuationItemRenderer`s in `subThreads`
+                    # Recursively extract from `continuationItemRenderer` in `subThreads`
                     comment_entries_iter = self._comment_entries(
                         comment_replies_renderer, ytcfg, video_id,
                         parent=comment_id, tracker=tracker, depth=thread_depth + 1)
