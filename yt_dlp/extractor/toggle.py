@@ -1,100 +1,87 @@
-import json
 import re
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     determine_ext,
-    float_or_none,
     int_or_none,
     parse_iso8601,
     strip_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
-class ToggleIE(InfoExtractor):
-    IE_NAME = 'toggle'
-    _VALID_URL = r'(?:https?://(?:(?:www\.)?mewatch|video\.toggle)\.sg/(?:en|zh)/(?:[^/]+/){2,}|toggle:)(?P<id>[0-9]+)'
+class MeWatchIE(InfoExtractor):
+    IE_NAME = 'mewatch'
+    _VALID_URL = r'https?://(?:(?:www\.)?mewatch|video\.toggle)\.sg/(?:en|zh)?(?:[^/]+)/(?:[^?&#]+)(?:/|-)(?P<id>[0-9]+)'
     _TESTS = [{
-        'url': 'http://www.mewatch.sg/en/series/lion-moms-tif/trailers/lion-moms-premier/343115',
+        'url': 'https://www.mewatch.sg/watch/New-Stirrings-E3-Innovation-and-New-Blood-598958',
         'info_dict': {
-            'id': '343115',
-            'ext': 'mp4',
-            'title': 'Lion Moms Premiere',
-            'description': 'md5:aea1149404bff4d7f7b6da11fafd8e6b',
-            'upload_date': '20150910',
-            'timestamp': 1441858274,
+            'id': '598958',
+            'title': 'Ep 3 Innovation and New Blood',
+            'description': 'In New Stirrings: Innovation and New Blood, a new generation of hawkers is redefining what it means to cook, create and serve. At Jalan Batu, 24-year-old Fikri Rohaimi, who once worked in Michelin-starred kitchens, now brings restaurant-quality dishes to a hawker stall. At Ghim Moh, Amber Pang\u2019s artisanal bakes bring a breath of fresh air to one of Singapore\u2019s oldest hawker centres. Across the island, robots share the kitchen. From M Plus Fried Rice\u2019s wok hei machine to Steven Lam\u2019s glutinous rice dispenser, they prove that innovation can honour tradition. For others, purpose drives change. Madeline Chan uses her coffee stall to support refugees, while Li Jiali finds healing through pancakes. And through NEA\u2019s Incubation Stall Programme and Social Enterprise Hawker Centres, new hawkers like Jordan Chong and Rick Tan are finding their footing. This episode celebrates how fresh ideas and fearless hearts are keeping Singapore\u2019s hawker spirit alive.',
+            'duration': 2810,
+            'timestamp': 1767016800,
+            'average_rating': 0,
         },
         'params': {
-            'skip_download': 'm3u8 download',
+            'skip_download': True,
         },
     }, {
-        'url': 'http://www.mewatch.sg/en/movies/dug-s-special-mission/341413',
+        'url': 'https://www.mewatch.sg/clips/Cuit-Cuit-Clip-6-Warna-Ramadan-2024-450987',
+        'info_dict': {
+            'id': '450987',
+            'title': 'Cuit-Cuit - Clip 6 - Warna Ramadan 2024',
+            'description': 'Watch the antics of Mohd Shaqeel and Hanie Bella in Cuit-Cuit. Check out the activities that they do while waiting for break fast. Saksikan gelagat Mohd Shaqeel dan Hanie Bella dalam Cuit-Cuit. Apakah aktiviti yang dilakukan mereka ketika menunggu waktu berbuka?Clip',
+            'duration': 68,
+            'timestamp': 1712592000,
+            'average_rating': 0,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://www.mewatch.sg/show/New-Stirrings-598293',
+        'info_dict': {
+            'id': '598293',
+            'title': 'New Stirrings',
+        },
+        'playlist_count': 3,
+    }, {
+        'url': 'https://www.mewatch.sg/movie/The-White-Storm-3-Heaven-Or-Hell-589395',
         'only_matching': True,
     }, {
-        'url': 'http://www.mewatch.sg/en/series/28th-sea-games-5-show/28th-sea-games-5-show-ep11/332861',
-        'only_matching': True,
-    }, {
-        'url': 'http://video.toggle.sg/en/clips/seraph-sun-aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set/343331',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.mewatch.sg/en/clips/seraph-sun-aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set/343331',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.mewatch.sg/zh/series/zero-calling-s2-hd/ep13/336367',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.mewatch.sg/en/series/vetri-s2/webisodes/jeeva-is-an-orphan-vetri-s2-webisode-7/342302',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.mewatch.sg/en/movies/seven-days/321936',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.mewatch.sg/en/tv-show/news/may-2017-cna-singapore-tonight/fri-19-may-2017/512456',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.mewatch.sg/en/channels/eleven-plus/401585',
+        'url': 'https://www.mewatch.sg/channels/oktolidays/186574',
         'only_matching': True,
     }]
+    _API_BASE = 'https://cdn.mewatch.sg/api'
 
-    _API_USER = 'tvpapi_147'
-    _API_PASS = '11111'
+    def _extract_episode(self, video_id, meta=None):
+        try:
+            info = self._download_json(
+                f'{self._API_BASE}/items/{video_id}/videos',
+                video_id, 'Downloading video info json',
+                query={
+                    'delivery': 'stream,progressive',
+                    'ff': 'idp,ldp,rpt,cd',
+                    'lang': 'en',
+                    'resolution': 'External',
+                    'segments': 'all',
+                })
+        except ExtractorError as error:
+            if isinstance(error.cause, HTTPError) and error.cause.status == 403:
+                self.raise_login_required()
+            raise
 
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-
-        params = {
-            'initObj': {
-                'Locale': {
-                    'LocaleLanguage': '',
-                    'LocaleCountry': '',
-                    'LocaleDevice': '',
-                    'LocaleUserState': 0,
-                },
-                'Platform': 0,
-                'SiteGuid': 0,
-                'DomainID': '0',
-                'UDID': '',
-                'ApiUser': self._API_USER,
-                'ApiPass': self._API_PASS,
-            },
-            'MediaID': video_id,
-            'mediaType': 0,
-        }
-
-        info = self._download_json(
-            'http://tvpapi.as.tvinci.com/v2_9/gateways/jsonpostgw.aspx?m=GetMediaInfo',
-            video_id, 'Downloading video info json', data=json.dumps(params).encode())
-
-        title = info['MediaName']
+        title = meta['title']
 
         formats = []
-        for video_file in info.get('Files', []):
-            video_url, vid_format = video_file.get('URL'), video_file.get('Format')
+        for video_file in info:
+            video_url, vid_format = video_file.get('url'), video_file.get('name')
             if not video_url or video_url == 'NA' or not vid_format:
                 continue
             ext = determine_ext(video_url)
-            vid_format = vid_format.replace(' ', '')
-            # if geo-restricted, m3u8 is inaccessible, but mp4 is okay
             if ext == 'm3u8':
                 m3u8_formats = self._extract_m3u8_formats(
                     video_url, video_id, ext='mp4', m3u8_id=vid_format,
@@ -102,9 +89,6 @@ class ToggleIE(InfoExtractor):
                     errnote=f'Failed to download {vid_format} m3u8 information',
                     fatal=False)
                 for f in m3u8_formats:
-                    # Apple FairPlay Streaming
-                    if '/fpshls/' in f['url']:
-                        continue
                     formats.append(f)
             elif ext == 'mpd':
                 formats.extend(self._extract_mpd_formats(
@@ -118,31 +102,15 @@ class ToggleIE(InfoExtractor):
                     note=f'Downloading {vid_format} ISM manifest',
                     errnote=f'Failed to download {vid_format} ISM manifest',
                     fatal=False))
-            elif ext == 'mp4':
-                formats.append({
-                    'ext': ext,
-                    'url': video_url,
-                    'format_id': vid_format,
-                })
-        if not formats:
-            for meta in (info.get('Metas') or []):
-                if (not self.get_param('allow_unplayable_formats')
-                        and meta.get('Key') == 'Encryption' and meta.get('Value') == '1'):
-                    self.report_drm(video_id)
-            # Most likely because geo-blocked if no formats and no DRM
 
         thumbnails = []
-        for picture in info.get('Pictures', []):
-            if not isinstance(picture, dict):
-                continue
-            pic_url = picture.get('URL')
+        for _, pic_url in meta.get('images').items():
             if not pic_url:
                 continue
             thumbnail = {
                 'url': pic_url,
             }
-            pic_size = picture.get('PicSize', '')
-            m = re.search(r'(?P<width>\d+)[xX](?P<height>\d+)', pic_size)
+            m = re.search(r'&width=(?P<width>\d+)(?:&height=(?P<height>\d+))?', pic_url, flags=re.IGNORECASE)
             if m:
                 thumbnail.update({
                     'width': int(m.group('width')),
@@ -150,55 +118,70 @@ class ToggleIE(InfoExtractor):
                 })
             thumbnails.append(thumbnail)
 
-        def counter(prefix):
-            return int_or_none(
-                info.get(prefix + 'Counter') or info.get(prefix.lower() + '_counter'))
-
         return {
             'id': video_id,
             'title': title,
-            'description': strip_or_none(info.get('Description')),
-            'duration': int_or_none(info.get('Duration')),
-            'timestamp': parse_iso8601(info.get('CreationDate') or None),
-            'average_rating': float_or_none(info.get('Rating')),
-            'view_count': counter('View'),
-            'like_count': counter('Like'),
+            'description': strip_or_none(meta.get('description')),
+            'duration': int_or_none(meta.get('duration')),
+            'timestamp': parse_iso8601(meta.get('TheatricalReleaseStart') or traverse_obj(meta, ('offers', ..., 'startDate'))[0] or None),
+            'average_rating': int_or_none(meta.get('totalUserRatings')),
             'thumbnails': thumbnails,
             'formats': formats,
+            'is_live': bool(meta.get('type').startswith('channel')),
         }
 
+    def _extract_playlist(self, video_id):
+        playlist_meta = self._download_json(
+            f'{self._API_BASE}/items/{video_id}',
+            video_id,
+            query={
+                'expand': 'all',
+                'segments': 'all',
+            })
 
-class MeWatchIE(InfoExtractor):
-    IE_NAME = 'mewatch'
-    _VALID_URL = r'https?://(?:(?:www|live)\.)?mewatch\.sg/watch/[^/?#&]+-(?P<id>[0-9]+)'
-    _TESTS = [{
-        'url': 'https://www.mewatch.sg/watch/Recipe-Of-Life-E1-179371',
-        'info_dict': {
-            'id': '1008625',
-            'ext': 'mp4',
-            'title': 'Recipe Of Life 味之道',
-            'timestamp': 1603306526,
-            'description': 'md5:6e88cde8af2068444fc8e1bc3ebf257c',
-            'upload_date': '20201021',
-        },
-        'params': {
-            'skip_download': 'm3u8 download',
-        },
-    }, {
-        'url': 'https://www.mewatch.sg/watch/Little-Red-Dot-Detectives-S2-搜密。打卡。小红点-S2-E1-176232',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.mewatch.sg/watch/Little-Red-Dot-Detectives-S2-%E6%90%9C%E5%AF%86%E3%80%82%E6%89%93%E5%8D%A1%E3%80%82%E5%B0%8F%E7%BA%A2%E7%82%B9-S2-E1-176232',
-        'only_matching': True,
-    }, {
-        'url': 'https://live.mewatch.sg/watch/Recipe-Of-Life-E41-189759',
-        'only_matching': True,
-    }]
+        def entries(playlist_data):
+            season_arg = self._configuration_arg('season_num', casesense=True)
+            season_num = int(season_arg[0]) if season_arg else None
+            if season_num is not None:
+                seasons = traverse_obj(playlist_data, ('seasons', 'items', lambda _, v: v.get('seasonNumber') == season_num))
+            else:
+                seasons = traverse_obj(playlist_data, ('seasons', 'items'))
+            for season in seasons:
+                season_title = season.get('title')
+                self.write_debug(f'Downloading Season {season_title}')
+                season_id = season.get('id')
+                page = 1
+                while True:
+                    data = self._download_json(
+                        f'{self._API_BASE}/items/{season_id}/children',
+                        season_id,
+                        query={
+                            'ff': 'idp,ldp,rpt,cd',
+                            'lang': 'en',
+                            'page': page,
+                            'page_size': 25,
+                            'segments': 'all',
+                        })
+                    for ep in data.get('items'):
+                        yield self._extract_episode(ep.get('id'), ep)
+                    if page == traverse_obj(data, ('paging', 'total')):
+                        break
+                    page += 1
+
+        return self.playlist_result(
+            entries(playlist_meta), video_id,
+            strip_or_none(playlist_meta.get('title')),
+            strip_or_none(playlist_meta.get('description')))
 
     def _real_extract(self, url):
-        item_id = self._match_id(url)
-        custom_id = self._download_json(
-            'https://cdn.mewatch.sg/api/items/' + item_id,
-            item_id, query={'segments': 'all'})['customId']
-        return self.url_result(
-            'toggle:' + custom_id, ToggleIE.ie_key(), custom_id)
+        video_id = self._match_id(url)
+        meta = self._download_json(
+            f'{self._API_BASE}/items/{video_id}',
+            video_id, 'Downloading video metadata json', query={'segments': 'all'})
+        is_drm = (traverse_obj(meta, ('customFields', 'Encryption', {str})))
+        if is_drm in ('True', '1', 'true'):
+            raise self.report_drm(video_id)
+        if meta['type'] not in ('channel', 'movie', 'episode', 'program'):
+            return self._extract_playlist(video_id)
+        else:
+            return self._extract_episode(video_id, meta)
