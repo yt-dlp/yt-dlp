@@ -1690,7 +1690,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'playable_in_embed': True,
             'availability': 'public',
             'live_status': 'not_live',
-            'comment_count': 15,  # XXX: minimum
+            'comment_count': 15,  # XXX: minimum, but investigate if this changes
+            'comments': 'count:15',
         },
         'params': {
             'skip_download': True,
@@ -1723,7 +1724,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'playable_in_embed': True,
             'availability': 'unlisted',
             'live_status': 'not_live',
-            'comment_count': 9,  # XXX: minimum
+            'comment_count': 9,  # XXX: minimum, but investigate if this changes
+            'comments': 'count:9',
         },
         'params': {
             'skip_download': True,
