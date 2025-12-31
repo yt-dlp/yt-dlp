@@ -57,7 +57,10 @@ class PandaTvIE(InfoExtractor):
                 raise ExtractorError('Wrong password', expected=True)
             else:
                 error_msg = video_meta.get('message')
-                raise ExtractorError(f'API returned an error code: {error_code} with error message: {error_msg}')
+                raise ExtractorError(join_nonempty(
+                    'API returned error code', error_code,
+                    error_msg and 'with error message:', error_msg,
+                    delim=' '))
 
         http_headers = {'Origin': 'https://www.pandalive.co.kr'}
 
