@@ -9,6 +9,7 @@ from ..utils import (
     OnDemandPagedList,
     clean_html,
     extract_attributes,
+    parse_qs,
     urljoin,
 )
 from ..utils.traversal import (
@@ -147,7 +148,7 @@ class TarangPlusPlaylistIE(TarangPlusBaseIE):
     def _real_extract(self, url):
         url_type, display_id = self._match_valid_url(url).group('type', 'id')
         series_url = f'{self._BASE_URL}/{url_type}/{display_id}'
-        webpage = self._download_webpage('series_url, display_id)
+        webpage = self._download_webpage(series_url, display_id)
 
         entries = OnDemandPagedList(
             functools.partial(self._entries, f'{series_url}/episodes', display_id),
