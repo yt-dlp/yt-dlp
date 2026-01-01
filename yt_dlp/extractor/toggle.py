@@ -12,23 +12,10 @@ from ..utils import (
 from ..utils.traversal import traverse_obj
 
 
-class MeWatchIE(InfoExtractor):
-    IE_NAME = 'mewatch'
-    _VALID_URL = r'https?://(?:(?:www\.)?mewatch|video\.toggle)\.sg/(?:en|zh)?(?:[^/]+)/(?:[^?&#]+)(?:/|-)(?P<id>[0-9]+)'
+class ToggleIE(InfoExtractor):
+    IE_NAME = 'toggle'
+    _VALID_URL = r'(?:https?://(?:(?:www\.)?mewatch|video\.toggle)\.sg/(?:en|zh/)?(?:[^/]+/)|toggle:)(?:(?:[^#?&]+)(?:/|-))?(?P<id>[0-9]+)'
     _TESTS = [{
-        'url': 'https://www.mewatch.sg/watch/New-Stirrings-E3-Innovation-and-New-Blood-598958',
-        'info_dict': {
-            'id': '598958',
-            'title': 'Ep 3 Innovation and New Blood',
-            'description': 'In New Stirrings: Innovation and New Blood, a new generation of hawkers is redefining what it means to cook, create and serve. At Jalan Batu, 24-year-old Fikri Rohaimi, who once worked in Michelin-starred kitchens, now brings restaurant-quality dishes to a hawker stall. At Ghim Moh, Amber Pang\u2019s artisanal bakes bring a breath of fresh air to one of Singapore\u2019s oldest hawker centres. Across the island, robots share the kitchen. From M Plus Fried Rice\u2019s wok hei machine to Steven Lam\u2019s glutinous rice dispenser, they prove that innovation can honour tradition. For others, purpose drives change. Madeline Chan uses her coffee stall to support refugees, while Li Jiali finds healing through pancakes. And through NEA\u2019s Incubation Stall Programme and Social Enterprise Hawker Centres, new hawkers like Jordan Chong and Rick Tan are finding their footing. This episode celebrates how fresh ideas and fearless hearts are keeping Singapore\u2019s hawker spirit alive.',
-            'duration': 2810,
-            'timestamp': 1767016800,
-            'average_rating': 0,
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
         'url': 'https://www.mewatch.sg/clips/Cuit-Cuit-Clip-6-Warna-Ramadan-2024-450987',
         'info_dict': {
             'id': '450987',
@@ -185,3 +172,36 @@ class MeWatchIE(InfoExtractor):
             return self._extract_playlist(video_id)
         else:
             return self._extract_episode(video_id, meta)
+
+
+class MeWatchIE(InfoExtractor):
+    IE_NAME = 'mewatch'
+    _VALID_URL = r'https?://(?:(?:www|live)\.)?mewatch\.sg/watch/[^/?#&]+-(?P<id>[0-9]+)'
+    _TESTS = [{
+        'url': 'https://www.mewatch.sg/watch/New-Stirrings-E3-Innovation-and-New-Blood-598958',
+        'info_dict': {
+            'id': '598958',
+            'title': 'Ep 3 Innovation and New Blood',
+            'description': 'In New Stirrings: Innovation and New Blood, a new generation of hawkers is redefining what it means to cook, create and serve. At Jalan Batu, 24-year-old Fikri Rohaimi, who once worked in Michelin-starred kitchens, now brings restaurant-quality dishes to a hawker stall. At Ghim Moh, Amber Pang\u2019s artisanal bakes bring a breath of fresh air to one of Singapore\u2019s oldest hawker centres. Across the island, robots share the kitchen. From M Plus Fried Rice\u2019s wok hei machine to Steven Lam\u2019s glutinous rice dispenser, they prove that innovation can honour tradition. For others, purpose drives change. Madeline Chan uses her coffee stall to support refugees, while Li Jiali finds healing through pancakes. And through NEA\u2019s Incubation Stall Programme and Social Enterprise Hawker Centres, new hawkers like Jordan Chong and Rick Tan are finding their footing. This episode celebrates how fresh ideas and fearless hearts are keeping Singapore\u2019s hawker spirit alive.',
+            'duration': 2810,
+            'timestamp': 1767016800,
+            'average_rating': 0,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://www.mewatch.sg/watch/Sunny-Again-Tomorrow-E2-589705',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.mewatch.sg/watch/We-Are-Number-1-(Mandarin-dubbed)-E1-589860',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.mewatch.sg/watch/The-White-Storm-3-Heaven-Or-Hell-589395',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        item_id = self._match_id(url)
+        return self.url_result(
+            'toggle:' + item_id, ToggleIE.ie_key(), item_id)

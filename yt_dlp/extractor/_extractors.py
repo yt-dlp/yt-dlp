@@ -2115,7 +2115,10 @@ from .tnaflix import (
     TNAFlixIE,
     TNAFlixNetworkEmbedIE,
 )
-from .toggle import MeWatchIE
+from .toggle import (
+    MeWatchIE,
+    ToggleIE,
+)
 from .toggo import ToggoIE
 from .tonline import TOnlineIE
 from .toongoggles import ToonGogglesIE
