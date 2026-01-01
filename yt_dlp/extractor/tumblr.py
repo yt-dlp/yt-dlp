@@ -57,15 +57,12 @@ class TumblrIE(InfoExtractor):
         },
     }, {
         'note': 'non-iframe video (with related posts)',
-        # Note: The post referenced in this test case has since been deleted
         'url': 'https://shieldfoss.tumblr.com/post/675519763813908480',
         'md5': '12bdb75661ef443bffe5a4dac1dbf118',
         'info_dict': {
             'id': '675519763813908480',
             'ext': 'mp4',
             'title': 'Shieldfoss',
-            'timestamp': 0000000000,
-            'upload_date': '19700101',
             'uploader_id': 'nerviovago',
             'uploader_url': 'https://nerviovago.tumblr.com/',
             'thumbnail': r're:^https?://.*\.jpg',
