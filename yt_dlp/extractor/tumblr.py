@@ -449,39 +449,25 @@ class TumblrIE(InfoExtractor):
             description = self._og_search_description(webpage, default=None)
         uploader_id = traverse_obj(post_json, 'reblogged_root_name', 'blog_name')
 
-        # It's possible that timestamp is ultimately None if:
-        # - An API key is not set
-        # - The post is does not require login (otherwise the extraction would fail altogether)
-        # - The desired video is earlier in the reblog chain
-        #
-        # As possible future work, another HTTP request could be used to retrieve more metadata
-        # about the earlier reblog, or maybe that information is available elsewhere on the page
-        # and I just missed it
-        timestamp = (
-            traverse_obj(post_json,
-
-                         # Timestamp of earliest post in the reblog chain (not counting the post itself)
-                         # Absent if not using tumblr API or if this isn't a reblog
-                         ('trail', 0, 'post', 'timestamp'),
-
-                         # Timestamp of the post itself
-                         # None if not using the tumblr API
-                         'timestamp',
-
-                         expected_type=int)
-
-            # Timestamp as claimed by JSON-LD, only seems to be present if the the video is the most
-            # recent in the reblog chain
-            # None if this is a dashboard-only (i.e. login required) post OR the video in question
-            # is earlier in the reblog chain.  A little unreliable, but works as a fallback
-            or self._search_json_ld(webpage, None, fatal=False).get('timestamp'))
-
         info_dict = {
             'id': video_id,
             'title': post_json.get('summary') or (blog if api_only else self._html_search_regex(
                 r'(?s)<title>(?P<title>.*?)(?: \| Tumblr)?</title>', webpage, 'title', default=blog)),
             'description': description,
-            'timestamp': timestamp,
+            'timestamp': (
+                # Possible TODO: Retrieve timestamp whe API key is unset & post is a reblog of a video
+                traverse_obj(post_json,
+
+                             # Timestamp of earliest post in the reblog chain (if reblog)
+                             ('trail', 0, 'post', 'timestamp'),
+
+                             # Timestamp of the post itself
+                             'timestamp',
+
+                             expected_type=int)
+
+                # JSON-LD timestamp (only if video post is directly linked)
+                or self._search_json_ld(webpage, None, fatal=False).get('timestamp')),
             'uploader_id': uploader_id,
             'uploader_url': f'https://{uploader_id}.tumblr.com/' if uploader_id else None,
             **traverse_obj(post_json, {
