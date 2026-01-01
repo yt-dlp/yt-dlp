@@ -14,7 +14,7 @@ from ..utils.traversal import traverse_obj
 
 class ToggleIE(InfoExtractor):
     IE_NAME = 'toggle'
-    _VALID_URL = r'(?:https?://(?:(?:www\.)?mewatch|video\.toggle)\.sg/(?:en|zh/)?(?:[^/]+/)|toggle:)(?:(?:[^#?&]+)(?:/|-))?(?P<id>[0-9]+)'
+    _VALID_URL = r'(?:https?://(?:(?:www\.)?mewatch|video\.toggle)\.sg/(?:en|zh/)?(?!watch/)(?:[^/]+/)|toggle:)(?:(?:[^#?&]+)(?:/|-))?(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://www.mewatch.sg/clips/Cuit-Cuit-Clip-6-Warna-Ramadan-2024-450987',
         'info_dict': {
