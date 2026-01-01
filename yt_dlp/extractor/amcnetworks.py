@@ -1,32 +1,24 @@
-import re
-
-from .theplatform import ThePlatformIE
-from ..utils import (
-    int_or_none,
-    parse_age_limit,
-    try_get,
-    update_url_query,
-)
+from .brightcove import BrightcoveNewIE
+from .common import InfoExtractor
+from ..utils.traversal import traverse_obj
 
 
-class AMCNetworksIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
-    _VALID_URL = r'https?://(?:www\.)?(?P<site>amc|bbcamerica|ifc|(?:we|sundance)tv)\.com/(?P<id>(?:movies|shows(?:/[^/]+)+)/[^/?#&]+)'
+class AMCNetworksIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?(?:amc|bbcamerica|ifc|(?:we|sundance)tv)\.com/(?P<id>(?:movies|shows(?:/[^/?#]+)+)/[^/?#&]+)'
     _TESTS = [{
-        'url': 'https://www.bbcamerica.com/shows/the-graham-norton-show/videos/tina-feys-adorable-airline-themed-family-dinner--51631',
+        'url': 'https://www.amc.com/shows/dark-winds/videos/dark-winds-a-look-at-season-3--1072027',
         'info_dict': {
-            'id': '4Lq1dzOnZGt0',
+            'id': '6369261343112',
             'ext': 'mp4',
-            'title': "The Graham Norton Show - Season 28 - Tina Fey's Adorable Airline-Themed Family Dinner",
-            'description': "It turns out child stewardesses are very generous with the wine! All-new episodes of 'The Graham Norton Show' premiere Fridays at 11/10c on BBC America.",
-            'upload_date': '20201120',
-            'timestamp': 1605904350,
-            'uploader': 'AMCN',
+            'title': 'Dark Winds: A Look at Season 3',
+            'uploader_id': '6240731308001',
+            'duration': 176.427,
+            'thumbnail': r're:https://[^/]+\.boltdns\.net/.+/image\.jpg',
+            'tags': [],
+            'timestamp': 1740414792,
+            'upload_date': '20250224',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
-        'skip': '404 Not Found',
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'http://www.bbcamerica.com/shows/the-hunt/full-episodes/season-1/episode-01-the-hardest-challenge',
         'only_matching': True,
@@ -52,96 +44,18 @@ class AMCNetworksIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         'url': 'https://www.sundancetv.com/shows/riviera/full-episodes/season-1/episode-01-episode-1',
         'only_matching': True,
     }]
-    _REQUESTOR_ID_MAP = {
-        'amc': 'AMC',
-        'bbcamerica': 'BBCA',
-        'ifc': 'IFC',
-        'sundancetv': 'SUNDANCE',
-        'wetv': 'WETV',
-    }
 
     def _real_extract(self, url):
-        site, display_id = self._match_valid_url(url).groups()
-        requestor_id = self._REQUESTOR_ID_MAP[site]
-        page_data = self._download_json(
-            f'https://content-delivery-gw.svc.ds.amcn.com/api/v2/content/amcn/{requestor_id.lower()}/url/{display_id}',
-            display_id)['data']
-        properties = page_data.get('properties') or {}
-        query = {
-            'mbr': 'true',
-            'manifest': 'm3u',
-        }
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+        initial_data = self._search_json(
+            r'window\.initialData\s*=\s*JSON\.parse\(String\.raw`', webpage, 'initial data', display_id)
+        video_id = traverse_obj(initial_data, ('initialData', 'properties', 'videoId', {str}))
+        if not video_id:  # All locked videos are now DRM-protected
+            self.report_drm(display_id)
+        account_id = initial_data['config']['brightcove']['accountId']
+        player_id = initial_data['config']['brightcove']['playerId']
 
-        video_player_count = 0
-        try:
-            for v in page_data['children']:
-                if v.get('type') == 'video-player':
-                    release_pid = v['properties']['currentVideo']['meta']['releasePid']
-                    tp_path = 'M_UwQC/' + release_pid
-                    media_url = 'https://link.theplatform.com/s/' + tp_path
-                    video_player_count += 1
-        except KeyError:
-            pass
-        if video_player_count > 1:
-            self.report_warning(
-                f'The JSON data has {video_player_count} video players. Only one will be extracted')
-
-        # Fall back to videoPid if releasePid not found.
-        # TODO: Fall back to videoPid if releasePid manifest uses DRM.
-        if not video_player_count:
-            tp_path = 'M_UwQC/media/' + properties['videoPid']
-            media_url = 'https://link.theplatform.com/s/' + tp_path
-
-        theplatform_metadata = self._download_theplatform_metadata(tp_path, display_id)
-        info = self._parse_theplatform_metadata(theplatform_metadata)
-        video_id = theplatform_metadata['pid']
-        title = theplatform_metadata['title']
-        rating = try_get(
-            theplatform_metadata, lambda x: x['ratings'][0]['rating'])
-        video_category = properties.get('videoCategory')
-        if video_category and video_category.endswith('-Auth'):
-            resource = self._get_mvpd_resource(
-                requestor_id, title, video_id, rating)
-            query['auth'] = self._extract_mvpd_auth(
-                url, video_id, requestor_id, resource)
-        media_url = update_url_query(media_url, query)
-        formats, subtitles = self._extract_theplatform_smil(
-            media_url, video_id)
-
-        thumbnails = []
-        thumbnail_urls = [properties.get('imageDesktop')]
-        if 'thumbnail' in info:
-            thumbnail_urls.append(info.pop('thumbnail'))
-        for thumbnail_url in thumbnail_urls:
-            if not thumbnail_url:
-                continue
-            mobj = re.search(r'(\d+)x(\d+)', thumbnail_url)
-            thumbnails.append({
-                'url': thumbnail_url,
-                'width': int(mobj.group(1)) if mobj else None,
-                'height': int(mobj.group(2)) if mobj else None,
-            })
-
-        info.update({
-            'age_limit': parse_age_limit(rating),
-            'formats': formats,
-            'id': video_id,
-            'subtitles': subtitles,
-            'thumbnails': thumbnails,
-        })
-        ns_keys = theplatform_metadata.get('$xmlns', {}).keys()
-        if ns_keys:
-            ns = next(iter(ns_keys))
-            episode = theplatform_metadata.get(ns + '$episodeTitle') or None
-            episode_number = int_or_none(
-                theplatform_metadata.get(ns + '$episode'))
-            season_number = int_or_none(
-                theplatform_metadata.get(ns + '$season'))
-            series = theplatform_metadata.get(ns + '$show') or None
-            info.update({
-                'episode': episode,
-                'episode_number': episode_number,
-                'season_number': season_number,
-                'series': series,
-            })
-        return info
+        return self.url_result(
+            f'https://players.brightcove.net/{account_id}/{player_id}_default/index.html?videoId={video_id}',
+            BrightcoveNewIE, video_id)

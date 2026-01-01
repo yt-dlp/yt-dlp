@@ -20,7 +20,6 @@ from yt_dlp.networking._helper import (
     add_accept_encoding_header,
     get_redirect_method,
     make_socks_proxy_opts,
-    select_proxy,
     ssl_load_certs,
 )
 from yt_dlp.networking.exceptions import (
@@ -28,7 +27,7 @@ from yt_dlp.networking.exceptions import (
     IncompleteRead,
 )
 from yt_dlp.socks import ProxyType
-from yt_dlp.utils.networking import HTTPHeaderDict
+from yt_dlp.utils.networking import HTTPHeaderDict, select_proxy
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 

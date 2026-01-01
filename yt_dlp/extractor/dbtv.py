@@ -12,19 +12,33 @@ class DBTVIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Skulle teste ut fornøyelsespark, men kollegaen var bare opptatt av bikinikroppen',
             'description': 'md5:49cc8370e7d66e8a2ef15c3b4631fd3f',
-            'thumbnail': r're:https?://.*\.jpg',
+            'thumbnail': r're:https?://.+\.jpg',
             'upload_date': '20160916',
             'duration': 69,
             'uploader_id': 'UCk5pvsyZJoYJBd7_oFPTlRQ',
             'uploader': 'Dagbladet',
         },
-        'add_ie': ['Youtube'],
+        'skip': 'Invalid URL',
     }, {
         'url': 'https://www.dagbladet.no/video/embed/xlGmyIeN9Jo/?autoplay=false',
         'only_matching': True,
     }, {
         'url': 'https://www.dagbladet.no/video/truer-iran-bor-passe-dere/PalfB2Cw',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
+        'url': 'https://www.dagbladet.no/nyheter/rekordstort-russisk-angrep/83325693',
+        'info_dict': {
+            'id': '1HW7fYry',
+            'ext': 'mp4',
+            'title': 'Putin taler - så skjer dette',
+            'description': 'md5:3e8bacee33de861a9663d9a3fcc54e5e',
+            'display_id': 'putin-taler-sa-skjer-dette',
+            'thumbnail': r're:https?://cdn\.jwplayer\.com/v2/media/.+',
+            'timestamp': 1751043600,
+            'upload_date': '20250627',
+        },
     }]
 
     def _real_extract(self, url):

@@ -1,0 +1,83 @@
+name: Test and lint workflows
+on:
+  push:
+    branches: [master]
+    paths:
+      - .github/*.yml
+      - .github/workflows/*
+      - bundle/docker/linux/*.sh
+      - devscripts/setup_variables.py
+      - devscripts/setup_variables_tests.py
+      - devscripts/utils.py
+  pull_request:
+    branches: [master]
+    paths:
+      - .github/*.yml
+      - .github/workflows/*
+      - bundle/docker/linux/*.sh
+      - devscripts/setup_variables.py
+      - devscripts/setup_variables_tests.py
+      - devscripts/utils.py
+
+permissions: {}
+
+concurrency:
+  group: test-workflows-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  ACTIONLINT_VERSION: "1.7.9"
+  ACTIONLINT_SHA256SUM: 233b280d05e100837f4af1433c7b40a5dcb306e3aa68fb4f17f8a7f45a7df7b4
+  ACTIONLINT_REPO: https://github.com/rhysd/actionlint
+
+jobs:
+  check:
+    name: Check workflows
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
+        with:
+          python-version: "3.10"  # Keep this in sync with release.yml's prepare job
+      - name: Install requirements
+        env:
+          ACTIONLINT_TARBALL: ${{ format('actionlint_{0}_linux_amd64.tar.gz', env.ACTIONLINT_VERSION) }}
+        shell: bash
+        run: |
+          python -m devscripts.install_deps --omit-default --include-extra test
+          sudo apt -y install shellcheck
+          python -m pip install -U pyflakes
+          curl -LO "${ACTIONLINT_REPO}/releases/download/v${ACTIONLINT_VERSION}/${ACTIONLINT_TARBALL}"
+          printf '%s  %s' "${ACTIONLINT_SHA256SUM}" "${ACTIONLINT_TARBALL}" | sha256sum -c -
+          tar xvzf "${ACTIONLINT_TARBALL}" actionlint
+          chmod +x actionlint
+      - name: Run actionlint
+        run: |
+          ./actionlint -color
+      - name: Check Docker shell scripts
+        run: |
+          shellcheck bundle/docker/linux/*.sh
+      - name: Test GHA devscripts
+        run: |
+          pytest -Werror --tb=short --color=yes devscripts/setup_variables_tests.py
+
+  zizmor:
+    name: Run zizmor
+    permissions:
+      contents: read
+      actions: read  # Needed by zizmorcore/zizmor-action if repository is private
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
+        with:
+          persist-credentials: false
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@e639db99335bc9038abc0e066dfcd72e23d26fb4  # v0.3.0
+        with:
+          advanced-security: false
+          persona: pedantic
+          version: v1.19.0

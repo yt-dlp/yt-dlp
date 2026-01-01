@@ -35,6 +35,7 @@ class YoutubeYtBeIE(YoutubeBaseInfoExtractor):
             'duration': 59,
             'comment_count': int,
             'channel_follower_count': int,
+            'media_type': 'short',
         },
         'params': {
             'noplaylist': True,
