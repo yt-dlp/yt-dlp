@@ -1,20 +1,21 @@
 import base64
 import binascii
 import functools
-import re
 
 from .common import InfoExtractor
 from ..dependencies import Cryptodome
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
+    clean_html,
     extract_attributes,
-    get_element_by_id,
-    get_element_html_by_class,
-    get_element_text_and_html_by_tag,
-    get_elements_html_by_class,
-    traverse_obj,
     urljoin,
+)
+from ..utils.traversal import (
+    find_element,
+    find_elements,
+    require,
+    traverse_obj,
 )
 
 
@@ -24,7 +25,7 @@ class TarangPlusBaseIE(InfoExtractor):
 
 class TarangPlusVideoIE(TarangPlusBaseIE):
     IE_NAME = 'tarangplus:video'
-    _VALID_URL = r'https?://(?:www\.)?tarangplus\.in/(?:movies|[^#?/]+/[^#?/]+)/(?!episodes$)(?P<id>[^#?/]+)'
+    _VALID_URL = r'https?://(?:www\.)?tarangplus\.in/(?:movies|[^#?/]+/[^#?/]+)/(?!episodes)(?P<id>[^#?/]+)'
     _TESTS = [{
         'url': 'https://tarangplus.in/tarangaplus-originals/khitpit/khitpit-ep-10',
         'md5': '78ce056cee755687b8a48199909ecf53',
@@ -86,13 +87,17 @@ class TarangPlusVideoIE(TarangPlusBaseIE):
         webpage = self._download_webpage(url, display_id)
         hidden_inputs_data = self._hidden_inputs(webpage)
         json_ld_data = self._search_json_ld(webpage, display_id)
-        del json_ld_data['url']
-        iframe_div = get_element_html_by_class('item_details_page', webpage)
-        iframe_elem = get_element_text_and_html_by_tag('iframe', iframe_div)[1]
-        iframe_src = extract_attributes(iframe_elem)['src']
-        url_data = re.search(r'contenturl=(?P<data>[^|]+).*key=(?P<key>[^|]+)', iframe_src)
-        m3u8_url = self.decrypt(url_data.group('data'), url_data.group('key'))
+        json_ld_data.pop('url', None)
+
+        content = traverse_obj(webpage, (
+            {find_element(tag='iframe', attr='src', value=r'.+[?&]contenturl=.+', html=True, regex=True)},
+            {extract_attributes}, 'src', {parse_qs}, 'contenturl', -1, {require('content')}))
+        encrypted_data, *attrs = content.split('|')
+        metadata = {k: v for (k, _, v) in (attr.partition('=') for attr in attrs)}
+        m3u8_url = self.decrypt(encrypted_data, metadata['key'])
+
         return {
+            'id': metadata.get('content_id') or display_id,
             'display_id': display_id,
             **json_ld_data,
             **traverse_obj(hidden_inputs_data, {
@@ -106,7 +111,7 @@ class TarangPlusVideoIE(TarangPlusBaseIE):
 
 class TarangPlusPlaylistIE(TarangPlusBaseIE):
     IE_NAME = 'tarangplus:playlist'
-    _VALID_URL = r'https?://(?:www\.)?tarangplus\.in/[^#?/]+/(?P<id>[^#?/]+)/episodes$'
+    _VALID_URL = r'https?://(?:www\.)?tarangplus\.in/(?P<type>[^#?/]+)/(?P<id>[^#?/]+)/episodes/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://tarangplus.in/tarangaplus-originals/balijatra/episodes',
         'info_dict': {
@@ -132,24 +137,28 @@ class TarangPlusPlaylistIE(TarangPlusBaseIE):
     _PAGE_SIZE = 20
 
     def _entries(self, playlist_url, playlist_id, page):
-        data = self._download_json(playlist_url, f'{playlist_id}-{page + 1}',
-                                   'Downloading JSON', 'Unable to download JSON', query={'page_no': page})
-        for item in data['items']:
-            url = urljoin(self._BASE_URL, item.split('$')[3])
-            yield self.url_result(url, TarangPlusVideoIE)
+        data = self._download_json(
+            playlist_url, playlist_id, f'Downloading playlist JSON page {page + 1}',
+            query={'page_no': page})
+        for item in traverse_obj(data, ('items', ..., {str})):
+            yield self.url_result(
+                urljoin(self._BASE_URL, item.split('$')[3]), TarangPlusVideoIE)
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage('/'.join(url.split('/')[:-1]), display_id)
-        title = self._hidden_inputs(webpage).get('title')
+        url_type, display_id = self._match_valid_url(url).group('type', 'id')
+        series_url = f'{self._BASE_URL}/{url_type}/{display_id}'
+        webpage = self._download_webpage('series_url, display_id)
+
+        entries = OnDemandPagedList(
+            functools.partial(self._entries, f'{series_url}/episodes', display_id),
+            self._PAGE_SIZE)
         return self.playlist_result(
-            OnDemandPagedList(functools.partial(self._entries, url, display_id), self._PAGE_SIZE),
-            display_id, title)
+            entries, display_id, self._hidden_inputs(webpage).get('title'))
 
 
 class TarangPlusSecondaryPlaylistIE(TarangPlusBaseIE):
     IE_NAME = 'tarangplus:secondaryplaylist'
-    _VALID_URL = r'https?://(?:www\.)?tarangplus\.in/(?P<id>[^#?/]+)/all$'
+    _VALID_URL = r'https?://(?:www\.)?tarangplus\.in/(?P<id>[^#?/]+)/all/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://tarangplus.in/chhota-jaga/all',
         'info_dict': {
@@ -188,15 +197,17 @@ class TarangPlusSecondaryPlaylistIE(TarangPlusBaseIE):
     }]
 
     def _entries(self, webpage):
-        items = get_elements_html_by_class('item', webpage)
-        for item in items:
-            a_elem = get_element_text_and_html_by_tag('a', item)[1]
-            url = urljoin(self._BASE_URL, extract_attributes(a_elem)['href'])
-            yield self.url_result(url, TarangPlusVideoIE)
+        for url_path in traverse_obj(webpage, (
+            {find_elements(cls='item')}, ...,
+            {find_elements(tag='a', attr='href', value='/.+', html=True, regex=True)},
+            ..., {extract_attributes}, 'href',
+        )):
+            yield self.url_result(urljoin(self._BASE_URL, url_path), TarangPlusVideoIE)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        title = get_element_by_id('al_title', webpage)
-        entries = self._entries(webpage)
-        return self.playlist_result(entries, display_id, title)
+
+        return self.playlist_result(
+            self._entries(webpage), display_id,
+            traverse_obj(webpage, ({find_element(id='al_title')}, {clean_html})))
