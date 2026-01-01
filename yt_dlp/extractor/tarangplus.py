@@ -9,7 +9,6 @@ from ..utils import (
     OnDemandPagedList,
     clean_html,
     extract_attributes,
-    parse_qs,
     urljoin,
 )
 from ..utils.traversal import (
@@ -90,9 +89,11 @@ class TarangPlusVideoIE(TarangPlusBaseIE):
         json_ld_data = self._search_json_ld(webpage, display_id)
         json_ld_data.pop('url', None)
 
-        content = traverse_obj(webpage, (
+        iframe_url = traverse_obj(webpage, (
             {find_element(tag='iframe', attr='src', value=r'.+[?&]contenturl=.+', html=True, regex=True)},
-            {extract_attributes}, 'src', {parse_qs}, 'contenturl', -1, {require('content')}))
+            {extract_attributes}, 'src', {require('iframe URL')}))
+        # Can't use parse_qs here since it would decode the encrypted base64 `+` chars to spaces
+        content = self._search_regex(r'[?&]contenturl=(.+)', iframe_url, 'content')
         encrypted_data, *attrs = content.split('|')
         metadata = {k: v for (k, _, v) in (attr.partition('=') for attr in attrs)}
         m3u8_url = self.decrypt(encrypted_data, metadata['key'])
