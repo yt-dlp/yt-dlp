@@ -474,7 +474,7 @@ class TumblrIE(InfoExtractor):
             # recent in the reblog chain
             # None if this is a dashboard-only (i.e. login required) post OR the video in question
             # is earlier in the reblog chain.  A little unreliable, but works as a fallback
-            or self._search_json_ld(webpage, None, fatal=False, expected_type=int).get('timestamp'))
+            or self._search_json_ld(webpage, None, fatal=False).get('timestamp'))
 
         info_dict = {
             'id': video_id,
