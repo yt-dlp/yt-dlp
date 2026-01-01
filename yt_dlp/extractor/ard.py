@@ -605,6 +605,66 @@ class ARDMediathekCollectionIE(InfoExtractor):
             title=page_data.get('title'), description=page_data.get('synopsis'))
 
 
+class ARDMediathekTvProgrammIE(InfoExtractor):
+    _VALID_URL = r'''(?x)https?://
+        (?:www\.)?ardmediathek\.de/
+        (?:tv-programm)/
+        (?P<id>[a-zA-Z0-9]+)'''
+    _GEO_COUNTRIES = ['DE']
+
+    _TESTS = [{
+        'url': 'https://www.ardmediathek.de/tv-programm/690cb819dde34cb0047c5181',
+        'info_dict': {
+            'id': '15490631',
+            'title': 'Die Geschichte von der Gänseprinzessin und ihrem treuen Pferd Falada',
+            'duration': 4762,
+            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:a002861f08f56354?w=960&ch=f35dc792b27458f1',
+            'timestamp': 1763915400,
+            'ext': 'mp4',
+            'display_id': 'Y3JpZDovL21kci5kZS9zZW5kdW5nLzI4MjA0MC81NDAxMTEtNDAzNDQ0',
+            'description': r're:^Prinzessin Aurinia begibt sich mit ihrer Ziehschwester Liesa',
+            'upload_date': '20251123',
+            'episode': 'Die Geschichte von der Gänseprinzessin und ihrem treuen Pferd Falada',
+            'series': 'Märchen-Klassiker',
+            'age_limit': 6,
+            'channel': 'MDR',
+            '_old_archive_ids': ['ardbetamediathek Y3JpZDovL21kci5kZS9zZW5kdW5nLzI4MjA0MC81NDAxMTEtNDAzNDQ0'],
+        },
+    }, {
+        'url': 'https://www.ardmediathek.de/tv-programm/690cb8180a48c97072de272b',
+        'info_dict': {
+            'id': '15545131',
+            'title': 'MDR THÜRINGENJOURNAL vom 29. November',
+            'duration': 1739,
+            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:1b7482059fee86f7?w=960&ch=06b116ca579a68e7',
+            'timestamp': 1764439200,
+            'ext': 'mp4',
+            'display_id': 'Y3JpZDovL21kci5kZS9zZW5kdW5nLzI4MjMwMC81NDAwNjAtNTE5Nzk3',
+            'description': r're:.+Neues Hospiz in Mühlhausen feierlich eröffnet',
+            'upload_date': '20251129',
+            'episode': 'MDR THÜRINGENJOURNAL vom 29. November',
+            'series': 'MDR THÜRINGEN JOURNAL',
+            'channel': 'MDR',
+            '_old_archive_ids': ['ardbetamediathek Y3JpZDovL21kci5kZS9zZW5kdW5nLzI4MjMwMC81NDAwNjAtNTE5Nzk3'],
+        },
+    }]
+
+    def _real_extract(self, url):
+        program_id = self._match_id(url)
+        page_data = self._download_json(
+            f'https://programm-api.ard.de/program/api/detail?teaserId={program_id}', program_id)
+
+        return self.url_result(
+            ie=ARDBetaMediathekIE,
+            **traverse_obj(page_data, {
+                'url': ('teaser', 'video', 'webUrl', {str}),
+                'id': ('teaser', 'id', {str}),
+                'title': ('teaser', 'title', {str}),
+                'duration': ('teaser', 'duration', {int_or_none}),
+                'timestamp': ('broadcastedOn', {parse_iso8601}),
+            }))
+
+
 class ARDAudiothekBaseIE(InfoExtractor):
     def _graphql_query(self, urn, query):
         return self._download_json(
