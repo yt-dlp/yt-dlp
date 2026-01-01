@@ -270,7 +270,7 @@ def expect_info_dict(self, got_dict, expected_dict):
         'track', 'track_number', 'track_id', 'album', 'album_type', 'disc_number',
         'series', 'series_id', 'season', 'season_number', 'season_id', 'episode', 'episode_number', 'episode_id',
         'timestamp', 'upload_date', 'release_timestamp', 'release_date', 'release_year', 'modified_timestamp', 'modified_date',
-        'playable_in_embed', 'availability', 'live_status', 'location', 'license', '_old_archive_ids',
+        'playable_in_embed', 'availability', 'live_status', 'location', 'license', '_old_archive_ids','save_count'
     )
 
     expect_dict(self, got_dict, expected_dict)

@@ -454,6 +454,7 @@ class TikTokBaseIE(InfoExtractor):
                 'like_count': 'digg_count',
                 'repost_count': 'share_count',
                 'comment_count': 'comment_count',
+                'save_count': 'collect_count'
             }, expected_type=int_or_none),
             **author_info,
             'channel_url': format_field(author_info, 'channel_id', self._UPLOADER_URL_FORMAT, default=None),
@@ -647,6 +648,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
             'artist': 'Ysrbeats',
             'album': 'Lehanga',
             'track': 'Lehanga',
@@ -676,6 +678,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
             'artists': ['Evan Todd', 'Jessica Keenan Wynn', 'Alice Lee', 'Barrett Wilbert Weed', 'Jon Eidson'],
             'track': 'Big Fun',
         },
@@ -703,6 +706,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
         },
     }, {
         # Sponsored video, only available with feed workaround
@@ -726,6 +730,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
         },
         'skip': 'This video is unavailable',
     }, {
@@ -752,6 +757,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
         },
     }, {
         # hydration JSON is sent in a <script> element
@@ -774,6 +780,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
         },
         'skip': 'This video is unavailable',
     }, {
@@ -799,6 +806,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
             'thumbnail': r're:^https://.+\.(?:webp|jpe?g)',
         },
     }, {
@@ -825,6 +833,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
             'thumbnail': r're:^https://.+',
             'thumbnails': 'count:3',
         },
@@ -852,6 +861,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
             'thumbnail': r're:^https://.+\.webp',
         },
         'skip': 'Unavailable via feed API, only audio available via web',
@@ -880,6 +890,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'comment_count': int,
             'repost_count': int,
+            'save_count': int,
             'thumbnail': r're:^https://.+\.(?:webp|jpe?g)',
         },
     }, {
@@ -1289,6 +1300,7 @@ class DouyinIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
             'thumbnail': r're:https?://.+\.jpe?g',
         },
     }, {
@@ -1313,6 +1325,7 @@ class DouyinIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
             'thumbnail': r're:https?://.+\.jpe?g',
         },
     }, {
@@ -1337,6 +1350,7 @@ class DouyinIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
             'thumbnail': r're:https?://.+\.jpe?g',
         },
     }, {
@@ -1354,6 +1368,7 @@ class DouyinIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
         },
         'skip': 'No longer available',
     }, {
@@ -1378,6 +1393,7 @@ class DouyinIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
             'thumbnail': r're:https?://.+\.jpe?g',
         },
     }]
@@ -1438,6 +1454,7 @@ class TikTokVMIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'comment_count': int,
+            'save_count': int,
             'thumbnail': r're:https://.+\.webp.*',
             'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAdZ_NcPPgMneaGrW0hN8O_J_bwLshwNNERRF5DxOw2HKIzk0kdlLrR8RkVl1ksrMO',
             'duration': 29,
