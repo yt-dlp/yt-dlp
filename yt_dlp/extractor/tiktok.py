@@ -607,7 +607,7 @@ class TikTokBaseIE(InfoExtractor):
                 'like_count': 'diggCount',
                 'repost_count': 'shareCount',
                 'comment_count': 'commentCount',
-                'bookmark_count': 'collectCount',
+                'save_count': 'collectCount',
             }), expected_type=int_or_none),
             'thumbnails': [
                 {
