@@ -20,6 +20,8 @@ class TumblrIE(InfoExtractor):
             'id': '54196191430',
             'ext': 'mp4',
             'title': 'md5:dfac39636969fe6bf1caa2d50405f069',
+            'timestamp': 1372531260,
+            'upload_date': '20130629',
             'description': 'md5:390ab77358960235b6937ab3b8528956',
             'uploader_id': 'tatianamaslanydaily',
             'uploader_url': 'https://tatianamaslanydaily.tumblr.com/',
@@ -39,6 +41,8 @@ class TumblrIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Mona\xa0“talking” in\xa0“english”',
             'description': 'md5:082a3a621530cb786ad2b7592a6d9e2c',
+            'timestamp': 1597865276,
+            'upload_date': '20200819',
             'uploader_id': 'maskofthedragon',
             'uploader_url': 'https://maskofthedragon.tumblr.com/',
             'thumbnail': r're:^https?://.*\.jpg',
@@ -53,12 +57,15 @@ class TumblrIE(InfoExtractor):
         },
     }, {
         'note': 'non-iframe video (with related posts)',
+        # Note: The post referenced in this test case has since been deleted
         'url': 'https://shieldfoss.tumblr.com/post/675519763813908480',
         'md5': '12bdb75661ef443bffe5a4dac1dbf118',
         'info_dict': {
             'id': '675519763813908480',
             'ext': 'mp4',
             'title': 'Shieldfoss',
+            'timestamp': 0000000000,
+            'upload_date': '19700101',
             'uploader_id': 'nerviovago',
             'uploader_url': 'https://nerviovago.tumblr.com/',
             'thumbnail': r're:^https?://.*\.jpg',
@@ -76,6 +83,8 @@ class TumblrIE(InfoExtractor):
             'id': '159704441298',
             'ext': 'mp4',
             'title': 'md5:ba79365861101f4911452728d2950561',
+            'timestamp': 1492489550,
+            'upload_date': '20170418',
             'description': 'md5:773738196cea76b6996ec71e285bdabc',
             'uploader_id': 'jujanon',
             'uploader_url': 'https://jujanon.tumblr.com/',
@@ -93,6 +102,8 @@ class TumblrIE(InfoExtractor):
             'id': '180294460076',
             'ext': 'mp4',
             'title': 'duality of bird',
+            'timestamp': 1542651819,
+            'upload_date': '20181119',
             'description': 'duality of bird',
             'uploader_id': 'todaysbird',
             'uploader_url': 'https://todaysbird.tumblr.com/',
@@ -238,6 +249,8 @@ class TumblrIE(InfoExtractor):
         'info_dict': {
             'id': '730460905855467520',
             'uploader_id': 'felixcosm',
+            'upload_date': '20231006',
+            'timestamp': 1696621805,
             'repost_count': int,
             'tags': 'count:15',
             'description': 'md5:2eb3482a3c6987280cbefb6839068f32',
@@ -327,6 +340,8 @@ class TumblrIE(InfoExtractor):
         'url': 'https://www.tumblr.com/anyaboz/765332564457209856/my-music-video-for-selkie-by-nobodys-wolf-child',
         'info_dict': {
             'id': '765332564457209856',
+            'timestamp': 1729878010,
+            'upload_date': '20241025',
             'uploader_id': 'anyaboz',
             'repost_count': int,
             'age_limit': 0,
@@ -437,11 +452,39 @@ class TumblrIE(InfoExtractor):
             description = self._og_search_description(webpage, default=None)
         uploader_id = traverse_obj(post_json, 'reblogged_root_name', 'blog_name')
 
+        # It's possible that timestamp is ultimately None if:
+        # - An API key is not set
+        # - The post is does not require login (otherwise the extraction would fail altogether)
+        # - The desired video is earlier in the reblog chain
+        #
+        # As possible future work, another HTTP request could be used to retrieve more metadata
+        # about the earlier reblog, or maybe that information is available elsewhere on the page
+        # and I just missed it
+        timestamp = (
+            traverse_obj(post_json,
+
+                         # Timestamp of earliest post in the reblog chain (not counting the post itself)
+                         # Absent if not using tumblr API or if this isn't a reblog
+                         ('trail', 0, 'post', 'timestamp'),
+
+                         # Timestamp of the post itself
+                         # None if not using the tumblr API
+                         'timestamp',
+
+                         expected_type=int)
+
+            # Timestamp as claimed by JSON-LD, only seems to be present if the the video is the most
+            # recent in the reblog chain
+            # None if this is a dashboard-only (i.e. login required) post OR the video in question
+            # is earlier in the reblog chain.  A little unreliable, but works as a fallback
+            or self._search_json_ld(webpage, None, fatal=False, expected_type=int).get('timestamp'))
+
         info_dict = {
             'id': video_id,
             'title': post_json.get('summary') or (blog if api_only else self._html_search_regex(
                 r'(?s)<title>(?P<title>.*?)(?: \| Tumblr)?</title>', webpage, 'title', default=blog)),
             'description': description,
+            'timestamp': timestamp,
             'uploader_id': uploader_id,
             'uploader_url': f'https://{uploader_id}.tumblr.com/' if uploader_id else None,
             **traverse_obj(post_json, {
