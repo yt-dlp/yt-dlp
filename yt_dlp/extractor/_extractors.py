@@ -2008,8 +2008,8 @@ from .taptap import (
     TapTapPostIntlIE,
 )
 from .tarangplus import (
+    TarangPlusEpisodesIE,
     TarangPlusPlaylistIE,
-    TarangPlusSecondaryPlaylistIE,
     TarangPlusVideoIE,
 )
 from .tass import TassIE

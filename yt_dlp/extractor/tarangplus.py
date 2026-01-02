@@ -120,8 +120,8 @@ class TarangPlusVideoIE(TarangPlusBaseIE):
         }
 
 
-class TarangPlusPlaylistIE(TarangPlusBaseIE):
-    IE_NAME = 'tarangplus:playlist'
+class TarangPlusEpisodesIE(TarangPlusBaseIE):
+    IE_NAME = 'tarangplus:episode'
     _VALID_URL = r'https?://(?:www\.)?tarangplus\.in/(?P<type>[^#?/]+)/(?P<id>[^#?/]+)/episodes/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://tarangplus.in/tarangaplus-originals/balijatra/episodes',
@@ -167,8 +167,8 @@ class TarangPlusPlaylistIE(TarangPlusBaseIE):
             entries, display_id, self._hidden_inputs(webpage).get('title'))
 
 
-class TarangPlusSecondaryPlaylistIE(TarangPlusBaseIE):
-    IE_NAME = 'tarangplus:secondaryplaylist'
+class TarangPlusPlaylistIE(TarangPlusBaseIE):
+    IE_NAME = 'tarangplus:playlist'
     _VALID_URL = r'https?://(?:www\.)?tarangplus\.in/(?P<id>[^#?/]+)/all/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://tarangplus.in/chhota-jaga/all',
