@@ -23,9 +23,9 @@ jobs:
 
       - name: Retrieve HEAD commit hash
         id: head
+        shell: bash
         run: |
-          git rev-parse HEAD
-          echo "head=$(git rev-parse HEAD)" >> "${GITHUB_OUTPUT}"
+          echo "head=$(git rev-parse HEAD)" | tee -a "${GITHUB_OUTPUT}"
 
       - name: Cache nightly commit hash
         uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb  # v5.0.1
@@ -67,7 +67,8 @@ jobs:
       - name: Record new nightly commit hash
         env:
           HEAD: ${{ steps.head.outputs.head }}
-        run: printf "%s" "${HEAD}" > .nightly_commit_hash
+        shell: bash
+        run: echo "${HEAD}" | tee .nightly_commit_hash
 
   release:
     name: Publish Github release
