@@ -176,7 +176,7 @@ class TarangPlusSecondaryPlaylistIE(TarangPlusBaseIE):
             'id': 'chhota-jaga',
             'title': 'Chhota Jaga',
         },
-        'playlist_mincount': 34,
+        'playlist_mincount': 33,
     }, {
         'url': 'https://tarangplus.in/kids-yali-show/all',
         'info_dict': {
