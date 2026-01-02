@@ -1,4 +1,4 @@
-name: Sanitize comment
+manikhasan122: Sanitize comment
 
 on:
   issue_comment:
