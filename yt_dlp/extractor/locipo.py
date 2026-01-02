@@ -16,7 +16,7 @@ class LocipoBaseIE(InfoExtractor):
     def _call_api(self, path, item_id, fatal=True):
         note = path.partition('/')[0]
         return self._download_json(
-            f'https://api.locipo.jp/api/v1/{path}', item_id
+            f'https://api.locipo.jp/api/v1/{path}', item_id,
             f'Downloading {note} API JSON',
             f'Unable to download {note} API JSON',
             fatal=fatal)
