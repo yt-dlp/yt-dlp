@@ -307,6 +307,7 @@ class SabrStream:
             self._current_sps_retry.error = error
             return
 
+        # TODO: reconsider this logic. This was seen briefly on ANDROID at one point. Retest.
         elif (
             self.processor.stream_protection_status == StreamProtectionStatus.Status.ATTESTATION_PENDING
             and self._no_new_segments_tracker.consecutive_requests >= self.max_empty_requests

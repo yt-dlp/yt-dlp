@@ -5,9 +5,23 @@ import io
 import protobug
 from yt_dlp import int_or_none
 from yt_dlp.extractor.youtube._proto.innertube import NextRequestPolicy
-from yt_dlp.extractor.youtube._proto.videostreaming import VideoPlaybackAbrRequest, SabrError, FormatId, FormatInitializationMetadata, MediaHeader, SabrRedirect, SabrContextUpdate, SabrContextSendingPolicy
+from yt_dlp.extractor.youtube._proto.videostreaming import (
+    VideoPlaybackAbrRequest,
+    SabrError,
+    FormatId,
+    FormatInitializationMetadata,
+    MediaHeader,
+    SabrRedirect,
+    SabrContextUpdate,
+    SabrContextSendingPolicy,
+    StreamProtectionStatus,
+)
 from yt_dlp.extractor.youtube._streaming.sabr.models import AudioSelector, VideoSelector
-from yt_dlp.extractor.youtube._streaming.sabr.part import MediaSegmentInitSabrPart, MediaSegmentDataSabrPart, MediaSegmentEndSabrPart
+from yt_dlp.extractor.youtube._streaming.sabr.part import (
+    MediaSegmentInitSabrPart,
+    MediaSegmentDataSabrPart,
+    MediaSegmentEndSabrPart,
+)
 from yt_dlp.extractor.youtube._streaming.ump import UMPEncoder, UMPPart, UMPPartId, write_varint
 from yt_dlp.networking import Request, Response
 from yt_dlp.networking.exceptions import TransportError, HTTPError, RequestError
@@ -483,6 +497,36 @@ class CustomAVProfile(BasicAudioVideoProfile):
         custom_parts_function = self.options.get('custom_parts_function')
         if custom_parts_function:
             parts = custom_parts_function(parts, vpabr, url, request_number)
+        return parts
+
+
+class PoTokenAVProfile(BasicAudioVideoProfile):
+    """
+    Require a PO token to be present in the vpabr.streamer_context.po_token.
+    If not present, return a StreamProtectionStatus part indicating attestation is required.
+    If the po_token is 'pending', returns a StreamProtectionStatus part indicating attestation is pending.
+    Otherwise, indicate OK.
+    """
+
+    def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str, request_number: int) -> list[UMPPart | Exception]:
+        parts = []
+        if vpabr.streamer_context.po_token is None:
+            status = StreamProtectionStatus.Status.ATTESTATION_REQUIRED
+        elif vpabr.streamer_context.po_token == b'pending':
+            status = StreamProtectionStatus.Status.ATTESTATION_PENDING
+        else:
+            status = StreamProtectionStatus.Status.OK
+
+        # xxx: max_retries should be ignored by SabrStream
+        stream_protection_status_data = protobug.dumps(StreamProtectionStatus(status=status, max_retries=1))
+        parts.append(UMPPart(
+            part_id=UMPPartId.STREAM_PROTECTION_STATUS,
+            size=len(stream_protection_status_data),
+            data=io.BytesIO(stream_protection_status_data),
+        ))
+        if status == StreamProtectionStatus.Status.ATTESTATION_REQUIRED:
+            return parts
+        parts.extend(super().get_parts(vpabr, url, request_number))
         return parts
 
 

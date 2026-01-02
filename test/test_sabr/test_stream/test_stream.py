@@ -1,4 +1,5 @@
 from __future__ import annotations
+import base64
 import io
 import time
 from unittest.mock import MagicMock
@@ -17,16 +18,16 @@ from test.test_sabr.test_stream.helpers import (
     assert_media_sequence_in_order,
     create_inject_read_error,
     AdWaitAVProfile,
-    SabrContextSendingPolicyAVProfile,
+    SabrContextSendingPolicyAVProfile, PoTokenAVProfile,
 )
-from yt_dlp.extractor.youtube._streaming.sabr.exceptions import SabrStreamError
+from yt_dlp.extractor.youtube._streaming.sabr.exceptions import SabrStreamError, PoTokenError
 from yt_dlp.extractor.youtube._streaming.ump import UMPPartId, UMPPart
 from yt_dlp.networking.exceptions import TransportError, HTTPError, RequestError
 
 from yt_dlp.extractor.youtube._streaming.sabr.models import AudioSelector, VideoSelector
 from yt_dlp.extractor.youtube._streaming.sabr.part import (
     FormatInitializedSabrPart,
-    RefreshPlayerResponseSabrPart,
+    RefreshPlayerResponseSabrPart, PoTokenStatusSabrPart,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.stream import SabrStream
 from yt_dlp.extractor.youtube._proto.videostreaming import (
@@ -146,6 +147,20 @@ class TestStream:
                 start_time_ms=0, duration_ms=9001, start_segment_index=1, end_segment_index=9,
                 time_range=TimeRange(start_ticks=0, duration_ticks=9001, timescale=1000))]
         assert rh.request_history[5].vpabr.client_abr_state.player_time_ms == 9001
+
+    def test_sabr_sps_ok(self, logger, client_info):
+        # Should not fail on SPS OK status (when po token is provided)
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=PoTokenAVProfile({'sps_status': PoTokenStatusSabrPart.PoTokenStatus.OK}),
+            client_info=client_info,
+            logger=logger,
+        )
+        sabr_stream.processor.po_token = base64.b64encode(b'valid-po-token')
+        audio_selector, video_selector = selectors
+        parts = list(sabr_stream.iter_parts())
+        assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
+        assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+        assert len(rh.request_history) == 6
 
     def test_sabr_request_number(self, logger, client_info):
         # Should set the "rn" query parameter correctly on each request
@@ -979,6 +994,263 @@ class TestStream:
 
             assert not any('Falling back to host' in call.args[0] for call in logger.warning.call_args_list)
             assert logger.debug.assert_any_call('No more fallback hosts available')
+
+    class TestStreamProtectionStatusRetries:
+
+        DEFAULT_RETRIES = 5
+
+        def test_sps_retry_on_required(self, logger, client_info):
+            # Should retry when StreamProtectionStatus is REQUIRED
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                sabr_response_processor=PoTokenAVProfile(),
+                client_info=client_info,
+                logger=logger,
+            )
+            audio_selector, video_selector = selectors
+
+            parts = []
+            count = 0
+            for part in sabr_stream.iter_parts():
+                if isinstance(part, PoTokenStatusSabrPart) and part.status != PoTokenStatusSabrPart.PoTokenStatus.OK:
+                    count += 1
+                    # Supply a simulated po_token on the 4th occurance - to allow one more retry than default
+                    if count == self.DEFAULT_RETRIES:
+                        sabr_stream.processor.po_token = base64.b64encode(b'simulated_po_token_data')
+                parts.append(part)
+
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+
+            # Should have 2 PoTokenStatusSabrPart parts indicating Missing, then the following are all OK
+            po_token_status_parts = [part for part in parts if isinstance(part, PoTokenStatusSabrPart)]
+            assert len(po_token_status_parts) >= self.DEFAULT_RETRIES
+            for part in po_token_status_parts[:self.DEFAULT_RETRIES]:
+                assert part.status == PoTokenStatusSabrPart.PoTokenStatus.MISSING
+            for part in po_token_status_parts[self.DEFAULT_RETRIES:]:
+                assert part.status == PoTokenStatusSabrPart.PoTokenStatus.OK
+
+            # Second request should be a retry of the first, so playback time should be the same
+            retry_request_vpabr = rh.request_history[1].vpabr
+            assert retry_request_vpabr.client_abr_state.player_time_ms == rh.request_history[0].vpabr.client_abr_state.player_time_ms
+
+            # TODO: last retry is warning the po token is invalid, which is not correct
+            for i in range(1, self.DEFAULT_RETRIES):
+                logger.warning.assert_any_call(f'[sabr] Got error: This stream requires a GVS PO Token to continue. Retrying ({i}/5)...')
+
+        def test_no_retry_on_pending(self, logger, client_info):
+            # Should NOT retry when StreamProtectionStatus is PENDING. Should just continue processing.
+            sabr_stream, _, selectors = setup_sabr_stream_av(
+                sabr_response_processor=PoTokenAVProfile(),
+                client_info=client_info,
+                logger=logger,
+            )
+
+            sabr_stream.processor.po_token = base64.b64encode(b'pending')
+            parts = list(sabr_stream.iter_parts())
+            audio_selector, video_selector = selectors
+
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+
+            po_token_status_parts = [part for part in parts if isinstance(part, PoTokenStatusSabrPart)]
+            assert len(po_token_status_parts) >= 1
+            for part in po_token_status_parts:
+                assert part.status == PoTokenStatusSabrPart.PoTokenStatus.PENDING
+
+        def test_pending_then_required_retry(self, logger, client_info):
+            # Test that we can handle going from pending to required to ok with retries
+            pending_requests = 2
+
+            sabr_stream, _, selectors = setup_sabr_stream_av(
+                sabr_response_processor=PoTokenAVProfile(),
+                client_info=client_info,
+                logger=logger,
+            )
+            audio_selector, video_selector = selectors
+            # Start with pending
+            sabr_stream.processor.po_token = base64.b64encode(b'pending')
+
+            parts = []
+            count = 0
+            for part in sabr_stream.iter_parts():
+                if isinstance(part, PoTokenStatusSabrPart) and part.status != PoTokenStatusSabrPart.PoTokenStatus.OK:
+                    count += 1
+                    if count == pending_requests:
+                        sabr_stream.processor.po_token = None  # Simulate no token, will get REQUIRED
+                    if count == (pending_requests + self.DEFAULT_RETRIES):
+                        sabr_stream.processor.po_token = base64.b64encode(b'simulated_po_token_data')
+                parts.append(part)
+
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+
+            # Should have 2 PoTokenStatusSabrPart parts indicating Missing, then the following are all OK
+            po_token_status_parts = [part for part in parts if isinstance(part, PoTokenStatusSabrPart)]
+            for part in po_token_status_parts[:pending_requests]:
+                assert part.status == PoTokenStatusSabrPart.PoTokenStatus.PENDING
+            for part in po_token_status_parts[pending_requests:self.DEFAULT_RETRIES + pending_requests]:
+                assert part.status == PoTokenStatusSabrPart.PoTokenStatus.MISSING
+            for part in po_token_status_parts[pending_requests + self.DEFAULT_RETRIES:]:
+                assert part.status == PoTokenStatusSabrPart.PoTokenStatus.OK
+
+            # TODO: last retry is warning the po token is invalid, which is not correct
+            for i in range(1, self.DEFAULT_RETRIES + 1):
+                logger.warning.assert_any_call(f'[sabr] Got error: This stream requires a GVS PO Token to continue. Retrying ({i}/5)...')
+
+        def test_required_exceed_max_retries(self, logger, client_info):
+            # Should raise PoTokenError after exceeding max retries when StreamProtectionStatus is REQUIRED
+            sabr_stream, _, _ = setup_sabr_stream_av(
+                sabr_response_processor=PoTokenAVProfile(),
+                client_info=client_info,
+                logger=logger,
+            )
+
+            sabr_stream.processor.po_token = None  # No token supplied
+
+            with pytest.raises(PoTokenError, match='This stream requires a GVS PO Token to continue'):
+                list(sabr_stream.iter_parts())
+
+            # Should log each retry attempt
+            for i in range(1, self.DEFAULT_RETRIES + 1):
+                logger.warning.assert_any_call(f'[sabr] Got error: This stream requires a GVS PO Token to continue. Retrying ({i}/5)...')
+
+        def test_pot_retries_options(self, logger, client_info):
+            # Should respect the pot_retries option for max retries
+            sabr_stream, _, _ = setup_sabr_stream_av(
+                sabr_response_processor=PoTokenAVProfile(),
+                client_info=client_info,
+                logger=logger,
+                pot_retries=3,
+            )
+
+            sabr_stream.processor.po_token = None  # No token supplied
+
+            with pytest.raises(PoTokenError, match='This stream requires a GVS PO Token to continue'):
+                list(sabr_stream.iter_parts())
+
+            # Should log each retry attempt
+            for i in range(1, 4):
+                logger.warning.assert_any_call(f'[sabr] Got error: This stream requires a GVS PO Token to continue. Retrying ({i}/3)...')
+
+        def test_pot_retry_sleep_func(self, logger, client_info):
+            # Should call the retry_sleep_func between retries to get the sleep duration
+            # For this test, we want to return 0.001 as the sleep
+            sleep_mock = MagicMock()
+            sleep_mock.side_effect = lambda n: 0.001
+
+            sabr_stream, _, _ = setup_sabr_stream_av(
+                sabr_response_processor=PoTokenAVProfile(),
+                client_info=client_info,
+                logger=logger,
+                pot_retries=3,
+                retry_sleep_func=sleep_mock,
+            )
+
+            sabr_stream.processor.po_token = None  # No token supplied
+
+            with pytest.raises(PoTokenError, match='This stream requires a GVS PO Token to continue'):
+                list(sabr_stream.iter_parts())
+
+            # sleep_mock should be called 3 times (for the three retries)
+            assert sleep_mock.call_count == 3
+            sleep_mock.assert_any_call(n=0)
+            sleep_mock.assert_any_call(n=1)
+            sleep_mock.assert_any_call(n=2)
+
+            # Check logs for retry attempts
+            for i in range(1, 4):
+                logger.warning.assert_any_call(f'[sabr] Got error: This stream requires a GVS PO Token to continue. Retrying ({i}/3)...')
+            # Should log the sleep
+            logger.info.assert_any_call('Sleeping 0.00 seconds ...')
+
+        def test_pot_http_retries(self, logger, client_info):
+            # Test retry logic when both http retry and pot retry are triggered
+            # This can occur when a response contains SPS required but ends on a transport error.
+            # Both retries are triggered but http retries take precedence in final error.
+            class CustomPoTokenAVProfile(CustomAVProfile, PoTokenAVProfile):
+                pass
+
+            # Should retry if a TransportError occurs after we have read all segments in the response and video
+            # We can simulate this by adding a informational part at the end that fails to read
+            def inject_read_error(parts, vpabr, url, request_number):
+
+                parts.append(UMPPart(
+                    part_id=UMPPartId.SNACKBAR_MESSAGE,
+                    size=0,
+                    data=io.BytesIO(b''),
+                ))
+                return create_inject_read_error([0, 1, 2, 3], part_id=UMPPartId.SNACKBAR_MESSAGE, occurance=1)(parts, vpabr, url, request_number)
+
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                sabr_response_processor=CustomPoTokenAVProfile({'custom_parts_function': inject_read_error}),
+                client_info=client_info,
+                logger=logger,
+                http_retries=2,
+                pot_retries=2,
+            )
+
+            # TransportError should win
+            with pytest.raises(TransportError, match='simulated read error'):
+                list(sabr_stream.iter_parts())
+
+            # There should be 3 http error requests recorded
+            http_error_requests = [d for d in rh.request_history if isinstance(d.error, TransportError)]
+            assert len(http_error_requests) == 3
+
+            for request in http_error_requests:
+                assert isinstance(request.error, TransportError)
+                assert request.error.msg == 'simulated read error'
+
+            # Both retries should be logged with same count
+            for i in range(1, 3):
+                logger.warning.assert_any_call(f'[sabr] Got error: This stream requires a GVS PO Token to continue. Retrying ({i}/2)...')
+                logger.warning.assert_any_call(f'[sabr] Got error: simulated read error. Retrying ({i}/2)...')
+
+        def test_pot_http_retries_diff(self, logger, client_info):
+            # Test retry logic when both http retry and pot retry are triggered
+            # This can occur when a response contains SPS required but ends on a transport error.
+            # This test is the same as above, except there are more http retries than pot retries,
+            # so the final error should be PoTokenError.
+
+            class CustomPoTokenAVProfile(CustomAVProfile, PoTokenAVProfile):
+                pass
+
+            # Should retry if a TransportError occurs after we have read all segments in the response and video
+            # We can simulate this by adding a informational part at the end that fails to read
+            def inject_read_error(parts, vpabr, url, request_number):
+
+                parts.append(UMPPart(
+                    part_id=UMPPartId.SNACKBAR_MESSAGE,
+                    size=0,
+                    data=io.BytesIO(b''),
+                ))
+                return create_inject_read_error([0, 1, 2, 3], part_id=UMPPartId.SNACKBAR_MESSAGE, occurance=1)(parts, vpabr, url, request_number)
+
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                sabr_response_processor=CustomPoTokenAVProfile({'custom_parts_function': inject_read_error}),
+                client_info=client_info,
+                logger=logger,
+                http_retries=3,
+                pot_retries=2,
+            )
+
+            # PoTokenError should win
+            with pytest.raises(PoTokenError, match='This stream requires a GVS PO Token to continue'):
+                list(sabr_stream.iter_parts())
+
+            # There should be 3 http error requests recorded
+            http_error_requests = [d for d in rh.request_history if isinstance(d.error, TransportError)]
+            assert len(http_error_requests) == 3
+
+            for request in http_error_requests:
+                assert isinstance(request.error, TransportError)
+                assert request.error.msg == 'simulated read error'
+
+            # http retries and pot retries should be logged with same count
+            # (note http retries total is 3, pot retries total is 2)
+            for i in range(1, 3):
+                logger.warning.assert_any_call(f'[sabr] Got error: This stream requires a GVS PO Token to continue. Retrying ({i}/2)...')
+                logger.warning.assert_any_call(f'[sabr] Got error: simulated read error. Retrying ({i}/3)...')
 
     class TestAdWait:
         def test_sabr_ad_wait(self, logger, client_info):
