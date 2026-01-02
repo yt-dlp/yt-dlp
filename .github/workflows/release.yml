@@ -215,7 +215,7 @@ jobs:
           python -m build --no-isolation .
 
       - name: Upload artifacts
-        if: github.event_name != 'workflow_dispatch'
+        if: github.event.workflow != '.github/workflows/release.yml'  # Reusable workflow_call
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: build-pypi
@@ -224,7 +224,7 @@ jobs:
           compression-level: 0
 
       - name: Publish to PyPI
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event.workflow == '.github/workflows/release.yml'  # Direct workflow_dispatch
         uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # v1.13.0
         with:
           verbose: true
