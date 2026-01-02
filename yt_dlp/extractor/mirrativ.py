@@ -18,7 +18,7 @@ class MirrativIE(MirrativBaseIE):
     IE_NAME = 'mirrativ'
     _VALID_URL = r'https?://(?:www\.)?mirrativ\.com/live/(?P<id>[^/?#&]+)'
 
-    TESTS = [{
+    _TESTS = [{
         'url': 'https://mirrativ.com/live/UQomuS7EMgHoxRHjEhNiHw',
         'info_dict': {
             'id': 'UQomuS7EMgHoxRHjEhNiHw',

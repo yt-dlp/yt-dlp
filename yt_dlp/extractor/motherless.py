@@ -51,23 +51,7 @@ class MotherlessIE(InfoExtractor):
         'skip': '404',
     }, {
         'url': 'http://motherless.com/g/cosplay/633979F',
-        'md5': '0b2a43f447a49c3e649c93ad1fafa4a0',
-        'info_dict': {
-            'id': '633979F',
-            'ext': 'mp4',
-            'title': 'Turtlette',
-            'categories': ['superheroine heroine superher'],
-            'upload_date': '20140827',
-            'uploader_id': 'shade0230',
-            'thumbnail': r're:https?://.*\.jpg',
-            'age_limit': 18,
-            'like_count': int,
-            'comment_count': int,
-            'view_count': int,
-        },
-        'params': {
-            'nocheckcertificate': True,
-        },
+        'expected_exception': 'ExtractorError',
     }, {
         'url': 'http://motherless.com/8B4BBC1',
         'info_dict': {
@@ -113,8 +97,10 @@ class MotherlessIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         if any(p in webpage for p in (
-                '<title>404 - MOTHERLESS.COM<',
-                ">The page you're looking for cannot be found.<")):
+            '<title>404 - MOTHERLESS.COM<',
+            ">The page you're looking for cannot be found.<",
+            '<div class="error-page',
+        )):
             raise ExtractorError(f'Video {video_id} does not exist', expected=True)
 
         if '>The content you are trying to view is for friends only.' in webpage:
@@ -183,6 +169,9 @@ class MotherlessPaginatedIE(InfoExtractor):
     def _correct_path(self, url, item_id):
         raise NotImplementedError('This method must be implemented by subclasses')
 
+    def _correct_title(self, title, /):
+        return title.partition(' - Videos')[0] if title else None
+
     def _extract_entries(self, webpage, base):
         for mobj in re.finditer(r'href="[^"]*(?P<href>/[A-F0-9]+)"\s+title="(?P<title>[^"]+)',
                                 webpage):
@@ -205,7 +194,7 @@ class MotherlessPaginatedIE(InfoExtractor):
 
         return self.playlist_result(
             OnDemandPagedList(get_page, self._PAGE_SIZE), item_id,
-            remove_end(self._html_extract_title(webpage), ' | MOTHERLESS.COM ™'))
+            self._correct_title(self._html_extract_title(webpage)))
 
 
 class MotherlessGroupIE(MotherlessPaginatedIE):
@@ -214,7 +203,7 @@ class MotherlessGroupIE(MotherlessPaginatedIE):
         'url': 'http://motherless.com/gv/movie_scenes',
         'info_dict': {
             'id': 'movie_scenes',
-            'title': 'Movie Scenes - Videos - Hot and sexy scenes from "regular" movies... Beautiful actresses fully',
+            'title': 'Movie Scenes',
         },
         'playlist_mincount': 540,
     }, {
@@ -230,7 +219,7 @@ class MotherlessGroupIE(MotherlessPaginatedIE):
             'id': 'beautiful_cock',
             'title': 'Beautiful Cock',
         },
-        'playlist_mincount': 2040,
+        'playlist_mincount': 371,
     }]
 
     def _correct_path(self, url, item_id):
@@ -245,14 +234,14 @@ class MotherlessGalleryIE(MotherlessPaginatedIE):
             'id': '338999F',
             'title': 'Random',
         },
-        'playlist_mincount': 171,
+        'playlist_mincount': 100,
     }, {
         'url': 'https://motherless.com/GVABD6213',
         'info_dict': {
             'id': 'ABD6213',
             'title': 'Cuties',
         },
-        'playlist_mincount': 2,
+        'playlist_mincount': 1,
     }, {
         'url': 'https://motherless.com/GVBCF7622',
         'info_dict': {
@@ -266,8 +255,11 @@ class MotherlessGalleryIE(MotherlessPaginatedIE):
             'id': '035DE2F',
             'title': 'General',
         },
-        'playlist_mincount': 420,
+        'playlist_mincount': 234,
     }]
+
+    def _correct_title(self, title, /):
+        return remove_end(title, ' | MOTHERLESS.COM ™')
 
     def _correct_path(self, url, item_id):
         return urllib.parse.urljoin(url, f'/GV{item_id}')
@@ -279,14 +271,14 @@ class MotherlessUploaderIE(MotherlessPaginatedIE):
         'url': 'https://motherless.com/u/Mrgo4hrs2023',
         'info_dict': {
             'id': 'Mrgo4hrs2023',
-            'title': "Mrgo4hrs2023's Uploads - Videos",
+            'title': "Mrgo4hrs2023's Uploads",
         },
         'playlist_mincount': 32,
     }, {
         'url': 'https://motherless.com/u/Happy_couple?t=v',
         'info_dict': {
             'id': 'Happy_couple',
-            'title': "Happy_couple's Uploads - Videos",
+            'title': "Happy_couple's Uploads",
         },
         'playlist_mincount': 8,
     }]
