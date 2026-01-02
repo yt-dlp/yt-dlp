@@ -24,8 +24,7 @@ jobs:
       - name: Retrieve HEAD commit hash
         id: head
         shell: bash
-        run: |
-          echo "head=$(git rev-parse HEAD)" | tee -a "${GITHUB_OUTPUT}"
+        run: echo "head=$(git rev-parse HEAD)" | tee -a "${GITHUB_OUTPUT}"
 
       - name: Cache nightly commit hash
         uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb  # v5.0.1
