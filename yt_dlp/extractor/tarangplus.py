@@ -121,7 +121,7 @@ class TarangPlusVideoIE(TarangPlusBaseIE):
 
 
 class TarangPlusEpisodesIE(TarangPlusBaseIE):
-    IE_NAME = 'tarangplus:episode'
+    IE_NAME = 'tarangplus:episodes'
     _VALID_URL = r'https?://(?:www\.)?tarangplus\.in/(?P<type>[^#?/]+)/(?P<id>[^#?/]+)/episodes/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://tarangplus.in/tarangaplus-originals/balijatra/episodes',
