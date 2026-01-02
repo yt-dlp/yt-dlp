@@ -263,14 +263,14 @@ def expect_info_dict(self, got_dict, expected_dict):
         # NB: Keep in sync with the docstring of extractor/common.py
         'id', 'ext', 'direct', 'display_id', 'title', 'alt_title', 'description', 'media_type',
         'uploader', 'uploader_id', 'uploader_url', 'channel', 'channel_id', 'channel_url', 'channel_is_verified',
-        'channel_follower_count', 'comment_count', 'view_count', 'concurrent_view_count',
+        'channel_follower_count', 'comment_count', 'view_count', 'concurrent_view_count', 'save_count',
         'like_count', 'dislike_count', 'repost_count', 'average_rating', 'age_limit', 'duration', 'thumbnail', 'heatmap',
         'chapters', 'chapter', 'chapter_number', 'chapter_id', 'start_time', 'end_time', 'section_start', 'section_end',
         'categories', 'tags', 'cast', 'composers', 'artists', 'album_artists', 'creators', 'genres',
         'track', 'track_number', 'track_id', 'album', 'album_type', 'disc_number',
         'series', 'series_id', 'season', 'season_number', 'season_id', 'episode', 'episode_number', 'episode_id',
         'timestamp', 'upload_date', 'release_timestamp', 'release_date', 'release_year', 'modified_timestamp', 'modified_date',
-        'playable_in_embed', 'availability', 'live_status', 'location', 'license', '_old_archive_ids','save_count'
+        'playable_in_embed', 'availability', 'live_status', 'location', 'license', '_old_archive_ids',
     )
 
     expect_dict(self, got_dict, expected_dict)
