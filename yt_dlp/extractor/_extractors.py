@@ -431,6 +431,7 @@ from .cpac import (
 )
 from .cracked import CrackedIE
 from .craftsy import CraftsyIE
+from .croatian import CroatianIE
 from .crooksandliars import CrooksAndLiarsIE
 from .crowdbunker import (
     CrowdBunkerChannelIE,
@@ -1086,11 +1087,6 @@ from .mainstreaming import MainStreamingIE
 from .mangomolo import (
     MangomoloLiveIE,
     MangomoloVideoIE,
-)
-from .manoto import (
-    ManotoTVIE,
-    ManotoTVLiveIE,
-    ManotoTVShowIE,
 )
 from .manyvids import ManyVidsIE
 from .maoritv import MaoriTVIE
@@ -1830,10 +1826,6 @@ from .scrippsnetworks import (
     ScrippsNetworksWatchIE,
 )
 from .scrolller import ScrolllerIE
-from .scte import (
-    SCTEIE,
-    SCTECourseIE,
-)
 from .sejmpl import SejmIE
 from .sen import SenIE
 from .senalcolombia import SenalColombiaLiveIE
