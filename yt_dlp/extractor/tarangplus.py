@@ -1,6 +1,7 @@
 import base64
 import binascii
 import functools
+import re
 
 from .common import InfoExtractor
 from ..dependencies import Cryptodome
@@ -94,14 +95,22 @@ class TarangPlusVideoIE(TarangPlusBaseIE):
             {extract_attributes}, 'src', {require('iframe URL')}))
         # Can't use parse_qs here since it would decode the encrypted base64 `+` chars to spaces
         content = self._search_regex(r'[?&]contenturl=(.+)', iframe_url, 'content')
-        encrypted_data, *attrs = content.split('|')
-        metadata = {k: v for (k, _, v) in (attr.partition('=') for attr in attrs)}
+        encrypted_data, _, attrs = content.partition('|')
+        metadata = {
+            m.group('k'): m.group('v')
+            for m in re.finditer(r'(?:^|\|)(?P<k>[a-z_]+)=(?P<v>(?:(?!\|[a-z_]+=).)+)', attrs)
+        }
         m3u8_url = self.decrypt(encrypted_data, metadata['key'])
 
         return {
-            'id': metadata.get('content_id') or display_id,
+            'id': display_id,  # Fallback
             'display_id': display_id,
             **json_ld_data,
+            **traverse_obj(metadata, {
+                'id': ('content_id', {str}),
+                'title': ('title', {str}),
+                'thumbnail': ('image', {str}),
+            }),
             **traverse_obj(hidden_inputs_data, {
                 'id': ('content_id', {str}),
                 'media_type': ('theme_type', {str}),
