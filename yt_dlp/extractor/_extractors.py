@@ -1478,6 +1478,7 @@ from .palcomp3 import (
     PalcoMP3IE,
     PalcoMP3VideoIE,
 )
+from .pandatv import PandaTvIE
 from .panopto import (
     PanoptoIE,
     PanoptoListIE,
@@ -2006,6 +2007,11 @@ from .taptap import (
     TapTapAppIntlIE,
     TapTapMomentIE,
     TapTapPostIntlIE,
+)
+from .tarangplus import (
+    TarangPlusEpisodesIE,
+    TarangPlusPlaylistIE,
+    TarangPlusVideoIE,
 )
 from .tass import TassIE
 from .tbs import TBSIE
