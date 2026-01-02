@@ -4,7 +4,6 @@ from ..utils import (
     int_or_none,
     parse_iso8601,
     parse_qs,
-    str_or_none,
     url_or_none,
 )
 from ..utils.traversal import require, traverse_obj
@@ -160,8 +159,8 @@ class LocipoPlaylistIE(LocipoBaseIE):
 
     def _entries(self, playlist_id):
         creatives = self._call_api(f'playlists/{playlist_id}/creatives', playlist_id)
-        for creative in traverse_obj(creatives, ('items', lambda _, v: str_or_none(v['id']))):
-            yield self.url_result(f'{self._BASE_URL}/creative/{creative["id"]}', LocipoIE)
+        for video_id in traverse_obj(creatives, ('items', ..., 'id', {str})):
+            yield self.url_result(f'{self._BASE_URL}/creative/{video_id}', LocipoIE)
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
