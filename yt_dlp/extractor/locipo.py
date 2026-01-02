@@ -12,14 +12,22 @@ from ..utils.traversal import require, traverse_obj
 
 class LocipoBaseIE(InfoExtractor):
     _BASE_URL = 'https://locipo.jp'
+    _UUID_RE = r'[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}'
 
-    def _call_api(self, path, item_id):
+    def _call_api(self, path, item_id, fatal=True):
+        note = path.partition('/')[0]
         return self._download_json(
-            f'https://api.locipo.jp/api/v1/{path}', item_id)
+            f'https://api.locipo.jp/api/v1/{path}', item_id
+            f'Downloading {note} API JSON',
+            f'Unable to download {note} API JSON',
+            fatal=fatal)
 
 
 class LocipoIE(LocipoBaseIE):
-    _VALID_URL = r'https?://locipo\.jp/(?:creative|embed)/(?:\?(?:[^#]+&)?id=)?(?P<id>[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12})'
+    _VALID_URL = [
+        fr'https?://locipo\.jp/creative/(?P<id>{LocipoBaseIE._UUID_RE})',
+        fr'https?://locipo\.jp/embed/?\?(?:[^#]+&)?id=(?P<id>{LocipoBaseIE._UUID_RE})',
+    ]
     _TESTS = [{
         'url': 'https://locipo.jp/creative/fb5ffeaa-398d-45ce-bb49-0e221b5f94f1',
         'info_dict': {
@@ -102,7 +110,7 @@ class LocipoIE(LocipoBaseIE):
         video_id = self._match_id(url)
 
         playlist_id = traverse_obj(parse_qs(url), ('list', -1, {str}))
-        if playlist_id and not self.get_param('noplaylist'):
+        if self._yes_playlist(playlist_id, video_id):
             return self.url_result(
                 f'{self._BASE_URL}/playlist/{playlist_id}', LocipoPlaylistIE)
 
@@ -113,7 +121,7 @@ class LocipoIE(LocipoBaseIE):
         return {
             'id': video_id,
             'formats': self._extract_m3u8_formats(m3u8_url, video_id, 'mp4'),
-            'uploader': traverse_obj(self._call_api('config', video_id), (
+            'uploader': traverse_obj(self._call_api('config', video_id, fatal=False), (
                 'stations', lambda _, v: v['station_cd'] == uploader_id, 'name', {str}, any)),
             'uploader_id': uploader_id,
             **traverse_obj(creatives, {
@@ -126,8 +134,8 @@ class LocipoIE(LocipoBaseIE):
                 'timestamp': ('publication_started_at', {parse_iso8601}),
             }),
             **traverse_obj(creatives, ('playlist', {
-                'cast': ('actors', ..., 'name', {clean_html}, filter, all, filter),
-                'genres': ('locipo_genres', ..., 'name', {clean_html}, filter, all, filter),
+                'cast': ('actors', ..., 'name', {clean_html}, filter),
+                'genres': ('locipo_genres', ..., 'name', {clean_html}, filter),
                 'series': ('title', {clean_html}),
                 'series_id': ('id', {str}),
             })),
@@ -135,7 +143,7 @@ class LocipoIE(LocipoBaseIE):
 
 
 class LocipoPlaylistIE(LocipoBaseIE):
-    _VALID_URL = r'https?://locipo\.jp/playlist/(?P<id>[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12})'
+    _VALID_URL = fr'https?://locipo\.jp/playlist/(?P<id>{LocipoBaseIE._UUID_RE})'
     _TESTS = [{
         'url': 'https://locipo.jp/playlist/ae42c14e-6006-4932-b40d-16fc236ab71f',
         'info_dict': {
@@ -163,7 +171,7 @@ class LocipoPlaylistIE(LocipoBaseIE):
             self._entries(playlist_id), playlist_id, **traverse_obj(playlists, {
                 'title': ('title', {clean_html}),
                 'description': ('description', {clean_html}, filter),
-                'genres': ('locipo_genres', ..., 'name', {clean_html}, filter, all, filter),
+                'genres': ('locipo_genres', ..., 'name', {clean_html}, filter),
                 'modified_timestamp': ('updated_at', {parse_iso8601}),
                 'thumbnail': (('thumb', 'small_thumb'), {url_or_none}, any),
             }),
