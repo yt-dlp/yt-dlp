@@ -21,11 +21,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Get current time
-        id: get_timestamp
-        shell: bash
+      - name: Retrieve HEAD commit hash
+        id: head
         run: |
-          echo "timestamp=$(date +%s.%N)" | tee -a "${GITHUB_OUTPUT}"
+          git rev-parse HEAD
+          echo "head=$(git rev-parse HEAD)" >> "${GITHUB_OUTPUT}"
 
       - name: Cache nightly commit hash
         uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb  # v5.0.1
@@ -33,7 +33,7 @@ jobs:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
         with:
           path: .nightly_commit_hash
-          key: release-nightly-${{ steps.get_timestamp.outputs.timestamp }}
+          key: release-nightly-${{ steps.head.outputs.head }}
           restore-keys: |
             release-nightly-
 
@@ -65,7 +65,9 @@ jobs:
           echo "commit=$(git log --format=%H -1 "${limit_args[@]}" -- "${relevant_files[@]}")" | tee -a "${GITHUB_OUTPUT}"
 
       - name: Record new nightly commit hash
-        run: git rev-parse HEAD > .nightly_commit_hash
+        env:
+          HEAD: ${{ steps.head.outputs.head }}
+        run: printf "%s" "${HEAD}" > .nightly_commit_hash
 
   release:
     name: Publish Github release
