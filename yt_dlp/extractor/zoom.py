@@ -95,7 +95,7 @@ class ZoomIE(InfoExtractor):
             redirect_path = self._download_json(
                 f'{base_url}nws/recording/1.0/play/share-info/{meeting_id}',
                 video_id, note='Downloading share info JSON')['result']['redirectUrl']
-            url = f'{urljoin(base_url, redirect_path)}?startTime={starttime}'
+            url = update_url_query(urljoin(base_url, redirect_path), start_params)
             query['continueMode'] = 'true'
 
         webpage = self._get_real_webpage(url, base_url, video_id, 'play')
