@@ -85,14 +85,9 @@ class ZoomIE(InfoExtractor):
         return self._download_webpage(url, video_id, note=f'Re-downloading {url_type} webpage')
 
     def _real_extract(self, url):
-
-        # getting the startTime from the url:
-        starttime = self._search_regex(
-            r'[?&]startTime=(\d+)', url, 'starttime', default=''
-        )
-
         base_url, url_type, video_id = self._match_valid_url(url).group('base_url', 'type', 'id')
         query = {}
+        start_params = traverse_obj(url, {'startTime': ({parse_qs}, 'startTime', -1)})
 
         if url_type == 'share':
             webpage = self._get_real_webpage(url, base_url, video_id, 'share')
