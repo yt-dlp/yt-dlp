@@ -2,9 +2,9 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
+    make_archive_id,
     parse_age_limit,
     traverse_obj,
-    try_get,
 )
 
 
@@ -52,16 +52,19 @@ class TV5UnisBaseIE(InfoExtractor):
 
         return {
             'id': media_id,
+            '_old_archive_ids': [make_archive_id('LimelightMedia', media_id)],
             'formats': formats,
             'subtitles': subtitles,
-            'title': product.get('title'),
-            'description': product.get('summary'),
-            'tags': product.get('tags'),
-            'duration': int_or_none(product.get('duration')),
-            'season_number': int_or_none(product.get('seasonNumber')),
-            'episode_number': int_or_none(product.get('episodeNumber')),
-            'series': try_get(product, lambda x: traverse_obj(x, ('collection', 'title'), expected_type=str)),
-            'age_limit': parse_age_limit(try_get(product, lambda x: traverse_obj(x, ('rating', 'name'), expected_type=str))),
+            **traverse_obj(product, {
+                'title': ('title', {str}),
+                'description': ('summary', {str}),
+                'tags': ('tags', ..., {str}),
+                'duration': ('duration', {int_or_none}),
+                'season_number': ('seasonNumber', {int_or_none}),
+                'episode_number': ('episodeNumber', {int_or_none}),
+                'series': ('collection', 'title', {str}),
+                'age_limit': ('rating', 'name', {parse_age_limit}),
+            }),
         }
 
 
@@ -73,11 +76,11 @@ class TV5UnisVideoIE(TV5UnisBaseIE):
         'md5': '24a247c96119d77fe1bae8b440457dfa',
         'info_dict': {
             'id': '56862325352147149dce0ae139afced6',
+            '_old_archive_ids': ['limelightmedia 56862325352147149dce0ae139afced6'],
             'ext': 'mp4',
             'title': 'Antigone',
             'description': r"re:En aidant son frère .+ dicté par l'amour et la solidarité.",
             'duration': 61,
-            'tags': 'count:0',
         },
     }
     _GQL_QUERY_NAME = 'productById'
@@ -95,6 +98,7 @@ class TV5UnisIE(TV5UnisBaseIE):
         'md5': '43beebd47eefb1c5caf9a47a3fc35589',
         'info_dict': {
             'id': '2c06e4af20f0417b86c2536825287690',
+            '_old_archive_ids': ['limelightmedia 2c06e4af20f0417b86c2536825287690'],
             'ext': 'mp4',
             'title': "L'homme éléphant",
             'description': r're:Paul-André et Jean-Yves, .+ quand elle parle du feu au Spot.',
@@ -115,6 +119,7 @@ class TV5UnisIE(TV5UnisBaseIE):
         'md5': '7898e868e8c540f03844660e0aab6bbe',
         'info_dict': {
             'id': '4de6d0c6467b4511a0c04b92037a9f15',
+            '_old_archive_ids': ['limelightmedia 4de6d0c6467b4511a0c04b92037a9f15'],
             'ext': 'mp4',
             'title': 'Boîte à savon',
             'description': r're:Dans le petit village de Broche-à-foin, .+ celle qui fait battre son coeur.',
