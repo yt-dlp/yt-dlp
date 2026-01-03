@@ -106,7 +106,7 @@ class ToggleIE(InfoExtractor):
                 'title': ('title'),
                 'description': ('description', {strip_or_none}),
                 'duration': ('duration', {int_or_none}),
-                'timestamp':(('TheatricalReleaseStart', {parse_iso8601}), ('offers', 0, 'startDate', {parse_iso8601})),
+                'timestamp': (('TheatricalReleaseStart', {parse_iso8601}), ('offers', 0, 'startDate', {parse_iso8601})),
                 'average_rating': ('totalUserRatings'),
                 'is_live': (('type', {str.startswith}, 'channel'), False),
             })),
