@@ -454,11 +454,11 @@ class TumblrIE(InfoExtractor):
             'title': post_json.get('summary') or (blog if api_only else self._html_search_regex(
                 r'(?s)<title>(?P<title>.*?)(?: \| Tumblr)?</title>', webpage, 'title', default=blog)),
             'description': description,
-            'timestamp':
-                traverse_obj(post_json,
-                             ('trail', 0, 'post', 'timestamp'),  # Oldest post in reblog chain
-                             'timestamp',  # Timestamp of the post itself
-                             expected_type=int),
+            'timestamp': traverse_obj(
+                post_json,
+                ('trail', 0, 'post', 'timestamp'),  # Oldest post in reblog chain
+                'timestamp',                        # Timestamp of the post itself
+                expected_type=int_or_none),
             'uploader_id': uploader_id,
             'uploader_url': f'https://{uploader_id}.tumblr.com/' if uploader_id else None,
             **traverse_obj(post_json, {
