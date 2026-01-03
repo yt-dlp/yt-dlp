@@ -1,9 +1,9 @@
 from .common import InfoExtractor
 from .vimeo import VimeoIE
 from ..utils import (
-    smuggle_url,
     ExtractorError,
     join_nonempty,
+    smuggle_url,
 )
 from ..utils.traversal import traverse_obj
 
@@ -11,7 +11,6 @@ from ..utils.traversal import traverse_obj
 class CroatianFilmIE(InfoExtractor):
     IE_NAME = 'croatian.film'
     _VALID_URL = r'https://?(?:www\.)?croatian\.film/[a-z]{2}/[^/?#]+/(?P<id>\d+)'
-
 
     _TESTS = [{
         'url': 'https://www.croatian.film/en/films/74757',
@@ -36,7 +35,7 @@ class CroatianFilmIE(InfoExtractor):
         vimeo_info = self._download_json(
             f'https://api.croatian.film/api/videos/{display_id}',
             display_id)
-    
+
         if errors := traverse_obj(vimeo_info, ('errors', lambda _, v: v['code'])):
             codes = traverse_obj(errors, (..., 'code', {str}))
             if 'INVALID_COUNTRY' in codes:
