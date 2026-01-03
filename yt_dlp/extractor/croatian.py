@@ -7,9 +7,9 @@ from ..utils import (
 from ..utils.traversal import traverse_obj
 
 
-class CroatianIE(InfoExtractor):
-    _IE_NAME = 'croatian'
-    _VALID_URL = r'https://?(?:www\.)?croatian\.(?:[^/]+)/[a-z]{2}/[^/]+/(?P<id>\d+)(?:[^?&#]+)?'
+class CroatianFilmIE(InfoExtractor):
+    IE_NAME = 'croatian.film'
+    _VALID_URL = r'https://?(?:www\.)?croatian\.film/[a-z]{2}/[^/?#]+/(?P<id>\d+)'
     _GEO_COUNTRIES = ['HR']
 
     _TESTS = [{
@@ -76,11 +76,13 @@ class CroatianIE(InfoExtractor):
             f'https://api.croatian.film/api/videos/{display_id}',
             display_id)['video']
 
-        if error := traverse_obj(vimeo_info, ('errors')):
-            if traverse_obj(error, (0, 'code')) == 'INVALID_COUNTRY':
-                msg = traverse_obj(error, (0, 'details'))
-                return self.raise_geo_restricted(
-                    msg=msg, countries=self._GEO_COUNTRIES)
+        if errors := traverse_obj(vimeo_info, ('errors', lambda _, v: v['code'])):
+            codes = traverse_obj(errors, (..., 'code', {str}))
+            if 'INVALID_COUNTRY' in codes:
+                self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
+            raise ExtractorError(join_nonempty(
+                *(traverse_obj(errors, (..., 'details', {str})) or codes),
+                delim='; '))
 
         vimeo_id = vimeo_info.get('vimeoURL')
         vimeo_id = vimeo_id.replace('/videos/', '') if '/videos/' else vimeo_id

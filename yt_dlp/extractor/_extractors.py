@@ -431,7 +431,7 @@ from .cpac import (
 )
 from .cracked import CrackedIE
 from .craftsy import CraftsyIE
-from .croatian import CroatianIE
+from .croatianfilm import CroatianFilmIE
 from .crooksandliars import CrooksAndLiarsIE
 from .crowdbunker import (
     CrowdBunkerChannelIE,
