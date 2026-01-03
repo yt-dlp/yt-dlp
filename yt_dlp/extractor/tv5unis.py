@@ -48,7 +48,7 @@ class TV5UnisBaseIE(InfoExtractor):
 
         return {
             '_type': 'url_transparent',
-            'id': video.get('mediaId'),
+            'id': video['mediaId'],
             'title': product.get('title'),
             'description': product.get('summary'),
             'url': traverse_obj(video, ('encodings', 'hls', 'url'), expected_type=url_or_none),
