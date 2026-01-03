@@ -3,7 +3,6 @@ from .vimeo import VimeoIE
 from ..utils import (
     ExtractorError,
     join_nonempty,
-    smuggle_url,
 )
 from ..utils.traversal import traverse_obj
 
