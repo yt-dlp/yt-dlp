@@ -4,15 +4,15 @@ from ..utils import (
     int_or_none,
     js_to_json,
     parse_filesize,
+    parse_qs,
     parse_resolution,
     str_or_none,
-    traverse_obj,
+    update_url_query,
     url_basename,
     urlencode_postdata,
     urljoin,
-    parse_qs,
-    update_url_query,
 )
+from ..utils.traversal import traverse_obj
 
 
 class ZoomIE(InfoExtractor):
