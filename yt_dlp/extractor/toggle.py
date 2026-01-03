@@ -1,15 +1,9 @@
-import re
 import itertools
+import re
 
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
-from ..utils import (
-    ExtractorError,
-    determine_ext,
-    int_or_none,
-    parse_iso8601,
-    strip_or_none,
-)
+from ..utils import ExtractorError, determine_ext, int_or_none, parse_iso8601, strip_or_none
 from ..utils.traversal import traverse_obj
 
 
@@ -114,8 +108,8 @@ class ToggleIE(InfoExtractor):
                 'duration': ('duration', {int_or_none}),
                 'timestamp':(('TheatricalReleaseStart', {parse_iso8601}), ('offers', 0, 'startDate', {parse_iso8601})),
                 'average_rating': ('totalUserRatings'),
-                'is_live': (('type', {str.startswith}, 'channel') or False)
-            }))
+                'is_live': (('type', {str.startswith}, 'channel'), False),
+            })),
         }
 
     def _extract_playlist(self, video_id):
