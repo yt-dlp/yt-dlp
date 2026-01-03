@@ -1351,6 +1351,7 @@ The available fields are:
  - `repost_count` (numeric): Number of reposts of the video
  - `average_rating` (numeric): Average rating given by users, the scale used depends on the webpage
  - `comment_count` (numeric): Number of comments on the video (For some extractors, comments are only downloaded at the end, and so this field cannot be used)
+ - `save_count` (numeric): Number of times the video has been saved or bookmarked
  - `age_limit` (numeric): Age restriction for the video (years)
  - `live_status` (string): One of "not_live", "is_live", "is_upcoming", "was_live", "post_live" (was live, but VOD is not yet processed)
  - `is_live` (boolean): Whether this video is a live stream or a fixed-length video

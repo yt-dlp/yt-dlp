@@ -263,7 +263,7 @@ def expect_info_dict(self, got_dict, expected_dict):
         # NB: Keep in sync with the docstring of extractor/common.py
         'ie_key', 'url', 'id', 'ext', 'direct', 'display_id', 'title', 'alt_title', 'description', 'media_type',
         'uploader', 'uploader_id', 'uploader_url', 'channel', 'channel_id', 'channel_url', 'channel_is_verified',
-        'channel_follower_count', 'comment_count', 'view_count', 'concurrent_view_count',
+        'channel_follower_count', 'comment_count', 'view_count', 'concurrent_view_count', 'save_count',
         'like_count', 'dislike_count', 'repost_count', 'average_rating', 'age_limit', 'duration', 'thumbnail', 'heatmap',
         'chapters', 'chapter', 'chapter_number', 'chapter_id', 'start_time', 'end_time', 'section_start', 'section_end',
         'categories', 'tags', 'cast', 'composers', 'artists', 'album_artists', 'creators', 'genres',
