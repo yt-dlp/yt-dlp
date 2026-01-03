@@ -85,6 +85,12 @@ class ZoomIE(InfoExtractor):
         return self._download_webpage(url, video_id, note=f'Re-downloading {url_type} webpage')
 
     def _real_extract(self, url):
+
+        # getting the startTime from the url:
+        starttime = self._search_regex(
+            r'[?&]startTime=(\d+)', url, 'starttime', default=''
+        )
+
         base_url, url_type, video_id = self._match_valid_url(url).group('base_url', 'type', 'id')
         query = {}
 
@@ -94,7 +100,7 @@ class ZoomIE(InfoExtractor):
             redirect_path = self._download_json(
                 f'{base_url}nws/recording/1.0/play/share-info/{meeting_id}',
                 video_id, note='Downloading share info JSON')['result']['redirectUrl']
-            url = urljoin(base_url, redirect_path)
+            url = f'{urljoin(base_url, redirect_path)}?startTime={starttime}'
             query['continueMode'] = 'true'
 
         webpage = self._get_real_webpage(url, base_url, video_id, 'play')
@@ -104,7 +110,7 @@ class ZoomIE(InfoExtractor):
             raise ExtractorError('Unable to extract file ID')
 
         data = self._download_json(
-            f'{base_url}nws/recording/1.0/play/info/{file_id}', video_id, query=query,
+            f'{base_url}nws/recording/1.0/play/info/{file_id}?startTime={starttime}', video_id, query=query,
             note='Downloading play info JSON')['result']
 
         subtitles = {}
