@@ -116,12 +116,15 @@ class YandexMusicTrackIE(YandexMusicBaseIE):
             f'https://music.yandex.ru/api/v2.1/handlers/track/{track_id}:{album_id}/web-album_track-track-track-main/download/m',
             track_id, 'Downloading track location url JSON', query={'hq': 1}, headers={'X-Retpath-Y': url})
 
+        if download_data['src'].startswith("//"):
+            download_data['src'] = "https:" + download_data['src']
+
         fd_data = self._download_json(
             download_data['src'], track_id,
             'Downloading track location JSON',
             query={'format': 'json'})
         key = hashlib.md5(('XGRlBW9FXlekgbPrRHuSiA' + fd_data['path'][1:] + fd_data['s']).encode()).hexdigest()
-        f_url = 'http://{}/get-mp3/{}/{}?track-id={} '.format(fd_data['host'], key, fd_data['ts'] + fd_data['path'], track['id'])
+        f_url = 'https://{}/get-mp3/{}/{}?track-id={} '.format(fd_data['host'], key, fd_data['ts'] + fd_data['path'], track['id'])
 
         thumbnail = None
         cover_uri = track.get('albums', [{}])[0].get('coverUri')
