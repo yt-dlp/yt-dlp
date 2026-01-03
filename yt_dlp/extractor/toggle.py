@@ -130,7 +130,6 @@ class ToggleIE(InfoExtractor):
                 seasons = traverse_obj(playlist_data, ('seasons', 'items'))
             for season in seasons:
                 season_title = season.get('title')
-                self.write_debug(f'Downloading Season {season_title}')
                 season_id = season.get('id')
                 for page in itertools.count(1):
                     data = self._download_json(
