@@ -454,20 +454,11 @@ class TumblrIE(InfoExtractor):
             'title': post_json.get('summary') or (blog if api_only else self._html_search_regex(
                 r'(?s)<title>(?P<title>.*?)(?: \| Tumblr)?</title>', webpage, 'title', default=blog)),
             'description': description,
-            'timestamp': (
-                # Possible TODO: Retrieve timestamp whe API key is unset & post is a reblog of a video
+            'timestamp':
                 traverse_obj(post_json,
-
-                             # Timestamp of earliest post in the reblog chain (if reblog)
-                             ('trail', 0, 'post', 'timestamp'),
-
-                             # Timestamp of the post itself
-                             'timestamp',
-
-                             expected_type=int)
-
-                # JSON-LD timestamp (only if video post is directly linked)
-                or self._search_json_ld(webpage, None, fatal=False).get('timestamp')),
+                             ('trail', 0, 'post', 'timestamp'),  # Oldest post in reblog chain
+                             'timestamp',  # Timestamp of the post itself
+                             expected_type=int),
             'uploader_id': uploader_id,
             'uploader_url': f'https://{uploader_id}.tumblr.com/' if uploader_id else None,
             **traverse_obj(post_json, {
