@@ -32,19 +32,21 @@ class CroatianFilmIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        vimeo_info = self._download_json(
+        api_data = self._download_json(
             f'https://api.croatian.film/api/videos/{display_id}',
             display_id)
 
-        if errors := traverse_obj(vimeo_info, ('errors', lambda _, v: v['code'])):
+        if errors := traverse_obj(api_data, ('errors', lambda _, v: v['code'])):
             codes = traverse_obj(errors, (..., 'code', {str}))
             if 'INVALID_COUNTRY' in codes:
                 self.raise_geo_restricted(countries=['hr'])
             raise ExtractorError(join_nonempty(
                 *(traverse_obj(errors, (..., 'details', {str})) or codes),
                 delim='; '))
-        video = vimeo_info['video']
-        vimeo_id = self._search_regex(r'(?:/videos/)?(\d+)', video.get('vimeoURL'), 'vimeo id')
+
+        vimeo_id = self._search_regex(
+            r'/videos/(\d+)', api_data['video']['vimeoURL'], 'vimeo ID')
+
         return self.url_result(
-            smuggle_url(f'https://player.vimeo.com/video/{vimeo_id}', {'referer': url}),
+            VimeoIE._smuggle_referrer(f'https://player.vimeo.com/video/{vimeo_id}', url),
             VimeoIE, vimeo_id)
