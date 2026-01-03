@@ -10,6 +10,8 @@ from ..utils import (
     url_basename,
     urlencode_postdata,
     urljoin,
+    parse_qs,
+    update_url_query,
 )
 
 
