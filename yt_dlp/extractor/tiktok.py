@@ -454,7 +454,7 @@ class TikTokBaseIE(InfoExtractor):
                 'like_count': 'digg_count',
                 'repost_count': 'share_count',
                 'comment_count': 'comment_count',
-                'save_count': 'collect_count'
+                'save_count': 'collect_count',
             }, expected_type=int_or_none),
             **author_info,
             'channel_url': format_field(author_info, 'channel_id', self._UPLOADER_URL_FORMAT, default=None),
