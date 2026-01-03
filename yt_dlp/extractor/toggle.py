@@ -1,4 +1,5 @@
 import re
+import itertools
 
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
@@ -44,7 +45,7 @@ class ToggleIE(InfoExtractor):
     }]
     _API_BASE = 'https://cdn.mewatch.sg/api'
 
-    def _extract_episode(self, video_id, meta=None):
+    def _extract_episode(self, video_id, meta):
         try:
             info = self._download_json(
                 f'{self._API_BASE}/items/{video_id}/videos',
@@ -60,8 +61,6 @@ class ToggleIE(InfoExtractor):
             if isinstance(error.cause, HTTPError) and error.cause.status == 403:
                 self.raise_login_required()
             raise
-
-        title = meta['title']
 
         formats = []
         for video_file in info:
@@ -107,14 +106,16 @@ class ToggleIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': title,
-            'description': strip_or_none(meta.get('description')),
-            'duration': int_or_none(meta.get('duration')),
-            'timestamp': parse_iso8601(meta.get('TheatricalReleaseStart') or traverse_obj(meta, ('offers', ..., 'startDate'))[0] or None),
-            'average_rating': int_or_none(meta.get('totalUserRatings')),
-            'thumbnails': thumbnails,
             'formats': formats,
-            'is_live': bool(meta.get('type').startswith('channel')),
+            'thumbnails': thumbnails,
+            **traverse_obj(meta, ({
+                'title': ('title'),
+                'description': ('description', {strip_or_none}),
+                'duration': ('duration', {int_or_none}),
+                'timestamp':(('TheatricalReleaseStart', {parse_iso8601}), ('offers', 0, 'startDate', {parse_iso8601})),
+                'average_rating': ('totalUserRatings'),
+                'is_live': (('type', {str.startswith}, 'channel') or False)
+            }))
         }
 
     def _extract_playlist(self, video_id):
@@ -137,11 +138,11 @@ class ToggleIE(InfoExtractor):
                 season_title = season.get('title')
                 self.write_debug(f'Downloading Season {season_title}')
                 season_id = season.get('id')
-                page = 1
-                while True:
+                for page in itertools.count(1):
                     data = self._download_json(
                         f'{self._API_BASE}/items/{season_id}/children',
                         season_id,
+                        note=f'Downloading Season {season_title} page - {page}',
                         query={
                             'ff': 'idp,ldp,rpt,cd',
                             'lang': 'en',
@@ -153,7 +154,6 @@ class ToggleIE(InfoExtractor):
                         yield self._extract_episode(ep.get('id'), ep)
                     if page == traverse_obj(data, ('paging', 'total')):
                         break
-                    page += 1
 
         return self.playlist_result(
             entries(playlist_meta), video_id,
