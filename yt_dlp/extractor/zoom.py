@@ -104,6 +104,7 @@ class ZoomIE(InfoExtractor):
             # When things go wrong, file_id can be empty string
             raise ExtractorError('Unable to extract file ID')
 
+        query.update(start_params)
         data = self._download_json(
             f'{base_url}nws/recording/1.0/play/info/{file_id}?startTime={starttime}', video_id, query=query,
             note='Downloading play info JSON')['result']
