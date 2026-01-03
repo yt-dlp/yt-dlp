@@ -106,7 +106,7 @@ class ZoomIE(InfoExtractor):
 
         query.update(start_params)
         data = self._download_json(
-            f'{base_url}nws/recording/1.0/play/info/{file_id}?startTime={starttime}', video_id, query=query,
+            f'{base_url}nws/recording/1.0/play/info/{file_id}', video_id, query=query,
             note='Downloading play info JSON')['result']
 
         subtitles = {}
