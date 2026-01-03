@@ -5,7 +5,6 @@ from ..utils import (
     parse_age_limit,
     traverse_obj,
     try_get,
-    url_or_none,
 )
 
 
@@ -18,17 +17,18 @@ class TV5UnisBaseIE(InfoExtractor):
             'https://api.tv5unis.ca/graphql', groups[0], query={
                 'query': '''{
   %s(%s) {
+    title
+    summary
+    tags
+    duration
+    seasonNumber
+    episodeNumber
     collection {
       title
     }
-    episodeNumber
     rating {
       name
     }
-    seasonNumber
-    tags
-    title
-    summary
     videoElement {
       ... on Video {
         mediaId
@@ -46,18 +46,22 @@ class TV5UnisBaseIE(InfoExtractor):
         if video is None:
             raise ExtractorError('No video element found')
 
+        media_id = video['mediaId']
+        video_url = video['encodings']['hls']['url']
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, media_id, 'mp4')
+
         return {
-            '_type': 'url_transparent',
-            'id': video['mediaId'],
+            'id': media_id,
+            'formats': formats,
+            'subtitles': subtitles,
             'title': product.get('title'),
             'description': product.get('summary'),
-            'url': traverse_obj(video, ('encodings', 'hls', 'url'), expected_type=url_or_none),
-            'age_limit': parse_age_limit(try_get(product, lambda x: traverse_obj(x, ('rating', 'name'), expected_type=str))),
             'tags': product.get('tags'),
-            'series': try_get(product, lambda x: traverse_obj(x, ('collection', 'title'), expected_type=str)),
+            'duration': int_or_none(product.get('duration')),
             'season_number': int_or_none(product.get('seasonNumber')),
             'episode_number': int_or_none(product.get('episodeNumber')),
-            'ie_key': 'Generic',
+            'series': try_get(product, lambda x: traverse_obj(x, ('collection', 'title'), expected_type=str)),
+            'age_limit': parse_age_limit(try_get(product, lambda x: traverse_obj(x, ('rating', 'name'), expected_type=str))),
         }
 
 
@@ -97,7 +101,7 @@ class TV5UnisIE(TV5UnisBaseIE):
             'subtitles': {
                 'fr': 'count:1',
             },
-            'duration': 1369,
+            'duration': 1440,
             'age_limit': 8,
             'tags': 'count:4',
             'series': 'Watatatow',
@@ -117,7 +121,7 @@ class TV5UnisIE(TV5UnisBaseIE):
             'subtitles': {
                 'fr': 'count:1',
             },
-            'duration': 987,
+            'duration': 1200,
             'tags': 'count:5',
         },
     }]
