@@ -75,7 +75,7 @@ class TV5UnisVideoIE(TV5UnisBaseIE):
             'id': '56862325352147149dce0ae139afced6',
             'ext': 'mp4',
             'title': 'Antigone',
-            'description': "En aidant son frère à s'évader de prison, Antigone confronte les autorités : la police, le système judiciaire et pénal ainsi que le père de son ami Hémon. L'adolescente brillante au parcours jusque là sans tache voit l'étau se resserrer autour d'elle. Mais à la loi des hommes, elle substitue son propre sens de la justice, dicté par l'amour et la solidarité.",
+            'description': r"re:En aidant son frère .+ dicté par l'amour et la solidarité.",
             'duration': 61,
             'tags': 'count:0',
         },
@@ -97,7 +97,7 @@ class TV5UnisIE(TV5UnisBaseIE):
             'id': '2c06e4af20f0417b86c2536825287690',
             'ext': 'mp4',
             'title': "L'homme éléphant",
-            'description': "Paul-André et Jean-Yves, le père d'Ariane, préparent la chambre de Vincent qui doit sortir de l'hôpital. Ariane se réjouit d'accueillir son cousin chez elle. Geneviève, Danny et Martin décide de souligner l'anniversaire de Ben. Stéphanie ne comprend pas l'indifférence de Michel quand elle parle du feu au Spot.",
+            'description': r're:Paul-André et Jean-Yves, .+ quand elle parle du feu au Spot.',
             'subtitles': {
                 'fr': 'count:1',
             },
@@ -117,7 +117,7 @@ class TV5UnisIE(TV5UnisBaseIE):
             'id': '4de6d0c6467b4511a0c04b92037a9f15',
             'ext': 'mp4',
             'title': 'Boîte à savon',
-            'description': "Dans le petit village de Broche-à-foin, une bande de jeunes se regroupent pour disputer l'annuelle course de boîtes à savon sur la plus haute montagne de la ville. Hubert, 10 ans, tentera pour la première fois de gagner la course pour séduire Anouk Sauvages, celle qui fait battre son coeur.",
+            'description': r're:Dans le petit village de Broche-à-foin, .+ celle qui fait battre son coeur.',
             'subtitles': {
                 'fr': 'count:1',
             },
