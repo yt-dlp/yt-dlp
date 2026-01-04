@@ -11,6 +11,7 @@ from ..utils import (
     try_get,
 )
 from ..utils.networking import HTTPHeaderDict
+# from ..utils.progress import sleep
 
 
 class YoutubeLiveChatFD(FragmentFD):
@@ -102,6 +103,8 @@ class YoutubeLiveChatFD(FragmentFD):
                 click_tracking_params = continuation_data.get('clickTrackingParams')
                 timeout_ms = int_or_none(continuation_data.get('timeoutMs'))
                 if timeout_ms is not None:
+                    # utils.progress.sleep not used due to conflict with self FD
+                    # sleep(self.ydl, timeout_ms / 1000, 'Waiting for next live chat fragment')
                     time.sleep(timeout_ms / 1000)
             self._append_fragment(ctx, processed_fragment)
             return continuation_id, live_offset, click_tracking_params
