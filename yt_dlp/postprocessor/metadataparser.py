@@ -42,14 +42,16 @@ class MetadataParserPP(PostProcessor):
         to a regex like
            '(?P<title>.+)\ \-\ (?P<artist>.+)'
         """
-        if not re.search(r'%\(\w+\)s', fmt):
-            if re.match(r'\w+', fmt):
-                return rf'(?P<{fmt}>.+)'
+        ALLOWABLE_GROUP_NAME_RE = r'[a-zA-Z](?:[a-zA-Z0-9_]+)?'
+        if not re.search(rf'%\({ALLOWABLE_GROUP_NAME_RE}\)s', fmt):
+            if re.fullmatch(ALLOWABLE_GROUP_NAME_RE, fmt):
+                # convert a single field name into regex pattern that matches the entire input
+                return rf'(?s)(?P<{fmt}>.+)'
             return fmt
         lastpos = 0
         regex = ''
         # replace %(..)s with regex group and escape other string parts
-        for match in re.finditer(r'%\((\w+)\)s', fmt):
+        for match in re.finditer(rf'%\(({ALLOWABLE_GROUP_NAME_RE})\)s', fmt):
             regex += re.escape(fmt[lastpos:match.start()])
             regex += rf'(?P<{match.group(1)}>.+)'
             lastpos = match.end()
