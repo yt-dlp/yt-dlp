@@ -20,7 +20,13 @@ from test.test_sabr.test_stream.helpers import (
     AdWaitAVProfile,
     SabrContextSendingPolicyAVProfile, PoTokenAVProfile,
 )
-from yt_dlp.extractor.youtube._streaming.sabr.exceptions import SabrStreamError, PoTokenError
+from yt_dlp.extractor.youtube._proto.videostreaming.reload_player_response import ReloadPlaybackParams
+from yt_dlp.extractor.youtube._streaming.sabr.exceptions import (
+    SabrStreamError,
+    PoTokenError,
+    SabrStreamConsumedError,
+    MediaSegmentMismatchError,
+)
 from yt_dlp.extractor.youtube._streaming.ump import UMPPartId, UMPPart
 from yt_dlp.networking.exceptions import TransportError, HTTPError, RequestError
 
@@ -36,6 +42,7 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     TimeRange,
     SabrError,
     SabrContext,
+    ReloadPlayerResponse,
 )
 from yt_dlp.utils import parse_qs
 
@@ -64,7 +71,7 @@ def setup_sabr_stream_av(
 
 
 class TestStream:
-    def test_sabr_audio_video(self, logger, client_info):
+    def test_audio_video(self, logger, client_info):
         # Basic successful case that both audio and video formats are requested and returned.
         sabr_stream, rh, selectors = setup_sabr_stream_av(
             sabr_response_processor=BasicAudioVideoProfile(),
@@ -91,7 +98,7 @@ class TestStream:
 
         assert len(rh.request_history) == 6
 
-    def test_sabr_basic_buffers(self, logger, client_info):
+    def test_basic_buffers(self, logger, client_info):
         # Check that basic audio and video buffering works as expected
         # with player time updates based on the shorter of the two streams.
         sabr_stream, rh, _ = setup_sabr_stream_av(
@@ -148,7 +155,7 @@ class TestStream:
                 time_range=TimeRange(start_ticks=0, duration_ticks=9001, timescale=1000))]
         assert rh.request_history[5].vpabr.client_abr_state.player_time_ms == 9001
 
-    def test_sabr_sps_ok(self, logger, client_info):
+    def test_sps_ok(self, logger, client_info):
         # Should not fail on SPS OK status (when po token is provided)
         sabr_stream, rh, selectors = setup_sabr_stream_av(
             sabr_response_processor=PoTokenAVProfile({'sps_status': PoTokenStatusSabrPart.PoTokenStatus.OK}),
@@ -162,7 +169,7 @@ class TestStream:
         assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
         assert len(rh.request_history) == 6
 
-    def test_sabr_request_number(self, logger, client_info):
+    def test_request_number(self, logger, client_info):
         # Should set the "rn" query parameter correctly on each request
         sabr_stream, rh, _ = setup_sabr_stream_av(
             sabr_response_processor=BasicAudioVideoProfile(),
@@ -176,7 +183,7 @@ class TestStream:
             actual_rn = parse_qs(request_details.request.url).get('rn', [None])[0]
             assert actual_rn == expected_rn, f'Expected rn={expected_rn}, got rn={actual_rn}'
 
-    def test_sabr_request_headers(self, logger, client_info):
+    def test_request_headers(self, logger, client_info):
         # Should set the correct headers on each request
         sabr_stream, rh, _ = setup_sabr_stream_av(
             sabr_response_processor=BasicAudioVideoProfile(),
@@ -191,7 +198,7 @@ class TestStream:
             assert request.headers.get('accept-encoding') == 'identity'
             assert request.headers.get('accept') == 'application/vnd.yt-ump'
 
-    def test_sabr_basic_redirect(self, logger, client_info):
+    def test_basic_redirect(self, logger, client_info):
         # Test successful redirect handling
         sabr_stream, rh, selectors = setup_sabr_stream_av(
             sabr_response_processor=SabrRedirectAVProfile(),
@@ -212,7 +219,7 @@ class TestStream:
         assert rh.request_history[4].request.url == 'https://redirect.example.com/final?rn=5'
         assert sabr_stream.url == 'https://redirect.example.com/final'
 
-    def test_sabr_reject_http_url(self, logger, client_info):
+    def test_reject_http_url(self, logger, client_info):
         # Do not allow HTTP URLs for server_abr_streaming_url
         rh = SabrRequestHandler(sabr_response_processor=BasicAudioVideoProfile())
         audio_selector = AudioSelector(display_name='audio')
@@ -228,7 +235,7 @@ class TestStream:
                 video_selection=video_selector,
             )
 
-    def test_sabr_url_update(self, logger, client_info):
+    def test_url_update(self, logger, client_info):
         # Should allow the caller to update the URL mid-stream and use it
         sabr_stream, rh, selectors = setup_sabr_stream_av(
             sabr_response_processor=BasicAudioVideoProfile(),
@@ -260,11 +267,73 @@ class TestStream:
         assert rh.request_history[5].request.url == 'https://new.example.com/sabr?rn=6'
         assert sabr_stream.url == 'https://new.example.com/sabr'
 
+    def test_close_prevents_iteration(self, logger, client_info):
+        # If the stream is closed before iteration, it should be marked as consumed
+        # and any attempt to use it should raise SabrStreamConsumedError
+        sabr_stream, rh, _ = setup_sabr_stream_av(
+            sabr_response_processor=BasicAudioVideoProfile(),
+            client_info=client_info,
+            logger=logger,
+        )
+
+        sabr_stream.close()
+
+        with pytest.raises(SabrStreamConsumedError, match='SABR stream has already been consumed'):
+            list(sabr_stream.iter_parts())
+        assert not rh.request_history
+
+    def test_consumed_after_full_iteration(self, logger, client_info):
+        # After fully consuming the stream, any attempt to use it should raise SabrStreamConsumedError
+        sabr_stream, _, _ = setup_sabr_stream_av(
+            sabr_response_processor=BasicAudioVideoProfile(),
+            client_info=client_info,
+            logger=logger,
+        )
+        list(sabr_stream.iter_parts())
+
+        # Further attempts to iterate should raise
+        with pytest.raises(SabrStreamConsumedError):
+            list(sabr_stream.iter_parts())
+
+    def test_close_mid_iteration_stops(self, logger, client_info):
+        # Closing the stream mid-iteration should mark the stream as consumed
+        # and only yield remaining parts from the current response.
+        sabr_stream, rh, _ = setup_sabr_stream_av(
+            sabr_response_processor=BasicAudioVideoProfile(),
+            client_info=client_info,
+            logger=logger,
+        )
+        parts_iter = sabr_stream.iter_parts()
+        # First part from first request
+        next(parts_iter)
+        requests_before_close = len(rh.request_history)
+
+        sabr_stream.close()
+        # Get remaining parts from current response
+        list(parts_iter)
+        # No additional requests should have been made after close
+        assert len(rh.request_history) == requests_before_close
+        with pytest.raises(SabrStreamConsumedError):
+            list(sabr_stream.iter_parts())
+
+    def test_iterator(self, logger, client_info):
+        # Should allow SabrStream to be used as an interator directly
+        sabr_stream, _, selectors = setup_sabr_stream_av(
+            sabr_response_processor=BasicAudioVideoProfile(),
+            client_info=client_info,
+            logger=logger,
+        )
+        audio_selector, video_selector = selectors
+
+        parts = list(sabr_stream)
+        assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
+        assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+
     @pytest.mark.parametrize(
         'bad_url',
         [None, '', 'bad-url%', 'http://insecure.example.com', 'file:///etc/passwd', 'https://example.org/sabr'],
         ids=['none', 'empty', 'malformed', 'insecure', 'file scheme', 'different domain'])
-    def test_sabr_update_url_invalid(self, logger, client_info, bad_url):
+    def test_update_url_invalid(self, logger, client_info, bad_url):
         # Should reject invalid URLs relative to the current URL when updating sabr_stream.url
         sabr_stream, _, _ = setup_sabr_stream_av(
             sabr_response_processor=BasicAudioVideoProfile(),
@@ -282,7 +351,7 @@ class TestStream:
         'bad_url',
         [None, '', 'bad-url%', 'http://insecure.example.com', 'file:///etc/passwd', 'https://example.org/sabr'],
         ids=['none', 'empty', 'malformed', 'insecure', 'file scheme', 'different domain'])
-    def test_sabr_process_redirect_invalid_url(self, logger, client_info, bad_url):
+    def test_process_redirect_invalid_url(self, logger, client_info, bad_url):
         # Should ignore an invalid redirect URl and continue with the current URL
         sabr_stream, rh, selectors = setup_sabr_stream_av(
             sabr_response_processor=SabrRedirectAVProfile({'redirects': {2: {'url': bad_url, 'replace': True}}}),
@@ -297,7 +366,7 @@ class TestStream:
         assert sabr_stream.url == 'https://example.com/sabr'
         logger.warning.assert_any_call(f'Server requested to redirect to an invalid URL: {bad_url}')
 
-    def test_sabr_set_live_from_url_source(self, logger, client_info):
+    def test_set_live_from_url_source(self, logger, client_info):
         # Should set is_live to True based on source URL parameter
         sabr_stream, _, _ = setup_sabr_stream_av(
             client_info=client_info,
@@ -307,7 +376,7 @@ class TestStream:
         assert sabr_stream.url == 'https://example.com/sabr?source=yt_live_broadcast'
         assert sabr_stream.processor.is_live is True
 
-    def test_sabr_nonlive_ignore_broadcast_id_update(self, logger, client_info):
+    def test_nonlive_ignore_broadcast_id_update(self, logger, client_info):
         # Should ignore broadcast_id updates in URL when non-live
         sabr_stream, _, _ = setup_sabr_stream_av(
             client_info=client_info,
@@ -321,7 +390,7 @@ class TestStream:
         assert sabr_stream.url == 'https://example.com/sabr?id=2'
 
     @pytest.mark.parametrize('post_live', [True, False], ids=['post_live=True', 'post_live=False'])
-    def test_sabr_live_error_on_broadcast_id_update(self, logger, client_info, post_live):
+    def test_live_error_on_broadcast_id_update(self, logger, client_info, post_live):
         # Should raise an error if broadcast_id changes for live stream. Post live flag should not affect this.
         sabr_stream, _, _ = setup_sabr_stream_av(
             client_info=client_info,
@@ -334,8 +403,77 @@ class TestStream:
         with pytest.raises(SabrStreamError, match=r'Broadcast ID changed from 1 to 2\. The download will need to be restarted\.'):
             sabr_stream.url = 'https://example.com/sabr?source=yt_live_broadcast&id=2'
 
+    def test_reload_player_response(self, logger, client_info):
+        # Should yield a RefreshPlayerResponseSabrPart when instructed to reload the player response
+        def inject_reload_player_response(parts, vpabr, url, request_number):
+            if request_number == 1:
+                payload = protobug.dumps(ReloadPlayerResponse(
+                    reload_playback_params=ReloadPlaybackParams(token='test token'),
+                ))
+                return [
+                    *parts,
+                    UMPPart(
+                        part_id=UMPPartId.RELOAD_PLAYER_RESPONSE,
+                        size=len(payload),
+                        data=io.BytesIO(payload),
+                    ),
+                ]
+            return parts
+
+        sabr_stream, _, _ = setup_sabr_stream_av(
+            client_info=client_info,
+            logger=logger,
+            sabr_response_processor=CustomAVProfile({'custom_parts_function': inject_reload_player_response}),
+        )
+        # Retrieve parts until we get a RefreshPlayerResponseSabrPart
+        refresh_part = None
+        for part in sabr_stream.iter_parts():
+            if isinstance(part, RefreshPlayerResponseSabrPart):
+                refresh_part = part
+                break
+        assert refresh_part is not None
+        assert refresh_part.reason == RefreshPlayerResponseSabrPart.Reason.SABR_RELOAD_PLAYER_RESPONSE
+        assert refresh_part.reload_playback_token == 'test token'
+
+    def test_nonlive_segment_mismatch_error(self, logger, client_info):
+        # Should raise an error on segment sequence mismatch for non-live streams
+        def skip_segment_func(parts, vpabr, url, request_number):
+            # Skip the first media segment on second request
+            if request_number == 2:
+                # Skip the first media_header, media, media_end parts in request
+                # Should be the first three parts
+                return parts[3:]
+            return parts
+
+        sabr_stream, rh, _ = setup_sabr_stream_av(
+            client_info=client_info,
+            logger=logger,
+            sabr_response_processor=CustomAVProfile({'custom_parts_function': skip_segment_func}),
+        )
+
+        with pytest.raises(
+            MediaSegmentMismatchError,
+            match=r'Segment sequence number mismatch for format FormatId\(itag=140, lmt=123, xtags=None\): expected 2, received 3',
+        ) as exc_info:
+            list(sabr_stream.iter_parts())
+
+        assert exc_info.value.expected_sequence_number == 2
+        assert exc_info.value.received_sequence_number == 3
+
+        # Should have made two requests before failing
+        assert len(rh.request_history) == 2
+
     class TestExpiry:
-        def test_sabr_expiry_refresh_player_response(self, logger, client_info):
+        def test_expiry_threshold_sec_validation(self, logger, client_info):
+            # Should raise ValueError if expiry_threshold_sec is negative
+            with pytest.raises(ValueError, match='expiry_threshold_sec must be greater than 0'):
+                setup_sabr_stream_av(
+                    client_info=client_info,
+                    logger=logger,
+                    expiry_threshold_sec=-10,
+                )
+
+        def test_expiry_refresh_player_response(self, logger, client_info):
             # Should yield a refresh player response part if within the expiry time
             # This should occur before the next request
             expires_at = int(time.time() + 30)  # 30 seconds from now
@@ -357,7 +495,7 @@ class TestStream:
             assert refresh_part.reason == RefreshPlayerResponseSabrPart.Reason.SABR_URL_EXPIRY
             logger.debug.assert_called_with(r'Requesting player response refresh as SABR URL is due to expire within 60 seconds')
 
-        def test_sabr_expiry_threshold_sec(self, logger, client_info):
+        def test_expiry_threshold_sec(self, logger, client_info):
             # Should use the configured expiry threshold seconds when determining to refresh player response
             expires_at = int(time.time() + 100)  # 100 seconds from now
             sabr_stream, rh, _ = setup_sabr_stream_av(
@@ -379,7 +517,7 @@ class TestStream:
             assert refresh_part.reason == RefreshPlayerResponseSabrPart.Reason.SABR_URL_EXPIRY
             logger.debug.assert_called_with(r'Requesting player response refresh as SABR URL is due to expire within 120 seconds')
 
-        def test_sabr_no_expiry_in_url(self, logger, client_info):
+        def test_no_expiry_in_url(self, logger, client_info):
             # Should not yield a refresh player response part if no expiry in URL
             # It should log a warning about missing expiry
             sabr_stream, _, _ = setup_sabr_stream_av(
@@ -391,7 +529,7 @@ class TestStream:
             assert all(not isinstance(part, RefreshPlayerResponseSabrPart) for part in parts)
             logger.warning.assert_called_with('No expiry timestamp found in SABR URL. Will not be able to refresh.', once=True)
 
-        def test_sabr_not_expired(self, logger, client_info):
+        def test_not_expired(self, logger, client_info):
             # Should not yield a refresh player response part if not within the expiry threshold
             expires_at = int(time.time() + 300)  # 5 minutes from now
             sabr_stream, _, _ = setup_sabr_stream_av(
@@ -404,7 +542,7 @@ class TestStream:
             assert all(not isinstance(part, RefreshPlayerResponseSabrPart) for part in parts)
 
     class TestRequestRetries:
-        def test_sabr_retry_on_transport_error(self, logger, client_info):
+        def test_retry_on_transport_error(self, logger, client_info):
             # Should retry on TransportError occurring during request
             sabr_stream, rh, selectors = setup_sabr_stream_av(
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': [2]}),
@@ -435,7 +573,7 @@ class TestStream:
             # Should log the retry attempt
             logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (1/10)...')
 
-        def test_sabr_retry_on_http_5xx(self, logger, client_info):
+        def test_retry_on_http_5xx(self, logger, client_info):
             # Should retry on HTTP 5xx errors
             sabr_stream, rh, selectors = setup_sabr_stream_av(
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'http', 'status': 500, 'rn': [2]}),
@@ -463,7 +601,7 @@ class TestStream:
             # Should log the retry attempt
             logger.warning.assert_any_call('[sabr] Got error: HTTP Error 500: Internal Server Error. Retrying (1/10)...')
 
-        def test_sabr_no_retry_on_http_4xx(self, logger, client_info):
+        def test_no_retry_on_http_4xx(self, logger, client_info):
             # Should NOT retry on HTTP 4xx errors and should raise SabrStreamError
             sabr_stream, rh, _ = setup_sabr_stream_av(
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'http', 'status': 404, 'rn': [2]}),
@@ -481,7 +619,7 @@ class TestStream:
             assert rh.request_history[i_err].error.status == 404
             assert len(rh.request_history) == i_err + 1
 
-        def test_sabr_no_retry_on_request_error(self, logger, client_info):
+        def test_no_retry_on_request_error(self, logger, client_info):
             # Should NOT retry on RequestError (non-network error)
             sabr_stream, rh, _ = setup_sabr_stream_av(
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'request', 'rn': [2]}),
@@ -498,7 +636,7 @@ class TestStream:
             assert isinstance(rh.request_history[i_err].error, RequestError)
             assert len(rh.request_history) == i_err + 1
 
-        def test_sabr_multiple_retries(self, logger, client_info):
+        def test_multiple_retries(self, logger, client_info):
             # Should retry multiple times on consecutive errors
             sabr_stream, rh, selectors = setup_sabr_stream_av(
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': [2, 3, 4]}),
@@ -531,7 +669,7 @@ class TestStream:
             logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (2/10)...')
             logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (3/10)...')
 
-        def test_sabr_reset_retry_counter(self, logger, client_info):
+        def test_reset_retry_counter(self, logger, client_info):
             # Should reset the retry counter after a successful request
             sabr_stream, rh, selectors = setup_sabr_stream_av(
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': [2, 4]}),
@@ -564,7 +702,7 @@ class TestStream:
             logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (1/10)...')
             logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (1/10)...')
 
-        def test_sabr_exceed_max_retries(self, logger, client_info):
+        def test_exceed_max_retries(self, logger, client_info):
             # Should raise SabrStreamError after exceeding max retries
             sabr_stream, rh, _ = setup_sabr_stream_av(
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(2, 15))}),
@@ -586,7 +724,7 @@ class TestStream:
             for i in range(1, 11):
                 logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/10)...')
 
-        def test_sabr_http_retries_option(self, logger, client_info):
+        def test_http_retries_option(self, logger, client_info):
             # Should respect the http_retries option for max retries
             sabr_stream, rh, _ = setup_sabr_stream_av(
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(2, 8))}),
@@ -609,7 +747,7 @@ class TestStream:
             for i in range(1, 6):
                 logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/5)...')
 
-        def test_sabr_http_retry_sleep_func(self, logger, client_info):
+        def test_http_retry_sleep_func(self, logger, client_info):
             # Should call the retry_sleep_func between retries to get the sleep duration
             # For this test, we want to return 0.001 as the sleep
             sleep_mock = MagicMock()
@@ -635,7 +773,7 @@ class TestStream:
             # Should log the sleep
             logger.info.assert_any_call('Sleeping 0.00 seconds ...')
 
-        def test_sabr_expiry_on_retry(self, logger, client_info):
+        def test_expiry_on_retry(self, logger, client_info):
             # Should check for expiry before retrying and yield RefreshPlayerResponseSabrPart if within threshold
             expires_at = int(time.time() + 30)  # 30 seconds from now
             sabr_stream, _, __ = setup_sabr_stream_av(
@@ -658,7 +796,7 @@ class TestStream:
             refresh_parts = [part for part in parts if isinstance(part, RefreshPlayerResponseSabrPart)]
             assert len(refresh_parts) == 6
 
-        def test_sabr_increment_rn_on_retry(self, logger, client_info):
+        def test_increment_rn_on_retry(self, logger, client_info):
             # Should increment the "rn" parameter on each retry request
             sabr_stream, rh, _ = setup_sabr_stream_av(
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': [2, 3, 4]}),
@@ -681,7 +819,7 @@ class TestStream:
 
     class TestResponseRetries:
 
-        def test_sabr_retry_on_response_error(self, logger, client_info):
+        def test_retry_on_response_error(self, logger, client_info):
             # Should retry on SabrResponseError occurring during response processing
             sabr_stream, rh, selectors = setup_sabr_stream_av(
                 sabr_response_processor=CustomAVProfile({'custom_parts_function': lambda parts, vpabr, url, request_number: [TransportError('simulated SABR response error')] if request_number == 2 else parts}),
@@ -713,7 +851,7 @@ class TestStream:
             # Should log the retry attempt
             logger.warning.assert_any_call('[sabr] Got error: simulated SABR response error. Retrying (1/10)...')
 
-        def test_sabr_retry_read_failure_media_part(self, logger, client_info):
+        def test_retry_read_failure_media_part(self, logger, client_info):
             # Should retry if a TransportError occurs while reading a media part
             inject_read_error = create_inject_read_error([2], part_id=UMPPartId.MEDIA)
 
@@ -739,7 +877,7 @@ class TestStream:
             # TODO: currently raises a partial segments warning, this is incorrect!
             logger.warning.assert_any_call('[sabr] Got error: simulated read error. Retrying (1/10)...')
 
-        def test_sabr_retry_failure_nth_media_part(self, logger, client_info):
+        def test_retry_failure_nth_media_part(self, logger, client_info):
             # Should retry if a TransportError occurs while reading the Nth media part
             # In this case, the first media part should be processed successfully,
             # so the playback time should NOT be advanced, but buffered ranges should have been updated.
@@ -777,7 +915,7 @@ class TestStream:
             # TODO: currently raises a partial segments warning, this is incorrect!
             logger.warning.assert_any_call('[sabr] Got error: simulated read error. Retrying (1/10)...')
 
-        def test_sabr_retry_on_response_read_failure_end(self, logger, client_info):
+        def test_retry_on_response_read_failure_end(self, logger, client_info):
             # Should retry if a TransportError occurs after we have read all segments in the response and video
             # We can simulate this by adding a informational part at the end that fails to read
             def inject_read_error(parts, vpabr, url, request_number):
@@ -826,7 +964,7 @@ class TestStream:
             logger.warning.assert_any_call('[sabr] Got error: simulated read error. Retrying (1/10)...')
 
     class TestSabrErrorRetries:
-        def test_sabr_retry_on_sabr_error_part(self, logger, client_info):
+        def test_retry_on_sabr_error_part(self, logger, client_info):
             def sabr_error_injector(parts, vpabr, url, request_number):
                 if request_number == 2:
                     message = protobug.dumps(SabrError(action=1, type='simulated SABR error'))
@@ -859,7 +997,7 @@ class TestStream:
             logger.warning.assert_any_call("[sabr] Got error: SABR Protocol Error: SabrError(type='simulated SABR error', action=1, error=None). Retrying (1/10)...")
 
     class TestGVSFallbackRetries:
-        def test_sabr_gvs_fallback_after_8_retries(self, logger, client_info):
+        def test_gvs_fallback_after_8_retries(self, logger, client_info):
             # Should fallback to next gvs server after max retries exceeded
             sabr_stream, rh, selectors = setup_sabr_stream_av(
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(2, 10))}),
@@ -897,7 +1035,7 @@ class TestStream:
 
             logger.warning.assert_any_call('Falling back to host rr1---sn-7654321.googlevideo.com')
 
-        def test_sabr_gvs_fallback_multiple_hosts(self, logger, client_info):
+        def test_gvs_fallback_multiple_hosts(self, logger, client_info):
             # Should keep falling back to next gvs server until default max total attempts exceeded
             sabr_stream, rh, _ = setup_sabr_stream_av(
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(2, 15))}),
@@ -933,7 +1071,7 @@ class TestStream:
             assert 'fallback_count=3' in retry_request_three.request.url
             logger.warning.assert_any_call('Falling back to host rr3---sn-6942067.googlevideo.com')
 
-        def test_sabr_gvs_fallback_threshold_option(self, logger, client_info):
+        def test_gvs_fallback_threshold_option(self, logger, client_info):
             # Should respect the host_fallback_threshold option for retries before fallback
             sabr_stream, rh, _ = setup_sabr_stream_av(
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(2, 5))}),
@@ -969,7 +1107,7 @@ class TestStream:
 
             logger.warning.assert_any_call('Falling back to host rr1---sn-7654321.googlevideo.com')
 
-        def test_sabr_gvs_fallback_no_fallback_available(self, logger, client_info):
+        def test_gvs_fallback_no_fallback_available(self, logger, client_info):
             # Should not fallback if there are no fallback options available
             sabr_stream, rh, _ = setup_sabr_stream_av(
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(2, 15))}),
@@ -1253,7 +1391,7 @@ class TestStream:
                 logger.warning.assert_any_call(f'[sabr] Got error: simulated read error. Retrying ({i}/3)...')
 
     class TestAdWait:
-        def test_sabr_ad_wait(self, logger, client_info):
+        def test_ad_wait(self, logger, client_info):
             # Should send back SabrContextUpdate and wait the specified time in the next request policy
             sabr_stream, rh, selectors = setup_sabr_stream_av(
                 sabr_response_processor=AdWaitAVProfile(),
@@ -1284,7 +1422,7 @@ class TestStream:
             assert sabr_stream.processor.sabr_context_updates[5].scope >= AdWaitAVProfile.CONTEXT_UPDATE_SCOPE
             assert AdWaitAVProfile.CONTEXT_UPDATE_TYPE in sabr_stream.processor.sabr_contexts_to_send
 
-        def test_sabr_sending_policy(self, logger, client_info):
+        def test_sending_policy(self, logger, client_info):
             # Should respect the sending policy part to update sabr context state
             sabr_stream, rh, selectors = setup_sabr_stream_av(
                 sabr_response_processor=SabrContextSendingPolicyAVProfile(),
