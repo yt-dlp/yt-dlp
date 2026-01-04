@@ -102,7 +102,7 @@ class RadikoBaseIE(InfoExtractor):
         self._FULL_KEY = full_key
         return full_key
 
-    def _find_program(self, cursor: float | int | None, station_program: ElementTree) -> tuple[Element | None, int| None, Any, Any]:
+    def _find_program(self, cursor: float | int | None, station_program: ElementTree) -> tuple[Element | None, int | None, Any, Any]:
         prog = None
         for p in station_program.findall('.//prog'):
             ft_str, to_str = p.attrib['ft'], p.attrib['to']
