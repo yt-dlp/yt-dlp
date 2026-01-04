@@ -1,11 +1,10 @@
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     int_or_none,
     make_archive_id,
     parse_age_limit,
-    traverse_obj,
 )
+from ..utils.traversal import traverse_obj
 
 
 class TV5UnisBaseIE(InfoExtractor):
@@ -42,13 +41,11 @@ class TV5UnisBaseIE(InfoExtractor):
   }
 }''' % (self._GQL_QUERY_NAME, self._gql_args(groups)),  # noqa: UP031
             })['data'][self._GQL_QUERY_NAME]
-        video = product['videoElement']
-        if video is None:
-            raise ExtractorError('No video element found')
 
+        video = product['videoElement']
         media_id = video['mediaId']
-        video_url = video['encodings']['hls']['url']
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, media_id, 'mp4')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            video['encodings']['hls']['url'], media_id, 'mp4')
 
         return {
             'id': media_id,
@@ -70,8 +67,8 @@ class TV5UnisBaseIE(InfoExtractor):
 
 class TV5UnisVideoIE(TV5UnisBaseIE):
     IE_NAME = 'tv5unis:video'
-    _VALID_URL = r'https?://(?:www\.)?tv5unis\.ca/videos/[^/]+/(?P<id>\d+)'
-    _TEST = {
+    _VALID_URL = r'https?://(?:www\.)?tv5unis\.ca/videos/[^/?#]+/(?P<id>\d+)'
+    _TESTS = [{
         'url': 'https://www.tv5unis.ca/videos/bande-annonces/144041',
         'md5': '24a247c96119d77fe1bae8b440457dfa',
         'info_dict': {
@@ -82,7 +79,7 @@ class TV5UnisVideoIE(TV5UnisBaseIE):
             'description': r"re:En aidant son frère .+ dicté par l'amour et la solidarité.",
             'duration': 61,
         },
-    }
+    }]
     _GQL_QUERY_NAME = 'productById'
 
     @staticmethod
@@ -92,7 +89,7 @@ class TV5UnisVideoIE(TV5UnisBaseIE):
 
 class TV5UnisIE(TV5UnisBaseIE):
     IE_NAME = 'tv5unis'
-    _VALID_URL = r'https?://(?:www\.)?tv5unis\.ca/videos/(?P<id>[^/]+)(?:/saisons/(?P<season_number>\d+)/episodes/(?P<episode_number>\d+))?/?(?:[?#&]|$)'
+    _VALID_URL = r'https?://(?:www\.)?tv5unis\.ca/videos/(?P<id>[^/?#]+)(?:/saisons/(?P<season_number>\d+)/episodes/(?P<episode_number>\d+))?/?(?:[?#&]|$)'
     _TESTS = [{
         'url': 'https://www.tv5unis.ca/videos/watatatow/saisons/11/episodes/1',
         'md5': '43beebd47eefb1c5caf9a47a3fc35589',
