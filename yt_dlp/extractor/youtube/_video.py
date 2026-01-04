@@ -4035,7 +4035,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         } for name in thumbnail_names for ext in ('webp', 'jpg'))
         for thumb in thumbnails:
             i = next((i for i, t in enumerate(thumbnail_names) if f'/{video_id}/{t}' in thumb['url']), n_thumbnail_names)
-            thumb['preference'] = (0 if '.webp' in thumb['url'] else -1) - (2 * i)
+            thumb['preference'] = (0 if '.jpg' in thumb['url'] else -1) - (2 * i)
         self._remove_duplicate_formats(thumbnails)
         self._downloader._sort_thumbnails(original_thumbnails)
 
