@@ -81,7 +81,7 @@ class TikTokBaseIE(InfoExtractor):
             }
             self._APP_INFO_POOL = [
                 {**defaults, **dict(
-                    (k, v) for k, v in zip(self._APP_INFO_DEFAULTS, app_info.split('/')) if v
+                    (k, v) for k, v in zip(self._APP_INFO_DEFAULTS, app_info.split('/'), strict=False) if v
                 )} for app_info in self._KNOWN_APP_INFO
             ]
 
@@ -454,6 +454,7 @@ class TikTokBaseIE(InfoExtractor):
                 'like_count': 'digg_count',
                 'repost_count': 'share_count',
                 'comment_count': 'comment_count',
+                'save_count': 'collect_count',
             }, expected_type=int_or_none),
             **author_info,
             'channel_url': format_field(author_info, 'channel_id', self._UPLOADER_URL_FORMAT, default=None),
@@ -607,6 +608,7 @@ class TikTokBaseIE(InfoExtractor):
                 'like_count': 'diggCount',
                 'repost_count': 'shareCount',
                 'comment_count': 'commentCount',
+                'save_count': 'collectCount',
             }), expected_type=int_or_none),
             'thumbnails': [
                 {
@@ -646,6 +648,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
             'artist': 'Ysrbeats',
             'album': 'Lehanga',
             'track': 'Lehanga',
@@ -675,6 +678,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
             'artists': ['Evan Todd', 'Jessica Keenan Wynn', 'Alice Lee', 'Barrett Wilbert Weed', 'Jon Eidson'],
             'track': 'Big Fun',
         },
@@ -702,6 +706,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
         },
     }, {
         # Sponsored video, only available with feed workaround
@@ -725,6 +730,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
         },
         'skip': 'This video is unavailable',
     }, {
@@ -751,6 +757,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
         },
     }, {
         # hydration JSON is sent in a <script> element
@@ -773,6 +780,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
         },
         'skip': 'This video is unavailable',
     }, {
@@ -798,6 +806,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
             'thumbnail': r're:^https://.+\.(?:webp|jpe?g)',
         },
     }, {
@@ -824,6 +833,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
             'thumbnail': r're:^https://.+',
             'thumbnails': 'count:3',
         },
@@ -851,6 +861,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
             'thumbnail': r're:^https://.+\.webp',
         },
         'skip': 'Unavailable via feed API, only audio available via web',
@@ -879,6 +890,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'comment_count': int,
             'repost_count': int,
+            'save_count': int,
             'thumbnail': r're:^https://.+\.(?:webp|jpe?g)',
         },
     }, {
@@ -1074,9 +1086,12 @@ class TikTokUserIE(TikTokBaseIE):
                 fatal=False, impersonate=True) or ''
             detail = traverse_obj(
                 self._get_universal_data(webpage, user_name), ('webapp.user-detail', {dict})) or {}
-            if detail.get('statusCode') == 10222:
+            video_count = traverse_obj(detail, ('userInfo', ('stats', 'statsV2'), 'videoCount', {int}, any))
+            if not video_count and detail.get('statusCode') == 10222:
                 self.raise_login_required(
                     'This user\'s account is private. Log into an account that has access')
+            elif video_count == 0:
+                raise ExtractorError('This account does not have any videos posted', expected=True)
             sec_uid = traverse_obj(detail, ('userInfo', 'user', 'secUid', {str}))
             if sec_uid:
                 fail_early = not traverse_obj(detail, ('userInfo', 'itemList', ...))
@@ -1285,6 +1300,7 @@ class DouyinIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
             'thumbnail': r're:https?://.+\.jpe?g',
         },
     }, {
@@ -1309,6 +1325,7 @@ class DouyinIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
             'thumbnail': r're:https?://.+\.jpe?g',
         },
     }, {
@@ -1333,6 +1350,7 @@ class DouyinIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
             'thumbnail': r're:https?://.+\.jpe?g',
         },
     }, {
@@ -1350,6 +1368,7 @@ class DouyinIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
         },
         'skip': 'No longer available',
     }, {
@@ -1374,6 +1393,7 @@ class DouyinIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'save_count': int,
             'thumbnail': r're:https?://.+\.jpe?g',
         },
     }]
@@ -1434,6 +1454,7 @@ class TikTokVMIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'comment_count': int,
+            'save_count': int,
             'thumbnail': r're:https://.+\.webp.*',
             'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAdZ_NcPPgMneaGrW0hN8O_J_bwLshwNNERRF5DxOw2HKIzk0kdlLrR8RkVl1ksrMO',
             'duration': 29,

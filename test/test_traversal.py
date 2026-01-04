@@ -417,7 +417,7 @@ class TestTraversal:
 
     def test_traversal_morsel(self):
         morsel = http.cookies.Morsel()
-        values = dict(zip(morsel, 'abcdefghijklmnop'))
+        values = dict(zip(morsel, 'abcdefghijklmnop', strict=False))
         morsel.set('item_key', 'item_value', 'coded_value')
         morsel.update(values)
         values['key'] = 'item_key'
