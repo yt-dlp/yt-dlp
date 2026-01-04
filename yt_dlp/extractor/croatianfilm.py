@@ -27,6 +27,7 @@ class CroatianFilmIE(InfoExtractor):
         'params': {'skip_download': 'm3u8'},
         'expected_warnings': ['Failed to parse XML: not well-formed'],
     }, {
+        # geo-restricted but works with xff
         'url': 'https://www.croatian.film/en/films/77144',
         'info_dict': {
             'id': '1144997795',
