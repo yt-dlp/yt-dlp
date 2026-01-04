@@ -41,14 +41,6 @@ Core Maintainers are responsible for reviewing and merging contributions, publis
 * Improved/fixed/added Bundestag, crunchyroll, pr0gramm, Twitter, WrestleUniverse etc
 
 
-### [sepro](https://github.com/seproDev)
-
-* UX improvements: Warn when ffmpeg is missing, warn when double-clicking exe
-* Helped in implementing support for external JavaScript runtimes/engines
-* Code cleanup: Remove dead extractors, mark extractors as broken, enable/apply ruff rules
-* Improved/fixed/added ArdMediathek, DRTV, Floatplane, MagentaMusik, Naver, Nebula, OnDemandKorea, Vbox7 etc
-
-
 ## Inactive Core Maintainers
 
 ### [pukkandan](https://github.com/pukkandan)
@@ -76,6 +68,15 @@ Core Maintainers are responsible for reviewing and merging contributions, publis
 * Added support for new websites BiliIntl, DiscoveryPlusIndia, OlympicsReplay, PlanetMarathi, ShemarooMe, Utreon, Zee5 etc
 * Added playlist/series downloads for Hotstar, ParamountPlus, Rumble, SonyLIV, Trovo, TubiTv, Voot etc
 * Improved/fixed support for HiDive, HotStar, Hungama, LBRY, LinkedInLearning, Mxplayer, SonyLiv, TV2, Vimeo, VLive etc
+
+
+### [sepro](https://github.com/seproDev)
+
+* UX improvements: Warn when ffmpeg is missing, warn when double-clicking exe
+* Helped in implementing support for external JavaScript runtimes/engines
+* Code cleanup: Remove dead extractors, mark extractors as broken, enable/apply ruff rules
+* Improved/fixed/added ArdMediathek, DRTV, Floatplane, MagentaMusik, Naver, Nebula, OnDemandKorea, Vbox7 etc
+
 
 ## Triage Maintainers
 
