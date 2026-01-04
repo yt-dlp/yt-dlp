@@ -1,14 +1,18 @@
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     int_or_none,
+    join_nonempty,
     make_archive_id,
     parse_age_limit,
+    remove_end,
 )
 from ..utils.traversal import traverse_obj
 
 
 class TV5UnisBaseIE(InfoExtractor):
     _GEO_COUNTRIES = ['CA']
+    _GEO_BYPASS = False
 
     def _real_extract(self, url):
         groups = self._match_valid_url(url).groups()
@@ -29,6 +33,7 @@ class TV5UnisBaseIE(InfoExtractor):
       name
     }
     videoElement {
+      __typename
       ... on Video {
         mediaId
         encodings {
@@ -37,12 +42,30 @@ class TV5UnisBaseIE(InfoExtractor):
           }
         }
       }
+      ... on RestrictedVideo {
+        code
+        reason
+      }
     }
   }
 }''' % (self._GQL_QUERY_NAME, self._gql_args(groups)),  # noqa: UP031
             })['data'][self._GQL_QUERY_NAME]
 
         video = product['videoElement']
+        if video is None:
+            raise ExtractorError('This content is no longer available', expected=True)
+
+        if video.get('__typename') == 'RestrictedVideo':
+            code = video.get('code')
+            if code == 1001:
+                self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
+            reason = video.get('reason')
+            raise ExtractorError(join_nonempty(
+                'This video is restricted',
+                code is not None and f', error code {code}',
+                reason and f': {remove_end(reason, ".")}',
+                delim=''))
+
         media_id = video['mediaId']
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             video['encodings']['hls']['url'], media_id, 'mp4')
@@ -91,6 +114,7 @@ class TV5UnisIE(TV5UnisBaseIE):
     IE_NAME = 'tv5unis'
     _VALID_URL = r'https?://(?:www\.)?tv5unis\.ca/videos/(?P<id>[^/?#]+)(?:/saisons/(?P<season_number>\d+)/episodes/(?P<episode_number>\d+))?/?(?:[?#&]|$)'
     _TESTS = [{
+        # geo-restricted to Canada; xff is ineffective
         'url': 'https://www.tv5unis.ca/videos/watatatow/saisons/11/episodes/1',
         'md5': '43beebd47eefb1c5caf9a47a3fc35589',
         'info_dict': {
@@ -112,6 +136,7 @@ class TV5UnisIE(TV5UnisBaseIE):
             'episode_number': 1,
         },
     }, {
+        # geo-restricted to Canada; xff is ineffective
         'url': 'https://www.tv5unis.ca/videos/boite-a-savon',
         'md5': '7898e868e8c540f03844660e0aab6bbe',
         'info_dict': {
