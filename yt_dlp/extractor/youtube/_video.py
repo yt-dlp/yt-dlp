@@ -4010,6 +4010,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             if f.get('vcodec') != 'none':
                                 f['stretched_ratio'] = ratio
                         break
+        thumbnail_exts = ('jpg', 'webp')
+        thumbnail_ext_pref = self._configuration_arg('thumbnail_ext', [''], ie_key=YoutubeIE)[0]
+        if thumbnail_ext_pref not in thumbnail_exts:
+            thumbnail_ext_pref = thumbnail_exts[0]
         thumbnails = self._extract_thumbnails((video_details, microformats), (..., ..., 'thumbnail'))
         thumbnail_url = search_meta(['og:image', 'twitter:image'])
         if thumbnail_url:
@@ -4032,10 +4036,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'url': 'https://i.ytimg.com/vi{webp}/{video_id}/{name}{live}.{ext}'.format(
                 video_id=video_id, name=name, ext=ext,
                 webp='_webp' if ext == 'webp' else '', live='_live' if live_status == 'is_live' else ''),
-        } for name in thumbnail_names for ext in ('webp', 'jpg'))
+        } for name in thumbnail_names for ext in thumbnail_exts)
         for thumb in thumbnails:
             i = next((i for i, t in enumerate(thumbnail_names) if f'/{video_id}/{t}' in thumb['url']), n_thumbnail_names)
-            thumb['preference'] = (0 if '.jpg' in thumb['url'] else -1) - (2 * i)
+            thumb['preference'] = (0 if f'.{thumbnail_ext_pref}' in thumb['url'] else -1) - (2 * i)
         self._remove_duplicate_formats(thumbnails)
         self._downloader._sort_thumbnails(original_thumbnails)
 
