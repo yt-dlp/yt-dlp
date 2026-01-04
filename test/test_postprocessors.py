@@ -29,6 +29,8 @@ class TestMetadataFromField(unittest.TestCase):
             MetadataParserPP.format_to_regex('%(title)s - %(artist)s'),
             r'(?P<title>.+)\ \-\ (?P<artist>.+)')
         self.assertEqual(MetadataParserPP.format_to_regex(r'(?P<x>.+)'), r'(?P<x>.+)')
+        self.assertEqual(MetadataParserPP.format_to_regex(r'text (?P<x>.+)'), r'text (?P<x>.+)')
+        self.assertEqual(MetadataParserPP.format_to_regex('field'), r'(?P<field>.+)')
 
     def test_field_to_template(self):
         self.assertEqual(MetadataParserPP.field_to_template('title'), '%(title)s')
