@@ -184,7 +184,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'description': 'md5:deee249c8c9c3e2c54ecdab36e87d174',
             'album_artists': ['ひとひら'],
             'creators': ['ひとひら'],
-            'subtitles': {'lyrics': [{'ext': 'lrc'}]},
+            'subtitles': {'lyrics': [{'ext': 'lrc', 'data': 'md5:d32b4425a5d6c9fa249ca6e803dd0401'}]},
         },
     }, {
         'url': 'https://y.music.163.com/m/song?app_version=8.8.45&id=95670&uct2=sKnvS4+0YStsWkqsPhFijw%3D%3D&dlt=0846',
