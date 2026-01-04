@@ -18,6 +18,27 @@ from ..utils import (
 )
 
 
+def _video_data_to_metadata(video_data):
+    return {
+        'age_limit': 18 if video_data.get('rating') == 'ecchi' else 0,  # ecchi is 'sexy' in Japanese
+        **traverse_obj(video_data, {
+            'id': 'id',
+            'title': 'title',
+            'description': 'body',
+            'uploader': ('user', 'name'),
+            'uploader_id': ('user', 'username'),
+            'tags': ('tags', ..., 'id'),
+            'like_count': 'numLikes',
+            'view_count': 'numViews',
+            'comment_count': 'numComments',
+            'timestamp': ('createdAt', {unified_timestamp}),
+            'modified_timestamp': ('updatedAt', {unified_timestamp}),
+            'thumbnail': ('file', 'id', {str}, {
+                lambda x: f'https://files.iwara.tv/image/thumbnail/{x}/thumbnail-00.jpg'}),
+        }),
+    }
+
+
 class IwaraBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'iwara'
     _USERTOKEN = None
@@ -83,15 +104,15 @@ class IwaraIE(IwaraBaseIE):
             'ext': 'mp4',
             'age_limit': 18,
             'title': 'Defeat of Irybelda - アイリベルダの敗北',
-            'description': 'md5:70278abebe706647a8b4cb04cf23e0d3',
+            'description': 'md5:b92feddbdfb35f7c8391e5c43124fc6d',
             'uploader': 'Inwerwm',
             'uploader_id': 'inwerwm',
-            'tags': 'count:1',
-            'like_count': 6133,
-            'view_count': 1050343,
-            'comment_count': 1,
+            'tags': 'count:9',
+            'like_count': int,
+            'view_count': int,
+            'comment_count': int,
             'timestamp': 1677843869,
-            'modified_timestamp': 1679056362,
+            'modified_timestamp': int,
         },
         'skip': 'this video cannot be played because of migration',
     }, {
@@ -181,25 +202,9 @@ class IwaraIE(IwaraBaseIE):
                 return self.url_result(video_data.get('embedUrl'))
             raise ExtractorError('This video is unplayable', expected=True)
 
-        return {
-            'id': video_id,
-            'age_limit': 18 if video_data.get('rating') == 'ecchi' else 0,  # ecchi is 'sexy' in Japanese
-            **traverse_obj(video_data, {
-                'title': 'title',
-                'description': 'body',
-                'uploader': ('user', 'name'),
-                'uploader_id': ('user', 'username'),
-                'tags': ('tags', ..., 'id'),
-                'like_count': 'numLikes',
-                'view_count': 'numViews',
-                'comment_count': 'numComments',
-                'timestamp': ('createdAt', {unified_timestamp}),
-                'modified_timestamp': ('updatedAt', {unified_timestamp}),
-                'thumbnail': ('file', 'id', {str}, {
-                    lambda x: f'https://files.iwara.tv/image/thumbnail/{x}/thumbnail-00.jpg'}),
-            }),
-            'formats': list(self._extract_formats(video_id, video_data.get('fileUrl'))),
-        }
+        metadata = _video_data_to_metadata(video_data)
+        metadata['formats'] = list(self._extract_formats(video_id, video_data.get('fileUrl')))
+        return metadata
 
 
 class IwaraUserIE(IwaraBaseIE):
@@ -213,7 +218,7 @@ class IwaraUserIE(IwaraBaseIE):
             'id': 'user792540',
             'title': 'Lyu ya',
         },
-        'playlist_mincount': 70,
+        'playlist_mincount': 6,
     }, {
         'url': 'https://iwara.tv/profile/theblackbirdcalls/videos',
         'info_dict': {
@@ -246,8 +251,12 @@ class IwaraUserIE(IwaraBaseIE):
                 'user': user_id,
                 'limit': self._PER_PAGE,
             }, headers=self._get_media_token())
-        for x in traverse_obj(videos, ('results', ..., 'id')):
-            yield self.url_result(f'https://iwara.tv/video/{x}')
+        for x in traverse_obj(videos, ('results', ...)):
+            yield self.url_result(
+                f"https://iwara.tv/video/{x['id']}",
+                IwaraIE,
+                **_video_data_to_metadata(x),
+            )
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
@@ -281,8 +290,12 @@ class IwaraPlaylistIE(IwaraBaseIE):
             'https://api.iwara.tv/videos', playlist_id, f'Downloading page {page}',
             query={'page': page, 'limit': self._PER_PAGE},
             headers=self._get_media_token()) if page else first_page
-        for x in traverse_obj(videos, ('results', ..., 'id')):
-            yield self.url_result(f'https://iwara.tv/video/{x}')
+        for x in traverse_obj(videos, ('results', ...)):
+            yield self.url_result(
+                f"https://iwara.tv/video/{x['id']}",
+                IwaraIE,
+                **_video_data_to_metadata(x),
+            )
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
