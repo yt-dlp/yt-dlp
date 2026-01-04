@@ -1857,6 +1857,7 @@ from .simplecast import (
     SimplecastPodcastIE,
 )
 from .sina import SinaIE
+from .skai import SkaiIE
 from .skeb import SkebIE
 from .sky import (
     SkyNewsIE,
