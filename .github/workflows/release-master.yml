@@ -19,30 +19,34 @@ permissions: {}
 
 jobs:
   release:
+    name: Publish Github release
     if: vars.BUILD_MASTER
     permissions:
-      contents: write
-      id-token: write  # mandatory for trusted publishing
+      contents: write  # May be needed to publish release
+      id-token: write  # Needed for trusted publishing
     uses: ./.github/workflows/release.yml
     with:
       prerelease: true
       source: ${{ (github.repository != 'yt-dlp/yt-dlp' && vars.MASTER_ARCHIVE_REPO) || 'master' }}
       target: 'master'
-    secrets: inherit
+    secrets:
+      ARCHIVE_REPO_TOKEN: ${{ secrets.ARCHIVE_REPO_TOKEN }}
+      GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 
   publish_pypi:
+    name: Publish to PyPI
     needs: [release]
     if: vars.MASTER_PYPI_PROJECT
     permissions:
-      id-token: write  # mandatory for trusted publishing
+      id-token: write  # Needed for trusted publishing
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131  # v7.0.0
         with:
           path: dist
           name: build-pypi
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # v1.13.0
         with:
           verbose: true
