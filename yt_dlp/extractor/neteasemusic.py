@@ -156,17 +156,35 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'id': '17241424',
             'ext': 'mp3',
             'title': 'Opus 28',
-            'upload_date': '20080211',
-            'timestamp': 1202745600,
+            'upload_date': '20060912',
+            'timestamp': 1158076800,
             'duration': 263,
             'thumbnail': r're:^http.*\.jpg',
-            'album': 'Piano Solos Vol. 2',
+            'album': 'Piano Solos, Vol. 2',
             'album_artist': 'Dustin O\'Halloran',
             'average_rating': int,
-            'description': '[00:05.00]纯音乐，请欣赏\n',
+            'description': 'md5:b566b92c55ca348df65d206c5d689576',
             'album_artists': ['Dustin O\'Halloran'],
             'creators': ['Dustin O\'Halloran'],
             'subtitles': {'lyrics': [{'ext': 'lrc'}]},
+        },
+    }, {
+        'url': 'https://music.163.com/#/song?id=2755669231',
+        'info_dict': {
+            'id': '2755669231',
+            'ext': 'mp3',
+            'title': '十二月-Departure',
+            'upload_date': '20251111',
+            'timestamp': 1762876800,
+            'duration': 188,
+            'thumbnail': r're:^http.*\.jpg',
+            'album': '円',
+            'album_artist': 'ひとひら',
+            'average_rating': int,
+            'description': 'md5:deee249c8c9c3e2c54ecdab36e87d174',
+            'album_artists': ['ひとひら'],
+            'creators': ['ひとひら'],
+            'subtitles': {'lyrics': [{'ext': 'lrc', 'data': 'md5:d32b4425a5d6c9fa249ca6e803dd0401'}]},
         },
     }, {
         'url': 'https://y.music.163.com/m/song?app_version=8.8.45&id=95670&uct2=sKnvS4+0YStsWkqsPhFijw%3D%3D&dlt=0846',
@@ -241,9 +259,16 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
                 'lyrics': [{'data': original, 'ext': 'lrc'}],
             }
 
-        lyrics_expr = r'(\[[0-9]{2}:[0-9]{2}\.[0-9]{2,}\])([^\n]+)'
-        original_ts_texts = re.findall(lyrics_expr, original)
-        translation_ts_dict = dict(re.findall(lyrics_expr, translated))
+        def collect_lyrics(lrc):
+            lyrics_expr = r'\[([0-9]{2}):([0-9]{2})[:.]([0-9]{2,})\]([^\n]+)'
+            matches = re.findall(lyrics_expr, lrc)
+            return (
+                (f'[{minute}:{sec}.{msec}]', text)
+                for minute, sec, msec, text in matches
+            )
+
+        original_ts_texts = collect_lyrics(original)
+        translation_ts_dict = dict(collect_lyrics(translated))
 
         merged = '\n'.join(
             join_nonempty(f'{timestamp}{text}', translation_ts_dict.get(timestamp, ''), delim=' / ')
