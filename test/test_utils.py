@@ -1280,6 +1280,9 @@ class TestUtil(unittest.TestCase):
         on = js_to_json('[new Date("spam"), \'("eggs")\']')
         self.assertEqual(json.loads(on), ['spam', '("eggs")'], msg='Date regex should match a single string')
 
+        on = js_to_json('[0.077, 7.06, 29.064, 169.0072]')
+        self.assertEqual(json.loads(on), [0.077, 7.06, 29.064, 169.0072])
+
     def test_js_to_json_malformed(self):
         self.assertEqual(js_to_json('42a1'), '42"a1"')
         self.assertEqual(js_to_json('42a-1'), '42"a"-1')
