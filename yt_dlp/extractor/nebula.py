@@ -34,9 +34,9 @@ class NebulaBaseIE(InfoExtractor):
                 data=json.dumps({'email': username, 'password': password}).encode(),
                 headers={
                     'Content-Type': 'application/json',
-                    'Nebula-App-Version': '3.5.2',
+                    'Nebula-App-Version': '25.15.0',
                     'Nebula-Platform': 'android',
-                    'User-Agent': 'Nebula/3.5.2',
+                    'User-Agent': 'Nebula/25.15.0',
                 })
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 400:
