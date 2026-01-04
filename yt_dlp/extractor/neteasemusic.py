@@ -259,16 +259,16 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
                 'lyrics': [{'data': original, 'ext': 'lrc'}],
             }
 
-        def _collect_lyrics(lrc):
-            lyrics_expr = r'\[([0-9]{2}):([0-9]{2})[:\.]([0-9]{2,})\]([^\n]+)'
+        def collect_lyrics(lrc):
+            lyrics_expr = r'\[([0-9]{2}):([0-9]{2})[:.]([0-9]{2,})\]([^\n]+)'
             matches = re.findall(lyrics_expr, lrc)
             return (
-                (f'[{mm}:{ss}.{sss}]', text)
-                for mm, ss, sss, text in matches
+                (f'[{minute}:{sec}.{msec}]', text)
+                for minute, sec, msec, text in matches
             )
 
-        original_ts_texts = _collect_lyrics(original)
-        translation_ts_dict = dict(_collect_lyrics(translated))
+        original_ts_texts = collect_lyrics(original)
+        translation_ts_dict = dict(collect_lyrics(translated))
 
         merged = '\n'.join(
             join_nonempty(f'{timestamp}{text}', translation_ts_dict.get(timestamp, ''), delim=' / ')
