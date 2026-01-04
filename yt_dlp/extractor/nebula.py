@@ -29,10 +29,15 @@ class NebulaBaseIE(InfoExtractor):
     def _perform_login(self, username, password):
         try:
             response = self._download_json(
-                'https://nebula.tv/auth/login/', None,
+                'https://users.api.nebula.app/api/v1/auth/login/', None,
                 'Logging in to Nebula', 'Login failed',
                 data=json.dumps({'email': username, 'password': password}).encode(),
-                headers={'content-type': 'application/json'})
+                headers={
+                    'Content-Type': 'application/json',
+                    'Nebula-App-Version': '3.5.2',
+                    'Nebula-Platform': 'android',
+                    'User-Agent': 'Nebula/3.5.2',
+                })
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                 raise ExtractorError('Login failed: Invalid username or password', expected=True)
