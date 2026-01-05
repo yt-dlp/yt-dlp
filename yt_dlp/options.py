@@ -859,7 +859,7 @@ def create_parser():
     video_format.add_option(
         '--format-sort-reset',
         dest='format_sort', action='store_const', const=[],
-        help='Resets format sort order to yt-dlp default')
+        help='Disregard previous user specified sort order and reset to the default')
     video_format.add_option(
         '--format-sort-force', '--S-force',
         action='store_true', dest='format_sort_force', metavar='FORMAT', default=False,
