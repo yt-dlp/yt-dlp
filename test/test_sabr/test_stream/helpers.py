@@ -36,6 +36,9 @@ DEFAULT_MEDIA_SEGMENT_DATA = b'example-media-segment'
 DEFAULT_DURATION_MS = 10000
 DEFAULT_INIT_SEGMENT_DATA = b'example-init-segment'
 
+DEFAULT_AUDIO_FORMAT = FormatId(itag=140, lmt=123)
+DEFAULT_VIDEO_FORMAT = FormatId(itag=248, lmt=456)
+
 
 def extract_rn(url: str) -> int:
     qs = parse_qs(url)
@@ -136,12 +139,16 @@ class SabrResponseProcessor:
 
     def determine_formats(self, vpabr: VideoPlaybackAbrRequest) -> tuple[FormatId, FormatId]:
         # Check selected_audio_format_ids and selected_video_format_ids
-        # TODO: caption format ids, consider initialized_format_ids, enabled_track_types_bitfield
-        audio_format_ids = vpabr.selected_audio_format_ids
-        video_format_ids = vpabr.selected_video_format_ids
+        # TODO: caption format ids, consider initialized_format_ids
 
-        audio_format_id = audio_format_ids[0] if audio_format_ids else FormatId(itag=140, lmt=123)
-        video_format_id = video_format_ids[0] if video_format_ids else FormatId(itag=248, lmt=456)
+        enabled_track_types_bitfield = vpabr.client_abr_state.enabled_track_types_bitfield
+
+        audio_format_id = vpabr.selected_audio_format_ids[0] if vpabr.selected_audio_format_ids else self.options.get('default_audio_format', DEFAULT_AUDIO_FORMAT)
+        video_format_id = None
+
+        if enabled_track_types_bitfield != 1:
+            video_format_id = vpabr.selected_video_format_ids[0] if vpabr.selected_video_format_ids else self.options.get('default_video_format', DEFAULT_VIDEO_FORMAT)
+
         return audio_format_id, video_format_id
 
     def get_format_initialization_metadata_parts(
@@ -305,33 +312,35 @@ class SabrResponseProcessor:
 class BasicAudioVideoProfile(SabrResponseProcessor):
     def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str, request_number: int) -> list[UMPPart]:
         audio_format_id, video_format_id = self.determine_formats(vpabr)
-        fim_parts = self.get_format_initialization_metadata_parts(
+        parts = self.get_format_initialization_metadata_parts(
             audio_format_id=audio_format_id,
             video_format_id=video_format_id,
             vpabr=vpabr,
         )
+        next_header_id = 0
+        if audio_format_id is not None:
+            audio_segment_parts, next_header_id = self.get_media_segments(
+                buffered_segments=self.buffered_segments(vpabr, DEFAULT_NUM_AUDIO_SEGMENTS, audio_format_id),
+                total_segments=DEFAULT_NUM_AUDIO_SEGMENTS,
+                max_segments=2,
+                player_time_ms=vpabr.client_abr_state.player_time_ms,
+                start_header_id=next_header_id,
+                format_id=audio_format_id,
+            )
+            parts.extend(audio_segment_parts)
 
-        audio_segment_parts, next_header_id = self.get_media_segments(
-            buffered_segments=self.buffered_segments(vpabr, DEFAULT_NUM_AUDIO_SEGMENTS, audio_format_id),
-            total_segments=DEFAULT_NUM_AUDIO_SEGMENTS,
-            max_segments=2,
-            player_time_ms=vpabr.client_abr_state.player_time_ms,
-            start_header_id=0,
-            format_id=audio_format_id,
-        )
-        video_segment_parts, next_header_id = self.get_media_segments(
-            buffered_segments=self.buffered_segments(vpabr, DEFAULT_NUM_VIDEO_SEGMENTS, video_format_id),
-            total_segments=DEFAULT_NUM_VIDEO_SEGMENTS,
-            max_segments=2,
-            player_time_ms=vpabr.client_abr_state.player_time_ms,
-            start_header_id=next_header_id,
-            format_id=video_format_id,
-        )
-        return [
-            *fim_parts,
-            *audio_segment_parts,
-            *video_segment_parts,
-        ]
+        if video_format_id is not None:
+            video_segment_parts, next_header_id = self.get_media_segments(
+                buffered_segments=self.buffered_segments(vpabr, DEFAULT_NUM_VIDEO_SEGMENTS, video_format_id),
+                total_segments=DEFAULT_NUM_VIDEO_SEGMENTS,
+                max_segments=2,
+                player_time_ms=vpabr.client_abr_state.player_time_ms,
+                start_header_id=next_header_id,
+                format_id=video_format_id,
+            )
+            parts.extend(video_segment_parts)
+
+        return parts
 
 
 class SabrRedirectAVProfile(BasicAudioVideoProfile):

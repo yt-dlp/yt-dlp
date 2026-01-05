@@ -52,11 +52,13 @@ def setup_sabr_stream_av(
     sabr_response_processor=None,
     client_info=None,
     logger=None,
+    enable_audio=True,
+    enable_video=True,
     **options,
 ):
     rh = SabrRequestHandler(sabr_response_processor=sabr_response_processor or BasicAudioVideoProfile())
-    audio_selector = AudioSelector(display_name='audio')
-    video_selector = VideoSelector(display_name='video')
+    audio_selector = AudioSelector(display_name='audio') if enable_audio else None
+    video_selector = VideoSelector(display_name='video') if enable_video else None
     sabr_stream = SabrStream(
         urlopen=rh.send,
         server_abr_streaming_url=url,
@@ -97,6 +99,69 @@ class TestStream:
         assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
 
         assert len(rh.request_history) == 6
+
+    def test_audio_only(self, logger, client_info):
+        # Basic successful case that only audio format is requested and returned.
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=BasicAudioVideoProfile(),
+            client_info=client_info,
+            logger=logger,
+            enable_video=False,
+        )
+        audio_selector, _ = selectors
+        parts = list(sabr_stream.iter_parts())
+
+        format_init_parts = [part for part in parts if isinstance(part, FormatInitializedSabrPart)]
+        assert len(format_init_parts) == 1
+        assert format_init_parts[0].format_id == FormatId(itag=140, lmt=123)
+        assert format_init_parts[0].format_selector == audio_selector
+
+        assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
+
+        # Ensure we did not get any video segments
+        video_parts = [part for part in parts if hasattr(part, 'format_selector') and isinstance(part.format_selector, VideoSelector)]
+        assert not video_parts
+
+        assert rh.request_history[0].vpabr.client_abr_state.enabled_track_types_bitfield == 1
+        assert len(rh.request_history[1].vpabr.buffered_ranges) == 1
+
+    def test_video_only(self, logger, client_info):
+        # Basic successful case that only video format is requested and returned.
+        # NOTE: SABR does not support native video-only, so the client
+        # should mark the audio format as completely buffered after the first request.
+        # Any audio segments retrieved should be marked as discarded and not returned to the caller.
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=BasicAudioVideoProfile(),
+            client_info=client_info,
+            logger=logger,
+            enable_audio=False,
+        )
+        _, video_selector = selectors
+        parts = list(sabr_stream.iter_parts())
+
+        format_init_parts = [part for part in parts if isinstance(part, FormatInitializedSabrPart)]
+        assert len(format_init_parts) == 1
+        assert format_init_parts[0].format_id == FormatId(itag=248, lmt=456)
+        assert format_init_parts[0].format_selector == video_selector
+
+        assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+
+        # Ensure we did not get any audio segments
+        audio_parts = [part for part in parts if hasattr(part, 'format_selector') and isinstance(part.format_selector, AudioSelector)]
+        assert not audio_parts
+
+        assert rh.request_history[0].vpabr.client_abr_state.enabled_track_types_bitfield == 0
+
+        # Audio format should be marked as completely buffered after first request
+        audio_buffered_range = BufferedRange(
+            format_id=FormatId(itag=140, lmt=123, xtags=None),
+            start_time_ms=0,
+            duration_ms=9007199254740991,
+            start_segment_index=0,
+            end_segment_index=9007199254740991,
+            time_range=TimeRange(start_ticks=0, duration_ticks=9007199254740991, timescale=1000))
+
+        assert audio_buffered_range in rh.request_history[1].vpabr.buffered_ranges
 
     def test_basic_buffers(self, logger, client_info):
         # Check that basic audio and video buffering works as expected
@@ -154,6 +219,54 @@ class TestStream:
                 start_time_ms=0, duration_ms=9001, start_segment_index=1, end_segment_index=9,
                 time_range=TimeRange(start_ticks=0, duration_ticks=9001, timescale=1000))]
         assert rh.request_history[5].vpabr.client_abr_state.player_time_ms == 9001
+
+    def test_server_format_change_error(self, logger, client_info):
+        # Should raise an error if the server changes the format IDs mid-stream
+        processor = BasicAudioVideoProfile()
+        sabr_stream, _, _ = setup_sabr_stream_av(
+            sabr_response_processor=processor,
+            client_info=client_info,
+            logger=logger,
+        )
+
+        # Get first few parts to trigger first request
+        parts_iter = sabr_stream.iter_parts()
+        next(parts_iter)
+
+        # Make the server change the audio format ID on the next request
+        processor.options['default_audio_format'] = FormatId(itag=141, lmt=789)
+
+        # Expect an error when continuing to retrieve parts
+        with pytest.raises(
+            SabrStreamError,
+            match=r'Server changed format. Changing formats is not currently supported',
+        ):
+            # Continue retrieving parts until error is raised
+            list(parts_iter)
+
+    def test_video_only_audio_format_changed(self, logger, client_info):
+        # Should not error if the audio format changes when video-only is requested.
+        # This can happen as the client requests a specific video format but not audio (as it is discarded).
+
+        processor = BasicAudioVideoProfile()
+        sabr_stream, _, selectors = setup_sabr_stream_av(
+            sabr_response_processor=processor,
+            client_info=client_info,
+            logger=logger,
+            enable_audio=False,
+        )
+        _, video_selector = selectors
+        parts_iter = sabr_stream.iter_parts()
+        parts = [next(parts_iter)]
+        # Make the server change the audio format ID on the next request
+        processor.options['default_audio_format'] = FormatId(itag=141, lmt=789)
+        # Continue retrieving parts; should not raise
+        parts.extend(parts_iter)
+        assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+
+        # Should not be any audio parts
+        audio_parts = [part for part in parts if hasattr(part, 'format_selector') and isinstance(part.format_selector, AudioSelector)]
+        assert not audio_parts
 
     def test_sps_ok(self, logger, client_info):
         # Should not fail on SPS OK status (when po token is provided)
