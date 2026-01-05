@@ -29,7 +29,7 @@ class Sequence:
 
 class SequenceFile:
 
-    def __init__(self, fd, format_filename, sequence: Sequence, resume=False):
+    def __init__(self, fd, format_filename, sequence: Sequence, resume=False, max_segments=None):
         self.fd = fd
         self.format_filename = format_filename
         self.sequence = sequence
@@ -39,6 +39,7 @@ class SequenceFile:
         )
         self.current_segment: SegmentFile | None = None
         self.resume = resume
+        self.max_segments = max_segments
 
         sequence_file_exists = self.file.exists()
 
@@ -75,6 +76,12 @@ class SequenceFile:
         if segment.is_init_segment and latest_segment.is_init_segment:
             # Only one segment allowed for init segments
             return False
+        if (
+            self.max_segments
+            and (self.sequence.last_segment.sequence_number - self.sequence.first_segment.sequence_number) >= self.max_segments
+        ):
+            return False
+
         return segment.sequence_number == latest_segment.sequence_number + 1
 
     def is_current_segment(self, segment_id: str):
