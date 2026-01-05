@@ -325,15 +325,13 @@ class PatreonIE(PatreonBaseIE):
             'id': media_id,
         }
 
-        ext = mimetype2ext(attributes.get('mimetype'))
-        display_url = traverse_obj(
+        playback_url = traverse_obj(
             attributes, ('display', (None, 'viewer_playback_data'), 'url', {url_or_none}, any))
-        # If display_url is available, download_url is a lower resultion/quality format
         download_url = traverse_obj(attributes, ('download_url', {url_or_none}))
 
-        if ext == 'm3u8' and display_url:
+        if playback_url and mimetype2ext(attributes.get('mimetype')) == 'm3u8':
             info_dict['formats'], info_dict['subtitles'] = self._extract_m3u8_formats_and_subtitles(
-                display_url, media_id, 'mp4', fatal=False, headers=self._HTTP_HEADERS)
+                playback_url, media_id, 'mp4', fatal=False, headers=self._HTTP_HEADERS)
             for f in info_dict['formats']:
                 f['http_headers'] = self._HTTP_HEADERS
             if transcript_url := traverse_obj(attributes, ('display', 'transcript_url', {url_or_none})):
@@ -341,9 +339,10 @@ class PatreonIE(PatreonBaseIE):
                     'url': transcript_url,
                     'ext': 'vtt',
                 })
-        elif display_url or download_url:
+        elif playback_url or download_url:
             info_dict['formats'] = {
-                'url': display_url or download_url,
+                # If playback_url is available, download_url is a duplicate lower resolution format
+                'url': playback_url or download_url,
                 'vcodec': 'none' if attributes.get('media_type') != 'video' else None,
             }
 
