@@ -35,7 +35,6 @@ class TestMetadataFromField(unittest.TestCase):
         self.assertEqual(MetadataParserPP.format_to_regex('é'), r'(?s)(?P<é>.+)')
         self.assertEqual(MetadataParserPP.format_to_regex('0invalid'), '0invalid')
         self.assertEqual(MetadataParserPP.format_to_regex('invalid '), 'invalid ')
-        self.assertEqual(MetadataParserPP.format_to_regex('invalid '), 'invalid ')
         self.assertEqual(MetadataParserPP.format_to_regex('é²'), 'é²')
 
     def test_field_to_template(self):
