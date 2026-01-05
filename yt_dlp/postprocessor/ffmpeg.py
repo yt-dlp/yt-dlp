@@ -819,15 +819,27 @@ class FFmpegMergerPP(FFmpegPostProcessor):
         temp_filename = prepend_extension(filename, 'temp')
         args = ['-c', 'copy']
         audio_streams = 0
+        video_streams = 0
         for (i, fmt) in enumerate(info['requested_formats']):
             if fmt.get('acodec') != 'none':
                 args.extend(['-map', f'{i}:a:0'])
                 aac_fixup = fmt['protocol'].startswith('m3u8') and self.get_audio_codec(fmt['filepath']) == 'aac'
                 if aac_fixup:
                     args.extend([f'-bsf:a:{audio_streams}', 'aac_adtstoasc'])
+                # Set default disposition only for the first audio stream
+                if audio_streams == 0:
+                    args.extend([f'-disposition:a:{audio_streams}', 'default'])
+                else:
+                    args.extend([f'-disposition:a:{audio_streams}', '0'])
                 audio_streams += 1
             if fmt.get('vcodec') != 'none':
                 args.extend(['-map', f'{i}:v:0'])
+                # Set default disposition only for the first video stream
+                if video_streams == 0:
+                    args.extend([f'-disposition:v:{video_streams}', 'default'])
+                else:
+                    args.extend([f'-disposition:v:{video_streams}', '0'])
+                video_streams += 1
         self.to_screen(f'Merging formats into "{filename}"')
         self.run_ffmpeg_multiple_files(info['__files_to_merge'], temp_filename, args)
         os.rename(temp_filename, filename)
