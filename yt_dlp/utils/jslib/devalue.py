@@ -110,7 +110,7 @@ def parse_iter(parsed: typing.Any, /, *, revivers: dict[str, collections.abc.Cal
 
                 elif value[0] == 'Map':
                     result = []
-                    for key, new_source in zip(*(iter(value[1:]),) * 2):
+                    for key, new_source in zip(*(iter(value[1:]),) * 2, strict=True):
                         pair = [None, None]
                         stack.append((pair, 0, key))
                         stack.append((pair, 1, new_source))
@@ -129,7 +129,7 @@ def parse_iter(parsed: typing.Any, /, *, revivers: dict[str, collections.abc.Cal
 
                 elif value[0] == 'null':
                     result = {}
-                    for key, new_source in zip(*(iter(value[1:]),) * 2):
+                    for key, new_source in zip(*(iter(value[1:]),) * 2, strict=True):
                         stack.append((result, key, new_source))
 
                 elif value[0] in _ARRAY_TYPE_LOOKUP:

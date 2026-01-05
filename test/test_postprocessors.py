@@ -29,6 +29,11 @@ class TestMetadataFromField(unittest.TestCase):
             MetadataParserPP.format_to_regex('%(title)s - %(artist)s'),
             r'(?P<title>.+)\ \-\ (?P<artist>.+)')
         self.assertEqual(MetadataParserPP.format_to_regex(r'(?P<x>.+)'), r'(?P<x>.+)')
+        self.assertEqual(MetadataParserPP.format_to_regex(r'text (?P<x>.+)'), r'text (?P<x>.+)')
+        self.assertEqual(MetadataParserPP.format_to_regex('x'), r'(?s)(?P<x>.+)')
+        self.assertEqual(MetadataParserPP.format_to_regex('Field_Name1'), r'(?s)(?P<Field_Name1>.+)')
+        self.assertEqual(MetadataParserPP.format_to_regex('é'), r'(?s)(?P<é>.+)')
+        self.assertEqual(MetadataParserPP.format_to_regex('invalid '), 'invalid ')
 
     def test_field_to_template(self):
         self.assertEqual(MetadataParserPP.field_to_template('title'), '%(title)s')
@@ -115,7 +120,7 @@ class TestModifyChaptersPP(unittest.TestCase):
         self.assertEqual(len(ends), len(titles))
         start = 0
         chapters = []
-        for e, t in zip(ends, titles):
+        for e, t in zip(ends, titles, strict=True):
             chapters.append(self._chapter(start, e, t))
             start = e
         return chapters

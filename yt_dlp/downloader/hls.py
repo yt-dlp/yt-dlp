@@ -205,7 +205,7 @@ class HlsFD(FragmentFD):
             line = line.strip()
             if line:
                 if not line.startswith('#'):
-                    if format_index and discontinuity_count != format_index:
+                    if format_index is not None and discontinuity_count != format_index:
                         continue
                     if ad_frag_next:
                         continue
@@ -231,7 +231,7 @@ class HlsFD(FragmentFD):
                         byte_range = {}
 
                 elif line.startswith('#EXT-X-MAP'):
-                    if format_index and discontinuity_count != format_index:
+                    if format_index is not None and discontinuity_count != format_index:
                         continue
                     if frag_index > 0:
                         self.report_error(

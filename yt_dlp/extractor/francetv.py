@@ -363,13 +363,7 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         nextjs_data = self._search_nextjs_v13_data(webpage, display_id)
-
-        if get_first(nextjs_data, ('isLive', {bool})):
-            # For livestreams we need the id of the stream instead of the currently airing episode id
-            video_id = get_first(nextjs_data, ('options', 'id', {str}))
-        else:
-            video_id = get_first(nextjs_data, ('video', ('playerReplayId', 'siId'), {str}))
-
+        video_id = get_first(nextjs_data, ('options', 'id', {str}))
         if not video_id:
             raise ExtractorError('Unable to extract video ID')
 
