@@ -340,11 +340,11 @@ class PatreonIE(PatreonBaseIE):
                     'ext': 'vtt',
                 })
         elif playback_url or download_url:
-            info_dict['formats'] = {
+            info_dict['formats'] = [{
                 # If playback_url is available, download_url is a duplicate lower resolution format
                 'url': playback_url or download_url,
                 'vcodec': 'none' if attributes.get('media_type') != 'video' else None,
-            }
+            }]
 
         if not info_dict.get('formats'):
             return None
