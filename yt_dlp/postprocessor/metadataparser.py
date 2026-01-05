@@ -43,10 +43,10 @@ class MetadataParserPP(PostProcessor):
            '(?P<title>.+)\ \-\ (?P<artist>.+)'
         """
         ALLOWABLE_GROUP_NAME_RE = r'[a-zA-Z][a-zA-Z0-9_]*'
+        if re.fullmatch(ALLOWABLE_GROUP_NAME_RE, fmt):
+            # convert a single field name into regex pattern that matches the entire input
+            return rf'(?s)(?P<{fmt}>.+)'
         if not re.search(rf'%\({ALLOWABLE_GROUP_NAME_RE}\)s', fmt):
-            if re.fullmatch(ALLOWABLE_GROUP_NAME_RE, fmt):
-                # convert a single field name into regex pattern that matches the entire input
-                return rf'(?s)(?P<{fmt}>.+)'
             return fmt
         lastpos = 0
         regex = ''
