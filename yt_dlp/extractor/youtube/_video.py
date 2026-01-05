@@ -3356,7 +3356,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         (self.get_param('verbose') or all_formats) and short_client_name(client_name),
                         delim=', '),
                     # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
-                    'source_preference': (-5 if itag == '22' else -1) + (100 if 'Premium' in name else 0),
+                    # Deprioritize Super Resolution (AI-upscaled) formats
+                    'source_preference': (-5 if itag == '22' else -1) + (100 if 'Premium' in name else 0) - (10 if super_resolution else 0),
                     'fps': fps if fps > 1 else None,  # For some formats, fps is wrongly returned as 1
                     'audio_channels': fmt_stream.get('audioChannels'),
                     'height': height,
