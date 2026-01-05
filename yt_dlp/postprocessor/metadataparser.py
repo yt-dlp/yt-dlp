@@ -3,6 +3,10 @@ import re
 from .common import PostProcessor
 from ..utils import Namespace, filter_dict, function_with_repr
 
+_NON_ASCII_NUMBERS = '\xB2\xB3\xB9'
+_NON_ASCII_LETTERS = '\xAA\xB5\xBA\xC0-\xD6\xD8-\xF6\xF8-\xFF'
+_ALLOWABLE_GROUP_NAME_RE = rf'[A-Z_a-z{_NON_ASCII_LETTERS}][0-9A-Z_a-z{_NON_ASCII_NUMBERS}{_NON_ASCII_LETTERS}]*'
+
 
 class MetadataParserPP(PostProcessor):
     def __init__(self, downloader, actions):
@@ -42,16 +46,15 @@ class MetadataParserPP(PostProcessor):
         to a regex like
            '(?P<title>.+)\ \-\ (?P<artist>.+)'
         """
-        ALLOWABLE_GROUP_NAME_RE = r'[a-zA-Z][a-zA-Z0-9_]*'
-        if re.fullmatch(ALLOWABLE_GROUP_NAME_RE, fmt):
+        if re.fullmatch(_ALLOWABLE_GROUP_NAME_RE, fmt):
             # convert a single field name into regex pattern that matches the entire input
             return rf'(?s)(?P<{fmt}>.+)'
-        if not re.search(rf'%\({ALLOWABLE_GROUP_NAME_RE}\)s', fmt):
+        if not re.search(rf'%\({_ALLOWABLE_GROUP_NAME_RE}\)s', fmt):
             return fmt
         lastpos = 0
         regex = ''
         # replace %(..)s with regex group and escape other string parts
-        for match in re.finditer(rf'%\(({ALLOWABLE_GROUP_NAME_RE})\)s', fmt):
+        for match in re.finditer(rf'%\(({_ALLOWABLE_GROUP_NAME_RE})\)s', fmt):
             regex += re.escape(fmt[lastpos:match.start()])
             regex += rf'(?P<{match.group(1)}>.+)'
             lastpos = match.end()
