@@ -5,7 +5,7 @@ import os
 from .common import PostProcessor
 from .ffmpeg import FFmpegPostProcessor, FFmpegSubtitlesConvertorPP
 from .sponsorblock import SponsorBlockPP
-from ..utils import PostProcessingError, orderedSet, prepend_extension
+from ..utils import PostProcessingError, determine_ext, orderedSet, prepend_extension
 
 _TINY_CHAPTER_DURATION = 1
 DEFAULT_SPONSORBLOCK_CHAPTER_TITLE = '[SponsorBlock]: %(category_names)l'
@@ -309,6 +309,28 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                     continue
             new_chapters.append(c)
         return new_chapters
+
+    def concat_files(self, in_files, out_file, concat_opts=None):
+        """
+        Override concat_files to ensure both video and audio streams are explicitly mapped
+        when removing segments, preventing audio from being left untrimmed.
+        """
+        concat_file = f'{out_file}.concat'
+        self.write_debug(f'Writing concat spec to {concat_file}')
+        with open(concat_file, 'w', encoding='utf-8') as f:
+            f.writelines(self._concat_spec(in_files, concat_opts))
+        
+        # Explicitly map both video and audio streams to ensure both are trimmed
+        out_flags = ['-map', '0:v?', '-map', '0:a?', '-c', 'copy']
+        # Don't copy Apple TV chapters track, bin_data
+        out_flags.extend(['-dn', '-ignore_unknown'])
+        if determine_ext(out_file) in ('mp4', 'mov', 'm4a'):
+            out_flags.extend(['-c:s', 'mov_text'])
+        
+        self.real_run_ffmpeg(
+            [(concat_file, ['-hide_banner', '-nostdin', '-f', 'concat', '-safe', '0'])],
+            [(out_file, out_flags)])
+        self._delete_downloaded_files(concat_file)
 
     def remove_chapters(self, filename, ranges_to_cut, concat_opts, force_keyframes=False):
         in_file = filename
