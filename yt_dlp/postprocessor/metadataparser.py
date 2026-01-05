@@ -4,7 +4,7 @@ from .common import PostProcessor
 from ..utils import Namespace, filter_dict, function_with_repr
 
 _NON_ASCII_LETTERS = '\xAA\xB5\xBA\xC0-\xD6\xD8-\xF6\xF8-\xFF'
-_ALLOWABLE_GROUP_NAME_RE = rf'[A-Z_a-z{_NON_ASCII_LETTERS}][0-9A-Z_a-z\xB2\xB3\xB9{_NON_ASCII_LETTERS}]*'
+_ALLOWABLE_GROUP_NAME_RE = rf'[A-Z_a-z{_NON_ASCII_LETTERS}][0-9A-Z_a-z{_NON_ASCII_LETTERS}]*'
 
 
 class MetadataParserPP(PostProcessor):
