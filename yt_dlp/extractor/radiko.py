@@ -23,24 +23,6 @@ class RadikoBaseIE(InfoExtractor):
     _GEO_BYPASS = False
     _NETRC_MACHINE = 'radiko'
     _FULL_KEY = None
-    _HOSTS_FOR_TIME_FREE_FFMPEG_UNSUPPORTED = (
-        'https://c-rpaa.smartstream.ne.jp',
-        'https://si-c-radiko.smartstream.ne.jp',
-        'https://tf-f-rpaa-radiko.smartstream.ne.jp',
-        'https://tf-c-rpaa-radiko.smartstream.ne.jp',
-        'https://si-f-radiko.smartstream.ne.jp',
-        'https://rpaa.smartstream.ne.jp',
-        'https://alliance-stream-radiko.smartstream.ne.jp',
-    )
-    _HOSTS_FOR_TIME_FREE_FFMPEG_SUPPORTED = (
-        'https://rd-wowza-radiko.radiko-cf.com',
-        'https://radiko.jp',
-        'https://f-radiko.smartstream.ne.jp',
-    )
-    # Following URL forcibly connects not Time Free but Live
-    _HOSTS_FOR_LIVE = (
-        'https://c-radiko.smartstream.ne.jp',
-    )
 
     _JST = datetime.timezone(datetime.timedelta(hours=9))
     _account_privileges = None
@@ -226,12 +208,9 @@ class RadikoBaseIE(InfoExtractor):
                     'X-Radiko-AuthToken': auth_token,
                 })
             for sf in subformats:
-                if (is_onair ^ pcu.startswith(self._HOSTS_FOR_LIVE)) or (
-                        not is_onair and pcu.startswith(self._HOSTS_FOR_TIME_FREE_FFMPEG_UNSUPPORTED)):
-                    sf['preference'] = -100
-                    sf['format_note'] = 'not preferred'
-                if not is_onair and timefree_int == 1 and time_to_skip:
-                    sf['downloader_options'] = {'ffmpeg_args': ['-ss', str(time_to_skip)]}
+                sf['downloader_options'] = {'ffmpeg_args': ['-seekable', '0', '-http_seekable', '0', '-icy', '0']}
+                if not is_onair and time_to_skip:
+                    sf['downloader_options']['ffmpeg_args'].extend(['-ss', str(time_to_skip)])
             formats.extend(subformats)
 
         return formats
