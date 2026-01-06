@@ -1821,6 +1821,9 @@ $ yt-dlp --parse-metadata "title:%(artist)s - %(title)s"
 # Regex example
 $ yt-dlp --parse-metadata "description:Artist - (?P<artist>.+)"
 
+# Copy the episode field to the title field (with FROM and TO as single fields)
+$ yt-dlp --parse-metadata "episode:title"
+
 # Set title as "Series name S01E05"
 $ yt-dlp --parse-metadata "%(series)s S%(season_number)02dE%(episode_number)02d:%(title)s"
 
