@@ -2,6 +2,7 @@ import base64
 import binascii
 import functools
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..dependencies import Cryptodome
@@ -36,7 +37,7 @@ class TarangPlusVideoIE(TarangPlusBaseIE):
             'ext': 'mp4',
             'title': 'Khitpit Ep-10',
             'description': 'md5:a45b805cb628e15c853d78b0406eab48',
-            'thumbnail': r're:https?://.*\.jpg',
+            'thumbnail': r're:https?://.+/.+\.jpg',
             'duration': 756.0,
             'timestamp': 1740355200,
             'upload_date': '20250224',
@@ -52,12 +53,29 @@ class TarangPlusVideoIE(TarangPlusBaseIE):
             'ext': 'mp4',
             'title': 'Bada Bohu  | Ep -233',
             'description': 'md5:e6b8e7edc9e60b92c1b390f8789ecd69',
-            'thumbnail': r're:https?://.*\.jpg',
+            'thumbnail': r're:https?://.+/.+\.jpg',
             'duration': 1392.0,
             'timestamp': 1745539200,
             'upload_date': '20250425',
             'media_type': 'episode',
             'categories': ['Prime'],
+        },
+    }, {
+        # Decrypted m3u8 URL has trailing control characters that need to be stripped
+        'url': 'https://tarangplus.in/tarangaplus-originals/ichha/ichha-teaser-1',
+        'md5': '16ee43fe21ad8b6e652ec65eba38a64e',
+        'info_dict': {
+            'id': '5f0f252d3326af0720000342',
+            'ext': 'mp4',
+            'display_id': 'ichha-teaser-1',
+            'title': 'Ichha Teaser',
+            'description': 'md5:c724b0b0669a2cefdada3711cec792e6',
+            'media_type': 'episode',
+            'duration': 21.0,
+            'thumbnail': r're:https?://.+/.+\.jpg',
+            'categories': ['Originals'],
+            'timestamp': 1758153600,
+            'upload_date': '20250918',
         },
     }, {
         'url': 'https://tarangplus.in/short/ai-maa/ai-maa',
@@ -100,7 +118,8 @@ class TarangPlusVideoIE(TarangPlusBaseIE):
             m.group('k'): m.group('v')
             for m in re.finditer(r'(?:^|\|)(?P<k>[a-z_]+)=(?P<v>(?:(?!\|[a-z_]+=).)+)', attrs)
         }
-        m3u8_url = self.decrypt(encrypted_data, metadata['key'])
+        m3u8_url = urllib.parse.unquote(
+            self.decrypt(encrypted_data, metadata['key'])).rstrip('\x0e\x0f')
 
         return {
             'id': display_id,  # Fallback
