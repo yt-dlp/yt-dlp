@@ -586,6 +586,12 @@ class XHamsterUserIE(InfoExtractor):
         },
         'playlist_mincount': 44,
     }, {
+        'url': 'https://xhamster.com/users/profiles/braninja/videos',
+        'info_dict': {
+            'id': 'braninja',
+        },
+        'playlist_mincount': 59,
+    }, {
         'url': 'https://xhday.com/users/mobhunter',
         'only_matching': True,
     }, {
