@@ -6,7 +6,7 @@ import threading
 
 from .common import FileDownloader
 from .external import FFmpegFD
-from ..dependencies import websockets
+from ..dependencies import websockets  # noqa: F401
 
 
 class FFmpegSinkFD(FileDownloader):
@@ -45,7 +45,8 @@ class FFmpegSinkFD(FileDownloader):
 
 class WebSocketFragmentFD(FFmpegSinkFD):
     async def real_connection(self, sink, info_dict):
-        async with websockets.connect(info_dict['url'], extra_headers=info_dict.get('http_headers', {})) as ws:
+        from websockets.asyncio.client import connect
+        async with connect(info_dict['url'], additional_headers=info_dict.get('http_headers', {})) as ws:
             while True:
                 recv = await ws.recv()
                 if isinstance(recv, str):
