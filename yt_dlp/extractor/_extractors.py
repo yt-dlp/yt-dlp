@@ -287,6 +287,7 @@ from .bokecc import BokeCCIE
 from .bongacams import BongaCamsIE
 from .boosty import BoostyIE
 from .bostonglobe import BostonGlobeIE
+from .bouke import BoukeMediaIE
 from .box import BoxIE
 from .boxcast import BoxCastVideoIE
 from .bpb import BpbIE
