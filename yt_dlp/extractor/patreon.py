@@ -283,6 +283,7 @@ class PatreonIE(PatreonBaseIE):
         },
         'params': {'getcomments': True},
     }, {
+        # Inlined media in post; uses _extract_from_media_api
         'url': 'https://www.patreon.com/posts/scottfalco-146966245',
         'info_dict': {
             'id': '146966245',
