@@ -35,7 +35,7 @@ class NebulaBaseIE(InfoExtractor):
     def _perform_login(self, username, password):
         if not self._token:
             self._token = self.cache.load(self._NETRC_MACHINE, self.CACHE_KEY, default=None)
-        if self._token:
+        if self._token and self._is_jwt_expired(self._token) is False:
             self.to_screen('Using cache token')
             return
         try:
