@@ -1,5 +1,6 @@
 import itertools
 import json
+import time
 
 from .art19 import Art19IE
 from .common import InfoExtractor
@@ -8,6 +9,7 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
+    jwt_decode_hs256,
     make_archive_id,
     parse_iso8601,
     smuggle_url,
@@ -25,8 +27,17 @@ _BASE_URL_RE = r'https?://(?:www\.|beta\.)?(?:watchnebula\.com|nebula\.app|nebul
 class NebulaBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'watchnebula'
     _token = _api_token = None
+    CACHE_KEY = 'api_token'
+
+    def _is_jwt_expired(self, token):
+        return jwt_decode_hs256(token)['exp'] - time.time() < 300
 
     def _perform_login(self, username, password):
+        if not self._token:
+            self._token = self.cache.load(self._NETRC_MACHINE, self.CACHE_KEY, default=None)
+        if self._token:
+            self.to_screen('Using cache token')
+            return
         try:
             response = self._download_json(
                 'https://users.api.nebula.app/api/v1/auth/login/', None,
@@ -62,6 +73,8 @@ class NebulaBaseIE(InfoExtractor):
             return self._download_json(*args, **kwargs)
 
     def _real_initialize(self):
+        if self._token and self._is_jwt_expired(self._token) is False:
+            return
         if not self._api_token:
             self._api_token = try_call(
                 lambda: self._get_cookies('https://nebula.tv')['nebula_auth.apiToken'].value)
@@ -69,6 +82,7 @@ class NebulaBaseIE(InfoExtractor):
             'https://users.api.nebula.app/api/v1/authorization/', None,
             headers={'Authorization': f'Token {self._api_token}'} if self._api_token else None,
             note='Authorizing to Nebula', data=b'')['token']
+        self.cache.store(self._NETRC_MACHINE, self.CACHE_KEY, self._token)
 
     def _extract_formats(self, content_id, slug):
         for retry in (False, True):
