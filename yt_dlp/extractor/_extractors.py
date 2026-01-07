@@ -625,6 +625,10 @@ from .fancode import (
     FancodeLiveIE,
     FancodeVodIE,
 )
+from .faphouse import (
+    FaphouseIE,
+    FaphouseUserIE,
+)
 from .fathom import FathomIE
 from .faulio import (
     FaulioIE,
