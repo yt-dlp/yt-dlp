@@ -1717,6 +1717,7 @@ class TwitterSpacesIE(TwitterBaseIE):
             'formats': formats,
             'http_headers': headers,
             'live_status': live_status,
+            'availability': 'needs_auth',
             **traverse_obj(metadata, {
                 'title': ('title', {str}),
                 # started_at is None when stream is_upcoming so fallback to scheduled_start for --wait-for-video
