@@ -251,12 +251,10 @@ class IwaraUserIE(IwaraBaseIE):
                 'user': user_id,
                 'limit': self._PER_PAGE,
             }, headers=self._get_media_token())
-        for x in traverse_obj(videos, ('results', ...)):
+        for result in traverse_obj(videos, ('results', lambda _, v: v['id'])):
             yield self.url_result(
-                f"https://iwara.tv/video/{x['id']}",
-                IwaraIE,
-                **IwaraBaseIE._video_data_to_metadata(x),
-            )
+                f'https://iwara.tv/video/{result["id"]}',
+                IwaraIE, **IwaraBaseIE._video_data_to_metadata(result))
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
@@ -290,12 +288,10 @@ class IwaraPlaylistIE(IwaraBaseIE):
             'https://api.iwara.tv/videos', playlist_id, f'Downloading page {page}',
             query={'page': page, 'limit': self._PER_PAGE},
             headers=self._get_media_token()) if page else first_page
-        for x in traverse_obj(videos, ('results', ...)):
+        for result in traverse_obj(videos, ('results', lambda _, v: v['id'])):
             yield self.url_result(
-                f"https://iwara.tv/video/{x['id']}",
-                IwaraIE,
-                **IwaraBaseIE._video_data_to_metadata(x),
-            )
+                f'https://iwara.tv/video/{result["id"]}',
+                IwaraIE, **IwaraBaseIE._video_data_to_metadata(result))
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
