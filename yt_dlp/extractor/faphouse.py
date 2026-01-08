@@ -20,7 +20,9 @@ class FaphouseIE(InfoExtractor):
             'title': 'Pegged and Milked',
             'description': 'md5:5e0b2e6b39ffe437d16a3d1be463556c',
             'thumbnail': r're:https://?[^.]+\.flixcdn\.com/[^#?&]+',
+            'age_limit': 18,
         },
+        'params': {'skip_download': True},
     }, {
         'url': 'https://faphouse.com/videos/zDUKkr',
         'info_dict': {
@@ -29,8 +31,9 @@ class FaphouseIE(InfoExtractor):
             'title': 'Ball Busted and Jerked off',
             'description': 'md5:821c28e78392bc7683637f615b51113a',
             'thumbnail': r're:https://?[^.]+\.flixcdn\.com/[^#?&]+',
+            'age_limit': 18,
         },
-        'expected_warning': ['HTTP Error 403: Forbidden'],
+        'params': {'skip_download': True},
     }, {
         'url': 'https://faphouse.com/videos/zDUKkr#dmVwPVZpZGVvIHBhZ2UmdmViPVJlbGF0ZWQmcmVsYXRlZF90eXBlPW1s',
         'only_matching': True,
@@ -85,6 +88,7 @@ class FaphouseIE(InfoExtractor):
             'description': self._og_search_description(webpage, default=''),
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
             'formats': self._parse_formats(video_id, webpage),
+            'age_limit': 18,
         }
 
 
@@ -104,7 +108,7 @@ class FaphouseUserIE(InfoExtractor):
             'id': 'vincemayvideo',
             'title': 'vincemayvideo',
         },
-        'playlist_count': 68,
+        'playlist_count': 69,
     }, {
         'url': 'https://faphouse.com/studios/family-strokes',
         'info_dict': {
