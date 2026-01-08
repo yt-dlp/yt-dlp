@@ -49,8 +49,8 @@ class FaphouseIE(InfoExtractor):
             r'(<div\s*class="video__player"[^>]+>)',
             webpage, 'video url', default=None)
         if msg := self._search_regex(
-                r'<span\s*class="\w+-purchase[^"]+">(\s*Streaming[\s\S]+?)<\/span>', webpage, 'msg', default=None):
-            msg = msg if '<br' not in msg.strip() else msg.strip().replace('<br />', ' ')
+                r'<span\s*class="\w+-purchase[^"]+">(\s*Streaming.+)[^<]+<\/span>', webpage, 'msg', default=None):
+            msg = re.sub(r'<br\s*/?>', ' ', msg)
             self.to_screen(msg)
 
         if trailer_block:
