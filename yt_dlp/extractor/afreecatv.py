@@ -1,10 +1,6 @@
-import contextlib
 import datetime as dt
 import functools
 import time
-import urllib.parse
-from email.utils import parsedate_to_datetime
-from http.cookies import SimpleCookie
 
 from .common import InfoExtractor
 from ..networking import Request
@@ -171,56 +167,6 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                         expiration_time = cookie.expires
             return expiration_time
 
-        def _parse_and_set_cloudfront_cookies(private_auth_response, m3u8_url, video_id_for_error):
-            if not private_auth_response:
-                return
-
-            m3u8_domain = urllib.parse.urlparse(m3u8_url).netloc
-            m3u8_path = urllib.parse.urlparse(m3u8_url).path
-            cookie_path = m3u8_path.rsplit('/', 1)[0]
-
-            for cookie_header in private_auth_response.headers.get_all('Set-Cookie') or []:
-                if 'CloudFront' not in cookie_header:
-                    continue
-                try:
-                    cookie = SimpleCookie()
-                    cookie.load(cookie_header)
-                    for name, morsel in cookie.items():
-                        if 'CloudFront' not in name:
-                            continue
-                        domain = morsel.get('domain', m3u8_domain)
-                        if domain and not domain.startswith('.'):
-                            domain = f'.{domain}'
-                        path = morsel.get('path', cookie_path)
-
-                        max_age = morsel.get('max-age')
-                        expires = morsel.get('expires')
-                        exp_time = None
-                        if max_age:
-                            with contextlib.suppress(ValueError, TypeError):
-                                exp_time = time.time() + int(max_age)
-                        elif expires:
-                            with contextlib.suppress(Exception):
-                                exp_time = parsedate_to_datetime(expires).timestamp()
-
-                        self._set_cookie(domain, name, morsel.value, path=path, secure=bool(morsel.get('secure', False)), expire_time=exp_time)
-                except Exception:
-                    pass
-
-            try:
-                auth_data = self._parse_json(private_auth_response.read().decode('utf-8', errors='replace'), video_id_for_error, fatal=False)
-                signed_cookie = traverse_obj(auth_data, ('data', 'signed_cookie', {str}))
-                if signed_cookie:
-                    for cookie_part in signed_cookie.split(';'):
-                        if '=' not in cookie_part or 'CloudFront' not in cookie_part:
-                            continue
-                        name, value = cookie_part.split('=', 1)
-                        name = name.strip()
-                        if name.startswith('CloudFront-'):
-                            self._set_cookie(m3u8_domain, name, value.strip(), path=cookie_path, secure=True)
-            except Exception:
-                pass
-
         def _request_cloudfront_cookies(m3u8_url_auth, strm_id_auth, video_id_auth, note_text):
             post_data = {
                 'type': 'vod',
@@ -228,7 +174,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                 'title_no': video_id_auth,
                 'url': m3u8_url_auth,
             }
-            private_auth_response = self._request_webpage(
+            self._request_webpage(
                 Request(
                     'https://live.sooplive.co.kr/api/private_auth.php',
                     method='POST',
@@ -240,7 +186,6 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                     data=urlencode_postdata(post_data),
                 ),
                 video_id_auth, note=note_text, fatal=False)
-            _parse_and_set_cloudfront_cookies(private_auth_response, m3u8_url_auth, video_id_auth)
 
         if needs_private_auth and m3u8_url and strm_id:
             _request_cloudfront_cookies(m3u8_url, strm_id, video_id, 'requesting cloudfront cookies')
@@ -258,15 +203,6 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'duration': ('total_file_duration', {int_or_none(scale=1000)}),
             'thumbnails': ('thumb', {self._fixup_thumb}),
         })
-
-        def _refresh_cloudfront_cookies(m3u8_url_refresh, strm_id_refresh, video_id_refresh, refresh_params_dict=None):
-            try:
-                _request_cloudfront_cookies(m3u8_url_refresh, strm_id_refresh, video_id_refresh, 'refreshing cloudfront cookies')
-
-                if refresh_params_dict:
-                    refresh_params_dict['expiration_time'] = _get_cloudfront_cookie_expiration(m3u8_url_refresh)
-            except Exception:
-                pass
 
         entries = []
         for file_num, file_element in enumerate(
@@ -300,7 +236,6 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                     'm3u8_url': file_url,
                     'strm_id': strm_id,
                     'video_id': video_id,
-                    'refresh_func': _refresh_cloudfront_cookies,
                     'expiration_time': cookie_expiration,
                     '_last_refresh': time.time(),
                 }
@@ -326,16 +261,12 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                     if not should_refresh:
                         return
 
-                    refresh_func = refresh_params_check.get('refresh_func')
-                    if not refresh_func or not callable(refresh_func):
-                        return
-
                     try:
-                        refresh_func(
+                        _request_cloudfront_cookies(
                             refresh_params_check.get('m3u8_url'),
                             refresh_params_check.get('strm_id'),
                             refresh_params_check.get('video_id'),
-                            refresh_params_check,
+                            'refreshing cloudfront cookies',
                         )
 
                         if m3u8_url_check:
