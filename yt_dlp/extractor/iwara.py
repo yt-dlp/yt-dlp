@@ -18,27 +18,6 @@ from ..utils import (
 )
 
 
-def _video_data_to_metadata(video_data):
-    return {
-        'age_limit': 18 if video_data.get('rating') == 'ecchi' else 0,  # ecchi is 'sexy' in Japanese
-        **traverse_obj(video_data, {
-            'id': 'id',
-            'title': 'title',
-            'description': 'body',
-            'uploader': ('user', 'name'),
-            'uploader_id': ('user', 'username'),
-            'tags': ('tags', ..., 'id'),
-            'like_count': 'numLikes',
-            'view_count': 'numViews',
-            'comment_count': 'numComments',
-            'timestamp': ('createdAt', {unified_timestamp}),
-            'modified_timestamp': ('updatedAt', {unified_timestamp}),
-            'thumbnail': ('file', 'id', {str}, {
-                lambda x: f'https://files.iwara.tv/image/thumbnail/{x}/thumbnail-00.jpg'}),
-        }),
-    }
-
-
 class IwaraBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'iwara'
     _USERTOKEN = None
@@ -92,6 +71,27 @@ class IwaraBaseIE(InfoExtractor):
 
     def _perform_login(self, username, password):
         self._get_media_token()
+
+    @staticmethod
+    def _video_data_to_metadata(video_data):
+        return {
+            'age_limit': 18 if video_data.get('rating') == 'ecchi' else 0,  # ecchi is 'sexy' in Japanese
+            **traverse_obj(video_data, {
+                'id': 'id',
+                'title': 'title',
+                'description': 'body',
+                'uploader': ('user', 'name'),
+                'uploader_id': ('user', 'username'),
+                'tags': ('tags', ..., 'id'),
+                'like_count': 'numLikes',
+                'view_count': 'numViews',
+                'comment_count': 'numComments',
+                'timestamp': ('createdAt', {unified_timestamp}),
+                'modified_timestamp': ('updatedAt', {unified_timestamp}),
+                'thumbnail': ('file', 'id', {str}, {
+                    lambda x: f'https://files.iwara.tv/image/thumbnail/{x}/thumbnail-00.jpg'}),
+            }),
+        }
 
 
 class IwaraIE(IwaraBaseIE):
@@ -202,7 +202,7 @@ class IwaraIE(IwaraBaseIE):
                 return self.url_result(video_data.get('embedUrl'))
             raise ExtractorError('This video is unplayable', expected=True)
 
-        metadata = _video_data_to_metadata(video_data)
+        metadata = IwaraBaseIE._video_data_to_metadata(video_data)
         metadata['formats'] = list(self._extract_formats(video_id, video_data.get('fileUrl')))
         return metadata
 
@@ -255,7 +255,7 @@ class IwaraUserIE(IwaraBaseIE):
             yield self.url_result(
                 f"https://iwara.tv/video/{x['id']}",
                 IwaraIE,
-                **_video_data_to_metadata(x),
+                **IwaraBaseIE._video_data_to_metadata(x),
             )
 
     def _real_extract(self, url):
@@ -294,7 +294,7 @@ class IwaraPlaylistIE(IwaraBaseIE):
             yield self.url_result(
                 f"https://iwara.tv/video/{x['id']}",
                 IwaraIE,
-                **_video_data_to_metadata(x),
+                **IwaraBaseIE._video_data_to_metadata(x),
             )
 
     def _real_extract(self, url):
