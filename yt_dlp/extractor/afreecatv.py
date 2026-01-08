@@ -230,13 +230,10 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             }
 
             if needs_private_auth and m3u8_url and strm_id and determine_ext(file_url) == 'm3u8':
-                cookie_expiration = _get_cloudfront_cookie_expiration(file_url)
-
                 refresh_params = {
                     'm3u8_url': file_url,
                     'strm_id': strm_id,
                     'video_id': video_id,
-                    'expiration_time': cookie_expiration,
                     '_last_refresh': time.time(),
                 }
                 entry['_cookie_refresh_params'] = refresh_params
