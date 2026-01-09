@@ -729,16 +729,13 @@ class GenericIE(InfoExtractor):
         ]
 
     def _extract_kvs(self, url, webpage, video_id):
-        flashvars = self._search_regex(
+        varname = self._search_regex(
             r'''(?<![=!+*-])=\s*kt_player\s*\(\s*'kt_player'\s*,\s*[^)]+,\s*(?!params)([\w$]+)\s*\)''',
             webpage, 'flashvars name', default='flashvars')
         flashvars = self._search_json(
-            r'<script(?:\s[^>]*)?>[\s\S]*?var\s+%s\s*=' % (flashvars,),
+            fr'<script(?:\s[^>]*)?>[\s\S]*?\bvar\s+{varname}\s*=',
             webpage, 'flashvars', video_id, end_pattern=r';[\s\S]*?</script>',
-            transform_source=js_to_json,
-            default=None)
-        if not flashvars:
-            raise UnsupportedError(url)
+            transform_source=js_to_json)
         # extract the part after the last / as the display_id from the
         # canonical URL.
         display_id = self._search_regex(
