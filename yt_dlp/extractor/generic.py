@@ -414,28 +414,16 @@ class GenericIE(InfoExtractor):
             'display_id': 'kelis-4th-of-july',
             'thumbnail': r're:https?://www\.kvs-demo\.com/contents/videos_screenshots/.+\.jpg',
         },
-        # https://www.kvs-demo.com/player/kt_player.js?v=3.11.9
+        # https://www.kvs-demo.com/player/kt_player.js?v=4.15.9.1
     }, {
-        'url': 'https://xdegu.com/videos/21324/cumming-to-class-featuring-jennifer-white-xxx-hd-sex',
+        'url': 'https://www.kvs-demo.com/video/32/baby-alice-pina-colada-boy',
         'info_dict': {
-            'id': '21324',
+            'id': '32',
             'ext': 'mp4',
-            'display_id': 'cumming-to-class-featuring-jennifer-white-xxx-hd-sex',
-            'title': 'Cumming To Class Featuring Jennifer White - XXX HD Sex | xDEGU™',
-            'age_limit': 18,
-            'thumbnail': 'https://xdegu.com/videos/21324/cumming-to-class-featuring-jennifer-white-xxx-hd-sex/',
-        },
-    }, {
-        # https://www.kvs-demo.com/player/kt_player.js?v=13.15.0
-        'url': 'https://www.porngem.com/videos/guiltless-college-girl-was-enticed-and-railed-by-old-mentor-158080',
-        'info_dict': {
-            'id': '158080',
-            'ext': 'mp4',
-            'display_id': 'guiltless-college-girl-was-enticed-and-railed-by-old-mentor-158080',
-            'title': 'Guiltless college girl was enticed and railed by old mentor | PornGem',
-            'description': 'md5:2a78772786498e0bf44e4f74e854275f',
-            'age_limit': 18,
-            'thumbnail': 'https://www.porngem.com/contents/videos_screenshots/158000/158080/preview.jpg',
+            'display_id': 'baby-alice-pina-colada-boy',
+            'title': 'Baby Alice - Piña Colada Boy',
+            'description': 'Baby Alice - Piña Colada Boy',
+            'thumbnail': 'https://www.kvs-demo.com/contents/videos_screenshots/0/32/preview.jpg',
         },
     }, {
         # twitter:player:stream
