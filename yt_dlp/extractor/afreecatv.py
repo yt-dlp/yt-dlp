@@ -1,5 +1,6 @@
 import datetime as dt
 import functools
+import threading
 import time
 
 from .common import InfoExtractor
@@ -167,7 +168,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                         expiration_time = cookie.expires
             return expiration_time
 
-        def _request_cloudfront_cookies(m3u8_url_auth, strm_id_auth, video_id_auth, note_text):
+        def _request_cloudfront_cookies(m3u8_url_auth, strm_id_auth, video_id_auth):
             post_data = {
                 'type': 'vod',
                 'strm_id': strm_id_auth,
@@ -185,10 +186,10 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                     },
                     data=urlencode_postdata(post_data),
                 ),
-                video_id_auth, note=note_text, fatal=False)
+                video_id_auth, note=False, fatal=False)
 
         if needs_private_auth and m3u8_url and strm_id:
-            _request_cloudfront_cookies(m3u8_url, strm_id, video_id, 'requesting cloudfront cookies')
+            _request_cloudfront_cookies(m3u8_url, strm_id, video_id)
 
         error_code = traverse_obj(data, ('code', {int}))
         if error_code == -6221:
@@ -245,34 +246,34 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                     if not refresh_params_check:
                         return
 
-                    current_time = time.time()
-                    m3u8_url_check = refresh_params_check.get('m3u8_url')
-                    expiration_time = _get_cloudfront_cookie_expiration(m3u8_url_check) if m3u8_url_check else None
-                    last_refresh = refresh_params_check.get('_last_refresh', current_time)
+                    with self._downloader._soop_cookie_refresh_lock:
+                        current_time = time.time()
+                        m3u8_url_check = refresh_params_check.get('m3u8_url')
+                        expiration_time = _get_cloudfront_cookie_expiration(m3u8_url_check) if m3u8_url_check else None
+                        last_refresh = refresh_params_check.get('_last_refresh', current_time)
 
-                    should_refresh = (
-                        (expiration_time and current_time >= expiration_time - 15)
-                        or (not expiration_time and current_time - last_refresh >= 75)
-                    )
-
-                    if not should_refresh:
-                        return
-
-                    try:
-                        _request_cloudfront_cookies(
-                            refresh_params_check.get('m3u8_url'),
-                            refresh_params_check.get('strm_id'),
-                            refresh_params_check.get('video_id'),
-                            'refreshing cloudfront cookies',
+                        should_refresh = (
+                            (expiration_time and current_time >= expiration_time - 15)
+                            or (not expiration_time and current_time - last_refresh >= 75)
                         )
 
-                        if m3u8_url_check:
-                            refresh_params_check['expiration_time'] = _get_cloudfront_cookie_expiration(m3u8_url_check)
-                        refresh_params_check['_last_refresh'] = current_time
-                    except Exception:
-                        pass
+                        if not should_refresh:
+                            return
+
+                        try:
+                            _request_cloudfront_cookies(
+                                refresh_params_check.get('m3u8_url'),
+                                refresh_params_check.get('strm_id'),
+                                refresh_params_check.get('video_id'),
+                            )
+
+                            refresh_params_check['_last_refresh'] = current_time
+                        except Exception:
+                            pass
 
                 if not hasattr(self._downloader, '_soop_cookie_hook_registered'):
+                    if not hasattr(self._downloader, '_soop_cookie_refresh_lock'):
+                        self._downloader._soop_cookie_refresh_lock = threading.Lock()
                     self._downloader.add_progress_hook(cookie_refresh_hook)
                     self._downloader._soop_cookie_hook_registered = True
 
