@@ -158,7 +158,10 @@ class AfreecaTVIE(AfreecaTVBaseIE):
         # For subscribers only, call private_auth.php to get CloudFront cookies
         needs_private_auth = traverse_obj(data, ('sub_upload_type', {str}))
         strm_id = traverse_obj(data, ('bj_id', {str}))
-        m3u8_url = next((file_element.get('file') for file_element in traverse_obj(data, ('files', lambda _, v: url_or_none(v.get('file')))) if file_element.get('file') and determine_ext(file_element.get('file')) == 'm3u8'), None)
+        m3u8_url = next((
+            file_element.get('file') for file_element in traverse_obj(
+                data, ('files', lambda _, v: url_or_none(v.get('file'))))
+            if file_element.get('file') and determine_ext(file_element.get('file')) == 'm3u8'), None)
 
         def _get_cloudfront_cookie_expiration(m3u8_url):
             expiration_time = None
@@ -207,8 +210,8 @@ class AfreecaTVIE(AfreecaTVBaseIE):
 
         entries = []
         for file_num, file_element in enumerate(
-                traverse_obj(data, ('files', lambda _, v: url_or_none(v['file']))), start=1):
-            file_url = file_element['file']
+                traverse_obj(data, ('files', lambda _, v: url_or_none(v.get('file')))), start=1):
+            file_url = file_element.get('file')
             if determine_ext(file_url) == 'm3u8':
                 formats = self._extract_m3u8_formats(
                     file_url, video_id, 'mp4', m3u8_id='hls',
