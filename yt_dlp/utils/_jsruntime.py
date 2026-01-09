@@ -13,6 +13,13 @@ _FALLBACK_PATHEXT = ('.COM', '.EXE', '.BAT', '.CMD')
 
 
 def _find_exe(basename: str) -> str:
+    if basename == 'deno':   
+        try: # look for a PyPI-installed version first.
+            import deno
+            return deno.find_deno_bin()
+        except ImportError:
+            pass # try the other options.
+            
     if os.name != 'nt':
         return basename
 
