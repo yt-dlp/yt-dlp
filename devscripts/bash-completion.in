@@ -1,5 +1,6 @@
 _comp_cmd_yt-dlp() {
-    local have_bashcomp=0 cur="$2" prev="$3"
+    # Not using "$2" and "$3" to partially workaround YouTube keyword completions.
+    local have_bashcomp=0 cur="${COMP_WORDS[COMP_CWORD]}" prev="${COMP_WORDS[COMP_CWORD - 1]}"
 
     # Long options with equals and YouTube keyword completions
     # do not work without bash-completion.
@@ -37,26 +38,30 @@ _comp_cmd_yt-dlp() {
                 _comp_compgen_filedir
             fi
         else
-            # macOS Bash 3.2.57 does not have compopt.
+            # macOS Bash does not have compopt.
             if type compopt &>/dev/null; then
                 compopt -o filenames
             fi
             compreply_lines="$(compgen -A "$filedir_action" -- "$cur")"
         fi
     elif [[ "$cur" = :* ]]; then
-        local -r keywords=(
-            :ytnotif{,ication}{,s}
-            :ytfav{,o{,u}rite}{,s}
-            :ytwatchlater
-            :ytrec{,ommended}
-            :ytsub{,scription}{,s}
-            :ythis{,tory}
-        )
+        # Adding keywords one by one since macOS Bash
+        # can't initialise a local array from brace expansions.
+        local k keywords
+        for k in :ytnotif{,ication}{,s} \
+                 :ytfav{,o{,u}rite}{,s} \
+                 :ytwatchlater \
+                 :ytrec{,ommended} \
+                 :ytsub{,scription}{,s} \
+                 :ythis{,tory}; do
+            keywords+=("$k")
+        done
         if (( "$have_bashcomp" )); then
             _comp_compgen -- -W "${keywords[*]}"
             _comp_ltrim_colon_completions "$cur"
         else
             compreply_lines="$(compgen -W "${keywords[*]}" -- "$cur")"
+            compreply_lines="${compreply_lines//:/}"
         fi
     else
         local -r opts=( YT_DLP_OPTS )
