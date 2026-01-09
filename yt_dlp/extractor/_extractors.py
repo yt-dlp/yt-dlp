@@ -1181,6 +1181,7 @@ from .mocha import MochaVideoIE
 from .mojevideo import MojevideoIE
 from .mojvideo import MojvideoIE
 from .monstercat import MonstercatIE
+from .morgenpost import MorgenpostIE
 from .motherless import (
     MotherlessGalleryIE,
     MotherlessGroupIE,
