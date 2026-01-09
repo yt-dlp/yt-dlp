@@ -80,10 +80,25 @@ class AnimeSamaIE(InfoExtractor):
 
         entries = []
         for idx, players in enumerate(episodes_players, start=1):
-            # Choose the first available player for the episode; downstream extractors will handle it
+            # Prefer non-vidmoly players as yt-dlp currently has no dedicated extractor for vidmoly embeds.
+            # Logic adapted from the downloader in concat.txt (Players.sort_and_filter/ban):
+            #  - filter banned hosts (here: vidmoly)
+            #  - keep original order otherwise
             if not players:
                 continue
-            player_url = players[0]
+            non_vidmoly = [
+                p for p in players
+                if 'vidmoly' not in ((urllib.parse.urlparse(p).hostname or '').lower())
+            ]
+            if non_vidmoly:
+                player_url = non_vidmoly[0]
+            else:
+                # No alternative available; keep behavior but warn so the user can adjust with --playlist-items
+                self.report_warning(
+                    f'Episode {idx}: only vidmoly players found; falling back to vidmoly (may be unsupported)',
+                )
+                player_url = players[0]
+
             title = f'{slug} {season} Episode {idx} ({lang.upper()})'
             entry = self.url_result(player_url, video_title=title)
             entry.update({
