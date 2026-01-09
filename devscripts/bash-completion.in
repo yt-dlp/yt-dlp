@@ -15,13 +15,11 @@ _comp_cmd_yt-dlp() {
 
     local filedir_action
     case "$prev" in
-        -a | --batch-file | --download-archive | --cookies | --load-info-json \
-                | --config-locations | --netrc-location | --ffmpeg-location \
-                | --client-certificate | --client-certificate-key )
+        YT_DLP_FILE_OPTS_CASE )
             filedir_action='file'
             ;;
 
-        --plugin-dirs | --cache-dir )
+        YT_DLP_DIR_OPTS_CASE )
             filedir_action='directory'
             ;;
 
@@ -64,7 +62,7 @@ _comp_cmd_yt-dlp() {
             compreply_lines="${compreply_lines//:/}"
         fi
     else
-        local -r opts=( YT_DLP_OPTS )
+        local -r opts=( YT_DLP_OPTS_ARRAY )
         if type compopt &> /dev/null; then
             compopt -o nosort
         fi
