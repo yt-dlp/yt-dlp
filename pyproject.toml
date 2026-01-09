@@ -65,6 +65,9 @@ secretstorage = [
     "cffi",
     "secretstorage",
 ]
+deno = [
+    "deno>=2.6.4",
+]
 build = [
     "build",
     "hatchling>=1.27.0",
