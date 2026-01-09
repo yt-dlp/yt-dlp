@@ -1,41 +1,99 @@
-    from .common import InfoExtractor
+import re
+import urllib
+
+from .common import InfoExtractor
+from ..utils import ExtractorError
 
 
-    class AnimeSamaIE(InfoExtractor):
-        _VALID_URL = r'https?://(?:www\.)?yourextractor\.com/watch/(?P<id>[0-9]+)'
-        _TESTS = [{
-            'url': 'https://yourextractor.com/watch/42',
-            'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
-            'info_dict': {
-                # For videos, only the 'id' and 'ext' fields are required to RUN the test:
-                'id': '42',
-                'ext': 'mp4',
-                # Then if the test run fails, it will output the missing/incorrect fields.
-                # Properties can be added as:
-                # * A value, e.g.
-                #     'title': 'Video title goes here',
-                # * MD5 checksum; start the string with 'md5:', e.g.
-                #     'description': 'md5:098f6bcd4621d373cade4e832627b4f6',
-                # * A regular expression; start the string with 're:', e.g.
-                #     'thumbnail': r're:https?://.*\.jpg$',
-                # * A count of elements in a list; start the string with 'count:', e.g.
-                #     'tags': 'count:10',
-                # * Any Python type, e.g.
-                #     'view_count': int,
-            }
-        }]
+class AnimeSamaIE(InfoExtractor):
+    IE_DESC = 'anime-sama.* season pages (playlist of episodes)'
+    _VALID_URL = r'https?://(?:www\.)?anime\-sama\.(?:tv|si|to|org|fr|eu)/catalogue/(?P<slug>[^/]+)/(?P<season>saison(?P<season_num>\d+))/(?P<lang>vostfr|vf)/?'
 
-        def _real_extract(self, url):
-            video_id = self._match_id(url)
-            webpage = self._download_webpage(url, video_id)
+    _TESTS = [
+        {
+            'url': 'https://anime-sama.tv/catalogue/one-piece/saison9/vostfr/',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://anime-sama.tv/catalogue/naruto/saison1/vostfr/',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://anime-sama.fr/catalogue/one-piece/saison9/vf/',
+            'only_matching': True,
+        },
+    ]
 
-            # TODO more code goes here, for example ...
-            title = self._html_search_regex(r'<h1>(.+?)</h1>', webpage, 'title')
+    def _download_episodes_js(self, webpage_url: str, video_id: str) -> str:
+        webpage = self._download_webpage(webpage_url, video_id)
+        # The site references episodes.js with a cache buster: episodes.js?filever=123456
+        js_path = self._search_regex(
+            (r'(episodes\.js\?filever=\d+)', r'(episodes\.js)'),
+            webpage, 'episodes js', default=None,
+        )
+        if not js_path:
+            raise ExtractorError('episodes.js not found on the page', expected=True)
+        episodes_js_url = urllib.parse.urljoin(webpage_url if webpage_url.endswith('/') else webpage_url + '/', js_path)
+        return self._download_webpage(episodes_js_url, video_id, note='Downloading episodes.js')
 
-            return {
-                'id': video_id,
-                'title': title,
-                'description': self._og_search_description(webpage),
-                'uploader': self._search_regex(r'<div[^>]+id="uploader"[^>]*>([^<]+)<', webpage, 'uploader', fatal=False),
-                # TODO more properties (see yt_dlp/extractor/common.py)
-            }
+    @staticmethod
+    def _parse_players_from_js(episodes_js: str) -> list[list[str]]:
+        # Find eps arrays: eps1 = ['host1ep1', 'host2ep1', ...]; eps2 = [...]
+        # We need to zip these arrays per-index to obtain players per episode
+        arrays = re.findall(r'eps(\d+)\s*=\s*\[([\s\S]+?)\]', episodes_js)
+        lists: list[list[str]] = []
+        for _idx, arr_content in arrays:
+            links = re.findall(r"'(https?://[^']+)'", arr_content)
+            # Normalize some legacy domains
+            links = [link.replace('vidmoly.to', 'vidmoly.net') for link in links]
+            lists.append(links)
+        if not lists:
+            return []
+        max_len = max((len(l) for l in lists), default=0)
+        episodes_players: list[list[str]] = []
+        for i in range(max_len):
+            ep_players: list[str] = []
+            for l in lists:
+                if i < len(l):
+                    ep_players.append(l[i])
+            if len(ep_players) >= 2:
+                # swap first two players as done in the reference project
+                ep_players[0], ep_players[1] = ep_players[1], ep_players[0]
+            if ep_players:
+                episodes_players.append(ep_players)
+        return episodes_players
+
+    def _real_extract(self, url):
+        m = self._match_valid_url(url)
+        slug = m.group('slug')
+        season = m.group('season')
+        season_num = m.group('season_num')
+        lang = m.group('lang')
+        playlist_id = f'{slug}-{season}-{lang}'
+        playlist_title = f'{slug} {season} {lang}'
+
+        episodes_js = self._download_episodes_js(url, playlist_id)
+        episodes_players = self._parse_players_from_js(episodes_js)
+
+        if not episodes_players:
+            raise ExtractorError('No episodes found for this season/language', expected=True)
+
+        entries = []
+        for idx, players in enumerate(episodes_players, start=1):
+            # Choose the first available player for the episode; downstream extractors will handle it
+            if not players:
+                continue
+            player_url = players[0]
+            title = f'{slug} {season} Episode {idx} ({lang.upper()})'
+            entry = self.url_result(player_url, video_title=title)
+            entry.update({
+                'series': slug.replace('-', ' '),
+                'season_number': int(season_num) if season_num else None,
+                'episode_number': idx,
+                'season': season,
+                'episode': f'Episode {idx}',
+                'language': lang,
+            })
+            entries.append(entry)
+
+        return self.playlist_result(entries, playlist_id=playlist_id, playlist_title=playlist_title)
