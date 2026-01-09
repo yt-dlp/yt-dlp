@@ -123,6 +123,7 @@ from .americastestkitchen import (
 )
 from .anchorfm import AnchorFMEpisodeIE
 from .angel import AngelIE
+from .anime_sama import AnimeSamaIE
 from .antenna import (
     Ant1NewsGrArticleIE,
     Ant1NewsGrEmbedIE,
