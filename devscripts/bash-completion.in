@@ -1,49 +1,81 @@
 _comp_cmd_yt-dlp() {
-    local cur prev
-    # Unused variables assigned by _comp_initialize.
-    # shellcheck disable=SC2034
-    local words cword comp_args was_split
+    local have_bashcomp=0 cur="$2" prev="$3"
 
-    # ':' must be excluded from COMP_WORDBREAKS to handle :yt* keywords
-    _comp_initialize -n : -s -- "$@" || return
+    # Long options with equals and YouTube keyword completions
+    # do not work without bash-completion.
+    if declare -F _comp_initialize &> /dev/null; then
+        have_bashcomp=1
+        # Unused variables assigned by _comp_initialize.
+        # shellcheck disable=SC2034
+        local words cword comp_args was_split
+        # ':' must be excluded from COMP_WORDBREAKS to handle :yt* keywords
+        _comp_initialize -n : -s -- "$@" || return
+    fi
 
+    local filedir_action
     case "$prev" in
         -a | --batch-file | --download-archive | --cookies | --load-info-json \
                 | --config-locations | --netrc-location | --ffmpeg-location \
                 | --client-certificate | --client-certificate-key )
-            _comp_compgen_filedir
-            return
+            filedir_action='file'
             ;;
 
         --plugin-dirs | --cache-dir )
-            _comp_compgen_filedir -d
-            return
+            filedir_action='directory'
             ;;
 
         * )
-            case "$cur" in
-                :* )
-                    local -r keywords=(
-                        :ytnotif{,ication}{,s}
-                        :ytfav{,o{,u}rite}{,s}
-                        :ytwatchlater
-                        :ytrec{,ommended}
-                        :ytsub{,scription}{,s}
-                        :ythis{,tory}
-                    )
-                    _comp_compgen -- -W "${keywords[*]}"
-                    _comp_ltrim_colon_completions "$cur"
-                    return
-                    ;;
-
-                * )
-                    local -r opts=( YT_DLP_FLAGS )
-                    compopt -o nosort
-                    _comp_compgen -- -W "${opts[*]}"
-                    return
-                    ;;
-            esac
             ;;
     esac
+
+    local compreply_lines
+    if [[ "$filedir_action" ]]; then
+        if (( "$have_bashcomp" )); then
+            if [[ "$filedir_action" = directory ]]; then
+                _comp_compgen_filedir -d
+            else
+                _comp_compgen_filedir
+            fi
+        else
+            # macOS Bash 3.2.57 does not have compopt.
+            if type compopt &>/dev/null; then
+                compopt -o filenames
+            fi
+            compreply_lines="$(compgen -A "$filedir_action" -- "$cur")"
+        fi
+    elif [[ "$cur" = :* ]]; then
+        local -r keywords=(
+            :ytnotif{,ication}{,s}
+            :ytfav{,o{,u}rite}{,s}
+            :ytwatchlater
+            :ytrec{,ommended}
+            :ytsub{,scription}{,s}
+            :ythis{,tory}
+        )
+        if (( "$have_bashcomp" )); then
+            _comp_compgen -- -W "${keywords[*]}"
+            _comp_ltrim_colon_completions "$cur"
+        else
+            compreply_lines="$(compgen -W "${keywords[*]}" -- "$cur")"
+        fi
+    else
+        local -r opts=( YT_DLP_OPTS )
+        if type compopt &> /dev/null; then
+            compopt -o nosort
+        fi
+        if (( "$have_bashcomp" )); then
+            _comp_compgen -- -W "${opts[*]}"
+        else
+            compreply_lines="$(compgen -W "${opts[*]}" -- "$cur")"
+        fi
+    fi
+
+    if [[ "$have_bashcomp" != 1 && "$compreply_lines" ]]; then
+        COMPREPLY=()
+        local line
+        while IFS='' read -r line; do
+            COMPREPLY+=("$line")
+        done <<< "$compreply_lines"
+    fi
 } \
     && complete -F _comp_cmd_yt-dlp yt-dlp

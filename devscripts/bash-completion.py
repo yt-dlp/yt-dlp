@@ -14,7 +14,7 @@ BASH_COMPLETION_FILE = 'completions/bash/yt-dlp'
 BASH_COMPLETION_TEMPLATE = 'devscripts/bash-completion.in'
 
 
-def yt_dlp_flags():
+def yt_dlp_options():
     opts, long_opts = [], []
 
     for opt in yt_dlp.parseOpts(ignore_config_files=True)[0]._get_all_options():
@@ -34,7 +34,7 @@ def build_completion():
         template = f.read()
     with open(BASH_COMPLETION_FILE, 'w') as f:
         # just using the special char
-        filled_template = template.replace('YT_DLP_FLAGS', ' '.join(yt_dlp_flags()))
+        filled_template = template.replace('YT_DLP_OPTS', ' '.join(yt_dlp_options()))
         f.write(filled_template)
 
 
