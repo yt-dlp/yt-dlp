@@ -1733,7 +1733,10 @@ from .roosterteeth import (
     RoosterTeethSeriesIE,
 )
 from .rottentomatoes import RottenTomatoesIE
-from .roya import RoyaLiveIE
+from .roya import (
+    RoyaIE,
+    RoyaLiveIE,
+)
 from .rozhlas import (
     MujRozhlasIE,
     RozhlasIE,
