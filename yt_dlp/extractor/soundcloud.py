@@ -276,9 +276,10 @@ class SoundcloudBaseIE(InfoExtractor):
                 if urlh:
                     format_url = urlh.url
                     format_urls.add(format_url)
+                    ext = urlh.headers.get('x-amz-meta-file-type') or urlhandle_detect_ext(urlh)
                     formats.append({
                         'format_id': 'download',
-                        'ext': urlhandle_detect_ext(urlh),
+                        'ext': ext,
                         'filesize': int_or_none(urlh.headers.get('Content-Length')),
                         'url': format_url,
                         'quality': 10,
