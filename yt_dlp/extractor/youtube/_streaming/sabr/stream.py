@@ -362,6 +362,7 @@ class SabrStream:
     def _prepare_next_playback_time(self):
         # TODO: refactor and cleanup this massive function
         wait_seconds = 0
+        # TODO: move this for loop into processor media_end
         for izf in self.processor.initialized_formats.values():
             if not izf.current_segment:
                 continue

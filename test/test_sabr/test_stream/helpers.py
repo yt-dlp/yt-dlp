@@ -555,7 +555,7 @@ def assert_media_sequence_in_order(parts, format_selector: AudioSelector | Video
                     if not allow_retry:
                         assert current_segment[2] is not None, 'Previous Media segment end part missing'
                     if current_segment[0].sequence_number is None:
-                        assert part.sequence_number == 1, 'Media segment init part sequence number should be 1 after unknown sequence number'
+                        assert part.sequence_number == 1, 'Segment after init part should be sequence number 1'
                     elif not allow_retry:
                         assert part.sequence_number == current_segment[0].sequence_number + 1, 'Media segment init part sequence number out of order'
                     else:

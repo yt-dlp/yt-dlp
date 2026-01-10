@@ -30,10 +30,14 @@ from yt_dlp.extractor.youtube._streaming.sabr.exceptions import (
 from yt_dlp.extractor.youtube._streaming.ump import UMPPartId, UMPPart
 from yt_dlp.networking.exceptions import TransportError, HTTPError, RequestError
 
-from yt_dlp.extractor.youtube._streaming.sabr.models import AudioSelector, VideoSelector
+from yt_dlp.extractor.youtube._streaming.sabr.models import AudioSelector, VideoSelector, ConsumedRange
 from yt_dlp.extractor.youtube._streaming.sabr.part import (
     FormatInitializedSabrPart,
-    RefreshPlayerResponseSabrPart, PoTokenStatusSabrPart,
+    RefreshPlayerResponseSabrPart,
+    PoTokenStatusSabrPart,
+    MediaSegmentInitSabrPart,
+    MediaSeekSabrPart,
+    MediaSegmentEndSabrPart,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.stream import SabrStream
 from yt_dlp.extractor.youtube._proto.videostreaming import (
@@ -43,6 +47,7 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     SabrError,
     SabrContext,
     ReloadPlayerResponse,
+    SabrRedirect,
 )
 from yt_dlp.utils import parse_qs
 
@@ -219,6 +224,128 @@ class TestStream:
                 start_time_ms=0, duration_ms=9001, start_segment_index=1, end_segment_index=9,
                 time_range=TimeRange(start_ticks=0, duration_ticks=9001, timescale=1000))]
         assert rh.request_history[5].vpabr.client_abr_state.player_time_ms == 9001
+
+    def test_multiple_buffered_ranges(self, logger, client_info):
+        # Should handle multiple buffered ranges correctly,
+        # where if there is another buffered range at the end of a buffered range, it should skip ahead to the end of it.
+        # This can happen for live streams and resuming playback.
+        # Using video-only to keep this test simple
+
+        sabr_stream, _, selectors = setup_sabr_stream_av(
+            sabr_response_processor=BasicAudioVideoProfile(),
+            client_info=client_info,
+            logger=logger,
+            enable_audio=False,
+        )
+
+        _, video_selector = selectors
+
+        # Get all the segments from the first iteration. We need to know the timings of each to set up buffered ranges.
+        iter_parts = sabr_stream.iter_parts()
+        format_init_part = next(iter_parts)
+        assert isinstance(format_init_part, FormatInitializedSabrPart)
+        # Get all the media init parts
+        media_init_parts = [part for part in iter_parts if isinstance(part, MediaSegmentInitSabrPart)]
+        assert len(media_init_parts) == DEFAULT_NUM_VIDEO_SEGMENTS + 1
+
+        #  Now set up buffered ranges to skip some segments
+        consumed_ranges = [
+            # Mark middle segments as buffered (2-9)
+            ConsumedRange(
+                # Note: First segment is init segment with no sequence number
+                start_sequence_number=media_init_parts[2].sequence_number,
+                end_sequence_number=media_init_parts[-2].sequence_number,
+                start_time_ms=media_init_parts[2].start_time_ms,
+                duration_ms=sum(part.duration_ms for part in media_init_parts[2:-1]),
+            ),
+        ]
+
+        # Reset the sabr stream and set the consumed ranges
+        sabr_stream, rh, _ = setup_sabr_stream_av(
+            sabr_response_processor=BasicAudioVideoProfile(),
+            client_info=client_info,
+            logger=logger,
+            enable_audio=False,
+        )
+
+        # Start streaming until get the initialized format
+        iter_parts = sabr_stream.iter_parts()
+        format_init_part = next(iter_parts)
+        assert isinstance(format_init_part, FormatInitializedSabrPart)
+        sabr_stream.processor.initialized_formats[str(format_init_part.format_id)].consumed_ranges = consumed_ranges
+        # Continue retrieving parts
+        parts = [format_init_part]
+        parts.extend(iter_parts)
+
+        # Expect that the only media init parts we get is init segment, first segment and last segment (10)
+        media_init_parts_received = [part for part in parts if isinstance(part, MediaSegmentInitSabrPart)]
+        assert len(media_init_parts_received) == 3
+        assert media_init_parts_received[0].sequence_number is None  # init segment
+        assert media_init_parts_received[1].sequence_number == 1
+        assert media_init_parts_received[2].sequence_number == media_init_parts[-1].sequence_number  # last segment
+
+        # We should have got a MediaSeekSabrPart with a reason of CONSUMED_SEEK for the given format
+        seek_parts = [part for part in parts if isinstance(part, MediaSeekSabrPart)]
+        assert len(seek_parts) == 1
+        seek_part = seek_parts[0]
+        assert seek_part.reason == MediaSeekSabrPart.Reason.CONSUMED_SEEK
+        assert seek_part.format_id == format_init_part.format_id
+        assert seek_part.format_selector == video_selector
+
+        # Should have logged to debug about the seek
+        logger.debug.assert_any_call('Found two or more consumed ranges that line up, allowing a seek for format FormatId(itag=248, lmt=456, xtags=None)')
+
+        # In the last vpabr request, we should two buffered ranges for the format (1st is segments 1, 2nd for segments 2-9)
+        last_request_vpabr = rh.request_history[-1].vpabr
+        video_buffered_ranges = [br for br in last_request_vpabr.buffered_ranges if br.format_id == format_init_part.format_id]
+        assert len(video_buffered_ranges) == 2
+
+    def test_fail_segment_multiple_consumed_ranges(self, logger, client_info):
+        # Should bail out if a segment is in multiple consumed ranges
+        # This is a guard against an internal error when setting consumed ranges
+        sabr_stream, rh, _ = setup_sabr_stream_av(
+            sabr_response_processor=BasicAudioVideoProfile(),
+            client_info=client_info,
+            logger=logger,
+            enable_audio=False,
+        )
+
+        # Get the first complete segment for the format to update the consumed range
+        iter_parts = sabr_stream.iter_parts()
+        format_init_part = next(iter_parts)
+        assert isinstance(format_init_part, FormatInitializedSabrPart)
+
+        # Get first two media_end parts (init and first segment)
+        first_two_media_end_parts = []
+        for part in iter_parts:
+            if isinstance(part, MediaSegmentEndSabrPart):
+                first_two_media_end_parts.append(part)
+                if len(first_two_media_end_parts) == 2:
+                    break
+
+        # Consumed range should contain the first segment
+        consumed_ranges = sabr_stream.processor.initialized_formats[str(format_init_part.format_id)].consumed_ranges
+        assert len(consumed_ranges) == 1
+        assert consumed_ranges[0].start_sequence_number == consumed_ranges[0].end_sequence_number == 1
+
+        # Now add another consumed range that also contains the first segment
+        consumed_ranges.append(
+            ConsumedRange(
+                start_sequence_number=1,
+                end_sequence_number=2,
+                start_time_ms=0,
+                duration_ms=5000,
+            ))
+
+        # Continue retrieving parts and expect error before next request
+        with pytest.raises(
+            SabrStreamError,
+            match=r'Segment 1 for format FormatId\(itag=248, lmt=456, xtags=None\) in 2 consumed ranges',
+        ):
+            list(iter_parts)
+
+        # There should have only been one request made (the initial one)
+        assert len(rh.request_history) == 1
 
     def test_server_format_change_error(self, logger, client_info):
         # Should raise an error if the server changes the format IDs mid-stream
@@ -575,6 +702,333 @@ class TestStream:
 
         # Should have made two requests before failing
         assert len(rh.request_history) == 2
+
+    # TODO: should consider more tests where selectors are not matched / used
+    #  In particular, a test where audio+video selectors provided but only one format is returned
+    #  In this case, it should error (could be due to missing new segments due to not incrementing player time)
+    def test_briefly_missing_initialized_format(self, logger, client_info):
+        # Should not increment player_time_ms if one of the initialized formats is missing when the other has received a segment.
+        # This can happen in the case we get first IF with a segment, then get a read error, then on next request is a redirect.
+
+        def missing_format_func(parts, vpabr, url, request_number):
+            # On first request, add an error after 4th part
+            if request_number == 1:
+                return [
+                    # First format IF + init segment + first segment for that format to create a CR
+                    parts[0], *parts[2:8],
+                    # So error doesn't occur on reading segment data
+                    UMPPart(
+                        part_id=UMPPartId.SNACKBAR_MESSAGE,
+                        size=0,
+                        data=io.BytesIO(b''),
+                    ),
+                    TransportError('simulated transport error'),
+                ]
+
+            if request_number == 2:
+                # On second request, return a redirect
+                payload = protobug.dumps(SabrRedirect(
+                    redirect_url='https://redirect.example.com/sabr'))
+                return [
+                    UMPPart(
+                        part_id=UMPPartId.SABR_REDIRECT,
+                        size=len(payload),
+                        data=io.BytesIO(payload),
+                    )]
+            return parts
+
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            client_info=client_info,
+            logger=logger,
+            sabr_response_processor=CustomAVProfile({'custom_parts_function': missing_format_func}),
+        )
+        # Should not error
+        parts = list(sabr_stream.iter_parts())
+
+        audio_selector, video_selector = selectors
+
+        # TODO: currently fails as the player_time_ms is increased
+        # TODO: SabrStream should have also detect the video format is missing the first segment...
+        #  it should pin expected segment to 1
+        assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
+        assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+
+        third_request = rh.request_history[2]
+        assert len(third_request.vpabr.buffered_ranges) == 1
+        assert third_request.vpabr.client_abr_state.player_time_ms == 0
+
+    class TestStreamStall:
+        # TODO: Create a custom error for this case instead of using SabrStreamError (e.g StreamStallError)
+        def test_no_new_segments_default(self, logger, client_info):
+            # TODO: currently fails on max_empty_requests+1, should be max_empty_requests
+            # Should raise SabrStreamError if no new segments are received on the third request (default)
+            def no_new_segments_func(parts, vpabr, url, request_number):
+                # On third request, return only init parts (no new segments)
+                if request_number >= 4:
+                    return parts
+                return []
+
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                client_info=client_info,
+                logger=logger,
+                sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_func}),
+            )
+            with pytest.raises(SabrStreamError, match=r'No new segments received from server in 3 consecutive requests'):
+                list(sabr_stream.iter_parts())
+
+            # Should have made 3 requests before failing
+            assert len(rh.request_history) == 3
+
+        def test_no_new_segments_custom(self, logger, client_info):
+            # Should raise SabrStreamError if no new segments are received on the fifth request (custom)
+            max_empty_requests = 5
+
+            def no_new_segments_func(parts, vpabr, url, request_number):
+                # On fifth request, return only init parts (no new segments)
+                if request_number > max_empty_requests:
+                    return parts
+                return []
+
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                client_info=client_info,
+                logger=logger,
+                sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_func}),
+                max_empty_requests=max_empty_requests,
+            )
+            with pytest.raises(SabrStreamError, match=r'No new segments received from server in 5 consecutive requests'):
+                list(sabr_stream.iter_parts())
+
+            # Should have made 5 requests before failing
+            assert len(rh.request_history) == 5
+
+        def test_no_new_segments_reset_on_new_segment(self, logger, client_info):
+            # Should reset the empty request counter when a new segment is received
+            max_empty_requests = 3
+
+            def no_new_segments_func(parts, vpabr, url, request_number):
+                # On every third request, return parts (new segments)
+                if request_number % max_empty_requests == 0:
+                    return parts
+                return []
+
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                client_info=client_info,
+                logger=logger,
+                sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_func}),
+                max_empty_requests=max_empty_requests,
+            )
+            # Should complete successfully
+            parts = list(sabr_stream.iter_parts())
+            # Should have made 6 requests total (2 sets of 3)
+            assert len(rh.request_history) == 6 * max_empty_requests
+            audio_selector, video_selector = selectors
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+
+            logger.trace.assert_any_call('No new segments received in request 1, count: 1')
+            logger.trace.assert_any_call('No new segments received in request 2, count: 2')
+            assert rh.request_history[0].parts == rh.request_history[1].parts == []
+            assert rh.request_history[2].parts
+            logger.trace.assert_any_call('No new segments received in request 4, count: 1')
+            logger.trace.assert_any_call('No new segments received in request 5, count: 2')
+            assert rh.request_history[3].parts == rh.request_history[4].parts == []
+            assert rh.request_history[5].parts
+
+        def test_max_empty_requests_negative(self, logger, client_info):
+            # Should raise ValueError if max_empty_requests is negative
+            with pytest.raises(ValueError, match='max_empty_requests must be greater than 0'):
+                setup_sabr_stream_av(
+                    client_info=client_info,
+                    logger=logger,
+                    max_empty_requests=-1,
+                )
+
+        def test_no_new_segments_http_retry_then_segments(self, logger, client_info):
+            # Receive a TransportError during response on the 3rd attempt with no new segments,
+            # should retry and continue if retried request returns new segments
+            max_empty_requests = 3
+
+            def no_new_segments_with_error_func(parts, vpabr, url, request_number):
+                # On third request, raise TransportError
+                if request_number == max_empty_requests:
+                    return [TransportError('simulated transport error')]
+                # On 4th request (retried), return parts (new segments)
+                if request_number > max_empty_requests:
+                    return parts
+                return []
+
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                client_info=client_info,
+                logger=logger,
+                sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_with_error_func}),
+                max_empty_requests=max_empty_requests,
+            )
+            # Should complete successfully
+            parts = list(sabr_stream.iter_parts())
+            assert len(rh.request_history) == 6 + max_empty_requests
+            audio_selector, video_selector = selectors
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+
+            assert rh.request_history[0].parts == rh.request_history[1].parts == []
+            assert isinstance(rh.request_history[2].error, TransportError)
+            logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (1/10)...')
+
+        def test_no_new_segments_http_retry_no_segments(self, logger, client_info):
+            # Receive a TransportError during response on the 3rd attempt with no new segments,
+            # should retry and fail if retried request also returns no new segments
+            max_empty_requests = 3
+
+            def no_new_segments_with_error_func(parts, vpabr, url, request_number):
+                # On third request, raise TransportError
+                if request_number == max_empty_requests:
+                    return [TransportError('simulated transport error')]
+                return []
+
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                client_info=client_info,
+                logger=logger,
+                sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_with_error_func}),
+                max_empty_requests=max_empty_requests,
+            )
+            with pytest.raises(SabrStreamError, match=r'No new segments received from server in 3 consecutive requests'):
+                list(sabr_stream.iter_parts())
+
+            # Should have made 4 requests before failing (3 empty + 1 retried)
+            assert len(rh.request_history) == max_empty_requests + 1
+
+            assert rh.request_history[0].parts == rh.request_history[1].parts == []
+            assert isinstance(rh.request_history[2].error, TransportError)
+            assert rh.request_history[3].parts == []
+
+        def test_no_new_segments_http_retry_with_segments_reset(self, logger, client_info):
+            # TODO: currently fails as we do not reset the empty counter if we received an error and retry
+            # Receive a TransportError during response on the 3rd attempt WITH new segments (before the TransportError)
+            # should retry and continue, resetting the empty request counter
+            max_empty_requests = 3
+
+            def no_new_segments_with_error_func(parts, vpabr, url, request_number):
+                # On every third request, return parts (new segments) with an error
+                if request_number % max_empty_requests == 0:
+                    return [*parts,
+                            # Dummy part as otherwise would fail on last media_end part
+                            UMPPart(
+                                part_id=UMPPartId.SNACKBAR_MESSAGE,
+                                size=0,
+                                data=io.BytesIO(b''),
+                            ), TransportError('simulated transport error')]
+                return []
+
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                client_info=client_info,
+                logger=logger,
+                sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_with_error_func}),
+                max_empty_requests=max_empty_requests,
+            )
+            # Should complete successfully
+            parts = list(sabr_stream.iter_parts())
+
+            audio_selector, video_selector = selectors
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+
+            # Should have made 6 requests total (2 sets of 3) + 1 for (empty) retry at the end
+            assert len(rh.request_history) == 6 * max_empty_requests + 1
+            assert rh.request_history[0].parts == rh.request_history[1].parts == []
+            logger.trace.assert_any_call('No new segments received in request 1, count: 1')
+            logger.trace.assert_any_call('No new segments received in request 2, count: 2')
+            assert isinstance(rh.request_history[2].error, TransportError)
+            assert rh.request_history[2].parts  # Has new segments
+
+            assert rh.request_history[3].parts == rh.request_history[4].parts == []
+            logger.trace.assert_any_call('No new segments received in request 4, count: 1')
+            logger.trace.assert_any_call('No new segments received in request 5, count: 2')
+            assert isinstance(rh.request_history[5].error, TransportError)
+            assert rh.request_history[5].parts  # Has new segments
+
+            logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (1/10)...')
+
+        def test_consumed_segments_counted(self, logger, client_info):
+            # Requests with only consumed segments should count towards empty requests
+            max_empty_requests = 3
+            second_request_parts = []
+
+            def consumed_segments_func(parts, vpabr, url, request_number):
+                # Replay the segments from the second request on all subsequent requests
+                if request_number == 2:
+                    second_request_parts.extend(parts)
+                if request_number >= 3:
+                    # rewind all the files so we can read them again
+                    for part in second_request_parts:
+                        if hasattr(part.data, 'seek'):
+                            part.data.seek(0)
+                    return second_request_parts
+                return parts
+
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                client_info=client_info,
+                logger=logger,
+                sabr_response_processor=CustomAVProfile({'custom_parts_function': consumed_segments_func}),
+                max_empty_requests=max_empty_requests,
+            )
+            with pytest.raises(SabrStreamError, match=r'No new segments received from server in 3 consecutive requests'):
+                list(sabr_stream.iter_parts())
+
+            # Should have made 5 requests before failing (2 normal + 3 empty)
+            assert len(rh.request_history) == 2 + max_empty_requests
+            logger.trace.assert_any_call('No new segments received in request 3, count: 1')
+            logger.trace.assert_any_call('No new segments received in request 4, count: 2')
+
+        @pytest.mark.skip(reason='todo')
+        def test_discarded_segments_not_counted(self, logger, client_info):
+            # Requests with NEW segments marked as discarded (but no consumed) should NOT count towards empty requests
+            # Set up a audio-only stream with discard=True in the selector
+
+            # Create a custom function that will return a reload player response on the 1st request.
+            # This allows us to catch the iterator before going onto the next request so we can clear consumed ranges.
+            # (Format parts will NOT be returned as the format is marked to discard)
+            def no_new_segments_discarded_func(parts, vpabr, url, request_number):
+                # On 1st request, inject in ReloadPlayerResponse part
+                if request_number == 1:
+                    payload = protobug.dumps(ReloadPlayerResponse(
+                        reload_playback_params=ReloadPlaybackParams(token='test token'),
+                    ))
+                    return [
+                        parts[0],  # Format init part
+                        UMPPart(
+                            part_id=UMPPartId.RELOAD_PLAYER_RESPONSE,
+                            size=len(payload),
+                            data=io.BytesIO(payload),
+                        ),
+                        *parts[1:],  # Media parts. Needs to be after reload part so new buffered ranges created
+                    ]
+                return parts
+
+            rh = SabrRequestHandler(sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_discarded_func}))
+            audio_selector = AudioSelector(display_name='audio', discard_media=True)
+            sabr_stream = SabrStream(
+                urlopen=rh.send,
+                server_abr_streaming_url='https://example.com/sabr',
+                logger=logger,
+                video_playback_ustreamer_config=VIDEO_PLAYBACK_USTREAMER_CONFIG,
+                client_info=client_info,
+                audio_selection=audio_selector,
+            )
+
+            # Clear the buffered ranges of the format (which will be set to fully buffered)
+            parts_iter = sabr_stream.iter_parts()
+
+            reload_player_response_part = next(parts_iter)
+            assert isinstance(reload_player_response_part, RefreshPlayerResponseSabrPart)
+            for format_init_part in sabr_stream.processor.initialized_formats.values():
+                format_init_part.consumed_ranges.clear()
+
+            # Get rest of parts, should not error or get any segments
+            # TODO: this fails as we do not increment player_time_ms for discarded formats
+            #  (so the server does not respond with any) - even if discarded formats are the only ones available?
+            #  Technically this should never be a valid use case.
+            # We could alternatively test this by having an enabled format that we withold segments
+            # parts = list(parts_iter)
 
     class TestExpiry:
         def test_expiry_threshold_sec_validation(self, logger, client_info):
