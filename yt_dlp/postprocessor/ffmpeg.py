@@ -33,6 +33,8 @@ from ..utils import (
     write_json_file,
 )
 
+from ..utils._utils import get_ffmpeg_install_instructions
+
 EXT_TO_OUT_FORMATS = {
     'aac': 'adts',
     'flac': 'flac',
@@ -222,7 +224,11 @@ class FFmpegPostProcessor(PostProcessor):
 
     def check_version(self):
         if not self.available:
-            raise FFmpegPostProcessorError('ffmpeg not found. Please install or provide the path using --ffmpeg-location')
+            raise FFmpegPostProcessorError(
+                'ffmpeg not found.\n\n'
+                + get_ffmpeg_install_instructions()
+                + '\n\nYou can also specify the path using --ffmpeg-location'
+            )
 
         required_version = '1.0'
         if is_outdated_version(self._version, required_version):
@@ -231,7 +237,12 @@ class FFmpegPostProcessor(PostProcessor):
 
     def get_audio_codec(self, path):
         if not self.probe_available and not self.available:
-            raise PostProcessingError('ffprobe and ffmpeg not found. Please install or provide the path using --ffmpeg-location')
+            raise PostProcessingError(
+                'ffprobe and ffmpeg not found.\n\n'
+                + get_ffmpeg_install_instructions()
+                + '\n\nYou can also specify the path using --ffmpeg-location'
+            )
+
         try:
             if self.probe_available:
                 cmd = [
