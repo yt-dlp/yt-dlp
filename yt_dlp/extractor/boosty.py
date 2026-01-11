@@ -39,6 +39,28 @@ class BoostyIE(InfoExtractor):
             'thumbnail': r're:^https://iv\.okcdn\.ru/videoPreview\?',
         },
     }, {
+        # single ok_video with truncated title
+        'url': 'https://boosty.to/kuplinov/posts/cc09b7f9-121e-40b8-9392-4a075ef2ce53',
+        'info_dict': {
+            'id': 'fb5ea762-6303-4557-9a17-157947326810',
+            'title': 'Какая там активность была? Не слышу! Повтори еще пару раз! (Phas',
+            'alt_title': 'Какая там активность была? Не слышу! Повтори еще пару раз! (Phasmophobia)',
+            'channel': 'Kuplinov',
+            'channel_id': '7958701',
+            'timestamp': 1655031930,
+            'upload_date': '20220612',
+            'release_timestamp': 1655048400,
+            'release_date': '20220612',
+            'modified_timestamp': 1743328616,
+            'modified_date': '20250330',
+            'tags': ['куплинов', 'phasmophobia'],
+            'like_count': int,
+            'ext': 'mp4',
+            'duration': 39,
+            'view_count': int,
+            'thumbnail': r're:^https://iv\.okcdn\.ru/videoPreview\?',
+        },
+    }, {
         # single external video (youtube)
         'url': 'https://boosty.to/futuremusicproduction/posts/32a8cae2-3252-49da-b285-0e014bc6e565',
         'info_dict': {
