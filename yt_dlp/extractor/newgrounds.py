@@ -125,30 +125,111 @@ class NewgroundsIE(InfoExtractor):
     }
     _LOGIN_URL = 'https://www.newgrounds.com/passport'
 
-    def _perform_login(self, username, password):
-        login_webpage = self._download_webpage(self._LOGIN_URL, None, 'Downloading login page')
-        login_url = urljoin(self._LOGIN_URL, self._search_regex(
-            r'<form action="([^"]+)"', login_webpage, 'login endpoint', default=None))
-        result = self._download_json(login_url, None, 'Logging in', headers={
+    def _is_login(self):
+        webpage = self._download_webpage(
+            f'{self._LOGIN_URL}/mode/iframe',
+            None, 'checking logged in',
+        )
+        msg = self._search_regex(
+            r'<p>(\s*You[^<]+)<\/p>', webpage, 'Msg', default='',
+        )
+        return 'successfully' in msg
+
+    def _call_login_api(self, login_url, login_webpage, data, note='Downloading JSON metadata'):
+        username, password = self._get_login_info()
+        return self._download_json(login_url, None, note=note, headers={
             'Accept': 'application/json',
             'Referer': self._LOGIN_URL,
             'X-Requested-With': 'XMLHttpRequest',
         }, data=urlencode_postdata({
-            **self._hidden_inputs(login_webpage),
             'username': username,
             'password': password,
+            **self._hidden_inputs(login_webpage),
+            **data,
         }))
-        if errors := traverse_obj(result, ('errors', ..., {str})):
+
+    def _perform_login(self, username, password):
+        login_webpage = self._download_webpage(self._LOGIN_URL, None, 'Downloading login page')
+        login_url = urljoin(self._LOGIN_URL, self._search_regex(
+            r'<form action="([^"]+)"', login_webpage, 'login endpoint', default=None))
+        login_url = f'https://www.newgrounds.com{login_url}' if 'https' not in login_url else login_url
+        login = self._call_login_api(
+            login_url,
+            login_webpage,
+            note='Logging in',
+            data={
+                'mfaCheck': 1,
+                'codehint': '------',
+            })
+
+        if errors := traverse_obj(login, ('errors', ..., {str})):
             raise ExtractorError(', '.join(errors) or 'Unknown Error', expected=True)
+
+        if login.get('requiresMfa') is True or login.get('requiresEmailMfa') is True:
+            email = login.get('obfuscatedEmail')
+            if login.get('requiresEmailMfa') is True:
+                tfa_msg = f'A one-time login code was sent to {email} please enter it here'
+            else:
+                tfa_msg = 'Please enter the code from your authenticator app'
+            verification_code = self._get_tfa_info(tfa_msg)
+            tfa_info = self._call_login_api(
+                login_url,
+                login_webpage,
+                note='Performing T2F challange',
+                data={
+                    'code': verification_code,
+                    'codehint': '',
+                })
+        elif login.get('requiresMfa') is False:
+            tfa_info = self._call_login_api(
+                login_url,
+                login_webpage,
+                note='Performing T2F challange',
+                data={
+                    'code': '',
+                    'codehint': '------',
+                })
+
+        if tfa_info.get('success') is True and self._is_login():
+            self.to_screen('Successfully Logged in')
+        elif errors := traverse_obj(tfa_info, ('errors', ..., {str})):
+            raise ExtractorError(', '.join(errors) or 'Unknown Error', expected=True)
+        else:
+            raise ExtractorError('Unable to login')
+
+    def _perform_adult_challange(self, url, video_id, webpage):
+        csrf = self._search_regex(
+            r'<meta\s*name\s*=\s*"csrf-token"\s*content\s*="([^"]+)"',
+            webpage, 'csrf token')
+        headers = {
+            'x-csrf-token': csrf,
+            'Origin': 'https://www.newgrounds.com',
+            'Referer': url,
+        }
+        _, _ = self._download_webpage_handle(
+            'https://www.newgrounds.com/age-verification/ignore-filter',
+            video_id, 'Performing adult challange',
+            headers=headers,
+            data=urlencode_postdata({'url': url}))
+        return self._real_extract(url)
 
     def _real_extract(self, url):
         media_id = self._match_id(url)
+
         try:
-            webpage = self._download_webpage(url, media_id)
+            webpage, urlh = self._download_webpage_handle(
+                url, media_id, expected_status=403)
         except ExtractorError as error:
             if isinstance(error.cause, HTTPError) and error.cause.status == 401:
                 self.raise_login_required()
             raise
+
+        if self._search_regex(
+                r'<p[^>]+>([^<]+logged[^<]+)<\/p>', webpage, 'login message', default=None):
+            self.raise_login_required()
+        elif self._search_regex(
+                r'<p[^>]+>([^<]+adult[^<]+)<\/p>', webpage, 'adult msg', default=None) and urlh.status == 403:
+            return self._perform_adult_challange(url, media_id, webpage)
 
         media_url_string = self._search_regex(
             r'embedController\(\[{"url"\s*:\s*("[^"]+"),', webpage, 'media url', default=None)
