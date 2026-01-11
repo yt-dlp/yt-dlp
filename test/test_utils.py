@@ -489,6 +489,10 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(unified_timestamp('Wednesday 31 December 1969 18:01:26 MDT'), 86)
         self.assertEqual(unified_timestamp('12/31/1969 20:01:18 EDT', False), 78)
 
+        self.assertEqual(unified_timestamp('2026-01-01 00:00:00', tz_offset=0), 1767225600)
+        self.assertEqual(unified_timestamp('2026-01-01 00:00:00', tz_offset=8), 1767196800)
+        self.assertEqual(unified_timestamp('2026-01-01 00:00:00 +0800', tz_offset=-5), 1767196800)
+
     def test_determine_ext(self):
         self.assertEqual(determine_ext('http://example.com/foo/bar.mp4/?download'), 'mp4')
         self.assertEqual(determine_ext('http://example.com/foo/bar/?download', None), None)
@@ -1275,6 +1279,9 @@ class TestUtil(unittest.TestCase):
 
         on = js_to_json('[new Date("spam"), \'("eggs")\']')
         self.assertEqual(json.loads(on), ['spam', '("eggs")'], msg='Date regex should match a single string')
+
+        on = js_to_json('[0.077, 7.06, 29.064, 169.0072]')
+        self.assertEqual(json.loads(on), [0.077, 7.06, 29.064, 169.0072])
 
     def test_js_to_json_malformed(self):
         self.assertEqual(js_to_json('42a1'), '42"a1"')
