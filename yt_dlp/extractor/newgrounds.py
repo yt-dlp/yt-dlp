@@ -203,8 +203,8 @@ class NewgroundsIE(InfoExtractor):
             webpage, 'csrf token')
         headers = {
             'x-csrf-token': csrf,
-            'Origin': 'https://www.newgrounds.com',
-            'Referer': url,
+            'origin': 'https://www.newgrounds.com',
+            'referer': url,
         }
         _, _ = self._download_webpage_handle(
             'https://www.newgrounds.com/age-verification/ignore-filter',
