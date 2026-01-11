@@ -11,8 +11,9 @@ from ..utils import (
 
 
 class SRGSSRIE(InfoExtractor):
+    IE_DESC = 'Handles URNs found on srf.ch, rts.ch, rsi.ch and rtr.ch'
     _VALID_URL = r'''(?x)
-                    (?:srgssr:|urn:)
+                    (?:urn:)
                     (?:swisstxt:(?P<type>video|audio):)?
                     (?P<bu>srf|rts|rsi|rtr|swi):
                     (?:(?P<type_2>video|audio):)?
@@ -46,15 +47,8 @@ class SRGSSRIE(InfoExtractor):
             url += ('?' if '?' not in url else '&') + auth_params
         return url
 
-    def _get_media_data(self, bu, media_type, media_id, is_swisstxt=False):
+    def _get_media_data(self, media_type, media_id, urn):
         query = {'onlyChapters': True} if media_type == 'video' else {}
-
-        if is_swisstxt:
-            # The :swisstxt: URN format has a unique structure
-            urn = f'urn:swisstxt:{media_type}:{bu}:{media_id}'
-        else:
-            # All other URNs seem to follow this standard format
-            urn = f'urn:{bu}:{media_type}:{media_id}'
 
         # For all URNs, use the byUrn endpoint
         full_media_data = self._download_json(
@@ -88,9 +82,8 @@ class SRGSSRIE(InfoExtractor):
         bu = mobj.group('bu')
         media_type = mobj.group('type') or mobj.group('type_2')
         media_id = mobj.group('id')
-        # Check if this is a swisstxt URN based on the regex match
-        is_swisstxt = mobj.group('type') is not None
-        media_data = self._get_media_data(bu, media_type, media_id, is_swisstxt)
+
+        media_data = self._get_media_data(media_type, media_id, urn=url)
         title = media_data['title']
 
         formats = []
@@ -108,6 +101,8 @@ class SRGSSRIE(InfoExtractor):
                 if source.get('tokenType') == 'AKAMAI':
                     format_url = self._get_tokenized_src(
                         format_url, media_id, format_id)
+                    # Livestreams and their VoDs (all?) use AKAMAI, but they only provide m3u8 (index.m3u8), not f4m.
+                    # This causes warning: "Failed to parse XML: syntax error: line 1, column 0;"
                     fmts, subs = self._extract_akamai_formats_and_subtitles(
                         format_url, media_id)
                     formats.extend(fmts)
@@ -280,6 +275,7 @@ class SRGSSRArticleIE(InfoExtractor):
             'timestamp': 1396552681,
             'thumbnail': 'https://img.rts.ch/medias/2014/image/je6t35-27083337.image/16x9',
         },
+        'skip': 'Geo-Restricted to Switzerland',
         'params': {
             'skip_download': True,
         },
@@ -317,7 +313,7 @@ class SRGSSRArticleIE(InfoExtractor):
             webpage, 'media URN', default=None)
 
         if urn:
-            # Pass the URN directly to SRGSSR extractor
+            # Pass URN directly to SRGSSR extractor
             return self.url_result(urn, 'SRGSSR')
 
         # Fallback: no URN found
@@ -325,11 +321,11 @@ class SRGSSRArticleIE(InfoExtractor):
 
 
 class SRGSSRPlayIE(InfoExtractor):
-    IE_DESC = 'srf.ch, rts.ch, rsi.ch, rtr.ch and swissinfo.ch play sites'
+    IE_DESC = 'srf.ch, rts.ch, rsi.ch, rtr.ch play sites'
     _VALID_URL = r'''(?x)
                     https?://
                         (?:(?:www|play)\.)?
-                        (?P<bu>srf|rts|rsi|rtr|swissinfo)\.ch/play/(?:tv|radio)/
+                        (?P<bu>srf|rts|rsi|rtr)\.ch/play/(?:tv|radio)/
                         (?:
                             [^/]+/(?P<type>video|audio)/[^?]+|
                             popup(?P<type_2>video|audio)player
@@ -424,6 +420,19 @@ class SRGSSRPlayIE(InfoExtractor):
         'url': 'https://www.srf.ch/play/tv/-/video/formel-1-gp-abu-dhabi?urn=urn:swisstxt:video:srf:1818188',
         'only_matching': True,
     }, {
+        'url': 'https://www.srf.ch/play/tv/-/video/biathlon-weltcup-in-oberhof-verfolgung-frauen?urn=urn:swisstxt:video:srf:1833301',
+        'info_dict': {
+            'id': '1833301',
+            'title': 'Biathlon: Weltcup in Oberhof, Verfolgung, Frauen',
+            'timestamp': 1768137900,
+            'ext': 'mp4',
+            'thumbnail': r're:^https?://.*',
+            'duration': 2580.0,
+            'upload_date': '20260111',
+        },
+        'skip': 'Geo-Restricted to Switzerland and Livestream VoDs are temporary',
+        'expected_warnings': ['Failed to parse XML'],
+    }, {
         # RTS play URL with urn parameter (also works via SRGSSRArticleIE)
         'url': 'https://www.rts.ch/play/tv/lactu-en-video/video/londres-cachee-par-un-epais-smog?urn=urn:rts:video:5745356',
         'info_dict': {
@@ -445,14 +454,14 @@ class SRGSSRPlayIE(InfoExtractor):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         bu = mobj.group('bu')
-        # The media type can be in two different groups based on URL structure (swisstxt special case)
+        # The media type will be in different groups based on URL structure (swisstxt special case)
         media_type = mobj.group('type') or mobj.group('type_2')
         media_id = mobj.group('id')
 
         # Check if this is a swisstxt URN (numeric ID)
         if media_id.isdigit() and 'urn=urn:swisstxt:' in url:
-            # Pass the swisstxt URN format directly to SRGSSR
+            # The swisstxt URN has a different structure
             return self.url_result(f'urn:swisstxt:{media_type}:{bu[:3]}:{media_id}', 'SRGSSR')
-        return self.url_result(f'urn:{bu}:{media_type}:{media_id}', 'SRGSSR')
+        return self.url_result(f'urn:{bu[:3]}:{media_type}:{media_id}', 'SRGSSR')
         # Legacy version:
         # return self.url_result(f'srgssr:{bu[:3]}:{media_type}:{media_id}', 'SRGSSR')
