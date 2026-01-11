@@ -384,6 +384,45 @@ def get_elements_text_and_html_by_attribute(attribute, value, html, *, tag=r'[\w
         )
 
 
+def get_ffmpeg_install_instructions():
+    """
+    Return OS-specific guidance for installing FFmpeg.
+
+    This is used only when ffmpeg/ffprobe binaries are missing,
+    to provide actionable next steps without auto-downloading
+    external dependencies.
+    """
+    # Import locally to avoid adding overhead at module import time
+    import sys
+
+    # Linux distributions rely on system package managers
+    if sys.platform.startswith('linux'):
+        return (
+            "Install FFmpeg using your package manager:\n"
+            "  Debian/Ubuntu: sudo apt install ffmpeg\n"
+            "  Arch Linux: sudo pacman -S ffmpeg\n"
+            "  Fedora: sudo dnf install ffmpeg"
+        )
+
+    # macOS users typically install FFmpeg via Homebrew
+    elif sys.platform == 'darwin':
+        return (
+            "Install FFmpeg using Homebrew:\n"
+            "  brew install ffmpeg"
+        )
+
+    # Windows users need either static builds or a package manager
+    elif sys.platform.startswith('win'):
+        return (
+            "Download FFmpeg static builds from:\n"
+            "  https://ffmpeg.org/download.html\n"
+            "Then add ffmpeg/bin to your PATH"
+        )
+
+    # Fallback for unknown platforms
+    return "Please install FFmpeg from https://ffmpeg.org/"
+
+
 class HTMLBreakOnClosingTagParser(html.parser.HTMLParser):
     """
     HTML parser which raises HTMLBreakOnClosingTagException upon reaching the
