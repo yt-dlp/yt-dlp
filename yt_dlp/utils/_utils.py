@@ -414,8 +414,10 @@ def get_ffmpeg_install_instructions():
     # Windows users need either static builds or a package manager
     elif sys.platform.startswith('win'):
         return (
-            "Download FFmpeg static builds from:\n"
-            "  https://ffmpeg.org/download.html\n"
+            "Install FFmpeg on Windows:\n"
+            "  Using winget: winget install ffmpeg\n"
+            "  Or download static builds from:\n"
+            "    https://ffmpeg.org/download.html\n"
             "Then add ffmpeg/bin to your PATH"
         )
 
