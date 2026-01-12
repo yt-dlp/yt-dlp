@@ -410,7 +410,7 @@ class RutubePlaylistIE(RutubePlaylistBaseIE):
         'info_dict': {
             'id': '308547',
         },
-        'playlist_mincount': 22,
+        'playlist_mincount': 23,
     }]
     _PAGE_TEMPLATE = 'https://rutube.ru/api/playlist/custom/%s/videos?page=%s&format=json'
 
@@ -430,19 +430,19 @@ class RutubeChannelIE(RutubePlaylistBaseIE):
         'info_dict': {
             'id': '25902603_shorts',
         },
-        'playlist_mincount': 277,
+        'playlist_mincount': 556,
     }, {
         'url': 'https://rutube.ru/channel/25902603/',
         'info_dict': {
             'id': '25902603',
         },
-        'playlist_mincount': 406,
+        'playlist_mincount': 675,
     }, {
         'url': 'https://rutube.ru/u/rutube/videos/',
         'info_dict': {
             'id': '23704195_videos',
         },
-        'playlist_mincount': 113,
+        'playlist_mincount': 160,
     }, {
         'url': 'https://rutube.ru/channel/25622092/playlists/',
         'info_dict': {
