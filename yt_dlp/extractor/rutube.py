@@ -2,7 +2,6 @@ import itertools
 
 from .common import InfoExtractor
 from ..utils import (
-    UnsupportedError,
     bool_or_none,
     determine_ext,
     int_or_none,
@@ -65,7 +64,12 @@ class RutubeBaseIE(InfoExtractor):
     def _download_api_options(self, video_id, query=None):
         if not query:
             query = {}
-        query['format'] = 'json'
+        query = {
+            **query,
+            'mq': 'all',
+            'format': 'json',
+            'client': 'wdp',
+        }
         return self._download_json(
             f'https://rutube.ru/api/play/options/{video_id}/',
             video_id, 'Downloading options JSON',
@@ -439,9 +443,22 @@ class RutubeChannelIE(RutubePlaylistBaseIE):
             'id': '23704195_videos',
         },
         'playlist_mincount': 113,
+    }, {
+        'url': 'https://rutube.ru/channel/25622092/playlists/',
+        'info_dict': {
+            'id': '25622092_playlists',
+        },
+        'playlist_mincount': 13,
+    }, {
+        'url': 'https://rutube.ru/u/4ac/playlists/',
+        'info_dict': {
+            'id': '616843_playlists',
+        },
+        'playlist_mincount': 20,
     }]
 
     _PAGE_TEMPLATE = 'https://rutube.ru/api/video/person/%s/?page=%s&format=json&origin__type=%s'
+    _PLAYLIST_TEMPLATE = 'https://rutube.ru/api/playlist/user/%s'
 
     def _next_page_url(self, page_num, playlist_id, section):
         origin_type = {
@@ -451,18 +468,57 @@ class RutubeChannelIE(RutubePlaylistBaseIE):
         }.get(section)
         return self._PAGE_TEMPLATE % (playlist_id, page_num, origin_type)
 
+    def _channel_playlists(self, playlist_data):
+        playlist_ids = []
+        user_id = traverse_obj(playlist_data, ('originalArgs', 'userChannelId', {int_or_none}))
+        for playlist in traverse_obj(playlist_data, ('data', 'results')):
+            pid = playlist.get('id')
+            playlist_ids.append(pid)
+        for pagenum in itertools.count(2):
+            if not playlist_data.get('has_next') or not playlist_data.get('next'):
+                break
+            playlists = self._download_json(
+                self._PLAYLIST_TEMPLATE % (user_id),
+                user_id,
+                note=f'Download page - {pagenum}',
+                query={
+                    'client': 'wdp',
+                    'page': pagenum,
+                })
+            for playlist in traverse_obj(playlists, ('results')):
+                pl_id = playlist.get('id')
+                playlist_ids.append(pl_id)
+            if playlists.get('has_next') is False:
+                break
+        entries = (
+            self.url_result(
+                f'https://rutube.ru/plst/{pid}',
+                ie=RutubePlaylistIE.ie_key(),
+                video_id=pid,
+            ) for pid in playlist_ids)
+
+        return self.playlist_result(
+            entries,
+            playlist_id=user_id,
+            playlist_title=f'{user_id}_playlists')
+
     def _real_extract(self, url):
         playlist_id, slug, section = self._match_valid_url(url).group('id', 'slug', 'section')
+        webpage = self._download_webpage(url, slug or playlist_id)
+        redux_state = self._search_json(
+            r'window\.reduxState\s*=', webpage, 'redux state', slug, transform_source=js_to_json)
         if section == 'playlists':
-            raise UnsupportedError(url)
+            playlist_id = playlist_id or slug
+            playlist_data = traverse_obj(
+                redux_state,
+                ('api', 'queries', lambda p, _: p.startswith('playlists'), any))
+            return self._channel_playlists(playlist_data)
         if slug:
-            webpage = self._download_webpage(url, slug)
-            redux_state = self._search_json(
-                r'window\.reduxState\s*=', webpage, 'redux state', slug, transform_source=js_to_json)
             playlist_id = traverse_obj(redux_state, (
                 'api', 'queries', lambda k, _: k.startswith('channelIdBySlug'),
                 'data', 'channel_id', {int}, {str_or_none}, any))
-        playlist = self._extract_playlist(playlist_id, section=section)
-        if section:
-            playlist['id'] = f'{playlist_id}_{section}'
-        return playlist
+        if section != 'playlists':
+            playlist = self._extract_playlist(playlist_id, section=section)
+            if section:
+                playlist['id'] = f'{playlist_id}_{section}'
+            return playlist
