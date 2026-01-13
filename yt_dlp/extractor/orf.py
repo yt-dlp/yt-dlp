@@ -556,3 +556,50 @@ class ORFONIE(InfoExtractor):
                 video_id, **self._parse_metadata(api_json), multi_video=True)
 
         return self._extract_video_info(video_id, api_json)
+
+
+class ORFONSeriesIE(InfoExtractor):
+    IE_NAME = 'orf:on:series'
+    _VALID_URL = r'https?://on\.orf\.at/sendereihe/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://on.orf.at/sendereihe/1203',
+        'info_dict': {
+            'id': '1203',
+            'title': 'ZIB 1',
+            'description': 'Aktuelle Nachrichten aus aller Welt',
+        },
+        'playlist_mincount': 3,
+    }, {
+        'url': 'https://on.orf.at/sendereihe/1203?page=2',
+        'info_dict': {
+            'id': '1203',
+            'title': 'ZIB 1',
+            'description': 'Aktuelle Nachrichten aus aller Welt',
+        },
+        'playlist_mincount': 3,
+    }]
+
+    def _real_extract(self, url):
+        series_id = self._match_valid_url(url).group('id')
+
+        # set page to a high number to include all episodes of the series in the document
+        series_url = f'https://on.orf.at/sendereihe/{series_id}?page=1000'
+        webpage = self._download_webpage(series_url, series_id)
+
+        video_ids = re.findall(r'<a[^>]+href=["\']/video/(?P<id>\d+)', webpage)
+        entries = [
+            self.url_result(
+                f'https://on.orf.at/video/{video_id}',
+                ie=ORFONIE.ie_key(),
+                video_id=video_id,
+            ) for video_id in video_ids
+        ]
+
+        title = (
+            self._html_search_meta(['og:title', 'twitter:title'], webpage)
+            or self._html_extract_title(webpage))
+        description = self._search_regex(
+            r'<p[^>]+class=(["\'])description\1[^>]*>(?P<description>[^<]+)',
+            webpage, 'description', group='description', default=None)
+
+        return self.playlist_result(entries, series_id, title, description)
