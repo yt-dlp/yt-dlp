@@ -227,7 +227,7 @@ class TestDevalue(unittest.TestCase):
             {'a': 'b'}, 'revivers (indirect)')
 
         self.assertEqual(
-            devalue.parse([['parse', 1], '{"a":0}'], revivers={'parse': lambda x: json.loads(x)}),
+            devalue.parse([['parse', 1], '{"a":0}'], revivers={'parse': json.loads}),
             {'a': 0}, 'revivers (parse)')
 
         self.assertEqual(
