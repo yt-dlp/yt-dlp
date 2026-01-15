@@ -1060,6 +1060,88 @@ class FacebookAdsIE(InfoExtractor):
             })
         return formats
 
+    def _download_webpage_handle(self, url_or_request, video_id, *args, fatal=True, **kwargs):
+        """
+        Facebook may return a 403 with an HTML page containing a JS snippet that:
+        1. Fetches a /__rd_verify_... endpoint with POST
+        2. That endpoint sets an rd_challenge cookie
+        3. The original request with that cookie succeeds
+
+        We need to mimic this for us to see the true webpage
+
+        See https://github.com/yt-dlp/yt-dlp/issues/15577 for details
+        """
+
+
+        # we initially try to download the webpage as normal
+        # but we hijack `expected_status` to allow 403 status code too
+        # (indicateve of rd_challenge cookie missing)
+        _original_expected_status = kwargs.get('expected_status')
+        expected_status = _original_expected_status.copy() if _original_expected_status else [200]
+        expected_status.append(403)
+        kwargs['expected_status'] = expected_status
+
+        response = super()._download_webpage_handle(
+            url_or_request,
+            video_id,
+            *args,
+            fatal=fatal,
+            **kwargs,
+        )
+        if response is False:
+            return response
+
+        webpage_text, reply = response
+
+        # if we didn't hit 403 and there's no challange signature, pass the response through
+        if not (
+            reply.status == 403 and
+            '__rd_verify' in webpage_text and
+            'executeChallenge' in webpage_text
+        ):
+            return response
+
+        # but when we hit the challenge, we try to solve
+        self.write_debug('Found facebook ads JS challenge')
+
+        challenge_path = self._search_regex(
+            r'''fetch\s*\(\s*['"](\/__rd_verify[^'"]+)['"]''',
+            webpage_text,
+            'challenge path',
+            default=None,
+        )
+        if not challenge_path:
+            if fatal:
+                raise ExtractorError(
+                    'Unable to extract rd_challenge.',
+                    expected=True,
+                )
+            return False
+
+        request_url = url_or_request if isinstance(url_or_request, str) else url_or_request.url
+        full_challenge_url = urljoin(request_url, challenge_path)
+
+        # we have to POST to the challenge URL to get a cookie back (rd_challenge) (the system adds it to the cookie jar)
+        self._request_webpage(
+            full_challenge_url,
+            video_id,
+            note='Solving rd_challenge',
+            errnote='Failed to solve rd_challenge',
+            expected_status=[200],
+            fatal=fatal,
+            data=b'',
+        )
+
+        # now we try again the request, but this time, we don't permit 403
+        kwargs['expected_status'] = _original_expected_status
+        return super()._download_webpage_handle(
+            url_or_request,
+            video_id,
+            *args,
+            fatal=fatal,
+            **kwargs,
+        )
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
