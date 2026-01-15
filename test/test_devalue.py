@@ -230,6 +230,10 @@ class TestDevalue(unittest.TestCase):
             devalue.parse([['parse', 1], '{"a":0}'], revivers={'parse': lambda x: json.loads(x)}),
             {'a': 0}, 'revivers (parse)')
 
+        self.assertEqual(
+            devalue.parse([{'a': 1, 'b': 3}, ['EmptyRef', 2], 'false', ['EmptyRef', 2]], revivers={'EmptyRef': json.loads}),
+            {'a': False, 'b': False}, msg='EmptyRef (json.parse)')
+
 
 if __name__ == '__main__':
     unittest.main()
