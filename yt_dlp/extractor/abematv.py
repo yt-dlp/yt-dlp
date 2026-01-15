@@ -21,6 +21,7 @@ from ..utils import (
     int_or_none,
     time_seconds,
     traverse_obj,
+    update_url,
     update_url_query,
 )
 
@@ -417,6 +418,10 @@ class AbemaTVIE(AbemaTVBaseIE):
             'is_live': is_live,
             'availability': availability,
         })
+
+        if thumbnail := update_url(self._og_search_thumbnail(webpage, default=''), query=None):
+            info['thumbnails'] = [{'url': thumbnail}]
+
         return info
 
 

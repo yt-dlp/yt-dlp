@@ -1,0 +1,87 @@
+name: Challenge Tests
+on:
+  push:
+    paths:
+      - .github/workflows/challenge-tests.yml
+      - test/test_jsc/*.py
+      - yt_dlp/extractor/youtube/jsc/**.js
+      - yt_dlp/extractor/youtube/jsc/**.py
+      - yt_dlp/extractor/youtube/pot/**.py
+      - yt_dlp/utils/_jsruntime.py
+  pull_request:
+    paths:
+      - .github/workflows/challenge-tests.yml
+      - test/test_jsc/*.py
+      - yt_dlp/extractor/youtube/jsc/**.js
+      - yt_dlp/extractor/youtube/jsc/**.py
+      - yt_dlp/extractor/youtube/pot/**.py
+      - yt_dlp/utils/_jsruntime.py
+
+permissions: {}
+
+concurrency:
+  group: challenge-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  tests:
+    name: Challenge Tests
+    permissions:
+      contents: read
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14', pypy-3.11]
+    env:
+      QJS_VERSION: '2025-04-26'  # Earliest version with rope strings
+    steps:
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
+      with:
+        persist-credentials: false
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Deno
+      uses: denoland/setup-deno@e95548e56dfa95d4e1a28d6f422fafe75c4c26fb  # v2.0.3
+      with:
+        deno-version: '2.0.0'  # minimum supported version
+    - name: Install Bun
+      uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76  # v2.0.2
+      with:
+        # minimum supported version is 1.0.31 but earliest available Windows version is 1.1.0
+        bun-version: ${{ (matrix.os == 'windows-latest' && '1.1.0') || '1.0.31' }}
+        no-cache: true
+    - name: Install Node
+      uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f  # v6.1.0
+      with:
+        node-version: '20.0'  # minimum supported version
+    - name: Install QuickJS (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      shell: bash
+      run: |
+          wget "https://bellard.org/quickjs/binary_releases/quickjs-linux-x86_64-${QJS_VERSION}.zip" -O quickjs.zip
+          unzip quickjs.zip qjs
+          sudo install qjs /usr/local/bin/qjs
+    - name: Install QuickJS (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: pwsh
+      run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
+          Invoke-WebRequest "https://bellard.org/quickjs/binary_releases/quickjs-win-x86_64-${Env:QJS_VERSION}.zip" -OutFile quickjs.zip
+          unzip quickjs.zip
+    - name: Install test requirements
+      shell: bash
+      run: |
+        python ./devscripts/install_deps.py --print --omit-default --include-extra test > requirements.txt
+        python ./devscripts/install_deps.py --print -c certifi -c requests -c urllib3 -c yt-dlp-ejs >> requirements.txt
+        python -m pip install -U -r requirements.txt
+    - name: Run tests
+      timeout-minutes: 15
+      shell: bash
+      run: |
+        python -m yt_dlp -v --js-runtimes node --js-runtimes bun --js-runtimes quickjs || true
+        python ./devscripts/run_tests.py test/test_jsc -k download

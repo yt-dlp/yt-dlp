@@ -3,6 +3,7 @@ import json
 
 from .art19 import Art19IE
 from .common import InfoExtractor
+from ..networking import PATCHRequest
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -74,7 +75,7 @@ class NebulaBaseIE(InfoExtractor):
                         'app_version': '23.10.0',
                         'platform': 'ios',
                     })
-                return {'formats': fmts, 'subtitles': subs}
+                break
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                     self.raise_login_required()
@@ -83,6 +84,9 @@ class NebulaBaseIE(InfoExtractor):
                     self._real_initialize()
                     continue
                 raise
+
+        self.mark_watched(content_id, slug)
+        return {'formats': fmts, 'subtitles': subs}
 
     def _extract_video_metadata(self, episode):
         channel_url = traverse_obj(
@@ -110,6 +114,13 @@ class NebulaBaseIE(InfoExtractor):
             'channel_url': channel_url,
             'uploader_url': channel_url,
         }
+
+    def _mark_watched(self, content_id, slug):
+        self._call_api(
+            PATCHRequest(f'https://content.api.nebula.app/{content_id.split(":")[0]}s/{content_id}/progress/'),
+            slug, 'Marking watched', 'Unable to mark watched', fatal=False,
+            data=json.dumps({'completed': True}).encode(),
+            headers={'content-type': 'application/json'})
 
 
 class NebulaIE(NebulaBaseIE):
@@ -322,6 +333,7 @@ class NebulaClassIE(NebulaBaseIE):
             if not episode_url and metadata.get('premium'):
                 self.raise_login_required()
 
+            self.mark_watched(metadata['id'], slug)
             if Art19IE.suitable(episode_url):
                 return self.url_result(episode_url, Art19IE)
             return traverse_obj(metadata, {
@@ -466,3 +478,64 @@ class NebulaChannelIE(NebulaBaseIE):
             playlist_id=collection_slug,
             playlist_title=channel.get('title'),
             playlist_description=channel.get('description'))
+
+
+class NebulaSeasonIE(NebulaBaseIE):
+    IE_NAME = 'nebula:season'
+    _VALID_URL = rf'{_BASE_URL_RE}/(?P<series>[\w-]+)/season/(?P<season_number>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://nebula.tv/jetlag/season/15',
+        'info_dict': {
+            'id': 'jetlag_15',
+            'title': 'Tag: All Stars',
+            'description': 'md5:5aa5b8abf3de71756448dc44ffebb674',
+        },
+        'playlist_count': 8,
+    }, {
+        'url': 'https://nebula.tv/jetlag/season/14',
+        'info_dict': {
+            'id': 'jetlag_14',
+            'title': 'Snake',
+            'description': 'md5:6da9040f1c2ac559579738bfb6919d1e',
+        },
+        'playlist_count': 8,
+    }, {
+        'url': 'https://nebula.tv/jetlag/season/13-5',
+        'info_dict': {
+            'id': 'jetlag_13-5',
+            'title': 'Hide + Seek Across NYC',
+            'description': 'md5:5b87bb9acc6dcdff289bb4c71a2ad59f',
+        },
+        'playlist_count': 3,
+    }]
+
+    def _build_url_result(self, item):
+        url = (
+            traverse_obj(item, ('share_url', {url_or_none}))
+            or urljoin('https://nebula.tv/', item.get('app_path'))
+            or f'https://nebula.tv/videos/{item["slug"]}')
+        return self.url_result(
+            smuggle_url(url, {'id': item['id']}),
+            NebulaIE, url_transparent=True,
+            **self._extract_video_metadata(item))
+
+    def _entries(self, data):
+        for episode in traverse_obj(data, ('episodes', lambda _, v: v['video']['id'], 'video')):
+            yield self._build_url_result(episode)
+        for extra in traverse_obj(data, ('extras', ..., 'items', lambda _, v: v['id'])):
+            yield self._build_url_result(extra)
+        for trailer in traverse_obj(data, ('trailers', lambda _, v: v['id'])):
+            yield self._build_url_result(trailer)
+
+    def _real_extract(self, url):
+        series, season_id = self._match_valid_url(url).group('series', 'season_number')
+        playlist_id = f'{series}_{season_id}'
+        data = self._call_api(
+            f'https://content.api.nebula.app/content/{series}/season/{season_id}', playlist_id)
+
+        return self.playlist_result(
+            self._entries(data), playlist_id,
+            **traverse_obj(data, {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+            }))

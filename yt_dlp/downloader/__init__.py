@@ -30,7 +30,7 @@ from .hls import HlsFD
 from .http import HttpFD
 from .ism import IsmFD
 from .mhtml import MhtmlFD
-from .niconico import NiconicoDmcFD, NiconicoLiveFD
+from .niconico import NiconicoLiveFD
 from .rtmp import RtmpFD
 from .rtsp import RtspFD
 from .websocket import WebSocketFragmentFD
@@ -50,7 +50,6 @@ PROTOCOL_MAP = {
     'http_dash_segments_generator': DashSegmentsFD,
     'ism': IsmFD,
     'mhtml': MhtmlFD,
-    'niconico_dmc': NiconicoDmcFD,
     'niconico_live': NiconicoLiveFD,
     'fc2_live': FC2LiveFD,
     'websocket_frag': WebSocketFragmentFD,
@@ -67,7 +66,6 @@ def shorten_protocol_name(proto, simplify=False):
         'rtmp_ffmpeg': 'rtmpF',
         'http_dash_segments': 'dash',
         'http_dash_segments_generator': 'dashG',
-        'niconico_dmc': 'dmc',
         'websocket_frag': 'WSfrag',
     }
     if simplify:
@@ -101,7 +99,7 @@ def _get_suitable_downloader(info_dict, protocol, params, default):
     if external_downloader is None:
         if info_dict['to_stdout'] and FFmpegFD.can_merge_formats(info_dict, params):
             return FFmpegFD
-    elif external_downloader.lower() != 'native':
+    elif external_downloader.lower() != 'native' and info_dict.get('impersonate') is None:
         ed = get_external_downloader(external_downloader)
         if ed.can_download(info_dict, external_downloader):
             return ed
