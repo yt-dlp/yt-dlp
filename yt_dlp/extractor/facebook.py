@@ -1072,7 +1072,6 @@ class FacebookAdsIE(InfoExtractor):
         See https://github.com/yt-dlp/yt-dlp/issues/15577 for details
         """
 
-
         # we initially try to download the webpage as normal
         # but we hijack `expected_status` to allow 403 status code too
         # (indicateve of rd_challenge cookie missing)
@@ -1095,9 +1094,9 @@ class FacebookAdsIE(InfoExtractor):
 
         # if we didn't hit 403 and there's no challange signature, pass the response through
         if not (
-            reply.status == 403 and
-            '__rd_verify' in webpage_text and
-            'executeChallenge' in webpage_text
+            reply.status == 403
+            and '__rd_verify' in webpage_text
+            and 'executeChallenge' in webpage_text
         ):
             return response
 
