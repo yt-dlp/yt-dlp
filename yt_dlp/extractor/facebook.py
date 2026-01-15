@@ -4,6 +4,7 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import compat_etree_fromstring
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -1060,7 +1061,7 @@ class FacebookAdsIE(InfoExtractor):
             })
         return formats
 
-    def _download_webpage_handle(self, url_or_request, video_id, *args, fatal=True, **kwargs):
+    def _download_fb_webpage_and_verify(self, url, video_id):
         """
         Facebook may return a 403 with an HTML page containing a JS snippet that:
         1. Fetches a /__rd_verify_... endpoint with POST
@@ -1072,78 +1073,50 @@ class FacebookAdsIE(InfoExtractor):
         See https://github.com/yt-dlp/yt-dlp/issues/15577 for details
         """
 
-        # we initially try to download the webpage as normal
-        # but we hijack `expected_status` to allow 403 status code too
-        # (indicateve of rd_challenge cookie missing)
-        _original_expected_status = kwargs.get('expected_status')
-        expected_status = _original_expected_status.copy() if _original_expected_status else [200]
-        expected_status.append(403)
-        kwargs['expected_status'] = expected_status
+        try:
+            return self._download_webpage(url, video_id)
+        except ExtractorError as e:
+            if (
+                not isinstance(e.cause, HTTPError)
+                or e.cause.status != 403
+                or e.cause.reason != 'Client challenge'
+            ):
+                raise
+            error_page = self._webpage_read_content(e.cause.response, url, video_id)
 
-        response = super()._download_webpage_handle(
-            url_or_request,
-            video_id,
-            *args,
-            fatal=fatal,
-            **kwargs,
-        )
-        if response is False:
-            return response
-
-        webpage_text, reply = response
-
-        # if we didn't hit 403 and there's no challange signature, pass the response through
-        if not (
-            reply.status == 403
-            and '__rd_verify' in webpage_text
-            and 'executeChallenge' in webpage_text
-        ):
-            return response
-
-        # but when we hit the challenge, we try to solve
+        # we've hit a 403 with a client challenge, we need to solve it
         self.write_debug('Found facebook ads JS challenge')
 
         challenge_path = self._search_regex(
             r'''fetch\s*\(\s*['"](\/__rd_verify[^'"]+)['"]''',
-            webpage_text,
+            error_page,
             'challenge path',
             default=None,
         )
         if not challenge_path:
-            if fatal:
-                raise ExtractorError(
-                    'Unable to extract rd_challenge.',
-                    expected=True,
-                )
-            return False
-
-        request_url = url_or_request if isinstance(url_or_request, str) else url_or_request.url
-        full_challenge_url = urljoin(request_url, challenge_path)
+            raise ExtractorError(
+                'Unable to extract rd_challenge.',
+                expected=True,
+            )
 
         # we have to POST to the challenge URL to get a cookie back (rd_challenge) (the system adds it to the cookie jar)
+        full_challenge_url = urljoin(url, challenge_path)
         self._request_webpage(
             full_challenge_url,
             video_id,
             note='Solving rd_challenge',
             errnote='Failed to solve rd_challenge',
             expected_status=[200],
-            fatal=fatal,
+            fatal=True,
             data=b'',
         )
 
-        # now we try again the request, but this time, we don't permit 403
-        kwargs['expected_status'] = _original_expected_status
-        return super()._download_webpage_handle(
-            url_or_request,
-            video_id,
-            *args,
-            fatal=fatal,
-            **kwargs,
-        )
+        # should have the required cookies now, so we try again
+        return self._download_webpage(url, video_id)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        webpage = self._download_fb_webpage_and_verify(url, video_id)
 
         post_data = traverse_obj(
             re.findall(r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage), (..., {json.loads}))
