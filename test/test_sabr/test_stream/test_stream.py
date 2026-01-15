@@ -5,6 +5,8 @@ import time
 from unittest.mock import MagicMock
 import protobug
 import pytest
+from yt_dlp import YoutubeDL
+from yt_dlp.downloader.sabr._logger import SabrFDLogger
 from test.test_sabr.test_stream.helpers import (
     VIDEO_PLAYBACK_USTREAMER_CONFIG,
     DEFAULT_NUM_AUDIO_SEGMENTS,
@@ -18,7 +20,9 @@ from test.test_sabr.test_stream.helpers import (
     assert_media_sequence_in_order,
     create_inject_read_error,
     AdWaitAVProfile,
-    SabrContextSendingPolicyAVProfile, PoTokenAVProfile,
+    SabrContextSendingPolicyAVProfile,
+    PoTokenAVProfile,
+    LiveAVProfile,
 )
 from yt_dlp.extractor.youtube._proto.videostreaming.reload_player_response import ReloadPlaybackParams
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import (
@@ -30,7 +34,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.exceptions import (
 from yt_dlp.extractor.youtube._streaming.ump import UMPPartId, UMPPart
 from yt_dlp.networking.exceptions import TransportError, HTTPError, RequestError
 
-from yt_dlp.extractor.youtube._streaming.sabr.models import AudioSelector, VideoSelector, ConsumedRange
+from yt_dlp.extractor.youtube._streaming.sabr.models import AudioSelector, VideoSelector, ConsumedRange, SabrLogger
 from yt_dlp.extractor.youtube._streaming.sabr.part import (
     FormatInitializedSabrPart,
     RefreshPlayerResponseSabrPart,
@@ -2023,3 +2027,25 @@ class TestStream:
             logger.debug.assert_any_call(f'Server requested to disable SABR Context Update for type {context_update_type}')
 
             assert len(sabr_stream.processor.sabr_contexts_to_send) == 0
+
+    # TODO: mock time, where time.sleep increments time.time() (but instantly)
+
+    class TestLive:
+
+        LIVE_URL = 'https://example.com/sabr_live?id=123'
+
+        def test_livestream_basic(self, client_info):
+            logger = SabrFDLogger(ydl=YoutubeDL({'verbose': True}), prefix='test_live', log_level=SabrLogger.LogLevel.TRACE)
+            sabr_stream, _, selectors = setup_sabr_stream_av(
+                sabr_response_processor=LiveAVProfile(),
+                client_info=client_info,
+                logger=logger,
+                url=self.LIVE_URL,
+                live_segment_target_duration_sec=2,
+            )
+            audio_selector, video_selector = selectors
+
+            parts = list(sabr_stream.iter_parts())
+
+            assert_media_sequence_in_order(parts, audio_selector, 20)
+            assert_media_sequence_in_order(parts, video_selector, 20)

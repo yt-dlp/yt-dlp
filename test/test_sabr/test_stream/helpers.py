@@ -15,6 +15,7 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     SabrContextUpdate,
     SabrContextSendingPolicy,
     StreamProtectionStatus,
+    LiveMetadata,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.models import AudioSelector, VideoSelector
 from yt_dlp.extractor.youtube._streaming.sabr.part import (
@@ -536,6 +537,196 @@ class PoTokenAVProfile(BasicAudioVideoProfile):
         if status == StreamProtectionStatus.Status.ATTESTATION_REQUIRED:
             return parts
         parts.extend(super().get_parts(vpabr, url, request_number))
+        return parts
+
+
+class LiveAVProfile(BasicAudioVideoProfile):
+    DEFAULT_DVR_SEGMENTS = 20
+    DEFAULT_TOTAL_SEGMENTS = 20
+    DEFAULT_SEGMENT_TARGET_DURATION = 2000
+    DEFAULT_START_SEGMENT_NUMBER = 1
+    DEFAULT_TARGET_SEGMENT_LENGTH = 5000
+
+    @property
+    def start_segment_number(self):
+        return self.options.get('start_segment_number', self.DEFAULT_START_SEGMENT_NUMBER)
+
+    @property
+    def dvr_segments(self):
+        return self.options.get('dvr_segments', self.DEFAULT_DVR_SEGMENTS)
+
+    @property
+    def total_segments(self):
+        return self.options.get('total_segments', self.DEFAULT_TOTAL_SEGMENTS)
+
+    @property
+    def segment_target_duration(self):
+        return self.options.get('segment_target_duration_ms', self.DEFAULT_SEGMENT_TARGET_DURATION)
+
+    def segment_duration(self, segment_number):
+        variation = 270 if segment_number % 2 == 0 else -256
+        return self.segment_target_duration + variation
+
+    def segment_length(self, segment_number):
+        variation = 256 if segment_number % 2 == 0 else -512
+        return self.DEFAULT_TARGET_SEGMENT_LENGTH + variation
+
+    def live_head_segment(self, current_segment: int) -> int:
+        return max(current_segment, self.start_segment_number + (self.total_segments - self.dvr_segments))
+
+    def wall_time_ms(self, current_segment: int):
+        # Rough estimation
+        return self.segment_target_duration * self.live_head_segment(current_segment)
+
+    def segment_start_ms(self, current_segment: int):
+        start_ms = 0
+        for segment_number in range(1, current_segment):
+            start_ms += self.segment_duration(segment_number)
+        return start_ms + 1
+
+    def generate_live_fim_parts(self, audio_format_id: FormatId | None, video_format_id: FormatId | None) -> list[UMPPart | Exception]:
+        # YouTube sends these on every response for live streams.
+        # we will do the same as that makes things easy ;-)
+
+        parts = []
+
+        if audio_format_id:
+            fim = protobug.dumps(FormatInitializationMetadata(
+                video_id=VIDEO_ID,
+                format_id=audio_format_id,
+                mime_type='audio/mp4',
+            ))
+            parts.append(UMPPart(
+                part_id=UMPPartId.FORMAT_INITIALIZATION_METADATA,
+                size=len(fim),
+                data=io.BytesIO(fim),
+            ))
+
+        if video_format_id:
+            fim = protobug.dumps(FormatInitializationMetadata(
+                video_id=VIDEO_ID,
+                format_id=video_format_id,
+                mime_type='video/mp4',
+            ))
+            parts.append(UMPPart(
+                part_id=UMPPartId.FORMAT_INITIALIZATION_METADATA,
+                size=len(fim),
+                data=io.BytesIO(fim),
+            ))
+
+        return parts
+
+    def generate_live_metadata_part(self, current_segment: int) -> UMPPart:
+        lm = protobug.dumps(LiveMetadata(
+            head_sequence_number=self.live_head_segment(current_segment),
+            head_sequence_time_ms=self.wall_time_ms(current_segment),
+            min_seekable_time_ticks=(self.start_segment_number - 1) * self.segment_target_duration,
+            min_seekable_timescale=1000,
+            max_seekable_time_ticks=self.wall_time_ms(current_segment),
+            max_seekable_timescale=1000,
+        ))
+        return UMPPart(
+            part_id=UMPPartId.LIVE_METADATA,
+            size=len(lm),
+            data=io.BytesIO(lm),
+        )
+
+    def next_segment(self, buffered_segments: set[int], player_time_ms: int) -> int | None:
+        for sequence_number in range(self.start_segment_number, self.total_segments + 1):
+            if sequence_number in buffered_segments:
+                continue
+
+            start_ms = self.segment_start_ms(sequence_number)
+
+            # Basic server-side buffering logic to determine if the segment should be included
+            if (
+                (player_time_ms >= start_ms + self.segment_target_duration)
+                or (player_time_ms < (start_ms - self.segment_target_duration * 2))  # allow to buffer 2 segments ahead
+            ):
+                continue
+
+            return sequence_number
+        return None
+
+    def generate_media_segments(self, buffered_segments: set[int], player_time_ms: int, start_header_id: int, format_id: FormatId | None) -> list[UMPPart | Exception]:
+        segment_parts = []
+
+        sequence_number = self.next_segment(buffered_segments, player_time_ms)
+        if sequence_number is None:
+            return segment_parts
+
+        start_ms = self.segment_start_ms(sequence_number)
+        segment_length = self.segment_length(sequence_number)
+
+        bitrate_bps = segment_length * 1000 // self.segment_duration(sequence_number)
+
+        header_id = len(segment_parts) + start_header_id
+        media_header = protobug.dumps(MediaHeader(
+            header_id=header_id,
+            format_id=format_id,
+            video_id=VIDEO_ID,
+            sequence_number=sequence_number,
+            start_ms=start_ms,
+            bitrate_bps=bitrate_bps,
+        ))
+
+        varint_fp = io.BytesIO()
+        write_varint(varint_fp, header_id)
+        header_id_varint = varint_fp.getvalue()
+
+        segment_parts.extend([
+            UMPPart(
+                part_id=UMPPartId.MEDIA_HEADER,
+                size=len(media_header),
+                data=io.BytesIO(media_header),
+            ),
+            UMPPart(
+                part_id=UMPPartId.MEDIA,
+                size=segment_length + len(header_id_varint),
+                data=io.BytesIO(header_id_varint + b'\0' * segment_length),
+            ),
+            UMPPart(
+                part_id=UMPPartId.MEDIA_END,
+                size=len(header_id_varint),
+                data=io.BytesIO(header_id_varint),
+            ),
+        ])
+
+        return segment_parts
+
+    def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str, request_number: int) -> list[UMPPart | Exception]:
+        audio_format_id, video_format_id = self.determine_formats(vpabr)
+
+        parts = []
+        # drive walltime by video format if enabled, otherwise audio
+        next_segment = self.next_segment(
+            buffered_segments=self.buffered_segments(vpabr, self.total_segments, video_format_id or audio_format_id),
+            player_time_ms=vpabr.client_abr_state.player_time_ms,
+        ) or (self.total_segments + self.start_segment_number)
+
+        parts.append(self.generate_live_metadata_part(next_segment))
+        parts.extend(self.generate_live_fim_parts(audio_format_id, video_format_id))
+
+        next_header_id = 0
+        if audio_format_id is not None:
+            audio_segment_parts = self.generate_media_segments(
+                buffered_segments=self.buffered_segments(vpabr, self.total_segments, audio_format_id),
+                player_time_ms=vpabr.client_abr_state.player_time_ms,
+                start_header_id=next_header_id,
+                format_id=audio_format_id,
+            )
+            next_header_id += len(audio_segment_parts)
+            parts.extend(audio_segment_parts)
+
+        if video_format_id is not None:
+            video_segment_parts = self.generate_media_segments(
+                buffered_segments=self.buffered_segments(vpabr, self.total_segments, video_format_id),
+                player_time_ms=vpabr.client_abr_state.player_time_ms,
+                start_header_id=next_header_id,
+                format_id=video_format_id,
+            )
+            parts.extend(video_segment_parts)
+
         return parts
 
 
