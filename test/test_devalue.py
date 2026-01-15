@@ -232,7 +232,7 @@ class TestDevalue(unittest.TestCase):
 
         self.assertEqual(
             devalue.parse([{'a': 1, 'b': 3}, ['EmptyRef', 2], 'false', ['EmptyRef', 2]], revivers={'EmptyRef': json.loads}),
-            {'a': False, 'b': False}, msg='EmptyRef (json.parse)')
+            {'a': False, 'b': False}, msg='revivers (duplicate EmptyRef)')
 
 
 if __name__ == '__main__':
