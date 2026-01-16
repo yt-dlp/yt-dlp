@@ -1062,16 +1062,7 @@ class FacebookAdsIE(InfoExtractor):
         return formats
 
     def _download_fb_webpage_and_verify(self, url, video_id):
-        """
-        Facebook may return a 403 with an HTML page containing a JS snippet that:
-        1. Fetches a /__rd_verify_... endpoint with POST
-        2. That endpoint sets an rd_challenge cookie
-        3. The original request with that cookie succeeds
-
-        We need to mimic this for us to see the true webpage
-
-        See https://github.com/yt-dlp/yt-dlp/issues/15577 for details
-        """
+        # See https://github.com/yt-dlp/yt-dlp/issues/15577
 
         try:
             return self._download_webpage(url, video_id)
@@ -1084,34 +1075,18 @@ class FacebookAdsIE(InfoExtractor):
                 raise
             error_page = self._webpage_read_content(e.cause.response, url, video_id)
 
-        # we've hit a 403 with a client challenge, we need to solve it
-        self.write_debug('Found facebook ads JS challenge')
+        self.write_debug('Received a client challenge response')
 
         challenge_path = self._search_regex(
-            r'''fetch\s*\(\s*['"](\/__rd_verify[^'"]+)['"]''',
-            error_page,
-            'challenge path',
-            default=None,
-        )
-        if not challenge_path:
-            raise ExtractorError(
-                'Unable to extract rd_challenge.',
-                expected=True,
-            )
+            r'fetch\s*\(\s*["\'](/__rd_verify[^"\']+)["\']',
+            error_page, 'challenge path')
 
-        # we have to POST to the challenge URL to get a cookie back (rd_challenge) (the system adds it to the cookie jar)
-        full_challenge_url = urljoin(url, challenge_path)
+
+        # Successful response will set the necessary cookie 
         self._request_webpage(
-            full_challenge_url,
-            video_id,
-            note='Solving rd_challenge',
-            errnote='Failed to solve rd_challenge',
-            expected_status=[200],
-            fatal=True,
-            data=b'',
-        )
+            urljoin(url, challenge_path), video_id, 'Requesting verification cookie',
+            'Unable to get verification cookie', data=b'')
 
-        # should have the required cookies now, so we try again
         return self._download_webpage(url, video_id)
 
     def _real_extract(self, url):
