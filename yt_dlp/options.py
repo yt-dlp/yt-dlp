@@ -1535,7 +1535,7 @@ def create_parser():
         help='Netscape formatted file to read cookies from and dump cookie jar in')
     filesystem.add_option(
         '--no-cookies',
-        action='store_const', const=None, dest='cookiefile', metavar='FILE',
+        action='store_const', const=None, dest='cookiefile',
         help='Do not read/dump cookies from/to file (default)')
     filesystem.add_option(
         '--cookies-from-browser',
