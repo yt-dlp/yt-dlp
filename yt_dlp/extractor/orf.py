@@ -6,6 +6,7 @@ from ..utils import (
     clean_html,
     determine_ext,
     float_or_none,
+    get_element_by_class,
     int_or_none,
     make_archive_id,
     mimetype2ext,
@@ -581,7 +582,7 @@ class ORFONSeriesIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        series_id = self._match_valid_url(url).group('id')
+        series_id = self._match_id(url)
 
         # set page to a high number to include all episodes of the series in the document
         # each page contains 20 episodes, in practice shows almost never have more than 100 episodes
@@ -592,9 +593,7 @@ class ORFONSeriesIE(InfoExtractor):
         title = (
             self._html_search_meta(['og:title', 'twitter:title'], webpage)
             or self._html_extract_title(webpage))
-        description = self._search_regex(
-            r'<p[^>]+class=(["\'])description\1[^>]*>(?P<description>[^<]+)',
-            webpage, 'description', group='description', default=None)
+        description = clean_html(get_element_by_class('description', webpage))
 
         return self.playlist_from_matches(video_ids, series_id, title, description=description,
                                           getter=urljoin('https://on.orf.at/video/'))
