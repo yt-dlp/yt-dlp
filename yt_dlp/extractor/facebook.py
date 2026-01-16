@@ -1081,8 +1081,7 @@ class FacebookAdsIE(InfoExtractor):
             r'fetch\s*\(\s*["\'](/__rd_verify[^"\']+)["\']',
             error_page, 'challenge path')
 
-
-        # Successful response will set the necessary cookie 
+        # Successful response will set the necessary cookie
         self._request_webpage(
             urljoin(url, challenge_path), video_id, 'Requesting verification cookie',
             'Unable to get verification cookie', data=b'')
