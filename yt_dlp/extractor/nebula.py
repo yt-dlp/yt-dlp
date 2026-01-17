@@ -482,7 +482,7 @@ class NebulaChannelIE(NebulaBaseIE):
 
 class NebulaSeasonIE(NebulaBaseIE):
     IE_NAME = 'nebula:season'
-    _VALID_URL = rf'{_BASE_URL_RE}/(?P<series>[\w-]+)/season/(?P<season_number>\d+)'
+    _VALID_URL = rf'{_BASE_URL_RE}/(?P<series>[\w-]+)/season/(?P<season_number>[\w-]+)'
     _TESTS = [{
         'url': 'https://nebula.tv/jetlag/season/15',
         'info_dict': {
@@ -499,6 +499,14 @@ class NebulaSeasonIE(NebulaBaseIE):
             'description': 'md5:6da9040f1c2ac559579738bfb6919d1e',
         },
         'playlist_count': 8,
+    }, {
+        'url': 'https://nebula.tv/jetlag/season/13-5',
+        'info_dict': {
+            'id': 'jetlag_13-5',
+            'title': 'Hide + Seek Across NYC',
+            'description': 'md5:5b87bb9acc6dcdff289bb4c71a2ad59f',
+        },
+        'playlist_count': 3,
     }]
 
     def _build_url_result(self, item):
