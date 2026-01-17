@@ -441,6 +441,10 @@ class SabrProcessor:
     def process_live_metadata(self, live_metadata: LiveMetadata) -> ProcessLiveMetadataResult:
         self.live_metadata = live_metadata
         if self.live_metadata.head_sequence_time_ms:
+            # TODO: this is the start time of the head segment, which may be available (i.e, is not the total duration of the stream)
+            #  Perhaps total duration should be head_sequence_time_ms + target segment duration?
+            #  NOTE: this might make SabrStream make extra requests with no segments / ones that stall before waiting due to target estimation offset.
+            #   In this case,  we could use the target duration estimation offset?
             self.total_duration_ms = self.live_metadata.head_sequence_time_ms
 
         # If we have a head sequence number, we need to update the total sequences for each initialized format

@@ -544,11 +544,16 @@ class PoTokenAVProfile(BasicAudioVideoProfile):
 
 
 class LiveAVProfile(BasicAudioVideoProfile):
-    DEFAULT_DVR_SEGMENTS = 20
+    DEFAULT_DVR_SEGMENTS = 20  # TODO: this is being treated as "non-dvr segments"
     DEFAULT_TOTAL_SEGMENTS = 20
     DEFAULT_SEGMENT_TARGET_DURATION = 2000
     DEFAULT_START_SEGMENT_NUMBER = 1
-    DEFAULT_TARGET_SEGMENT_LENGTH = 5000
+    DEFAULT_TARGET_SEGMENT_LENGTH = 1000
+    DEFAULT_LIVE_HEAD_ALWAYS_AVAILABLE = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.start_time = time.time()
 
     @property
     def start_segment_number(self):
@@ -566,26 +571,55 @@ class LiveAVProfile(BasicAudioVideoProfile):
     def segment_target_duration(self):
         return self.options.get('segment_target_duration_ms', self.DEFAULT_SEGMENT_TARGET_DURATION)
 
+    @property
+    def live_head_always_available(self):
+        return self.options.get('live_head_always_available', self.DEFAULT_LIVE_HEAD_ALWAYS_AVAILABLE)
+
     def segment_duration(self, segment_number):
-        variation = 270 if segment_number % 2 == 0 else -256
-        return self.segment_target_duration + variation
+        # variation = 270 if segment_number % 2 == 0 else -256
+        return self.segment_target_duration
 
     def segment_length(self, segment_number):
-        variation = 256 if segment_number % 2 == 0 else -512
-        return self.DEFAULT_TARGET_SEGMENT_LENGTH + variation
+        # variation = 256 if segment_number % 2 == 0 else -512
+        return self.DEFAULT_TARGET_SEGMENT_LENGTH + 0
 
-    def live_head_segment(self, current_segment: int) -> int:
-        return max(current_segment, self.start_segment_number + (self.total_segments - self.dvr_segments))
+    @property
+    def elapsed_ms(self):
+        return int((time.time() - self.start_time) * 1000)
 
-    def wall_time_ms(self, current_segment: int):
-        # Rough estimation
-        return self.segment_target_duration * self.live_head_segment(current_segment)
+    def live_head_segment_available(self):
+        if self.live_head_always_available:
+            return True
+        live_head_segment = self.live_head_segment()
+        return self.segment_start_ms(live_head_segment) + self.segment_duration(live_head_segment) < self.elapsed_ms
+
+    @property
+    def last_segment_number(self):
+        return self.start_segment_number + self.total_segments - 1
+
+    @property
+    def first_live_segment(self):
+        return self.start_segment_number + (self.total_segments - self.dvr_segments)
+
+    def live_head_segment(self) -> int:
+        for segment_number in range(self.first_live_segment, self.last_segment_number + 1):
+            segment_start_time = self.segment_start_ms(segment_number)
+            if segment_start_time <= self.elapsed_ms < segment_start_time + (self.segment_duration(segment_number)):
+                return segment_number
+
+        if self.elapsed_ms > self.segment_start_ms(self.last_segment_number):
+            return self.last_segment_number
+
+        return self.start_segment_number
+
+    def wall_time_ms(self):
+        return self.segment_start_ms(self.live_head_segment())
 
     def segment_start_ms(self, current_segment: int):
         start_ms = 0
-        for segment_number in range(1, current_segment):
+        for segment_number in range(self.start_segment_number, current_segment):
             start_ms += self.segment_duration(segment_number)
-        return start_ms + 1
+        return start_ms
 
     def generate_live_fim_parts(self, audio_format_id: FormatId | None, video_format_id: FormatId | None) -> list[UMPPart | Exception]:
         # YouTube sends these on every response for live streams.
@@ -621,11 +655,11 @@ class LiveAVProfile(BasicAudioVideoProfile):
 
     def generate_live_metadata_part(self, current_segment: int) -> UMPPart:
         lm = protobug.dumps(LiveMetadata(
-            head_sequence_number=self.live_head_segment(current_segment),
-            head_sequence_time_ms=self.wall_time_ms(current_segment),
+            head_sequence_number=self.live_head_segment(),
+            head_sequence_time_ms=self.wall_time_ms(),
             min_seekable_time_ticks=(self.start_segment_number - 1) * self.segment_target_duration,
             min_seekable_timescale=1000,
-            max_seekable_time_ticks=self.wall_time_ms(current_segment),
+            max_seekable_time_ticks=self.wall_time_ms(),
             max_seekable_timescale=1000,
         ))
         return UMPPart(
@@ -635,20 +669,30 @@ class LiveAVProfile(BasicAudioVideoProfile):
         )
 
     def next_segment(self, buffered_segments: set[int], player_time_ms: int) -> int | None:
-        for sequence_number in range(self.start_segment_number, self.total_segments + 1):
+        for sequence_number in range(self.start_segment_number, self.last_segment_number + 1):
             if sequence_number in buffered_segments:
                 continue
 
             start_ms = self.segment_start_ms(sequence_number)
 
             # Basic server-side buffering logic to determine if the segment should be included
-            if (
-                (player_time_ms >= start_ms + self.segment_target_duration)
-                or (player_time_ms < (start_ms - self.segment_target_duration * 2))  # allow to buffer 2 segments ahead
-            ):
+            # If not within 1 target segment of this segment, skip
+            if (player_time_ms < start_ms - self.segment_target_duration) or (player_time_ms > start_ms + self.segment_target_duration):
                 continue
 
-            return sequence_number
+            # If this segment is equal to greater than the live head, skip (unless live head is the last segment and elapsed time indicates it should be available)
+            if sequence_number >= self.live_head_segment() and not self.live_head_segment_available():
+                continue
+
+            if (
+                # If segment is in DVR window, always include
+                sequence_number <= self.first_live_segment
+                # Otherwise, if outside DVR window, see if enough time as elapsed for this segment to be relevant
+                or (self.elapsed_ms >= start_ms)
+            ):
+                return sequence_number
+
+            continue
         return None
 
     def generate_media_segments(self, buffered_segments: set[int], player_time_ms: int, start_header_id: int, format_id: FormatId | None) -> list[UMPPart | Exception]:
@@ -705,7 +749,7 @@ class LiveAVProfile(BasicAudioVideoProfile):
         next_segment = self.next_segment(
             buffered_segments=self.buffered_segments(vpabr, self.total_segments, video_format_id or audio_format_id),
             player_time_ms=vpabr.client_abr_state.player_time_ms,
-        ) or (self.total_segments + self.start_segment_number)
+        )
 
         parts.append(self.generate_live_metadata_part(next_segment))
         parts.extend(self.generate_live_fim_parts(audio_format_id, video_format_id))
@@ -733,7 +777,7 @@ class LiveAVProfile(BasicAudioVideoProfile):
         return parts
 
 
-def assert_media_sequence_in_order(parts, format_selector: AudioSelector | VideoSelector, expected_total_segments: int, allow_retry=False):
+def assert_media_sequence_in_order(parts, format_selector: AudioSelector | VideoSelector, expected_total_segments: int, allow_retry=False, start_sequence_number=1):
     # Checks that for the given format_selector, the media segments are in order:
     # MediaSegmentInitSabrPart -> MediaSegmentDataSabrPart* -> MediaSegmentEndSabrPart
 
@@ -773,7 +817,7 @@ def assert_media_sequence_in_order(parts, format_selector: AudioSelector | Video
                 current_segment[2] = part
 
     assert current_segment[0].sequence_number == current_segment[0].total_segments, 'Last media segment sequence number does not match total segments'
-    assert total_segments - total_retried_segments == expected_total_segments, f'Expected {expected_total_segments} segments, got {total_segments}'
+    assert total_segments - total_retried_segments - (start_sequence_number - 1) == expected_total_segments, f'Expected {expected_total_segments} segments, got {total_segments}'
 
 
 def create_inject_read_error(request_numbers: list[int], part_id: UMPPartId, occurance=1):
@@ -800,7 +844,7 @@ def create_inject_read_error(request_numbers: list[int], part_id: UMPPartId, occ
 
 class MockTime:
     def __init__(self, start: float):
-        self._current_time = float(start)
+        self._current_time = float(int(start))
 
     def time(self):
         return self._current_time

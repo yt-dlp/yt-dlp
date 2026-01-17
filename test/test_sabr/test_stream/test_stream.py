@@ -2032,8 +2032,6 @@ class TestStream:
 
             assert len(sabr_stream.processor.sabr_contexts_to_send) == 0
 
-    # TODO: mock time, where time.sleep increments time.time() (but instantly)
-
     class TestLive:
 
         LIVE_URL = 'https://example.com/sabr_live?id=123'
@@ -2052,5 +2050,5 @@ class TestStream:
 
             parts = list(sabr_stream.iter_parts())
 
-            assert_media_sequence_in_order(parts, audio_selector, 20)
-            assert_media_sequence_in_order(parts, video_selector, 20)
+            assert_media_sequence_in_order(parts, audio_selector, 20, start_sequence_number=1)
+            assert_media_sequence_in_order(parts, video_selector, 20, start_sequence_number=1)
