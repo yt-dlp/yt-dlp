@@ -62,6 +62,7 @@ from ...utils import (
     unescapeHTML,
     unified_strdate,
     unsmuggle_url,
+    update_url,
     update_url_query,
     url_or_none,
     urljoin,
@@ -3202,6 +3203,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'audio_quality_ultralow', 'audio_quality_low', 'audio_quality_medium', 'audio_quality_high',  # Audio only formats
             'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres',
         ])
+        skip_player_js = 'js' in self._configuration_arg('player_skip')
         format_types = self._configuration_arg('formats')
         all_formats = 'duplicate' in format_types
         if self._configuration_arg('include_duplicate_formats'):
@@ -3247,6 +3249,102 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return language_code, DEFAULT_LANG_VALUE
             return language_code, -1
 
+        def get_manifest_n_challenge(manifest_url):
+            if not url_or_none(manifest_url):
+                return None
+            return self._search_regex(
+                r'/n/([^/]+)/', urllib.parse.urlparse(manifest_url).path,
+                'n challenge', default=None)
+
+        n_challenges = set()
+        s_challenges = set()
+        already_solved_challenges = False
+
+        def solve_js_challenges():
+            # Bulk process sig/n handling
+            # Retrieve all JSC Sig and n requests for this video in one go
+            nonlocal already_solved_challenges
+            if already_solved_challenges:
+                return
+
+            already_solved_challenges = True
+            challenge_requests = []
+            if n_challenges:
+                challenge_requests.append(JsChallengeRequest(
+                    type=JsChallengeType.N,
+                    video_id=video_id,
+                    input=NChallengeInput(challenges=list(n_challenges), player_url=player_url)))
+            if s_challenges:
+                challenge_requests.append(JsChallengeRequest(
+                    type=JsChallengeType.SIG,
+                    video_id=video_id,
+                    input=SigChallengeInput(
+                        challenges=[''.join(map(chr, range(spec_id))) for spec_id in s_challenges],
+                        player_url=player_url)))
+
+            if challenge_requests:
+                for _challenge_request, challenge_response in self._jsc_director.bulk_solve(challenge_requests):
+                    if challenge_response.type == JsChallengeType.SIG:
+                        for challenge, result in challenge_response.output.results.items():
+                            spec_id = len(challenge)
+                            self._store_player_data_to_cache(
+                                [ord(c) for c in result], 'sigfuncs',
+                                player_url, spec_id, use_disk_cache=True)
+                            if spec_id in s_challenges:
+                                s_challenges.remove(spec_id)
+
+                    elif challenge_response.type == JsChallengeType.N:
+                        for challenge, result in challenge_response.output.results.items():
+                            self._store_player_data_to_cache(result, 'n', player_url, challenge)
+                            if challenge in n_challenges:
+                                n_challenges.remove(challenge)
+
+                # Raise warning if any challenge requests remain
+                # Depending on type of challenge request
+
+                help_message = (
+                    'Ensure you have a supported JavaScript runtime and '
+                    'challenge solver script distribution installed. '
+                    'Review any warnings presented before this message. '
+                    f'For more details, refer to  {_EJS_WIKI_URL}')
+
+                if s_challenges:
+                    self.report_warning(
+                        f'Signature solving failed: Some formats may be missing. {help_message}',
+                        video_id=video_id, only_once=True)
+                if n_challenges:
+                    self.report_warning(
+                        f'n challenge solving failed: Some formats may be missing. {help_message}',
+                        video_id=video_id, only_once=True)
+
+        # 1st pass to collect all n/sig challenges so they can later be solved at once in bulk
+        for streaming_data in traverse_obj(player_responses, (..., 'streamingData', {dict})):
+            # HTTPS formats
+            for fmt_stream in traverse_obj(streaming_data, (('formats', 'adaptiveFormats'), ..., {dict})):
+                fmt_url = fmt_stream.get('url')
+                s_challenge = None
+                if not fmt_url:
+                    sc = urllib.parse.parse_qs(fmt_stream.get('signatureCipher'))
+                    fmt_url = traverse_obj(sc, ('url', 0, {url_or_none}))
+                    s_challenge = traverse_obj(sc, ('s', 0))
+
+                if s_challenge:
+                    s_challenges.add(len(s_challenge))
+
+                if n_challenge := traverse_obj(fmt_url, ({parse_qs}, 'n', 0)):
+                    n_challenges.add(n_challenge)
+
+            # Manifest formats
+            for n_challenge in traverse_obj(streaming_data, (
+                ('hlsManifestUrl', 'dashManifestUrl'), {get_manifest_n_challenge},
+            )):
+                n_challenges.add(n_challenge)
+
+            # SABR formats
+            if n_challenge := traverse_obj(streaming_data, ('serverAbrStreamingUrl', {parse_qs}, 'n', 0)):
+                n_challenges.add(n_challenge)
+
+        # final pass to extract formats and solve n/sig challenges as needed
         for pr in player_responses:
             streaming_data = traverse_obj(pr, 'streamingData')
             if not streaming_data:
@@ -3354,7 +3452,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             def process_https_formats():
                 proto = 'https'
                 https_fmts = []
-                skip_player_js = 'js' in self._configuration_arg('player_skip')
 
                 for fmt_stream in streaming_formats:
                     if fmt_stream.get('targetDurationSec'):
@@ -3391,8 +3488,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         # See: https://github.com/yt-dlp/yt-dlp/issues/14883
                         get_language_code_and_preference(fmt_stream)
                         sc = urllib.parse.parse_qs(fmt_stream.get('signatureCipher'))
-                        fmt_url = url_or_none(try_get(sc, lambda x: x['url'][0]))
-                        encrypted_sig = try_get(sc, lambda x: x['s'][0])
+                        fmt_url = traverse_obj(sc, ('url', 0, {url_or_none}))
+                        encrypted_sig = traverse_obj(sc, ('s', 0))
                         if not all((sc, fmt_url, skip_player_js or player_url, encrypted_sig)):
                             msg = f'Some {client_name} client https formats have been skipped as they are missing a URL. '
                             if client_name in ('web', 'web_safari'):
@@ -3413,22 +3510,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
 
                     # signature
-                    # Attempt to load sig spec from cache
                     if encrypted_sig:
                         if skip_player_js:
                             continue
-                        spec_id = len(encrypted_sig)
-                        spec = self._load_player_data_from_cache('sigfuncs', player_url, spec_id, use_disk_cache=True)
-                        if spec:
-                            self.write_debug(
-                                f'Using cached signature function '
-                                f'{self._player_js_cache_key(player_url)}-{spec_id}',
-                                only_once=True)
-                            fmt_url += '&{}={}'.format(traverse_obj(sc, ('sp', -1)) or 'signature',
-                                                       solve_sig(encrypted_sig, spec))
-                        else:
-                            fmt['_jsc_s_challenge'] = encrypted_sig
-                            fmt['_jsc_s_sc'] = sc
+                        solve_js_challenges()
+                        spec = self._load_player_data_from_cache(
+                            'sigfuncs', player_url, len(encrypted_sig), use_disk_cache=True)
+                        if not spec:
+                            continue
+                        fmt_url += '&{}={}'.format(
+                            traverse_obj(sc, ('sp', -1)) or 'signature',
+                            solve_sig(encrypted_sig, spec))
 
                     # n challenge
                     query = parse_qs(fmt_url)
@@ -3436,10 +3528,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         if skip_player_js:
                             continue
                         n_challenge = query['n'][0]
-                        if n_result := self._load_player_data_from_cache('n', player_url, n_challenge):
-                            fmt_url = update_url_query(fmt_url, {'n': n_result})
-                        else:
-                            fmt['_jsc_n_challenge'] = n_challenge
+                        solve_js_challenges()
+                        n_result = self._load_player_data_from_cache('n', player_url, n_challenge)
+                        if not n_result:
+                            continue
+                        fmt_url = update_url_query(fmt_url, {'n': n_result})
 
                     if po_token:
                         fmt_url = update_url_query(fmt_url, {'pot': po_token})
@@ -3455,80 +3548,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         fmt['available_at'] = available_at
 
                     https_fmts.append(fmt)
-
-                # Bulk process sig/n handling
-                # Retrieve all JSC Sig and n requests for this player response in one go
-                n_challenges = {}
-                s_challenges = {}
-                for fmt in https_fmts:
-                    # This will de-duplicate requests
-                    n_challenge = fmt.pop('_jsc_n_challenge', None)
-                    if n_challenge is not None:
-                        n_challenges.setdefault(n_challenge, []).append(fmt)
-
-                    s_challenge = fmt.pop('_jsc_s_challenge', None)
-                    if s_challenge is not None:
-                        s_challenges.setdefault(len(s_challenge), {}).setdefault(s_challenge, []).append(fmt)
-
-                challenge_requests = []
-                if n_challenges:
-                    challenge_requests.append(JsChallengeRequest(
-                        type=JsChallengeType.N,
-                        video_id=video_id,
-                        input=NChallengeInput(challenges=list(n_challenges.keys()), player_url=player_url)))
-                if s_challenges:
-                    challenge_requests.append(JsChallengeRequest(
-                        type=JsChallengeType.SIG,
-                        video_id=video_id,
-                        input=SigChallengeInput(challenges=[''.join(map(chr, range(spec_id))) for spec_id in s_challenges], player_url=player_url)))
-
-                if challenge_requests:
-                    for _challenge_request, challenge_response in self._jsc_director.bulk_solve(challenge_requests):
-                        if challenge_response.type == JsChallengeType.SIG:
-                            for challenge, result in challenge_response.output.results.items():
-                                spec_id = len(challenge)
-                                spec = [ord(c) for c in result]
-                                self._store_player_data_to_cache(spec, 'sigfuncs', player_url, spec_id, use_disk_cache=True)
-                                s_challenge_data = s_challenges.pop(spec_id, {})
-                                if not s_challenge_data:
-                                    continue
-                                for s_challenge, fmts in s_challenge_data.items():
-                                    solved_challenge = solve_sig(s_challenge, spec)
-                                    for fmt in fmts:
-                                        sc = fmt.pop('_jsc_s_sc')
-                                        fmt['url'] += '&{}={}'.format(
-                                            traverse_obj(sc, ('sp', -1)) or 'signature',
-                                            solved_challenge)
-
-                        elif challenge_response.type == JsChallengeType.N:
-                            for challenge, result in challenge_response.output.results.items():
-                                fmts = n_challenges.pop(challenge, [])
-                                for fmt in fmts:
-                                    self._store_player_data_to_cache(result, 'n', player_url, challenge)
-                                    fmt['url'] = update_url_query(fmt['url'], {'n': result})
-
-                    # Raise warning if any challenge requests remain
-                    # Depending on type of challenge request
-
-                    help_message = (
-                        'Ensure you have a supported JavaScript runtime and '
-                        'challenge solver script distribution installed. '
-                        'Review any warnings presented before this message. '
-                        f'For more details, refer to  {_EJS_WIKI_URL}')
-
-                    if s_challenges:
-                        self.report_warning(
-                            f'Signature solving failed: Some formats may be missing. {help_message}',
-                            video_id=video_id, only_once=True)
-                    if n_challenges:
-                        self.report_warning(
-                            f'n challenge solving failed: Some formats may be missing. {help_message}',
-                            video_id=video_id, only_once=True)
-
-                    for cfmts in list(s_challenges.values()) + list(n_challenges.values()):
-                        for fmt in cfmts:
-                            if fmt in https_fmts:
-                                https_fmts.remove(fmt)
 
                 for fmt in https_fmts:
                     if (all_formats or 'dashy' in format_types) and fmt['filesize']:
@@ -3612,17 +3631,34 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             hls_manifest_url = 'hls' not in skip_manifests and streaming_data.get('hlsManifestUrl')
             if hls_manifest_url:
+                manifest_path = urllib.parse.urlparse(hls_manifest_url).path
+                if m := re.fullmatch(r'(?P<path>.+)(?P<suffix>/(?:file|playlist)/index\.m3u8)', manifest_path):
+                    manifest_path, manifest_suffix = m.group('path', 'suffix')
+                else:
+                    manifest_suffix = ''
+
+                solved_n = False
+                n_challenge = get_manifest_n_challenge(hls_manifest_url)
+                if n_challenge and not skip_player_js:
+                    solve_js_challenges()
+                    n_result = self._load_player_data_from_cache('n', player_url, n_challenge)
+                    if n_result:
+                        manifest_path = manifest_path.replace(f'/n/{n_challenge}/', f'/n/{n_result}/')
+                        solved_n = True
+
                 pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(
                     client_name)['GVS_PO_TOKEN_POLICY'][StreamingProtocol.HLS]
                 require_po_token = gvs_pot_required(pot_policy, is_premium_subscriber, player_token_provided)
                 po_token = gvs_pots.get(client_name, fetch_po_token_func(required=require_po_token or pot_policy.recommended))
                 if po_token:
-                    hls_manifest_url = hls_manifest_url.rstrip('/') + f'/pot/{po_token}'
+                    manifest_path = manifest_path.rstrip('/') + f'/pot/{po_token}'
                     if client_name not in gvs_pots:
                         gvs_pots[client_name] = po_token
+
                 if require_po_token and not po_token and 'missing_pot' not in self._configuration_arg('formats'):
                     self._report_pot_format_skipped(video_id, client_name, 'hls')
-                else:
+                elif solved_n or not n_challenge:
+                    hls_manifest_url = update_url(hls_manifest_url, path=''.join((manifest_path, manifest_suffix)))
                     fmts, subs = self._extract_m3u8_formats_and_subtitles(
                         hls_manifest_url, video_id, 'mp4', fatal=False, live=live_status == 'is_live')
                     for sub in traverse_obj(subs, (..., ..., {dict})):
@@ -3637,17 +3673,30 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             dash_manifest_url = 'dash' not in skip_manifests and streaming_data.get('dashManifestUrl')
             if dash_manifest_url:
+                manifest_path = urllib.parse.urlparse(dash_manifest_url).path
+
+                solved_n = False
+                n_challenge = get_manifest_n_challenge(dash_manifest_url)
+                if n_challenge and not skip_player_js:
+                    solve_js_challenges()
+                    n_result = self._load_player_data_from_cache('n', player_url, n_challenge)
+                    if n_result:
+                        manifest_path = manifest_path.replace(f'/n/{n_challenge}/', f'/n/{n_result}/')
+                        solved_n = True
+
                 pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(
                     client_name)['GVS_PO_TOKEN_POLICY'][StreamingProtocol.DASH]
                 require_po_token = gvs_pot_required(pot_policy, is_premium_subscriber, player_token_provided)
                 po_token = gvs_pots.get(client_name, fetch_po_token_func(required=require_po_token or pot_policy.recommended))
                 if po_token:
-                    dash_manifest_url = dash_manifest_url.rstrip('/') + f'/pot/{po_token}'
+                    manifest_path = manifest_path.rstrip('/') + f'/pot/{po_token}'
                     if client_name not in gvs_pots:
                         gvs_pots[client_name] = po_token
+
                 if require_po_token and not po_token and 'missing_pot' not in self._configuration_arg('formats'):
                     self._report_pot_format_skipped(video_id, client_name, 'dash')
-                else:
+                elif solved_n or not n_challenge:
+                    dash_manifest_url = update_url(dash_manifest_url, path=manifest_path)
                     formats, subs = self._extract_mpd_formats_and_subtitles(dash_manifest_url, video_id, fatal=False)
                     for sub in traverse_obj(subs, (..., ..., {dict})):
                         # TODO: If DASH video requires a PO Token, do the subs also require pot?
