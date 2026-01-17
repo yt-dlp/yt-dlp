@@ -3658,6 +3658,46 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         # Save client name for debugging
                         sub[STREAMING_DATA_CLIENT_NAME] = client_name
                     subtitles = self._merge_subtitles(subs, subtitles)
+
+                    # Process n challenges for HLS formats (fix for 403 errors)
+                    # In HLS URLs, 'n' parameter is in the path as /n/<value>/ not in query string
+                    hls_n_challenges = {}
+                    for f in fmts:
+                        n_match = re.search(r'/n/([a-zA-Z0-9_-]+)/', f['url'])
+                        if n_match:
+                            n_challenge = n_match.group(1)
+                            if n_challenge in self._player_cache:
+                                f['url'] = f['url'].replace(f'/n/{n_challenge}/', f'/n/{self._player_cache[n_challenge]}/')
+                            elif player_url:
+                                f['_jsc_n_challenge'] = n_challenge
+                                hls_n_challenges.setdefault(n_challenge, []).append(f)
+
+                    if hls_n_challenges and player_url:
+                        hls_challenge_requests = [JsChallengeRequest(
+                            type=JsChallengeType.N,
+                            video_id=video_id,
+                            input=NChallengeInput(challenges=list(hls_n_challenges.keys()), player_url=player_url))]
+
+                        for _challenge_request, challenge_response in self._jsc_director.bulk_solve(hls_challenge_requests):
+                            if challenge_response.type == JsChallengeType.N:
+                                for challenge, result in challenge_response.output.results.items():
+                                    hls_fmts = hls_n_challenges.pop(challenge, [])
+                                    for fmt in hls_fmts:
+                                        fmt.pop('_jsc_n_challenge', None)
+                                        self._player_cache[challenge] = result
+                                        fmt['url'] = fmt['url'].replace(f'/n/{challenge}/', f'/n/{result}/')
+
+                        # Remove formats that couldn't be solved
+                        if hls_n_challenges:
+                            self.report_warning(
+                                f'n challenge solving failed for HLS formats: Some formats may be missing.',
+                                video_id=video_id, only_once=True)
+                            for cfmts in hls_n_challenges.values():
+                                for fmt in cfmts:
+                                    fmt.pop('_jsc_n_challenge', None)
+                                    if fmt in fmts:
+                                        fmts.remove(fmt)
+
                     for f in fmts:
                         if process_manifest_format(f, 'hls', client_name, self._search_regex(
                                 r'/itag/(\d+)', f['url'], 'itag', default=None), require_po_token and not po_token):
