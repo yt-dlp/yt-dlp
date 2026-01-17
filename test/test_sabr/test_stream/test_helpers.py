@@ -153,3 +153,27 @@ class TestCreateInjectReadError:
         # No TransportError injected because occurance (5) not reached
         assert all(not isinstance(p, TransportError) for p in returned)
         assert returned == parts
+
+
+def test_mock_time():
+    import time as _time
+    from .helpers import mock_time
+
+    # Decorated function should not actually sleep (fast) and should advance the fake clock
+    start = _time.perf_counter()
+
+    @mock_time
+    def _inner():
+        t0 = _time.time()
+        _time.sleep(1.5)
+        assert _time.time() == pytest.approx(t0 + 1.5)
+
+    _inner()
+    inner_duration = _time.perf_counter() - start
+    assert inner_duration < 0.1, 'decorated function should not perform a real sleep'
+
+    # After decorator returns, original time.sleep should be restored (real sleep observable)
+    t_before = _time.perf_counter()
+    _time.sleep(0.02)
+    elapsed = _time.perf_counter() - t_before
+    assert elapsed >= 0.02

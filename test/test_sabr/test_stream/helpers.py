@@ -1,7 +1,10 @@
 from __future__ import annotations
 import base64
 import dataclasses
+import functools
 import io
+import time
+import unittest.mock as mock
 import protobug
 from yt_dlp import int_or_none
 from yt_dlp.extractor.youtube._proto.innertube import NextRequestPolicy
@@ -793,3 +796,39 @@ def create_inject_read_error(request_numbers: list[int], part_id: UMPPartId, occ
                 new_parts.append(part)
         return new_parts
     return inject_read_error
+
+
+class MockTime:
+    def __init__(self, start: float):
+        self._current_time = float(start)
+
+    def time(self):
+        return self._current_time
+
+    def sleep(self, seconds: float):
+        try:
+            seconds = float(seconds)
+        except (TypeError, ValueError):
+            raise
+        if seconds > 0:
+            self._current_time += seconds
+
+
+def mock_time(func=None, *, start_time: float | None = None):
+    """
+    Decorator to patch time.time() and time.sleep() for the duration of the test.
+
+    Usage:
+      @fake_time
+      def test_xxx(...):
+          ...
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        st = start_time if start_time is not None else time.time()
+        mt = MockTime(st)
+        time_mock = mock.Mock(side_effect=mt.time)
+        sleep_mock = mock.Mock(side_effect=mt.sleep)
+        with mock.patch('time.time', new=time_mock), mock.patch('time.sleep', new=sleep_mock):
+            return func(*args, **kwargs)
+    return wrapper

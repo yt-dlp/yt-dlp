@@ -2,7 +2,7 @@ from __future__ import annotations
 import base64
 import io
 import time
-from unittest.mock import MagicMock
+from unittest.mock import Mock
 import protobug
 import pytest
 from yt_dlp import YoutubeDL
@@ -23,6 +23,7 @@ from test.test_sabr.test_stream.helpers import (
     SabrContextSendingPolicyAVProfile,
     PoTokenAVProfile,
     LiveAVProfile,
+    mock_time,
 )
 from yt_dlp.extractor.youtube._proto.videostreaming.reload_player_response import ReloadPlaybackParams
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import (
@@ -1318,11 +1319,11 @@ class TestStream:
             for i in range(1, 6):
                 logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/5)...')
 
+        @mock_time
         def test_http_retry_sleep_func(self, logger, client_info):
             # Should call the retry_sleep_func between retries to get the sleep duration
-            # For this test, we want to return 0.001 as the sleep
-            sleep_mock = MagicMock()
-            sleep_mock.side_effect = lambda n: 0.001
+            sleep_mock = Mock()
+            sleep_mock.side_effect = lambda n: 2.5
 
             sabr_stream, _, __ = setup_sabr_stream_av(
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': [2, 3]}),
@@ -1342,7 +1343,8 @@ class TestStream:
             logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (1/3)...')
             logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (2/3)...')
             # Should log the sleep
-            logger.info.assert_any_call('Sleeping 0.00 seconds ...')
+            logger.info.assert_any_call('Sleeping 2.50 seconds ...')
+            time.sleep.assert_called_with(2.5)
 
         def test_expiry_on_retry(self, logger, client_info):
             # Should check for expiry before retrying and yield RefreshPlayerResponseSabrPart if within threshold
@@ -1841,11 +1843,11 @@ class TestStream:
             for i in range(1, 4):
                 logger.warning.assert_any_call(f'[sabr] Got error: This stream requires a GVS PO Token to continue. Retrying ({i}/3)...')
 
+        @mock_time
         def test_pot_retry_sleep_func(self, logger, client_info):
             # Should call the retry_sleep_func between retries to get the sleep duration
-            # For this test, we want to return 0.001 as the sleep
-            sleep_mock = MagicMock()
-            sleep_mock.side_effect = lambda n: 0.001
+            sleep_mock = Mock()
+            sleep_mock.side_effect = lambda n: 2.5
 
             sabr_stream, _, _ = setup_sabr_stream_av(
                 sabr_response_processor=PoTokenAVProfile(),
@@ -1870,7 +1872,8 @@ class TestStream:
             for i in range(1, 4):
                 logger.warning.assert_any_call(f'[sabr] Got error: This stream requires a GVS PO Token to continue. Retrying ({i}/3)...')
             # Should log the sleep
-            logger.info.assert_any_call('Sleeping 0.00 seconds ...')
+            logger.info.assert_any_call('Sleeping 2.50 seconds ...')
+            time.sleep.assert_called_with(2.5)
 
         def test_pot_http_retries(self, logger, client_info):
             # Test retry logic when both http retry and pot retry are triggered
@@ -1962,6 +1965,7 @@ class TestStream:
                 logger.warning.assert_any_call(f'[sabr] Got error: simulated read error. Retrying ({i}/3)...')
 
     class TestAdWait:
+        @mock_time
         def test_ad_wait(self, logger, client_info):
             # Should send back SabrContextUpdate and wait the specified time in the next request policy
             sabr_stream, rh, selectors = setup_sabr_stream_av(
@@ -2034,6 +2038,7 @@ class TestStream:
 
         LIVE_URL = 'https://example.com/sabr_live?id=123'
 
+        @mock_time
         def test_livestream_basic(self, client_info):
             logger = SabrFDLogger(ydl=YoutubeDL({'verbose': True}), prefix='test_live', log_level=SabrLogger.LogLevel.TRACE)
             sabr_stream, _, selectors = setup_sabr_stream_av(
