@@ -4,7 +4,6 @@ import io
 
 
 class UMPPartId(enum.IntEnum):
-    UNKNOWN = -1
     ONESIE_HEADER = 10
     ONESIE_DATA = 11
     ONESIE_ENCRYPTED_MEDIA = 12
@@ -45,10 +44,20 @@ class UMPPartId(enum.IntEnum):
     PREWARM_CONNECTION = 65
     PLAYBACK_DEBUG_INFO = 66
     SNACKBAR_MESSAGE = 67
+    NETWORK_TIMING = 69
+    CUEPOINT_LIST = 70
+    STITCHED_REGIONS_OF_INTEREST = 71
+    STITCHED_SEGMENTS_METADATA_LIST = 72
 
     @classmethod
     def _missing_(cls, value):
-        return cls.UNKNOWN
+        if not isinstance(value, int):
+            raise ValueError(f'{value!r} is not a valid {cls.__name__}')
+        # Do not error on unknown values; create a fake member
+        new_member = int.__new__(cls, value)
+        new_member._name_ = f'UNKNOWN_{value}'
+        new_member._value_ = value
+        return new_member
 
 
 @dataclasses.dataclass

@@ -55,6 +55,13 @@ def test_writevarint(value, expected_bytes):
     assert fp.getvalue() == expected_bytes
 
 
+def test_ump_part_id_unknown():
+    # Should create an unknown part ID for undefined values
+    unknown_id = UMPPartId(9999)
+    assert unknown_id.value == 9999
+    assert unknown_id.name == 'UNKNOWN_9999'
+
+
 class TestUMPDecoder:
     EXAMPLE_PART_DATA = [
         {
@@ -70,7 +77,7 @@ class TestUMPDecoder:
             'part_type_bytes': b'\xFF\xFF\xFF\xFF\xFF',
             'part_size_bytes': b'\x00',
             'part_data_bytes': b'',
-            'part_id': UMPPartId.UNKNOWN,
+            'part_id': UMPPartId(4294967295),
             'part_size': 0,
         },
         # Part 3: Part type of 21, part size of 1574912

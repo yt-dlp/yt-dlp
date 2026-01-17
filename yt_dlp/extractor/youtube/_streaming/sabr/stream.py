@@ -82,6 +82,7 @@ class SabrStream:
         UMPPartId.REQUEST_PIPELINING,
         UMPPartId.SELECTABLE_FORMATS,
         UMPPartId.PREWARM_CONNECTION,
+        UMPPartId.NETWORK_TIMING,
     )
 
     @dataclasses.dataclass

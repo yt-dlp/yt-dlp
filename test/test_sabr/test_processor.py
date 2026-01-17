@@ -1160,7 +1160,7 @@ class TestSabrContextUpdate:
         assert len(processor.sabr_contexts_to_send) == 1
         assert first_ctx_update.type in processor.sabr_contexts_to_send
         logger.debug.assert_called_with(
-            'Received a SABR Context Update with write_policy=KEEP_EXISTING'
+            'Received a SABR Context Update with write_policy=KEEP_EXISTING '
             'matching an existing SABR Context Update. Ignoring update')
 
     def test_set_sabr_context_update_sending_policy(self, base_args, logger):

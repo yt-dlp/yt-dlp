@@ -600,7 +600,7 @@ class SabrProcessor:
             and sabr_ctx_update.type in self.sabr_context_updates
         ):
             self.logger.debug(
-                'Received a SABR Context Update with write_policy=KEEP_EXISTING'
+                'Received a SABR Context Update with write_policy=KEEP_EXISTING '
                 'matching an existing SABR Context Update. Ignoring update')
             return
 
