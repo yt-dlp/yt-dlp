@@ -10,7 +10,6 @@ import re
 import sys
 import threading
 import time
-import traceback
 import urllib.parse
 
 from ._base import (
@@ -2193,64 +2192,32 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self._code_cache[player_js_key] = code
         return self._code_cache.get(player_js_key)
 
-    def _sig_spec_cache_id(self, player_url, spec_id):
-        return join_nonempty(self._player_js_cache_key(player_url), str(spec_id))
+    def _load_player_data_from_cache(self, name, player_url, *cache_keys, use_disk_cache=False):
+        cache_id = (f'youtube-{name}', self._player_js_cache_key(player_url), *map(str_or_none, cache_keys))
+        if cache_id in self._player_cache:
+            return self._player_cache[cache_id]
 
-    def _load_sig_spec_from_cache(self, spec_cache_id):
-        # This is almost identical to _load_player_data_from_cache
-        # I hate it
-        if spec_cache_id in self._player_cache:
-            return self._player_cache[spec_cache_id]
-        spec = self.cache.load('youtube-sigfuncs', spec_cache_id, min_ver='2025.07.21')
-        if spec:
-            self._player_cache[spec_cache_id] = spec
-        return spec
+        if not use_disk_cache:
+            return None
 
-    def _store_sig_spec_to_cache(self, spec_cache_id, spec):
-        if spec_cache_id not in self._player_cache:
-            self._player_cache[spec_cache_id] = spec
-            self.cache.store('youtube-sigfuncs', spec_cache_id, spec)
-
-    def _load_player_data_from_cache(self, name, player_url):
-        cache_id = (f'youtube-{name}', self._player_js_cache_key(player_url))
-
-        if data := self._player_cache.get(cache_id):
-            return data
-
-        data = self.cache.load(*cache_id, min_ver='2025.07.21')
+        data = self.cache.load(cache_id[0], join_nonempty(*cache_id[1:]), min_ver='2025.07.21')
         if data:
             self._player_cache[cache_id] = data
 
         return data
 
-    def _cached(self, func, *cache_id):
-        def inner(*args, **kwargs):
-            if cache_id not in self._player_cache:
-                try:
-                    self._player_cache[cache_id] = func(*args, **kwargs)
-                except ExtractorError as e:
-                    self._player_cache[cache_id] = e
-                except Exception as e:
-                    self._player_cache[cache_id] = ExtractorError(traceback.format_exc(), cause=e)
-
-            ret = self._player_cache[cache_id]
-            if isinstance(ret, Exception):
-                raise ret
-            return ret
-        return inner
-
-    def _store_player_data_to_cache(self, name, player_url, data):
-        cache_id = (f'youtube-{name}', self._player_js_cache_key(player_url))
+    def _store_player_data_to_cache(self, data, name, player_url, *cache_keys, use_disk_cache=False):
+        cache_id = (f'youtube-{name}', self._player_js_cache_key(player_url), *map(str_or_none, cache_keys))
         if cache_id not in self._player_cache:
-            self.cache.store(*cache_id, data)
             self._player_cache[cache_id] = data
+            if use_disk_cache:
+                self.cache.store(cache_id[0], join_nonempty(*cache_id[1:]), data)
 
     def _extract_signature_timestamp(self, video_id, player_url, ytcfg=None, fatal=False):
         """
         Extract signatureTimestamp (sts)
         Required to tell API what sig/player version is in use.
         """
-        CACHE_ENABLED = False  # TODO: enable when preprocessed player JS cache is solved/enabled
 
         player_sts_override = self._get_player_js_version()[0]
         if player_sts_override:
@@ -2267,15 +2234,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.report_warning(error_msg)
             return None
 
-        if CACHE_ENABLED and (sts := self._load_player_data_from_cache('sts', player_url)):
+        # TODO: Pass `use_disk_cache=True` when preprocessed player JS cache is solved
+        if sts := self._load_player_data_from_cache('sts', player_url):
             return sts
 
         if code := self._load_player(video_id, player_url, fatal=fatal):
             sts = int_or_none(self._search_regex(
                 r'(?:signatureTimestamp|sts)\s*:\s*(?P<sts>[0-9]{5})', code,
                 'JS player signature timestamp', group='sts', fatal=fatal))
-            if CACHE_ENABLED and sts:
-                self._store_player_data_to_cache('sts', player_url, sts)
+            if sts:
+                # TODO: Pass `use_disk_cache=True` when preprocessed player JS cache is solved
+                self._store_player_data_to_cache(sts, 'sts', player_url)
 
         return sts
 
@@ -3448,10 +3417,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if encrypted_sig:
                         if skip_player_js:
                             continue
-                        spec_cache_id = self._sig_spec_cache_id(player_url, len(encrypted_sig))
-                        spec = self._load_sig_spec_from_cache(spec_cache_id)
+                        spec_id = len(encrypted_sig)
+                        spec = self._load_player_data_from_cache('sigfuncs', player_url, spec_id, use_disk_cache=True)
                         if spec:
-                            self.write_debug(f'Using cached signature function {spec_cache_id}', only_once=True)
+                            self.write_debug(
+                                f'Using cached signature function '
+                                f'{self._player_js_cache_key(player_url)}-{spec_id}',
+                                only_once=True)
                             fmt_url += '&{}={}'.format(traverse_obj(sc, ('sp', -1)) or 'signature',
                                                        solve_sig(encrypted_sig, spec))
                         else:
@@ -3464,8 +3436,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         if skip_player_js:
                             continue
                         n_challenge = query['n'][0]
-                        if n_challenge in self._player_cache:
-                            fmt_url = update_url_query(fmt_url, {'n': self._player_cache[n_challenge]})
+                        if n_result := self._load_player_data_from_cache('n', player_url, n_challenge):
+                            fmt_url = update_url_query(fmt_url, {'n': n_result})
                         else:
                             fmt['_jsc_n_challenge'] = n_challenge
 
@@ -3516,7 +3488,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             for challenge, result in challenge_response.output.results.items():
                                 spec_id = len(challenge)
                                 spec = [ord(c) for c in result]
-                                self._store_sig_spec_to_cache(self._sig_spec_cache_id(player_url, spec_id), spec)
+                                self._store_player_data_to_cache(spec, 'sigfuncs', player_url, spec_id, use_disk_cache=True)
                                 s_challenge_data = s_challenges.pop(spec_id, {})
                                 if not s_challenge_data:
                                     continue
@@ -3532,7 +3504,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             for challenge, result in challenge_response.output.results.items():
                                 fmts = n_challenges.pop(challenge, [])
                                 for fmt in fmts:
-                                    self._player_cache[challenge] = result
+                                    self._store_player_data_to_cache(result, 'n', player_url, challenge)
                                     fmt['url'] = update_url_query(fmt['url'], {'n': result})
 
                     # Raise warning if any challenge requests remain
