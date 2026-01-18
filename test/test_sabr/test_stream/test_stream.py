@@ -2037,18 +2037,151 @@ class TestStream:
         LIVE_URL = 'https://example.com/sabr_live?id=123'
 
         @mock_time
-        def test_livestream_basic(self, client_info):
+        def test_livestream_no_dvr(self, client_info):
+            total_segments = 3
+            segment_target_duration_ms = 3000
+            dvr_segments = 0
             logger = SabrFDLogger(ydl=YoutubeDL({'verbose': True}), prefix='test_live', log_level=SabrLogger.LogLevel.TRACE)
+            profile = LiveAVProfile({
+                'total_segments': total_segments,
+                'segment_target_duration_ms': segment_target_duration_ms,
+                'dvr_segments': dvr_segments,
+            })
             sabr_stream, _, selectors = setup_sabr_stream_av(
-                sabr_response_processor=LiveAVProfile(),
+                sabr_response_processor=profile,
                 client_info=client_info,
                 logger=logger,
                 url=self.LIVE_URL,
-                live_segment_target_duration_sec=2,
+                live_segment_target_duration_sec=segment_target_duration_ms // 1000,
             )
             audio_selector, video_selector = selectors
 
             parts = list(sabr_stream.iter_parts())
 
-            assert_media_sequence_in_order(parts, audio_selector, 20, start_sequence_number=1)
-            assert_media_sequence_in_order(parts, video_selector, 20, start_sequence_number=1)
+            assert_media_sequence_in_order(parts, audio_selector, total_segments)
+            assert_media_sequence_in_order(parts, video_selector, total_segments)
+
+            # TODO: test that we wait between segments
+            # TODO: currently logic may not be correct, needs review
+
+        @mock_time
+        def test_livestream_dvr(self, client_info):
+            total_segments = 6
+            segment_target_duration_ms = 2000
+            dvr_segments = 3
+            logger = SabrFDLogger(ydl=YoutubeDL({'verbose': True}), prefix='test_live', log_level=SabrLogger.LogLevel.TRACE)
+            profile = LiveAVProfile({
+                'total_segments': total_segments,
+                'segment_target_duration_ms': segment_target_duration_ms,
+                'dvr_segments': dvr_segments,
+            })
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                sabr_response_processor=profile,
+                client_info=client_info,
+                logger=logger,
+                url=self.LIVE_URL,
+                live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            )
+            audio_selector, video_selector = selectors
+
+            parts = list(sabr_stream.iter_parts())
+
+            assert_media_sequence_in_order(parts, audio_selector, total_segments)
+            assert_media_sequence_in_order(parts, video_selector, total_segments)
+
+            # Should get the first 4 segments without waiting (first live segment is immediately available)
+            # Compare the time between the first 4 requests - should be no wait
+            # TODO: currently fails head segment logic needs review. (if you set total duration to head ms + head duration this works)
+            dvr_requests = rh.request_history[:5]
+            for i in range(1, len(dvr_requests)):
+                prev_request = dvr_requests[i - 1]
+                curr_request = dvr_requests[i]
+                time_diff = int(curr_request.time - prev_request.time)
+                assert time_diff == 0, f'Expected no wait between DVR segment requests, got {time_diff} seconds'
+
+                # Check buffered ranges to ensure ends on the expected segment
+                vpabr = curr_request.vpabr
+                for br in vpabr.buffered_ranges:
+                    assert br.end_segment_index == i, f'Expected buffered range to end on segment {i}, got {br.end_segment_index}'
+
+            # Should wait between subsequent segments (or receive no segments)
+            # TODO: see test_livestream_no_dvr comments
+            pass
+
+        @mock_time
+        def test_livestream_no_dvr_manual_seek_min(self, client_info):
+            # If a livestream min seekable offset is > 0, should seek to that offset on start
+            # NOTE: no SABR_SEEK is used in this test
+            total_segments = 3
+            segment_target_duration_ms = 3000
+            dvr_segments = 0
+            segment_start_number = 5  # segment counting starts from 5
+            logger = SabrFDLogger(ydl=YoutubeDL({'verbose': True}), prefix='test_live', log_level=SabrLogger.LogLevel.TRACE)
+            profile = LiveAVProfile({
+                'total_segments': total_segments,
+                'segment_target_duration_ms': segment_target_duration_ms,
+                'dvr_segments': dvr_segments,
+                'start_segment_number': segment_start_number,
+            })
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                sabr_response_processor=profile,
+                client_info=client_info,
+                logger=logger,
+                url=self.LIVE_URL,
+                live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            )
+            audio_selector, video_selector = selectors
+
+            parts = list(sabr_stream.iter_parts())
+
+            assert_media_sequence_in_order(parts, audio_selector, total_segments, start_sequence_number=segment_start_number)
+            assert_media_sequence_in_order(parts, video_selector, total_segments, start_sequence_number=segment_start_number)
+
+            # First request: should start from 0
+            first_request_vpabr = rh.request_history[0].vpabr
+            assert first_request_vpabr.client_abr_state.player_time_ms == 0
+            # Second request: should seek to min seekable offset specified in live_metadata
+            second_request_vpabr = rh.request_history[1].vpabr
+            expected_seek_time_ms = segment_target_duration_ms * (segment_start_number - 1)
+            assert second_request_vpabr.client_abr_state.player_time_ms == expected_seek_time_ms
+
+        @mock_time
+        def test_livestream_dvr_manual_seek_max(self, client_info):
+            # TODO: currently fails head segment logic needs review. (if you set total duration to head ms + head duration this works)
+            # If a livestream max seekable offset is less than initial player time ms, should seek back to that
+            # NOTE: no SABR_SEEK is used in this test
+            total_segments = 3
+            segment_target_duration_ms = 3000
+            dvr_segments = 2
+            start_sequence_number = 1
+            logger = SabrFDLogger(ydl=YoutubeDL({'verbose': True}), prefix='test_live', log_level=SabrLogger.LogLevel.TRACE)
+            profile = LiveAVProfile({
+                'total_segments': total_segments,
+                'segment_target_duration_ms': segment_target_duration_ms,
+                'dvr_segments': dvr_segments,
+                'start_segment_number': start_sequence_number,
+            })
+            initial_live_head_segment_start_ms = profile.live_head_segment_start_ms()
+            start_time_ms = initial_live_head_segment_start_ms + 10000
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                sabr_response_processor=profile,
+                client_info=client_info,
+                logger=logger,
+                url=self.LIVE_URL,
+                live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                start_time_ms=start_time_ms,  # start 10s past live head
+            )
+            audio_selector, video_selector = selectors
+
+            parts = list(sabr_stream.iter_parts())
+
+            assert_media_sequence_in_order(parts, audio_selector, total_segments - dvr_segments, start_sequence_number=start_sequence_number + dvr_segments)
+            assert_media_sequence_in_order(parts, video_selector, total_segments - dvr_segments, start_sequence_number=start_sequence_number + dvr_segments)
+
+            # First request: should start from 0
+            first_request_vpabr = rh.request_history[0].vpabr
+            assert first_request_vpabr.client_abr_state.player_time_ms == start_time_ms
+            # Second request: Should seek back to end of the live head segment.
+            # This will be initial_live_head_segment_start_ms + segment_target_duration_ms
+            second_request_vpabr = rh.request_history[1].vpabr
+            assert second_request_vpabr.client_abr_state.player_time_ms == initial_live_head_segment_start_ms + segment_target_duration_ms
