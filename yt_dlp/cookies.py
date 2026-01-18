@@ -215,6 +215,11 @@ def _firefox_browser_dirs():
             # New installations of FF147+ respect the XDG base directory specification
             # Ref: https://bugzilla.mozilla.org/show_bug.cgi?id=259356
             os.path.join(_config_home(), 'mozilla/firefox'),
+            # _config_home() on yt-dlp running within Flatpak returns the Flatpak app's config directory
+            # This allows for detecting installations of FF147+'s config from within a Flatpak app
+            # Of course, if XDG_CONFIG_HOME is different than ~/.config on the host machine, this path would
+            # be incorrect. However, more time than not this will be correct
+            '~/.config/mozilla/firefox',
             # Existing FF version<=146 installations
             '~/.mozilla/firefox',
             # Flatpak XDG: https://docs.flatpak.org/en/latest/conventions.html#xdg-base-directories
