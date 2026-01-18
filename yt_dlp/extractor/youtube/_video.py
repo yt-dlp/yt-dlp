@@ -2962,11 +2962,26 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 requested_clients.append(client)
 
         if not (requested_clients or excluded_clients) and default_clients == self._DEFAULT_JSLESS_CLIENTS:
-            self.report_warning(
-                f'No supported JavaScript runtime could be found. Only deno is enabled by default; '
-                f'to use another runtime add  --js-runtimes RUNTIME[:PATH]  to your command/config. '
-                f'YouTube extraction without a JS runtime has been deprecated, and some formats may be missing. '
-                f'See  {_EJS_WIKI_URL}  for details on installing one', only_once=True)
+            # Check if any JS runtime is installed but outdated
+            outdated_runtimes = []
+            for name, runtime in self._downloader._js_runtimes.items():
+                if runtime and runtime.info and not runtime.info.supported:
+                    min_version = '.'.join(map(str, runtime.__class__.MIN_SUPPORTED_VERSION))
+                    outdated_runtimes.append(f'{runtime.info.name} {runtime.info.version} (minimum required: {min_version})')
+            
+            if outdated_runtimes:
+                self.report_warning(
+                    f'JavaScript runtime(s) found but outdated: {", ".join(outdated_runtimes)}. '
+                    f'Please update to a supported version. Only deno is enabled by default; '
+                    f'to use another runtime add  --js-runtimes RUNTIME[:PATH]  to your command/config. '
+                    f'YouTube extraction without a supported JS runtime has been deprecated, and some formats may be missing. '
+                    f'See  {_EJS_WIKI_URL}  for details on installing/updating one', only_once=True)
+            else:
+                self.report_warning(
+                    f'No supported JavaScript runtime could be found. Only deno is enabled by default; '
+                    f'to use another runtime add  --js-runtimes RUNTIME[:PATH]  to your command/config. '
+                    f'YouTube extraction without a JS runtime has been deprecated, and some formats may be missing. '
+                    f'See  {_EJS_WIKI_URL}  for details on installing one', only_once=True)
 
         if not requested_clients:
             requested_clients.extend(default_clients)
@@ -3420,7 +3435,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         (self.get_param('verbose') or all_formats) and short_client_name(client_name),
                         delim=', '),
                     # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
-                    'source_preference': (-5 if itag == '22' else -1) + (100 if 'Premium' in name else 0),
+                    # Deprioritize Super Resolution (AI-upscaled) formats
+                    'source_preference': (-5 if itag == '22' else -1) + (100 if 'Premium' in name else 0) - (10 if super_resolution else 0),
                     'fps': fps if fps > 1 else None,  # For some formats, fps is wrongly returned as 1
                     'audio_channels': fmt_stream.get('audioChannels'),
                     'height': height,
