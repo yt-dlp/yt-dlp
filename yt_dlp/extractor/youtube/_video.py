@@ -3252,23 +3252,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         def get_manifest_n_challenge(manifest_url):
             if not url_or_none(manifest_url):
                 return None
+            # Same pattern that the player JS uses to read/replace the n challenge value
             return self._search_regex(
                 r'/n/([^/]+)/', urllib.parse.urlparse(manifest_url).path,
                 'n challenge', default=None)
 
         n_challenges = set()
         s_challenges = set()
-        already_solved_challenges = False
 
         def solve_js_challenges():
-            # Bulk process sig/n handling
-            # Retrieve all JSC Sig and n requests for this video in one go
-            nonlocal already_solved_challenges
-            if already_solved_challenges:
-                return
-
-            already_solved_challenges = True
-
+            # Solve all n/sig challenges in bulk and store the results in self._player_cache
             challenge_requests = []
             if n_challenges:
                 challenge_requests.append(JsChallengeRequest(
@@ -3322,6 +3315,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         f'n challenge solving failed: Some formats may be missing. {help_message}',
                         video_id=video_id, only_once=True)
 
+                # Clear challenge sets so that any subsequent call of this function is a no-op
+                s_challenges.clear()
+                n_challenges.clear()
+
         # 1st pass to collect all n/sig challenges so they can later be solved at once in bulk
         for streaming_data in traverse_obj(player_responses, (..., 'streamingData', {dict})):
             # HTTPS formats
@@ -3340,12 +3337,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     n_challenges.add(n_challenge)
 
             # Manifest formats
-            for n_challenge in traverse_obj(streaming_data, (
-                ('hlsManifestUrl', 'dashManifestUrl'), {get_manifest_n_challenge},
-            )):
-                n_challenges.add(n_challenge)
+            n_challenges.update(traverse_obj(
+                streaming_data, (('hlsManifestUrl', 'dashManifestUrl'), {get_manifest_n_challenge})))
 
-        # final pass to extract formats and solve n/sig challenges as needed
+        # Final pass to extract formats and solve n/sig challenges as needed
         for pr in player_responses:
             streaming_data = traverse_obj(pr, 'streamingData')
             if not streaming_data:
@@ -3659,7 +3654,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if require_po_token and not po_token and 'missing_pot' not in self._configuration_arg('formats'):
                     self._report_pot_format_skipped(video_id, client_name, 'hls')
                 elif solved_n or not n_challenge:
-                    hls_manifest_url = update_url(hls_manifest_url, path=''.join((manifest_path, manifest_suffix)))
+                    hls_manifest_url = update_url(hls_manifest_url, path=f'{manifest_path}{manifest_suffix}')
                     fmts, subs = self._extract_m3u8_formats_and_subtitles(
                         hls_manifest_url, video_id, 'mp4', fatal=False, live=live_status == 'is_live')
                     for sub in traverse_obj(subs, (..., ..., {dict})):
