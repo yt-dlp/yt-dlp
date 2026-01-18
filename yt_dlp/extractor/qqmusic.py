@@ -65,7 +65,7 @@ class QQMusicBaseIE(InfoExtractor):
 class QQMusicIE(QQMusicBaseIE):
     IE_NAME = 'qqmusic'
     IE_DESC = 'QQ音乐'
-    _VALID_URL = r'https?://y\.qq\.com/n/ryqq/songDetail/(?P<id>[0-9A-Za-z]+)'
+    _VALID_URL = r'https?://y\.qq\.com/n/ryqq(?:_v2)?/songDetail/(?P<id>[0-9A-Za-z]+)'
     _TESTS = [{
         'url': 'https://y.qq.com/n/ryqq/songDetail/004Ti8rT003TaZ',
         'md5': 'd7adc5c438d12e2cb648cca81593fd47',
@@ -231,7 +231,7 @@ class QQMusicIE(QQMusicBaseIE):
 class QQMusicSingerIE(QQMusicBaseIE):
     IE_NAME = 'qqmusic:singer'
     IE_DESC = 'QQ音乐 - 歌手'
-    _VALID_URL = r'https?://y\.qq\.com/n/ryqq/singer/(?P<id>[0-9A-Za-z]+)'
+    _VALID_URL = r'https?://y\.qq\.com/n/ryqq(?:_v2)?/singer/(?P<id>[0-9A-Za-z]+)'
     _TESTS = [{
         'url': 'https://y.qq.com/n/ryqq/singer/001BLpXF2DyJe2',
         'info_dict': {
@@ -309,7 +309,7 @@ class QQPlaylistBaseIE(InfoExtractor):
 class QQMusicAlbumIE(QQPlaylistBaseIE):
     IE_NAME = 'qqmusic:album'
     IE_DESC = 'QQ音乐 - 专辑'
-    _VALID_URL = r'https?://y\.qq\.com/n/ryqq/albumDetail/(?P<id>[0-9A-Za-z]+)'
+    _VALID_URL = r'https?://y\.qq\.com/n/ryqq(?:_v2)?/albumDetail/(?P<id>[0-9A-Za-z]+)'
 
     _TESTS = [{
         'url': 'https://y.qq.com/n/ryqq/albumDetail/000gXCTb2AhRR1',
@@ -348,7 +348,7 @@ class QQMusicAlbumIE(QQPlaylistBaseIE):
 class QQMusicToplistIE(QQPlaylistBaseIE):
     IE_NAME = 'qqmusic:toplist'
     IE_DESC = 'QQ音乐 - 排行榜'
-    _VALID_URL = r'https?://y\.qq\.com/n/ryqq/toplist/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://y\.qq\.com/n/ryqq(?:_v2)?/toplist/(?P<id>[0-9]+)'
 
     _TESTS = [{
         'url': 'https://y.qq.com/n/ryqq/toplist/123',
@@ -394,7 +394,7 @@ class QQMusicToplistIE(QQPlaylistBaseIE):
 class QQMusicPlaylistIE(QQPlaylistBaseIE):
     IE_NAME = 'qqmusic:playlist'
     IE_DESC = 'QQ音乐 - 歌单'
-    _VALID_URL = r'https?://y\.qq\.com/n/ryqq/playlist/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://y\.qq\.com/n/ryqq(?:_v2)?/playlist/(?P<id>[0-9]+)'
 
     _TESTS = [{
         'url': 'https://y.qq.com/n/ryqq/playlist/1374105607',
@@ -431,7 +431,7 @@ class QQMusicPlaylistIE(QQPlaylistBaseIE):
 class QQMusicVideoIE(QQMusicBaseIE):
     IE_NAME = 'qqmusic:mv'
     IE_DESC = 'QQ音乐 - MV'
-    _VALID_URL = r'https?://y\.qq\.com/n/ryqq/mv/(?P<id>[0-9A-Za-z]+)'
+    _VALID_URL = r'https?://y\.qq\.com/n/ryqq(?:_v2)?/mv/(?P<id>[0-9A-Za-z]+)'
 
     _TESTS = [{
         'url': 'https://y.qq.com/n/ryqq/mv/002Vsarh3SVU8K',
