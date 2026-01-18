@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, urlencode_postdata
+from ..utils import ExtractorError, UserNotLive, urlencode_postdata
 
 
 class BigoIE(InfoExtractor):
@@ -40,7 +40,7 @@ class BigoIE(InfoExtractor):
         info = info_raw.get('data') or {}
 
         if not info.get('alive'):
-            raise ExtractorError('This user is offline.', expected=True)
+            raise UserNotLive(video_id=user_id)
 
         formats, subs = self._extract_m3u8_formats_and_subtitles(
             info.get('hls_src'), user_id, 'mp4', 'm3u8')
