@@ -52,7 +52,7 @@ class CCCIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        event_id = self._search_regex(r"data-id=(?P<q>['\"])(?P<event_id>\d+)(?P=q)", webpage, 'event id', group='event_id')
+        event_id = self._search_regex(r"data-id=(['\"])(?P<event_id>\d+)\1", webpage, 'event id', group='event_id')
         event_data = self._download_json(f'https://media.ccc.de/public/events/{event_id}', event_id)
 
         formats = []
