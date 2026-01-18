@@ -66,7 +66,7 @@ secretstorage = [
     "secretstorage",
 ]
 deno = [
-    "deno>=2.6.4",
+    "deno>=2.6.5",  # v2.6.5 fixes installation of incompatible binaries
 ]
 build = [
     "build",
