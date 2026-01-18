@@ -348,6 +348,7 @@ class InfoExtractor:
     duration:       Length of the video in seconds, as an integer or float.
     view_count:     How many users have watched the video on the platform.
     concurrent_view_count: How many users are currently watching the video on the platform.
+    save_count:     Number of times the video has been saved or bookmarked
     like_count:     Number of positive ratings of the video
     dislike_count:  Number of negative ratings of the video
     repost_count:   Number of reposts of the video
