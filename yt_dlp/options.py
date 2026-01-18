@@ -883,6 +883,10 @@ def create_parser():
         callback=_list_from_options_callback, callback_kwargs={'append': -1},
         help='Sort the formats by the fields given, see "Sorting Formats" for more details')
     video_format.add_option(
+        '--format-sort-reset',
+        dest='format_sort', action='store_const', const=[],
+        help='Disregard previous user specified sort order and reset to the default')
+    video_format.add_option(
         '--format-sort-force', '--S-force',
         action='store_true', dest='format_sort_force', metavar='FORMAT', default=False,
         help=(

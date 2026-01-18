@@ -1645,6 +1645,8 @@ Note that the default for hdr is `hdr:12`; i.e. Dolby Vision is not preferred. T
 
 If your format selector is `worst`, the last item is selected after sorting. This means it will select the format that is worst in all respects. Most of the time, what you actually want is the video with the smallest filesize instead. So it is generally better to use `-f best -S +size,+br,+res,+fps`.
 
+If you use the `-S`/`--format-sort` option multiple times, each subsequent sorting argument will be prepended to the previous one, and only the highest priority entry of any duplicated field will be preserved. E.g. `-S proto -S res` is equivalent to `-S res,proto`, and `-S res:720,fps -S vcodec,res:1080` is equivalent to `-S vcodec,res:1080,fps`. You can use `--format-sort-reset` to disregard any previously passed `-S`/`--format-sort` arguments and reset to the default order.
+
 **Tip**: You can use the `-v -F` to see how the formats have been sorted (worst to best).
 
 ## Format Selection examples
