@@ -3276,6 +3276,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     video_id=video_id,
                     input=NChallengeInput(challenges=list(n_challenges), player_url=player_url)))
             if s_challenges:
+                cached_sigfuncs = set()
+                for spec_id in s_challenges:
+                    if self._load_player_data_from_cache('sigfuncs', player_url, spec_id, use_disk_cache=True):
+                        cached_sigfuncs.add(spec_id)
+                s_challenges.difference_update(cached_sigfuncs)
+
                 challenge_requests.append(JsChallengeRequest(
                     type=JsChallengeType.SIG,
                     video_id=video_id,
