@@ -76,7 +76,7 @@ STREAMING_DATA_FETCH_GVS_PO_TOKEN = '__yt_dlp_fetch_gvs_po_token'
 STREAMING_DATA_PLAYER_TOKEN_PROVIDED = '__yt_dlp_player_token_provided'
 STREAMING_DATA_INNERTUBE_CONTEXT = '__yt_dlp_innertube_context'
 STREAMING_DATA_IS_PREMIUM_SUBSCRIBER = '__yt_dlp_is_premium_subscriber'
-STREAMING_DATA_FETCHED_TIMESTAMP = '__yt_dlp_fetched_timestamp'
+STREAMING_DATA_AVAILABLE_AT_TIMESTAMP = '__yt_dlp_available_at_timestamp'
 
 PO_TOKEN_GUIDE_URL = 'https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide'
 
@@ -147,9 +147,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
     _DEFAULT_CLIENTS = ('tv', 'android_sdkless', 'web')
     _DEFAULT_JSLESS_CLIENTS = ('android_sdkless', 'web_safari', 'web')
-    _DEFAULT_AUTHED_CLIENTS = ('tv', 'web_safari', 'web')
+    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web_safari', 'web')
     # Premium does not require POT (except for subtitles)
-    _DEFAULT_PREMIUM_CLIENTS = ('tv', 'web_creator', 'web')
+    _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator', 'web')
 
     _GEO_BYPASS = False
 
@@ -1556,6 +1556,175 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'view_count': int,
         },
         'params': {'skip_download': True},
+    }, {
+        # Youtube Music Auto-generated description with dot in artist name
+        'url': 'https://music.youtube.com/watch?v=DbCvuSGfR3Y',
+        'info_dict': {
+            'id': 'DbCvuSGfR3Y',
+            'ext': 'mp4',
+            'title': 'Back Around',
+            'artists': ['half·alive'],
+            'track': 'Back Around',
+            'album': 'Conditions Of A Punk',
+            'release_date': '20221202',
+            'release_year': 2021,
+            'alt_title': 'Back Around',
+            'description': 'md5:bfc0e2b3cc903a608d8a85a13cb50f95',
+            'media_type': 'video',
+            'uploader': 'half•alive',
+            'channel': 'half•alive',
+            'channel_id': 'UCYQrYophdVI3nVDPOnXyIng',
+            'channel_url': 'https://www.youtube.com/channel/UCYQrYophdVI3nVDPOnXyIng',
+            'channel_is_verified': True,
+            'channel_follower_count': int,
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 223,
+            'thumbnail': 'https://i.ytimg.com/vi_webp/DbCvuSGfR3Y/maxresdefault.webp',
+            'heatmap': 'count:100',
+            'categories': ['Music'],
+            'tags': ['half·alive', 'Conditions Of A Punk', 'Back Around'],
+            'creators': ['half·alive'],
+            'timestamp': 1669889281,
+            'upload_date': '20221201',
+            'playable_in_embed': True,
+            'availability': 'public',
+            'live_status': 'not_live',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # Video with two collaborators
+        'url': 'https://www.youtube.com/watch?v=brhfDfLdDZ8',
+        'info_dict': {
+            'id': 'brhfDfLdDZ8',
+            'ext': 'mp4',
+            'title': 'This is the WORST Movie Science We\'ve Ever Seen',
+            'description': 'md5:8afd0a3cd69ec63438fc573580436f92',
+            'media_type': 'video',
+            'uploader': 'Open Sauce',
+            'uploader_id': '@opensaucelive',
+            'uploader_url': 'https://www.youtube.com/@opensaucelive',
+            'channel': 'Open Sauce',
+            'channel_id': 'UC2EiGVmCeD79l_vZ204DUSw',
+            'channel_url': 'https://www.youtube.com/channel/UC2EiGVmCeD79l_vZ204DUSw',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 1664,
+            'thumbnail': 'https://i.ytimg.com/vi/brhfDfLdDZ8/hqdefault.jpg',
+            'categories': ['Entertainment'],
+            'tags': ['Moonfall', 'Bad Science', 'Open Sauce', 'Sauce+', 'The Backyard Scientist', 'William Osman', 'Allen Pan'],
+            'creators': ['Open Sauce', 'William Osman 2'],
+            'timestamp': 1759452918,
+            'upload_date': '20251003',
+            'playable_in_embed': True,
+            'availability': 'public',
+            'live_status': 'not_live',
+        },
+        'params': {'skip_download': True},
+    }, {
+        # Video with five collaborators
+        'url': 'https://www.youtube.com/watch?v=_A9KsMbWh4E',
+        'info_dict': {
+            'id': '_A9KsMbWh4E',
+            'ext': 'mp4',
+            'title': '【MV】薫習 - LIVE UNION【RK Music】',
+            'description': 'md5:9b3dc2b91103f303fcc0dac8617e7938',
+            'media_type': 'video',
+            'uploader': 'RK Music',
+            'uploader_id': '@RKMusic_inc',
+            'uploader_url': 'https://www.youtube.com/@RKMusic_inc',
+            'channel': 'RK Music',
+            'channel_id': 'UCiLhMk-gmE2zgF7KGVyqvFw',
+            'channel_url': 'https://www.youtube.com/channel/UCiLhMk-gmE2zgF7KGVyqvFw',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 193,
+            'thumbnail': 'https://i.ytimg.com/vi_webp/_A9KsMbWh4E/maxresdefault.webp',
+            'categories': ['Music'],
+            'tags': [],
+            'creators': ['RK Music', 'HACHI', '焔魔るり CH. / Ruri Enma', '瀬戸乃とと', '水瀬 凪/MINASE Nagi'],
+            'timestamp': 1761908406,
+            'upload_date': '20251031',
+            'release_timestamp': 1761908406,
+            'release_date': '20251031',
+            'playable_in_embed': True,
+            'availability': 'public',
+            'live_status': 'not_live',
+        },
+        'params': {'skip_download': True},
+    }, {
+        # Comment subthreads with 4 levels of depth
+        'url': 'https://www.youtube.com/watch?v=f6HNySwZV4c',
+        'info_dict': {
+            'id': 'f6HNySwZV4c',
+            'ext': 'mp4',
+            'title': 'dlptestvideo2',
+            'description': '',
+            'media_type': 'video',
+            'uploader': 'cole-dlp-test-acc',
+            'uploader_id': '@coletdjnz',
+            'uploader_url': 'https://www.youtube.com/@coletdjnz',
+            'channel': 'cole-dlp-test-acc',
+            'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'channel_follower_count': int,
+            'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 5,
+            'thumbnail': 'https://i.ytimg.com/vi/f6HNySwZV4c/maxresdefault.jpg',
+            'categories': ['People & Blogs'],
+            'tags': [],
+            'timestamp': 1709856007,
+            'upload_date': '20240308',
+            'release_timestamp': 1709856007,
+            'release_date': '20240308',
+            'playable_in_embed': True,
+            'availability': 'public',
+            'live_status': 'not_live',
+            'comment_count': 15,  # XXX: minimum
+        },
+        'params': {
+            'skip_download': True,
+            'getcomments': True,
+        },
+    }, {
+        # Comments: `subThreads` containing `commentThreadRenderer`s AND `continuationItemRenderer`
+        'url': 'https://www.youtube.com/watch?v=3dHQb2Nhma0',
+        'info_dict': {
+            'id': '3dHQb2Nhma0',
+            'ext': 'mp4',
+            'title': 'Tɪtle',
+            'description': '',
+            'media_type': 'video',
+            'uploader': 'abcdefg',
+            'uploader_id': '@abcdefg-d5t2c',
+            'uploader_url': 'https://www.youtube.com/@abcdefg-d5t2c',
+            'channel': 'abcdefg',
+            'channel_id': 'UCayEJzV8XSSJkPdA7OAsbew',
+            'channel_url': 'https://www.youtube.com/channel/UCayEJzV8XSSJkPdA7OAsbew',
+            'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 12,
+            'thumbnail': 'https://i.ytimg.com/vi/3dHQb2Nhma0/maxresdefault.jpg',
+            'categories': ['People & Blogs'],
+            'tags': [],
+            'timestamp': 1767158812,
+            'upload_date': '20251231',
+            'playable_in_embed': True,
+            'availability': 'unlisted',
+            'live_status': 'not_live',
+            'comment_count': 9,  # XXX: minimum
+        },
     }]
     _WEBPAGE_TESTS = [{
         # <object>
@@ -2298,7 +2467,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return info
 
-    def _comment_entries(self, root_continuation_data, ytcfg, video_id, parent=None, tracker=None):
+    def _comment_entries(self, root_continuation_data, ytcfg, video_id, parent=None, tracker=None, depth=1):
 
         get_single_config_arg = lambda c: self._configuration_arg(c, [''])[0]
 
@@ -2330,11 +2499,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 break
             return _continuation
 
-        def extract_thread(contents, entity_payloads):
-            if not parent:
+        def extract_thread(contents, entity_payloads, thread_parent, thread_depth):
+            if not thread_parent:
                 tracker['current_page_thread'] = 0
+
+            if max_depth < thread_depth:
+                return
+
             for content in contents:
-                if not parent and tracker['total_parent_comments'] >= max_parents:
+                if not thread_parent and tracker['total_parent_comments'] >= max_parents:
                     yield
                 comment_thread_renderer = try_get(content, lambda x: x['commentThreadRenderer'])
 
@@ -2344,7 +2517,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         (comment_thread_renderer, content), [['commentRenderer', ('comment', 'commentRenderer')]],
                         expected_type=dict, default={})
 
-                    comment = self._extract_comment_old(comment_renderer, parent)
+                    comment = self._extract_comment_old(comment_renderer, thread_parent)
 
                 # new comment format
                 else:
@@ -2355,7 +2528,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not comment_keys:
                         continue
                     entities = traverse_obj(entity_payloads, lambda _, v: v['entityKey'] in comment_keys)
-                    comment = self._extract_comment(entities, parent)
+                    comment = self._extract_comment(entities, thread_parent)
                     if comment:
                         comment['is_pinned'] = traverse_obj(view_model, ('pinnedText', {str})) is not None
 
@@ -2374,13 +2547,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
                     self.report_warning(
                         'Detected YouTube comments looping. Stopping comment extraction '
-                        f'{"for this thread" if parent else ""} as we probably cannot get any more.')
+                        f'{"for this thread" if thread_parent else ""} as we probably cannot get any more.')
                     yield
+                    break  # Safeguard for recursive call in subthreads code path below
                 else:
-                    tracker['seen_comment_ids'].add(comment['id'])
+                    tracker['seen_comment_ids'].add(comment_id)
 
                 tracker['running_total'] += 1
-                tracker['total_reply_comments' if parent else 'total_parent_comments'] += 1
+                tracker['total_reply_comments' if thread_parent else 'total_parent_comments'] += 1
                 yield comment
 
                 # Attempt to get the replies
@@ -2388,10 +2562,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     comment_thread_renderer, lambda x: x['replies']['commentRepliesRenderer'], dict)
 
                 if comment_replies_renderer:
+                    subthreads = traverse_obj(comment_replies_renderer, ('subThreads', ..., {dict}))
+                    # Recursively extract from `commentThreadRenderer`s in `subThreads`
+                    if threads := traverse_obj(subthreads, lambda _, v: v['commentThreadRenderer']):
+                        for entry in extract_thread(threads, entity_payloads, comment_id, thread_depth + 1):
+                            if entry:
+                                yield entry
+                        if not traverse_obj(subthreads, lambda _, v: v['continuationItemRenderer']):
+                            # All of the subThreads' `continuationItemRenderer`s were within the nested
+                            # `commentThreadRenderer`s and are now exhausted, so avoid unnecessary recursion below
+                            continue
+
                     tracker['current_page_thread'] += 1
+                    # Recursively extract from `continuationItemRenderer` in `subThreads`
                     comment_entries_iter = self._comment_entries(
                         comment_replies_renderer, ytcfg, video_id,
-                        parent=comment.get('id'), tracker=tracker)
+                        parent=comment_id, tracker=tracker, depth=thread_depth + 1)
                     yield from itertools.islice(comment_entries_iter, min(
                         max_replies_per_thread, max(0, max_replies - tracker['total_reply_comments'])))
 
@@ -2407,17 +2593,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'pinned_comment_ids': set(),
             }
 
-        # TODO: Deprecated
-        # YouTube comments have a max depth of 2
-        max_depth = int_or_none(get_single_config_arg('max_comment_depth'))
-        if max_depth:
-            self._downloader.deprecated_feature('[youtube] max_comment_depth extractor argument is deprecated. '
-                                                'Set max replies in the max-comments extractor argument instead')
-        if max_depth == 1 and parent:
-            return
+        _max_comments, max_parents, max_replies, max_replies_per_thread, max_depth, *_ = (
+            int_or_none(p, default=sys.maxsize) for p in self._configuration_arg('max_comments') + [''] * 5)
 
-        _max_comments, max_parents, max_replies, max_replies_per_thread, *_ = (
-            int_or_none(p, default=sys.maxsize) for p in self._configuration_arg('max_comments') + [''] * 4)
+        if max_depth < depth:
+            return
 
         continuation = self._extract_continuation(root_continuation_data)
 
@@ -2446,6 +2626,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     note_prefix = '    Downloading comment API JSON reply thread %d %s' % (
                         tracker['current_page_thread'], comment_prog_str)
             else:
+                # TODO: `parent` is only truthy in this code path with YT's legacy (non-threaded) comment view
                 note_prefix = '{}Downloading comment{} API JSON page {} {}'.format(
                     '       ' if parent else '', ' replies' if parent else '',
                     page_num, comment_prog_str)
@@ -2462,6 +2643,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     ep='next', ytcfg=ytcfg, headers=headers, note=note_prefix,
                     check_get_keys=check_get_keys)
             except ExtractorError as e:
+                # TODO: This code path is not reached since eb5bdbfa70126c7d5355cc0954b63720522e462c
                 # Ignore incomplete data error for replies if retries didn't work.
                 # This is to allow any other parent comments and comment threads to be downloaded.
                 # See: https://github.com/yt-dlp/yt-dlp/issues/4669
@@ -2488,7 +2670,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         break
                     continue
 
-                for entry in extract_thread(continuation_items, mutations):
+                for entry in extract_thread(continuation_items, mutations, parent, depth):
                     if not entry:
                         return
                     yield entry
@@ -2525,16 +2707,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return {'contentCheckOk': True, 'racyCheckOk': True}
 
     @classmethod
-    def _generate_player_context(cls, sts=None):
+    def _generate_player_context(cls, sts=None, use_ad_playback_context=False):
         context = {
             'html5Preference': 'HTML5_PREF_WANTS',
         }
         if sts is not None:
             context['signatureTimestamp'] = sts
+
+        playback_context = {
+            'contentPlaybackContext': context,
+        }
+        if use_ad_playback_context:
+            playback_context['adPlaybackContext'] = {
+                'pyv': True,
+            }
+
         return {
-            'playbackContext': {
-                'contentPlaybackContext': context,
-            },
+            'playbackContext': playback_context,
             **cls._get_checkok_params(),
         }
 
@@ -2762,7 +2951,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             yt_query['serviceIntegrityDimensions'] = {'poToken': po_token}
 
         sts = self._extract_signature_timestamp(video_id, player_url, webpage_ytcfg, fatal=False) if player_url else None
-        yt_query.update(self._generate_player_context(sts))
+
+        use_ad_playback_context = (
+            self._configuration_arg('use_ad_playback_context', ['false'])[0] != 'false'
+            and traverse_obj(INNERTUBE_CLIENTS, (client, 'SUPPORTS_AD_PLAYBACK_CONTEXT', {bool})))
+
+        yt_query.update(self._generate_player_context(sts, use_ad_playback_context))
+
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
             ytcfg=player_ytcfg, headers=headers, fatal=True,
@@ -2797,10 +2992,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if not (requested_clients or excluded_clients) and default_clients == self._DEFAULT_JSLESS_CLIENTS:
             self.report_warning(
-                f'No supported JavaScript runtime could be found. YouTube extraction without '
-                f'a JS runtime has been deprecated, and some formats may be missing. '
-                f'See  {_EJS_WIKI_URL}  for details on installing one. To silence this warning, '
-                f'you can use  --extractor-args "youtube:player_client=default"', only_once=True)
+                f'No supported JavaScript runtime could be found. Only deno is enabled by default; '
+                f'to use another runtime add  --js-runtimes RUNTIME[:PATH]  to your command/config. '
+                f'YouTube extraction without a JS runtime has been deprecated, and some formats may be missing. '
+                f'See  {_EJS_WIKI_URL}  for details on installing one', only_once=True)
 
         if not requested_clients:
             requested_clients.extend(default_clients)
@@ -2928,7 +3123,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             elif pr:
                 # Save client details for introspection later
                 innertube_context = traverse_obj(player_ytcfg or self._get_default_ytcfg(client), 'INNERTUBE_CONTEXT')
-                fetched_timestamp = int(time.time())
                 sd = pr.setdefault('streamingData', {})
                 sd[STREAMING_DATA_CLIENT_NAME] = client
                 sd[STREAMING_DATA_FETCH_GVS_PO_TOKEN] = fetch_gvs_po_token_func
@@ -2936,7 +3130,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 sd[STREAMING_DATA_INNERTUBE_CONTEXT] = innertube_context
                 sd[STREAMING_DATA_FETCH_SUBS_PO_TOKEN] = fetch_subs_po_token_func
                 sd[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER] = is_premium_subscriber
-                sd[STREAMING_DATA_FETCHED_TIMESTAMP] = fetched_timestamp
+                sd[STREAMING_DATA_AVAILABLE_AT_TIMESTAMP] = self._get_available_at_timestamp(pr, video_id, client)
                 for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
                     f[STREAMING_DATA_CLIENT_NAME] = client
                     f[STREAMING_DATA_FETCH_GVS_PO_TOKEN] = fetch_gvs_po_token_func
@@ -3023,8 +3217,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_formats_and_subtitles(self, video_id, player_responses, player_url, live_status, duration):
         CHUNK_SIZE = 10 << 20
-        PREFERRED_LANG_VALUE = 10
-        original_language = None
+        ORIGINAL_LANG_VALUE = 10
+        DEFAULT_LANG_VALUE = 5
+        language_map = {
+            ORIGINAL_LANG_VALUE: None,
+            DEFAULT_LANG_VALUE: None,
+        }
         itags, stream_ids = collections.defaultdict(set), []
         itag_qualities, res_qualities = {}, {0: None}
         subtitles = {}
@@ -3041,6 +3239,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             all_formats = True
             self._downloader.deprecated_feature('[youtube] include_duplicate_formats extractor argument is deprecated. '
                                                 'Use formats=duplicate extractor argument instead')
+
+        def is_super_resolution(f_url):
+            return '1' in traverse_obj(f_url, ({parse_qs}, 'xtags', ..., {urllib.parse.parse_qs}, 'sr', ...))
 
         def solve_sig(s, spec):
             return ''.join(s[i] for i in spec)
@@ -3061,8 +3262,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # save pots per client to avoid fetching again
         gvs_pots = {}
 
-        # For handling potential pre-playback required waiting period
-        playback_wait = int_or_none(self._configuration_arg('playback_wait', [None])[0], default=6)
+        def get_language_code_and_preference(fmt_stream):
+            audio_track = fmt_stream.get('audioTrack') or {}
+            display_name = audio_track.get('displayName') or ''
+            language_code = audio_track.get('id', '').split('.')[0] or None
+            if 'descriptive' in display_name.lower():
+                return join_nonempty(language_code, 'desc'), -10
+            if 'original' in display_name.lower():
+                if language_code and not language_map.get(ORIGINAL_LANG_VALUE):
+                    language_map[ORIGINAL_LANG_VALUE] = language_code
+                return language_code, ORIGINAL_LANG_VALUE
+            if audio_track.get('audioIsDefault'):
+                if language_code and not language_map.get(DEFAULT_LANG_VALUE):
+                    language_map[DEFAULT_LANG_VALUE] = language_code
+                return language_code, DEFAULT_LANG_VALUE
+            return language_code, -1
 
         for pr in player_responses:
             streaming_data = traverse_obj(pr, 'streamingData')
@@ -3072,14 +3286,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_premium_subscriber = streaming_data[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER]
             player_token_provided = streaming_data[STREAMING_DATA_PLAYER_TOKEN_PROVIDED]
             client_name = streaming_data.get(STREAMING_DATA_CLIENT_NAME)
-            available_at = streaming_data[STREAMING_DATA_FETCHED_TIMESTAMP] + playback_wait
+            available_at = streaming_data[STREAMING_DATA_AVAILABLE_AT_TIMESTAMP]
             streaming_formats = traverse_obj(streaming_data, (('formats', 'adaptiveFormats'), ...))
 
             def get_stream_id(fmt_stream):
                 return str_or_none(fmt_stream.get('itag')), traverse_obj(fmt_stream, 'audioTrack', 'id'), fmt_stream.get('isDrc')
 
-            def process_format_stream(fmt_stream, proto, missing_pot):
-                nonlocal original_language
+            def process_format_stream(fmt_stream, proto, missing_pot, super_resolution=False):
                 itag = str_or_none(fmt_stream.get('itag'))
                 audio_track = fmt_stream.get('audioTrack') or {}
                 quality = fmt_stream.get('quality')
@@ -3096,13 +3309,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if height:
                         res_qualities[height] = quality
 
-                display_name = audio_track.get('displayName') or ''
-                is_original = 'original' in display_name.lower()
-                is_descriptive = 'descriptive' in display_name.lower()
-                is_default = audio_track.get('audioIsDefault')
-                language_code = audio_track.get('id', '').split('.')[0]
-                if language_code and (is_original or (is_default and not original_language)):
-                    original_language = language_code
+                language_code, language_preference = get_language_code_and_preference(fmt_stream)
 
                 has_drm = bool(fmt_stream.get('drmFamilies'))
 
@@ -3136,10 +3343,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 dct = {
                     'asr': int_or_none(fmt_stream.get('audioSampleRate')),
                     'filesize': int_or_none(fmt_stream.get('contentLength')),
-                    'format_id': f'{itag}{"-drc" if fmt_stream.get("isDrc") else ""}',
+                    'format_id': join_nonempty(itag, (
+                        'drc' if fmt_stream.get('isDrc')
+                        else 'sr' if super_resolution
+                        else None)),
                     'format_note': join_nonempty(
-                        join_nonempty(display_name, is_default and ' (default)', delim=''),
-                        name, fmt_stream.get('isDrc') and 'DRC',
+                        join_nonempty(audio_track.get('displayName'), audio_track.get('audioIsDefault') and '(default)', delim=' '),
+                        name, fmt_stream.get('isDrc') and 'DRC', super_resolution and 'AI-upscaled',
                         try_get(fmt_stream, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                         try_get(fmt_stream, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
                         is_damaged and 'DAMAGED', missing_pot and 'MISSING POT',
@@ -3155,8 +3365,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'tbr': tbr,
                     'filesize_approx': filesize_from_tbr(tbr, format_duration),
                     'width': int_or_none(fmt_stream.get('width')),
-                    'language': join_nonempty(language_code, 'desc' if is_descriptive else '') or None,
-                    'language_preference': PREFERRED_LANG_VALUE if is_original else 5 if is_default else -10 if is_descriptive else -1,
+                    'language': language_code,
+                    'language_preference': language_preference,
                     # Strictly de-prioritize damaged and 3gp formats
                     'preference': -10 if is_damaged else -2 if itag == '17' else None,
                 }
@@ -3175,6 +3385,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             def process_https_formats():
                 proto = 'https'
                 https_fmts = []
+                skip_player_js = 'js' in self._configuration_arg('player_skip')
+
                 for fmt_stream in streaming_formats:
                     if fmt_stream.get('targetDurationSec'):
                         continue
@@ -3206,29 +3418,36 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     fmt_url = fmt_stream.get('url')
                     encrypted_sig, sc = None, None
                     if not fmt_url:
+                        # We still need to register original/default language information
+                        # See: https://github.com/yt-dlp/yt-dlp/issues/14883
+                        get_language_code_and_preference(fmt_stream)
                         sc = urllib.parse.parse_qs(fmt_stream.get('signatureCipher'))
                         fmt_url = url_or_none(try_get(sc, lambda x: x['url'][0]))
                         encrypted_sig = try_get(sc, lambda x: x['s'][0])
-                        if not all((sc, fmt_url, player_url, encrypted_sig)):
-                            msg = f'Some {client_name} client https formats have been skipped as they are missing a url. '
+                        if not all((sc, fmt_url, skip_player_js or player_url, encrypted_sig)):
+                            msg = f'Some {client_name} client https formats have been skipped as they are missing a URL. '
                             if client_name in ('web', 'web_safari'):
                                 msg += 'YouTube is forcing SABR streaming for this client. '
                             else:
                                 msg += (
-                                    f'YouTube may have enabled the SABR-only or Server-Side Ad Placement experiment for '
+                                    f'YouTube may have enabled the SABR-only streaming experiment for '
                                     f'{"your account" if self.is_authenticated else "the current session"}. '
                                 )
                             msg += 'See  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details'
                             self.report_warning(msg, video_id, only_once=True)
                             continue
 
-                    fmt = process_format_stream(fmt_stream, proto, missing_pot=require_po_token and not po_token)
+                    fmt = process_format_stream(
+                        fmt_stream, proto, missing_pot=require_po_token and not po_token,
+                        super_resolution=is_super_resolution(fmt_url))
                     if not fmt:
                         continue
 
                     # signature
                     # Attempt to load sig spec from cache
                     if encrypted_sig:
+                        if skip_player_js:
+                            continue
                         spec_cache_id = self._sig_spec_cache_id(player_url, len(encrypted_sig))
                         spec = self._load_sig_spec_from_cache(spec_cache_id)
                         if spec:
@@ -3242,6 +3461,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # n challenge
                     query = parse_qs(fmt_url)
                     if query.get('n'):
+                        if skip_player_js:
+                            continue
                         n_challenge = query['n'][0]
                         if n_challenge in self._player_cache:
                             fmt_url = update_url_query(fmt_url, {'n': self._player_cache[n_challenge]})
@@ -3391,9 +3612,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 elif itag:
                     f['format_id'] = itag
 
-                if original_language and f.get('language') == original_language:
+                lang_code = f.get('language')
+                if lang_code and lang_code == language_map[ORIGINAL_LANG_VALUE]:
+                    f['format_note'] = join_nonempty(f.get('format_note'), '(original)', delim=' ')
+                    f['language_preference'] = ORIGINAL_LANG_VALUE
+                elif lang_code and lang_code == language_map[DEFAULT_LANG_VALUE]:
                     f['format_note'] = join_nonempty(f.get('format_note'), '(default)', delim=' ')
-                    f['language_preference'] = PREFERRED_LANG_VALUE
+                    f['language_preference'] = DEFAULT_LANG_VALUE
 
                 if itag in ('616', '235'):
                     f['format_note'] = join_nonempty(f.get('format_note'), 'Premium', delim=' ')
@@ -3520,6 +3745,36 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'User-Agent': ('INNERTUBE_CONTEXT', 'client', 'userAgent', {str}),
                 }))
         return webpage
+
+    def _get_available_at_timestamp(self, player_response, video_id, client):
+        now = time.time()
+        wait_seconds = 0
+
+        for renderer in traverse_obj(player_response, (
+            'adSlots', lambda _, v: v['adSlotRenderer']['adSlotMetadata']['triggerEvent'] == 'SLOT_TRIGGER_EVENT_BEFORE_CONTENT',
+            'adSlotRenderer', 'fulfillmentContent', 'fulfilledLayout', 'playerBytesAdLayoutRenderer', 'renderingContent', (
+                None,
+                ('playerBytesSequentialLayoutRenderer', 'sequentialLayouts', ..., 'playerBytesAdLayoutRenderer', 'renderingContent'),
+            ), 'instreamVideoAdRenderer', {dict},
+        )):
+            duration = traverse_obj(renderer, ('playerVars', {urllib.parse.parse_qs}, 'length_seconds', -1, {int_or_none}))
+            ad = 'an ad' if duration is None else f'a {duration}s ad'
+
+            skip_time = traverse_obj(renderer, ('skipOffsetMilliseconds', {float_or_none(scale=1000)}))
+            if skip_time is not None:
+                # YT allows skipping this ad; use the wait-until-skip time instead of full ad duration
+                skip_time = skip_time if skip_time % 1 else int(skip_time)
+                ad += f' skippable after {skip_time}s'
+                duration = skip_time
+
+            if duration is not None:
+                self.write_debug(f'{video_id}: Detected {ad} for {client}')
+                wait_seconds += duration
+
+        if wait_seconds:
+            return math.ceil(now) + wait_seconds
+
+        return int(now)
 
     def _list_formats(self, video_id, microformats, video_details, player_responses, player_url, duration=None):
         live_broadcast_details = traverse_obj(microformats, (..., 'liveBroadcastDetails'))
@@ -3871,6 +4126,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     STREAMING_DATA_CLIENT_NAME: client_name,
                 })
 
+        def set_audio_lang_from_orig_subs_lang(lang_code):
+            for f in formats:
+                if f.get('acodec') != 'none' and not f.get('language'):
+                    f['language'] = lang_code
+
         subtitles = {}
         skipped_subs_clients = set()
 
@@ -3930,7 +4190,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                 orig_lang = qs.get('lang', [None])[-1]
                 lang_name = self._get_text(caption_track, 'name', max_runs=1)
-                if caption_track.get('kind') != 'asr':
+                is_manual_subs = caption_track.get('kind') != 'asr'
+                if is_manual_subs:
                     if not lang_code:
                         continue
                     process_language(
@@ -3941,16 +4202,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not trans_code:
                         continue
                     orig_trans_code = trans_code
-                    if caption_track.get('kind') != 'asr' and trans_code != 'und':
+                    if is_manual_subs and trans_code != 'und':
                         if not get_translated_subs:
                             continue
                         trans_code += f'-{lang_code}'
                         trans_name += format_field(lang_name, None, ' from %s')
                     if lang_code == f'a-{orig_trans_code}':
                         # Set audio language based on original subtitles
-                        for f in formats:
-                            if f.get('acodec') != 'none' and not f.get('language'):
-                                f['language'] = orig_trans_code
+                        set_audio_lang_from_orig_subs_lang(orig_trans_code)
                         # Add an "-orig" label to the original language so that it can be distinguished.
                         # The subs are returned without "-orig" as well for compatibility
                         process_language(
@@ -3960,6 +4219,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     process_language(
                         automatic_captions, base_url, trans_code, trans_name, client_name,
                         pot_params if orig_lang == orig_trans_code else {'tlang': trans_code, **pot_params})
+
+                # Extract automatic captions when the language is not in 'translationLanguages'
+                # e.g. Cantonese [yue], see https://github.com/yt-dlp/yt-dlp/issues/14889
+                lang_code = remove_start(lang_code, 'a-')
+                if is_manual_subs or not lang_code or lang_code in automatic_captions:
+                    continue
+                lang_name = remove_end(lang_name, ' (auto-generated)')
+                if caption_track.get('isTranslatable'):
+                    # We can assume this is the original audio language
+                    set_audio_lang_from_orig_subs_lang(lang_code)
+                    process_language(
+                        automatic_captions, base_url, f'{lang_code}-orig',
+                        f'{lang_name} (Original)', client_name, pot_params)
+                process_language(
+                    automatic_captions, base_url, lang_code, lang_name, client_name, pot_params)
 
             # Avoid duplication if we've already got everything we need
             need_subs_langs.difference_update(subtitles)
@@ -3988,20 +4262,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         # Youtube Music Auto-generated description
         if (video_description or '').strip().endswith('\nAuto-generated by YouTube.'):
-            # XXX: Causes catastrophic backtracking if description has "·"
-            # E.g. https://www.youtube.com/watch?v=DoPaAxMQoiI
-            # Simulating atomic groups:  (?P<a>[^xy]+)x  =>  (?=(?P<a>[^xy]+))(?P=a)x
-            # reduces it, but does not fully fix it. https://regex101.com/r/8Ssf2h/2
             mobj = re.search(
                 r'''(?xs)
-                    (?=(?P<track>[^\n·]+))(?P=track)·
-                    (?=(?P<artist>[^\n]+))(?P=artist)\n+
-                    (?=(?P<album>[^\n]+))(?P=album)\n
-                    (?:.+?℗\s*(?P<release_year>\d{4})(?!\d))?
-                    (?:.+?Released\ on\s*:\s*(?P<release_date>\d{4}-\d{2}-\d{2}))?
-                    (.+?\nArtist\s*:\s*
-                        (?=(?P<clean_artist>[^\n]+))(?P=clean_artist)\n
-                    )?.+\nAuto-generated\ by\ YouTube\.\s*$
+                    (?:\n|^)(?P<track>[^\n·]+)\ ·\ (?P<artist>[^\n]+)\n+
+                    (?P<album>[^\n]+)\n+
+                    (?:℗\s*(?P<release_year>\d{4}))?
+                    (?:.+?\nReleased\ on\s*:\s*(?P<release_date>\d{4}-\d{2}-\d{2}))?
+                    (?:.+?\nArtist\s*:\s*(?P<clean_artist>[^\n]+)\n)?
+                    .+\nAuto-generated\ by\ YouTube\.\s*$
                 ''', video_description)
             if mobj:
                 release_year = mobj.group('release_year')
@@ -4013,7 +4281,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 info.update({
                     'album': mobj.group('album'.strip()),
                     'artists': ([a] if (a := mobj.group('clean_artist'))
-                                else [a.strip() for a in mobj.group('artist').split('·')]),
+                                else [a.strip() for a in mobj.group('artist').split(' · ')]),
                     'track': mobj.group('track').strip(),
                     'release_date': release_date,
                     'release_year': int_or_none(release_year),
@@ -4112,9 +4380,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         vsir = get_first(contents, 'videoSecondaryInfoRenderer')
         if vsir:
             vor = traverse_obj(vsir, ('owner', 'videoOwnerRenderer'))
+            collaborators = traverse_obj(vor, (
+                'attributedTitle', 'commandRuns', ..., 'onTap', 'innertubeCommand', 'showDialogCommand',
+                'panelLoadingStrategy', 'inlineContent', 'dialogViewModel', 'customContent', 'listViewModel',
+                'listItems', ..., 'listItemViewModel', 'title', 'content', {str}))
             info.update({
-                'channel': self._get_text(vor, 'title'),
-                'channel_follower_count': self._get_count(vor, 'subscriberCountText')})
+                'channel': self._get_text(vor, 'title') or (collaborators[0] if collaborators else None),
+                'channel_follower_count': self._get_count(vor, 'subscriberCountText'),
+                'creators': collaborators if collaborators else None,
+            })
 
             if not channel_handle:
                 channel_handle = self.handle_from_url(
