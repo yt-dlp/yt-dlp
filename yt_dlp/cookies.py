@@ -46,7 +46,7 @@ from .utils import (
 from .utils._utils import _YDLLogger
 from .utils.networking import normalize_url
 
-CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi', 'whale'}
+CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi', 'whale', 'arc'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
 
 
@@ -244,6 +244,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'opera': os.path.join(appdata_roaming, R'Opera Software\Opera Stable'),
             'vivaldi': os.path.join(appdata_local, R'Vivaldi\User Data'),
             'whale': os.path.join(appdata_local, R'Naver\Naver Whale\User Data'),
+            'arc': os.path.join(appdata_local, R'Arc\User Data')
         }[browser_name]
 
     elif sys.platform == 'darwin':
@@ -256,6 +257,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'opera': os.path.join(appdata, 'com.operasoftware.Opera'),
             'vivaldi': os.path.join(appdata, 'Vivaldi'),
             'whale': os.path.join(appdata, 'Naver/Whale'),
+            'arc': os.path.join(appdata, R'Arc/User Data'),
         }[browser_name]
 
     else:
@@ -268,6 +270,8 @@ def _get_chromium_based_browser_settings(browser_name):
             'opera': os.path.join(config, 'opera'),
             'vivaldi': os.path.join(config, 'vivaldi'),
             'whale': os.path.join(config, 'naver-whale'),
+            # arc doesn't exist on Linux
+            # https://resources.arc.net/hc/en-us/sections/19211879642391-Devices
         }[browser_name]
 
     # Linux keyring names can be determined by snooping on dbus while opening the browser in KDE:
@@ -280,6 +284,7 @@ def _get_chromium_based_browser_settings(browser_name):
         'opera': 'Opera' if sys.platform == 'darwin' else 'Chromium',
         'vivaldi': 'Vivaldi' if sys.platform == 'darwin' else 'Chrome',
         'whale': 'Whale',
+        'arc': 'Arc',
     }[browser_name]
 
     browsers_without_profiles = {'opera'}
