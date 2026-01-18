@@ -2793,7 +2793,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'serializedExperimentFlags', {urllib.parse.parse_qs}))
         if 'true' in traverse_obj(experiments, (..., 'html5_generate_content_po_token', -1)):
             self.write_debug(
-                f'{video_id}: Detected experiment to bind GVS PO Token to video id.', only_once=True)
+                f'{video_id}: Detected experiment to bind GVS PO Token '
+                f'to video ID for {client} client', only_once=True)
             gvs_bind_to_video_id = True
 
         # GVS WebPO Token is bound to visitor_data / Visitor ID when logged out.
