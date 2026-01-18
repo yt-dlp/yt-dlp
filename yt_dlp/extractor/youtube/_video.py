@@ -3268,6 +3268,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return
 
             already_solved_challenges = True
+
             challenge_requests = []
             if n_challenges:
                 challenge_requests.append(JsChallengeRequest(
@@ -3301,13 +3302,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                 # Raise warning if any challenge requests remain
                 # Depending on type of challenge request
-
                 help_message = (
                     'Ensure you have a supported JavaScript runtime and '
                     'challenge solver script distribution installed. '
                     'Review any warnings presented before this message. '
                     f'For more details, refer to  {_EJS_WIKI_URL}')
-
                 if s_challenges:
                     self.report_warning(
                         f'Signature solving failed: Some formats may be missing. {help_message}',
