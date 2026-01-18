@@ -3639,7 +3639,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     n_result = self._load_player_data_from_cache('n', player_url, n_challenge)
                     if n_result:
                         manifest_path = manifest_path.replace(f'/n/{n_challenge}/', f'/n/{n_result}/')
-                        solved_n = True
+                        solved_n = n_result in manifest_path
 
                 pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(
                     client_name)['GVS_PO_TOKEN_POLICY'][StreamingProtocol.HLS]
@@ -3677,7 +3677,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     n_result = self._load_player_data_from_cache('n', player_url, n_challenge)
                     if n_result:
                         manifest_path = manifest_path.replace(f'/n/{n_challenge}/', f'/n/{n_result}/')
-                        solved_n = True
+                        solved_n = n_result in manifest_path
 
                 pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(
                     client_name)['GVS_PO_TOKEN_POLICY'][StreamingProtocol.DASH]
