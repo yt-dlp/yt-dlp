@@ -1823,7 +1823,11 @@ class InfoExtractor:
             if payload_type == 1:
                 flight_text += chunk
 
-        for f in flight_text.splitlines():
+        marker_re = re.compile(r'(?<![0-9A-Za-z:"])([0-9a-f]+):(?=[A-Z\[\{])')
+        markers = list(marker_re.finditer(flight_text))
+        for m, n in itertools.zip_longest(markers, markers[1:]):
+            end = n.start() if n else len(flight_text)
+            f = flight_text[m.start():end].strip()
             prefix, _, body = f.lstrip().partition(':')
             if not re.fullmatch(r'[0-9a-f]+', prefix):
                 continue
