@@ -3339,10 +3339,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             )):
                 n_challenges.add(n_challenge)
 
-            # SABR formats
-            if n_challenge := traverse_obj(streaming_data, ('serverAbrStreamingUrl', {parse_qs}, 'n', 0)):
-                n_challenges.add(n_challenge)
-
         # final pass to extract formats and solve n/sig challenges as needed
         for pr in player_responses:
             streaming_data = traverse_obj(pr, 'streamingData')
