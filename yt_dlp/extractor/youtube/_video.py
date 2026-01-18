@@ -145,9 +145,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         r'\b(?P<id>vfl[a-zA-Z0-9_-]+)\b.*?\.js$',
     )
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('tv', 'android_sdkless', 'web')
-    _DEFAULT_JSLESS_CLIENTS = ('android_sdkless', 'web_safari', 'web')
-    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web_safari', 'web')
+    _DEFAULT_CLIENTS = ('android_sdkless', 'web', 'web_safari')
+    _DEFAULT_JSLESS_CLIENTS = ('android_sdkless',)
+    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web', 'web_safari')
     # Premium does not require POT (except for subtitles)
     _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator', 'web')
 
@@ -2763,7 +2763,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'serializedExperimentFlags', {urllib.parse.parse_qs}))
         if 'true' in traverse_obj(experiments, (..., 'html5_generate_content_po_token', -1)):
             self.write_debug(
-                f'{video_id}: Detected experiment to bind GVS PO Token to video id.', only_once=True)
+                f'{video_id}: Detected experiment to bind GVS PO Token '
+                f'to video ID for {client} client', only_once=True)
             gvs_bind_to_video_id = True
 
         # GVS WebPO Token is bound to visitor_data / Visitor ID when logged out.
@@ -3487,16 +3488,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         fmt_url = traverse_obj(sc, ('url', 0, {url_or_none}))
                         encrypted_sig = traverse_obj(sc, ('s', 0))
                         if not all((sc, fmt_url, skip_player_js or player_url, encrypted_sig)):
-                            msg = f'Some {client_name} client https formats have been skipped as they are missing a URL. '
+                            msg_tmpl = (
+                                '{}Some {} client https formats have been skipped as they are missing a URL. '
+                                '{}. See  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details')
                             if client_name in ('web', 'web_safari'):
-                                msg += 'YouTube is forcing SABR streaming for this client. '
+                                self.write_debug(msg_tmpl.format(
+                                    f'{video_id}: ', client_name,
+                                    'YouTube is forcing SABR streaming for this client'), only_once=True)
                             else:
-                                msg += (
+                                msg = (
                                     f'YouTube may have enabled the SABR-only streaming experiment for '
-                                    f'{"your account" if self.is_authenticated else "the current session"}. '
-                                )
-                            msg += 'See  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details'
-                            self.report_warning(msg, video_id, only_once=True)
+                                    f'{"your account" if self.is_authenticated else "the current session"}')
+                                self.report_warning(msg_tmpl.format('', client_name, msg), video_id, only_once=True)
                             continue
 
                     fmt = process_format_stream(
