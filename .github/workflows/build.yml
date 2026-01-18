@@ -335,7 +335,7 @@ jobs:
           # We need to fuse our own universal2 wheels for curl_cffi
           python3 -m pip install -U 'delocate==0.11.0'
           mkdir curl_cffi_whls curl_cffi_universal2
-          python3 devscripts/install_deps.py --print --omit-default --include-extra curl-cffi > requirements.txt
+          python3 devscripts/install_deps.py --print --omit-default --include-extra build-curl-cffi > requirements.txt
           for platform in "macosx_11_0_arm64" "macosx_11_0_x86_64"; do
             python3 -m pip download \
               --only-binary=:all: \
@@ -464,7 +464,7 @@ jobs:
           if ("${Env:ARCH}" -eq "x86") {
             python devscripts/install_deps.py
           } else {
-            python devscripts/install_deps.py --include-extra curl-cffi
+            python devscripts/install_deps.py --include-extra build-curl-cffi
           }
 
       - name: Prepare

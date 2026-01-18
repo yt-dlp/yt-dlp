@@ -99,7 +99,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20250925.01.00',
+                'clientVersion': '2.20260114.08.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
@@ -112,7 +112,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20250925.01.00',
+                'clientVersion': '2.20260114.08.00',
                 'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15,gzip(gfe)',
             },
         },
@@ -125,7 +125,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_EMBEDDED_PLAYER',
-                'clientVersion': '1.20250923.21.00',
+                'clientVersion': '1.20260115.01.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 56,
@@ -136,7 +136,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_REMIX',
-                'clientVersion': '1.20250922.03.00',
+                'clientVersion': '1.20260114.03.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
@@ -166,7 +166,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_CREATOR',
-                'clientVersion': '1.20250922.03.00',
+                'clientVersion': '1.20260114.05.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
@@ -195,9 +195,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '20.10.38',
+                'clientVersion': '21.02.35',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip',
+                'userAgent': 'com.google.android.youtube/21.02.35 (Linux; U; Android 11) gzip',
                 'osName': 'Android',
                 'osVersion': '11',
             },
@@ -228,8 +228,8 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '20.10.38',
-                'userAgent': 'com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip',
+                'clientVersion': '21.02.35',
+                'userAgent': 'com.google.android.youtube/21.02.35 (Linux; U; Android 11) gzip',
                 'osName': 'Android',
                 'osVersion': '11',
             },
@@ -242,11 +242,11 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_VR',
-                'clientVersion': '1.65.10',
+                'clientVersion': '1.71.26',
                 'deviceMake': 'Oculus',
                 'deviceModel': 'Quest 3',
                 'androidSdkVersion': 32,
-                'userAgent': 'com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip',
+                'userAgent': 'com.google.android.apps.youtube.vr.oculus/1.71.26 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip',
                 'osName': 'Android',
                 'osVersion': '12L',
             },
@@ -260,10 +260,10 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS',
-                'clientVersion': '20.10.4',
+                'clientVersion': '21.02.3',
                 'deviceMake': 'Apple',
                 'deviceModel': 'iPhone16,2',
-                'userAgent': 'com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)',
+                'userAgent': 'com.google.ios.youtube/21.02.3 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)',
                 'osName': 'iPhone',
                 'osVersion': '18.3.2.22D82',
             },
@@ -291,7 +291,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'MWEB',
-                'clientVersion': '2.20250925.01.00',
+                'clientVersion': '2.20260115.01.00',
                 # mweb previously did not require PO Token with this UA
                 'userAgent': 'Mozilla/5.0 (iPad; CPU OS 16_7_10 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1,gzip(gfe)',
             },
@@ -322,7 +322,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'TVHTML5',
-                'clientVersion': '7.20250923.13.00',
+                'clientVersion': '7.20260114.12.00',
                 'userAgent': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version',
             },
         },
@@ -335,7 +335,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'TVHTML5',
-                'clientVersion': '5.20251105',
+                'clientVersion': '5.20260114',
                 'userAgent': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version',
             },
         },
