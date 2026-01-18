@@ -554,12 +554,16 @@ class Response(io.IOBase):
         # Expected errors raised here should be of type RequestError or subclasses.
         # Subclasses should redefine this method with more precise error handling.
         try:
-            return self.fp.read(amt)
+            res = self.fp.read(amt)
+            if self.fp.closed:
+                self.close()
+            return res
         except Exception as e:
             raise TransportError(cause=e) from e
 
     def close(self):
-        self.fp.close()
+        if not self.fp.closed:
+            self.fp.close()
         return super().close()
 
     def get_header(self, name, default=None):

@@ -595,7 +595,7 @@ class YoutubeDL:
         'width', 'height', 'asr', 'audio_channels', 'fps',
         'tbr', 'abr', 'vbr', 'filesize', 'filesize_approx',
         'timestamp', 'release_timestamp', 'available_at',
-        'duration', 'view_count', 'like_count', 'dislike_count', 'repost_count',
+        'duration', 'view_count', 'like_count', 'dislike_count', 'repost_count', 'save_count',
         'average_rating', 'comment_count', 'age_limit',
         'start_time', 'end_time',
         'chapter_number', 'season_number', 'episode_number',
@@ -3026,6 +3026,10 @@ class YoutubeDL:
         format_selector = self.format_selector
         while True:
             if interactive_format_selection:
+                if not formats:
+                    # Bypass interactive format selection if no formats & --ignore-no-formats-error
+                    formats_to_download = None
+                    break
                 req_format = input(self._format_screen('\nEnter format selector ', self.Styles.EMPHASIS)
                                    + '(Press ENTER for default, or Ctrl+C to quit)'
                                    + self._format_screen(': ', self.Styles.EMPHASIS))
