@@ -11,6 +11,15 @@ from ._utils import _get_exe_version_output, detect_exe_version, version_tuple
 
 _FALLBACK_PATHEXT = ('.COM', '.EXE', '.BAT', '.CMD')
 
+def _find_pypi_deno():
+    try:
+        from deno import find_deno_exe
+    except Exception:
+        return None
+    try:
+        return find_deno_exe()
+    except Exception:
+        return None
 
 def _find_exe(basename: str) -> str:
     if os.name != 'nt':
@@ -82,10 +91,18 @@ class DenoJsRuntime(JsRuntime):
     MIN_SUPPORTED_VERSION = (2, 0, 0)
 
     def _info(self):
-        path = _determine_runtime_path(self._path, 'deno')
+        # Priority:
+        # 1. Explicit --js-runtime-path
+        # 2. PyPI-installed Deno
+        # 3. System-installed Deno
+        path = self._path or _find_pypi_deno() or _determine_runtime_path(None, 'deno')
+        if not path:
+            return None
+
         out = _get_exe_version_output(path, ['--version'])
         if not out:
             return None
+
         version = detect_exe_version(out, r'^deno (\S+)', 'unknown')
         vt = version_tuple(version, lenient=True)
         return JsRuntimeInfo(
