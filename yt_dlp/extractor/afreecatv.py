@@ -1,5 +1,7 @@
 import datetime as dt
 import functools
+import threading
+import time
 
 from .common import InfoExtractor
 from ..networking import Request
@@ -153,6 +155,45 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                 'nApiLevel': 10,
             }))['data']
 
+        # For subscribers only, call private_auth.php to get CloudFront cookies
+        needs_private_auth = traverse_obj(data, ('sub_upload_type', {str}))
+        strm_id = traverse_obj(data, ('bj_id', {str}))
+        m3u8_url = next((
+            file_element.get('file') for file_element in traverse_obj(
+                data, ('files', lambda _, v: url_or_none(v.get('file'))))
+            if file_element.get('file') and determine_ext(file_element.get('file')) == 'm3u8'), None)
+
+        def _get_cloudfront_cookie_expiration(m3u8_url):
+            expiration_time = None
+            for cookie in self.cookiejar.get_cookies_for_url(m3u8_url):
+                if 'CloudFront' in cookie.name and cookie.expires:
+                    if expiration_time is None or cookie.expires < expiration_time:
+                        expiration_time = cookie.expires
+            return expiration_time
+
+        def _request_cloudfront_cookies(m3u8_url_auth, strm_id_auth, video_id_auth):
+            post_data = {
+                'type': 'vod',
+                'strm_id': strm_id_auth,
+                'title_no': video_id_auth,
+                'url': m3u8_url_auth,
+            }
+            self._request_webpage(
+                Request(
+                    'https://live.sooplive.co.kr/api/private_auth.php',
+                    method='POST',
+                    headers={
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Referer': url,
+                        'Origin': 'https://vod.sooplive.co.kr',
+                    },
+                    data=urlencode_postdata(post_data),
+                ),
+                video_id_auth, note=False, fatal=False)
+
+        if needs_private_auth and m3u8_url and strm_id:
+            _request_cloudfront_cookies(m3u8_url, strm_id, video_id)
+
         error_code = traverse_obj(data, ('code', {int}))
         if error_code == -6221:
             raise ExtractorError('The VOD does not exist', expected=True)
@@ -169,8 +210,8 @@ class AfreecaTVIE(AfreecaTVBaseIE):
 
         entries = []
         for file_num, file_element in enumerate(
-                traverse_obj(data, ('files', lambda _, v: url_or_none(v['file']))), start=1):
-            file_url = file_element['file']
+                traverse_obj(data, ('files', lambda _, v: url_or_none(v.get('file')))), start=1):
+            file_url = file_element.get('file')
             if determine_ext(file_url) == 'm3u8':
                 formats = self._extract_m3u8_formats(
                     file_url, video_id, 'mp4', m3u8_id='hls',
@@ -181,7 +222,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                     'format_id': 'http',
                 }]
 
-            entries.append({
+            entry = {
                 **common_info,
                 'id': file_element.get('file_info_key') or f'{video_id}_{file_num}',
                 'title': f'{common_info.get("title") or "Untitled"} (part {file_num})',
@@ -190,7 +231,56 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                     'duration': ('duration', {int_or_none(scale=1000)}),
                     'timestamp': ('file_start', {parse_iso8601(delimiter=' ', timezone=dt.timedelta(hours=9))}),
                 }),
-            })
+            }
+
+            if needs_private_auth and m3u8_url and strm_id and determine_ext(file_url) == 'm3u8':
+                refresh_params = {
+                    'm3u8_url': file_url,
+                    'strm_id': strm_id,
+                    'video_id': video_id,
+                    '_last_refresh': time.time(),
+                }
+                entry['_cookie_refresh_params'] = refresh_params
+
+                def cookie_refresh_hook(status):
+                    if status.get('status') != 'downloading':
+                        return
+                    refresh_params_check = status.get('info_dict', {}).get('_cookie_refresh_params')
+                    if not refresh_params_check:
+                        return
+
+                    with self._downloader._soop_cookie_refresh_lock:
+                        current_time = time.time()
+                        m3u8_url_check = refresh_params_check.get('m3u8_url')
+                        expiration_time = _get_cloudfront_cookie_expiration(m3u8_url_check) if m3u8_url_check else None
+                        last_refresh = refresh_params_check.get('_last_refresh', current_time)
+
+                        should_refresh = (
+                            (expiration_time and current_time >= expiration_time - 15)
+                            or (not expiration_time and current_time - last_refresh >= 75)
+                        )
+
+                        if not should_refresh:
+                            return
+
+                        try:
+                            _request_cloudfront_cookies(
+                                refresh_params_check.get('m3u8_url'),
+                                refresh_params_check.get('strm_id'),
+                                refresh_params_check.get('video_id'),
+                            )
+
+                            refresh_params_check['_last_refresh'] = current_time
+                        except Exception:
+                            pass
+
+                if not hasattr(self._downloader, '_soop_cookie_hook_registered'):
+                    if not hasattr(self._downloader, '_soop_cookie_refresh_lock'):
+                        self._downloader._soop_cookie_refresh_lock = threading.Lock()
+                    self._downloader.add_progress_hook(cookie_refresh_hook)
+                    self._downloader._soop_cookie_hook_registered = True
+
+            entries.append(entry)
 
         if traverse_obj(data, ('adult_status', {str})) == 'notLogin':
             if not entries:
