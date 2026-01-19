@@ -8,6 +8,7 @@ import time
 import urllib.parse
 import uuid
 
+from .douyin_signatures import generate_abogus
 from .common import InfoExtractor
 from ..networking import HEADRequest
 from ..utils import (
@@ -1403,10 +1404,45 @@ class DouyinIE(TikTokBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
+        # Douyin Web API currently requires a valid a_bogus signature
+        user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36'
+        params = {
+            'device_platform': 'webapp',
+            'aid': '6383',
+            'channel': 'channel_pc_web',
+            'pc_client_type': '1',
+            'version_code': '290100',
+            'version_name': '29.1.0',
+            'cookie_enabled': 'true',
+            'screen_width': '1920',
+            'screen_height': '1080',
+            'browser_language': 'zh-CN',
+            'browser_platform': 'Win32',
+            'browser_name': 'Chrome',
+            'browser_version': '130.0.0.0',
+            'browser_online': 'true',
+            'engine_name': 'Blink',
+            'engine_version': '130.0.0.0',
+            'os_name': 'Windows',
+            'os_version': '10',
+            'cpu_core_num': '12',
+            'device_memory': '8',
+            'platform': 'PC',
+            'aweme_id': video_id,
+            # Keep msToken empty for signature calculation
+            'msToken': '',
+        }
+        params['a_bogus'] = generate_abogus(params.copy(), user_agent)
+
         detail = traverse_obj(self._download_json(
             'https://www.douyin.com/aweme/v1/web/aweme/detail/', video_id,
             'Downloading web detail JSON', 'Failed to download web detail JSON',
-            query={'aweme_id': video_id}, fatal=False), ('aweme_detail', {dict}))
+            query=params,
+            headers={
+                'User-Agent': user_agent,
+                'Referer': self._WEBPAGE_HOST,
+            },
+            fatal=False), ('aweme_detail', {dict}))
         if not detail:
             # TODO: Run verification challenge code to generate signature cookies
             raise ExtractorError(
