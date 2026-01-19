@@ -90,7 +90,7 @@ def main():
         pip_args.append('--user')
     pip_args.extend(targets)
 
-    return subprocess.call(pip_args)
+    return subprocess.run(pip_args, shell=False, check=False).returncode
 
 
 if __name__ == '__main__':
