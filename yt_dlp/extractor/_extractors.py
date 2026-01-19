@@ -1630,9 +1630,8 @@ from .radlive import (
     RadLiveSeasonIE,
 )
 from .rai import (
-    RaiCulturaIE,
-    RaiIE,
-    RaiNewsIE,
+    RaiArchiveIE,
+    RaiEmbedIE,
     RaiPlayIE,
     RaiPlayLiveIE,
     RaiPlayPlaylistIE,
