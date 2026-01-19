@@ -139,7 +139,7 @@ class CBCIE(InfoExtractor):
             title, 'cleaned title', group='title', default=title)
         data = self._search_json(
             r'window\.__INITIAL_STATE__\s*=', webpage,
-            'initial state', display_id, fatal=False, default={}, transform_source=js_to_json)
+            'initial state', display_id, default={}, transform_source=js_to_json)
 
         entries = [
             self._extract_player_init(player_init, display_id)
