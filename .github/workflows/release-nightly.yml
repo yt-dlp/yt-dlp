@@ -9,7 +9,7 @@ permissions: {}
 jobs:
   check_nightly:
     name: Check for new commits
-    if: vars.BUILD_NIGHTLY
+    if: github.event_name == 'workflow_dispatch' || vars.BUILD_NIGHTLY
     permissions:
       contents: read
     runs-on: ubuntu-latest
