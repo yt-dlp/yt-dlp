@@ -29,7 +29,7 @@ class Sequence:
 
 class SequenceFile:
 
-    def __init__(self, fd, format_filename, sequence: Sequence, resume=False, max_segments=None):
+    def __init__(self, fd, format_filename, sequence: Sequence, resume=False, max_segments=None, segment_memory_file_limit=None):
         self.fd = fd
         self.format_filename = format_filename
         self.sequence = sequence
@@ -40,6 +40,7 @@ class SequenceFile:
         self.current_segment: SegmentFile | None = None
         self.resume = resume
         self.max_segments = max_segments
+        self.segment_memory_file_limit = segment_memory_file_limit
 
         sequence_file_exists = self.file.exists()
 
@@ -100,6 +101,7 @@ class SequenceFile:
             fd=self.fd,
             format_filename=self.format_filename,
             segment=segment,
+            memory_file_limit=self.segment_memory_file_limit,
         )
 
     def write_segment_data(self, data, segment_id: str):
@@ -144,6 +146,7 @@ class SequenceFile:
         self.file.read_into(backend)
         self.file.close()
 
+    # TODO: should this also remove/close current segment?
     def remove(self):
         self.close()
         self.file.remove()
@@ -154,13 +157,15 @@ class SequenceFile:
 
 class SegmentFile:
 
-    def __init__(self, fd, format_filename, segment: Segment, memory_file_limit=2 * 1024 * 1024):
+    def __init__(self, fd, format_filename, segment: Segment, memory_file_limit=None):
         self.fd = fd
         self.format_filename = format_filename
         self.segment: Segment = segment
         self.current_length = 0
 
-        filename = format_filename + f'.sg{segment.sequence_number}.sabr.part'
+        memory_file_limit = memory_file_limit if memory_file_limit is not None else 2 * 1024 * 1024  # Default to 2 MB
+
+        filename = format_filename + f'.sg{segment.segment_id}.sabr.part'
         # Store the segment in memory if it is small enough
         if segment.content_length and segment.content_length <= memory_file_limit:
             self.file = MemoryFormatIOBackend(
