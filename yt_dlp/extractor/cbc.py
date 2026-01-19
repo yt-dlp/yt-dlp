@@ -139,7 +139,7 @@ class CBCIE(InfoExtractor):
             title, 'cleaned title', group='title', default=title)
         data = self._search_json(
             r'window\.__INITIAL_STATE__\s*=', webpage,
-            'initial state', display_id, transform_source=js_to_json)
+            'initial state', display_id, fatal=False, default={}, transform_source=js_to_json)
 
         entries = [
             self._extract_player_init(player_init, display_id)
@@ -152,8 +152,9 @@ class CBCIE(InfoExtractor):
             media_ids.extend(re.findall(media_id_re, webpage))
         media_ids.extend(traverse_obj(data, (
             'detail', 'content', 'body', ..., 'content',
-            lambda _, x: x.get('type') == 'polopoly_media', 'content', 'sourceId')))
-        media_ids.append(traverse_obj(data, ('app', 'contentId', {str})))
+            lambda _, v: v['type'] == 'polopoly_media', 'content', 'sourceId', {str})))
+        if content_id := traverse_obj(data, ('app', 'contentId', {str})):
+            media_ids.append(content_id)
         entries.extend([
             self.url_result(f'cbcplayer:{media_id}', 'CBCPlayer', media_id)
             for media_id in orderedSet(media_ids)])
@@ -279,7 +280,7 @@ class CBCPlayerIE(InfoExtractor):
             'duration': 2692.833,
             'subtitles': {
                 'en-US': [{
-                    'name': r'English',
+                    'name': r're:English',
                     'url': 'https://cbchls.akamaized.net/delivery/news-shows/2024/06/17/NAT_JUN16-00-55-00/NAT_JUN16_cc.vtt',
                 }],
             },
