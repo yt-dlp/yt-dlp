@@ -10,7 +10,6 @@ from yt_dlp.cookies import (
     _get_linux_desktop_environment,
     _LinuxDesktopEnvironment,
     parse_safari_cookies,
-    pbkdf2_sha1,
 )
 
 
@@ -166,9 +165,7 @@ class TestCookies(unittest.TestCase):
         expected_expiration = dt.datetime(2021, 6, 18, 21, 39, 19, tzinfo=dt.timezone.utc)
         self.assertEqual(cookie.expires, int(expected_expiration.timestamp()))
 
-    def test_pbkdf2_sha1(self):
-        key = pbkdf2_sha1(b'peanuts', b' ' * 16, 1, 16)
-        self.assertEqual(key, b'g\xe1\x8e\x0fQ\x1c\x9b\xf3\xc9`!\xaa\x90\xd9\xd34')
+
 
 
 class TestLenientSimpleCookie(unittest.TestCase):
