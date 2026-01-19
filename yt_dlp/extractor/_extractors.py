@@ -1,32 +1,4 @@
 # flake8: noqa: F401
-# isort: off
-
-from .youtube import (  # Youtube is moved to the top to improve performance
-    YoutubeIE,
-    YoutubeClipIE,
-    YoutubeFavouritesIE,
-    YoutubeNotificationsIE,
-    YoutubeHistoryIE,
-    YoutubeTabIE,
-    YoutubeLivestreamEmbedIE,
-    YoutubePlaylistIE,
-    YoutubeRecommendedIE,
-    YoutubeSearchDateIE,
-    YoutubeSearchIE,
-    YoutubeSearchURLIE,
-    YoutubeMusicSearchURLIE,
-    YoutubeSubscriptionsIE,
-    YoutubeTruncatedIDIE,
-    YoutubeTruncatedURLIE,
-    YoutubeYtBeIE,
-    YoutubeYtUserIE,
-    YoutubeWatchLaterIE,
-    YoutubeShortsAudioPivotIE,
-    YoutubeConsentRedirectIE,
-)
-
-# isort: on
-
 from .abc import (
     ABCIE,
     ABCIViewIE,
@@ -431,6 +403,7 @@ from .cpac import (
 )
 from .cracked import CrackedIE
 from .craftsy import CraftsyIE
+from .croatianfilm import CroatianFilmIE
 from .crooksandliars import CrooksAndLiarsIE
 from .crowdbunker import (
     CrowdBunkerChannelIE,
@@ -1087,11 +1060,6 @@ from .mangomolo import (
     MangomoloLiveIE,
     MangomoloVideoIE,
 )
-from .manoto import (
-    ManotoTVIE,
-    ManotoTVLiveIE,
-    ManotoTVShowIE,
-)
 from .manyvids import ManyVidsIE
 from .maoritv import MaoriTVIE
 from .markiza import (
@@ -1482,6 +1450,7 @@ from .palcomp3 import (
     PalcoMP3IE,
     PalcoMP3VideoIE,
 )
+from .pandatv import PandaTvIE
 from .panopto import (
     PanoptoIE,
     PanoptoListIE,
@@ -1830,10 +1799,6 @@ from .scrippsnetworks import (
     ScrippsNetworksWatchIE,
 )
 from .scrolller import ScrolllerIE
-from .scte import (
-    SCTEIE,
-    SCTECourseIE,
-)
 from .sejmpl import SejmIE
 from .sen import SenIE
 from .senalcolombia import SenalColombiaLiveIE
@@ -2014,6 +1979,11 @@ from .taptap import (
     TapTapAppIntlIE,
     TapTapMomentIE,
     TapTapPostIntlIE,
+)
+from .tarangplus import (
+    TarangPlusEpisodesIE,
+    TarangPlusPlaylistIE,
+    TarangPlusVideoIE,
 )
 from .tass import TassIE
 from .tbs import TBSIE
@@ -2552,6 +2522,29 @@ from .youporn import (
     YouPornStarIE,
     YouPornTagIE,
     YouPornVideosIE,
+)
+from .youtube import (
+    YoutubeClipIE,
+    YoutubeConsentRedirectIE,
+    YoutubeFavouritesIE,
+    YoutubeHistoryIE,
+    YoutubeIE,
+    YoutubeLivestreamEmbedIE,
+    YoutubeMusicSearchURLIE,
+    YoutubeNotificationsIE,
+    YoutubePlaylistIE,
+    YoutubeRecommendedIE,
+    YoutubeSearchDateIE,
+    YoutubeSearchIE,
+    YoutubeSearchURLIE,
+    YoutubeShortsAudioPivotIE,
+    YoutubeSubscriptionsIE,
+    YoutubeTabIE,
+    YoutubeTruncatedIDIE,
+    YoutubeTruncatedURLIE,
+    YoutubeWatchLaterIE,
+    YoutubeYtBeIE,
+    YoutubeYtUserIE,
 )
 from .zaiko import (
     ZaikoETicketIE,
