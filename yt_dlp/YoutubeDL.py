@@ -3479,10 +3479,11 @@ class YoutubeDL:
                         self.report_file_already_downloaded(dl_filename)
                     elif fd:
                         for f in info_dict['requested_formats'] if fd != FFmpegFD else []:
-                            f['filepath'] = fname = prepend_extension(
-                                correct_ext(temp_filename, info_dict['ext']),
-                                'f{}'.format(f['format_id']), info_dict['ext'])
-                            downloaded.append(fname)
+                            if temp_filename != '-':
+                                f['filepath'] = fname = prepend_extension(
+                                    correct_ext(temp_filename, info_dict['ext']),
+                                    'f{}'.format(f['format_id']), info_dict['ext'])
+                                downloaded.append(fname)
                         info_dict['url'] = '\n'.join(f['url'] for f in info_dict['requested_formats'])
                         success, real_download = self.dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download
