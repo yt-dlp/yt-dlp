@@ -75,11 +75,11 @@ class SequenceFile:
         if not latest_segment:
             return True
         if segment.is_init_segment and latest_segment.is_init_segment:
-            # Only one segment allowed for init segments
+            # Only one segment allowed for init sequences
             return False
         if (
             self.max_segments
-            and (self.sequence.last_segment.sequence_number - self.sequence.first_segment.sequence_number) >= self.max_segments
+            and (self.sequence.last_segment.sequence_number - (self.sequence.first_segment.sequence_number - 1)) >= self.max_segments
         ):
             return False
 
