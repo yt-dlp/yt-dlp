@@ -2491,6 +2491,10 @@ from .yandexmusic import (
     YandexMusicPlaylistIE,
     YandexMusicTrackIE,
 )
+from .yandextelemost import (
+    YandexRuntimeStrmIE,
+    YandexTelemostIE,
+)
 from .yandexvideo import (
     YandexVideoIE,
     YandexVideoPreviewIE,
