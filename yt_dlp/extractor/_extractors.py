@@ -570,6 +570,7 @@ from .ertgr import (
     ERTFlixIE,
     ERTWebtvEmbedIE,
 )
+from .escribe import EscribeIE
 from .espn import (
     ESPNIE,
     ESPNArticleIE,
