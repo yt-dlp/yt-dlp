@@ -1814,6 +1814,9 @@ Line 1
     GET_ELEMENT_BY_ATTRIBUTE_TEST_STRING = '''
         <div itemprop="author" itemscope>foo</div>
     '''
+    VOID_ELEMENT_TEST_STRING = '''
+        <img alt="foo" src="bar.png"><img alt="foobar" src="baz.jpg"><img alt="foo"/>
+    '''
 
     def test_get_element_by_attribute(self):
         html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
@@ -1826,6 +1829,10 @@ Line 1
 
         self.assertEqual(get_element_by_attribute('itemprop', 'author', html), 'foo')
 
+        html = self.VOID_ELEMENT_TEST_STRING
+
+        self.assertEqual(get_element_by_attribute('alt', 'foo', html), '')
+
     def test_get_element_html_by_attribute(self):
         html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
 
@@ -1836,6 +1843,10 @@ Line 1
         html = self.GET_ELEMENT_BY_ATTRIBUTE_TEST_STRING
 
         self.assertEqual(get_element_html_by_attribute('itemprop', 'author', html), html.strip())
+
+        html = self.VOID_ELEMENT_TEST_STRING
+
+        self.assertEqual(get_element_html_by_attribute('alt', 'foo', html), '<img alt="foo" src="bar.png">')
 
     GET_ELEMENTS_BY_CLASS_TEST_STRING = '''
         <span class="foo bar">nice</span><span class="foo bar">also nice</span>
@@ -1861,12 +1872,21 @@ Line 1
         self.assertEqual(get_elements_by_attribute('class', 'foo', html), [])
         self.assertEqual(get_elements_by_attribute('class', 'no-such-foo', html), [])
 
+        html = self.VOID_ELEMENT_TEST_STRING
+
+        self.assertEqual(get_elements_by_attribute('alt', 'foo', html), ['', ''])
+
     def test_get_elements_html_by_attribute(self):
         html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
 
         self.assertEqual(get_elements_html_by_attribute('class', 'foo bar', html), self.GET_ELEMENTS_BY_CLASS_RES)
         self.assertEqual(get_elements_html_by_attribute('class', 'foo', html), [])
         self.assertEqual(get_elements_html_by_attribute('class', 'no-such-foo', html), [])
+
+        html = self.VOID_ELEMENT_TEST_STRING
+
+        self.assertEqual(get_elements_html_by_attribute(
+            'alt', 'foo', html), ['<img alt="foo" src="bar.png">', '<img alt="foo"/>'])
 
     def test_get_elements_text_and_html_by_attribute(self):
         html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
@@ -1879,6 +1899,11 @@ Line 1
 
         self.assertEqual(list(get_elements_text_and_html_by_attribute(
             'class', 'foo', '<a class="foo">nice</a><span class="foo">nice</span>', tag='a')), [('nice', '<a class="foo">nice</a>')])
+
+        html = self.VOID_ELEMENT_TEST_STRING
+
+        self.assertEqual(list(get_elements_text_and_html_by_attribute(
+            'alt', 'foo', html, tag='img')), [('', '<img alt="foo" src="bar.png">'), ('', '<img alt="foo"/>')])
 
     GET_ELEMENT_BY_TAG_TEST_STRING = '''
     random text lorem ipsum</p>
@@ -1907,6 +1932,10 @@ Line 1
             get_element_text_and_html_by_tag('span', html),
             (self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_TEXT, self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML))
         self.assertRaises(compat_HTMLParseError, get_element_text_and_html_by_tag, 'article', html)
+
+        html = self.VOID_ELEMENT_TEST_STRING
+
+        self.assertEqual(get_element_text_and_html_by_tag('img', html), ('', '<img alt="foo" src="bar.png">'))
 
     def test_iri_to_uri(self):
         self.assertEqual(
