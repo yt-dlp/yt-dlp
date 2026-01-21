@@ -497,6 +497,7 @@ from .dplay import (
     DiscoveryPlusIndiaShowIE,
     DiscoveryPlusItalyIE,
     DiscoveryPlusItalyShowIE,
+    DiscoveryPlusShowIE,
     DPlayIE,
     FoodNetworkIE,
     GoDiscoveryIE,
