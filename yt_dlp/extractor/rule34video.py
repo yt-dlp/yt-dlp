@@ -9,8 +9,8 @@ from ..utils import (
     get_element_html_by_class,
     get_elements_by_class,
     int_or_none,
-    parse_count,
     parse_duration,
+    str_to_int,
     unescapeHTML,
 )
 from ..utils.traversal import traverse_obj
@@ -77,20 +77,32 @@ class Rule34VideoIE(InfoExtractor):
             formats.append({
                 'url': url,
                 'ext': ext.lower(),
-                'quality': quality,
+                'height': int(quality),
             })
 
-        categories, creators, uploader, uploader_url = [None] * 4
+        categories, creators, uploader, uploader_url, views, likes = [None] * 6
         for col in get_elements_by_class('col', webpage):
             label = clean_html(get_element_by_class('label', col))
-            if label == 'Categories:':
+            if label == 'Categories':
                 categories = list(map(clean_html, get_elements_by_class('item', col)))
-            elif label == 'Artist:':
+            elif label == 'Artist':
                 creators = list(map(clean_html, get_elements_by_class('item', col)))
-            elif label == 'Uploaded By:':
-                uploader = clean_html(get_element_by_class('name', col))
-                uploader_url = extract_attributes(get_element_html_by_class('name', col) or '').get('href')
+            elif label == 'Uploaded by':
+                uploader = clean_html(get_element_by_class('item', col))
+                uploader_url = extract_attributes(get_element_html_by_class('item', col) or '').get('href')
 
+        views_text = self._html_search_regex(
+            r'custom-eye">\s+<use[^>]+></use>\s+</svg>\s+<span>([^<]+)', webpage, 'views', default='').replace(' ', '')
+        views = int_or_none(views_text)
+        if views is None:
+            precise_match = re.search(r'\((?P<precise_views>[^d]+)\)', views_text)
+            if precise_match:
+                views = str_to_int(precise_match['precise_views'])
+
+        likes_text = get_element_by_class('voters count', webpage)
+        likes_match = re.search(r'\((?P<num_likes>[^d]+)\)', likes_text)
+        if likes_match:
+            likes = str_to_int(likes_match['num_likes'])
         return {
             **traverse_obj(self._search_json_ld(webpage, video_id, default={}), ({
                 'title': 'title',
@@ -107,10 +119,9 @@ class Rule34VideoIE(InfoExtractor):
             'thumbnail': self._html_search_regex(
                 r'preview_url:\s+\'([^\']+)\'', webpage, 'thumbnail', default=None),
             'duration': parse_duration(self._html_search_regex(
-                r'"icon-clock"></i>\s+<span>((?:\d+:?)+)', webpage, 'duration', default=None)),
-            'view_count': int_or_none(self._html_search_regex(
-                r'"icon-eye"></i>\s+<span>([ \d]+)', webpage, 'views', default='').replace(' ', '')),
-            'like_count': parse_count(get_element_by_class('voters count', webpage)),
+                r'custom-time">\s+<use[^>]+></use>\s+</svg>\s+<span>((?:\d+:?)+)', webpage, 'duration', default=None)),
+            'view_count': views,
+            'like_count': likes,
             'comment_count': int_or_none(self._search_regex(
                 r'[^(]+\((\d+)\)', get_element_by_attribute('href', '#tab_comments', webpage), 'comment count', fatal=False)),
             'age_limit': 18,
