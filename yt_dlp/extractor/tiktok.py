@@ -1169,27 +1169,43 @@ class TikTokIE(TikTokBaseIE):
                         })
 
             if not formats:
-                video_url_candidates = set()
+                video_url_candidates = []
                 video_url_patterns = [
                     # TikTok CDN video URLs (exclude audio patterns)
                     r'(https?://v\d+[a-z]?\.tiktokcdn\.com/[^"\'<>\s\\]+)',
                     r'(https?://v\d+[a-z]?-[a-z]+\.tiktokcdn\.com/[^"\'<>\s\\]+)',
-                    # Escaped URLs in JSON
+                    r'(https?://v\d+m\.tiktokcdn\.com/[^"\'<>\s\\]+)',
+                    # Escaped JSON URLs in embed page
                     r'"(?:playAddr|src)"["\']?\s*:\s*"(https?:[^"]+)"',
                 ]
                 for pattern in video_url_patterns:
                     for video_url in re.findall(pattern, embed_page, re.IGNORECASE):
-                        # Clean up the URL
                         video_url = video_url.replace('\\u002F', '/').replace('\\/', '/').replace('\\u0026', '&')
-                        # Filter out audio-only URLs
-                        if 'audio_mpeg' in video_url or 'mime_type=audio' in video_url:
-                            continue
-                        # Only accept video URLs
-                        if video_url and ('tiktokcdn' in video_url or 'bytedance' in video_url):
-                            if 'video' in video_url or 'mime_type=video' in video_url or 'video_mp4' in video_url:
-                                video_url_candidates.add(video_url)
 
-                for i, video_url in enumerate(video_url_candidates):
+                        if any(audio_marker in video_url for audio_marker in (
+                            'audio_mpeg', 'mime_type=audio', '/music/', '-music-',
+                        )):
+                            continue
+                        if video_url and ('tiktokcdn' in video_url or 'bytedance' in video_url):
+                            if '/video/' in video_url or 'mime_type=video' in video_url or 'video_mp4' in video_url:
+                                # Prioritize by app ID: a=1233/a=0 > no app ID > a=1180
+                                app_id_match = re.search(r'[?&]a=(\d+)', video_url)
+                                app_id = app_id_match.group(1) if app_id_match else None
+                                if app_id in ('1233', '0'):
+                                    priority = 2  # Preferred
+                                elif app_id == '1180':
+                                    priority = 0  # Lower priority (trill app)
+                                else:
+                                    priority = 1  # Neutral
+                                video_url_candidates.append((video_url, priority))
+
+                # Sort by priority and theb by URL
+                seen_urls = set()
+                sorted_candidates = sorted(video_url_candidates, key=lambda x: (-x[1], x[0]))
+                for i, (video_url, priority) in enumerate(sorted_candidates):
+                    if video_url in seen_urls:
+                        continue
+                    seen_urls.add(video_url)
                     formats.append({
                         'url': video_url,
                         'ext': 'mp4',
@@ -1197,6 +1213,7 @@ class TikTokIE(TikTokBaseIE):
                         'format_note': 'From embed page (CDN)',
                         'vcodec': 'h264',
                         'acodec': 'aac',
+                        'preference': priority - 1,
                     })
 
             self._remove_duplicate_formats(formats)
