@@ -37,6 +37,7 @@ from ..utils import (
 class TikTokBaseIE(InfoExtractor):
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
+    _OEMBED_API = 'https://www.tiktok.com/oembed'
     QUALITIES = ('360p', '540p', '720p', '1080p')
 
     _APP_INFO_DEFAULTS = {
@@ -47,11 +48,12 @@ class TikTokBaseIE(InfoExtractor):
         'app_version': '35.1.3',
         'manifest_app_version': '2023501030',
         # "app id": aweme = 1128, trill = 1180, musical_ly = 1233, universal = 0
-        'aid': '0',
+        'aid': '1233',
     }
     _APP_INFO_POOL = None
     _APP_INFO = None
     _APP_USER_AGENT = None
+    _cookies_initialized = False
 
     @functools.cached_property
     def _KNOWN_APP_INFO(self):
@@ -130,6 +132,51 @@ class TikTokBaseIE(InfoExtractor):
             r'<script[^>]+\bid="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>', webpage,
             'universal data', display_id, end_pattern=r'</script>', default={}),
             ('__DEFAULT_SCOPE__', {dict})) or {}
+
+    def _initialize_cookies(self, video_id):
+        """Pre-initialize cookies by making a request to establish a session."""
+        if self._cookies_initialized:
+            return
+
+        # Make a lightweight request to get session cookies
+        try:
+            self._request_webpage(
+                'https://www.tiktok.com/', video_id,
+                note='Initializing session', errnote=False,
+                headers={'Accept': 'text/html'}, fatal=False)
+        except Exception:
+            pass  # Ignore failures, cookies are optional
+        self._cookies_initialized = True
+
+    def _get_oembed_data(self, url, video_id):
+        """Fetch video metadata from TikTok's oEmbed API."""
+        try:
+            return self._download_json(
+                self._OEMBED_API, video_id,
+                note='Downloading oEmbed data',
+                errnote='Unable to download oEmbed data',
+                query={'url': url}, fatal=False)
+        except ExtractorError:
+            return None
+
+    def _is_blocked_response(self, webpage, urlh=None):
+        """Check if the response indicates a blocked/error page from TikTok."""
+        if not webpage:
+            return True
+        # Check for very small responses (error pages)
+        if len(webpage) < 1000:
+            return True
+        # Check for system error indicators in content
+        if 'x-tt-system-error' in webpage.lower() or '__NEXT_DATA__' not in webpage:
+            # Check if we have the expected data structures
+            if not any(marker in webpage for marker in [
+                '__UNIVERSAL_DATA_FOR_REHYDRATION__',
+                'SIGI_STATE',
+                'sigi-persisted-data',
+                '__NEXT_DATA__',
+            ]):
+                return True
+        return False
 
     def _call_api_impl(self, ep, video_id, query=None, data=None, headers=None, fatal=True,
                        note='Downloading API JSON', errnote='Unable to download API page', api_hostname=None):
@@ -241,34 +288,74 @@ class TikTokBaseIE(InfoExtractor):
     def _extract_web_data_and_status(self, url, video_id, fatal=True):
         video_data, status = {}, -1
 
-        res = self._download_webpage_handle(url, video_id, fatal=fatal, impersonate=True)
-        if res is False:
-            return video_data, status
+        # Initialize cookies first for better success rate
+        self._initialize_cookies(video_id)
 
-        webpage, urlh = res
-        if urllib.parse.urlparse(urlh.url).path == '/login':
-            message = 'TikTok is requiring login for access to this content'
-            if fatal:
-                self.raise_login_required(message)
-            self.report_warning(f'{message}. {self._login_hint()}')
-            return video_data, status
+        # Try with impersonation first, then fall back to other methods
+        max_retries = 3
+        for attempt in range(max_retries):
+            res = self._download_webpage_handle(
+                url, video_id, fatal=False, impersonate=True,
+                note=f'Downloading webpage{f" (attempt {attempt + 1})" if attempt else ""}')
+            if res is False:
+                if attempt < max_retries - 1:
+                    self.write_debug(f'Webpage download failed, retrying ({attempt + 1}/{max_retries})')
+                    time.sleep(1 + random.random())
+                    continue
+                break
 
-        if universal_data := self._get_universal_data(webpage, video_id):
-            self.write_debug('Found universal data for rehydration')
-            status = traverse_obj(universal_data, ('webapp.video-detail', 'statusCode', {int})) or 0
-            video_data = traverse_obj(universal_data, ('webapp.video-detail', 'itemInfo', 'itemStruct', {dict}))
+            webpage, urlh = res
 
-        elif sigi_data := self._get_sigi_state(webpage, video_id):
-            self.write_debug('Found sigi state data')
-            status = traverse_obj(sigi_data, ('VideoPage', 'statusCode', {int})) or 0
-            video_data = traverse_obj(sigi_data, ('ItemModule', video_id, {dict}))
+            # Check for login redirect
+            if urllib.parse.urlparse(urlh.url).path == '/login':
+                message = 'TikTok is requiring login for access to this content'
+                if fatal:
+                    self.raise_login_required(message)
+                self.report_warning(f'{message}. {self._login_hint()}')
+                return video_data, status
 
-        elif next_data := self._search_nextjs_data(webpage, video_id, default={}):
-            self.write_debug('Found next.js data')
-            status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode', {int})) or 0
-            video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct', {dict}))
+            # Check if response is blocked/error page
+            if self._is_blocked_response(webpage, urlh):
+                self.write_debug(f'Received blocked/minimal response (attempt {attempt + 1})')
+                if attempt < max_retries - 1:
+                    time.sleep(1.5 + random.random())
+                    continue
+                # On final attempt, still try to parse what we got
+                self.write_debug('All attempts returned blocked responses, trying to parse anyway')
 
-        elif fatal:
+            # Try to extract data from the webpage
+            if universal_data := self._get_universal_data(webpage, video_id):
+                self.write_debug('Found universal data for rehydration')
+                status = traverse_obj(universal_data, ('webapp.video-detail', 'statusCode', {int})) or 0
+                video_data = traverse_obj(universal_data, ('webapp.video-detail', 'itemInfo', 'itemStruct', {dict}))
+                if video_data:
+                    break
+
+            if sigi_data := self._get_sigi_state(webpage, video_id):
+                self.write_debug('Found sigi state data')
+                status = traverse_obj(sigi_data, ('VideoPage', 'statusCode', {int})) or 0
+                video_data = traverse_obj(sigi_data, ('ItemModule', video_id, {dict}))
+                if video_data:
+                    break
+
+            if next_data := self._search_nextjs_data(webpage, video_id, default={}):
+                self.write_debug('Found next.js data')
+                status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode', {int})) or 0
+                video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct', {dict}))
+                if video_data:
+                    break
+
+            # If no data found and more retries available, continue
+            if attempt < max_retries - 1:
+                self.write_debug('No video data found in response, retrying')
+                time.sleep(1 + random.random())
+                continue
+
+        # If still no data, try the embed page as a last resort
+        if not video_data:
+            video_data, status = self._try_extract_from_embed(url, video_id)
+
+        if not video_data and fatal:
             raise ExtractorError('Unable to extract webpage video data')
 
         if not traverse_obj(video_data, ('video', {dict})) and traverse_obj(video_data, ('isContentClassified', {bool})):
@@ -276,6 +363,41 @@ class TikTokBaseIE(InfoExtractor):
             if fatal:
                 self.raise_login_required(message)
             self.report_warning(f'{message}. {self._login_hint()}', video_id=video_id)
+
+        return video_data, status
+
+    def _try_extract_from_embed(self, url, video_id):
+        """Try to extract video data from the embed page."""
+        video_data, status = {}, -1
+
+        try:
+            embed_url = f'https://www.tiktok.com/embed/v2/{video_id}'
+            embed_page = self._download_webpage(
+                embed_url, video_id, note='Downloading embed page',
+                errnote='Unable to download embed page', fatal=False)
+
+            if embed_page:
+                # Try to find video data in the embed page
+                if frontity_data := self._search_json(
+                    r'<script[^>]+\bid=[\'"]__FRONTITY_CONNECT_STATE__[\'"][^>]*>',
+                    embed_page, 'frontity data', video_id, default={}):
+                    self.write_debug('Found frontity data in embed page')
+                    video_data = traverse_obj(frontity_data, (
+                        'source', 'data', ..., 'itemInfo', 'itemStruct', {dict}), get_all=False)
+                    if video_data:
+                        status = 0
+
+                if not video_data:
+                    # Try alternative embed data structure
+                    if embed_data := self._search_json(
+                        r'<script[^>]+\bdata-testid=[\'"]__UNIVERSAL_DATA__[\'"][^>]*>',
+                        embed_page, 'embed data', video_id, default={}, end_pattern=r'</script>'):
+                        video_data = traverse_obj(embed_data, ('itemInfo', 'itemStruct', {dict}))
+                        if video_data:
+                            status = 0
+
+        except Exception as e:
+            self.write_debug(f'Embed extraction failed: {e}')
 
         return video_data, status
 
@@ -931,7 +1053,7 @@ class TikTokIE(TikTokBaseIE):
                 self.report_warning(f'{e}; trying with webpage')
 
         url = self._create_url(user_id, video_id)
-        video_data, status = self._extract_web_data_and_status(url, video_id)
+        video_data, status = self._extract_web_data_and_status(url, video_id, fatal=False)
 
         if video_data and status == 0:
             return self._parse_aweme_video_web(video_data, url, video_id)
@@ -941,7 +1063,180 @@ class TikTokIE(TikTokBaseIE):
                 'You do not have permission to view this post. Log into an account that has access')
         elif status == 10204:
             raise ExtractorError('Your IP address is blocked from accessing this post', expected=True)
+
+        # Fallback to oEmbed API for basic metadata
+        self.write_debug('Trying oEmbed API fallback')
+        oembed_data = self._get_oembed_data(url, video_id)
+
+        if oembed_data:
+            # oEmbed doesn't provide direct video URLs, but gives us metadata
+            # We can construct a minimal result and try to get video from thumbnail patterns
+            self.write_debug('Got oEmbed data, attempting video extraction')
+            result = self._extract_from_oembed(oembed_data, url, video_id)
+            if result and result.get('formats'):
+                return result
+            # If we got metadata but no formats, report what we know
+            if result:
+                self.report_warning('Could not extract video formats, but metadata was retrieved')
+                result['formats'] = []
+                return result
+
+        if status == -1:
+            raise ExtractorError(
+                'Unable to extract video data. TikTok may be blocking automated access. '
+                'Try using --cookies-from-browser to pass your browser cookies.', expected=True)
         raise ExtractorError(f'Video not available, status code {status}', video_id=video_id)
+
+    def _extract_from_oembed(self, oembed_data, url, video_id):
+        """Extract video info from oEmbed data."""
+        if not oembed_data:
+            return None
+
+        thumbnail_url = oembed_data.get('thumbnail_url')
+        formats = []
+
+        # Try to extract video URL from thumbnail URL pattern
+        # TikTok thumbnail URLs sometimes contain patterns that can be modified to get video URLs
+        if thumbnail_url:
+            # The thumbnail URL contains similar path structure to video URLs
+            # Try common video URL patterns based on thumbnail
+            video_patterns = self._try_video_urls_from_thumbnail(thumbnail_url, video_id)
+            for video_url in video_patterns:
+                formats.append({
+                    'url': video_url,
+                    'ext': 'mp4',
+                    'format_id': 'oembed',
+                    'format_note': 'From oEmbed thumbnail pattern',
+                })
+
+        # Try the embed page for actual video URLs
+        if not formats:
+            embed_formats = self._try_extract_formats_from_embed(video_id)
+            formats.extend(embed_formats)
+
+        # Extract author info from oEmbed
+        author_url = oembed_data.get('author_url', '')
+        uploader = None
+        if author_url:
+            uploader_match = re.search(r'@([\w.-]+)', author_url)
+            if uploader_match:
+                uploader = uploader_match.group(1)
+
+        return {
+            'id': video_id,
+            'title': oembed_data.get('title') or f'TikTok video #{video_id}',
+            'description': oembed_data.get('title'),
+            'uploader': uploader or oembed_data.get('author_name'),
+            'uploader_url': oembed_data.get('author_url'),
+            'thumbnail': thumbnail_url,
+            'thumbnails': [{'url': thumbnail_url}] if thumbnail_url else None,
+            'formats': formats,
+            'http_headers': {'Referer': url},
+        }
+
+    def _try_video_urls_from_thumbnail(self, thumbnail_url, video_id):
+        """Try to derive video URLs from thumbnail URL patterns."""
+        # TikTok CDN patterns - thumbnails and videos often share similar base URLs
+        # This is a heuristic approach
+        return []  # Conservative: don't generate potentially broken URLs
+
+    def _try_extract_formats_from_embed(self, video_id):
+        """Try to extract video formats from the embed page."""
+        formats = []
+        try:
+            embed_url = f'https://www.tiktok.com/embed/v2/{video_id}'
+            embed_page = self._download_webpage(
+                embed_url, video_id, note='Downloading embed page for formats',
+                errnote=False, fatal=False)
+
+            if not embed_page:
+                return formats
+
+            # Try to extract video data from FRONTITY_CONNECT_STATE
+            frontity_data = self._search_json(
+                r'<script[^>]+\bid=[\'"]__FRONTITY_CONNECT_STATE__[\'"][^>]*>',
+                embed_page, 'frontity data', video_id, default={}, end_pattern=r'</script>')
+
+            if frontity_data:
+                # Get the item struct for video info
+                item_struct = traverse_obj(frontity_data, (
+                    'source', 'data', ..., 'itemInfo', 'itemStruct', {dict}), get_all=False)
+
+                if item_struct:
+                    # Use the existing _extract_web_formats method with the proper data structure
+                    formats = self._extract_web_formats(item_struct)
+                    if formats:
+                        return formats
+
+                    # Fallback: try to extract URLs manually from the video structure
+                    video_info = traverse_obj(item_struct, ('video', {dict})) or {}
+                    play_width = int_or_none(video_info.get('width'))
+                    play_height = int_or_none(video_info.get('height'))
+
+                    # Extract play URLs
+                    for play_url in traverse_obj(video_info, ('playAddr', ((..., 'src'), None), {url_or_none})):
+                        formats.append({
+                            'url': self._proto_relative_url(play_url),
+                            'ext': 'mp4',
+                            'format_id': 'play',
+                            'format_note': 'From embed page',
+                            'vcodec': 'h264',
+                            'acodec': 'aac',
+                            'width': play_width,
+                            'height': play_height,
+                        })
+
+                    # Extract download URLs
+                    for dl_url in traverse_obj(video_info, (('downloadAddr', ('download', 'url')), {url_or_none})):
+                        formats.append({
+                            'url': self._proto_relative_url(dl_url),
+                            'ext': 'mp4',
+                            'format_id': 'download',
+                            'format_note': 'From embed page, watermarked',
+                            'vcodec': 'h264',
+                            'acodec': 'aac',
+                            'preference': -2,
+                        })
+
+            # Also try regex patterns for video URLs in the page
+            if not formats:
+                video_url_candidates = set()
+                # Look for URLs in escaped JSON format
+                video_url_patterns = [
+                    # TikTok CDN video URLs (exclude audio patterns)
+                    r'(https?://v\d+[a-z]?\.tiktokcdn\.com/[^"\'<>\s\\]+)',
+                    r'(https?://v\d+[a-z]?-[a-z]+\.tiktokcdn\.com/[^"\'<>\s\\]+)',
+                    # Escaped URLs in JSON
+                    r'"(?:playAddr|src)"["\']?\s*:\s*"(https?:[^"]+)"',
+                ]
+                for pattern in video_url_patterns:
+                    for video_url in re.findall(pattern, embed_page, re.IGNORECASE):
+                        # Clean up the URL
+                        video_url = video_url.replace('\\u002F', '/').replace('\\/', '/').replace('\\u0026', '&')
+                        # Filter out audio-only URLs
+                        if 'audio_mpeg' in video_url or 'mime_type=audio' in video_url:
+                            continue
+                        # Only accept video URLs
+                        if video_url and ('tiktokcdn' in video_url or 'bytedance' in video_url):
+                            if 'video' in video_url or 'mime_type=video' in video_url or 'video_mp4' in video_url:
+                                video_url_candidates.add(video_url)
+
+                for i, video_url in enumerate(video_url_candidates):
+                    formats.append({
+                        'url': video_url,
+                        'ext': 'mp4',
+                        'format_id': f'embed_{i}',
+                        'format_note': 'From embed page (CDN)',
+                        'vcodec': 'h264',
+                        'acodec': 'aac',
+                    })
+
+            self._remove_duplicate_formats(formats)
+
+        except Exception as e:
+            self.write_debug(f'Embed format extraction failed: {e}')
+
+        return formats
 
 
 class TikTokUserIE(TikTokBaseIE):
