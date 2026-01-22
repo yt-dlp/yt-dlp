@@ -56,7 +56,7 @@ class TikTokBaseIE(InfoExtractor):
     @functools.cached_property
     def _KNOWN_APP_INFO(self):
         # If we have a genuine device ID, we may not need any IID
-        default = [''] if self._KNOWN_DEVICE_ID else []
+        default = ['']  # enable app-based extraction out of the box
         return self._configuration_arg('app_info', default, ie_key=TikTokIE)
 
     @functools.cached_property
@@ -68,9 +68,24 @@ class TikTokBaseIE(InfoExtractor):
         return self._KNOWN_DEVICE_ID or str(random.randint(7250000000000000000, 7325099899999994577))
 
     @functools.cached_property
-    def _API_HOSTNAME(self):
+    def _IID(self):
+        # Install ID (iid) used by the mobile API. When not explicitly provided via extractor-args,
+        # generate a plausible value so the app-based fallback works out of the box.
+        return str(random.randint(10 ** 18, 10 ** 19 - 1))
+
+    @functools.cached_property
+    def _API_HOSTNAMES(self):
         return self._configuration_arg(
-            'api_hostname', ['api16-normal-c-useast1a.tiktokv.com'], ie_key=TikTokIE)[0]
+            'api_hostname', [
+                'api16-normal-c-useast1a.tiktokv.com',
+                'api22-normal-c-useast1a.tiktokv.com',
+                'api19-normal-c-useast1a.tiktokv.com',
+                'api-h2.tiktokv.com',
+            ], ie_key=TikTokIE)
+
+    @functools.cached_property
+    def _API_HOSTNAME(self):
+        return self._API_HOSTNAMES[0]
 
     def _get_next_app_info(self):
         if self._APP_INFO_POOL is None:
@@ -89,6 +104,7 @@ class TikTokBaseIE(InfoExtractor):
             return False
 
         self._APP_INFO = self._APP_INFO_POOL.pop(0)
+        self._APP_INFO.setdefault('iid', self._IID)
 
         app_name = self._APP_INFO['app_name']
         version = self._APP_INFO['manifest_app_version']
@@ -116,13 +132,14 @@ class TikTokBaseIE(InfoExtractor):
             ('__DEFAULT_SCOPE__', {dict})) or {}
 
     def _call_api_impl(self, ep, video_id, query=None, data=None, headers=None, fatal=True,
-                       note='Downloading API JSON', errnote='Unable to download API page'):
-        self._set_cookie(self._API_HOSTNAME, 'odin_tt', ''.join(random.choices('0123456789abcdef', k=160)))
+                       note='Downloading API JSON', errnote='Unable to download API page', api_hostname=None):
+        api_hostname = api_hostname or self._API_HOSTNAME
+        self._set_cookie(api_hostname, 'odin_tt', ''.join(random.choices('0123456789abcdef', k=160)))
         webpage_cookies = self._get_cookies(self._WEBPAGE_HOST)
         if webpage_cookies.get('sid_tt'):
-            self._set_cookie(self._API_HOSTNAME, 'sid_tt', webpage_cookies['sid_tt'].value)
+            self._set_cookie(api_hostname, 'sid_tt', webpage_cookies['sid_tt'].value)
         return self._download_json(
-            f'https://{self._API_HOSTNAME}/aweme/v1/{ep}/', video_id=video_id,
+            f'https://{api_hostname}/aweme/v1/{ep}/', video_id=video_id,
             fatal=fatal, note=note, errnote=errnote, headers={
                 'User-Agent': self._APP_USER_AGENT,
                 'Accept': 'application/json',
@@ -171,7 +188,7 @@ class TikTokBaseIE(InfoExtractor):
             'build_number': self._APP_INFO['app_version'],
             'region': 'US',
             'ts': int(time.time()),
-            'iid': self._APP_INFO.get('iid'),
+            'iid': self._APP_INFO.get('iid') or self._IID,
             'device_id': self._DEVICE_ID,
             'openudid': ''.join(random.choices('0123456789abcdef', k=16)),
         })
@@ -186,14 +203,18 @@ class TikTokBaseIE(InfoExtractor):
                 self.report_warning(message)
                 return
 
+        api_hostnames = self._API_HOSTNAMES or [self._API_HOSTNAME]
+
         max_tries = len(self._APP_INFO_POOL) + 1  # _APP_INFO_POOL + _APP_INFO
         for count in itertools.count(1):
+            api_hostname = api_hostnames[(count - 1) % len(api_hostnames)]
+            self.write_debug(f'Using API hostname: {api_hostname}')
             self.write_debug(str(self._APP_INFO))
             real_query = self._build_api_query(query or {})
             try:
                 return self._call_api_impl(
                     ep, video_id, query=real_query, data=data, headers=headers,
-                    fatal=fatal, note=note, errnote=errnote)
+                    fatal=fatal, note=note, errnote=errnote, api_hostname=api_hostname)
             except ExtractorError as e:
                 if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
                     message = str(e.cause or e.msg)
