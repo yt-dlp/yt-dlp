@@ -244,7 +244,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'opera': os.path.join(appdata_roaming, R'Opera Software\Opera Stable'),
             'vivaldi': os.path.join(appdata_local, R'Vivaldi\User Data'),
             'whale': os.path.join(appdata_local, R'Naver\Naver Whale\User Data'),
-            'arc': os.path.join(appdata_local, R'Arc\User Data')
+            'arc': os.path.join(appdata_local, R'Packages\TheBrowserCompany.Arc_ttt1ap7aakyb4\LocalCache\Local\Arc\User Data')
         }[browser_name]
 
     elif sys.platform == 'darwin':
