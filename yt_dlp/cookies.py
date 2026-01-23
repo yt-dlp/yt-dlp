@@ -257,7 +257,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'opera': os.path.join(appdata, 'com.operasoftware.Opera'),
             'vivaldi': os.path.join(appdata, 'Vivaldi'),
             'whale': os.path.join(appdata, 'Naver/Whale'),
-            'arc': os.path.join(appdata, R'Arc/User Data'),
+            'arc': os.path.join(appdata, 'Arc/User Data'),
         }[browser_name]
 
     else:
