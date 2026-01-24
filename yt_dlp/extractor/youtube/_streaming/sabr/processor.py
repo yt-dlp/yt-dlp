@@ -239,6 +239,11 @@ class SabrProcessor:
         if sequence_number is None and not media_header.is_init_segment:
             raise SabrStreamError(f'Sequence number not found in MediaHeader (media_header={media_header})')
 
+        # Guard. There should only be one partial segment per format at a time.
+        if any(partial_segment.format_id == media_header.format_id for partial_segment in self.partial_segments.values()):
+            raise SabrStreamError(
+                f'Partial segment already exists for format {media_header.format_id}')
+
         initialized_format.sequence_lmt = media_header.sequence_lmt
 
         # Need to keep track of if we discard due to be consumed or not

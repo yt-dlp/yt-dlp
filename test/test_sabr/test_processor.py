@@ -2146,6 +2146,27 @@ class TestMediaHeader:
         with pytest.raises(SabrStreamError, match='Previous segment not part of any consumed range'):
             processor.process_media_header(make_media_header(selector, sequence_no=2))
 
+    def test_error_new_segment_before_previous_complete(self, base_args):
+        # Should raise an error if a new segment is started before the previous one is complete
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+
+        # Start first segment for the format
+        media_header = make_media_header(selector, sequence_no=1, header_id=0)
+        result = processor.process_media_header(media_header)
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert isinstance(result.sabr_part, MediaSegmentInitSabrPart)
+
+        # Now start a new segment before completing the previous one
+        new_media_header = make_media_header(selector, sequence_no=2, header_id=1)
+        with pytest.raises(SabrStreamError, match=r'Partial segment already exists for format FormatId\(itag=140, lmt=None, xtags=None\)'):
+            processor.process_media_header(new_media_header)
+
 
 class TestMedia:
     def test_valid_media_parts(self, base_args):
