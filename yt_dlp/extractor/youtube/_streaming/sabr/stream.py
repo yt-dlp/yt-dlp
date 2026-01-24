@@ -364,18 +364,18 @@ class SabrStream:
         wait_seconds = 0
         # TODO: move this for loop into processor
         for izf in self.processor.initialized_formats.values():
-            if not izf.current_segment:
+            if not izf.previous_segment:
                 continue
 
             # Guard: Check that the segment is not in multiple consumed ranges
             # This should not happen, but if it does, we should bail
             count = sum(
                 1 for cr in izf.consumed_ranges
-                if cr.start_sequence_number <= izf.current_segment.sequence_number <= cr.end_sequence_number
+                if cr.start_sequence_number <= izf.previous_segment.sequence_number <= cr.end_sequence_number
             )
 
             if count > 1:
-                raise SabrStreamError(f'Segment {izf.current_segment.sequence_number} for format {izf.format_id} in {count} consumed ranges')
+                raise SabrStreamError(f'Segment {izf.previous_segment.sequence_number} for format {izf.format_id} in {count} consumed ranges')
 
         enabled_initialized_formats = [izf for izf in self.processor.initialized_formats.values() if not izf.discard]
 

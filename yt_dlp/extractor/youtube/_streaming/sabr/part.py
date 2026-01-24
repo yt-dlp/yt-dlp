@@ -87,7 +87,6 @@ class MediaSeekSabrPart(SabrPart):
     class Reason(enum.Enum):
         UNKNOWN = enum.auto()
         SERVER_SEEK = enum.auto()  # SABR_SEEK from server
-        CONSUMED_SEEK = enum.auto()  # Seeking as next fragment is already buffered
 
     reason: Reason
     format_id: FormatId

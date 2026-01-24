@@ -260,7 +260,7 @@ class SabrProcessor:
         # Note: If the format is to be discarded, we do not care about the order
         #  and can expect uncommanded seeks as the consumer does not know about it.
         # Note: previous segment should never be an init segment.
-        previous_segment = initialized_format.current_segment
+        previous_segment = initialized_format.previous_segment
         if (
             previous_segment and not is_init_segment
             and not previous_segment.discard and not discard and not consumed
@@ -416,13 +416,13 @@ class SabrProcessor:
             # Do not create a consumed range for init segments
             return result
 
-        if segment.initialized_format.current_segment and self.is_live:
-            previous_segment = segment.initialized_format.current_segment
+        if segment.initialized_format.previous_segment and self.is_live:
+            previous_segment = segment.initialized_format.previous_segment
             self.logger.trace(
                 f'Previous segment {previous_segment.sequence_number} for format {segment.format_id} '
                 f'estimated duration difference from this segment ({segment.sequence_number}): {segment.start_ms - (previous_segment.start_ms + previous_segment.duration_ms)}ms')
 
-        segment.initialized_format.current_segment = segment
+        segment.initialized_format.previous_segment = segment
 
         if segment.consumed:
             # Segment is already consumed, do not create a new consumed range. It was probably discarded.
@@ -479,7 +479,7 @@ class SabrProcessor:
             self.client_abr_state.player_time_ms = min_seekable_time_ms
 
             for izf in self.initialized_formats.values():
-                izf.current_segment = None  # Clear the current segment as we expect segments to no longer be in order.
+                izf.previous_segment = None  # Clear the current segment as we expect segments to no longer be in order.
                 result.seek_sabr_parts.append(MediaSeekSabrPart(
                     reason=MediaSeekSabrPart.Reason.SERVER_SEEK,
                     format_id=izf.format_id,
@@ -597,7 +597,7 @@ class SabrProcessor:
         # Clear latest segment of each initialized format
         #  as we expect them to no longer be in order.
         for initialized_format in self.initialized_formats.values():
-            initialized_format.current_segment = None
+            initialized_format.previous_segment = None
             result.seek_sabr_parts.append(MediaSeekSabrPart(
                 reason=MediaSeekSabrPart.Reason.SERVER_SEEK,
                 format_id=initialized_format.format_id,

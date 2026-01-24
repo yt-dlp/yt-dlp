@@ -1031,7 +1031,7 @@ class TestLiveMetadata:
 
         # Add a dummy previous segment to each format - this should be cleared on seek
         for izf in processor.initialized_formats.values():
-            izf.current_segment = Segment(
+            izf.previous_segment = Segment(
                 format_id=izf.format_id,
             )
 
@@ -1049,7 +1049,7 @@ class TestLiveMetadata:
 
         # Current segment should be cleared to indicate a seek
         for izf in processor.initialized_formats.values():
-            assert izf.current_segment is None
+            assert izf.previous_segment is None
 
         logger.debug.assert_called_with('Player time 4999 is less than min seekable time 5000, simulating server seek')
 
@@ -1250,7 +1250,7 @@ class TestSabrSeek:
 
         # Add a dummy previous segment to each format - this should be cleared on seek
         for izf in processor.initialized_formats.values():
-            izf.current_segment = Segment(
+            izf.previous_segment = Segment(
                 format_id=izf.format_id,
             )
 
@@ -1270,7 +1270,7 @@ class TestSabrSeek:
 
         # Current segment should be cleared to indicate a seek
         for izf in processor.initialized_formats.values():
-            assert izf.current_segment is None
+            assert izf.previous_segment is None
 
         logger.debug.assert_called_with('Seeking to 5600ms')
 
@@ -1761,7 +1761,7 @@ class TestMediaHeader:
         media_header = make_media_header(selector, sequence_no=1)
 
         # Simulate that the previous segment was not in order
-        processor.initialized_formats[str(selector.format_ids[0])].current_segment = Segment(
+        processor.initialized_formats[str(selector.format_ids[0])].previous_segment = Segment(
             format_id=selector.format_ids[0],
             is_init_segment=False,
             sequence_number=10,
@@ -1793,7 +1793,7 @@ class TestMediaHeader:
         media_header = make_media_header(selector, sequence_no=1)
 
         # Simulate that the previous segment was discarded and not in order
-        processor.initialized_formats[str(selector.format_ids[0])].current_segment = Segment(
+        processor.initialized_formats[str(selector.format_ids[0])].previous_segment = Segment(
             format_id=selector.format_ids[0],
             is_init_segment=False,
             sequence_number=10,
@@ -1833,7 +1833,7 @@ class TestMediaHeader:
         media_header = make_media_header(selector, sequence_no=1)
 
         # Simulate that the previous segment was discarded and not in order
-        processor.initialized_formats[str(selector.format_ids[0])].current_segment = Segment(
+        processor.initialized_formats[str(selector.format_ids[0])].previous_segment = Segment(
             format_id=selector.format_ids[0],
             is_init_segment=False,
             sequence_number=10,
@@ -2021,7 +2021,7 @@ class TestMediaHeader:
 
         # Simulate that the current segment is not in order
         initialized_format = processor.initialized_formats[str(selector.format_ids[0])]
-        initialized_format.current_segment = Segment(
+        initialized_format.previous_segment = Segment(
             format_id=selector.format_ids[0],
             is_init_segment=False,
             sequence_number=10,
@@ -2058,7 +2058,7 @@ class TestMediaHeader:
 
         # Previous segment was segment 3
         # (technically it should be at the end of a consumed range, but adjusting for external changes)
-        initialized_format.current_segment = Segment(
+        initialized_format.previous_segment = Segment(
             format_id=selector.format_ids[0],
             is_init_segment=False,
             sequence_number=3,
@@ -2134,7 +2134,7 @@ class TestMediaHeader:
 
         # Simulate that the previous segment was not consumed and not in order
         initialized_format = processor.initialized_formats[str(selector.format_ids[0])]
-        initialized_format.current_segment = Segment(
+        initialized_format.previous_segment = Segment(
             format_id=selector.format_ids[0],
             is_init_segment=False,
             sequence_number=1,
@@ -2302,7 +2302,7 @@ class TestMediaEnd:
         assert media_header.header_id not in processor.partial_segments
         init_format = processor.initialized_formats[str(selector.format_ids[0])]
         assert init_format.init_segment is segment
-        assert init_format.current_segment is None
+        assert init_format.previous_segment is None
         assert not init_format.consumed_ranges
 
     def test_media_segment_media_end(self, base_args):
@@ -2334,7 +2334,7 @@ class TestMediaEnd:
         assert media_header.header_id not in processor.partial_segments
         init_format = processor.initialized_formats[str(selector.format_ids[0])]
         assert init_format.init_segment is None
-        assert init_format.current_segment is segment
+        assert init_format.previous_segment is segment
         assert len(init_format.consumed_ranges) == 1
         assert init_format.consumed_ranges[0] == ConsumedRange(
             start_sequence_number=1,
@@ -2399,7 +2399,7 @@ class TestMediaEnd:
             start_time_ms=6000,
             duration_ms=3000,
         )
-        assert init_format.current_segment is segment
+        assert init_format.previous_segment is segment
 
     def test_media_segment_discard(self, base_args):
         # Should discard the segment if it is marked as discard. Consumed ranges should be updated.
@@ -2426,7 +2426,7 @@ class TestMediaEnd:
         assert media_header.header_id not in processor.partial_segments
         init_format = processor.initialized_formats[str(selector.format_ids[0])]
         assert init_format.init_segment is None
-        assert init_format.current_segment is segment
+        assert init_format.previous_segment is segment
         assert len(init_format.consumed_ranges) == 1
 
     def test_init_segment_discard(self, base_args):
@@ -2454,7 +2454,7 @@ class TestMediaEnd:
         assert media_header.header_id not in processor.partial_segments
         init_format = processor.initialized_formats[str(selector.format_ids[0])]
         assert init_format.init_segment is segment
-        assert init_format.current_segment is None
+        assert init_format.previous_segment is None
         assert len(init_format.consumed_ranges) == 0
 
     def test_media_segment_consumed(self, base_args):
@@ -2487,7 +2487,7 @@ class TestMediaEnd:
         assert media_header.header_id not in processor.partial_segments
         init_format = processor.initialized_formats[str(selector.format_ids[0])]
         assert init_format.init_segment is None
-        assert init_format.current_segment is segment
+        assert init_format.previous_segment is segment
         assert len(init_format.consumed_ranges) == 1
         assert init_format.consumed_ranges[0] == ConsumedRange(
             start_sequence_number=1,
@@ -2524,7 +2524,7 @@ class TestMediaEnd:
         assert media_header.header_id not in processor.partial_segments
         init_format = processor.initialized_formats[str(selector.format_ids[0])]
         assert init_format.init_segment is segment  # xxx: Should we be taking the new init segment we discarded?
-        assert init_format.current_segment is None
+        assert init_format.previous_segment is None
         assert len(init_format.consumed_ranges) == 0
 
     def test_media_end_no_content_length(self, base_args):
@@ -2577,7 +2577,7 @@ class TestMediaEnd:
         assert media_header.header_id not in processor.partial_segments
         init_format = processor.initialized_formats[str(selector.format_ids[0])]
         assert init_format.init_segment is None
-        assert init_format.current_segment is None
+        assert init_format.previous_segment is None
 
     def test_estimated_content_length_mismatch(self, base_args, logger):
         # Should not raise an error if estimated content length does not match, rather log in trace
@@ -2616,10 +2616,10 @@ class TestMediaEnd:
         assert media_header.header_id not in processor.partial_segments
         init_format = processor.initialized_formats[str(selector.format_ids[0])]
         assert init_format.init_segment is None
-        assert init_format.current_segment is segment
-        assert init_format.current_segment.content_length_estimated is True
-        assert init_format.current_segment.content_length == 4000000
-        assert init_format.current_segment.received_data_length == 500
+        assert init_format.previous_segment is segment
+        assert init_format.previous_segment.content_length_estimated is True
+        assert init_format.previous_segment.content_length == 4000000
+        assert init_format.previous_segment.received_data_length == 500
         logger.trace.assert_called_with(
             f'Content length for {segment.format_id} (sequence 1) was estimated, '
             f'estimated {segment.content_length} bytes, got {segment.received_data_length} bytes')

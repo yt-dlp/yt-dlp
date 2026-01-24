@@ -44,8 +44,8 @@ class InitializedFormat:
     duration_ms: int = 0
     end_time_ms: int = 0
     mime_type: str = None
-    # Current segment in the sequence. Set to None to break the sequence and allow a seek.
-    current_segment: Segment | None = None
+    # Previous segment received in the sequence. Set to None to break the sequence and allow a seek.
+    previous_segment: Segment | None = None
     init_segment: Segment | None | bool = None
     consumed_ranges: list[ConsumedRange] = dataclasses.field(default_factory=list)
     total_segments: int = None
