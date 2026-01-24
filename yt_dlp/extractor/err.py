@@ -2,6 +2,7 @@ from .common import InfoExtractor
 from ..utils import (
     clean_html,
     int_or_none,
+    parse_iso8601,
     str_or_none,
     url_or_none,
 )
@@ -221,4 +222,74 @@ class ERRJupiterIE(InfoExtractor):
                 'episode_number': ('episode', {int_or_none}),
                 'episode_id': ('id', {str_or_none}),
             }) if data.get('type') == 'episode' else {}),
+        }
+
+class ERRArhiivIE(InfoExtractor):
+    _VALID_URL = r'https://arhiiv\.err\.ee/video/(?:vaata/)?(?P<id>[^/]+)$'
+    _TESTS = [{
+        'url': 'https://arhiiv.err.ee/video/kontsertpalad',
+        'info_dict': {
+            'id': 'kontsertpalad',
+            'ext': 'mp4',
+            'title': 'Kontsertpalad: 255 | L. Beethoveni sonaat c-moll, "Pateetiline"',
+            'description': 'md5:a70f4ff23c3618f3be63f704bccef063',
+            'series': 'Kontsertpalad',
+            'episode_id': 255,
+            'release_timestamp': 1666152162,
+            'release_date': '20221019',
+            'release_year': 1970,
+            'modified_timestamp': 1718620982,
+            'modified_date': '20240617',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://arhiiv.err.ee/video/vaata/koalitsioonileppe-allkirjastamine',
+        'info_dict': {
+            'id': 'koalitsioonileppe-allkirjastamine',
+            'ext': 'mp4',
+            'title': 'Koalitsioonileppe allkirjastamine',
+            'description': '',
+            'series': '',
+            'timestamp': 1611532800,
+            'upload_date': '20210125',
+            'release_timestamp': 1710728222,
+            'release_date': '20240318',
+            'release_year': 2021,
+        },
+        'params': {'skip_download': 'm3u8'},
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        data = self._download_json(
+            f'https://arhiiv.err.ee/api/v1/content/video/{video_id}', video_id)
+
+        formats, subtitles = [], {}
+        media_data = traverse_obj(data, ('media','src'), {url_or_none})
+        if 'hls' in media_data:
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                media_data['hls'], video_id, 'mp4', m3u8_id='hls', fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
+        if 'dash' in media_data:
+            fmts, subs = self._extract_mpd_formats_and_subtitles(
+                media_data['dash'], video_id, mpd_id='dash', fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
+
+        return {
+            'id': video_id,
+            'formats': formats,
+            'subtitles': subtitles,
+            **traverse_obj(data['info'], {
+                'title': ('title', {str}),
+                'series': ('seriesTitle', {str}),
+                'series_id': ('seriesId', {str}),
+                'episode_id': ('episode', {int_or_none}),
+                'description': ('synopsis', {str}),
+                'timestamp': ('date', {parse_iso8601}),
+                'modified_timestamp': ('dateModified', {parse_iso8601}),
+                'release_timestamp': ('uploadDate', {parse_iso8601}),
+                'release_year': ('year', {int_or_none}),
+            }, get_all=False),
         }

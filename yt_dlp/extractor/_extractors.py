@@ -564,7 +564,10 @@ from .eroprofile import (
     EroProfileAlbumIE,
     EroProfileIE,
 )
-from .err import ERRJupiterIE
+from .err import (
+    ERRJupiterIE,
+    ERRArhiivIE,
+)
 from .ertgr import (
     ERTFlixCodenameIE,
     ERTFlixIE,
