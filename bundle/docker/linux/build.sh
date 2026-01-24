@@ -20,7 +20,7 @@ INCLUDES=(
 )
 
 if [[ -z "${EXCLUDE_CURL_CFFI:-}" ]]; then
-    INCLUDES+=(--include-extra curl-cffi)
+    INCLUDES+=(--include-extra build-curl-cffi)
 fi
 
 runpy -m venv /yt-dlp-build-venv
