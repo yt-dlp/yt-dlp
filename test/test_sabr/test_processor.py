@@ -775,7 +775,7 @@ class TestFormatInitialization:
 
         assert len(processor.initialized_formats) == 0
 
-    def test_selector_consumed(self, logger, base_args):
+    def test_selector_in_use(self, logger, base_args):
         # Test that if a format selector is already in use, it raises an error
         selector = make_selector('audio', format_ids=[])
         audio_format_id = FormatId(itag=140)
@@ -798,6 +798,44 @@ class TestFormatInitialization:
         with pytest.raises(SabrStreamError, match='Changing formats is not currently supported'):
             processor.process_format_initialization_metadata(
                 dataclasses.replace(format_init_metadata_part, format_id=FormatId(itag=141)))
+
+    def test_discarded_selector_in_use(self, logger, base_args):
+        # Test that if a discarded format selector is already in use, it allows another format to use it
+        selector = make_selector('audio', format_ids=[], discard_media=True)
+        audio_format_id_1 = FormatId(itag=140)
+        audio_format_id_2 = FormatId(itag=141)
+        processor = SabrProcessor(**base_args, audio_selection=selector, video_id=example_video_id)
+        format_init_metadata_part_1 = FormatInitializationMetadata(
+            video_id=example_video_id,
+            format_id=audio_format_id_1,
+            end_time_ms=10000,
+            total_segments=5,
+            mime_type='audio/mp4',
+            duration_ticks=10000,
+            duration_timescale=1000,
+        )
+        processor.process_format_initialization_metadata(format_init_metadata_part_1)
+        assert str(audio_format_id_1) in processor.initialized_formats
+        assert processor.initialized_formats[str(audio_format_id_1)].format_selector is selector
+        assert processor.initialized_formats[str(audio_format_id_1)].discard is True
+        format_init_metadata_part_2 = FormatInitializationMetadata(
+            video_id=example_video_id,
+            format_id=audio_format_id_2,
+            end_time_ms=10000,
+            total_segments=5,
+            mime_type='audio/mp4',
+            duration_ticks=10000,
+            duration_timescale=1000,
+        )
+        processor.process_format_initialization_metadata(format_init_metadata_part_2)
+        assert str(audio_format_id_2) in processor.initialized_formats
+        assert processor.initialized_formats[str(audio_format_id_2)].format_selector is selector
+        assert processor.initialized_formats[str(audio_format_id_2)].discard is True
+        assert str(audio_format_id_1) not in processor.initialized_formats
+
+        logger.debug.assert_any_call(
+            f'Format selector audio is already in use by discarded format {audio_format_id_1}, '
+            f'allowing format change to {audio_format_id_2}')
 
     def test_no_segment_count(self, logger, base_args):
         selector = make_selector('audio')

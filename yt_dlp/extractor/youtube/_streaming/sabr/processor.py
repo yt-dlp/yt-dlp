@@ -78,6 +78,9 @@ class ProcessSabrSeekResult:
         self.seek_sabr_parts = seek_sabr_parts or []
 
 
+JS_MAX_SAFE_INTEGER = (2**53) - 1
+
+
 class SabrProcessor:
     """
     SABR Processor
@@ -539,11 +542,23 @@ class SabrProcessor:
         # Guard: Check if the format selector is already in use by another initialized format.
         # This can happen when the server changes the format to use (e.g. changing quality).
         #
-        # Changing a format will require adding some logic to handle inactive formats.
-        # Given we only provide one FormatId currently, and this should not occur in this case,
+        # We only allow changing format for discarded formats as the selectors are not bound to a specific format id.
+        #
+        # For other cases, given we only provide one FormatId currently, and this should not occur in this case,
         # we will mark this as not currently supported and bail.
-        for izf in self.initialized_formats.values():
-            if izf.format_selector is format_selector:
+        existing_izf = next(
+            (izf for izf in self.initialized_formats.values()
+             if izf.format_selector is format_selector),
+            None,
+        )
+        if existing_izf:
+            if existing_izf.discard and format_selector.discard_media:
+                self.logger.debug(
+                    f'Format selector {format_selector.display_name} is already in use by discarded format '
+                    f'{existing_izf.format_id}, allowing format change to {format_init_metadata.format_id}')
+                # Remove existing initialized format - currently only support active formats in initialized_formats
+                self.initialized_formats.pop(str(existing_izf.format_id))
+            else:
                 raise SabrStreamError('Server changed format. Changing formats is not currently supported')
 
         duration_ms = ticks_to_ms(format_init_metadata.duration_ticks, format_init_metadata.duration_timescale)
@@ -570,9 +585,9 @@ class SabrProcessor:
             # Note: Using JS_MAX_SAFE_INTEGER but could use any maximum value as long as the server accepts it.
             initialized_format.consumed_ranges = [ConsumedRange(
                 start_time_ms=0,
-                duration_ms=(2**53) - 1,
+                duration_ms=JS_MAX_SAFE_INTEGER,
                 start_sequence_number=0,
-                end_sequence_number=(2**53) - 1,
+                end_sequence_number=JS_MAX_SAFE_INTEGER,
             )]
 
         self.initialized_formats[str(format_init_metadata.format_id)] = initialized_format
@@ -584,7 +599,7 @@ class SabrProcessor:
                 format_selector=format_selector,
             )
 
-        return ProcessFormatInitializationMetadataResult(sabr_part=result.sabr_part)
+        return result
 
     def process_next_request_policy(self, next_request_policy: NextRequestPolicy):
         self.next_request_policy = next_request_policy
