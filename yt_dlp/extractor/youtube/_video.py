@@ -3375,6 +3375,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if n_challenge := traverse_obj(fmt_url, ({parse_qs}, 'n', 0)):
                     n_challenges.add(n_challenge)
 
+            # SABR formats
+            if n_challenge := traverse_obj(streaming_data, ('serverAbrStreamingUrl', {parse_qs}, 'n', 0)):
+                n_challenges.add(n_challenge)
+
             # Manifest formats
             n_challenges.update(traverse_obj(
                 streaming_data, (('hlsManifestUrl', 'dashManifestUrl'), {get_manifest_n_challenge})))
@@ -3526,6 +3530,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         sc = urllib.parse.parse_qs(fmt_stream.get('signatureCipher'))
                         fmt_url = traverse_obj(sc, ('url', 0, {url_or_none}))
                         encrypted_sig = traverse_obj(sc, ('s', 0))
+                        # TODO: remove SABR warnings
                         if not all((sc, fmt_url, skip_player_js or player_url, encrypted_sig)):
                             msg_tmpl = (
                                 '{}Some {} client https formats have been skipped as they are missing a URL. '
@@ -3602,29 +3607,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             def process_sabr_formats_and_subtitles():
                 proto = 'sabr'
                 server_abr_streaming_url = streaming_data.get('serverAbrStreamingUrl')
-
                 query = parse_qs(server_abr_streaming_url)
+
+                # n challenge
                 if query.get('n'):
+                    if skip_player_js:
+                        return
                     n_challenge = query['n'][0]
-                    if n_challenge in self._player_cache:
-                        server_abr_streaming_url = update_url_query(server_abr_streaming_url, {'n': self._player_cache[n_challenge]})
-                    else:
-                        _, challenge_response = traverse_obj(self._jsc_director.bulk_solve([JsChallengeRequest(
-                            type=JsChallengeType.N,
-                            video_id=video_id,
-                            input=NChallengeInput(challenges=[n_challenge], player_url=player_url))]), 0) or (None, None)
-                        if not challenge_response or n_challenge not in challenge_response.output.results:
-                            self.report_warning(
-                                f'SABR n challenge solving failed: SABR formats may be missing. '
-                                f'Ensure you have a supported JavaScript runtime and '
-                                f'challenge solver script distribution installed. '
-                                'Review any warnings presented before this message. '
-                                f'For more details, refer to  {_EJS_WIKI_URL}',
-                                video_id=video_id, only_once=True)
-                            return
-                        solved_n = challenge_response.output.results[n_challenge]
-                        self._player_cache[n_challenge] = solved_n
-                        server_abr_streaming_url = update_url_query(server_abr_streaming_url, {'n': solved_n})
+                    solve_js_challenges()
+                    n_result = self._load_player_data_from_cache('n', player_url, n_challenge)
+                    if not n_result:
+                        return
+                    server_abr_streaming_url = update_url_query(server_abr_streaming_url, {'n': n_result})
 
                 video_playback_ustreamer_config = traverse_obj(
                     pr, ('playerConfig', 'mediaCommonConfig', 'mediaUstreamerRequestConfig', 'videoPlaybackUstreamerConfig'))
