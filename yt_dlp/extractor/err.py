@@ -224,6 +224,7 @@ class ERRJupiterIE(InfoExtractor):
             }) if data.get('type') == 'episode' else {}),
         }
 
+
 class ERRArhiivIE(InfoExtractor):
     _VALID_URL = r'https://arhiiv\.err\.ee/video/(?:vaata/)?(?P<id>[^/]+)$'
     _TESTS = [{
