@@ -72,7 +72,7 @@ jobs:
   release:
     name: Publish Github release
     needs: [check_nightly]
-    if: ${{ needs.check_nightly.outputs.commit }}
+    if: needs.check_nightly.outputs.commit
     permissions:
       contents: write  # May be needed to publish release
       id-token: write  # Needed for trusted publishing
