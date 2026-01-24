@@ -91,11 +91,15 @@ class SequenceFile:
         return self.current_segment.segment_id == segment_id
 
     def initialize_segment(self, segment: Segment):
-        if self.current_segment and not self.is_current_segment(segment.segment_id):
-            raise ValueError('Cannot reinitialize a segment that does not match the current segment')
-
         if not self.current_segment and not self.is_next_segment(segment):
             raise ValueError('Cannot initialize a segment that does not match the next segment')
+
+        if self.current_segment:
+            if not self.is_current_segment(segment.segment_id):
+                raise ValueError('Cannot reinitialize a segment that does not match the current segment')
+            # Segment re-initialization: ensure previous segment is closed.
+            # Windows does not allow writing to an open file.
+            self.current_segment.close()
 
         self.current_segment = SegmentFile(
             fd=self.fd,
