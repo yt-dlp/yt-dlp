@@ -634,7 +634,7 @@ class TestSequenceFile:
 class TestSegmentFile:
     def test_init_segment_file_memory(self, fd, filename, init_segment, backend):
         segment_file = SegmentFile(fd, format_filename=filename, segment=init_segment)
-        assert segment_file.file.exists() is False
+        assert segment_file.exists() is False
         assert isinstance(segment_file.file, MemoryFormatIOBackend)
         assert segment_file.segment_id == 'i'
 
@@ -649,7 +649,7 @@ class TestSegmentFile:
         assert segment_file.current_length == INIT_SEQUENCE_CONTENT_LENGTH
 
         segment_file.finish_write()
-        assert segment_file.file.exists() is True
+        assert segment_file.exists() is True
 
         backend.initialize_writer()
         segment_file.read_into(backend)
@@ -660,7 +660,7 @@ class TestSegmentFile:
         backend.close()
 
         segment_file.remove()
-        assert segment_file.file.exists() is False
+        assert segment_file.exists() is False
 
     def test_init_segment_file_disk(self, fd, filename, init_segment, backend):
         data_part_one = b'\x00' * (1024 * 1024)  # 1MB
@@ -670,7 +670,7 @@ class TestSegmentFile:
 
         init_segment.content_length = content_length
         segment_file = SegmentFile(fd, format_filename=filename, segment=init_segment)
-        assert segment_file.file.exists() is False
+        assert segment_file.exists() is False
         assert segment_file.file.filename == filename + f'.sg{init_segment.segment_id}.sabr.part'
         assert isinstance(segment_file.file, DiskFormatIOBackend)
         assert segment_file.segment_id == 'i'
@@ -686,7 +686,7 @@ class TestSegmentFile:
         assert segment_file.current_length == content_length
 
         segment_file.finish_write()
-        assert segment_file.file.exists() is True
+        assert segment_file.exists() is True
 
         assert Path(filename + f'.sg{init_segment.segment_id}.sabr.part').exists() is True
 
@@ -699,7 +699,7 @@ class TestSegmentFile:
         backend.close()
 
         segment_file.remove()
-        assert segment_file.file.exists() is False
+        assert segment_file.exists() is False
         assert Path(filename + f'.sg{init_segment.segment_id}.sabr.part').exists() is False
 
     def test_segment_memory_file_limit_default(self, fd, filename, init_segment):
@@ -730,12 +730,12 @@ class TestSegmentFile:
         assert isinstance(segment_file.file, DiskFormatIOBackend)
         segment_file.write(INIT_SEGMENT_DATA)
         segment_file.finish_write()
-        assert segment_file.file.exists() is True
+        assert segment_file.exists() is True
         assert Path(segment_file.file.filename).exists() is True
         segment_file.close()
 
         # New segment file for the same segment should remove existing file
         new_segment_file = SegmentFile(fd, format_filename=filename, segment=init_segment, memory_file_limit=1)
-        assert new_segment_file.file.exists() is False
+        assert new_segment_file.exists() is False
         assert Path(new_segment_file.file.filename).exists() is False
         assert Path(segment_file.file.filename).exists() is False

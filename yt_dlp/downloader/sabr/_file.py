@@ -71,11 +71,11 @@ class SequenceFile:
     def is_next_segment(self, segment: Segment):
         if self.current_segment:
             return False
-        latest_segment = self.sequence.last_segment or self.sequence.first_segment
-        if not latest_segment:
+        previous_segment = self.sequence.last_segment or self.sequence.first_segment
+        if not previous_segment:
             return True
-        if segment.is_init_segment and latest_segment.is_init_segment:
-            # Only one segment allowed for init sequences
+        if previous_segment.is_init_segment:
+            # Currently we only allow init segments in their own sequence
             return False
         if (
             self.max_segments
@@ -83,7 +83,7 @@ class SequenceFile:
         ):
             return False
 
-        return segment.sequence_number == latest_segment.sequence_number + 1
+        return segment.sequence_number == previous_segment.sequence_number + 1
 
     def is_current_segment(self, segment_id: str):
         if not self.current_segment:
@@ -141,7 +141,10 @@ class SequenceFile:
         if not self.file.mode:
             self.file.initialize_writer(self.resume)
 
-        self.current_segment.read_into(self.file)
+        # Segment file may not exist if no data was written
+        if self.current_segment.exists():
+            self.current_segment.read_into(self.file)
+
         self.current_segment.remove()
         self.current_segment = None
 
@@ -200,6 +203,9 @@ class SegmentFile:
         self.file.initialize_reader()
         self.file.read_into(file)
         self.file.close()
+
+    def exists(self):
+        return self.file.exists()
 
     def remove(self):
         self.close()
