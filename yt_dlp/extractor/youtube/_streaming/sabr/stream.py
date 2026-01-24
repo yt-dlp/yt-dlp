@@ -30,7 +30,6 @@ from yt_dlp.utils import RetryManager, int_or_none, parse_qs, str_or_none, trave
 from .exceptions import MediaSegmentMismatchError, PoTokenError, SabrStreamConsumedError, SabrStreamError
 from .models import AudioSelector, CaptionSelector, SabrLogger, VideoSelector
 from .part import (
-    MediaSeekSabrPart,
     RefreshPlayerResponseSabrPart,
 )
 from .processor import SabrProcessor, build_vpabr_request
@@ -289,7 +288,7 @@ class SabrStream:
                 self._process_request_had_segments()
 
                 # Calculate and apply the next playback time to skip to
-                yield from self._prepare_next_playback_time()
+                self._prepare_next_playback_time()
 
                 # Request successfully processed, next request is not a retry
                 self._is_retry = False
@@ -363,7 +362,7 @@ class SabrStream:
     def _prepare_next_playback_time(self):
         # TODO: refactor and cleanup this massive function
         wait_seconds = 0
-        # TODO: move this for loop into processor media_end
+        # TODO: move this for loop into processor
         for izf in self.processor.initialized_formats.values():
             if not izf.current_segment:
                 continue
@@ -377,23 +376,6 @@ class SabrStream:
 
             if count > 1:
                 raise SabrStreamError(f'Segment {izf.current_segment.sequence_number} for format {izf.format_id} in {count} consumed ranges')
-
-            # Check if there is two or more consumed ranges where the end lines up with the start of the other.
-            # This could happen in the case of concurrent playback.
-            # In this case, we should consider a seek as acceptable to the end of the other.
-            # Note: It is assumed a segment is only present in one consumed range - it should not be allowed in multiple (by process media header)
-            prev_consumed_range = next(
-                (cr for cr in izf.consumed_ranges if cr.end_sequence_number == izf.current_segment.sequence_number),
-                None,
-            )
-            # TODO: move to processor MEDIA_END
-            if prev_consumed_range and len(get_cr_chain(prev_consumed_range, izf.consumed_ranges)) >= 2:
-                self.logger.debug(f'Found two or more consumed ranges that line up, allowing a seek for format {izf.format_id}')
-                izf.current_segment = None
-                yield MediaSeekSabrPart(
-                    reason=MediaSeekSabrPart.Reason.CONSUMED_SEEK,
-                    format_id=izf.format_id,
-                    format_selector=izf.format_selector)
 
         enabled_initialized_formats = [izf for izf in self.processor.initialized_formats.values() if not izf.discard]
 

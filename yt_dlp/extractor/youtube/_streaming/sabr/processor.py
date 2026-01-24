@@ -39,7 +39,7 @@ from .part import (
     MediaSegmentInitSabrPart,
     PoTokenStatusSabrPart,
 )
-from .utils import ticks_to_ms
+from .utils import get_cr_chain, ticks_to_ms
 
 
 class ProcessMediaEndResult:
@@ -194,6 +194,23 @@ class SabrProcessor:
                 return format_selector
         return None
 
+    def _next_expected_segment(self, previous_segment: Segment) -> int | None:
+        # Try to find the first consumed range the previous segment is part of
+        prev_consumed_range = next(
+            (cr for cr in previous_segment.initialized_format.consumed_ranges
+             if cr.start_sequence_number <= previous_segment.sequence_number <= cr.end_sequence_number),
+            None,
+        )
+
+        # + 1 from the end of the previous segment consumed range chain
+        consumed_ranges = get_cr_chain(prev_consumed_range, previous_segment.initialized_format.consumed_ranges)
+        if not consumed_ranges:
+            # xxx: if we want to allow clearing consumed ranges while keeping segment order,
+            # we can return previous_segment.sequence_number + 1 here
+            raise SabrStreamError('Previous segment not part of any consumed range')
+
+        return consumed_ranges[-1].end_sequence_number + 1
+
     def process_media_header(self, media_header: MediaHeader) -> ProcessMediaHeaderResult:
         if media_header.video_id and self.video_id and media_header.video_id != self.video_id:
             raise SabrStreamError(
@@ -247,13 +264,14 @@ class SabrProcessor:
         if (
             previous_segment and not is_init_segment
             and not previous_segment.discard and not discard and not consumed
-            and sequence_number != previous_segment.sequence_number + 1
         ):
-            # Bail out as the segment is not in order when it is expected to be
-            raise MediaSegmentMismatchError(
-                expected_sequence_number=previous_segment.sequence_number + 1,
-                received_sequence_number=sequence_number,
-                format_id=media_header.format_id)
+            next_expected_segment = self._next_expected_segment(previous_segment)
+            if next_expected_segment is not None and sequence_number != next_expected_segment:
+                # Bail out as the segment is not in order when it is expected to be
+                raise MediaSegmentMismatchError(
+                    expected_sequence_number=next_expected_segment,
+                    received_sequence_number=sequence_number,
+                    format_id=media_header.format_id)
 
         if initialized_format.init_segment and is_init_segment:
             self.logger.debug(
@@ -433,8 +451,6 @@ class SabrProcessor:
         # Update the existing consumed range to include this segment
         consumed_range.end_sequence_number = segment.sequence_number
         consumed_range.duration_ms = (segment.start_ms - consumed_range.start_time_ms) + segment.duration_ms
-
-        # TODO: Conduct a seek on consumed ranges
 
         return result
 

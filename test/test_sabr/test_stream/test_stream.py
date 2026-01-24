@@ -41,7 +41,6 @@ from yt_dlp.extractor.youtube._streaming.sabr.part import (
     RefreshPlayerResponseSabrPart,
     PoTokenStatusSabrPart,
     MediaSegmentInitSabrPart,
-    MediaSeekSabrPart,
     MediaSegmentEndSabrPart,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.stream import SabrStream
@@ -53,6 +52,7 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     SabrContext,
     ReloadPlayerResponse,
     SabrRedirect,
+    VideoPlaybackAbrRequest,
 )
 from yt_dlp.utils import parse_qs
 
@@ -236,14 +236,12 @@ class TestStream:
         # This can happen for live streams and resuming playback.
         # Using video-only to keep this test simple
 
-        sabr_stream, _, selectors = setup_sabr_stream_av(
+        sabr_stream, _, _ = setup_sabr_stream_av(
             sabr_response_processor=BasicAudioVideoProfile(),
             client_info=client_info,
             logger=logger,
             enable_audio=False,
         )
-
-        _, video_selector = selectors
 
         # Get all the segments from the first iteration. We need to know the timings of each to set up buffered ranges.
         iter_parts = sabr_stream.iter_parts()
@@ -289,16 +287,78 @@ class TestStream:
         assert media_init_parts_received[1].sequence_number == 1
         assert media_init_parts_received[2].sequence_number == media_init_parts[-1].sequence_number  # last segment
 
-        # We should have got a MediaSeekSabrPart with a reason of CONSUMED_SEEK for the given format
-        seek_parts = [part for part in parts if isinstance(part, MediaSeekSabrPart)]
-        assert len(seek_parts) == 1
-        seek_part = seek_parts[0]
-        assert seek_part.reason == MediaSeekSabrPart.Reason.CONSUMED_SEEK
-        assert seek_part.format_id == format_init_part.format_id
-        assert seek_part.format_selector == video_selector
+        # In the last vpabr request, we should two buffered ranges for the format (1st is segments 1, 2nd for segments 2-9)
+        last_request_vpabr = rh.request_history[-1].vpabr
+        video_buffered_ranges = [br for br in last_request_vpabr.buffered_ranges if br.format_id == format_init_part.format_id]
+        assert len(video_buffered_ranges) == 2
 
-        # Should have logged to debug about the seek
-        logger.debug.assert_any_call('Found two or more consumed ranges that line up, allowing a seek for format FormatId(itag=248, lmt=456, xtags=None)')
+    def test_multiple_buffered_ranges_server_returned_wrong_segment(self, logger, client_info):
+        # Should handle multiple buffered ranges correctly,
+        # where if there is another buffered range at the end of a buffered range, it should skip ahead to the end of it.
+        # This can happen for live streams and resuming playback.
+        # Using video-only to keep this test simple
+        # This test simulates the server returning the wrong segment after seeking to the end of the consumed ranges
+        sabr_stream, _, _ = setup_sabr_stream_av(
+            sabr_response_processor=BasicAudioVideoProfile(),
+            client_info=client_info,
+            logger=logger,
+            enable_audio=False,
+        )
+
+        # Get all the segments from the first iteration. We need to know the timings of each to set up buffered ranges.
+        iter_parts = sabr_stream.iter_parts()
+        format_init_part = next(iter_parts)
+        assert isinstance(format_init_part, FormatInitializedSabrPart)
+        # Get all the media init parts
+        media_init_parts = [part for part in iter_parts if isinstance(part, MediaSegmentInitSabrPart)]
+        assert len(media_init_parts) == DEFAULT_NUM_VIDEO_SEGMENTS + 1
+
+        #  Now set up buffered ranges to skip some segments
+        consumed_ranges = [
+            # Mark middle segments as buffered (2-8). We'll get the server to return segment 10 incorrectly.
+            ConsumedRange(
+                # Note: First segment is init segment with no sequence number
+                start_sequence_number=media_init_parts[2].sequence_number,
+                end_sequence_number=media_init_parts[-3].sequence_number,
+                start_time_ms=media_init_parts[2].start_time_ms,
+                duration_ms=sum(part.duration_ms for part in media_init_parts[2:-2]),
+            ),
+        ]
+
+        class SkipSegmentNineProcessor(BasicAudioVideoProfile):
+            def buffered_segments(self, vpabr: VideoPlaybackAbrRequest, total_segments: int, format_id: FormatId):
+                segments = super().buffered_segments(vpabr, total_segments, format_id)
+                if segments:
+                    segments.add(9)
+                return segments
+
+        # Reset the sabr stream and set the consumed ranges
+        sabr_stream, rh, _ = setup_sabr_stream_av(
+            sabr_response_processor=SkipSegmentNineProcessor(),
+            client_info=client_info,
+            logger=logger,
+            enable_audio=False,
+        )
+
+        # Start streaming until get the initialized format
+        iter_parts = sabr_stream.iter_parts()
+        format_init_part = next(iter_parts)
+        assert isinstance(format_init_part, FormatInitializedSabrPart)
+        sabr_stream.processor.initialized_formats[str(format_init_part.format_id)].consumed_ranges = consumed_ranges
+        # Continue retrieving parts until we get an error
+        parts = [format_init_part]
+        with pytest.raises(
+            MediaSegmentMismatchError,
+            match=r'Segment sequence number mismatch for format FormatId\(itag=248, lmt=456, xtags=None\): expected 9, received 10',
+        ):
+            for part in iter_parts:
+                parts.append(part)
+
+        # Expect that the only media init parts we get is init segment, first segment
+        media_init_parts_received = [part for part in parts if isinstance(part, MediaSegmentInitSabrPart)]
+        assert len(media_init_parts_received) == 2
+        assert media_init_parts_received[0].sequence_number is None  # init segment
+        assert media_init_parts_received[1].sequence_number == 1
 
         # In the last vpabr request, we should two buffered ranges for the format (1st is segments 1, 2nd for segments 2-9)
         last_request_vpabr = rh.request_history[-1].vpabr

@@ -12,6 +12,8 @@ def get_cr_chain(start_consumed_range: ConsumedRange, consumed_ranges: list[Cons
     # TODO: unit test
     # Return the continuous consumed range chain starting from the given consumed range
     # Note: It is assumed a segment is only present in one consumed range - it should not be allowed in multiple (by process media header)
+    if not start_consumed_range:
+        return []
     chain = [start_consumed_range]
     for cr in sorted(consumed_ranges, key=lambda r: r.start_sequence_number):
         if cr.start_sequence_number == chain[-1].end_sequence_number + 1:
