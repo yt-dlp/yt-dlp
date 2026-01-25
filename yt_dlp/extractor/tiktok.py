@@ -246,7 +246,7 @@ class TikTokBaseIE(InfoExtractor):
                 challenge_data['d'] = base64.b64encode(number).decode()
                 break
         else:
-            raise ExtractorError('Unable to solve captcha challenge')
+            raise ExtractorError('Unable to solve JS challenge')
 
         cookie_value = base64.b64encode(
             json.dumps(challenge_data, separators=(',', ':')).encode()).decode()
