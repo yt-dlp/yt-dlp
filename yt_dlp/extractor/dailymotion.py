@@ -1,5 +1,6 @@
 import functools
 import json
+import random
 import re
 import urllib.parse
 
@@ -363,6 +364,20 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                 continue
             yield update_url(player_url, query=query_string)
 
+    @staticmethod
+    def _generate_blockbuster_headers():
+        # Randomize our HTTP header fingerprint to bust the HTTP Error 403 block
+        # See https://github.com/yt-dlp/yt-dlp/issues/15526
+
+        def random_letters(minimum, maximum):
+            # Omit vowels so we don't generate valid header names like 'authorization', etc
+            return ''.join(random.choices('bcdfghjklmnpqrstvwxz', k=random.randint(minimum, maximum)))
+
+        return {
+            random_letters(8, 24): random_letters(16, 32)
+            for _ in range(random.randint(2, 8))
+        }
+
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url)
         video_id, is_playlist, playlist_id = self._match_valid_url(url).group('id', 'is_playlist', 'playlist_id')
@@ -425,7 +440,8 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                     continue
                 if media_type == 'application/x-mpegURL':
                     fmt, subs = self._extract_m3u8_formats_and_subtitles(
-                        media_url, video_id, 'mp4', live=is_live, m3u8_id='hls', fatal=False)
+                        media_url, video_id, 'mp4', live=is_live, m3u8_id='hls',
+                        fatal=False, headers=self._generate_blockbuster_headers())
                     formats.extend(fmt)
                     self._merge_subtitles(subs, target=subtitles)
                 else:
