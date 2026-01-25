@@ -259,7 +259,7 @@ class TikTokBaseIE(InfoExtractor):
             'class', {require('challenge cookie name')}))
 
         # Actual JS sets Max-Age=1, but we need to adjust for --sleep-requests and Python slowness
-        expire_time = int(time.time()) + (self.get_param('sleep_interval_requests') or 0) + 3
+        expire_time = int(time.time()) + (self.get_param('sleep_interval_requests') or 0) + 2
         self._set_cookie('.tiktok.com', cookie_name, cookie_value, expire_time=expire_time)
 
     def _extract_web_data_and_status(self, url, video_id, fatal=True):
