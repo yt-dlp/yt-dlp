@@ -262,23 +262,30 @@ class TikTokBaseIE(InfoExtractor):
             expire_time=int(time.time()) + self.get_param('sleep_interval_requests', 0) + 2)
 
     def _extract_web_data_and_status(self, url, video_id, fatal=True):
-        LOGIN_MESSAGE = 'TikTok is requiring login for access to this content'
         video_data, status = {}, -1
 
-        res = self._download_webpage_handle(url, video_id, fatal=fatal, impersonate=True)
-        if res is False:
-            return video_data, status
+        def get_webpage(note='Downloading webpage'):
+            res = self._download_webpage_handle(url, video_id, note, fatal=fatal, impersonate=True)
+            if res is False:
+                return False
 
-        webpage, urlh = res
-        if urllib.parse.urlparse(urlh.url).path == '/login':
-            if fatal:
-                self.raise_login_required(LOGIN_MESSAGE)
-            self.report_warning(f'{LOGIN_MESSAGE}. {self._login_hint()}')
+            webpage, urlh = res
+            if urllib.parse.urlparse(urlh.url).path == '/login':
+                message = 'TikTok is requiring login for access to this content'
+                if fatal:
+                    self.raise_login_required(message)
+                self.report_warning(f'{message}. {self._login_hint()}')
+                return False
+
+            return webpage
+
+        webpage = get_webpage()
+        if webpage is False:
             return video_data, status
 
         universal_data = self._get_universal_data(webpage, video_id)
         if not universal_data:
-            self.write_debug('Solving JS challenge using native Python implementation')
+            self.to_screen('Solving JS challenge using native Python implementation')
             try:
                 self._solve_challenge_and_set_cookie(webpage)
             except ExtractorError as e:
@@ -287,19 +294,9 @@ class TikTokBaseIE(InfoExtractor):
                 self.report_warning(e.orig_msg, video_id=video_id)
                 return video_data, status
 
-            res = self._download_webpage_handle(
-                url, video_id, 'Downloading webpage with challenge cookie',
-                fatal=fatal, impersonate=True)
-            if res is False:
+            webpage = get_webpage(note='Downloading webpage with challenge cookie')
+            if webpage is False:
                 return video_data, status
-
-            webpage, urlh = res
-            if urllib.parse.urlparse(urlh.url).path == '/login':
-                if fatal:
-                    self.raise_login_required(LOGIN_MESSAGE)
-                self.report_warning(f'{LOGIN_MESSAGE}. {self._login_hint()}')
-                return video_data, status
-
             universal_data = self._get_universal_data(webpage, video_id)
 
         if fatal and not universal_data:
