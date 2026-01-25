@@ -369,15 +369,13 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         # Randomize our HTTP header fingerprint to bust the HTTP Error 403 block
         # See https://github.com/yt-dlp/yt-dlp/issues/15526
 
-        def random_letters(length):
+        def random_letters(minimum, maximum):
             # Omit vowels so we don't generate valid header names like 'authorization', etc
-            return ''.join(random.choices('bcdfghjklmnpqrstvwxz', k=length))
-
-        k = random.randint(2, 8)
+            return ''.join(random.choices('bcdfghjklmnpqrstvwxz', k=random.randint(minimum, maximum)))
 
         return {
-            random_letters(n): random_letters(v)
-            for n, v in zip(random.choices(range(8, 24), k=k), random.choices(range(16, 32), k=k), strict=True)
+            random_letters(8, 24): random_letters(16, 32)
+            for _ in range(random.randint(2, 8))
         }
 
     def _real_extract(self, url):
