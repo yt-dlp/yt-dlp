@@ -230,6 +230,8 @@ class TikTokBaseIE(InfoExtractor):
                 raise ExtractorError('Unable to extract challenge data')
             raise ExtractorError('Unexpected response from webpage request')
 
+        self.to_screen('Solving JS challenge using native Python implementation')
+
         expected_digest = traverse_obj(challenge_data, (
             'v', 'c', {str}, {base64.b64decode},
             {require('challenge expected digest')}))
@@ -273,7 +275,7 @@ class TikTokBaseIE(InfoExtractor):
                 message = 'TikTok is requiring login for access to this content'
                 if fatal:
                     self.raise_login_required(message)
-                self.report_warning(f'{message}. {self._login_hint()}')
+                self.report_warning(f'{message}. {self._login_hint()}', video_id=video_id)
                 return False
 
             return webpage
@@ -284,7 +286,6 @@ class TikTokBaseIE(InfoExtractor):
 
         universal_data = self._get_universal_data(webpage, video_id)
         if not universal_data:
-            self.to_screen('Solving JS challenge using native Python implementation')
             try:
                 self._solve_challenge_and_set_cookie(webpage)
             except ExtractorError as e:
@@ -299,10 +300,10 @@ class TikTokBaseIE(InfoExtractor):
             universal_data = self._get_universal_data(webpage, video_id)
 
         if not universal_data:
-            msg = 'Unable to extract universal data for rehydration'
+            message = 'Unable to extract universal data for rehydration'
             if fatal:
-                raise ExtractorError(msg)
-            self.report_warning(msg, video_id=video_id)
+                raise ExtractorError(message)
+            self.report_warning(message, video_id=video_id)
             return video_data, status
 
         status = traverse_obj(universal_data, ('webapp.video-detail', 'statusCode', {int})) or 0
