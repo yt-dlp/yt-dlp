@@ -240,7 +240,7 @@ class TikTokBaseIE(InfoExtractor):
             'v', 'a', {str}, {base64.b64decode},
             {hashlib.sha256}, {require('challenge base hash')}))
 
-        for i in range(100):
+        for i in range(1_000_001):
             number = str(i).encode()
             test_hash = base_hash.copy()
             test_hash.update(number)
