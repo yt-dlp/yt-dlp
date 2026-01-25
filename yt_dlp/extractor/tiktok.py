@@ -299,8 +299,12 @@ class TikTokBaseIE(InfoExtractor):
                 return video_data, status
             universal_data = self._get_universal_data(webpage, video_id)
 
-        if fatal and not universal_data:
-            raise ExtractorError('Unable to extract universal data for rehydration')
+        if not universal_data:
+            msg = 'Unable to extract universal data for rehydration'
+            if fatal:
+                raise ExtractorError(msg)
+            self.report_warning(msg, video_id=video_id)
+            return video_data, status
 
         status = traverse_obj(universal_data, ('webapp.video-detail', 'statusCode', {int})) or 0
         video_data = traverse_obj(universal_data, ('webapp.video-detail', 'itemInfo', 'itemStruct', {dict}))
