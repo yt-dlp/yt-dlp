@@ -1523,6 +1523,7 @@ from .pluralsight import (
     PluralsightCourseIE,
     PluralsightIE,
 )
+from .plurk import PlurkExtractorIE
 from .plutotv import PlutoTVIE
 from .plvideo import PlVideoIE
 from .plyr import PlyrEmbedIE
