@@ -1919,6 +1919,7 @@ from .sproutvideo import (
     SproutVideoIE,
     VidsIoIE,
 )
+from .spwn import SPWNIE
 from .srgssr import (
     SRGSSRIE,
     SRGSSRPlayIE,
