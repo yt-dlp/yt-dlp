@@ -249,8 +249,6 @@ class SabrProcessor:
 
         initialized_format.sequence_lmt = media_header.sequence_lmt
 
-        # Need to keep track of if we discard due to be consumed or not
-        # for processing down the line (MediaEnd)
         consumed = False
         discard = initialized_format.discard
 
@@ -271,7 +269,7 @@ class SabrProcessor:
         previous_segment = initialized_format.previous_segment
         if (
             previous_segment and not is_init_segment
-            and not previous_segment.discard and not discard and not consumed
+            and not previous_segment.consumed and not discard and not consumed
         ):
             next_expected_segment = self._next_expected_segment(previous_segment)
             if next_expected_segment is not None and sequence_number != next_expected_segment:
@@ -325,14 +323,13 @@ class SabrProcessor:
             start_ms=start_ms,
             initialized_format=initialized_format,
             duration_estimated=not actual_duration_ms,
-            discard=discard or consumed,
             consumed=consumed,
             sequence_lmt=media_header.sequence_lmt,
         )
 
         self.partial_segments[media_header.header_id] = segment
 
-        if not segment.discard:
+        if not (discard or consumed):
             result.sabr_part = MediaSegmentInitSabrPart(
                 format_selector=segment.initialized_format.format_selector,
                 format_id=segment.format_id,
@@ -363,7 +360,7 @@ class SabrProcessor:
         segment_start_bytes = segment.received_data_length
         segment.received_data_length += content_length
 
-        if not segment.discard:
+        if not (segment.consumed or segment.initialized_format.discard):
             result.sabr_part = MediaSegmentDataSabrPart(
                 format_selector=segment.initialized_format.format_selector,
                 format_id=segment.format_id,
@@ -406,7 +403,7 @@ class SabrProcessor:
         # Return the segment here instead of during MEDIA part(s) because:
         # 1. We can validate that we received the correct data length
         # 2. In the case of a retry during segment media, the partial data is not sent to the consumer
-        if not segment.discard:
+        if not (segment.consumed or segment.initialized_format.discard):
             # This needs to be yielded AFTER we have processed the segment
             # So the consumer can see the updated consumed ranges and use them for e.g. syncing between concurrent streams
             result.sabr_part = MediaSegmentEndSabrPart(
@@ -436,7 +433,9 @@ class SabrProcessor:
             # Segment is already consumed, do not create a new consumed range. It was probably discarded.
             # This can be expected to happen in the case of video-only, where we discard the audio track (and mark it as entirely buffered)
             # We still want to create/update consumed range for discarded media IF it is not already consumed
-            self.logger.debug(f'{segment.format_id} segment {segment.sequence_number} already consumed, not creating or updating consumed range (discard={segment.discard})')
+            self.logger.debug(
+                f'{segment.format_id} segment {segment.sequence_number} already consumed, '
+                f'not creating or updating consumed range (discard={segment.initialized_format.discard})')
             return result
 
         # Try to find a consumed range for this segment in sequence

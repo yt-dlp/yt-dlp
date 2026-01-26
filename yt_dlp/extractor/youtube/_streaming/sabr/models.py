@@ -19,10 +19,7 @@ class Segment:
     initialized_format: InitializedFormat = None
     # Whether duration_ms is an estimate
     duration_estimated: bool = False
-    # Whether we should discard the segment data
-    discard: bool = False
-    # Whether the segment has already been consumed.
-    # `discard` should be set to True if this is the case.
+    # Whether the segment has already been consumed before and this is a re-download
     consumed: bool = False
     received_data_length: int = 0
     sequence_lmt: int | None = None

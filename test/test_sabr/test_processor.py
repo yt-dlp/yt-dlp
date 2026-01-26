@@ -407,7 +407,6 @@ class TestFormatInitialization:
             total_segments=5,
             end_time_ms=10000,
             format_selector=selector,
-            discard=False,
         )
         assert initialized_format == expected_initialized_format
         logger.debug.assert_called_with(
@@ -1357,7 +1356,6 @@ class TestMediaHeader:
             content_length_estimated=False,
             initialized_format=processor.initialized_formats[str(selector.format_ids[0])],
             duration_estimated=True,
-            discard=False,
             consumed=False,
             received_data_length=0,
         )
@@ -1402,7 +1400,6 @@ class TestMediaHeader:
             content_length_estimated=False,
             initialized_format=processor.initialized_formats[str(selector.format_ids[0])],
             duration_estimated=False,
-            discard=False,
             consumed=False,
             received_data_length=0,
         )
@@ -1722,7 +1719,6 @@ class TestMediaHeader:
         assert result.sabr_part is None
         assert media_header.header_id in processor.partial_segments
         segment = processor.partial_segments[media_header.header_id]
-        assert segment.discard is True
         assert segment.consumed is False
 
     def test_discard_segment_sequence_number_consumed(self, base_args):
@@ -1756,7 +1752,6 @@ class TestMediaHeader:
         assert result.sabr_part is None
         assert media_header.header_id in processor.partial_segments
         segment = processor.partial_segments[media_header.header_id]
-        assert segment.discard is True
         assert segment.consumed is True
 
     def test_discard_segment_already_have_init_segment(self, base_args):
@@ -1782,7 +1777,6 @@ class TestMediaHeader:
         assert result.sabr_part is None
         assert media_header.header_id in processor.partial_segments
         segment = processor.partial_segments[media_header.header_id]
-        assert segment.discard is True
         assert segment.consumed is True
 
     def test_previous_ooo_initialized_format_discard(self, base_args):
@@ -1799,15 +1793,16 @@ class TestMediaHeader:
         media_header = make_media_header(selector, sequence_no=1)
 
         # Simulate that the previous segment was not in order
-        processor.initialized_formats[str(selector.format_ids[0])].previous_segment = Segment(
+        initialized_format = processor.initialized_formats[str(selector.format_ids[0])]
+        initialized_format.previous_segment = Segment(
             format_id=selector.format_ids[0],
             is_init_segment=False,
             sequence_number=10,
-            discard=False,  # should not happen but not relying on this
             consumed=False,
+            initialized_format=initialized_format,
         )
         # Clear consumed ranges. We want to also handle the case when we cannot mark the format as entirely consumed.
-        processor.initialized_formats[str(selector.format_ids[0])].consumed_ranges.clear()
+        initialized_format.consumed_ranges.clear()
 
         result = processor.process_media_header(media_header)
 
@@ -1815,7 +1810,6 @@ class TestMediaHeader:
         assert result.sabr_part is None
         assert media_header.header_id in processor.partial_segments
         segment = processor.partial_segments[media_header.header_id]
-        assert segment.discard is True
         assert segment.consumed is False
 
     def test_previous_ooo_segment_consumed(self, base_args):
@@ -1835,7 +1829,6 @@ class TestMediaHeader:
             format_id=selector.format_ids[0],
             is_init_segment=False,
             sequence_number=10,
-            discard=False,
             consumed=False,
         )
         # Mark segment 1 as consumed
@@ -1854,36 +1847,7 @@ class TestMediaHeader:
         assert result.sabr_part is None
         assert media_header.header_id in processor.partial_segments
         segment = processor.partial_segments[media_header.header_id]
-        assert segment.discard is True
         assert segment.consumed is True
-
-    def test_previous_ooo_previous_discarded(self, base_args):
-        # Segment should be accepted if previous segment is discarded AND segment is not in order
-        # No error should be raised
-        # TODO: confirm expected behavior
-        selector = make_selector('audio')
-        processor = SabrProcessor(
-            **base_args,
-            audio_selection=selector,
-        )
-        fim = make_format_im(selector)
-        processor.process_format_initialization_metadata(fim)
-        media_header = make_media_header(selector, sequence_no=1)
-
-        # Simulate that the previous segment was discarded and not in order
-        processor.initialized_formats[str(selector.format_ids[0])].previous_segment = Segment(
-            format_id=selector.format_ids[0],
-            is_init_segment=False,
-            sequence_number=10,
-            discard=True,  # Previous segment is discarded
-            consumed=False,
-        )
-
-        result = processor.process_media_header(media_header)
-
-        assert isinstance(result, ProcessMediaHeaderResult)
-        assert isinstance(result.sabr_part, MediaSegmentInitSabrPart)
-        assert media_header.header_id in processor.partial_segments
 
     def test_media_header_no_video_id(self, base_args):
         # Media header does not have a video id, but processor does
@@ -2063,7 +2027,6 @@ class TestMediaHeader:
             format_id=selector.format_ids[0],
             is_init_segment=False,
             sequence_number=10,
-            discard=False,
             consumed=False,
             initialized_format=initialized_format,
         )
@@ -2100,8 +2063,7 @@ class TestMediaHeader:
             format_id=selector.format_ids[0],
             is_init_segment=False,
             sequence_number=3,
-            discard=False,
-            consumed=True,
+            consumed=False,
             initialized_format=initialized_format,
         )
 
@@ -2150,15 +2112,90 @@ class TestMediaHeader:
         # Segment 8 should not be accepted
         with pytest.raises(MediaSegmentMismatchError, match='Segment sequence number mismatch') as exc_info:
             processor.process_media_header(make_media_header(selector, sequence_no=8))
-            assert exc_info.value.expected_sequence_number == 7
-            assert exc_info.value.received_sequence_number == 8
+        assert exc_info.value.expected_sequence_number == 7
+        assert exc_info.value.received_sequence_number == 8
         processor.partial_segments.clear()
 
         # Segment 10 should not be accepted (until segment 7+8 are processed)
         with pytest.raises(MediaSegmentMismatchError, match='Segment sequence number mismatch') as exc_info:
             processor.process_media_header(make_media_header(selector, sequence_no=10))
-            assert exc_info.value.expected_sequence_number == 7
-            assert exc_info.value.received_sequence_number == 10
+        assert exc_info.value.expected_sequence_number == 7
+        assert exc_info.value.received_sequence_number == 10
+
+        # Consumed segments in the same chain BEFORE the previous segment should be accepted (and ignored)
+        for seq_no in [1, 2, 3]:
+            result = processor.process_media_header(make_media_header(selector, sequence_no=seq_no))
+            assert isinstance(result, ProcessMediaHeaderResult)
+            assert result.sabr_part is None
+            processor.partial_segments.clear()
+
+    def test_multiple_consumed_ranges_previous_segment_consumed(self, base_args):
+        # Allow next segment to be at the end of a chain of consumed ranges even if previous segment is consumed
+        # (similar to above)
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+
+        initialized_format = processor.initialized_formats[str(selector.format_ids[0])]
+
+        # Previous segment was segment 4 and consumed
+        initialized_format.previous_segment = Segment(
+            format_id=selector.format_ids[0],
+            is_init_segment=False,
+            sequence_number=4,
+            consumed=True,
+            initialized_format=initialized_format,
+        )
+
+        # Simulate that segments 1-6 have been consumed in multiple ranges
+        consumed_ranges = [
+            ConsumedRange(
+                start_time_ms=0,
+                duration_ms=1000,
+                start_sequence_number=1,
+                end_sequence_number=2),
+            ConsumedRange(
+                start_time_ms=1000,
+                duration_ms=2000,
+                start_sequence_number=3,
+                end_sequence_number=4),
+            ConsumedRange(
+                start_time_ms=3000,
+                duration_ms=2000,
+                start_sequence_number=5,
+                end_sequence_number=6),
+        ]
+
+        initialized_format.consumed_ranges.extend(consumed_ranges)
+
+        # Segment 5 should be ignored as already consumed
+        result = processor.process_media_header(make_media_header(selector, sequence_no=5))
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert result.sabr_part is None
+        processor.partial_segments.clear()
+
+        # Segment 7 should be accepted
+        result = processor.process_media_header(make_media_header(selector, sequence_no=7))
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert isinstance(result.sabr_part, MediaSegmentInitSabrPart)
+        processor.partial_segments.clear()
+
+        # Segment 8 should not be accepted
+        with pytest.raises(MediaSegmentMismatchError, match='Segment sequence number mismatch') as exc_info:
+            processor.process_media_header(make_media_header(selector, sequence_no=8))
+        assert exc_info.value.expected_sequence_number == 7
+        assert exc_info.value.received_sequence_number == 8
+        processor.partial_segments.clear()
+
+        # Segment 10 should not be accepted (until segment 7+8 are processed)
+        with pytest.raises(MediaSegmentMismatchError, match='Segment sequence number mismatch') as exc_info:
+            processor.process_media_header(make_media_header(selector, sequence_no=10))
+        assert exc_info.value.expected_sequence_number == 7
+        assert exc_info.value.received_sequence_number == 10
 
         # Consumed segments in the same chain BEFORE the previous segment should be accepted (and ignored)
         for seq_no in [1, 2, 3]:
@@ -2186,7 +2223,6 @@ class TestMediaHeader:
             format_id=selector.format_ids[0],
             is_init_segment=False,
             sequence_number=5,
-            discard=False,
             consumed=True,
             initialized_format=initialized_format,
         )
@@ -2237,7 +2273,6 @@ class TestMediaHeader:
             format_id=selector.format_ids[0],
             is_init_segment=False,
             sequence_number=5,
-            discard=False,
             consumed=True,
             initialized_format=initialized_format,
         )
@@ -2285,7 +2320,6 @@ class TestMediaHeader:
             format_id=selector.format_ids[0],
             is_init_segment=False,
             sequence_number=1,
-            discard=False,
             consumed=False,
             initialized_format=initialized_format,
         )
@@ -2396,6 +2430,31 @@ class TestMedia:
         media_header = make_media_header(selector, sequence_no=1)
         media_header.content_length = len(example_payload)
         processor.process_media_header(media_header)
+
+        result = processor.process_media(
+            header_id=media_header.header_id,
+            content_length=media_header.content_length,
+            data=io.BytesIO(example_payload))
+
+        assert isinstance(result, ProcessMediaResult)
+        assert result.sabr_part is None
+        assert processor.partial_segments[media_header.header_id].received_data_length == len(example_payload)
+
+    def test_consumed_partial_segment(self, base_args):
+        # Should ignore the media part if the segment is marked as consumed
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        example_payload = b'example-data'
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        media_header = make_media_header(selector, sequence_no=1)
+        media_header.content_length = len(example_payload)
+        processor.process_media_header(media_header)
+        # Mark segment as consumed
+        processor.partial_segments[media_header.header_id].consumed = True
 
         result = processor.process_media(
             header_id=media_header.header_id,
@@ -2675,10 +2734,12 @@ class TestMediaEnd:
         processor.process_format_initialization_metadata(fim)
         media_header = make_init_header(selector)
         # Simulate that the init segment is already consumed
-        processor.initialized_formats[str(selector.format_ids[0])].init_segment = Segment(
+        initialized_format = processor.initialized_formats[str(selector.format_ids[0])]
+        initialized_format.init_segment = Segment(
             is_init_segment=True,
             format_id=selector.format_ids[0],
             sequence_number=None,
+            initialized_format=initialized_format,
         )
         processor.process_media_header(media_header)
         processor.process_media(media_header.header_id, media_header.content_length, io.BytesIO(b'example-init-data'))
