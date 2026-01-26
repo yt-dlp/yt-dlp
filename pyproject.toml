@@ -59,11 +59,18 @@ default = [
     "yt-dlp-ejs==0.3.2",
 ]
 curl-cffi = [
-    "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.14; implementation_name=='cpython'",
+    "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.15; implementation_name=='cpython'",
+]
+build-curl-cffi = [
+    "curl-cffi==0.13.0; sys_platform=='darwin' or (sys_platform=='linux' and platform_machine!='armv7l')",
+    "curl-cffi==0.14.0; sys_platform=='win32' or (sys_platform=='linux' and platform_machine=='armv7l')",
 ]
 secretstorage = [
     "cffi",
     "secretstorage",
+]
+deno = [
+    "deno>=2.6.5",  # v2.6.5 fixes installation of incompatible binaries
 ]
 build = [
     "build",
