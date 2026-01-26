@@ -241,7 +241,6 @@ class SabrFD(FileDownloader):
                     initialized_format = stream.processor.initialized_formats[str(part.format_id)]
                     if writer.state.init_sequence:
                         initialized_format.init_segment = True
-                        initialized_format.previous_segment = None  # allow a seek
 
                     # Build consumed ranges from the sequences
                     consumed_ranges = []
@@ -254,7 +253,6 @@ class SabrFD(FileDownloader):
                         ))
                     if consumed_ranges:
                         initialized_format.consumed_ranges = consumed_ranges
-                        initialized_format.previous_segment = None  # allow a seek
                         self.to_screen(f'[download] Resuming download for format {part.format_selector.display_name}')
 
                 elif isinstance(part, MediaSegmentInitSabrPart):
