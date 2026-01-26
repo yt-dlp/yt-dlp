@@ -2160,6 +2160,115 @@ class TestMediaHeader:
             assert exc_info.value.expected_sequence_number == 7
             assert exc_info.value.received_sequence_number == 10
 
+        # Consumed segments in the same chain BEFORE the previous segment should be accepted (and ignored)
+        for seq_no in [1, 2, 3]:
+            result = processor.process_media_header(make_media_header(selector, sequence_no=seq_no))
+            assert isinstance(result, ProcessMediaHeaderResult)
+            assert result.sabr_part is None
+            processor.partial_segments.clear()
+
+    def test_error_on_mismatch_consumed_segment_before_previous(self, base_args):
+        # Should raise mismatch error if:
+        # 1. Previous segment is consumed
+        # 2. New segment is also consumed
+        # 3. New segment is before previous segment (out of order) and not in the same consumed range chain
+
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        # Simulate that the previous segment was consumed
+        initialized_format = processor.initialized_formats[str(selector.format_ids[0])]
+        initialized_format.previous_segment = Segment(
+            format_id=selector.format_ids[0],
+            is_init_segment=False,
+            sequence_number=5,
+            discard=False,
+            consumed=True,
+            initialized_format=initialized_format,
+        )
+        # Mark segment 3 and 5 as consumed
+        initialized_format.consumed_ranges.append(
+            ConsumedRange(
+                start_sequence_number=3,
+                end_sequence_number=3,
+                start_time_ms=0,
+                duration_ms=2300,
+            ))
+        initialized_format.consumed_ranges.append(
+            ConsumedRange(
+                start_sequence_number=5,
+                end_sequence_number=5,
+                start_time_ms=4600,
+                duration_ms=2300,
+            ))
+
+        with pytest.raises(MediaSegmentMismatchError, match='Segment sequence number mismatch') as exc_info:
+            processor.process_media_header(make_media_header(selector, sequence_no=3))
+        assert exc_info.value.expected_sequence_number == 6
+        assert exc_info.value.received_sequence_number == 3
+
+        # Check we didn't process segment 3
+        assert any(seg.sequence_number != 3 for seg in processor.partial_segments.values())
+
+        # Segment 5 should be accepted as it was already accepted
+        result = processor.process_media_header(make_media_header(selector, sequence_no=5))
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert result.sabr_part is None
+
+    def test_error_on_mismatch_consumed_segment_after_previous(self, base_args):
+        # Should raise mismatch error if:
+        # 1. Previous segment is consumed
+        # 2. New segment is also consumed
+        # 3. New segment is after previous segment (out of order) and not in the same consumed range chain
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        # Simulate that the previous segment was consumed
+        initialized_format = processor.initialized_formats[str(selector.format_ids[0])]
+        initialized_format.previous_segment = Segment(
+            format_id=selector.format_ids[0],
+            is_init_segment=False,
+            sequence_number=5,
+            discard=False,
+            consumed=True,
+            initialized_format=initialized_format,
+        )
+        # Mark segment 7 and 5 as consumed
+        initialized_format.consumed_ranges.append(
+            ConsumedRange(
+                start_sequence_number=7,
+                end_sequence_number=7,
+                start_time_ms=9200,
+                duration_ms=2300,
+            ))
+        initialized_format.consumed_ranges.append(
+            ConsumedRange(
+                start_sequence_number=5,
+                end_sequence_number=5,
+                start_time_ms=4600,
+                duration_ms=2300,
+            ))
+
+        with pytest.raises(MediaSegmentMismatchError, match='Segment sequence number mismatch') as exc_info:
+            processor.process_media_header(make_media_header(selector, sequence_no=7))
+        assert exc_info.value.expected_sequence_number == 6
+        assert exc_info.value.received_sequence_number == 7
+        # Check we didn't process segment 7
+        assert any(seg.sequence_number != 7 for seg in processor.partial_segments.values())
+
+        # Segment 5 should be accepted as it was already accepted
+        result = processor.process_media_header(make_media_header(selector, sequence_no=5))
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert result.sabr_part is None
+
     def test_error_previous_segment_not_consumed(self, base_args):
         # Should raise an error if previous segment is not in consumed ranges
         selector = make_selector('audio')

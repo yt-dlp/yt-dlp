@@ -365,6 +365,115 @@ class TestStream:
         video_buffered_ranges = [br for br in last_request_vpabr.buffered_ranges if br.format_id == format_init_part.format_id]
         assert len(video_buffered_ranges) == 2
 
+    def test_previous_segment_and_current_consumed_wrong_segment(self, logger, client_info):
+        # Should throw a segment mismatch error if the previous segment and the current
+        # are consumed but are not in the same consumed range chain (i.e, out of order)
+        # This case probably would only occur on the first request on resume and would be a server error
+        # For example, we have populated the following consumed ranges after format initialization:
+        # -- -- [CR: 3-9]
+        # After retrieving the first segment, we have two consumed ranges:
+        # [CR: 1] -- [CR: 3-9] --
+        # The next expected segment is 2, but if the server returns segment 3 or higher instead of segment 2,
+        # it should error with a segment mismatch.
+        # Otherwise, the server could followup with segment 10, which could be accepted, returned and corrupt the file:
+        # [CR: 1] -- [CR: 3-10]
+
+        init_sabr_stream, _, _ = setup_sabr_stream_av(
+            sabr_response_processor=BasicAudioVideoProfile(),
+            client_info=client_info,
+            logger=logger,
+            enable_audio=False,
+        )
+
+        # Get all the segments from the first iteration. We need to know the timings of each to set up buffered ranges.
+        iter_parts = init_sabr_stream.iter_parts()
+        format_init_part = next(iter_parts)
+        assert isinstance(format_init_part, FormatInitializedSabrPart)
+        # Get all the media init parts
+        media_init_parts = [part for part in iter_parts if isinstance(part, MediaSegmentInitSabrPart)]
+        assert len(media_init_parts) == DEFAULT_NUM_VIDEO_SEGMENTS + 1
+
+        # Set up buffered ranges to skip from segment 3 - 9
+        consumed_ranges = [
+            ConsumedRange(
+                # Note: First segment is init segment with no sequence number
+                start_sequence_number=media_init_parts[3].sequence_number,
+                end_sequence_number=media_init_parts[-2].sequence_number,
+                start_time_ms=media_init_parts[3].start_time_ms,
+                duration_ms=sum(part.duration_ms for part in media_init_parts[3:-1]),
+            ),
+        ]
+
+        class SkipSegmentTwoProcessor(BasicAudioVideoProfile):
+            def get_media_segments(
+                self,
+                buffered_segments: set[int],
+                total_segments: int,
+                max_segments: int,
+                player_time_ms: int,
+                start_header_id: int,
+                format_id: FormatId,
+            ) -> tuple[list[UMPPart], int]:
+                # hack to force generate init segment then segment 1, 3, skipping segment 2
+                if not buffered_segments:
+                    init_segments, start_header_id = super().get_media_segments(
+                        buffered_segments, total_segments, 1, player_time_ms, start_header_id, format_id)
+
+                    buffered_segments.add(2)  # Skip segment 2 on first request
+                    segments, start_header_id = super().get_media_segments(
+                        buffered_segments, total_segments, max_segments, player_time_ms, start_header_id, format_id)
+
+                    return init_segments + segments, start_header_id
+                return super().get_media_segments(
+                    buffered_segments, total_segments, max_segments, player_time_ms, start_header_id, format_id)
+
+        sabr_stream, rh, _ = setup_sabr_stream_av(
+            # Increase max segments per request to 3 so we get init + 2 segments on first request
+            sabr_response_processor=SkipSegmentTwoProcessor({'max_segments': 3}),
+            client_info=client_info,
+            logger=logger,
+            enable_audio=False,
+        )
+        # Start streaming until get the initialized format
+        iter_parts = sabr_stream.iter_parts()
+        format_init_part = next(iter_parts)
+        assert isinstance(format_init_part, FormatInitializedSabrPart)
+        sabr_stream.processor.initialized_formats[str(format_init_part.format_id)].consumed_ranges.extend(consumed_ranges)
+        # Continue retrieving parts until we get an error
+        parts = [format_init_part]
+        with pytest.raises(
+            MediaSegmentMismatchError,
+            match=r'Segment sequence number mismatch for format FormatId\(itag=248, lmt=456, xtags=None\): expected 2, received 3',
+        ):
+            for part in iter_parts:
+                parts.append(part)
+
+        initialized_format = sabr_stream.processor.initialized_formats[str(format_init_part.format_id)]
+        # Previous segment should still be segment 1
+        assert initialized_format.previous_segment.sequence_number == 1
+
+        # Should have failed on the first request
+        assert len(rh.request_history) == 1
+
+        result_consumed_ranges = initialized_format.consumed_ranges
+        assert len(result_consumed_ranges) == 2
+        # One of the consumed ranges should equal the original consumed range.
+        # If the error did not occur, then we would likely have retrieved segment 10 too.
+        assert consumed_ranges[0] in result_consumed_ranges
+        # The other consumed range should be for segment 1
+        assert ConsumedRange(
+            start_sequence_number=1,
+            end_sequence_number=1,
+            start_time_ms=0,
+            duration_ms=1000,
+        ) in result_consumed_ranges
+
+        # We should not have received segment 2 or 3 from SabrStream
+        media_init_parts_received = [part for part in parts if isinstance(part, MediaSegmentInitSabrPart)]
+        received_sequence_numbers = [part.sequence_number for part in media_init_parts_received]
+        assert 2 not in received_sequence_numbers
+        assert 3 not in received_sequence_numbers
+
     def test_fail_segment_multiple_consumed_ranges(self, logger, client_info):
         # Should bail out if a segment is in multiple consumed ranges
         # This is a guard against an internal error when setting consumed ranges

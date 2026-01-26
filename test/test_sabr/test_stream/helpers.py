@@ -280,7 +280,7 @@ class SabrResponseProcessor:
             # Basic server-side buffering logic to determine if the segment should be included
             if (
                 (player_time_ms >= start_ms + segment_duration)
-                or (player_time_ms < (start_ms - segment_duration * 2))  # allow to buffer 2 segments ahead
+                or (player_time_ms < ((start_ms - 1) - segment_duration * 2))  # allow to buffer 2 segments ahead
             ):
                 continue
 
@@ -332,7 +332,7 @@ class BasicAudioVideoProfile(SabrResponseProcessor):
             audio_segment_parts, next_header_id = self.get_media_segments(
                 buffered_segments=self.buffered_segments(vpabr, DEFAULT_NUM_AUDIO_SEGMENTS, audio_format_id),
                 total_segments=DEFAULT_NUM_AUDIO_SEGMENTS,
-                max_segments=2,
+                max_segments=self.options.get('max_segments', 2),
                 player_time_ms=vpabr.client_abr_state.player_time_ms,
                 start_header_id=next_header_id,
                 format_id=audio_format_id,
@@ -343,7 +343,7 @@ class BasicAudioVideoProfile(SabrResponseProcessor):
             video_segment_parts, next_header_id = self.get_media_segments(
                 buffered_segments=self.buffered_segments(vpabr, DEFAULT_NUM_VIDEO_SEGMENTS, video_format_id),
                 total_segments=DEFAULT_NUM_VIDEO_SEGMENTS,
-                max_segments=2,
+                max_segments=self.options.get('max_segments', 2),
                 player_time_ms=vpabr.client_abr_state.player_time_ms,
                 start_header_id=next_header_id,
                 format_id=video_format_id,
