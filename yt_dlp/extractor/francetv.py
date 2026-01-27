@@ -438,6 +438,7 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
             'thumbnail': r're:https://[^/?#]+/v/[^/?#]+/x1080',
         },
         'add_ie': ['Dailymotion'],
+        'skip': 'Broken Dailymotion link',
     }, {
         'url': 'http://france3-regions.francetvinfo.fr/limousin/emissions/jt-1213-limousin',
         'only_matching': True,
@@ -446,7 +447,6 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
         'url': 'https://www.francetvinfo.fr/culture/patrimoine/incendie-de-notre-dame-de-paris/notre-dame-de-paris-de-l-incendie-de-la-cathedrale-a-sa-reconstruction_4372291.html',
         'only_matching': True,
     }, {
-        # new franceinfo.fr domain name (#13173)
         'url': 'https://www.franceinfo.fr/replay-jt/france-2/20-heures/robert-de-niro-portrait-d-un-monument-du-cinema_7245456.html',
         'only_matching': True,
     }]
