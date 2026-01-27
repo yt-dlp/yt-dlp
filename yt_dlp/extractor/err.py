@@ -263,15 +263,14 @@ class ERRArhiivIE(InfoExtractor):
             f'https://arhiiv.err.ee/api/v1/content/video/{video_id}', video_id)
 
         formats, subtitles = [], {}
-        media_data = traverse_obj(data, ('media', 'src'), {url_or_none})
-        if 'hls' in media_data:
+        if hls_url := traverse_obj(data, ('media', 'src', 'hls', {url_or_none})):
             fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                media_data['hls'], video_id, 'mp4', m3u8_id='hls', fatal=False)
+                hls_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
-        if 'dash' in media_data:
+        if dash_url := traverse_obj(data, ('media', 'src', 'dash', {url_or_none})):
             fmts, subs = self._extract_mpd_formats_and_subtitles(
-                media_data['dash'], video_id, mpd_id='dash', fatal=False)
+                dash_url, video_id, mpd_id='dash', fatal=False)
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
