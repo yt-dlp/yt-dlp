@@ -366,8 +366,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
 
     @staticmethod
     def _generate_blockbuster_headers():
-        # Randomize our HTTP header fingerprint to bust the HTTP Error 403 block
-        # See https://github.com/yt-dlp/yt-dlp/issues/15526
+        """Randomize our HTTP header fingerprint to bust the HTTP Error 403 block"""
 
         def random_letters(minimum, maximum):
             # Omit vowels so we don't generate valid header names like 'authorization', etc
@@ -377,6 +376,43 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             random_letters(8, 24): random_letters(16, 32)
             for _ in range(random.randint(2, 8))
         }
+
+    def _extract_dailymotion_m3u8_formats_and_subtitles(self, media_url, video_id, live=False):
+        """See https://github.com/yt-dlp/yt-dlp/issues/15526"""
+
+        ERROR_NOTE = 'Unable to download m3u8 information'
+        last_error = None
+
+        for note, kwargs in (
+            ('Downloading m3u8 information', {}),
+            ('Retrying m3u8 download with randomized headers', {
+                'headers': self._generate_blockbuster_headers(),
+            }),
+            ('Retrying m3u8 download with Chrome impersonation', {
+                'impersonate': 'chrome',
+                'require_impersonation': True,
+            }),
+            ('Retrying m3u8 download with Firefox impersonation', {
+                'impersonate': 'firefox',
+                'require_impersonation': True,
+            }),
+        ):
+            try:
+                m3u8_doc = self._download_webpage(media_url, video_id, note, ERROR_NOTE, **kwargs)
+                break
+            except ExtractorError as e:
+                last_error = e.orig_msg
+                self.write_debug(f'{video_id}: {last_error}')
+        else:
+            if 'impersonation' not in last_error:
+                self.report_warning(last_error, video_id=video_id)
+                last_error = None
+            return [], {}, last_error
+
+        formats, subtitles = self._parse_m3u8_formats_and_subtitles(
+            m3u8_doc, media_url, 'mp4', m3u8_id='hls', live=live, fatal=False)
+
+        return formats, subtitles, last_error
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url)
@@ -431,6 +467,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         is_live = media.get('isOnAir')
         formats = []
         subtitles = {}
+        expected_error = None
 
         for quality, media_list in metadata['qualities'].items():
             for m in media_list:
@@ -439,9 +476,8 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                 if not media_url or media_type == 'application/vnd.lumberjack.manifest':
                     continue
                 if media_type == 'application/x-mpegURL':
-                    fmt, subs = self._extract_m3u8_formats_and_subtitles(
-                        media_url, video_id, 'mp4', live=is_live, m3u8_id='hls',
-                        fatal=False, headers=self._generate_blockbuster_headers())
+                    fmt, subs, expected_error = self._extract_dailymotion_m3u8_formats_and_subtitles(
+                        media_url, video_id, live=is_live)
                     formats.extend(fmt)
                     self._merge_subtitles(subs, target=subtitles)
                 else:
@@ -458,6 +494,10 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                             'width': width,
                         })
                     formats.append(f)
+
+        if not formats and expected_error:
+            self.raise_no_formats(expected_error, expected=True)
+
         for f in formats:
             f['url'] = f['url'].split('#')[0]
             if not f.get('fps') and f['format_id'].endswith('@60'):
