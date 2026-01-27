@@ -1258,6 +1258,7 @@ from .nest import (
 )
 from .netapp import (
     NetAppCollectionIE,
+    NetAppSearchIE,
     NetAppVideoIE,
 )
 from .neteasemusic import (
