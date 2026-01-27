@@ -226,7 +226,7 @@ class ERRJupiterIE(InfoExtractor):
 
 
 class ERRArhiivIE(InfoExtractor):
-    _VALID_URL = r'https://arhiiv\.err\.ee/video/(?:vaata/)?(?P<id>[^/]+)$'
+    _VALID_URL = r'https://arhiiv\.err\.ee/video/(?:vaata/)?(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://arhiiv.err.ee/video/kontsertpalad',
         'info_dict': {
