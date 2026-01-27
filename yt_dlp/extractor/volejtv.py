@@ -65,14 +65,16 @@ class VolejTVIE(VolejTVBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         json_data = self._call_api(f'match/{video_id}', video_id)
+
         formats = []
-        for video in traverse_obj(json_data, ('videos', 0, 'qualities', lambda _, v: v['cloud_front_path'])):
+        for video in traverse_obj(json_data, ('videos', 0, 'qualities', lambda _, v: url_or_none(v['cloud_front_path']))):
             formats.append(traverse_obj(video, {
-                'url': ('cloud_front_path', {url_or_none}),
+                'url': 'cloud_front_path',
                 'tbr': ('quality', {int_or_none}),
                 'format_id': ('id', {str_or_none}),
                 'height': ('quality', {self.TBR_HEIGHT_MAPPING.get}),
             }))
+
         data = {
             'id': video_id,
             **traverse_obj(json_data, {
@@ -84,17 +86,34 @@ class VolejTVIE(VolejTVBaseIE):
             }),
             'formats': formats,
         }
+
         teams = orderedSet(traverse_obj(json_data, ('teams', ..., 'shortcut', {str})))
         if len(teams) > 2 and 'FIN' in teams:
             teams.remove('FIN')
+
         data['title'] = join_nonempty(
             join_nonempty(*teams, delim='-'),
             strftime_or_none(data.get('timestamp'), '(%Y-%m-%d)'),
             delim=' ')
+
         return data
 
 
-class VolejTVClubPlaylistIE(VolejTVBaseIE):
+class VolejTVPlaylistBaseIE(VolejTVBaseIE):
+    """Subclasses must set _API_FILTER, _PAGE_SIZE"""
+
+    def _get_page(self, playlist_id, page):
+        return self._call_api(
+            f'match/{self._API_FILTER}/{playlist_id}', playlist_id,
+            query={'page': page + 1, 'take': self._PAGE_SIZE, 'order': 'DESC'})
+
+    def _entries(self, playlist_id, first_page_data, page):
+        entries = first_page_data if page == 0 else self._get_page(playlist_id, page)
+        for match_id in traverse_obj(entries, ('data', ..., 'id')):
+            yield self.url_result(f'https://volej.tv/match/{match_id}', VolejTVIE)
+
+
+class VolejTVClubPlaylistIE(VolejTVPlaylistBaseIE):
     IE_NAME = 'volejtv:club'
     _VALID_URL = r'https?://volej\.tv/klub/(?P<id>\d+)'
     _TESTS = [{
@@ -105,17 +124,8 @@ class VolejTVClubPlaylistIE(VolejTVBaseIE):
         },
         'playlist_mincount': 30,
     }]
+    _API_FILTER = 'by-team-id-paginated'
     _PAGE_SIZE = 6
-
-    def _get_page(self, playlist_id, page):
-        return self._call_api(
-            f'match/by-team-id-paginated/{playlist_id}', playlist_id,
-            query={'page': page + 1, 'take': self._PAGE_SIZE, 'order': 'DESC'})
-
-    def _entries(self, playlist_id, first_page_data, page):
-        entries = first_page_data if page == 0 else self._get_page(playlist_id, page)
-        for entry in traverse_obj(entries, ('data', lambda _, v: v['id'])):
-            yield self.url_result(f"https://volej.tv/match/{entry['id']}", VolejTVIE)
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
@@ -127,7 +137,7 @@ class VolejTVClubPlaylistIE(VolejTVBaseIE):
             total_pages, self._PAGE_SIZE), playlist_id, title)
 
 
-class VolejTVCategoryPlaylistIE(VolejTVClubPlaylistIE):
+class VolejTVCategoryPlaylistIE(VolejTVPlaylistBaseIE):
     IE_NAME = 'volejtv:category'
     _VALID_URL = r'https?://volej\.tv/kategorie/(?P<id>[^/$?]+)'
     _TESTS = [{
@@ -138,12 +148,8 @@ class VolejTVCategoryPlaylistIE(VolejTVClubPlaylistIE):
         },
         'playlist_mincount': 30,
     }]
+    _API_FILTER = 'by-category-id-paginated'
     _PAGE_SIZE = 10
-
-    def _get_page(self, playlist_id, page):
-        return self._call_api(
-            f'match/by-category-id-paginated/{playlist_id}', playlist_id,
-            query={'page': page + 1, 'take': self._PAGE_SIZE, 'order': 'DESC'})
 
     def _get_category(self, playlist_id):
         categories = self._call_api('category', playlist_id)
