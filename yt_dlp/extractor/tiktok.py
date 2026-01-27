@@ -12,6 +12,7 @@ import uuid
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     UnsupportedError,
@@ -220,17 +221,15 @@ class TikTokBaseIE(InfoExtractor):
             raise ExtractorError('Unable to extract aweme detail info', video_id=aweme_id)
         return self._parse_aweme_video_app(aweme_detail)
 
-    def _solve_challenge_and_set_cookie(self, webpage):
-        challenge_data = traverse_obj(webpage, (
+    @staticmethod
+    def _extract_challenge_data(webpage):
+        return traverse_obj(webpage, (
             {find_element(id='cs', html=True)}, {extract_attributes}, 'class',
             filter, {lambda x: f'{x}==='}, {base64.b64decode}, {json.loads}))
 
-        if not challenge_data:
-            if 'Please wait...' in webpage:
-                raise ExtractorError('Unable to extract challenge data')
-            raise ExtractorError('Unexpected response from webpage request')
-
+    def _solve_challenge_and_set_cookie(self, webpage):
         self.to_screen('Solving JS challenge using native Python implementation')
+        challenge_data = self._extract_challenge_data(webpage)
 
         expected_digest = traverse_obj(challenge_data, (
             'v', 'c', {str}, {base64.b64decode},
@@ -265,9 +264,17 @@ class TikTokBaseIE(InfoExtractor):
     def _extract_web_data_and_status(self, url, video_id, fatal=True):
         video_data, status = {}, -1
 
-        def get_webpage(note='Downloading webpage'):
-            res = self._download_webpage_handle(url, video_id, note, fatal=fatal, impersonate=True)
-            if res is False:
+        def get_webpage(status, note='Downloading webpage'):
+            try:
+                res = self._download_webpage_handle(url, video_id, note, impersonate=True)
+            except ExtractorError as e:
+                if isinstance(e.cause, HTTPError):
+                    status = e.cause.status
+                    if status == 503:
+                        return False
+                if fatal:
+                    raise
+                self.report_warning(e.orig_msg, video_id=video_id)
                 return False
 
             webpage, urlh = res
@@ -280,12 +287,18 @@ class TikTokBaseIE(InfoExtractor):
 
             return webpage
 
-        webpage = get_webpage()
+        webpage = get_webpage(status)
         if webpage is False:
             return video_data, status
 
         universal_data = self._get_universal_data(webpage, video_id)
         if not universal_data:
+            if not self._extract_challenge_data(webpage):
+                if 'Please wait...' in webpage:
+                    raise ExtractorError('Unable to extract challenge data')
+                if 'captcha' in webpage:
+                    return video_data, -2
+                raise ExtractorError('Unexpected response from webpage request')
             try:
                 self._solve_challenge_and_set_cookie(webpage)
             except ExtractorError as e:
@@ -294,7 +307,7 @@ class TikTokBaseIE(InfoExtractor):
                 self.report_warning(e.orig_msg, video_id=video_id)
                 return video_data, status
 
-            webpage = get_webpage(note='Downloading webpage with challenge cookie')
+            webpage = get_webpage(status, note='Downloading webpage with challenge cookie')
             if webpage is False:
                 return video_data, status
             universal_data = self._get_universal_data(webpage, video_id)
@@ -958,6 +971,16 @@ class TikTokIE(TikTokBaseIE):
         'only_matching': True,
     }]
 
+    _EXPECTED_ERRORS = {
+        -2: 'Received a captcha challenge page instead of the video page',
+        503: 'Got HTTP Error 503 Service Unavailable',
+        10101: 'Server error, status code 10101',
+    }
+    _LOGIN_ERRORS = {
+        10216: 'private post',
+        10222: 'private account',
+    }
+
     def _real_extract(self, url):
         video_id, user_id = self._match_valid_url(url).group('id', 'user_id')
 
@@ -969,17 +992,33 @@ class TikTokIE(TikTokBaseIE):
                 self.report_warning(f'{e}; trying with webpage')
 
         url = self._create_url(user_id, video_id)
-        video_data, status = self._extract_web_data_and_status(url, video_id)
 
-        if video_data and status == 0:
-            return self._parse_aweme_video_web(video_data, url, video_id)
-        elif status in (10216, 10222):
-            # 10216: private post; 10222: private account
-            self.raise_login_required(
-                'You do not have permission to view this post. Log into an account that has access')
-        elif status == 10204:
-            raise ExtractorError('Your IP address is blocked from accessing this post', expected=True)
-        raise ExtractorError(f'Video not available, status code {status}', video_id=video_id)
+        # Use xff (US) for consistent results (e.g. formats)
+        # See https://github.com/yt-dlp/yt-dlp/issues/15690
+        self._initialize_geo_bypass({
+            'countries': ['US'],
+        })
+
+        for first_attempt in (True, False):
+            video_data, status = self._extract_web_data_and_status(url, video_id)
+            if video_data and status == 0:
+                return self._parse_aweme_video_web(video_data, url, video_id)
+            elif status in self._EXPECTED_ERRORS:
+                message = self._EXPECTED_ERRORS[status]
+                if first_attempt:
+                    self.to_screen(f'{message}; retrying without X-Forwarded-For header')
+                    self._x_forwarded_for_ip = None
+                    continue
+                raise ExtractorError(message, expected=True, video_id=video_id)
+            elif status in self._LOGIN_ERRORS:
+                self.raise_login_required(
+                    f'You do not have permission to view this {self._LOGIN_ERRORS[status]}. '
+                    f'Log into an account that has access')
+            elif status == 10204:
+                raise ExtractorError(
+                    'Your IP address is blocked from accessing this post',
+                    expected=True, video_id=video_id)
+            raise ExtractorError(f'Video not available, status code {status}', video_id=video_id)
 
 
 class TikTokUserIE(TikTokBaseIE):
