@@ -371,7 +371,8 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
 
 
 class FranceTVInfoIE(FranceTVBaseInfoExtractor):
-    IE_NAME = 'francetvinfo.fr'
+    IE_NAME = 'franceinfo'
+    IE_DESC = 'franceinfo.fr (formerly francetvinfo.fr)'
     _VALID_URL = r'https?://(?:www|mobile|france3-regions)\.france(?:tv)?info.fr/(?:[^/?#]+/)*(?P<id>[^/?#&.]+)'
 
     _TESTS = [{
