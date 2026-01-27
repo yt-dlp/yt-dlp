@@ -441,6 +441,17 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
         'add_ie': ['Dailymotion'],
         'skip': 'Broken Dailymotion link',
     }, {
+        'url': 'https://www.franceinfo.fr/monde/usa/presidentielle/donald-trump/etats-unis-un-risque-d-embrasement-apres-la-mort-d-un-manifestant_7764542.html',
+        'info_dict': {
+            'id': 'f920fcc2-fa20-11f0-ac98-57a09c50f7ce',
+            'ext': 'mp4',
+            'title': 'Affaires sensibles - Manifestant tué Le risque d\'embrasement',
+            'duration': 118,
+            'thumbnail': r're:https?://.+/.+\.jpg',
+            'timestamp': 1769367756,
+            'upload_date': '20260125',
+        },
+    }, {
         'url': 'http://france3-regions.francetvinfo.fr/limousin/emissions/jt-1213-limousin',
         'only_matching': True,
     }, {
@@ -465,7 +476,7 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
 
         video_id = (
             traverse_obj(webpage, (
-                {find_element(tag='button', attr='data-cy', value='francetv-player-wrapper', html=True)},
+                {find_element(tag='(button|div)', attr='data-cy', value='francetv-player-wrapper', html=True, regex=True)},
                 {extract_attributes}, 'id'))
             or self._search_regex(
                 (r'player\.load[^;]+src:\s*["\']([^"\']+)',
