@@ -1685,7 +1685,10 @@ from .rentv import (
 )
 from .restudy import RestudyIE
 from .reuters import ReutersIE
-from .reverbnation import ReverbNationIE
+from .reverbnation import (
+    ReverbNationArtistIE,
+    ReverbNationIE,
+)
 from .rheinmaintv import RheinMainTVIE
 from .ridehome import RideHomeIE
 from .rinsefm import (
