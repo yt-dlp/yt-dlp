@@ -317,14 +317,12 @@ class PatreonIE(PatreonBaseIE):
         if not attributes:
             return None
 
-        info_dict = {
-            **traverse_obj(attributes, {
-                'title': ('file_name', {lambda x: x.rpartition('.')[0]}),
-                'timestamp': ('created_at', {parse_iso8601}),
-                'duration': ('display', 'duration', {float_or_none}),
-            }),
-            'id': media_id,
-        }
+        info_dict = traverse_obj(attributes, {
+            'title': ('file_name', {lambda x: x.rpartition('.')[0]}),
+            'timestamp': ('created_at', {parse_iso8601}),
+            'duration': ('display', 'duration', {float_or_none}),
+        })
+        info_dict['id'] = media_id
 
         playback_url = traverse_obj(
             attributes, ('display', (None, 'viewer_playback_data'), 'url', {url_or_none}, any))
