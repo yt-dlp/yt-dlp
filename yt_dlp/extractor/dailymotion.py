@@ -402,6 +402,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                 break
             except ExtractorError as e:
                 last_error = e.orig_msg
+                self.write_debug(f'{video_id}: {last_error}')
         else:
             if 'impersonation' not in last_error:
                 self.report_warning(last_error, video_id=video_id)
