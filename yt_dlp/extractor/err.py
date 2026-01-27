@@ -283,7 +283,7 @@ class ERRArhiivIE(InfoExtractor):
             **traverse_obj(data['info'], {
                 'title': ('title', {str}),
                 'series': ('seriesTitle', {str}, filter),
-                'series_id': ('seriesId', {str}),
+                'series_id': ('seriesId', {str}, filter),
                 'episode_id': ('episode', {int_or_none}),
                 'description': ('synopsis', {str}, filter),
                 'timestamp': ('date', {parse_iso8601}),
