@@ -278,7 +278,7 @@ class ERRArhiivIE(InfoExtractor):
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
-            **traverse_obj(data['info'], {
+            **traverse_obj(data, ('info', {
                 'title': ('title', {str}),
                 'series': ('seriesTitle', {str}, filter),
                 'series_id': ('seriesId', {str}, filter),
@@ -288,5 +288,5 @@ class ERRArhiivIE(InfoExtractor):
                 'modified_timestamp': ('dateModified', {parse_iso8601}),
                 'release_timestamp': ('date', {parse_iso8601}),
                 'release_year': ('year', {int_or_none}),
-            }, get_all=False),
+            })),
         }
