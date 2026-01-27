@@ -39,6 +39,7 @@ __all__ = [
 class PoTokenContext(enum.Enum):
     GVS = 'gvs'
     PLAYER = 'player'
+    SUBS = 'subs'
 
 
 @dataclasses.dataclass
@@ -57,6 +58,8 @@ class PoTokenRequest:
     visitor_data: str | None = None
     data_sync_id: str | None = None
     video_id: str | None = None
+    # Internal, YouTube experiment on whether to bind GVS PO Token to video_id.
+    _gvs_bind_to_video_id: bool = False
 
     # Networking parameters
     request_cookiejar: YoutubeDLCookieJar = dataclasses.field(default_factory=YoutubeDLCookieJar)

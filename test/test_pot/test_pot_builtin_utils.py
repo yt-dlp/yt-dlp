@@ -11,10 +11,11 @@ class TestGetWebPoContentBinding:
 
     @pytest.mark.parametrize('client_name, context, is_authenticated, expected', [
         *[(client, context, is_authenticated, expected) for client in [
-            'WEB', 'MWEB', 'TVHTML5', 'WEB_EMBEDDED_PLAYER', 'WEB_CREATOR', 'TVHTML5_SIMPLY_EMBEDDED_PLAYER']
+            'WEB', 'MWEB', 'TVHTML5', 'WEB_EMBEDDED_PLAYER', 'WEB_CREATOR', 'TVHTML5_SIMPLY_EMBEDDED_PLAYER', 'TVHTML5_SIMPLY']
           for context, is_authenticated, expected in [
             (PoTokenContext.GVS, False, ('example-visitor-data', ContentBindingType.VISITOR_DATA)),
             (PoTokenContext.PLAYER, False, ('example-video-id', ContentBindingType.VIDEO_ID)),
+            (PoTokenContext.SUBS, False, ('example-video-id', ContentBindingType.VIDEO_ID)),
             (PoTokenContext.GVS, True, ('example-data-sync-id', ContentBindingType.DATASYNC_ID)),
         ]],
         ('WEB_REMIX', PoTokenContext.GVS, False, ('example-visitor-data', ContentBindingType.VISITOR_DATA)),
@@ -44,3 +45,8 @@ class TestGetWebPoContentBinding:
     def test_invalid_base64(self, pot_request):
         pot_request.visitor_data = 'invalid-base64'
         assert get_webpo_content_binding(pot_request, bind_to_visitor_id=True) == (pot_request.visitor_data, ContentBindingType.VISITOR_DATA)
+
+    def test_gvs_video_id_binding_experiment(self, pot_request):
+        pot_request.context = PoTokenContext.GVS
+        pot_request._gvs_bind_to_video_id = True
+        assert get_webpo_content_binding(pot_request) == ('example-video-id', ContentBindingType.VIDEO_ID)

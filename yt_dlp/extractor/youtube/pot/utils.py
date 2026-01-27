@@ -20,6 +20,7 @@ WEBPO_CLIENTS = (
     'WEB_EMBEDDED_PLAYER',
     'WEB_CREATOR',
     'WEB_REMIX',
+    'TVHTML5_SIMPLY',
     'TVHTML5_SIMPLY_EMBEDDED_PLAYER',
 )
 
@@ -41,6 +42,9 @@ def get_webpo_content_binding(
     if not client_name or client_name not in webpo_clients:
         return None, None
 
+    if request.context == PoTokenContext.GVS and request._gvs_bind_to_video_id:
+        return request.video_id, ContentBindingType.VIDEO_ID
+
     if request.context == PoTokenContext.GVS or client_name in ('WEB_REMIX', ):
         if request.is_authenticated:
             return request.data_sync_id, ContentBindingType.DATASYNC_ID
@@ -51,7 +55,7 @@ def get_webpo_content_binding(
                     return visitor_id, ContentBindingType.VISITOR_ID
             return request.visitor_data, ContentBindingType.VISITOR_DATA
 
-    elif request.context == PoTokenContext.PLAYER or client_name != 'WEB_REMIX':
+    elif request.context in (PoTokenContext.PLAYER, PoTokenContext.SUBS):
         return request.video_id, ContentBindingType.VIDEO_ID
 
     return None, None
