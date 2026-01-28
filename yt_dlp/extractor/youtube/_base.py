@@ -223,7 +223,6 @@ INNERTUBE_CLIENTS = {
         },
         'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
     },
-    # Doesn't require a PoToken for some reason
     'android_sdkless': {
         'INNERTUBE_CONTEXT': {
             'client': {
@@ -236,6 +235,24 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
         'REQUIRE_JS_PLAYER': False,
+        'GVS_PO_TOKEN_POLICY': {
+            StreamingProtocol.HTTPS: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
+            StreamingProtocol.DASH: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
+            StreamingProtocol.HLS: GvsPoTokenPolicy(
+                required=False,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
+        },
+        'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
     },
     # YouTube Kids videos aren't returned on this client for some reason
     'android_vr': {
@@ -278,6 +295,34 @@ INNERTUBE_CLIENTS = {
             # HLS Livestreams require POT 30 seconds in
             StreamingProtocol.HLS: GvsPoTokenPolicy(
                 required=True,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
+        },
+        'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
+        'REQUIRE_JS_PLAYER': False,
+    },
+    'ios_downgraded': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'IOS',
+                'clientVersion': '19.49.7',
+                'deviceMake': 'Apple',
+                'deviceModel': 'iPhone16,2',
+                'userAgent': 'com.google.ios.youtube/19.49.7 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
+                'osName': 'iPhone',
+                'osVersion': '17.5.1.21F90',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
+        'GVS_PO_TOKEN_POLICY': {
+            StreamingProtocol.HTTPS: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
+            StreamingProtocol.HLS: GvsPoTokenPolicy(
+                required=False,
                 recommended=True,
                 not_required_with_player_token=True,
             ),
