@@ -105,7 +105,7 @@ class CBCIE(InfoExtractor):
         # multiple CBC.APP.Caffeine.initInstance(...)
         'url': 'http://www.cbc.ca/news/canada/calgary/dog-indoor-exercise-winter-1.3928238',
         'info_dict': {
-            'title': 'Keep Rover active during the deep freeze with doggie pushups and other fun indoor tasks',  # FIXME: actual title includes " | CBC News"
+            'title': 'Keep Rover active during the deep freeze with doggie pushups and other fun indoor tasks',
             'id': 'dog-indoor-exercise-winter-1.3928238',
             'description': 'md5:c18552e41726ee95bd75210d1ca9194c',
         },
@@ -134,6 +134,13 @@ class CBCIE(InfoExtractor):
         title = (self._og_search_title(webpage, default=None)
                  or self._html_search_meta('twitter:title', webpage, 'title', default=None)
                  or self._html_extract_title(webpage))
+        title = self._search_regex(
+            r'^(?P<title>.+?)(?:\s*[|–-]\s*CBC.*)?$',
+            title, 'cleaned title', group='title', default=title)
+        data = self._search_json(
+            r'window\.__INITIAL_STATE__\s*=', webpage,
+            'initial state', display_id, default={}, transform_source=js_to_json)
+
         entries = [
             self._extract_player_init(player_init, display_id)
             for player_init in re.findall(r'CBC\.APP\.Caffeine\.initInstance\(({.+?})\);', webpage)]
@@ -143,6 +150,11 @@ class CBCIE(InfoExtractor):
                 r'<div[^>]+\bid=["\']player-(\d+)',
                 r'guid["\']\s*:\s*["\'](\d+)'):
             media_ids.extend(re.findall(media_id_re, webpage))
+        media_ids.extend(traverse_obj(data, (
+            'detail', 'content', 'body', ..., 'content',
+            lambda _, v: v['type'] == 'polopoly_media', 'content', 'sourceId', {str})))
+        if content_id := traverse_obj(data, ('app', 'contentId', {str})):
+            media_ids.append(content_id)
         entries.extend([
             self.url_result(f'cbcplayer:{media_id}', 'CBCPlayer', media_id)
             for media_id in orderedSet(media_ids)])
@@ -268,7 +280,7 @@ class CBCPlayerIE(InfoExtractor):
             'duration': 2692.833,
             'subtitles': {
                 'en-US': [{
-                    'name': 'English Captions',
+                    'name': r're:English',
                     'url': 'https://cbchls.akamaized.net/delivery/news-shows/2024/06/17/NAT_JUN16-00-55-00/NAT_JUN16_cc.vtt',
                 }],
             },
@@ -322,6 +334,7 @@ class CBCPlayerIE(InfoExtractor):
             'categories': ['Olympics Summer Soccer', 'Summer Olympics Replays', 'Summer Olympics Soccer Replays'],
             'location': 'Canada',
         },
+        'skip': 'Video no longer available',
         'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.cbc.ca/player/play/video/9.6459530',
@@ -380,7 +393,8 @@ class CBCPlayerIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(f'https://www.cbc.ca/player/play/{video_id}', video_id)
         data = self._search_json(
-            r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)['video']['currentClip']
+            r'window\.__INITIAL_STATE__\s*=', webpage,
+            'initial state', video_id, transform_source=js_to_json)['video']['currentClip']
         assets = traverse_obj(
             data, ('media', 'assets', lambda _, v: url_or_none(v['key']) and v['type']))
 
@@ -492,12 +506,14 @@ class CBCPlayerPlaylistIE(InfoExtractor):
         'info_dict': {
             'id': 'news/tv shows/the national/latest broadcast',
         },
+        'skip': 'Playlist no longer available',
     }, {
         'url': 'https://www.cbc.ca/player/news/Canada/North',
         'playlist_mincount': 25,
         'info_dict': {
             'id': 'news/canada/north',
         },
+        'skip': 'Playlist no longer available',
     }]
 
     def _real_extract(self, url):

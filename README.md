@@ -1645,6 +1645,8 @@ Note that the default for hdr is `hdr:12`; i.e. Dolby Vision is not preferred. T
 
 If your format selector is `worst`, the last item is selected after sorting. This means it will select the format that is worst in all respects. Most of the time, what you actually want is the video with the smallest filesize instead. So it is generally better to use `-f best -S +size,+br,+res,+fps`.
 
+If you use the `-S`/`--format-sort` option multiple times, each subsequent sorting argument will be prepended to the previous one, and only the highest priority entry of any duplicated field will be preserved. E.g. `-S proto -S res` is equivalent to `-S res,proto`, and `-S res:720,fps -S vcodec,res:1080` is equivalent to `-S vcodec,res:1080,fps`. You can use `--format-sort-reset` to disregard any previously passed `-S`/`--format-sort` arguments and reset to the default order.
+
 **Tip**: You can use the `-v -F` to see how the formats have been sorted (worst to best).
 
 ## Format Selection examples
@@ -2334,7 +2336,7 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * Passing `--simulate` (or calling `extract_info` with `download=False`) no longer alters the default format selection. See [#9843](https://github.com/yt-dlp/yt-dlp/issues/9843) for details.
 * yt-dlp no longer applies the server modified time to downloaded files by default. Use `--mtime` or `--compat-options mtime-by-default` to revert this.
 
-For ease of use, a few more compat options are available:
+For convenience, there are some compat option aliases available to use:
 
 * `--compat-options all`: Use all compat options (**Do NOT use this!**)
 * `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams,-playlist-match-filter,-manifest-filesize-approx,-allow-unsafe-ext,-prefer-vp9-sort`
@@ -2342,7 +2344,10 @@ For ease of use, a few more compat options are available:
 * `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization`
 * `--compat-options 2022`: Same as `--compat-options 2023,playlist-match-filter,no-external-downloader-progress,prefer-legacy-http-handler,manifest-filesize-approx`
 * `--compat-options 2023`: Same as `--compat-options 2024,prefer-vp9-sort`
-* `--compat-options 2024`: Same as `--compat-options mtime-by-default`. Use this to enable all future compat options
+* `--compat-options 2024`: Same as `--compat-options 2025,mtime-by-default`
+* `--compat-options 2025`: Currently does nothing. Use this to enable all future compat options
+
+Using one of the yearly compat option aliases will pin yt-dlp's default behavior to what it was at the *end* of that calendar year.
 
 The following compat options restore vulnerable behavior from before security patches:
 

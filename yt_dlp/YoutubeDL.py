@@ -1602,8 +1602,10 @@ class YoutubeDL:
             if ret is NO_DEFAULT:
                 while True:
                     filename = self._format_screen(self.prepare_filename(info_dict), self.Styles.FILENAME)
-                    reply = input(self._format_screen(
-                        f'Download "{filename}"? (Y/n): ', self.Styles.EMPHASIS)).lower().strip()
+                    self.to_screen(
+                        self._format_screen(f'Download "{filename}"? (Y/n): ', self.Styles.EMPHASIS),
+                        skip_eol=True)
+                    reply = input().lower().strip()
                     if reply in {'y', ''}:
                         return None
                     elif reply == 'n':
@@ -3030,9 +3032,10 @@ class YoutubeDL:
                     # Bypass interactive format selection if no formats & --ignore-no-formats-error
                     formats_to_download = None
                     break
-                req_format = input(self._format_screen('\nEnter format selector ', self.Styles.EMPHASIS)
-                                   + '(Press ENTER for default, or Ctrl+C to quit)'
-                                   + self._format_screen(': ', self.Styles.EMPHASIS))
+                self.to_screen(self._format_screen('\nEnter format selector ', self.Styles.EMPHASIS)
+                               + '(Press ENTER for default, or Ctrl+C to quit)'
+                               + self._format_screen(': ', self.Styles.EMPHASIS), skip_eol=True)
+                req_format = input()
                 try:
                     format_selector = self.build_format_selector(req_format) if req_format else None
                 except SyntaxError as err:
