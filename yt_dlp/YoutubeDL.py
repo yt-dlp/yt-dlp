@@ -3481,8 +3481,8 @@ class YoutubeDL:
                     if dl_filename is not None:
                         self.report_file_already_downloaded(dl_filename)
                     elif fd:
-                        for f in info_dict['requested_formats'] if fd != FFmpegFD else []:
-                            if temp_filename != '-':
+                        if fd != FFmpegFD and temp_filename != '-':
+                            for f in info_dict['requested_formats']:
                                 f['filepath'] = fname = prepend_extension(
                                     correct_ext(temp_filename, info_dict['ext']),
                                     'f{}'.format(f['format_id']), info_dict['ext'])
