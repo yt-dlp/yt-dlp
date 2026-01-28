@@ -4,22 +4,28 @@ import time
 from .common import FileDownloader
 from . import HlsFD
 from ..extractor.afreecatv import _cloudfront_auth_request
+from ..networking.exceptions import network_exceptions
 
 
-class AfreecaTVFD(FileDownloader):
+class SoopVodFD(FileDownloader):
     """
-    Downloader with CloudFront cookie refresh for AfreecaTV/Sooplive subscription VODs
+    Downloads Soop subscription VODs with required cookie refresh requests
+    Note, this is not a part of public API, and will be removed without notice.
+    DO NOT USE
     """
 
     def real_download(self, filename, info_dict):
+        self.to_screen(f'[{self.FD_NAME}] Downloading Soop subscription VOD HLS')
+        fd = HlsFD(self.ydl, self.params)
         refresh_params = info_dict.get('_cookie_refresh_params')
         if not refresh_params:
-            return HlsFD(self.ydl, self.params).real_download(filename, info_dict)
+            self.report_warning(
+                'Cookie refresh parameters not found; falling back to standard HLS downloader')
+            return fd.real_download(filename, info_dict)
 
         fd = HlsFD(self.ydl, self.params)
 
         stop_event = threading.Event()
-        refresh_params.setdefault('_last_refresh', time.time())
         referer_url = info_dict.get('webpage_url') or ''
         refresh_thread = threading.Thread(
             target=self._cookie_refresh_thread,
@@ -38,14 +44,8 @@ class AfreecaTVFD(FileDownloader):
         video_id = refresh_params['video_id']
 
         def _get_cloudfront_cookie_expiration(m3u8_url):
-            if not m3u8_url:
-                return None
-            expiration_time = None
-            for cookie in self.ydl.cookiejar.get_cookies_for_url(m3u8_url):
-                if 'CloudFront' in cookie.name and cookie.expires:
-                    if expiration_time is None or cookie.expires < expiration_time:
-                        expiration_time = cookie.expires
-            return expiration_time
+            cookies = self.ydl.cookiejar.get_cookies_for_url(m3u8_url)
+            return min((cookie.expires for cookie in cookies if 'CloudFront' in cookie.name and cookie.expires), default=0)
 
         while not stop_event.wait(5):
             current_time = time.time()
@@ -62,5 +62,5 @@ class AfreecaTVFD(FileDownloader):
                     self.ydl.urlopen(_cloudfront_auth_request(
                         m3u8_url, strm_id, video_id, referer_url)).read()
                     refresh_params['_last_refresh'] = current_time
-                except Exception:
-                    pass
+                except network_exceptions as e:
+                    self.to_screen(f'[{self.FD_NAME}] Cookie refresh attempt failed: {e}')

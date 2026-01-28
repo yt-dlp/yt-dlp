@@ -1,5 +1,6 @@
 import datetime as dt
 import functools
+import time
 
 from .common import InfoExtractor
 from ..networking import Request
@@ -16,25 +17,24 @@ from ..utils import (
     urlencode_postdata,
     urljoin,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import require, traverse_obj
 
 
-def _cloudfront_auth_request(m3u8_url, strm_id, video_id, url):
-    post_data = {
-        'type': 'vod',
-        'strm_id': strm_id,
-        'title_no': video_id,
-        'url': m3u8_url,
-    }
+def _cloudfront_auth_request(m3u8_url, strm_id, video_id, referer_url):
     return Request(
         'https://live.sooplive.co.kr/api/private_auth.php',
         method='POST',
         headers={
             'Content-Type': 'application/x-www-form-urlencoded',
-            'Referer': url,
+            'Referer': referer_url,
             'Origin': 'https://vod.sooplive.co.kr',
         },
-        data=urlencode_postdata(post_data))
+        data=urlencode_postdata({
+            'type': 'vod',
+            'strm_id': strm_id,
+            'title_no': video_id,
+            'url': m3u8_url,
+        }))
 
 
 class AfreecaTVBaseIE(InfoExtractor):
@@ -171,18 +171,11 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                 'nApiLevel': 10,
             }))['data']
 
-        # For subscribers only, call private_auth.php to get CloudFront cookies
+        strm_id = None
+        # For subscriber-only VODs, we need to call private_auth.php to get CloudFront cookies
         needs_private_auth = traverse_obj(data, ('sub_upload_type', {str}))
-        strm_id = traverse_obj(data, ('bj_id', {str}))
-        m3u8_url = next((
-            file_element.get('file') for file_element in traverse_obj(
-                data, ('files', lambda _, v: url_or_none(v.get('file'))))
-            if file_element.get('file') and determine_ext(file_element.get('file')) == 'm3u8'), None)
-
-        if needs_private_auth and m3u8_url and strm_id:
-            self._request_webpage(
-                _cloudfront_auth_request(m3u8_url, strm_id, video_id, url),
-                video_id, note=False, fatal=False)
+        if needs_private_auth:
+            strm_id = traverse_obj(data, ('bj_id', {str}, {require('stream ID')}))
 
         error_code = traverse_obj(data, ('code', {int}))
         if error_code == -6221:
@@ -200,19 +193,33 @@ class AfreecaTVIE(AfreecaTVBaseIE):
 
         entries = []
         for file_num, file_element in enumerate(
-                traverse_obj(data, ('files', lambda _, v: url_or_none(v.get('file')))), start=1):
-            file_url = file_element.get('file')
+                traverse_obj(data, ('files', lambda _, v: url_or_none(v['file']))), start=1):
+            file_url = file_element['file']
             if determine_ext(file_url) == 'm3u8':
+                if needs_private_auth:
+                    self._request_webpage(
+                        _cloudfront_auth_request(file_url, strm_id, video_id, url),
+                        video_id, 'Requesting CloudFront cookies', 'Failed to get CloudFront cookies')
+                    initial_refresh_time = time.time()
                 formats = self._extract_m3u8_formats(
                     file_url, video_id, 'mp4', m3u8_id='hls',
                     note=f'Downloading part {file_num} m3u8 information')
+                if needs_private_auth:
+                    for fmt in formats:
+                        fmt['protocol'] = 'soopvod'
+                        fmt['_cookie_refresh_params'] = {
+                            'm3u8_url': file_url,
+                            'strm_id': strm_id,
+                            'video_id': video_id,
+                            '_last_refresh': initial_refresh_time,
+                        }
             else:
                 formats = [{
                     'url': file_url,
                     'format_id': 'http',
                 }]
 
-            entry = {
+            entries.append({
                 **common_info,
                 'id': file_element.get('file_info_key') or f'{video_id}_{file_num}',
                 'title': f'{common_info.get("title") or "Untitled"} (part {file_num})',
@@ -221,18 +228,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                     'duration': ('duration', {int_or_none(scale=1000)}),
                     'timestamp': ('file_start', {parse_iso8601(delimiter=' ', timezone=dt.timedelta(hours=9))}),
                 }),
-            }
-
-            if needs_private_auth and m3u8_url and strm_id and determine_ext(file_url) == 'm3u8':
-                for fmt in formats:
-                    fmt['protocol'] = 'afreecatv'
-                entry['_cookie_refresh_params'] = {
-                    'm3u8_url': file_url,
-                    'strm_id': strm_id,
-                    'video_id': video_id,
-                }
-
-            entries.append(entry)
+            })
 
         if traverse_obj(data, ('adult_status', {str})) == 'notLogin':
             if not entries:

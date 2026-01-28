@@ -36,7 +36,7 @@ from .rtsp import RtspFD
 from .websocket import WebSocketFragmentFD
 from .youtube_live_chat import YoutubeLiveChatFD
 from .bunnycdn import BunnyCdnFD
-from .afreecatv import AfreecaTVFD
+from .soop import SoopVodFD
 
 PROTOCOL_MAP = {
     'rtmp': RtmpFD,
@@ -57,7 +57,7 @@ PROTOCOL_MAP = {
     'youtube_live_chat': YoutubeLiveChatFD,
     'youtube_live_chat_replay': YoutubeLiveChatFD,
     'bunnycdn': BunnyCdnFD,
-    'afreecatv': AfreecaTVFD,
+    'soopvod': SoopVodFD,
 }
 
 
