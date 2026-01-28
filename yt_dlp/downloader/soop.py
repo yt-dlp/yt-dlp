@@ -26,7 +26,7 @@ class SoopVodFD(FileDownloader):
         fd = HlsFD(self.ydl, self.params)
 
         stop_event = threading.Event()
-        referer_url = info_dict.get('webpage_url') or ''
+        referer_url = info_dict['webpage_url']
         refresh_thread = threading.Thread(
             target=self._cookie_refresh_thread,
             args=(stop_event, refresh_params, referer_url),
@@ -50,7 +50,7 @@ class SoopVodFD(FileDownloader):
         while not stop_event.wait(5):
             current_time = time.time()
             expiration_time = _get_cloudfront_cookie_expiration(m3u8_url)
-            last_refresh_check = refresh_params.get('_last_refresh', current_time)
+            last_refresh_check = refresh_params.get('_last_refresh', 0)
 
             should_refresh = (
                 (expiration_time and current_time >= expiration_time - 15)
