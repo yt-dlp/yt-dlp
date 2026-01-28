@@ -18,15 +18,14 @@ class MatchiTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-
-        nextjs_data = self._search_nextjs_data(webpage, video_id)
-        loaded_media = traverse_obj(nextjs_data, ('props', 'pageProps', 'loadedMedia'), default={})
-        court_description = traverse_obj(loaded_media, 'courtDescription')
-        start_date_time = traverse_obj(loaded_media, 'startDateTime')
+        loaded_media = traverse_obj(
+            self._search_nextjs_data(webpage, video_id, fatal=False),
+            ('props', 'pageProps', 'loadedMedia', {dict})) or {}
+        start_date_time = traverse_obj(loaded_media, ('startDateTime', {str}))
 
         return {
             'id': video_id,
-            'title': join_nonempty(court_description, start_date_time, delim=' '),
+            'title': join_nonempty(loaded_media.get('courtDescription'), start_date_time, delim=' '),
             'thumbnail': f'https://thumbnails.padelgo.tv/{video_id}.jpg',
             'upload_date': unified_strdate(start_date_time),
             'formats': self._extract_m3u8_formats(
