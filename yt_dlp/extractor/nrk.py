@@ -171,7 +171,9 @@ class NRKIE(NRKBaseIE):
                 raise
 
         # known values for preferredCdn: akamai, globalconnect and telenor
-        manifest = call_playback_api('manifest', {'preferredCdn': 'akamai'})
+        # use of unsupported values will return URLs from random CDNs
+        cdn_id = self._configuration_arg('cdn', ['akamai'])
+        manifest = call_playback_api('manifest', {'preferredCdn': cdn_id})
 
         video_id = try_get(manifest, lambda x: x['id'], str) or video_id
 
