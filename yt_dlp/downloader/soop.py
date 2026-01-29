@@ -17,7 +17,7 @@ class SoopVodFD(FileDownloader):
     def real_download(self, filename, info_dict):
         self.to_screen(f'[{self.FD_NAME}] Downloading Soop subscription VOD HLS')
         fd = HlsFD(self.ydl, self.params)
-        refresh_params = info_dict.get('_cookie_refresh_params')
+        refresh_params = info_dict['_cookie_refresh_params']
 
         fd = HlsFD(self.ydl, self.params)
 
