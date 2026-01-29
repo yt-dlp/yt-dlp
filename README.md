@@ -213,7 +213,7 @@ While all the other dependencies are optional, `ffmpeg`, `ffprobe`, `yt-dlp-ejs`
 
     **Important**: What you need is ffmpeg *binary*, **NOT** [the Python package of the same name](https://pypi.org/project/ffmpeg)
 
-* [**yt-dlp-ejs**](https://github.com/yt-dlp/ejs) - Required for deciphering YouTube n/sig values. Licensed under [Unlicense](https://github.com/yt-dlp/ejs/blob/main/LICENSE), bundles [MIT](https://github.com/davidbonnet/astring/blob/main/LICENSE) and [ISC](https://github.com/meriyah/meriyah/blob/main/LICENSE.md) components.
+* [**yt-dlp-ejs**](https://github.com/yt-dlp/ejs) - Required for full YouTube support. Licensed under [Unlicense](https://github.com/yt-dlp/ejs/blob/main/LICENSE), bundles [MIT](https://github.com/davidbonnet/astring/blob/main/LICENSE) and [ISC](https://github.com/meriyah/meriyah/blob/main/LICENSE.md) components.
 
     A JavaScript runtime/engine like [**deno**](https://deno.land) (recommended), [**node.js**](https://nodejs.org), [**bun**](https://bun.sh), or [**QuickJS**](https://bellard.org/quickjs/) is also required to run yt-dlp-ejs. See [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/EJS).
 
@@ -1970,7 +1970,7 @@ The following extractors use this feature:
 * `backend`: Backend API to use for extraction - one of `streaks` (default) or `brightcove` (deprecated)
 
 #### vimeo
-* `client`: Client to extract video data from. The currently available clients are `android`, `ios`, and `web`. Only one client can be used. The `web` client is used by default. The `web` client only works with account cookies or login credentials. The `android` and `ios` clients only work with previously cached OAuth tokens
+* `client`: Client to extract video data from. The currently available clients are `android`, `ios`, `macos` and `web`. Only one client can be used. The `macos` client is used by default, but the `web` client is used when logged-in. The `web` client only works with account cookies or login credentials. The `android` and `ios` clients only work with previously cached OAuth tokens
 * `original_format_policy`: Policy for when to try extracting original formats. One of `always`, `never`, or `auto`. The default `auto` policy tries to avoid exceeding the web client's API rate-limit by only making an extra request when Vimeo publicizes the video's downloadability
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
