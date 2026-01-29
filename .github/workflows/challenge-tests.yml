@@ -49,7 +49,7 @@ jobs:
       with:
         deno-version: '2.0.0'  # minimum supported version
     - name: Install Bun
-      uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76  # v2.0.2
+      uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3  # v2.1.2
       with:
         # minimum supported version is 1.0.31 but earliest available Windows version is 1.1.0
         bun-version: ${{ (matrix.os == 'windows-latest' && '1.1.0') || '1.0.31' }}
