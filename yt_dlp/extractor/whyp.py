@@ -2,9 +2,9 @@ from .common import InfoExtractor
 from ..utils import (
     float_or_none,
     int_or_none,
+    parse_iso8601,
     str_or_none,
     traverse_obj,
-    unified_timestamp,
     url_or_none,
 )
 
@@ -45,12 +45,12 @@ class WhypIE(InfoExtractor):
                 'http_headers': {'Referer': 'https://whyp.it/'},
             } for prefix in ('audio', 'lossy', 'lossless') if url_or_none(data.get(f'{prefix}_url'))],
             **traverse_obj(data, {
-                'title': 'title',
-                'display_id': 'slug',
+                'title': ('title', {str}),
+                'display_id': ('slug', {str}),
                 'description': 'description',
                 'duration': ('duration', {float_or_none}),
-                'timestamp': ('created_at', {unified_timestamp}),
-                'uploader': ('user', 'username'),
+                'timestamp': ('created_at', {parse_iso8601}),
+                'uploader': ('user', 'username', {str}),
                 'uploader_id': ('user', 'id', {str_or_none}),
                 'thumbnail': ('artwork_url', {url_or_none}),
             }),
