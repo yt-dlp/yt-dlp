@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>yt-dlp Web UI - Video Downloader</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-card: #0f3460;
+            --accent: #e94560;
+            --accent-hover: #ff6b6b;
+            --text-primary: #eaeaea;
+            --text-secondary: #a0a0a0;
+            --success: #4ecca3;
+            --error: #ff6b6b;
+            --warning: #feca57;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .download-form {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .url-input {
+            flex: 1;
+            padding: 16px 20px;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .url-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(233, 69, 96, 0.2);
+        }
+
+        .url-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .download-btn {
+            padding: 16px 32px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(233, 69, 96, 0.4);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+        }
+
+        .download-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .options {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .option-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .option-group label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .option-group select {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .option-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+
+        .downloads-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-header h2 {
+            font-size: 1.3rem;
+            color: var(--text-primary);
+        }
+
+        .clear-btn {
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border: none;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .clear-btn:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        .downloads-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .download-item {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .download-header {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .download-thumbnail {
+            width: 120px;
+            height: 68px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: var(--bg-primary);
+        }
+
+        .download-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .download-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .download-url {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .download-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        .progress-container {
+            margin-top: 12px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent) 0%, var(--success) 100%);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending {
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+        }
+
+        .status-starting,
+        .status-downloading {
+            background: rgba(78, 204, 163, 0.2);
+            color: var(--success);
+        }
+
+        .status-processing {
+            background: rgba(254, 202, 87, 0.2);
+            color: var(--warning);
+        }
+
+        .status-completed {
+            background: rgba(78, 204, 163, 0.2);
+            color: var(--success);
+        }
+
+        .status-error,
+        .status-cancelled {
+            background: rgba(255, 107, 107, 0.2);
+            color: var(--error);
+        }
+
+        .error-message {
+            margin-top: 8px;
+            padding: 10px;
+            background: rgba(255, 107, 107, 0.1);
+            border-radius: 8px;
+            color: var(--error);
+            font-size: 0.85rem;
+        }
+
+        .supported-sites {
+            margin-top: 30px;
+            text-align: center;
+            padding: 20px;
+            background: var(--bg-card);
+            border-radius: 16px;
+        }
+
+        .supported-sites h3 {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .site-icons {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .site-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .site-icon svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        @media (max-width: 600px) {
+            .input-group {
+                flex-direction: column;
+            }
+
+            .download-btn {
+                width: 100%;
+            }
+
+            .options {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .download-header {
+                flex-direction: column;
+            }
+
+            .download-thumbnail {
+                width: 100%;
+                height: auto;
+                aspect-ratio: 16/9;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>yt-dlp Web UI</h1>
+            <p class="subtitle">Download videos from YouTube, Twitter/X, and 1000+ other sites</p>
+        </header>
+
+        <div class="download-form">
+            <div class="input-group">
+                <input type="text" class="url-input" id="urlInput"
+                       placeholder="Paste video URL here (YouTube, Twitter/X, etc.)"
+                       autocomplete="off">
+                <button class="download-btn" id="downloadBtn">Download</button>
+            </div>
+            <div class="options">
+                <div class="option-group">
+                    <label for="quality">Quality:</label>
+                    <select id="quality">
+                        <option value="best">Best Available</option>
+                        <option value="1080p">1080p</option>
+                        <option value="720p">720p</option>
+                        <option value="480p">480p</option>
+                    </select>
+                </div>
+                <div class="option-group">
+                    <input type="checkbox" id="audioOnly">
+                    <label for="audioOnly">Audio Only (MP3)</label>
+                </div>
+                <div class="option-group">
+                    <input type="checkbox" id="noPlaylist" checked>
+                    <label for="noPlaylist">Single Video Only</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="downloads-section">
+            <div class="section-header">
+                <h2>Downloads</h2>
+                <button class="clear-btn" id="clearBtn">Clear Completed</button>
+            </div>
+            <div class="downloads-list" id="downloadsList">
+                <div class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+                    </svg>
+                    <p>No downloads yet. Paste a URL above to get started!</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="supported-sites">
+            <h3>Supported Platforms</h3>
+            <div class="site-icons">
+                <div class="site-icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    </svg>
+                    <span>YouTube</span>
+                </div>
+                <div class="site-icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                    <span>Twitter/X</span>
+                </div>
+                <div class="site-icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                    </svg>
+                    <span>Instagram</span>
+                </div>
+                <div class="site-icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+                    </svg>
+                    <span>TikTok</span>
+                </div>
+                <div class="site-icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                    </svg>
+                    <span>+1000 more</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const urlInput = document.getElementById('urlInput');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const downloadsList = document.getElementById('downloadsList');
+        const clearBtn = document.getElementById('clearBtn');
+        const qualitySelect = document.getElementById('quality');
+        const audioOnlyCheckbox = document.getElementById('audioOnly');
+        const noPlaylistCheckbox = document.getElementById('noPlaylist');
+
+        let tasks = {};
+
+        // Handle download button click
+        downloadBtn.addEventListener('click', startDownload);
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') startDownload();
+        });
+
+        // Handle clear button click
+        clearBtn.addEventListener('click', clearCompleted);
+
+        async function startDownload() {
+            const url = urlInput.value.trim();
+            if (!url) {
+                urlInput.focus();
+                return;
+            }
+
+            downloadBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        url: url,
+                        quality: qualitySelect.value,
+                        audio_only: audioOnlyCheckbox.checked,
+                        noplaylist: noPlaylistCheckbox.checked,
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                // Clear input
+                urlInput.value = '';
+
+                // Start tracking this download
+                tasks[data.task_id] = { url: url };
+                updateDownloadsList();
+
+                // Start streaming updates
+                streamUpdates(data.task_id);
+
+            } catch (error) {
+                alert('Error starting download: ' + error.message);
+            } finally {
+                downloadBtn.disabled = false;
+            }
+        }
+
+        function streamUpdates(taskId) {
+            const eventSource = new EventSource(`/api/stream/${taskId}`);
+
+            eventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+
+                if (data.error) {
+                    eventSource.close();
+                    return;
+                }
+
+                tasks[taskId] = data;
+                updateDownloadsList();
+
+                if (data.status === 'completed' || data.status === 'error' || data.status === 'cancelled') {
+                    eventSource.close();
+                }
+            };
+
+            eventSource.onerror = () => {
+                eventSource.close();
+                // Fallback to polling
+                pollStatus(taskId);
+            };
+        }
+
+        async function pollStatus(taskId) {
+            try {
+                const response = await fetch(`/api/status/${taskId}`);
+                const data = await response.json();
+
+                if (data.error) return;
+
+                tasks[taskId] = data;
+                updateDownloadsList();
+
+                if (data.status !== 'completed' && data.status !== 'error' && data.status !== 'cancelled') {
+                    setTimeout(() => pollStatus(taskId), 1000);
+                }
+            } catch (error) {
+                console.error('Polling error:', error);
+            }
+        }
+
+        function updateDownloadsList() {
+            const taskIds = Object.keys(tasks);
+
+            if (taskIds.length === 0) {
+                downloadsList.innerHTML = `
+                    <div class="empty-state">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+                        </svg>
+                        <p>No downloads yet. Paste a URL above to get started!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            downloadsList.innerHTML = taskIds.map(taskId => {
+                const task = tasks[taskId];
+                return createTaskHTML(task);
+            }).join('');
+        }
+
+        function createTaskHTML(task) {
+            const thumbnailHTML = task.thumbnail
+                ? `<img src="${task.thumbnail}" class="download-thumbnail" alt="Thumbnail">`
+                : `<div class="download-thumbnail"></div>`;
+
+            const progressHTML = (task.status === 'downloading' || task.status === 'processing')
+                ? `
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${task.progress || 0}%"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span>${task.progress || 0}%</span>
+                            <span>${task.speed || ''} ${task.eta ? '- ETA: ' + task.eta : ''}</span>
+                        </div>
+                    </div>
+                `
+                : '';
+
+            const errorHTML = task.error
+                ? `<div class="error-message">${task.error}</div>`
+                : '';
+
+            return `
+                <div class="download-item">
+                    <div class="download-header">
+                        ${thumbnailHTML}
+                        <div class="download-info">
+                            <div class="download-title">${task.title || 'Loading...'}</div>
+                            <div class="download-url">${task.url}</div>
+                            <div class="download-meta">
+                                <span class="status-badge status-${task.status}">${task.status}</span>
+                                ${task.filesize ? `<span>${task.filesize}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    ${progressHTML}
+                    ${errorHTML}
+                </div>
+            `;
+        }
+
+        async function clearCompleted() {
+            try {
+                await fetch('/api/clear', { method: 'POST' });
+
+                // Remove completed tasks from local state
+                for (const taskId in tasks) {
+                    if (['completed', 'error', 'cancelled'].includes(tasks[taskId].status)) {
+                        delete tasks[taskId];
+                    }
+                }
+
+                updateDownloadsList();
+            } catch (error) {
+                console.error('Error clearing tasks:', error);
+            }
+        }
+
+        // Load existing tasks on page load
+        async function loadExistingTasks() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+
+                if (data.tasks) {
+                    data.tasks.forEach(task => {
+                        tasks[task.task_id] = task;
+
+                        // Resume streaming for active downloads
+                        if (!['completed', 'error', 'cancelled'].includes(task.status)) {
+                            streamUpdates(task.task_id);
+                        }
+                    });
+                    updateDownloadsList();
+                }
+            } catch (error) {
+                console.error('Error loading tasks:', error);
+            }
+        }
+
+        loadExistingTasks();
+    </script>
+</body>
+</html>
