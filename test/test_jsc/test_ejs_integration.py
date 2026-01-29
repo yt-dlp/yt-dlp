@@ -88,6 +88,21 @@ CHALLENGES: list[Challenge] = [
         'gN7a-hudCuAuPH6fByOk1_GNXN0yNMHShjZXS2VOgsEItAJz0tipeavEOmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt':
             'MhudCuAuP-6fByOk1_GNXN7gNHHShjyXS2VOgsEItAJz0tipeav0OmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt',
     }),
+    # c1c87fb0: tce variant broke sig solving; n and main variant are added only for regression testing
+    Challenge('c1c87fb0', Variant.main, JsChallengeType.N, {
+        'ZdZIqFPQK-Ty8wId': 'jCHBK5GuAFNa2',
+    }),
+    Challenge('c1c87fb0', Variant.main, JsChallengeType.SIG, {
+        'gN7a-hudCuAuPH6fByOk1_GNXN0yNMHShjZXS2VOgsEItAJz0tipeavEOmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt':
+            'ttJC2JfQdSswRAIgGBCxZyAfKyi0cjXCb3DqEctUw-NYdNmOEvaepit0zJAtIEsgOV2SXZjhSHMNy0NXNGa1kOyBf6HPuAuCduh-_',
+    }),
+    Challenge('c1c87fb0', Variant.tce, JsChallengeType.N, {
+        'ZdZIqFPQK-Ty8wId': 'jCHBK5GuAFNa2',
+    }),
+    Challenge('c1c87fb0', Variant.tce, JsChallengeType.SIG, {
+        'gN7a-hudCuAuPH6fByOk1_GNXN0yNMHShjZXS2VOgsEItAJz0tipeavEOmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt':
+            'ttJC2JfQdSswRAIgGBCxZyAfKyi0cjXCb3DqEctUw-NYdNmOEvaepit0zJAtIEsgOV2SXZjhSHMNy0NXNGa1kOyBf6HPuAuCduh-_',
+    }),
 ]
 
 requests: list[JsChallengeRequest] = []
