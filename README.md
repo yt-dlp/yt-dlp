@@ -839,6 +839,7 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
     --add-headers FIELD:VALUE       Specify a custom HTTP header and its value,
                                     separated by a colon ":". You can use this
                                     option multiple times
+    --no-std-headers                Suppress standard headers
     --bidi-workaround               Work around terminals that lack
                                     bidirectional text support. Requires bidiv
                                     or fribidi executable in PATH
