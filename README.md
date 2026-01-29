@@ -858,6 +858,8 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     for more details
     -S, --format-sort SORTORDER     Sort the formats by the fields given, see
                                     "Sorting Formats" for more details
+    --format-sort-reset             Disregard previous user specified sort order
+                                    and reset to the default
     --format-sort-force             Force user specified sort order to have
                                     precedence over all fields, see "Sorting
                                     Formats" for more details (Alias: --S-force)
