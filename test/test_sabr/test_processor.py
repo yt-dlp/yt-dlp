@@ -1026,6 +1026,9 @@ class TestLiveMetadata:
         assert processor.live_metadata is live_metadata
         assert processor.client_abr_state.player_time_ms == 5001
 
+        for izf in processor.initialized_formats.values():
+            assert izf.seek_ms is None
+
     def test_min_seekable_time_ms_greater_than_player_time_ms(self, base_args, logger):
         # If min_seekable_time_ms is less than player time, there should be a seek
         live_metadata = LiveMetadata(
@@ -1084,9 +1087,11 @@ class TestLiveMetadata:
             assert seek_part.format_id in (audio_format_id, video_format_id)
             assert seek_part.format_selector in (audio_selector, video_selector)
 
-        # Current segment should be cleared to indicate a seek
+        # Initialized formats should be marked as seeking
         for izf in processor.initialized_formats.values():
-            assert izf.previous_segment is None
+            assert izf.seek_ms == 5000
+            # Should retain previous segment on seeking
+            assert izf.previous_segment
 
         logger.debug.assert_called_with('Player time 4999 is less than min seekable time 5000, simulating server seek')
 
@@ -1285,7 +1290,7 @@ class TestSabrSeek:
         processor.process_format_initialization_metadata(video_format_init_metadata)
         assert len(processor.initialized_formats) == 2
 
-        # Add a dummy previous segment to each format - this should be cleared on seek
+        # Add a dummy previous segment to each format - this should NOT be cleared on seek
         for izf in processor.initialized_formats.values():
             izf.previous_segment = Segment(
                 format_id=izf.format_id,
@@ -1305,9 +1310,10 @@ class TestSabrSeek:
             assert seek_part.format_id in (audio_format_id, video_format_id)
             assert seek_part.format_selector in (audio_selector, video_selector)
 
-        # Current segment should be cleared to indicate a seek
         for izf in processor.initialized_formats.values():
-            assert izf.previous_segment is None
+            assert izf.seek_ms == 5600
+            # Should retain previous segment on seeking
+            assert izf.previous_segment
 
         logger.debug.assert_called_with('Seeking to 5600ms')
 
@@ -2852,3 +2858,49 @@ class TestMediaEnd:
         logger.trace.assert_called_with(
             f'Content length for {segment.format_id} (sequence 1) was estimated, '
             f'estimated {segment.content_length} bytes, got {segment.received_data_length} bytes')
+
+    def test_clear_seek_ms(self, base_args):
+        # Should clear seek_ms on media end
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        init_format = processor.initialized_formats[str(selector.format_ids[0])]
+        init_format.seek_ms = 5000  # Simulate a seek
+
+        media_header = make_media_header(selector, sequence_no=1)
+        processor.process_media_header(media_header)
+        processor.process_media(media_header.header_id, media_header.content_length, io.BytesIO(b'example-data'))
+
+        assert init_format.seek_ms == 5000
+        result = processor.process_media_end(media_header.header_id)
+
+        assert isinstance(result, ProcessMediaEndResult)
+        assert isinstance(result.sabr_part, MediaSegmentEndSabrPart)
+        assert init_format.seek_ms is None
+
+    def test_not_clear_seek_ms_on_init_seg(self, base_args):
+        # Should not clear seek_ms on init segment media end
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        init_format = processor.initialized_formats[str(selector.format_ids[0])]
+        init_format.seek_ms = 5000  # Simulate a seek
+
+        media_header = make_init_header(selector)
+        processor.process_media_header(media_header)
+        processor.process_media(media_header.header_id, media_header.content_length, io.BytesIO(b'example-init-data'))
+
+        assert init_format.seek_ms == 5000
+        result = processor.process_media_end(media_header.header_id)
+
+        assert isinstance(result, ProcessMediaEndResult)
+        assert isinstance(result.sabr_part, MediaSegmentEndSabrPart)
+        assert init_format.seek_ms == 5000

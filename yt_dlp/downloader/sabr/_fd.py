@@ -3,7 +3,7 @@ import collections
 import itertools
 
 from yt_dlp.networking.exceptions import TransportError, HTTPError
-from yt_dlp.utils import traverse_obj, int_or_none, DownloadError, join_nonempty
+from yt_dlp.utils import traverse_obj, int_or_none, DownloadError, join_nonempty, ExtractorError
 from yt_dlp.downloader import FileDownloader
 
 from ._writer import SabrFDFormatWriter
@@ -289,7 +289,7 @@ class SabrFD(FileDownloader):
                             ' The url will expire soon and the download will fail.')
                     try:
                         stream.url, stream.processor.video_playback_ustreamer_config = reload_config_fn(part.reload_playback_token)
-                    except (TransportError, HTTPError) as e:
+                    except (TransportError, HTTPError, ExtractorError) as e:
                         self.report_warning(f'Failed to refresh SABR streaming URL: {e}')
 
                 elif isinstance(part, MediaSeekSabrPart):

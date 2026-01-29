@@ -41,7 +41,9 @@ class InitializedFormat:
     duration_ms: int = 0
     end_time_ms: int = 0
     mime_type: str = None
-    # Previous segment received in the sequence. Set to None to break the sequence and allow a seek.
+    # Format has been seeked to this ms position
+    seek_ms: int | None = None
+    # Previous segment received for the format. If not seeking, this should be in order.
     previous_segment: Segment | None = None
     init_segment: Segment | None | bool = None
     consumed_ranges: list[ConsumedRange] = dataclasses.field(default_factory=list)
