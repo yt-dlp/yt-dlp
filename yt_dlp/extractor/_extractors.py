@@ -1552,6 +1552,7 @@ from .polskieradio import (
 from .popcorntimes import PopcorntimesIE
 from .popcorntv import PopcornTVIE
 from .pornbox import PornboxIE
+from .porndead import PornDeadIE
 from .pornflip import PornFlipIE
 from .pornhub import (
     PornHubIE,
@@ -1812,6 +1813,7 @@ from .senategov import (
 from .sendtonews import SendtoNewsIE
 from .servus import ServusIE
 from .sevenplus import SevenPlusIE
+from .sexdead import SexDeadIE
 from .sexu import SexuIE
 from .seznamzpravy import (
     SeznamZpravyArticleIE,
