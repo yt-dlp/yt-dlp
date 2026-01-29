@@ -170,6 +170,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                 'nApiLevel': 10,
             }))['data']
 
+        initial_refresh_time = 0
         strm_id = None
         # For subscriber-only VODs, we need to call private_auth.php to get CloudFront cookies
         needs_private_auth = traverse_obj(data, ('sub_upload_type', {str}))
