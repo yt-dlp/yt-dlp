@@ -223,37 +223,6 @@ INNERTUBE_CLIENTS = {
         },
         'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
     },
-    'android_sdkless': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'ANDROID',
-                'clientVersion': '21.02.35',
-                'userAgent': 'com.google.android.youtube/21.02.35 (Linux; U; Android 11) gzip',
-                'osName': 'Android',
-                'osVersion': '11',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
-        'REQUIRE_JS_PLAYER': False,
-        'GVS_PO_TOKEN_POLICY': {
-            StreamingProtocol.HTTPS: GvsPoTokenPolicy(
-                required=True,
-                recommended=True,
-                not_required_with_player_token=True,
-            ),
-            StreamingProtocol.DASH: GvsPoTokenPolicy(
-                required=True,
-                recommended=True,
-                not_required_with_player_token=True,
-            ),
-            StreamingProtocol.HLS: GvsPoTokenPolicy(
-                required=False,
-                recommended=True,
-                not_required_with_player_token=True,
-            ),
-        },
-        'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
-    },
     # YouTube Kids videos aren't returned on this client for some reason
     'android_vr': {
         'INNERTUBE_CONTEXT': {
