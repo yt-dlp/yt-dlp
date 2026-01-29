@@ -84,7 +84,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: true  # Needed to git-push the release commit
 
-      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version: "3.10"  # Keep this in sync with test-workflows.yml
 
@@ -178,7 +178,7 @@ jobs:
         with:
           fetch-depth: 0  # Needed for changelog
           persist-credentials: false
-      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version: "3.10"
 
@@ -248,7 +248,7 @@ jobs:
           path: artifact
           pattern: build-*
           merge-multiple: true
-      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version: "3.10"
 
