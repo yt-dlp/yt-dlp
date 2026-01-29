@@ -223,20 +223,6 @@ INNERTUBE_CLIENTS = {
         },
         'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
     },
-    # Doesn't require a PoToken for some reason
-    'android_sdkless': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'ANDROID',
-                'clientVersion': '21.02.35',
-                'userAgent': 'com.google.android.youtube/21.02.35 (Linux; U; Android 11) gzip',
-                'osName': 'Android',
-                'osVersion': '11',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
-        'REQUIRE_JS_PLAYER': False,
-    },
     # YouTube Kids videos aren't returned on this client for some reason
     'android_vr': {
         'INNERTUBE_CONTEXT': {
@@ -285,6 +271,34 @@ INNERTUBE_CLIENTS = {
         'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
         'REQUIRE_JS_PLAYER': False,
     },
+    'ios_downgraded': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'IOS',
+                'clientVersion': '19.49.7',
+                'deviceMake': 'Apple',
+                'deviceModel': 'iPhone16,2',
+                'userAgent': 'com.google.ios.youtube/19.49.7 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
+                'osName': 'iPhone',
+                'osVersion': '17.5.1.21F90',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
+        'GVS_PO_TOKEN_POLICY': {
+            StreamingProtocol.HTTPS: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
+            StreamingProtocol.HLS: GvsPoTokenPolicy(
+                required=False,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
+        },
+        'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
+        'REQUIRE_JS_PLAYER': False,
+    },
     # mweb has 'ultralow' formats
     # See: https://github.com/yt-dlp/yt-dlp/pull/557
     'mweb': {
@@ -323,13 +337,12 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'TVHTML5',
                 'clientVersion': '7.20260114.12.00',
-                'userAgent': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version',
+                # See: https://github.com/youtube/cobalt/blob/main/cobalt/browser/user_agent/user_agent_platform_info.cc#L506
+                'userAgent': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/25.lts.30.1034943-gold (unlike Gecko), Unknown_TV_Unknown_0/Unknown (Unknown, Unknown)',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
         'SUPPORTS_COOKIES': True,
-        # See: https://github.com/youtube/cobalt/blob/main/cobalt/browser/user_agent/user_agent_platform_info.cc#L506
-        'AUTHENTICATED_USER_AGENT': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/25.lts.30.1034943-gold (unlike Gecko), Unknown_TV_Unknown_0/Unknown (Unknown, Unknown)',
     },
     'tv_downgraded': {
         'INNERTUBE_CONTEXT': {
@@ -340,6 +353,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
+        'REQUIRE_AUTH': True,
         'SUPPORTS_COOKIES': True,
     },
     'tv_simply': {
@@ -418,7 +432,6 @@ def build_innertube_clients():
         ytcfg.setdefault('SUPPORTS_COOKIES', False)
         ytcfg.setdefault('SUPPORTS_AD_PLAYBACK_CONTEXT', False)
         ytcfg.setdefault('PLAYER_PARAMS', None)
-        ytcfg.setdefault('AUTHENTICATED_USER_AGENT', None)
         ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
 
         _, base_client, variant = _split_innertube_client(client)
@@ -703,14 +716,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*='
 
     def _get_default_ytcfg(self, client='web'):
-        ytcfg = copy.deepcopy(INNERTUBE_CLIENTS[client])
-
-        # Currently, only the tv client needs to use an alternative user-agent when logged-in
-        if ytcfg.get('AUTHENTICATED_USER_AGENT') and self.is_authenticated:
-            client_context = ytcfg.setdefault('INNERTUBE_CONTEXT', {}).setdefault('client', {})
-            client_context['userAgent'] = ytcfg['AUTHENTICATED_USER_AGENT']
-
-        return ytcfg
+        return copy.deepcopy(INNERTUBE_CLIENTS[client])
 
     def _get_innertube_host(self, client='web'):
         return INNERTUBE_CLIENTS[client]['INNERTUBE_HOST']

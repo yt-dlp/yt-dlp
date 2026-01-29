@@ -145,8 +145,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         r'\b(?P<id>vfl[a-zA-Z0-9_-]+)\b.*?\.js$',
     )
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('android_sdkless', 'web', 'web_safari')
-    _DEFAULT_JSLESS_CLIENTS = ('android_sdkless',)
+    _DEFAULT_CLIENTS = ('android_vr', 'ios_downgraded', 'web', 'web_safari')
+    _DEFAULT_JSLESS_CLIENTS = ('android_vr', 'ios_downgraded')
     _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web', 'web_safari')
     # Premium does not require POT (except for subtitles)
     _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator', 'web')
@@ -3588,6 +3588,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # Deprioritize since its pre-merged m3u8 formats may have lower quality audio streams
                 if client_name == 'web_safari' and proto == 'hls' and live_status != 'is_live':
                     f['source_preference'] -= 1
+
+                # Safeguard against inevitable ios_downgraded client breakage
+                if client_name == 'ios_downgraded' and proto == 'hls' and live_status != 'is_live':
+                    f['__needs_testing'] = True
 
                 if missing_pot:
                     f['format_note'] = join_nonempty(f.get('format_note'), 'MISSING POT', delim=' ')
