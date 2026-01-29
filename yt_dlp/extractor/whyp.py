@@ -4,6 +4,7 @@ from ..utils import (
     int_or_none,
     str_or_none,
     traverse_obj,
+    unified_timestamp,
     url_or_none,
 )
 
@@ -45,8 +46,10 @@ class WhypIE(InfoExtractor):
             } for prefix in ('audio', 'lossy', 'lossless') if url_or_none(data.get(f'{prefix}_url'))],
             **traverse_obj(data, {
                 'title': 'title',
+                'display_id': 'slug',
                 'description': 'description',
                 'duration': ('duration', {float_or_none}),
+                'timestamp': ('created_at', {unified_timestamp}),
                 'uploader': ('user', 'username'),
                 'uploader_id': ('user', 'id', {str_or_none}),
                 'thumbnail': ('artwork_url', {url_or_none}),
