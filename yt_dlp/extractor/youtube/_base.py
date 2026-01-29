@@ -384,6 +384,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
+        'REQUIRE_AUTH': True,
         'SUPPORTS_COOKIES': True,
     },
     'tv_simply': {
