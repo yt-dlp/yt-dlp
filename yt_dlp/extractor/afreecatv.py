@@ -25,7 +25,6 @@ def _cloudfront_auth_request(m3u8_url, strm_id, video_id, referer_url):
         'https://live.sooplive.co.kr/api/private_auth.php',
         method='POST',
         headers={
-            'Content-Type': 'application/x-www-form-urlencoded',
             'Referer': referer_url,
             'Origin': 'https://vod.sooplive.co.kr',
         },

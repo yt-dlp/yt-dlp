@@ -18,10 +18,6 @@ class SoopVodFD(FileDownloader):
         self.to_screen(f'[{self.FD_NAME}] Downloading Soop subscription VOD HLS')
         fd = HlsFD(self.ydl, self.params)
         refresh_params = info_dict.get('_cookie_refresh_params')
-        if not refresh_params:
-            self.report_warning(
-                'Cookie refresh parameters not found; falling back to standard HLS downloader')
-            return fd.real_download(filename, info_dict)
 
         fd = HlsFD(self.ydl, self.params)
 
