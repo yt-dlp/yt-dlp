@@ -9,10 +9,9 @@ authors = [
 ]
 maintainers = [
     {email = "maintainers@yt-dlp.org"},
-    {name = "Grub4K", email = "contact@grub4k.xyz"},
+    {name = "Grub4K", email = "contact@grub4k.dev"},
     {name = "bashonly", email = "bashonly@protonmail.com"},
     {name = "coletdjnz", email = "coletdjnz@protonmail.com"},
-    {name = "sepro", email = "sepro@sepr0.com"},
 ]
 description = "A feature-rich command-line audio/video downloader"
 readme = "README.md"
@@ -70,7 +69,7 @@ secretstorage = [
     "secretstorage",
 ]
 deno = [
-    "deno>=2.6.5",  # v2.6.5 fixes installation of incompatible binaries
+    "deno>=2.6.6",  # v2.6.5 fixes compatibility, v2.6.6 adds integrity check
 ]
 build = [
     "build",

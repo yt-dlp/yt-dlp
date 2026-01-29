@@ -1690,7 +1690,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'playable_in_embed': True,
             'availability': 'public',
             'live_status': 'not_live',
-            'comment_count': 15,  # XXX: minimum
+            'comment_count': 15,  # XXX: minimum, but investigate if this changes
+            'comments': 'count:15',
         },
         'params': {
             'skip_download': True,
@@ -1723,7 +1724,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'playable_in_embed': True,
             'availability': 'unlisted',
             'live_status': 'not_live',
-            'comment_count': 9,  # XXX: minimum
+            'comment_count': 9,  # XXX: minimum, but investigate if this changes
+            'comments': 'count:9',
+        },
+        'params': {
+            'skip_download': True,
+            'getcomments': True,
         },
     }]
     _WEBPAGE_TESTS = [{
@@ -1884,7 +1890,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'tv': 'tv-player-ias.vflset/tv-player-ias.js',
         'tv_es6': 'tv-player-es6.vflset/tv-player-es6.js',
         'phone': 'player-plasma-ias-phone-en_US.vflset/base.js',
-        'tablet': 'player-plasma-ias-tablet-en_US.vflset/base.js',
+        'tablet': 'player-plasma-ias-tablet-en_US.vflset/base.js',  # Dead since 19712d96 (2025.11.06)
     }
     _INVERSE_PLAYER_JS_VARIANT_MAP = {v: k for k, v in _PLAYER_JS_VARIANT_MAP.items()}
 

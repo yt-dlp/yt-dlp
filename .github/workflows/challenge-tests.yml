@@ -37,11 +37,11 @@ jobs:
     env:
       QJS_VERSION: '2025-04-26'  # Earliest version with rope strings
     steps:
-    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       with:
         persist-credentials: false
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
+      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install Deno
@@ -49,13 +49,13 @@ jobs:
       with:
         deno-version: '2.0.0'  # minimum supported version
     - name: Install Bun
-      uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76  # v2.0.2
+      uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3  # v2.1.2
       with:
         # minimum supported version is 1.0.31 but earliest available Windows version is 1.1.0
         bun-version: ${{ (matrix.os == 'windows-latest' && '1.1.0') || '1.0.31' }}
         no-cache: true
     - name: Install Node
-      uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f  # v6.1.0
+      uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238  # v6.2.0
       with:
         node-version: '20.0'  # minimum supported version
     - name: Install QuickJS (Linux)
