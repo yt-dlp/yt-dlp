@@ -17,9 +17,12 @@ class WhypIE(InfoExtractor):
         'info_dict': {
             'id': '18337',
             'title': 'Example Track',
+            'display_id': 'example-track',
             'description': 'md5:e0b1bcf1d267dc1a0f15efff09c8f297',
             'ext': 'flac',
             'duration': 135.63,
+            'timestamp': 1643216583,
+            'upload_date': '20220126',
             'uploader': 'Brad',
             'uploader_id': '1',
             'thumbnail': 'https://cdn.whyp.it/6ad0bbd9-577d-42bb-9b61-2a4f57f647eb.jpg',
