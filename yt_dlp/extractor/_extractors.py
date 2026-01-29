@@ -1877,6 +1877,7 @@ from .sonyliv import (
     SonyLIVIE,
     SonyLIVSeriesIE,
 )
+from .sora import SoraExtractorIE
 from .soundcloud import (
     SoundcloudEmbedIE,
     SoundcloudIE,
