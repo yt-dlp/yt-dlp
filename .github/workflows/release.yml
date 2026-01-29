@@ -79,12 +79,12 @@ jobs:
       head_sha: ${{ steps.get_target.outputs.head_sha }}
 
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           fetch-depth: 0
           persist-credentials: true  # Needed to git-push the release commit
 
-      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version: "3.10"  # Keep this in sync with test-workflows.yml
 
@@ -130,8 +130,7 @@ jobs:
           VERSION: ${{ steps.setup_variables.outputs.version }}
           GITHUB_EVENT_SENDER_LOGIN: ${{ github.event.sender.login }}
           GITHUB_EVENT_REF: ${{ github.event.ref }}
-        if: |
-          !inputs.prerelease && steps.setup_variables.outputs.target_repo == github.repository
+        if: steps.setup_variables.outputs.target_repo == github.repository && !inputs.prerelease
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -148,8 +147,7 @@ jobs:
       - name: Update master
         env:
           GITHUB_EVENT_REF: ${{ github.event.ref }}
-        if: |
-          vars.PUSH_VERSION_COMMIT && !inputs.prerelease && steps.setup_variables.outputs.target_repo == github.repository
+        if: vars.PUSH_VERSION_COMMIT && !inputs.prerelease && steps.setup_variables.outputs.target_repo == github.repository
         run: git push origin "${GITHUB_EVENT_REF}"
 
   build:
@@ -169,18 +167,18 @@ jobs:
   publish_pypi:
     name: Publish to PyPI
     needs: [prepare, build]
-    if: ${{ needs.prepare.outputs.pypi_project }}
+    if: needs.prepare.outputs.pypi_project
     permissions:
       contents: read
       id-token: write  # Needed for trusted publishing
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           fetch-depth: 0  # Needed for changelog
           persist-credentials: false
-      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version: "3.10"
 
@@ -241,7 +239,7 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
       HEAD_SHA: ${{ needs.prepare.outputs.head_sha }}
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -250,7 +248,7 @@ jobs:
           path: artifact
           pattern: build-*
           merge-multiple: true
-      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version: "3.10"
 
@@ -295,8 +293,7 @@ jobs:
           GH_REPO: ${{ needs.prepare.outputs.target_repo }}
           TITLE_PREFIX: ${{ startswith(env.TARGET_REPO, 'yt-dlp/') && 'yt-dlp ' || '' }}
           TITLE: ${{ inputs.target != env.TARGET_REPO && inputs.target || needs.prepare.outputs.channel }}
-        if: |
-          inputs.prerelease && env.GH_TOKEN && env.GH_REPO && env.GH_REPO != github.repository
+        if: inputs.prerelease && env.GH_TOKEN && env.GH_REPO && env.GH_REPO != github.repository
         run: |
           gh release create \
             --notes-file ARCHIVE_NOTES \
@@ -307,8 +304,7 @@ jobs:
       - name: Prune old release
         env:
           GH_TOKEN: ${{ github.token }}
-        if: |
-          env.TARGET_REPO == github.repository && env.TARGET_TAG != env.VERSION
+        if: env.TARGET_REPO == github.repository && env.TARGET_TAG != env.VERSION
         run: |
           gh release delete --yes --cleanup-tag "${TARGET_TAG}" || true
           git tag --delete "${TARGET_TAG}" || true
@@ -321,8 +317,7 @@ jobs:
           TITLE_PREFIX: ${{ github.repository == 'yt-dlp/yt-dlp' && 'yt-dlp ' || '' }}
           TITLE: ${{ env.TARGET_TAG != env.VERSION && format('{0} ', env.TARGET_TAG) || '' }}
           PRERELEASE: ${{ inputs.prerelease && '1' || '0' }}
-        if: |
-          env.TARGET_REPO == github.repository
+        if: env.TARGET_REPO == github.repository
         run: |
           gh_options=(
             --notes-file "${NOTES_FILE}"

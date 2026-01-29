@@ -9,10 +9,9 @@ authors = [
 ]
 maintainers = [
     {email = "maintainers@yt-dlp.org"},
-    {name = "Grub4K", email = "contact@grub4k.xyz"},
+    {name = "Grub4K", email = "contact@grub4k.dev"},
     {name = "bashonly", email = "bashonly@protonmail.com"},
     {name = "coletdjnz", email = "coletdjnz@protonmail.com"},
-    {name = "sepro", email = "sepro@sepr0.com"},
 ]
 description = "A feature-rich command-line audio/video downloader"
 readme = "README.md"
