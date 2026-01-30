@@ -2310,6 +2310,105 @@ class TestMediaHeader:
         assert isinstance(result, ProcessMediaHeaderResult)
         assert result.sabr_part is None
 
+    def test_error_mismatch_not_start_at_expected(self, base_args):
+        # Should raise mismatch error if:
+        # 1. Previous segment does not exist
+        # 2. player_time_ms is 0
+        # 3. non-live
+        # 4. New segment sequence number is not 1
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        assert processor.client_abr_state.player_time_ms == 0
+        with pytest.raises(MediaSegmentMismatchError, match='Segment sequence number mismatch') as exc_info:
+            processor.process_media_header(make_media_header(selector, sequence_no=2))
+        assert exc_info.value.expected_sequence_number == 1
+        assert exc_info.value.received_sequence_number == 2
+
+    def test_no_error_mismatch_not_start_at_expected_consumed(self, base_args):
+        # Same as above, but the first segment is already consumed
+        # Should NOT raise mismatch error if:
+        # 1. Previous segment does not exist
+        # 2. player_time_ms is 0
+        # 3. non-live
+        # 4. New segment sequence number is not 1
+        # 5. First segment is already consumed
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        assert processor.client_abr_state.player_time_ms == 0
+        # Mark segment 1-2 as consumed (multiple consumed ranges to ensure checking the chain)
+        processor.initialized_formats[str(selector.format_ids[0])].consumed_ranges.extend([
+            ConsumedRange(
+                start_sequence_number=1,
+                end_sequence_number=1,
+                start_time_ms=0,
+                duration_ms=2300,
+            ),
+            ConsumedRange(
+                start_sequence_number=2,
+                end_sequence_number=2,
+                start_time_ms=2300,
+                duration_ms=2300),
+        ])
+        # Should not raise an error
+        result = processor.process_media_header(make_media_header(selector, sequence_no=3))
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert isinstance(result.sabr_part, MediaSegmentInitSabrPart)
+
+    def test_no_error_mismatch_not_start_at_one_live(self, base_args):
+        # Should NOT raise mismatch error if:
+        # 1. Previous segment does not exist
+        # 2. player_time_ms is 0
+        # 3. live
+        # 4. New segment sequence number is not 1
+        # Note: usually if live and segments are not starting at 0,
+        # player_time_ms would have been seeked to a later time
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+        )
+        processor.is_live = True
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        assert processor.client_abr_state.player_time_ms == 0
+        # Should not raise an error
+        result = processor.process_media_header(make_media_header(selector, sequence_no=2))
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert isinstance(result.sabr_part, MediaSegmentInitSabrPart)
+
+    def test_no_error_mismatch_not_start_at_one_postlive(self, base_args):
+        # Should NOT raise mismatch error if:
+        # 1. Previous segment does not exist
+        # 2. player_time_ms is 0
+        # 3. post-live
+        # 4. New segment sequence number is not 1
+        # Note: usually if live and segments are not starting at 0,
+        # player_time_ms would have been seeked to a later time
+        selector = make_selector('audio')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+            post_live=True,
+        )
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        # Simulate player time progressed
+        assert processor.client_abr_state.player_time_ms == 0
+        # Should not raise an error
+        result = processor.process_media_header(make_media_header(selector, sequence_no=2))
+        assert isinstance(result, ProcessMediaHeaderResult)
+        assert isinstance(result.sabr_part, MediaSegmentInitSabrPart)
+
     def test_error_previous_segment_not_consumed(self, base_args):
         # Should raise an error if previous segment is not in consumed ranges
         selector = make_selector('audio')

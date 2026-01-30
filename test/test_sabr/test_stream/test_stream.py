@@ -24,6 +24,7 @@ from test.test_sabr.test_stream.helpers import (
     PoTokenAVProfile,
     LiveAVProfile,
     mock_time,
+    SkipSegmentProfile,
 )
 from yt_dlp.extractor.youtube._proto.videostreaming.reload_player_response import ReloadPlaybackParams
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import (
@@ -404,32 +405,9 @@ class TestStream:
             ),
         ]
 
-        class SkipSegmentTwoProcessor(BasicAudioVideoProfile):
-            def get_media_segments(
-                self,
-                buffered_segments: set[int],
-                total_segments: int,
-                max_segments: int,
-                player_time_ms: int,
-                start_header_id: int,
-                format_id: FormatId,
-            ) -> tuple[list[UMPPart], int]:
-                # hack to force generate init segment then segment 1, 3, skipping segment 2
-                if not buffered_segments:
-                    init_segments, start_header_id = super().get_media_segments(
-                        buffered_segments, total_segments, 1, player_time_ms, start_header_id, format_id)
-
-                    buffered_segments.add(2)  # Skip segment 2 on first request
-                    segments, start_header_id = super().get_media_segments(
-                        buffered_segments, total_segments, max_segments, player_time_ms, start_header_id, format_id)
-
-                    return init_segments + segments, start_header_id
-                return super().get_media_segments(
-                    buffered_segments, total_segments, max_segments, player_time_ms, start_header_id, format_id)
-
         sabr_stream, rh, _ = setup_sabr_stream_av(
             # Increase max segments per request to 3 so we get init + 2 segments on first request
-            sabr_response_processor=SkipSegmentTwoProcessor({'max_segments': 3}),
+            sabr_response_processor=SkipSegmentProfile({'max_segments': 3, 'skip_segments': {2}}),
             client_info=client_info,
             logger=logger,
             enable_audio=False,
@@ -930,6 +908,52 @@ class TestStream:
         third_request = rh.request_history[2]
         assert len(third_request.vpabr.buffered_ranges) == 1
         assert third_request.vpabr.client_abr_state.player_time_ms == 0
+
+    def test_unexpected_segment_at_start_nonlive(self, logger, client_info):
+        # Should error if the first segment received for a non-live stream is not sequence number 1 when start_time_ms is 0
+        # (Guard to prevent missing segments at start of non-live streams)
+        sabr_stream, rh, _ = setup_sabr_stream_av(
+            client_info=client_info,
+            logger=logger,
+            sabr_response_processor=SkipSegmentProfile({'skip_segments': {1}}),
+        )
+        with pytest.raises(
+            MediaSegmentMismatchError,
+            match=r'Segment sequence number mismatch for format FormatId\(itag=140, lmt=123, xtags=None\): expected 1, received 2',
+        ) as exc_info:
+            list(sabr_stream.iter_parts())
+
+        assert exc_info.value.expected_sequence_number == 1
+        assert exc_info.value.received_sequence_number == 2
+
+        assert len(rh.request_history) == 1
+        assert rh.request_history[0].vpabr.client_abr_state.player_time_ms == 0
+
+    def test_player_time_ms_start_nonzero_nonlive(self, logger, client_info):
+        # Should respect start_time_ms on non-live streams
+        initial_player_time_ms = 5000  # 5 seconds
+
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            client_info=client_info,
+            logger=logger,
+            sabr_response_processor=BasicAudioVideoProfile(),
+            start_time_ms=initial_player_time_ms,
+        )
+        audio_selector, video_selector = selectors
+
+        parts = list(sabr_stream.iter_parts())
+
+        skipped_audio_segments = 2
+        skipped_video_segments = 4
+
+        assert_media_sequence_in_order(
+            parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1 - skipped_audio_segments, start_sequence_number=skipped_audio_segments + 1)
+        assert_media_sequence_in_order(
+            parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1 - skipped_video_segments, start_sequence_number=skipped_video_segments + 1)
+
+        # In the first request, player_time_ms should be 5000
+        first_request = rh.request_history[0]
+        assert first_request.vpabr.client_abr_state.player_time_ms == initial_player_time_ms
 
     class TestStreamStall:
         # TODO: Create a custom error for this case instead of using SabrStreamError (e.g StreamStallError)

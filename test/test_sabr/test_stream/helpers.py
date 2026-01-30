@@ -259,11 +259,14 @@ class SabrResponseProcessor:
         player_time_ms: int,
         start_header_id: int,
         format_id: FormatId,
+        max_buffer: int = 2,
+        skip_init: bool = False,
+        **kwargs,
     ) -> tuple[list[UMPPart], int]:
 
         segment_parts = []
 
-        if not buffered_segments:
+        if not buffered_segments and not skip_init:
             segment_parts.append(self.get_init_segment_parts(header_id=start_header_id, format_id=format_id))
 
         segment_duration = (DEFAULT_DURATION_MS // total_segments)
@@ -280,7 +283,7 @@ class SabrResponseProcessor:
             # Basic server-side buffering logic to determine if the segment should be included
             if (
                 (player_time_ms >= start_ms + segment_duration)
-                or (player_time_ms < ((start_ms - 1) - segment_duration * 2))  # allow to buffer 2 segments ahead
+                or (player_time_ms < ((start_ms - 1) - segment_duration * max_buffer))  # allow to buffer 2 segments ahead
             ):
                 continue
 
@@ -793,6 +796,31 @@ class LiveAVProfile(BasicAudioVideoProfile):
             parts.extend(video_segment_parts)
 
         return parts
+
+
+class SkipSegmentProfile(BasicAudioVideoProfile):
+    def get_media_segments(
+        self,
+        buffered_segments: set[int],
+        total_segments: int,
+        max_segments: int,
+        player_time_ms: int,
+        start_header_id: int,
+        format_id: FormatId,
+        max_buffer: int = 2,
+        **kwargs,
+    ) -> tuple[list[UMPPart], int]:
+        # Ensure the init segment is always generated
+        init_segments = []
+        if not buffered_segments:
+            init_segments, start_header_id = super().get_media_segments(
+                buffered_segments, total_segments, 1, player_time_ms, start_header_id, format_id)
+        skip_segments = self.options.get('skip_segments', {})
+        buffered_segments.update(skip_segments)
+        remaining_max = max(0, max_segments - int(bool(init_segments)))
+        segments, start_header_id = super().get_media_segments(
+            buffered_segments, total_segments, remaining_max, player_time_ms, start_header_id, format_id, max_buffer=max_buffer + len(buffered_segments), skip_init=True)
+        return init_segments + segments, start_header_id
 
 
 def assert_media_sequence_in_order(parts, format_selector: AudioSelector | VideoSelector, expected_total_segments: int, allow_retry=False, start_sequence_number=1):

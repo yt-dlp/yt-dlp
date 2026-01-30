@@ -2,6 +2,9 @@ from __future__ import annotations
 import io
 import pytest
 from test.test_sabr.test_stream.helpers import assert_media_sequence_in_order, create_inject_read_error
+from test.test_sabr.test_stream.helpers import SkipSegmentProfile
+import protobug
+from yt_dlp.extractor.youtube._proto.videostreaming import MediaHeader
 from yt_dlp.extractor.youtube._proto.videostreaming import FormatId
 from yt_dlp.extractor.youtube._streaming.sabr.models import AudioSelector, VideoSelector
 from yt_dlp.extractor.youtube._streaming.sabr.part import FormatInitializedSabrPart, MediaSegmentInitSabrPart, MediaSegmentDataSabrPart, MediaSegmentEndSabrPart
@@ -177,3 +180,100 @@ def test_mock_time():
     _time.sleep(0.02)
     elapsed = _time.perf_counter() - t_before
     assert elapsed >= 0.02
+
+
+class TestSkipSegmentProfile:
+    def test_skip_segments_excludes_specified_sequences(self):
+        # Skip segment 2 and ensure it's not present in returned media segments
+        profile = SkipSegmentProfile(options={
+            'skip_segments': {2},
+            'max_segments': 3,
+        })
+
+        fmt = FormatId(itag=140, lmt=123)
+
+        parts, _ = profile.get_media_segments(
+            buffered_segments=set(),
+            total_segments=5,
+            max_segments=3,
+            player_time_ms=0,
+            start_header_id=0,
+            format_id=fmt,
+        )
+
+        # Extract sequence numbers from MEDIA_HEADER parts (non-init)
+        seqs = []
+        for p in parts:
+            if p.part_id == UMPPartId.MEDIA_HEADER:
+                mh = protobug.load(p.data, MediaHeader)
+                if not mh.is_init_segment:
+                    seqs.append(mh.sequence_number)
+
+        assert 2 not in seqs
+
+    def test_init_segment_always_generated_when_no_buffered(self):
+        # Even when skip_segments is set, an init segment should be generated when no buffered segments
+        profile = SkipSegmentProfile(options={'skip_segments': {1, 2}})
+        fmt = FormatId(itag=140, lmt=123)
+
+        parts, _ = profile.get_media_segments(
+            buffered_segments=set(),
+            total_segments=3,
+            max_segments=2,
+            player_time_ms=0,
+            start_header_id=0,
+            format_id=fmt,
+        )
+
+        # There should be a MEDIA_HEADER part with is_init_segment == True
+        found_init = False
+        for p in parts:
+            if p.part_id == UMPPartId.MEDIA_HEADER:
+                mh = protobug.load(p.data, MediaHeader)
+                if mh.is_init_segment:
+                    found_init = True
+                    break
+
+        assert found_init, 'Expected init segment to be generated when no buffered segments'
+
+    def test_skip_allows_buffering_more_segments_when_skipped(self):
+        # When a segment is marked as skipped, the profile should allow buffering
+        # additional segments so the caller can still receive the configured
+        # `max_segments` worth of media (i.e. skipped sequence gets replaced).
+        profile_no_skip = SkipSegmentProfile(options={'max_segments': 2})
+        profile_skip = SkipSegmentProfile(options={'max_segments': 2, 'skip_segments': {1, 2}})
+
+        fmt = FormatId(itag=140, lmt=123)
+
+        parts_no_skip, _ = profile_no_skip.get_media_segments(
+            buffered_segments=set(),
+            total_segments=5,
+            max_segments=2,
+            player_time_ms=0,
+            start_header_id=0,
+            format_id=fmt,
+        )
+
+        parts_skip, _ = profile_skip.get_media_segments(
+            buffered_segments=set(),
+            total_segments=5,
+            max_segments=2,
+            player_time_ms=0,
+            start_header_id=0,
+            format_id=fmt,
+        )
+
+        def extract_seqs(parts):
+            seqs = []
+            for p in parts:
+                if p.part_id == UMPPartId.MEDIA_HEADER:
+                    mh = protobug.load(p.data, MediaHeader)
+                    if not mh.is_init_segment:
+                        seqs.append(mh.sequence_number)
+            return seqs
+
+        seqs_no_skip = extract_seqs(parts_no_skip)
+        seqs_skip = extract_seqs(parts_skip)
+
+        assert seqs_no_skip == [1]
+        assert seqs_skip == [3]
