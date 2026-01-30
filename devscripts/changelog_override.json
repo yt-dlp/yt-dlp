@@ -325,5 +325,17 @@
         "when": "c63b4e2a2b81cc78397c8709ef53ffd29bada213",
         "short": "[cleanup] Misc (#14767)",
         "authors": ["bashonly", "seproDev", "matyb08"]
+    },
+    {
+        "action": "change",
+        "when": "abf29e3e72e8a4dcae61e2ceaf37ce8405af61ab",
+        "short": "[ie/youtube] Fix `player_skip=js` extractor-arg (#15428)",
+        "authors": ["bashonly"]
+    },
+    {
+        "action": "change",
+        "when": "e2ea6bd6ab639f910b99e55add18856974ff4c3a",
+        "short": "[ie] Fix prioritization of Youtube URL matching (#15596)",
+        "authors": ["Grub4K"]
     }
 ]
