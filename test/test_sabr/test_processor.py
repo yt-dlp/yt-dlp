@@ -407,6 +407,7 @@ class TestFormatInitialization:
             total_segments=5,
             end_time_ms=10000,
             format_selector=selector,
+            expected_start_sequence_number=1,
         )
         assert initialized_format == expected_initialized_format
         logger.debug.assert_called_with(
@@ -900,6 +901,110 @@ class TestFormatInitialization:
         processor.process_format_initialization_metadata(video_format_init_metadata_part)
         assert str(video_format_id) in processor.initialized_formats
         assert processor.initialized_formats[str(video_format_id)].total_segments == 9
+
+    def test_set_expected_start_segment_nonlive(self, logger, base_args):
+        # Should set the expected_start_sequence_number to 1 when:
+        # 1. start_time_ms and player_time_ms are 0
+        # 2. Not live or post_live
+        selector = make_selector('audio')
+        format_id = selector.format_ids[0]
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+            video_id=example_video_id,
+            start_time_ms=0,
+        )
+
+        format_init_metadata_part = FormatInitializationMetadata(
+            video_id=example_video_id,
+            format_id=format_id,
+            end_time_ms=60000,
+            total_segments=12,
+            mime_type='audio/mp4',
+            duration_ticks=60000,
+            duration_timescale=1000,
+        )
+        processor.process_format_initialization_metadata(format_init_metadata_part)
+        assert str(format_id) in processor.initialized_formats
+        initialized_format = processor.initialized_formats[str(format_id)]
+        assert initialized_format.expected_start_sequence_number == 1
+
+    def test_not_set_expected_start_segment_live(self, logger, base_args):
+        # Should NOT set the expected_start_sequence_number when stream is live
+        selector = make_selector('audio')
+        format_id = selector.format_ids[0]
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+            video_id=example_video_id,
+            start_time_ms=0,
+        )
+        processor.is_live = True
+
+        format_init_metadata_part = FormatInitializationMetadata(
+            video_id=example_video_id,
+            format_id=format_id,
+            end_time_ms=60000,
+            total_segments=12,
+            mime_type='audio/mp4',
+            duration_ticks=60000,
+            duration_timescale=1000,
+        )
+        processor.process_format_initialization_metadata(format_init_metadata_part)
+        assert str(format_id) in processor.initialized_formats
+        initialized_format = processor.initialized_formats[str(format_id)]
+        assert initialized_format.expected_start_sequence_number is None
+
+    def test_not_set_expected_start_segment_post_live(self, logger, base_args):
+        # Should NOT set the expected_start_sequence_number when stream is post_live
+        selector = make_selector('audio')
+        format_id = selector.format_ids[0]
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+            video_id=example_video_id,
+            start_time_ms=0,
+            post_live=True,
+        )
+
+        format_init_metadata_part = FormatInitializationMetadata(
+            video_id=example_video_id,
+            format_id=format_id,
+            end_time_ms=60000,
+            total_segments=12,
+            mime_type='audio/mp4',
+            duration_ticks=60000,
+            duration_timescale=1000,
+        )
+        processor.process_format_initialization_metadata(format_init_metadata_part)
+        assert str(format_id) in processor.initialized_formats
+        initialized_format = processor.initialized_formats[str(format_id)]
+        assert initialized_format.expected_start_sequence_number is None
+
+    def test_not_set_expected_start_segment_nonzero_start_time(self, logger, base_args):
+        # Should NOT set the expected_start_sequence_number when start_time_ms is non-zero
+        selector = make_selector('audio')
+        format_id = selector.format_ids[0]
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=selector,
+            video_id=example_video_id,
+            start_time_ms=5000,
+        )
+
+        format_init_metadata_part = FormatInitializationMetadata(
+            video_id=example_video_id,
+            format_id=format_id,
+            end_time_ms=60000,
+            total_segments=12,
+            mime_type='audio/mp4',
+            duration_ticks=60000,
+            duration_timescale=1000,
+        )
+        processor.process_format_initialization_metadata(format_init_metadata_part)
+        assert str(format_id) in processor.initialized_formats
+        initialized_format = processor.initialized_formats[str(format_id)]
+        assert initialized_format.expected_start_sequence_number is None
 
 
 class TestLiveMetadata:

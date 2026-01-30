@@ -929,6 +929,62 @@ class TestStream:
         assert len(rh.request_history) == 1
         assert rh.request_history[0].vpabr.client_abr_state.player_time_ms == 0
 
+    def test_unexpected_segment_at_start_resume_nonlive(self, logger, client_info):
+        # Should error if the first segment received for a non-live stream
+        # when resuming is not in the first consumed range chain
+
+        # 1. Get all the segments to get the timings
+        init_sabr_stream, _, _ = setup_sabr_stream_av(
+            sabr_response_processor=BasicAudioVideoProfile(),
+            client_info=client_info,
+            logger=logger,
+            enable_audio=False,
+        )
+        iter_parts = init_sabr_stream.iter_parts()
+        format_init_part = next(iter_parts)
+        assert isinstance(format_init_part, FormatInitializedSabrPart)
+        # Get all the media init parts
+        media_init_parts = [part for part in iter_parts if isinstance(part, MediaSegmentInitSabrPart)]
+        assert len(media_init_parts) == DEFAULT_NUM_VIDEO_SEGMENTS + 1
+
+        sabr_stream, _, _ = setup_sabr_stream_av(
+            client_info=client_info,
+            logger=logger,
+            sabr_response_processor=SkipSegmentProfile({'skip_segments': {1, 2, 3}}),
+            enable_audio=False,
+        )
+
+        # Mark segments 1 and 2 as buffered (with two consumed ranges)
+        consumed_ranges = [
+            # Note: First segment is init segment with no sequence number
+            ConsumedRange(
+                start_sequence_number=1,
+                end_sequence_number=1,
+                start_time_ms=media_init_parts[1].start_time_ms,
+                duration_ms=media_init_parts[1].duration_ms,
+            ),
+            ConsumedRange(
+                start_sequence_number=2,
+                end_sequence_number=2,
+                start_time_ms=media_init_parts[2].start_time_ms,
+                duration_ms=media_init_parts[2].duration_ms,
+            ),
+        ]
+
+        # Start streaming until get the initialized format
+        iter_parts = sabr_stream.iter_parts()
+        format_init_part = next(iter_parts)
+        assert isinstance(format_init_part, FormatInitializedSabrPart)
+        sabr_stream.processor.initialized_formats[str(format_init_part.format_id)].consumed_ranges = consumed_ranges
+
+        with pytest.raises(
+            MediaSegmentMismatchError,
+            match=r'Segment sequence number mismatch for format FormatId\(itag=248, lmt=456, xtags=None\): expected 3, received 4',
+        ) as exc_info:
+            list(iter_parts)
+        assert exc_info.value.expected_sequence_number == 3
+        assert exc_info.value.received_sequence_number == 4
+
     def test_player_time_ms_start_nonzero_nonlive(self, logger, client_info):
         # Should respect start_time_ms on non-live streams
         initial_player_time_ms = 5000  # 5 seconds

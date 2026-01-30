@@ -39,7 +39,7 @@ from .part import (
     MediaSegmentInitSabrPart,
     PoTokenStatusSabrPart,
 )
-from .utils import get_cr_chain, ticks_to_ms
+from .utils import find_consumed_range, find_consumed_range_chain, ticks_to_ms
 
 
 class ProcessMediaEndResult:
@@ -197,16 +197,19 @@ class SabrProcessor:
                 return format_selector
         return None
 
-    def _next_expected_segment(self, previous_segment: Segment) -> int | None:
-        # Try to find the first consumed range the previous segment is part of
-        prev_consumed_range = next(
-            (cr for cr in previous_segment.initialized_format.consumed_ranges
-             if cr.start_sequence_number <= previous_segment.sequence_number <= cr.end_sequence_number),
-            None,
-        )
+    def _next_expected_segment(self, initialized_format: InitializedFormat) -> int | None:
+        if not initialized_format.previous_segment:
+            if initialized_format.expected_start_sequence_number is None:
+                return None
+            expected_start_cr_chain = find_consumed_range_chain(initialized_format.expected_start_sequence_number, initialized_format.consumed_ranges)
+            if not expected_start_cr_chain:
+                # No consumed ranges yet, so we expect the expected_start_sequence_number
+                return initialized_format.expected_start_sequence_number
+            return expected_start_cr_chain[-1].end_sequence_number + 1
 
+        # Try to find the consumed range chain the previous segment is part of
         # + 1 from the end of the previous segment consumed range chain
-        consumed_ranges = get_cr_chain(prev_consumed_range, previous_segment.initialized_format.consumed_ranges)
+        consumed_ranges = find_consumed_range_chain(initialized_format.previous_segment.sequence_number, initialized_format.consumed_ranges)
         if not consumed_ranges:
             # xxx: if we want to allow clearing consumed ranges while keeping segment order,
             # we can return previous_segment.sequence_number + 1 here
@@ -255,10 +258,7 @@ class SabrProcessor:
         # Guard: Check if sequence number is within any existing consumed range
         # The server should not send us any segments that are already consumed
         # However, if retrying a request, we may get the same segment again
-        if not is_init_segment and any(
-            cr.start_sequence_number <= sequence_number <= cr.end_sequence_number
-            for cr in initialized_format.consumed_ranges
-        ):
+        if not is_init_segment and find_consumed_range(sequence_number, initialized_format.consumed_ranges):
             self.logger.debug(f'{initialized_format.format_id} segment {sequence_number} already consumed, marking segment as consumed')
             consumed = True
 
@@ -267,12 +267,13 @@ class SabrProcessor:
         #  and can expect unexpected seeks as the consumer does not know about it.
         # Note: previous segment should never be an init segment.
         previous_segment = initialized_format.previous_segment
+        # TODO: if consumed, must be within the current consumed range chain
         if (
-            initialized_format.seek_ms is None
-            and previous_segment and not is_init_segment
-            and not previous_segment.consumed and not discard and not consumed
+            initialized_format.seek_ms is None and not is_init_segment
+            and not discard and not consumed
+            and (not previous_segment or not previous_segment.consumed)
         ):
-            next_expected_segment = self._next_expected_segment(previous_segment)
+            next_expected_segment = self._next_expected_segment(initialized_format)
             if next_expected_segment is not None and sequence_number != next_expected_segment:
                 # Bail out as the segment is not in order when it is expected to be
                 raise MediaSegmentMismatchError(
@@ -592,6 +593,15 @@ class SabrProcessor:
                 start_sequence_number=0,
                 end_sequence_number=JS_MAX_SAFE_INTEGER,
             )]
+
+        # Pin the expected start sequence number to 0
+        # if we are starting from the beginning of the stream for VODs.
+        if (
+            not self.is_live and not self.post_live
+            # These should be the same, but just in case
+            and self.start_time_ms == 0 and self.client_abr_state.player_time_ms == 0
+        ):
+            initialized_format.expected_start_sequence_number = 1
 
         self.initialized_formats[str(format_init_metadata.format_id)] = initialized_format
         self.logger.debug(f'Initialized Format: {initialized_format}')

@@ -51,6 +51,7 @@ class InitializedFormat:
     # Whether we should discard any data received for this format
     discard: bool = False
     sequence_lmt: int | None = None
+    expected_start_sequence_number: int | None = None
 
 
 SabrLogger = IEContentProviderLogger

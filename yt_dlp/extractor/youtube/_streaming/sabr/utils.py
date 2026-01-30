@@ -8,7 +8,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.models import ConsumedRange
 from yt_dlp.utils import int_or_none, orderedSet, parse_qs, str_or_none, update_url_query
 
 
-def get_cr_chain(start_consumed_range: ConsumedRange, consumed_ranges: list[ConsumedRange]) -> list[ConsumedRange]:
+def get_cr_chain(start_consumed_range: ConsumedRange | None, consumed_ranges: list[ConsumedRange]) -> list[ConsumedRange]:
     # TODO: unit test
     # Return the continuous consumed range chain starting from the given consumed range
     # Note: It is assumed a segment is only present in one consumed range - it should not be allowed in multiple (by process media header)
@@ -21,6 +21,19 @@ def get_cr_chain(start_consumed_range: ConsumedRange, consumed_ranges: list[Cons
         elif cr.start_sequence_number > chain[-1].end_sequence_number + 1:
             break
     return chain
+
+
+def find_consumed_range(sequence_number: int, consumed_ranges: list[ConsumedRange]) -> ConsumedRange | None:
+    return next(
+        (cr for cr in consumed_ranges
+         if cr.start_sequence_number <= sequence_number <= cr.end_sequence_number),
+        None,
+    )
+
+
+def find_consumed_range_chain(sequence_number: int, consumed_ranges: list[ConsumedRange]) -> list[ConsumedRange]:
+    start_cr = find_consumed_range(sequence_number, consumed_ranges)
+    return get_cr_chain(start_cr, consumed_ranges)
 
 
 def next_gvs_fallback_url(gvs_url):
