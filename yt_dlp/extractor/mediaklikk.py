@@ -25,7 +25,6 @@ class MediaKlikkIE(InfoExtractor):
             'ext': 'mp4',
             'upload_date': '20260128',
             'thumbnail': 'https://cdn.cms.mtv.hu/wp-content/uploads/sites/4/2026/01/2021-010143-M0151-02_3700_cover_09.jpg',
-            'episode_id': '2021-010143-M0151',
         },
     }, {
         # mediaklikk
@@ -37,7 +36,6 @@ class MediaKlikkIE(InfoExtractor):
             'ext': 'mp4',
             'upload_date': '20260118',
             'thumbnail': 'https://cdn.cms.mtv.hu/wp-content/uploads/sites/4/2026/01/2026-000492-M0002-01_3700_cover_01.jpg',
-            'episode_id': '2026-000492-M0002',
         },
     }, {
         # m4sport
