@@ -19,8 +19,6 @@ class SoopVodFD(FileDownloader):
         fd = HlsFD(self.ydl, self.params)
         refresh_params = info_dict['_cookie_refresh_params']
 
-        fd = HlsFD(self.ydl, self.params)
-
         stop_event = threading.Event()
         referer_url = info_dict['webpage_url']
         refresh_thread = threading.Thread(
@@ -48,6 +46,7 @@ class SoopVodFD(FileDownloader):
             expiration_time = _get_cloudfront_cookie_expiration(m3u8_url)
             last_refresh_check = refresh_params.get('_last_refresh', 0)
 
+            # Cookie TTL is 90 seconds, but let's give ourselves a 15-second cushion
             should_refresh = (
                 (expiration_time and current_time >= expiration_time - 15)
                 or (not expiration_time and current_time - last_refresh_check >= 75)
