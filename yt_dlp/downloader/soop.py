@@ -18,9 +18,9 @@ class SoopVodFD(FileDownloader):
         self.to_screen(f'[{self.FD_NAME}] Downloading Soop subscription VOD HLS')
         fd = HlsFD(self.ydl, self.params)
         refresh_params = info_dict['_cookie_refresh_params']
+        referer_url = info_dict['webpage_url']
 
         stop_event = threading.Event()
-        referer_url = info_dict['webpage_url']
         refresh_thread = threading.Thread(
             target=self._cookie_refresh_thread,
             args=(stop_event, refresh_params, referer_url),
