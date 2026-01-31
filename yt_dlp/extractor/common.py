@@ -102,6 +102,10 @@ from ..utils import (
 )
 from ..utils._utils import _request_dump_filename
 from ..utils.jslib import devalue
+from ..webvtt import (
+    parse_fragment,
+    CueBlock
+)
 
 
 class InfoExtractor:
@@ -1093,6 +1097,14 @@ class InfoExtractor:
     def _parse_socket_response_as_json(self, data, *args, **kwargs):
         return self._parse_json(data[data.find('{'):data.rfind('}') + 1], *args, **kwargs)
 
+    def _parse_vtt(self, vtt_string, video_id, transform_source=None, fatal=True, errnote=None):
+        if transform_source:
+            vtt_string = transform_source(vtt_string)
+        try:
+            return list(parse_fragment(vtt_string.encode()))
+        except Exception as ve:
+            self.__print_error('Failed to parse WebVTT' if errnote is None else errnote, fatal, video_id, ve)
+
     def __create_download_methods(name, parser, note, errnote, return_value):
 
         def parse(ie, content, *args, errnote=errnote, **kwargs):
@@ -1170,6 +1182,8 @@ class InfoExtractor:
         'json', '_parse_json', 'Downloading JSON metadata', 'Unable to download JSON metadata', 'JSON object as a dict')
     _download_socket_json_handle, _download_socket_json = __create_download_methods(
         'socket_json', '_parse_socket_response_as_json', 'Polling socket', 'Unable to poll socket', 'JSON object as a dict')
+    _download_webvtt_handle, _download_webvtt = __create_download_methods(
+        'webvtt', '_parse_vtt', 'Downloading WebVTT', 'Unable to download WebVTT', 'WebVTT as a list of blocks')
     __download_webpage = __create_download_methods('webpage', None, None, None, 'data of the page as a string')[1]
 
     def _download_webpage(
@@ -3636,6 +3650,26 @@ class InfoExtractor:
                 subtitles.setdefault(track.get('label') or 'en', []).append({
                     'url': self._proto_relative_url(track_url),
                 })
+            
+            chapters = []
+            for track in traverse_obj(video_data, (
+                    'tracks', lambda _, v: v['kind'].lower() == 'chapters')):
+                track_url = urljoin(base_url, track.get('file'))
+                if not track_url:
+                    continue
+                self.to_screen(f'{this_video_id}: Chapter data found')
+                chapter_data = self._download_webvtt(track_url, this_video_id, fatal=False)
+                if not chapter_data:
+                    continue
+                for block in chapter_data:
+                    if isinstance(block, CueBlock):
+                        chapters.append({
+                            # Convert timestamps from MPEG PES into seconds
+                            'start_time': block.start / 90000,
+                            'end_time': block.end / 90000,
+                            'title': block.text.strip()
+                        })
+                break
 
             entry = {
                 'id': this_video_id,
@@ -3645,6 +3679,7 @@ class InfoExtractor:
                 'timestamp': int_or_none(video_data.get('pubdate')),
                 'duration': float_or_none(jwplayer_data.get('duration') or video_data.get('duration')),
                 'subtitles': subtitles,
+                'chapters': chapters,
                 'alt_title': clean_html(video_data.get('subtitle')),  # attributes used e.g. by Tele5 ...
                 'genre': clean_html(video_data.get('genre')),
                 'channel': clean_html(dict_get(video_data, ('category', 'channel'))),
