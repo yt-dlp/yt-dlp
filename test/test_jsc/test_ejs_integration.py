@@ -36,7 +36,6 @@ class Variant(enum.Enum):
     tv = 'tv-player-ias.vflset/tv-player-ias.js'
     tv_es6 = 'tv-player-es6.vflset/tv-player-es6.js'
     phone = 'player-plasma-ias-phone-en_US.vflset/base.js'
-    tablet = 'player-plasma-ias-tablet-en_US.vflset/base.js'
 
 
 @dataclasses.dataclass
