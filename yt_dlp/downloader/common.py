@@ -477,7 +477,12 @@ class FileDownloader:
             self.to_screen(f'[download] Sleeping {sleep_interval:.2f} seconds {sleep_note}...')
             time.sleep(sleep_interval)
 
-        ret = self.real_download(filename, info_dict)
+        try:
+            ret = self.real_download(filename, info_dict)
+        except Exception:
+            self.to_screen('')
+            raise
+        
         self._finish_multiline_status()
         return ret, True
 
