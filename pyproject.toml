@@ -9,10 +9,9 @@ authors = [
 ]
 maintainers = [
     {email = "maintainers@yt-dlp.org"},
-    {name = "Grub4K", email = "contact@grub4k.xyz"},
+    {name = "Grub4K", email = "contact@grub4k.dev"},
     {name = "bashonly", email = "bashonly@protonmail.com"},
     {name = "coletdjnz", email = "coletdjnz@protonmail.com"},
-    {name = "sepro", email = "sepro@sepr0.com"},
 ]
 description = "A feature-rich command-line audio/video downloader"
 readme = "README.md"
@@ -56,7 +55,7 @@ default = [
     "requests>=2.32.2,<3",
     "urllib3>=2.0.2,<3",
     "websockets>=13.0",
-    "yt-dlp-ejs==0.3.2",
+    "yt-dlp-ejs==0.4.0",
 ]
 curl-cffi = [
     "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.15; implementation_name=='cpython'",
@@ -70,7 +69,7 @@ secretstorage = [
     "secretstorage",
 ]
 deno = [
-    "deno>=2.6.5",  # v2.6.5 fixes installation of incompatible binaries
+    "deno>=2.6.6",  # v2.6.5 fixes compatibility, v2.6.6 adds integrity check
 ]
 build = [
     "build",

@@ -574,7 +574,8 @@ def create_parser():
                 '2021': ['2022', 'no-certifi', 'filename-sanitization'],
                 '2022': ['2023', 'no-external-downloader-progress', 'playlist-match-filter', 'prefer-legacy-http-handler', 'manifest-filesize-approx'],
                 '2023': ['2024', 'prefer-vp9-sort'],
-                '2024': ['mtime-by-default'],
+                '2024': ['2025', 'mtime-by-default'],
+                '2025': [],
             },
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
