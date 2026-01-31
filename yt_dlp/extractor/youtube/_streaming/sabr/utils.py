@@ -31,6 +31,14 @@ def find_consumed_range(sequence_number: int, consumed_ranges: list[ConsumedRang
     )
 
 
+def find_consumed_range_by_time(time_ms: int, consumed_ranges: list[ConsumedRange], tolerance_ms=0) -> ConsumedRange | None:
+    for cr in sorted(consumed_ranges, key=lambda _cr: _cr.start_sequence_number):
+        if (cr.start_time_ms - tolerance_ms) <= time_ms <= (cr.start_time_ms + cr.duration_ms + tolerance_ms):
+            chain = get_cr_chain(cr, consumed_ranges)
+            return chain[-1]
+    return None
+
+
 def find_consumed_range_chain(sequence_number: int, consumed_ranges: list[ConsumedRange]) -> list[ConsumedRange]:
     start_cr = find_consumed_range(sequence_number, consumed_ranges)
     return get_cr_chain(start_cr, consumed_ranges)

@@ -212,8 +212,7 @@ class SabrProcessor:
 
         consumed_range_chain = find_consumed_range_chain(
             min(reference_sequence_number, sequence_number), initialized_format.consumed_ranges)
-        # If reference segment not in a consumed range, then
-
+        # Consumed segment may be before reference segment in the chain
         includes_ref_seq = find_consumed_range(reference_sequence_number, consumed_range_chain) is not None
         includes_seq_num = find_consumed_range(sequence_number, consumed_range_chain) is not None
         return includes_ref_seq and includes_seq_num
@@ -278,15 +277,14 @@ class SabrProcessor:
 
         # Guard: Check if sequence number is within any existing consumed range
         # The server should not send us any segments that are already consumed
-        # However, if retrying a request, we may get the same segment again
+        # However, if retrying a request, or on initial resume, we may get the same segment again
         if not is_init_segment and find_consumed_range(sequence_number, initialized_format.consumed_ranges):
             self.logger.debug(f'{initialized_format.format_id} segment {sequence_number} already consumed, marking segment as consumed')
             consumed = True
 
-        # Validate that the segment is in order.
+        # Validate this is the next expected segment.
         # Note: If the format is to be discarded, we do not care about the order
         #  and can expect unexpected seeks as the consumer does not know about it.
-        # Note: previous segment should never be an init segment.
         if (
             initialized_format.seek_ms is None and not is_init_segment
             and not discard

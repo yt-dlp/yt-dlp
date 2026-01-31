@@ -33,6 +33,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.exceptions import (
     SabrStreamConsumedError,
     MediaSegmentMismatchError,
     UnexpectedConsumedMediaSegment,
+    StreamStallError,
 )
 from yt_dlp.extractor.youtube._streaming.ump import UMPPartId, UMPPart
 from yt_dlp.networking.exceptions import TransportError, HTTPError, RequestError
@@ -1012,10 +1013,8 @@ class TestStream:
         first_request = rh.request_history[0]
         assert first_request.vpabr.client_abr_state.player_time_ms == initial_player_time_ms
 
-    class TestStreamStall:
-        # TODO: Create a custom error for this case instead of using SabrStreamError (e.g StreamStallError)
+    class TestVODStreamStall:
         def test_no_new_segments_default(self, logger, client_info):
-            # TODO: currently fails on max_empty_requests+1, should be max_empty_requests
             # Should raise SabrStreamError if no new segments are received on the third request (default)
             def no_new_segments_func(parts, vpabr, url, request_number):
                 # On third request, return only init parts (no new segments)
@@ -1028,7 +1027,7 @@ class TestStream:
                 logger=logger,
                 sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_func}),
             )
-            with pytest.raises(SabrStreamError, match=r'No new segments received from server in 3 consecutive requests'):
+            with pytest.raises(StreamStallError, match=r'Stream stalled; no activity detected in 3 consecutive requests'):
                 list(sabr_stream.iter_parts())
 
             # Should have made 3 requests before failing
@@ -1050,7 +1049,7 @@ class TestStream:
                 sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_func}),
                 max_empty_requests=max_empty_requests,
             )
-            with pytest.raises(SabrStreamError, match=r'No new segments received from server in 5 consecutive requests'):
+            with pytest.raises(StreamStallError, match=r'Stream stalled; no activity detected in 5 consecutive requests'):
                 list(sabr_stream.iter_parts())
 
             # Should have made 5 requests before failing
@@ -1080,12 +1079,12 @@ class TestStream:
             assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
             assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
 
-            logger.trace.assert_any_call('No new segments received in request 1, count: 1')
-            logger.trace.assert_any_call('No new segments received in request 2, count: 2')
+            logger.debug.assert_any_call('No activity detected in request 1; registering stall (count: 1)')
+            logger.debug.assert_any_call('No activity detected in request 2; registering stall (count: 2)')
             assert rh.request_history[0].parts == rh.request_history[1].parts == []
             assert rh.request_history[2].parts
-            logger.trace.assert_any_call('No new segments received in request 4, count: 1')
-            logger.trace.assert_any_call('No new segments received in request 5, count: 2')
+            logger.debug.assert_any_call('No activity detected in request 4; registering stall (count: 1)')
+            logger.debug.assert_any_call('No activity detected in request 5; registering stall (count: 2)')
             assert rh.request_history[3].parts == rh.request_history[4].parts == []
             assert rh.request_history[5].parts
 
@@ -1146,7 +1145,7 @@ class TestStream:
                 sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_with_error_func}),
                 max_empty_requests=max_empty_requests,
             )
-            with pytest.raises(SabrStreamError, match=r'No new segments received from server in 3 consecutive requests'):
+            with pytest.raises(SabrStreamError, match=r'Stream stalled; no activity detected in 3 consecutive requests'):
                 list(sabr_stream.iter_parts())
 
             # Should have made 4 requests before failing (3 empty + 1 retried)
@@ -1157,7 +1156,6 @@ class TestStream:
             assert rh.request_history[3].parts == []
 
         def test_no_new_segments_http_retry_with_segments_reset(self, logger, client_info):
-            # TODO: currently fails as we do not reset the empty counter if we received an error and retry
             # Receive a TransportError during response on the 3rd attempt WITH new segments (before the TransportError)
             # should retry and continue, resetting the empty request counter
             max_empty_requests = 3
@@ -1190,14 +1188,14 @@ class TestStream:
             # Should have made 6 requests total (2 sets of 3) + 1 for (empty) retry at the end
             assert len(rh.request_history) == 6 * max_empty_requests + 1
             assert rh.request_history[0].parts == rh.request_history[1].parts == []
-            logger.trace.assert_any_call('No new segments received in request 1, count: 1')
-            logger.trace.assert_any_call('No new segments received in request 2, count: 2')
+            logger.debug.assert_any_call('No activity detected in request 1; registering stall (count: 1)')
+            logger.debug.assert_any_call('No activity detected in request 2; registering stall (count: 2)')
             assert isinstance(rh.request_history[2].error, TransportError)
             assert rh.request_history[2].parts  # Has new segments
 
             assert rh.request_history[3].parts == rh.request_history[4].parts == []
-            logger.trace.assert_any_call('No new segments received in request 4, count: 1')
-            logger.trace.assert_any_call('No new segments received in request 5, count: 2')
+            logger.debug.assert_any_call('No activity detected in request 4; registering stall (count: 1)')
+            logger.debug.assert_any_call('No activity detected in request 5; registering stall (count: 2)')
             assert isinstance(rh.request_history[5].error, TransportError)
             assert rh.request_history[5].parts  # Has new segments
 
@@ -1226,13 +1224,13 @@ class TestStream:
                 sabr_response_processor=CustomAVProfile({'custom_parts_function': consumed_segments_func}),
                 max_empty_requests=max_empty_requests,
             )
-            with pytest.raises(SabrStreamError, match=r'No new segments received from server in 3 consecutive requests'):
+            with pytest.raises(SabrStreamError, match=r'Stream stalled; no activity detected in 3 consecutive requests'):
                 list(sabr_stream.iter_parts())
 
             # Should have made 5 requests before failing (2 normal + 3 empty)
             assert len(rh.request_history) == 2 + max_empty_requests
-            logger.trace.assert_any_call('No new segments received in request 3, count: 1')
-            logger.trace.assert_any_call('No new segments received in request 4, count: 2')
+            logger.debug.assert_any_call('No activity detected in request 3; registering stall (count: 1)')
+            logger.debug.assert_any_call('No activity detected in request 4; registering stall (count: 2)')
 
         @pytest.mark.skip(reason='todo')
         def test_discarded_segments_not_counted(self, logger, client_info):
@@ -2240,7 +2238,7 @@ class TestStream:
             )
 
             # SabrStream rounds up the wait time to nearest second
-            logger.info.assert_any_call('The server is requiring yt-dlp to wait 1 seconds before continuing due to ad enforcement')
+            logger.info.assert_any_call('Sleeping 1.00 seconds as required by the server')
 
             assert AdWaitAVProfile.CONTEXT_UPDATE_TYPE in sabr_stream.processor.sabr_context_updates
             assert sabr_stream.processor.sabr_context_updates[5].value == AdWaitAVProfile.CONTEXT_UPDATE_DATA

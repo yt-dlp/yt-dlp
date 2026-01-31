@@ -32,3 +32,7 @@ class PoTokenError(SabrStreamError):
         super().__init__(
             f'This stream requires a GVS PO Token to continue'
             f'{" and the one provided is invalid" if not missing else ""}')
+
+
+class StreamStallError(SabrStreamError):
+    pass
