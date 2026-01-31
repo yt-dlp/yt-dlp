@@ -2085,6 +2085,7 @@ from .tiktok import (
     TikTokEffectIE,
     TikTokIE,
     TikTokLiveIE,
+    TikTokPlaylistIE,
     TikTokSoundIE,
     TikTokTagIE,
     TikTokUserIE,
