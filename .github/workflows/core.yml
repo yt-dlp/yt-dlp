@@ -32,7 +32,7 @@ concurrency:
 jobs:
   tests:
     name: Core Tests
-    if: ${{ !contains(github.event.head_commit.message, 'ci skip') }}
+    if: ${{ !contains(github.event.head_commit.message, ':ci skip') }}
     permissions:
       contents: read
     runs-on: ${{ matrix.os }}
