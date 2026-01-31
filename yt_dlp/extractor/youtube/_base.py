@@ -351,20 +351,6 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 75,
     },
-    # This client now requires sign-in for every video
-    # It was previously an age-gate workaround for videos that were `playable_in_embed`
-    # It may still be useful if signed into an EU account that is not age-verified
-    'tv_embedded': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'TVHTML5_SIMPLY_EMBEDDED_PLAYER',
-                'clientVersion': '2.0',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 85,
-        'REQUIRE_AUTH': True,
-        'SUPPORTS_COOKIES': True,
-    },
 }
 
 

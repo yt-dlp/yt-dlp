@@ -1443,7 +1443,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'view_count': int,
         },
         'params': {
-            'extractor_args': {'youtube': {'player_client': ['tv_embedded']}},
             'format': '251-drc',
             'skip_download': True,
         },
@@ -3143,9 +3142,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self.to_screen(
                     f'{video_id}: This video is age-restricted and YouTube is requiring '
                     'account age-verification; some formats may be missing', only_once=True)
-                # tv_embedded can work around the age-verification requirement for embeddable videos
                 # web_creator may work around age-verification for all videos but requires PO token
-                append_client('tv_embedded', 'web_creator')
+                append_client('web_creator')
 
             status = traverse_obj(pr, ('playabilityStatus', 'status', {str}))
             if status not in ('OK', 'LIVE_STREAM_OFFLINE', 'AGE_CHECK_REQUIRED', 'AGE_VERIFICATION_REQUIRED'):
