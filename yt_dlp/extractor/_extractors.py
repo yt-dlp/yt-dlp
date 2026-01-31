@@ -2067,6 +2067,7 @@ from .theplatform import (
 from .thestar import TheStarIE
 from .thesun import TheSunIE
 from .theweatherchannel import TheWeatherChannelIE
+from .thirtydaysinger import ThirtyDaySingerIE, ThirtyDaySingerPlaylistIE
 from .thisamericanlife import ThisAmericanLifeIE
 from .thisoldhouse import ThisOldHouseIE
 from .thisvid import (
