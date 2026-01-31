@@ -1819,6 +1819,7 @@ from .seznamzpravy import (
 )
 from .shahid import (
     ShahidIE,
+    ShahidLiveIE,
     ShahidShowIE,
 )
 from .sharepoint import SharePointIE
