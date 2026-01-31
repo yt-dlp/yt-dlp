@@ -32,6 +32,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.exceptions import (
     PoTokenError,
     SabrStreamConsumedError,
     MediaSegmentMismatchError,
+    UnexpectedConsumedMediaSegment,
 )
 from yt_dlp.extractor.youtube._streaming.ump import UMPPartId, UMPPart
 from yt_dlp.networking.exceptions import TransportError, HTTPError, RequestError
@@ -420,8 +421,8 @@ class TestStream:
         # Continue retrieving parts until we get an error
         parts = [format_init_part]
         with pytest.raises(
-            MediaSegmentMismatchError,
-            match=r'Segment sequence number mismatch for format FormatId\(itag=248, lmt=456, xtags=None\): expected 2, received 3',
+            UnexpectedConsumedMediaSegment,
+            match=r'Unexpected consumed segment received for format FormatId\(itag=248, lmt=456, xtags=None\): sequence number 3 \(not in expected consumed range\)',
         ):
             for part in iter_parts:
                 parts.append(part)

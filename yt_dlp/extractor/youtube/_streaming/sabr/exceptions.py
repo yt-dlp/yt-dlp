@@ -19,6 +19,14 @@ class MediaSegmentMismatchError(SabrStreamError):
         self.received_sequence_number = received_sequence_number
 
 
+class UnexpectedConsumedMediaSegment(SabrStreamError):
+    def __init__(self, format_id: FormatId, sequence_number: int):
+        super().__init__(
+            f'Unexpected consumed segment received for format {format_id}: '
+            f'sequence number {sequence_number} (not in expected consumed range)')
+        self.sequence_number = sequence_number
+
+
 class PoTokenError(SabrStreamError):
     def __init__(self, missing=False):
         super().__init__(
