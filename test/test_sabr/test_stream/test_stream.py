@@ -5,6 +5,7 @@ import time
 from unittest.mock import Mock
 import protobug
 import pytest
+from yt_dlp.extractor.youtube._proto.innertube import NextRequestPolicy
 from yt_dlp import YoutubeDL
 from yt_dlp.downloader.sabr._logger import SabrFDLogger
 from test.test_sabr.test_stream.helpers import (
@@ -56,8 +57,12 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     ReloadPlayerResponse,
     SabrRedirect,
     VideoPlaybackAbrRequest,
+    LiveMetadata,
 )
 from yt_dlp.utils import parse_qs
+
+
+LIVE_URL = 'https://example.com/sabr_live?id=123&source=yt_live_broadcast'
 
 
 def setup_sabr_stream_av(
@@ -1012,276 +1017,6 @@ class TestStream:
         # In the first request, player_time_ms should be 5000
         first_request = rh.request_history[0]
         assert first_request.vpabr.client_abr_state.player_time_ms == initial_player_time_ms
-
-    class TestVODStreamStall:
-        def test_no_new_segments_default(self, logger, client_info):
-            # Should raise SabrStreamError if no new segments are received on the third request (default)
-            def no_new_segments_func(parts, vpabr, url, request_number):
-                # On third request, return only init parts (no new segments)
-                if request_number >= 4:
-                    return parts
-                return []
-
-            sabr_stream, rh, _ = setup_sabr_stream_av(
-                client_info=client_info,
-                logger=logger,
-                sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_func}),
-            )
-            with pytest.raises(StreamStallError, match=r'Stream stalled; no activity detected in 3 consecutive requests'):
-                list(sabr_stream.iter_parts())
-
-            # Should have made 3 requests before failing
-            assert len(rh.request_history) == 3
-
-        def test_no_new_segments_custom(self, logger, client_info):
-            # Should raise SabrStreamError if no new segments are received on the fifth request (custom)
-            max_empty_requests = 5
-
-            def no_new_segments_func(parts, vpabr, url, request_number):
-                # On fifth request, return only init parts (no new segments)
-                if request_number > max_empty_requests:
-                    return parts
-                return []
-
-            sabr_stream, rh, _ = setup_sabr_stream_av(
-                client_info=client_info,
-                logger=logger,
-                sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_func}),
-                max_empty_requests=max_empty_requests,
-            )
-            with pytest.raises(StreamStallError, match=r'Stream stalled; no activity detected in 5 consecutive requests'):
-                list(sabr_stream.iter_parts())
-
-            # Should have made 5 requests before failing
-            assert len(rh.request_history) == 5
-
-        def test_no_new_segments_reset_on_new_segment(self, logger, client_info):
-            # Should reset the empty request counter when a new segment is received
-            max_empty_requests = 3
-
-            def no_new_segments_func(parts, vpabr, url, request_number):
-                # On every third request, return parts (new segments)
-                if request_number % max_empty_requests == 0:
-                    return parts
-                return []
-
-            sabr_stream, rh, selectors = setup_sabr_stream_av(
-                client_info=client_info,
-                logger=logger,
-                sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_func}),
-                max_empty_requests=max_empty_requests,
-            )
-            # Should complete successfully
-            parts = list(sabr_stream.iter_parts())
-            # Should have made 6 requests total (2 sets of 3)
-            assert len(rh.request_history) == 6 * max_empty_requests
-            audio_selector, video_selector = selectors
-            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
-            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
-
-            logger.debug.assert_any_call('No activity detected in request 1; registering stall (count: 1)')
-            logger.debug.assert_any_call('No activity detected in request 2; registering stall (count: 2)')
-            assert rh.request_history[0].parts == rh.request_history[1].parts == []
-            assert rh.request_history[2].parts
-            logger.debug.assert_any_call('No activity detected in request 4; registering stall (count: 1)')
-            logger.debug.assert_any_call('No activity detected in request 5; registering stall (count: 2)')
-            assert rh.request_history[3].parts == rh.request_history[4].parts == []
-            assert rh.request_history[5].parts
-
-        def test_max_empty_requests_negative(self, logger, client_info):
-            # Should raise ValueError if max_empty_requests is negative
-            with pytest.raises(ValueError, match='max_empty_requests must be greater than 0'):
-                setup_sabr_stream_av(
-                    client_info=client_info,
-                    logger=logger,
-                    max_empty_requests=-1,
-                )
-
-        def test_no_new_segments_http_retry_then_segments(self, logger, client_info):
-            # Receive a TransportError during response on the 3rd attempt with no new segments,
-            # should retry and continue if retried request returns new segments
-            max_empty_requests = 3
-
-            def no_new_segments_with_error_func(parts, vpabr, url, request_number):
-                # On third request, raise TransportError
-                if request_number == max_empty_requests:
-                    return [TransportError('simulated transport error')]
-                # On 4th request (retried), return parts (new segments)
-                if request_number > max_empty_requests:
-                    return parts
-                return []
-
-            sabr_stream, rh, selectors = setup_sabr_stream_av(
-                client_info=client_info,
-                logger=logger,
-                sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_with_error_func}),
-                max_empty_requests=max_empty_requests,
-            )
-            # Should complete successfully
-            parts = list(sabr_stream.iter_parts())
-            assert len(rh.request_history) == 6 + max_empty_requests
-            audio_selector, video_selector = selectors
-            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
-            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
-
-            assert rh.request_history[0].parts == rh.request_history[1].parts == []
-            assert isinstance(rh.request_history[2].error, TransportError)
-            logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (1/10)...')
-
-        def test_no_new_segments_http_retry_no_segments(self, logger, client_info):
-            # Receive a TransportError during response on the 3rd attempt with no new segments,
-            # should retry and fail if retried request also returns no new segments
-            max_empty_requests = 3
-
-            def no_new_segments_with_error_func(parts, vpabr, url, request_number):
-                # On third request, raise TransportError
-                if request_number == max_empty_requests:
-                    return [TransportError('simulated transport error')]
-                return []
-
-            sabr_stream, rh, _ = setup_sabr_stream_av(
-                client_info=client_info,
-                logger=logger,
-                sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_with_error_func}),
-                max_empty_requests=max_empty_requests,
-            )
-            with pytest.raises(SabrStreamError, match=r'Stream stalled; no activity detected in 3 consecutive requests'):
-                list(sabr_stream.iter_parts())
-
-            # Should have made 4 requests before failing (3 empty + 1 retried)
-            assert len(rh.request_history) == max_empty_requests + 1
-
-            assert rh.request_history[0].parts == rh.request_history[1].parts == []
-            assert isinstance(rh.request_history[2].error, TransportError)
-            assert rh.request_history[3].parts == []
-
-        def test_no_new_segments_http_retry_with_segments_reset(self, logger, client_info):
-            # Receive a TransportError during response on the 3rd attempt WITH new segments (before the TransportError)
-            # should retry and continue, resetting the empty request counter
-            max_empty_requests = 3
-
-            def no_new_segments_with_error_func(parts, vpabr, url, request_number):
-                # On every third request, return parts (new segments) with an error
-                if request_number % max_empty_requests == 0:
-                    return [*parts,
-                            # Dummy part as otherwise would fail on last media_end part
-                            UMPPart(
-                                part_id=UMPPartId.SNACKBAR_MESSAGE,
-                                size=0,
-                                data=io.BytesIO(b''),
-                            ), TransportError('simulated transport error')]
-                return []
-
-            sabr_stream, rh, selectors = setup_sabr_stream_av(
-                client_info=client_info,
-                logger=logger,
-                sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_with_error_func}),
-                max_empty_requests=max_empty_requests,
-            )
-            # Should complete successfully
-            parts = list(sabr_stream.iter_parts())
-
-            audio_selector, video_selector = selectors
-            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
-            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
-
-            # Should have made 6 requests total (2 sets of 3) + 1 for (empty) retry at the end
-            assert len(rh.request_history) == 6 * max_empty_requests + 1
-            assert rh.request_history[0].parts == rh.request_history[1].parts == []
-            logger.debug.assert_any_call('No activity detected in request 1; registering stall (count: 1)')
-            logger.debug.assert_any_call('No activity detected in request 2; registering stall (count: 2)')
-            assert isinstance(rh.request_history[2].error, TransportError)
-            assert rh.request_history[2].parts  # Has new segments
-
-            assert rh.request_history[3].parts == rh.request_history[4].parts == []
-            logger.debug.assert_any_call('No activity detected in request 4; registering stall (count: 1)')
-            logger.debug.assert_any_call('No activity detected in request 5; registering stall (count: 2)')
-            assert isinstance(rh.request_history[5].error, TransportError)
-            assert rh.request_history[5].parts  # Has new segments
-
-            logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (1/10)...')
-
-        def test_consumed_segments_counted(self, logger, client_info):
-            # Requests with only consumed segments should count towards empty requests
-            max_empty_requests = 3
-            second_request_parts = []
-
-            def consumed_segments_func(parts, vpabr, url, request_number):
-                # Replay the segments from the second request on all subsequent requests
-                if request_number == 2:
-                    second_request_parts.extend(parts)
-                if request_number >= 3:
-                    # rewind all the files so we can read them again
-                    for part in second_request_parts:
-                        if hasattr(part.data, 'seek'):
-                            part.data.seek(0)
-                    return second_request_parts
-                return parts
-
-            sabr_stream, rh, _ = setup_sabr_stream_av(
-                client_info=client_info,
-                logger=logger,
-                sabr_response_processor=CustomAVProfile({'custom_parts_function': consumed_segments_func}),
-                max_empty_requests=max_empty_requests,
-            )
-            with pytest.raises(SabrStreamError, match=r'Stream stalled; no activity detected in 3 consecutive requests'):
-                list(sabr_stream.iter_parts())
-
-            # Should have made 5 requests before failing (2 normal + 3 empty)
-            assert len(rh.request_history) == 2 + max_empty_requests
-            logger.debug.assert_any_call('No activity detected in request 3; registering stall (count: 1)')
-            logger.debug.assert_any_call('No activity detected in request 4; registering stall (count: 2)')
-
-        @pytest.mark.skip(reason='todo')
-        def test_discarded_segments_not_counted(self, logger, client_info):
-            # Requests with NEW segments marked as discarded (but no consumed) should NOT count towards empty requests
-            # Set up a audio-only stream with discard=True in the selector
-
-            # Create a custom function that will return a reload player response on the 1st request.
-            # This allows us to catch the iterator before going onto the next request so we can clear consumed ranges.
-            # (Format parts will NOT be returned as the format is marked to discard)
-            def no_new_segments_discarded_func(parts, vpabr, url, request_number):
-                # On 1st request, inject in ReloadPlayerResponse part
-                if request_number == 1:
-                    payload = protobug.dumps(ReloadPlayerResponse(
-                        reload_playback_params=ReloadPlaybackParams(token='test token'),
-                    ))
-                    return [
-                        parts[0],  # Format init part
-                        UMPPart(
-                            part_id=UMPPartId.RELOAD_PLAYER_RESPONSE,
-                            size=len(payload),
-                            data=io.BytesIO(payload),
-                        ),
-                        *parts[1:],  # Media parts. Needs to be after reload part so new buffered ranges created
-                    ]
-                return parts
-
-            rh = SabrRequestHandler(sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_discarded_func}))
-            audio_selector = AudioSelector(display_name='audio', discard_media=True)
-            sabr_stream = SabrStream(
-                urlopen=rh.send,
-                server_abr_streaming_url='https://example.com/sabr',
-                logger=logger,
-                video_playback_ustreamer_config=VIDEO_PLAYBACK_USTREAMER_CONFIG,
-                client_info=client_info,
-                audio_selection=audio_selector,
-            )
-
-            # Clear the buffered ranges of the format (which will be set to fully buffered)
-            parts_iter = sabr_stream.iter_parts()
-
-            reload_player_response_part = next(parts_iter)
-            assert isinstance(reload_player_response_part, RefreshPlayerResponseSabrPart)
-            for format_init_part in sabr_stream.processor.initialized_formats.values():
-                format_init_part.consumed_ranges.clear()
-
-            # Get rest of parts, should not error or get any segments
-            # TODO: this fails as we do not increment player_time_ms for discarded formats
-            #  (so the server does not respond with any) - even if discarded formats are the only ones available?
-            #  Technically this should never be a valid use case.
-            # We could alternatively test this by having an enabled format that we withold segments
-            # parts = list(parts_iter)
 
     class TestExpiry:
         def test_expiry_threshold_sec_validation(self, logger, client_info):
@@ -2280,9 +2015,789 @@ class TestStream:
 
             assert len(sabr_stream.processor.sabr_contexts_to_send) == 0
 
+    class TestVODStreamStall:
+        def test_no_new_segments_default(self, logger, client_info):
+            # Should raise SabrStreamError if no new segments are received on the third request (default)
+            def no_new_segments_func(parts, vpabr, url, request_number):
+                # On third request, return only init parts (no new segments)
+                if request_number >= 4:
+                    return parts
+                return []
+
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                client_info=client_info,
+                logger=logger,
+                sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_func}),
+            )
+            with pytest.raises(StreamStallError, match=r'Stream stalled; no activity detected in 3 consecutive requests'):
+                list(sabr_stream.iter_parts())
+
+            # Should have made 3 requests before failing
+            assert len(rh.request_history) == 3
+
+        def test_no_new_segments_custom(self, logger, client_info):
+            # Should raise SabrStreamError if no new segments are received on the fifth request (custom)
+            max_empty_requests = 5
+
+            def no_new_segments_func(parts, vpabr, url, request_number):
+                # On fifth request, return only init parts (no new segments)
+                if request_number > max_empty_requests:
+                    return parts
+                return []
+
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                client_info=client_info,
+                logger=logger,
+                sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_func}),
+                max_empty_requests=max_empty_requests,
+            )
+            with pytest.raises(StreamStallError, match=r'Stream stalled; no activity detected in 5 consecutive requests'):
+                list(sabr_stream.iter_parts())
+
+            # Should have made 5 requests before failing
+            assert len(rh.request_history) == 5
+
+        def test_no_new_segments_reset_on_new_segment(self, logger, client_info):
+            # Should reset the empty request counter when a new segment is received
+            max_empty_requests = 3
+
+            def no_new_segments_func(parts, vpabr, url, request_number):
+                # On every third request, return parts (new segments)
+                if request_number % max_empty_requests == 0:
+                    return parts
+                return []
+
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                client_info=client_info,
+                logger=logger,
+                sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_func}),
+                max_empty_requests=max_empty_requests,
+            )
+            # Should complete successfully
+            parts = list(sabr_stream.iter_parts())
+            # Should have made 6 requests total (2 sets of 3)
+            assert len(rh.request_history) == 6 * max_empty_requests
+            audio_selector, video_selector = selectors
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+
+            logger.debug.assert_any_call('No activity detected in request 1; registering stall (count: 1)')
+            logger.debug.assert_any_call('No activity detected in request 2; registering stall (count: 2)')
+            assert rh.request_history[0].parts == rh.request_history[1].parts == []
+            assert rh.request_history[2].parts
+            logger.debug.assert_any_call('No activity detected in request 4; registering stall (count: 1)')
+            logger.debug.assert_any_call('No activity detected in request 5; registering stall (count: 2)')
+            assert rh.request_history[3].parts == rh.request_history[4].parts == []
+            assert rh.request_history[5].parts
+
+        def test_max_empty_requests_negative(self, logger, client_info):
+            # Should raise ValueError if max_empty_requests is negative
+            with pytest.raises(ValueError, match='max_empty_requests must be greater than 0'):
+                setup_sabr_stream_av(
+                    client_info=client_info,
+                    logger=logger,
+                    max_empty_requests=-1,
+                )
+
+        def test_no_new_segments_http_retry_then_segments(self, logger, client_info):
+            # Receive a TransportError during response on the 3rd attempt with no new segments,
+            # should retry and continue if retried request returns new segments
+            max_empty_requests = 3
+
+            def no_new_segments_with_error_func(parts, vpabr, url, request_number):
+                # On third request, raise TransportError
+                if request_number == max_empty_requests:
+                    return [TransportError('simulated transport error')]
+                # On 4th request (retried), return parts (new segments)
+                if request_number > max_empty_requests:
+                    return parts
+                return []
+
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                client_info=client_info,
+                logger=logger,
+                sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_with_error_func}),
+                max_empty_requests=max_empty_requests,
+            )
+            # Should complete successfully
+            parts = list(sabr_stream.iter_parts())
+            assert len(rh.request_history) == 6 + max_empty_requests
+            audio_selector, video_selector = selectors
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+
+            assert rh.request_history[0].parts == rh.request_history[1].parts == []
+            assert isinstance(rh.request_history[2].error, TransportError)
+            logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (1/10)...')
+
+        def test_no_new_segments_http_retry_no_segments(self, logger, client_info):
+            # Receive a TransportError during response on the 3rd attempt with no new segments,
+            # should retry and fail if retried request also returns no new segments
+            max_empty_requests = 3
+
+            def no_new_segments_with_error_func(parts, vpabr, url, request_number):
+                # On third request, raise TransportError
+                if request_number == max_empty_requests:
+                    return [TransportError('simulated transport error')]
+                return []
+
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                client_info=client_info,
+                logger=logger,
+                sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_with_error_func}),
+                max_empty_requests=max_empty_requests,
+            )
+            with pytest.raises(SabrStreamError, match=r'Stream stalled; no activity detected in 3 consecutive requests'):
+                list(sabr_stream.iter_parts())
+
+            # Should have made 4 requests before failing (3 empty + 1 retried)
+            assert len(rh.request_history) == max_empty_requests + 1
+
+            assert rh.request_history[0].parts == rh.request_history[1].parts == []
+            assert isinstance(rh.request_history[2].error, TransportError)
+            assert rh.request_history[3].parts == []
+
+        def test_no_new_segments_http_retry_with_segments_reset(self, logger, client_info):
+            # Receive a TransportError during response on the 3rd attempt WITH new segments (before the TransportError)
+            # should retry and continue, resetting the empty request counter
+            max_empty_requests = 3
+
+            def no_new_segments_with_error_func(parts, vpabr, url, request_number):
+                # On every third request, return parts (new segments) with an error
+                if request_number % max_empty_requests == 0:
+                    return [*parts,
+                            # Dummy part as otherwise would fail on last media_end part
+                            UMPPart(
+                                part_id=UMPPartId.SNACKBAR_MESSAGE,
+                                size=0,
+                                data=io.BytesIO(b''),
+                            ), TransportError('simulated transport error')]
+                return []
+
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                client_info=client_info,
+                logger=logger,
+                sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_with_error_func}),
+                max_empty_requests=max_empty_requests,
+            )
+            # Should complete successfully
+            parts = list(sabr_stream.iter_parts())
+
+            audio_selector, video_selector = selectors
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+
+            # Should have made 6 requests total (2 sets of 3) + 1 for (empty) retry at the end
+            assert len(rh.request_history) == 6 * max_empty_requests + 1
+            assert rh.request_history[0].parts == rh.request_history[1].parts == []
+            logger.debug.assert_any_call('No activity detected in request 1; registering stall (count: 1)')
+            logger.debug.assert_any_call('No activity detected in request 2; registering stall (count: 2)')
+            assert isinstance(rh.request_history[2].error, TransportError)
+            assert rh.request_history[2].parts  # Has new segments
+
+            assert rh.request_history[3].parts == rh.request_history[4].parts == []
+            logger.debug.assert_any_call('No activity detected in request 4; registering stall (count: 1)')
+            logger.debug.assert_any_call('No activity detected in request 5; registering stall (count: 2)')
+            assert isinstance(rh.request_history[5].error, TransportError)
+            assert rh.request_history[5].parts  # Has new segments
+
+            logger.warning.assert_any_call('[sabr] Got error: simulated transport error. Retrying (1/10)...')
+
+        def test_consumed_segments_counted(self, logger, client_info):
+            # Requests with only consumed segments should count towards empty requests
+            max_empty_requests = 3
+            second_request_parts = []
+
+            def consumed_segments_func(parts, vpabr, url, request_number):
+                # Replay the segments from the second request on all subsequent requests
+                if request_number == 2:
+                    second_request_parts.extend(parts)
+                if request_number >= 3:
+                    # rewind all the files so we can read them again
+                    for part in second_request_parts:
+                        if hasattr(part.data, 'seek'):
+                            part.data.seek(0)
+                    return second_request_parts
+                return parts
+
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                client_info=client_info,
+                logger=logger,
+                sabr_response_processor=CustomAVProfile({'custom_parts_function': consumed_segments_func}),
+                max_empty_requests=max_empty_requests,
+            )
+            with pytest.raises(SabrStreamError, match=r'Stream stalled; no activity detected in 3 consecutive requests'):
+                list(sabr_stream.iter_parts())
+
+            # Should have made 5 requests before failing (2 normal + 3 empty)
+            assert len(rh.request_history) == 2 + max_empty_requests
+            logger.debug.assert_any_call('No activity detected in request 3; registering stall (count: 1)')
+            logger.debug.assert_any_call('No activity detected in request 4; registering stall (count: 2)')
+
+        @pytest.mark.skip(reason='todo')
+        def test_discarded_segments_not_counted(self, logger, client_info):
+            # Requests with NEW segments marked as discarded (but no consumed) should NOT count towards empty requests
+            # Set up a audio-only stream with discard=True in the selector
+
+            # Create a custom function that will return a reload player response on the 1st request.
+            # This allows us to catch the iterator before going onto the next request so we can clear consumed ranges.
+            # (Format parts will NOT be returned as the format is marked to discard)
+            def no_new_segments_discarded_func(parts, vpabr, url, request_number):
+                # On 1st request, inject in ReloadPlayerResponse part
+                if request_number == 1:
+                    payload = protobug.dumps(ReloadPlayerResponse(
+                        reload_playback_params=ReloadPlaybackParams(token='test token'),
+                    ))
+                    return [
+                        parts[0],  # Format init part
+                        UMPPart(
+                            part_id=UMPPartId.RELOAD_PLAYER_RESPONSE,
+                            size=len(payload),
+                            data=io.BytesIO(payload),
+                        ),
+                        *parts[1:],  # Media parts. Needs to be after reload part so new buffered ranges created
+                    ]
+                return parts
+
+            rh = SabrRequestHandler(sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_discarded_func}))
+            audio_selector = AudioSelector(display_name='audio', discard_media=True)
+            sabr_stream = SabrStream(
+                urlopen=rh.send,
+                server_abr_streaming_url='https://example.com/sabr',
+                logger=logger,
+                video_playback_ustreamer_config=VIDEO_PLAYBACK_USTREAMER_CONFIG,
+                client_info=client_info,
+                audio_selection=audio_selector,
+            )
+
+            # Clear the buffered ranges of the format (which will be set to fully buffered)
+            parts_iter = sabr_stream.iter_parts()
+
+            reload_player_response_part = next(parts_iter)
+            assert isinstance(reload_player_response_part, RefreshPlayerResponseSabrPart)
+            for format_init_part in sabr_stream.processor.initialized_formats.values():
+                format_init_part.consumed_ranges.clear()
+
+            # Get rest of parts, should not error or get any segments
+            # TODO: this fails as we do not increment player_time_ms for discarded formats
+            #  (so the server does not respond with any) - even if discarded formats are the only ones available?
+            #  Technically this should never be a valid use case.
+            # We could alternatively test this by having an enabled format that we withold segments
+            # parts = list(parts_iter)
+
     class TestLive:
 
-        LIVE_URL = 'https://example.com/sabr_live?id=123'
+        class TestLiveStreamStall:
+            @mock_time
+            @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
+            def test_stream_stall_midway_defaults(self, logger, client_info, post_live):
+                # Should raise SabrStreamError if no new segments are received midway through the stream
+                # This should calculate a default live_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
+                total_segments = 10
+                segment_target_duration_ms = 2000
+                dvr_segments = 7 if not post_live else 9
+
+                def no_new_segments_func(parts, vpabr, url, request_number):
+                    # Stop returning new segments after 3 requests
+                    if request_number >= 4:
+                        return []
+                    return parts
+
+                profile = LiveAVProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                    'custom_parts_function': no_new_segments_func,
+                })
+
+                sabr_stream, _, _ = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    post_live=post_live,
+                )
+                assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+                with pytest.raises(StreamStallError, match=r'Stream stalled; no activity detected in 6 requests and 10.0 seconds and not near live head.'):
+                    list(sabr_stream.iter_parts())
+
+                logger.debug.assert_any_call('No activity detected in request 9; registering stall (count: 6)')
+                assert sabr_stream._stream_stall_tracker.stalled_requests == 6
+
+            @mock_time
+            @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
+            def test_stream_stall_midway_max_empty_requests_exceeded(self, logger, client_info, post_live):
+                # Should raise SabrStreamError if no new segments are received on the fifth request during live
+                # Should exceed the max empty requests of 5
+                total_segments = 10
+                dvr_segments = 7 if not post_live else 9
+                max_empty_requests = 10
+                live_end_wait_sec = 5
+                segment_target_duration_ms = 2000
+
+                def no_new_segments_func(parts, vpabr, url, request_number):
+                    # Stop returning new segments after 3 requests
+                    if request_number >= 4:
+                        return []
+                    return parts
+
+                profile = LiveAVProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                    'custom_parts_function': no_new_segments_func,
+                })
+
+                sabr_stream, _, _ = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    live_end_wait_sec=live_end_wait_sec,
+                    max_empty_requests=max_empty_requests,
+                    post_live=post_live,
+                )
+                assert sabr_stream.live_end_wait_sec == live_end_wait_sec
+                with pytest.raises(StreamStallError, match=r'Stream stalled; no activity detected in 10 requests and 18.0 seconds and not near live head.'):
+                    list(sabr_stream.iter_parts())
+
+                logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 10)')
+                assert sabr_stream._stream_stall_tracker.stalled_requests == 10
+
+            @mock_time
+            @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
+            def test_stream_stall_midway_no_live_metadata_live(self, logger, client_info, post_live):
+                # If get a stream stall midway through a live stream with no live metadata,
+                # should consider the stream as complete (no error)
+                total_segments = 10
+                segment_target_duration_ms = 2000
+                dvr_segments = 7 if not post_live else 9
+
+                def no_new_segments_func(parts, vpabr, url, request_number):
+                    # Stop returning new segments after 3 requests
+                    if request_number >= 4:
+                        return []
+                    return parts
+
+                profile = LiveAVProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                    'custom_parts_function': no_new_segments_func,
+                    'omit_live_metadata': True,
+                })
+
+                sabr_stream, _, selectors = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    post_live=post_live,
+                )
+                assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+
+                audio_selector, video_selector = selectors
+                # Should complete successfully (no error)
+                parts = list(sabr_stream.iter_parts())
+
+                logger.debug.assert_any_call('No activity detected in request 9; registering stall (count: 6)')
+                logger.debug.assert_any_call('No activity detected in 6 requests and 10.0 seconds. No live metadata available; assuming livestream has ended.')
+
+                # We will only get the first few segments
+                assert_media_sequence_in_order(parts, audio_selector, 3)
+                assert_media_sequence_in_order(parts, video_selector, 3)
+                assert sabr_stream._stream_stall_tracker.stalled_requests == 6
+
+            @mock_time
+            @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
+            def test_stream_stall_wait_next_request_backoff(self, logger, client_info, post_live):
+                # Should backoff max_request_backoff seconds on first empty request
+                # If max_request_backoff is greater than live_segment_target_duration_sec
+                total_segments = 10
+                segment_target_duration_ms = 2000
+                dvr_segments = 7 if not post_live else 9
+
+                def no_new_segments_func(parts, vpabr, url, request_number):
+                    # Stop returning new segments after 3 requests
+                    if request_number == 4:
+                        nrp = protobug.dumps(NextRequestPolicy(backoff_time_ms=segment_target_duration_ms * 2))
+                        part = UMPPart(
+                            part_id=UMPPartId.NEXT_REQUEST_POLICY,
+                            size=len(nrp),
+                            data=io.BytesIO(nrp),
+                        )
+                        return [part]
+                    return parts
+
+                profile = LiveAVProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                    'custom_parts_function': no_new_segments_func,
+                })
+
+                sabr_stream, _, selectors = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    post_live=post_live,
+                )
+                audio_selector, video_selector = selectors
+                parts = list(sabr_stream.iter_parts())
+                assert_media_sequence_in_order(parts, audio_selector, total_segments)
+                assert_media_sequence_in_order(parts, video_selector, total_segments)
+
+                logger.debug.assert_any_call('No activity detected in request 4; registering stall (count: 1)')
+                logger.debug.assert_any_call('Sleeping for 4 seconds before next request')
+
+            @mock_time
+            @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
+            def test_stream_stall_head_consumed_ranges(self, logger, client_info, post_live):
+                # Should consider near live head based on consumed ranges and finish stream on stall
+                # This should calculate a default live_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
+                total_segments = 10
+                segment_target_duration_ms = 2000
+                dvr_segments = 7 if not post_live else 9
+
+                def no_new_segments_func(parts, vpabr, url, request_number):
+                    # Stop returning new segments after 8 requests
+                    if request_number >= 9:
+                        return []
+                    return parts
+
+                profile = LiveAVProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                    'custom_parts_function': no_new_segments_func,
+                })
+
+                sabr_stream, _, selectors = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    post_live=post_live,
+                )
+                audio_selector, video_selector = selectors
+                assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+                parts = list(sabr_stream.iter_parts())
+
+                logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
+                if not post_live:
+                    logger.trace.assert_any_call('Near live stream head detected based on consumed ranges of active formats: head seq (8) - tolerance (3)')
+                    logger.debug.assert_any_call('No activity detected in 5 requests and 10.0 seconds. Near live stream head; assuming livestream has ended.')
+                    assert sabr_stream._stream_stall_tracker.stalled_requests == 5
+                else:
+                    logger.trace.assert_any_call('Near live stream head detected based on consumed ranges of active formats: head seq (10) - tolerance (3)')
+                    logger.debug.assert_any_call('No activity detected in 6 requests and 10.0 seconds. Near live stream head; assuming livestream has ended.')
+                    assert sabr_stream._stream_stall_tracker.stalled_requests == 6
+
+                # We will get all but the last 2 segments in this example
+                assert_media_sequence_in_order(parts, audio_selector, total_segments - 2, check_segment_total_segments=False)
+                assert_media_sequence_in_order(parts, video_selector, total_segments - 2, check_segment_total_segments=False)
+
+            @mock_time
+            def test_stream_stall_head_consumed_ranges_chain(self, logger, client_info):
+                # Should consider stream as complete if near live head based on consumed ranges chain
+                # player_time_ms / current consumed ranges do not indicate near live head, but consumed ranges chain does
+
+                total_segments = 10
+                segment_target_duration_ms = 2000
+                dvr_segments = 9
+
+                # So we know the exact number of stalls
+                max_empty_requests = 10
+                live_end_wait_sec = 5
+
+                # First pass to collect segment information to generate consumed ranges
+                profile = LiveAVProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                })
+                sabr_stream, _, _ = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    enable_audio=False,
+                    max_empty_requests=max_empty_requests,
+                    live_end_wait_sec=live_end_wait_sec,
+                )
+                iter_parts = sabr_stream.iter_parts()
+                format_init_part = next(iter_parts)
+                assert isinstance(format_init_part, FormatInitializedSabrPart)
+                # Get all the media init parts
+                media_init_parts = [part for part in iter_parts if isinstance(part, MediaSegmentInitSabrPart)]
+                assert len(media_init_parts) == total_segments
+
+                #  Now set up buffered ranges to skip some segments
+                consumed_ranges = [
+                    # Mark all but the first 2 segments as consumed
+                    # note: no init parts with live
+                    ConsumedRange(
+                        start_sequence_number=media_init_parts[2].sequence_number,
+                        end_sequence_number=media_init_parts[-1].sequence_number,
+                        start_time_ms=media_init_parts[2].start_time_ms,
+                        duration_ms=sum(part.duration_ms for part in media_init_parts[2:-1]),
+                    ),
+                ]
+
+                # Reset the sabr stream with custom consumed ranges chain
+                # We still stall the stream when the player time is within the already consumed ranges
+                stall_count = 0
+
+                def no_new_segments_func(parts, vpabr, url, request_number):
+                    nonlocal stall_count
+                    # Stop returning new segments after 8 requests
+                    if vpabr.client_abr_state.player_time_ms >= consumed_ranges[0].start_time_ms:
+                        stall_count += 1
+                        # Send back RELOAD_PLAYER_RESPONSE parts so we can update consumed ranges
+                        rpr = protobug.dumps(ReloadPlayerResponse(
+                            reload_playback_params=ReloadPlaybackParams(token='test token'),
+                        ))
+
+                        return [
+                            UMPPart(
+                                part_id=UMPPartId.RELOAD_PLAYER_RESPONSE,
+                                size=len(rpr),
+                                data=io.BytesIO(rpr),
+                            ),
+                        ]
+                    return parts
+
+                profile = LiveAVProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                    'custom_parts_function': no_new_segments_func,
+                })
+                sabr_stream, rh, _ = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    enable_audio=False,
+                    max_empty_requests=max_empty_requests,
+                    live_end_wait_sec=live_end_wait_sec,
+                )
+
+                # Stream until stall_count reaches 2, then we'll add the consumed ranges.
+                # On that request, it should detect it is near the live head based on the consumed
+                # range chain and finish, instead of making another request.
+
+                parts = []
+                for part in sabr_stream.iter_parts():
+                    if stall_count == max_empty_requests and isinstance(part, RefreshPlayerResponseSabrPart):
+                        sabr_stream.processor.initialized_formats[str(format_init_part.format_id)].consumed_ranges = consumed_ranges
+                    parts.append(part)
+
+                # Expect that the only media init parts we get is first 2 segments
+                media_init_parts_received = [part for part in parts if isinstance(part, MediaSegmentInitSabrPart)]
+                assert len(media_init_parts_received) == 3
+                assert media_init_parts_received[0].sequence_number == 1
+                assert media_init_parts_received[2].sequence_number == 3
+
+                logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 10)')
+                logger.trace.assert_any_call('Near live stream head detected based on consumed ranges of active formats: head seq (10) - tolerance (3)')
+                logger.debug.assert_any_call('No activity detected in 10 requests and 18.0 seconds. Near live stream head; assuming livestream has ended.')
+                assert sabr_stream._stream_stall_tracker.stalled_requests == 10
+
+                # Last request player_time_ms should be around the start of the added consumed range
+                # Ensure the stream ended due to near live head detection on the consumed range chain,
+                # not because the player_time_ms was anywhere near the head.
+                assert rh.request_history[-1].vpabr.client_abr_state.player_time_ms < consumed_ranges[0].start_time_ms + segment_target_duration_ms
+
+            @mock_time
+            @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
+            def test_stream_stall_head_consumed_ranges_single_format(self, logger, client_info, post_live):
+                # Should consider near live head based on consumed ranges of single active format and finish stream on stall
+                total_segments = 10
+                segment_target_duration_ms = 2000
+                dvr_segments = 7 if not post_live else 9
+
+                def no_new_segments_func(parts, vpabr, url, request_number):
+                    # Stop returning new segments after 8 requests
+                    if request_number >= 9:
+                        return []
+                    return parts
+
+                profile = LiveAVProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                    'custom_parts_function': no_new_segments_func,
+                })
+
+                sabr_stream, _, selectors = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    enable_audio=False,
+                    post_live=post_live,
+                )
+                _, video_selector = selectors
+
+                assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+                parts = list(sabr_stream.iter_parts())
+
+                if not post_live:
+                    logger.trace.assert_any_call('Near live stream head detected based on consumed ranges of active formats: head seq (8) - tolerance (3)')
+                    logger.debug.assert_any_call('No activity detected in 5 requests and 10.0 seconds. Near live stream head; assuming livestream has ended.')
+                    assert sabr_stream._stream_stall_tracker.stalled_requests == 5
+                else:
+                    logger.trace.assert_any_call('Near live stream head detected based on consumed ranges of active formats: head seq (10) - tolerance (3)')
+                    logger.debug.assert_any_call('No activity detected in 6 requests and 10.0 seconds. Near live stream head; assuming livestream has ended.')
+                    assert sabr_stream._stream_stall_tracker.stalled_requests == 6
+
+                # We will get all but the last 2 segments in this example
+                assert_media_sequence_in_order(parts, video_selector, total_segments - 2, check_segment_total_segments=False)
+
+            @mock_time
+            @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
+            def test_stream_stall_head_near_head_time(self, logger, client_info, post_live):
+                # Should consider the stream as finished if near the live head based on player time
+                # Case where the consumed ranges are not sufficient to determine near live head
+
+                total_segments = 10
+                segment_target_duration_ms = 2000
+                dvr_segments = 7 if not post_live else 9
+                live_head_tolerance_sec = 5
+
+                def no_new_segments_func(parts, vpabr, url, request_number):
+                    # Stop returning new segments after 8 requests
+                    if request_number >= 9:
+                        return []
+                    return parts
+
+                # We can skip the check on live head segment by making the server not return it
+                class RemoveLiveHeadSegmentNumberLiveProfile(LiveAVProfile):
+                    def generate_live_metadata(self, current_segment: int) -> LiveMetadata:
+                        lm = super().generate_live_metadata(current_segment)
+                        lm.head_sequence_number = None
+                        return lm
+
+                profile = RemoveLiveHeadSegmentNumberLiveProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                    'custom_parts_function': no_new_segments_func,
+                })
+                sabr_stream, _, selectors = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    post_live=post_live,
+                )
+                audio_selector, video_selector = selectors
+                assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+                sabr_stream.live_head_tolerance_sec = live_head_tolerance_sec
+                parts = list(sabr_stream.iter_parts())
+
+                if not post_live:
+                    logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
+                    logger.trace.assert_any_call('Near live stream head detected based on player time and head sequence time with tolerance (ms): 14000 >= 14000 - 6000')
+                    logger.debug.assert_any_call('No activity detected in 5 requests and 10.0 seconds. Near live stream head; assuming livestream has ended.')
+                    assert sabr_stream._stream_stall_tracker.stalled_requests == 5
+                else:
+                    logger.debug.assert_any_call('No activity detected in request 14; registering stall (count: 6)')
+                    logger.trace.assert_any_call('Near live stream head detected based on player time and head sequence time with tolerance (ms): 15900 >= 18000 - 6000')
+                    logger.debug.assert_any_call('No activity detected in 6 requests and 10.0 seconds. Near live stream head; assuming livestream has ended.')
+                    assert sabr_stream._stream_stall_tracker.stalled_requests == 6
+
+                # We will get all but the last 2 segments in this example
+                assert_media_sequence_in_order(parts, audio_selector, total_segments - 2, check_segment_total_segments=False)
+                assert_media_sequence_in_order(parts, video_selector, total_segments - 2, check_segment_total_segments=False)
+
+            @mock_time
+            @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
+            def test_stream_stall_no_live_metadata_head_details(self, logger, client_info, post_live):
+                # If get a stream through a live stream with no live metadata head details - should fail
+                # TODO: should this gracefully exit instead similar to having no live_metadata?
+                # TODO: should we consider falling back to max_seekable?
+                # TODO: this is an unlikely case, as live streams either have live_metadata with all fields or no live_metadata
+                total_segments = 10
+                segment_target_duration_ms = 2000
+                dvr_segments = 7 if not post_live else 9
+
+                def no_new_segments_func(parts, vpabr, url, request_number):
+                    # Stop returning new segments after 3 requests
+                    if request_number >= 4:
+                        return []
+                    return parts
+
+                class NoLiveHeadDetailsLiveProfile(LiveAVProfile):
+                    def generate_live_metadata(self, current_segment: int) -> LiveMetadata:
+                        lm = super().generate_live_metadata(current_segment)
+                        lm.head_sequence_number = None
+                        lm.head_sequence_time_ms = None
+                        return lm
+
+                profile = NoLiveHeadDetailsLiveProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                    'custom_parts_function': no_new_segments_func,
+                })
+
+                sabr_stream, _, _ = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                )
+
+                with pytest.raises(StreamStallError, match=r'Stream stalled; no activity detected in 6 requests and 10.0 seconds and not near live head.'):
+                    list(sabr_stream.iter_parts())
+
+                assert sabr_stream._stream_stall_tracker.stalled_requests == 6
+
+            @mock_time
+            def test_stream_stall_at_head_sequence_number(self, logger, client_info):
+                # If we reach the live head sequence number, should stall and should consider stream complete
+                # note: does not apply for post_live, who should detect immediate end of stream
+                total_segments = 10
+                segment_target_duration_ms = 2000
+                dvr_segments = 9
+
+                profile = LiveAVProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                })
+
+                sabr_stream, _, selectors = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                )
+                audio_selector, video_selector = selectors
+                parts = list(sabr_stream.iter_parts())
+
+                logger.debug.assert_any_call('No activity detected in request 15; registering stall (count: 5)')
+                logger.trace.assert_any_call('Near live stream head detected based on consumed ranges of active formats: head seq (10) - tolerance (3)')
+                logger.debug.assert_any_call('No activity detected in 5 requests and 10.0 seconds. Near live stream head; assuming livestream has ended.')
+
+                assert sabr_stream._stream_stall_tracker.stalled_requests == 5
+                # We will get all segments in this example
+                assert_media_sequence_in_order(parts, audio_selector, total_segments)
+                assert_media_sequence_in_order(parts, video_selector, total_segments)
 
         @mock_time
         def test_livestream_no_dvr(self, client_info):
@@ -2299,7 +2814,7 @@ class TestStream:
                 sabr_response_processor=profile,
                 client_info=client_info,
                 logger=logger,
-                url=self.LIVE_URL,
+                url=LIVE_URL,
                 live_segment_target_duration_sec=segment_target_duration_ms // 1000,
             )
             audio_selector, video_selector = selectors
@@ -2327,7 +2842,7 @@ class TestStream:
                 sabr_response_processor=profile,
                 client_info=client_info,
                 logger=logger,
-                url=self.LIVE_URL,
+                url=LIVE_URL,
                 live_segment_target_duration_sec=segment_target_duration_ms // 1000,
             )
             audio_selector, video_selector = selectors
@@ -2375,7 +2890,7 @@ class TestStream:
                 sabr_response_processor=profile,
                 client_info=client_info,
                 logger=logger,
-                url=self.LIVE_URL,
+                url=LIVE_URL,
                 live_segment_target_duration_sec=segment_target_duration_ms // 1000,
             )
             audio_selector, video_selector = selectors
@@ -2415,7 +2930,7 @@ class TestStream:
                 sabr_response_processor=profile,
                 client_info=client_info,
                 logger=logger,
-                url=self.LIVE_URL,
+                url=LIVE_URL,
                 live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                 start_time_ms=start_time_ms,  # start 10s past live head
             )

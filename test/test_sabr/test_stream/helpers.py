@@ -553,7 +553,7 @@ class PoTokenAVProfile(BasicAudioVideoProfile):
 
 
 class LiveAVProfile(BasicAudioVideoProfile):
-    DEFAULT_DVR_SEGMENTS = 0
+    DEFAULT_DVR_SEGMENTS = 1
     DEFAULT_TOTAL_SEGMENTS = 3
     DEFAULT_SEGMENT_TARGET_DURATION_MS = 2000
     DEFAULT_START_SEGMENT_NUMBER = 1
@@ -674,15 +674,18 @@ class LiveAVProfile(BasicAudioVideoProfile):
 
         return parts
 
-    def generate_live_metadata_part(self, current_segment: int) -> UMPPart:
-        lm = protobug.dumps(LiveMetadata(
+    def generate_live_metadata(self, current_segment: int) -> LiveMetadata:
+        return LiveMetadata(
             head_sequence_number=self.live_head_segment(),
             head_sequence_time_ms=self.live_head_segment_start_ms(),
             min_seekable_time_ticks=(self.start_segment_number - 1) * self.segment_target_duration_ms,
             min_seekable_timescale=1000,
             max_seekable_time_ticks=self.live_head_segment_start_ms(),
             max_seekable_timescale=1000,
-        ))
+        )
+
+    def generate_live_metadata_part(self, current_segment: int) -> UMPPart:
+        lm = protobug.dumps(self.generate_live_metadata(current_segment))
         return UMPPart(
             part_id=UMPPartId.LIVE_METADATA,
             size=len(lm),
@@ -772,7 +775,8 @@ class LiveAVProfile(BasicAudioVideoProfile):
             player_time_ms=vpabr.client_abr_state.player_time_ms,
         )
 
-        parts.append(self.generate_live_metadata_part(next_segment))
+        if not self.options.get('omit_live_metadata', False):
+            parts.append(self.generate_live_metadata_part(next_segment))
         parts.extend(self.generate_live_fim_parts(audio_format_id, video_format_id))
 
         next_header_id = 0
@@ -795,6 +799,9 @@ class LiveAVProfile(BasicAudioVideoProfile):
             )
             parts.extend(video_segment_parts)
 
+        custom_parts_function = self.options.get('custom_parts_function')
+        if custom_parts_function:
+            parts = custom_parts_function(parts, vpabr, url, request_number)
         return parts
 
 
@@ -823,7 +830,7 @@ class SkipSegmentProfile(BasicAudioVideoProfile):
         return init_segments + segments, start_header_id
 
 
-def assert_media_sequence_in_order(parts, format_selector: AudioSelector | VideoSelector, expected_total_segments: int, allow_retry=False, start_sequence_number=1):
+def assert_media_sequence_in_order(parts, format_selector: AudioSelector | VideoSelector, expected_total_segments: int, allow_retry=False, start_sequence_number=1, check_segment_total_segments=True):
     # Checks that for the given format_selector, the media segments are in order:
     # MediaSegmentInitSabrPart -> MediaSegmentDataSabrPart* -> MediaSegmentEndSabrPart
 
@@ -865,7 +872,8 @@ def assert_media_sequence_in_order(parts, format_selector: AudioSelector | Video
                 assert part.sequence_number == current_segment[0].sequence_number, 'Media segment end part sequence number mismatch'
                 current_segment[2] = part
 
-    assert current_segment[0].sequence_number == current_segment[0].total_segments, 'Last media segment sequence number does not match total segments'
+    if current_segment[0].total_segments is not None and check_segment_total_segments:
+        assert current_segment[0].sequence_number == current_segment[0].total_segments, 'Last media segment sequence number does not match total segments'
     assert total_segments - total_retried_segments == expected_total_segments, f'Expected {expected_total_segments} segments, got {total_segments - total_retried_segments}'
 
 

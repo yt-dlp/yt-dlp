@@ -621,7 +621,7 @@ class SabrProcessor:
         # Pin the expected start sequence number to 0
         # if we are starting from the beginning of the stream for VODs.
         if (
-            not self.is_live and not self.post_live
+            not self.is_live
             # Note: player_time_ms may be >0 if format was not initialized at time 0.
             # Assuming server always starts from sequence 1 in this case.
             and self.start_time_ms == 0

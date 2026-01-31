@@ -346,7 +346,7 @@ class SabrStream:
         self._next_request_wait_sec = max(self._next_request_wait_sec, seconds)
 
     def _check_stream_stall(self):
-        if self.processor.is_live or self.processor.post_live:
+        if self.processor.is_live:
             return self._check_live_stream_stall()
 
         return self._check_vod_stream_stall()
@@ -399,9 +399,6 @@ class SabrStream:
         return current
 
     def _is_near_head_of_stream(self):
-        if self.processor.total_duration_ms is None:
-            return False
-
         player_time_ms = self.processor.client_abr_state.player_time_ms
 
         # 1. Check if near head segment based on consumed segments
@@ -454,8 +451,9 @@ class SabrStream:
         live_end_wait_time_exceeded = seconds_since_last_activity >= self.live_end_wait_sec
 
         if not max_requests_reached or not live_end_wait_time_exceeded:
-            if empty_requests >= 1 and self._is_near_head_of_stream():
-                # Sometimes we can't get the head segment - rather tend to sit behind the head segment for the duration of the livestream
+            if empty_requests >= 1:
+                # Sometimes we can't get the head segment - rather tend to sit behind the head segment for the duration of the livestream.
+                # We should also slow down and wait if getting empty requests midway through.
                 self._wait_for(max(self._next_request_backoff_ms() // 1000, self.processor.live_segment_target_duration_sec))
             return
 
