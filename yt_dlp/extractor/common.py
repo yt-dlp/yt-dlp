@@ -102,10 +102,7 @@ from ..utils import (
 )
 from ..utils._utils import _request_dump_filename
 from ..utils.jslib import devalue
-from ..webvtt import (
-    parse_fragment,
-    CueBlock
-)
+from ..webvtt import CueBlock, parse_fragment
 
 
 class InfoExtractor:
@@ -3650,7 +3647,7 @@ class InfoExtractor:
                 subtitles.setdefault(track.get('label') or 'en', []).append({
                     'url': self._proto_relative_url(track_url),
                 })
-            
+
             chapters = []
             for track in traverse_obj(video_data, (
                     'tracks', lambda _, v: v['kind'].lower() == 'chapters')):
@@ -3667,7 +3664,7 @@ class InfoExtractor:
                             # Convert timestamps from MPEG PES into seconds
                             'start_time': block.start / 90000,
                             'end_time': block.end / 90000,
-                            'title': block.text.strip()
+                            'title': block.text.strip(),
                         })
                 break
 

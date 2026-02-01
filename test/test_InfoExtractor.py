@@ -656,6 +656,34 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                 }],
             })
 
+        # from https://jwplayer-chapters-example.vercel.app/
+        expect_dict(
+            self,
+            self.ie._extract_jwplayer_data(r'''
+<script>
+    const player = jwplayer('player').setup({
+        file: 'https://jwplayer-chapters-example.vercel.app/willie.webm',
+        tracks: [{
+            file: 'https://jwplayer-chapters-example.vercel.app/chapters.vtt',
+            kind: 'chapters'
+        }]
+    });
+</script>
+            ''', 'dummy', require_title=False),
+            {
+                'chapters': [{
+                    'start_time': 0,
+                    'end_time': 15,
+                    'title': 'The First Half',
+                },
+                    {
+                    'start_time': 15,
+                    'end_time': 30,
+                    'title': 'The Second Half',
+                }],
+            },
+        )
+
     def test_parse_m3u8_formats(self):
         _TEST_CASES = [
             (
