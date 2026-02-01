@@ -26,6 +26,7 @@ concurrency:
 jobs:
   tests:
     name: Challenge Tests
+    if: ${{ !contains(github.event.head_commit.message, ':ci skip') }}
     permissions:
       contents: read
     runs-on: ${{ matrix.os }}

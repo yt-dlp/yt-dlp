@@ -271,34 +271,6 @@ INNERTUBE_CLIENTS = {
         'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
         'REQUIRE_JS_PLAYER': False,
     },
-    'ios_downgraded': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'IOS',
-                'clientVersion': '19.49.7',
-                'deviceMake': 'Apple',
-                'deviceModel': 'iPhone16,2',
-                'userAgent': 'com.google.ios.youtube/19.49.7 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
-                'osName': 'iPhone',
-                'osVersion': '17.5.1.21F90',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
-        'GVS_PO_TOKEN_POLICY': {
-            StreamingProtocol.HTTPS: GvsPoTokenPolicy(
-                required=True,
-                recommended=True,
-                not_required_with_player_token=True,
-            ),
-            StreamingProtocol.HLS: GvsPoTokenPolicy(
-                required=False,
-                recommended=True,
-                not_required_with_player_token=True,
-            ),
-        },
-        'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
-        'REQUIRE_JS_PLAYER': False,
-    },
     # mweb has 'ultralow' formats
     # See: https://github.com/yt-dlp/yt-dlp/pull/557
     'mweb': {
@@ -378,20 +350,6 @@ INNERTUBE_CLIENTS = {
             ),
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 75,
-    },
-    # This client now requires sign-in for every video
-    # It was previously an age-gate workaround for videos that were `playable_in_embed`
-    # It may still be useful if signed into an EU account that is not age-verified
-    'tv_embedded': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'TVHTML5_SIMPLY_EMBEDDED_PLAYER',
-                'clientVersion': '2.0',
-            },
-        },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 85,
-        'REQUIRE_AUTH': True,
-        'SUPPORTS_COOKIES': True,
     },
 }
 
