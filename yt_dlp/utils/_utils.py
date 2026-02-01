@@ -2830,7 +2830,7 @@ def js_to_json(code, vars={}, *, strict=False):
         {STRING_RE}|
         {COMMENT_RE}|,(?={SKIP_RE}[\]}}])|
         void\s0|(?:(?<![0-9])[eE]|[a-df-zA-DF-Z_$])[.a-zA-Z_$0-9]*|
-        \b(?:0[xX][0-9a-fA-F]+|0+[0-7]+)(?:{SKIP_RE}:)?|
+        \b(?:0[xX][0-9a-fA-F]+|(?<!\.)0+[0-7]+)(?:{SKIP_RE}:)?|
         [0-9]+(?={SKIP_RE}:)|
         !+
         ''', fix_kv, code)
@@ -3004,6 +3004,8 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'ttaf+xml': 'dfxp',
         'ttml+xml': 'ttml',
         'x-ms-sami': 'sami',
+        'x-subrip': 'srt',
+        'x-srt': 'srt',
 
         # misc
         'gzip': 'gz',
@@ -4476,7 +4478,7 @@ def decode_packed_codes(code):
         symbol_table[base_n_count] = symbols[count] or base_n_count
 
     return re.sub(
-        r'\b(\w+)\b', lambda mobj: symbol_table[mobj.group(0)],
+        r'\b(\w+)\b', lambda m: symbol_table.get(m.group(0), m.group(0)),
         obfuscated_code)
 
 
