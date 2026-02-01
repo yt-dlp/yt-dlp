@@ -8,15 +8,25 @@ from ..utils import (
 
 
 class MatreshkaIE(InfoExtractor):
-    _VALID_URL = r'https?://matreshka\.tv/video/(?P<id>[\w]+)(?:\?playlistID=(?P<playlist_id>[\w]+))?'
+    _VALID_URL = r'https?://matreshka\.tv/video/(?P<id>[^?]+)(?:\?playlistID=(?P<playlist_id>[^&]+))?'
     _TESTS = [{
         'url': 'https://matreshka.tv/video/HwKAY4Id5QA',
         'md5': '1e528392822120c5740a5cfab5483dbc',
         'info_dict': {
             'id': 'HwKAY4Id5QA',
             'title': '2025.11.04  Диалог об алкоголе с Джеком Лондоном (МЕТРО) - Стас васильев',
-            'thumbnail': 'https://c2-images.cmtv.ru/video/wgKgXz6-xvY/HwKAY4Id5QA/frame/5/1280x720.png',
+            'thumbnail': 'https://c3-images.cmtv.ru/video/wgKgXz6-xvY/HwKAY4Id5QA/frame/5/1280x720.png',
             'description': '',
+            'ext': 'mp4',
+        },
+    }, {
+        'url': 'https://matreshka.tv/video/uwMgNM-C8QI',
+        'md5': '6bee8a48d97de0a86ba707e95f43c286',
+        'info_dict': {
+            'id': 'uwMgNM-C8QI',
+            'title': 'Жизнь в Древнем Египте - как это было?',
+            'description': '',
+            'thumbnail': 'https://c3-images.cmtv.ru/video/vQGgLP1HUPw/uwMgNM-C8QI/user-cover/1280x720.png',
             'ext': 'mp4',
         },
     }, {
