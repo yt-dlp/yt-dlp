@@ -363,7 +363,7 @@ class PornHubIE(PornHubBaseIE):
                 for index, views in enumerate(hotspots):
                     heatmap.append({
                         'start_time': math.floor(index * time_per_hotspot),
-                        'end_time': math.floor((index + 1) * time_per_hotspot),
+                        'end_time': math.floor((index + 1) * time_per_hotspot) if index < hotspot_count -1 else duration,
                         'value': views / max_views if max_views > 0 else 0,
                     })
         else:
