@@ -155,6 +155,8 @@ class PornHubIE(PornHubBaseIE):
             'tags': list,
             'categories': list,
             'cast': list,
+            # Derive heatmap count by dividing duration by 5 second intervals, take floor of value
+            'heatmap': 'count:72', 
             'thumbnail': r're:https?://.+',
         },
     }, {
@@ -313,6 +315,7 @@ class PornHubIE(PornHubBaseIE):
         video_urls = []
         video_urls_set = set()
         subtitles = {}
+        heatmap = []
 
         flashvars = self._parse_json(
             self._search_regex(
@@ -328,6 +331,7 @@ class PornHubIE(PornHubBaseIE):
             thumbnail = flashvars.get('image_url')
             duration = int_or_none(flashvars.get('video_duration'))
             media_definitions = flashvars.get('mediaDefinitions')
+            hotspots = flashvars.get('hotspots')
             if isinstance(media_definitions, list):
                 for definition in media_definitions:
                     if not isinstance(definition, dict):
@@ -340,6 +344,28 @@ class PornHubIE(PornHubBaseIE):
                     video_urls_set.add(video_url)
                     video_urls.append(
                         (video_url, int_or_none(definition.get('quality'))))
+            
+            if isinstance(hotspots, list) and duration is not None:
+                # Although there is typically a hotspot for every 5 seconds, getting the count of hotspots
+                # will provide a more reliable distribution over the video duration.
+                hotspot_count = len(hotspots)
+                if hotspot_count < 0:
+                    return
+                time_per_hotspot = duration / hotspot_count
+
+                # yt-dlp expects heatmap standard is a list of objects where each object has
+                # start_time, end_time and value which is a normalized value between 0 and 1.
+                # We need to convert the list of integers in hotspots to this format. A hotspot
+                # on PH will typically represent the number of views at the given time. 
+                # time_per_hotspot will be used to calculate start_time and end_time since PH distributes hotspots
+                # evenly over the video duration.
+                max_views = max(hotspots) if hotspot_count > 0 else 0
+                for index, views in enumerate(hotspots):
+                    heatmap.append({
+                        'start_time': math.floor(index * time_per_hotspot),
+                        'end_time': math.floor((index + 1) * time_per_hotspot),
+                        'value': views / max_views if max_views > 0 else 0,
+                    })
         else:
             thumbnail, duration = [None] * 2
 
@@ -500,6 +526,7 @@ class PornHubIE(PornHubBaseIE):
             'comment_count': comment_count,
             'formats': formats,
             'age_limit': 18,
+            'heatmap': heatmap,
             **traverse_obj(webpage, {
                 'tags': ({find_elements(attr='data-label', value='tag')}, ..., {clean_html}),
                 'categories': ({find_elements(attr='data-label', value='category')}, ..., {clean_html}),
