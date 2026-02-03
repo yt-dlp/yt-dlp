@@ -1,32 +1,4 @@
 # flake8: noqa: F401
-# isort: off
-
-from .youtube import (  # Youtube is moved to the top to improve performance
-    YoutubeIE,
-    YoutubeClipIE,
-    YoutubeFavouritesIE,
-    YoutubeNotificationsIE,
-    YoutubeHistoryIE,
-    YoutubeTabIE,
-    YoutubeLivestreamEmbedIE,
-    YoutubePlaylistIE,
-    YoutubeRecommendedIE,
-    YoutubeSearchDateIE,
-    YoutubeSearchIE,
-    YoutubeSearchURLIE,
-    YoutubeMusicSearchURLIE,
-    YoutubeSubscriptionsIE,
-    YoutubeTruncatedIDIE,
-    YoutubeTruncatedURLIE,
-    YoutubeYtBeIE,
-    YoutubeYtUserIE,
-    YoutubeWatchLaterIE,
-    YoutubeShortsAudioPivotIE,
-    YoutubeConsentRedirectIE,
-)
-
-# isort: on
-
 from .abc import (
     ABCIE,
     ABCIViewIE,
@@ -592,7 +564,10 @@ from .eroprofile import (
     EroProfileAlbumIE,
     EroProfileIE,
 )
-from .err import ERRJupiterIE
+from .err import (
+    ERRArhiivIE,
+    ERRJupiterIE,
+)
 from .ertgr import (
     ERTFlixCodenameIE,
     ERTFlixIE,
@@ -2388,7 +2363,11 @@ from .voicy import (
     VoicyChannelIE,
     VoicyIE,
 )
-from .volejtv import VolejTVIE
+from .volejtv import (
+    VolejTVCategoryPlaylistIE,
+    VolejTVClubPlaylistIE,
+    VolejTVIE,
+)
 from .voxmedia import (
     VoxMediaIE,
     VoxMediaVolumeIE,
@@ -2550,6 +2529,29 @@ from .youporn import (
     YouPornStarIE,
     YouPornTagIE,
     YouPornVideosIE,
+)
+from .youtube import (
+    YoutubeClipIE,
+    YoutubeConsentRedirectIE,
+    YoutubeFavouritesIE,
+    YoutubeHistoryIE,
+    YoutubeIE,
+    YoutubeLivestreamEmbedIE,
+    YoutubeMusicSearchURLIE,
+    YoutubeNotificationsIE,
+    YoutubePlaylistIE,
+    YoutubeRecommendedIE,
+    YoutubeSearchDateIE,
+    YoutubeSearchIE,
+    YoutubeSearchURLIE,
+    YoutubeShortsAudioPivotIE,
+    YoutubeSubscriptionsIE,
+    YoutubeTabIE,
+    YoutubeTruncatedIDIE,
+    YoutubeTruncatedURLIE,
+    YoutubeWatchLaterIE,
+    YoutubeYtBeIE,
+    YoutubeYtUserIE,
 )
 from .zaiko import (
     ZaikoETicketIE,

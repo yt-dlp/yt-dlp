@@ -66,6 +66,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'rtlmost\.hu',
         r'plus\.rtl\.de(?!/podcast/)',
         r'mediasetinfinity\.es',
+        r'tv5mondeplus\.com',
     )
 
     _TESTS = [{
@@ -225,6 +226,10 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.mediasetinfinity.es/',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/14743
+        'url': 'https://www.tv5mondeplus.com/',
         'only_matching': True,
     }]
 
