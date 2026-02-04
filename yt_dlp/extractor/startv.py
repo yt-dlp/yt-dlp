@@ -26,7 +26,7 @@ class StarTVIE(InfoExtractor):
                 'description': 'md5:63209e03c6f409223d60659fa7263082',
                 'duration': 7762.918,
                 'timestamp': 1569278940,
-                'thumbnail': 'https://media.startv.com.tr/star-tv//images/06e4350f491299c81dac336a.jpg',
+                'thumbnail': 'https://media.startv.com.tr/star-tv/images/06e4350f491299c81dac336a.jpg',
                 'series': 'Çocuk',
                 'series_id': '65370e7af7378a107c1ed46b',
                 'season': 'Season 1',
@@ -49,7 +49,7 @@ class StarTVIE(InfoExtractor):
                 'title': 'Çocuk: 5. Bölüm Fragmanı',
                 'description': 'md5:c0cbc36b9d044f33e425fcd7fcfd406c',
                 'duration': 54.24,
-                'thumbnail': 'https://media.startv.com.tr/star-tv//images/0f286bda4f679588b9f9ab81.jpg',
+                'thumbnail': 'https://media.startv.com.tr/star-tv/images/0f286bda4f679588b9f9ab81.jpg',
                 'series': 'Çocuk',
                 'series_id': '65370e7af7378a107c1ed46b',
                 'episode': 'Episode 5',
@@ -71,7 +71,7 @@ class StarTVIE(InfoExtractor):
                 'title': 'Çocuk: 5. Bölümün nefes kesen final sahnesi',
                 'description': '',
                 'duration': 713.798,
-                'thumbnail': 'https://media.startv.com.tr/star-tv//images/d3b18d3144228b9abb64df4d.jpg',
+                'thumbnail': 'https://media.startv.com.tr/star-tv/images/d3b18d3144228b9abb64df4d.jpg',
                 'series': 'Çocuk',
                 'series_id': '65370e7af7378a107c1ed46b',
                 'timestamp': 1570534487,
@@ -92,7 +92,7 @@ class StarTVIE(InfoExtractor):
                 'description': 'md5:572444feb6b25dfff554b3685c42d8a0',
                 'duration': 8787.878,
                 'timestamp': 1567607820,
-                'thumbnail': 'https://media.startv.com.tr/star-tv//images/38aa9e384654abfb934651d8.jpg',
+                'thumbnail': 'https://media.startv.com.tr/star-tv/images/38aa9e384654abfb934651d8.jpg',
                 'series': 'Avlu',
                 'series_id': '6537746df7378a107c1ef9c0',
                 'season': 'Season 1',
@@ -115,7 +115,7 @@ class StarTVIE(InfoExtractor):
                 'title': 'Burcu ile Hafta Sonu: 1. Bölüm',
                 'description': 'md5:0a38807192a8845af934f629101162ae',
                 'duration': 3183.798,
-                'thumbnail': 'https://media.startv.com.tr/star-tv//images/22eb65dd4fb79d7e5b86e21c.jpg',
+                'thumbnail': 'https://media.startv.com.tr/star-tv/images/22eb65dd4fb79d7e5b86e21c.jpg',
                 'series': 'Burcu ile Hafta Sonu',
                 'series_id': '6537c6adf7378a107c1f673c',
                 'season': 'Season 1',
@@ -139,7 +139,7 @@ class StarTVIE(InfoExtractor):
                 'title': 'Burcu ile Hafta Sonu: 2. Fragman',
                 'description': 'md5:a6afa1708fab477bf5320c7293625edb',
                 'duration': 45.8,
-                'thumbnail': 'https://media.startv.com.tr/star-tv//images/98041edf4937af6327cc14a3.jpg',
+                'thumbnail': 'https://media.startv.com.tr/star-tv/images/98041edf4937af6327cc14a3.jpg',
                 'series': 'Burcu ile Hafta Sonu',
                 'series_id': '6537c6adf7378a107c1f673c',
                 'timestamp': 1570731524,
@@ -159,7 +159,7 @@ class StarTVIE(InfoExtractor):
                 'title': 'Tülin Şahin ile Moda: Hollywood yıldızlarının saç tasarımcısı Jamal Hammadi, Medcezir\'de!',
                 'description': 'Hollywood yıldızlarının saç tasarımcısı Jamal Hammadi, Medcezir\'de!\n',
                 'duration': 37.48,
-                'thumbnail': 'https://media.startv.com.tr/star-tv//images/a579ddba49e59d356c387096.jpg',
+                'thumbnail': 'https://media.startv.com.tr/star-tv/images/a579ddba49e59d356c387096.jpg',
                 'series': 'Tülin Şahin ile Moda',
                 'series_id': '65393731f7378a107c20b90c',
                 'timestamp': 1397391080,
@@ -202,7 +202,7 @@ class StarTVIE(InfoExtractor):
         return json['data']
 
     def _get_media_url(self, path):
-        return f'https://media.startv.com.tr/star-tv/{path}'
+        return f'https://media.startv.com.tr/star-tv{path}'
 
     def _parse_content(self, content):
         video = content['video']
