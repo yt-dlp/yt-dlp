@@ -405,7 +405,7 @@ class RumbleChannelIE(InfoExtractor):
             for video_url in traverse_obj(
                 get_elements_html_by_class('videostream__link', webpage), (..., {extract_attributes}, 'href'),
             ):
-                yield self.url_result(urljoin('https://rumble.com', video_url))
+                yield self.url_result(urljoin('https://rumble.com', video_url), RumbleIE)
 
     def _real_extract(self, url):
         url, playlist_id = self._match_valid_url(url).groups()

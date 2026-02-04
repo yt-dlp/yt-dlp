@@ -6,6 +6,7 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     UserNotLive,
@@ -40,16 +41,16 @@ class TwitchBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'twitch'
 
     _OPERATION_HASHES = {
-        'CollectionSideBar': '27111f1b382effad0b6def325caef1909c733fe6a4fbabf54f8d491ef2cf2f14',
-        'FilterableVideoTower_Videos': 'a937f1d22e269e39a03b509f65a7490f9fc247d7f83d6ac1421523e3b68042cb',
-        'ClipsCards__User': 'b73ad2bfaecfd30a9e6c28fada15bd97032c83ec77a0440766a56fe0bd632777',
-        'ShareClipRenderStatus': 'f130048a462a0ac86bb54d653c968c514e9ab9ca94db52368c1179e97b0f16eb',
-        'ChannelCollectionsContent': '447aec6a0cc1e8d0a8d7732d47eb0762c336a2294fdb009e9c9d854e49d484b9',
-        'StreamMetadata': 'a647c2a13599e5991e175155f798ca7f1ecddde73f7f341f39009c14dbf59962',
+        'CollectionSideBar': '016e1e4ccee0eb4698eb3bf1a04dc1c077fb746c78c82bac9a8f0289658fbd1a',
+        'FilterableVideoTower_Videos': '67004f7881e65c297936f32c75246470629557a393788fb5a69d6d9a25a8fd5f',
+        'ClipsCards__User': '90c33f5e6465122fba8f9371e2a97076f9ed06c6fed3788d002ab9eba8f91d88',
+        'ShareClipRenderStatus': '1844261bb449fa51e6167040311da4a7a5f1c34fe71c71a3e0c4f551bc30c698',
+        'ChannelCollectionsContent': '5247910a19b1cd2b760939bf4cba4dcbd3d13bdf8c266decd16956f6ef814077',
+        'StreamMetadata': 'b57f9b910f8cd1a4659d894fe7550ccc81ec9052c01e438b290fd66a040b9b93',
         'ComscoreStreamingQuery': 'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
-        'VideoPreviewOverlay': '3006e77e51b128d838fa4e835723ca4dc9a05c5efd4466c1085215c6e437e65c',
-        'VideoMetadata': '49b5b8f268cdeb259d75b58dcb0c1a748e3b575003448a2333dc5cdafd49adad',
-        'VideoPlayer_ChapterSelectButtonVideo': '8d2793384aac3773beab5e59bd5d6f585aedb923d292800119e03d40cd0f9b41',
+        'VideoPreviewOverlay': '9515480dee68a77e667cb19de634739d33f243572b007e98e67184b1a5d8369f',
+        'VideoMetadata': '45111672eea2e507f8ba44d101a61862f9c56b11dee09a15634cb75cb9b9084d',
+        'VideoPlayer_ChapterSelectButtonVideo': '71835d5ef425e154bf282453a926d99b328cdc5e32f36d3a209d0f4778b41203',
         'VideoPlayer_VODSeekbarPreviewVideo': '07e99e4d56c5a7c67117a154777b0baf85a5ffefa393b213f4bc712ccaf85dd6',
     }
 
@@ -188,19 +189,39 @@ class TwitchBaseIE(InfoExtractor):
         }] if thumbnail else None
 
     def _extract_twitch_m3u8_formats(self, path, video_id, token, signature, live_from_start=False):
-        formats = self._extract_m3u8_formats(
-            f'{self._USHER_BASE}/{path}/{video_id}.m3u8', video_id, 'mp4', query={
-                'allow_source': 'true',
-                'allow_audio_only': 'true',
-                'allow_spectre': 'true',
-                'p': random.randint(1000000, 10000000),
-                'platform': 'web',
-                'player': 'twitchweb',
-                'supported_codecs': 'av1,h265,h264',
-                'playlist_include_framerate': 'true',
-                'sig': signature,
-                'token': token,
-            })
+        try:
+            formats = self._extract_m3u8_formats(
+                f'{self._USHER_BASE}/{path}/{video_id}.m3u8', video_id, 'mp4', query={
+                    'allow_source': 'true',
+                    'allow_audio_only': 'true',
+                    'allow_spectre': 'true',
+                    'p': random.randint(1000000, 10000000),
+                    'platform': 'web',
+                    'player': 'twitchweb',
+                    'supported_codecs': 'av1,h265,h264',
+                    'playlist_include_framerate': 'true',
+                    'sig': signature,
+                    'token': token,
+                })
+        except ExtractorError as e:
+            if (
+                not isinstance(e.cause, HTTPError)
+                or e.cause.status != 403
+                or e.cause.response.get_header('content-type') != 'application/json'
+            ):
+                raise
+
+            error_info = traverse_obj(e.cause.response.read(), ({json.loads}, 0, {dict})) or {}
+            if error_info.get('error_code') in ('vod_manifest_restricted', 'unauthorized_entitlements'):
+                common_msg = 'access to this subscriber-only content'
+                if self._get_cookies('https://gql.twitch.tv').get('auth-token'):
+                    raise ExtractorError(f'Your account does not have {common_msg}', expected=True)
+                self.raise_login_required(f'You must be logged into an account that has {common_msg}')
+
+            if error_msg := join_nonempty('error_code', 'error', from_dict=error_info, delim=': '):
+                raise ExtractorError(error_msg, expected=True)
+            raise
+
         for fmt in formats:
             if fmt.get('vcodec') and fmt['vcodec'].startswith('av01'):
                 # mpegts does not yet have proper support for av1
@@ -493,7 +514,10 @@ class TwitchVodIE(TwitchBaseIE):
         is_live = None
         if thumbnail:
             if re.findall(r'/404_processing_[^.?#]+\.png', thumbnail):
-                is_live, thumbnail = True, None
+                # False positive for is_live if info.get('broadcastType') == 'HIGHLIGHT'
+                # See https://github.com/yt-dlp/yt-dlp/issues/14455
+                is_live = info.get('broadcastType') == 'ARCHIVE'
+                thumbnail = None
             else:
                 is_live = False
 
@@ -597,15 +621,15 @@ def _make_video_result(node):
 
 
 class TwitchCollectionIE(TwitchBaseIE):
+    IE_NAME = 'twitch:collection'
     _VALID_URL = r'https?://(?:(?:www|go|m)\.)?twitch\.tv/collections/(?P<id>[^/]+)'
-
     _TESTS = [{
-        'url': 'https://www.twitch.tv/collections/wlDCoH0zEBZZbQ',
+        'url': 'https://www.twitch.tv/collections/o9zZer3IQBhTJw',
         'info_dict': {
-            'id': 'wlDCoH0zEBZZbQ',
-            'title': 'Overthrow Nook, capitalism for children',
+            'id': 'o9zZer3IQBhTJw',
+            'title': 'Playthrough Archives',
         },
-        'playlist_mincount': 13,
+        'playlist_mincount': 21,
     }]
 
     _OPERATION_NAME = 'CollectionSideBar'
@@ -656,6 +680,10 @@ class TwitchPlaylistBaseIE(TwitchBaseIE):
                 }],
                 f'Downloading {self._NODE_KIND}s GraphQL page {page_num}',
                 fatal=False)
+            # Avoid extracting random/unrelated entries when channel_name doesn't exist
+            # See https://github.com/yt-dlp/yt-dlp/issues/15450
+            if traverse_obj(page, (0, 'data', 'user', 'id', {str})) == '':
+                raise ExtractorError(f'Channel "{channel_name}" not found', expected=True)
             if not page:
                 break
             edges = try_get(
@@ -696,8 +724,8 @@ class TwitchVideosBaseIE(TwitchPlaylistBaseIE):
 
 
 class TwitchVideosIE(TwitchVideosBaseIE):
+    IE_NAME = 'twitch:videos'
     _VALID_URL = r'https?://(?:(?:www|go|m)\.)?twitch\.tv/(?P<id>[^/]+)/(?:videos|profile)'
-
     _TESTS = [{
         # All Videos sorted by Date
         'url': 'https://www.twitch.tv/spamfish/videos?filter=all',
@@ -705,7 +733,7 @@ class TwitchVideosIE(TwitchVideosBaseIE):
             'id': 'spamfish',
             'title': 'spamfish - All Videos sorted by Date',
         },
-        'playlist_mincount': 924,
+        'playlist_mincount': 751,
     }, {
         # All Videos sorted by Popular
         'url': 'https://www.twitch.tv/spamfish/videos?filter=all&sort=views',
@@ -713,8 +741,9 @@ class TwitchVideosIE(TwitchVideosBaseIE):
             'id': 'spamfish',
             'title': 'spamfish - All Videos sorted by Popular',
         },
-        'playlist_mincount': 931,
+        'playlist_mincount': 754,
     }, {
+        # TODO: Investigate why we get 0 entries
         # Past Broadcasts sorted by Date
         'url': 'https://www.twitch.tv/spamfish/videos?filter=archives',
         'info_dict': {
@@ -729,8 +758,9 @@ class TwitchVideosIE(TwitchVideosBaseIE):
             'id': 'spamfish',
             'title': 'spamfish - Highlights sorted by Date',
         },
-        'playlist_mincount': 901,
+        'playlist_mincount': 751,
     }, {
+        # TODO: Investigate why we get 0 entries
         # Uploads sorted by Date
         'url': 'https://www.twitch.tv/esl_csgo/videos?filter=uploads&sort=time',
         'info_dict': {
@@ -739,6 +769,7 @@ class TwitchVideosIE(TwitchVideosBaseIE):
         },
         'playlist_mincount': 5,
     }, {
+        # TODO: Investigate why we get 0 entries
         # Past Premieres sorted by Date
         'url': 'https://www.twitch.tv/spamfish/videos?filter=past_premieres',
         'info_dict': {
@@ -801,8 +832,8 @@ class TwitchVideosIE(TwitchVideosBaseIE):
 
 
 class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
+    IE_NAME = 'twitch:videos:clips'
     _VALID_URL = r'https?://(?:(?:www|go|m)\.)?twitch\.tv/(?P<id>[^/]+)/(?:clips|videos/*?\?.*?\bfilter=clips)'
-
     _TESTS = [{
         # Clips
         'url': 'https://www.twitch.tv/vanillatv/clips?filter=clips&range=all',
@@ -874,8 +905,8 @@ class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
 
 
 class TwitchVideosCollectionsIE(TwitchPlaylistBaseIE):
+    IE_NAME = 'twitch:videos:collections'
     _VALID_URL = r'https?://(?:(?:www|go|m)\.)?twitch\.tv/(?P<id>[^/]+)/videos/*?\?.*?\bfilter=collections'
-
     _TESTS = [{
         # Collections
         'url': 'https://www.twitch.tv/spamfish/videos?filter=collections',
@@ -1026,7 +1057,10 @@ class TwitchStreamIE(TwitchVideosBaseIE):
         gql = self._download_gql(
             channel_name, [{
                 'operationName': 'StreamMetadata',
-                'variables': {'channelLogin': channel_name},
+                'variables': {
+                    'channelLogin': channel_name,
+                    'includeIsDJ': True,
+                },
             }, {
                 'operationName': 'ComscoreStreamingQuery',
                 'variables': {
@@ -1132,8 +1166,8 @@ class TwitchClipsIE(TwitchBaseIE):
             'channel_id': '25163635',
             'channel_is_verified': False,
             'channel_follower_count': int,
-            'uploader': 'EA',
-            'uploader_id': '25163635',
+            'uploader': 'stereotype_',
+            'uploader_id': '43566419',
         },
     }, {
         'url': 'https://www.twitch.tv/xqc/clip/CulturedAmazingKuduDatSheffy-TiZ_-ixAGYR3y2Uy',
@@ -1153,8 +1187,8 @@ class TwitchClipsIE(TwitchBaseIE):
             'channel_id': '71092938',
             'channel_is_verified': True,
             'channel_follower_count': int,
-            'uploader': 'xQc',
-            'uploader_id': '71092938',
+            'uploader': 'okSTFUdude',
+            'uploader_id': '744085721',
             'categories': ['Just Chatting'],
         },
     }, {

@@ -31,7 +31,7 @@ from ..utils.traversal import require, traverse_obj, trim_str
 
 class CBCIE(InfoExtractor):
     IE_NAME = 'cbc.ca'
-    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(?!player/)(?:[^/]+/)+(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(?!player/|listen/|i/caffeine/syndicate/)(?:[^/?#]+/)+(?P<id>[^/?#]+)'
     _TESTS = [{
         # with mediaId
         'url': 'http://www.cbc.ca/22minutes/videos/clips-season-23/don-cherry-play-offs',
@@ -105,16 +105,12 @@ class CBCIE(InfoExtractor):
         # multiple CBC.APP.Caffeine.initInstance(...)
         'url': 'http://www.cbc.ca/news/canada/calgary/dog-indoor-exercise-winter-1.3928238',
         'info_dict': {
-            'title': 'Keep Rover active during the deep freeze with doggie pushups and other fun indoor tasks',  # FIXME: actual title includes " | CBC News"
+            'title': 'Keep Rover active during the deep freeze with doggie pushups and other fun indoor tasks',
             'id': 'dog-indoor-exercise-winter-1.3928238',
             'description': 'md5:c18552e41726ee95bd75210d1ca9194c',
         },
         'playlist_mincount': 6,
     }]
-
-    @classmethod
-    def suitable(cls, url):
-        return False if CBCPlayerIE.suitable(url) else super().suitable(url)
 
     def _extract_player_init(self, player_init, display_id):
         player_info = self._parse_json(player_init, display_id, js_to_json)
@@ -138,6 +134,13 @@ class CBCIE(InfoExtractor):
         title = (self._og_search_title(webpage, default=None)
                  or self._html_search_meta('twitter:title', webpage, 'title', default=None)
                  or self._html_extract_title(webpage))
+        title = self._search_regex(
+            r'^(?P<title>.+?)(?:\s*[|–-]\s*CBC.*)?$',
+            title, 'cleaned title', group='title', default=title)
+        data = self._search_json(
+            r'window\.__INITIAL_STATE__\s*=', webpage,
+            'initial state', display_id, default={}, transform_source=js_to_json)
+
         entries = [
             self._extract_player_init(player_init, display_id)
             for player_init in re.findall(r'CBC\.APP\.Caffeine\.initInstance\(({.+?})\);', webpage)]
@@ -147,6 +150,11 @@ class CBCIE(InfoExtractor):
                 r'<div[^>]+\bid=["\']player-(\d+)',
                 r'guid["\']\s*:\s*["\'](\d+)'):
             media_ids.extend(re.findall(media_id_re, webpage))
+        media_ids.extend(traverse_obj(data, (
+            'detail', 'content', 'body', ..., 'content',
+            lambda _, v: v['type'] == 'polopoly_media', 'content', 'sourceId', {str})))
+        if content_id := traverse_obj(data, ('app', 'contentId', {str})):
+            media_ids.append(content_id)
         entries.extend([
             self.url_result(f'cbcplayer:{media_id}', 'CBCPlayer', media_id)
             for media_id in orderedSet(media_ids)])
@@ -272,7 +280,7 @@ class CBCPlayerIE(InfoExtractor):
             'duration': 2692.833,
             'subtitles': {
                 'en-US': [{
-                    'name': 'English Captions',
+                    'name': r're:English',
                     'url': 'https://cbchls.akamaized.net/delivery/news-shows/2024/06/17/NAT_JUN16-00-55-00/NAT_JUN16_cc.vtt',
                 }],
             },
@@ -326,6 +334,7 @@ class CBCPlayerIE(InfoExtractor):
             'categories': ['Olympics Summer Soccer', 'Summer Olympics Replays', 'Summer Olympics Soccer Replays'],
             'location': 'Canada',
         },
+        'skip': 'Video no longer available',
         'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.cbc.ca/player/play/video/9.6459530',
@@ -384,7 +393,8 @@ class CBCPlayerIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(f'https://www.cbc.ca/player/play/{video_id}', video_id)
         data = self._search_json(
-            r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)['video']['currentClip']
+            r'window\.__INITIAL_STATE__\s*=', webpage,
+            'initial state', video_id, transform_source=js_to_json)['video']['currentClip']
         assets = traverse_obj(
             data, ('media', 'assets', lambda _, v: url_or_none(v['key']) and v['type']))
 
@@ -496,12 +506,14 @@ class CBCPlayerPlaylistIE(InfoExtractor):
         'info_dict': {
             'id': 'news/tv shows/the national/latest broadcast',
         },
+        'skip': 'Playlist no longer available',
     }, {
         'url': 'https://www.cbc.ca/player/news/Canada/North',
         'playlist_mincount': 25,
         'info_dict': {
             'id': 'news/canada/north',
         },
+        'skip': 'Playlist no longer available',
     }]
 
     def _real_extract(self, url):
@@ -911,5 +923,65 @@ class CBCGemLiveIE(InfoExtractor):
                 'title': ('title', {str}),
                 'description': ('description', {str}),
                 'thumbnail': ('images', 'card', 'url'),
+            }),
+        }
+
+
+class CBCListenIE(InfoExtractor):
+    IE_NAME = 'cbc.ca:listen'
+    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/listen/(?:cbc-podcasts|live-radio)/[\w-]+/[\w-]+/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.cbc.ca/listen/cbc-podcasts/1353-the-naked-emperor/episode/16142603-introducing-understood-who-broke-the-internet',
+        'info_dict': {
+            'id': '16142603',
+            'title': 'Introducing Understood: Who Broke the Internet?',
+            'ext': 'mp3',
+            'description': 'md5:c605117500084e43f08a950adc6a708c',
+            'duration': 229,
+            'timestamp': 1745812800,
+            'release_timestamp': 1745827200,
+            'release_date': '20250428',
+            'upload_date': '20250428',
+        },
+    }, {
+        'url': 'https://www.cbc.ca/listen/live-radio/1-64-the-house/clip/16170773-should-canada-suck-stand-donald-trump',
+        'info_dict': {
+            'id': '16170773',
+            'title': 'Should Canada suck up or stand up to Donald Trump?',
+            'ext': 'mp3',
+            'description': 'md5:7385194f1cdda8df27ba3764b35e7976',
+            'duration': 3159,
+            'timestamp': 1758340800,
+            'release_timestamp': 1758254400,
+            'release_date': '20250919',
+            'upload_date': '20250920',
+        },
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+
+        response = self._download_json(
+            f'https://www.cbc.ca/listen/api/v1/clips/{video_id}', video_id, fatal=False)
+        data = traverse_obj(response, ('data', {dict}))
+        if not data:
+            self.report_warning('API failed to return data. Falling back to webpage parsing')
+            webpage = self._download_webpage(url, video_id)
+            preloaded_state = self._search_json(
+                r'window\.__PRELOADED_STATE__\s*=', webpage, 'preloaded state',
+                video_id, transform_source=js_to_json)
+            data = traverse_obj(preloaded_state, (
+                ('podcastDetailData', 'showDetailData'), ..., 'episodes',
+                lambda _, v: str(v['clipID']) == video_id, any, {require('episode data')}))
+
+        return {
+            'id': video_id,
+            **traverse_obj(data, {
+                'url': (('src', 'url'), {url_or_none}, any),
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+                'release_timestamp': ('releasedAt', {int_or_none(scale=1000)}),
+                'timestamp': ('airdate', {int_or_none(scale=1000)}),
+                'duration': ('duration', {int_or_none}),
             }),
         }

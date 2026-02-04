@@ -36,6 +36,7 @@ from .rtsp import RtspFD
 from .websocket import WebSocketFragmentFD
 from .youtube_live_chat import YoutubeLiveChatFD
 from .bunnycdn import BunnyCdnFD
+from .soop import SoopVodFD
 
 PROTOCOL_MAP = {
     'rtmp': RtmpFD,
@@ -56,6 +57,7 @@ PROTOCOL_MAP = {
     'youtube_live_chat': YoutubeLiveChatFD,
     'youtube_live_chat_replay': YoutubeLiveChatFD,
     'bunnycdn': BunnyCdnFD,
+    'soopvod': SoopVodFD,
 }
 
 
@@ -99,7 +101,7 @@ def _get_suitable_downloader(info_dict, protocol, params, default):
     if external_downloader is None:
         if info_dict['to_stdout'] and FFmpegFD.can_merge_formats(info_dict, params):
             return FFmpegFD
-    elif external_downloader.lower() != 'native':
+    elif external_downloader.lower() != 'native' and info_dict.get('impersonate') is None:
         ed = get_external_downloader(external_downloader)
         if ed.can_download(info_dict, external_downloader):
             return ed

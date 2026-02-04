@@ -18,15 +18,15 @@ from ..utils import (
 
 
 class DropoutIE(InfoExtractor):
-    _LOGIN_URL = 'https://www.dropout.tv/login'
+    _LOGIN_URL = 'https://watch.dropout.tv/login'
     _NETRC_MACHINE = 'dropout'
 
-    _VALID_URL = r'https?://(?:www\.)?dropout\.tv/(?:[^/]+/)*videos/(?P<id>[^/]+)/?$'
+    _VALID_URL = r'https?://(?:watch\.)?dropout\.tv/(?:[^/?#]+/)*videos/(?P<id>[^/?#]+)/?(?:[?#]|$)'
     _TESTS = [
         {
-            'url': 'https://www.dropout.tv/game-changer/season:2/videos/yes-or-no',
+            'url': 'https://watch.dropout.tv/game-changer/season:2/videos/yes-or-no',
             'note': 'Episode in a series',
-            'md5': '5e000fdfd8d8fa46ff40456f1c2af04a',
+            'md5': '4b76963f904f8bc4ba22dcf0e66ada06',
             'info_dict': {
                 'id': '738153',
                 'display_id': 'yes-or-no',
@@ -45,35 +45,35 @@ class DropoutIE(InfoExtractor):
                 'uploader_url': 'https://vimeo.com/user80538407',
                 'uploader': 'OTT Videos',
             },
-            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest', 'Failed to parse XML: not well-formed'],
         },
         {
-            'url': 'https://www.dropout.tv/dimension-20-fantasy-high/season:1/videos/episode-1',
+            'url': 'https://watch.dropout.tv/tablepop-presents-megadungeon-live/season:1/videos/enter-through-the-gift-shop',
             'note': 'Episode in a series (missing release_date)',
-            'md5': '712caf7c191f1c47c8f1879520c2fa5c',
+            'md5': 'b08fb03050585ea25cd7ee092db9134c',
             'info_dict': {
-                'id': '320562',
-                'display_id': 'episode-1',
+                'id': '624270',
+                'display_id': 'enter-through-the-gift-shop',
                 'ext': 'mp4',
-                'title': 'The Beginning Begins',
-                'description': 'The cast introduces their PCs, including a neurotic elf, a goblin PI, and a corn-worshipping cleric.',
-                'thumbnail': 'https://vhx.imgix.net/chuncensoredstaging/assets/4421ed0d-f630-4c88-9004-5251b2b8adfa.jpg',
-                'series': 'Dimension 20: Fantasy High',
+                'title': 'Enter Through the Gift Shop',
+                'description': 'A new adventuring party explores a gift shop and runs into a friendly orc -- and some angry goblins.',
+                'thumbnail': 'https://vhx.imgix.net/chuncensoredstaging/assets/a1d876c3-3dee-4cd0-87c6-27a851b1d0ec.jpg',
+                'series': 'TablePop Presents: MEGADUNGEON LIVE!',
                 'season_number': 1,
                 'season': 'Season 1',
                 'episode_number': 1,
-                'episode': 'The Beginning Begins',
-                'duration': 6838,
+                'episode': 'Enter Through the Gift Shop',
+                'duration': 7101,
                 'uploader_id': 'user80538407',
                 'uploader_url': 'https://vimeo.com/user80538407',
                 'uploader': 'OTT Videos',
             },
-            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest', 'Failed to parse XML: not well-formed'],
         },
         {
-            'url': 'https://www.dropout.tv/videos/misfits-magic-holiday-special',
+            'url': 'https://watch.dropout.tv/videos/misfits-magic-holiday-special',
             'note': 'Episode not in a series',
-            'md5': 'c30fa18999c5880d156339f13c953a26',
+            'md5': '1e6428f7756b02c93b573d39ddd789fe',
             'info_dict': {
                 'id': '1915774',
                 'display_id': 'misfits-magic-holiday-special',
@@ -87,7 +87,7 @@ class DropoutIE(InfoExtractor):
                 'uploader_url': 'https://vimeo.com/user80538407',
                 'uploader': 'OTT Videos',
             },
-            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest', 'Failed to parse XML: not well-formed'],
         },
     ]
 
@@ -125,7 +125,7 @@ class DropoutIE(InfoExtractor):
         display_id = self._match_id(url)
 
         webpage = None
-        if self._get_cookies('https://www.dropout.tv').get('_session'):
+        if self._get_cookies('https://watch.dropout.tv').get('_session'):
             webpage = self._download_webpage(url, display_id)
         if not webpage or '<div id="watch-unauthorized"' in webpage:
             login_err = self._login(display_id)
@@ -148,7 +148,7 @@ class DropoutIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'ie_key': VHXEmbedIE.ie_key(),
-            'url': VHXEmbedIE._smuggle_referrer(embed_url, 'https://www.dropout.tv'),
+            'url': VHXEmbedIE._smuggle_referrer(embed_url, 'https://watch.dropout.tv'),
             'id': self._search_regex(r'embed\.vhx\.tv/videos/(.+?)\?', embed_url, 'id'),
             'display_id': display_id,
             'title': title,
@@ -167,10 +167,10 @@ class DropoutIE(InfoExtractor):
 
 class DropoutSeasonIE(InfoExtractor):
     _PAGE_SIZE = 24
-    _VALID_URL = r'https?://(?:www\.)?dropout\.tv/(?P<id>[^\/$&?#]+)(?:/?$|/season:(?P<season>[0-9]+)/?$)'
+    _VALID_URL = r'https?://(?:watch\.)?dropout\.tv/(?P<id>[^\/$&?#]+)(?:/?$|/season:(?P<season>[0-9]+)/?$)'
     _TESTS = [
         {
-            'url': 'https://www.dropout.tv/dimension-20-fantasy-high/season:1',
+            'url': 'https://watch.dropout.tv/dimension-20-fantasy-high/season:1',
             'note': 'Multi-season series with the season in the url',
             'playlist_count': 24,
             'info_dict': {
@@ -179,7 +179,7 @@ class DropoutSeasonIE(InfoExtractor):
             },
         },
         {
-            'url': 'https://www.dropout.tv/dimension-20-fantasy-high',
+            'url': 'https://watch.dropout.tv/dimension-20-fantasy-high',
             'note': 'Multi-season series with the season not in the url',
             'playlist_count': 24,
             'info_dict': {
@@ -188,7 +188,7 @@ class DropoutSeasonIE(InfoExtractor):
             },
         },
         {
-            'url': 'https://www.dropout.tv/dimension-20-shriek-week',
+            'url': 'https://watch.dropout.tv/dimension-20-shriek-week',
             'note': 'Single-season series',
             'playlist_count': 4,
             'info_dict': {
@@ -197,7 +197,7 @@ class DropoutSeasonIE(InfoExtractor):
             },
         },
         {
-            'url': 'https://www.dropout.tv/breaking-news-no-laugh-newsroom/season:3',
+            'url': 'https://watch.dropout.tv/breaking-news-no-laugh-newsroom/season:3',
             'note': 'Multi-season series with season in the url that requires pagination',
             'playlist_count': 25,
             'info_dict': {

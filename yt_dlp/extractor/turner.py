@@ -251,6 +251,11 @@ class TurnerBaseIE(AdobePassIE):
                         'end_time': start_time + chapter_duration,
                     })
 
+        if is_live:
+            for f in formats:
+                # Prevent ffmpeg from adding its own http headers or else we get HTTP Error 403
+                f['downloader_options'] = {'ffmpeg_args': ['-seekable', '0', '-icy', '0']}
+
         return {
             'formats': formats,
             'chapters': chapters,

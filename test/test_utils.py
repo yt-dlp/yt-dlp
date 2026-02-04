@@ -12,6 +12,7 @@ import datetime as dt
 import io
 import itertools
 import json
+import ntpath
 import pickle
 import subprocess
 import unittest
@@ -71,6 +72,8 @@ from yt_dlp.utils import (
     iri_to_uri,
     is_html,
     js_to_json,
+    jwt_decode_hs256,
+    jwt_encode,
     limit_length,
     locked_file,
     lowercase_escape,
@@ -99,11 +102,13 @@ from yt_dlp.utils import (
     remove_start,
     render_table,
     replace_extension,
+    datetime_round,
     rot47,
     sanitize_filename,
     sanitize_path,
     sanitize_url,
     shell_quote,
+    strftime_or_none,
     smuggle_url,
     str_to_int,
     strip_jsonp,
@@ -249,12 +254,6 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_path('abc.../def...'), 'abc..#\\def..#')
         self.assertEqual(sanitize_path('C:\\abc:%(title)s.%(ext)s'), 'C:\\abc#%(title)s.%(ext)s')
 
-        # Check with nt._path_normpath if available
-        try:
-            from nt import _path_normpath as nt_path_normpath
-        except ImportError:
-            nt_path_normpath = None
-
         for test, expected in [
             ('C:\\', 'C:\\'),
             ('../abc', '..\\abc'),
@@ -272,8 +271,7 @@ class TestUtil(unittest.TestCase):
             result = sanitize_path(test)
             assert result == expected, f'{test} was incorrectly resolved'
             assert result == sanitize_path(result), f'{test} changed after sanitizing again'
-            if nt_path_normpath:
-                assert result == nt_path_normpath(test), f'{test} does not match nt._path_normpath'
+            assert result == ntpath.normpath(test), f'{test} does not match ntpath.normpath'
 
     def test_sanitize_url(self):
         self.assertEqual(sanitize_url('//foo.bar'), 'http://foo.bar')
@@ -407,6 +405,25 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(datetime_from_str('now+1day', precision='hour'), datetime_from_str('now+24hours', precision='auto'))
         self.assertEqual(datetime_from_str('now+23hours', precision='hour'), datetime_from_str('now+23hours', precision='auto'))
 
+    def test_datetime_round(self):
+        self.assertEqual(datetime_round(dt.datetime.strptime('1820-05-12T01:23:45Z', '%Y-%m-%dT%H:%M:%SZ')),
+                         dt.datetime(1820, 5, 12, tzinfo=dt.timezone.utc))
+        self.assertEqual(datetime_round(dt.datetime.strptime('1969-12-31T23:34:45Z', '%Y-%m-%dT%H:%M:%SZ'), 'hour'),
+                         dt.datetime(1970, 1, 1, 0, tzinfo=dt.timezone.utc))
+        self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45Z', '%Y-%m-%dT%H:%M:%SZ'), 'minute'),
+                         dt.datetime(2024, 12, 25, 1, 24, tzinfo=dt.timezone.utc))
+        self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45.123Z', '%Y-%m-%dT%H:%M:%S.%fZ'), 'second'),
+                         dt.datetime(2024, 12, 25, 1, 23, 45, tzinfo=dt.timezone.utc))
+        self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45.678Z', '%Y-%m-%dT%H:%M:%S.%fZ'), 'second'),
+                         dt.datetime(2024, 12, 25, 1, 23, 46, tzinfo=dt.timezone.utc))
+
+    def test_strftime_or_none(self):
+        self.assertEqual(strftime_or_none(-4722192000), '18200512')
+        self.assertEqual(strftime_or_none(0), '19700101')
+        self.assertEqual(strftime_or_none(1735084800), '20241225')
+        # Throws OverflowError
+        self.assertEqual(strftime_or_none(1735084800000), None)
+
     def test_daterange(self):
         _20century = DateRange('19000101', '20000101')
         self.assertFalse('17890714' in _20century)
@@ -471,6 +488,10 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(unified_timestamp('December 31 1969 20:00:01 EDT'), 1)
         self.assertEqual(unified_timestamp('Wednesday 31 December 1969 18:01:26 MDT'), 86)
         self.assertEqual(unified_timestamp('12/31/1969 20:01:18 EDT', False), 78)
+
+        self.assertEqual(unified_timestamp('2026-01-01 00:00:00', tz_offset=0), 1767225600)
+        self.assertEqual(unified_timestamp('2026-01-01 00:00:00', tz_offset=8), 1767196800)
+        self.assertEqual(unified_timestamp('2026-01-01 00:00:00 +0800', tz_offset=-5), 1767196800)
 
     def test_determine_ext(self):
         self.assertEqual(determine_ext('http://example.com/foo/bar.mp4/?download'), 'mp4')
@@ -903,6 +924,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(month_by_name(None), None)
         self.assertEqual(month_by_name('December', 'en'), 12)
         self.assertEqual(month_by_name('décembre', 'fr'), 12)
+        self.assertEqual(month_by_name('desember', 'is'), 12)
         self.assertEqual(month_by_name('December'), 12)
         self.assertEqual(month_by_name('décembre'), None)
         self.assertEqual(month_by_name('Unknown', 'unknown'), None)
@@ -1259,6 +1281,9 @@ class TestUtil(unittest.TestCase):
         on = js_to_json('[new Date("spam"), \'("eggs")\']')
         self.assertEqual(json.loads(on), ['spam', '("eggs")'], msg='Date regex should match a single string')
 
+        on = js_to_json('[0.077, 7.06, 29.064, 169.0072]')
+        self.assertEqual(json.loads(on), [0.077, 7.06, 29.064, 169.0072])
+
     def test_js_to_json_malformed(self):
         self.assertEqual(js_to_json('42a1'), '42"a1"')
         self.assertEqual(js_to_json('42a-1'), '42"a"-1')
@@ -1373,6 +1398,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_resolution('pre_1920x1080_post'), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('ep1x2'), {})
         self.assertEqual(parse_resolution('1920, 1080'), {'width': 1920, 'height': 1080})
+        self.assertEqual(parse_resolution('1920w', lenient=True), {'width': 1920})
 
     def test_parse_bitrate(self):
         self.assertEqual(parse_bitrate(None), None)
@@ -1385,6 +1411,9 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(version_tuple('1'), (1,))
         self.assertEqual(version_tuple('10.23.344'), (10, 23, 344))
         self.assertEqual(version_tuple('10.1-6'), (10, 1, 6))  # avconv style
+        self.assertEqual(version_tuple('invalid', lenient=True), (-1,))
+        self.assertEqual(version_tuple('1.2.3', lenient=True), (1, 2, 3))
+        self.assertEqual(version_tuple('12.34-something', lenient=True), (12, 34, -1))
 
     def test_detect_exe_version(self):
         self.assertEqual(detect_exe_version('''ffmpeg version 1.2.1
@@ -1845,7 +1874,7 @@ Line 1
 
         self.assertEqual(
             list(get_elements_text_and_html_by_attribute('class', 'foo bar', html)),
-            list(zip(['nice', 'also nice'], self.GET_ELEMENTS_BY_CLASS_RES)))
+            list(zip(['nice', 'also nice'], self.GET_ELEMENTS_BY_CLASS_RES, strict=True)))
         self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'foo', html)), [])
         self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'no-such-foo', html)), [])
 
@@ -2178,6 +2207,41 @@ Line 1
         assert int_or_none(10, scale=0.1) == 100, 'positionally passed argument should call function'
         assert int_or_none(v=10) == 10, 'keyword passed positional should call function'
         assert int_or_none(scale=0.1)(10) == 100, 'call after partial application should call the function'
+
+    _JWT_KEY = '12345678'
+    _JWT_HEADERS_1 = {'a': 'b'}
+    _JWT_HEADERS_2 = {'typ': 'JWT', 'alg': 'HS256'}
+    _JWT_HEADERS_3 = {'typ': 'JWT', 'alg': 'RS256'}
+    _JWT_HEADERS_4 = {'c': 'd', 'alg': 'ES256'}
+    _JWT_DECODED = {
+        'foo': 'bar',
+        'qux': 'baz',
+    }
+    _JWT_SIMPLE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.fKojvTWqnjNTbsdoDTmYNc4tgYAG3h_SWRzM77iLH0U'
+    _JWT_WITH_EXTRA_HEADERS = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImEiOiJiIn0.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.Ia91-B77yasfYM7jsB6iVKLew-3rO6ITjNmjWUVXCvQ'
+    _JWT_WITH_REORDERED_HEADERS = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.slg-7COta5VOfB36p3tqV4MGPV6TTA_ouGnD48UEVq4'
+    _JWT_WITH_REORDERED_HEADERS_AND_RS256_ALG = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.XWp496oVgQnoits0OOocutdjxoaQwn4GUWWxUsKENPM'
+    _JWT_WITH_EXTRA_HEADERS_AND_ES256_ALG = 'eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImMiOiJkIn0.eyJmb28iOiJiYXIiLCJxdXgiOiJiYXoifQ.oM_tc7IkfrwkoRh43rFFE1wOi3J3mQGwx7_lMyKQqDg'
+
+    def test_jwt_encode(self):
+        def test(expected, headers={}):
+            self.assertEqual(jwt_encode(self._JWT_DECODED, self._JWT_KEY, headers=headers), expected)
+
+        test(self._JWT_SIMPLE)
+        test(self._JWT_WITH_EXTRA_HEADERS, headers=self._JWT_HEADERS_1)
+        test(self._JWT_WITH_REORDERED_HEADERS, headers=self._JWT_HEADERS_2)
+        test(self._JWT_WITH_REORDERED_HEADERS_AND_RS256_ALG, headers=self._JWT_HEADERS_3)
+        test(self._JWT_WITH_EXTRA_HEADERS_AND_ES256_ALG, headers=self._JWT_HEADERS_4)
+
+    def test_jwt_decode_hs256(self):
+        def test(inp):
+            self.assertEqual(jwt_decode_hs256(inp), self._JWT_DECODED)
+
+        test(self._JWT_SIMPLE)
+        test(self._JWT_WITH_EXTRA_HEADERS)
+        test(self._JWT_WITH_REORDERED_HEADERS)
+        test(self._JWT_WITH_REORDERED_HEADERS_AND_RS256_ALG)
+        test(self._JWT_WITH_EXTRA_HEADERS_AND_ES256_ALG)
 
 
 if __name__ == '__main__':

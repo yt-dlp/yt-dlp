@@ -3,7 +3,7 @@ import urllib.parse
 
 from . import get_suitable_downloader
 from .fragment import FragmentFD
-from ..utils import update_url_query, urljoin
+from ..utils import ReExtractInfo, update_url_query, urljoin
 
 
 class DashSegmentsFD(FragmentFD):
@@ -28,6 +28,11 @@ class DashSegmentsFD(FragmentFD):
         requested_formats = [{**info_dict, **fmt} for fmt in info_dict.get('requested_formats', [])]
         args = []
         for fmt in requested_formats or [info_dict]:
+            # Re-extract if --load-info-json is used and 'fragments' was originally a generator
+            # See https://github.com/yt-dlp/yt-dlp/issues/13906
+            if isinstance(fmt['fragments'], str):
+                raise ReExtractInfo('the stream needs to be re-extracted', expected=True)
+
             try:
                 fragment_count = 1 if self.params.get('test') else len(fmt['fragments'])
             except TypeError:
