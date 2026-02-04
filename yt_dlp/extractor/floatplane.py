@@ -334,12 +334,9 @@ class FloatplaneChannelBaseIE(InfoExtractor):
             query=query, note=f'Downloading page {page + 1}')
         for post in page_data or []:
             yield self.url_result(
-                f"{self._BASE_URL}/post/{post['id']}",
-                self._ENTRY_IE_TYPE,
-                id=post['id'],
-                title=post.get('title'),
-                release_timestamp=parse_iso8601(post.get('releaseDate')),
-            )
+                f'{self._BASE_URL}/post/{post["id"]}',
+                self._ENTRY_IE_TYPE, id=post['id'], title=post.get('title'),
+                release_timestamp=parse_iso8601(post.get('releaseDate')))
 
     def _real_extract(self, url):
         creator, channel = self._match_valid_url(url).group('id', 'channel')
