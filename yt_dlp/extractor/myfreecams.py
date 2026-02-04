@@ -178,14 +178,7 @@ class MyFreeCamsIE(InfoExtractor):
             vs = data['vs']
             ok_vs = [0, 90]
             if vs not in ok_vs:
-                error_messages = {
-                    2: 'Model is currently away',
-                    12: 'Model is currently in a private show',
-                    13: 'Model is currently in a group show',
-                    14: 'Model is currently in a club show',
-                    127: 'Model is currently offline',
-                }
-                error = error_messages.get(vs, f'Stream status: {vs}')
+                error = self.VS_ERROR_MESSAGES.get(vs, f'Stream status: {vs}')
                 raise ExtractorError(error, expected=True)
 
             self.write_debug(f'VS: {vs}')
