@@ -49,6 +49,42 @@ class MyFreeCamsIE(InfoExtractor):
     _dict_re = re.compile(r'''(?P<data>{.*})''')
     _socket_re = re.compile(r'''(\w+) (\w+) (\w+) (\w+) (\w+)''')
 
+    # WebSocket protocol constants
+    WS_VERSION = 'fcsws_20180422'
+    WS_MAX_RETRIES = 5
+    WS_INITIAL_DELAY = 1
+    WS_FINAL_MESSAGE = (99, 0, 0, 0, 0)
+
+    # WebSocket message types
+    MSG_SEND_USERNAME = 1
+    MSG_SEND_LOGIN = 1
+    MSG_REQUEST_USERNAME = 10
+    MSG_CLOSE_CONNECTION = 10
+    MSG_PHP_DATA = 81
+    MSG_FINAL = 99
+
+    # Video server types
+    SERVER_TYPE_H5VIDEO = 'h5video_servers'
+    SERVER_TYPE_WZOBS = 'wzobs_servers'
+    SERVER_TYPE_NGVIDEO = 'ngvideo_servers'
+
+    # Valid video status codes
+    VALID_VS_CODES = [0, 90]
+
+    # Error status codes map
+    VS_ERROR_MESSAGES = {
+        2: 'Model is currently away',
+        12: 'Model is currently in a private show',
+        13: 'Model is currently in a group show',
+        14: 'Model is currently in a club show',
+        127: 'Model is currently offline',
+    }
+
+    # Username constants
+    GUEST_USERNAME = 'guest'
+    USERNAME_PREFIX = '1/guest:guest'
+    USERNAME_PREFIX_AUTHORIZED = f'1 0 0 20071025 0 {USERNAME_PREFIX}\n'
+
     def _get_servers(self):
         return self._download_json(
             self.JS_SERVER_URL, self.video_id,
@@ -58,23 +94,24 @@ class MyFreeCamsIE(InfoExtractor):
             }, fatal=False, impersonate=False) or {}
 
     def _websocket_data(self, username, chat_servers):
-        for try_to_connect in range(5):
+        for try_to_connect in range(self.WS_MAX_RETRIES):
             try:
                 xchat = str(random.choice(chat_servers))
                 host = f'wss://{xchat}.myfreecams.com/fcsl'
                 ws = websockets.sync.client.connect(host)
-                ws.send('fcsws_20180422\n\0')
-                ws.send('1 0 0 20071025 0 1/guest:guest\n\0')
+                ws.send(f'{self.WS_VERSION}\n\0')
+                ws.send(self.USERNAME_PREFIX_AUTHORIZED)
                 self.write_debug(f'Websocket server {xchat} connected')
                 self.write_debug(f'Websocket URL: {host}')
                 break
             except (websockets.exceptions.WebSocketException, socket.gaierror):
                 self.report_warning(f'Failed to connect to WS server: {xchat} - try {try_to_connect + 1}')
-                if try_to_connect == 4:
+                if try_to_connect == self.WS_MAX_RETRIES - 1:
                     error = f'Failed to connect to WS server: {host}'
                     raise ExtractorError(error)
 
         buff = ''
+        message = ''
         php_message = ''
         ws_close = 0
         while ws_close == 0:
@@ -98,13 +135,13 @@ class MyFreeCamsIE(InfoExtractor):
 
                 message = urllib.parse.unquote(message)
 
-                if FCTYPE == 1 and username:
+                if FCTYPE == self.MSG_SEND_USERNAME and username:
                     ws.send(f'10 0 0 20 0 {username}\n')
-                elif FCTYPE == 81:
+                elif FCTYPE == self.MSG_PHP_DATA:
                     php_message = message
                     if username is None:
                         ws_close = 1
-                elif FCTYPE == 10:
+                elif FCTYPE == self.MSG_CLOSE_CONNECTION:
                     ws_close = 1
 
                 socket_buffer = socket_buffer[6 + message_length:]
@@ -112,7 +149,7 @@ class MyFreeCamsIE(InfoExtractor):
                 if len(socket_buffer) == 0:
                     break
 
-        ws.send('99 0 0 0 0')
+        ws.send(f'{self.WS_FINAL_MESSAGE[0]} 0 0 0 0')
         ws.close()
         return message, php_message
 
@@ -130,7 +167,7 @@ class MyFreeCamsIE(InfoExtractor):
         servers = self._get_servers()
         chat_servers = servers['chat_servers']
 
-        message, php_message = self._websocket_data(self.video_id, chat_servers)
+        message, _ = self._websocket_data(self.video_id, chat_servers)
 
         self.write_debug('Attempting to use WebSocket data')
         data = self._search_json(r'(\w+) (\w+) (\w+) (\w+) (\w+)', message, name='ws_data', video_id=self.video_id)
@@ -180,7 +217,7 @@ class MyFreeCamsIE(InfoExtractor):
         elif server_type == 'ngvideo_servers':
             raise ExtractorError('ngvideo_servers are not supported.')
         else:
-            raise ExtractorError('Unknow server type.')
+            raise ExtractorError('Unknown server type.')
 
         self.write_debug(f'HLS URL: {HLS_VIDEO_URL}')
 
