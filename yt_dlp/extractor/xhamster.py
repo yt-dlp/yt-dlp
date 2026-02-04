@@ -219,6 +219,11 @@ class XHamsterIE(InfoExtractor):
         hex_string, path_remainder = self._search_regex(
             r'^/(?P<hex>[0-9a-fA-F]{12,})(?P<rem>[/,].+)$', parsed_url.path, 'url components',
             default=(None, None), group=('hex', 'rem'))
+
+        # If only HEX no remainder
+        if not hex_string:
+            hex_string = self._search_regex(r'([0-9a-fA-F]{12,})', parsed_url.path, 'hex string', default=None)
+
         if not hex_string:
             self.report_warning(f'Skipping format "{format_id}": unsupported URL format')
             return None
@@ -234,6 +239,8 @@ class XHamsterIE(InfoExtractor):
 
         deciphered = bytearray(byte ^ next(byte_gen) for byte in byte_data[5:]).decode('latin-1')
 
+        if hex_string and not path_remainder:
+            return parsed_url._replace(path=f'{deciphered}').geturl()
         return parsed_url._replace(path=f'/{deciphered}{path_remainder}').geturl()
 
     def _fixup_formats(self, formats):
