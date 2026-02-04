@@ -45,7 +45,6 @@ class CCCIE(InfoExtractor):
                 continue
             language = recording.get('language')
             folder = recording.get('folder') or ''
-            format_id = join_nonempty(language, folder) or None
             vcodec = None
             if 'av1' in folder:
                 vcodec = 'av1'
@@ -54,7 +53,7 @@ class CCCIE(InfoExtractor):
             elif folder in ('mp3', 'opus'):
                 vcodec = 'none'
             formats.append({
-                'format_id': format_id,
+                'format_id': join_nonempty(language, folder) or None,
                 'url': recording_url,
                 'width': int_or_none(recording.get('width')),
                 'height': int_or_none(recording.get('height')),
