@@ -1,8 +1,12 @@
+import re
+
 from .common import InfoExtractor
 from ..utils import (
+    UnsupportedError,
     clean_html,
     int_or_none,
     js_to_json,
+    month_by_name,
     url_or_none,
     urljoin,
 )
@@ -12,12 +16,6 @@ from ..utils.traversal import find_element, traverse_obj
 class VisirIE(InfoExtractor):
     IE_DESC = 'Vísir'
 
-    _MONTH_TABLE = {
-        'janúar': 1, 'febrúar': 2, 'mars': 3,
-        'apríl': 4, 'maí': 5, 'júní': 6,
-        'júlí': 7, 'ágúst': 8, 'september': 9,
-        'október': 10, 'nóvember': 11, 'desember': 12,
-    }
     _VALID_URL = r'https?://(?:www\.)?visir\.is/(?P<type>k|player)/(?P<id>[\da-f-]+)(?:/(?P<slug>[\w.-]+))?'
     _EMBED_REGEX = [rf'<iframe[^>]+src=["\'](?P<url>{_VALID_URL})']
     _TESTS = [{
@@ -81,15 +79,20 @@ class VisirIE(InfoExtractor):
         video_type, video_id, display_id = self._match_valid_url(url).group('type', 'id', 'slug')
         webpage = self._download_webpage(url, video_id)
         if video_type == 'player':
-            return self.url_result(self._og_search_url(webpage))
+            real_url = self._og_search_url(webpage)
+            if not self.suitable(real_url) or self._match_valid_url(real_url).group('type') == 'player':
+                raise UnsupportedError(real_url)
+            return self.url_result(real_url, self.ie_key())
 
-        if date := traverse_obj(webpage, (
+        upload_date = None
+        if date_str := traverse_obj(webpage, (
             {find_element(cls='article-item__date')}, {clean_html}, filter,
         )):
-            day, month, year = date.replace('.', '').split()
-            upload_date = f'{year}{self._MONTH_TABLE[month]:02d}{int(day):02d}'
-        else:
-            upload_date = None
+            day, month, year = date_str.replace('.', '').split()
+            day = int_or_none(day)
+            month = month_by_name(month, 'is')
+            if day and month and re.fullmatch(r'[0-9]{4}', year):
+                upload_date = f'{year}{month:02d}{day:02d}'
 
         player = self._search_json(
             r'App\.Player\.Init\(', webpage, video_id, 'player', transform_source=js_to_json)
@@ -106,7 +109,7 @@ class VisirIE(InfoExtractor):
             })),
             **traverse_obj(player, {
                 'title': ('Title', {clean_html}),
-                'categories': ('Categoryname', {clean_html}, all),
+                'categories': ('Categoryname', {clean_html}, filter, all, filter),
                 'duration': ('MediaDuration', {int_or_none}),
                 'thumbnail': ('Image', {url_or_none}),
             }),
