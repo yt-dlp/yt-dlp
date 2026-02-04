@@ -346,8 +346,8 @@ class FloatplaneChannelBaseIE(InfoExtractor):
         display_id = join_nonempty(creator, channel, delim='/')
 
         creator_data = self._download_json(
-            f'{self._BASE_URL}/api/v3/creator/named', display_id, query={'creatorURL[0]': creator},
-        )[0]
+            f'{self._BASE_URL}/api/v3/creator/named',
+            display_id, query={'creatorURL[0]': creator})[0]
 
         channel_data = traverse_obj(
             creator_data, ('channels', lambda _, v: v['urlname'] == channel), get_all=False) or {}
