@@ -340,6 +340,8 @@ class XHamsterIE(InfoExtractor):
                                 continue
                             for standard_format_key in ('url', 'fallback'):
                                 standard_url = standard_format.get(standard_format_key)
+                                if standard_format_key == 'fallback' and len(standard_url) <= 25:
+                                    standard_url = standard_format.get('url')
                                 if not standard_url:
                                     continue
                                 quality = (str_or_none(standard_format.get('quality'))
