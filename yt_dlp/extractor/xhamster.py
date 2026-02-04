@@ -340,8 +340,6 @@ class XHamsterIE(InfoExtractor):
                                 continue
                             for standard_format_key in ('url', 'fallback'):
                                 standard_url = standard_format.get(standard_format_key)
-                                if standard_format_key == 'fallback' and len(standard_url) <= 25:
-                                    standard_url = standard_format.get('url')
                                 if not standard_url:
                                     continue
                                 quality = (str_or_none(standard_format.get('quality'))
@@ -357,7 +355,7 @@ class XHamsterIE(InfoExtractor):
                                     formats.extend(self._extract_m3u8_formats(
                                         standard_url, video_id, 'mp4', entry_protocol='m3u8_native',
                                         m3u8_id='hls', fatal=False))
-                                    continue
+                                    break
 
                                 formats.append({
                                     'format_id': format_id,
@@ -372,6 +370,7 @@ class XHamsterIE(InfoExtractor):
                                     # TODO: Remove this when resolved on the site's end
                                     '__needs_testing': True,
                                 })
+                                break
 
             categories_list = video.get('categories')
             if isinstance(categories_list, list):
