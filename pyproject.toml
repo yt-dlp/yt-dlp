@@ -4,16 +4,18 @@ build-backend = "hatchling.build"
 
 [project]
 name = "yt-dlp"
-maintainers = [
+authors = [
     {name = "pukkandan", email = "pukkandan.ytdlp@gmail.com"},
-    {name = "Grub4K", email = "contact@grub4k.xyz"},
+]
+maintainers = [
+    {email = "maintainers@yt-dlp.org"},
+    {name = "Grub4K", email = "contact@grub4k.dev"},
     {name = "bashonly", email = "bashonly@protonmail.com"},
     {name = "coletdjnz", email = "coletdjnz@protonmail.com"},
-    {name = "sepro", email = "sepro@sepr0.com"},
 ]
 description = "A feature-rich command-line audio/video downloader"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = [
     "cli",
     "downloader",
@@ -30,7 +32,6 @@ classifiers = [
     "Environment :: Console",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -54,19 +55,27 @@ default = [
     "requests>=2.32.2,<3",
     "urllib3>=2.0.2,<3",
     "websockets>=13.0",
+    "yt-dlp-ejs==0.4.0",
 ]
 curl-cffi = [
-    "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.14; implementation_name=='cpython'",
+    "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.15; implementation_name=='cpython'",
+]
+build-curl-cffi = [
+    "curl-cffi==0.13.0; sys_platform=='darwin' or (sys_platform=='linux' and platform_machine!='armv7l')",
+    "curl-cffi==0.14.0; sys_platform=='win32' or (sys_platform=='linux' and platform_machine=='armv7l')",
 ]
 secretstorage = [
     "cffi",
     "secretstorage",
 ]
+deno = [
+    "deno>=2.6.6",  # v2.6.5 fixes compatibility, v2.6.6 adds integrity check
+]
 build = [
     "build",
     "hatchling>=1.27.0",
     "pip",
-    "setuptools>=71.0.2,<81",  # See https://github.com/pyinstaller/pyinstaller/issues/9149
+    "setuptools>=71.0.2",
     "wheel",
 ]
 dev = [
@@ -76,21 +85,21 @@ dev = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.13.0",
+    "ruff~=0.14.0",
 ]
 test = [
     "pytest~=8.1",
     "pytest-rerunfailures~=14.0",
 ]
 pyinstaller = [
-    "pyinstaller>=6.13.0",  # Windows temp cleanup fixed in 6.13.0
+    "pyinstaller>=6.17.0",  # 6.17.0+ needed for compat with setuptools 81+
 ]
 
 [project.urls]
 Documentation = "https://github.com/yt-dlp/yt-dlp#readme"
 Repository = "https://github.com/yt-dlp/yt-dlp"
 Tracker = "https://github.com/yt-dlp/yt-dlp/issues"
-Funding = "https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collaborators"
+Funding = "https://github.com/yt-dlp/yt-dlp/blob/master/Maintainers.md#maintainers"
 
 [project.scripts]
 yt-dlp = "yt_dlp:main"
@@ -120,7 +129,12 @@ artifacts = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["yt_dlp"]
-artifacts = ["/yt_dlp/extractor/lazy_extractors.py"]
+artifacts = [
+    "/yt_dlp/extractor/lazy_extractors.py",
+]
+exclude = [
+    "/yt_dlp/**/*.md",
+]
 
 [tool.hatch.build.targets.wheel.shared-data]
 "completions/bash/yt-dlp" = "share/bash-completion/completions/yt-dlp"
@@ -168,7 +182,6 @@ run-cov = "echo Code coverage not implemented && exit 1"
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = [
-    "3.9",
     "3.10",
     "3.11",
     "3.12",

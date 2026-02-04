@@ -42,6 +42,8 @@ from .globals import (
     plugin_pps,
     all_plugins_loaded,
     plugin_dirs,
+    supported_js_runtimes,
+    supported_remote_components,
 )
 from .minicurses import format_text
 from .networking import HEADRequest, Request, RequestDirector
@@ -533,6 +535,18 @@ class YoutubeDL:
                        See "EXTRACTOR ARGUMENTS" for details.
                        Argument values must always be a list of string(s).
                        E.g. {'youtube': {'skip': ['dash', 'hls']}}
+    js_runtimes:       A dictionary of JavaScript runtime keys (in lower case) to enable
+                       and a dictionary of additional configuration for the runtime.
+                       Currently supported runtimes are 'deno', 'node', 'bun', and 'quickjs'.
+                       If None, the default runtime of "deno" will be enabled.
+                       The runtime configuration dictionary can have the following keys:
+                        - path: Path to the executable (optional)
+                       E.g. {'deno': {'path': '/path/to/deno'}
+    remote_components: A list of remote components that are allowed to be fetched when required.
+                       Supported components:
+                       - ejs:npm (external JavaScript components from npm)
+                       - ejs:github (external JavaScript components from yt-dlp-ejs GitHub)
+                       By default, no remote components are allowed to be fetched.
     mark_watched:      Mark videos watched (even with --simulate). Only for YouTube
 
     The following options are deprecated and may be removed in the future:
@@ -581,7 +595,7 @@ class YoutubeDL:
         'width', 'height', 'asr', 'audio_channels', 'fps',
         'tbr', 'abr', 'vbr', 'filesize', 'filesize_approx',
         'timestamp', 'release_timestamp', 'available_at',
-        'duration', 'view_count', 'like_count', 'dislike_count', 'repost_count',
+        'duration', 'view_count', 'like_count', 'dislike_count', 'repost_count', 'save_count',
         'average_rating', 'comment_count', 'age_limit',
         'start_time', 'end_time',
         'chapter_number', 'season_number', 'episode_number',
@@ -717,6 +731,13 @@ class YoutubeDL:
                 else:
                     raise
 
+        # Note: this must be after plugins are loaded
+        self.params['js_runtimes'] = self.params.get('js_runtimes', {'deno': {}})
+        self._clean_js_runtimes(self.params['js_runtimes'])
+
+        self.params['remote_components'] = set(self.params.get('remote_components', ()))
+        self._clean_remote_components(self.params['remote_components'])
+
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
         self.params['http_headers'] = HTTPHeaderDict(std_headers, self.params.get('http_headers'))
         self._load_cookies(self.params['http_headers'].get('Cookie'))  # compat
@@ -828,6 +849,36 @@ class YoutubeDL:
             return archive
 
         self.archive = preload_download_archive(self.params.get('download_archive'))
+
+    def _clean_js_runtimes(self, runtimes):
+        if not (
+            isinstance(runtimes, dict)
+            and all(isinstance(k, str) and (v is None or isinstance(v, dict)) for k, v in runtimes.items())
+        ):
+            raise ValueError('Invalid js_runtimes format, expected a dict of {runtime: {config}}')
+
+        if unsupported_runtimes := runtimes.keys() - supported_js_runtimes.value.keys():
+            self.report_warning(
+                f'Ignoring unsupported JavaScript runtime(s): {", ".join(unsupported_runtimes)}.'
+                f' Supported runtimes: {", ".join(supported_js_runtimes.value.keys())}.')
+            for rt in unsupported_runtimes:
+                runtimes.pop(rt)
+
+    def _clean_remote_components(self, remote_components: set):
+        if unsupported_remote_components := set(remote_components) - set(supported_remote_components.value):
+            self.report_warning(
+                f'Ignoring unsupported remote component(s): {", ".join(unsupported_remote_components)}.'
+                f' Supported remote components: {", ".join(supported_remote_components.value)}.')
+            for rt in unsupported_remote_components:
+                remote_components.remove(rt)
+
+    @functools.cached_property
+    def _js_runtimes(self):
+        runtimes = {}
+        for name, config in self.params.get('js_runtimes', {}).items():
+            runtime_cls = supported_js_runtimes.value.get(name)
+            runtimes[name] = runtime_cls(path=config.get('path')) if runtime_cls else None
+        return runtimes
 
     def warn_if_short_id(self, argv):
         # short YouTube ID starting with dash?
@@ -1551,8 +1602,10 @@ class YoutubeDL:
             if ret is NO_DEFAULT:
                 while True:
                     filename = self._format_screen(self.prepare_filename(info_dict), self.Styles.FILENAME)
-                    reply = input(self._format_screen(
-                        f'Download "{filename}"? (Y/n): ', self.Styles.EMPHASIS)).lower().strip()
+                    self.to_screen(
+                        self._format_screen(f'Download "{filename}"? (Y/n): ', self.Styles.EMPHASIS),
+                        skip_eol=True)
+                    reply = input().lower().strip()
                     if reply in {'y', ''}:
                         return None
                     elif reply == 'n':
@@ -2007,7 +2060,7 @@ class YoutubeDL:
         else:
             entries = resolved_entries = list(entries)
             n_entries = len(resolved_entries)
-            ie_result['requested_entries'], ie_result['entries'] = tuple(zip(*resolved_entries)) or ([], [])
+            ie_result['requested_entries'], ie_result['entries'] = tuple(zip(*resolved_entries, strict=True)) or ([], [])
         if not ie_result.get('playlist_count'):
             # Better to do this after potentially exhausting entries
             ie_result['playlist_count'] = all_entries.get_full_count()
@@ -2785,7 +2838,7 @@ class YoutubeDL:
 
         dummy_chapter = {'end_time': 0, 'start_time': info_dict.get('duration')}
         for idx, (prev, current, next_) in enumerate(zip(
-                (dummy_chapter, *chapters), chapters, (*chapters[1:], dummy_chapter)), 1):
+                (dummy_chapter, *chapters), chapters, (*chapters[1:], dummy_chapter), strict=False), 1):
             if current.get('start_time') is None:
                 current['start_time'] = prev.get('end_time')
             if not current.get('end_time'):
@@ -2975,9 +3028,14 @@ class YoutubeDL:
         format_selector = self.format_selector
         while True:
             if interactive_format_selection:
-                req_format = input(self._format_screen('\nEnter format selector ', self.Styles.EMPHASIS)
-                                   + '(Press ENTER for default, or Ctrl+C to quit)'
-                                   + self._format_screen(': ', self.Styles.EMPHASIS))
+                if not formats:
+                    # Bypass interactive format selection if no formats & --ignore-no-formats-error
+                    formats_to_download = None
+                    break
+                self.to_screen(self._format_screen('\nEnter format selector ', self.Styles.EMPHASIS)
+                               + '(Press ENTER for default, or Ctrl+C to quit)'
+                               + self._format_screen(': ', self.Styles.EMPHASIS), skip_eol=True)
+                req_format = input()
                 try:
                     format_selector = self.build_format_selector(req_format) if req_format else None
                 except SyntaxError as err:
@@ -3370,7 +3428,7 @@ class YoutubeDL:
                 def existing_video_file(*filepaths):
                     ext = info_dict.get('ext')
                     converted = lambda file: replace_extension(file, self.params.get('final_ext') or ext, ext)
-                    file = self.existing_file(itertools.chain(*zip(map(converted, filepaths), filepaths)),
+                    file = self.existing_file(itertools.chain(*zip(map(converted, filepaths), filepaths, strict=True)),
                                               default_overwrite=False)
                     if file:
                         info_dict['ext'] = os.path.splitext(file)[1][1:]
@@ -3423,11 +3481,12 @@ class YoutubeDL:
                     if dl_filename is not None:
                         self.report_file_already_downloaded(dl_filename)
                     elif fd:
-                        for f in info_dict['requested_formats'] if fd != FFmpegFD else []:
-                            f['filepath'] = fname = prepend_extension(
-                                correct_ext(temp_filename, info_dict['ext']),
-                                'f{}'.format(f['format_id']), info_dict['ext'])
-                            downloaded.append(fname)
+                        if fd != FFmpegFD and temp_filename != '-':
+                            for f in info_dict['requested_formats']:
+                                f['filepath'] = fname = prepend_extension(
+                                    correct_ext(temp_filename, info_dict['ext']),
+                                    'f{}'.format(f['format_id']), info_dict['ext'])
+                                downloaded.append(fname)
                         info_dict['url'] = '\n'.join(f['url'] for f in info_dict['requested_formats'])
                         success, real_download = self.dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download
@@ -3956,7 +4015,7 @@ class YoutubeDL:
 
     def render_subtitles_table(self, video_id, subtitles):
         def _row(lang, formats):
-            exts, names = zip(*((f['ext'], f.get('name') or 'unknown') for f in reversed(formats)))
+            exts, names = zip(*((f['ext'], f.get('name') or 'unknown') for f in reversed(formats)), strict=True)
             if len(set(names)) == 1:
                 names = [] if names[0] == 'unknown' else names[:1]
             return [lang, ', '.join(names), ', '.join(exts)]
@@ -4064,6 +4123,18 @@ class YoutubeDL:
             join_nonempty(*get_package_info(m)) for m in available_dependencies.values()
         })) or 'none'))
 
+        if not self.params.get('js_runtimes'):
+            write_debug('JS runtimes: none (disabled)')
+        else:
+            write_debug('JS runtimes: %s' % (', '.join(sorted(
+                f'{name} (unknown)' if runtime is None
+                else join_nonempty(
+                    runtime.info.name,
+                    runtime.info.version + (' (unsupported)' if runtime.info.supported is False else ''),
+                )
+                for name, runtime in self._js_runtimes.items() if runtime is None or runtime.info is not None
+            )) or 'none'))
+
         write_debug(f'Proxy map: {self.proxies}')
         write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.handlers.values())}')
 
@@ -4112,8 +4183,7 @@ class YoutubeDL:
                 self.params.get('cookiefile'), self.params.get('cookiesfrombrowser'), self)
         except CookieLoadError as error:
             cause = error.__context__
-            # compat: <=py3.9: `traceback.format_exception` has a different signature
-            self.report_error(str(cause), tb=''.join(traceback.format_exception(None, cause, cause.__traceback__)))
+            self.report_error(str(cause), tb=''.join(traceback.format_exception(cause)))
             raise
 
     @property

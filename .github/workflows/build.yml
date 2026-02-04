@@ -74,11 +74,11 @@ on:
         default: true
         type: boolean
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   process:
+    name: Process
     runs-on: ubuntu-latest
     outputs:
       origin: ${{ steps.process_inputs.outputs.origin }}
@@ -146,17 +146,18 @@ jobs:
                   'runner': 'ubuntu-24.04-arm',
                   'qemu_platform': 'linux/arm/v7',
                   'onefile': False,
-                  'cache_requirements': True,
                   'update_to': 'yt-dlp/yt-dlp@2023.03.04',
               }],
               'musllinux': [{
                   'os': 'musllinux',
                   'arch': 'x86_64',
                   'runner': 'ubuntu-24.04',
+                  'python_version': '3.14',
               }, {
                   'os': 'musllinux',
                   'arch': 'aarch64',
                   'runner': 'ubuntu-24.04-arm',
+                  'python_version': '3.14',
               }],
           }
           INPUTS = json.loads(os.environ['INPUTS'])
@@ -173,7 +174,6 @@ jobs:
               exe.setdefault('qemu_platform', None)
               exe.setdefault('onefile', True)
               exe.setdefault('onedir', True)
-              exe.setdefault('cache_requirements', False)
               exe.setdefault('python_version', os.environ['PYTHON_VERSION'])
               exe.setdefault('update_to', os.environ['UPDATE_TO'])
           if not any(INPUTS.get(key) for key in EXE_MAP):
@@ -184,8 +184,11 @@ jobs:
               f.write(f'matrix={json.dumps(matrix)}')
 
   unix:
-    needs: process
+    name: unix
+    needs: [process]
     if: inputs.unix
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     env:
       CHANNEL: ${{ inputs.channel }}
@@ -194,11 +197,12 @@ jobs:
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           fetch-depth: 0  # Needed for changelog
+          persist-credentials: false
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version: "3.10"
 
@@ -214,7 +218,7 @@ jobs:
 
       - name: Build Unix platform-independent binary
         run: |
-          make all tar
+          make all-extra tar
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
@@ -227,7 +231,7 @@ jobs:
           [[ "${version}" != "${downgraded_version}" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: build-bin-${{ github.job }}
           path: |
@@ -237,8 +241,10 @@ jobs:
 
   linux:
     name: ${{ matrix.os }} (${{ matrix.arch }})
+    needs: [process]
     if: inputs.linux || inputs.linux_armv7l || inputs.musllinux
-    needs: process
+    permissions:
+      contents: read
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -255,26 +261,16 @@ jobs:
       SKIP_ONEFILE_BUILD: ${{ (!matrix.onefile && '1') || '' }}
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Cache requirements
-        if: matrix.cache_requirements
-        id: cache-venv
-        uses: actions/cache@v4
-        env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
-          path: |
-            venv
-          key: cache-reqs-${{ matrix.os }}_${{ matrix.arch }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
-          restore-keys: |
-            cache-reqs-${{ matrix.os }}_${{ matrix.arch }}-${{ github.ref }}-
-            cache-reqs-${{ matrix.os }}_${{ matrix.arch }}-
+          persist-credentials: false
 
       - name: Set up QEMU
         if: matrix.qemu_platform
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130  # v3.7.0
         with:
+          image: tonistiigi/binfmt:qemu-v10.0.4-56@sha256:30cc9a4d03765acac9be2ed0afc23af1ad018aed2c28ea4be8c2eb9afe03fbd1
+          cache-image: false
           platforms: ${{ matrix.qemu_platform }}
 
       - name: Build executable
@@ -298,7 +294,7 @@ jobs:
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: build-bin-${{ matrix.os }}_${{ matrix.arch }}
           path: |
@@ -306,7 +302,8 @@ jobs:
           compression-level: 0
 
   macos:
-    needs: process
+    name: macos
+    needs: [process]
     if: inputs.macos
     permissions:
       contents: read
@@ -318,21 +315,11 @@ jobs:
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
 
     steps:
-      - uses: actions/checkout@v4
-      # NB: Building universal2 does not work with python from actions/setup-python
-
-      - name: Cache requirements
-        id: cache-venv
-        uses: actions/cache@v4
-        env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
-          path: |
-            ~/yt-dlp-build-venv
-          key: cache-reqs-${{ github.job }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
-          restore-keys: |
-            cache-reqs-${{ github.job }}-${{ github.ref }}-
-            cache-reqs-${{ github.job }}-
+          persist-credentials: false
+
+      # NB: Building universal2 does not work with python from actions/setup-python
 
       - name: Install Requirements
         run: |
@@ -341,14 +328,14 @@ jobs:
           brew uninstall --ignore-dependencies python3
           python3 -m venv ~/yt-dlp-build-venv
           source ~/yt-dlp-build-venv/bin/activate
-          python3 devscripts/install_deps.py -o --include build
-          python3 devscripts/install_deps.py --print --include pyinstaller > requirements.txt
+          python3 devscripts/install_deps.py --omit-default --include-extra build
+          python3 devscripts/install_deps.py --print --include-extra pyinstaller > requirements.txt
           # We need to ignore wheels otherwise we break universal2 builds
           python3 -m pip install -U --no-binary :all: -r requirements.txt
           # We need to fuse our own universal2 wheels for curl_cffi
           python3 -m pip install -U 'delocate==0.11.0'
           mkdir curl_cffi_whls curl_cffi_universal2
-          python3 devscripts/install_deps.py --print -o --include curl-cffi > requirements.txt
+          python3 devscripts/install_deps.py --print --omit-default --include-extra build-curl-cffi > requirements.txt
           for platform in "macosx_11_0_arm64" "macosx_11_0_x86_64"; do
             python3 -m pip download \
               --only-binary=:all: \
@@ -397,7 +384,7 @@ jobs:
           [[ "$version" != "$downgraded_version" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: build-bin-${{ github.job }}
           path: |
@@ -407,7 +394,7 @@ jobs:
 
   windows:
     name: windows (${{ matrix.arch }})
-    needs: process
+    needs: [process]
     if: inputs.windows
     permissions:
       contents: read
@@ -420,23 +407,23 @@ jobs:
           runner: windows-2025
           python_version: '3.10'
           platform_tag: win_amd64
-          pyi_version: '6.16.0'
-          pyi_tag: '2025.09.13.221251'
-          pyi_hash: b6496c7630c3afe66900cfa824e8234a8c2e2c81704bd7facd79586abc76c0e5
+          pyi_version: '6.18.0'
+          pyi_tag: '2026.01.29.160356'
+          pyi_hash: bb9cd0b0b233e4d031a295211cb8aa7c7f8b3c12ff33f1d57a40849ab4d3cf42
         - arch: 'x86'
           runner: windows-2025
           python_version: '3.10'
           platform_tag: win32
-          pyi_version: '6.16.0'
-          pyi_tag: '2025.09.13.221251'
-          pyi_hash: 2d881843580efdc54f3523507fc6d9c5b6051ee49c743a6d9b7003ac5758c226
+          pyi_version: '6.18.0'
+          pyi_tag: '2026.01.29.160356'
+          pyi_hash: aa8f260e735d94f1e2e1aac42e322f508eb54d0433de803c2998c337f72045e4
         - arch: 'arm64'
           runner: windows-11-arm
           python_version: '3.13'  # arm64 only has Python >= 3.11 available
           platform_tag: win_arm64
-          pyi_version: '6.16.0'
-          pyi_tag: '2025.09.13.221251'
-          pyi_hash: 4250c9085e34a95c898f3ee2f764914fc36ec59f0d97c28e6a75fcf21f7b144f
+          pyi_version: '6.18.0'
+          pyi_tag: '2026.01.29.160356'
+          pyi_hash: 4bbca67d0cdfa860d92ac9cc7e4c2586fd393d1e814e3f1375b8c62d5cfb6771
     env:
       CHANNEL: ${{ inputs.channel }}
       ORIGIN: ${{ needs.process.outputs.origin }}
@@ -448,25 +435,14 @@ jobs:
       PYI_WHEEL: pyinstaller-${{ matrix.pyi_version }}-py3-none-${{ matrix.platform_tag }}.whl
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.arch }}
-
-      - name: Cache requirements
-        id: cache-venv
-        if: matrix.arch == 'arm64'
-        uses: actions/cache@v4
-        env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
-        with:
-          path: |
-            /yt-dlp-build-venv
-          key: ${{ env.BASE_CACHE_KEY }}-${{ github.ref }}-${{ needs.process.outputs.timestamp }}
-          restore-keys: |
-            ${{ env.BASE_CACHE_KEY }}-${{ github.ref }}-
-            ${{ env.BASE_CACHE_KEY }}-
 
       - name: Install Requirements
         env:
@@ -475,6 +451,8 @@ jobs:
           PYI_HASH: ${{ matrix.pyi_hash }}
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           python -m venv /yt-dlp-build-venv
           /yt-dlp-build-venv/Scripts/Activate.ps1
           python -m pip install -U pip
@@ -482,22 +460,26 @@ jobs:
           mkdir /pyi-wheels
           python -m pip download -d /pyi-wheels --no-deps --require-hashes "pyinstaller@${Env:PYI_URL}#sha256=${Env:PYI_HASH}"
           python -m pip install --force-reinstall -U "/pyi-wheels/${Env:PYI_WHEEL}"
-          python devscripts/install_deps.py -o --include build
+          python devscripts/install_deps.py --omit-default --include-extra build
           if ("${Env:ARCH}" -eq "x86") {
             python devscripts/install_deps.py
           } else {
-            python devscripts/install_deps.py --include curl-cffi
+            python devscripts/install_deps.py --include-extra build-curl-cffi
           }
 
       - name: Prepare
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           python devscripts/update-version.py -c "${Env:CHANNEL}" -r "${Env:ORIGIN}" "${Env:VERSION}"
           python devscripts/make_lazy_extractors.py
 
       - name: Build
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           /yt-dlp-build-venv/Scripts/Activate.ps1
           python -m bundle.pyinstaller
           python -m bundle.pyinstaller --onedir
@@ -507,6 +489,8 @@ jobs:
         if: vars.UPDATE_TO_VERIFICATION
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           $name = "yt-dlp${Env:SUFFIX}"
           Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
           $version = & "./dist/${name}.exe" --version
@@ -517,7 +501,7 @@ jobs:
           }
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: build-bin-${{ github.job }}-${{ matrix.arch }}
           path: |
@@ -526,23 +510,25 @@ jobs:
           compression-level: 0
 
   meta_files:
-    if: always() && !cancelled()
+    name: Metadata files
     needs:
       - process
       - unix
       - linux
       - macos
       - windows
+    if: always() && !failure() && !cancelled()
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131  # v7.0.0
         with:
           path: artifact
           pattern: build-bin-*
           merge-multiple: true
 
       - name: Make SHA2-SUMS files
+        shell: bash
         run: |
           cd ./artifact/
           # make sure SHA sums are also printed to stdout
@@ -558,35 +544,39 @@ jobs:
           cat >> _update_spec << EOF
           # This file is used for regulating self-update
           lock 2022.08.18.36 .+ Python 3\.6
-          lock 2023.11.16 (?!win_x86_exe).+ Python 3\.7
+          lock 2023.11.16 zip Python 3\.7
           lock 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lock 2024.10.22 py2exe .+
           lock 2024.10.22 zip Python 3\.8
           lock 2024.10.22 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           lock 2025.08.11 darwin_legacy_exe .+
           lock 2025.08.27 linux_armv7l_exe .+
+          lock 2025.10.14 zip Python 3\.9
           lockV2 yt-dlp/yt-dlp 2022.08.18.36 .+ Python 3\.6
-          lockV2 yt-dlp/yt-dlp 2023.11.16 (?!win_x86_exe).+ Python 3\.7
+          lockV2 yt-dlp/yt-dlp 2023.11.16 zip Python 3\.7
           lockV2 yt-dlp/yt-dlp 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp 2024.10.22 py2exe .+
           lockV2 yt-dlp/yt-dlp 2024.10.22 zip Python 3\.8
           lockV2 yt-dlp/yt-dlp 2024.10.22 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           lockV2 yt-dlp/yt-dlp 2025.08.11 darwin_legacy_exe .+
           lockV2 yt-dlp/yt-dlp 2025.08.27 linux_armv7l_exe .+
-          lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 (?!win_x86_exe).+ Python 3\.7
+          lockV2 yt-dlp/yt-dlp 2025.10.14 zip Python 3\.9
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 zip Python 3\.7
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 py2exe .+
           lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 zip Python 3\.8
           lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           lockV2 yt-dlp/yt-dlp-nightly-builds 2025.08.12.233030 darwin_legacy_exe .+
           lockV2 yt-dlp/yt-dlp-nightly-builds 2025.08.30.232839 linux_armv7l_exe .+
-          lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 (?!win_x86_exe).+ Python 3\.7
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2025.10.14.232845 zip Python 3\.9
+          lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 zip Python 3\.7
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.045052 py2exe .+
           lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 zip Python 3\.8
           lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.060347 win(?:_x86)?_exe Python 3\.[78].+ Windows-(?:7-|2008ServerR2)
           lockV2 yt-dlp/yt-dlp-master-builds 2025.08.12.232447 darwin_legacy_exe .+
           lockV2 yt-dlp/yt-dlp-master-builds 2025.09.05.212910 linux_armv7l_exe .+
+          lockV2 yt-dlp/yt-dlp-master-builds 2025.10.14.232330 zip Python 3\.9
           EOF
 
       - name: Sign checksum files
@@ -594,13 +584,13 @@ jobs:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
         if: env.GPG_SIGNING_KEY
         run: |
-          gpg --batch --import <<< "${{ secrets.GPG_SIGNING_KEY }}"
+          gpg --batch --import <<< "${GPG_SIGNING_KEY}"
           for signfile in ./SHA*SUMS; do
             gpg --batch --detach-sign "$signfile"
           done
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: build-${{ github.job }}
           path: |

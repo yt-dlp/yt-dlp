@@ -6,6 +6,7 @@ import dataclasses
 import datetime as dt
 import hashlib
 import json
+import traceback
 import typing
 import urllib.parse
 from collections.abc import Iterable
@@ -58,9 +59,9 @@ class YoutubeIEContentProviderLogger(IEContentProviderLogger):
         if self.log_level <= self.LogLevel.TRACE:
             self.__ie.write_debug(self._format_msg('TRACE: ' + message))
 
-    def debug(self, message: str):
+    def debug(self, message: str, *, once=False):
         if self.log_level <= self.LogLevel.DEBUG:
-            self.__ie.write_debug(self._format_msg(message))
+            self.__ie.write_debug(self._format_msg(message), only_once=once)
 
     def info(self, message: str):
         if self.log_level <= self.LogLevel.INFO:
@@ -70,9 +71,11 @@ class YoutubeIEContentProviderLogger(IEContentProviderLogger):
         if self.log_level <= self.LogLevel.WARNING:
             self.__ie.report_warning(self._format_msg(message), only_once=once)
 
-    def error(self, message: str):
+    def error(self, message: str, cause=None):
         if self.log_level <= self.LogLevel.ERROR:
-            self.__ie._downloader.report_error(self._format_msg(message), is_error=False)
+            self.__ie._downloader.report_error(
+                self._format_msg(message), is_error=False,
+                tb=''.join(traceback.format_exception(None, cause, cause.__traceback__)) if cause else None)
 
 
 class PoTokenCache:
