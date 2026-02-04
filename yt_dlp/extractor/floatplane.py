@@ -319,12 +319,7 @@ class FloatplaneIE(FloatplaneBaseIE):
 
 
 class FloatplaneChannelBaseIE(InfoExtractor):
-    """
-    Subclasses must add a class variable _ENTRY_IE_TYPE with the type of the individual entries in the channel
-    as well as _BASE_URL with the base url of the floatplane instance.
-
-    See .floatplane.FloatplaneChannelIE and .sauceplus.SauceplusChannelIE for concrete implementations.
-    """
+    """Subclasses must set _ENTRY_IE_TYPE, _BASE_URL and _PAGE_SIZE"""
 
     def _fetch_page(self, display_id, creator_id, channel_id, page):
         query = {
