@@ -259,6 +259,7 @@ class StarTVSeriesIE(InfoExtractor):
         /(?P<showType>dizi|program)
         /(?P<showSlug>[a-z0-9\-]+)
         (/(?P<contentType>bolumler|fragmanlar|ekstralar))?
+        /?$
     '''
     _TESTS = [
         {
