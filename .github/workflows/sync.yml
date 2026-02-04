@@ -24,8 +24,8 @@ jobs:
           git remote add upstream https://github.com/yt-dlp/yt-dlp.git
           git fetch upstream
 
-          # Rebase your commits on top of upstream
-          git rebase upstream/master
+          # Merge upstream changes
+          git merge upstream/master --no-edit --allow-unrelated-histories
 
-          # Force push to your fork (required after rebase)
-          git push origin test --force-with-lease
+          # Push to your fork
+          git push origin test
