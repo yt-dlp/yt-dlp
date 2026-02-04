@@ -1,6 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
+    join_nonempty,
     parse_iso8601,
     try_get,
     url_or_none,
@@ -43,15 +44,8 @@ class CCCIE(InfoExtractor):
             if not recording_url:
                 continue
             language = recording.get('language')
-            folder = recording.get('folder')
-            format_id = None
-            if language:
-                format_id = language
-            if folder:
-                if language:
-                    format_id += '-' + folder
-                else:
-                    format_id = folder
+            folder = recording.get('folder') or ''
+            format_id = join_nonempty(language, folder) or None
             vcodec = None
             if 'av1' in folder:
                 vcodec = 'av1'
