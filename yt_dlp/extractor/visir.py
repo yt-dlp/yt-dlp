@@ -85,11 +85,11 @@ class VisirIE(InfoExtractor):
             return self.url_result(real_url, self.ie_key())
 
         upload_date = None
-        if date_str := traverse_obj(webpage, (
-            {find_element(cls='article-item__date')}, {clean_html}, filter,
-        )):
-            day, month, year = date_str.replace('.', '').split()
-            day = int_or_none(day)
+        date_elements = traverse_obj(webpage, (
+            {find_element(cls='article-item__date')}, {clean_html}, filter, {str.split}))
+        if date_elements and len(date_elements) == 3:
+            day, month, year = date_elements
+            day = int_or_none(day.rstrip('.'))
             month = month_by_name(month, 'is')
             if day and month and re.fullmatch(r'[0-9]{4}', year):
                 upload_date = f'{year}{month:02d}{day:02d}'
