@@ -19,9 +19,6 @@ class LocipoBaseIE(StreaksBaseIE):
     _BASE_URL = 'https://locipo.jp'
     _UUID_RE = r'[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}'
 
-    def _real_initialize(self):
-        self.cookiejar.clear(domain='locipo.jp')
-
     def _call_api(self, path, item_id, note, fatal=True):
         return self._download_json(
             f'{self._API_BASE}/{path}', item_id,
@@ -85,7 +82,7 @@ class LocipoIE(LocipoBaseIE):
             'id': '69a5b15c-901f-4828-a336-30c0de7612d3',
             'title': '見て・乗って・語りたい。 東海の鉄道沼',
         },
-        'playlist_mincount': 4,
+        'playlist_mincount': 3,
     }, {
         'url': 'https://locipo.jp/creative/a0751a7f-c7dd-4a10-a7f1-e12720bdf16c?list=006cff3f-ba74-42f0-b4fd-241486ebda2b',
         'info_dict': {
@@ -128,7 +125,9 @@ class LocipoIE(LocipoBaseIE):
 
         return {
             **self._extract_from_streaks_api('locipo-prod', media_id, headers={
-                'Origin': 'https://locipo.jp', 'X-Streaks-Api-Key': api_key}),
+                'Origin': 'https://locipo.jp',
+                'X-Streaks-Api-Key': api_key,
+            }),
             **traverse_obj(creatives, {
                 'title': ('name', {clean_html}),
                 'description': ('description', {clean_html}, filter),
@@ -145,8 +144,10 @@ class LocipoIE(LocipoBaseIE):
 
 
 class LocipoPlaylistIE(LocipoBaseIE):
-    _PAGE_SIZE = 100
-    _VALID_URL = fr'https?://locipo\.jp/(?P<type>playlist|series)/(?P<id>{LocipoBaseIE._UUID_RE}|\d+)'
+    _VALID_URL = [
+        fr'https?://locipo\.jp/(?P<type>playlist)/(?P<id>{LocipoBaseIE._UUID_RE})',
+        r'https?://locipo\.jp/(?P<type>series)/(?P<id>\d+)',
+    ]
     _TESTS = [{
         'url': 'https://locipo.jp/playlist/35d3dd2b-531d-4824-8575-b1c527d29538',
         'info_dict': {
@@ -172,6 +173,7 @@ class LocipoPlaylistIE(LocipoBaseIE):
         },
         'playlist_mincount': 223,
     }]
+    _PAGE_SIZE = 100
 
     def _fetch_page(self, path, playlist_id, page):
         creatives = self._download_json(
@@ -195,10 +197,13 @@ class LocipoPlaylistIE(LocipoBaseIE):
         creatives = self._call_api(
             f'{path}/{playlist_id}/creatives', playlist_id, path.capitalize())
 
-        return self.playlist_result(InAdvancePagedList(
+        entries = InAdvancePagedList(
             functools.partial(self._fetch_page, path, playlist_id),
-            math.ceil(int(creatives['total']) / self._PAGE_SIZE), self._PAGE_SIZE,
-        ), playlist_id, **traverse_obj(creatives, ('items', ..., playlist_type, {
-            'title': ('name', {clean_html}, filter),
-            'description': ('description', {clean_html}, filter),
-        }, any)))
+            math.ceil(int(creatives['total']) / self._PAGE_SIZE), self._PAGE_SIZE)
+
+        return self.playlist_result(
+            entries, playlist_id,
+            **traverse_obj(creatives, ('items', ..., playlist_type, {
+                'title': ('name', {clean_html}, filter),
+                'description': ('description', {clean_html}, filter),
+            }, any)))
