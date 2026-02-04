@@ -318,9 +318,56 @@ class FloatplaneIE(FloatplaneBaseIE):
             self.raise_login_required()
 
 
-class FloatplaneChannelIE(InfoExtractor):
+class FloatplaneChannelBaseIE(InfoExtractor):
+    """
+    Subclasses must add a class variable _ENTRY_IE_TYPE with the type of the individual entries in the channel
+    as well as _BASE_URL with the base url of the floatplane instance.
+
+    See .floatplane.FloatplaneChannelIE and .sauceplus.SauceplusChannelIE for concrete implementations.
+    """
+
+    def _fetch_page(self, display_id, creator_id, channel_id, page):
+        query = {
+            'id': creator_id,
+            'limit': self._PAGE_SIZE,
+            'fetchAfter': page * self._PAGE_SIZE,
+        }
+        if channel_id:
+            query['channel'] = channel_id
+        page_data = self._download_json(
+            f'{self._BASE_URL}/api/v3/content/creator', display_id,
+            query=query, note=f'Downloading page {page + 1}')
+        for post in page_data or []:
+            yield self.url_result(
+                f"{self._BASE_URL}/post/{post['id']}",
+                self._ENTRY_IE_TYPE,
+                id=post['id'],
+                title=post.get('title'),
+                release_timestamp=parse_iso8601(post.get('releaseDate')),
+            )
+
+    def _real_extract(self, url):
+        creator, channel = self._match_valid_url(url).group('id', 'channel')
+        display_id = join_nonempty(creator, channel, delim='/')
+
+        creator_data = self._download_json(
+            f'{self._BASE_URL}/api/v3/creator/named', display_id, query={'creatorURL[0]': creator},
+        )[0]
+
+        channel_data = traverse_obj(
+            creator_data, ('channels', lambda _, v: v['urlname'] == channel), get_all=False) or {}
+
+        return self.playlist_result(OnDemandPagedList(functools.partial(
+            self._fetch_page, display_id, creator_data['id'], channel_data.get('id')), self._PAGE_SIZE),
+            display_id, title=channel_data.get('title') or creator_data.get('title'),
+            description=channel_data.get('about') or creator_data.get('about'))
+
+
+class FloatplaneChannelIE(FloatplaneChannelBaseIE):
     _VALID_URL = r'https?://(?:(?:www|beta)\.)?floatplane\.com/channel/(?P<id>[\w-]+)/home(?:/(?P<channel>[\w-]+))?'
+    _BASE_URL = 'https://www.floatplane.com'
     _PAGE_SIZE = 20
+    _ENTRY_IE_TYPE = FloatplaneIE
     _TESTS = [{
         'url': 'https://www.floatplane.com/channel/linustechtips/home/ltxexpo',
         'info_dict': {
@@ -346,36 +393,3 @@ class FloatplaneChannelIE(InfoExtractor):
         },
         'playlist_mincount': 200,
     }]
-
-    def _fetch_page(self, display_id, creator_id, channel_id, page):
-        query = {
-            'id': creator_id,
-            'limit': self._PAGE_SIZE,
-            'fetchAfter': page * self._PAGE_SIZE,
-        }
-        if channel_id:
-            query['channel'] = channel_id
-        page_data = self._download_json(
-            'https://www.floatplane.com/api/v3/content/creator', display_id,
-            query=query, note=f'Downloading page {page + 1}')
-        for post in page_data or []:
-            yield self.url_result(
-                f'https://www.floatplane.com/post/{post["id"]}',
-                FloatplaneIE, id=post['id'], title=post.get('title'),
-                release_timestamp=parse_iso8601(post.get('releaseDate')))
-
-    def _real_extract(self, url):
-        creator, channel = self._match_valid_url(url).group('id', 'channel')
-        display_id = join_nonempty(creator, channel, delim='/')
-
-        creator_data = self._download_json(
-            'https://www.floatplane.com/api/v3/creator/named',
-            display_id, query={'creatorURL[0]': creator})[0]
-
-        channel_data = traverse_obj(
-            creator_data, ('channels', lambda _, v: v['urlname'] == channel), get_all=False) or {}
-
-        return self.playlist_result(OnDemandPagedList(functools.partial(
-            self._fetch_page, display_id, creator_data['id'], channel_data.get('id')), self._PAGE_SIZE),
-            display_id, title=channel_data.get('title') or creator_data.get('title'),
-            description=channel_data.get('about') or creator_data.get('about'))
