@@ -26,6 +26,7 @@ from test.test_sabr.test_stream.helpers import (
     LiveAVProfile,
     mock_time,
     SkipSegmentProfile,
+    DEFAULT_AUDIO_FORMAT,
 )
 from yt_dlp.extractor.youtube._proto.videostreaming.reload_player_response import ReloadPlaybackParams
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import (
@@ -46,6 +47,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.part import (
     PoTokenStatusSabrPart,
     MediaSegmentInitSabrPart,
     MediaSegmentEndSabrPart,
+    MediaSeekSabrPart,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.stream import SabrStream
 from yt_dlp.extractor.youtube._proto.videostreaming import (
@@ -58,6 +60,7 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     SabrRedirect,
     VideoPlaybackAbrRequest,
     LiveMetadata,
+    SabrSeek,
 )
 from yt_dlp.utils import parse_qs
 
@@ -118,6 +121,10 @@ class TestStream:
 
         assert len(rh.request_history) == 6
 
+        # Should have completed due to all segments being retrieved
+        logger.trace.assert_any_call(
+            'All enabled formats have reached their last expected segment at player time 10001 ms, assuming end of vod.')
+
     def test_audio_only(self, logger, client_info):
         # Basic successful case that only audio format is requested and returned.
         sabr_stream, rh, selectors = setup_sabr_stream_av(
@@ -142,6 +149,10 @@ class TestStream:
 
         assert rh.request_history[0].vpabr.client_abr_state.enabled_track_types_bitfield == 1
         assert len(rh.request_history[1].vpabr.buffered_ranges) == 1
+
+        # Should have completed due to all segments being retrieved
+        logger.trace.assert_any_call(
+            'All enabled formats have reached their last expected segment at player time 10001 ms, assuming end of vod.')
 
     def test_video_only(self, logger, client_info):
         # Basic successful case that only video format is requested and returned.
@@ -180,6 +191,72 @@ class TestStream:
             time_range=TimeRange(start_ticks=0, duration_ticks=9007199254740991, timescale=1000))
 
         assert audio_buffered_range in rh.request_history[1].vpabr.buffered_ranges
+
+        # Should have completed due to all segments being retrieved
+        logger.trace.assert_any_call(
+            'All enabled formats have reached their last expected segment at player time 10001 ms, assuming end of vod.')
+
+    def test_audio_video_end_player_time(self, logger, client_info):
+        # Should consider stream as finished if player_time_ms is greater than end_time_ms of each format
+        # Fallback to when we can't determine end based on segments retrieved
+        # Can simulate this by setting start_time_ms to beyond end of stream and not sending any media parts
+
+        def no_media_parts_processor(parts, vpabr, url, request_number):
+            return [
+                part for part in parts
+                if part.part_id not in (UMPPartId.MEDIA_HEADER, UMPPartId.MEDIA, UMPPartId.MEDIA_END)
+            ]
+        sabr_stream, rh, _ = setup_sabr_stream_av(
+            sabr_response_processor=CustomAVProfile({'custom_parts_function': no_media_parts_processor}),
+            client_info=client_info,
+            logger=logger,
+            start_time_ms=100000,
+        )
+        parts = list(sabr_stream.iter_parts())
+        assert len(parts) == 2  # Only format init parts
+        assert all(isinstance(part, FormatInitializedSabrPart) for part in parts)
+        assert len(rh.request_history) == 1
+        logger.trace.assert_any_call('All enabled formats have reached their end time by player time 100000 ms, assuming end of vod.')
+
+    def test_end_stream_before_discarded_format(self, logger, client_info):
+        # If enabled formats are detected as ended before a discarded format,
+        # the stream should end without waiting for the discarded format to finish.
+        # For this test, we need to clear consumed ranges for the discarded format
+        # (to simulate case when we cannot use the consumed ranges trick to ignore format)
+
+        sabr_stream, _, selectors = setup_sabr_stream_av(
+            client_info=client_info,
+            logger=logger,
+            enable_audio=False,
+        )
+        _, video_selector = selectors
+        # When receive format init part for audio, clear consumed ranges
+        iter_parts = sabr_stream.iter_parts()
+        parts = []
+        for part in iter_parts:
+            # keep clearing the discarded audio format consumed ranges once they are set
+            audio_izf = sabr_stream.processor.initialized_formats.get(str(DEFAULT_AUDIO_FORMAT))
+            if audio_izf:
+                assert audio_izf.discard is True
+                audio_izf.consumed_ranges = []
+            parts.append(part)
+
+        # sanity checking we only get video-only segments
+        format_init_parts = [part for part in parts if isinstance(part, FormatInitializedSabrPart)]
+        assert len(format_init_parts) == 1
+        assert format_init_parts[0].format_id == FormatId(itag=248, lmt=456)
+        assert format_init_parts[0].format_selector == video_selector
+
+        assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+
+        # Ensure we did not get any audio segments
+        audio_parts = [part for part in parts if hasattr(part, 'format_selector') and isinstance(part.format_selector, AudioSelector)]
+        assert not audio_parts
+
+        # Should finish stream even though discarded format is not ended
+        logger.trace.assert_any_call(
+            'All enabled formats have reached their last expected segment at player time 10001 ms, assuming end of vod.')
+        assert sabr_stream.processor.initialized_formats[str(DEFAULT_AUDIO_FORMAT)].consumed_ranges == []
 
     def test_basic_buffers(self, logger, client_info):
         # Check that basic audio and video buffering works as expected
@@ -2709,12 +2786,12 @@ class TestStream:
 
                 if not post_live:
                     logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
-                    logger.trace.assert_any_call('Near live stream head detected based on player time and head sequence time with tolerance (ms): 14000 >= 14000 - 6000')
+                    logger.trace.assert_any_call('Near or at live stream head detected based on player time and head sequence end time with tolerance (ms): 14000 >= 15900 - 6000')
                     logger.debug.assert_any_call('No activity detected in 5 requests and 10.0 seconds. Near live stream head; assuming livestream has ended.')
                     assert sabr_stream._stream_stall_tracker.stalled_requests == 5
                 else:
                     logger.debug.assert_any_call('No activity detected in request 14; registering stall (count: 6)')
-                    logger.trace.assert_any_call('Near live stream head detected based on player time and head sequence time with tolerance (ms): 15900 >= 18000 - 6000')
+                    logger.trace.assert_any_call('Near or at live stream head detected based on player time and head sequence end time with tolerance (ms): 15900 >= 19900 - 6000')
                     logger.debug.assert_any_call('No activity detected in 6 requests and 10.0 seconds. Near live stream head; assuming livestream has ended.')
                     assert sabr_stream._stream_stall_tracker.stalled_requests == 6
 
@@ -2798,6 +2875,139 @@ class TestStream:
                 # We will get all segments in this example
                 assert_media_sequence_in_order(parts, audio_selector, total_segments)
                 assert_media_sequence_in_order(parts, video_selector, total_segments)
+
+            @mock_time
+            @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
+            def test_sabr_seek_before_head_stall(self, logger, client_info, post_live):
+                # Cannot get the head segment, and the server seeks the client
+                # just after the n-1 segment (as to not be within the consumed range)
+                # TODO: currently sabr_seek gets reset back to head_segment_start_ms on each request
+                #  due to total_duration_ms incorrectly being head_segment_start_ms.
+                #  Once that is fixed, this test should pass due to it detecting player time ms is near end
+                total_segments = 10
+                segment_target_duration_ms = 2000
+                dvr_segments = 9
+
+                class DisallowLastSegmentprofile(LiveAVProfile):
+                    def next_segment(self, buffered_segments: set[int], player_time_ms: int) -> int | None:
+                        # If next_segment is segment 10, do not return it
+                        next_seg = super().next_segment(buffered_segments, player_time_ms)
+                        if next_seg == 10:
+                            return None
+                        return next_seg
+
+                    def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str, request_number: int) -> list[UMPPart | Exception]:
+                        parts = super().get_parts(vpabr, url, request_number)
+                        # if no media parts, seek to end just before head segment
+                        if not any(part.part_id == UMPPartId.MEDIA_HEADER for part in parts):
+                            sabr_seek = protobug.dumps(SabrSeek(
+                                seek_time_ticks=self.live_head_segment_start_ms() + 1000,
+                                timescale=1000,
+                            ))
+                            parts.append(UMPPart(
+                                part_id=UMPPartId.SABR_SEEK,
+                                size=len(sabr_seek),
+                                data=io.BytesIO(sabr_seek),
+                            ))
+                        return parts
+
+                profile = DisallowLastSegmentprofile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                })
+
+                sabr_stream, _, selectors = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    post_live=post_live,
+                )
+
+                parts = list(sabr_stream.iter_parts())
+                audio_selector, video_selector = selectors
+                assert_media_sequence_in_order(parts, audio_selector, total_segments - 1, check_segment_total_segments=False)
+                assert_media_sequence_in_order(parts, video_selector, total_segments - 1, check_segment_total_segments=False)
+
+                # Check we got seeks
+                assert any(isinstance(part, MediaSeekSabrPart) for part in parts)
+
+                logger.trace.assert_any_call('Near or at live stream head detected based on player time and head sequence end time with tolerance (ms): 19000 >= 19900 - 6000')
+                logger.trace.assert_any_call('No activity detected in 6 requests and 10.0 seconds. Near live stream head; assuming livestream has ended.')
+
+        class TestPostLiveEnd:
+            @mock_time
+            def test_post_live_stream_end(self, logger, client_info):
+                # Should consider post live stream as finished as soon as reach live head segment
+                total_segments = 10
+                segment_target_duration_ms = 2000
+                dvr_segments = 9
+                profile = LiveAVProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                })
+                sabr_stream, _, selectors = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    post_live=True,
+                )
+                audio_selector, video_selector = selectors
+                parts = list(sabr_stream.iter_parts())
+                assert_media_sequence_in_order(parts, audio_selector, total_segments)
+                assert_media_sequence_in_order(parts, video_selector, total_segments)
+
+                logger.trace.assert_any_call('All enabled formats have reached their last expected segment at player time 18000 ms, assuming end of vod.')
+
+            @mock_time
+            def test_post_live_stream_end_player_time(self, logger, client_info):
+                # Test post live stream end based on player time exceeding head end time
+                # We can simulate this by remove head segment from the live_metadata
+                # TODO: currently fails due to next player time logic sending us to start of head when already have head
+                total_segments = 10
+                segment_target_duration_ms = 2000
+                dvr_segments = 9
+
+                # We can skip the check on live head segment by making the server not return it
+                class RemoveLiveHeadSegmentNumberLiveProfile(LiveAVProfile):
+                    def generate_live_metadata(self, current_segment: int) -> LiveMetadata:
+                        lm = super().generate_live_metadata(current_segment)
+                        lm.head_sequence_number = None
+                        return lm
+
+                profile = RemoveLiveHeadSegmentNumberLiveProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                })
+                sabr_stream, _, selectors = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    post_live=True,
+                )
+                audio_selector, video_selector = selectors
+                parts = list(sabr_stream.iter_parts())
+                assert_media_sequence_in_order(parts, audio_selector, total_segments)
+                assert_media_sequence_in_order(parts, video_selector, total_segments)
+
+                # should not have any stalls as should finish immediately based on player time
+                assert sabr_stream._stream_stall_tracker.stalled_requests == 0
+
+                live_end_tolerance = sabr_stream.processor.live_segment_target_duration_tolerance_ms
+                assert live_end_tolerance == 100  # default
+                estimated_end_time = (total_segments * segment_target_duration_ms) - live_end_tolerance
+                # Should NOT use any tolerance when checking for immediate post live end based on player time
+                logger.trace.assert_any_call(
+                    'Near or at live stream head detected based on player time '
+                    f'and head sequence end time with tolerance (ms): {estimated_end_time} >= {estimated_end_time} - 0')
 
         @mock_time
         def test_livestream_no_dvr(self, client_info):

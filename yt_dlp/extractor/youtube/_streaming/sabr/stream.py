@@ -46,7 +46,8 @@ from ..ump import UMPDecoder, UMPPart, UMPPartId, read_varint
 @dataclasses.dataclass
 class StreamStallTracker:
     stalled_requests: int = 0
-    last_active_time: float = dataclasses.field(default_factory=time.time)
+    # note: lambda to allow mocking of time in tests
+    last_active_time: float = dataclasses.field(default_factory=lambda: time.time())
     # Whether the last request resulted in any activity (new segments)
     activity_detected: bool = False
 
@@ -168,8 +169,7 @@ class SabrStream:
         self.retry_sleep_func = retry_sleep_func
         self._request_number = 0
 
-        # Whether we got any new (not consumed) segments in the request.
-
+        # Keep track if we got any new (not consumed) segments in the request.
         self._stream_stall_tracker = StreamStallTracker()
         self._next_request_wait_sec = 0
         self._sps_retry_manager: typing.Generator | None = None
@@ -297,12 +297,12 @@ class SabrStream:
 
             # We are expecting to stay in the same place for a retry
             if not retry_next_request:
-                # Only process stream stall if we are not retrying
-
-                self._check_stream_stall()
 
                 # Calculate and apply the next playback time to skip to
                 self._prepare_next_playback_time()
+
+                self._check_end_of_stream()
+                self._check_stream_stall()
 
                 # Request successfully processed, next request is not a retry
                 self._is_retry = False
@@ -310,6 +310,7 @@ class SabrStream:
                 self._is_retry = True
 
         self._consumed = True
+        self._log_state()
 
     def _process_sps_retry(self):
         error = PoTokenError(missing=not self.processor.po_token)
@@ -345,143 +346,6 @@ class SabrStream:
     def _wait_for(self, seconds: int):
         self._next_request_wait_sec = max(self._next_request_wait_sec, seconds)
 
-    def _check_stream_stall(self):
-        if self.processor.is_live:
-            return self._check_live_stream_stall()
-
-        return self._check_vod_stream_stall()
-
-    def _update_stall(self):
-        self.logger.debug(
-            f'No activity detected in request {self._request_number}; '
-            f'registering stall (count: {self._stream_stall_tracker.stalled_requests + 1})')
-        self._stream_stall_tracker.register_stall()
-
-    def _check_vod_stream_stall(self):
-        if not self._stream_stall_tracker.activity_detected:
-            self._update_stall()
-            self._check_vod_ad_wait()
-
-        if self._stream_stall_tracker.stalled_requests >= self.max_empty_requests:
-            raise StreamStallError(f'Stream stalled; no activity detected in {self.max_empty_requests} consecutive requests')
-
-    def _check_vod_ad_wait(self):
-        # xxx: this logic is fairly loose, could do with some tightening
-        if (
-            self.processor.next_request_policy and self.processor.next_request_policy.backoff_time_ms
-            and any(t in self.processor.sabr_contexts_to_send for t in self.processor.sabr_context_updates)
-        ):
-            wait_seconds = math.ceil(self.processor.next_request_policy.backoff_time_ms / 1000)
-            self.logger.info(f'Sleeping {wait_seconds:.2f} seconds as required by the server')
-            self._wait_for(wait_seconds)
-
-    def _active_initialized_formats(self):
-        return (
-            izf for izf in self.processor.initialized_formats.values()
-            if not izf.discard
-        )
-
-    def _next_request_backoff_ms(self):
-        backoff_ms = 0
-        if self.processor.next_request_policy and self.processor.next_request_policy.backoff_time_ms:
-            backoff_ms = self.processor.next_request_policy.backoff_time_ms
-        return backoff_ms
-
-    def _get_live_current_consumed_ranges(self):
-        current = []
-        for izf in self._active_initialized_formats():
-            cr = find_consumed_range_by_time(
-                self.processor.client_abr_state.player_time_ms,
-                izf.consumed_ranges,
-                tolerance_ms=self.processor.live_segment_target_duration_tolerance_ms,
-            )
-            current.append((izf, cr))
-        return current
-
-    def _is_near_head_of_stream(self):
-        player_time_ms = self.processor.client_abr_state.player_time_ms
-
-        # 1. Check if near head segment based on consumed segments
-        head_sequence_number = getattr(self.processor.live_metadata, 'head_sequence_number', None)
-        if head_sequence_number is not None:
-            if all(
-                cr is not None and (head_sequence_number - cr.end_sequence_number) <= self.live_end_segment_tolerance
-                for izf, cr in self._get_live_current_consumed_ranges()
-            ):
-                self.logger.trace(
-                    f'Near live stream head detected based on consumed ranges of active formats: '
-                    f'head seq ({head_sequence_number}) - tolerance ({self.live_end_segment_tolerance})')
-                return True
-
-        # 2. Check if near head sequence based on total duration
-        # This should be the player time BEFORE incrementing for the next request
-        # Sometimes we receive a partial segment at the end of the stream
-        # and the server seeks us to the end of the current segment.
-        # As our consumed range for this segment has an estimated end time,
-        # this may be slightly off what the server seeks to.
-        # This can cause the player time to be slightly outside the consumed range (i.e, the above check fails)
-        head_sequence_time_ms = getattr(self.processor.live_metadata, 'head_sequence_time_ms', None)
-        live_end_duration_tolerance_ms = self.processor.live_segment_target_duration_sec * 1000 * self.live_end_segment_tolerance
-
-        if (
-            head_sequence_time_ms is not None
-            and player_time_ms >= head_sequence_time_ms - live_end_duration_tolerance_ms
-        ):
-            self.logger.trace(
-                f'Near live stream head detected based on player time '
-                f'and head sequence time with tolerance (ms): {player_time_ms} >= {head_sequence_time_ms} - {live_end_duration_tolerance_ms}')
-            return True
-
-        return False
-
-    def _check_live_stream_stall(self):
-        # Two conditions to consider for stalled live stream:
-        # 1. No activity midway through stream (unexpected)
-        # 2. No activity at or near the end of the stream (expected, mark stream as ended)
-
-        # Notes:
-        # - Sometimes the last segment we can retrieve is a couple segments behind the live head.
-
-        if not self._stream_stall_tracker.activity_detected:
-            self._update_stall()
-
-        empty_requests = self._stream_stall_tracker.stalled_requests
-        max_requests_reached = empty_requests >= self.max_empty_requests
-        seconds_since_last_activity = time.time() - self._stream_stall_tracker.last_active_time
-        live_end_wait_time_exceeded = seconds_since_last_activity >= self.live_end_wait_sec
-
-        if not max_requests_reached or not live_end_wait_time_exceeded:
-            if empty_requests >= 1:
-                # Sometimes we can't get the head segment - rather tend to sit behind the head segment for the duration of the livestream.
-                # We should also slow down and wait if getting empty requests midway through.
-                self._wait_for(max(self._next_request_backoff_ms() // 1000, self.processor.live_segment_target_duration_sec))
-            return
-
-        if self._is_near_head_of_stream():
-            # TODO(future): consider checking heartbeat or other indicators of actual stream end
-            self.logger.debug(
-                f'No activity detected in {empty_requests} requests and {seconds_since_last_activity} seconds. '
-                f'Near live stream head; assuming livestream has ended.')
-            self._consumed = True
-            return
-
-        # Guard: In the case live metadata is not returned,
-        # we cannot be sure if we are at the head of the stream.
-        # In this case we'll consider the stream has ended.
-        # This has only been seen on android_vr, most other clients return live metadata.
-        if not self.processor.live_metadata:
-            # TODO(future): consider checking heartbeat or other indicators of actual stream end
-            self.logger.debug(
-                f'No activity detected in {empty_requests} requests and {seconds_since_last_activity} seconds. '
-                f'No live metadata available; assuming livestream has ended.')
-            self._consumed = True
-            return
-
-        raise StreamStallError(
-            f'Stream stalled; no activity detected in '
-            f'{empty_requests} requests and {seconds_since_last_activity} seconds '
-            f'and not near live head.')
-
     def _validate_response_integrity(self):
         if not len(self.processor.partial_segments):
             return
@@ -496,7 +360,7 @@ class SabrStream:
             if (
                 self.processor.live_metadata
                 # TODO: generalize
-                and self.processor.client_abr_state.player_time_ms >= (
+                and self.processor.player_time_ms >= (
                     self.processor.live_metadata.head_sequence_time_ms - (self.processor.live_segment_target_duration_sec * 1000 * self.live_end_segment_tolerance))
             ):
                 # Only log a warning if we are not near the head of a stream
@@ -540,7 +404,7 @@ class SabrStream:
         current_consumed_ranges = []
         for izf in enabled_initialized_formats:
             for cr in sorted(izf.consumed_ranges, key=lambda cr: cr.start_sequence_number):
-                if (cr.start_time_ms - cr_tolerance_ms) <= self.processor.client_abr_state.player_time_ms <= cr.start_time_ms + cr.duration_ms + (cr_tolerance_ms * 2):
+                if (cr.start_time_ms - cr_tolerance_ms) <= self.processor.player_time_ms <= cr.start_time_ms + cr.duration_ms + (cr_tolerance_ms * 2):
                     chain = get_cr_chain(cr, izf.consumed_ranges)
                     current_consumed_ranges.append(chain[-1])
                     # There should only be one chain for the current player_time_ms (including the tolerance)
@@ -562,49 +426,24 @@ class SabrStream:
             # 1. SABR_SEEK to time outside both formats consumed ranges
             # 2. ONE of the formats returns data after the SABR_SEEK in that request
             if min_consumed_duration_ms is None:
-                min_consumed_duration_ms = self.processor.client_abr_state.player_time_ms
+                min_consumed_duration_ms = self.processor.player_time_ms
             else:
-                min_consumed_duration_ms = min(min_consumed_duration_ms, self.processor.client_abr_state.player_time_ms)
+                min_consumed_duration_ms = min(min_consumed_duration_ms, self.processor.player_time_ms)
 
         # Usually provided by the server if there was no segments returned.
         # We'll use this to calculate the time to wait for the next request (for live streams).
         next_request_backoff_ms = (self.processor.next_request_policy and self.processor.next_request_policy.backoff_time_ms) or 0
 
         self.logger.trace(f'min consumed duration ms: {min_consumed_duration_ms}')
-        self.processor.client_abr_state.player_time_ms = min_consumed_duration_ms
+        self.processor.player_time_ms = min_consumed_duration_ms
 
-        # Check if the latest segment is the last one of each format (if data is available)
-        if (
-            not (self.processor.is_live and not self.processor.post_live)
-            and enabled_initialized_formats
-            and len(current_consumed_ranges) == len(enabled_initialized_formats)
-            and all(
-                (
-                    initialized_format.total_segments is not None
-                    # consumed ranges are not guaranteed to be in order
-                    and sorted(
-                        initialized_format.consumed_ranges,
-                        key=lambda cr: cr.end_sequence_number,
-                    )[-1].end_sequence_number >= initialized_format.total_segments
-                )
-                for initialized_format in enabled_initialized_formats
-            )
-        ):
-            self.logger.debug('Reached last expected segment for all enabled formats, assuming end of media')
-            self._consumed = True
+        # TODO: total_duration_ms should include head sequence estimated duration
+        if self.processor.is_live and self.processor.total_duration_ms and (self.processor.player_time_ms >= self.processor.total_duration_ms):
+            self.logger.trace(f'setting player time ms ({self.processor.player_time_ms}) to total duration ms ({self.processor.total_duration_ms})')
+            self.processor.player_time_ms = self.processor.total_duration_ms
+            self._wait_for(max(next_request_backoff_ms // 1000, self.processor.live_segment_target_duration_sec))
 
-        # Check if we have exceeded the total duration of the media (if not live),
-        #  or wait for the next segment (if live)
-        # TODO: for post-live, we should have concrete checks on total duration or max sequence number without waiting at the end.
-        # this should be done around where we will check vods for end of stream.
-        elif self.processor.total_duration_ms and (self.processor.client_abr_state.player_time_ms >= self.processor.total_duration_ms):
-            if self.processor.is_live:
-                self.logger.trace(f'setting player time ms ({self.processor.client_abr_state.player_time_ms}) to total duration ms ({self.processor.total_duration_ms})')
-                self.processor.client_abr_state.player_time_ms = self.processor.total_duration_ms
-                self._wait_for(max(next_request_backoff_ms // 1000, self.processor.live_segment_target_duration_sec))
-            else:
-                self.logger.debug(f'End of media (player time ms {self.processor.client_abr_state.player_time_ms} >= total duration ms {self.processor.total_duration_ms})')
-                self._consumed = True
+    # region: UMP Part Processors
 
     def _parse_ump_response(self, response):
         self._unknown_part_types.clear()
@@ -662,14 +501,14 @@ class SabrStream:
             if self.processor.is_live and e.received_sequence_number == e.expected_sequence_number - 1:
                 # The segment before the previous segment was possibly longer than expected.
                 # Move the player time forward to try to adjust for this.
-                self.processor.client_abr_state.player_time_ms += self.processor.live_segment_target_duration_tolerance_ms
+                self.processor.player_time_ms += self.processor.live_segment_target_duration_tolerance_ms
                 self._sq_mismatch_forward_count += 1
                 self._current_http_retry.error = e
                 return
             elif self.processor.is_live and e.received_sequence_number == e.expected_sequence_number + 2:
                 # The previous segment was possibly shorter than expected
                 # Move the player time backwards to try to adjust for this.
-                self.processor.client_abr_state.player_time_ms = max(0, self.processor.client_abr_state.player_time_ms - self.processor.live_segment_target_duration_tolerance_ms)
+                self.processor.player_time_ms = max(0, self.processor.player_time_ms - self.processor.live_segment_target_duration_tolerance_ms)
                 self._sq_mismatch_backtrack_count += 1
                 self._current_http_retry.error = e
                 return
@@ -757,6 +596,8 @@ class SabrStream:
             reload_playback_token=reload_player_response.reload_playback_params.token,
         )
 
+    # endregion
+
     def _process_fallback_server(self):
         # Attempt to fall back to another GVS host in the case the current one fails
         new_url = next_gvs_fallback_url(self.url)
@@ -784,6 +625,211 @@ class SabrStream:
         self.logger.debug(
             f'Requesting player response refresh as SABR URL is due to expire within {self.expiry_threshold_sec} seconds')
         yield RefreshPlayerResponseSabrPart(reason=RefreshPlayerResponseSabrPart.Reason.SABR_URL_EXPIRY)
+
+    # region: End of stream detection
+
+    def _check_end_of_stream(self):
+        if self.processor.is_live and not self.processor.post_live:
+            # Livestream end detection handled as part of stream stall detection
+            # Post-live is handled by both - depending on if we can get the final segments or not
+            return
+
+        # Ensure all enabled format selectors have an initialized format
+        # otherwise we cannot determine end of stream yet
+        if not all(
+            any(izf.format_selector is selector for izf in self.processor.initialized_formats.values())
+            for selector in self.processor.format_selectors() if not selector.discard_media
+        ):
+            self.logger.debug(
+                'Skipping end of stream check; not all enabled format selectors have an initialized format yet')
+            return
+
+        # Also check if player time is at the head of the stream for post-live
+        if self._is_at_end_of_vod_stream() or self._player_time_near_live_head(tolerant=False):
+            self.logger.debug('End of stream')
+            self._consumed = True
+            return
+
+    def _is_at_end_of_vod_stream(self):
+        player_time_ms = self.processor.player_time_ms
+
+        # 1. All enabled formats have a consumed range for the current player time,
+        #  and they are all at the end of their consumed ranges.
+        # TODO: rename "total segments" to "last segment number" or similar
+        if all(
+            cr is not None and izf.total_segments is not None and cr.end_sequence_number >= izf.total_segments
+            for izf, cr in self._current_consumed_ranges()
+        ):
+            self.logger.trace(
+                f'All enabled formats have reached their last expected segment '
+                f'at player time {player_time_ms} ms, assuming end of vod.')
+            return True
+
+        # 2. Fallback: check if the player time exceeds the end time of all enabled formats
+        # Note: this will not apply for post-live as end_time_ms is not available.
+        if all(
+            izf.end_time_ms and player_time_ms >= izf.end_time_ms
+            for izf in self._active_initialized_formats()
+        ):
+            self.logger.trace(
+                f'All enabled formats have reached their end time by player time {player_time_ms} ms, '
+                f'assuming end of vod.')
+            return True
+
+        return False
+
+    # endregion
+
+    # region: Stream Stall Detection
+    def _check_stream_stall(self):
+        if self.processor.is_live:
+            return self._check_live_stream_stall()
+
+        return self._check_vod_stream_stall()
+
+    def _update_stall(self):
+        self.logger.debug(
+            f'No activity detected in request {self._request_number}; '
+            f'registering stall (count: {self._stream_stall_tracker.stalled_requests + 1})')
+        self._stream_stall_tracker.register_stall()
+
+    def _check_vod_stream_stall(self):
+        if not self._stream_stall_tracker.activity_detected:
+            self._update_stall()
+            self._check_vod_ad_wait()
+
+        if self._stream_stall_tracker.stalled_requests >= self.max_empty_requests:
+            raise StreamStallError(
+                f'Stream stalled; no activity detected in {self.max_empty_requests} consecutive requests')
+
+    def _check_vod_ad_wait(self):
+        # xxx: this logic is fairly loose, could do with some tightening
+        if (
+            self.processor.next_request_policy and self.processor.next_request_policy.backoff_time_ms
+            and any(t in self.processor.sabr_contexts_to_send for t in self.processor.sabr_context_updates)
+        ):
+            wait_seconds = math.ceil(self.processor.next_request_policy.backoff_time_ms / 1000)
+            self.logger.info(f'Sleeping {wait_seconds:.2f} seconds as required by the server')
+            self._wait_for(wait_seconds)
+
+    def _check_live_stream_stall(self):
+        # Two conditions to consider for stalled live stream:
+        # 1. No activity midway through stream (unexpected)
+        # 2. No activity at or near the end of the stream (expected, mark stream as ended)
+
+        # Notes:
+        # - Sometimes the last segment we can retrieve is a couple segments behind the live head.
+
+        if not self._stream_stall_tracker.activity_detected:
+            self._update_stall()
+
+        empty_requests = self._stream_stall_tracker.stalled_requests
+        max_requests_reached = empty_requests >= self.max_empty_requests
+        seconds_since_last_activity = time.time() - self._stream_stall_tracker.last_active_time
+        live_end_wait_time_exceeded = seconds_since_last_activity >= self.live_end_wait_sec
+
+        if not max_requests_reached or not live_end_wait_time_exceeded:
+            self.logger.trace(
+                f'Stall check skipped. '
+                f'Seconds since last activity: {seconds_since_last_activity:.2f}s (exceeded={live_end_wait_time_exceeded}). '
+                f'Empty requests: {empty_requests} (exceeded max={max_requests_reached}).')
+            if empty_requests >= 1:
+                # Sometimes we can't get the head segment - rather tend to sit behind the head segment for the duration of the livestream.
+                # We should also slow down and wait if getting empty requests midway through.
+                self._wait_for(max(self._next_request_backoff_ms() // 1000, self.processor.live_segment_target_duration_sec))
+            return
+
+        if self._is_near_head_of_live_stream():
+            # TODO(future): consider checking heartbeat or other indicators of actual stream end
+            # TODO: check all enabled format selectors have an initialized format
+            self.logger.debug(
+                f'No activity detected in {empty_requests} requests and {seconds_since_last_activity} seconds. '
+                f'Near live stream head; assuming livestream has ended.')
+            self._consumed = True
+            return
+
+        # Guard: In the case live metadata is not returned,
+        # we cannot be sure if we are at the head of the stream.
+        # In this case we'll consider the stream has ended.
+        # This has only been seen on android_vr, most other clients return live metadata.
+        if not self.processor.live_metadata:
+            # TODO(future): consider checking heartbeat or other indicators of actual stream end
+            # TODO: check all enabled format selectors have an initialized format
+            self.logger.debug(
+                f'No activity detected in {empty_requests} requests and {seconds_since_last_activity} seconds. '
+                f'No live metadata available; assuming livestream has ended.')
+            self._consumed = True
+            return
+
+        raise StreamStallError(
+            f'Stream stalled; no activity detected in '
+            f'{empty_requests} requests and {seconds_since_last_activity} seconds '
+            f'and not near live head.')
+
+    # endregion
+
+    def _active_initialized_formats(self):
+        return (
+            izf for izf in self.processor.initialized_formats.values()
+            if not izf.discard
+        )
+
+    def _next_request_backoff_ms(self):
+        backoff_ms = 0
+        if self.processor.next_request_policy and self.processor.next_request_policy.backoff_time_ms:
+            backoff_ms = self.processor.next_request_policy.backoff_time_ms
+        return backoff_ms
+
+    def _current_consumed_ranges(self):
+        current = []
+        tolerance = self.processor.live_segment_target_duration_tolerance_ms if self.processor.is_live else 0
+        for izf in self._active_initialized_formats():
+            cr = find_consumed_range_by_time(
+                self.processor.player_time_ms,
+                izf.consumed_ranges,
+                tolerance_ms=tolerance,
+            )
+            current.append((izf, cr))
+        return current
+
+    def _is_near_head_of_live_stream(self):
+        # 1. Check if near head segment based on consumed segments
+        head_sequence_number = getattr(self.processor.live_metadata, 'head_sequence_number', None)
+        if head_sequence_number is not None:
+            if all(
+                cr is not None and (head_sequence_number - cr.end_sequence_number) <= self.live_end_segment_tolerance
+                for izf, cr in self._current_consumed_ranges()
+            ):
+                self.logger.trace(
+                    f'Near live stream head detected based on consumed ranges of active formats: '
+                    f'head seq ({head_sequence_number}) - tolerance ({self.live_end_segment_tolerance})')
+                return True
+
+        # 2. Check if near head sequence based on total duration
+        # NOTE: head sequence time is the start time of the head sequence
+        return self._player_time_near_live_head(tolerant=True)
+
+    def _player_time_near_live_head(self, tolerant=False) -> bool:
+        # Check if the current player time is near or at the live stream head based on head sequence time
+        # with an optional tolerance for considering "near" the head
+
+        player_time_ms = self.processor.player_time_ms
+        head_sequence_time_ms = getattr(self.processor.live_metadata, 'head_sequence_time_ms', None)
+        live_segment_target_duration_ms = self.processor.live_segment_target_duration_sec * 1000
+        live_segment_duration_tolerance_ms = self.processor.live_segment_target_duration_tolerance_ms
+        estimated_head_duration_ms = live_segment_target_duration_ms - live_segment_duration_tolerance_ms
+        live_end_tolerance_ms = 0
+        if tolerant:
+            live_end_tolerance_ms = live_segment_target_duration_ms * self.live_end_segment_tolerance
+
+        if head_sequence_time_ms is not None:
+            if player_time_ms >= head_sequence_time_ms + estimated_head_duration_ms - live_end_tolerance_ms:
+                self.logger.trace(
+                    f'Near or at live stream head detected based on player time '
+                    f'and head sequence end time with tolerance (ms): '
+                    f'{player_time_ms} >= {head_sequence_time_ms + estimated_head_duration_ms} - {live_end_tolerance_ms}')
+                return True
+        return False
 
     def _log_part(self, part: UMPPart, msg=None, protobug_obj=None, data=None):
         if self.logger.log_level > self.logger.LogLevel.TRACE:
@@ -859,7 +905,7 @@ class SabrStream:
             "[SABR State] "
             f"v:{self.processor.video_id or 'unknown'} "
             f"c:{self.processor.client_info.client_name.name} "
-            f"t:{self.processor.client_abr_state.player_time_ms} "
+            f"t:{self.processor.player_time_ms} "
             f"td:{self.processor.total_duration_ms if self.processor.total_duration_ms else 'n/a'} "
             f"h:{urllib.parse.urlparse(self.url).netloc} "
             f"exp:{dt.timedelta(seconds=int(self._gvs_expiry() - time.time())) if self._gvs_expiry() else 'n/a'} "

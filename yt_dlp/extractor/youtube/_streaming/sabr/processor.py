@@ -148,13 +148,22 @@ class SabrProcessor:
     @property
     def is_live(self):
         return bool(
-            self.live_metadata
-            or self._is_live,
+            self._is_live
+            or self.live_metadata
+            or self.post_live,
         )
 
     @is_live.setter
     def is_live(self, value: bool):
         self._is_live = value
+
+    @property
+    def player_time_ms(self):
+        return self.client_abr_state.player_time_ms
+
+    @player_time_ms.setter
+    def player_time_ms(self, value: int):
+        self.client_abr_state.player_time_ms = value
 
     def _initialize_cabr_state(self):
         # SABR supports: audio+video, audio+video+captions or audio-only.
@@ -190,8 +199,15 @@ class SabrProcessor:
             drc_enabled=True,  # Required to stream DRC formats
         )
 
+    def format_selectors(self):
+        yield from (
+            self._video_format_selector,
+            self._audio_format_selector,
+            self._caption_format_selector,
+        )
+
     def match_format_selector(self, format_init_metadata):
-        for format_selector in (self._video_format_selector, self._audio_format_selector, self._caption_format_selector):
+        for format_selector in self.format_selectors():
             if not format_selector:
                 continue
             if format_selector.match(format_id=format_init_metadata.format_id, mime_type=format_init_metadata.mime_type):
@@ -359,7 +375,7 @@ class SabrProcessor:
             result.sabr_part = MediaSegmentInitSabrPart(
                 format_selector=segment.initialized_format.format_selector,
                 format_id=segment.format_id,
-                player_time_ms=self.client_abr_state.player_time_ms,
+                player_time_ms=self.player_time_ms,
                 sequence_number=segment.sequence_number,
                 total_segments=segment.initialized_format.total_segments,
                 duration_ms=segment.duration_ms,
@@ -510,9 +526,9 @@ class SabrProcessor:
         # The server SHOULD send us a SABR_SEEK part in this case, but it does not always happen (e.g. ANDROID_VR)
         # The server SHOULD NOT send us segments before the min dvr time, so we should assume that the player time is correct.
         min_seekable_time_ms = ticks_to_ms(self.live_metadata.min_seekable_time_ticks, self.live_metadata.min_seekable_timescale)
-        if min_seekable_time_ms is not None and self.client_abr_state.player_time_ms < min_seekable_time_ms:
-            self.logger.debug(f'Player time {self.client_abr_state.player_time_ms} is less than min seekable time {min_seekable_time_ms}, simulating server seek')
-            self.client_abr_state.player_time_ms = min_seekable_time_ms
+        if min_seekable_time_ms is not None and self.player_time_ms < min_seekable_time_ms:
+            self.logger.debug(f'Player time {self.player_time_ms} is less than min seekable time {min_seekable_time_ms}, simulating server seek')
+            self.player_time_ms = min_seekable_time_ms
 
             for izf in self.initialized_formats.values():
                 izf.seek_ms = min_seekable_time_ms
@@ -648,7 +664,7 @@ class SabrProcessor:
         if seek_to is None:
             raise SabrStreamError(f'Server sent a SabrSeek part that is missing required seek data: {sabr_seek}')
         self.logger.debug(f'Seeking to {seek_to}ms')
-        self.client_abr_state.player_time_ms = seek_to
+        self.player_time_ms = seek_to
 
         result = ProcessSabrSeekResult()
 
