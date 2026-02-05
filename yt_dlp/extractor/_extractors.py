@@ -2263,6 +2263,7 @@ from .uplynk import (
 )
 from .urort import UrortIE
 from .urplay import URPlayIE
+from .ursulablicklevideoarchiv import UrsulaBlickleVideoArchivIE
 from .usanetwork import USANetworkIE
 from .usatoday import USATodayIE
 from .ustream import (
