@@ -14,19 +14,19 @@ class MDETVBaseIE(InfoExtractor):
 
     def _do_cookie_refresh_and_check(self, video_id):
         """Refreshes the mde-access-token and mde-refresh-token if necessary. No-op otherwise."""
-        cookie = self._get_cookies("https://www.mde.tv")
+        cookie = self._get_cookies('https://www.mde.tv')
         try:
-            access_token = cookie["mde-access-token"].value
-            refresh_token = cookie["mde-refresh-token"].value
+            access_token = cookie['mde-access-token'].value
+            refresh_token = cookie['mde-refresh-token'].value
         except KeyError:
             self.raise_login_required()
         if self._is_jwt_expired(refresh_token):
             raise ValueError("Refresh token is expired. Can't continue.")
         elif self._is_jwt_expired(access_token):
             # calling the method will return a set-cookie header; should handle it all
-            self._download_json("https://api.mde.tv/v1/auth",
-                video_id, note="Refreshing token",
-                headers={'Accept': 'application/json'})
+            self._download_json('https://api.mde.tv/v1/auth',
+                                video_id, note='Refreshing token',
+                                headers={'Accept': 'application/json'})
 
     def _call_api(self, path, video_id, note='Downloading API JSON', authenticated=False):
         if authenticated:
@@ -50,7 +50,7 @@ class MDETVIE(MDETVBaseIE):
             'title': 'EP01 - Manual Transmission',
             'description': 'The Renaissance Men attempt to drive a truck into traffic.',
             'uploader': 'ren-men',
-            'thumbnail': 'https://cdn.mde.tv/thumbnails/videos/ed99925c-5a3d-4d0e-bfc3-d55f6e8f687c-thumbnail-1769961030294.png'
+            'thumbnail': 'https://cdn.mde.tv/thumbnails/videos/ed99925c-5a3d-4d0e-bfc3-d55f6e8f687c-thumbnail-1769961030294.png',
         },
         'params': {
             'skip_download': True,
@@ -91,9 +91,9 @@ class MDETVIE(MDETVBaseIE):
         iframe_page = self._download_webpage(
             iframe_url, video_id, 'Downloading iframe page',
             headers={
-                "sec-fetch-dest": "iframe",
-                "sec-fetch-mode": "navigate",
-                "referer": "https://www.mde.tv/",
+                'sec-fetch-dest': 'iframe',
+                'sec-fetch-mode': 'navigate',
+                'referer': 'https://www.mde.tv/',
             })
 
         # Extract the playlist URL from the iframe's JavaScript
@@ -158,9 +158,9 @@ class MDETVSeriesIE(MDETVBaseIE):
 
         # Extract series title
         title = (self._og_search_title(webpage, default=None) or self._html_search_regex(
-                    r'<div class="_title[^"]*">([^<]+)</div>', webpage, 'title', default=series_id))
+            r'<div class="_title[^"]*">([^<]+)</div>', webpage, 'title', default=series_id))
         description = (self._og_search_title(webpage, default=None) or self._html_search_regex(
-                    r'<div class="_description[^"]*">([^<]+)</div>', webpage, 'description', default=series_id))
+            r'<div class="_description[^"]*">([^<]+)</div>', webpage, 'description', default=series_id))
 
         return self.playlist_result(entries, series_id, title, description)
 
