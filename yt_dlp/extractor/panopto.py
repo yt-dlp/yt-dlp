@@ -73,163 +73,179 @@ class PanoptoBaseIE(InfoExtractor):
 class PanoptoIE(PanoptoBaseIE):
     _VALID_URL = PanoptoBaseIE.BASE_URL_RE + r'/Pages/(Viewer|Embed)\.aspx.*(?:\?|&)id=(?P<id>[a-f0-9-]+)'
     _EMBED_REGEX = [rf'<iframe[^>]+src=["\'](?P<url>{PanoptoBaseIE.BASE_URL_RE}/Pages/(Viewer|Embed|Sessions/List)\.aspx[^"\']+)']
-    _TESTS = [
-        {
-            'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=26b3ae9e-4a48-4dcc-96ba-0befba08a0fb',
-            'info_dict': {
-                'id': '26b3ae9e-4a48-4dcc-96ba-0befba08a0fb',
-                'title': 'Panopto for Business - Use Cases',
-                'timestamp': 1459184200,
-                'thumbnail': r're:https://demo\.hosted\.panopto\.com/.+',
-                'upload_date': '20160328',
-                'ext': 'mp4',
-                'cast': [],
-                'chapters': [],
-                'duration': 88.17099999999999,
-                'average_rating': int,
-                'uploader_id': '2db6b718-47a0-4b0b-9e17-ab0b00f42b1e',
-                'channel_id': 'e4c6a2fc-1214-4ca0-8fb7-aef2e29ff63a',
-                'channel': 'Showcase Videos',
-            },
+    _TESTS = [{
+        'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=26b3ae9e-4a48-4dcc-96ba-0befba08a0fb',
+        'info_dict': {
+            'id': '26b3ae9e-4a48-4dcc-96ba-0befba08a0fb',
+            'title': 'Panopto for Business - Use Cases',
+            'timestamp': 1459184200,
+            'thumbnail': r're:https?://demo\.hosted\.panopto\.com/.+',
+            'upload_date': '20160328',
+            'ext': 'mp4',
+            'cast': [],
+            'chapters': [],
+            'duration': 88.17099999999999,
+            'average_rating': int,
+            'tags': [],
+            'uploader_id': '2db6b718-47a0-4b0b-9e17-ab0b00f42b1e',
+            'channel_id': 'bb0b58ff-b31b-47a0-9aa2-af6f0113613a',
+            'channel': 'Product',
         },
-        {
-            'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=ed01b077-c9e5-4c7b-b8ff-15fa306d7a59',
-            'info_dict': {
-                'id': 'ed01b077-c9e5-4c7b-b8ff-15fa306d7a59',
-                'title': 'Overcoming Top 4 Challenges of Enterprise Video',
-                'uploader': 'Panopto Support',
-                'timestamp': 1449409251,
-                'thumbnail': r're:https://demo\.hosted\.panopto\.com/.+',
-                'upload_date': '20151206',
-                'ext': 'mp4',
-                'chapters': 'count:12',
-                'cast': ['Panopto Support'],
-                'uploader_id': 'a96d1a31-b4de-489b-9eee-b4a5b414372c',
-                'average_rating': int,
-                'description': 'md5:4391837802b3fc856dadf630c4b375d1',
-                'duration': 1088.2659999999998,
-                'channel_id': '9f3c1921-43bb-4bda-8b3a-b8d2f05a8546',
-                'channel': 'Webcasts',
-            },
+    }, {
+        'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=ed01b077-c9e5-4c7b-b8ff-15fa306d7a59',
+        'info_dict': {
+            'id': 'ed01b077-c9e5-4c7b-b8ff-15fa306d7a59',
+            'title': 'Overcoming Top 4 Challenges of Enterprise Video',
+            'uploader': 'Panopto Support',
+            'timestamp': 1449409251,
+            'thumbnail': r're:https?://demo\.hosted\.panopto\.com/.+',
+            'upload_date': '20151206',
+            'ext': 'mp4',
+            'chapters': 'count:13',
+            'cast': ['Panopto Support'],
+            'tags': [],
+            'uploader_id': 'a96d1a31-b4de-489b-9eee-b4a5b414372c',
+            'average_rating': int,
+            'description': 'md5:4391837802b3fc856dadf630c4b375d1',
+            'duration': 1088.2659999999998,
+            'channel_id': '9f3c1921-43bb-4bda-8b3a-b8d2f05a8546',
+            'channel': 'Webcasts',
         },
-        {
-            # Extra params in URL
-            'url': 'https://howtovideos.hosted.panopto.com/Panopto/Pages/Viewer.aspx?randomparam=thisisnotreal&id=5fa74e93-3d87-4694-b60e-aaa4012214ed&advance=true',
-            'info_dict': {
-                'id': '5fa74e93-3d87-4694-b60e-aaa4012214ed',
-                'ext': 'mp4',
-                'duration': 129.513,
-                'cast': ['Kathryn Kelly'],
-                'uploader_id': '316a0a58-7fa2-4cd9-be1c-64270d284a56',
-                'timestamp': 1569845768,
-                'tags': ['Viewer', 'Enterprise'],
-                'chapters': [],
-                'upload_date': '20190930',
-                'thumbnail': r're:https://howtovideos\.hosted\.panopto\.com/.+',
-                'description': 'md5:2d844aaa1b1a14ad0e2601a0993b431f',
-                'title': 'Getting Started: View a Video',
-                'average_rating': int,
-                'uploader': 'Kathryn Kelly',
-                'channel_id': 'fb93bc3c-6750-4b80-a05b-a921013735d3',
-                'channel': 'Getting Started',
-            },
+    }, {
+        # Extra params in URL
+        'url': 'https://howtovideos.hosted.panopto.com/Panopto/Pages/Viewer.aspx?randomparam=thisisnotreal&id=5fa74e93-3d87-4694-b60e-aaa4012214ed&advance=true',
+        'info_dict': {
+            'id': '5fa74e93-3d87-4694-b60e-aaa4012214ed',
+            'ext': 'mp4',
+            'duration': 129.513,
+            'cast': ['Kathryn Kelly'],
+            'uploader_id': '316a0a58-7fa2-4cd9-be1c-64270d284a56',
+            'timestamp': 1569845768,
+            'tags': ['Viewer', 'Enterprise'],
+            'chapters': [],
+            'upload_date': '20190930',
+            'thumbnail': r're:https?://howtovideos\.hosted\.panopto\.com/.+',
+            'description': 'md5:2d844aaa1b1a14ad0e2601a0993b431f',
+            'title': 'Getting Started: View a Video',
+            'average_rating': int,
+            'uploader': 'Kathryn Kelly',
+            'channel_id': 'fb93bc3c-6750-4b80-a05b-a921013735d3',
+            'channel': 'Getting Started',
         },
-        {
-            # Does not allow normal Viewer.aspx. AUDIO livestream has no url, so should be skipped and only give one stream.
-            'url': 'https://unisa.au.panopto.com/Panopto/Pages/Embed.aspx?id=9d9a0fa3-e99a-4ebd-a281-aac2017f4da4',
-            'info_dict': {
-                'id': '9d9a0fa3-e99a-4ebd-a281-aac2017f4da4',
-                'ext': 'mp4',
-                'cast': ['LTS CLI Script'],
-                'chapters': [],
-                'duration': 2178.45,
-                'description': 'md5:ee5cf653919f55b72bce2dbcf829c9fa',
-                'channel_id': 'b23e673f-c287-4cb1-8344-aae9005a69f8',
-                'average_rating': int,
-                'uploader_id': '38377323-6a23-41e2-9ff6-a8e8004bf6f7',
-                'uploader': 'LTS CLI Script',
-                'timestamp': 1572458134,
-                'title': 'WW2 Vets Interview 3 Ronald Stanley George',
-                'thumbnail': r're:https://unisa\.au\.panopto\.com/.+',
-                'channel': 'World War II Veteran Interviews',
-                'upload_date': '20191030',
-            },
+        'skip': 'Invalid URL',
+    }, {
+        # Does not allow normal Viewer.aspx. AUDIO livestream has no url, so should be skipped and only give one stream.
+        'url': 'https://unisa.au.panopto.com/Panopto/Pages/Embed.aspx?id=9d9a0fa3-e99a-4ebd-a281-aac2017f4da4',
+        'info_dict': {
+            'id': '9d9a0fa3-e99a-4ebd-a281-aac2017f4da4',
+            'ext': 'mp4',
+            'cast': ['LTS CLI Script'],
+            'chapters': [],
+            'duration': 2178.45,
+            'description': 'md5:ee5cf653919f55b72bce2dbcf829c9fa',
+            'channel_id': 'b23e673f-c287-4cb1-8344-aae9005a69f8',
+            'average_rating': int,
+            'uploader_id': '38377323-6a23-41e2-9ff6-a8e8004bf6f7',
+            'uploader': 'LTS CLI Script',
+            'tags': [],
+            'timestamp': 1572458134,
+            'title': 'WW2 Vets Interview 3 Ronald Stanley George',
+            'thumbnail': r're:https?://unisa\.au\.panopto\.com/.+',
+            'channel': 'World War II Veteran Interviews',
+            'upload_date': '20191030',
         },
-        {
-            # Slides/storyboard
-            'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=a7f12f1d-3872-4310-84b0-f8d8ab15326b',
-            'info_dict': {
-                'id': 'a7f12f1d-3872-4310-84b0-f8d8ab15326b',
-                'ext': 'mhtml',
-                'timestamp': 1448798857,
-                'duration': 4712.681,
-                'title': 'Cache Memory - CompSci 15-213, Lecture 12',
-                'channel_id': 'e4c6a2fc-1214-4ca0-8fb7-aef2e29ff63a',
-                'uploader_id': 'a96d1a31-b4de-489b-9eee-b4a5b414372c',
-                'upload_date': '20151129',
-                'average_rating': 0,
-                'uploader': 'Panopto Support',
-                'channel': 'Showcase Videos',
-                'description': 'md5:55e51d54233ddb0e6c2ed388ca73822c',
-                'cast': ['ISR Videographer', 'Panopto Support'],
-                'chapters': 'count:28',
-                'thumbnail': r're:https://demo\.hosted\.panopto\.com/.+',
-            },
-            'params': {'format': 'mhtml', 'skip_download': True},
+    }, {
+        # Slides/storyboard
+        'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=a7f12f1d-3872-4310-84b0-f8d8ab15326b',
+        'info_dict': {
+            'id': 'a7f12f1d-3872-4310-84b0-f8d8ab15326b',
+            'ext': 'mhtml',
+            'timestamp': 1448798857,
+            'duration': 4712.681,
+            'title': 'Cache Memory - CompSci 15-213, Lecture 12',
+            'channel_id': '0202d932-6d28-4fb2-b373-af6f0121c8f0',
+            'uploader_id': 'a96d1a31-b4de-489b-9eee-b4a5b414372c',
+            'upload_date': '20151129',
+            'average_rating': 0,
+            'uploader': 'Panopto Support',
+            'channel': 'Customer Demonstrations',
+            'description': 'md5:55e51d54233ddb0e6c2ed388ca73822c',
+            'cast': ['ISR Videographer', 'Panopto Support'],
+            'chapters': 'count:28',
+            'tags': [],
+            'thumbnail': r're:https?://demo\.hosted\.panopto\.com/.+',
         },
-        {
-            'url': 'https://na-training-1.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=8285224a-9a2b-4957-84f2-acb0000c4ea9',
-            'info_dict': {
-                'id': '8285224a-9a2b-4957-84f2-acb0000c4ea9',
-                'ext': 'mp4',
-                'chapters': [],
-                'title': 'Company Policy',
-                'average_rating': 0,
-                'timestamp': 1615058901,
-                'channel': 'Human Resources',
-                'tags': ['HumanResources'],
-                'duration': 1604.243,
-                'thumbnail': r're:https://na-training-1\.hosted\.panopto\.com/.+',
-                'uploader_id': '8e8ba0a3-424f-40df-a4f1-ab3a01375103',
-                'uploader': 'Cait M.',
-                'upload_date': '20210306',
-                'cast': ['Cait M.'],
-                'subtitles': {'en-US': [{'ext': 'srt', 'data': 'md5:a3f4d25963fdeace838f327097c13265'}],
-                              'es-ES': [{'ext': 'srt', 'data': 'md5:57e9dad365fd0fbaf0468eac4949f189'}]},
-            },
-            'params': {'writesubtitles': True, 'skip_download': True},
-        }, {
-            # On Panopto there are two subs: "Default" and en-US. en-US is blank and should be skipped.
-            'url': 'https://na-training-1.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=940cbd41-f616-4a45-b13e-aaf1000c915b',
-            'info_dict': {
-                'id': '940cbd41-f616-4a45-b13e-aaf1000c915b',
-                'ext': 'mp4',
-                'subtitles': 'count:1',
-                'title': 'HR Benefits Review Meeting*',
-                'cast': ['Panopto Support'],
-                'chapters': [],
-                'timestamp': 1575024251,
-                'thumbnail': r're:https://na-training-1\.hosted\.panopto\.com/.+',
-                'channel': 'Zoom',
-                'description': 'md5:04f90a9c2c68b7828144abfb170f0106',
-                'uploader': 'Panopto Support',
-                'average_rating': 0,
-                'duration': 409.34499999999997,
-                'uploader_id': 'b6ac04ad-38b8-4724-a004-a851004ea3df',
-                'upload_date': '20191129',
+        'params': {'format': 'mhtml', 'skip_download': True},
+    }, {
+        'url': 'https://na-training-1.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=8285224a-9a2b-4957-84f2-acb0000c4ea9',
+        'info_dict': {
+            'id': '8285224a-9a2b-4957-84f2-acb0000c4ea9',
+            'ext': 'mp4',
+            'chapters': [],
+            'title': 'Company Policy',
+            'average_rating': 0,
+            'timestamp': 1615058901,
+            'channel': 'Human Resources',
+            'tags': ['HumanResources'],
+            'duration': 1604.243,
+            'thumbnail': r're:https?://na-training-1\.hosted\.panopto\.com/.+',
+            'uploader_id': '8e8ba0a3-424f-40df-a4f1-ab3a01375103',
+            'uploader': 'Cait M.',
+            'upload_date': '20210306',
+            'cast': ['Cait M.'],
+        },
+        'params': {'writesubtitles': True, 'skip_download': True},
+    }, {
+        # On Panopto there are two subs: "Default" and en-US. en-US is blank and should be skipped.
+        'url': 'https://na-training-1.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=940cbd41-f616-4a45-b13e-aaf1000c915b',
+        'info_dict': {
+            'id': '940cbd41-f616-4a45-b13e-aaf1000c915b',
+            'ext': 'mp4',
+            'subtitles': 'count:1',
+            'title': 'HR Benefits Review Meeting*',
+            'cast': ['Panopto Support'],
+            'chapters': [],
+            'timestamp': 1575024251,
+            'thumbnail': r're:https://na-training-1\.hosted\.panopto\.com/.+',
+            'channel': 'Zoom',
+            'description': 'md5:04f90a9c2c68b7828144abfb170f0106',
+            'uploader': 'Panopto Support',
+            'average_rating': 0,
+            'duration': 409.34499999999997,
+            'tags': [],
+            'uploader_id': 'b6ac04ad-38b8-4724-a004-a851004ea3df',
+            'upload_date': '20191129',
 
-            },
-            'params': {'writesubtitles': True, 'skip_download': True},
         },
-        {
-            'url': 'https://ucc.cloud.panopto.eu/Panopto/Pages/Viewer.aspx?id=0e8484a4-4ceb-4d98-a63f-ac0200b455cb',
-            'only_matching': True,
+        'params': {'writesubtitles': True, 'skip_download': True},
+    }, {
+        'url': 'https://ucc.cloud.panopto.eu/Panopto/Pages/Viewer.aspx?id=0e8484a4-4ceb-4d98-a63f-ac0200b455cb',
+        'only_matching': True,
+    }, {
+        'url': 'https://brown.hosted.panopto.com/Panopto/Pages/Embed.aspx?id=0b3ff73b-36a0-46c5-8455-aadf010a3638',
+        'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.monash.edu/learning-teaching/teachhq/learning-technologies/panopto/how-to/insert-a-quiz-into-a-panopto-video',
+        'info_dict': {
+            'id': '0bd3f16c-824a-436a-8486-ac5900693aef',
+            'ext': 'mp4',
+            'title': 'Quizzes in Panopto',
+            'average_rating': 0,
+            'cast': ['Stephanie Luo'],
+            'chapters': 'count:8',
+            'channel': 'Panopto',
+            'description': 'md5:731ce802eee75808b1181db1ff1b5002',
+            'duration': 185.833,
+            'tags': [],
+            'thumbnail': r're:https?://monash\.au\.panopto\.com/.+',
+            'timestamp': 1607562188,
+            'upload_date': '20201210',
+            'uploader': 'Stephanie Luo',
+            'uploader_id': 'b18ca46d-20df-4ff5-b0b3-aa7a00085617',
         },
-        {
-            'url': 'https://brown.hosted.panopto.com/Panopto/Pages/Embed.aspx?id=0b3ff73b-36a0-46c5-8455-aadf010a3638',
-            'only_matching': True,
-        },
-    ]
+        'params': {'extractor_args': {'generic': {'impersonate': ['chrome']}}},
+    }]
 
     @classmethod
     def suitable(cls, url):
@@ -423,27 +439,23 @@ class PanoptoIE(PanoptoBaseIE):
 
 class PanoptoPlaylistIE(PanoptoBaseIE):
     _VALID_URL = PanoptoBaseIE.BASE_URL_RE + r'/Pages/(Viewer|Embed)\.aspx.*(?:\?|&)pid=(?P<id>[a-f0-9-]+)'
-    _TESTS = [
-        {
-            'url': 'https://howtovideos.hosted.panopto.com/Panopto/Pages/Viewer.aspx?pid=f3b39fcf-882f-4849-93d6-a9f401236d36&id=5fa74e93-3d87-4694-b60e-aaa4012214ed&advance=true',
-            'info_dict': {
-                'title': 'Featured Video Tutorials',
-                'id': 'f3b39fcf-882f-4849-93d6-a9f401236d36',
-                'description': '',
-            },
-            'playlist_mincount': 36,
+    _TESTS = [{
+        'url': 'https://howtovideos.hosted.panopto.com/Panopto/Pages/Viewer.aspx?pid=f3b39fcf-882f-4849-93d6-a9f401236d36&id=5fa74e93-3d87-4694-b60e-aaa4012214ed&advance=true',
+        'info_dict': {
+            'id': 'f3b39fcf-882f-4849-93d6-a9f401236d36',
+            'title': 'Featured Video Tutorials',
+            'description': '',
         },
-        {
-            'url': 'https://utsa.hosted.panopto.com/Panopto/Pages/Viewer.aspx?pid=e2900555-3ad4-4bdb-854d-ad2401686190',
-            'info_dict': {
-                'title': 'Library Website Introduction Playlist',
-                'id': 'e2900555-3ad4-4bdb-854d-ad2401686190',
-                'description': 'md5:f958bca50a1cbda15fdc1e20d32b3ecb',
-            },
-            'playlist_mincount': 4,
+        'playlist_mincount': 19,
+    }, {
+        'url': 'https://utsa.hosted.panopto.com/Panopto/Pages/Viewer.aspx?pid=e2900555-3ad4-4bdb-854d-ad2401686190',
+        'info_dict': {
+            'id': 'e2900555-3ad4-4bdb-854d-ad2401686190',
+            'title': 'Library Website Introduction Playlist',
+            'description': 'md5:f958bca50a1cbda15fdc1e20d32b3ecb',
         },
-
-    ]
+        'playlist_mincount': 4,
+    }]
 
     def _entries(self, base_url, playlist_id, session_list_id):
         session_list_info = self._call_api(
@@ -486,35 +498,29 @@ class PanoptoPlaylistIE(PanoptoBaseIE):
 class PanoptoListIE(PanoptoBaseIE):
     _VALID_URL = PanoptoBaseIE.BASE_URL_RE + r'/Pages/Sessions/List\.aspx'
     _PAGE_SIZE = 250
-    _TESTS = [
-        {
-            'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Sessions/List.aspx#folderID=%22e4c6a2fc-1214-4ca0-8fb7-aef2e29ff63a%22',
-            'info_dict': {
-                'id': 'e4c6a2fc-1214-4ca0-8fb7-aef2e29ff63a',
-                'title': 'Showcase Videos',
-            },
-            'playlist_mincount': 140,
-
+    _TESTS = [{
+        'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Sessions/List.aspx#folderID=%22e4c6a2fc-1214-4ca0-8fb7-aef2e29ff63a%22',
+        'info_dict': {
+            'id': 'e4c6a2fc-1214-4ca0-8fb7-aef2e29ff63a',
+            'title': 'Showcase Videos',
         },
-        {
-            'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Sessions/List.aspx#view=2&maxResults=250',
-            'info_dict': {
-                'id': 'panopto_list',
-                'title': 'panopto_list',
-            },
-            'playlist_mincount': 300,
+        'playlist_mincount': 8,
+    }, {
+        'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Sessions/List.aspx#view=2&maxResults=250',
+        'info_dict': {
+            'id': 'panopto_list',
+            'title': 'panopto_list',
         },
-        {
-            # Folder that contains 8 folders and a playlist
-            'url': 'https://howtovideos.hosted.panopto.com/Panopto/Pages/Sessions/List.aspx?noredirect=true#folderID=%224b9de7ae-0080-4158-8496-a9ba01692c2e%22',
-            'info_dict': {
-                'id': '4b9de7ae-0080-4158-8496-a9ba01692c2e',
-                'title': 'Video Tutorials',
-            },
-            'playlist_mincount': 9,
+        'playlist_mincount': 300,
+    }, {
+        # Folder that contains 8 folders and a playlist
+        'url': 'https://howtovideos.hosted.panopto.com/Panopto/Pages/Sessions/List.aspx?noredirect=true#folderID=%224b9de7ae-0080-4158-8496-a9ba01692c2e%22',
+        'info_dict': {
+            'id': '4b9de7ae-0080-4158-8496-a9ba01692c2e',
+            'title': 'Video Tutorials',
         },
-
-    ]
+        'playlist_mincount': 9,
+    }]
 
     def _fetch_page(self, base_url, query_params, display_id, page):
 

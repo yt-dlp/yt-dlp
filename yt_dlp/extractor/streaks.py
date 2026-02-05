@@ -33,16 +33,20 @@ class StreaksBaseIE(InfoExtractor):
                     **(headers or {}),
                 })
         except ExtractorError as e:
-            if isinstance(e.cause, HTTPError) and e.cause.status in {403, 404}:
+            if isinstance(e.cause, HTTPError) and e.cause.status in (403, 404):
                 error = self._parse_json(e.cause.response.read().decode(), media_id, fatal=False)
                 message = traverse_obj(error, ('message', {str}))
                 code = traverse_obj(error, ('code', {str}))
+                error_id = traverse_obj(error, ('id', {int}))
                 if code == 'REQUEST_FAILED':
-                    self.raise_geo_restricted(message, countries=self._GEO_COUNTRIES)
-                elif code == 'MEDIA_NOT_FOUND':
-                    raise ExtractorError(message, expected=True)
-                elif code or message:
-                    raise ExtractorError(join_nonempty(code, message, delim=': '))
+                    if error_id == 124:
+                        self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
+                    elif error_id == 126:
+                        raise ExtractorError('Access is denied (possibly due to invalid/missing API key)')
+                if code == 'MEDIA_NOT_FOUND':
+                    raise ExtractorError(join_nonempty(code, message, delim=': '), expected=True)
+                if code or message:
+                    raise ExtractorError(join_nonempty(code, error_id, message, delim=': '))
             raise
 
         streaks_id = response['id']

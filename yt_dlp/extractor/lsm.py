@@ -167,11 +167,11 @@ class LSMLTVEmbedIE(InfoExtractor):
             'duration': 1442,
             'upload_date': '20231121',
             'title': 'D23-6000-105_cetstud',
-            'thumbnail': 'https://store.cloudycdn.services/tmsp00060/assets/media/660858/placeholder1700589200.jpg',
+            'thumbnail': 'https://store.bstrm.net/tmsp00060/assets/media/660858/placeholder1700589200.jpg',
         },
     }, {
         'url': 'https://ltv.lsm.lv/embed?enablesdkjs=1&c=eyJpdiI6IncwVzZmUFk2MU12enVWK1I3SUcwQ1E9PSIsInZhbHVlIjoid3FhV29vamc3T2sxL1RaRmJ5Rm1GTXozU0o2dVczdUtLK0cwZEZJMDQ2a3ZIRG5DK2pneGlnbktBQy9uazVleHN6VXhxdWIweWNvcHRDSnlISlNYOHlVZ1lpcTUrcWZSTUZPQW14TVdkMW9aOUtRWVNDcFF4eWpHNGcrT0VZbUNFQStKQk91cGpndW9FVjJIa0lpbkh3PT0iLCJtYWMiOiIyZGI1NDJlMWRlM2QyMGNhOGEwYTM2MmNlN2JlOGRhY2QyYjdkMmEzN2RlOTEzYTVkNzI1ODlhZDlhZjU4MjQ2IiwidGFnIjoiIn0=',
-        'md5': 'a1711e190fe680fdb68fd8413b378e87',
+        'md5': 'f236cef2fd5953612754e4e66be51e7a',
         'info_dict': {
             'id': 'wUnFArIPDSY',
             'ext': 'mp4',
@@ -198,6 +198,8 @@ class LSMLTVEmbedIE(InfoExtractor):
             'uploader_url': 'https://www.youtube.com/@LTV16plus',
             'like_count': int,
             'description': 'md5:7ff0c42ba971e3c13e4b8a2ff03b70b5',
+            'media_type': 'livestream',
+            'timestamp': 1652550741,
         },
     }]
 
@@ -208,7 +210,7 @@ class LSMLTVEmbedIE(InfoExtractor):
             r'window\.ltvEmbedPayload\s*=', webpage, 'embed json', video_id)
         embed_type = traverse_obj(data, ('source', 'name', {str}))
 
-        if embed_type == 'telia':
+        if embed_type in ('backscreen', 'telia'):  # 'telia' only for backwards compat
             ie_key = 'CloudyCDN'
             embed_url = traverse_obj(data, ('source', 'embed_url', {url_or_none}))
         elif embed_type == 'youtube':
@@ -226,9 +228,9 @@ class LSMLTVEmbedIE(InfoExtractor):
 
 
 class LSMReplayIE(InfoExtractor):
-    _VALID_URL = r'https?://replay\.lsm\.lv/[^/?#]+/(?:ieraksts|statja)/[^/?#]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://replay\.lsm\.lv/[^/?#]+/(?:skaties/|klausies/)?(?:ieraksts|statja)/[^/?#]+/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://replay.lsm.lv/lv/ieraksts/ltv/311130/4-studija-zolitudes-tragedija-un-incupes-stacija',
+        'url': 'https://replay.lsm.lv/lv/skaties/ieraksts/ltv/311130/4-studija-zolitudes-tragedija-un-incupes-stacija',
         'md5': '64f72a360ca530d5ed89c77646c9eee5',
         'info_dict': {
             'id': '46k_d23-6000-105',
@@ -241,20 +243,23 @@ class LSMReplayIE(InfoExtractor):
             'thumbnail': 'https://ltv.lsm.lv/storage/media/8/7/large/5/1f9604e1.jpg',
         },
     }, {
-        'url': 'https://replay.lsm.lv/lv/ieraksts/lr/183522/138-nepilniga-kompensejamo-zalu-sistema-pat-menesiem-dzena-pacientus-pa-aptiekam',
-        'md5': '719b33875cd1429846eeeaeec6df2830',
+        'url': 'https://replay.lsm.lv/lv/klausies/ieraksts/lr/183522/138-nepilniga-kompensejamo-zalu-sistema-pat-menesiem-dzena-pacientus-pa-aptiekam',
+        'md5': '84feb80fd7e6ec07744726a9f01cda4d',
         'info_dict': {
-            'id': 'a342781',
-            'ext': 'mp3',
+            'id': '183522',
+            'ext': 'm4a',
             'duration': 1823,
             'title': '#138 Nepilnīgā kompensējamo zāļu sistēma pat mēnešiem dzenā pacientus pa aptiekām',
             'thumbnail': 'https://pic.latvijasradio.lv/public/assets/media/9/d/large_fd4675ac.jpg',
             'upload_date': '20231102',
-            'timestamp': 1698921060,
+            'timestamp': 1698913860,
             'description': 'md5:7bac3b2dd41e44325032943251c357b1',
         },
     }, {
-        'url': 'https://replay.lsm.lv/ru/statja/ltv/311130/4-studija-zolitudes-tragedija-un-incupes-stacija',
+        'url': 'https://replay.lsm.lv/ru/skaties/statja/ltv/355067/v-kengaragse-nacalas-ukladka-relsov',
+        'only_matching': True,
+    }, {
+        'url': 'https://replay.lsm.lv/lv/ieraksts/ltv/311130/4-studija-zolitudes-tragedija-un-incupes-stacija',
         'only_matching': True,
     }]
 
@@ -267,12 +272,24 @@ class LSMReplayIE(InfoExtractor):
 
         data = self._search_nuxt_data(
             self._fix_nuxt_data(webpage), video_id, context_name='__REPLAY__')
+        playback_type = data['playback']['type']
+
+        if playback_type == 'playable_audio_lr':
+            playback_data = {
+                'formats': self._extract_m3u8_formats(data['playback']['service']['hls_url'], video_id),
+            }
+        elif playback_type == 'embed':
+            playback_data = {
+                '_type': 'url_transparent',
+                'url': data['playback']['service']['url'],
+            }
+        else:
+            raise ExtractorError(f'Unsupported playback type "{playback_type}"')
 
         return {
-            '_type': 'url_transparent',
             'id': video_id,
+            **playback_data,
             **traverse_obj(data, {
-                'url': ('playback', 'service', 'url', {url_or_none}),
                 'title': ('mediaItem', 'title'),
                 'description': ('mediaItem', ('lead', 'body')),
                 'duration': ('mediaItem', 'duration', {int_or_none}),
