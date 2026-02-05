@@ -5,7 +5,7 @@ from ..utils.traversal import require, traverse_obj
 
 class Mir24TvIE(InfoExtractor):
     IE_NAME = 'mir24.tv'
-    _VALID_URL = r'https?://(?:www\.)?mir24\.tv/news/(?P<id>[0-9]+)/[^/?#]+'
+    _VALID_URL = r'https?://(?:www\.)?mir24\.tv/[^/]+/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://mir24.tv/news/16635210/dni-kultury-rossii-otkrylis-v-uzbekistane.-na-prazdnichnom-koncerte-vystupili-zvezdy-rossijskoj-estrada',
         'info_dict': {
@@ -13,6 +13,14 @@ class Mir24TvIE(InfoExtractor):
             'title': 'Дни культуры России открылись в Узбекистане. На праздничном концерте выступили звезды российской эстрады',
             'ext': 'mp4',
             'thumbnail': r're:https://images\.mir24\.tv/.+\.jpg',
+        },
+    }, {
+        'url': 'https://mir24.tv/tv-shows/rozdennye-v-sssr/260',
+        'info_dict': {
+            'id': 'rozdennye-v-sssr',
+            'ext': 'mp4',
+            'title': 'Рожденные в СССР смотреть онлайн. ',
+            'thumbnail': 'https://mir24.tv/og_image_1200x630.png',
         },
     }]
 
