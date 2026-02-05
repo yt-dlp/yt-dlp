@@ -34,12 +34,12 @@ from .exceptions import (
     SabrStreamError,
     StreamStallError,
 )
-from .models import AudioSelector, CaptionSelector, SabrLogger, VideoSelector
+from .models import AudioSelector, CaptionSelector, ConsumedRange, InitializedFormat, SabrLogger, VideoSelector
 from .part import (
     RefreshPlayerResponseSabrPart,
 )
 from .processor import SabrProcessor, build_vpabr_request
-from .utils import broadcast_id_from_url, find_consumed_range_by_time, get_cr_chain, next_gvs_fallback_url
+from .utils import broadcast_id_from_url, find_consumed_range_by_time, next_gvs_fallback_url, ticks_to_ms
 from ..ump import UMPDecoder, UMPPart, UMPPartId, read_varint
 
 
@@ -299,7 +299,10 @@ class SabrStream:
             if not retry_next_request:
 
                 # Calculate and apply the next playback time to skip to
-                self._prepare_next_playback_time()
+                self._process_next_player_time()
+                self._process_live_wait()
+
+                self._prepare_next_playback_time()  # TODO: remove
 
                 self._check_end_of_stream()
                 self._check_stream_stall()
@@ -389,59 +392,6 @@ class SabrStream:
 
             if count > 1:
                 raise SabrStreamError(f'Segment {izf.previous_segment.sequence_number} for format {izf.format_id} in {count} consumed ranges')
-
-        enabled_initialized_formats = [izf for izf in self.processor.initialized_formats.values() if not izf.discard]
-
-        # For each initialized format:
-        #   1. find the consumed format that matches player_time_ms.
-        #   2. find the current consumed range in sequence (in case multiple are joined together)
-        # For livestreams, we allow a tolerance for the segment duration as it is estimated. This tolerance should be less than the segment duration / 2.
-
-        cr_tolerance_ms = 0
-        if self.processor.is_live:
-            cr_tolerance_ms = self.processor.live_segment_target_duration_tolerance_ms
-
-        current_consumed_ranges = []
-        for izf in enabled_initialized_formats:
-            for cr in sorted(izf.consumed_ranges, key=lambda cr: cr.start_sequence_number):
-                if (cr.start_time_ms - cr_tolerance_ms) <= self.processor.player_time_ms <= cr.start_time_ms + cr.duration_ms + (cr_tolerance_ms * 2):
-                    chain = get_cr_chain(cr, izf.consumed_ranges)
-                    current_consumed_ranges.append(chain[-1])
-                    # There should only be one chain for the current player_time_ms (including the tolerance)
-                    break
-
-        min_consumed_duration_ms = None
-
-        # Get the lowest consumed range end time out of all current consumed ranges.
-        if current_consumed_ranges:
-            lowest_izf_consumed_range = min(current_consumed_ranges, key=lambda cr: cr.start_time_ms + cr.duration_ms)
-            min_consumed_duration_ms = lowest_izf_consumed_range.start_time_ms + lowest_izf_consumed_range.duration_ms
-
-        if len(current_consumed_ranges) != len(enabled_initialized_formats) or min_consumed_duration_ms is None:
-            # Missing a consumed range for a format.
-            # In this case, consider player_time_ms to be our correct next time
-            # May happen in the case of:
-            # 1. A Format has not been initialized yet (can happen if response read fails)
-            # or
-            # 1. SABR_SEEK to time outside both formats consumed ranges
-            # 2. ONE of the formats returns data after the SABR_SEEK in that request
-            if min_consumed_duration_ms is None:
-                min_consumed_duration_ms = self.processor.player_time_ms
-            else:
-                min_consumed_duration_ms = min(min_consumed_duration_ms, self.processor.player_time_ms)
-
-        # Usually provided by the server if there was no segments returned.
-        # We'll use this to calculate the time to wait for the next request (for live streams).
-        next_request_backoff_ms = (self.processor.next_request_policy and self.processor.next_request_policy.backoff_time_ms) or 0
-
-        self.logger.trace(f'min consumed duration ms: {min_consumed_duration_ms}')
-        self.processor.player_time_ms = min_consumed_duration_ms
-
-        # TODO: total_duration_ms should include head sequence estimated duration
-        if self.processor.is_live and self.processor.total_duration_ms and (self.processor.player_time_ms >= self.processor.total_duration_ms):
-            self.logger.trace(f'setting player time ms ({self.processor.player_time_ms}) to total duration ms ({self.processor.total_duration_ms})')
-            self.processor.player_time_ms = self.processor.total_duration_ms
-            self._wait_for(max(next_request_backoff_ms // 1000, self.processor.live_segment_target_duration_sec))
 
     # region: UMP Part Processors
 
@@ -626,6 +576,64 @@ class SabrStream:
             f'Requesting player response refresh as SABR URL is due to expire within {self.expiry_threshold_sec} seconds')
         yield RefreshPlayerResponseSabrPart(reason=RefreshPlayerResponseSabrPart.Reason.SABR_URL_EXPIRY)
 
+    # region: Stream progression
+
+    def _process_next_player_time(self):
+        # TODO: handle if there are no enabled format selectors
+        # 1. If any enabled format selector does not have an initialized format, skip
+        if self._missing_initialized_format():
+            self.logger.debug(
+                'Skipping player time increment; not all enabled format selectors have an initialized format yet')
+            return
+
+        # 2. If missing a consumed range for the current player time, skip
+        current_consumed_ranges = self._current_consumed_ranges()
+        if any(
+            cr is None for _, cr in current_consumed_ranges
+        ):
+            self.logger.debug(
+                'Skipping player time increment; one or more initialized formats '
+                'is missing a consumed range for current player time')
+            return
+
+        # 3. Update player time to the lowest end time of consumed ranges that match the current player time
+        min_izf, min_cr = min(
+            current_consumed_ranges,
+            key=lambda pair: pair[1].start_time_ms + pair[1].duration_ms)
+        min_consumed_time_ms = min_cr.start_time_ms + min_cr.duration_ms
+        self.logger.trace(f'Lowest consumed range: format={min_izf.format_id}, cr={min_cr} (end={min_consumed_time_ms}ms)')
+
+        difference = min_consumed_time_ms - self.processor.player_time_ms
+        self.processor.player_time_ms = min_consumed_time_ms
+        self.logger.trace(f'Updated player time ms to: {self.processor.player_time_ms} (+{difference}ms)')
+
+    def _process_live_wait(self):
+        if not self.processor.is_live or self.processor.post_live:
+            # Does not apply for post live as all segments should be available
+            return
+
+        max_seekable_time_ms = ticks_to_ms(
+            time_ticks=getattr(self.processor.live_metadata, 'max_seekable_time_ticks', None),
+            timescale=getattr(self.processor.live_metadata, 'max_seekable_timescale', None))
+
+        if max_seekable_time_ms is None:
+            # fallback to live head
+            max_seekable_time_ms = getattr(self.processor.live_metadata, 'head_sequence_time_ms', None)
+
+        if max_seekable_time_ms is not None and self.processor.player_time_ms >= max_seekable_time_ms:
+            self.logger.trace(f'Setting player time to max seekable time ms: {max_seekable_time_ms}ms (-{self.processor.player_time_ms - max_seekable_time_ms}ms)')
+            self.processor.player_time_ms = max_seekable_time_ms
+
+            # Wait for next segments to be available.
+            # NOTE: If live metadata is not available, we have no way of knowing if we need to wait
+            # for the next segment or are midway for the stream.
+            # In this case, the stream stall logic will trigger a wait if we get no new segments.
+            next_request_backoff_ms = getattr(self.processor.next_request_policy, 'backoff_time_ms', None) or 0
+            wait_seconds = max(next_request_backoff_ms // 1000, self.processor.live_segment_target_duration_sec)
+            self._wait_for(wait_seconds)
+
+    # endregion
+
     # region: End of stream detection
 
     def _check_end_of_stream(self):
@@ -636,15 +644,13 @@ class SabrStream:
 
         # Ensure all enabled format selectors have an initialized format
         # otherwise we cannot determine end of stream yet
-        if not all(
-            any(izf.format_selector is selector for izf in self.processor.initialized_formats.values())
-            for selector in self.processor.format_selectors() if not selector.discard_media
-        ):
+        if self._missing_initialized_format():
             self.logger.debug(
                 'Skipping end of stream check; not all enabled format selectors have an initialized format yet')
             return
 
         # Also check if player time is at the head of the stream for post-live
+        #  (max_seekable_time_ms == head_sequence_time_ms for post-live)
         if self._is_at_end_of_vod_stream() or self._player_time_near_live_head(tolerant=False):
             self.logger.debug('End of stream')
             self._consumed = True
@@ -780,7 +786,7 @@ class SabrStream:
             backoff_ms = self.processor.next_request_policy.backoff_time_ms
         return backoff_ms
 
-    def _current_consumed_ranges(self):
+    def _current_consumed_ranges(self) -> list[tuple[InitializedFormat, ConsumedRange | None]]:
         current = []
         tolerance = self.processor.live_segment_target_duration_tolerance_ms if self.processor.is_live else 0
         for izf in self._active_initialized_formats():
@@ -830,6 +836,12 @@ class SabrStream:
                     f'{player_time_ms} >= {head_sequence_time_ms + estimated_head_duration_ms} - {live_end_tolerance_ms}')
                 return True
         return False
+
+    def _missing_initialized_format(self):
+        return not all(
+            any(izf.format_selector is selector for izf in self.processor.initialized_formats.values())
+            for selector in self.processor.format_selectors() if not selector.discard_media
+        )
 
     def _log_part(self, part: UMPPart, msg=None, protobug_obj=None, data=None):
         if self.logger.log_level > self.logger.LogLevel.TRACE:

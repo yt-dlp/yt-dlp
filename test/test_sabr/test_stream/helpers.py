@@ -216,7 +216,7 @@ class SabrResponseProcessor:
             # note: end_segment_index might be massive when a format is discarded
             for segment_index in range(
                 buffered_range.start_segment_index,
-                min(buffered_range.start_segment_index + total_segments - 1, buffered_range.end_segment_index + 1),
+                min(buffered_range.start_segment_index + total_segments - 1, buffered_range.end_segment_index) + 1,
             )
         }
 
@@ -553,12 +553,13 @@ class PoTokenAVProfile(BasicAudioVideoProfile):
 
 
 class LiveAVProfile(BasicAudioVideoProfile):
-    DEFAULT_DVR_SEGMENTS = 1
+    DEFAULT_DVR_SEGMENTS = 0
     DEFAULT_TOTAL_SEGMENTS = 3
     DEFAULT_SEGMENT_TARGET_DURATION_MS = 2000
     DEFAULT_START_SEGMENT_NUMBER = 1
     DEFAULT_TARGET_SEGMENT_LENGTH = 1000
     DEFAULT_LIVE_HEAD_ALWAYS_AVAILABLE = True
+    DEFAULT_MAX_SEEKABLE_BEFORE_HEAD = False
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -581,6 +582,10 @@ class LiveAVProfile(BasicAudioVideoProfile):
         return self.options.get('segment_target_duration_ms', self.DEFAULT_SEGMENT_TARGET_DURATION_MS)
 
     @property
+    def max_seekable_before_head(self):
+        return self.options.get('max_seekable_before_head', self.DEFAULT_MAX_SEEKABLE_BEFORE_HEAD)
+
+    @property
     def live_head_always_available(self):
         return self.options.get('live_head_always_available', self.DEFAULT_LIVE_HEAD_ALWAYS_AVAILABLE)
 
@@ -595,6 +600,12 @@ class LiveAVProfile(BasicAudioVideoProfile):
     @property
     def elapsed_ms(self):
         return int(time.time() - self.start_time) * 1000
+
+    @property
+    def max_seekable_time_ms(self):
+        if not self.max_seekable_before_head:
+            return self.live_head_segment_start_ms()
+        return self.segment_start_ms(self.live_head_segment() - 1)
 
     def live_head_segment_available(self):
         if self.live_head_always_available:
@@ -680,7 +691,7 @@ class LiveAVProfile(BasicAudioVideoProfile):
             head_sequence_time_ms=self.live_head_segment_start_ms(),
             min_seekable_time_ticks=(self.start_segment_number - 1) * self.segment_target_duration_ms,
             min_seekable_timescale=1000,
-            max_seekable_time_ticks=self.live_head_segment_start_ms(),
+            max_seekable_time_ticks=self.max_seekable_time_ms,
             max_seekable_timescale=1000,
         )
 
