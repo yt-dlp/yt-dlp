@@ -564,7 +564,10 @@ from .eroprofile import (
     EroProfileAlbumIE,
     EroProfileIE,
 )
-from .err import ERRJupiterIE
+from .err import (
+    ERRArhiivIE,
+    ERRJupiterIE,
+)
 from .ertgr import (
     ERTFlixCodenameIE,
     ERTFlixIE,
@@ -1026,6 +1029,10 @@ from .livestream import (
 )
 from .livestreamfails import LivestreamfailsIE
 from .lnk import LnkIE
+from .locipo import (
+    LocipoIE,
+    LocipoPlaylistIE,
+)
 from .loco import LocoIE
 from .loom import (
     LoomFolderIE,
@@ -2340,6 +2347,7 @@ from .vimm import (
 )
 from .viously import ViouslyIE
 from .viqeo import ViqeoIE
+from .visir import VisirIE
 from .viu import (
     ViuIE,
     ViuOTTIE,
@@ -2360,7 +2368,11 @@ from .voicy import (
     VoicyChannelIE,
     VoicyIE,
 )
-from .volejtv import VolejTVIE
+from .volejtv import (
+    VolejTVCategoryPlaylistIE,
+    VolejTVClubPlaylistIE,
+    VolejTVIE,
+)
 from .voxmedia import (
     VoxMediaIE,
     VoxMediaVolumeIE,

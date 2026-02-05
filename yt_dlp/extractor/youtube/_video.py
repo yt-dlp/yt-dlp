@@ -145,8 +145,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         r'\b(?P<id>vfl[a-zA-Z0-9_-]+)\b.*?\.js$',
     )
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('android_sdkless', 'web', 'web_safari')
-    _DEFAULT_JSLESS_CLIENTS = ('android_sdkless',)
+    _DEFAULT_CLIENTS = ('android_vr', 'web', 'web_safari')
+    _DEFAULT_JSLESS_CLIENTS = ('android_vr',)
     _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web', 'web_safari')
     # Premium does not require POT (except for subtitles)
     _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator', 'web')
@@ -1443,7 +1443,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'view_count': int,
         },
         'params': {
-            'extractor_args': {'youtube': {'player_client': ['tv_embedded']}},
             'format': '251-drc',
             'skip_download': True,
         },
@@ -1690,7 +1689,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'playable_in_embed': True,
             'availability': 'public',
             'live_status': 'not_live',
-            'comment_count': 15,  # XXX: minimum
+            'comment_count': 15,  # XXX: minimum, but investigate if this changes
+            'comments': 'count:15',
         },
         'params': {
             'skip_download': True,
@@ -1723,7 +1723,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'playable_in_embed': True,
             'availability': 'unlisted',
             'live_status': 'not_live',
-            'comment_count': 9,  # XXX: minimum
+            'comment_count': 9,  # XXX: minimum, but investigate if this changes
+            'comments': 'count:9',
+        },
+        'params': {
+            'skip_download': True,
+            'getcomments': True,
         },
     }]
     _WEBPAGE_TESTS = [{
@@ -1874,7 +1879,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     }]
 
     _DEFAULT_PLAYER_JS_VERSION = 'actual'
-    _DEFAULT_PLAYER_JS_VARIANT = 'main'
+    _DEFAULT_PLAYER_JS_VARIANT = 'tv'
     _PLAYER_JS_VARIANT_MAP = {
         'main': 'player_ias.vflset/en_US/base.js',
         'tcc': 'player_ias_tcc.vflset/en_US/base.js',
@@ -1884,7 +1889,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'tv': 'tv-player-ias.vflset/tv-player-ias.js',
         'tv_es6': 'tv-player-es6.vflset/tv-player-es6.js',
         'phone': 'player-plasma-ias-phone-en_US.vflset/base.js',
-        'tablet': 'player-plasma-ias-tablet-en_US.vflset/base.js',
+        'tablet': 'player-plasma-ias-tablet-en_US.vflset/base.js',  # Dead since 19712d96 (2025.11.06)
     }
     _INVERSE_PLAYER_JS_VARIANT_MAP = {v: k for k, v in _PLAYER_JS_VARIANT_MAP.items()}
 
@@ -3112,6 +3117,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 else:
                     prs.append(pr)
 
+            if (
+                # Is this a "made for kids" video that can't be downloaded with android_vr?
+                client == 'android_vr' and self._is_unplayable(pr)
+                and webpage and 'made for kids' in webpage
+                # ...and is a JS runtime is available?
+                and any(p.is_available() for p in self._jsc_director.providers.values())
+            ):
+                append_client('web_embedded')
+
             # web_embedded can work around age-gate and age-verification for some embeddable videos
             if self._is_agegated(pr) and variant != 'web_embedded':
                 append_client(f'web_embedded.{base_client}')
@@ -3128,9 +3142,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self.to_screen(
                     f'{video_id}: This video is age-restricted and YouTube is requiring '
                     'account age-verification; some formats may be missing', only_once=True)
-                # tv_embedded can work around the age-verification requirement for embeddable videos
                 # web_creator may work around age-verification for all videos but requires PO token
-                append_client('tv_embedded', 'web_creator')
+                append_client('web_creator')
 
             status = traverse_obj(pr, ('playabilityStatus', 'status', {str}))
             if status not in ('OK', 'LIVE_STREAM_OFFLINE', 'AGE_CHECK_REQUIRED', 'AGE_VERIFICATION_REQUIRED'):

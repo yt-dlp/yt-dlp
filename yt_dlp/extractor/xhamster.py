@@ -213,16 +213,9 @@ class XHamsterIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _decipher_format_url(self, format_url, format_id):
-        parsed_url = urllib.parse.urlparse(format_url)
+    _VALID_HEX_RE = r'[0-9a-fA-F]{12,}'
 
-        hex_string, path_remainder = self._search_regex(
-            r'^/(?P<hex>[0-9a-fA-F]{12,})(?P<rem>[/,].+)$', parsed_url.path, 'url components',
-            default=(None, None), group=('hex', 'rem'))
-        if not hex_string:
-            self.report_warning(f'Skipping format "{format_id}": unsupported URL format')
-            return None
-
+    def _decipher_hex_string(self, hex_string, format_id):
         byte_data = bytes.fromhex(hex_string)
         seed = int.from_bytes(byte_data[1:5], byteorder='little', signed=True)
 
@@ -232,7 +225,33 @@ class XHamsterIE(InfoExtractor):
             self.report_warning(f'Skipping format "{format_id}": {e.msg}')
             return None
 
-        deciphered = bytearray(byte ^ next(byte_gen) for byte in byte_data[5:]).decode('latin-1')
+        return bytearray(byte ^ next(byte_gen) for byte in byte_data[5:]).decode('latin-1')
+
+    def _decipher_format_url(self, format_url, format_id):
+        # format_url can be hex ciphertext or a URL with a hex ciphertext segment
+        if re.fullmatch(self._VALID_HEX_RE, format_url):
+            return self._decipher_hex_string(format_url, format_id)
+        elif not url_or_none(format_url):
+            if re.fullmatch(r'[0-9a-fA-F]+', format_url):
+                # Hex strings that are too short are expected, so we don't want to warn
+                self.write_debug(f'Skipping dummy ciphertext for "{format_id}": {format_url}')
+            else:
+                # Something has likely changed on the site's end, so we need to warn
+                self.report_warning(f'Skipping format "{format_id}": invalid ciphertext')
+            return None
+
+        parsed_url = urllib.parse.urlparse(format_url)
+
+        hex_string, path_remainder = self._search_regex(
+            rf'^/(?P<hex>{self._VALID_HEX_RE})(?P<rem>[/,].+)$', parsed_url.path, 'url components',
+            default=(None, None), group=('hex', 'rem'))
+        if not hex_string:
+            self.report_warning(f'Skipping format "{format_id}": unsupported URL format')
+            return None
+
+        deciphered = self._decipher_hex_string(hex_string, format_id)
+        if not deciphered:
+            return None
 
         return parsed_url._replace(path=f'/{deciphered}{path_remainder}').geturl()
 

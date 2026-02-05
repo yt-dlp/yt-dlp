@@ -16,7 +16,7 @@ jobs:
     outputs:
       commit: ${{ steps.check_for_new_commits.outputs.commit }}
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -27,7 +27,7 @@ jobs:
         run: echo "head=$(git rev-parse HEAD)" | tee -a "${GITHUB_OUTPUT}"
 
       - name: Cache nightly commit hash
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb  # v5.0.1
+        uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7  # v5.0.2
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
         with:
@@ -72,7 +72,7 @@ jobs:
   release:
     name: Publish Github release
     needs: [check_nightly]
-    if: ${{ needs.check_nightly.outputs.commit }}
+    if: needs.check_nightly.outputs.commit
     permissions:
       contents: write  # May be needed to publish release
       id-token: write  # Needed for trusted publishing
