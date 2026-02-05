@@ -4,6 +4,12 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2026.02.04
+
+#### Extractor changes
+- **unsupported**: [Update unsupported URLs](https://github.com/yt-dlp/yt-dlp/commit/c677d866d41eb4075b0a5e0c944a6543fc13f15d) ([#15812](https://github.com/yt-dlp/yt-dlp/issues/15812)) by [doe1080](https://github.com/doe1080)
+- **youtube**: [Default to `tv` player JS variant](https://github.com/yt-dlp/yt-dlp/commit/1a895c18aaaf00f557aa8cbacb21faa638842431) ([#15818](https://github.com/yt-dlp/yt-dlp/issues/15818)) by [bashonly](https://github.com/bashonly)
+
 ### 2026.01.31
 
 #### Extractor changes
