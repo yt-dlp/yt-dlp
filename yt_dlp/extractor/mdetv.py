@@ -77,45 +77,21 @@ class MDETVIE(MDETVBaseIE):
         thumbnail = self._search_regex(
             r'thumbnail:\s*"([^"]+)"', webpage, 'thumbnail', default=None)
 
-        # Get signature tokens from the API
-        sign_data = self._call_api(
-            f'videos/{video_uuid}/sign', video_id,
-            'Downloading signature', True)
-
-        token = sign_data['token']
-        expires = sign_data['expires']
-
-        # Construct the iframe URL to fetch the actual playlist URL
-        # The iframe contains the authenticated streaming URL in its JavaScript
-        iframe_url = (
-            f'https://iframe.mediadelivery.net/embed/85972/{video_uuid}'
-            f'?token={token}&expires={expires}'
-        )
-
-        # Download the iframe page to extract the playlist URL
-        iframe_page = self._download_webpage(
-            iframe_url, video_id, 'Downloading iframe page',
-            headers={
-                'sec-fetch-dest': 'iframe',
-                'sec-fetch-mode': 'navigate',
-                'referer': 'https://www.mde.tv/',
-            })
-
-        # Extract the playlist URL from the iframe's JavaScript
-        # The playlist URL has format: https://stream.mde.tv/bcdn_token=...&expires=.../uuid/playlist.m3u8
-        playlist_url = self._search_regex(
-            r'urlPlaylistUrl\s*=\s*["\']([^"\']+)["\']',
-            iframe_page, 'playlist URL')
-        formats, subs = self._extract_m3u8_formats_and_subtitles(
-            playlist_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+        # get download urls from API
+        download_urls = self._call_api(
+            f'videos/{video_uuid}/download', video_id,
+            'Downloading manifest', True)['videoDownloadURLs']
 
         return {
             'id': video_id,
             'title': title,
             'description': description,
             'thumbnail': thumbnail,
-            'subtitles': subs,
-            'formats': formats,
+            'formats': [
+                # currently site only serves mp4 files. change if changes in future
+                {'url': entry['url'], 'format_id': entry['quality'], 'quality': len(download_urls) - i, 'ext': 'mp4'}
+                for i, entry in enumerate(download_urls)
+            ],
             'uploader': series_id,
         }
 
