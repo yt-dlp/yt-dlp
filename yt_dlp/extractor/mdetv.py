@@ -61,16 +61,21 @@ class MDETVIE(MDETVBaseIE):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         series_id = mobj.group('series_id')
-
-        # Download the webpage to extract the video UUID from structured data
         webpage = self._download_webpage(url, video_id)
 
-        # Extract video UUID from the structured data in the page
+        # Extract video UUID (which is a UUIDv4) from the structured data in the page
         # The page contains minified JavaScript with video data in a specific pattern
         # Look for UUID in object properties that are part of video data structures
         video_uuid = self._search_regex(
             r'\bid\s*:\s*["\']([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})["\']',
             webpage, 'video UUID')
+        # Grab other useful metadata in the script tag's data while we're here
+        title = self._search_regex(
+            r'title:\s*"([^"]+)"', webpage, 'title', default=video_id)
+        description = self._search_regex(
+            r'description:\s*"([^"]+)"', webpage, 'description', default=None)
+        thumbnail = self._search_regex(
+            r'thumbnail:\s*"([^"]+)"', webpage, 'thumbnail', default=None)
 
         # Get signature tokens from the API
         sign_data = self._call_api(
@@ -104,14 +109,6 @@ class MDETVIE(MDETVBaseIE):
         formats, subs = self._extract_m3u8_formats_and_subtitles(
             playlist_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
 
-        # Extract more metadata from the page script tag
-        title = self._search_regex(
-            r'title:\s*"([^"]+)"', webpage, 'title', default=video_id)
-        description = self._search_regex(
-            r'description:\s*"([^"]+)"', webpage, 'description', default=None)
-        thumbnail = self._search_regex(
-            r'thumbnail:\s*"([^"]+)"', webpage, 'thumbnail', default=None)
-
         return {
             'id': video_id,
             'title': title,
@@ -140,8 +137,6 @@ class MDETVSeriesIE(MDETVBaseIE):
 
     def _real_extract(self, url):
         series_id = self._match_id(url)
-
-        # Download the webpage
         webpage = self._download_webpage(url, series_id)
 
         # Extract all video tags from the structured data
@@ -157,10 +152,10 @@ class MDETVSeriesIE(MDETVBaseIE):
                 episode_url, ie=MDETVIE.ie_key()))
 
         # Extract series title
-        title = (self._og_search_title(webpage, default=None) or self._html_search_regex(
-            r'<div class="_title[^"]*">([^<]+)</div>', webpage, 'title', default=series_id))
-        description = (self._og_search_title(webpage, default=None) or self._html_search_regex(
-            r'<div class="_description[^"]*">([^<]+)</div>', webpage, 'description', default=series_id))
+        title = self._html_search_regex(
+            r'<div class="_title[^"]*">([^<]+)</div>', webpage, 'title', default=series_id)
+        description = self._html_search_regex(
+            r'<div class="_description[^"]*">([^<]+)</div>', webpage, 'description', default=series_id)
 
         return self.playlist_result(entries, series_id, title, description)
 
@@ -182,14 +177,12 @@ class MDETVSiteIE(MDETVBaseIE):
     def _real_extract(self, url):
         playlist_id = 'sitemap'
         # alternative name: "master playlist"?
-        # sitemap works better imo since there is no "playlist" concept in mde.tv
-
-        # Download the webpage
+        # sitemap works better imo since there is no "playlist" concept on mde.tv
         webpage = self._download_webpage(url, playlist_id)
 
         # Extract all series tags from the structured data
         # The main page contains a 'series' array with objects containing 'tag' properties
-        # We need to distinguish series tags from video tags - series tags appear before 'episodes' property
+        # series tags appear before 'episodes' property
         entries = []
         seen_tags = set()
         # Match pattern: tag: "series-slug", ... episodes: N
