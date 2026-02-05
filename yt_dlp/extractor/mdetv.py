@@ -89,6 +89,9 @@ class MDETVIE(MDETVBaseIE):
             'thumbnail': thumbnail,
             'formats': [
                 # currently site only serves mp4 files. change if changes in future
+                # doesn't seem to be a limit of their CDN to only serve mp4;
+                # the files downloaded through the download API are LITERALLY THE ORIGINAL FILES
+                # as in, they still have the metadata from the encoder and NLE. wild stuff.
                 {'url': entry['url'], 'format_id': entry['quality'], 'quality': len(download_urls) - i, 'ext': 'mp4'}
                 for i, entry in enumerate(download_urls)
             ],
