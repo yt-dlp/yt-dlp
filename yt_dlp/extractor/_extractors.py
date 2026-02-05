@@ -1077,6 +1077,11 @@ from .mave import (
     MaveIE,
 )
 from .mbn import MBNIE
+from .mdetv import (
+    MDETVIE,
+    MDETVSiteIE,
+    MDETVSeriesIE,
+)
 from .mdr import MDRIE
 from .medaltv import MedalTVIE
 from .mediaite import MediaiteIE
