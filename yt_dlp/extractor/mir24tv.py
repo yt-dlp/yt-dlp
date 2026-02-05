@@ -10,7 +10,7 @@ class Mir24TvIE(InfoExtractor):
         'url': 'https://mir24.tv/news/16635210/dni-kultury-rossii-otkrylis-v-uzbekistane.-na-prazdnichnom-koncerte-vystupili-zvezdy-rossijskoj-estrada',
         'info_dict': {
             'id': '16635210',
-            'title': 'Дни культуры России открылись в Узбекистане. На праздничном концерте выступили звезды российской эстрады',
+            'title': 'Дни культуры России открылись в Узбекистане.  На праздничном концерте выступили звезды российской эстрады',
             'ext': 'mp4',
             'thumbnail': r're:https://images\.mir24\.tv/.+\.jpg',
         },
