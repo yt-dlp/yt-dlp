@@ -15,12 +15,15 @@ from ..utils import (
 from ..utils.traversal import require, traverse_obj
 
 
-class TFOIE(InfoExtractor):
+class TFOBaseIE(InfoExtractor):
+    _BASE_URL = 'https://www.tfo.org'
+    _GEO_COUNTRIES = ['CA']
+
+
+class TFOIE(TFOBaseIE):
     IE_NAME = 'tfo'
     IE_DESC = 'Télévision française de l\'Ontario'
 
-    _BASE_URL = 'https://www.tfo.org'
-    _GEO_COUNTRIES = ['CA']
     _VALID_URL = r'https?://(?:www\.)?tfo\.org/(?:episode|film|regarder|titre)(?:/[\w-]+)+/(?P<id>(?:GP)?\d{6})'
     _TESTS = [{
         'url': 'https://www.tfo.org/regarder/pouletosaure-rex-partie-1-2/GP639511',
@@ -175,7 +178,7 @@ class TFOIE(InfoExtractor):
         }
 
 
-class TFOSeriesIE(InfoExtractor):
+class TFOSeriesIE(TFOBaseIE):
     IE_NAME = 'tfo:series'
 
     _VALID_URL = r'https?://(?:www\.)?tfo\.org/serie/[\w-]+(?:/saison-(?P<season>\d+))?/(?P<id>\d{9})'
@@ -204,8 +207,8 @@ class TFOSeriesIE(InfoExtractor):
         entries = [
             self.url_result(x, TFOIE)
             for x in traverse_obj(nextjs_data, (
-                'props', 'pageProps', 'product', 'seasons', *variadic(path), 'episodes',
-                ..., 'canonicalUrl', {urljoin('https://www.tfo.org/')},
+                'props', 'pageProps', 'product', 'seasons', *variadic(path),
+                'episodes', ..., 'canonicalUrl', {urljoin(f'{self._BASE_URL}/')},
             ))
         ]
 
