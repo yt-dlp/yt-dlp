@@ -101,7 +101,7 @@ class MDETVIE(MDETVBaseIE):
         playlist_url = self._search_regex(
             r'urlPlaylistUrl\s*=\s*["\']([^"\']+)["\']',
             iframe_page, 'playlist URL')
-        formats = self._extract_m3u8_formats(
+        formats, subs = self._extract_m3u8_formats_and_subtitles(
             playlist_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
 
         # Extract more metadata from the page script tag
@@ -117,6 +117,7 @@ class MDETVIE(MDETVBaseIE):
             'title': title,
             'description': description,
             'thumbnail': thumbnail,
+            'subtitles': subs,
             'formats': formats,
             'uploader': series_id,
         }
