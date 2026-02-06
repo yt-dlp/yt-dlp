@@ -109,8 +109,8 @@ class FirstTVIE(InfoExtractor):
                     'timestamp': ('dvr_begin_at', {int_or_none}),
                     'upload_date': ('date_air', {unified_strdate}),
                     'duration': ('duration', {int_or_none}),
-                    'chapters': ('episodes', lambda _, v: isinstance(v['from'], float), {
-                        'start_time': 'from',
+                    'chapters': ('episodes', lambda _, v: float_or_none(v['from']) is not None, {
+                        'start_time': ('from', {float_or_none}),
                         'title': ('name', {str}, {unescapeHTML}),
                         'end_time': ('to', {float_or_none}),
                     }),
