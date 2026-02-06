@@ -38,7 +38,7 @@ class AngelIE(InfoExtractor):
 
         auth_cookie = ''
         if (self._cookies_passed):
-            auth_cookie = self._get_cookies(url)['angel_jwt'].value
+            auth_cookie = self._get_cookies(url)['angel_jwt_v2'].value
 
         # DOWNLOADING METADATA
         metadata = traverse_obj(self._download_json(
