@@ -1195,7 +1195,7 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
         (?P<val>                           # Start of group 'val'
         "(?:[^\\"]|\\.)*"                    # Any doublequoted string
         |                                    # or
-        \w{3},\s[\w\d\s-]{9,11}\s[\d:]{8}\sGMT # Special case for "expires" attr
+        \w{3},\ [\w\d -]{9,11}\ [\d:]{8}\ GMT # Special case for "expires" attr
         |                                    # or
         [''' + _LEGAL_VALUE_CHARS + r''']*     # Any word or empty string
         )                                  # End of group 'val'
