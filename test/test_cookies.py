@@ -275,6 +275,11 @@ class TestLenientSimpleCookie(unittest.TestCase):
                 'keebler="E=mc2; L=\\"Loves\\"; fudge=\\012;"',
                 {},
             ),
+            (
+                'Test invalid quoted attribute values w/ control characters',
+                'Customer="WILE_E_COYOTE"; Version="1\\012"; Path="/acme"',
+                {'Customer': ('WILE_E_COYOTE', {'path': '/acme'})},
+            ),
         )
 
     def test_lenient_parsing(self):

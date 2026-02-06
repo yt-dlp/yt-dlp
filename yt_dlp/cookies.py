@@ -1207,6 +1207,8 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
         (\s+|;|$)                      # Ending either at space, semicolon, or EOS.
         ''', re.ASCII | re.VERBOSE)
 
+    # http.cookies.Morsel raises on values w/ control chars in Python 3.14.3+ & 3.13.12+
+    # Ref: https://github.com/python/cpython/issues/143919
     _CONTROL_CHARACTER_RE = re.compile(r'[\x00-\x1F\x7F]')
 
     def load(self, data):
@@ -1239,6 +1241,9 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
                     value = True
                 else:
                     value, _ = self.value_decode(value)
+                    # Guard against control characters in quoted attribute values
+                    if self._CONTROL_CHARACTER_RE.search(value):
+                        continue
 
                 morsel[key] = value
 
@@ -1249,8 +1254,6 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
                 morsel = self.get(key, http.cookies.Morsel())
                 real_value, coded_value = self.value_decode(value)
                 # Guard against control characters in quoted cookie values
-                # http.cookies.Morsel raises on values w/ control chars in Python 3.14.3+ & 3.13.12+
-                # Ref: https://github.com/python/cpython/issues/143919
                 if self._CONTROL_CHARACTER_RE.search(real_value):
                     morsel = None
                     continue
