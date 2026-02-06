@@ -1207,7 +1207,7 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
         (\s+|;|$)                      # Ending either at space, semicolon, or EOS.
         ''', re.ASCII | re.VERBOSE)
 
-    # http.cookies.Morsel raises on values w/ control chars in Python 3.14.3+ & 3.13.12+
+    # http.cookies.Morsel raises on values w/ control characters in Python 3.14.3+ & 3.13.12+
     # Ref: https://github.com/python/cpython/issues/143919
     _CONTROL_CHARACTER_RE = re.compile(r'[\x00-\x1F\x7F]')
 
