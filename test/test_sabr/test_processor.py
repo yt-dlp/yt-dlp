@@ -267,6 +267,9 @@ class TestSabrProcessorInitialization:
         # Must be enabled to allow DRC formats to be streamed
         assert processor.client_abr_state.drc_enabled is True
 
+        # Voice boost should be enabled by default
+        assert processor.client_abr_state.enable_voice_boost is True
+
     @pytest.mark.parametrize(
         'duration_sec,tolerance_ms',
         [
@@ -369,9 +372,6 @@ class TestNextRequestPolicyPart:
         result = processor.process_next_request_policy(next_request_policy)
         assert result is None
         assert processor.next_request_policy is next_request_policy
-
-        # Check logger trace was called
-        assert logger.trace.call_count == 2
 
 
 class TestFormatInitialization:

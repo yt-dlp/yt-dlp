@@ -728,7 +728,7 @@ class SabrStream:
             # TODO(future): consider checking heartbeat or other indicators of actual stream end
             # TODO: check all enabled format selectors have an initialized format
             self.logger.debug(
-                f'No activity detected in {empty_requests} requests and {seconds_since_last_activity} seconds. '
+                f'No activity detected in {empty_requests} requests and {seconds_since_last_activity:.1f} seconds. '
                 f'Near live stream head; assuming livestream has ended.')
             self._consumed = True
             return
@@ -741,7 +741,7 @@ class SabrStream:
             # TODO(future): consider checking heartbeat or other indicators of actual stream end
             # TODO: check all enabled format selectors have an initialized format
             self.logger.debug(
-                f'No activity detected in {empty_requests} requests and {seconds_since_last_activity} seconds. '
+                f'No activity detected in {empty_requests} requests and {seconds_since_last_activity:.1f} seconds. '
                 f'No live metadata available; assuming livestream has ended.')
             self._consumed = True
             return

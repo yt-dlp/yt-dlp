@@ -195,7 +195,10 @@ class SabrProcessor:
         self.client_abr_state = ClientAbrState(
             player_time_ms=self.start_time_ms,
             enabled_track_types_bitfield=enabled_track_types_bitfield,
-            drc_enabled=True,  # Required to stream DRC formats
+            # Required to stream DRC formats
+            drc_enabled=True,
+            # Not currently required to stream voice boost (probably allow to auto-select)
+            enable_voice_boost=True,
         )
 
     def format_selectors(self):
@@ -650,7 +653,6 @@ class SabrProcessor:
 
     def process_next_request_policy(self, next_request_policy: NextRequestPolicy):
         self.next_request_policy = next_request_policy
-        self.logger.trace(f'Registered new NextRequestPolicy: {self.next_request_policy}')
 
     def process_sabr_seek(self, sabr_seek: SabrSeek) -> ProcessSabrSeekResult:
         seek_to = ticks_to_ms(sabr_seek.seek_time_ticks, sabr_seek.timescale)
