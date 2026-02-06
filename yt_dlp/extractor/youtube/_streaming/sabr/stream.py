@@ -897,7 +897,6 @@ class SabrStream:
             f"v:{self.processor.video_id or 'unknown'} "
             f"c:{self.processor.client_info.client_name.name} "
             f"t:{self.processor.player_time_ms} "
-            f"td:{self.processor.total_duration_ms if self.processor.total_duration_ms else 'n/a'} "
             f"h:{urllib.parse.urlparse(self.url).netloc} "
             f"exp:{dt.timedelta(seconds=int(self._gvs_expiry() - time.time())) if self._gvs_expiry() else 'n/a'} "
             f"rn:{self._request_number} sr:{self._stream_stall_tracker.stalled_requests} "

@@ -134,7 +134,6 @@ class SabrProcessor:
         self.stream_protection_status: StreamProtectionStatus.Status | None = None
 
         self.partial_segments: dict[int, Segment] = {}
-        self.total_duration_ms = None
         self.selected_audio_format_ids = []
         self.selected_video_format_ids = []
         self.selected_caption_format_ids = []
@@ -508,11 +507,6 @@ class SabrProcessor:
 
     def process_live_metadata(self, live_metadata: LiveMetadata) -> ProcessLiveMetadataResult:
         self.live_metadata = live_metadata
-        # TODO: should include 0
-        if self.live_metadata.head_sequence_time_ms:
-            # TODO: this is the start time of the head segment, which may be available (i.e, is not the total duration of the stream)
-            #  Perhaps total duration should be head_sequence_time_ms + target segment duration?
-            self.total_duration_ms = self.live_metadata.head_sequence_time_ms
 
         # If we have a head sequence number, we need to update the total sequences for each initialized format
         # For livestreams, it is not available in the format initialization metadata
@@ -621,7 +615,6 @@ class SabrProcessor:
             total_segments=total_segments,
             discard=format_selector.discard_media,
         )
-        self.total_duration_ms = max(self.total_duration_ms or 0, format_init_metadata.end_time_ms or 0, duration_ms or 0)
 
         if initialized_format.discard:
             # Mark the entire format as buffered into oblivion if we plan to discard all media.

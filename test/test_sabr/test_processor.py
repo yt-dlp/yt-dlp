@@ -647,67 +647,6 @@ class TestFormatInitialization:
         assert consumed_range.start_time_ms == 0
         assert consumed_range.duration_ms >= 99999999
 
-    def test_total_duration_ms(self, logger, base_args):
-        # Test the duration_ms calculation when end_time_ms and duration_ms are different
-        audio_selector = make_selector('audio')
-        video_selector = make_selector('video')
-        caption_selector = make_selector('caption')
-        audio_format_id = audio_selector.format_ids[0]
-        video_format_id = video_selector.format_ids[0]
-        caption_format_id = caption_selector.format_ids[0]
-        processor = SabrProcessor(
-            **base_args,
-            audio_selection=audio_selector,
-            video_selection=video_selector,
-            caption_selection=caption_selector,
-            video_id=example_video_id,
-        )
-
-        format_init_metadata_part = FormatInitializationMetadata(
-            video_id=example_video_id,
-            format_id=audio_format_id,
-            end_time_ms=15001,  # End time is slightly more than 15 seconds
-            total_segments=5,
-            mime_type='audio/mp4',
-            duration_ticks=15000,
-            duration_timescale=1000,
-        )
-
-        assert processor.total_duration_ms is None
-        processor.process_format_initialization_metadata(format_init_metadata_part)
-        assert str(audio_format_id) in processor.initialized_formats
-        assert processor.total_duration_ms == 15001
-
-        # But if duration_ticks is greater, then use that
-        video_format_init_metadata_part = FormatInitializationMetadata(
-            video_id=example_video_id,
-            format_id=video_format_id,
-            end_time_ms=15003,  # end time is slightly less
-            total_segments=10,
-            mime_type='video/mp4',
-            duration_ticks=150050,  # Duration ticks is greater than end_time_ms
-            duration_timescale=10000,  # slightly different timescale
-        )
-
-        processor.process_format_initialization_metadata(video_format_init_metadata_part)
-        assert str(video_format_id) in processor.initialized_formats
-        assert processor.total_duration_ms == 15005
-
-        # And if total_duration_ms is greater, use that
-        caption_format_init_metadata_part = FormatInitializationMetadata(
-            video_id=example_video_id,
-            format_id=caption_format_id,
-            end_time_ms=15004,
-            total_segments=20,
-            mime_type='text/mp4',
-            duration_ticks=15004,
-            duration_timescale=1000,
-        )
-
-        processor.process_format_initialization_metadata(caption_format_init_metadata_part)
-        assert str(caption_format_id) in processor.initialized_formats
-        assert processor.total_duration_ms == 15005  # should not change
-
     def test_no_duration(self, logger, base_args):
         # Test the case where no duration is provided
         selector = make_selector('audio')
@@ -724,36 +663,8 @@ class TestFormatInitialization:
             duration_timescale=None,
         )
 
-        assert processor.total_duration_ms is None
         processor.process_format_initialization_metadata(format_init_metadata_part)
         assert str(format_id) in processor.initialized_formats
-        assert processor.total_duration_ms == 0  # TODO: should this be None or 0?
-
-    def test_no_duration_total_duration_ms_set(self, logger, base_args):
-        # Test the case where no duration is provided but total_duration_ms is set (by e.g. live_metadata)
-        selector = make_selector('audio')
-        format_id = selector.format_ids[0]
-        processor = SabrProcessor(
-            **base_args,
-            audio_selection=selector,
-            video_id=example_video_id,
-        )
-
-        processor.total_duration_ms = 10000
-
-        format_init_metadata_part = FormatInitializationMetadata(
-            video_id=example_video_id,
-            format_id=format_id,
-            end_time_ms=None,  # No end time
-            total_segments=5,
-            mime_type='audio/mp4',
-            duration_ticks=None,
-            duration_timescale=None,
-        )
-
-        processor.process_format_initialization_metadata(format_init_metadata_part)
-        assert str(format_id) in processor.initialized_formats
-        assert processor.total_duration_ms == 10000
 
     def test_video_id_mismatch(self, logger, base_args):
         selector = make_selector('audio')
@@ -1065,7 +976,6 @@ class TestLiveMetadata:
 
         processor.process_live_metadata(live_metadata)
         assert processor.live_metadata is live_metadata
-        assert processor.total_duration_ms is None
 
     def test_live_metadata_with_head_sequence_time_ms(self, base_args):
         processor = SabrProcessor(**base_args)
@@ -1073,7 +983,6 @@ class TestLiveMetadata:
 
         processor.process_live_metadata(live_metadata)
         assert processor.live_metadata is live_metadata
-        assert processor.total_duration_ms == 5000
 
     def test_update_izf_total_segments(self, base_args):
 
