@@ -205,8 +205,8 @@ class TestLenientSimpleCookie(unittest.TestCase):
             ),
             (
                 'Test quoted cookie',
-                'keebler="E=mc2; L=\\"Loves\\"; fudge=\\012;"',
-                {'keebler': 'E=mc2; L="Loves"; fudge=\012;'},
+                'keebler="E=mc2; L=\\"Loves\\"; fudge=;"',
+                {'keebler': 'E=mc2; L="Loves"; fudge=;'},
             ),
             (
                 "Allow '=' in an unquoted value",
@@ -268,6 +268,12 @@ class TestLenientSimpleCookie(unittest.TestCase):
                 'Keep only the last set value',
                 'a=c; a=b',
                 {'a': 'b'},
+            ),
+            # Ref: https://github.com/python/cpython/issues/143919
+            (
+                'Test invalid cookie w/ control character',
+                'keebler="E=mc2; L=\\"Loves\\"; fudge=\\012;"',
+                {},
             ),
         )
 
