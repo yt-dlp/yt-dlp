@@ -39,7 +39,7 @@ class SabrState:
 class SabrStateFile:
 
     def __init__(self, format_filename, fd):
-        self.filename = format_filename + '.sabr.state'
+        self.filename = format_filename + '.state'
         self.fd = fd
 
     @property

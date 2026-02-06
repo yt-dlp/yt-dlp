@@ -16,7 +16,7 @@ class VideoPlaybackAbrRequest:
     player_time_ms: protobug.Int64 | None = protobug.field(4, default=None)
     video_playback_ustreamer_config: protobug.Bytes | None = protobug.field(5, default=None)
 
-    selected_audio_format_ids: list[FormatId] = protobug.field(16, default_factory=list)
-    selected_video_format_ids: list[FormatId] = protobug.field(17, default_factory=list)
-    selected_caption_format_ids: list[FormatId] = protobug.field(18, default_factory=list)
+    preferred_audio_format_ids: list[FormatId] = protobug.field(16, default_factory=list)
+    preferred_video_format_ids: list[FormatId] = protobug.field(17, default_factory=list)
+    preferred_caption_format_ids: list[FormatId] = protobug.field(18, default_factory=list)
     streamer_context: StreamerContext = protobug.field(19, default_factory=StreamerContext)

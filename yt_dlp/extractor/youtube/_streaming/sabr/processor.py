@@ -134,9 +134,9 @@ class SabrProcessor:
         self.stream_protection_status: StreamProtectionStatus.Status | None = None
 
         self.partial_segments: dict[int, Segment] = {}
-        self.selected_audio_format_ids = []
-        self.selected_video_format_ids = []
-        self.selected_caption_format_ids = []
+        self.preferred_audio_format_ids = []
+        self.preferred_video_format_ids = []
+        self.preferred_caption_format_ids = []
         self.next_request_policy: NextRequestPolicy | None = None
         self.live_metadata: LiveMetadata | None = None
         self.client_abr_state: ClientAbrState
@@ -187,9 +187,9 @@ class SabrProcessor:
             # If audio or video is not selected, the tracks will be initialized but marked as buffered.
             enabled_track_types_bitfield = 7
 
-        self.selected_audio_format_ids = self._audio_format_selector.format_ids
-        self.selected_video_format_ids = self._video_format_selector.format_ids
-        self.selected_caption_format_ids = self._caption_format_selector.format_ids
+        self.preferred_audio_format_ids = self._audio_format_selector.format_ids
+        self.preferred_video_format_ids = self._video_format_selector.format_ids
+        self.preferred_caption_format_ids = self._caption_format_selector.format_ids
 
         self.logger.debug(f'Starting playback at: {self.start_time_ms}ms')
         self.client_abr_state = ClientAbrState(
@@ -717,9 +717,9 @@ class SabrProcessor:
 def build_vpabr_request(processor: SabrProcessor):
     return VideoPlaybackAbrRequest(
         client_abr_state=processor.client_abr_state,
-        selected_video_format_ids=processor.selected_video_format_ids,
-        selected_audio_format_ids=processor.selected_audio_format_ids,
-        selected_caption_format_ids=processor.selected_caption_format_ids,
+        preferred_video_format_ids=processor.preferred_video_format_ids,
+        preferred_audio_format_ids=processor.preferred_audio_format_ids,
+        preferred_caption_format_ids=processor.preferred_caption_format_ids,
         initialized_format_ids=[
             initialized_format.format_id for initialized_format in processor.initialized_formats.values()
         ],

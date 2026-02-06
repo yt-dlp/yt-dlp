@@ -231,9 +231,9 @@ class TestSabrProcessorInitialization:
             video_selection=video_sel() if video_sel else None,
             caption_selection=caption_sel() if caption_sel else None,
         )
-        assert processor.selected_audio_format_ids == expected_audio_ids
-        assert processor.selected_video_format_ids == expected_video_ids
-        assert processor.selected_caption_format_ids == expected_caption_ids
+        assert processor.preferred_audio_format_ids == expected_audio_ids
+        assert processor.preferred_video_format_ids == expected_video_ids
+        assert processor.preferred_caption_format_ids == expected_caption_ids
 
     @pytest.mark.parametrize(
         'start_time_ms,expected',

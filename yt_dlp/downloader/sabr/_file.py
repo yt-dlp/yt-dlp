@@ -35,7 +35,7 @@ class SequenceFile:
         self.sequence = sequence
         self.file = DiskFormatIOBackend(
             fd=self.fd,
-            filename=self.format_filename + f'.sq{self.sequence_id}.sabr.part',
+            filename=self.format_filename + f'.sq{self.sequence_id}.part',
         )
         self.current_segment: SegmentFile | None = None
         self.resume = resume
@@ -172,7 +172,7 @@ class SegmentFile:
 
         memory_file_limit = memory_file_limit if memory_file_limit is not None else 2 * 1024 * 1024  # Default to 2 MB
 
-        filename = format_filename + f'.sg{segment.segment_id}.sabr.part'
+        filename = format_filename + f'.sg{segment.segment_id}.part'
         # Store the segment in memory if it is small enough
         if segment.content_length and segment.content_length <= memory_file_limit:
             self.file = MemoryFormatIOBackend(

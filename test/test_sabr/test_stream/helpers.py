@@ -149,11 +149,11 @@ class SabrResponseProcessor:
 
         enabled_track_types_bitfield = vpabr.client_abr_state.enabled_track_types_bitfield
 
-        audio_format_id = vpabr.selected_audio_format_ids[0] if vpabr.selected_audio_format_ids else self.options.get('default_audio_format', DEFAULT_AUDIO_FORMAT)
+        audio_format_id = vpabr.preferred_audio_format_ids[0] if vpabr.preferred_audio_format_ids else self.options.get('default_audio_format', DEFAULT_AUDIO_FORMAT)
         video_format_id = None
 
         if enabled_track_types_bitfield != 1:
-            video_format_id = vpabr.selected_video_format_ids[0] if vpabr.selected_video_format_ids else self.options.get('default_video_format', DEFAULT_VIDEO_FORMAT)
+            video_format_id = vpabr.preferred_video_format_ids[0] if vpabr.preferred_video_format_ids else self.options.get('default_video_format', DEFAULT_VIDEO_FORMAT)
 
         return audio_format_id, video_format_id
 
