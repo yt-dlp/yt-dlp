@@ -44,7 +44,6 @@ from yt_dlp.extractor.youtube._streaming.sabr.part import (
     RefreshPlayerResponseSabrPart,
     PoTokenStatusSabrPart,
     MediaSegmentInitSabrPart,
-    MediaSegmentEndSabrPart,
     MediaSeekSabrPart,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.stream import SabrStream
@@ -533,53 +532,6 @@ class TestStream:
         received_sequence_numbers = [part.sequence_number for part in media_init_parts_received]
         assert 2 not in received_sequence_numbers
         assert 3 not in received_sequence_numbers
-
-    def test_fail_segment_multiple_consumed_ranges(self, logger, client_info):
-        # Should bail out if a segment is in multiple consumed ranges
-        # This is a guard against an internal error when setting consumed ranges
-        sabr_stream, rh, _ = setup_sabr_stream_av(
-            sabr_response_processor=BasicAudioVideoProfile(),
-            client_info=client_info,
-            logger=logger,
-            enable_audio=False,
-        )
-
-        # Get the first complete segment for the format to update the consumed range
-        iter_parts = sabr_stream.iter_parts()
-        format_init_part = next(iter_parts)
-        assert isinstance(format_init_part, FormatInitializedSabrPart)
-
-        # Get first two media_end parts (init and first segment)
-        first_two_media_end_parts = []
-        for part in iter_parts:
-            if isinstance(part, MediaSegmentEndSabrPart):
-                first_two_media_end_parts.append(part)
-                if len(first_two_media_end_parts) == 2:
-                    break
-
-        # Consumed range should contain the first segment
-        consumed_ranges = sabr_stream.processor.initialized_formats[str(format_init_part.format_id)].consumed_ranges
-        assert len(consumed_ranges) == 1
-        assert consumed_ranges[0].start_sequence_number == consumed_ranges[0].end_sequence_number == 1
-
-        # Now add another consumed range that also contains the first segment
-        consumed_ranges.append(
-            ConsumedRange(
-                start_sequence_number=1,
-                end_sequence_number=2,
-                start_time_ms=0,
-                duration_ms=5000,
-            ))
-
-        # Continue retrieving parts and expect error before next request
-        with pytest.raises(
-            SabrStreamError,
-            match=r'Segment 1 for format FormatId\(itag=248, lmt=456, xtags=None\) in 2 consumed ranges',
-        ):
-            list(iter_parts)
-
-        # There should have only been one request made (the initial one)
-        assert len(rh.request_history) == 1
 
     def test_server_format_change_error(self, logger, client_info):
         # Should raise an error if the server changes the format IDs mid-stream

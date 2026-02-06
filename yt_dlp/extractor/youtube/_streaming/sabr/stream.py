@@ -297,12 +297,8 @@ class SabrStream:
 
             # We are expecting to stay in the same place for a retry
             if not retry_next_request:
-
-                # Calculate and apply the next playback time to skip to
                 self._process_next_player_time()
                 self._process_live_wait()
-
-                self._prepare_next_playback_time()  # TODO: remove
 
                 self._check_end_of_stream()
                 self._check_stream_stall()
@@ -375,23 +371,6 @@ class SabrStream:
             self._current_http_retry.error = SabrStreamError(msg)
 
         self.processor.partial_segments.clear()
-
-    def _prepare_next_playback_time(self):
-        # TODO: refactor and cleanup this massive function
-        # TODO: move this for loop into processor
-        for izf in self.processor.initialized_formats.values():
-            if not izf.previous_segment:
-                continue
-
-            # Guard: Check that the segment is not in multiple consumed ranges
-            # This should not happen, but if it does, we should bail
-            count = sum(
-                1 for cr in izf.consumed_ranges
-                if cr.start_sequence_number <= izf.previous_segment.sequence_number <= cr.end_sequence_number
-            )
-
-            if count > 1:
-                raise SabrStreamError(f'Segment {izf.previous_segment.sequence_number} for format {izf.format_id} in {count} consumed ranges')
 
     # region: UMP Part Processors
 
