@@ -159,6 +159,8 @@ class ERTFlixBaseIE(InfoExtractor):
         if isinstance(data, dict):
             return []
 
+        data = traverse_obj(data, (..., 'media'), ('media', ...))
+
         urls = []
 
         av_blocks = traverse_obj(
@@ -302,8 +304,6 @@ class ERTFlixIE(ERTFlixBaseIE):
     def _extract_formats(self, data, video_id):
         if not isinstance(data, (dict, list)):
             return []
-
-        data = traverse_obj(data, (..., 'media'), ('media', ...))
 
         formats, subtitles = [], {}
         urls = self.extract_urls_from_data(data)
