@@ -1363,7 +1363,6 @@ from .noz import NozIE
 from .npo import (
     NPO3IE,
     NTRIE,
-    VPROIE,
     AndereTijdenIE,
     HetKlokhuisIE,
     NPORadioIE,

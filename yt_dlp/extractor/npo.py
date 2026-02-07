@@ -96,7 +96,7 @@ class NPOStartIE(NPOBaseIE):
             'id': 'VPWON_1169289',
             'ext': 'mp4',
             'title': 'Zwart geld: de toekomst komt uit Afrika',
-            'description': 'md5:d6476bceb17a8c103c76c3b708f05dd1',
+            'description': 'md5:52cf4eefbc96fffcbdc06d024147abea',
             'duration': 3000,
             'uploader_id': 'NED2',
             'series': 'VPRO Tegenlicht',
@@ -203,6 +203,7 @@ class NPORadioIE(NPOBaseIE):
             'title': 'Utrecht zet rolmodellen in voor bewustzijn mentale gezondheid ',
             'genres': [],
             'thumbnail': str,
+            'description': '',
         },
     },
         {
@@ -215,6 +216,7 @@ class NPORadioIE(NPOBaseIE):
             'title': 'Nancy zet zich in voor daklozen: "Voor mij was het op het randje" ',
             'duration': 235,
             'thumbnail': str,
+            'description': '',
         },
     },
         {
@@ -339,6 +341,7 @@ class ZappIE(NPOBaseIE):
             'duration': 13.0,
             'thumbnail': 'https://images.poms.omroep.nl/image/s1080/615088',
             'genres': [],
+            'description': '',
         },
     }
 
@@ -377,59 +380,6 @@ class NPOPlaylistBaseIE(NPOBaseIE):
         ]
 
         return self.playlist_result(entries, playlist_id, playlist_title)
-
-
-class VPROIE(NPOPlaylistBaseIE):
-    IE_NAME = 'vpro'
-    _VALID_URL = r'https?://(?:www\.)?(?:vpro|2doc)\.nl/(?:[^/]+/)*(?P<id>[^/.]+)'
-    _PLAYLIST_TITLE_RE = (r'<h1[^>]+class=["\'].*?\bmedia-platform-title\b.*?["\'][^>]*>([^<]+)')
-    _PLAYLIST_ENTRY_RE = r'data-media-id="([^"]+)"'
-
-    _TESTS = [
-        {
-            'url': 'https://www.vpro.nl/programmas/3doc/2015/sergio-herman.html',
-            'info_dict': {
-                'id': 'sergio-herman',
-                'title': 'Sergio Herman: Fucking Perfect',
-            },
-            'playlist_count': 2,
-        },
-        {
-            'url': 'http://www.2doc.nl/documentaires/series/2doc/2015/oktober/de-tegenprestatie.html',
-            'md5': '87a4cc5a62da942ca9270e4da1d2b8b5',
-            'info_dict': {
-                'id': 'VPWON_1223413',
-                'ext': 'mp4',
-                'title': 'De Tegenprestatie',
-                'duration': 2992.45,
-                'genres': ['Documentaire'],
-                'channel_id': 'NED2',
-                'description': 'Er wordt van burgers steeds meer eigen verantwoordelijkheid en zelfredzaamheid gevraagd.',
-                'uploader_id': 'NED2',
-                'thumbnail': 'https://images.poms.omroep.nl/image/s1080/663342',
-            },
-        }, {
-            'url': 'https://www.2doc.nl/documentaires/2018/07/het-verdriet-van-nederland.html',
-            'md5': '9ae67f6bdcb16a62f99e01198674fe10',
-            'info_dict': {
-                'id': 'VARA_101375237',
-                'ext': 'mp4',
-                'uploader_id': 'NED1',
-                'channel_id': 'NED1',
-                'thumbnail': 'https://images.poms.omroep.nl/image/s1080/1608566',
-                'duration': 4259.63,
-                'genres': ['Documentaire'],
-                'title': 'Het verdriet van Nederland',
-                'description': 'md5:d19b745af196f6cb98daf50ac7cb01fc',
-            },
-        },
-    ]
-
-    def _download_token(self, mid, url):
-        return self._download_json('https://rs.vpro.nl/v3/api/npoplayer/token', mid, 'Downloading token JSON', data=json.dumps({'mid': mid}).encode(), headers={
-            'Content-Type': 'application/json',
-            'Referer': url,
-        })['token']
 
 
 class NTRIE(NPOPlaylistBaseIE):
