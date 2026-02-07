@@ -1075,6 +1075,7 @@ from .markiza import (
 )
 from .massengeschmacktv import MassengeschmackTVIE
 from .masters import MastersIE
+from .matchitv import MatchiTVIE
 from .matchtv import MatchTVIE
 from .mave import (
     MaveChannelIE,
