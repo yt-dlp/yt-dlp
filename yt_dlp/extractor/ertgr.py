@@ -1,61 +1,202 @@
 import json
 import re
+import time
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
-    clean_html,
     determine_ext,
-    dict_get,
-    int_or_none,
-    merge_dicts,
+    jwt_decode_hs256,
     parse_age_limit,
-    parse_iso8601,
     parse_qs,
-    str_or_none,
-    try_get,
-    url_or_none,
-    variadic,
 )
 from ..utils.traversal import traverse_obj
 
 
 class ERTFlixBaseIE(InfoExtractor):
-    def _call_api(
-            self, video_id, method='Player/AcquireContent', api_version=1,
-            param_headers=None, data=None, headers=None, **params):
-        platform_codename = {'platformCodename': 'www'}
-        headers_as_param = {'X-Api-Date-Format': 'iso', 'X-Api-Camel-Case': False}
-        headers_as_param.update(param_headers or {})
-        headers = headers or {}
-        if data:
-            headers['Content-Type'] = headers_as_param['Content-Type'] = 'application/json;charset=utf-8'
-            data = json.dumps(merge_dicts(platform_codename, data)).encode()
-        query = merge_dicts(
-            {} if data else platform_codename,
-            {'$headers': json.dumps(headers_as_param)},
-            params)
-        response = self._download_json(
-            f'https://api.app.ertflix.gr/v{api_version!s}/{method}',
-            video_id, fatal=False, query=query, data=data, headers=headers)
-        if try_get(response, lambda x: x['Result']['Success']) is True:
-            return response
+    _NETRC_MACHINE = 'ERTFLIX'
+    _TOKEN_CACHE_KEY = 'ert_token_data'
 
-    def _call_api_get_tiles(self, video_id, *tile_ids):
-        requested_tile_ids = [video_id, *tile_ids]
-        requested_tiles = [{'Id': tile_id} for tile_id in requested_tile_ids]
-        tiles_response = self._call_api(
-            video_id, method='Tile/GetTiles', api_version=2,
-            data={'RequestedTiles': requested_tiles})
-        tiles = try_get(tiles_response, lambda x: x['Tiles'], list) or []
-        if tile_ids:
-            if sorted([tile['Id'] for tile in tiles]) != sorted(requested_tile_ids):
-                raise ExtractorError('Requested tiles not found', video_id=video_id)
-            return tiles
+    _ACCESS_TOKEN = None
+    _REFRESH_TOKEN = None
+    _LANG = 'en_GB'
+
+    def _real_initialize(self):
+        langs = ('en', 'el', 'english', 'greek')
+        lang = self._configuration_arg('language', default='en', ie_key=self.ie_key())
+        if not lang:
+            return
+        if lang not in langs:
+            raise ExtractorError(f'Unsupported language {lang} - Supported langs are {langs}')
+        self._LANG = f'{lang}_GB' if 'en' in lang else f'{lang}_GR'
+
+    @staticmethod
+    def _is_jwt_expired(token):
+        return jwt_decode_hs256(token)['exp'] - time.time() < 300
+
+    def get_access_token(self):
+        if self._ACCESS_TOKEN and not self._is_jwt_expired(self._ACCESS_TOKEN):
+            return True
+        else:
+            self._ACCESS_TOKEN, self._REFRESH_TOKEN = self.cache.load(self._NETRC_MACHINE, self._TOKEN_CACHE_KEY, default=[None, None])
+
+            if self._ACCESS_TOKEN and self._REFRESH_TOKEN:
+                if not self._is_jwt_expired(self._ACCESS_TOKEN):
+                    return True
+                else:
+                    self.refresh_token()
+                    return True
+        return None
+
+    def _perform_login(self, username, password):
+        if username == 'username':
+            if not self._is_jwt_expired(password):
+                self._ACCESS_TOKEN = password
+            else:
+                raise ExtractorError('You given access token is expired please refresh it', expected=True)
+            return
+        if self.get_access_token():
+            return
+
         try:
-            return next(tile for tile in tiles if tile['Id'] == video_id)
-        except StopIteration:
-            raise ExtractorError('No matching tile found', video_id=video_id)
+            login_data = self._download_json(
+                'https://api.ertflix.opentv.com/ias/v3/token/actions/signOnByUserNamePassword',
+                None,
+                note='Loggin in',
+                data=json.dumps({
+                    'password': password.replace('@', '%40'),
+                    'username': username.replace('@', '%40'),
+                    'deviceInformation': {
+                        'securePlayer': {'streamings': [], 'codecs': [], 'DRMs': []},
+                        'device': {
+                            'hardware': {
+                                'manufacturer': 'Chrome - 144.0.0.0',
+                                'model': ' Win64',
+                                'type': 'Linux',
+                            },
+                            'OS': {'type': 'Linux', 'version': 'unknown'},
+                            'CPU': {'cores': 0, 'neon': 0},
+                            'screen': {'density': 0, 'width': 1920, 'height': 1080},
+                            'GPU': {'cores': '0', 'frequency': '0.000000'},
+                        },
+                    },
+                }).encode(),
+                headers={
+                    'Content-Type': 'application/json',
+                    'nv-tenant-id': 'nagra',
+                },
+            )
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                raise ExtractorError('Invalid username or password', expected=True)
+            raise
+
+        self._ACCESS_TOKEN = login_data.get('access_token')
+        self._REFRESH_TOKEN = login_data.get('refresh_token')
+        if not self._ACCESS_TOKEN:
+            raise ExtractorError('Failed to retrieve access token')
+        self.cache.store(self._NETRC_MACHINE, self._TOKEN_CACHE_KEY, [self._ACCESS_TOKEN, self._REFRESH_TOKEN])
+        return
+
+    def refresh_token(self):
+        if not self._REFRESH_TOKEN:
+            return self._perform_login(**self._get_login_info())
+
+        data = self._download_json(
+            'https://api.ertflix.opentv.com/ias/v3/token/actions/refresh',
+            None,
+            note='Refreshing token',
+            data=json.dumps({}).encode(),
+            headers={
+                'Authorization': f'Bearer {self._REFRESH_TOKEN}',
+                'Content-Type': 'application/json',
+                'nv-tenant-id': 'nagra',
+            },
+        )
+
+        if not data:
+            self.to_screen('Failed to refresh access token')
+            return self._perform_login(**self._get_login_info())
+        self._ACCESS_TOKEN = data.get('access_token')
+        if not self._ACCESS_TOKEN:
+            self.to_screen('Unable to refresh access token')
+            return self._perform_login(**self._get_login_info())
+        self._REFRESH_TOKEN = data.get('refresh_token')
+        self.cache.store(self._NETRC_MACHINE, self._TOKEN_CACHE_KEY, [self._ACCESS_TOKEN, self._REFRESH_TOKEN])
+
+    def _call_api(
+            self, video_id, is_metadata='metadata', method='Player/AcquireContent', api_version=1, data=None, headers=None, params=None):
+        headers = headers or {}
+        headers.update({
+            'nagra-device-type': 'Browser',
+            'nagra-target': 'Desktop',
+            'accept-language': self._LANG,  # Required As per Site
+        })
+        if self._ACCESS_TOKEN:
+            headers.update({
+                'Authorization': f'Bearer {self._ACCESS_TOKEN}',
+            })
+        version_path = f'v{api_version!s}/' if api_version else ''
+        params = params or {}
+        if not params:
+            params = {
+                'deviceType': 'Browser',
+            }
+        is_metadata = f'{is_metadata}/' if is_metadata else ''
+        try:
+            response = self._download_json(
+                f'https://api.ertflix.opentv.com/{is_metadata}{version_path}{method}',
+                video_id, query=params, data=data, headers=headers)
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status in (403, 500):
+                self.raise_login_required()
+            raise e
+
+        return response
+
+    def extract_urls_from_data(self, data):
+        if isinstance(data, dict):
+            return []
+
+        urls = []
+
+        av_blocks = traverse_obj(
+            data,
+            (..., lambda k, v: k.startswith('AV')), default=None,
+        )
+        if av_blocks:
+            for block in av_blocks:
+                urls.append(traverse_obj(block, ('uri')))
+        else:
+            urls.extend(traverse_obj(data, (..., 'uri')))
+
+        return urls
+
+    # TODO: Not needed for now but if needed then add in _extract_formats
+    def _urls_resolver(self, data):
+        raw_urls = self.extract_urls_from_data(data)
+        res_urls = []
+        str.split()
+        cid = data.get('contentLinkId') or (data.get('id')).split('_')[-1]
+        content_id = f'DRM_{cid}'
+        for url in raw_urls:
+            content_id = f'{content_id}_DASH' if '.mpd' in url else f'{content_id}_HLS'
+            resolved_data = self._call_api(
+                cid, is_metadata=None,
+                method='urlbuilder/v1/playout/content/token',
+                api_version=None,
+                params={
+                    'content_id': content_id,
+                    'type': 'account',
+                    'content_URL': url,
+                },
+            )
+            res_url = traverse_obj(resolved_data, ('cdnAccessToken'), ('playbackUrl'))
+            if res_url:
+                res_urls.append(res_url)
+
+        return res_urls
 
 
 class ERTFlixCodenameIE(ERTFlixBaseIE):
@@ -63,206 +204,196 @@ class ERTFlixCodenameIE(ERTFlixBaseIE):
     IE_DESC = 'ERTFLIX videos by codename'
     _VALID_URL = r'ertflix:(?P<id>[\w-]+)'
     _TESTS = [{
-        'url': 'ertflix:monogramma-praxitelis-tzanoylinos',
+        'url': 'ertflix:ERT_M001162',
         'info_dict': {
-            'id': 'monogramma-praxitelis-tzanoylinos',
+            'id': 'ERT_M001162',
+            'title': 'Scoring a Goal in Love',
             'ext': 'mp4',
-            'title': 'monogramma-praxitelis-tzanoylinos',
+            'description': 'md5:ae2e217e579eecf25dc92c249c07f96e',
+            'age_limit': 8,
         },
+        'params': {'skip_download': 'm3u8'},
     }]
 
-    def _extract_formats_and_subs(self, video_id):
-        media_info = self._call_api(video_id, codename=video_id)
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        return self.url_result(
+            f'https://www.ertflix.gr/#/details/{video_id}', ERTFlixIE.ie_key(), video_id)
+
+
+class ERTFlixIE(ERTFlixBaseIE):
+    IE_NAME = 'ertflix'
+    IE_DESC = 'ERTFLIX videos'
+    _VALID_URL = r'https?://www\.ertflix\.gr/(?:[^/]+/)(?:details)/(?P<id>[^?&#]+)'
+    _TESTS = [{
+        'url': 'https://www.ertflix.gr/#/details/ERT_M001162',
+        'md5': '6479d5e60fd7e520b07ba5411dcdd6e7',
+        'info_dict': {
+            'id': 'ERT_M001162',
+            'ext': 'mp4',
+            'title': 'Scoring a Goal in Love',
+            'description': 'md5:ae2e217e579eecf25dc92c249c07f96e',
+            'age_limit': 8,
+        },
+        'skip': 'Require login',
+    }, {
+        'url': 'https://www.ertflix.gr/#/details/ERT_PS054698_E0',
+        'info_dict': {
+            'id': 'ERT_PS054698',
+            'title': 'The Oath',
+            'age_limit': 8,
+        },
+        'playlist_mincount': 36,
+        'skip': 'Require login',
+    }, {
+        'url': 'https://www.ertflix.gr/#/details/ERT_PS054134_E0',
+        'info_dict': {
+            'id': 'ERT_PS054134',
+            'age_limit': 12,
+        },
+        'playlist_mincount': 8,
+        'skip': 'Require login',
+    }, {
+        'url': 'https://www.ertflix.gr/#/details/ERT_PS054089_E0',
+        'info_dict': {
+            'id': 'ERT_PS054089',
+            'age_limit': 8,
+            'title': '5 Archelaοu Street',
+        },
+        'playlist_mincount': 80,
+        'skip': 'Require login',
+    }, {
+        'url': 'https://www.ertflix.gr/#/details/ERT_DS019291_E0',
+        'info_dict': {
+            'id': 'ERT_DS019291',
+            'title': 'The Beacons of Our Time',
+            'age_limit': 8,
+        },
+        'playlist_mincount': 10,
+        'skip': 'Require login',
+    }, {
+        'url': 'https://www.ertflix.gr/#/details/ERT_171308',
+        'only_matching': True,
+    }]
+
+    def _extract_video(self, video_id, metadata=None):
+        if not metadata:
+            metadata = self._call_api(
+                video_id,
+                method=f'vod/{video_id}/mediacard')
+        formats, subs = self._extract_formats(metadata, video_id)
+        return {
+            'id': video_id,
+            'formats': formats,
+            'subtitles': subs,
+            'age_limit': self._parse_age_rating(metadata),
+            'title': metadata.get('Title'),
+            'description': metadata.get('Description'),
+        }
+
+    @staticmethod
+    def _parse_age_rating(data):
+        return parse_age_limit(
+            traverse_obj(data, ('Ratings', 0, 'code'), ('Ratings', 0, 'precedence'))
+            or data.get('AgeRating')
+            or (data.get('IsAdultContent') and 18)
+            or (data.get('IsKidsContent') and 0))
+
+    def _extract_formats(self, data, video_id):
+        if not isinstance(data, (dict, list)):
+            return []
+
+        data = traverse_obj(data, (..., 'media'), ('media', ...))
+
         formats, subtitles = [], {}
-        for media in traverse_obj(media_info, (
-                'MediaFiles', lambda _, v: v['RoleCodename'] == 'main',
-                'Formats', lambda _, v: url_or_none(v['Url']))):
-            fmt_url = media['Url']
-            ext = determine_ext(fmt_url)
+        urls = self.extract_urls_from_data(data)
+
+        for url in urls or []:
+            if not url:
+                continue
+            ext = determine_ext(url)
             if ext == 'm3u8':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    fmt_url, video_id, m3u8_id='hls', ext='mp4', fatal=False)
+                    url, video_id, m3u8_id='hls', ext='mp4', fatal=False)
             elif ext == 'mpd':
                 fmts, subs = self._extract_mpd_formats_and_subtitles(
-                    fmt_url, video_id, mpd_id='dash', fatal=False)
+                    url, video_id, mpd_id='dash', fatal=False)
             else:
-                formats.append({
-                    'url': fmt_url,
-                    'format_id': str_or_none(media.get('Id')),
-                })
                 continue
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
         return formats, subtitles
 
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-
-        formats, subs = self._extract_formats_and_subs(video_id)
-
-        if formats:
-            return {
-                'id': video_id,
+    def _extract_season(self, season_data):
+        season_id = season_data.get('id')
+        season = self._call_api(
+            season_id, method='delivery/v2/ERT/vod/editorials',
+            api_version=None,
+            params={
+                'filter': json.dumps({
+                    'editorial.seasonRef': season_id,
+                    'locale': self._LANG,
+                }),
+                'sort': json.dumps([['editorial.episodeNumber', 1]]),
+                'offset': 0,
+                'limit': 300,
+            },
+        )
+        for ep in season.get('editorials'):
+            ep_id = ep.get('id')
+            technicals = ep.get('technicals')
+            formats, subtitles = self._extract_formats(technicals, ep_id)
+            yield {
+                'id': ep_id,
+                'title': ep.get('Title'),
+                'description': ep.get('Description'),
                 'formats': formats,
-                'subtitles': subs,
-                'title': self._generic_title(url),
+                'subtitles': subtitles,
+                'age_limit': self._parse_age_rating(ep),
             }
 
+    def _extract_series(self, series_id, metadata):
+        series_data = self._call_api(
+            series_id, method='delivery/ERT/vod/series',
+            api_version=None,
+            params={
+                'filter': json.dumps({
+                    'seriesRef': series_id,
+                    'locale': self._LANG,
+                }),
+                'sort': json.dumps([['SeasonNumber', 1]]),
+                'offset': 0,
+                'limit': 300,
+            },
+        )
 
-class ERTFlixIE(ERTFlixBaseIE):
-    IE_NAME = 'ertflix'
-    IE_DESC = 'ERTFLIX videos'
-    _VALID_URL = r'https?://www\.ertflix\.gr/(?:[^/]+/)?(?:series|vod)/(?P<id>[a-z]{3}\.\d+)'
-    _TESTS = [{
-        'url': 'https://www.ertflix.gr/vod/vod.173258-aoratoi-ergates',
-        'md5': '6479d5e60fd7e520b07ba5411dcdd6e7',
-        'info_dict': {
-            'id': 'aoratoi-ergates',
-            'ext': 'mp4',
-            'title': 'md5:c1433d598fbba0211b0069021517f8b4',
-            'description': 'md5:01a64d113c31957eb7eb07719ab18ff4',
-            'thumbnail': r're:https?://.+\.jpg',
-            'episode_id': 'vod.173258',
-            'timestamp': 1639648800,
-            'upload_date': '20211216',
-            'duration': 3166,
-            'age_limit': 8,
-        },
-        'skip': 'Invalid URL',
-    }, {
-        'url': 'https://www.ertflix.gr/series/ser.3448-monogramma',
-        'info_dict': {
-            'id': 'ser.3448',
-            'age_limit': 8,
-            'title': 'Monogramma',
-            'description': 'md5:e30cc640e6463da87f210a8ed10b2439',
-        },
-        'playlist_mincount': 64,
-    }, {
-        'url': 'https://www.ertflix.gr/series/ser.3448-monogramma?season=1',
-        'info_dict': {
-            'id': 'ser.3448',
-            'age_limit': 8,
-            'title': 'Monogramma',
-            'description': 'md5:e30cc640e6463da87f210a8ed10b2439',
-        },
-        'playlist_mincount': 66,
-    }, {
-        'url': 'https://www.ertflix.gr/series/ser.3448-monogramma?season=1&season=2021%20-%202022',
-        'info_dict': {
-            'id': 'ser.3448',
-            'age_limit': 8,
-            'title': 'Monogramma',
-            'description': 'md5:e30cc640e6463da87f210a8ed10b2439',
-        },
-        'playlist_mincount': 25,
-    }, {
-        'url': 'https://www.ertflix.gr/series/ser.164991-to-diktuo-1?season=1-9',
-        'info_dict': {
-            'id': 'ser.164991',
-            'age_limit': 8,
-            'title': 'The Network',
-            'description': 'The first Greek show featuring topics exclusively around the internet.',
-        },
-        'playlist_mincount': 0,
-    }, {
-        'url': 'https://www.ertflix.gr/en/vod/vod.127652-ta-kalytera-mas-chronia-ep1-mia-volta-sto-feggari',
-        'only_matching': True,
-    }]
-
-    def _extract_episode(self, episode):
-        codename = try_get(episode, lambda x: x['Codename'], str)
-        title = episode.get('Title')
-        description = clean_html(dict_get(episode, ('ShortDescription', 'TinyDescription')))
-        if not codename or not title or not episode.get('HasPlayableStream', True):
-            return
-        thumbnail = next((
-            url_or_none(thumb.get('Url'))
-            for thumb in variadic(dict_get(episode, ('Images', 'Image')) or {})
-            if thumb.get('IsMain')),
-            None)
-        return {
-            '_type': 'url_transparent',
-            'thumbnail': thumbnail,
-            'id': codename,
-            'episode_id': episode.get('Id'),
-            'title': title,
-            'alt_title': episode.get('Subtitle'),
-            'description': description,
-            'timestamp': parse_iso8601(episode.get('PublishDate')),
-            'duration': episode.get('DurationSeconds'),
-            'age_limit': self._parse_age_rating(episode),
-            'url': f'ertflix:{codename}',
-        }
-
-    @staticmethod
-    def _parse_age_rating(info_dict):
-        return parse_age_limit(
-            info_dict.get('AgeRating')
-            or (info_dict.get('IsAdultContent') and 18)
-            or (info_dict.get('IsKidsContent') and 0))
-
-    def _extract_series(self, video_id, season_titles=None, season_numbers=None):
-        media_info = self._call_api(video_id, method='Tile/GetSeriesDetails', id=video_id)
-
-        series = try_get(media_info, lambda x: x['Series'], dict) or {}
         series_info = {
-            'age_limit': self._parse_age_rating(series),
-            'title': series.get('Title'),
-            'description': dict_get(series, ('ShortDescription', 'TinyDescription')),
+            'age_limit': self._parse_age_rating(metadata),
+            'title': metadata.get('Title'),
+            'description': metadata.get('Description'),
         }
-        if season_numbers:
-            season_titles = season_titles or []
-            for season in try_get(series, lambda x: x['Seasons'], list) or []:
-                if season.get('SeasonNumber') in season_numbers and season.get('Title'):
-                    season_titles.append(season['Title'])
 
-        def gen_episode(m_info, season_titles):
-            for episode_group in try_get(m_info, lambda x: x['EpisodeGroups'], list) or []:
-                if season_titles and episode_group.get('Title') not in season_titles:
+        def entries(series_data):
+            desired_seasons = self._configuration_arg('season', None, ie_key=self.ie_key())
+            if desired_seasons:
+                desired_seasons = [int(s) for s in desired_seasons]
+            for season in traverse_obj(series_data, ('series')):
+                if desired_seasons and season.get('SeasonNumberNumeric') not in desired_seasons:
                     continue
-                episodes = try_get(episode_group, lambda x: x['Episodes'], list)
-                if not episodes:
-                    continue
-                season_info = {
-                    'season': episode_group.get('Title'),
-                    'season_number': int_or_none(episode_group.get('SeasonNumber')),
-                }
-                try:
-                    episodes = [(int(ep['EpisodeNumber']), ep) for ep in episodes]
-                    episodes.sort()
-                except (KeyError, ValueError):
-                    episodes = enumerate(episodes, 1)
-                for n, episode in episodes:
-                    info = self._extract_episode(episode)
-                    if info is None:
-                        continue
-                    info['episode_number'] = n
-                    info.update(season_info)
-                    yield info
+                yield from self._extract_season(season)
 
         return self.playlist_result(
-            gen_episode(media_info, season_titles), playlist_id=video_id, **series_info)
+            entries(series_data), playlist_id=series_id, **series_info)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        if video_id.startswith('ser.'):
-            param_season = parse_qs(url).get('season', [None])
-            param_season = [
-                (have_number, int_or_none(v) if have_number else str_or_none(v))
-                for have_number, v in
-                [(int_or_none(ps) is not None, ps) for ps in param_season]
-                if v is not None
-            ]
-            season_kwargs = {
-                k: [v for is_num, v in param_season if is_num is c] or None
-                for k, c in
-                [('season_titles', False), ('season_numbers', True)]
-            }
-            return self._extract_series(video_id, **season_kwargs)
-
-        return self._extract_episode(self._call_api_get_tiles(video_id))
+        metadata = self._call_api(
+            video_id,
+            method=f'vod/{video_id}/mediacard')
+        if seriesid := metadata.get('MasterSeries'):
+            return self._extract_series(seriesid, metadata)
+        return self._extract_video(video_id, metadata)
 
 
 class ERTWebtvEmbedIE(InfoExtractor):
