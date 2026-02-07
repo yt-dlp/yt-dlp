@@ -86,7 +86,6 @@ from .amazon import (
 from .amazonminitv import (
     AmazonMiniTVIE,
     AmazonMiniTVSeasonIE,
-    AmazonMiniTVSeriesIE,
 )
 from .amcnetworks import AMCNetworksIE
 from .americastestkitchen import (
