@@ -18,6 +18,19 @@ class LecturioBaseIE(InfoExtractor):
     _API_BASE_URL = 'https://app.lecturio.com/api/en/latest/html5/'
     _LOGIN_URL = 'https://app.lecturio.com/en/login'
     _NETRC_MACHINE = 'lecturio'
+    _CC_LANGS = {
+        'Arabic': 'ar',
+        'Bulgarian': 'bg',
+        'German': 'de',
+        'English': 'en',
+        'Spanish': 'es',
+        'Persian': 'fa',
+        'French': 'fr',
+        'Japanese': 'ja',
+        'Polish': 'pl',
+        'Pashto': 'ps',
+        'Russian': 'ru',
+    }
 
     def _perform_login(self, username, password):
         # Sets some cookies
@@ -52,57 +65,14 @@ class LecturioBaseIE(InfoExtractor):
             raise ExtractorError(f'Unable to login: {errors}', expected=True)
         raise ExtractorError('Unable to log in')
 
-
-class LecturioIE(LecturioBaseIE):
-    _VALID_URL = r'''(?x)
-                    https://
-                        (?:
-                            app\.lecturio\.com/([^/?#]+/(?P<nt>[^/?#&]+)\.lecture|(?:\#/)?lecture/c/\d+/(?P<id>\d+))|
-                            (?:www\.)?lecturio\.de/(?:[^/?#]+/)+(?P<nt_de>[^/?#&]+)\.vortrag
-                        )
-                    '''
-    _TESTS = [{
-        'url': 'https://app.lecturio.com/medical-courses/important-concepts-and-terms-introduction-to-microbiology.lecture#tab/videos',
-        'md5': '9a42cf1d8282a6311bf7211bbde26fde',
-        'info_dict': {
-            'id': '39634',
-            'ext': 'mp4',
-            'title': 'Important Concepts and Terms — Introduction to Microbiology',
-        },
-        'skip': 'Requires lecturio account credentials',
-    }, {
-        'url': 'https://www.lecturio.de/jura/oeffentliches-recht-staatsexamen.vortrag',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.lecturio.de/jura/oeffentliches-recht-at-1-staatsexamen/oeffentliches-recht-staatsexamen.vortrag',
-        'only_matching': True,
-    }, {
-        'url': 'https://app.lecturio.com/#/lecture/c/6434/39634',
-        'only_matching': True,
-    }]
-
-    _CC_LANGS = {
-        'Arabic': 'ar',
-        'Bulgarian': 'bg',
-        'German': 'de',
-        'English': 'en',
-        'Spanish': 'es',
-        'Persian': 'fa',
-        'French': 'fr',
-        'Japanese': 'ja',
-        'Polish': 'pl',
-        'Pashto': 'ps',
-        'Russian': 'ru',
-    }
-
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
-        nt = mobj.group('nt') or mobj.group('nt_de')
+        nt = mobj.group('nt')
         lecture_id = mobj.group('id')
         display_id = nt or lecture_id
         api_path = 'lectures/' + lecture_id if lecture_id else 'lecture/' + nt + '.json'
-        video = self._download_json(
-            self._API_BASE_URL + api_path, display_id)
+
+        video = self._download_json(self._API_BASE_URL + api_path, display_id)
         title = video['title'].strip()
         if not lecture_id:
             pid = video.get('productId') or video.get('uid')
@@ -171,6 +141,33 @@ class LecturioIE(LecturioBaseIE):
         }
 
 
+class LecturioIE(LecturioBaseIE):
+    _VALID_URL = r'https?://app\.lecturio\.com/([^/?#]+/(?P<nt>[^/?#&]+)\.lecture|(?:\#/)?lecture/c/\d+/(?P<id>\d+))'
+    _TESTS = [{
+        'url': 'https://app.lecturio.com/medical-courses/important-concepts-and-terms-introduction-to-microbiology.lecture#tab/videos',
+        'md5': '9a42cf1d8282a6311bf7211bbde26fde',
+        'info_dict': {
+            'id': '39634',
+            'ext': 'mp4',
+            'title': 'Important Concepts and Terms — Introduction to Microbiology',
+        },
+        'skip': 'Requires lecturio account credentials',
+    }, {
+        'url': 'https://app.lecturio.com/#/lecture/c/6434/39634',
+        'only_matching': True,
+    }]
+
+
+class LecturioDeIE(LecturioBaseIE):
+    _VALID_URL = r'https?://www\.lecturio\.de/[^/?#]+/(?P<id>)(?P<nt>[^/?#&]+)\.vortrag'
+    _TESTS = [{
+        'url': 'https://www.lecturio.de/jura/oeffentliches-recht-staatsexamen.vortrag',
+        'only_matching': True,
+    }]
+    _API_BASE_URL = 'https://lecturio.de/api/de/latest/html5/'
+    _LOGIN_URL = 'https://www.lecturio.de/anmelden.html'
+
+
 class LecturioCourseIE(LecturioBaseIE):
     _VALID_URL = r'https?://app\.lecturio\.com/(?:[^/]+/(?P<nt>[^/?#&]+)\.course|(?:#/)?course/c/(?P<id>\d+))'
     _TESTS = [{
@@ -208,12 +205,12 @@ class LecturioCourseIE(LecturioBaseIE):
             clean_html(course.get('description')))
 
 
-class LecturioDeCourseIE(LecturioBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?lecturio\.de/[^/]+/(?P<id>[^/?#&]+)\.kurs'
-    _TEST = {
+class LecturioDeCourseIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?lecturio\.de/[^/?#]+/(?P<id>[^/?#&]+)\.kurs'
+    _TESTS = [{
         'url': 'https://www.lecturio.de/jura/grundrechte.kurs',
         'only_matching': True,
-    }
+    }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -227,7 +224,7 @@ class LecturioDeCourseIE(LecturioBaseIE):
             lecture_url = urljoin(url, mobj.group('url'))
             lecture_id = mobj.group('id')
             entries.append(self.url_result(
-                lecture_url, ie=LecturioIE.ie_key(), video_id=lecture_id))
+                lecture_url, LecturioDeIE, video_id=lecture_id))
 
         title = self._search_regex(
             r'<h1[^>]*>([^<]+)', webpage, 'title', default=None)
