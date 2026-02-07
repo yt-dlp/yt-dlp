@@ -1,6 +1,5 @@
 import functools
 import itertools
-import urllib.parse
 
 from .common import InfoExtractor
 from .sproutvideo import VidsIoIE
@@ -11,15 +10,23 @@ from ..utils import (
     ExtractorError,
     clean_html,
     determine_ext,
+    extract_attributes,
+    float_or_none,
     int_or_none,
     mimetype2ext,
     parse_iso8601,
     smuggle_url,
     str_or_none,
+    update_url_query,
     url_or_none,
     urljoin,
 )
-from ..utils.traversal import require, traverse_obj, value
+from ..utils.traversal import (
+    find_elements,
+    require,
+    traverse_obj,
+    value,
+)
 
 
 class PatreonBaseIE(InfoExtractor):
@@ -121,6 +128,7 @@ class PatreonIE(PatreonBaseIE):
             'channel_is_verified': True,
             'chapters': 'count:4',
             'timestamp': 1423689666,
+            'media_type': 'video',
         },
         'params': {
             'noplaylist': True,
@@ -161,7 +169,7 @@ class PatreonIE(PatreonBaseIE):
             'uploader_url': 'https://www.patreon.com/loish',
             'description': 'md5:e2693e97ee299c8ece47ffdb67e7d9d2',
             'title': 'VIDEO // sketchbook flipthrough',
-            'uploader': 'Loish ',
+            'uploader': 'Loish',
             'tags': ['sketchbook', 'video'],
             'channel_id': '1641751',
             'channel_url': 'https://www.patreon.com/loish',
@@ -274,8 +282,73 @@ class PatreonIE(PatreonBaseIE):
             'channel_id': '9346307',
         },
         'params': {'getcomments': True},
+    }, {
+        # Inlined media in post; uses _extract_from_media_api
+        'url': 'https://www.patreon.com/posts/scottfalco-146966245',
+        'info_dict': {
+            'id': '146966245',
+            'ext': 'mp4',
+            'title': 'scottfalco 1080',
+            'description': 'md5:a3f29bbd0a46b4821ec3400957c98aa2',
+            'uploader': 'Insanimate',
+            'uploader_id': '2828146',
+            'uploader_url': 'https://www.patreon.com/Insanimate',
+            'channel_id': '6260877',
+            'channel_url': 'https://www.patreon.com/Insanimate',
+            'channel_follower_count': int,
+            'comment_count': int,
+            'like_count': int,
+            'duration': 7.833333,
+            'timestamp': 1767061800,
+            'upload_date': '20251230',
+        },
     }]
     _RETURN_TYPE = 'video'
+    _HTTP_HEADERS = {
+        # Must be all-lowercase 'referer' so we can smuggle it to Generic, SproutVideo, and Vimeo.
+        # patreon.com URLs redirect to www.patreon.com; this matters when requesting mux.com m3u8s
+        'referer': 'https://www.patreon.com/',
+    }
+
+    def _extract_from_media_api(self, media_id):
+        attributes = traverse_obj(
+            self._call_api(f'media/{media_id}', media_id, fatal=False),
+            ('data', 'attributes', {dict}))
+        if not attributes:
+            return None
+
+        info_dict = traverse_obj(attributes, {
+            'title': ('file_name', {lambda x: x.rpartition('.')[0]}),
+            'timestamp': ('created_at', {parse_iso8601}),
+            'duration': ('display', 'duration', {float_or_none}),
+        })
+        info_dict['id'] = media_id
+
+        playback_url = traverse_obj(
+            attributes, ('display', (None, 'viewer_playback_data'), 'url', {url_or_none}, any))
+        download_url = traverse_obj(attributes, ('download_url', {url_or_none}))
+
+        if playback_url and mimetype2ext(attributes.get('mimetype')) == 'm3u8':
+            info_dict['formats'], info_dict['subtitles'] = self._extract_m3u8_formats_and_subtitles(
+                playback_url, media_id, 'mp4', fatal=False, headers=self._HTTP_HEADERS)
+            for f in info_dict['formats']:
+                f['http_headers'] = self._HTTP_HEADERS
+            if transcript_url := traverse_obj(attributes, ('display', 'transcript_url', {url_or_none})):
+                info_dict['subtitles'].setdefault('en', []).append({
+                    'url': transcript_url,
+                    'ext': 'vtt',
+                })
+        elif playback_url or download_url:
+            info_dict['formats'] = [{
+                # If playback_url is available, download_url is a duplicate lower resolution format
+                'url': playback_url or download_url,
+                'vcodec': 'none' if attributes.get('media_type') != 'video' else None,
+            }]
+
+        if not info_dict.get('formats'):
+            return None
+
+        return info_dict
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -299,6 +372,7 @@ class PatreonIE(PatreonBaseIE):
             'comment_count': ('comment_count', {int_or_none}),
         })
 
+        seen_media_ids = set()
         entries = []
         idx = 0
         for include in traverse_obj(post, ('included', lambda _, v: v['type'])):
@@ -320,6 +394,8 @@ class PatreonIE(PatreonBaseIE):
                         'url': download_url,
                         'alt_title': traverse_obj(media_attributes, ('file_name', {str})),
                     })
+                if media_id := traverse_obj(include, ('id', {str})):
+                    seen_media_ids.add(media_id)
 
             elif include_type == 'user':
                 info.update(traverse_obj(include, {
@@ -340,34 +416,29 @@ class PatreonIE(PatreonBaseIE):
                     'channel_follower_count': ('attributes', 'patron_count', {int_or_none}),
                 }))
 
-        # Must be all-lowercase 'referer' so we can smuggle it to Generic, SproutVideo, and Vimeo.
-        # patreon.com URLs redirect to www.patreon.com; this matters when requesting mux.com m3u8s
-        headers = {'referer': 'https://www.patreon.com/'}
+        if embed_url := traverse_obj(attributes, ('embed', 'url', {url_or_none})):
+            # Convert useless vimeo.com URLs to useful player.vimeo.com embed URLs
+            vimeo_id, vimeo_hash = self._search_regex(
+                r'//vimeo\.com/(\d+)(?:/([\da-f]+))?', embed_url,
+                'vimeo id', group=(1, 2), default=(None, None))
+            if vimeo_id:
+                embed_url = update_url_query(
+                    f'https://player.vimeo.com/video/{vimeo_id}',
+                    {'h': vimeo_hash or []})
+            if VimeoIE.suitable(embed_url):
+                entry = self.url_result(
+                    VimeoIE._smuggle_referrer(embed_url, self._HTTP_HEADERS['referer']),
+                    VimeoIE, url_transparent=True)
+            else:
+                entry = self.url_result(smuggle_url(embed_url, self._HTTP_HEADERS))
 
-        # handle Vimeo embeds
-        if traverse_obj(attributes, ('embed', 'provider')) == 'Vimeo':
-            v_url = urllib.parse.unquote(self._html_search_regex(
-                r'(https(?:%3A%2F%2F|://)player\.vimeo\.com.+app_id(?:=|%3D)+\d+)',
-                traverse_obj(attributes, ('embed', 'html', {str})), 'vimeo url', fatal=False) or '')
-            if url_or_none(v_url) and self._request_webpage(
-                    v_url, video_id, 'Checking Vimeo embed URL', headers=headers,
-                    fatal=False, errnote=False, expected_status=429):  # 429 is TLS fingerprint rejection
-                entries.append(self.url_result(
-                    VimeoIE._smuggle_referrer(v_url, headers['referer']),
-                    VimeoIE, url_transparent=True))
-
-        embed_url = traverse_obj(attributes, ('embed', 'url', {url_or_none}))
-        if embed_url and (urlh := self._request_webpage(
-                embed_url, video_id, 'Checking embed URL', headers=headers,
-                fatal=False, errnote=False, expected_status=403)):
-            # Vimeo's Cloudflare anti-bot protection will return HTTP status 200 for 404, so we need
-            # to check for "Sorry, we couldn&amp;rsquo;t find that page" in the meta description tag
-            meta_description = clean_html(self._html_search_meta(
-                'description', self._webpage_read_content(urlh, embed_url, video_id, fatal=False), default=None))
-            # Password-protected vids.io embeds return 403 errors w/o --video-password or session cookie
-            if ((urlh.status != 403 and meta_description != 'Sorry, we couldn’t find that page')
-                    or VidsIoIE.suitable(embed_url)):
-                entries.append(self.url_result(smuggle_url(embed_url, headers)))
+            if urlh := self._request_webpage(
+                embed_url, video_id, 'Checking embed URL', headers=self._HTTP_HEADERS,
+                fatal=False, errnote=False, expected_status=(403, 429),  # Ignore Vimeo 429's
+            ):
+                # Password-protected vids.io embeds return 403 errors w/o --video-password or session cookie
+                if VidsIoIE.suitable(embed_url) or urlh.status != 403:
+                    entries.append(entry)
 
         post_file = traverse_obj(attributes, ('post_file', {dict}))
         if post_file:
@@ -381,13 +452,27 @@ class PatreonIE(PatreonBaseIE):
                 })
             elif name == 'video' or determine_ext(post_file.get('url')) == 'm3u8':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                    post_file['url'], video_id, headers=headers)
+                    post_file['url'], video_id, headers=self._HTTP_HEADERS)
+                for f in formats:
+                    f['http_headers'] = self._HTTP_HEADERS
                 entries.append({
                     'id': video_id,
                     'formats': formats,
                     'subtitles': subtitles,
-                    'http_headers': headers,
                 })
+            if media_id := traverse_obj(post_file, ('media_id', {int}, {str_or_none})):
+                seen_media_ids.add(media_id)
+
+        for media_id in traverse_obj(attributes, (
+            'content', {find_elements(attr='data-media-id', value=r'\d+', regex=True, html=True)},
+            ..., {extract_attributes}, 'data-media-id',
+        )):
+            # Inlined media may be duplicates of what was extracted above
+            if media_id in seen_media_ids:
+                continue
+            if media := self._extract_from_media_api(media_id):
+                entries.append(media)
+                seen_media_ids.add(media_id)
 
         can_view_post = traverse_obj(attributes, 'current_user_can_view')
         comments = None
