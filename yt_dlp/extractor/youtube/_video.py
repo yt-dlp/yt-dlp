@@ -1879,7 +1879,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     }]
 
     _DEFAULT_PLAYER_JS_VERSION = 'actual'
-    _DEFAULT_PLAYER_JS_VARIANT = 'main'
+    _DEFAULT_PLAYER_JS_VARIANT = 'tv'
     _PLAYER_JS_VARIANT_MAP = {
         'main': 'player_ias.vflset/en_US/base.js',
         'tcc': 'player_ias_tcc.vflset/en_US/base.js',
