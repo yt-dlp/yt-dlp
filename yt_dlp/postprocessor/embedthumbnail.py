@@ -17,10 +17,13 @@ from ..utils import (
 )
 
 if mutagen:
+    from mutagen.aiff import AIFF
     from mutagen.flac import FLAC, Picture
+    from mutagen.id3 import APIC
     from mutagen.mp4 import MP4, MP4Cover
     from mutagen.oggopus import OggOpus
     from mutagen.oggvorbis import OggVorbis
+    from mutagen.wave import WAVE
 
 
 class EmbedThumbnailPPError(PostProcessingError):
@@ -217,9 +220,30 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 f['METADATA_BLOCK_PICTURE'] = base64.b64encode(pic.write()).decode('ascii')
             f.save()
             temp_filename = filename
+        elif info['ext'] in ['aiff', 'wav']:
+            if not mutagen:
+                raise EmbedThumbnailPPError('module mutagen was not found. Please install using `python3 -m pip install mutagen`')
 
+            self._report_run('mutagen', filename)
+            success = True
+            try:
+                f = {'aiff': AIFF, 'wav': WAVE}[info['ext']](filename)
+                with open(thumbnail_filename, 'rb') as thumbfile:
+                    thumb_data = thumbfile.read()
+                f['APIC'] = APIC(
+                    encoding=3,  # utf-8
+                    mime=f'image/{thumbnail_ext.replace("jpg", "jpeg")}',
+                    type=3,  # front cover
+                    desc='Cover (front)',
+                    data=thumb_data,
+                )
+                f.save()
+                temp_filename = filename
+            except Exception as err:
+                success = False
+                raise EmbedThumbnailPPError(f'unable to embed using mutagen; {err}')
         else:
-            raise EmbedThumbnailPPError('Supported filetypes for thumbnail embedding are: mp3, mkv/mka, ogg/opus/flac, m4a/mp4/m4v/mov')
+            raise EmbedThumbnailPPError('Supported filetypes for thumbnail embedding are: mp3, mkv/mka, ogg/opus/flac, m4a/mp4/m4v/mov, aiff/wav')
 
         if success and temp_filename != filename:
             os.replace(temp_filename, filename)
