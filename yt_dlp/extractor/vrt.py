@@ -264,36 +264,46 @@ class VrtNUIE(VRTBaseIE):
     _REFRESH_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_rt'
     _VIDEO_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_vt'
     _VIDEO_PAGE_QUERY = '''
-    query VideoPage($pageId: ID!) {
-        page(id: $pageId) {
-            ... on EpisodePage {
-                episode {
-                    ageRaw
-                    description
-                    durationRaw
-                    episodeNumberRaw
-                    id
-                    name
-                    onTimeRaw
-                    program {
-                        title
-                    }
-                    season {
-                        id
-                        titleRaw
-                    }
-                    title
-                    brand
+    query EpisodePage($pageId: ID!) {
+    page(id: $pageId) {
+        ... on PlaybackPage {
+        objectId
+        title
+        permalink
+        ldjson
+
+        player {
+            objectId
+            title
+            subtitle
+            maxAge
+
+            image {
+            templateUrl
+            alt
+            }
+
+            modes {
+            active
+            streamId
+            token {
+                value
+            }
+
+            ... on VideoPlayerMode {
+                    aspectRatio
+            }
+
+            ... on AudioPlayerMode {
+                broadcastStartDate
                 }
-                ldjson
-                player {
-                    image {
-                        templateUrl
-                    }
-                    modes {
-                        streamId
-                    }
+            }
+
+            progress {
+                durationInSeconds
+                progressInSeconds
                 }
+            }
             }
         }
     }
@@ -403,7 +413,7 @@ class VrtNUIE(VRTBaseIE):
             f'https://www.vrt.be/vrtnu-api/graphql{"" if access_token else "/public"}/v1',
             display_id, 'Downloading asset JSON', 'Unable to download asset JSON',
             data=json.dumps({
-                'operationName': 'VideoPage',
+                'operationName': 'EpisodePage',
                 'query': self._VIDEO_PAGE_QUERY,
                 'variables': {'pageId': urllib.parse.urlparse(url).path},
             }).encode(),
@@ -411,7 +421,7 @@ class VrtNUIE(VRTBaseIE):
                 'Authorization': f'Bearer {access_token}' if access_token else None,
                 'Content-Type': 'application/json',
                 'x-vrt-client-name': 'WEB',
-                'x-vrt-client-version': '1.5.9',
+                'x-vrt-client-version': '1.5.15',
                 'x-vrt-zone': 'default',
             }))['data']['page']
 
