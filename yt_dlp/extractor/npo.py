@@ -87,10 +87,10 @@ class NPOBaseIE(InfoExtractor):
 
 class NPOStartIE(NPOBaseIE):
     IE_NAME = 'npo.nl:start'
-    _VALID_URL = r'https?://(?:www\.)?npo\.nl/start/serie/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?npo\.nl/start/afspelen/(?P<id>[^/?#&]+)'
 
     _TESTS = [{
-        'url': 'https://npo.nl/start/serie/vpro-tegenlicht/seizoen-11/zwart-geld-de-toekomst-komt-uit-afrika/afspelen',
+        'url': 'https://npo.nl/start/afspelen/zwart-geld-de-toekomst-komt-uit-afrika',
         'md5': '8c30593a81ac80d65b531eaf2a92ac02',
         'info_dict': {
             'id': 'VPWON_1169289',
@@ -115,7 +115,7 @@ class NPOStartIE(NPOBaseIE):
             'upload_date': '20130225',
         },
     }, {
-        'url': 'https://npo.nl/start/serie/elixer/seizoen-1/elixer/afspelen',
+        'url': 'https://npo.nl/start/afspelen/elixer',
         'md5': 'b9ac5e5d5170083cf46228d0721746fa',
         'info_dict': {
             'id': 'VPWON_1352108',
@@ -415,7 +415,7 @@ class AndereTijdenIE(NTRIE):
     _PLAYLIST_ENTRY_RE = r'<figure[^>]+class=["\']episode-container\s+episode-page["\'][^>]+data-mid=["\'](.+?)["\']'
 
     _TESTS = [{
-        'url': 'http://anderetijden.nl/programma/1/Andere-Tijden/aflevering/676/Duitse-soldaten-over-de-Slag-bij-Arnhem',
+        'url': 'https://anderetijden.nl/programma/1/Andere-Tijden/aflevering/676/Duitse-soldaten-over-de-Slag-bij-Arnhem',
         'info_dict': {
             'id': 'Duitse-soldaten-over-de-Slag-bij-Arnhem',
             'title': 'Duitse soldaten over de Slag bij Arnhem',
