@@ -64,12 +64,7 @@ class RutubeBaseIE(InfoExtractor):
     def _download_api_options(self, video_id, query=None):
         if not query:
             query = {}
-        query = {
-            **query,
-            'mq': 'all',
-            'format': 'json',
-            'client': 'wdp',
-        }
+        query['format'] = 'json'
         return self._download_json(
             f'https://rutube.ru/api/play/options/{video_id}/',
             video_id, 'Downloading options JSON',
