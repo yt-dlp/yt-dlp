@@ -174,7 +174,8 @@ NUMBER_RE = r'\d+(?:\.\d+)?'
 
 @functools.cache
 def preferredencoding():
-    """Get preferred encoding.
+    """
+    Get preferred encoding.
 
     Returns the best encoding scheme for the system, based on
     locale.getpreferredencoding() and some further tweaks.
@@ -305,23 +306,23 @@ def xpath_attr(node, xpath, key, name=None, fatal=False, default=NO_DEFAULT):
 
 
 def get_element_by_id(id, html, **kwargs):
-    """Return the content of the tag with the specified ID in the passed HTML document"""
+    """ Return the content of the tag with the specified ID in the passed HTML document """
     return get_element_by_attribute('id', id, html, **kwargs)
 
 
 def get_element_html_by_id(id, html, **kwargs):
-    """Return the html of the tag with the specified ID in the passed HTML document"""
+    """ Return the html of the tag with the specified ID in the passed HTML document """
     return get_element_html_by_attribute('id', id, html, **kwargs)
 
 
 def get_element_by_class(class_name, html):
-    """Return the content of the first tag with the specified class in the passed HTML document"""
+    """ Return the content of the first tag with the specified class in the passed HTML document """
     retval = get_elements_by_class(class_name, html)
     return retval[0] if retval else None
 
 
 def get_element_html_by_class(class_name, html):
-    """Return the html of the first tag with the specified class in the passed HTML document"""
+    """ Return the html of the first tag with the specified class in the passed HTML document """
     retval = get_elements_html_by_class(class_name, html)
     return retval[0] if retval else None
 
@@ -337,26 +338,26 @@ def get_element_html_by_attribute(attribute, value, html, **kargs):
 
 
 def get_elements_by_class(class_name, html, **kargs):
-    """Return the content of all tags with the specified class in the passed HTML document as a list"""
+    """ Return the content of all tags with the specified class in the passed HTML document as a list """
     return get_elements_by_attribute(
         'class', rf'[^\'"]*(?<=[\'"\s]){re.escape(class_name)}(?=[\'"\s])[^\'"]*',
         html, escape_value=False)
 
 
 def get_elements_html_by_class(class_name, html):
-    """Return the html of all tags with the specified class in the passed HTML document as a list"""
+    """ Return the html of all tags with the specified class in the passed HTML document as a list """
     return get_elements_html_by_attribute(
         'class', rf'[^\'"]*(?<=[\'"\s]){re.escape(class_name)}(?=[\'"\s])[^\'"]*',
         html, escape_value=False)
 
 
 def get_elements_by_attribute(*args, **kwargs):
-    """Return the content of the tag with the specified attribute in the passed HTML document"""
+    """ Return the content of the tag with the specified attribute in the passed HTML document """
     return [content for content, _ in get_elements_text_and_html_by_attribute(*args, **kwargs)]
 
 
 def get_elements_html_by_attribute(*args, **kwargs):
-    """Return the html of the tag with the specified attribute in the passed HTML document"""
+    """ Return the html of the tag with the specified attribute in the passed HTML document """
     return [whole for _, whole in get_elements_text_and_html_by_attribute(*args, **kwargs)]
 
 
@@ -466,7 +467,7 @@ def get_element_text_and_html_by_tag(tag, html):
 
 
 class HTMLAttributeParser(html.parser.HTMLParser):
-    """Trivial HTML parser to gather the attributes for a single element"""
+    """ Trivial HTML parser to gather the attributes for a single element """
 
     def __init__(self):
         self.attrs = {}
@@ -478,7 +479,7 @@ class HTMLAttributeParser(html.parser.HTMLParser):
 
 
 class HTMLListAttrsParser(html.parser.HTMLParser):
-    """HTML parser to gather the attributes for the elements of a list"""
+    """ HTML parser to gather the attributes for the elements of a list """
 
     def __init__(self):
         html.parser.HTMLParser.__init__(self)
@@ -495,7 +496,8 @@ class HTMLListAttrsParser(html.parser.HTMLParser):
 
 
 def extract_attributes(html_element):
-    """Given a string for an HTML element such as
+    """
+    Given a string for an HTML element such as
     <el
          a="foo" B="bar" c="&98;az" d=boz
          empty= noval entity="&amp;"
@@ -516,8 +518,7 @@ def extract_attributes(html_element):
 
 
 def parse_list(webpage):
-    """Given a string for an series of HTML <li> elements,
-    return a dictionary of their attributes"""
+    """ Given a string for an series of HTML <li> elements, return a dictionary of their attributes """
     parser = HTMLListAttrsParser()
     parser.feed(webpage)
     parser.close()
@@ -525,7 +526,7 @@ def parse_list(webpage):
 
 
 def clean_html(html):
-    """Clean an HTML snippet into a readable string"""
+    """ Clean an HTML snippet into a readable string """
 
     if html is None:  # Convenience for sanitizing descriptions etc.
         return html
@@ -581,7 +582,8 @@ class LenientJSONDecoder(json.JSONDecoder):
 
 
 def sanitize_open(filename, open_mode):
-    """Try to open the given filename, and slightly tweak it if this fails.
+    """
+    Try to open the given filename, and slightly tweak it if this fails.
 
     Attempts to open the given filename. If this fails, it tries to change
     the filename slightly, step by step, until it's either able to open it
@@ -620,7 +622,7 @@ def sanitize_open(filename, open_mode):
 
 
 def timeconvert(timestr):
-    """Convert RFC 2822 defined time string into system timestamp"""
+    """ Convert RFC 2822 defined time string into system timestamp """
     timestamp = None
     timetuple = email.utils.parsedate_tz(timestr)
     if timetuple is not None:
@@ -629,7 +631,8 @@ def timeconvert(timestr):
 
 
 def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
-    """Sanitizes a string so it could be used as part of a filename.
+    """
+    Sanitizes a string so it could be used as part of a filename.
     @param restricted   Use a stricter subset of allowed characters
     @param is_id        Whether this is an ID that should be kept unchanged if possible.
                         If unset, yt-dlp's new sanitization rules are in effect
@@ -704,7 +707,7 @@ def _sanitize_path_parts(parts):
 
 
 def sanitize_path(s, force=False):
-    """Sanitizes and normalizes path on Windows"""
+    """ Sanitizes and normalizes path on Windows """
     if sys.platform != 'win32':
         if not force:
             return s
@@ -766,12 +769,12 @@ def extract_basic_auth(url):
 
 
 def expand_path(s):
-    """Expand shell variables and ~"""
+    """ Expand shell variables and ~ """
     return os.path.expandvars(compat_expanduser(s))
 
 
 def orderedSet(iterable, *, lazy=False):
-    """Remove all duplicates from the input iterable"""
+    """ Remove all duplicates from the input iterable """
     def _iter():
         seen = []  # Do not use set since the items can be unhashable
         for x in iterable:
@@ -783,7 +786,7 @@ def orderedSet(iterable, *, lazy=False):
 
 
 def _htmlentity_transform(entity_with_semicolon):
-    """Transforms an HTML entity to a character."""
+    """ Transforms an HTML entity to a character. """
     entity = entity_with_semicolon[:-1]
 
     # Known non-numeric HTML entity
@@ -964,7 +967,7 @@ def bug_reports_message(before=';'):
 
 
 class YoutubeDLError(Exception):
-    """Base exception for YoutubeDL errors."""
+    """ Base exception for YoutubeDL errors. """
     msg = None
 
     def __init__(self, msg=None):
@@ -976,10 +979,11 @@ class YoutubeDLError(Exception):
 
 
 class ExtractorError(YoutubeDLError):
-    """Error during info extraction."""
+    """ Error during info extraction. """
 
     def __init__(self, msg, tb=None, expected=False, cause=None, video_id=None, ie=None):
-        """ tb, if given, is the original traceback (so that it can be printed out).
+        """
+        tb, if given, is the original traceback (so that it can be printed out).
         If expected is set, this is a normal error message and most likely not a bug in yt-dlp.
         """
         from ..networking.exceptions import network_exceptions
@@ -1027,12 +1031,13 @@ class UnsupportedError(ExtractorError):
 
 
 class RegexNotFoundError(ExtractorError):
-    """Error when a regex didn't match"""
+    """ Error when a regex didn't match """
     pass
 
 
 class GeoRestrictedError(ExtractorError):
-    """Geographic restriction Error exception.
+    """
+    Geographic restriction Error exception.
 
     This exception may be thrown when a video is not available from your
     geographic location due to geographic restrictions imposed by a website.
@@ -1045,7 +1050,7 @@ class GeoRestrictedError(ExtractorError):
 
 
 class UserNotLive(ExtractorError):
-    """Error when a channel/user is not live"""
+    """ Error when a channel/user is not live """
 
     def __init__(self, msg=None, **kwargs):
         kwargs['expected'] = True
@@ -1053,7 +1058,8 @@ class UserNotLive(ExtractorError):
 
 
 class DownloadError(YoutubeDLError):
-    """Download Error exception.
+    """
+    Download Error exception.
 
     This exception may be thrown by FileDownloader objects if they are not
     configured to continue on errors. They will contain the appropriate
@@ -1067,7 +1073,8 @@ class DownloadError(YoutubeDLError):
 
 
 class EntryNotInPlaylist(YoutubeDLError):
-    """Entry not in playlist exception.
+    """
+    Entry not in playlist exception.
 
     This exception will be thrown by YoutubeDL when a requested entry
     is not found in the playlist info_dict
@@ -1076,7 +1083,8 @@ class EntryNotInPlaylist(YoutubeDLError):
 
 
 class SameFileError(YoutubeDLError):
-    """Same File exception.
+    """
+    Same File exception.
 
     This exception will be thrown by FileDownloader objects if they detect
     multiple files would have to be downloaded to the same file on disk.
@@ -1090,7 +1098,8 @@ class SameFileError(YoutubeDLError):
 
 
 class PostProcessingError(YoutubeDLError):
-    """Post Processing exception.
+    """
+    Post Processing exception.
 
     This exception may be raised by PostProcessor's .run() method to
     indicate an error in the postprocessing task.
@@ -1134,7 +1143,8 @@ class ThrottledDownload(ReExtractInfo):
 
 
 class UnavailableVideoError(YoutubeDLError):
-    """Unavailable Format exception.
+    """
+    Unavailable Format exception.
 
     This exception will be thrown when a video is requested
     in a format that is not available for that video.
@@ -1148,7 +1158,8 @@ class UnavailableVideoError(YoutubeDLError):
 
 
 class ContentTooShortError(YoutubeDLError):
-    """Content Too Short exception.
+    """
+    Content Too Short exception.
 
     This exception may be raised by FileDownloader objects when a file they
     download is too small for what the server announced first, indicating
@@ -1242,7 +1253,7 @@ def date_formats(day_first=True):
 
 
 def unified_strdate(date_str, day_first=True):
-    """Return a string with the date in the format YYYYMMDD"""
+    """ Return a string with the date in the format YYYYMMDD """
 
     if date_str is None:
         return None
@@ -1373,7 +1384,7 @@ def date_from_str(date_str, format='%Y%m%d', strict=False):
 
 
 def datetime_add_months(dt_, months):
-    """Increment/Decrement a datetime object by months."""
+    """ Increment/Decrement a datetime object by months. """
     month = dt_.month + months - 1
     year = dt_.year + month // 12
     month = month % 12 + 1
@@ -1411,10 +1422,10 @@ def hyphenate_date(date_str):
 
 
 class DateRange:
-    """Represents a time interval between two dates"""
+    """ Represents a time interval between two dates """
 
     def __init__(self, start=None, end=None):
-        """start and end must be strings in the format accepted by date"""
+        """ start and end must be strings in the format accepted by date """
         if start is not None:
             self.start = date_from_str(start, strict=True)
         else:
@@ -1428,11 +1439,11 @@ class DateRange:
 
     @classmethod
     def day(cls, day):
-        """Returns a range that only contains the given day"""
+        """ Returns a range that only contains the given day """
         return cls(day, day)
 
     def __contains__(self, date):
-        """Check if the date is in the range"""
+        """ Check if the date is in the range """
         if not isinstance(date, dt.date):
             date = date_from_str(date)
         return self.start <= date <= self.end
@@ -1760,7 +1771,7 @@ def lookup_unit_table(unit_table, s, strict=False):
 
 
 def parse_bytes(s):
-    """Parse a string indicating a byte quantity into an integer"""
+    """ Parse a string indicating a byte quantity into an integer """
     return lookup_unit_table(
         {u: 1024**i for i, u in enumerate(['', *'KMGTPEZY'])},
         s.upper(), strict=True)
@@ -1916,8 +1927,7 @@ def month_by_name(name, lang='en'):
 
 
 def month_by_abbreviation(abbrev):
-    """ Return the number of a month by (locale-independently) English
-        abbreviations """
+    """ Return the number of a month by (locale-independently) English abbreviations """
 
     try:
         return [s[:3] for s in ENGLISH_MONTH_NAMES].index(abbrev) + 1
@@ -1926,7 +1936,7 @@ def month_by_abbreviation(abbrev):
 
 
 def fix_xml_ampersands(xml_str):
-    """Replace all the '&' by '&amp;' in XML"""
+    """ Replace all the '&' by '&amp;' in XML """
     return re.sub(
         r'&(?!amp;|lt;|gt;|apos;|quot;|#x[0-9a-fA-F]{,4};|#[0-9]{,4};)',
         '&amp;',
@@ -2152,8 +2162,10 @@ replace_extension = functools.partial(_change_extension, False)
 
 
 def check_executable(exe, args=[]):
-    """ Checks if the given binary is installed somewhere in PATH, and returns its name.
-    args can be a list of arguments for a short output (like -version) """
+    """
+    Checks if the given binary is installed somewhere in PATH, and returns its name.
+    args can be a list of arguments for a short output (like -version)
+    """
     try:
         Popen.run([exe, *args], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except OSError:
@@ -2188,8 +2200,7 @@ def detect_exe_version(output, version_re=None, unrecognized='present'):
 
 def get_exe_version(exe, args=['--version'],
                     version_re=None, unrecognized=('present', 'broken')):
-    """ Returns the version of the specified executable,
-    or False if the executable is not present """
+    """ Returns the version of the specified executable, or False if the executable is not present """
     unrecognized = variadic(unrecognized)
     assert len(unrecognized) in (1, 2)
     out = _get_exe_version_output(exe, args)
@@ -2199,7 +2210,7 @@ def get_exe_version(exe, args=['--version'],
 
 
 def frange(start=0, stop=None, step=1):
-    """Float range"""
+    """ Float range """
     if stop is None:
         start, stop = 0, start
     sign = [-1, 1][step > 0] if step else 0
@@ -2209,8 +2220,10 @@ def frange(start=0, stop=None, step=1):
 
 
 class LazyList(collections.abc.Sequence):
-    """Lazy immutable list from an iterable
-    Note that slices of a LazyList are lists and not LazyList"""
+    """
+    Lazy immutable list from an iterable
+    Note that slices of a LazyList are lists and not LazyList
+    """
 
     class IndexError(IndexError):  # noqa: A001
         pass
@@ -2236,7 +2249,7 @@ class LazyList(collections.abc.Sequence):
         return self._cache
 
     def exhaust(self):
-        """Evaluate the entire iterable"""
+        """ Evaluate the entire iterable """
         return self._exhaust()[::-1 if self._reversed else 1]
 
     @staticmethod
@@ -2341,7 +2354,7 @@ class PagedList:
 
 
 class OnDemandPagedList(PagedList):
-    """Download pages until a page with less than maximum results"""
+    """ Download pages until a page with less than maximum results """
 
     def _getslice(self, start, end):
         for pagenum in itertools.count(start // self._pagesize):
@@ -2382,7 +2395,7 @@ class OnDemandPagedList(PagedList):
 
 
 class InAdvancePagedList(PagedList):
-    """PagedList with total number of pages known in advance"""
+    """ PagedList with total number of pages known in advance """
 
     def __init__(self, pagefunc, pagecount, pagesize):
         PagedList.__init__(self, pagefunc, pagesize, True)
@@ -2414,7 +2427,7 @@ class PlaylistEntries:
     def __init__(self, ydl, info_dict):
         self.ydl = ydl
 
-        # _entries must be assigned now since infodict can change during iteration
+        # entries must be assigned now since infodict can change during iteration
         entries = info_dict.get('entries')
         if entries is None:
             raise EntryNotInPlaylist('There are no entries')
@@ -2588,7 +2601,8 @@ def urlencode_postdata(*args, **kargs):
 
 @partial_application
 def update_url(url, *, query_update=None, **kwargs):
-    """Replace URL components specified by kwargs
+    """
+    Replace URL components specified by kwargs
        @param url           str or parse url tuple
        @param query_update  update query
        @returns             str
@@ -3139,7 +3153,7 @@ def encode_data_uri(data, mime_type):
 
 
 def age_restricted(content_limit, age_limit):
-    """ Returns True iff the content should be blocked """
+    """ Returns True if the content should be blocked """
 
     if age_limit is None:  # No limit set
         return False
@@ -3192,8 +3206,7 @@ def determine_protocol(info_dict):
 
 
 def render_table(header_row, data, delim=False, extra_gap=0, hide_empty=False):
-    """ Render a list of rows, each as a list of values.
-    Text after a \t will be right aligned """
+    """ Render a list of rows, each as a list of values. Text after a \t will be right aligned """
     def width(string):
         return len(remove_terminal_sequences(string).replace('\t', ''))
 
@@ -3303,7 +3316,8 @@ def _match_one(filter_part, dct, incomplete):
 
 
 def match_str(filter_str, dct, incomplete=False):
-    """ Filter a dictionary with a simple string syntax.
+    """
+    Filter a dictionary with a simple string syntax.
     @returns           Whether the filter passes
     @param incomplete  Set of keys that is expected to be missing from dct.
                        Can be True/False to indicate all/none of the keys may be missing.
@@ -3818,12 +3832,12 @@ class ISO639Utils:
 
     @classmethod
     def short2long(cls, code):
-        """Convert language code from ISO 639-1 to ISO 639-2/T"""
+        """ Convert language code from ISO 639-1 to ISO 639-2/T """
         return cls._lang_map.get(code[:2])
 
     @classmethod
     def long2short(cls, code):
-        """Convert language code from ISO 639-2/T to ISO 639-1"""
+        """ Convert language code from ISO 639-2/T to ISO 639-1 """
         for short_name, long_name in cls._lang_map.items():
             if long_name == code:
                 return short_name
@@ -4088,7 +4102,7 @@ class ISO3166Utils:
 
     @classmethod
     def short2full(cls, code):
-        """Convert an ISO 3166-2 country code to the corresponding full name"""
+        """ Convert an ISO 3166-2 country code to the corresponding full name """
         return cls._country_map.get(code.upper())
 
 
@@ -4357,7 +4371,8 @@ class GeoUtils:
 # https://github.com/dlitz/pycrypto/blob/master/lib/Crypto/Util/number.py#L387
 
 def long_to_bytes(n, blocksize=0):
-    """long_to_bytes(n:long, blocksize:int) : string
+    """
+    long_to_bytes(n:long, blocksize:int) : string
     Convert a long integer to a byte string.
 
     If optional blocksize is given and greater than zero, pad the front of the
@@ -4387,7 +4402,8 @@ def long_to_bytes(n, blocksize=0):
 
 
 def bytes_to_long(s):
-    """bytes_to_long(string) : long
+    """
+    bytes_to_long(string) : long
     Convert a byte string to a long integer.
 
     This is (essentially) the inverse of long_to_bytes().
@@ -4446,7 +4462,7 @@ def _base_n_table(n, table):
 
 
 def encode_base_n(num, n=None, table=None):
-    """Convert given int to a base-n string"""
+    """ Convert given int to a base-n string """
     table = _base_n_table(n, table)
     if not num:
         return table[0]
@@ -4459,7 +4475,7 @@ def encode_base_n(num, n=None, table=None):
 
 
 def decode_base_n(string, n=None, table=None):
-    """Convert given base-n string to int"""
+    """ Convert given base-n string to int """
     table = {char: index for index, char in enumerate(_base_n_table(n, table))}
     result, base = 0, len(table)
     for char in string:
@@ -4745,9 +4761,7 @@ def get_system_config_dirs(package_name):
 
 
 def time_seconds(**kwargs):
-    """
-    Returns TZ-aware time in seconds since the epoch (1970-01-01T00:00:00Z)
-    """
+    """ Returns TZ-aware time in seconds since the epoch (1970-01-01T00:00:00Z) """
     return time.time() + dt.timedelta(**kwargs).total_seconds()
 
 
@@ -4804,7 +4818,7 @@ def supports_terminal_sequences(stream):
 
 
 def windows_enable_vt_mode():
-    """Ref: https://bugs.python.org/issue30075 """
+    """ Ref: https://bugs.python.org/issue30075 """
     if get_windows_version() < (10, 0, 10586):
         return
 
@@ -5018,12 +5032,12 @@ class Config:
 
 
 def merge_headers(*dicts):
-    """Merge dicts of http headers case insensitively, prioritizing the latter ones"""
+    """ Merge dicts of http headers case insensitively, prioritizing the latter ones """
     return {k.title(): v for k, v in itertools.chain.from_iterable(map(dict.items, dicts))}
 
 
 def cached_method(f):
-    """Cache a method"""
+    """ Cache a method """
     signature = inspect.signature(f)
 
     @functools.wraps(f)
@@ -5040,7 +5054,7 @@ def cached_method(f):
 
 
 class classproperty:
-    """property access for class methods with optional caching"""
+    """ Property access for class methods with optional caching """
     def __new__(cls, func=None, *args, **kwargs):
         if not func:
             return functools.partial(cls, *args, **kwargs)
@@ -5078,7 +5092,7 @@ class function_with_repr:
 
 
 class Namespace(types.SimpleNamespace):
-    """Immutable namespace"""
+    """ Immutable namespace """
 
     def __iter__(self):
         return iter(self.__dict__.values())
@@ -5238,7 +5252,8 @@ class _UnsafeExtensionError(Exception):
 
 
 class RetryManager:
-    """Usage:
+    """
+    Usage:
         for retry in RetryManager(...):
             try:
                 ...
@@ -5275,7 +5290,7 @@ class RetryManager:
 
     @staticmethod
     def report_retry(e, count, retries, *, sleep_func, info, warn, error=None, suffix=None):
-        """Utility function for reporting retries"""
+        """ Utility function for reporting retries """
         if count > retries:
             if error:
                 return error(f'{e}. Giving up after {count - 1} retries') if count > 1 else error(str(e))
