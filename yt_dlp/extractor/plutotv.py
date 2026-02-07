@@ -37,36 +37,39 @@ class PlutoTVBase(InfoExtractor):
                 continue
             base = base.url
             res = res.splitlines()
-            path_occur = {}
-            extinf = 0
+            paths = {}
+            current = None
+            fmt['hls_media_playlist_data'] = ''
             for line in res:
-                match = re.match(r'^#EXTINF:(\d+)', line)
-                if match:
-                    extinf = float_or_none(match.group(1)) or 0
-                elif not line.startswith('#'):
-                    match = re.search(r'^(.+)(?:/[^/]+){2}$', line)
-                    if match:
-                        path = urllib.parse.urlparse(urllib.parse.urljoin(base, match.group(1))).path
-                        path_occur[path] = path_occur.get(path, 0) + extinf
-            url_path = max(path_occur, key=path_occur.get)
-            if url_path:
-                fmt['hls_media_playlist_data'] = ''
-                valid = True
-                for line in res:
-                    # prevent key mismatch
-                    if line.startswith('#EXT-X-KEY:'):
-                        match = re.search(r'URI="([^"]+)(/[^"/]+){2}\.key"', line)
-                        # if no match, the line is probably malformed, keep it as is
-                        valid = not match or urllib.parse.urlparse(urllib.parse.urljoin(base, match.group(1))).path == url_path
-                    elif not line.startswith('#'):
-                        match = re.search(r'^(.+)(?:/[^/]+){2}$', line)
-                        if match:
-                            valid = urllib.parse.urlparse(urllib.parse.urljoin(base, match.group(1))).path == url_path
-                    if valid:
+                inf_match = re.match(r'#EXTINF:(\d+)', line)
+                if (not current):
+                    if (inf_match or line.startswith('#EXT-X-KEY:')):
+                        current = {
+                            'data': line + '\n',
+                            'duration': float(inf_match.group(1)) if inf_match else 0,
+                        }
+                    else:
                         fmt['hls_media_playlist_data'] += line + '\n'
-                if '#EXT-X-ENDLIST' not in fmt['hls_media_playlist_data']:
-                    fmt['hls_media_playlist_data'] += '#EXT-X-ENDLIST'
+                elif inf_match:
+                    current['duration'] += float(inf_match.group(1))
+                    current['data'] += line + '\n'
+                elif line.startswith('#'):
+                    current['data'] += line + '\n'
+                else:
+                    # match up to 3 nested paths to avoid including segment specific parts
+                    path = re.match(r'(?:/[^/]*){1,3}', urllib.parse.urlparse(urllib.parse.urljoin(base, line)).path or '/').group()
+                    current['data'] += line + '\n'
+                    if path in paths:
+                        paths[path]['data'] += current['data']
+                        paths[path]['duration'] += current['duration']
+                    else:
+                        paths[path] = current
+                    current = {'data': '', 'duration': 0}
+            longest = max(paths.values(), key=lambda x: x['duration'])
+            if (longest):
+                fmt['hls_media_playlist_data'] += longest['data'] + current['data']
             else:
+                fmt['hls_media_playlist_data'] = None
                 self.report_warning(f'Unable to find ad-free playlist in format {fmt.get("format_id")}')
 
     def _extract_formats(self, video_data):
