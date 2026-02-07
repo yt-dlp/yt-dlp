@@ -14,10 +14,10 @@ class CCCIE(InfoExtractor):
 
     _TESTS = [{
         'url': 'https://media.ccc.de/v/30C3_-_5443_-_en_-_saal_g_-_201312281830_-_introduction_to_processor_design_-_byterazor#video',
-        'md5': '3a1eda8f3a29515d27f5adb967d7e740',
+        'md5': 'e2e286b3b4496540c2ecd897c097daad',
         'info_dict': {
             'id': '1839',
-            'ext': 'mp4',
+            'ext': 'webm',
             'title': 'Introduction to Processor Design',
             'creators': ['byterazor'],
             'description': 'md5:df55f6d073d4ceae55aae6f2fd98a0ac',
@@ -34,9 +34,10 @@ class CCCIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://media.ccc.de/v/39c3-schlechte-karten-it-sicherheit-im-jahr-null-der-epa-fur-alle',
+        'md5': 'a6732117186ae1760a6abd5534a859c9',
         'info_dict': {
             'id': '16261',
-            'ext': 'mp4',
+            'ext': 'webm',
             'title': 'Schlechte Karten - IT-Sicherheit im Jahr null der ePA für alle',
             'display_id': '39c3-schlechte-karten-it-sicherheit-im-jahr-null-der-epa-fur-alle',
             'description': 'md5:719a5a9a52630249d606219c55056cbf',
@@ -66,10 +67,13 @@ class CCCIE(InfoExtractor):
             vcodec = None
             if 'av1' in folder:
                 vcodec = 'av1'
+            elif 'webm' in folder:
+                vcodec = 'vp9'
             elif 'h264' in folder:
                 vcodec = 'h264'
-            elif folder in ('mp3', 'opus'):
+            elif 'mp3' in folder or 'opus' in folder:
                 vcodec = 'none'
+
             formats.append({
                 'format_id': join_nonempty(language, folder) or None,
                 'url': recording_url,
