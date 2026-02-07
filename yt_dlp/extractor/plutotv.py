@@ -44,7 +44,7 @@ class PlutoTVBase(InfoExtractor):
                 if match:
                     extinf = float_or_none(match.group(1)) or 0
                 elif not line.startswith('#'):
-                    match = re.search(r'^(.+)/[^/]+$', line)
+                    match = re.search(r'^(.+)(?:/[^/]+){2}$', line)
                     if match:
                         path = urllib.parse.urlparse(urllib.parse.urljoin(base, match.group(1))).path
                         path_occur[path] = path_occur.get(path, 0) + extinf
@@ -55,15 +55,17 @@ class PlutoTVBase(InfoExtractor):
                 for line in res:
                     # prevent key mismatch
                     if line.startswith('#EXT-X-KEY:'):
-                        match = re.search(r'URI="([^"]+)/[^.]+\.key"', line)
+                        match = re.search(r'URI="([^"]+)(/[^"/]+){2}\.key"', line)
                         # if no match, the line is probably malformed, keep it as is
                         valid = not match or urllib.parse.urlparse(urllib.parse.urljoin(base, match.group(1))).path == url_path
                     elif not line.startswith('#'):
-                        match = re.search(r'^(.+)/[^/]+$', line)
+                        match = re.search(r'^(.+)(?:/[^/]+){2}$', line)
                         if match:
                             valid = urllib.parse.urlparse(urllib.parse.urljoin(base, match.group(1))).path == url_path
                     if valid:
                         fmt['hls_media_playlist_data'] += line + '\n'
+                if '#EXT-X-ENDLIST' not in fmt['hls_media_playlist_data']:
+                    fmt['hls_media_playlist_data'] += '#EXT-X-ENDLIST'
             else:
                 self.report_warning(f'Unable to find ad-free playlist in format {fmt.get("format_id")}')
 
