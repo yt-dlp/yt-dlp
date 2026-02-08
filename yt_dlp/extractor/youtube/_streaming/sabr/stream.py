@@ -15,6 +15,7 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     FormatInitializationMetadata,
     LiveMetadata,
     MediaHeader,
+    NetworkTiming,
     ReloadPlayerResponse,
     SabrContextSendingPolicy,
     SabrContextUpdate,
@@ -404,6 +405,8 @@ class SabrStream:
                 self._process_sabr_context_sending_policy(part)
             elif part.part_id == UMPPartId.RELOAD_PLAYER_RESPONSE:
                 yield from self._process_reload_player_response(part)
+            elif part.part_id == UMPPartId.NETWORK_TIMING:
+                self._process_network_timing(part)
             else:
                 if part.part_id not in self._IGNORED_PARTS:
                     self._unknown_part_types.add(part.part_id)
@@ -525,6 +528,11 @@ class SabrStream:
             reload_playback_token=reload_player_response.reload_playback_params.token,
         )
 
+    def _process_network_timing(self, part: UMPPart):
+        network_timing = protobug.load(part.data, NetworkTiming)
+        self._log_part(part, protobug_obj=network_timing)
+        self.processor.process_network_timing(network_timing)
+
     # endregion
 
     def _process_fallback_server(self):
@@ -563,6 +571,12 @@ class SabrStream:
         if self._missing_initialized_format():
             self.logger.debug(
                 'Skipping player time increment; not all enabled format selectors have an initialized format yet')
+            return
+
+        # 2. If the format is seeking, skip as player time should not progress while seeking
+        if any(izf.seek_ms is not None for izf in self._active_initialized_formats()):
+            self.logger.debug(
+                'Skipping player time increment; one or more initialized formats are currently seeking')
             return
 
         # 2. If missing a consumed range for the current player time, skip

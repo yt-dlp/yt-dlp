@@ -8,9 +8,12 @@ from yt_dlp.extractor.youtube._proto.innertube import ClientInfo, NextRequestPol
 from yt_dlp.extractor.youtube._proto.videostreaming import (
     BufferedRange,
     ClientAbrState,
+    CuepointEvent,
+    CuepointUstreamerConfig,
     FormatInitializationMetadata,
     LiveMetadata,
     MediaHeader,
+    NetworkTiming,
     SabrContext,
     SabrContextSendingPolicy,
     SabrContextUpdate,
@@ -142,6 +145,8 @@ class SabrProcessor:
         self.client_abr_state: ClientAbrState
         self.sabr_contexts_to_send: set[int] = set()
         self.sabr_context_updates: dict[int, SabrContextUpdate] = {}
+        # experimental
+        self._cuepoint_identifier = None
         self._initialize_cabr_state()
 
     @property
@@ -713,6 +718,20 @@ class SabrProcessor:
                 self.logger.debug(f'Server requested to discard SABR Context Update for type {discard_type}')
                 self.sabr_context_updates.pop(discard_type, None)
 
+    def process_network_timing(self, network_timing: NetworkTiming):
+        # EXPERIMENTAL
+        for timing in network_timing.timings:
+            cuepoint = timing.cuepoint
+            if not cuepoint:
+                continue
+            cuepoint_identifier = cuepoint.identifier
+            if cuepoint.event == CuepointEvent.CUEPOINT_EVENT_STOP:
+                self._cuepoint_identifier = None
+                self.logger.debug(f'Cleared NetworkTiming cuepoint identifier for track {timing.track_type}')
+            else:
+                self._cuepoint_identifier = cuepoint_identifier
+                self.logger.debug(f'Set NetworkTiming cuepoint identifier to {cuepoint_identifier} for track {timing.track_type}')
+
 
 def build_vpabr_request(processor: SabrProcessor):
     return VideoPlaybackAbrRequest(
@@ -753,4 +772,8 @@ def build_vpabr_request(processor: SabrProcessor):
             ) for initialized_format in processor.initialized_formats.values()
             for cr in initialized_format.consumed_ranges
         ],
+        cuepoint_ustreamer_config=(
+            CuepointUstreamerConfig(cuepoint_id=processor._cuepoint_identifier, random_required_int=11)
+            if processor._cuepoint_identifier else None
+        ),
     )

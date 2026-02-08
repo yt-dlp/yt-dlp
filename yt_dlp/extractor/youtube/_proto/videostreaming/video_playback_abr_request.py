@@ -8,6 +8,13 @@ from .format_id import FormatId
 from .streamer_context import StreamerContext
 
 
+# name unknown
+@protobug.message
+class CuepointUstreamerConfig:
+    cuepoint_id: protobug.String | None = protobug.field(7, default=None)
+    random_required_int: protobug.Int32 | None = protobug.field(8, default=None)
+
+
 @protobug.message
 class VideoPlaybackAbrRequest:
     client_abr_state: ClientAbrState = protobug.field(1, default=None)
@@ -20,3 +27,6 @@ class VideoPlaybackAbrRequest:
     preferred_video_format_ids: list[FormatId] = protobug.field(17, default_factory=list)
     preferred_caption_format_ids: list[FormatId] = protobug.field(18, default_factory=list)
     streamer_context: StreamerContext = protobug.field(19, default_factory=StreamerContext)
+
+    # name unknown
+    cuepoint_ustreamer_config: CuepointUstreamerConfig = protobug.field(24, default=None)
