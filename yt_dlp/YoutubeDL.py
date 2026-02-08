@@ -1130,6 +1130,12 @@ class YoutubeDL:
         Print the message to stderr, it will be prefixed with 'WARNING:'
         If stderr is a tty file the 'WARNING:' will be colored
         """
+
+        # If a progress bar is active on this ydl instance,
+        # print a blank line to avoid "glued" text.
+        if getattr(self, '_progress_active', False):
+            self.to_screen('', quiet=self.params.get('quiet'))
+
         if self.params.get('logger') is not None:
             self.params['logger'].warning(message)
         else:
