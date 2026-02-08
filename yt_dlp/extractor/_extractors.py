@@ -1355,6 +1355,7 @@ from .nova import (
     NovaIE,
 )
 from .novaplay import NovaPlayIE
+from .novetv import NoveTVIE, NoveTVLiveIE
 from .nowcanal import NowCanalIE
 from .nowness import (
     NownessIE,
