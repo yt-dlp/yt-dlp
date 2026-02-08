@@ -44,7 +44,13 @@ class MoveFilesAfterDownloadPP(PostProcessor):
                     continue
             make_dir(newfile, PostProcessingError)
             self.to_screen(f'Moving file "{oldfile}" to "{newfile}"')
-            shutil.move(oldfile, newfile)  # os.rename cannot move between volumes
+            try:
+                os.rename(oldfile, newfile)
+            except OSError:
+                # Cross-filesystem move (e.g. tmpfs -> disk). Do not copy metadata
+                shutil.copyfile(oldfile, newfile)
+                os.remove(oldfile)
+
 
         info['filepath'] = finalpath
         return [], info
