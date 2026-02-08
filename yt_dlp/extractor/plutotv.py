@@ -79,8 +79,9 @@ class PlutoTVBase(InfoExtractor):
             f.setdefault('vcodec', 'avc1.64001f')
             f.setdefault('acodec', 'mp4a.40.2')
             f.setdefault('fps', 30)
-        for f in subtitles:
-            f['url'] += f"&jwt={video_data['sessionToken']}"
+        for d in subtitles.values():
+            for f in d:
+                f['url'] += f"&jwt={video_data['sessionToken']}"
         self._to_ad_free_formats(video_data['id'], formats)
         return {'formats': formats, 'subtitles': subtitles}
 
