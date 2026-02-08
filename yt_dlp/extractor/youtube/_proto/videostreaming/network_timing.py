@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from yt_dlp.dependencies import protobug
-from yt_dlp.extractor.youtube._proto.videostreaming import TimeRange
+from yt_dlp.extractor.youtube._proto.videostreaming.time_range import TimeRange
 
 
 class TrackType(protobug.Enum, strict=False):
