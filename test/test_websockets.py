@@ -88,7 +88,7 @@ def create_wss_websocket_server():
     certfn = os.path.join(TEST_DIR, 'testcert.pem')
     sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     sslctx.load_cert_chain(certfn, None)
-    return create_websocket_server(ssl_context=sslctx)
+    return create_websocket_server(ssl=sslctx)
 
 
 MTLS_CERT_DIR = os.path.join(TEST_DIR, 'testdata', 'certificate')
@@ -103,7 +103,7 @@ def create_mtls_wss_websocket_server():
     sslctx.load_verify_locations(cafile=cacertfn)
     sslctx.load_cert_chain(certfn, None)
 
-    return create_websocket_server(ssl_context=sslctx)
+    return create_websocket_server(ssl=sslctx)
 
 
 def create_legacy_wss_websocket_server():
@@ -112,7 +112,7 @@ def create_legacy_wss_websocket_server():
     sslctx.maximum_version = ssl.TLSVersion.TLSv1_2
     sslctx.set_ciphers('SHA1:AESCCM:aDSS:eNULL:aNULL')
     sslctx.load_cert_chain(certfn, None)
-    return create_websocket_server(ssl_context=sslctx)
+    return create_websocket_server(ssl=sslctx)
 
 
 def ws_validate_and_send(rh, req):
@@ -139,7 +139,7 @@ class TestWebsSocketRequestHandlerConformance:
         cls.wss_thread, cls.wss_port = create_wss_websocket_server()
         cls.wss_base_url = f'wss://127.0.0.1:{cls.wss_port}'
 
-        cls.bad_wss_thread, cls.bad_wss_port = create_websocket_server(ssl_context=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER))
+        cls.bad_wss_thread, cls.bad_wss_port = create_websocket_server(ssl=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER))
         cls.bad_wss_host = f'wss://127.0.0.1:{cls.bad_wss_port}'
 
         cls.mtls_wss_thread, cls.mtls_wss_port = create_mtls_wss_websocket_server()

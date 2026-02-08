@@ -109,7 +109,7 @@ class ZaikoIE(ZaikoBaseIE):
                 'uploader': ('profile', 'name', {str}),
                 'uploader_id': ('profile', 'id', {str_or_none}),
                 'release_timestamp': ('stream', 'start', 'timestamp', {int_or_none}),
-                'categories': ('event', 'genres', ..., {lambda x: x or None}),
+                'categories': ('event', 'genres', ..., filter),
             }),
             'alt_title': traverse_obj(initial_event_info, ('title', {str})),
             'thumbnails': [{'url': url, 'id': url_basename(url)} for url in thumbnail_urls if url_or_none(url)],

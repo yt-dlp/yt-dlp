@@ -114,7 +114,7 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
 
 
 class RedGifsIE(RedGifsBaseInfoExtractor):
-    _VALID_URL = r'https?://(?:(?:www\.)?redgifs\.com/watch/|thumbs2\.redgifs\.com/)(?P<id>[^-/?#\.]+)'
+    _VALID_URL = r'https?://(?:(?:www\.)?redgifs\.com/(?:watch|ifr)/|thumbs2\.redgifs\.com/)(?P<id>[^-/?#\.]+)'
     _TESTS = [{
         'url': 'https://www.redgifs.com/watch/squeakyhelplesswisent',
         'info_dict': {
@@ -133,6 +133,22 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
         },
     }, {
         'url': 'https://thumbs2.redgifs.com/SqueakyHelplessWisent-mobile.mp4#t=0',
+        'info_dict': {
+            'id': 'squeakyhelplesswisent',
+            'ext': 'mp4',
+            'title': 'Hotwife Legs Thick',
+            'timestamp': 1636287915,
+            'upload_date': '20211107',
+            'uploader': 'ignored52',
+            'duration': 16,
+            'view_count': int,
+            'like_count': int,
+            'categories': list,
+            'age_limit': 18,
+            'tags': list,
+        },
+    }, {
+        'url': 'https://www.redgifs.com/ifr/squeakyhelplesswisent',
         'info_dict': {
             'id': 'squeakyhelplesswisent',
             'ext': 'mp4',
@@ -213,7 +229,7 @@ class RedGifsSearchIE(RedGifsBaseInfoExtractor):
 class RedGifsUserIE(RedGifsBaseInfoExtractor):
     IE_DESC = 'Redgifs user'
     _VALID_URL = r'https?://(?:www\.)?redgifs\.com/users/(?P<username>[^/?#]+)(?:\?(?P<query>[^#]+))?'
-    _PAGE_SIZE = 30
+    _PAGE_SIZE = 80
     _TESTS = [
         {
             'url': 'https://www.redgifs.com/users/lamsinka89',
@@ -222,7 +238,7 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
                 'title': 'lamsinka89',
                 'description': 'RedGifs user lamsinka89, ordered by recent',
             },
-            'playlist_mincount': 100,
+            'playlist_mincount': 391,
         },
         {
             'url': 'https://www.redgifs.com/users/lamsinka89?page=3',
@@ -231,7 +247,7 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
                 'title': 'lamsinka89',
                 'description': 'RedGifs user lamsinka89, ordered by recent',
             },
-            'playlist_count': 30,
+            'playlist_count': 80,
         },
         {
             'url': 'https://www.redgifs.com/users/lamsinka89?order=best&type=g',
@@ -240,7 +256,17 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
                 'title': 'lamsinka89',
                 'description': 'RedGifs user lamsinka89, ordered by best',
             },
-            'playlist_mincount': 100,
+            'playlist_mincount': 391,
+        },
+        {
+            'url': 'https://www.redgifs.com/users/ignored52',
+            'note': 'https://github.com/yt-dlp/yt-dlp/issues/7382',
+            'info_dict': {
+                'id': 'ignored52',
+                'title': 'ignored52',
+                'description': 'RedGifs user ignored52, ordered by recent',
+            },
+            'playlist_mincount': 121,
         },
     ]
 

@@ -72,6 +72,7 @@ class NaverBaseIE(InfoExtractor):
                     'abr': int_or_none(bitrate.get('audio')),
                     'filesize': int_or_none(stream.get('size')),
                     'protocol': 'm3u8_native' if stream_type == 'HLS' else None,
+                    'extra_param_to_segment_url': urllib.parse.urlencode(query, doseq=True) if stream_type == 'HLS' else None,
                 })
 
         extract_formats(get_list('video'), 'H264')
@@ -168,6 +169,26 @@ class NaverIE(NaverBaseIE):
             'duration': 277,
             'thumbnail': r're:^https?://.*\.jpg',
         },
+    }, {
+        'url': 'https://tv.naver.com/v/67838091',
+        'md5': '126ea384ab033bca59672c12cca7a6be',
+        'info_dict': {
+            'id': '67838091',
+            'ext': 'mp4',
+            'title': '[라인W 날씨] 내일 아침 서울 체감 -19도…호남·충남 대설',
+            'description': 'md5:fe026e25634c85845698aed4b59db5a7',
+            'timestamp': 1736347853,
+            'upload_date': '20250108',
+            'uploader': 'KBS뉴스',
+            'uploader_id': 'kbsnews',
+            'uploader_url': 'https://tv.naver.com/kbsnews',
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'duration': 69,
+            'thumbnail': r're:^https?://.*\.jpg',
+        },
+        'params': {'format': 'HLS_144P'},
     }, {
         'url': 'http://tvcast.naver.com/v/81652',
         'only_matching': True,

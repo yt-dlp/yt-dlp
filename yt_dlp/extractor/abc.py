@@ -387,17 +387,27 @@ class ABCIViewShowSeriesIE(InfoExtractor):
             'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.*\.jpg$',
         },
         'playlist_count': 15,
+        'skip': 'This program is not currently available in ABC iview',
+    }, {
+        'url': 'https://iview.abc.net.au/show/inbestigators',
+        'info_dict': {
+            'id': '175343-1',
+            'title': 'Series 1',
+            'description': 'md5:b9976935a6450e5b78ce2a940a755685',
+            'series': 'The Inbestigators',
+            'season': 'Series 1',
+            'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.+\.jpg',
+        },
+        'playlist_count': 17,
     }]
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
         webpage = self._download_webpage(url, show_id)
-        webpage_data = self._search_regex(
-            r'window\.__INITIAL_STATE__\s*=\s*[\'"](.+?)[\'"]\s*;',
-            webpage, 'initial state')
-        video_data = self._parse_json(
-            unescapeHTML(webpage_data).encode().decode('unicode_escape'), show_id)
-        video_data = video_data['route']['pageData']['_embedded']
+        video_data = self._search_json(
+            r'window\.__INITIAL_STATE__\s*=\s*[\'"]', webpage, 'initial state', show_id,
+            transform_source=lambda x: x.encode().decode('unicode_escape'),
+            end_pattern=r'[\'"]\s*;')['route']['pageData']['_embedded']
 
         highlight = try_get(video_data, lambda x: x['highlightVideo']['shareUrl'])
         if not self._yes_playlist(show_id, bool(highlight), video_label='highlight video'):

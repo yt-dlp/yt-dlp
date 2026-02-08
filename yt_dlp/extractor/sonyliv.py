@@ -199,8 +199,9 @@ class SonyLIVSeriesIE(InfoExtractor):
         },
     }]
     _API_BASE = 'https://apiv2.sonyliv.com/AGL'
+    _SORT_ORDERS = ('asc', 'desc')
 
-    def _entries(self, show_id):
+    def _entries(self, show_id, sort_order):
         headers = {
             'Accept': 'application/json, text/plain, */*',
             'Referer': 'https://www.sonyliv.com',
@@ -215,6 +216,9 @@ class SonyLIVSeriesIE(InfoExtractor):
                 'from': '0',
                 'to': '49',
             }), ('resultObj', 'containers', 0, 'containers', lambda _, v: int_or_none(v['id'])))
+
+        if sort_order == 'desc':
+            seasons = reversed(seasons)
         for season in seasons:
             season_id = str(season['id'])
             note = traverse_obj(season, ('metadata', 'title', {str})) or 'season'
@@ -226,7 +230,7 @@ class SonyLIVSeriesIE(InfoExtractor):
                         'from': str(cursor),
                         'to': str(cursor + 99),
                         'orderBy': 'episodeNumber',
-                        'sortOrder': 'asc',
+                        'sortOrder': sort_order,
                     }), ('resultObj', 'containers', 0, 'containers', lambda _, v: int_or_none(v['id'])))
                 if not episodes:
                     break
@@ -237,4 +241,10 @@ class SonyLIVSeriesIE(InfoExtractor):
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
-        return self.playlist_result(self._entries(show_id), playlist_id=show_id)
+
+        sort_order = self._configuration_arg('sort_order', [self._SORT_ORDERS[0]])[0]
+        if sort_order not in self._SORT_ORDERS:
+            raise ValueError(
+                f'Invalid sort order "{sort_order}". Allowed values are: {", ".join(self._SORT_ORDERS)}')
+
+        return self.playlist_result(self._entries(show_id, sort_order), playlist_id=show_id)

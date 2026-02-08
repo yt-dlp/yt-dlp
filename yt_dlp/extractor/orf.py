@@ -1,5 +1,4 @@
 import base64
-import functools
 import re
 
 from .common import InfoExtractor
@@ -192,7 +191,7 @@ class ORFPodcastIE(InfoExtractor):
                 'ext': ('enclosures', 0, 'type', {mimetype2ext}),
                 'title': 'title',
                 'description': ('description', {clean_html}),
-                'duration': ('duration', {functools.partial(float_or_none, scale=1000)}),
+                'duration': ('duration', {float_or_none(scale=1000)}),
                 'series': ('podcast', 'title'),
             })),
         }
@@ -494,7 +493,7 @@ class ORFONIE(InfoExtractor):
         return traverse_obj(api_json, {
             'id': ('id', {int}, {str_or_none}),
             'age_limit': ('age_classification', {parse_age_limit}),
-            'duration': ('exact_duration', {functools.partial(float_or_none, scale=1000)}),
+            'duration': ('exact_duration', {float_or_none(scale=1000)}),
             'title': (('title', 'headline'), {str}),
             'description': (('description', 'teaser_text'), {str}),
             'media_type': ('video_type', {str}),

@@ -4,43 +4,12 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    parse_qs,
-    unsmuggle_url,
+    UnsupportedError,
+    make_archive_id,
+    remove_end,
+    url_or_none,
 )
-
-_COMMITTEES = {
-    'ag': ('76440', 'http://ag-f.akamaihd.net'),
-    'aging': ('76442', 'http://aging-f.akamaihd.net'),
-    'approps': ('76441', 'http://approps-f.akamaihd.net'),
-    'arch': ('', 'http://ussenate-f.akamaihd.net'),
-    'armed': ('76445', 'http://armed-f.akamaihd.net'),
-    'banking': ('76446', 'http://banking-f.akamaihd.net'),
-    'budget': ('76447', 'http://budget-f.akamaihd.net'),
-    'cecc': ('76486', 'http://srs-f.akamaihd.net'),
-    'commerce': ('80177', 'http://commerce1-f.akamaihd.net'),
-    'csce': ('75229', 'http://srs-f.akamaihd.net'),
-    'dpc': ('76590', 'http://dpc-f.akamaihd.net'),
-    'energy': ('76448', 'http://energy-f.akamaihd.net'),
-    'epw': ('76478', 'http://epw-f.akamaihd.net'),
-    'ethics': ('76449', 'http://ethics-f.akamaihd.net'),
-    'finance': ('76450', 'http://finance-f.akamaihd.net'),
-    'foreign': ('76451', 'http://foreign-f.akamaihd.net'),
-    'govtaff': ('76453', 'http://govtaff-f.akamaihd.net'),
-    'help': ('76452', 'http://help-f.akamaihd.net'),
-    'indian': ('76455', 'http://indian-f.akamaihd.net'),
-    'intel': ('76456', 'http://intel-f.akamaihd.net'),
-    'intlnarc': ('76457', 'http://intlnarc-f.akamaihd.net'),
-    'jccic': ('85180', 'http://jccic-f.akamaihd.net'),
-    'jec': ('76458', 'http://jec-f.akamaihd.net'),
-    'judiciary': ('76459', 'http://judiciary-f.akamaihd.net'),
-    'rpc': ('76591', 'http://rpc-f.akamaihd.net'),
-    'rules': ('76460', 'http://rules-f.akamaihd.net'),
-    'saa': ('76489', 'http://srs-f.akamaihd.net'),
-    'smbiz': ('76461', 'http://smbiz-f.akamaihd.net'),
-    'srs': ('75229', 'http://srs-f.akamaihd.net'),
-    'uscc': ('76487', 'http://srs-f.akamaihd.net'),
-    'vetaff': ('76462', 'http://vetaff-f.akamaihd.net'),
-}
+from ..utils.traversal import traverse_obj
 
 
 class SenateISVPIE(InfoExtractor):
@@ -53,31 +22,46 @@ class SenateISVPIE(InfoExtractor):
         'info_dict': {
             'id': 'judiciary031715',
             'ext': 'mp4',
-            'title': 'Integrated Senate Video Player',
+            'title': 'ISVP',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
+            '_old_archive_ids': ['senategov judiciary031715'],
         },
         'params': {
             # m3u8 download
             'skip_download': True,
         },
+        'expected_warnings': ['Failed to download m3u8 information'],
     }, {
         'url': 'http://www.senate.gov/isvp/?type=live&comm=commerce&filename=commerce011514.mp4&auto_play=false',
         'info_dict': {
             'id': 'commerce011514',
             'ext': 'mp4',
             'title': 'Integrated Senate Video Player',
+            '_old_archive_ids': ['senategov commerce011514'],
         },
         'params': {
             # m3u8 download
             'skip_download': True,
         },
+        'skip': 'This video is not available.',
     }, {
         'url': 'http://www.senate.gov/isvp/?type=arch&comm=intel&filename=intel090613&hc_location=ufi',
         # checksum differs each time
         'info_dict': {
             'id': 'intel090613',
             'ext': 'mp4',
-            'title': 'Integrated Senate Video Player',
+            'title': 'ISVP',
+            '_old_archive_ids': ['senategov intel090613'],
+        },
+        'expected_warnings': ['Failed to download m3u8 information'],
+    }, {
+        'url': 'https://www.senate.gov/isvp/?auto_play=false&comm=help&filename=help090920&poster=https://www.help.senate.gov/assets/images/video-poster.png&stt=950',
+        'info_dict': {
+            'id': 'help090920',
+            'ext': 'mp4',
+            'title': 'ISVP',
+            'thumbnail': 'https://www.help.senate.gov/assets/images/video-poster.png',
+            '_old_archive_ids': ['senategov help090920'],
         },
     }, {
         # From http://www.c-span.org/video/?96791-1
@@ -85,60 +69,81 @@ class SenateISVPIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    _COMMITTEES = {
+        'ag': ('76440', 'https://ag-f.akamaihd.net', '2036803', 'agriculture'),
+        'aging': ('76442', 'https://aging-f.akamaihd.net', '2036801', 'aging'),
+        'approps': ('76441', 'https://approps-f.akamaihd.net', '2036802', 'appropriations'),
+        'arch': ('', 'https://ussenate-f.akamaihd.net', '', 'arch'),
+        'armed': ('76445', 'https://armed-f.akamaihd.net', '2036800', 'armedservices'),
+        'banking': ('76446', 'https://banking-f.akamaihd.net', '2036799', 'banking'),
+        'budget': ('76447', 'https://budget-f.akamaihd.net', '2036798', 'budget'),
+        'cecc': ('76486', 'https://srs-f.akamaihd.net', '2036782', 'srs_cecc'),
+        'commerce': ('80177', 'https://commerce1-f.akamaihd.net', '2036779', 'commerce'),
+        'csce': ('75229', 'https://srs-f.akamaihd.net', '2036777', 'srs_srs'),
+        'dpc': ('76590', 'https://dpc-f.akamaihd.net', '', 'dpc'),
+        'energy': ('76448', 'https://energy-f.akamaihd.net', '2036797', 'energy'),
+        'epw': ('76478', 'https://epw-f.akamaihd.net', '2036783', 'environment'),
+        'ethics': ('76449', 'https://ethics-f.akamaihd.net', '2036796', 'ethics'),
+        'finance': ('76450', 'https://finance-f.akamaihd.net', '2036795', 'finance_finance'),
+        'foreign': ('76451', 'https://foreign-f.akamaihd.net', '2036794', 'foreignrelations'),
+        'govtaff': ('76453', 'https://govtaff-f.akamaihd.net', '2036792', 'hsgac'),
+        'help': ('76452', 'https://help-f.akamaihd.net', '2036793', 'help'),
+        'indian': ('76455', 'https://indian-f.akamaihd.net', '2036791', 'indianaffairs'),
+        'intel': ('76456', 'https://intel-f.akamaihd.net', '2036790', 'intelligence'),
+        'intlnarc': ('76457', 'https://intlnarc-f.akamaihd.net', '', 'internationalnarcoticscaucus'),
+        'jccic': ('85180', 'https://jccic-f.akamaihd.net', '2036778', 'jccic'),
+        'jec': ('76458', 'https://jec-f.akamaihd.net', '2036789', 'jointeconomic'),
+        'judiciary': ('76459', 'https://judiciary-f.akamaihd.net', '2036788', 'judiciary'),
+        'rpc': ('76591', 'https://rpc-f.akamaihd.net', '', 'rpc'),
+        'rules': ('76460', 'https://rules-f.akamaihd.net', '2036787', 'rules'),
+        'saa': ('76489', 'https://srs-f.akamaihd.net', '2036780', 'srs_saa'),
+        'smbiz': ('76461', 'https://smbiz-f.akamaihd.net', '2036786', 'smallbusiness'),
+        'srs': ('75229', 'https://srs-f.akamaihd.net', '2031966', 'srs_srs'),
+        'uscc': ('76487', 'https://srs-f.akamaihd.net', '2036781', 'srs_uscc'),
+        'vetaff': ('76462', 'https://vetaff-f.akamaihd.net', '2036785', 'veteransaffairs'),
+    }
+
     def _real_extract(self, url):
-        url, smuggled_data = unsmuggle_url(url, {})
-
         qs = urllib.parse.parse_qs(self._match_valid_url(url).group('qs'))
-        if not qs.get('filename') or not qs.get('type') or not qs.get('comm'):
+        if not qs.get('filename') or not qs.get('comm'):
             raise ExtractorError('Invalid URL', expected=True)
-
-        video_id = re.sub(r'.mp4$', '', qs['filename'][0])
+        filename = qs['filename'][0]
+        video_id = remove_end(filename, '.mp4')
 
         webpage = self._download_webpage(url, video_id)
+        committee = qs['comm'][0]
 
-        if smuggled_data.get('force_title'):
-            title = smuggled_data['force_title']
-        else:
-            title = self._html_extract_title(webpage)
-        poster = qs.get('poster')
-        thumbnail = poster[0] if poster else None
+        stream_num, stream_domain, stream_id, msl3 = self._COMMITTEES[committee]
 
-        video_type = qs['type'][0]
-        committee = video_type if video_type == 'arch' else qs['comm'][0]
-
-        stream_num, domain = _COMMITTEES[committee]
-
+        urls_alternatives = [f'https://www-senate-gov-media-srs.akamaized.net/hls/live/{stream_id}/{committee}/{filename}/master.m3u8',
+                             f'https://www-senate-gov-msl3archive.akamaized.net/{msl3}/{filename}_1/master.m3u8',
+                             f'{stream_domain}/i/{filename}_1@{stream_num}/master.m3u8',
+                             f'{stream_domain}/i/{filename}.mp4/master.m3u8']
         formats = []
-        if video_type == 'arch':
-            filename = video_id if '.' in video_id else video_id + '.mp4'
-            m3u8_url = urllib.parse.urljoin(domain, 'i/' + filename + '/master.m3u8')
-            formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', m3u8_id='m3u8')
-        else:
-            hdcore_sign = 'hdcore=3.1.0'
-            url_params = (domain, video_id, stream_num)
-            f4m_url = f'%s/z/%s_1@%s/manifest.f4m?{hdcore_sign}' % url_params
-            m3u8_url = '{}/i/{}_1@{}/master.m3u8'.format(*url_params)
-            for entry in self._extract_f4m_formats(f4m_url, video_id, f4m_id='f4m'):
-                # URLs without the extra param induce an 404 error
-                entry.update({'extra_param_to_segment_url': hdcore_sign})
-                formats.append(entry)
-            for entry in self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', m3u8_id='m3u8'):
-                mobj = re.search(r'(?P<tag>(?:-p|-b)).m3u8', entry['url'])
-                if mobj:
-                    entry['format_id'] += mobj.group('tag')
-                formats.append(entry)
+        subtitles = {}
+        for video_url in urls_alternatives:
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, video_id, ext='mp4', fatal=False)
+            if formats:
+                break
 
         return {
             'id': video_id,
-            'title': title,
+            'title': self._html_extract_title(webpage),
             'formats': formats,
-            'thumbnail': thumbnail,
+            'subtitles': subtitles,
+            'thumbnail': traverse_obj(qs, ('poster', 0, {url_or_none})),
+            '_old_archive_ids': [make_archive_id(SenateGovIE, video_id)],
         }
 
 
 class SenateGovIE(InfoExtractor):
     _IE_NAME = 'senate.gov'
-    _VALID_URL = r'https?:\/\/(?:www\.)?(help|appropriations|judiciary|banking|armed-services|finance)\.senate\.gov'
+    _SUBDOMAIN_RE = '|'.join(map(re.escape, (
+        'agriculture', 'aging', 'appropriations', 'armed-services', 'banking',
+        'budget', 'commerce', 'energy', 'epw', 'finance', 'foreign', 'help',
+        'intelligence', 'inaugural', 'judiciary', 'rules', 'sbc', 'veterans',
+    )))
+    _VALID_URL = rf'https?://(?:www\.)?(?:{_SUBDOMAIN_RE})\.senate\.gov'
     _TESTS = [{
         'url': 'https://www.help.senate.gov/hearings/vaccines-saving-lives-ensuring-confidence-and-protecting-public-health',
         'info_dict': {
@@ -147,6 +152,9 @@ class SenateGovIE(InfoExtractor):
             'title': 'Vaccines: Saving Lives, Ensuring Confidence, and Protecting Public Health',
             'description': 'The U.S. Senate Committee on Health, Education, Labor & Pensions',
             'ext': 'mp4',
+            'age_limit': 0,
+            'thumbnail': 'https://www.help.senate.gov/assets/images/sharelogo.jpg',
+            '_old_archive_ids': ['senategov help090920'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -156,8 +164,12 @@ class SenateGovIE(InfoExtractor):
             'display_id': 'watch?hearingid=B8A25434-5056-A066-6020-1F68CB75F0CD',
             'title': 'Review of the FY2019 Budget Request for the U.S. Army',
             'ext': 'mp4',
+            'age_limit': 0,
+            'thumbnail': 'https://www.appropriations.senate.gov/themes/appropriations/images/video-poster-flash-fit.png',
+            '_old_archive_ids': ['senategov appropsA051518'],
         },
         'params': {'skip_download': 'm3u8'},
+        'expected_warnings': ['Failed to download m3u8 information'],
     }, {
         'url': 'https://www.banking.senate.gov/hearings/21st-century-communities-public-transportation-infrastructure-investment-and-fast-act-reauthorization',
         'info_dict': {
@@ -166,32 +178,65 @@ class SenateGovIE(InfoExtractor):
             'title': '21st Century Communities: Public Transportation Infrastructure Investment and FAST Act Reauthorization',
             'description': 'The Official website of The United States Committee on Banking, Housing, and Urban Affairs',
             'ext': 'mp4',
+            'thumbnail': 'https://www.banking.senate.gov/themes/banking/images/sharelogo.jpg',
+            'age_limit': 0,
+            '_old_archive_ids': ['senategov banking041521'],
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.agriculture.senate.gov/hearings/hemp-production-and-the-2018-farm-bill',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.aging.senate.gov/hearings/the-older-americans-act-the-local-impact-of-the-law-and-the-upcoming-reauthorization',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.budget.senate.gov/hearings/improving-care-lowering-costs-achieving-health-care-efficiency',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.commerce.senate.gov/2024/12/communications-networks-safety-and-security',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.energy.senate.gov/hearings/2024/2/full-committee-hearing-to-examine',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.epw.senate.gov/public/index.cfm/hearings?ID=F63083EA-2C13-498C-B548-341BED68C209',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.foreign.senate.gov/hearings/american-diplomacy-and-global-leadership-review-of-the-fy25-state-department-budget-request',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.intelligence.senate.gov/hearings/foreign-threats-elections-2024-%E2%80%93-roles-and-responsibilities-us-tech-providers',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.inaugural.senate.gov/52nd-inaugural-ceremonies/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.rules.senate.gov/hearings/02/07/2023/business-meeting',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.sbc.senate.gov/public/index.cfm/hearings?ID=5B13AA6B-8279-45AF-B54B-94156DC7A2AB',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.veterans.senate.gov/2024/5/frontier-health-care-ensuring-veterans-access-no-matter-where-they-live',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         display_id = self._generic_id(url)
         webpage = self._download_webpage(url, display_id)
-        parse_info = parse_qs(self._search_regex(
-            r'<iframe class="[^>"]*streaminghearing[^>"]*"\s[^>]*\bsrc="([^">]*)', webpage, 'hearing URL'))
-
-        stream_num, stream_domain = _COMMITTEES[parse_info['comm'][-1]]
-        filename = parse_info['filename'][-1]
-
-        formats = self._extract_m3u8_formats(
-            f'{stream_domain}/i/{filename}_1@{stream_num}/master.m3u8',
-            display_id, ext='mp4')
+        url_info = next(SenateISVPIE.extract_from_webpage(self._downloader, url, webpage), None)
+        if not url_info:
+            raise UnsupportedError(url)
 
         title = self._html_search_regex(
-            (*self._og_regexes('title'), r'(?s)<title>([^<]*?)</title>'), webpage, 'video title')
+            (*self._og_regexes('title'), r'(?s)<title>([^<]*?)</title>'), webpage, 'video title', fatal=False)
 
         return {
-            'id': re.sub(r'.mp4$', '', filename),
+            **url_info,
+            '_type': 'url_transparent',
             'display_id': display_id,
             'title': re.sub(r'\s+', ' ', title.split('|')[0]).strip(),
             'description': self._og_search_description(webpage, default=None),
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
             'age_limit': self._rta_search(webpage),
-            'formats': formats,
         }

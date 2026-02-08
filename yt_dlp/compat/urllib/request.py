@@ -7,9 +7,9 @@ passthrough_module(__name__, 'urllib.request')
 del passthrough_module
 
 
-from .. import compat_os_name
+import os
 
-if compat_os_name == 'nt':
+if os.name == 'nt':
     # On older Python versions, proxies are extracted from Windows registry erroneously. [1]
     # If the https proxy in the registry does not have a scheme, urllib will incorrectly add https:// to it. [2]
     # It is unlikely that the user has actually set it to be https, so we should be fine to safely downgrade
@@ -37,4 +37,4 @@ if compat_os_name == 'nt':
     def getproxies():
         return getproxies_environment() or getproxies_registry_patched()
 
-del compat_os_name
+del os

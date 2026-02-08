@@ -216,7 +216,9 @@ class SocksWebSocketTestRequestHandler(SocksTestRequestHandler):
         protocol = websockets.ServerProtocol()
         connection = websockets.sync.server.ServerConnection(socket=self.request, protocol=protocol, close_timeout=0)
         connection.handshake()
-        connection.send(json.dumps(self.socks_info))
+        for message in connection:
+            if message == 'socks_info':
+                connection.send(json.dumps(self.socks_info))
         connection.close()
 
 

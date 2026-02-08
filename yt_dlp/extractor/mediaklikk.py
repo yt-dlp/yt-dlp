@@ -16,6 +16,15 @@ class MediaKlikkIE(InfoExtractor):
                         (?P<id>[^/#?_]+)'''
 
     _TESTS = [{
+        'url': 'https://mediaklikk.hu/filmajanlo/cikk/az-ajto/',
+        'info_dict': {
+            'id': '668177',
+            'title': 'Az ajtó',
+            'display_id': 'az-ajto',
+            'ext': 'mp4',
+            'thumbnail': 'https://cdn.cms.mtv.hu/wp-content/uploads/sites/4/2016/01/vlcsnap-2023-07-31-14h18m52s111.jpg',
+        },
+    }, {
         # (old) mediaklikk. date in html.
         'url': 'https://mediaklikk.hu/video/hazajaro-delnyugat-bacska-a-duna-menten-palankatol-doroszloig/',
         'info_dict': {
@@ -37,6 +46,7 @@ class MediaKlikkIE(InfoExtractor):
             'upload_date': '20230903',
             'thumbnail': 'https://mediaklikk.hu/wp-content/uploads/sites/4/2014/02/hazajarouj_JO.jpg',
         },
+        'skip': 'Webpage redirects to 404 page',
     }, {
         # (old) m4sport
         'url': 'https://m4sport.hu/video/2021/08/30/gyemant-liga-parizs/',
@@ -59,6 +69,7 @@ class MediaKlikkIE(InfoExtractor):
             'upload_date': '20230908',
             'thumbnail': 'https://m4sport.hu/wp-content/uploads/sites/4/2023/09/vlcsnap-2023-09-08-22h43m18s691.jpg',
         },
+        'skip': 'Webpage redirects to 404 page',
     }, {
         # m4sport with *video/ url and no date
         'url': 'https://m4sport.hu/bl-video/real-madrid-chelsea-1-1/',
@@ -69,6 +80,7 @@ class MediaKlikkIE(InfoExtractor):
             'ext': 'mp4',
             'thumbnail': 'https://m4sport.hu/wp-content/uploads/sites/4/2021/04/Sequence-01.Still001-1024x576.png',
         },
+        'skip': 'Webpage redirects to 404 page',
     }, {
         # (old) hirado
         'url': 'https://hirado.hu/videok/felteteleket-szabott-a-fovaros/',
@@ -90,6 +102,7 @@ class MediaKlikkIE(InfoExtractor):
             'upload_date': '20230911',
             'thumbnail': 'https://hirado.hu/wp-content/uploads/sites/4/2023/09/vlcsnap-2023-09-11-09h16m09s882.jpg',
         },
+        'skip': 'Webpage redirects to video list page',
     }, {
         # (old) petofilive
         'url': 'https://petofilive.hu/video/2021/06/07/tha-shudras-az-akusztikban/',
@@ -112,6 +125,7 @@ class MediaKlikkIE(InfoExtractor):
             'upload_date': '20230909',
             'thumbnail': 'https://petofilive.hu/wp-content/uploads/sites/4/2023/09/Clipboard11-2.jpg',
         },
+        'skip': 'Webpage redirects to video list page',
     }]
 
     def _real_extract(self, url):
@@ -143,14 +157,14 @@ class MediaKlikkIE(InfoExtractor):
         if not playlist_url:
             raise ExtractorError('Unable to extract playlist url')
 
-        formats = self._extract_wowza_formats(
-            playlist_url, video_id, skip_protocols=['f4m', 'smil', 'dash'])
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(playlist_url, video_id)
 
         return {
             'id': video_id,
             'title': title,
             'display_id': display_id,
             'formats': formats,
+            'subtitles': subtitles,
             'upload_date': upload_date,
             'thumbnail': player_data.get('bgImage') or self._og_search_thumbnail(webpage),
         }

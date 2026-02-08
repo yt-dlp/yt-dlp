@@ -294,37 +294,37 @@ class ESPNCricInfoIE(InfoExtractor):
 class WatchESPNIE(AdobePassIE):
     _VALID_URL = r'https?://(?:www\.)?espn\.com/(?:watch|espnplus)/player/_/id/(?P<id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})'
     _TESTS = [{
-        'url': 'https://www.espn.com/watch/player/_/id/dbbc6b1d-c084-4b47-9878-5f13c56ce309',
+        'url': 'https://www.espn.com/watch/player/_/id/11ce417a-6ac9-42b6-8a15-46aeb9ad5710',
         'info_dict': {
-            'id': 'dbbc6b1d-c084-4b47-9878-5f13c56ce309',
+            'id': '11ce417a-6ac9-42b6-8a15-46aeb9ad5710',
             'ext': 'mp4',
-            'title': 'Huddersfield vs. Burnley',
-            'duration': 7500,
-            'thumbnail': 'https://artwork.api.espn.com/artwork/collections/media/dbbc6b1d-c084-4b47-9878-5f13c56ce309/default?width=640&apikey=1ngjw23osgcis1i1vbj96lmfqs',
+            'title': 'Abilene Chrstn vs. Texas Tech',
+            'duration': 14166,
+            'thumbnail': 'https://s.secure.espncdn.com/stitcher/artwork/collections/media/11ce417a-6ac9-42b6-8a15-46aeb9ad5710/16x9.jpg?timestamp=202407252343&showBadge=true&cb=12&package=ESPN_PLUS',
         },
         'params': {
             'skip_download': True,
         },
     }, {
-        'url': 'https://www.espn.com/watch/player/_/id/a049a56e-a7ce-477e-aef3-c7e48ef8221c',
+        'url': 'https://www.espn.com/watch/player/_/id/90a2c85d-75e0-4b1e-a878-8e428a3cb2f3',
         'info_dict': {
-            'id': 'a049a56e-a7ce-477e-aef3-c7e48ef8221c',
+            'id': '90a2c85d-75e0-4b1e-a878-8e428a3cb2f3',
             'ext': 'mp4',
-            'title': 'Dynamo Dresden vs. VfB Stuttgart (Round #1) (German Cup)',
-            'duration': 8335,
-            'thumbnail': 'https://s.secure.espncdn.com/stitcher/artwork/collections/media/bd1f3d12-0654-47d9-852e-71b85ea695c7/16x9.jpg?timestamp=202201112217&showBadge=true&cb=12&package=ESPN_PLUS',
+            'title': 'UC Davis vs. California',
+            'duration': 9547,
+            'thumbnail': 'https://artwork.api.espn.com/artwork/collections/media/90a2c85d-75e0-4b1e-a878-8e428a3cb2f3/default?width=640&apikey=1ngjw23osgcis1i1vbj96lmfqs',
         },
         'params': {
             'skip_download': True,
         },
     }, {
-        'url': 'https://www.espn.com/espnplus/player/_/id/317f5fd1-c78a-4ebe-824a-129e0d348421',
+        'url': 'https://www.espn.com/watch/player/_/id/c4313bbe-95b5-4bb8-b251-ac143ea0fc54',
         'info_dict': {
-            'id': '317f5fd1-c78a-4ebe-824a-129e0d348421',
+            'id': 'c4313bbe-95b5-4bb8-b251-ac143ea0fc54',
             'ext': 'mp4',
-            'title': 'The Wheel - Episode 10',
-            'duration': 3352,
-            'thumbnail': 'https://s.secure.espncdn.com/stitcher/artwork/collections/media/317f5fd1-c78a-4ebe-824a-129e0d348421/16x9.jpg?timestamp=202205031523&showBadge=true&cb=12&package=ESPN_PLUS',
+            'title': 'The College Football Show',
+            'duration': 3639,
+            'thumbnail': 'https://artwork.api.espn.com/artwork/collections/media/c4313bbe-95b5-4bb8-b251-ac143ea0fc54/default?width=640&apikey=1ngjw23osgcis1i1vbj96lmfqs',
         },
         'params': {
             'skip_download': True,
@@ -353,6 +353,13 @@ class WatchESPNIE(AdobePassIE):
             if not cookie:
                 self.raise_login_required(method='cookies')
 
+            jwt = self._search_regex(r'=([^|]+)\|', cookie.value, 'cookie jwt')
+            id_token = self._download_json(
+                'https://registerdisney.go.com/jgc/v6/client/ESPN-ONESITE.WEB-PROD/guest/refresh-auth',
+                None, 'Refreshing token', headers={'Content-Type': 'application/json'}, data=json.dumps({
+                    'refreshToken': json.loads(base64.urlsafe_b64decode(f'{jwt}==='))['refresh_token'],
+                }).encode())['data']['token']['id_token']
+
             assertion = self._call_bamgrid_api(
                 'devices', video_id,
                 headers={'Content-Type': 'application/json; charset=UTF-8'},
@@ -371,7 +378,7 @@ class WatchESPNIE(AdobePassIE):
                 })['access_token']
 
             assertion = self._call_bamgrid_api(
-                'accounts/grant', video_id, payload={'id_token': cookie.value.split('|')[1]},
+                'accounts/grant', video_id, payload={'id_token': id_token},
                 headers={
                     'Authorization': token,
                     'Content-Type': 'application/json; charset=UTF-8',

@@ -1,4 +1,3 @@
-import functools
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
@@ -118,7 +117,7 @@ class RedCDNLivxIE(InfoExtractor):
 
         time_scale = traverse_obj(ism_doc, ('@TimeScale', {int_or_none})) or 10000000
         duration = traverse_obj(
-            ism_doc, ('@Duration', {functools.partial(float_or_none, scale=time_scale)})) or None
+            ism_doc, ('@Duration', {float_or_none(scale=time_scale)})) or None
 
         live_status = None
         if traverse_obj(ism_doc, '@IsLive') == 'TRUE':

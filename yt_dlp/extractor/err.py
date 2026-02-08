@@ -207,7 +207,7 @@ class ERRJupiterIE(InfoExtractor):
             **traverse_obj(data, {
                 'title': ('heading', {str}),
                 'alt_title': ('subHeading', {str}),
-                'description': (('lead', 'body'), {clean_html}, {lambda x: x or None}),
+                'description': (('lead', 'body'), {clean_html}, filter),
                 'timestamp': ('created', {int_or_none}),
                 'modified_timestamp': ('updated', {int_or_none}),
                 'release_timestamp': (('scheduleStart', 'publicStart'), {int_or_none}),

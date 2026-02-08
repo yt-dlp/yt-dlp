@@ -16,7 +16,7 @@ from ..utils import (
 
 
 class RadioFranceIE(InfoExtractor):
-    _VALID_URL = r'^https?://maison\.radiofrance\.fr/radiovisions/(?P<id>[^?#]+)'
+    _VALID_URL = r'https?://maison\.radiofrance\.fr/radiovisions/(?P<id>[^?#]+)'
     IE_NAME = 'radiofrance'
 
     _TEST = {

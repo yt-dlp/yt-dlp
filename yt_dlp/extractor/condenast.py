@@ -12,6 +12,7 @@ from ..utils import (
     parse_iso8601,
     strip_or_none,
     try_get,
+    urljoin,
 )
 
 
@@ -112,8 +113,7 @@ class CondeNastIE(InfoExtractor):
         m_paths = re.finditer(
             r'(?s)<p class="cne-thumb-title">.*?<a href="(/watch/.+?)["\?]', webpage)
         paths = orderedSet(m.group(1) for m in m_paths)
-        build_url = lambda path: urllib.parse.urljoin(base_url, path)
-        entries = [self.url_result(build_url(path), 'CondeNast') for path in paths]
+        entries = [self.url_result(urljoin(base_url, path), 'CondeNast') for path in paths]
         return self.playlist_result(entries, playlist_title=title)
 
     def _extract_video_params(self, webpage, display_id):

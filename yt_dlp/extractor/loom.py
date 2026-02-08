@@ -92,9 +92,9 @@ class LoomIE(InfoExtractor):
         },
         'params': {'videopassword': 'seniorinfants2'},
     }, {
-        # embed, transcoded-url endpoint sends empty JSON response
+        # embed, transcoded-url endpoint sends empty JSON response, split video and audio HLS formats
         'url': 'https://www.loom.com/embed/ddcf1c1ad21f451ea7468b1e33917e4e',
-        'md5': '8488817242a0db1cb2ad0ea522553cf6',
+        'md5': 'b321d261656848c184a94e3b93eae28d',
         'info_dict': {
             'id': 'ddcf1c1ad21f451ea7468b1e33917e4e',
             'ext': 'mp4',
@@ -104,6 +104,7 @@ class LoomIE(InfoExtractor):
             'timestamp': 1657216459,
             'duration': 181,
         },
+        'params': {'format': 'bestvideo'},  # Test video-only fixup
         'expected_warnings': ['Failed to parse JSON'],
     }]
     _WEBPAGE_TESTS = [{
@@ -293,7 +294,11 @@ class LoomIE(InfoExtractor):
                 format_url = format_url.replace('-split.m3u8', '.m3u8')
                 m3u8_formats = self._extract_m3u8_formats(
                     format_url, video_id, 'mp4', m3u8_id=f'hls-{format_id}', fatal=False, quality=quality)
+                # Sometimes only split video/audio formats are available, need to fixup video-only formats
+                is_not_premerged = 'none' in traverse_obj(m3u8_formats, (..., 'vcodec'))
                 for fmt in m3u8_formats:
+                    if is_not_premerged and fmt.get('vcodec') != 'none':
+                        fmt['acodec'] = 'none'
                     yield {
                         **fmt,
                         'url': update_url(fmt['url'], query=query),

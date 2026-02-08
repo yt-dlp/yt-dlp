@@ -1,5 +1,5 @@
+
 from .common import InfoExtractor
-from ..compat import functools
 from ..utils import (
     int_or_none,
     parse_duration,
@@ -104,7 +104,7 @@ class PornboxIE(InfoExtractor):
         get_quality = qualities(['web', 'vga', 'hd', '1080p', '4k', '8k'])
         metadata['formats'] = traverse_obj(stream_data, ('qualities', lambda _, v: v['src'], {
             'url': 'src',
-            'vbr': ('bitrate', {functools.partial(int_or_none, scale=1000)}),
+            'vbr': ('bitrate', {int_or_none(scale=1000)}),
             'format_id': ('quality', {str_or_none}),
             'quality': ('quality', {get_quality}),
             'width': ('size', {lambda x: int(x[:-1])}),

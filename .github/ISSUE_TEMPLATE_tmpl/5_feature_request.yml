@@ -1,5 +1,5 @@
 name: Feature request
-description: Request a new functionality unrelated to any particular site or extractor
+description: Request a new feature unrelated to any particular site or extractor
 labels: [triage, enhancement]
 body:
   %(no_skip)s
@@ -16,9 +16,7 @@ body:
           required: true
         - label: I've verified that I have **updated yt-dlp to nightly or master** ([update instructions](https://github.com/yt-dlp/yt-dlp#update-channels))
           required: true
-        - label: I've searched [known issues](https://github.com/yt-dlp/yt-dlp/issues/3766) and the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=) for similar issues **including closed ones**. DO NOT post duplicates
-          required: true
-        - label: I've read the [guidelines for opening an issue](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#opening-an-issue)
+        - label: I've searched the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=is%%3Aissue%%20-label%%3Aspam%%20%%20) for similar requests **including closed ones**. DO NOT post duplicates
           required: true
   - type: textarea
     id: description

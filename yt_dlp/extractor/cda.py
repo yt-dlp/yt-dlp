@@ -12,6 +12,7 @@ from .common import InfoExtractor
 from ..compat import compat_ord
 from ..utils import (
     ExtractorError,
+    OnDemandPagedList,
     float_or_none,
     int_or_none,
     merge_dicts,
@@ -351,3 +352,50 @@ class CDAIE(InfoExtractor):
             extract_format(webpage, resolution)
 
         return merge_dicts(info_dict, info)
+
+
+class CDAFolderIE(InfoExtractor):
+    _MAX_PAGE_SIZE = 36
+    _VALID_URL = r'https?://(?:www\.)?cda\.pl/(?P<channel>\w+)/folder/(?P<id>\d+)'
+    _TESTS = [
+        {
+            'url': 'https://www.cda.pl/domino264/folder/31188385',
+            'info_dict': {
+                'id': '31188385',
+                'title': 'SERIA DRUGA',
+            },
+            'playlist_mincount': 13,
+        },
+        {
+            'url': 'https://www.cda.pl/smiechawaTV/folder/2664592/vfilm',
+            'info_dict': {
+                'id': '2664592',
+                'title': 'VideoDowcipy - wszystkie odcinki',
+            },
+            'playlist_mincount': 71,
+        },
+        {
+            'url': 'https://www.cda.pl/DeliciousBeauty/folder/19129979/vfilm',
+            'info_dict': {
+                'id': '19129979',
+                'title': 'TESTY KOSMETYKÓW',
+            },
+            'playlist_mincount': 139,
+        }]
+
+    def _real_extract(self, url):
+        folder_id, channel = self._match_valid_url(url).group('id', 'channel')
+
+        webpage = self._download_webpage(url, folder_id)
+
+        def extract_page_entries(page):
+            webpage = self._download_webpage(
+                f'https://www.cda.pl/{channel}/folder/{folder_id}/vfilm/{page + 1}', folder_id,
+                f'Downloading page {page + 1}', expected_status=404)
+            items = re.findall(r'<a[^>]+href="/video/([0-9a-z]+)"', webpage)
+            for video_id in items:
+                yield self.url_result(f'https://www.cda.pl/video/{video_id}', CDAIE, video_id)
+
+        return self.playlist_result(
+            OnDemandPagedList(extract_page_entries, self._MAX_PAGE_SIZE),
+            folder_id, self._og_search_title(webpage))

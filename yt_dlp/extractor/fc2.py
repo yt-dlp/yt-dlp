@@ -14,7 +14,7 @@ from ..utils import (
 
 
 class FC2IE(InfoExtractor):
-    _VALID_URL = r'^(?:https?://video\.fc2\.com/(?:[^/]+/)*content/|fc2:)(?P<id>[^/]+)'
+    _VALID_URL = r'(?:https?://video\.fc2\.com/(?:[^/]+/)*content/|fc2:)(?P<id>[^/]+)'
     IE_NAME = 'fc2'
     _NETRC_MACHINE = 'fc2'
     _TESTS = [{

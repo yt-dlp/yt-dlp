@@ -36,7 +36,7 @@ class SampleFocusIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
+        webpage = self._download_webpage(url, display_id, impersonate=True)
 
         sample_id = self._search_regex(
             r'<input[^>]+id=(["\'])sample_id\1[^>]+value=(?:["\'])(?P<id>\d+)',
@@ -82,7 +82,15 @@ class SampleFocusIE(InfoExtractor):
         return {
             'id': sample_id,
             'title': title,
-            'url': mp3_url,
+            'formats': [{
+                'url': mp3_url,
+                'ext': 'mp3',
+                'vcodec': 'none',
+                'acodec': 'mp3',
+                'http_headers': {
+                    'Referer': url,
+                },
+            }],
             'display_id': display_id,
             'thumbnail': thumbnail,
             'uploader': uploader,

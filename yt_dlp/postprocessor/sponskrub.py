@@ -9,7 +9,6 @@ from ..utils import (
     check_executable,
     cli_option,
     encodeArgument,
-    encodeFilename,
     prepend_extension,
     shell_quote,
     str_or_none,
@@ -52,7 +51,7 @@ class SponSkrubPP(PostProcessor):
             return [], information
 
         filename = information['filepath']
-        if not os.path.exists(encodeFilename(filename)):  # no download
+        if not os.path.exists(filename):  # no download
             return [], information
 
         if information['extractor_key'].lower() != 'youtube':
@@ -71,8 +70,8 @@ class SponSkrubPP(PostProcessor):
                 self.report_warning('If sponskrub is run multiple times, unintended parts of the video could be cut out.')
 
         temp_filename = prepend_extension(filename, self._temp_ext)
-        if os.path.exists(encodeFilename(temp_filename)):
-            os.remove(encodeFilename(temp_filename))
+        if os.path.exists(temp_filename):
+            os.remove(temp_filename)
 
         cmd = [self.path]
         if not self.cutout:

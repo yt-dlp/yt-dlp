@@ -26,6 +26,7 @@ class MicrosoftEmbedIE(InfoExtractor):
             'timestamp': 1631658316,
             'upload_date': '20210914',
         },
+        'expected_warnings': ['Failed to parse XML: syntax error: line 1, column 0'],
     }]
     _API_URL = 'https://prod-video-cms-rt-microsoft-com.akamaized.net/vhs/api/videos/'
 
@@ -36,11 +37,11 @@ class MicrosoftEmbedIE(InfoExtractor):
         formats = []
         for source_type, source in metadata['streams'].items():
             if source_type == 'smooth_Streaming':
-                formats.extend(self._extract_ism_formats(source['url'], video_id, 'mss'))
+                formats.extend(self._extract_ism_formats(source['url'], video_id, 'mss', fatal=False))
             elif source_type == 'apple_HTTP_Live_Streaming':
-                formats.extend(self._extract_m3u8_formats(source['url'], video_id, 'mp4'))
+                formats.extend(self._extract_m3u8_formats(source['url'], video_id, 'mp4', fatal=False))
             elif source_type == 'mPEG_DASH':
-                formats.extend(self._extract_mpd_formats(source['url'], video_id))
+                formats.extend(self._extract_mpd_formats(source['url'], video_id, fatal=False))
             else:
                 formats.append({
                     'format_id': source_type,

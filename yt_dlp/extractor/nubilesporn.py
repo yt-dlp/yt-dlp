@@ -10,10 +10,10 @@ from ..utils import (
     get_element_html_by_class,
     get_elements_by_class,
     int_or_none,
-    try_call,
     unified_timestamp,
     urlencode_postdata,
 )
+from ..utils.traversal import find_element, find_elements, traverse_obj
 
 
 class NubilesPornIE(InfoExtractor):
@@ -70,9 +70,8 @@ class NubilesPornIE(InfoExtractor):
             url, get_element_by_class('watch-page-video-wrapper', page), video_id)[0]
 
         channel_id, channel_name = self._search_regex(
-            r'/video/website/(?P<id>\d+).+>(?P<name>\w+).com', get_element_html_by_class('site-link', page),
+            r'/video/website/(?P<id>\d+).+>(?P<name>\w+).com', get_element_html_by_class('site-link', page) or '',
             'channel', fatal=False, group=('id', 'name')) or (None, None)
-        channel_name = re.sub(r'([^A-Z]+)([A-Z]+)', r'\1 \2', channel_name)
 
         return {
             'id': video_id,
@@ -82,14 +81,14 @@ class NubilesPornIE(InfoExtractor):
             'thumbnail': media_entries.get('thumbnail'),
             'description': clean_html(get_element_html_by_class('content-pane-description', page)),
             'timestamp': unified_timestamp(get_element_by_class('date', page)),
-            'channel': channel_name,
+            'channel': re.sub(r'([^A-Z]+)([A-Z]+)', r'\1 \2', channel_name) if channel_name else None,
             'channel_id': channel_id,
             'channel_url': format_field(channel_id, None, 'https://members.nubiles-porn.com/video/website/%s'),
             'like_count': int_or_none(get_element_by_id('likecount', page)),
             'average_rating': float_or_none(get_element_by_class('score', page)),
             'age_limit': 18,
-            'categories': try_call(lambda: list(map(clean_html, get_elements_by_class('btn', get_element_by_class('categories', page))))),
-            'tags': try_call(lambda: list(map(clean_html, get_elements_by_class('btn', get_elements_by_class('tags', page)[1])))),
+            'categories': traverse_obj(page, ({find_element(cls='categories')}, {find_elements(cls='btn')}, ..., {clean_html})),
+            'tags': traverse_obj(page, ({find_elements(cls='tags')}, 1, {find_elements(cls='btn')}, ..., {clean_html})),
             'cast': get_elements_by_class('content-pane-performer', page),
             'availability': 'needs_auth',
             'series': channel_name,

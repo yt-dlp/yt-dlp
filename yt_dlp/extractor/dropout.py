@@ -135,7 +135,7 @@ class DropoutIE(InfoExtractor):
                     self.raise_login_required(method='any')
                 raise ExtractorError(login_err, expected=True)
 
-        embed_url = self._search_regex(r'embed_url:\s*["\'](.+?)["\']', webpage, 'embed url')
+        embed_url = self._html_search_regex(r'embed_url:\s*["\'](.+?)["\']', webpage, 'embed url')
         thumbnail = self._og_search_thumbnail(webpage)
         watch_info = get_element_by_id('watch-info', webpage) or ''
 

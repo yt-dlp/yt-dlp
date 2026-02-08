@@ -71,14 +71,13 @@ class CommitGroup(enum.Enum):
     def get(cls, value: str) -> tuple[CommitGroup | None, str | None]:
         group, _, subgroup = (group.strip().lower() for group in value.partition('/'))
 
-        result = cls.group_lookup().get(group)
-        if not result:
-            if subgroup:
-                return None, value
-            subgroup = group
-            result = cls.subgroup_lookup().get(subgroup)
+        if result := cls.group_lookup().get(group):
+            return result, subgroup or None
 
-        return result, subgroup or None
+        if subgroup:
+            return None, value
+
+        return cls.subgroup_lookup().get(group), group or None
 
 
 @dataclass
@@ -136,8 +135,7 @@ class Changelog:
                 first = False
                 yield '\n<details><summary><h3>Changelog</h3></summary>\n'
 
-            group = groups[item]
-            if group:
+            if group := groups[item]:
                 yield self.format_module(item.value, group)
 
         if self._collapsible:
@@ -253,7 +251,7 @@ class CommitRange:
         ''', re.VERBOSE | re.DOTALL)
     EXTRACTOR_INDICATOR_RE = re.compile(r'(?:Fix|Add)\s+Extractors?', re.IGNORECASE)
     REVERT_RE = re.compile(r'(?:\[[^\]]+\]\s+)?(?i:Revert)\s+([\da-f]{40})')
-    FIXES_RE = re.compile(r'(?i:Fix(?:es)?(?:\s+bugs?)?(?:\s+in|\s+for)?|Revert|Improve)\s+([\da-f]{40})')
+    FIXES_RE = re.compile(r'(?i:(?:bug\s*)?fix(?:es)?(?:\s+bugs?)?(?:\s+in|\s+for)?|Improve)\s+([\da-f]{40})')
     UPSTREAM_MERGE_RE = re.compile(r'Update to ytdl-commit-([\da-f]+)')
 
     def __init__(self, start, end, default_author=None):
@@ -287,11 +285,16 @@ class CommitRange:
             short = next(lines)
             skip = short.startswith('Release ') or short == '[version] update'
 
+            fix_commitish = None
+            if match := self.FIXES_RE.search(short):
+                fix_commitish = match.group(1)
+
             authors = [default_author] if default_author else []
             for line in iter(lambda: next(lines), self.COMMIT_SEPARATOR):
-                match = self.AUTHOR_INDICATOR_RE.match(line)
-                if match:
+                if match := self.AUTHOR_INDICATOR_RE.match(line):
                     authors = sorted(map(str.strip, line[match.end():].split(',')), key=str.casefold)
+                if not fix_commitish and (match := self.FIXES_RE.fullmatch(line)):
+                    fix_commitish = match.group(1)
 
             commit = Commit(commit_hash, short, authors)
             if skip and (self._start or not i):
@@ -301,21 +304,17 @@ class CommitRange:
                 logger.debug(f'Reached Release commit, breaking: {commit}')
                 break
 
-            revert_match = self.REVERT_RE.fullmatch(commit.short)
-            if revert_match:
-                reverts[revert_match.group(1)] = commit
+            if match := self.REVERT_RE.fullmatch(commit.short):
+                reverts[match.group(1)] = commit
                 continue
 
-            fix_match = self.FIXES_RE.search(commit.short)
-            if fix_match:
-                commitish = fix_match.group(1)
-                fixes[commitish].append(commit)
+            if fix_commitish:
+                fixes[fix_commitish].append(commit)
 
             commits[commit.hash] = commit
 
         for commitish, revert_commit in reverts.items():
-            reverted = commits.pop(commitish, None)
-            if reverted:
+            if reverted := commits.pop(commitish, None):
                 logger.debug(f'{commitish} fully reverted {reverted}')
             else:
                 commits[revert_commit.hash] = revert_commit
@@ -461,8 +460,7 @@ def create_changelog(args):
 
     logger.info(f'Loaded {len(commits)} commits')
 
-    new_contributors = get_new_contributors(args.contributors_path, commits)
-    if new_contributors:
+    if new_contributors := get_new_contributors(args.contributors_path, commits):
         if args.contributors:
             write_file(args.contributors_path, '\n'.join(new_contributors) + '\n', mode='a')
         logger.info(f'New contributors: {", ".join(new_contributors)}')

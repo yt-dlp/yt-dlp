@@ -235,7 +235,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
         details = traverse_obj(block, {
             'id': ('sourceId', {str}),
             'uploader': ('bylines', ..., 'renderedRepresentation', {str}),
-            'duration': (None, (('duration', {lambda x: float_or_none(x, scale=1000)}), ('length', {int_or_none}))),
+            'duration': (None, (('duration', {float_or_none(scale=1000)}), ('length', {int_or_none}))),
             'timestamp': ('firstPublished', {parse_iso8601}),
             'series': ('podcastSeries', {str}),
         }, get_all=False)
@@ -343,7 +343,7 @@ class NYTimesCookingIE(NYTimesBaseIE):
         if media_ids:
             media_ids.append(lead_video_id)
             return self.playlist_result(
-                [self._extract_video(media_id) for media_id in media_ids], page_id, title, description)
+                map(self._extract_video, media_ids), page_id, title, description)
 
         return {
             **self._extract_video(lead_video_id),

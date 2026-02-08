@@ -3,6 +3,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     filter_dict,
+    float_or_none,
     int_or_none,
     parse_age_limit,
     smuggle_url,
@@ -85,7 +86,7 @@ class CineverseIE(CineverseBaseIE):
                 'title': 'title',
                 'id': ('details', 'item_id'),
                 'description': ('details', 'description'),
-                'duration': ('duration', {lambda x: x / 1000}),
+                'duration': ('duration', {float_or_none(scale=1000)}),
                 'cast': ('details', 'cast', {lambda x: x.split(', ')}),
                 'modified_timestamp': ('details', 'updated_by', 0, 'update_time', 'time', {int_or_none}),
                 'season_number': ('details', 'season', {int_or_none}),

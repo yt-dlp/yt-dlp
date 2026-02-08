@@ -20,9 +20,7 @@ from ..utils import (
     Namespace,
     RetryManager,
     classproperty,
-    decodeArgument,
     deprecation_warning,
-    encodeFilename,
     format_bytes,
     join_nonempty,
     parse_bytes,
@@ -33,6 +31,7 @@ from ..utils import (
     timetuple_from_msec,
     try_call,
 )
+from ..utils._utils import _ProgressState
 
 
 class FileDownloader:
@@ -219,7 +218,7 @@ class FileDownloader:
     def temp_name(self, filename):
         """Returns a temporary filename for the given filename."""
         if self.params.get('nopart', False) or filename == '-' or \
-                (os.path.exists(encodeFilename(filename)) and not os.path.isfile(encodeFilename(filename))):
+                (os.path.exists(filename) and not os.path.isfile(filename)):
             return filename
         return filename + '.part'
 
@@ -273,7 +272,7 @@ class FileDownloader:
         """Try to set the last-modified time of the given file."""
         if last_modified_hdr is None:
             return
-        if not os.path.isfile(encodeFilename(filename)):
+        if not os.path.isfile(filename):
             return
         timestr = last_modified_hdr
         if timestr is None:
@@ -335,7 +334,7 @@ class FileDownloader:
             progress_dict), s.get('progress_idx') or 0)
         self.to_console_title(self.ydl.evaluate_outtmpl(
             progress_template.get('download-title') or 'yt-dlp %(progress._default_template)s',
-            progress_dict))
+            progress_dict), _ProgressState.from_dict(s), s.get('_percent'))
 
     def _format_progress(self, *args, **kwargs):
         return self.ydl._format_text(
@@ -359,6 +358,7 @@ class FileDownloader:
                 '_speed_str': self.format_speed(speed).strip(),
                 '_total_bytes_str': _format_bytes('total_bytes'),
                 '_elapsed_str': self.format_seconds(s.get('elapsed')),
+                '_percent': 100.0,
                 '_percent_str': self.format_percent(100),
             })
             self._report_progress_status(s, join_nonempty(
@@ -377,13 +377,15 @@ class FileDownloader:
                     return
                 self._progress_delta_time += update_delta
 
+        progress = try_call(
+            lambda: 100 * s['downloaded_bytes'] / s['total_bytes'],
+            lambda: 100 * s['downloaded_bytes'] / s['total_bytes_estimate'],
+            lambda: s['downloaded_bytes'] == 0 and 0)
         s.update({
             '_eta_str': self.format_eta(s.get('eta')).strip(),
             '_speed_str': self.format_speed(s.get('speed')),
-            '_percent_str': self.format_percent(try_call(
-                lambda: 100 * s['downloaded_bytes'] / s['total_bytes'],
-                lambda: 100 * s['downloaded_bytes'] / s['total_bytes_estimate'],
-                lambda: s['downloaded_bytes'] == 0 and 0)),
+            '_percent': progress,
+            '_percent_str': self.format_percent(progress),
             '_total_bytes_str': _format_bytes('total_bytes'),
             '_total_bytes_estimate_str': _format_bytes('total_bytes_estimate'),
             '_downloaded_bytes_str': _format_bytes('downloaded_bytes'),
@@ -432,13 +434,13 @@ class FileDownloader:
         """
         nooverwrites_and_exists = (
             not self.params.get('overwrites', True)
-            and os.path.exists(encodeFilename(filename))
+            and os.path.exists(filename)
         )
 
         if not hasattr(filename, 'write'):
             continuedl_and_exists = (
                 self.params.get('continuedl', True)
-                and os.path.isfile(encodeFilename(filename))
+                and os.path.isfile(filename)
                 and not self.params.get('nopart', False)
             )
 
@@ -448,7 +450,7 @@ class FileDownloader:
                 self._hook_progress({
                     'filename': filename,
                     'status': 'finished',
-                    'total_bytes': os.path.getsize(encodeFilename(filename)),
+                    'total_bytes': os.path.getsize(filename),
                 }, info_dict)
                 self._finish_multiline_status()
                 return True, False
@@ -489,9 +491,7 @@ class FileDownloader:
         if not self.params.get('verbose', False):
             return
 
-        str_args = [decodeArgument(a) for a in args]
-
         if exe is None:
-            exe = os.path.basename(str_args[0])
+            exe = os.path.basename(args[0])
 
-        self.write_debug(f'{exe} command line: {shell_quote(str_args)}')
+        self.write_debug(f'{exe} command line: {shell_quote(args)}')

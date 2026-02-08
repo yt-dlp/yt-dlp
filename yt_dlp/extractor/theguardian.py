@@ -131,4 +131,4 @@ class TheGuardianPodcastPlaylistIE(InfoExtractor):
 
         return self.playlist_from_matches(
             self._entries(url, podcast_id), podcast_id, title, description=description,
-            ie=TheGuardianPodcastIE, getter=lambda x: urljoin('https://www.theguardian.com', x))
+            ie=TheGuardianPodcastIE, getter=urljoin('https://www.theguardian.com'))

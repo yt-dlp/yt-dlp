@@ -140,7 +140,7 @@ class QDanceIE(InfoExtractor):
             'description': ('description', {str.strip}),
             'display_id': ('slug', {str}),
             'thumbnail': ('thumbnail', {url_or_none}),
-            'duration': ('durationInSeconds', {int_or_none}, {lambda x: x or None}),
+            'duration': ('durationInSeconds', {int_or_none}, filter),
             'availability': ('subscription', 'level', {extract_availability}),
             'is_live': ('type', {lambda x: x.lower() == 'live'}),
             'artist': ('acts', ..., {str}),

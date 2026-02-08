@@ -207,7 +207,7 @@ class TheaterComplexTownVODIE(TheaterComplexTownBaseIE):
 
 
 class TheaterComplexTownPPVIE(TheaterComplexTownBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?theater-complex\.town/(?:(?:en|ja)/)?ppv/(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?theater-complex\.town/(?:(?:en|ja)/)?(?:ppv|live)/(?P<id>\w+)'
     IE_NAME = 'theatercomplextown:ppv'
     _TESTS = [{
         'url': 'https://www.theater-complex.town/ppv/wytW3X7khrjJBUpKuV3jen',
@@ -228,6 +228,9 @@ class TheaterComplexTownPPVIE(TheaterComplexTownBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://www.theater-complex.town/ja/ppv/qwUVmLmGEiZ3ZW6it9uGys',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.theater-complex.town/en/live/79akNM7bJeD5Fi9EP39aDp',
         'only_matching': True,
     }]
 

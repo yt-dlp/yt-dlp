@@ -10,7 +10,7 @@ import typing
 import urllib.parse
 import urllib.request
 
-from .exceptions import RequestError, UnsupportedRequest
+from .exceptions import RequestError
 from ..dependencies import certifi
 from ..socks import ProxyType, sockssocket
 from ..utils import format_field, traverse_obj
@@ -206,7 +206,7 @@ def wrap_request_errors(func):
     def wrapper(self, *args, **kwargs):
         try:
             return func(self, *args, **kwargs)
-        except UnsupportedRequest as e:
+        except RequestError as e:
             if e.handler is None:
                 e.handler = self
             raise

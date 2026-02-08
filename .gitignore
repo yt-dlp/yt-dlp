@@ -92,6 +92,7 @@ updates_key.pem
 *.class
 *.isorted
 *.stackdump
+uv.lock
 
 # Generated
 AUTHORS

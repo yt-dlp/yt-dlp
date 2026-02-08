@@ -1,4 +1,3 @@
-import functools
 import json
 import time
 import urllib.parse
@@ -171,7 +170,7 @@ class VRTIE(VRTBaseIE):
             **traverse_obj(data, {
                 'title': ('title', {str}),
                 'description': ('shortDescription', {str}),
-                'duration': ('duration', {functools.partial(float_or_none, scale=1000)}),
+                'duration': ('duration', {float_or_none(scale=1000)}),
                 'thumbnail': ('posterImageUrl', {url_or_none}),
             }),
         }

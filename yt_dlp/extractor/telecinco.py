@@ -2,15 +2,69 @@ import json
 import re
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     clean_html,
     int_or_none,
+    join_nonempty,
     str_or_none,
-    try_get,
+    traverse_obj,
+    update_url,
+    url_or_none,
 )
 
 
-class TelecincoIE(InfoExtractor):
+class TelecincoBaseIE(InfoExtractor):
+    def _parse_content(self, content, url):
+        video_id = content['dataMediaId']
+        config = self._download_json(
+            content['dataConfig'], video_id, 'Downloading config JSON')
+        services = config['services']
+        caronte = self._download_json(services['caronte'], video_id)
+        if traverse_obj(caronte, ('dls', 0, 'drm', {bool})):
+            self.report_drm(video_id)
+
+        stream = caronte['dls'][0]['stream']
+        headers = {
+            'Referer': url,
+            'Origin': re.match(r'https?://[^/]+', url).group(0),
+        }
+        geo_headers = {**headers, **self.geo_verification_headers()}
+
+        try:
+            cdn = self._download_json(
+                caronte['cerbero'], video_id, data=json.dumps({
+                    'bbx': caronte['bbx'],
+                    'gbx': self._download_json(services['gbx'], video_id)['gbx'],
+                }).encode(), headers={
+                    'Content-Type': 'application/json',
+                    **geo_headers,
+                })['tokens']['1']['cdn']
+        except ExtractorError as error:
+            if isinstance(error.cause, HTTPError) and error.cause.status == 403:
+                error_code = traverse_obj(
+                    self._webpage_read_content(error.cause.response, caronte['cerbero'], video_id, fatal=False),
+                    ({json.loads}, 'code', {int}))
+                if error_code == 4038:
+                    self.raise_geo_restricted(countries=['ES'])
+            raise
+
+        formats = self._extract_m3u8_formats(
+            update_url(stream, query=cdn), video_id, 'mp4', m3u8_id='hls', headers=geo_headers)
+
+        return {
+            'id': video_id,
+            'title': traverse_obj(config, ('info', 'title', {str})),
+            'formats': formats,
+            'thumbnail': (traverse_obj(content, ('dataPoster', {url_or_none}))
+                          or traverse_obj(config, 'poster', 'imageUrl', expected_type=url_or_none)),
+            'duration': traverse_obj(content, ('dataDuration', {int_or_none})),
+            'http_headers': headers,
+        }
+
+
+class TelecincoIE(TelecincoBaseIE):
     IE_DESC = 'telecinco.es, cuatro.com and mediaset.es'
     _VALID_URL = r'https?://(?:www\.)?(?:telecinco\.es|cuatro\.com|mediaset\.es)/(?:[^/]+/)+(?P<id>.+?)\.html'
 
@@ -30,6 +84,7 @@ class TelecincoIE(InfoExtractor):
                 'duration': 662,
             },
         }],
+        'skip': 'HTTP Error 410 Gone',
     }, {
         'url': 'http://www.cuatro.com/deportes/futbol/barcelona/Leo_Messi-Champions-Roma_2_2052780128.html',
         'md5': 'c86fe0d99e3bdb46b7950d38bf6ef12a',
@@ -40,23 +95,24 @@ class TelecincoIE(InfoExtractor):
             'description': 'md5:a62ecb5f1934fc787107d7b9a2262805',
             'duration': 79,
         },
+        'skip': 'Redirects to main page',
     }, {
         'url': 'http://www.mediaset.es/12meses/campanas/doylacara/conlatratanohaytrato/Ayudame-dar-cara-trata-trato_2_1986630220.html',
-        'md5': 'eddb50291df704ce23c74821b995bcac',
+        'md5': '5ce057f43f30b634fbaf0f18c71a140a',
         'info_dict': {
             'id': 'aywerkD2Sv1vGNqq9b85Q2',
             'ext': 'mp4',
             'title': '#DOYLACARA. Con la trata no hay trato',
-            'description': 'md5:2771356ff7bfad9179c5f5cd954f1477',
             'duration': 50,
+            'thumbnail': 'https://album.mediaset.es/eimg/2017/11/02/1tlQLO5Q3mtKT24f3EaC24.jpg',
         },
     }, {
         # video in opening's content
         'url': 'https://www.telecinco.es/vivalavida/fiorella-sobrina-edmundo-arrocet-entrevista_18_2907195140.html',
         'info_dict': {
-            'id': '2907195140',
+            'id': '1691427',
             'title': 'La surrealista entrevista a la sobrina de Edmundo Arrocet: "No puedes venir aquí y tomarnos por tontos"',
-            'description': 'md5:73f340a7320143d37ab895375b2bf13a',
+            'description': r're:Fiorella, la sobrina de Edmundo Arrocet, concedió .{727}',
         },
         'playlist': [{
             'md5': 'adb28c37238b675dad0f042292f209a7',
@@ -65,6 +121,7 @@ class TelecincoIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'La surrealista entrevista a la sobrina de Edmundo Arrocet: "No puedes venir aquí y tomarnos por tontos"',
                 'duration': 1015,
+                'thumbnail': 'https://album.mediaset.es/eimg/2020/02/29/5opaC37lUhKlZ7FoDhiVC.jpg',
             },
         }],
         'params': {
@@ -81,66 +138,29 @@ class TelecincoIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _parse_content(self, content, url):
-        video_id = content['dataMediaId']
-        config = self._download_json(
-            content['dataConfig'], video_id, 'Downloading config JSON')
-        title = config['info']['title']
-        services = config['services']
-        caronte = self._download_json(services['caronte'], video_id)
-        stream = caronte['dls'][0]['stream']
-        headers = self.geo_verification_headers()
-        headers.update({
-            'Content-Type': 'application/json;charset=UTF-8',
-            'Origin': re.match(r'https?://[^/]+', url).group(0),
-        })
-        cdn = self._download_json(
-            caronte['cerbero'], video_id, data=json.dumps({
-                'bbx': caronte['bbx'],
-                'gbx': self._download_json(services['gbx'], video_id)['gbx'],
-            }).encode(), headers=headers)['tokens']['1']['cdn']
-        formats = self._extract_m3u8_formats(
-            stream + '?' + cdn, video_id, 'mp4', 'm3u8_native', m3u8_id='hls')
-
-        return {
-            'id': video_id,
-            'title': title,
-            'formats': formats,
-            'thumbnail': content.get('dataPoster') or config.get('poster', {}).get('imageUrl'),
-            'duration': int_or_none(content.get('dataDuration')),
-        }
-
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        article = self._parse_json(self._search_regex(
-            r'window\.\$REACTBASE_STATE\.article(?:_multisite)?\s*=\s*({.+})',
-            webpage, 'article'), display_id)['article']
-        title = article.get('title')
-        description = clean_html(article.get('leadParagraph')) or ''
+        article = self._search_json(
+            r'window\.\$REACTBASE_STATE\.article(?:_multisite)?\s*=',
+            webpage, 'article', display_id)['article']
+        description = traverse_obj(article, ('leadParagraph', {clean_html}, filter))
+
         if article.get('editorialType') != 'VID':
             entries = []
-            body = [article.get('opening')]
-            body.extend(try_get(article, lambda x: x['body'], list) or [])
-            for p in body:
-                if not isinstance(p, dict):
-                    continue
-                content = p.get('content')
-                if not content:
-                    continue
+
+            for p in traverse_obj(article, ((('opening', all), 'body'), lambda _, v: v['content'])):
+                content = p['content']
                 type_ = p.get('type')
-                if type_ == 'paragraph':
-                    content_str = str_or_none(content)
-                    if content_str:
-                        description += content_str
-                    continue
-                if type_ == 'video' and isinstance(content, dict):
+                if type_ == 'paragraph' and isinstance(content, str):
+                    description = join_nonempty(description, content, delim='')
+                elif type_ == 'video' and isinstance(content, dict):
                     entries.append(self._parse_content(content, url))
+
             return self.playlist_result(
-                entries, str_or_none(article.get('id')), title, description)
-        content = article['opening']['content']
-        info = self._parse_content(content, url)
-        info.update({
-            'description': description,
-        })
+                entries, str_or_none(article.get('id')),
+                traverse_obj(article, ('title', {str})), clean_html(description))
+
+        info = self._parse_content(article['opening']['content'], url)
+        info['description'] = description
         return info

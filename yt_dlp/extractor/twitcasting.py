@@ -270,7 +270,7 @@ class TwitCastingLiveIE(InfoExtractor):
 
 
 class TwitCastingUserIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/?#]+\.)?twitcasting\.tv/(?P<id>[^/?#]+)/(:?show|archive)/?(?:[#?]|$)'
+    _VALID_URL = r'https?://(?:[^/?#]+\.)?twitcasting\.tv/(?P<id>[^/?#]+)/(?:show|archive)/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://twitcasting.tv/natsuiromatsuri/archive/',
         'info_dict': {
