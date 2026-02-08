@@ -168,6 +168,7 @@ class PlutoTVIE(PlutoTVBase):
             episode_id,
             ep.get('name'),
             **self._get_video_info(ep, series, season.get('number')),
+            url_transparent=True,
         )
 
     def _real_extract(self, url):
