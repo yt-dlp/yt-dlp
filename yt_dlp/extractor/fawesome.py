@@ -52,12 +52,12 @@ class FawesomeIE(InfoExtractor):
     }]
 
     @staticmethod
-    def _create_url(api, device_id, extra_params=''):
+    def _create_url(version, api, device_id, extra_params=''):
         # auth-token is actually the device type
         # 1217575 is a fixed value for "website"
         # appId=9 and siteId=236 are also from their website
         return (
-            'https://fawesome.tv/home/new/v444/api/'
+            f'https://fawesome.tv/home/new/{version}/api/'
             f'{api}?'
             '&appId=9'
             '&siteId=236'
@@ -69,16 +69,18 @@ class FawesomeIE(InfoExtractor):
     def _real_extract(self, url):
         device_id = uuid.uuid4()
         video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        version = self._search_regex(r'/home/new/(v[^/]+)', webpage, 'api version', default='v444')
 
         # Get the auth token
-        auth_url = FawesomeIE._create_url('getSecurityToken.php', device_id)
+        auth_url = FawesomeIE._create_url(version, 'getSecurityToken.php', device_id)
         webpage = self._download_json(auth_url, video_id)
         token = webpage.get('securityToken')
         if not token:
             raise ExtractorError('Failed to get security token')
 
         # Download via HLS m3u8 file
-        video_data_url = FawesomeIE._create_url('recipes.php', device_id,
+        video_data_url = FawesomeIE._create_url(version, 'recipes.php', device_id,
                                                 f'&searchType=nodeid&start-index=0&dltype=1&nid={video_id}')
         video_data = self._download_json(video_data_url, video_id, headers={'Token': token, 'Referer': url})
         metadata = traverse_obj(video_data, ('results', 0))
