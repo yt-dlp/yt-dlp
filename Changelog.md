@@ -4,6 +4,26 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2026.02.04
+
+#### Extractor changes
+- **unsupported**: [Update unsupported URLs](https://github.com/yt-dlp/yt-dlp/commit/c677d866d41eb4075b0a5e0c944a6543fc13f15d) ([#15812](https://github.com/yt-dlp/yt-dlp/issues/15812)) by [doe1080](https://github.com/doe1080)
+- **youtube**: [Default to `tv` player JS variant](https://github.com/yt-dlp/yt-dlp/commit/1a895c18aaaf00f557aa8cbacb21faa638842431) ([#15818](https://github.com/yt-dlp/yt-dlp/issues/15818)) by [bashonly](https://github.com/bashonly)
+
+### 2026.01.31
+
+#### Extractor changes
+- **soop**: [Support subscription-only VODs](https://github.com/yt-dlp/yt-dlp/commit/d0bf3d0fc3455d411ae44c0a5dc974dd1481e3aa) ([#15523](https://github.com/yt-dlp/yt-dlp/issues/15523)) by [thematuu](https://github.com/thematuu)
+- **unsupported**: [Update unsupported URLs](https://github.com/yt-dlp/yt-dlp/commit/bf5d8c2a663ac690711262aebc733c1b06a54b26) ([#15410](https://github.com/yt-dlp/yt-dlp/issues/15410)) by [bashonly](https://github.com/bashonly)
+- **whyp**: [Extract more metadata](https://github.com/yt-dlp/yt-dlp/commit/0d8ee637e83d62edaf22aa85833a51c70d560389) ([#15757](https://github.com/yt-dlp/yt-dlp/issues/15757)) by [azdlonky](https://github.com/azdlonky)
+- **youtube**
+    - [Add `web_embedded` fallback for `android_vr` client](https://github.com/yt-dlp/yt-dlp/commit/bb1c05752c288a81e0e281f1caf5395411936376) ([#15785](https://github.com/yt-dlp/yt-dlp/issues/15785)) by [bashonly](https://github.com/bashonly)
+    - [Remove broken `ios_downgraded` player client](https://github.com/yt-dlp/yt-dlp/commit/c3674575faa23b20e97be8b73f68b9f7b4cea9ab) ([#15786](https://github.com/yt-dlp/yt-dlp/issues/15786)) by [bashonly](https://github.com/bashonly)
+    - [Remove broken `tv_embedded` player client](https://github.com/yt-dlp/yt-dlp/commit/8eb794366eb69e7377ff88eed7929c00195c8d74) ([#15787](https://github.com/yt-dlp/yt-dlp/issues/15787)) by [bashonly](https://github.com/bashonly)
+
+#### Misc. changes
+- **cleanup**: Miscellaneous: [9a9a6b6](https://github.com/yt-dlp/yt-dlp/commit/9a9a6b6fe44a30458c1754ef064f354f04a84004) by [bashonly](https://github.com/bashonly)
+
 ### 2026.01.29
 
 #### Core changes

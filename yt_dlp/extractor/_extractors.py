@@ -311,8 +311,10 @@ from .canalsurmas import CanalsurmasIE
 from .caracoltv import CaracolTvPlayIE
 from .cbc import (
     CBCIE,
+    CBCGemContentIE,
     CBCGemIE,
     CBCGemLiveIE,
+    CBCGemOlympicsIE,
     CBCGemPlaylistIE,
     CBCListenIE,
     CBCPlayerIE,
@@ -1029,6 +1031,10 @@ from .livestream import (
 )
 from .livestreamfails import LivestreamfailsIE
 from .lnk import LnkIE
+from .locipo import (
+    LocipoIE,
+    LocipoPlaylistIE,
+)
 from .loco import LocoIE
 from .loom import (
     LoomFolderIE,
@@ -2343,6 +2349,7 @@ from .vimm import (
 )
 from .viously import ViouslyIE
 from .viqeo import ViqeoIE
+from .visir import VisirIE
 from .viu import (
     ViuIE,
     ViuOTTIE,
