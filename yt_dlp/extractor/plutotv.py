@@ -96,7 +96,7 @@ class PlutoTVIE(PlutoTVBase):
         )?'''
     _TESTS = [{
         'url': 'https://pluto.tv/it/on-demand/movies/6246b0adef11000014d220c3',
-        'md5': 'f1c7a444e3c05bee8cdb9f28898ffae8',
+        'md5': '966ed552cf5500b23b7eee66b6890cad',
         'info_dict': {
             'id': '6246b0adef11000014d220c3',
             'ext': 'mp4',
@@ -117,7 +117,7 @@ class PlutoTVIE(PlutoTVBase):
         'info_dict': {
             'id': '6655b0c5cceea000134aee27',
             'title': 'Mission Impossible',
-            'description': 'md5:21604bf9971528825c359e0f4977d572',
+            'description': 'md5:2b4a80beff586df77238775a5a67f7bd',
         },
         'playlist_mincount': 113,
     }, {
