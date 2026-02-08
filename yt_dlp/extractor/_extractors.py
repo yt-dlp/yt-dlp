@@ -606,6 +606,7 @@ from .faulio import (
     FaulioIE,
     FaulioLiveIE,
 )
+from .fawesome import FawesomeIE
 from .faz import FazIE
 from .fc2 import (
     FC2IE,
