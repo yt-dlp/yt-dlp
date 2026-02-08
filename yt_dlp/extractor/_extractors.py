@@ -1202,7 +1202,11 @@ from .myspace import (
     MySpaceAlbumIE,
     MySpaceIE,
 )
-from .myspass import MySpassIE
+from .myspass import (
+    MySpassIE,
+    MySpassSeasonIE,
+    MySpassSeriesIE,
+)
 from .myvideoge import MyVideoGeIE
 from .myvidster import MyVidsterIE
 from .mzaalo import MzaaloIE
