@@ -2263,7 +2263,10 @@ from .uplynk import (
     UplynkIE,
     UplynkPreplayIE,
 )
-from .urort import UrortIE
+from .urort import (
+    UrortIE,
+    UrortPlaylistIE,
+)
 from .urplay import URPlayIE
 from .usanetwork import USANetworkIE
 from .usatoday import USATodayIE
