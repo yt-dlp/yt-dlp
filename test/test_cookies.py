@@ -205,8 +205,8 @@ class TestLenientSimpleCookie(unittest.TestCase):
             ),
             (
                 'Test quoted cookie',
-                'keebler="E=mc2; L=\\"Loves\\"; fudge=\\012;"',
-                {'keebler': 'E=mc2; L="Loves"; fudge=\012;'},
+                'keebler="E=mc2; L=\\"Loves\\"; fudge=;"',
+                {'keebler': 'E=mc2; L="Loves"; fudge=;'},
             ),
             (
                 "Allow '=' in an unquoted value",
