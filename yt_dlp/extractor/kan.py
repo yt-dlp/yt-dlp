@@ -1,12 +1,11 @@
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    int_or_none,
     traverse_obj,
     unified_strdate,
 )
 from ..networking import HEADRequest
-import contextlib
-import json
 import re
 
 
@@ -112,45 +111,27 @@ class KanIE(InfoExtractor):
         upload_date = None
         
         if webpage:
-            # Extract from VideoObject JSON-LD schema
-            schemas = re.findall(
-                r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>',
-                webpage,
-                re.DOTALL,
-            )
-            video_schema = {}
-            for schema_text in schemas:
-                with contextlib.suppress(Exception):
-                    schema_data = json.loads(schema_text)
-                    if isinstance(schema_data, dict) and schema_data.get('@type') == 'VideoObject':
-                        video_schema = schema_data
-                        break
+            # Try to extract from JSON-LD VideoObject schema
+            json_ld = self._search_json_ld(webpage, kaltura_id, fatal=False, default={})
             
-            # Extract metadata from VideoObject if found
-            if video_schema:
-                title = video_schema.get('name')
-                description = video_schema.get('description')
-                thumbnail = video_schema.get('thumbnailUrl')
-                upload_date = unified_strdate(video_schema.get('uploadDate'))
+            title = traverse_obj(json_ld, 'name')
+            description = traverse_obj(json_ld, 'description')
+            thumbnail = traverse_obj(json_ld, 'thumbnailUrl')
+            upload_date = unified_strdate(traverse_obj(json_ld, 'uploadDate'))
             
             # Fallback to OpenGraph tags
-            if not title:
-                title = self._og_search_title(webpage, default=None)
-            if not description:
-                description = self._og_search_description(webpage, default=None)
-            if not thumbnail:
-                thumbnail = self._og_search_thumbnail(webpage, default=None)
+            title = title or self._og_search_title(webpage, default=None)
+            description = description or self._og_search_description(webpage, default=None)
+            thumbnail = thumbnail or self._og_search_thumbnail(webpage, default=None)
             
             # Extract duration from item_duration
             if not duration:
-                duration_str = self._search_regex(
+                duration = int_or_none(self._search_regex(
                     r'item_duration:\s*["\'](\d+)["\']',
                     webpage,
                     'duration',
                     default=None,
-                )
-                if duration_str:
-                    duration = int(duration_str)
+                ))
             
             # Fallback to __INITIAL_STATE__
             if not duration:
@@ -189,8 +170,7 @@ class KanIE(InfoExtractor):
             raise ExtractorError('Could not find video source', expected=True)
         
         # Fix protocol-relative URLs
-        if hls_url.startswith('//'):
-            hls_url = 'https:' + hls_url
+        hls_url = self._proto_relative_url(hls_url) if hls_url else None
         
         # Extract formats from HLS manifest
         formats = self._extract_m3u8_formats(
@@ -221,14 +201,12 @@ class KanIE(InfoExtractor):
         if series and title:
             title = f'{series} - {title}'
         
-        duration = self._search_regex(
+        duration = int_or_none(self._search_regex(
             r'item_duration:\s*["\'](\d+)["\']',
             webpage,
             'duration',
             default=None,
-        )
-        if duration:
-            duration = int(duration)
+        ))
         
         thumbnail = self._search_regex(
             r'data-poster-url="([^"]*)"',
