@@ -12,7 +12,6 @@ from ..utils import (
     float_or_none,
     get_element_by_class,
     get_element_html_by_class,
-    int_or_none,
     jwt_decode_hs256,
     jwt_encode,
     make_archive_id,
@@ -264,34 +263,44 @@ class VrtNUIE(VRTBaseIE):
     _REFRESH_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_rt'
     _VIDEO_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_vt'
     _VIDEO_PAGE_QUERY = '''
-    query VideoPage($pageId: ID!) {
+    query EpisodePage($pageId: ID!) {
         page(id: $pageId) {
-            ... on EpisodePage {
-                episode {
-                    ageRaw
-                    description
-                    durationRaw
-                    episodeNumberRaw
-                    id
-                    name
-                    onTimeRaw
-                    program {
-                        title
-                    }
-                    season {
-                        id
-                        titleRaw
-                    }
-                    title
-                    brand
+            ... on PlaybackPage {
+            objectId
+            title
+            permalink
+            ldjson
+
+            player {
+                objectId
+                title
+                subtitle
+                maxAge
+
+                image {
+                templateUrl
+                alt
                 }
-                ldjson
-                player {
-                    image {
-                        templateUrl
+
+                modes {
+                active
+                streamId
+                token {
+                    value
+                }
+
+                ... on VideoPlayerMode {
+                        aspectRatio
+                }
+
+                ... on AudioPlayerMode {
+                    broadcastStartDate
                     }
-                    modes {
-                        streamId
+                }
+
+                progress {
+                    durationInSeconds
+                    progressInSeconds
                     }
                 }
             }
@@ -403,7 +412,7 @@ class VrtNUIE(VRTBaseIE):
             f'https://www.vrt.be/vrtnu-api/graphql{"" if access_token else "/public"}/v1',
             display_id, 'Downloading asset JSON', 'Unable to download asset JSON',
             data=json.dumps({
-                'operationName': 'VideoPage',
+                'operationName': 'EpisodePage',
                 'query': self._VIDEO_PAGE_QUERY,
                 'variables': {'pageId': urllib.parse.urlparse(url).path},
             }).encode(),
@@ -411,7 +420,7 @@ class VrtNUIE(VRTBaseIE):
                 'Authorization': f'Bearer {access_token}' if access_token else None,
                 'Content-Type': 'application/json',
                 'x-vrt-client-name': 'WEB',
-                'x-vrt-client-version': '1.5.9',
+                'x-vrt-client-version': '1.5.15',
                 'x-vrt-zone': 'default',
             }))['data']['page']
 
@@ -436,26 +445,20 @@ class VrtNUIE(VRTBaseIE):
                 self.raise_no_formats(f'Unable to extract formats: {code}')
 
         return {
+            'id': video_id,
+            'display_id': display_id,
             'duration': float_or_none(streaming_info.get('duration'), 1000),
             'thumbnail': url_or_none(streaming_info.get('posterImageUrl')),
             **self._json_ld(traverse_obj(metadata, ('ldjson', ..., {json.loads})), video_id, fatal=False),
-            **traverse_obj(metadata, ('episode', {
-                'title': ('title', {str}),
-                'description': ('description', {str}),
-                'timestamp': ('onTimeRaw', {parse_iso8601}),
-                'series': ('program', 'title', {str}),
-                'season': ('season', 'titleRaw', {str}),
-                'season_number': ('season', 'titleRaw', {int_or_none}),
-                'season_id': ('id', {str_or_none}),
-                'episode': ('title', {str}),
-                'episode_number': ('episodeNumberRaw', {int_or_none}),
-                'episode_id': ('id', {str_or_none}),
+            **traverse_obj(metadata, ({
+                'title': ('title', {str_or_none}),
+                'full_title': ('seo', 'title', {str_or_none}),
+                'description': ('description', {str_or_none}),
+                'timestamp': ('player', 'modes', 0, 'cimMediaTrackingData', 'publicationDate', {parse_iso8601}),
                 'age_limit': ('ageRaw', {parse_age_limit}),
-                'channel': ('brand', {str}),
-                'duration': ('durationRaw', {parse_duration}),
+                'channel': ('brand', {str_or_none}),
+                'duration': ('player', 'modes', 0, 'programDuration', {parse_duration}),
             })),
-            'id': video_id,
-            'display_id': display_id,
             'formats': formats,
             'subtitles': subtitles,
             '_old_archive_ids': [make_archive_id('Canvas', video_id),
