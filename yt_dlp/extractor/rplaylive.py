@@ -31,6 +31,8 @@ class RPlayBaseIE(InfoExtractor):
     def _check_jwt_args(self):
         jwt_arg = self._configuration_arg('jwt_token', ie_key='rplaylive', casesense=True)
         if self._jwt_token is None and jwt_arg and not self._tested_jwt:
+            self.report_warning('rplaylive:jwt_token is deprecated in favor of using '
+                                '--username jwt --password <token> instead', only_once=True)
             self._login_by_token(jwt_arg[0], raw_token_hint=True)
             self._tested_jwt = True
 
@@ -69,10 +71,11 @@ class RPlayBaseIE(InfoExtractor):
 
     def _login_hint(self, *args, **kwargs):
         return (f'Use --username and --password, --netrc-cmd, --netrc ({self._NETRC_MACHINE}) '
-                'or --extractor-args "rplaylive:jwt_token=xxx" to provide account credentials')
+                'to provide account credentials. For third-party login, use --username jwt '
+                '--password <token> to pass JWT token')
 
     def _jwt_encode_hs256(self, payload: dict, key: str):
-        # yt_dlp.utils.jwt_encode_hs256() uses slightly different details that would fails
+        # yt_dlp.utils.jwt_encode_hs256() uses slightly different details that would fail
         # and we need to re-implement it with minor changes
         b64encode = lambda x: base64.urlsafe_b64encode(
             json.dumps(x, separators=(',', ':')).encode()).strip(b'=')
@@ -84,13 +87,16 @@ class RPlayBaseIE(InfoExtractor):
         return header_b64 + b'.' + payload_b64 + b'.' + signature_b64
 
     def _perform_login(self, username, password):
-        payload = {
-            'eml': username,
-            'dat': dt.datetime.now(dt.timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z'),
-            'iat': int(time.time()),
-        }
-        key = hashlib.sha256(password.encode()).hexdigest()
-        self._login_by_token(self._jwt_encode_hs256(payload, key).decode())
+        if username == 'jwt':  # safe to do this since not an email
+            self._login_by_token(password, raw_token_hint=True)
+        else:
+            payload = {
+                'eml': username,
+                'dat': dt.datetime.now(dt.timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z'),
+                'iat': int(time.time()),
+            }
+            key = hashlib.sha256(password.encode()).hexdigest()
+            self._login_by_token(self._jwt_encode_hs256(payload, key).decode())
 
     def _login_by_token(self, jwt_token, raw_token_hint=False):
         user_info = self._download_json(
