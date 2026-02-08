@@ -497,7 +497,7 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
     --max-filesize SIZE             Abort download if filesize is larger than
                                     SIZE, e.g. 50k or 44.6M
     --date DATE                     Download only videos uploaded on this date.
-                                    The date can be "YYYYMMDD" or in the format
+                                    The date can be "YYYYMMDD" or in the format 
                                     [now|today|yesterday][-N[day|week|month|year]].
                                     E.g. "--date today-2weeks" downloads only
                                     videos uploaded on the same day two weeks ago
@@ -1969,7 +1969,6 @@ The following extractors use this feature:
 * `sort_order`: Episode sort order for series extraction - one of `asc` (ascending, oldest first) or `desc` (descending, newest first). Default is `asc`
 
 #### rplaylive
-
 * `lang`: Provide language code (`en`, `jp`, `ko`) to use translated metadata (`title`, `description`, and `uploader`) when possible
 
 #### tver
