@@ -14,13 +14,12 @@ class KanIE(InfoExtractor):
     IE_DESC = 'Kan 11 (כאן 11) - Israeli Public Broadcasting'
     _VALID_URL = r'https?://(?:www\.)?kan\.org\.il/(?:content/)?(?:kan[^/]*/)?(?:[^/]+/)*(?P<id>\d+)|kan:(?P<kaltura_id>1_[a-z0-9]{8})'
     _TESTS = [{
-        # Kaltura-based video (drama series)
         'url': 'https://www.kan.org.il/content/kan/kan-11/p-12317/s3/846647/',
         'info_dict': {
             'id': '1_l4f97mga',
             'ext': 'mp4',
-            'title': 'תהרן - עונה 3 - פרק 6',
-            'description': 'md5:9c0cd2dc64eb84d0f9e0e8a5327e7736',
+            'title': 'טהרן עונה 3 | פרק 6 - אין מוצא',
+            'description': 'md5:da637493a6e062d1235c3d882152cee8',
             'thumbnail': r're:^https?://.*\.jpg',
             'duration': 2388,
         },
@@ -28,14 +27,14 @@ class KanIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
-        # Redge HLS video (talk show)
         'url': 'https://www.kan.org.il/content/kan/kan-11/p-11486/s10/996446/',
         'info_dict': {
             'id': '996446',
             'ext': 'mp4',
-            'title': str,
+            'title': 'פגישה עם רוני קובן - פרק 11 - גדי איזנקוט',
+            'description': 'md5:07af26906c271694658c1d62b87a4a36',
             'thumbnail': r're:^https?://.*\.jpg',
-            'duration': int,
+            'duration': 2850,
         },
         'params': {
             'skip_download': True,
@@ -219,9 +218,12 @@ class KanIE(InfoExtractor):
         if not thumbnail:
             thumbnail = self._og_search_thumbnail(webpage, default=None)
         
+        description = self._og_search_description(webpage, default=None)
+        
         return {
             'id': video_id,
             'title': title,
+            'description': description,
             'thumbnail': thumbnail,
             'duration': duration,
             'formats': formats,
