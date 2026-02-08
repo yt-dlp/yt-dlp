@@ -1,0 +1,166 @@
+# PMOVES.AI Docker Compose YAML Anchors Template
+#
+# These YAML anchors provide standardized environment loading for PMOVES services.
+# Include this file or copy the anchors into your docker-compose.yml.
+#
+# Usage:
+#   services:
+#     my-service:
+#       <<: [*env-tier-api, *pmoves-healthcheck, *pmoves-labels]
+#       environment:
+#         SERVICE_NAME: my-service
+#         SERVICE_PORT: 8080
+
+# Base Environment (all tiers)
+x-pmoves-env: &pmoves-env-base
+  env_file:
+    - env.shared
+  environment:
+    PMOVES_ENV: ${PMOVES_ENV:-production}
+    TIER: ${TIER:-development}
+    NATS_URL: ${NATS_URL:-nats://nats:4222}
+    TENSORZERO_URL: ${TENSORZERO_URL:-http://tensorzero-gateway:3030}
+
+# API Tier Environment
+x-env-tier-api: &env-tier-api
+  env_file:
+    - env.shared
+  environment:
+    # Base variables (from pmoves-env-base)
+    PMOVES_ENV: ${PMOVES_ENV:-production}
+    TIER: api
+    NATS_URL: ${NATS_URL:-nats://nats:4222}
+    TENSORZERO_URL: ${TENSORZERO_URL:-http://tensorzero-gateway:3030}
+    # API tier specific
+    MAX_CONCURRENT_REQUESTS: ${MAX_CONCURRENT_REQUESTS:-100}
+    RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+
+# Agent Tier Environment
+x-env-tier-agent: &env-tier-agent
+  env_file:
+    - env.shared
+  environment:
+    # Base variables
+    PMOVES_ENV: ${PMOVES_ENV:-production}
+    TIER: agent
+    NATS_URL: ${NATS_URL:-nats://nats:4222}
+    TENSORZERO_URL: ${TENSORZERO_URL:-http://tensorzero-gateway:3030}
+    # Agent tier specific
+    MAX_CONCURRENT_AGENTS: ${MAX_CONCURRENT_AGENTS:-50}
+    MCP_ENABLED: ${MCP_ENABLED:-true}
+
+# Worker Tier Environment
+x-env-tier-worker: &env-tier-worker
+  env_file:
+    - env.shared
+  environment:
+    # Base variables
+    PMOVES_ENV: ${PMOVES_ENV:-production}
+    TIER: worker
+    NATS_URL: ${NATS_URL:-nats://nats:4222}
+    TENSORZERO_URL: ${TENSORZERO_URL:-http://tensorzero-gateway:3030}
+    # Worker tier specific
+    MAX_CONCURRENT_JOBS: ${MAX_CONCURRENT_JOBS:-10}
+    WORKER_POOL_SIZE: ${WORKER_POOL_SIZE:-4}
+
+# Data Tier Environment
+x-env-tier-data: &env-tier-data
+  env_file:
+    - env.shared
+  environment:
+    # Base variables
+    PMOVES_ENV: ${PMOVES_ENV:-production}
+    TIER: data
+    NATS_URL: ${NATS_URL:-nats://nats:4222}
+    TENSORZERO_URL: ${TENSORZERO_URL:-http://tensorzero-gateway:3030}
+    # Data tier specific
+    MAX_CONNECTIONS: ${MAX_CONNECTIONS:-100}
+
+# LLM Tier Environment
+x-env-tier-llm: &env-tier-llm
+  env_file:
+    - env.shared
+  environment:
+    # Base variables
+    PMOVES_ENV: ${PMOVES_ENV:-production}
+    TIER: llm
+    NATS_URL: ${NATS_URL:-nats://nats:4222}
+    TENSORZERO_URL: ${TENSORZERO_URL:-http://tensorzero-gateway:3030}
+    # LLM tier specific
+    MAX_CONCURRENT_REQUESTS: ${MAX_CONCURRENT_REQUESTS:-50}
+
+# Media Tier Environment
+x-env-tier-media: &env-tier-media
+  env_file:
+    - env.shared
+  environment:
+    # Base variables
+    PMOVES_ENV: ${PMOVES_ENV:-production}
+    TIER: media
+    NATS_URL: ${NATS_URL:-nats://nats:4222}
+    TENSORZERO_URL: ${TENSORZERO_URL:-http://tensorzero-gateway:3030}
+    # Media tier specific
+    GPU_ENABLED: ${GPU_ENABLED:-true}
+    MAX_CONCURRENT_JOBS: ${MAX_CONCURRENT_JOBS:-4}
+
+# UI Tier Environment
+x-env-tier-ui: &env-tier-ui
+  env_file:
+    - env.shared
+  environment:
+    # Base variables
+    PMOVES_ENV: ${PMOVES_ENV:-production}
+    TIER: ui
+    NATS_URL: ${NATS_URL:-nats://nats:4222}
+    TENSORZERO_URL: ${TENSORZERO_URL:-http://tensorzero-gateway:3030}
+
+# Health check template
+# Note: The SERVICE_PORT here is interpolated from the host environment or .env file,
+# NOT from the service's environment block. Set it in your .env or host env before
+# running docker compose, or override healthcheck.test explicitly in each service.
+x-pmoves-healthcheck: &pmoves-healthcheck
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://localhost:${SERVICE_PORT:-8080}/healthz"]
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    start_period: 10s
+
+# GPU resource template
+x-pmoves-gpu: &pmoves-gpu-resource
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]
+
+# Service labels for Prometheus discovery
+# Prometheus uses slash (/) as separator for annotations
+x-pmoves-labels: &pmoves-labels
+  labels:
+    pmoves.service: "true"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "${METRICS_PORT:-9180}"
+    prometheus.io/path: "/metrics"
+
+# Example service definition using the templates:
+#
+# services:
+#   my-api-service:
+#     <<: [*env-tier-api, *pmoves-healthcheck, *pmoves-labels]
+#     image: ghcr.io/powerfulmoves/my-service:latest
+#     ports:
+#       - "8080:8080"
+#     environment:
+#       SERVICE_NAME: my-api-service
+#       SERVICE_PORT: 8080
+#       METRICS_PORT: 9180
+#
+#   my-gpu-worker:
+#     <<: [*env-tier-worker, *pmoves-gpu-resource, *pmoves-healthcheck]
+#     image: ghcr.io/powerfulmoves/my-gpu-worker:latest
+#     environment:
+#       SERVICE_NAME: my-gpu-worker
+#       SERVICE_PORT: 8081
