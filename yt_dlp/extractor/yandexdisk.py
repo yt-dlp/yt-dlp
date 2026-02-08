@@ -16,7 +16,7 @@ class YandexDiskIE(InfoExtractor):
     _VALID_URL = r'''(?x)https?://
         (?P<domain>
             yadi\.sk|
-            disk\.yandex\.
+            disk\.(?:360\.)?yandex\.
                 (?:
                     az|
                     by|
@@ -50,6 +50,9 @@ class YandexDiskIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://yadi.sk/public?hash=5DZ296JK9GWCLp02f6jrObjnctjRxMs8L6%2B%2FuhNqk38%3D',
+        'only_matching': True,
+    }, {
+        'url': 'https://disk.360.yandex.ru/i/TM2xsIVsgjY4uw',
         'only_matching': True,
     }]
 

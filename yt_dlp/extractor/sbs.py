@@ -122,6 +122,15 @@ class SBSIE(InfoExtractor):
         if traverse_obj(media, ('partOfSeries', {dict})):
             media['epName'] = traverse_obj(media, ('title', {str}))
 
+        # Need to set different language for forced subs or else they have priority over full subs
+        fixed_subtitles = {}
+        for lang, subs in subtitles.items():
+            for sub in subs:
+                fixed_lang = lang
+                if sub['url'].lower().endswith('_fe.vtt'):
+                    fixed_lang += '-forced'
+                fixed_subtitles.setdefault(fixed_lang, []).append(sub)
+
         return {
             'id': video_id,
             **traverse_obj(media, {
@@ -151,6 +160,6 @@ class SBSIE(InfoExtractor):
                 }),
             }),
             'formats': formats,
-            'subtitles': subtitles,
+            'subtitles': fixed_subtitles,
             'uploader': 'SBSC',
         }

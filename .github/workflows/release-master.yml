@@ -6,42 +6,47 @@ on:
     paths:
       - "yt_dlp/**.py"
       - "!yt_dlp/version.py"
-      - "bundle/*.py"
+      - "bundle/**"
       - "pyproject.toml"
       - "Makefile"
       - ".github/workflows/build.yml"
+      - ".github/workflows/release.yml"
+      - ".github/workflows/release-master.yml"
 concurrency:
   group: release-master
-permissions:
-  contents: read
+
+permissions: {}
 
 jobs:
   release:
-    if: vars.BUILD_MASTER != ''
+    name: Publish Github release
+    if: vars.BUILD_MASTER
+    permissions:
+      contents: write  # May be needed to publish release
+      id-token: write  # Needed for trusted publishing
     uses: ./.github/workflows/release.yml
     with:
       prerelease: true
-      source: master
-    permissions:
-      contents: write
-      packages: write  # For package cache
-      actions: write  # For cleaning up cache
-      id-token: write  # mandatory for trusted publishing
-    secrets: inherit
+      source: ${{ (github.repository != 'yt-dlp/yt-dlp' && vars.MASTER_ARCHIVE_REPO) || 'master' }}
+      target: 'master'
+    secrets:
+      ARCHIVE_REPO_TOKEN: ${{ secrets.ARCHIVE_REPO_TOKEN }}
+      GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 
   publish_pypi:
+    name: Publish to PyPI
     needs: [release]
-    if: vars.MASTER_PYPI_PROJECT != ''
-    runs-on: ubuntu-latest
+    if: vars.MASTER_PYPI_PROJECT
     permissions:
-      id-token: write  # mandatory for trusted publishing
+      id-token: write  # Needed for trusted publishing
+    runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131  # v7.0.0
         with:
           path: dist
           name: build-pypi
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # v1.13.0
         with:
           verbose: true

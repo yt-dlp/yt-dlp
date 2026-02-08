@@ -20,7 +20,7 @@ import random
 import ssl
 import threading
 
-from yt_dlp import socks, traverse_obj
+from yt_dlp import socks
 from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import websockets
 from yt_dlp.networking import Request
@@ -32,9 +32,17 @@ from yt_dlp.networking.exceptions import (
     SSLError,
     TransportError,
 )
+from yt_dlp.utils.traversal import traverse_obj
 from yt_dlp.utils.networking import HTTPHeaderDict
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+pytestmark = pytest.mark.handler_flaky(
+    'Websockets',
+    os.name == 'nt' or sys.implementation.name == 'pypy',
+    reason='segfaults',
+)
 
 
 def websocket_handler(websocket):
@@ -44,7 +52,7 @@ def websocket_handler(websocket):
                 return websocket.send('2')
         elif isinstance(message, str):
             if message == 'headers':
-                return websocket.send(json.dumps(dict(websocket.request.headers)))
+                return websocket.send(json.dumps(dict(websocket.request.headers.raw_items())))
             elif message == 'path':
                 return websocket.send(websocket.request.path)
             elif message == 'source_address':
@@ -266,18 +274,18 @@ class TestWebsSocketRequestHandlerConformance:
         with handler(cookiejar=cookiejar) as rh:
             ws = ws_validate_and_send(rh, Request(self.ws_base_url))
             ws.send('headers')
-            assert json.loads(ws.recv())['cookie'] == 'test=ytdlp'
+            assert HTTPHeaderDict(json.loads(ws.recv()))['cookie'] == 'test=ytdlp'
             ws.close()
 
         with handler() as rh:
             ws = ws_validate_and_send(rh, Request(self.ws_base_url))
             ws.send('headers')
-            assert 'cookie' not in json.loads(ws.recv())
+            assert 'cookie' not in HTTPHeaderDict(json.loads(ws.recv()))
             ws.close()
 
             ws = ws_validate_and_send(rh, Request(self.ws_base_url, extensions={'cookiejar': cookiejar}))
             ws.send('headers')
-            assert json.loads(ws.recv())['cookie'] == 'test=ytdlp'
+            assert HTTPHeaderDict(json.loads(ws.recv()))['cookie'] == 'test=ytdlp'
             ws.close()
 
     @pytest.mark.skip_handler('Websockets', 'Set-Cookie not supported by websockets')
@@ -287,7 +295,7 @@ class TestWebsSocketRequestHandlerConformance:
             ws_validate_and_send(rh, Request(f'{self.ws_base_url}/get_cookie', extensions={'cookiejar': YoutubeDLCookieJar()}))
             ws = ws_validate_and_send(rh, Request(self.ws_base_url, extensions={'cookiejar': YoutubeDLCookieJar()}))
             ws.send('headers')
-            assert 'cookie' not in json.loads(ws.recv())
+            assert 'cookie' not in HTTPHeaderDict(json.loads(ws.recv()))
             ws.close()
 
     @pytest.mark.skip_handler('Websockets', 'Set-Cookie not supported by websockets')
@@ -298,12 +306,12 @@ class TestWebsSocketRequestHandlerConformance:
             ws_validate_and_send(rh, Request(f'{self.ws_base_url}/get_cookie'))
             ws = ws_validate_and_send(rh, Request(self.ws_base_url))
             ws.send('headers')
-            assert json.loads(ws.recv())['cookie'] == 'test=ytdlp'
+            assert HTTPHeaderDict(json.loads(ws.recv()))['cookie'] == 'test=ytdlp'
             ws.close()
             cookiejar.clear_session_cookies()
             ws = ws_validate_and_send(rh, Request(self.ws_base_url))
             ws.send('headers')
-            assert 'cookie' not in json.loads(ws.recv())
+            assert 'cookie' not in HTTPHeaderDict(json.loads(ws.recv()))
             ws.close()
 
     def test_source_address(self, handler):
@@ -340,6 +348,14 @@ class TestWebsSocketRequestHandlerConformance:
             assert headers['test2'] == 'changed'
             assert headers['test3'] == 'test3'
             ws.close()
+
+    def test_keep_header_casing(self, handler):
+        with handler(headers=HTTPHeaderDict({'x-TeSt1': 'test'})) as rh:
+            ws = ws_validate_and_send(rh, Request(self.ws_base_url, headers={'x-TeSt2': 'test'}, extensions={'keep_header_casing': True}))
+            ws.send('headers')
+            headers = json.loads(ws.recv())
+            assert 'x-TeSt1' in headers
+            assert 'x-TeSt2' in headers
 
     @pytest.mark.parametrize('client_cert', (
         {'client_certificate': os.path.join(MTLS_CERT_DIR, 'clientwithkey.crt')},

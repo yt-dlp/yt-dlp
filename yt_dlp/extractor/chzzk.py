@@ -21,7 +21,7 @@ class CHZZKLiveIE(InfoExtractor):
             'channel': '진짜도현',
             'channel_id': 'c68b8ef525fb3d2fa146344d84991753',
             'channel_is_verified': False,
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+/.+\.jpg',
             'timestamp': 1705510344,
             'upload_date': '20240117',
             'live_status': 'is_live',
@@ -98,7 +98,7 @@ class CHZZKVideoIE(InfoExtractor):
             'channel': '침착맨',
             'channel_id': 'bb382c2c0cc9fa7c86ab3b037fb5799c',
             'channel_is_verified': False,
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+/.+\.jpg',
             'duration': 15577,
             'timestamp': 1702970505.417,
             'upload_date': '20231219',
@@ -115,7 +115,7 @@ class CHZZKVideoIE(InfoExtractor):
             'channel': '라디유radiyu',
             'channel_id': '68f895c59a1043bc5019b5e08c83a5c5',
             'channel_is_verified': False,
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+/.+\.jpg',
             'duration': 95,
             'timestamp': 1703102631.722,
             'upload_date': '20231220',
@@ -131,12 +131,30 @@ class CHZZKVideoIE(InfoExtractor):
             'channel': '강지',
             'channel_id': 'b5ed5db484d04faf4d150aedd362f34b',
             'channel_is_verified': True,
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+/.+\.jpg',
             'duration': 4433,
             'timestamp': 1703307460.214,
             'upload_date': '20231223',
             'view_count': int,
         },
+    }, {
+        # video_status == 'NONE' but is downloadable
+        'url': 'https://chzzk.naver.com/video/6325166',
+        'info_dict': {
+            'id': '6325166',
+            'ext': 'mp4',
+            'title': '와이프 숙제빼주기',
+            'channel': '이 다',
+            'channel_id': '0076a519f147ee9fd0959bf02f9571ca',
+            'channel_is_verified': False,
+            'view_count': int,
+            'duration': 28167,
+            'thumbnail': r're:https?://.+/.+\.jpg',
+            'timestamp': 1742139216.86,
+            'upload_date': '20250316',
+            'live_status': 'was_live',
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
@@ -147,11 +165,7 @@ class CHZZKVideoIE(InfoExtractor):
 
         live_status = 'was_live' if video_meta.get('liveOpenDate') else 'not_live'
         video_status = video_meta.get('vodStatus')
-        if video_status == 'UPLOAD':
-            playback = self._parse_json(video_meta['liveRewindPlaybackJson'], video_id)
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                playback['media'][0]['path'], video_id, 'mp4', m3u8_id='hls')
-        elif video_status == 'ABR_HLS':
+        if video_status == 'ABR_HLS':
             formats, subtitles = self._extract_mpd_formats_and_subtitles(
                 f'https://apis.naver.com/neonplayer/vodplay/v1/playback/{video_meta["videoId"]}',
                 video_id, query={
@@ -161,10 +175,17 @@ class CHZZKVideoIE(InfoExtractor):
                     'cpl': 'en_US',
                 })
         else:
-            self.raise_no_formats(
-                f'Unknown video status detected: "{video_status}"', expected=True, video_id=video_id)
-            formats, subtitles = [], {}
-            live_status = 'post_live' if live_status == 'was_live' else None
+            fatal = video_status == 'UPLOAD'
+            playback = self._parse_json(video_meta['liveRewindPlaybackJson'], video_id, fatal=fatal)
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                traverse_obj(playback, ('media', 0, 'path')), video_id, 'mp4', m3u8_id='hls', fatal=fatal)
+            if formats and video_status != 'UPLOAD':
+                self.write_debug(f'Video found with status: "{video_status}"')
+            elif not formats:
+                self.raise_no_formats(
+                    f'Unknown video status detected: "{video_status}"', expected=True, video_id=video_id)
+                formats, subtitles = [], {}
+                live_status = 'post_live' if live_status == 'was_live' else None
 
         return {
             'id': video_id,

@@ -36,7 +36,6 @@
     "verbose": true,
     "writedescription": false,
     "writeinfojson": true,
-    "writeannotations": false,
     "writelink": false,
     "writeurllink": false,
     "writewebloclink": false,

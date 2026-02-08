@@ -9,6 +9,7 @@ from ..utils import (
     ExtractorError,
     classproperty,
     float_or_none,
+    parse_qs,
     traverse_obj,
     url_or_none,
 )
@@ -91,11 +92,15 @@ class DacastVODIE(DacastBaseIE):
         # Rotates every so often, but hardcode a fallback in case of JS change/breakage before rotation
         return self._search_regex(
             r'\bUSP_SIGNING_SECRET\s*=\s*(["\'])(?P<secret>(?:(?!\1).)+)', player_js,
-            'usp signing secret', group='secret', fatal=False) or 'odnInCGqhvtyRTtIiddxtuRtawYYICZP'
+            'usp signing secret', group='secret', fatal=False) or 'hGDtqMKYVeFdofrAfFmBcrsakaZELajI'
 
     def _real_extract(self, url):
         user_id, video_id = self._match_valid_url(url).group('user_id', 'id')
-        query = {'contentId': f'{user_id}-vod-{video_id}', 'provider': 'universe'}
+        query = {
+            'contentId': f'{user_id}-vod-{video_id}',
+            'provider': 'universe',
+            **traverse_obj(url, ({parse_qs}, 'uss_token', {'signedKey': -1})),
+        }
         info = self._download_json(self._API_INFO_URL, video_id, query=query, fatal=False)
         access = self._download_json(
             'https://playback.dacast.com/content/access', video_id,
