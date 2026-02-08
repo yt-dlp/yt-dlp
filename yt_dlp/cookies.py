@@ -1195,7 +1195,7 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
         (?P<val>                           # Start of group 'val'
         "(?:[^\\"]|\\.)*"                    # Any doublequoted string
         |                                    # or
-        \w{3},\s[\w\d\s-]{9,11}\s[\d:]{8}\sGMT # Special case for "expires" attr
+        \w{3},\ [\w\d -]{9,11}\ [\d:]{8}\ GMT  # Special case for "expires" attr
         |                                    # or
         [''' + _LEGAL_VALUE_CHARS + r''']*     # Any word or empty string
         )                                  # End of group 'val'
@@ -1206,6 +1206,10 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
         \s*                            # Any number of spaces.
         (\s+|;|$)                      # Ending either at space, semicolon, or EOS.
         ''', re.ASCII | re.VERBOSE)
+
+    # http.cookies.Morsel raises on values w/ control characters in Python 3.14.3+ & 3.13.12+
+    # Ref: https://github.com/python/cpython/issues/143919
+    _CONTROL_CHARACTER_RE = re.compile(r'[\x00-\x1F\x7F]')
 
     def load(self, data):
         # Workaround for https://github.com/yt-dlp/yt-dlp/issues/4776
@@ -1237,6 +1241,9 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
                     value = True
                 else:
                     value, _ = self.value_decode(value)
+                    # Guard against control characters in quoted attribute values
+                    if self._CONTROL_CHARACTER_RE.search(value):
+                        continue
 
                 morsel[key] = value
 
@@ -1246,6 +1253,10 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
             elif value is not None:
                 morsel = self.get(key, http.cookies.Morsel())
                 real_value, coded_value = self.value_decode(value)
+                # Guard against control characters in quoted cookie values
+                if self._CONTROL_CHARACTER_RE.search(real_value):
+                    morsel = None
+                    continue
                 morsel.set(key, real_value, coded_value)
                 self[key] = morsel
 
