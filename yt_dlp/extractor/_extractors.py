@@ -2185,7 +2185,7 @@ from .tvigle import TvigleIE
 from .tviplayer import TVIPlayerIE
 from .tvn24 import TVN24IE
 from .tvnoe import TVNoeIE
-from .tvo import TVOIE
+from .tvo import TvoIE
 from .tvopengr import (
     TVOpenGrEmbedIE,
     TVOpenGrWatchIE,
