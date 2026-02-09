@@ -458,11 +458,11 @@ class VrtNUIE(VRTBaseIE):
     def _parse_secondarymeta(self, data):
         if not data.get('secondaryMeta'):
             return {}
-        
+
         def value_to_int(value):
             return self._search_regex(r'(\d+)', value, default=None)
 
-        season, ep, duration = None 
+        season, ep, duration = None
         for item in data.get('secondaryMeta'):
             value = item.get('value', '')
             long_value = item.get('longValue', '')
@@ -472,7 +472,7 @@ class VrtNUIE(VRTBaseIE):
                 ep = value_to_int(value)
             elif 'min' in value.lower() or 'minute' in long_value.lower():
                 duration = parse_duration(value)
-            
+
         return {
             'season_number': season,
             'episode_number': ep,
