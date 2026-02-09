@@ -13,12 +13,9 @@ from ..utils import (
     ContentTooShortError,
     RetryManager,
     ThrottledDownload,
-    XAttrMetadataError,
-    XAttrUnavailableError,
     int_or_none,
     parse_http_range,
     try_call,
-    write_xattr,
 )
 from ..utils.networking import HTTPHeaderDict
 
@@ -272,12 +269,6 @@ class HttpFD(FileDownloader):
                     except OSError as err:
                         self.report_error(f'unable to open for writing: {err}')
                         return False
-
-                    if self.params.get('xattr_set_filesize', False) and data_len is not None:
-                        try:
-                            write_xattr(ctx.tmpfilename, 'user.ytdl.filesize', str(data_len).encode())
-                        except (XAttrUnavailableError, XAttrMetadataError) as err:
-                            self.report_error(f'unable to set filesize xattr: {err}')
 
                 try:
                     ctx.stream.write(data_block)

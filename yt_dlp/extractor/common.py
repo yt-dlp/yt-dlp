@@ -348,6 +348,7 @@ class InfoExtractor:
     duration:       Length of the video in seconds, as an integer or float.
     view_count:     How many users have watched the video on the platform.
     concurrent_view_count: How many users are currently watching the video on the platform.
+    save_count:     Number of times the video has been saved or bookmarked
     like_count:     Number of positive ratings of the video
     dislike_count:  Number of negative ratings of the video
     repost_count:   Number of reposts of the video
@@ -1663,7 +1664,7 @@ class InfoExtractor:
                 'end_time': part.get('endOffset'),
             } for part in variadic(e.get('hasPart') or []) if part.get('@type') == 'Clip']
             for idx, (last_c, current_c, next_c) in enumerate(zip(
-                    [{'end_time': 0}, *chapters], chapters, chapters[1:])):
+                    [{'end_time': 0}, *chapters], chapters, chapters[1:], strict=False)):
                 current_c['end_time'] = current_c['end_time'] or next_c['start_time']
                 current_c['start_time'] = current_c['start_time'] or last_c['end_time']
                 if None in current_c.values():
@@ -1848,7 +1849,7 @@ class InfoExtractor:
             return {}
 
         args = dict(zip(arg_keys.split(','), map(json.dumps, self._parse_json(
-            f'[{arg_vals}]', video_id, transform_source=js_to_json, fatal=fatal) or ())))
+            f'[{arg_vals}]', video_id, transform_source=js_to_json, fatal=fatal) or ()), strict=True))
 
         ret = self._parse_json(js, video_id, transform_source=functools.partial(js_to_json, vars=args), fatal=fatal)
         return traverse_obj(ret, traverse) or {}
