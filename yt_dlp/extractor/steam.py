@@ -24,7 +24,7 @@ class SteamIE(InfoExtractor):
             'id': '105600',
             'title': 'Terraria',
         },
-        'playlist_mincount': 4,
+        'playlist_mincount': 5,
     }, {
         'url': 'https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/',
         'info_dict': {
@@ -34,22 +34,11 @@ class SteamIE(InfoExtractor):
         'playlist_mincount': 26,
     }]
 
-    def _real_extract(self, url):
-        app_id = self._match_id(url)
-
-        self._set_cookie('store.steampowered.com', 'wants_mature_content', '1')
-        self._set_cookie('store.steampowered.com', 'birthtime', '946652401')
-        self._set_cookie('store.steampowered.com', 'lastagecheckage', '1-January-2000')
-
-        webpage = self._download_webpage(url, app_id)
-        data_props = traverse_obj(webpage, (
-            {find_element(cls='gamehighlight_desktopcarousel', html=True)},
-            {extract_attributes}, 'data-props', {json.loads}, {dict}))
-        app_name = traverse_obj(data_props, ('appName', {clean_html}))
-
-        entries = []
-        for trailer in data_props['trailers']:
-            movie_id = traverse_obj(trailer, ('id', {str_or_none}))
+    def _entries(self, app_id, app_name, data_props):
+        for trailer in traverse_obj(data_props, (
+            'trailers', lambda _, v: str_or_none(v['id']),
+        )):
+            movie_id = str_or_none(trailer['id'])
 
             thumbnails = []
             for thumbnail_url in traverse_obj(trailer, (
@@ -69,16 +58,30 @@ class SteamIE(InfoExtractor):
                     dash_manifest, app_id, mpd_id='dash', fatal=False))
             self._remove_duplicate_formats(formats)
 
-            entries.append({
+            yield {
                 'id': join_nonempty(app_id, movie_id),
                 'title': join_nonempty(app_name, 'video', movie_id, delim=' '),
                 'formats': formats,
                 'series': app_name,
                 'series_id': app_id,
                 'thumbnails': thumbnails,
-            })
+            }
 
-        return self.playlist_result(entries, app_id, app_name)
+    def _real_extract(self, url):
+        app_id = self._match_id(url)
+
+        self._set_cookie('store.steampowered.com', 'wants_mature_content', '1')
+        self._set_cookie('store.steampowered.com', 'birthtime', '946652401')
+        self._set_cookie('store.steampowered.com', 'lastagecheckage', '1-January-2000')
+
+        webpage = self._download_webpage(url, app_id)
+        data_props = traverse_obj(webpage, (
+            {find_element(cls='gamehighlight_desktopcarousel', html=True)},
+            {extract_attributes}, 'data-props', {json.loads}, {dict}))
+        app_name = traverse_obj(data_props, ('appName', {clean_html}))
+
+        return self.playlist_result(
+            self._entries(app_id, app_name, data_props), app_id, app_name)
 
 
 class SteamCommunityIE(InfoExtractor):
