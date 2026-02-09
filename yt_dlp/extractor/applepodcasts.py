@@ -11,18 +11,18 @@ from ..utils.traversal import traverse_obj
 class ApplePodcastsIE(InfoExtractor):
     _VALID_URL = r'https?://podcasts\.apple\.com/(?:[^/]+/)?podcast(?:/[^/]+){1,2}.*?\bi=(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://podcasts.apple.com/us/podcast/ferreck-dawn-to-the-break-of-dawn-117/id1625658232?i=1000665010654',
-        'md5': '82cc219b8cc1dcf8bfc5a5e99b23b172',
+        'url': 'https://podcasts.apple.com/us/podcast/urbana-podcast-724-by-david-penn/id1531349107?i=1000748574256',
+        'md5': 'f8a6f92735d0cfbd5e6a7294151e28d8',
         'info_dict': {
-            'id': '1000665010654',
-            'ext': 'mp3',
-            'title': 'Ferreck Dawn - To The Break of Dawn 117',
-            'episode': 'Ferreck Dawn - To The Break of Dawn 117',
-            'description': 'md5:8c4f5c2c30af17ed6a98b0b9daf15b76',
-            'upload_date': '20240812',
-            'timestamp': 1723449600,
-            'duration': 3596,
-            'series': 'Ferreck Dawn - To The Break of Dawn',
+            'id': '1000748574256',
+            'ext': 'm4a',
+            'title': 'URBANA PODCAST 724 BY DAVID PENN',
+            'episode': 'URBANA PODCAST 724 BY DAVID PENN',
+            'description': 'md5:fec77bacba32db8c9b3dda5486ed085f',
+            'upload_date': '20260206',
+            'timestamp': 1770400801,
+            'duration': 3602,
+            'series': 'Urbana Radio Show',
             'thumbnail': 're:.+[.](png|jpe?g|webp)',
         },
     }, {
