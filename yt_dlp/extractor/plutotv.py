@@ -128,6 +128,10 @@ class PlutoTVIE(PlutoTVBase):
             'title': 'Squadra Speciale Cobra 11 - Season 5',
         },
         'playlist_count': 17,
+    }, {
+        'note': 'Video doesn\'t exist, but API returns another one',
+        'url': 'https://pluto.tv/it/on-demand/movies/00000000000000000000000000000000',
+        'expected_exception': 'ExtractorError',
     }]
 
     def _get_video_info(self, video, series=None, season_number=None):
@@ -178,6 +182,7 @@ class PlutoTVIE(PlutoTVBase):
             return {**self._extract_formats(video_data), 'id': video_data['id']}
 
         mobj = self._match_valid_url(url).groupdict()
+        # here slug may also be the video id, URLs and API accept both
         slug = mobj['slug']
         season_number, episode_id = mobj.get('season'), mobj.get('episode')
         query = {**self._START_QUERY, 'seriesIDs': slug}
@@ -187,9 +192,14 @@ class PlutoTVIE(PlutoTVBase):
         video_json = self._download_json('https://boot.pluto.tv/v4/start', slug, 'Downloading info json', query=query)
         series = video_json['VOD'][0]
 
+        # sometimes if the link is not valid the API returns a random video as result
+        # we have to check if the id is what we expect
+        if (series.get('id') or series.get('_id')) != slug and series.get('slug') != slug:
+            raise ExtractorError('Failed to find movie or series')
+
         if episode_id:
             episode = traverse_obj(video_json, ('VOD', 1))
-            if not episode:
+            if not episode or ((episode.get('id') or episode.get('_id')) != episode_id and episode.get('slug') != episode_id):
                 raise ExtractorError('Failed to find episode')
             return {**self._get_video_info(episode, series, season_number), **self._extract_formats(self._resolve_data(video_json, episode))}
 
