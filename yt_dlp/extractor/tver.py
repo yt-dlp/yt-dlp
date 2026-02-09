@@ -310,16 +310,26 @@ class TVerOlympicIE(StreaksBaseIE):
         if video_type == 'live':
             project_id = 'tver-olympic-live'
             api_key = 'a35ebb1ca7d443758dc7fcc5d99b1f72'
-            olympic_data = self._download_json(
-                f'{self._API_BASE}/live/{video_id}', video_id)['contents']['live']
+            olympic_data = traverse_obj(self._download_json(
+                f'{self._API_BASE}/live/{video_id}', video_id), ('contents', 'live', {dict}))
             media_id = traverse_obj(olympic_data, ('video_id', {str}))
 
-            msg = None
             now = time_seconds()
-            start_timestamp, end_timestamp = traverse_obj(olympic_data, (
-                ('onair_start_date', 'onair_end_date'), {unified_timestamp(tz_offset=9)}))
+            start_timestamp_str = traverse_obj(olympic_data, (
+                'onair_start_date', {str}, filter, {require('on-air start time')}))
+            start_timestamp = unified_timestamp(start_timestamp_str, tz_offset=9)
+            end_timestamp = traverse_obj(olympic_data, (
+                'onair_end_date', {unified_timestamp(tz_offset=9)}, {require('on-air end time')}))
+
             if now < start_timestamp:
-                msg = 'This program has not started yet'
+                self.raise_no_formats(
+                    f'This program is scheduled to start at {start_timestamp_str} JST', expected=True)
+
+                return {
+                    'id': video_id,
+                    'live_status': 'is_upcoming',
+                    'release_timestamp': start_timestamp,
+                }
             elif start_timestamp <= now < end_timestamp:
                 live_status = 'is_live'
                 if live_from_start:
@@ -331,16 +341,15 @@ class TVerOlympicIE(StreaksBaseIE):
                     live_status = 'was_live'
                     media_id += '_dvr'
                 else:
-                    msg = 'This program is no longer available'
-            if msg:
-                raise ExtractorError(msg, expected=True)
+                    raise ExtractorError(
+                        'This program is no longer available', expected=True)
         else:
             project_id = 'tver-olympic'
             api_key = '4b55a4db3cce4ad38df6dd8543e3e46a'
             media_id = video_id
             live_status = 'not_live'
-            olympic_data = self._download_json(
-                f'{self._API_BASE}/video/{video_id}', video_id)['contents']['video']
+            olympic_data = traverse_obj(self._download_json(
+                f'{self._API_BASE}/video/{video_id}', video_id), ('contents', 'video', {dict}))
 
         return {
             **self._extract_from_streaks_api(project_id, f'ref:{media_id}', {
