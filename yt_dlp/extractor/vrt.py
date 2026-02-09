@@ -263,45 +263,100 @@ class VrtNUIE(VRTBaseIE):
     _REFRESH_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_rt'
     _VIDEO_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_vt'
     _VIDEO_PAGE_QUERY = '''
-    query VideoPage($pageId: ID!) {
+    query EpisodePage($pageId: ID!) {
         page(id: $pageId) {
-            ... on EpisodePage {
-                episode {
-                    ageRaw
-                    description
-                    durationRaw
-                    episodeNumberRaw
-                    id
-                    name
-                    onTimeRaw
-                    program {
-                        title
-                    }
-                    season {
-                        id
-                        titleRaw
-                    }
-                        title
-                        brand
-                    }
-                    ldjson
-                    player {
-                        image {
-                            templateUrl
-                        }
-                        modes {
-                            streamId
-                        }
-                        ... on VideoPlayerMode {
-                                aspectRatio
-                        }
-                        ... on AudioPlayerMode {
-                            broadcastStartDate
-                        }
-                    }
-                }
+            ... on PlaybackPage {
+                ...playbackPageFragment
+                __typename
             }
         }
+    }
+    fragment playerFragment on MediaPlayer {
+        __typename
+        objectId
+        classification {
+            iconName
+            __typename
+        }
+        maxAge
+        modes {
+            __typename
+            active
+            adsUrl
+            cimMediaTrackingData {
+                channel
+                ct
+                programDuration
+                programId
+                programName
+                publicationDate
+                seriesName
+                se
+                st
+                tv
+                __typename
+            }
+            token {
+                placeholder
+                value
+                __typename
+            }
+            resumePointTemplate {
+                mediaId
+                mediaName
+                __typename
+            }
+            streamId
+            ... on VideoPlayerMode {
+                aspectRatio
+                __typename
+            }
+            ... on AudioPlayerMode {
+                broadcastStartDate
+                __typename
+            }
+        }
+        progress {
+            __typename
+            completed
+            durationInSeconds
+            progressInSeconds
+        }
+        secondaryMeta {
+            ...metaFragment
+            __typename
+        }
+        subtitle
+        title
+    }
+    fragment metaFragment on MetaDataItem {
+        __typename
+        type
+        value
+        shortValue
+        longValue
+    }
+    fragment playbackPageFragment on PlaybackPage {
+        __typename
+        objectId
+        title
+        brand
+        permalink
+        seo {
+            ...seoFragment
+            __typename
+        }
+        ldjson
+        player {
+            ...playerFragment
+            __typename
+        }
+    }
+    fragment seoFragment on SeoProperties {
+        __typename
+        title
+        description
+    }
     '''
 
     def _fetch_tokens(self):
@@ -400,6 +455,30 @@ class VrtNUIE(VRTBaseIE):
 
         return access_token, video_token
 
+    def _parse_secondarymeta(self, data):
+        if not data.get('secondaryMeta'):
+            return {}
+        
+        def value_to_int(value):
+            return self._search_regex(r'(\d+)', value, default=None)
+
+        season, ep, duration = None 
+        for item in data.get('secondaryMeta'):
+            value = item.get('value', '')
+            long_value = item.get('longValue', '')
+            if 'seizo' in value.lower() or 'seizo' in long_value.lower():
+                season = value_to_int(value)
+            elif 'aflever' in value.lower() or 'aflever' in long_value.lower():
+                ep = value_to_int(value)
+            elif 'min' in value.lower() or 'minute' in long_value.lower():
+                duration = parse_duration(value)
+            
+        return {
+            'season_number': season,
+            'episode_number': ep,
+            'duration': duration,
+        }
+
     def _real_extract(self, url):
         display_id = self._match_id(url)
         access_token, video_token = self._fetch_tokens()
@@ -455,6 +534,7 @@ class VrtNUIE(VRTBaseIE):
                 'channel': ('brand', {str_or_none}),
                 'duration': ('player', 'modes', 0, 'programDuration', {parse_duration}),
             })),
+            **self._parse_secondarymeta(metadata),
             'formats': formats,
             'subtitles': subtitles,
             '_old_archive_ids': [make_archive_id('Canvas', video_id),
