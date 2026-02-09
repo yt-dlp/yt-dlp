@@ -115,11 +115,9 @@ class AngelIE(InfoExtractor):
                 'authorization': auth_cookie,
             }), ('data', 'episode'))
 
-        self.write_debug('Downloaded metadata from API: ' + str(metadata))
-
         if (all(var is None for var in [metadata['guildAvailableDate'], metadata['publiclyAvailableDate'], metadata['earlyAccessDate']])):
             raise GeoRestrictedError('This video is unavailable in your location!')
-        elif (metadata['publiclyAvailableDate'] is None):
+        elif (metadata['publiclyAvailableDate'] is None) and (traverse_obj(metadata, ('source', 'url')) is None):
             raise ExtractorError('This is Members Only video. Please log in with your Guild account! ' + self._login_hint(), expected=True)
 
         # DOWNLOADING LIST OF M3U8 FILES
