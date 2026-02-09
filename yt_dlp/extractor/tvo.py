@@ -1,6 +1,7 @@
 import json
 import urllib.parse
 
+from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
@@ -18,7 +19,8 @@ from ..utils.traversal import (
 )
 
 
-class TVOIE(InfoExtractor):
+class TvoIE(InfoExtractor):
+    IE_NAME = 'TVO'
     _VALID_URL = r'https?://(?:www\.)?tvo\.org/video(?:/documentaries)?/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.tvo.org/video/how-can-ontario-survive-the-trade-war',
@@ -127,7 +129,7 @@ class TVOIE(InfoExtractor):
 
         return {
             '_type': 'url_transparent',
-            'ie_key': 'BrightcoveNew',
+            'ie_key': BrightcoveNewIE.ie_key(),
             'url': smuggle_url(self.BRIGHTCOVE_URL_TEMPLATE % brightcove_id, {'geo_countries': ['CA']}),
             'display_id': display_id,
             'episode_id': display_id,
