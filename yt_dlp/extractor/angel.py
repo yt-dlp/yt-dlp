@@ -114,8 +114,8 @@ class AngelIE(InfoExtractor):
                 'content-type': 'application/json',
                 'authorization': auth_cookie,
             }), ('data', 'episode'))
-        
-        self.write_debug("Downloaded metadata from API: " + str(metadata))
+
+        self.write_debug('Downloaded metadata from API: ' + str(metadata))
 
         if (all(var is None for var in [metadata['guildAvailableDate'], metadata['publiclyAvailableDate'], metadata['earlyAccessDate']])):
             raise GeoRestrictedError('This video is unavailable in your location!')
