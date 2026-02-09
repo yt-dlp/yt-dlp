@@ -92,10 +92,10 @@ class TVOIE(InfoExtractor):
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/18140038001/default_default/index.html?videoId=%s'
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        display_id = self._match_id(url)
         video_data = self._download_json(
             'https://hmy0rc1bo2.execute-api.ca-central-1.amazonaws.com/graphql',
-            video_id, headers={'Content-Type': 'application/json'},
+            display_id, headers={'Content-Type': 'application/json'},
             data=json.dumps({
                 'operationName': 'getVideo',
                 'variables': {'slug': urllib.parse.urlparse(url).path.rstrip('/')},
@@ -129,8 +129,8 @@ class TVOIE(InfoExtractor):
             '_type': 'url_transparent',
             'ie_key': 'BrightcoveNew',
             'url': smuggle_url(self.BRIGHTCOVE_URL_TEMPLATE % brightcove_id, {'geo_countries': ['CA']}),
-            'display_id': video_id,
-            'episode_id': video_id,
+            'display_id': display_id,
+            'episode_id': display_id,
             **traverse_obj(video_data, {
                 'title': ('title', {clean_html}, filter),
                 'categories': ('contentCategory', {clean_html}, filter, all, filter),
@@ -144,7 +144,7 @@ class TVOIE(InfoExtractor):
                 'timestamp': ('publishedAt', {parse_iso8601}),
             }),
             **traverse_obj(video_data, ('program', {
-                'series_id': ('nodeUrl', {clean_html}, {trim_str(start='/programs/')}, filter),
                 'series': ('title', {clean_html}, filter),
+                'series_id': ('nodeUrl', {clean_html}, {trim_str(start='/programs/')}, filter),
             })),
         }
