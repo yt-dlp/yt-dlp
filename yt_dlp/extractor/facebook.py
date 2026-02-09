@@ -4,8 +4,7 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import compat_etree_fromstring
-from ..networking import Request
-from ..networking.exceptions import network_exceptions
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -64,9 +63,6 @@ class FacebookIE(InfoExtractor):
                 class=(?P<q1>[\'"])[^\'"]*\bfb-(?:video|post)\b[^\'"]*(?P=q1)[^>]+
                 data-href=(?P<q2>[\'"])(?P<url>(?:https?:)?//(?:www\.)?facebook.com/.+?)(?P=q2)''',
     ]
-    _LOGIN_URL = 'https://www.facebook.com/login.php?next=http%3A%2F%2Ffacebook.com%2Fhome.php&login_attempt=1'
-    _CHECKPOINT_URL = 'https://www.facebook.com/checkpoint/?next=http%3A%2F%2Ffacebook.com%2Fhome.php&_fb_noscript=1'
-    _NETRC_MACHINE = 'facebook'
     IE_NAME = 'facebook'
 
     _VIDEO_PAGE_TEMPLATE = 'https://www.facebook.com/video/video.php?v=%s'
@@ -468,65 +464,6 @@ class FacebookIE(InfoExtractor):
     _api_config = {
         'graphURI': '/api/graphql/',
     }
-
-    def _perform_login(self, username, password):
-        login_page_req = Request(self._LOGIN_URL)
-        self._set_cookie('facebook.com', 'locale', 'en_US')
-        login_page = self._download_webpage(login_page_req, None,
-                                            note='Downloading login page',
-                                            errnote='Unable to download login page')
-        lsd = self._search_regex(
-            r'<input type="hidden" name="lsd" value="([^"]*)"',
-            login_page, 'lsd')
-        lgnrnd = self._search_regex(r'name="lgnrnd" value="([^"]*?)"', login_page, 'lgnrnd')
-
-        login_form = {
-            'email': username,
-            'pass': password,
-            'lsd': lsd,
-            'lgnrnd': lgnrnd,
-            'next': 'http://facebook.com/home.php',
-            'default_persistent': '0',
-            'legacy_return': '1',
-            'timezone': '-60',
-            'trynum': '1',
-        }
-        request = Request(self._LOGIN_URL, urlencode_postdata(login_form))
-        request.headers['Content-Type'] = 'application/x-www-form-urlencoded'
-        try:
-            login_results = self._download_webpage(request, None,
-                                                   note='Logging in', errnote='unable to fetch login page')
-            if re.search(r'<form(.*)name="login"(.*)</form>', login_results) is not None:
-                error = self._html_search_regex(
-                    r'(?s)<div[^>]+class=(["\']).*?login_error_box.*?\1[^>]*><div[^>]*>.*?</div><div[^>]*>(?P<error>.+?)</div>',
-                    login_results, 'login error', default=None, group='error')
-                if error:
-                    raise ExtractorError(f'Unable to login: {error}', expected=True)
-                self.report_warning('unable to log in: bad username/password, or exceeded login rate limit (~3/min). Check credentials or wait.')
-                return
-
-            fb_dtsg = self._search_regex(
-                r'name="fb_dtsg" value="(.+?)"', login_results, 'fb_dtsg', default=None)
-            h = self._search_regex(
-                r'name="h"\s+(?:\w+="[^"]+"\s+)*?value="([^"]+)"', login_results, 'h', default=None)
-
-            if not fb_dtsg or not h:
-                return
-
-            check_form = {
-                'fb_dtsg': fb_dtsg,
-                'h': h,
-                'name_action_selected': 'dont_save',
-            }
-            check_req = Request(self._CHECKPOINT_URL, urlencode_postdata(check_form))
-            check_req.headers['Content-Type'] = 'application/x-www-form-urlencoded'
-            check_response = self._download_webpage(check_req, None,
-                                                    note='Confirming login')
-            if re.search(r'id="checkpointSubmitButton"', check_response) is not None:
-                self.report_warning('Unable to confirm login, you have to login in your browser and authorize the login.')
-        except network_exceptions as err:
-            self.report_warning(f'unable to log in: {err}')
-            return
 
     def _extract_from_url(self, url, video_id):
         webpage = self._download_webpage(
@@ -1081,6 +1018,7 @@ class FacebookAdsIE(InfoExtractor):
             'upload_date': '20240812',
             'like_count': int,
         },
+        'skip': 'Invalid URL',
     }, {
         'url': 'https://www.facebook.com/ads/library/?id=893637265423481',
         'info_dict': {
@@ -1095,6 +1033,33 @@ class FacebookAdsIE(InfoExtractor):
         },
         'playlist_count': 3,
         'skip': 'Invalid URL',
+    }, {
+        'url': 'https://www.facebook.com/ads/library/?id=312304267031140',
+        'info_dict': {
+            'id': '312304267031140',
+            'title': 'Casper Wave Hybrid Mattress',
+            'uploader': 'Casper',
+            'uploader_id': '224110981099062',
+            'uploader_url': 'https://www.facebook.com/Casper/',
+            'timestamp': 1766299837,
+            'upload_date': '20251221',
+            'like_count': int,
+        },
+        'playlist_count': 2,
+    }, {
+        'url': 'https://www.facebook.com/ads/library/?id=874812092000430',
+        'info_dict': {
+            'id': '874812092000430',
+            'title': 'TikTok',
+            'uploader': 'Case \u00e0 Chocs',
+            'uploader_id': '112960472096793',
+            'uploader_url': 'https://www.facebook.com/Caseachocs/',
+            'timestamp': 1768498293,
+            'upload_date': '20260115',
+            'like_count': int,
+            'description': 'md5:f02a255fcf7dce6ed40e9494cf4bc49a',
+        },
+        'playlist_count': 3,
     }, {
         'url': 'https://es-la.facebook.com/ads/library/?id=901230958115569',
         'only_matching': True,
@@ -1124,9 +1089,36 @@ class FacebookAdsIE(InfoExtractor):
             })
         return formats
 
+    def _download_fb_webpage_and_verify(self, url, video_id):
+        # See https://github.com/yt-dlp/yt-dlp/issues/15577
+
+        try:
+            return self._download_webpage(url, video_id)
+        except ExtractorError as e:
+            if (
+                not isinstance(e.cause, HTTPError)
+                or e.cause.status != 403
+                or e.cause.reason != 'Client challenge'
+            ):
+                raise
+            error_page = self._webpage_read_content(e.cause.response, url, video_id)
+
+        self.write_debug('Received a client challenge response')
+
+        challenge_path = self._search_regex(
+            r'fetch\s*\(\s*["\'](/__rd_verify[^"\']+)["\']',
+            error_page, 'challenge path')
+
+        # Successful response will set the necessary cookie
+        self._request_webpage(
+            urljoin(url, challenge_path), video_id, 'Requesting verification cookie',
+            'Unable to get verification cookie', data=b'')
+
+        return self._download_webpage(url, video_id)
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        webpage = self._download_fb_webpage_and_verify(url, video_id)
 
         post_data = traverse_obj(
             re.findall(r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage), (..., {json.loads}))

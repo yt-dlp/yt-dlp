@@ -26,7 +26,7 @@ services:
       platforms:
         - "linux/amd64"
       args:
-        VERIFYIMAGE: quay.io/pypa/manylinux2014_x86_64:latest
+        VERIFYIMAGE: quay.io/pypa/manylinux2014_x86_64:2025.12.19-1@sha256:b716645f9aecd0c1418283af930804bbdbd68a73d855a60101c5aab8548d737d
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
@@ -61,7 +61,7 @@ services:
       platforms:
         - "linux/arm64"
       args:
-        VERIFYIMAGE: quay.io/pypa/manylinux2014_aarch64:latest
+        VERIFYIMAGE: quay.io/pypa/manylinux2014_aarch64:2025.12.19-1@sha256:36cbe6638c7c605c2b44a92e35751baa537ec8902112f790139d89c7e1ccd2a4
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
@@ -97,7 +97,7 @@ services:
       platforms:
         - "linux/arm/v7"
       args:
-        VERIFYIMAGE: arm32v7/debian:bullseye
+        VERIFYIMAGE: arm32v7/debian:bullseye@sha256:9d544bf6ff73e36b8df1b7e415f6c8ee40ed84a0f3a26970cac8ea88b0ccf2ac
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
@@ -132,7 +132,7 @@ services:
       platforms:
         - "linux/amd64"
       args:
-        VERIFYIMAGE: alpine:3.22
+        VERIFYIMAGE: alpine:3.23.2@sha256:865b95f46d98cf867a156fe4a135ad3fe50d2056aa3f25ed31662dff6da4eb62
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
@@ -168,7 +168,7 @@ services:
       platforms:
         - "linux/arm64"
       args:
-        VERIFYIMAGE: alpine:3.22
+        VERIFYIMAGE: alpine:3.23.2@sha256:865b95f46d98cf867a156fe4a135ad3fe50d2056aa3f25ed31662dff6da4eb62
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:

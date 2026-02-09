@@ -305,6 +305,8 @@ class UrllibResponseAdapter(Response):
             status=getattr(res, 'status', None) or res.getcode(), reason=getattr(res, 'reason', None))
 
     def read(self, amt=None):
+        if self.closed:
+            return b''
         try:
             data = self.fp.read(amt)
             underlying = getattr(self.fp, 'fp', None)

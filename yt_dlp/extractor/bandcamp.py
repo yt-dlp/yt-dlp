@@ -5,16 +5,18 @@ import time
 
 from .common import InfoExtractor
 from ..utils import (
-    KNOWN_EXTENSIONS,
     ExtractorError,
     clean_html,
     extract_attributes,
     float_or_none,
+    format_field,
     int_or_none,
+    join_nonempty,
     parse_filesize,
+    parse_qs,
     str_or_none,
+    strftime_or_none,
     try_get,
-    unified_strdate,
     unified_timestamp,
     update_url_query,
     url_or_none,
@@ -411,70 +413,67 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
 
 class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'Bandcamp:weekly'
-    _VALID_URL = r'https?://(?:www\.)?bandcamp\.com/?\?(?:.*?&)?show=(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?bandcamp\.com/radio/?\?(?:[^#]+&)?show=(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://bandcamp.com/?show=224',
+        'url': 'https://bandcamp.com/radio?show=224',
         'md5': '61acc9a002bed93986b91168aa3ab433',
         'info_dict': {
             'id': '224',
             'ext': 'mp3',
-            'title': 'BC Weekly April 4th 2017 - Magic Moments',
+            'title': 'Bandcamp Weekly, 2017-04-04',
             'description': 'md5:5d48150916e8e02d030623a48512c874',
-            'duration': 5829.77,
-            'release_date': '20170404',
+            'thumbnail': 'https://f4.bcbits.com/img/9982549_0.jpg',
             'series': 'Bandcamp Weekly',
-            'episode': 'Magic Moments',
             'episode_id': '224',
+            'release_timestamp': 1491264000,
+            'release_date': '20170404',
+            'duration': 5829.77,
         },
         'params': {
             'format': 'mp3-128',
         },
     }, {
-        'url': 'https://bandcamp.com/?blah/blah@&show=228',
+        'url': 'https://bandcamp.com/radio/?foo=bar&show=224',
         'only_matching': True,
     }]
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
-        webpage = self._download_webpage(url, show_id)
+        audio_data = self._download_json(
+            'https://bandcamp.com/api/bcradio_api/1/get_show',
+            show_id, 'Downloading radio show JSON',
+            data=json.dumps({'id': show_id}).encode(),
+            headers={'Content-Type': 'application/json'})['radioShowAudio']
 
-        blob = self._extract_data_attr(webpage, show_id, 'blob')
+        stream_url = audio_data['streamUrl']
+        format_id = traverse_obj(stream_url, ({parse_qs}, 'enc', -1))
+        encoding, _, bitrate_str = (format_id or '').partition('-')
 
-        show = blob['bcw_data'][show_id]
+        webpage = self._download_webpage(url, show_id, fatal=False)
+        metadata = traverse_obj(
+            self._extract_data_attr(webpage, show_id, 'blob', fatal=False),
+            ('appData', 'shows', lambda _, v: str(v['showId']) == show_id, any)) or {}
 
-        formats = []
-        for format_id, format_url in show['audio_stream'].items():
-            if not url_or_none(format_url):
-                continue
-            for known_ext in KNOWN_EXTENSIONS:
-                if known_ext in format_id:
-                    ext = known_ext
-                    break
-            else:
-                ext = None
-            formats.append({
-                'format_id': format_id,
-                'url': format_url,
-                'ext': ext,
-                'vcodec': 'none',
-            })
-
-        title = show.get('audio_title') or 'Bandcamp Weekly'
-        subtitle = show.get('subtitle')
-        if subtitle:
-            title += f' - {subtitle}'
+        series_title = audio_data.get('title') or metadata.get('title')
+        release_timestamp = unified_timestamp(audio_data.get('date')) or unified_timestamp(metadata.get('date'))
 
         return {
             'id': show_id,
-            'title': title,
-            'description': show.get('desc') or show.get('short_desc'),
-            'duration': float_or_none(show.get('audio_duration')),
-            'is_live': False,
-            'release_date': unified_strdate(show.get('published_date')),
-            'series': 'Bandcamp Weekly',
-            'episode': show.get('subtitle'),
             'episode_id': show_id,
-            'formats': formats,
+            'title': join_nonempty(series_title, strftime_or_none(release_timestamp, '%Y-%m-%d'), delim=', '),
+            'series': series_title,
+            'thumbnail': format_field(metadata, 'imageId', 'https://f4.bcbits.com/img/%s_0.jpg', default=None),
+            'description': metadata.get('desc') or metadata.get('short_desc'),
+            'duration': float_or_none(audio_data.get('duration')),
+            'release_timestamp': release_timestamp,
+            'formats': [{
+                'url': stream_url,
+                'format_id': format_id,
+                'ext': encoding or 'mp3',
+                'acodec': encoding or None,
+                'vcodec': 'none',
+                'abr': int_or_none(bitrate_str),
+            }],
         }
 
 

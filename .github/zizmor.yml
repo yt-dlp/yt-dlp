@@ -1,0 +1,15 @@
+rules:
+  concurrency-limits:
+    ignore:
+      - build.yml             # Can only be triggered by maintainers or cronjob
+      - issue-lockdown.yml    # It *should* run for *every* new issue
+      - release-nightly.yml   # Can only be triggered by once-daily cronjob
+      - release.yml           # Can only be triggered by maintainers or cronjob
+      - sanitize-comment.yml  # It *should* run for *every* new comment/edit
+  obfuscation:
+    ignore:
+      - release.yml  # Not actual obfuscation
+  unpinned-uses:
+    config:
+      policies:
+        "*": hash-pin

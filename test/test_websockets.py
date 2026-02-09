@@ -40,7 +40,7 @@ TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
 pytestmark = pytest.mark.handler_flaky(
     'Websockets',
-    os.name != 'nt' and sys.implementation.name == 'pypy',
+    os.name == 'nt' or sys.implementation.name == 'pypy',
     reason='segfaults',
 )
 
