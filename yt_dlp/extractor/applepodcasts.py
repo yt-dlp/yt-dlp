@@ -57,7 +57,7 @@ class ApplePodcastsIE(InfoExtractor):
         webpage = self._download_webpage(url, episode_id)
         server_data = self._search_json(
             r'<script [^>]*\bid=["\']serialized-server-data["\'][^>]*>', webpage,
-            'server data', episode_id, contains_pattern=r'{(?s:.+)}')['data'][0]['data']
+            'server data', episode_id)['data'][0]['data']
         model_data = traverse_obj(server_data, (
             'headerButtonItems', lambda _, v: v['$kind'] == 'share' and v['modelType'] == 'EpisodeLockup',
             'model', {dict}, any))
