@@ -311,8 +311,10 @@ from .canalsurmas import CanalsurmasIE
 from .caracoltv import CaracolTvPlayIE
 from .cbc import (
     CBCIE,
+    CBCGemContentIE,
     CBCGemIE,
     CBCGemLiveIE,
+    CBCGemOlympicsIE,
     CBCGemPlaylistIE,
     CBCListenIE,
     CBCPlayerIE,
