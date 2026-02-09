@@ -263,49 +263,45 @@ class VrtNUIE(VRTBaseIE):
     _REFRESH_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_rt'
     _VIDEO_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_vt'
     _VIDEO_PAGE_QUERY = '''
-    query EpisodePage($pageId: ID!) {
+    query VideoPage($pageId: ID!) {
         page(id: $pageId) {
-            ... on PlaybackPage {
-            objectId
-            title
-            permalink
-            ldjson
-
-            player {
-                objectId
-                title
-                subtitle
-                maxAge
-
-                image {
-                templateUrl
-                alt
-                }
-
-                modes {
-                active
-                streamId
-                token {
-                    value
-                }
-
-                ... on VideoPlayerMode {
-                        aspectRatio
-                }
-
-                ... on AudioPlayerMode {
-                    broadcastStartDate
+            ... on EpisodePage {
+                episode {
+                    ageRaw
+                    description
+                    durationRaw
+                    episodeNumberRaw
+                    id
+                    name
+                    onTimeRaw
+                    program {
+                        title
                     }
-                }
-
-                progress {
-                    durationInSeconds
-                    progressInSeconds
+                    season {
+                        id
+                        titleRaw
+                    }
+                        title
+                        brand
+                    }
+                    ldjson
+                    player {
+                        image {
+                            templateUrl
+                        }
+                        modes {
+                            streamId
+                        }
+                        ... on VideoPlayerMode {
+                                aspectRatio
+                        }
+                        ... on AudioPlayerMode {
+                            broadcastStartDate
+                        }
                     }
                 }
             }
         }
-    }
     '''
 
     def _fetch_tokens(self):
