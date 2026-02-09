@@ -91,7 +91,7 @@ class TvoIE(InfoExtractor):
             'uploader_id': '18140038001',
         },
     }]
-    BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/18140038001/default_default/index.html?videoId=%s'
+    BRIGHTCOVE_URL_TEMPLATE = 'https://players.brightcove.net/18140038001/default_default/index.html?videoId=%s'
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
