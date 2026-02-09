@@ -195,18 +195,18 @@ class PlutoTVIE(PlutoTVBase):
         # sometimes if the link is not valid the API returns a random video as result
         # we have to check if the id is what we expect
         if (series.get('id') or series.get('_id')) != slug and series.get('slug') != slug:
-            raise ExtractorError('Failed to find movie or series')
+            raise ExtractorError('Failed to find movie or series', expected=True)
 
         if episode_id:
             episode = traverse_obj(video_json, ('VOD', 1))
             if not episode or ((episode.get('id') or episode.get('_id')) != episode_id and episode.get('slug') != episode_id):
-                raise ExtractorError('Failed to find episode')
+                raise ExtractorError('Failed to find episode', expected=True)
             return {**self._get_video_info(episode, series, season_number), **self._extract_formats(self._resolve_data(video_json, episode))}
 
         if season_number:
             season = next((s for s in series['seasons'] if s['number'] == int(season_number)), None)
             if not season:
-                raise ExtractorError(f'Failed to find season {season_number}')
+                raise ExtractorError(f'Failed to find season {season_number}', expected=True)
             return self.playlist_result(
                 [self._playlist_entry(video_json, series, season, ep) for ep in season['episodes']],
                 f"{series['id']}-{season_number}", f"{series['name']} - Season {season_number}",
