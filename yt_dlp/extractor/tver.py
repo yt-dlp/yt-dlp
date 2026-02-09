@@ -315,9 +315,10 @@ class TVerOlympicIE(StreaksBaseIE):
             media_id = traverse_obj(olympic_data, ('video_id', {str}))
 
             now = time_seconds()
-            start_timestamp_str = traverse_obj(olympic_data, (
-                'onair_start_date', {str}, filter, {require('on-air start time')}))
+            start_timestamp_str = traverse_obj(olympic_data, ('onair_start_date', {str}))
             start_timestamp = unified_timestamp(start_timestamp_str, tz_offset=9)
+            if not start_timestamp:
+                raise ExtractorError('Unable to extract on-air start time')
             end_timestamp = traverse_obj(olympic_data, (
                 'onair_end_date', {unified_timestamp(tz_offset=9)}, {require('on-air end time')}))
 
