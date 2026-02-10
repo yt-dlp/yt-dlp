@@ -2180,11 +2180,15 @@ from .tvc import (
     TVCIE,
     TVCArticleIE,
 )
-from .tver import TVerIE
+from .tver import (
+    TVerIE,
+    TVerOlympicIE,
+)
 from .tvigle import TvigleIE
 from .tviplayer import TVIPlayerIE
 from .tvn24 import TVN24IE
 from .tvnoe import TVNoeIE
+from .tvo import TvoIE
 from .tvopengr import (
     TVOpenGrEmbedIE,
     TVOpenGrWatchIE,
