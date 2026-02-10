@@ -1,7 +1,7 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, GeoRestrictedError, unified_strdate
+from ..utils import unified_strdate
 from ..utils.traversal import traverse_obj
 
 
@@ -49,50 +49,7 @@ class AngelIE(InfoExtractor):
                           isAngelGuildOnly, prereleaseAvailableFor, isTrailer, guildAvailableDate, publiclyAvailableDate, earlyAccessDate, unavailableReason, __typename
                         }
 
-                        query getEpisodeAndUserWatchData($guid: ID!, $projectSlug: String!, $skipsEnabled: Boolean = false, $includePrerelease: Boolean = false, $authenticated: Boolean = false, $reactionsRollupInterval: Int = 4000) {
-                          project(slug: $projectSlug) {
-                            id, projectType, pifEnabled,
-                            metadata { contentRating, externalLinks, genres, __typename },
-                            primaryFlowPhases { status, phaseSlugEnum, __typename },
-                            discoveryPosterCloudinaryPath, discoveryPosterLandscapeCloudinaryPath, discoveryPosterTransformation, discoveryVideoLandscapeUrl,
-                            name, slug,
-                            seasons {
-                              id, seasonNumber, name,
-                              episodes(includePrerelease: $includePrerelease, includePresale: $includePrerelease) {
-                                id, guid, slug, episodeNumber, seasonNumber, seasonId, subtitle, description, name,
-                                posterCloudinaryPath, posterLandscapeCloudinaryPath, projectSlug, earlyAccessDate, publiclyAvailableDate, guildAvailableDate, releaseDate,
-                                source { credits, duration, skipsUrl: url(input: {segmentFormat: TS, muteAllSwears: true}) @include(if: $skipsEnabled), url(input: {segmentFormat: TS}), __typename },
-                                unavailableReason,
-                                upNext { id, projectSlug, guid, seasonNumber, episodeNumber, subtitle, __typename },
-                                watchPosition { position, __typename },
-                                introStartTime, introEndTime,
-                                ...EpisodeGuildEarlyAccess, __typename
-                              }, __typename
-                            },
-                            logoCloudinaryPath,
-                            publisher { name, __typename },
-                            trailers { id, name, source { duration, url(input: {segmentFormat: TS}), __typename }, __typename },
-                            title {
-                              ... on ContentSharable { isGuildShareAvailable, __typename },
-                              ... on ContentWatchable { muteAllSwearsAvailability, __typename },
-                              ... on ContentWatchableAvailability { watchableAvailabilityStatus, __typename },
-                              ... on ContentDisplayable {
-                                id,
-                                landscapeTitleImage: image(aspect: "16:9", category: TITLE_ART) { aspect, category, cloudinaryPath, __typename },
-                                landscapeAngelImage: image(aspect: "16:9", category: ANGEL_KEY_ART_1) { aspect, category, cloudinaryPath, __typename },
-                                landscapeAngelImage2: image(aspect: "16:9", category: ANGEL_KEY_ART_2) { aspect, category, cloudinaryPath, __typename },
-                                landscapeAngelImage3: image(aspect: "16:9", category: ANGEL_KEY_ART_3) { aspect, category, cloudinaryPath, __typename },
-                                portraitTitleImage: image(aspect: "2:3", category: TITLE_ART) { aspect, category, cloudinaryPath, __typename },
-                                portraitAngelImage: image(aspect: "2:3", category: ANGEL_KEY_ART_1) { aspect, category, cloudinaryPath, __typename },
-                                portraitAngelImage2: image(aspect: "2:3", category: ANGEL_KEY_ART_2) { aspect, category, cloudinaryPath, __typename },
-                                portraitAngelImage3: image(aspect: "2:3", category: ANGEL_KEY_ART_3) { aspect, category, cloudinaryPath, __typename },
-                                __typename
-                              },
-                              __typename
-                            },
-                            __typename
-                          },
-
+                        query getEpisodeAndUserWatchData($guid: ID!) {
                           episode(guid: $guid) {
                             description, episodeNumber, guid, id, name, posterCloudinaryPath, posterLandscapeCloudinaryPath, projectSlug, releaseDate, seasonId, seasonNumber, slug, subtitle,
                             source { credits, duration, skipsUrl: url(input: {segmentFormat: TS, muteAllSwears: true}), url(input: {segmentFormat: TS, maxH264Level: LEVEL_5_2}), __typename },
@@ -101,24 +58,23 @@ class AngelIE(InfoExtractor):
                             vmapUrl,
                             watchPosition { position, __typename },
                             ...EpisodeGuildEarlyAccess, __typename
-                          },
-
-                          user @include(if: $authenticated) {
-                            id,
-                            videoReactions(videoId: $guid, rollupInterval: $reactionsRollupInterval) { id, momentId, reactedAt, videoGuid, viewerId, __typename },
-                            __typename
                           }
                         }''',
-                'variables': {'authenticated': True, 'guid': video_id, 'includePrerelease': True, 'projectSlug': 'case-for-christ', 'reactionsRollupInterval': 4000, 'skipsEnabled': False},
+                'variables': {'authenticated': True,
+                              'guid': video_id,
+                              'includePrerelease': True,
+                              'projectSlug': slug,
+                              'reactionsRollupInterval': 4000,
+                              'skipsEnabled': False},
             }).encode(), headers={
                 'content-type': 'application/json',
                 'authorization': auth_cookie,
             }), ('data', 'episode'))
 
         if (all(var is None for var in [metadata['guildAvailableDate'], metadata['publiclyAvailableDate'], metadata['earlyAccessDate']])):
-             self.raise_geo_restricted('This video is unavailable in your location!')
+            self.raise_geo_restricted('This video is unavailable!')
         elif (metadata['publiclyAvailableDate'] is None) and (traverse_obj(metadata, ('source', 'url')) is None):
-             self.raise_login_required('This is Members Only video. Please log in with your Guild account!')
+            self.raise_login_required('This is Members Only video (' + metadata['unavailableReason'] + '). Please log in with your Guild account!')
 
         # DOWNLOADING LIST OF M3U8 FILES
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(traverse_obj(metadata, ('source', 'url')), video_id)
