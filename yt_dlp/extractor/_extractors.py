@@ -1,32 +1,4 @@
 # flake8: noqa: F401
-# isort: off
-
-from .youtube import (  # Youtube is moved to the top to improve performance
-    YoutubeIE,
-    YoutubeClipIE,
-    YoutubeFavouritesIE,
-    YoutubeNotificationsIE,
-    YoutubeHistoryIE,
-    YoutubeTabIE,
-    YoutubeLivestreamEmbedIE,
-    YoutubePlaylistIE,
-    YoutubeRecommendedIE,
-    YoutubeSearchDateIE,
-    YoutubeSearchIE,
-    YoutubeSearchURLIE,
-    YoutubeMusicSearchURLIE,
-    YoutubeSubscriptionsIE,
-    YoutubeTruncatedIDIE,
-    YoutubeTruncatedURLIE,
-    YoutubeYtBeIE,
-    YoutubeYtUserIE,
-    YoutubeWatchLaterIE,
-    YoutubeShortsAudioPivotIE,
-    YoutubeConsentRedirectIE,
-)
-
-# isort: on
-
 from .abc import (
     ABCIE,
     ABCIViewIE,
@@ -84,6 +56,7 @@ from .agora import (
 )
 from .airtv import AirTVIE
 from .aitube import AitubeKZVideoIE
+from .alibaba import AlibabaIE
 from .aliexpress import AliExpressLiveIE
 from .aljazeera import AlJazeeraIE
 from .allocine import AllocineIE
@@ -338,8 +311,10 @@ from .canalsurmas import CanalsurmasIE
 from .caracoltv import CaracolTvPlayIE
 from .cbc import (
     CBCIE,
+    CBCGemContentIE,
     CBCGemIE,
     CBCGemLiveIE,
+    CBCGemOlympicsIE,
     CBCGemPlaylistIE,
     CBCListenIE,
     CBCPlayerIE,
@@ -430,6 +405,7 @@ from .cpac import (
 )
 from .cracked import CrackedIE
 from .craftsy import CraftsyIE
+from .croatianfilm import CroatianFilmIE
 from .crooksandliars import CrooksAndLiarsIE
 from .crowdbunker import (
     CrowdBunkerChannelIE,
@@ -590,7 +566,10 @@ from .eroprofile import (
     EroProfileAlbumIE,
     EroProfileIE,
 )
-from .err import ERRJupiterIE
+from .err import (
+    ERRArhiivIE,
+    ERRJupiterIE,
+)
 from .ertgr import (
     ERTFlixCodenameIE,
     ERTFlixIE,
@@ -637,6 +616,7 @@ from .fc2 import (
 )
 from .fczenit import FczenitIE
 from .fifa import FifaIE
+from .filmarchiv import FilmArchivIE
 from .filmon import (
     FilmOnChannelIE,
     FilmOnIE,
@@ -1051,6 +1031,10 @@ from .livestream import (
 )
 from .livestreamfails import LivestreamfailsIE
 from .lnk import LnkIE
+from .locipo import (
+    LocipoIE,
+    LocipoPlaylistIE,
+)
 from .loco import LocoIE
 from .loom import (
     LoomFolderIE,
@@ -1084,11 +1068,6 @@ from .mainstreaming import MainStreamingIE
 from .mangomolo import (
     MangomoloLiveIE,
     MangomoloVideoIE,
-)
-from .manoto import (
-    ManotoTVIE,
-    ManotoTVLiveIE,
-    ManotoTVShowIE,
 )
 from .manyvids import ManyVidsIE
 from .maoritv import MaoriTVIE
@@ -1277,6 +1256,7 @@ from .nebula import (
     NebulaChannelIE,
     NebulaClassIE,
     NebulaIE,
+    NebulaSeasonIE,
     NebulaSubscriptionsIE,
 )
 from .nekohacker import NekoHackerIE
@@ -1311,12 +1291,6 @@ from .newgrounds import (
 )
 from .newspicks import NewsPicksIE
 from .newsy import NewsyIE
-from .nextmedia import (
-    AppleDailyIE,
-    NextMediaActionNewsIE,
-    NextMediaIE,
-    NextTVIE,
-)
 from .nexx import (
     NexxEmbedIE,
     NexxIE,
@@ -1485,6 +1459,7 @@ from .palcomp3 import (
     PalcoMP3IE,
     PalcoMP3VideoIE,
 )
+from .pandatv import PandaTvIE
 from .panopto import (
     PanoptoIE,
     PanoptoListIE,
@@ -1833,10 +1808,6 @@ from .scrippsnetworks import (
     ScrippsNetworksWatchIE,
 )
 from .scrolller import ScrolllerIE
-from .scte import (
-    SCTEIE,
-    SCTECourseIE,
-)
 from .sejmpl import SejmIE
 from .sen import SenIE
 from .senalcolombia import SenalColombiaLiveIE
@@ -2017,6 +1988,11 @@ from .taptap import (
     TapTapAppIntlIE,
     TapTapMomentIE,
     TapTapPostIntlIE,
+)
+from .tarangplus import (
+    TarangPlusEpisodesIE,
+    TarangPlusPlaylistIE,
+    TarangPlusVideoIE,
 )
 from .tass import TassIE
 from .tbs import TBSIE
@@ -2204,11 +2180,15 @@ from .tvc import (
     TVCIE,
     TVCArticleIE,
 )
-from .tver import TVerIE
+from .tver import (
+    TVerIE,
+    TVerOlympicIE,
+)
 from .tvigle import TvigleIE
 from .tviplayer import TVIPlayerIE
 from .tvn24 import TVN24IE
 from .tvnoe import TVNoeIE
+from .tvo import TvoIE
 from .tvopengr import (
     TVOpenGrEmbedIE,
     TVOpenGrWatchIE,
@@ -2373,6 +2353,7 @@ from .vimm import (
 )
 from .viously import ViouslyIE
 from .viqeo import ViqeoIE
+from .visir import VisirIE
 from .viu import (
     ViuIE,
     ViuOTTIE,
@@ -2393,7 +2374,11 @@ from .voicy import (
     VoicyChannelIE,
     VoicyIE,
 )
-from .volejtv import VolejTVIE
+from .volejtv import (
+    VolejTVCategoryPlaylistIE,
+    VolejTVClubPlaylistIE,
+    VolejTVIE,
+)
 from .voxmedia import (
     VoxMediaIE,
     VoxMediaVolumeIE,
@@ -2555,6 +2540,29 @@ from .youporn import (
     YouPornStarIE,
     YouPornTagIE,
     YouPornVideosIE,
+)
+from .youtube import (
+    YoutubeClipIE,
+    YoutubeConsentRedirectIE,
+    YoutubeFavouritesIE,
+    YoutubeHistoryIE,
+    YoutubeIE,
+    YoutubeLivestreamEmbedIE,
+    YoutubeMusicSearchURLIE,
+    YoutubeNotificationsIE,
+    YoutubePlaylistIE,
+    YoutubeRecommendedIE,
+    YoutubeSearchDateIE,
+    YoutubeSearchIE,
+    YoutubeSearchURLIE,
+    YoutubeShortsAudioPivotIE,
+    YoutubeSubscriptionsIE,
+    YoutubeTabIE,
+    YoutubeTruncatedIDIE,
+    YoutubeTruncatedURLIE,
+    YoutubeWatchLaterIE,
+    YoutubeYtBeIE,
+    YoutubeYtUserIE,
 )
 from .zaiko import (
     ZaikoETicketIE,
