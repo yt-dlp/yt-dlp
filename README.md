@@ -1447,7 +1447,7 @@ $ yt-dlp --print filename -o "%(title)s.%(ext)s" BaW_jenozKc --restrict-filename
 youtube-dl_test_video_.webm    # Restricted file name
 
 # Download video and trim its title to 150 characters while keeping the ID (and extension) unchanged
-yt-dlp -o "%(title).150s [%(id)s].%(ext)s" "https://www.facebook.com/reel/1184023776297489"
+$ yt-dlp -o "%(title).150s [%(id)s].%(ext)s" "https://www.facebook.com/reel/1184023776297489"
 
 # Download YouTube playlist videos in separate directory indexed by video order in a playlist
 $ yt-dlp -o "%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s" "https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re"
