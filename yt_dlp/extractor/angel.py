@@ -95,7 +95,7 @@ class AngelIE(InfoExtractor):
 
                           episode(guid: $guid) {
                             description, episodeNumber, guid, id, name, posterCloudinaryPath, posterLandscapeCloudinaryPath, projectSlug, releaseDate, seasonId, seasonNumber, slug, subtitle,
-                            source { credits, duration, skipsUrl: url(input: {segmentFormat: TS, muteAllSwears: true}), url(input: {segmentFormat: TS}), __typename },
+                            source { credits, duration, skipsUrl: url(input: {segmentFormat: TS, muteAllSwears: true}), url(input: {segmentFormat: TS, maxH264Level: LEVEL_5_2}), __typename },
                             unavailableReason,
                             upNext { id, projectSlug, guid, seasonNumber, episodeNumber, subtitle, __typename },
                             vmapUrl,
