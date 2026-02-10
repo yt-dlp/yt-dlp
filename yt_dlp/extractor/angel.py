@@ -34,9 +34,9 @@ class AngelIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        slug, video_id = self._match_valid_url(url).group('series', 'id')
 
-        auth_cookie = ''
+        auth_cookie = None
         if (self._cookies_passed):
             auth_cookie = self._get_cookies(url)['angel_jwt_v2'].value
 
@@ -116,9 +116,9 @@ class AngelIE(InfoExtractor):
             }), ('data', 'episode'))
 
         if (all(var is None for var in [metadata['guildAvailableDate'], metadata['publiclyAvailableDate'], metadata['earlyAccessDate']])):
-            raise GeoRestrictedError('This video is unavailable in your location!')
+             self.raise_geo_restricted('This video is unavailable in your location!')
         elif (metadata['publiclyAvailableDate'] is None) and (traverse_obj(metadata, ('source', 'url')) is None):
-            raise ExtractorError('This is Members Only video. Please log in with your Guild account! ' + self._login_hint(), expected=True)
+             self.raise_login_required('This is Members Only video. Please log in with your Guild account!')
 
         # DOWNLOADING LIST OF M3U8 FILES
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(traverse_obj(metadata, ('source', 'url')), video_id)
