@@ -2,8 +2,9 @@ import re
 
 from .common import InfoExtractor
 from .kaltura import KalturaIE
-from ..networking import HEADRequest, Request
-from ..utils import remove_start, smuggle_url, urlencode_postdata
+from ..networking import Request
+from ..utils import base_url, parse_qs, remove_start, smuggle_url, urlencode_postdata
+from ..utils.traversal import traverse_obj
 
 
 class GDCVaultIE(InfoExtractor):
@@ -149,25 +150,45 @@ class GDCVaultIE(InfoExtractor):
         webpage_url = 'http://www.gdcvault.com/play/' + video_id
         start_page = self._download_webpage(webpage_url, display_id)
 
-        direct_url = self._search_regex(
-            r's1\.addVariable\("file",\s*encodeURIComponent\("(/[^"]+)"\)\);',
-            start_page, 'url', default=None)
-        if direct_url:
+        # query the iframe for the real video
+        iframe_url = self._search_regex(
+            r'<iframe.*src="(https://gdcvault.blazestreaming.com/\?id=[a-z0-9]+)"',
+            start_page, 'iframe_url')
+
+        if iframe_url:
+            # request the iframe webpage to get the "real" video url, walking to the
+            # javascript file defining the source URL
+            blaze_id = traverse_obj(parse_qs(iframe_url), ('id', -1))
+            player_baseurl = base_url(iframe_url)
+
+            # Unclear if this is required, as the javascript file appears to
+            # respond to some requests headers with dynamic content for the
+            # same requested URL later on.
+            _player_page = self._download_webpage(iframe_url, display_id)
+
+            js_url = f'{player_baseurl}/script_VOD.js'
+            player_url_js = self._download_webpage(js_url, display_id)
+
+            cdn_url_js = self._search_regex(
+                r'PLAYBACK_URL[\s]*=[\s]*\'(https://[^\']+\'\+videoId\+\'[a-z0-9/]+/index.m3u8)',
+                player_url_js, 'cdn_url_js')
+            cdn_url_real = cdn_url_js.replace("'+videoId+'", blaze_id)
+
             title = self._html_search_regex(
-                r'<td><strong>Session Name:?</strong></td>\s*<td>(.*?)</td>',
-                start_page, 'title')
-            video_url = 'http://www.gdcvault.com' + direct_url
-            # resolve the url so that we can detect the correct extension
-            video_url = self._request_webpage(
-                HEADRequest(video_url), video_id).url
+                r'<[td]{2}[^>]*>\s*<strong>Session Name:?</strong>\s*</[td]{2}>\s*<[td]{2}[^>]*>\s*(.*?)\s*</[td]{2}>',
+                start_page, 'title', fatal=False)
+            if not title:
+                title = remove_start(self._html_extract_title(start_page), 'GDC Vault - ')
 
-            return {
-                'id': video_id,
-                'display_id': display_id,
-                'url': video_url,
-                'title': title,
-            }
+            if cdn_url_real and title:
+                return {
+                    'id': video_id,
+                    'display_id': display_id,
+                    'title': title,
+                    'formats': self._extract_m3u8_formats(cdn_url_real, video_id),
+                }
 
+        # fallback to legacy if any website still supports it
         embed_url = KalturaIE._extract_url(start_page)
         if embed_url:
             embed_url = smuggle_url(embed_url, {'source_url': url})
