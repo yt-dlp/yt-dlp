@@ -461,6 +461,7 @@ from .daystar import DaystarClipIE
 from .dbtv import DBTVIE
 from .dctp import DctpTvIE
 from .democracynow import DemocracynowIE
+from .descript import DescriptIE
 from .detik import DetikEmbedIE
 from .deuxm import (
     DeuxMIE,
