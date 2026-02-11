@@ -338,11 +338,11 @@ class HttpFD(FileDownloader):
                 should_allow = False
                 reason = ""
 
+                if self.params.get('allow_empty_fragments'):
+                    should_allow = True
+                    reason = "allowed by config"
                 if is_valid_type and is_status_ok:
-                    if self.params.get('allow_empty_fragments'):
-                        should_allow = True
-                        reason = "allowed by config"
-                    elif is_fragment_context and extractor.lower().startswith('youtube') and info_dict.get('is_last_fragment', False):
+                    if is_fragment_context and extractor.lower().startswith('youtube') and info_dict.get('is_last_fragment', False):
                         should_allow = True
                         reason = "valid last YouTube fragment"
                 if should_allow:
