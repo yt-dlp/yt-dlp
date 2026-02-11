@@ -266,96 +266,32 @@ class VrtNUIE(VRTBaseIE):
     query EpisodePage($pageId: ID!) {
         page(id: $pageId) {
             ... on PlaybackPage {
-                ...playbackPageFragment
-                __typename
+            seo {
+                title
+                description
+            }
+            ldjson
+            player {
+                modes {
+                    cimMediaTrackingData {
+                        publicationDate
+                    }
+                    streamId
+                    progress {
+                        completed
+                        durationInSeconds
+                        progressInSeconds
+                    }
+                    secondaryMeta {
+                        type
+                        value
+                        longValue
+                    }
+                    subtitle
+                    title
+                }
             }
         }
-    }
-    fragment playerFragment on MediaPlayer {
-        __typename
-        objectId
-        classification {
-            iconName
-            __typename
-        }
-        maxAge
-        modes {
-            __typename
-            active
-            adsUrl
-            cimMediaTrackingData {
-                channel
-                ct
-                programDuration
-                programId
-                programName
-                publicationDate
-                seriesName
-                se
-                st
-                tv
-                __typename
-            }
-            token {
-                placeholder
-                value
-                __typename
-            }
-            resumePointTemplate {
-                mediaId
-                mediaName
-                __typename
-            }
-            streamId
-            ... on VideoPlayerMode {
-                aspectRatio
-                __typename
-            }
-            ... on AudioPlayerMode {
-                broadcastStartDate
-                __typename
-            }
-        }
-        progress {
-            __typename
-            completed
-            durationInSeconds
-            progressInSeconds
-        }
-        secondaryMeta {
-            ...metaFragment
-            __typename
-        }
-        subtitle
-        title
-    }
-    fragment metaFragment on MetaDataItem {
-        __typename
-        type
-        value
-        shortValue
-        longValue
-    }
-    fragment playbackPageFragment on PlaybackPage {
-        __typename
-        objectId
-        title
-        brand
-        permalink
-        seo {
-            ...seoFragment
-            __typename
-        }
-        ldjson
-        player {
-            ...playerFragment
-            __typename
-        }
-    }
-    fragment seoFragment on SeoProperties {
-        __typename
-        title
-        description
     }
     '''
 
