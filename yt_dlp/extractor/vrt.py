@@ -266,17 +266,16 @@ class VrtNUIE(VRTBaseIE):
     query EpisodePage($pageId: ID!) {
         page(id: $pageId) {
             ... on PlaybackPage {
-            seo {
                 title
-                description
-            }
-            ldjson
-            player {
-                modes {
-                    cimMediaTrackingData {
-                        publicationDate
-                    }
-                    streamId
+                brand
+                seo {
+                    title
+                    description
+                }
+                ldjson
+                player {
+                    title
+                    subtitle
                     progress {
                         completed
                         durationInSeconds
@@ -287,8 +286,12 @@ class VrtNUIE(VRTBaseIE):
                         value
                         longValue
                     }
-                    subtitle
-                    title
+                    modes {
+                        streamId
+                        cimMediaTrackingData {
+                            publicationDate
+                        }
+                    }
                 }
             }
         }
