@@ -114,10 +114,10 @@ class RPlayBaseIE(InfoExtractor):
                 self.report_warning('Login failed, possibly due to wrong password or website change')
 
     def get_butter_token(self):
-        salt = 'QWI@(!WAS)Dj1AA(!@*DJ#@$@~1)P'
-        key = 'S%M@#H#B(!@()a2@'
-        ts_value = str(int(time.time() / 360))
-        enc = aes_cbc_encrypt_bytes(f'{salt}https://rplay.live{ts_value}', key, ts_value.zfill(16))
+        salt = b'QWI@(!WAS)Dj1AA(!@*DJ#@$@~1)P'
+        key = b'S%M@#H#B(!@()a2@'
+        ts_value = bytes(f'{int(time.time() / 360)}', 'utf-8')
+        enc = aes_cbc_encrypt_bytes(salt + b'https://rplay.live' + ts_value, key, ts_value.zfill(16))
         return enc.hex()
 
 
