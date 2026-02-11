@@ -1,9 +1,8 @@
 import re
 
 from .common import InfoExtractor
-from .kaltura import KalturaIE
 from ..networking import Request
-from ..utils import base_url, parse_qs, remove_start, smuggle_url, urlencode_postdata
+from ..utils import base_url, parse_qs, remove_start, urlencode_postdata
 from ..utils.traversal import traverse_obj
 
 
@@ -73,13 +72,13 @@ class GDCVaultIE(InfoExtractor):
             },
         },
         {
-            # gdc-player.html
+            # legacy native HTML video player
             'url': 'https://www.gdcvault.com/play/1435/An-American-engine-in-Tokyo',
             'info_dict': {
-                'id': '1435`',
+                'id': '1435',
                 'display_id': 'An-American-engine-in-Tokyo',
                 'ext': 'mp4',
-                'title': 'An American Engine in Tokyo:/nThe collaboration of Epic Games and Square Enix/nFor THE LAST REMINANT',
+                'title': 'An American engine in Tokyo: The collaboration of Epic Games and Square Enix for THE LAST REMNANT',
             },
         },
         {
@@ -118,11 +117,17 @@ class GDCVaultIE(InfoExtractor):
 
         webpage_url = 'http://www.gdcvault.com/play/' + video_id
         start_page = self._download_webpage(webpage_url, display_id)
+        title = remove_start(self._html_extract_title(start_page), 'GDC Vault - ')
+        rich_title = self._html_search_regex(
+            r'<[td]{2}[^>]*>\s*<strong>Session Name:?</strong>\s*</[td]{2}>\s*<[td]{2}[^>]*>\s*(.*?)\s*</[td]{2}>',
+            start_page, 'title', fatal=False)
+        if rich_title:
+            title = rich_title
 
         # query the iframe for the real video
         iframe_url = self._search_regex(
             r'<iframe.*src="(https://gdcvault.blazestreaming.com/\?id=[a-z0-9]+)"',
-            start_page, 'iframe_url')
+            start_page, 'iframe_url', default=None, fatal=False)
 
         if iframe_url:
             # request the iframe webpage to get the "real" video url, walking to the
@@ -160,48 +165,15 @@ class GDCVaultIE(InfoExtractor):
                     'subtitles': m3u8_subs,
                 }
 
-        # fallback to legacy if any website still supports it
-        embed_url = KalturaIE._extract_url(start_page)
-        if embed_url:
-            embed_url = smuggle_url(embed_url, {'source_url': url})
-            ie_key = 'Kaltura'
-        else:
-            PLAYER_REGEX = r'<iframe src="(?P<xml_root>.+?)/(?:gdc-)?player.*?\.html.*?".*?</iframe>'
+        # fallback to searching for a raw MP4 file for older webpages.
+        self.to_screen('falling back to native HTML video')
+        media_entries = self._parse_html5_media_entries(url, start_page, video_id)
+        assert (len(self._parse_html5_media_entries(url, start_page, video_id)) == 1)
 
-            xml_root = self._html_search_regex(
-                PLAYER_REGEX, start_page, 'xml root', default=None)
-            if xml_root is None:
-                # Probably need to authenticate
-                login_res = self._login(webpage_url, display_id)
-                if login_res is None:
-                    self.report_warning('Could not login.')
-                else:
-                    start_page = login_res
-                    # Grab the url from the authenticated page
-                    xml_root = self._html_search_regex(
-                        PLAYER_REGEX, start_page, 'xml root')
-
-            xml_name = self._html_search_regex(
-                r'<iframe src=".*?\?xml(?:=|URL=xml/)(.+?\.xml).*?".*?</iframe>',
-                start_page, 'xml filename', default=None)
-            if not xml_name:
-                info = self._parse_html5_media_entries(url, start_page, video_id)[0]
-                info.update({
-                    'title': remove_start(self._search_regex(
-                        r'>Session Name:\s*<.*?>\s*<td>(.+?)</td>', start_page,
-                        'title', default=None) or self._og_search_title(
-                        start_page, default=None), 'GDC Vault - '),
-                    'id': video_id,
-                    'display_id': display_id,
-                })
-                return info
-            embed_url = f'{xml_root}/xml/{xml_name}'
-            ie_key = 'DigitallySpeaking'
-
-        return {
-            '_type': 'url_transparent',
+        info = media_entries[0]
+        info.update({
+            'title': title,
             'id': video_id,
             'display_id': display_id,
-            'url': embed_url,
-            'ie_key': ie_key,
-        }
+        })
+        return info
