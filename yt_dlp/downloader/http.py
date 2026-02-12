@@ -327,24 +327,25 @@ class HttpFD(FileDownloader):
                     ctx.throttle_start = None
 
             if ctx.stream is None:
-                status = getattr(ctx.data, 'status', 0) if hasattr(ctx, 'data') else 0
                 headers = getattr(ctx.data, 'headers', {}) if hasattr(ctx, 'data') else {}
                 ct = headers.get('Content-Type', '').lower()
                 is_valid_type = (not ct or ct == 'application/octet-stream' or ct.startswith(('video/', 'audio/', 'binary/')))
-                is_status_ok = 200 <= status < 300
                 is_fragment_context = 'Frag' in filename or info_dict.get('is_fragment', False)
                 extractor = info_dict.get('extractor_key') or info_dict.get('extractor') or ''
-                frag_id = info_dict.get('fragment_number', 0)
+                frag_id = info_dict.get('fragment_id', 0)
                 should_allow = False
                 reason = ""
 
                 if self.params.get('allow_empty_fragments'):
                     should_allow = True
                     reason = "allowed by config"
-                if is_valid_type and is_status_ok:
-                    if is_fragment_context and extractor.lower().startswith('youtube') and info_dict.get('is_last_fragment', False):
+                if is_valid_type:
+                    if is_fragment_context and extractor.lower().startswith('youtube') and (info_dict.get('fragment_count', 0) and info_dict.get('fragment_id', 0) == info_dict.get('fragment_count', 0)):
                         should_allow = True
                         reason = "valid last YouTube fragment"
+                    elif is_fragment_context and extractor.lower().startswith('youtube') and info_dict.get('is_live', False):
+                        should_allow = True
+                        reason = "YouTube live fragment"
                 if should_allow:
                     self.report_warning(f'\r[download] Empty fragment detected: {reason}. Creating dummy fragment {frag_id}, Type: {ct}')
                     # create a 0 byte .part
