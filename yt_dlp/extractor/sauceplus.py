@@ -44,7 +44,7 @@ class SaucePlusIE(FloatplaneBaseIE):
 class SaucePlusChannelIE(FloatplaneChannelBaseIE):
     _VALID_URL = r'https?://(?:(?:www|beta)\.)?sauceplus\.com/channel/(?P<id>[\w-]+)/home(?:/(?P<channel>[\w-]+))?'
     _BASE_URL = 'https://www.sauceplus.com'
-    _ENTRY_IE_TYPE = SaucePlusIE
+    _RESULT_IE = SaucePlusIE
     _PAGE_SIZE = 20
     _TESTS = [{
         'url': 'https://www.sauceplus.com/channel/williamosman/home',
