@@ -3639,9 +3639,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if not server_abr_streaming_url or not video_playback_ustreamer_config:
                     return
 
+                if client_name == 'android_vr' and live_status in ('post_live', 'is_live'):
+                    # android_vr SABR live does not work (and previously was very unstable)
+                    self.report_warning(
+                        f'{video_id}: android_vr client {proto} live formats will be skipped as they are not playable', only_once=True)
+                    return
+
                 if protobug is None:
                     self.report_warning(
-                        f'{video_id}: {client_name} client {proto} formats will be skipped as protobug is not installed.',
+                        f'{video_id}: {client_name} client {proto} formats will be skipped as protobug is not installed',
                         only_once=True)
                     return
 
