@@ -359,7 +359,7 @@ class FloatplaneChannelIE(FloatplaneChannelBaseIE):
     _VALID_URL = r'https?://(?:(?:www|beta)\.)?floatplane\.com/channel/(?P<id>[\w-]+)/home(?:/(?P<channel>[\w-]+))?'
     _BASE_URL = 'https://www.floatplane.com'
     _PAGE_SIZE = 20
-    _ENTRY_IE_TYPE = FloatplaneIE
+    _RESULT_IE = FloatplaneIE
     _TESTS = [{
         'url': 'https://www.floatplane.com/channel/linustechtips/home/ltxexpo',
         'info_dict': {
