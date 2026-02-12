@@ -293,33 +293,77 @@ class ArteTVPlaylistIE(ArteTVBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://www.arte.tv/pl/videos/RC-014123/arte-reportage/',
-        'playlist_mincount': 100,
+        'playlist_mincount': 20,
         'info_dict': {
             'description': 'md5:84e7bf1feda248bc325ebfac818c476e',
             'id': 'RC-014123',
             'title': 'ARTE Reportage - najlepsze reportaże',
         },
+    }, {
+        'url': 'https://www.arte.tv/de/videos/RC-025470/ramy/',
+        'playlist_mincount': 30,
+        'info_dict': {
+            'description': 'md5:8766d73504ddccd12dbd1395a1d56815',
+            'id': 'RC-025470',
+            'title': 'Ramy',
+        },
+    }, {
+        'url': 'https://www.arte.tv/de/videos/RC-027148/zucker-genuss-um-welchen-preis/',
+        'playlist_mincount': 1,
+        'info_dict': {
+            'description': 'md5:4c06c2b63970f78276bcadaea2d0df0b',
+            'id': 'RC-027148',
+            'title': 'Zucker, Genuss um welchen Preis?',
+        },
     }]
 
+    def _season_entries(self, season_ids, lang):
+        for season_id in season_ids:
+            season_data = self._download_json(
+                f'{self._API_BASE}/playlist/{lang}/{season_id}', season_id,
+                headers={'x-validated-age': '18'})
+
+            for video in traverse_obj(season_data, (
+                'data', 'attributes', 'items',
+                    lambda _, v: v['providerId'] and v['link']['url'])):
+                yield {
+                    '_type': 'url_transparent',
+                    'ie_key': ArteTVIE.ie_key(),
+                    **traverse_obj(video, {
+                        'url': ('link', 'url', {str}),
+                        'id': ('providerId', {str}),
+                        'title': ('title', {str}),
+                        'alt_title': ('subtitle', {str}),
+                        'duration': ('duration', 'seconds', {int_or_none}),
+                        'age_limit': ('ageRating', {int_or_none}),
+                    }),
+                }
+
     def _real_extract(self, url):
+        _API_TOKEN = 'Nzc1Yjc1ZjJkYjk1NWFhN2I2MWEwMmRlMzAzNjI5NmU3NWU3ODg4ODJjOWMxNTMxYzEzZGRjYjg2ZGE4MmIwOA'
         lang, playlist_id = self._match_valid_url(url).group('lang', 'id')
-        playlist = self._download_json(
-            f'{self._API_BASE}/playlist/{lang}/{playlist_id}', playlist_id)['data']['attributes']
 
-        entries = [{
-            '_type': 'url_transparent',
-            'url': video['config']['url'],
-            'ie_key': ArteTVIE.ie_key(),
-            'id': video.get('providerId'),
-            'title': video.get('title'),
-            'alt_title': video.get('subtitle'),
-            'thumbnail': url_or_none(traverse_obj(video, ('mainImage', 'url'))),
-            'duration': int_or_none(traverse_obj(video, ('duration', 'seconds'))),
-        } for video in traverse_obj(playlist, ('items', lambda _, v: v['config']['url']))]
+        playlist_info = self._download_json(
+            f'https://api.arte.tv/api/opa/v3/programs/{lang}/{playlist_id}', playlist_id,
+            headers={'Authorization': f'Bearer {_API_TOKEN}'})
+        playlist_info = traverse_obj(playlist_info, ('programs', ...), get_all=False)
+        metadata = traverse_obj(
+            playlist_info, {'title': ('title', {str}), 'description': ('shortDescription', {str})})
 
-        return self.playlist_result(entries, playlist_id,
-                                    traverse_obj(playlist, ('metadata', 'title')),
-                                    traverse_obj(playlist, ('metadata', 'description')))
+        # Check first if there are seasons
+        season_ids = traverse_obj(
+            playlist_info, ('children', (lambda _, v: v['catalogType'] == 'SEASON'), 'programId'))
+        if season_ids:
+            return self.playlist_result(self._season_entries(season_ids, lang),
+                                        playlist_id,
+                                        **metadata)
+
+        # It might be a mini series comprised of a few shows
+        shows = traverse_obj(playlist_info, (
+            'videos', lambda _, v: v['kind'] == 'SHOW' and url_or_none(v['url'])))
+        return self.playlist_result([self.url_result(show['url'], ArteTVIE) for show in shows],
+                                    playlist_id,
+                                    **metadata)
 
 
 class ArteTVCategoryIE(ArteTVBaseIE):
