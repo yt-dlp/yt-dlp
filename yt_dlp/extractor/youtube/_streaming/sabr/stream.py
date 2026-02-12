@@ -29,7 +29,6 @@ from yt_dlp.networking.exceptions import HTTPError, TransportError
 from yt_dlp.utils import RetryManager, int_or_none, parse_qs, str_or_none, traverse_obj
 
 from .exceptions import (
-    MediaSegmentMismatchError,
     PoTokenError,
     SabrStreamConsumedError,
     SabrStreamError,
@@ -183,8 +182,6 @@ class SabrStream:
         self._is_retry = False
 
         self._consumed = False
-        self._sq_mismatch_backtrack_count = 0
-        self._sq_mismatch_forward_count = 0
 
     def close(self):
         self._consumed = True
@@ -420,31 +417,9 @@ class SabrStream:
     def _process_media_header(self, part: UMPPart):
         media_header = protobug.load(part.data, MediaHeader)
         self._log_part(part=part, protobug_obj=media_header)
-
-        try:
-            result = self.processor.process_media_header(media_header)
-            if result.sabr_part:
-                yield result.sabr_part
-        except MediaSegmentMismatchError as e:
-            # For livestreams, the server may not know the exact segment for a given player time.
-            # For segments near stream head, it estimates using segment duration, which can cause off-by-one segment mismatches.
-            # If a segment is much longer or shorter than expected, the server may return a segment ahead or behind.
-            # In such cases, retry with an adjusted player time to resync.
-            if self.processor.is_live and e.received_sequence_number == e.expected_sequence_number - 1:
-                # The segment before the previous segment was possibly longer than expected.
-                # Move the player time forward to try to adjust for this.
-                self.processor.player_time_ms += self.processor.live_segment_target_duration_tolerance_ms
-                self._sq_mismatch_forward_count += 1
-                self._current_http_retry.error = e
-                return
-            elif self.processor.is_live and e.received_sequence_number == e.expected_sequence_number + 2:
-                # The previous segment was possibly shorter than expected
-                # Move the player time backwards to try to adjust for this.
-                self.processor.player_time_ms = max(0, self.processor.player_time_ms - self.processor.live_segment_target_duration_tolerance_ms)
-                self._sq_mismatch_backtrack_count += 1
-                self._current_http_retry.error = e
-                return
-            raise e
+        result = self.processor.process_media_header(media_header)
+        if result.sabr_part:
+            yield result.sabr_part
 
     def _process_media(self, part: UMPPart):
         header_id = read_varint(part.data)
@@ -915,7 +890,6 @@ class SabrStream:
             f"exp:{dt.timedelta(seconds=int(self._gvs_expiry() - time.time())) if self._gvs_expiry() else 'n/a'} "
             f"rn:{self._request_number} sr:{self._stream_stall_tracker.stalled_requests} "
             f"act:{'Y' if self._stream_stall_tracker.activity_detected else 'N'} "
-            f"mmb:{self._sq_mismatch_backtrack_count} mmf:{self._sq_mismatch_forward_count} "
             f"pot:{'Y' if self.processor.po_token else 'N'} "
             f"sps:{self.processor.stream_protection_status.name if self.processor.stream_protection_status else 'n/a'} "
             f"{live_message} "
