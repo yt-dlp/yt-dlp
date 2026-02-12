@@ -319,7 +319,7 @@ class FloatplaneIE(FloatplaneBaseIE):
 
 
 class FloatplaneChannelBaseIE(InfoExtractor):
-    """Subclasses must set _ENTRY_IE_TYPE, _BASE_URL and _PAGE_SIZE"""
+    """Subclasses must set _RESULT_IE, _BASE_URL and _PAGE_SIZE"""
 
     def _fetch_page(self, display_id, creator_id, channel_id, page):
         query = {
