@@ -1,9 +1,10 @@
 from .common import InfoExtractor
-from ..utils import join_nonempty, traverse_obj, unified_strdate
+from ..utils import join_nonempty, unified_strdate
+from ..utils.traversal import traverse_obj
 
 
 class MatchiTVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?matchi\.tv/watch\?s=(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?matchi\.tv/watch/?\?(?:[^#]+&)?s=(?P<id>[0-9a-zA-Z]+)'
     _TESTS = [{
         'url': 'https://matchi.tv/watch?s=0euhjzrxsjm',
         'info_dict': {
@@ -13,6 +14,9 @@ class MatchiTVIE(InfoExtractor):
             'thumbnail': 'https://thumbnails.padelgo.tv/0euhjzrxsjm.jpg',
             'upload_date': '20240713',
         },
+    }, {
+        'url': 'https://matchi.tv/watch?s=FkKDJ9SvAx1',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
