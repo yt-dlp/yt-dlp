@@ -3543,20 +3543,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         sc = urllib.parse.parse_qs(fmt_stream.get('signatureCipher'))
                         fmt_url = traverse_obj(sc, ('url', 0, {url_or_none}))
                         encrypted_sig = traverse_obj(sc, ('s', 0))
-                        # TODO: remove SABR warnings
                         if not all((sc, fmt_url, skip_player_js or player_url, encrypted_sig)):
-                            msg_tmpl = (
-                                '{}Some {} client https formats have been skipped as they are missing a URL. '
-                                '{}. See  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details')
-                            if client_name in ('web', 'web_safari'):
-                                self.write_debug(msg_tmpl.format(
-                                    f'{video_id}: ', client_name,
-                                    'YouTube is forcing SABR streaming for this client'), only_once=True)
-                            else:
-                                msg = (
-                                    f'YouTube may have enabled the SABR-only streaming experiment for '
-                                    f'{"your account" if self.is_authenticated else "the current session"}')
-                                self.report_warning(msg_tmpl.format('', client_name, msg), video_id, only_once=True)
+                            self.write_debug(
+                                f'{video_id}: {client_name} client https formats have been skipped as they are missing a URL.'
+                                ' YouTube is forcing SABR streaming for this client', only_once=True)
                             continue
 
                     fmt = process_format_stream(
