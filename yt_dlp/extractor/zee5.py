@@ -97,7 +97,7 @@ class Zee5IE(InfoExtractor):
         'only_matching': True,
     }]
     _DEVICE_ID = str(uuid.uuid4())
-    raw_esk = f'{_DEVICE_ID}__gBQaZLiNdGN9UsCKZaloghz9t9StWLSD__{int(time.time()*1000)}'
+    raw_esk = f'{_DEVICE_ID}__gBQaZLiNdGN9UsCKZaloghz9t9StWLSD__{int(time.time() * 1000)}'
     _ESK = base64.b64encode(raw_esk.encode()).decode()
     _USER_TOKEN = None
     _LOGIN_HINT = 'Use "--username <mobile_number>" to login using otp or "--username token" and "--password <user_token>" to login using user token.'
@@ -106,10 +106,10 @@ class Zee5IE(InfoExtractor):
     _USER_COUNTRY = None
     _REFRESH_TOKEN = None
     _CACHE_KEY = 'zee5_data'
- 
+
     def is_jwt_expired(self, jwt_token):
         return jwt_decode_hs256(jwt_token)['exp'] - time.time() < 300
-   
+
     def get_user_token(self):
         if self._USER_TOKEN and not self.is_jwt_expired(self._USER_TOKEN):
             return self._USER_TOKEN
@@ -129,19 +129,19 @@ class Zee5IE(InfoExtractor):
             'Esk': self._ESK,
             'referer': 'https://www.zee5.com/',
         }
-   
+
     def refresh_token(self):
         if not self._REFRESH_TOKEN:
             return self._perform_login(*self._get_login_info())
         try:
             data = self._download_json(
-                url = f"/v1/user/renew?refresh_token={self._REFRESH_TOKEN}",
-                headers={**self.default_headers()}
+                url=f'/v1/user/renew?refresh_token={self._REFRESH_TOKEN}',
+                headers={**self.default_headers()},
             )
-        except ExtractorError as e:
+        except ExtractorError:
             self.to_screen('Unable to Refresh token')
             return self._perform_login(*self._get_login_info())
-    
+
         self._USER_TOKEN = data.get('access_token')
         self._REFRESH_TOKEN = data.get('refresh_token')
         self.cache.store(self._NETRC_MACHINE, self._CACHE_KEY, [self._USER_TOKEN, self._REFRESH_TOKEN])
@@ -153,7 +153,7 @@ class Zee5IE(InfoExtractor):
         if len(username) == 10 and username.isdigit() and self._USER_TOKEN is None:
             self.report_login()
             otp_request_json = self._download_json(
-                f'https://auth.zee5.com/v1/user/sendotp',
+                'https://auth.zee5.com/v1/user/sendotp',
                 None,
                 data=json.dumps({
                     'phoneno': username if '91' in username else f'91{username}',
@@ -166,17 +166,17 @@ class Zee5IE(InfoExtractor):
                 raise ExtractorError(otp_request_json['message'], expected=True)
             otp_code = self._get_tfa_info('OTP')
             otp_verify_json = self._download_json(
-                f'https://auth.zee5.com/v1/user/verifyotp',
+                'https://auth.zee5.com/v1/user/verifyotp',
                 None,
                 data=json.dumps({
-                    'aid': '91955485578', # Static in browser
-                    'appflyer_id': '65368gdbso90oNinja4AS133436', # Static in browser
+                    'aid': '91955485578',  # Static in browser
+                    'appflyer_id': '65368gdbso90oNinja4AS133436',  # Static in browser
                     'phoneno': username if '91' in username else f'91{username}',
                     'otp': otp_code,
                     'guest_token': self._DEVICE_ID,
                     'lotame_cookie_id': '',
                     'platform': 'PWA',
-                    'version': '5.2.1'
+                    'version': '5.2.1',
                 }).encode(),
                 headers={**self.default_headers()},
                 note='Verifying OTP', fatal=False)
