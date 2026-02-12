@@ -62,12 +62,11 @@ class SabrFD(FileDownloader):
                     'live_status': sabr_config.get('live_status'),
                     'video_id': sabr_config.get('video_id'),
                     'client_info': ClientInfo(
-                        client_name=traverse_obj(client_info, ('clientName', {lambda x: ClientName[x]})),
-                        client_version=traverse_obj(client_info, 'clientVersion'),
-                        os_version=traverse_obj(client_info, 'osVersion'),
-                        os_name=traverse_obj(client_info, 'osName'),
-                        device_model=traverse_obj(client_info, 'deviceModel'),
-                        device_make=traverse_obj(client_info, 'deviceMake'),
+                        **{
+                            **client_info,
+                            'client_name': traverse_obj(
+                                client_info, ('client_name', {lambda x: ClientName[x]})),
+                        },
                     ),
                     'target_duration_sec': sabr_config.get('target_duration_sec'),
                     # Number.MAX_SAFE_INTEGER

@@ -3652,12 +3652,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if client_name not in gvs_pots:
                         gvs_pots[client_name] = po_token
 
+                # Only add fields to infodict that we use to avoid bloating it
+                client_info = traverse_obj(
+                    innertube_context, ('client', {
+                        'client_name': 'clientName',
+                        'client_version': 'clientVersion',
+                        'os_version': 'osVersion',
+                        'os_name': 'osName',
+                        'device_model': 'deviceModel',
+                        'device_make': 'deviceMake',
+                    }))
+
                 sabr_config = {
                     'video_playback_ustreamer_config': video_playback_ustreamer_config,
                     'po_token': po_token,
                     'fetch_po_token_fn': fetch_po_token_func,
                     'client_name': client_name,
-                    'client_info': traverse_obj(innertube_context, 'client'),
+                    'client_info': client_info,
                     'reload_config_fn': functools.partial(self._reload_sabr_config, video_id, client_name),
                     'video_id': video_id,
                     'live_status': live_status,
