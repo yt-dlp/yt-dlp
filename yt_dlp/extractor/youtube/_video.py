@@ -1985,15 +1985,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         known_idx, no_fragment_score, last_segment_url = begin_index, 0, None
         fragments, fragment_base_url = None, None
+        last_seq = 0
 
         def _extract_sequence_from_mpd(refresh_sequence, immediate):
-            nonlocal mpd_url, stream_number, is_live, no_fragment_score, fragments, fragment_base_url
+            nonlocal mpd_url, stream_number, is_live, no_fragment_score, fragments, fragment_base_url, last_seq
             # Obtain from MPD's maximum seq value
             old_mpd_url = mpd_url
             last_error = ctx.pop('last_error', None)
             expire_fast = immediate or (last_error and isinstance(last_error, HTTPError) and last_error.status == 403)
-            mpd_url, stream_number, is_live = (mpd_feed(format_id, 5 if expire_fast else 18000)
-                                               or (mpd_url, stream_number, False))
+            
+            mpd = mpd_feed(format_id, 5 if expire_fast else 18000)
+            if mpd:
+                mpd_url, stream_number, is_live = mpd
+            else:
+                no_fragment_score += 2
+                return False, last_seq
+
             if not refresh_sequence:
                 if expire_fast and not is_live:
                     return False, last_seq
@@ -2010,18 +2017,32 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if not fmts:
                     no_fragment_score += 2
                     return False, last_seq
-                fmt_info = next(x for x in fmts if x['manifest_stream_number'] == stream_number)
+                try:
+                    fmt_info = next(x for x in fmts if x['manifest_stream_number'] == stream_number)
+                except StopIteration:
+                    no_fragment_score += 2
+                    return False, last_seq
+
             fragments = fmt_info['fragments']
             fragment_base_url = fmt_info['fragment_base_url']
             assert fragment_base_url
 
-            _last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
+            try:
+                _last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
+            except (AttributeError, IndexError, ValueError):
+                 no_fragment_score += 2
+                 return False, last_seq
+
             return True, _last_seq
 
         self.write_debug(f'[{video_id}] Generating fragments for format {format_id}')
         while is_live:
+            if ctx.get('live_ended_gracefully'):
+                self.write_debug(f'[{video_id}] Generator stopped due to live_ended_gracefully flag.')
+                return
             fetch_time = time.time()
             if no_fragment_score > 30:
+                self.write_debug(f'[{video_id}] Aborting fragment generation: no_fragment_score > 30')
                 return
             if last_segment_url:
                 # Obtain from "X-Head-Seqnum" header value from each segment
@@ -2030,46 +2051,54 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         last_segment_url, None, note=False, errnote=False, fatal=False)
                 except ExtractorError:
                     urlh = None
-                last_seq = try_get(urlh, lambda x: int_or_none(x.headers['X-Head-Seqnum']))
-                if last_seq is None:
+                
+                current_seq = try_get(urlh, lambda x: int_or_none(x.headers['X-Head-Seqnum']))
+                if current_seq is None:
                     no_fragment_score += 2
                     last_segment_url = None
                     continue
+                last_seq = current_seq
             else:
-                should_continue, last_seq = _extract_sequence_from_mpd(True, no_fragment_score > 15)
-                no_fragment_score += 2
+                # fallback
+                should_continue, current_seq = _extract_sequence_from_mpd(True, no_fragment_score > 15)
                 if not should_continue:
+                    # MPD refresh failed
+                    time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
                     continue
+                last_seq = current_seq
+                no_fragment_score = 0
 
             if known_idx > last_seq:
+                # we are too fast
                 last_segment_url = None
+                time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
                 continue
-
-            last_seq += 1
-
+            
             if begin_index < 0 and known_idx < 0:
                 # skip from the start when it's negative value
                 known_idx = last_seq + begin_index
-            if lack_early_segments:
-                known_idx = max(known_idx, last_seq - int(MAX_DURATION // fragments[-1]['duration']))
+            if lack_early_segments and fragments:
+                segment_duration = fragments[-1].get('duration', 5.0)
+                known_idx = max(known_idx, last_seq - int(MAX_DURATION // segment_duration))
+
             try:
-                for idx in range(known_idx, last_seq):
-                    # do not update sequence here or you'll get skipped some part of it
-                    should_continue, _ = _extract_sequence_from_mpd(False, False)
-                    if not should_continue:
-                        known_idx = idx - 1
-                        raise ExtractorError('breaking out of outer loop')
-                    last_segment_url = urljoin(fragment_base_url, f'sq/{idx}')
+                target_seq = last_seq + 1
+                for idx in range(known_idx, target_seq):
+                    path = f'sq/{idx}'
+                    segment_url = urljoin(fragment_base_url, path)
                     yield {
-                        'url': last_segment_url,
+                        'url': segment_url,
+                        'path': path,
                         'fragment_count': last_seq,
                     }
-                if known_idx == last_seq:
-                    no_fragment_score += 5
+                    last_segment_url = segment_url
+                if known_idx == target_seq:
+                    no_fragment_score += 5 # no new fragments
                 else:
                     no_fragment_score = 0
-                known_idx = last_seq
-            except ExtractorError:
+                known_idx = target_seq
+            except ExtractorError as e:
+                self.report_warning(f'Error generating fragment loop: {e}')
                 continue
 
             if manifestless_orig_fmt:
