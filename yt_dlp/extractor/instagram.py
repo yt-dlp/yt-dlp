@@ -543,12 +543,15 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
             '__relay_internal__pv__PolarisCASB976ProfileEnabledrelayprovider': False,
             '__relay_internal__pv__PolarisRepostsConsumptionEnabledrelayprovider': False,
         }
-        data = self._download_json(
-            f'{self.GRAPHQL_API}/query/', user_id, note='Downloading user data',
-            query={
-                'doc_id': '25585291164389315',
-                'variables': json.dumps(variables),
-            })
+        try:
+            data = self._download_json(
+                f'{self.GRAPHQL_API}/query/', user_id, note='Downloading user data',
+                query={
+                    'doc_id': '26762473490008061',
+                    'variables': json.dumps(variables),
+                })
+        except ExtractorError:
+            return {}
         user_data = traverse_obj(data, ('data', 'user'))
         if not user_data:
             return {}
@@ -565,8 +568,8 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                 page = self._next_page(uploader_id, cursor, page_num, rank_token=rank_token)
                 nodes, media = self._parse_nodes_and_media(page)
             except ExtractorError:
-                self.raise_login_required(
-                    'This content is only available for registered users who follow this account')
+                msg = 'This content is only available for registered users who follow this account' if 'explore/' in url or '/tags/' in url else 'Requested content is not available, rate-limit reached or login required'
+                self.raise_login_required(msg)
                 raise
 
             yield from ({**user_data, **item} for item in self._extract_nodes(nodes))
@@ -637,7 +640,7 @@ class InstagramUserIE(InstagramPlaylistBaseIE):
 
     @staticmethod
     def _parse_nodes_and_media(data):
-        # extracts the media timeline data from a GraphQL result
+        # extracts the Nodes and media data from a GraphQL result
         media = data['data']['xdt_api__v1__feed__user_timeline_graphql_connection']
         nodes = traverse_obj(media, ('edges', ..., 'node'), expected_type=dict) or []
         return nodes, media
@@ -661,8 +664,6 @@ class InstagramTagIE(InstagramPlaylistBaseIE):
         },
     }]
 
-    _DOC_ID = 17875800862117404
-
     def _next_page(self, video_id, cursor, page_num, **kwargs):
         query = {}
         if kwargs:
@@ -683,7 +684,7 @@ class InstagramTagIE(InstagramPlaylistBaseIE):
 
     @staticmethod
     def _parse_nodes_and_media(data):
-        # extracts the media timeline data from a GraphQL result
+        # extracts the Media or Nodes from page from a Serp result
         parsed_data = []
         media = data.get('media_grid')
         sections = media.get('sections', [])
