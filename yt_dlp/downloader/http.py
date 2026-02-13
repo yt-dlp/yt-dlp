@@ -334,18 +334,18 @@ class HttpFD(FileDownloader):
                 extractor = info_dict.get('extractor_key') or info_dict.get('extractor') or ''
                 frag_id = info_dict.get('fragment_id', 0)
                 should_allow = False
-                reason = ""
+                reason = ''
 
                 if self.params.get('allow_empty_fragments'):
                     should_allow = True
-                    reason = "allowed by config"
-                if is_valid_type:
-                    if is_fragment_context and extractor.lower().startswith('youtube') and (info_dict.get('fragment_count', 0) and info_dict.get('fragment_id', 0) == info_dict.get('fragment_count', 0)):
+                    reason = 'allowed by config'
+                if is_valid_type and is_fragment_context:
+                    if extractor.lower().startswith('youtube') and info_dict.get('is_live', False):
                         should_allow = True
-                        reason = "valid last YouTube fragment"
-                    elif is_fragment_context and extractor.lower().startswith('youtube') and info_dict.get('is_live', False):
+                        reason = 'YouTube live fragment'
+                    elif extractor.lower().startswith('youtube') and (info_dict.get('fragment_count', 0) and frag_id == info_dict.get('fragment_count', 0)):
                         should_allow = True
-                        reason = "YouTube live fragment"
+                        reason = 'valid last YouTube fragment'
                 if should_allow:
                     self.report_warning(f'\r[download] Empty fragment detected: {reason}. Creating dummy fragment {frag_id}, Type: {ct}')
                     # create a 0 byte .part
@@ -353,7 +353,8 @@ class HttpFD(FileDownloader):
                         with open(ctx.tmpfilename, 'wb'):
                             pass 
                     except OSError as err:
-                        self.report_error(f'\r[download] Could not create dummy fragment: {err}')
+                        self.to_stderr('\n')
+                        self.report_error(f'[download] Could not create dummy fragment: {err}')
                         return False
                     # .part to real name
                     if ctx.tmpfilename != '-' and ctx.filename:
