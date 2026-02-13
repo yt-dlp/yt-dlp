@@ -316,23 +316,6 @@ class SabrStream:
             self._current_sps_retry.error = error
             return
 
-        # TODO: reconsider this logic. This was seen briefly on ANDROID at one point. Retest.
-        # elif (
-        #     self.processor.stream_protection_status == StreamProtectionStatus.Status.ATTESTATION_PENDING
-        #     and self._no_new_segments_tracker.consecutive_requests >= self.max_empty_requests
-        #     and (not self.processor.is_live or self.processor.stream_protection_status or (
-        #         self.processor.live_metadata is not None
-        #         and self._no_new_segments_tracker.live_head_segment_started != self.processor.live_metadata.head_sequence_number)
-        #     )
-        # ):
-        #     # Sometimes YouTube sends no data on ATTESTATION_PENDING, so in this case we need to count retries to fail on a PO Token error.
-        #     # We only start counting retries after max_empty_requests in case of intermittent no data that we need to increase the player time on.
-        #     # For livestreams when we receive no new segments, this could be due the stream ending or ATTESTATION_PENDING.
-        #     # To differentiate the two, we check if the live head segment has changed during the time we start getting no new segments.
-        #     # xxx: not perfect detection, sometimes get a new segment we can never fetch (partial)
-        #     self._current_sps_retry.error = error
-        #     return
-
     def _process_next_wait(self):
         if self._next_request_wait_sec > 0:
             self.logger.debug(f'Sleeping for {self._next_request_wait_sec} seconds before next request')
@@ -345,28 +328,11 @@ class SabrStream:
     def _validate_response_integrity(self):
         if not len(self.processor.partial_segments):
             return
-
         msg = 'Received partial segments: ' + ', '.join(
             f'{seg.format_id}: {seg.sequence_number}'
             for seg in self.processor.partial_segments.values()
         )
-        if self.processor.is_live:
-            # In post live, sometimes we get a partial segment at the end of the stream that should be ignored.
-            # If this occurs mid-stream, other guards should prevent corruption.
-            if (
-                self.processor.live_metadata
-                # TODO: generalize
-                and self.processor.player_time_ms >= (
-                    self.processor.live_metadata.head_sequence_time_ms - (self.processor.live_segment_target_duration_sec * 1000 * self.live_end_segment_tolerance))
-            ):
-                # Only log a warning if we are not near the head of a stream
-                self.logger.debug(msg)
-            else:
-                self.logger.warning(msg)
-        else:
-            # Should not happen for videos
-            self._current_http_retry.error = SabrStreamError(msg)
-
+        self.logger.debug(msg)
         self.processor.partial_segments.clear()
 
     # region: UMP Part Processors
