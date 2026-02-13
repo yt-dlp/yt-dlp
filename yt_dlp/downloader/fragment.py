@@ -115,6 +115,10 @@ class FragmentFD(FileDownloader):
             'http_headers': headers or info_dict.get('http_headers'),
             'request_data': request_data,
             'ctx_id': ctx.get('ctx_id'),
+            'extractor_key': info_dict.get('extractor_key') or info_dict.get('extractor'),
+            'fragment_id': ctx['fragment_index'],
+            'fragment_count': ctx.get('fragment_count') or ctx.get('total_frags'),
+            'is_live': bool(info_dict.get('is_live') or ctx.get('live')),
         }
         frag_resume_len = 0
         if ctx['dl'].params.get('continuedl', True):
@@ -145,8 +149,9 @@ class FragmentFD(FileDownloader):
 
     def _append_fragment(self, ctx, frag_content):
         try:
-            ctx['dest_stream'].write(frag_content)
-            ctx['dest_stream'].flush()
+            if frag_content is not None:
+                ctx['dest_stream'].write(frag_content)
+                ctx['dest_stream'].flush()
         finally:
             if self.__do_ytdl_file(ctx):
                 self._write_ytdl_file(ctx)
@@ -242,16 +247,13 @@ class FragmentFD(FileDownloader):
         def frag_progress_hook(s):
             if s['status'] not in ('downloading', 'finished'):
                 return
-
             if not total_frags and ctx.get('fragment_count'):
-                state['fragment_count'] = ctx['fragment_count']
-
+                if not ctx.get('live'):
+                    state['fragment_count'] = ctx['fragment_count']
             if ctx_id is not None and s.get('ctx_id') != ctx_id:
                 return
-
             state['max_progress'] = ctx.get('max_progress')
             state['progress_idx'] = ctx.get('progress_idx')
-
             state['elapsed'] = progress.elapsed
             frag_total_bytes = s.get('total_bytes') or 0
             s['fragment_info_dict'] = s.pop('info_dict', {})
@@ -279,7 +281,6 @@ class FragmentFD(FileDownloader):
             self._hook_progress(state, info_dict)
 
         ctx['dl'].add_progress_hook(frag_progress_hook)
-
         return ctx['started']
 
     def _finish_frag_download(self, ctx, info_dict):
@@ -349,6 +350,8 @@ class FragmentFD(FileDownloader):
         def decrypt_fragment(fragment, frag_content):
             if frag_content is None:
                 return
+            if not frag_content:
+                return frag_content
             decrypt_info = fragment.get('decrypt_info')
             if not decrypt_info or decrypt_info['METHOD'] != 'AES-128':
                 return frag_content
@@ -456,21 +459,59 @@ class FragmentFD(FileDownloader):
                 self.report_retry(err, count, retries, frag_index, fatal)
                 ctx['last_error'] = err
 
-            for retry in RetryManager(self.params.get('fragment_retries'), error_callback):
-                try:
-                    ctx['fragment_count'] = fragment.get('fragment_count')
-                    if not self._download_fragment(
-                            ctx, fragment['url'], info_dict, headers, info_dict.get('request_data')):
+            is_live_stream = info_dict.get('is_live') or info_dict.get('is_from_start')
+            live_reconnect_window = self.params.get('yt_live_reconnect_window', 90) # need new config option?
+            live_http_error_started = None
+
+            while True:
+                for retry in RetryManager(self.params.get('fragment_retries'), error_callback):
+                    try:
+                        ctx['fragment_count'] = fragment.get('fragment_count')
+                        if not self._download_fragment(
+                                ctx, fragment['url'], info_dict, headers, info_dict.get('request_data')):
+                            return
                         return
-                except (HTTPError, IncompleteRead) as err:
-                    retry.error = err
-                    continue
-                except DownloadError:  # has own retry settings
-                    if fatal:
-                        raise
+                    except (HTTPError, IncompleteRead) as err:
+                        if isinstance(err, HTTPError):
+                            status = err.status
+                            if 500 <= status < 600:
+                                self.to_screen(
+                                    f'[download] HTTP {status} (server error) on fragment {frag_index}, retrying with backoff...')
+                                retry.error = err
+                                continue
+                            elif 400 <= status < 500 and is_live_stream:
+                                if live_http_error_started is None:
+                                    live_http_error_started = time.time()
+                                elapsed = time.time() - live_http_error_started
+                                
+                                # limit 90 sec stream down
+                                effective_window = min(live_reconnect_window, 90)
+                                if elapsed <= effective_window:
+                                    self.to_screen(
+                                        f'[download] HTTP {status} on fragment {frag_index} during live stream. '
+                                        f'Waiting for stream to resume ({int(elapsed)}s/{effective_window}s)...')
+                                    retry.error = err
+                                    continue
+                                
+                                # timeout - stream ended
+                                self.to_screen(
+                                    f'[download] HTTP {status} persisted for {elapsed:.0f}s (limit {effective_window}s). '
+                                    f'Assuming live stream ended.')
+                                interrupt_trigger[0] = False
+                                ctx['live_ended_gracefully'] = True
+                                return
+                        retry.error = err
+                        continue
+                    except DownloadError:  # has own retry settings
+                        if fatal:
+                            raise
+                if not is_live_stream:
+                    return
+                # livestream - restart RetryManager after sleep
+                time.sleep(10)
 
         def append_fragment(frag_content, frag_index, ctx):
-            if frag_content:
+            if frag_content is not None:
                 self._append_fragment(ctx, pack_func(frag_content, frag_index))
             elif not is_fatal(frag_index - 1):
                 self.report_skip_fragment(frag_index, 'fragment not found')
@@ -507,10 +548,19 @@ class FragmentFD(FileDownloader):
                     raise
         else:
             for fragment in fragments:
+                if ctx.get('live_ended_gracefully'):
+                    break
+                if ctx.get('live') and fragment.get('fragment_count'):
+                    ctx['fragment_count'] = fragment['fragment_count']
+
                 if not interrupt_trigger[0]:
                     break
                 try:
                     download_fragment(fragment, ctx)
+                    if ctx.get('live_ended_gracefully'):
+                         self.to_screen('[download] Live stream ended.')
+                         interrupt_trigger[0] = False
+                         break
                     result = append_fragment(
                         decrypt_fragment(fragment, self._read_fragment(ctx)), fragment['frag_index'], ctx)
                 except KeyboardInterrupt:
@@ -519,6 +569,15 @@ class FragmentFD(FileDownloader):
                     raise
                 if not result:
                     return False
+                
+                if ctx.get('live_ended_gracefully'):
+                     self.to_screen('[download] Live stream ended (HTTP 4xx on fragment detected inside loop)')
+                     break
+
+        if ctx.get('live_ended_gracefully'):
+            # exit on multi-worker
+            self.to_screen('[download] Live stream ended (HTTP 4xx on fragment)')
+            interrupt_trigger[0] = False
 
         if finish_func is not None:
             ctx['dest_stream'].write(finish_func())
