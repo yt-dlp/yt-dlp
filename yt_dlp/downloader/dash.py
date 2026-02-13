@@ -24,19 +24,29 @@ class DashSegmentsFD(FragmentFD):
                 info_dict, self.params, None, protocol='dash_frag_urls', to_stdout=(filename == '-'))
 
         real_start = time.time()
-
         requested_formats = [{**info_dict, **fmt} for fmt in info_dict.get('requested_formats', [])]
+
         args = []
         for fmt in requested_formats or [info_dict]:
-            # Re-extract if --load-info-json is used and 'fragments' was originally a generator
-            # See https://github.com/yt-dlp/yt-dlp/issues/13906
             if isinstance(fmt['fragments'], str):
-                raise ReExtractInfo('the stream needs to be re-extracted', expected=True)
-
+                is_live_stream = fmt.get('is_live') or fmt.get('is_from_start')
+                if not is_live_stream:
+                    raise ReExtractInfo('the stream needs to be re-extracted', expected=True)
+                else:
+                    # live handled by extractor
+                    self.to_screen(
+                        f'[{self.FD_NAME}] Warning: fragments is string type for live stream')
+                    raise ReExtractInfo('live manifest needs refresh', expected=True)
+            
             try:
                 fragment_count = 1 if self.params.get('test') else len(fmt['fragments'])
             except TypeError:
+                # fragments are generator on live
                 fragment_count = None
+            
+            if fmt.get('is_live') or fmt.get('is_from_start'):
+                fragment_count = None
+
             ctx = {
                 'filename': fmt.get('filepath') or filename,
                 'live': 'is_from_start' if fmt.get('is_from_start') else fmt.get('is_live'),
@@ -47,6 +57,7 @@ class DashSegmentsFD(FragmentFD):
                 self._prepare_external_frag_download(ctx)
             else:
                 self._prepare_and_start_frag_download(ctx, fmt)
+
             ctx['start'] = real_start
 
             extra_query = None
@@ -74,22 +85,41 @@ class DashSegmentsFD(FragmentFD):
     def _get_fragments(self, fmt, ctx, extra_query):
         fragment_base_url = fmt.get('fragment_base_url')
         fragments = self._resolve_fragments(fmt['fragments'], ctx)
+        catching_up_shown = False 
 
         frag_index = 0
         for i, fragment in enumerate(fragments):
+            if ctx.get('live_ended_gracefully'):
+                if self.params.get('verbose'):
+                    self.to_screen(f'[{self.FD_NAME}] Live stream end detected. Stopping fragment generation.')
+                return
+
             frag_index += 1
             if frag_index <= ctx['fragment_index']:
                 continue
+
             fragment_url = fragment.get('url')
             if not fragment_url:
                 assert fragment_base_url
                 fragment_url = urljoin(fragment_base_url, fragment['path'])
+
             if extra_query:
                 fragment_url = update_url_query(fragment_url, extra_query)
 
+            current_total = fragment.get('fragment_count')
+            if not catching_up_shown and ctx.get('live') == 'is_from_start' and current_total:
+                self.to_screen(
+                    f'[{self.FD_NAME}] Catching up to live: fragments total >{current_total}')
+                catching_up_shown = True
+
             yield {
                 'frag_index': frag_index,
-                'fragment_count': fragment.get('fragment_count'),
+                'fragment_count': current_total,
                 'index': i,
                 'url': fragment_url,
             }
+
+        if ctx.get('live') and self.params.get('verbose'):
+            self.to_screen(
+                f'[DEBUG][{self.FD_NAME}] Fragment generator {ctx.get("live")} exhausted after {frag_index} fragments.')
+
