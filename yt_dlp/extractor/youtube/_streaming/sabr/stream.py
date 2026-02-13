@@ -12,10 +12,10 @@ from yt_dlp.dependencies import protobug
 from yt_dlp.extractor.youtube._proto import unknown_fields
 from yt_dlp.extractor.youtube._proto.innertube import ClientInfo, NextRequestPolicy
 from yt_dlp.extractor.youtube._proto.videostreaming import (
+    CuepointList,
     FormatInitializationMetadata,
     LiveMetadata,
     MediaHeader,
-    NetworkTiming,
     ReloadPlayerResponse,
     SabrContextSendingPolicy,
     SabrContextUpdate,
@@ -108,7 +108,6 @@ class SabrStream:
         UMPPartId.REQUEST_PIPELINING,
         UMPPartId.SELECTABLE_FORMATS,
         UMPPartId.PREWARM_CONNECTION,
-        UMPPartId.NETWORK_TIMING,
     )
 
     def __init__(
@@ -402,8 +401,8 @@ class SabrStream:
                 self._process_sabr_context_sending_policy(part)
             elif part.part_id == UMPPartId.RELOAD_PLAYER_RESPONSE:
                 yield from self._process_reload_player_response(part)
-            elif part.part_id == UMPPartId.NETWORK_TIMING:
-                self._process_network_timing(part)
+            elif part.part_id == UMPPartId.CUEPOINT_LIST:
+                self._process_cuepoint_list(part)
             else:
                 if part.part_id not in self._IGNORED_PARTS:
                     self._unknown_part_types.add(part.part_id)
@@ -503,10 +502,10 @@ class SabrStream:
             reload_playback_token=reload_player_response.reload_playback_params.token,
         )
 
-    def _process_network_timing(self, part: UMPPart):
-        network_timing = protobug.load(part.data, NetworkTiming)
-        self._log_part(part, protobug_obj=network_timing)
-        self.processor.process_network_timing(network_timing)
+    def _process_cuepoint_list(self, part: UMPPart):
+        cuepoint_list = protobug.load(part.data, CuepointList)
+        self._log_part(part, protobug_obj=cuepoint_list)
+        self.processor.process_cuepoint_list(cuepoint_list)
 
     # endregion
 

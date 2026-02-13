@@ -9,11 +9,11 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     BufferedRange,
     ClientAbrState,
     CuepointEvent,
+    CuepointList,
     CuepointUstreamerConfig,
     FormatInitializationMetadata,
     LiveMetadata,
     MediaHeader,
-    NetworkTiming,
     SabrContext,
     SabrContextSendingPolicy,
     SabrContextUpdate,
@@ -718,19 +718,19 @@ class SabrProcessor:
                 self.logger.debug(f'Server requested to discard SABR Context Update for type {discard_type}')
                 self.sabr_context_updates.pop(discard_type, None)
 
-    def process_network_timing(self, network_timing: NetworkTiming):
+    def process_cuepoint_list(self, cuepoint_list: CuepointList):
         # EXPERIMENTAL
-        for timing in network_timing.timings:
-            cuepoint = timing.cuepoint
+        for cuepoint_info in cuepoint_list.cuepoint_info:
+            cuepoint = cuepoint_info.cuepoint
             if not cuepoint:
                 continue
             cuepoint_identifier = cuepoint.identifier
             if cuepoint.event == CuepointEvent.CUEPOINT_EVENT_STOP:
                 self._cuepoint_identifier = None
-                self.logger.debug(f'Cleared NetworkTiming cuepoint identifier for track {timing.track_type}')
+                self.logger.debug(f'Cleared CuepointList cuepoint identifier for track {cuepoint_info.track_type}')
             else:
                 self._cuepoint_identifier = cuepoint_identifier
-                self.logger.debug(f'Set NetworkTiming cuepoint identifier to {cuepoint_identifier} for track {timing.track_type}')
+                self.logger.debug(f'Set CuepointList cuepoint identifier to {cuepoint_identifier} for track {cuepoint_info.track_type}')
 
 
 def build_vpabr_request(processor: SabrProcessor):

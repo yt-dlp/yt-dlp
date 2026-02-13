@@ -36,7 +36,7 @@ class Cuepoint:
 
 
 @protobug.message
-class Timing:
+class CuepointInfo:
     cuepoint: Cuepoint | None = protobug.field(1, default=None)
     track_type: TrackType | None = protobug.field(2, default=None)
     sequence_number: protobug.Int32 | None = protobug.field(3, default=None)
@@ -45,5 +45,5 @@ class Timing:
 
 
 @protobug.message
-class NetworkTiming:
-    timings: list[Timing] = protobug.field(1, default_factory=list)
+class CuepointList:
+    cuepoint_info: list[CuepointInfo] = protobug.field(1, default_factory=list)
