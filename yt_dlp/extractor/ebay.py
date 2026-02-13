@@ -112,8 +112,8 @@ class EbayLiveIE(InfoExtractor):
             'id': video_id,
             'formats': self._extract_m3u8_formats(m3u8_url, video_id, 'mp4'),
             'live_status': live_status,
-            'uploader_id': remove_start(host_key, 'User:'),
             'timestamp': start_timestamp,
+            'uploader_id': remove_start(host_key, 'User:'),
             **traverse_obj(apollo_data, {
                 'tags': (tag_keys, 'name', {clean_html}, filter),
                 'thumbnail': (thumbnail_key, 'url', {url_or_none}),
