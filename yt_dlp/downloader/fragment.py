@@ -549,6 +549,7 @@ class FragmentFD(FileDownloader):
         else:
             for fragment in fragments:
                 if ctx.get('live_ended_gracefully'):
+                    interrupt_trigger[0] = False
                     break
                 if ctx.get('live') and fragment.get('fragment_count'):
                     ctx['fragment_count'] = fragment['fragment_count']
@@ -569,10 +570,6 @@ class FragmentFD(FileDownloader):
                     raise
                 if not result:
                     return False
-                
-                if ctx.get('live_ended_gracefully'):
-                     self.to_screen('[download] Live stream ended (HTTP 4xx on fragment detected inside loop)')
-                     break
 
         if ctx.get('live_ended_gracefully'):
             # exit on multi-worker
