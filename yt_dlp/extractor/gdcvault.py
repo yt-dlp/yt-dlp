@@ -126,7 +126,7 @@ class GDCVaultIE(InfoExtractor):
 
         # query the iframe for the real video
         iframe_url = self._search_regex(
-            r'<iframe.*src="(https://gdcvault.blazestreaming.com/\?id=[a-z0-9]+)"',
+            r'<iframe[^/]+src="(https://gdcvault.blazestreaming.com/\?id=[a-z0-9]+)"',
             start_page, 'iframe_url', default=None, fatal=False)
 
         if iframe_url:
