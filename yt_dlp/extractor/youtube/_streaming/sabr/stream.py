@@ -29,6 +29,7 @@ from yt_dlp.networking.exceptions import HTTPError, TransportError
 from yt_dlp.utils import RetryManager, int_or_none, parse_qs, str_or_none, traverse_obj
 
 from .exceptions import (
+    BroadcastIdChanged,
     PoTokenError,
     SabrStreamConsumedError,
     SabrStreamError,
@@ -62,6 +63,13 @@ class StreamStallTracker:
 
     def next_request(self):
         self.activity_detected = False
+
+
+@dataclasses.dataclass
+class Heartbeat:
+    is_live: bool
+    video_id: str
+    broadcast_id: str
 
 
 class SabrStream:
@@ -134,10 +142,12 @@ class SabrStream:
         video_id: str | None = None,
         retry_sleep_func: typing.Callable[[int], int] | None = None,
         expiry_threshold_sec: int | None = None,
+        heartbeat_callback: typing.Callable[[], Heartbeat] | None = None,
     ):
 
         self.logger = logger
         self._urlopen = urlopen
+        self._heartbeat_callback = heartbeat_callback
 
         self.processor = SabrProcessor(
             logger=logger,
@@ -195,11 +205,23 @@ class SabrStream:
     @url.setter
     def url(self, url):
         self.logger.debug(f'New URL: {url}')
-        if self.processor.is_live and hasattr(self, '_url') and ((bn := broadcast_id_from_url(url)) != (bc := broadcast_id_from_url(self.url))):
-            raise SabrStreamError(f'Broadcast ID changed from {bc} to {bn}. The download will need to be restarted.')
+        if self.processor.is_live and hasattr(self, '_url'):
+            self._process_broadcast_id(broadcast_id_from_url(url))
         self._url = url
         if str_or_none(parse_qs(url).get('source', [None])[0]) == 'yt_live_broadcast':
             self.processor.is_live = True
+
+    @property
+    def broadcast_id(self):
+        return broadcast_id_from_url(self.url)
+
+    def _process_broadcast_id(self, bid: str | None):
+        # Validate a retrieved broadcast ID matches what this stream expects
+        if bid is None or self.broadcast_id is None:
+            return
+
+        if bid != self.broadcast_id:
+            raise BroadcastIdChanged(self.broadcast_id, bid)
 
     def iter_parts(self):
         if self._consumed:
@@ -678,31 +700,30 @@ class SabrStream:
                 self._wait_for(max(self._next_request_backoff_ms() // 1000, self.processor.live_segment_target_duration_sec))
             return
 
-        if self._is_near_head_of_live_stream():
-            # TODO(future): consider checking heartbeat or other indicators of actual stream end
-            # TODO: check all enabled format selectors have an initialized format
-            self.logger.debug(
-                f'No activity detected in {empty_requests} requests and {seconds_since_last_activity:.1f} seconds. '
-                f'Near live stream head; assuming livestream has ended.')
-            self._consumed = True
-            return
+        # If LIVE_METADATA is not provided, we cannot be sure if we are at the head of the stream.
+        # To allow the stream to end, consider it as near live head in this case.
+        # This has been seen on ANDROID_VR client.
+        is_near_live_head = self._is_near_head_of_live_stream()
+        if is_near_live_head or not self.processor.live_metadata:
+            context_msg = 'Near live stream head' if is_near_live_head else 'No live metadata available'
 
-        # Guard: In the case live metadata is not returned,
-        # we cannot be sure if we are at the head of the stream.
-        # In this case we'll consider the stream has ended.
-        # This has only been seen on android_vr, most other clients return live metadata.
-        if not self.processor.live_metadata:
-            # TODO(future): consider checking heartbeat or other indicators of actual stream end
+            # TODO: add a timeout on how long heartbeat can indicate it is still live
+            if self._heartbeat_is_live():
+                self.logger.debug(
+                    f'No activity detected in {empty_requests} requests and {seconds_since_last_activity:.1f} seconds. '
+                    f'{context_msg} but heartbeat indicates stream is still live; continuing to wait for segments.')
+                return
+
             # TODO: check all enabled format selectors have an initialized format
             self.logger.debug(
                 f'No activity detected in {empty_requests} requests and {seconds_since_last_activity:.1f} seconds. '
-                f'No live metadata available; assuming livestream has ended.')
+                f'{context_msg} and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
             self._consumed = True
             return
 
         raise StreamStallError(
             f'Stream stalled; no activity detected in '
-            f'{empty_requests} requests and {seconds_since_last_activity} seconds '
+            f'{empty_requests} requests and {seconds_since_last_activity:.1f} seconds '
             f'and not near live head.')
 
     # endregion
@@ -747,6 +768,29 @@ class SabrStream:
         # 2. Check if near head sequence based on total duration
         # NOTE: head sequence time is the start time of the head sequence
         return self._player_time_near_live_head(tolerant=True)
+
+    def _heartbeat_is_live(self) -> bool | None:
+        if not self.processor.is_live or self.processor.post_live:
+            return None
+
+        if not self._heartbeat_callback:
+            self.logger.debug('No heartbeat callback provided, skipping heartbeat check')
+            return None
+
+        try:
+            heartbeat = self._heartbeat_callback()
+        except Exception as e:
+            self.logger.warning(f'Error occurred while calling heartbeat callback, skipping heartbeat check: {e}')
+            return None
+
+        self.logger.trace(f'Heartbeat response: {heartbeat}')
+
+        if not heartbeat or not isinstance(heartbeat, Heartbeat):
+            self.logger.warning('Invalid heartbeat response received, skipping heartbeat check')
+            return None
+
+        self._process_broadcast_id(heartbeat.broadcast_id)
+        return heartbeat.is_live
 
     def _player_time_near_live_head(self, tolerant=False) -> bool:
         # Check if the current player time is near or at the live stream head based on head sequence time

@@ -2,7 +2,7 @@ from __future__ import annotations
 import base64
 import io
 import time
-from unittest.mock import Mock
+from unittest.mock import Mock, MagicMock
 import protobug
 import pytest
 from yt_dlp.extractor.youtube._proto.innertube import NextRequestPolicy
@@ -34,6 +34,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.exceptions import (
     MediaSegmentMismatchError,
     UnexpectedConsumedMediaSegment,
     StreamStallError,
+    BroadcastIdChanged,
 )
 from yt_dlp.extractor.youtube._streaming.ump import UMPPartId, UMPPart
 from yt_dlp.networking.exceptions import TransportError, HTTPError, RequestError
@@ -46,7 +47,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.part import (
     MediaSegmentInitSabrPart,
     MediaSeekSabrPart,
 )
-from yt_dlp.extractor.youtube._streaming.sabr.stream import SabrStream
+from yt_dlp.extractor.youtube._streaming.sabr.stream import SabrStream, Heartbeat
 from yt_dlp.extractor.youtube._proto.videostreaming import (
     FormatId,
     BufferedRange,
@@ -61,8 +62,8 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
 )
 from yt_dlp.utils import parse_qs
 
-
-LIVE_URL = 'https://example.com/sabr_live?id=123&source=yt_live_broadcast'
+LIVE_BROADCAST_ID = '123'
+LIVE_URL = f'https://example.com/sabr_live?id={LIVE_BROADCAST_ID}&source=yt_live_broadcast'
 
 
 def setup_sabr_stream_av(
@@ -826,7 +827,7 @@ class TestStream:
         )
 
         assert sabr_stream.processor.is_live is True
-        with pytest.raises(SabrStreamError, match=r'Broadcast ID changed from 1 to 2\. The download will need to be restarted\.'):
+        with pytest.raises(BroadcastIdChanged, match=r'Broadcast ID changed from 1 to 2\. The download will need to be restarted\.'):
             sabr_stream.url = 'https://example.com/sabr?source=yt_live_broadcast&id=2'
 
     def test_reload_player_response(self, logger, client_info):
@@ -2351,6 +2352,10 @@ class TestStream:
                 logger.debug.assert_any_call('No activity detected in request 9; registering stall (count: 6)')
                 assert sabr_stream._stream_stall_tracker.stalled_requests == 6
 
+                # No callback registered, and should not try to call heartbeat
+                with pytest.raises(AssertionError):
+                    logger.debug.assert_any_call('No heartbeat callback provided, skipping heartbeat check')
+
             @mock_time
             @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
             def test_stream_stall_midway_max_empty_requests_exceeded(self, logger, client_info, post_live):
@@ -2392,9 +2397,13 @@ class TestStream:
                 logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 10)')
                 assert sabr_stream._stream_stall_tracker.stalled_requests == 10
 
+                # No callback registered, and should not try to call heartbeat
+                with pytest.raises(AssertionError):
+                    logger.debug.assert_any_call('No heartbeat callback provided, skipping heartbeat check')
+
             @mock_time
             @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
-            def test_stream_stall_midway_no_live_metadata(self, logger, client_info, post_live):
+            def test_stream_stall_midway_no_live_metadata_no_heartbeat(self, logger, client_info, post_live):
                 # Get a stream stall midway through a live stream with no live metadata,
                 # should consider the stream as complete (no error)
                 total_segments = 10
@@ -2430,12 +2439,82 @@ class TestStream:
                 parts = list(sabr_stream.iter_parts())
 
                 logger.debug.assert_any_call('No activity detected in request 9; registering stall (count: 6)')
-                logger.debug.assert_any_call('No activity detected in 6 requests and 10.0 seconds. No live metadata available; assuming livestream has ended.')
+                logger.debug.assert_any_call(
+                    'No activity detected in 6 requests and 10.0 seconds. '
+                    'No live metadata available and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
 
                 # We will only get the first few segments
                 assert_media_sequence_in_order(parts, audio_selector, 3)
                 assert_media_sequence_in_order(parts, video_selector, 3)
                 assert sabr_stream._stream_stall_tracker.stalled_requests == 6
+
+                if post_live:
+                    # Should skip heartbeat check for post-live
+                    with pytest.raises(AssertionError):
+                        logger.debug.assert_any_call('No heartbeat callback provided, skipping heartbeat check')
+                else:
+                    # Should have tried heartbeat but skipped due to no heartbeat callback provided
+                    logger.debug.assert_any_call('No heartbeat callback provided, skipping heartbeat check')
+
+            @mock_time
+            @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
+            def test_stream_stall_midway_no_live_metadata_with_heartbeat(self, logger, client_info, post_live):
+                # Get a stream stall midway through a live stream with no live metadata,
+                # and the heartbeat indicates we are at the end of the stream,
+                # should consider the stream as complete (no error)
+                total_segments = 10
+                segment_target_duration_ms = 2000
+                dvr_segments = 7 if not post_live else 9
+
+                def no_new_segments_func(parts, vpabr, url, request_number):
+                    # Stop returning new segments after 3 requests
+                    if request_number >= 4:
+                        return []
+                    return parts
+
+                profile = LiveAVProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                    'custom_parts_function': no_new_segments_func,
+                    'omit_live_metadata': True,
+                })
+
+                heartbeat_callback = MagicMock()
+                heartbeat_callback.return_value = Heartbeat(
+                    is_live=False, broadcast_id=LIVE_BROADCAST_ID, video_id='video_id')
+
+                sabr_stream, _, selectors = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    post_live=post_live,
+                    heartbeat_callback=heartbeat_callback,
+                )
+                assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+
+                audio_selector, video_selector = selectors
+                # Should complete successfully (no error)
+                parts = list(sabr_stream.iter_parts())
+
+                logger.debug.assert_any_call('No activity detected in request 9; registering stall (count: 6)')
+                logger.debug.assert_any_call(
+                    'No activity detected in 6 requests and 10.0 seconds. '
+                    'No live metadata available and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+
+                # We will only get the first few segments
+                assert_media_sequence_in_order(parts, audio_selector, 3)
+                assert_media_sequence_in_order(parts, video_selector, 3)
+                assert sabr_stream._stream_stall_tracker.stalled_requests == 6
+
+                if post_live:
+                    # Heartbeat should not have been called for post-live
+                    heartbeat_callback.assert_not_called()
+                else:
+                    # Heartbeat should have been called at least once
+                    heartbeat_callback.assert_called()
 
             @mock_time
             @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
@@ -2518,16 +2597,225 @@ class TestStream:
                 logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
                 if not post_live:
                     logger.trace.assert_any_call('Near live stream head detected based on consumed ranges of active formats: head seq (8) - tolerance (3)')
-                    logger.debug.assert_any_call('No activity detected in 5 requests and 10.0 seconds. Near live stream head; assuming livestream has ended.')
+                    logger.debug.assert_any_call('No activity detected in 5 requests and 10.0 seconds. Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
                     assert sabr_stream._stream_stall_tracker.stalled_requests == 5
+                    # No callback registered, should check for live
+                    logger.debug.assert_any_call('No heartbeat callback provided, skipping heartbeat check')
                 else:
                     logger.trace.assert_any_call('Near live stream head detected based on consumed ranges of active formats: head seq (10) - tolerance (3)')
-                    logger.debug.assert_any_call('No activity detected in 6 requests and 10.0 seconds. Near live stream head; assuming livestream has ended.')
+                    logger.debug.assert_any_call('No activity detected in 6 requests and 10.0 seconds. Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
                     assert sabr_stream._stream_stall_tracker.stalled_requests == 6
+                    # No callback registered, and should not try to call heartbeat for post-live
+                    with pytest.raises(AssertionError):
+                        logger.debug.assert_any_call('No heartbeat callback provided, skipping heartbeat check')
 
                 # We will get all but the last 2 segments in this example
                 assert_media_sequence_in_order(parts, audio_selector, total_segments - 2, check_segment_total_segments=False)
                 assert_media_sequence_in_order(parts, video_selector, total_segments - 2, check_segment_total_segments=False)
+
+            @mock_time
+            def test_stream_stall_head_consumed_ranges_with_heartbeat(self, logger, client_info):
+                # Should consider near live head based on consumed ranges and finish stream on stall
+                # This should calculate a default live_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
+                # Same as test_stream_stall_head_consumed_ranges but with heartbeat indicating stream is not live,
+                # should still finish stream on stall
+                total_segments = 10
+                segment_target_duration_ms = 2000
+                dvr_segments = 7
+
+                def no_new_segments_func(parts, vpabr, url, request_number):
+                    # Stop returning new segments after 8 requests
+                    if request_number >= 9:
+                        return []
+                    return parts
+
+                profile = LiveAVProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                    'custom_parts_function': no_new_segments_func,
+                })
+
+                heartbeat_callback = MagicMock()
+                heartbeat_callback.return_value = Heartbeat(
+                    is_live=False, broadcast_id=LIVE_BROADCAST_ID, video_id='video_id')
+
+                sabr_stream, _, selectors = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    heartbeat_callback=heartbeat_callback,
+                )
+                audio_selector, video_selector = selectors
+                assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+                parts = list(sabr_stream.iter_parts())
+
+                logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
+
+                logger.trace.assert_any_call('Near live stream head detected based on consumed ranges of active formats: head seq (8) - tolerance (3)')
+                logger.debug.assert_any_call('No activity detected in 5 requests and 10.0 seconds. Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+                assert sabr_stream._stream_stall_tracker.stalled_requests == 5
+
+                # We will get all but the last 2 segments in this example
+                assert_media_sequence_in_order(parts, audio_selector, total_segments - 2, check_segment_total_segments=False)
+                assert_media_sequence_in_order(parts, video_selector, total_segments - 2, check_segment_total_segments=False)
+
+                # Heartbeat should have been called at least once
+                heartbeat_callback.assert_called()
+
+            @mock_time
+            def test_stream_stall_head_consumed_ranges_with_heartbeat_error(self, logger, client_info):
+                # Should consider near live head based on consumed ranges and finish stream on stall
+                # This should calculate a default live_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
+                # Same as test_stream_stall_head_consumed_ranges but with heartbeat raising an error (should be ignored)
+                # should still finish stream on stall
+                total_segments = 10
+                segment_target_duration_ms = 2000
+                dvr_segments = 7
+
+                def no_new_segments_func(parts, vpabr, url, request_number):
+                    # Stop returning new segments after 8 requests
+                    if request_number >= 9:
+                        return []
+                    return parts
+
+                profile = LiveAVProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                    'custom_parts_function': no_new_segments_func,
+                })
+
+                heartbeat_callback = MagicMock()
+                # raise an error on callback
+                heartbeat_callback.side_effect = Exception('heartbeat error')
+
+                sabr_stream, _, selectors = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    heartbeat_callback=heartbeat_callback,
+                )
+                audio_selector, video_selector = selectors
+                assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+                parts = list(sabr_stream.iter_parts())
+
+                logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
+
+                logger.trace.assert_any_call('Near live stream head detected based on consumed ranges of active formats: head seq (8) - tolerance (3)')
+                logger.debug.assert_any_call('No activity detected in 5 requests and 10.0 seconds. Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+                assert sabr_stream._stream_stall_tracker.stalled_requests == 5
+
+                # We will get all but the last 2 segments in this example
+                assert_media_sequence_in_order(parts, audio_selector, total_segments - 2, check_segment_total_segments=False)
+                assert_media_sequence_in_order(parts, video_selector, total_segments - 2, check_segment_total_segments=False)
+
+                # Heartbeat should have been called at least once
+                heartbeat_callback.assert_called()
+                logger.warning.assert_any_call('Error occurred while calling heartbeat callback, skipping heartbeat check: heartbeat error')
+
+            @mock_time
+            def test_stream_stall_head_consumed_ranges_with_heartbeat_invalid_response(self, logger, client_info):
+                # Should consider near live head based on consumed ranges and finish stream on stall
+                # This should calculate a default live_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
+                # Same as test_stream_stall_head_consumed_ranges but with heartbeat returning an invalid response
+                # should still finish stream on stall
+                total_segments = 10
+                segment_target_duration_ms = 2000
+                dvr_segments = 7
+
+                def no_new_segments_func(parts, vpabr, url, request_number):
+                    # Stop returning new segments after 8 requests
+                    if request_number >= 9:
+                        return []
+                    return parts
+
+                profile = LiveAVProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                    'custom_parts_function': no_new_segments_func,
+                })
+
+                heartbeat_callback = MagicMock()
+                # bad response from callback
+                heartbeat_callback.return_value = 'invalid response'
+
+                sabr_stream, _, selectors = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    heartbeat_callback=heartbeat_callback,
+                )
+                audio_selector, video_selector = selectors
+                assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+                parts = list(sabr_stream.iter_parts())
+
+                logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
+
+                logger.trace.assert_any_call('Near live stream head detected based on consumed ranges of active formats: head seq (8) - tolerance (3)')
+                logger.debug.assert_any_call('No activity detected in 5 requests and 10.0 seconds. Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+                assert sabr_stream._stream_stall_tracker.stalled_requests == 5
+
+                # We will get all but the last 2 segments in this example
+                assert_media_sequence_in_order(parts, audio_selector, total_segments - 2, check_segment_total_segments=False)
+                assert_media_sequence_in_order(parts, video_selector, total_segments - 2, check_segment_total_segments=False)
+
+                # Heartbeat should have been called at least once
+                heartbeat_callback.assert_called()
+                logger.warning.assert_any_call('Invalid heartbeat response received, skipping heartbeat check')
+
+            @mock_time
+            def test_stream_stall_head_consumed_ranges_with_heartbeat_broadcast_id_change(self, logger, client_info):
+                # Should consider near live head based on consumed ranges and finish stream on stall
+                # This should calculate a default live_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
+                # Same as test_stream_stall_head_consumed_ranges but with heartbeat returning a different broadcast_id
+                # This could happen if the broadcast ended and a new one started with the same video_id.
+                # The BroadcastIdChange error should be raised in this case
+                total_segments = 10
+                segment_target_duration_ms = 2000
+                dvr_segments = 7
+
+                def no_new_segments_func(parts, vpabr, url, request_number):
+                    # Stop returning new segments after 8 requests
+                    if request_number >= 9:
+                        return []
+                    return parts
+
+                profile = LiveAVProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                    'custom_parts_function': no_new_segments_func,
+                })
+
+                heartbeat_callback = MagicMock()
+                heartbeat_callback.return_value = Heartbeat(
+                    is_live=True, broadcast_id='different_broadcast_id', video_id='video_id')
+
+                sabr_stream, _, _ = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    heartbeat_callback=heartbeat_callback,
+                )
+                assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+
+                with pytest.raises(
+                    BroadcastIdChanged,
+                    match=rf'Broadcast ID changed from {LIVE_BROADCAST_ID} to different_broadcast_id. The download will need to be restarted.',
+                ):
+                    list(sabr_stream.iter_parts())
+
+                heartbeat_callback.assert_called()
 
             @mock_time
             def test_stream_stall_head_consumed_ranges_chain(self, logger, client_info):
@@ -2635,13 +2923,16 @@ class TestStream:
 
                 logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 10)')
                 logger.trace.assert_any_call('Near live stream head detected based on consumed ranges of active formats: head seq (10) - tolerance (3)')
-                logger.debug.assert_any_call('No activity detected in 10 requests and 18.0 seconds. Near live stream head; assuming livestream has ended.')
+                logger.debug.assert_any_call('No activity detected in 10 requests and 18.0 seconds. Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
                 assert sabr_stream._stream_stall_tracker.stalled_requests == 10
 
                 # Last request player_time_ms should be around the start of the added consumed range
                 # Ensure the stream ended due to near live head detection on the consumed range chain,
                 # not because the player_time_ms was anywhere near the head.
                 assert rh.request_history[-1].vpabr.client_abr_state.player_time_ms < consumed_ranges[0].start_time_ms + segment_target_duration_ms
+
+                # No callback registered, should check for live
+                logger.debug.assert_any_call('No heartbeat callback provided, skipping heartbeat check')
 
             @mock_time
             @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
@@ -2680,11 +2971,15 @@ class TestStream:
 
                 if not post_live:
                     logger.trace.assert_any_call('Near live stream head detected based on consumed ranges of active formats: head seq (8) - tolerance (3)')
-                    logger.debug.assert_any_call('No activity detected in 5 requests and 10.0 seconds. Near live stream head; assuming livestream has ended.')
+                    logger.debug.assert_any_call(
+                        'No activity detected in 5 requests and 10.0 seconds. '
+                        'Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
                     assert sabr_stream._stream_stall_tracker.stalled_requests == 5
                 else:
                     logger.trace.assert_any_call('Near live stream head detected based on consumed ranges of active formats: head seq (10) - tolerance (3)')
-                    logger.debug.assert_any_call('No activity detected in 6 requests and 10.0 seconds. Near live stream head; assuming livestream has ended.')
+                    logger.debug.assert_any_call(
+                        'No activity detected in 6 requests and 10.0 seconds. '
+                        'Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
                     assert sabr_stream._stream_stall_tracker.stalled_requests == 6
 
                 # We will get all but the last 2 segments in this example
@@ -2736,13 +3031,83 @@ class TestStream:
                 if not post_live:
                     logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
                     logger.trace.assert_any_call('Near or at live stream head detected based on player time and head sequence end time with tolerance (ms): 14000 >= 15900 - 6000')
-                    logger.debug.assert_any_call('No activity detected in 5 requests and 10.0 seconds. Near live stream head; assuming livestream has ended.')
+                    logger.debug.assert_any_call(
+                        'No activity detected in 5 requests and 10.0 seconds. '
+                        'Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
                     assert sabr_stream._stream_stall_tracker.stalled_requests == 5
+                    # No callback registered, should check for live
+                    logger.debug.assert_any_call('No heartbeat callback provided, skipping heartbeat check')
+
                 else:
                     logger.debug.assert_any_call('No activity detected in request 14; registering stall (count: 6)')
                     logger.trace.assert_any_call('Near or at live stream head detected based on player time and head sequence end time with tolerance (ms): 15900 >= 19900 - 6000')
-                    logger.debug.assert_any_call('No activity detected in 6 requests and 10.0 seconds. Near live stream head; assuming livestream has ended.')
+                    logger.debug.assert_any_call(
+                        'No activity detected in 6 requests and 10.0 seconds. '
+                        'Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
                     assert sabr_stream._stream_stall_tracker.stalled_requests == 6
+                    # No callback registered, and should not try to call heartbeat for post-live
+                    with pytest.raises(AssertionError):
+                        logger.debug.assert_any_call('No heartbeat callback provided, skipping heartbeat check')
+
+                # We will get all but the last 2 segments in this example
+                assert_media_sequence_in_order(parts, audio_selector, total_segments - 2, check_segment_total_segments=False)
+                assert_media_sequence_in_order(parts, video_selector, total_segments - 2, check_segment_total_segments=False)
+
+            @mock_time
+            def test_stream_stall_head_near_head_time_with_heartbeat(self, logger, client_info):
+                # Should consider the stream as finished if near the live head based on player time
+                # Case where the consumed ranges are not sufficient to determine near live head
+                # Same as test_stream_stall_head_near_head_time but with heartbeat indicating stream is not live,
+                # should still finish stream on stall
+
+                total_segments = 10
+                segment_target_duration_ms = 2000
+                dvr_segments = 7
+                live_head_tolerance_sec = 5
+
+                def no_new_segments_func(parts, vpabr, url, request_number):
+                    # Stop returning new segments after 8 requests
+                    if request_number >= 9:
+                        return []
+                    return parts
+
+                # We can skip the check on live head segment by making the server not return it
+                class RemoveLiveHeadSegmentNumberLiveProfile(LiveAVProfile):
+                    def generate_live_metadata(self, current_segment: int) -> LiveMetadata:
+                        lm = super().generate_live_metadata(current_segment)
+                        lm.head_sequence_number = None
+                        return lm
+
+                profile = RemoveLiveHeadSegmentNumberLiveProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                    'custom_parts_function': no_new_segments_func,
+                })
+                heartbeat_callback = MagicMock()
+                heartbeat_callback.return_value = Heartbeat(
+                    is_live=False, broadcast_id=LIVE_BROADCAST_ID, video_id='video_id')
+                sabr_stream, _, selectors = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    heartbeat_callback=heartbeat_callback,
+                )
+                audio_selector, video_selector = selectors
+                assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+                sabr_stream.live_head_tolerance_sec = live_head_tolerance_sec
+                parts = list(sabr_stream.iter_parts())
+
+                logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
+                logger.trace.assert_any_call('Near or at live stream head detected based on player time and head sequence end time with tolerance (ms): 14000 >= 15900 - 6000')
+                logger.debug.assert_any_call(
+                    'No activity detected in 5 requests and 10.0 seconds. '
+                    'Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+                assert sabr_stream._stream_stall_tracker.stalled_requests == 5
+                # Heartbeat should have been called at least once
+                heartbeat_callback.assert_called()
 
                 # We will get all but the last 2 segments in this example
                 assert_media_sequence_in_order(parts, audio_selector, total_segments - 2, check_segment_total_segments=False)
@@ -2792,6 +3157,10 @@ class TestStream:
 
                 assert sabr_stream._stream_stall_tracker.stalled_requests == 6
 
+                # Should not have tried to check heartbeat callback
+                with pytest.raises(AssertionError):
+                    logger.debug.assert_any_call('No heartbeat callback provided, skipping heartbeat check')
+
             @mock_time
             def test_stream_stall_at_head_sequence_number(self, logger, client_info):
                 # If we reach the live head sequence number, should stall and should consider stream complete
@@ -2818,12 +3187,17 @@ class TestStream:
 
                 logger.debug.assert_any_call('No activity detected in request 15; registering stall (count: 5)')
                 logger.trace.assert_any_call('Near live stream head detected based on consumed ranges of active formats: head seq (10) - tolerance (3)')
-                logger.debug.assert_any_call('No activity detected in 5 requests and 10.0 seconds. Near live stream head; assuming livestream has ended.')
+                logger.debug.assert_any_call(
+                    'No activity detected in 5 requests and 10.0 seconds. '
+                    'Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
 
                 assert sabr_stream._stream_stall_tracker.stalled_requests == 5
                 # We will get all segments in this example
                 assert_media_sequence_in_order(parts, audio_selector, total_segments)
                 assert_media_sequence_in_order(parts, video_selector, total_segments)
+
+                # Should have tried heartbeat but skipped due to no heartbeat callback provided
+                logger.debug.assert_any_call('No heartbeat callback provided, skipping heartbeat check')
 
             @mock_time
             @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
@@ -2889,7 +3263,154 @@ class TestStream:
                 else:
                     # post-live does not get reset to max_seekable_time_ms, so should stay where it was seeked to
                     logger.trace.assert_any_call('Near or at live stream head detected based on player time and head sequence end time with tolerance (ms): 19000 >= 19900 - 6000')
-                logger.debug.assert_any_call('No activity detected in 6 requests and 10.0 seconds. Near live stream head; assuming livestream has ended.')
+                logger.debug.assert_any_call(
+                    'No activity detected in 6 requests and 10.0 seconds. '
+                    'Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+
+            @mock_time
+            def test_live_stall_heartbeat_allows_resume(self, logger, client_info):
+                # Simulate a live stream that stalls long enough to exceed the
+                # configured max_empty_requests/time at the live head, but the heartbeat reports the
+                # stream is still up. The server starts returning segments after that.
+                total_segments = 6
+                segment_target_duration_ms = 2000
+                max_empty_requests = 3
+                dvr_segments = 1  # so always at live head
+
+                # After this many requests the server will resume sending segments.
+                start_empty_after_request = 1
+                resume_after_request = 10
+
+                assert resume_after_request - start_empty_after_request > max_empty_requests
+
+                # Heartbeat reporting stream is still live
+                heartbeat_callback = MagicMock()
+
+                def stall_then_resume(parts, vpabr, url, request_number):
+                    # Return no parts (stall) for the first N requests, then delegate to real profile.
+                    # Allow first request to go through
+                    if start_empty_after_request < request_number <= resume_after_request:
+                        heartbeat_callback.return_value = Heartbeat(
+                            is_live=True, broadcast_id=LIVE_BROADCAST_ID, video_id='video_id')
+                        return []
+                    # Need to set to not live so stream does end
+                    heartbeat_callback.return_value = Heartbeat(
+                        is_live=False, broadcast_id=LIVE_BROADCAST_ID, video_id='video_id')
+                    return parts
+
+                profile = LiveAVProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                    'custom_parts_function': stall_then_resume,
+                })
+
+                # Provide a heartbeat callback that always reports the stream is alive.
+                # Pass it through setup options so SabrStream uses it during stall detection.
+                sabr_stream, rh, selectors = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    max_empty_requests=max_empty_requests,
+                    heartbeat_callback=heartbeat_callback,
+                )
+
+                parts = list(sabr_stream.iter_parts())
+
+                audio_selector, video_selector = selectors
+                assert_media_sequence_in_order(parts, audio_selector, total_segments)
+                assert_media_sequence_in_order(parts, video_selector, total_segments)
+
+                # Ensure requests were made during the stall and after resume.
+                assert len(rh.request_history) > resume_after_request
+                # The stalled requests at the start should have empty parts
+                for r in rh.request_history[start_empty_after_request:resume_after_request]:
+                    assert r.parts == []
+                # A later request should contain parts
+                assert any(r.parts for r in rh.request_history[resume_after_request:])
+                heartbeat_callback.assert_called()
+
+                logger.debug.assert_any_call(
+                    'No activity detected in 9 requests and 10.0 seconds. '
+                    'Near live stream head but heartbeat indicates stream is still live; continuing to wait for segments.')
+
+                logger.debug.assert_any_call(
+                    'No activity detected in 5 requests and 10.0 seconds. '
+                    'Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+
+            @mock_time
+            def test_live_stall_no_live_metadata_heartbeat_allows_resume(self, logger, client_info):
+                # Simulate a live stream with no live metadata that stalls long enough to exceed the
+                # configured max_empty_requests/time, but the heartbeat reports the stream is still up.
+                # The server starts returning segments after that.
+                total_segments = 6
+                segment_target_duration_ms = 2000
+                max_empty_requests = 3
+                dvr_segments = 1  # so always at live head
+
+                # After this many requests the server will resume sending segments.
+                start_empty_after_request = 1
+                resume_after_request = 10
+
+                assert resume_after_request - start_empty_after_request > max_empty_requests
+
+                # Heartbeat reporting stream is still live
+                heartbeat_callback = MagicMock()
+
+                def stall_then_resume(parts, vpabr, url, request_number):
+                    # Return no parts (stall) for the first N requests, then delegate to real profile.
+                    # Allow first request to go through
+                    if start_empty_after_request < request_number <= resume_after_request:
+                        heartbeat_callback.return_value = Heartbeat(
+                            is_live=True, broadcast_id=LIVE_BROADCAST_ID, video_id='video_id')
+                        return []
+                    # Need to set to not live so stream does end
+                    heartbeat_callback.return_value = Heartbeat(
+                        is_live=False, broadcast_id=LIVE_BROADCAST_ID, video_id='video_id')
+                    return parts
+
+                profile = LiveAVProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                    'custom_parts_function': stall_then_resume,
+                    'omit_live_metadata': True,
+                })
+
+                sabr_stream, rh, selectors = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    max_empty_requests=max_empty_requests,
+                    heartbeat_callback=heartbeat_callback,
+                )
+
+                parts = list(sabr_stream.iter_parts())
+
+                audio_selector, video_selector = selectors
+                assert_media_sequence_in_order(parts, audio_selector, total_segments)
+                assert_media_sequence_in_order(parts, video_selector, total_segments)
+
+                # Ensure requests were made during the stall and after resume.
+                assert len(rh.request_history) > resume_after_request
+                # The stalled requests at the start should have empty parts
+                for r in rh.request_history[start_empty_after_request:resume_after_request]:
+                    assert r.parts == []
+                # A later request should contain parts
+                assert any(r.parts for r in rh.request_history[resume_after_request:])
+
+                heartbeat_callback.assert_called()
+                logger.debug.assert_any_call(
+                    'No activity detected in 9 requests and 10.0 seconds. '
+                    'No live metadata available but heartbeat indicates stream is still live; continuing to wait for segments.')
+
+                logger.debug.assert_any_call(
+                    'No activity detected in 6 requests and 10.0 seconds. '
+                    'No live metadata available and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
 
         class TestPostLiveEnd:
             @mock_time
@@ -2919,6 +3440,46 @@ class TestStream:
                 # Should be no waiting for post_live
                 assert rh.request_history[-1].time == 0.0
                 logger.trace.assert_any_call('All enabled formats have reached their last expected segment at player time 19900 ms, assuming end of vod.')
+
+                # Should not try to check heartbeat for post-live end detection
+                with pytest.raises(AssertionError):
+                    logger.debug.assert_any_call('No heartbeat callback provided, skipping heartbeat check')
+
+            @mock_time
+            def test_post_live_stream_end_heartbeat_check(self, logger, client_info):
+                # Should consider post live stream as finished as soon as reach live head segment
+                # Should not check the heartbeat for post-live end
+                total_segments = 10
+                segment_target_duration_ms = 2000
+                dvr_segments = 9
+                profile = LiveAVProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                })
+                heartbeat_callback = MagicMock()
+                heartbeat_callback.return_value = Heartbeat(
+                    is_live=False, broadcast_id=LIVE_BROADCAST_ID, video_id='video_id')
+                sabr_stream, rh, selectors = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    post_live=True,
+                    heartbeat_callback=heartbeat_callback,
+                )
+                audio_selector, video_selector = selectors
+                parts = list(sabr_stream.iter_parts())
+                assert_media_sequence_in_order(parts, audio_selector, total_segments)
+                assert_media_sequence_in_order(parts, video_selector, total_segments)
+
+                # Should be no waiting for post_live
+                assert rh.request_history[-1].time == 0.0
+                logger.trace.assert_any_call('All enabled formats have reached their last expected segment at player time 19900 ms, assuming end of vod.')
+
+                # Should not try to check heartbeat for post-live end detection
+                heartbeat_callback.assert_not_called()
 
             @mock_time
             def test_post_live_stream_end_player_time(self, logger, client_info):
@@ -2966,6 +3527,10 @@ class TestStream:
                 logger.trace.assert_any_call(
                     'Near or at live stream head detected based on player time '
                     f'and head sequence end time with tolerance (ms): {estimated_end_time} >= {estimated_end_time} - 0')
+
+                # Should not try to check heartbeat for post-live end detection
+                with pytest.raises(AssertionError):
+                    logger.debug.assert_any_call('No heartbeat callback provided, skipping heartbeat check')
 
         @mock_time
         def test_livestream_max_seekable_time(self, logger, client_info):

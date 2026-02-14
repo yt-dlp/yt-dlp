@@ -10,6 +10,11 @@ class SabrStreamError(YoutubeDLError):
     pass
 
 
+class BroadcastIdChanged(YoutubeDLError):
+    def __init__(self, old: str, new: str):
+        super().__init__(f'Broadcast ID changed from {old} to {new}. The download will need to be restarted.')
+
+
 class MediaSegmentMismatchError(SabrStreamError):
     def __init__(self, format_id: FormatId, expected_sequence_number: int, received_sequence_number: int):
         super().__init__(
