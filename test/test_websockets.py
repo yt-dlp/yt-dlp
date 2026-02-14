@@ -452,19 +452,19 @@ class TestWebsocketsRequestHandler:
         # https://websockets.readthedocs.io/en/stable/reference/exceptions.html
         (lambda: websockets.exceptions.InvalidURI(msg='test', uri='test://'), RequestError),
         # Requires a response object. Should be covered by HTTP error tests.
-        # (lambda: websockets.exceptions.InvalidStatus(), TransportError),
-        (lambda: websockets.exceptions.InvalidHandshake(), TransportError),
+        # (websockets.exceptions.InvalidStatus, TransportError),
+        (websockets.exceptions.InvalidHandshake, TransportError),
         # These are subclasses of InvalidHandshake
         (lambda: websockets.exceptions.InvalidHeader(name='test'), TransportError),
-        (lambda: websockets.exceptions.NegotiationError(), TransportError),
+        (websockets.exceptions.NegotiationError, TransportError),
         # Catch-all
-        (lambda: websockets.exceptions.WebSocketException(), TransportError),
-        (lambda: TimeoutError(), TransportError),
+        (lambda: websockets.exceptions.WebSocketException, TransportError),
+        (TimeoutError, TransportError),
         # These may be raised by our create_connection implementation, which should also be caught
-        (lambda: OSError(), TransportError),
-        (lambda: ssl.SSLError(), SSLError),
-        (lambda: ssl.SSLCertVerificationError(), CertificateVerifyError),
-        (lambda: socks.ProxyError(), ProxyError),
+        (OSError, TransportError),
+        (ssl.SSLError, SSLError),
+        (ssl.SSLCertVerificationError, CertificateVerifyError),
+        (socks.ProxyError, ProxyError),
     ])
     def test_request_error_mapping(self, handler, monkeypatch, raised, expected):
         import websockets.sync.client
@@ -482,12 +482,12 @@ class TestWebsocketsRequestHandler:
     @pytest.mark.parametrize('raised,expected,match', [
         # https://websockets.readthedocs.io/en/stable/reference/sync/client.html#websockets.sync.client.ClientConnection.send
         (lambda: websockets.exceptions.ConnectionClosed(None, None), TransportError, None),
-        (lambda: RuntimeError(), TransportError, None),
-        (lambda: TimeoutError(), TransportError, None),
-        (lambda: TypeError(), RequestError, None),
-        (lambda: socks.ProxyError(), ProxyError, None),
+        (RuntimeError, TransportError, None),
+        (TimeoutError, TransportError, None),
+        (TypeError, RequestError, None),
+        (socks.ProxyError, ProxyError, None),
         # Catch-all
-        (lambda: websockets.exceptions.WebSocketException(), TransportError, None),
+        (websockets.exceptions.WebSocketException, TransportError, None),
     ])
     def test_ws_send_error_mapping(self, handler, monkeypatch, raised, expected, match):
         from yt_dlp.networking._websockets import WebsocketsResponseAdapter
@@ -499,11 +499,11 @@ class TestWebsocketsRequestHandler:
     @pytest.mark.parametrize('raised,expected,match', [
         # https://websockets.readthedocs.io/en/stable/reference/sync/client.html#websockets.sync.client.ClientConnection.recv
         (lambda: websockets.exceptions.ConnectionClosed(None, None), TransportError, None),
-        (lambda: RuntimeError(), TransportError, None),
-        (lambda: TimeoutError(), TransportError, None),
-        (lambda: socks.ProxyError(), ProxyError, None),
+        (RuntimeError, TransportError, None),
+        (TimeoutError, TransportError, None),
+        (socks.ProxyError, ProxyError, None),
         # Catch-all
-        (lambda: websockets.exceptions.WebSocketException(), TransportError, None),
+        (websockets.exceptions.WebSocketException, TransportError, None),
     ])
     def test_ws_recv_error_mapping(self, handler, monkeypatch, raised, expected, match):
         from yt_dlp.networking._websockets import WebsocketsResponseAdapter
