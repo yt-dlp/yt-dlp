@@ -489,7 +489,8 @@ class TestWebsocketsRequestHandler:
         (TypeError, RequestError, None),
         (socks.ProxyError, ProxyError, None),
         # Catch-all
-        (websockets.exceptions.WebSocketException, TransportError, None),
+        # ruff: noqa: PLW0108 `websockets` may not be available
+        (lambda: websockets.exceptions.WebSocketException(), TransportError, None),
     ])
     def test_ws_send_error_mapping(self, handler, monkeypatch, raised, expected, match):
         from yt_dlp.networking._websockets import WebsocketsResponseAdapter
