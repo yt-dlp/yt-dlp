@@ -272,7 +272,7 @@ class TestLenientSimpleCookie(unittest.TestCase):
             # Ref: https://github.com/python/cpython/issues/143919
             (
                 'Test invalid cookie name w/ control character',
-                'foo\\012=bar;',
+                'foo\012=bar;',
                 {},
             ),
             (
