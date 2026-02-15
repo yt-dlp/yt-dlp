@@ -271,12 +271,17 @@ class TestLenientSimpleCookie(unittest.TestCase):
             ),
             # Ref: https://github.com/python/cpython/issues/143919
             (
-                'Test invalid cookie w/ control character',
+                'Test invalid cookie name w/ control character',
+                'foo\\012=bar;',
+                {},
+            ),
+            (
+                'Test invalid cookie value w/ control character',
                 'keebler="E=mc2; L=\\"Loves\\"; fudge=\\012;"',
                 {},
             ),
             (
-                'Test invalid quoted attribute values w/ control characters',
+                'Test invalid quoted attribute value w/ control character',
                 'Customer="WILE_E_COYOTE"; Version="1\\012"; Path="/acme"',
                 {'Customer': ('WILE_E_COYOTE', {'path': '/acme'})},
             ),
