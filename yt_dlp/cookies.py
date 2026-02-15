@@ -1168,6 +1168,7 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
     # We use Morsel's legal key chars to avoid errors on setting values
     _LEGAL_KEY_CHARS = r'\w\d' + re.escape('!#$%&\'*+-.:^_`|~')
     _LEGAL_VALUE_CHARS = _LEGAL_KEY_CHARS + re.escape('(),/<=>?@[]{}')
+    _LEGAL_KEY_RE = re.compile(rf'[{_LEGAL_KEY_CHARS}]+', re.ASCII)
 
     _RESERVED = {
         'expires',
@@ -1187,7 +1188,7 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
     _COOKIE_PATTERN = re.compile(r'''
         [ ]*                           # Optional whitespace at start of cookie
         (?P<key>                       # Start of group 'key'
-        [''' + _LEGAL_KEY_CHARS + r''']+?# Any word of at least one letter
+        [^ =;]+                        # Match almost anything here for now and validate later
         )                              # End of group 'key'
         (                              # Optional group: there may not be a value.
         [ ]*=[ ]*                        # Equal Sign
@@ -1223,6 +1224,9 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
                 continue
 
             key, value = match.group('key', 'val')
+            if not self._LEGAL_KEY_RE.fullmatch(key):
+                morsel = None
+                continue
 
             is_attribute = False
             if key.startswith('$'):
