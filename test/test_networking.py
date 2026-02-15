@@ -1004,8 +1004,8 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
 
 @pytest.mark.parametrize('handler', ['Requests'], indirect=True)
 class TestRequestsRequestHandler(TestRequestHandlerBase):
+    # ruff: disable[PLW0108] `requests` and/or `urllib3` may not be available
     @pytest.mark.parametrize('raised,expected', [
-        # ruff: disable[PLW0108] `requests` and/or `urllib3` may not be available
         (lambda: requests.exceptions.ConnectTimeout(), TransportError),
         (lambda: requests.exceptions.ReadTimeout(), TransportError),
         (lambda: requests.exceptions.Timeout(), TransportError),
@@ -1020,8 +1020,8 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
         (lambda: requests.exceptions.RequestException(), RequestError),
         # Needs a response object
         # (lambda: requests.exceptions.TooManyRedirects(), HTTPError),
-        # ruff: enable[PLW0108]
     ])
+    # ruff: enable[PLW0108]
     def test_request_error_mapping(self, handler, monkeypatch, raised, expected):
         with handler() as rh:
             def mock_get_instance(*args, **kwargs):
