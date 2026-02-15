@@ -448,9 +448,9 @@ def create_fake_ws_connection(raised):
 
 @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
 class TestWebsocketsRequestHandler:
+    # ruff: disable[PLW0108] `websockets` may not be available
     @pytest.mark.parametrize('raised,expected', [
         # https://websockets.readthedocs.io/en/stable/reference/exceptions.html
-        # ruff: disable[PLW0108] `websockets` may not be available
         (lambda: websockets.exceptions.InvalidURI(msg='test', uri='test://'), RequestError),
         # Requires a response object. Should be covered by HTTP error tests.
         # (lambda: websockets.exceptions.InvalidStatus(), TransportError),
@@ -460,7 +460,6 @@ class TestWebsocketsRequestHandler:
         (lambda: websockets.exceptions.NegotiationError(), TransportError),
         # Catch-all
         (lambda: websockets.exceptions.WebSocketException(), TransportError),
-        # ruff: enable[PLW0108]
         (TimeoutError, TransportError),
         # These may be raised by our create_connection implementation, which should also be caught
         (OSError, TransportError),
@@ -468,6 +467,7 @@ class TestWebsocketsRequestHandler:
         (ssl.SSLCertVerificationError, CertificateVerifyError),
         (socks.ProxyError, ProxyError),
     ])
+    # ruff: enable[PLW0108]
     def test_request_error_mapping(self, handler, monkeypatch, raised, expected):
         import websockets.sync.client
 
