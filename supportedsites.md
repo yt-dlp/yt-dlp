@@ -1812,7 +1812,6 @@ The only reliable way to check if a site is supported is to try it.
  - **youtube:playlist**: [*youtube*](## "netrc machine") YouTube playlists
  - **youtube:recommended**: [*youtube*](## "netrc machine") YouTube recommended videos; ":ytrec" keyword
  - **youtube:search**: [*youtube*](## "netrc machine") YouTube search; "ytsearch:" prefix
- - **youtube:​search:date**: [*youtube*](## "netrc machine") YouTube search, newest videos first; "ytsearchdate:" prefix
  - **youtube:search_url**: [*youtube*](## "netrc machine") YouTube search URLs with sorting and filter support
  - **youtube:​shorts:pivot:audio**: [*youtube*](## "netrc machine") YouTube Shorts audio pivot (Shorts using audio of a given video)
  - **youtube:subscriptions**: [*youtube*](## "netrc machine") YouTube subscriptions feed; ":ytsubs" keyword (requires cookies)
