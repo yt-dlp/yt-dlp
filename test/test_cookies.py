@@ -283,7 +283,7 @@ class TestLenientSimpleCookie(unittest.TestCase):
             (
                 'Test invalid quoted attribute value w/ control character',
                 'Customer="WILE_E_COYOTE"; Version="1\\012"; Path="/acme"',
-                {'Customer': ('WILE_E_COYOTE', {'path': '/acme'})},
+                {},
             ),
         )
 
