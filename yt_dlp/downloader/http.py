@@ -340,9 +340,9 @@ class HttpFD(FileDownloader):
                     should_allow = True
                     reason = 'allowed by config'
                 if is_valid_type and is_fragment_context:
-                    if extractor.lower().startswith('youtube') and info_dict.get('is_live', False):
+                    if info_dict.get('is_live', False):
                         should_allow = True
-                        reason = 'YouTube live fragment'
+                        reason = 'live'
                     elif extractor.lower().startswith('youtube') and (info_dict.get('fragment_count', 0) and frag_id == info_dict.get('fragment_count', 0)):
                         should_allow = True
                         reason = 'valid last YouTube fragment'
