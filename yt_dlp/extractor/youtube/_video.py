@@ -3464,6 +3464,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 https_fmts = []
 
                 for fmt_stream in streaming_formats:
+                    # Live https formats are not supported
                     if fmt_stream.get('targetDurationSec') and not 'incomplete' in format_types:
                         continue
 
