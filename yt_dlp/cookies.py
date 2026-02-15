@@ -1243,6 +1243,9 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
                     value, _ = self.value_decode(value)
                     # Guard against control characters in quoted attribute values
                     if self._CONTROL_CHARACTER_RE.search(value):
+                        # While discarding the entire morsel is not very lenient,
+                        # it's better than http.cookies.Morsel raising a CookieError
+                        # and it's probably better to err on the side of caution
                         self.pop(morsel.key, None)
                         morsel = None
                         continue
