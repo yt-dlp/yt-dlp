@@ -1005,20 +1005,22 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
 @pytest.mark.parametrize('handler', ['Requests'], indirect=True)
 class TestRequestsRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('raised,expected', [
-        (requests.exceptions.ConnectTimeout, TransportError),
-        (requests.exceptions.ReadTimeout, TransportError),
-        (requests.exceptions.Timeout, TransportError),
-        (requests.exceptions.ConnectionError, TransportError),
-        (requests.exceptions.ProxyError, ProxyError),
+        # ruff: disable[PLW0108] `requests` and/or `urllib3` may not be available
+        (lambda: requests.exceptions.ConnectTimeout(), TransportError),
+        (lambda: requests.exceptions.ReadTimeout(), TransportError),
+        (lambda: requests.exceptions.Timeout(), TransportError),
+        (lambda: requests.exceptions.ConnectionError(), TransportError),
+        (lambda: requests.exceptions.ProxyError(), ProxyError),
         (lambda: requests.exceptions.SSLError('12[CERTIFICATE_VERIFY_FAILED]34'), CertificateVerifyError),
-        (requests.exceptions.SSLError, SSLError),
-        (requests.exceptions.InvalidURL, RequestError),
-        (requests.exceptions.InvalidHeader, RequestError),
+        (lambda: requests.exceptions.SSLError(), SSLError),
+        (lambda: requests.exceptions.InvalidURL(), RequestError),
+        (lambda: requests.exceptions.InvalidHeader(), RequestError),
         # catch-all: https://github.com/psf/requests/blob/main/src/requests/adapters.py#L535
-        (urllib3.exceptions.HTTPError, TransportError),
-        (requests.exceptions.RequestException, RequestError),
+        (lambda: urllib3.exceptions.HTTPError(), TransportError),
+        (lambda: requests.exceptions.RequestException(), RequestError),
         # Needs a response object
-        # (requests.exceptions.TooManyRedirects, HTTPError),
+        # (lambda: requests.exceptions.TooManyRedirects(), HTTPError),
+        # ruff: enable[PLW0108]
     ])
     def test_request_error_mapping(self, handler, monkeypatch, raised, expected):
         with handler() as rh:
@@ -1036,12 +1038,14 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
             assert exc_info.type is expected
 
     @pytest.mark.parametrize('raised,expected,match', [
-        (urllib3.exceptions.SSLError, SSLError, None),
-        (urllib3.exceptions.TimeoutError, TransportError, None),
+        # ruff: disable[PLW0108] `urllib3` may not be available
+        (lambda: urllib3.exceptions.SSLError(), SSLError, None),
+        (lambda: urllib3.exceptions.TimeoutError(), TransportError, None),
         (lambda: urllib3.exceptions.ReadTimeoutError(None, None, None), TransportError, None),
-        (urllib3.exceptions.ProtocolError, TransportError, None),
-        (urllib3.exceptions.DecodeError, TransportError, None),
-        (urllib3.exceptions.HTTPError, TransportError, None),  # catch-all
+        (lambda: urllib3.exceptions.ProtocolError(), TransportError, None),
+        (lambda: urllib3.exceptions.DecodeError(), TransportError, None),
+        (lambda: urllib3.exceptions.HTTPError(), TransportError, None),  # catch-all
+        # ruff: enable[PLW0108]
         (
             lambda: urllib3.exceptions.ProtocolError('error', http.client.IncompleteRead(partial=b'abc', expected=4)),
             IncompleteRead,

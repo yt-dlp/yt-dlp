@@ -450,15 +450,17 @@ def create_fake_ws_connection(raised):
 class TestWebsocketsRequestHandler:
     @pytest.mark.parametrize('raised,expected', [
         # https://websockets.readthedocs.io/en/stable/reference/exceptions.html
+        # ruff: disable[PLW0108] `websockets` may not be available
         (lambda: websockets.exceptions.InvalidURI(msg='test', uri='test://'), RequestError),
         # Requires a response object. Should be covered by HTTP error tests.
-        # (websockets.exceptions.InvalidStatus, TransportError),
-        (websockets.exceptions.InvalidHandshake, TransportError),
+        # (lambda: websockets.exceptions.InvalidStatus(), TransportError),
+        (lambda: websockets.exceptions.InvalidHandshake(), TransportError),
         # These are subclasses of InvalidHandshake
         (lambda: websockets.exceptions.InvalidHeader(name='test'), TransportError),
-        (websockets.exceptions.NegotiationError, TransportError),
+        (lambda: websockets.exceptions.NegotiationError(), TransportError),
         # Catch-all
-        (lambda: websockets.exceptions.WebSocketException, TransportError),
+        (lambda: websockets.exceptions.WebSocketException(), TransportError),
+        # ruff: enable[PLW0108]
         (TimeoutError, TransportError),
         # These may be raised by our create_connection implementation, which should also be caught
         (OSError, TransportError),
@@ -503,7 +505,8 @@ class TestWebsocketsRequestHandler:
         (TimeoutError, TransportError, None),
         (socks.ProxyError, ProxyError, None),
         # Catch-all
-        (websockets.exceptions.WebSocketException, TransportError, None),
+        # ruff: noqa: PLW0108 `websockets` may not be available
+        (lambda: websockets.exceptions.WebSocketException(), TransportError, None),
     ])
     def test_ws_recv_error_mapping(self, handler, monkeypatch, raised, expected, match):
         from yt_dlp.networking._websockets import WebsocketsResponseAdapter
