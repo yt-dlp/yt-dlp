@@ -76,6 +76,7 @@ STREAMING_DATA_FETCH_SUBS_PO_TOKEN = '__yt_dlp_fetch_subs_po_token'
 STREAMING_DATA_FETCH_GVS_PO_TOKEN = '__yt_dlp_fetch_gvs_po_token'
 STREAMING_DATA_PLAYER_TOKEN_PROVIDED = '__yt_dlp_player_token_provided'
 STREAMING_DATA_INNERTUBE_CONTEXT = '__yt_dlp_innertube_context'
+STREAMING_DATA_EXTRACT_HEARTBEAT = '__yt_dlp_extract_heartbeat'
 STREAMING_DATA_IS_PREMIUM_SUBSCRIBER = '__yt_dlp_is_premium_subscriber'
 STREAMING_DATA_AVAILABLE_AT_TIMESTAMP = '__yt_dlp_available_at_timestamp'
 
@@ -2956,6 +2957,40 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             note='Downloading {} player API JSON'.format(client.replace('_', ' ').strip()),
         ) or None
 
+    def _extract_heartbeat(self, *, client, video_id, webpage_ytcfg, player_ytcfg, initial_pr, visitor_data, data_sync_id, heartbeat_token, quiet=True):
+        headers = self.generate_api_headers(
+            ytcfg=player_ytcfg,
+            default_client=client,
+            visitor_data=visitor_data,
+            session_index=self._extract_session_index(webpage_ytcfg, player_ytcfg),
+            delegated_session_id=(
+                self._parse_data_sync_id(data_sync_id)[0]
+                or self._extract_delegated_session_id(webpage_ytcfg, initial_pr, player_ytcfg)
+            ),
+            user_session_id=(
+                self._parse_data_sync_id(data_sync_id)[1]
+                or self._extract_user_session_id(webpage_ytcfg, initial_pr, player_ytcfg)
+            ),
+        )
+
+        payload = {
+            'videoId': video_id,
+            'heartbeatRequestParams': {
+                'heartbeatChecks': ['HEARTBEAT_CHECK_TYPE_LIVE_STREAM_STATUS'],
+            },
+        }
+
+        # For members-only livestreams
+        if heartbeat_token:
+            payload['heartbeatToken'] = heartbeat_token
+
+        return self._extract_response(
+            item_id=video_id, ep='player/heartbeat', query=payload,
+            ytcfg=player_ytcfg, headers=headers, fatal=True,
+            default_client=client,
+            note=False if quiet else 'Downloading {} live heartbeat API JSON'.format(client.replace('_', ' ').strip()),
+        ) or None
+
     def _get_requested_clients(self, url, smuggled_data, is_premium_subscriber):
         requested_clients = []
         excluded_clients = []
@@ -3117,6 +3152,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if pr_id := self._invalid_player_response(pr, video_id):
                 skipped_clients[client] = pr_id
             elif pr:
+                # Player Heartbeat callback for livestreams
+                # Used by SABR downloader
+                heartbeat_func = functools.partial(
+                    self._extract_heartbeat,
+                    client=client, video_id=video_id,
+                    webpage_ytcfg=player_ytcfg or webpage_ytcfg,
+                    player_ytcfg=player_ytcfg,
+                    initial_pr=initial_pr,
+                    visitor_data=visitor_data,
+                    data_sync_id=data_sync_id,
+                    # Required for members-only streams
+                    heartbeat_token=traverse_obj(pr, ('heartbeatParams', 'heartbeatToken', {str})),
+                )
+
                 # Save client details for introspection later
                 innertube_context = traverse_obj(player_ytcfg or self._get_default_ytcfg(client), 'INNERTUBE_CONTEXT')
                 sd = pr.setdefault('streamingData', {})
@@ -3124,6 +3173,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 sd[STREAMING_DATA_FETCH_GVS_PO_TOKEN] = fetch_gvs_po_token_func
                 sd[STREAMING_DATA_PLAYER_TOKEN_PROVIDED] = bool(player_po_token)
                 sd[STREAMING_DATA_INNERTUBE_CONTEXT] = innertube_context
+                sd[STREAMING_DATA_EXTRACT_HEARTBEAT] = heartbeat_func
                 sd[STREAMING_DATA_FETCH_SUBS_PO_TOKEN] = fetch_subs_po_token_func
                 sd[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER] = is_premium_subscriber
                 sd[STREAMING_DATA_AVAILABLE_AT_TIMESTAMP] = self._get_available_at_timestamp(pr, video_id, client)
@@ -3406,6 +3456,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             player_token_provided = streaming_data[STREAMING_DATA_PLAYER_TOKEN_PROVIDED]
             client_name = streaming_data.get(STREAMING_DATA_CLIENT_NAME)
             innertube_context = streaming_data.get(STREAMING_DATA_INNERTUBE_CONTEXT)
+            extract_heartbeat_func = streaming_data[STREAMING_DATA_EXTRACT_HEARTBEAT]
             available_at = streaming_data[STREAMING_DATA_AVAILABLE_AT_TIMESTAMP]
             streaming_formats = traverse_obj(streaming_data, (('formats', 'adaptiveFormats'), ...))
 
@@ -3670,6 +3721,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'client_name': client_name,
                     'client_info': client_info,
                     'reload_config_fn': functools.partial(self._reload_sabr_config, video_id, client_name),
+                    'extract_heartbeat_fn': extract_heartbeat_func,
                     'video_id': video_id,
                     'live_status': live_status,
                 }

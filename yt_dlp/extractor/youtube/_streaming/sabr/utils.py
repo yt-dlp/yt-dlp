@@ -103,4 +103,7 @@ def ticks_to_ms(time_ticks: int, timescale: int):
 
 
 def broadcast_id_from_url(url: str) -> str | None:
-    return str_or_none(parse_qs(url).get('id', [None])[0])
+    id_val = parse_qs(url).get('id', [None])[0]
+    if id_val is None:
+        return None
+    return str_or_none(id_val.split('.')[-1])

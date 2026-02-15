@@ -103,6 +103,7 @@ class SabrStream:
     @param video_id: The video ID of the YouTube video. Used for validating received data is for the correct video.
     @param retry_sleep_func: A function to calculate sleep time between retries. Takes the retry count as an argument.
     @param expiry_threshold_sec: The number of seconds before the GVS expiry to consider it expired. Defaults to 1 minute.
+    @param heartbeat_callback: A function called to check if the stream is still active before ending.
     """
 
     # Used for debugging
@@ -785,7 +786,11 @@ class SabrStream:
 
         self.logger.trace(f'Heartbeat response: {heartbeat}')
 
-        if not heartbeat or not isinstance(heartbeat, Heartbeat):
+        if not heartbeat:
+            self.logger.debug('Heartbeat callback returned no response, skipping heartbeat check')
+            return None
+
+        if not isinstance(heartbeat, Heartbeat):
             self.logger.warning('Invalid heartbeat response received, skipping heartbeat check')
             return None
 

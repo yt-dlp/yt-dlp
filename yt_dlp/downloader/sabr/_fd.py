@@ -18,7 +18,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.part import (
     MediaSeekSabrPart,
     FormatInitializedSabrPart,
 )
-from yt_dlp.extractor.youtube._streaming.sabr.stream import SabrStream
+from yt_dlp.extractor.youtube._streaming.sabr.stream import SabrStream, Heartbeat
 from yt_dlp.extractor.youtube._streaming.sabr.models import ConsumedRange, AudioSelector, VideoSelector, CaptionSelector
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import SabrStreamError
 from yt_dlp.extractor.youtube._proto.innertube import ClientInfo, ClientName
@@ -59,6 +59,7 @@ class SabrFD(FileDownloader):
                     'initial_po_token': sabr_config.get('po_token'),
                     'fetch_po_token_fn': fn if callable(fn := sabr_config.get('fetch_po_token_fn')) else None,
                     'reload_config_fn': fn if callable(fn := sabr_config.get('reload_config_fn')) else None,
+                    'extract_heartbeat_fn': fn if callable(fn := sabr_config.get('extract_heartbeat_fn')) else None,
                     'live_status': sabr_config.get('live_status'),
                     'video_id': sabr_config.get('video_id'),
                     'client_info': ClientInfo(
@@ -122,6 +123,7 @@ class SabrFD(FileDownloader):
                     video_playback_ustreamer_config=format_group['video_playback_ustreamer_config'],
                     initial_po_token=format_group['initial_po_token'],
                     fetch_po_token_fn=format_group['fetch_po_token_fn'],
+                    heartbeat_callback=self._create_heartbeat_callback(format_group['extract_heartbeat_fn']),
                     reload_config_fn=format_group['reload_config_fn'],
                     client_info=format_group['client_info'],
                     start_time_ms=format_group['start_time_ms'],
@@ -130,6 +132,58 @@ class SabrFD(FileDownloader):
                     video_id=format_group.get('video_id'),
                 )
         return True
+
+    def _create_heartbeat_callback(self, extract_heartbeat_fn):
+        logger = create_sabrfd_logger(self.ydl, prefix='sabr:heartbeat')
+
+        def callback():
+            heartbeat = extract_heartbeat_fn() if extract_heartbeat_fn else None
+            if not heartbeat:
+                return None
+            logger.trace(f'Extracted heartbeat: {heartbeat}')
+            playability_status = traverse_obj(heartbeat, 'playabilityStatus')
+
+            lsr = traverse_obj(playability_status, ('liveStreamability', 'liveStreamabilityRenderer'))
+
+            broadcast_id = traverse_obj(lsr, ('broadcastId', {str}))
+            video_id = traverse_obj(lsr, ('videoId', {str}))
+            status = traverse_obj(playability_status, 'status')
+            reason = traverse_obj(playability_status, 'reason')
+
+            logger.debug(
+                f'Heartbeat status: {status}, reason: {reason or "n/a"}, broadcast_id: {broadcast_id}, video_id: {video_id}')
+
+            if status == 'OK':
+                logger.debug('Live stream is online')
+                return Heartbeat(is_live=True, broadcast_id=broadcast_id, video_id=video_id)
+            elif status == 'LIVE_STREAM_OFFLINE':
+                display_endscreen = traverse_obj(lsr, ('displayEndscreen', {bool}))
+                offline_slate = traverse_obj(lsr, 'offlineSlate')
+                if offline_slate and not display_endscreen:
+                    # Seen when stream went offline briefly and came back on same video id.
+                    # TODO: any case where the stream is actually finished and stays in this state?
+                    logger.debug(
+                        'Live stream is offline but not displaying endscreen. '
+                        'Streamer may have disconnected. Assuming stream is still live.')
+                    return Heartbeat(is_live=True, broadcast_id=broadcast_id, video_id=video_id)
+
+                elif not lsr or display_endscreen:
+                    # Otherwise, consider live stream offline
+                    # TODO: how to handle if we cannot extract the liveStreamabilityRenderer renderer?
+                    #  This could potentially happen if cookies were to expire and the response is an error?
+                    #  Or if response format changes. Needs testing
+                    logger.debug('Live stream is offline')
+                    return Heartbeat(is_live=False, broadcast_id=broadcast_id, video_id=video_id)
+
+            # TODO: handle stream going private (UNPLAYABLE), or cookies expiring (LOGIN_REQUIRED/UNPLAYABLE)?
+            #  Private stream should mark stream as offline
+
+            # Cannot determine live status from heartbeat
+            # TODO: we should consider returning a heartbeat anyways with the broadcast id if we can extract it.
+            logger.debug('Unknown status, not returning a heartbeat')
+            return None
+
+        return callback
 
     def _download_sabr_stream(
         self,
@@ -145,6 +199,7 @@ class SabrFD(FileDownloader):
         initial_po_token: str,
         fetch_po_token_fn: callable | None = None,
         reload_config_fn: callable | None = None,
+        heartbeat_callback: callable | None = None,
         client_info: ClientInfo | None = None,
         start_time_ms: int = 0,
         target_duration_sec: int | None = None,
@@ -197,6 +252,7 @@ class SabrFD(FileDownloader):
             post_live=live_status == 'post_live',
             video_id=video_id,
             retry_sleep_func=self.params.get('retry_sleep_functions', {}).get('http'),
+            heartbeat_callback=heartbeat_callback,
         )
 
         self._prepare_multiline_status(len(writers) + 1)

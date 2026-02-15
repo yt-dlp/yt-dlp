@@ -73,5 +73,8 @@ def test_ticks_to_ms(ticks, timescale, expected_ms):
 
 
 def test_broadcast_id_from_url():
-    assert broadcast_id_from_url('https://example.com/path?other=param&id=example.1~243&other2=param2') == 'example.1~243'
+    assert broadcast_id_from_url('https://example.com/path?other=param&id=example.1~243&other2=param2') == '1~243'
+    assert broadcast_id_from_url('https://example.com/path?other=param&id=example') == 'example'
+    assert broadcast_id_from_url('https://example.com/path?other=param&id=example.3&other2=param2') == '3'
+    assert broadcast_id_from_url('https://example.com/path?other=param&id=example.3.2&other2=param2') == '2'
     assert broadcast_id_from_url('https://example.com/path?other=param&other2=param2') is None
