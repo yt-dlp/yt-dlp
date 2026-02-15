@@ -1448,6 +1448,7 @@ from .orf import (
     ORFFM4StoryIE,
     ORFPodcastIE,
     ORFRadioIE,
+    ORFSendungIE,
 )
 from .outsidetv import OutsideTVIE
 from .owncloud import OwnCloudIE
