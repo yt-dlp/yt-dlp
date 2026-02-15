@@ -1037,15 +1037,14 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
 
             assert exc_info.type is expected
 
+    # ruff: disable[PLW0108] `urllib3` may not be available
     @pytest.mark.parametrize('raised,expected,match', [
-        # ruff: disable[PLW0108] `urllib3` may not be available
         (lambda: urllib3.exceptions.SSLError(), SSLError, None),
         (lambda: urllib3.exceptions.TimeoutError(), TransportError, None),
         (lambda: urllib3.exceptions.ReadTimeoutError(None, None, None), TransportError, None),
         (lambda: urllib3.exceptions.ProtocolError(), TransportError, None),
         (lambda: urllib3.exceptions.DecodeError(), TransportError, None),
         (lambda: urllib3.exceptions.HTTPError(), TransportError, None),  # catch-all
-        # ruff: enable[PLW0108]
         (
             lambda: urllib3.exceptions.ProtocolError('error', http.client.IncompleteRead(partial=b'abc', expected=4)),
             IncompleteRead,
@@ -1057,6 +1056,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
             '3 bytes read, 5 more expected',
         ),
     ])
+    # ruff: enable[PLW0108]
     def test_response_error_mapping(self, handler, monkeypatch, raised, expected, match):
         from requests.models import Response as RequestsResponse
         from urllib3.response import HTTPResponse as Urllib3Response
