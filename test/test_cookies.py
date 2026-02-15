@@ -335,6 +335,11 @@ class TestLenientSimpleCookie(unittest.TestCase):
                 {},
             ),
             (
+                'Test invalid cookie name w/ control character followed by valid cookie',
+                'foo\015=bar; x=y;',
+                {'x': 'y'},
+            ),
+            (
                 'Test invalid cookie value w/ control character',
                 'keebler="E=mc2; L=\\"Loves\\"; fudge=\\012;"',
                 {},

@@ -1185,17 +1185,17 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
 
     # Added 'bad' group to catch the remaining value
     _COOKIE_PATTERN = re.compile(r'''
-        \s*                            # Optional whitespace at start of cookie
+        [ ]*                           # Optional whitespace at start of cookie
         (?P<key>                       # Start of group 'key'
         [''' + _LEGAL_KEY_CHARS + r''']+?# Any word of at least one letter
         )                              # End of group 'key'
         (                              # Optional group: there may not be a value.
-        \s*=\s*                          # Equal Sign
+        [ ]*=[ ]*                        # Equal Sign
         (                                # Start of potential value
         (?P<val>                           # Start of group 'val'
         "(?:[^\\"]|\\.)*"                    # Any doublequoted string
         |                                    # or
-        \w{3},\s[\w\d\s-]{9,11}\s[\d:]{8}\sGMT # Special case for "expires" attr
+        \w{3},\ [\w\d -]{9,11}\ [\d:]{8}\ GMT  # Special case for "expires" attr
         |                                    # or
         [''' + _LEGAL_VALUE_CHARS + r''']*     # Any word or empty string
         )                                  # End of group 'val'
@@ -1203,8 +1203,8 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
         (?P<bad>(?:\\;|[^;])*?)            # 'bad' group fallback for invalid values
         )                                # End of potential value
         )?                             # End of optional value group
-        \s*                            # Any number of spaces.
-        (\s+|;|$)                      # Ending either at space, semicolon, or EOS.
+        [ ]*                            # Any number of spaces.
+        ([ ]+|;|$)                      # Ending either at space, semicolon, or EOS.
         ''', re.ASCII | re.VERBOSE)
 
     # http.cookies.Morsel raises on values w/ control characters in Python 3.14.3+ & 3.13.12+
