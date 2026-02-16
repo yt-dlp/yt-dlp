@@ -311,8 +311,10 @@ from .canalsurmas import CanalsurmasIE
 from .caracoltv import CaracolTvPlayIE
 from .cbc import (
     CBCIE,
+    CBCGemContentIE,
     CBCGemIE,
     CBCGemLiveIE,
+    CBCGemOlympicsIE,
     CBCGemPlaylistIE,
     CBCListenIE,
     CBCPlayerIE,
@@ -1075,6 +1077,7 @@ from .markiza import (
 )
 from .massengeschmacktv import MassengeschmackTVIE
 from .masters import MastersIE
+from .matchitv import MatchiTVIE
 from .matchtv import MatchTVIE
 from .mave import (
     MaveChannelIE,
@@ -2178,11 +2181,15 @@ from .tvc import (
     TVCIE,
     TVCArticleIE,
 )
-from .tver import TVerIE
+from .tver import (
+    TVerIE,
+    TVerOlympicIE,
+)
 from .tvigle import TvigleIE
 from .tviplayer import TVIPlayerIE
 from .tvn24 import TVN24IE
 from .tvnoe import TVNoeIE
+from .tvo import TvoIE
 from .tvopengr import (
     TVOpenGrEmbedIE,
     TVOpenGrWatchIE,
