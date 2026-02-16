@@ -3023,6 +3023,8 @@ class YoutubeDL:
         if list_only:
             # Without this printing, -F --print-json will not work
             self.__forced_printings(info_dict)
+            if self.params.get('force_write_download_archive', False):
+                self.record_download_archive(info_dict)
             return info_dict
 
         format_selector = self.format_selector
