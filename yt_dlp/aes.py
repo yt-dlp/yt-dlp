@@ -97,7 +97,7 @@ def aes_ecb_decrypt(data, key, iv=None):
     """
     Decrypt with aes in ECB mode
 
-    @param {int[]} data        cleartext
+    @param {int[]} data        ciphertext
     @param {int[]} key         16/24/32-Byte cipher key
     @param {int[]} iv          Unused for this mode
     @returns {int[]}           decrypted data
