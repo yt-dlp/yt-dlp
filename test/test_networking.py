@@ -1004,6 +1004,7 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
 
 @pytest.mark.parametrize('handler', ['Requests'], indirect=True)
 class TestRequestsRequestHandler(TestRequestHandlerBase):
+    # ruff: disable[PLW0108] `requests` and/or `urllib3` may not be available
     @pytest.mark.parametrize('raised,expected', [
         (lambda: requests.exceptions.ConnectTimeout(), TransportError),
         (lambda: requests.exceptions.ReadTimeout(), TransportError),
@@ -1017,8 +1018,10 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
         # catch-all: https://github.com/psf/requests/blob/main/src/requests/adapters.py#L535
         (lambda: urllib3.exceptions.HTTPError(), TransportError),
         (lambda: requests.exceptions.RequestException(), RequestError),
-        #  (lambda: requests.exceptions.TooManyRedirects(), HTTPError) - Needs a response object
+        # Needs a response object
+        # (lambda: requests.exceptions.TooManyRedirects(), HTTPError),
     ])
+    # ruff: enable[PLW0108]
     def test_request_error_mapping(self, handler, monkeypatch, raised, expected):
         with handler() as rh:
             def mock_get_instance(*args, **kwargs):
@@ -1034,6 +1037,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
 
             assert exc_info.type is expected
 
+    # ruff: disable[PLW0108] `urllib3` may not be available
     @pytest.mark.parametrize('raised,expected,match', [
         (lambda: urllib3.exceptions.SSLError(), SSLError, None),
         (lambda: urllib3.exceptions.TimeoutError(), TransportError, None),
@@ -1052,6 +1056,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
             '3 bytes read, 5 more expected',
         ),
     ])
+    # ruff: enable[PLW0108]
     def test_response_error_mapping(self, handler, monkeypatch, raised, expected, match):
         from requests.models import Response as RequestsResponse
         from urllib3.response import HTTPResponse as Urllib3Response
