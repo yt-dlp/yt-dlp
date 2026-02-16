@@ -3219,6 +3219,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         ])
         skip_player_js = 'js' in self._configuration_arg('player_skip')
         format_types = self._configuration_arg('formats')
+        skip_bad_formats = 'incomplete' not in format_types
         all_formats = 'duplicate' in format_types
         if self._configuration_arg('include_duplicate_formats'):
             all_formats = True
@@ -3577,7 +3578,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             yield from process_https_formats()
 
             needs_live_processing = self._needs_live_processing(live_status, duration)
-            skip_bad_formats = 'incomplete' not in format_types
 
             skip_manifests = set(self._configuration_arg('skip'))
             if (needs_live_processing == 'is_live'  # These will be filtered out by YoutubeDL anyway
