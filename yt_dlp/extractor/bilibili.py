@@ -124,7 +124,7 @@ class BilibiliBaseIE(InfoExtractor):
                 **traverse_obj(play_info, {
                     'quality': ('quality', {int_or_none}),
                     'format_id': ('quality', {str_or_none}),
-                    'format_note': ('quality', {lambda x: format_names.get(x)}),
+                    'format_note': ('quality', {format_names.get}),
                     'duration': ('timelength', {float_or_none(scale=1000)}),
                 }),
                 **parse_resolution(format_names.get(play_info.get('quality'))),
