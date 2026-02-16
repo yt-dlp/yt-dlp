@@ -370,7 +370,7 @@ class HttpFD(FileDownloader):
                 continue
             except SucceedDownload:
                 return True
-            except:  # noqa: E722
+            except Exception:
                 close_stream()
                 raise
         return False
