@@ -22,6 +22,17 @@ class Cache:
         return expand_path(res)
 
     def _get_cache_fn(self, section, key, dtype):
+        """
+        Generate cache file path for a given section and key.
+
+        Args:
+            section: Cache section name (alphanumeric, dots, hyphens only)
+            key: Cache key (will be URL-encoded, '%' replaced with ',' to avoid filesystem issues)
+            dtype: Data type/file extension (e.g., 'json')
+
+        Returns:
+            Full path to the cache file
+        """
         assert re.match(r'^[\w.-]+$', section), f'invalid section {section!r}'
         key = urllib.parse.quote(key, safe='').replace('%', ',')  # encode non-ascii characters
         return os.path.join(self._get_root_dir(), section, f'{key}.{dtype}')
@@ -46,6 +57,16 @@ class Cache:
             self._ydl.report_warning(f'Writing cache to {fn!r} failed: {tb}')
 
     def _validate(self, data, min_ver):
+        """
+        Validate cache data against minimum version requirement.
+
+        Args:
+            data: Cache data with version information
+            min_ver: Minimum required version string
+
+        Returns:
+            The cache data content if valid, None if validation fails
+        """
         version = traverse_obj(data, 'yt-dlp_version')
         if not version:  # Backward compatibility
             data, version = {'data': data}, '2022.08.19'
