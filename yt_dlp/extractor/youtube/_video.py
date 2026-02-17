@@ -2149,7 +2149,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     no_fragment_score = 0
                     known_idx = target_seq - 1
                 else:
-                    no_fragment_score += 5
+                    no_fragment_score += 1
 
             except ExtractorError as e:
                 if getattr(e, 'expected', False): raise
