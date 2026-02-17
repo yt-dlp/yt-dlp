@@ -12,8 +12,8 @@ import math
 from yt_dlp.jsinterp import (
     JS_Undefined,
     JSInterpreter,
-    js_number_to_string,
     int_to_signed_32bit_int,
+    js_number_to_string,
 )
 
 
