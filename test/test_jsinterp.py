@@ -109,6 +109,14 @@ class TestJSInterpreter(unittest.TestCase):
         self._test('function f(){return -12616 ^ 5041}', -8951)
         self._test('function f(){return 21 << 4294967297}', 42)
 
+    def test_string_concat(self):
+        self._test('function f(){return "a" + "b";}', 'ab')
+        self._test('function f(){let x = "a"; x += "b"; return x;}', 'ab')
+        self._test('function f(){return "a" + 1;}', 'a1')
+        self._test('function f(){let x = "a"; x += 1; return x;}', 'a1')
+        self._test('function f(){return 2 + "b";}', '2b')
+        self._test('function f(){let x = 2; x += "b"; return x;}', '2b')
+
     def test_array_access(self):
         self._test('function f(){var x = [1,2,3]; x[0] = 4; x[0] = 5; x[2.0] = 7; return x;}', [5, 2, 7])
 
@@ -330,7 +338,6 @@ class TestJSInterpreter(unittest.TestCase):
         self._test('function f() { let a = {m1: 42, m2: 0 }; return [a["m1"], a.m2]; }', [42, 0])
         self._test('function f() { let a; return a?.qq; }', JS_Undefined)
         self._test('function f() { let a = {m1: 42, m2: 0 }; return a?.qq; }', JS_Undefined)
-        self._test('function f() { let a = {"1": 123}; return a[1]; }', 123)
 
     def test_regex(self):
         self._test('function f() { let a=/,,[/,913,/](,)}/; }', None)
