@@ -33,9 +33,12 @@ class Variant(enum.Enum):
     tce = 'player_ias_tce.vflset/en_US/base.js'
     es5 = 'player_es5.vflset/en_US/base.js'
     es6 = 'player_es6.vflset/en_US/base.js'
+    es6_tcc = 'player_es6_tcc.vflset/en_US/base.js'
+    es6_tce = 'player_es6_tce.vflset/en_US/base.js'
     tv = 'tv-player-ias.vflset/tv-player-ias.js'
     tv_es6 = 'tv-player-es6.vflset/tv-player-es6.js'
     phone = 'player-plasma-ias-phone-en_US.vflset/base.js'
+    house = 'house_brand_player.vflset/en_US/base.js'
 
 
 @dataclasses.dataclass
