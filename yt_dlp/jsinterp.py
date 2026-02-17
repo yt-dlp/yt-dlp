@@ -385,7 +385,7 @@ class JSInterpreter:
         if idx == 'length':
             return len(obj)
         try:
-            return obj[int(idx)] if isinstance(obj, list) else obj[idx]
+            return obj[int(idx)] if isinstance(obj, list) else obj[str(idx)]
         except Exception as e:
             if allow_undefined:
                 return JS_Undefined
