@@ -4085,18 +4085,30 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not duration and live_end_time and live_start_time:
             duration = live_end_time - live_start_time
 
+        # Is it live with --live-from-start? Or is it post-live and its duration is >2hrs?
         needs_live_processing = self._needs_live_processing(live_status, duration)
 
-        def is_bad_format(fmt):
-            if needs_live_processing and not fmt.get('is_from_start'):
-                return True
-            elif (live_status == 'is_live' and needs_live_processing != 'is_live'
-                    and fmt.get('protocol') == 'http_dash_segments'):
-                return True
+        def adjust_incomplete_format(fmt, note_suffix='(Last 2 hours)', pref_adjustment=-10):
+            fmt['preference'] = (fmt.get('preference') or -1) + pref_adjustment
+            fmt['format_note'] = join_nonempty(fmt.get('format_note'), note_suffix, delim=' ')
 
-        for fmt in filter(is_bad_format, formats):
-            fmt['preference'] = (fmt.get('preference') or -1) - 10
-            fmt['format_note'] = join_nonempty(fmt.get('format_note'), '(Last 2 hours)', delim=' ')
+        # Adjust preference and format note for incomplete formats
+        for fmt in formats:
+            if needs_live_processing:
+                if not fmt.get('is_from_start'):
+                    # Post-live formats for >2hr streams without --live-from-start
+                    adjust_incomplete_format(fmt)
+            elif live_status == 'is_live':
+                protocol = fmt.get('protocol')
+                if protocol == 'http_dash_segments':
+                    # Live DASH formats without --live-from-start
+                    adjust_incomplete_format(fmt)
+                # Currently, protocol is not set for https formats (`None`), but that could change
+                elif protocol in (None, 'http', 'https'):
+                    # Incomplete live adaptive https formats
+                    adjust_incomplete_format(fmt, note_suffix='(incomplete)', pref_adjustment=-20)
+            else:
+                break
 
         if needs_live_processing:
             self._prepare_live_from_start_formats(
