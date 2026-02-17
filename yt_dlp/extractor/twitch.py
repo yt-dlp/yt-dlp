@@ -834,7 +834,7 @@ class TwitchVideosIE(TwitchVideosBaseIE):
 
 class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
     IE_NAME = 'twitch:videos:clips'
-    _VALID_URL = r'https?://(?:(?:www|go|m|dashboard)\.)?twitch\.tv/(?!xqc)(?:u/)?(?P<id>[^/]+)/(?:[^/]+/clips/created)?(?:clips|videos/*?\?.*?\bfilter=clips)?'
+    _VALID_URL = r'https?://(?:(?:www|go|m|dashboard)\.)?twitch\.tv/(?:[^/]+/)?(?P<id>[^/]+)/(?:content/)?(?:clips|videos)?(?:\s*\?\s*filter=clips|/created)(?:[^#/]+)?$'
     _TESTS = [{
         # Clips
         'url': 'https://www.twitch.tv/vanillatv/clips?filter=clips&range=all',
