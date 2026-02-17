@@ -74,7 +74,7 @@ class PatreonIE(PatreonBaseIE):
             'title': 'Episode 166: David Smalley of Dogma Debate',
             'description': 'md5:34d207dd29aa90e24f1b3f58841b81c7',
             'uploader': 'Cognitive Dissonance Podcast',
-            'thumbnail': 're:^https?://.*$',
+            'thumbnail': r're:https?://.+/.+\.jpg',
             'timestamp': 1406473987,
             'upload_date': '20140727',
             'uploader_id': '87145',
@@ -84,6 +84,7 @@ class PatreonIE(PatreonBaseIE):
             'channel_id': '80642',
             'channel_url': 'https://www.patreon.com/dissonancepod',
             'channel_follower_count': int,
+            'vcodec': 'none',
         },
     }, {
         'url': 'http://www.patreon.com/creation?hid=754133',
@@ -165,7 +166,7 @@ class PatreonIE(PatreonBaseIE):
             'like_count': int,
             'timestamp': 1576696962,
             'upload_date': '20191218',
-            'thumbnail': r're:^https?://.*$',
+            'thumbnail': r're:https?://.+/.+\.jpg',
             'uploader_url': 'https://www.patreon.com/loish',
             'description': 'md5:e2693e97ee299c8ece47ffdb67e7d9d2',
             'title': 'VIDEO // sketchbook flipthrough',
@@ -189,7 +190,7 @@ class PatreonIE(PatreonBaseIE):
             'description': 'md5:79c9fd8778e2cef84049a94c058a5e23',
             'comment_count': int,
             'upload_date': '20220809',
-            'thumbnail': r're:^https?://.*$',
+            'thumbnail': r're:https?://.+/.+\.jpg',
             'channel_follower_count': int,
             'like_count': int,
             'timestamp': 1660052820,
@@ -208,7 +209,7 @@ class PatreonIE(PatreonBaseIE):
             'uploader': 'YaBoyRoshi',
             'timestamp': 1581636833,
             'channel_url': 'https://www.patreon.com/yaboyroshi',
-            'thumbnail': r're:^https?://.*$',
+            'thumbnail': r're:https?://.+/.+\.jpg',
             'tags': ['Hunter x Hunter'],
             'uploader_id': '14264111',
             'comment_count': int,
@@ -236,7 +237,7 @@ class PatreonIE(PatreonBaseIE):
             'upload_date': '20240113',
             'comment_count': int,
             'like_count': int,
-            'thumbnail': r're:^https?://.+',
+            'thumbnail': r're:https?://.+/.+\.jpg',
         },
         'params': {'skip_download': 'm3u8'},
         'expected_warnings': ['Failed to parse XML: not well-formed'],
@@ -258,7 +259,7 @@ class PatreonIE(PatreonBaseIE):
             'upload_date': '20240318',
             'like_count': int,
             'comment_count': int,
-            'thumbnail': r're:^https?://.+',
+            'thumbnail': r're:https?://.+/.+\.jpg',
         },
         'skip': 'Patron-only content',
     }, {
@@ -270,7 +271,7 @@ class PatreonIE(PatreonBaseIE):
             'upload_date': '20241025',
             'uploader': 'Japanalysis',
             'like_count': int,
-            'thumbnail': r're:^https?://.+',
+            'thumbnail': r're:https?://.+/.+\.jpg',
             'comment_count': int,
             'title': 'Karasawa Part 2',
             'description': 'Part 2 of this video https://www.youtube.com/watch?v=Azms2-VTASk',
@@ -288,7 +289,8 @@ class PatreonIE(PatreonBaseIE):
         'info_dict': {
             'id': '146966245',
             'ext': 'mp4',
-            'title': 'scottfalco 1080',
+            'title': 'ScottFalco Animation | Vector the Crocodile',
+            'alt_title': 'scottfalco 1080',
             'description': 'md5:a3f29bbd0a46b4821ec3400957c98aa2',
             'uploader': 'Insanimate',
             'uploader_id': '2828146',
@@ -301,6 +303,25 @@ class PatreonIE(PatreonBaseIE):
             'duration': 7.833333,
             'timestamp': 1767061800,
             'upload_date': '20251230',
+        },
+    }, {
+        # Inlined media is a lower-quality duplicate of post_file; playlist_count *must* be 2
+        'url': 'https://www.patreon.com/posts/asmr-test-2-v-v-148903717',
+        'playlist_count': 2,
+        'info_dict': {
+            'id': '148903717',
+            'title': 'ASMR test #2 (v + v)',
+            'description': 'md5:4433a20ba34556face21dce7984fe9c1',
+            'uploader': 'TheGreatInformer',
+            'uploader_id': '194460122',
+            'uploader_url': 'https://www.patreon.com/TheGreatInformer',
+            'channel_id': '15453331',
+            'channel_url': 'https://www.patreon.com/TheGreatInformer',
+            'channel_follower_count': int,
+            'like_count': int,
+            'thumbnail': r're:https?://.+/.+\.jpg',
+            'timestamp': 1769142318,
+            'upload_date': '20260123',
         },
     }]
     _RETURN_TYPE = 'video'
@@ -318,7 +339,7 @@ class PatreonIE(PatreonBaseIE):
             return None
 
         info_dict = traverse_obj(attributes, {
-            'title': ('file_name', {lambda x: x.rpartition('.')[0]}),
+            'alt_title': ('file_name', {lambda x: x.rpartition('.')[0]}),
             'timestamp': ('created_at', {parse_iso8601}),
             'duration': ('display', 'duration', {float_or_none}),
         })
@@ -372,7 +393,6 @@ class PatreonIE(PatreonBaseIE):
             'comment_count': ('comment_count', {int_or_none}),
         })
 
-        seen_media_ids = set()
         entries = []
         idx = 0
         for include in traverse_obj(post, ('included', lambda _, v: v['type'])):
@@ -390,12 +410,11 @@ class PatreonIE(PatreonBaseIE):
                     entries.append({
                         'id': f'{video_id}-{idx}',
                         'ext': ext,
+                        'vcodec': 'none' if ext in ('mp3', 'm4a', 'ogg') else None,
                         'filesize': size_bytes,
                         'url': download_url,
                         'alt_title': traverse_obj(media_attributes, ('file_name', {str})),
                     })
-                if media_id := traverse_obj(include, ('id', {str})):
-                    seen_media_ids.add(media_id)
 
             elif include_type == 'user':
                 info.update(traverse_obj(include, {
@@ -460,19 +479,14 @@ class PatreonIE(PatreonBaseIE):
                     'formats': formats,
                     'subtitles': subtitles,
                 })
-            if media_id := traverse_obj(post_file, ('media_id', {int}, {str_or_none})):
-                seen_media_ids.add(media_id)
 
-        for media_id in traverse_obj(attributes, (
-            'content', {find_elements(attr='data-media-id', value=r'\d+', regex=True, html=True)},
-            ..., {extract_attributes}, 'data-media-id',
-        )):
-            # Inlined media may be duplicates of what was extracted above
-            if media_id in seen_media_ids:
-                continue
-            if media := self._extract_from_media_api(media_id):
-                entries.append(media)
-                seen_media_ids.add(media_id)
+        # Inlined media is most likely a duplicate if we already have included/post_file entries
+        if not entries:
+            for entry in traverse_obj(attributes, (
+                'content', {find_elements(attr='data-media-id', value=r'\d+', regex=True, html=True)},
+                ..., {extract_attributes}, 'data-media-id', filter, {self._extract_from_media_api},
+            )):
+                entries.append(entry)
 
         can_view_post = traverse_obj(attributes, 'current_user_can_view')
         comments = None
