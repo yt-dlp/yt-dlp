@@ -7,7 +7,6 @@ from ..utils import (
     determine_ext,
     jwt_decode_hs256,
     parse_codecs,
-    try_get,
     url_or_none,
     urlencode_postdata,
 )
@@ -247,7 +246,7 @@ class DigitalConcertHallIE(InfoExtractor):
                 **kwargs,
                 'chapters': [{
                     'start_time': chapter.get('time'),
-                    'end_time': try_get(chapter, lambda x: x['time'] + x['duration']),
+                    'end_time': traverse_obj(chapter, lambda _, v: v['time'] + v['duration']),
                     'title': chapter.get('text'),
                 } for chapter in item['cuepoints']] if item.get('cuepoints') and type_ == 'concert' else None,
             }

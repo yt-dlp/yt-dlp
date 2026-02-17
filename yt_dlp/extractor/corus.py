@@ -1,9 +1,9 @@
 from .theplatform import ThePlatformFeedIE
 from ..utils import (
     ExtractorError,
-    dict_get,
     float_or_none,
     int_or_none,
+    traverse_obj,
 )
 
 
@@ -143,12 +143,12 @@ class CorusIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
             'id': video_id,
             'title': title,
             'formats': formats,
-            'thumbnail': dict_get(video, ('defaultThumbnailUrl', 'thumbnail', 'image')),
+            'thumbnail': traverse_obj(video, (('defaultThumbnailUrl', 'thumbnail', 'image'),)),
             'description': video.get('description'),
             'timestamp': int_or_none(video.get('availableDate'), 1000),
             'subtitles': subtitles,
             'duration': float_or_none(metadata.get('duration')),
-            'series': dict_get(video, ('show', 'pl1$show')),
+            'series': traverse_obj(video, (('show', 'pl1$show'),)),
             'season_number': get_number('season'),
             'episode_number': get_number('episode'),
         }

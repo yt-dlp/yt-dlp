@@ -2,9 +2,11 @@ from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     smuggle_url,
-    try_get,
+    int_or_none,
+    smuggle_url,
     unified_timestamp,
 )
+from ..utils.traversal import traverse_obj
 
 
 class TeleQuebecBaseIE(InfoExtractor):
@@ -71,8 +73,8 @@ class TeleQuebecIE(TeleQuebecBaseIE):
         product = media.get('product') or {}
         season = product.get('season') or {}
         info.update({
-            'description': try_get(media, lambda x: x['descriptions'][-1]['text'], str),
-            'series': try_get(season, lambda x: x['serie']['titre']),
+            'description': traverse_obj(media, ('descriptions', -1, 'text'), expected_type=str),
+            'series': traverse_obj(season, ('serie', 'titre')),
             'season': season.get('name'),
             'season_number': int_or_none(season.get('seasonNo')),
             'episode': product.get('titre'),
@@ -223,8 +225,8 @@ class TeleQuebecVideoIE(TeleQuebecBaseIE):
         stream = self._call_api(
             asset_id + '/streams/' + asset['streams'][0]['id'], asset_id)['stream']
         stream_url = stream['url']
-        account_id = try_get(
-            stream, lambda x: x['video_provider_details']['account_id']) or '6101674910001'
+        account_id = traverse_obj(
+            stream, ('video_provider_details', 'account_id')) or '6101674910001'
         info = self._brightcove_result(stream_url, 'default', account_id)
         info.update({
             'description': asset.get('long_description') or asset.get('short_description'),

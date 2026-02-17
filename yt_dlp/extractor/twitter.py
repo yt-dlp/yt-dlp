@@ -10,19 +10,7 @@ from ..jsinterp import js_number_to_string
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
-    dict_get,
-    filter_dict,
-    float_or_none,
-    format_field,
-    int_or_none,
-    join_nonempty,
-    make_archive_id,
-    remove_end,
-    str_or_none,
-    strip_or_none,
-    truncate_string,
     try_call,
-    try_get,
     unified_timestamp,
     update_url_query,
     url_or_none,
@@ -51,7 +39,7 @@ class TwitterBaseIE(InfoExtractor):
                     f['tbr'] = int_or_none(mobj.group('bitrate'), 1000)
             return fmts, subs
         else:
-            tbr = int_or_none(dict_get(variant, ('bitrate', 'bit_rate')), 1000) or None
+            tbr = int_or_none(traverse_obj(variant, ('bitrate', 'bit_rate'), get_all=False), 1000)
             f = {
                 'url': variant_url,
                 'format_id': join_nonempty('http', tbr),
@@ -1271,7 +1259,8 @@ class TwitterIE(TwitterBaseIE):
 
             def get_binding_value(k):
                 o = binding_values.get(k) or {}
-                return try_get(o, lambda x: x[x['type'].lower() + '_value'])
+                type_slug = o.get('type')
+                return o.get(f'{type_slug.lower()}_value') if type_slug else None
 
             if card_name == 'player':
                 yield {

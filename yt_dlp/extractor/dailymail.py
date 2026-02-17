@@ -3,7 +3,7 @@ from ..utils import (
     determine_protocol,
     int_or_none,
     join_nonempty,
-    try_get,
+    traverse_obj,
     unescapeHTML,
 )
 
@@ -43,10 +43,10 @@ class DailyMailIE(InfoExtractor):
             r"data-opts='({.+?})'", webpage, 'video data'), video_id)
         title = unescapeHTML(video_data['title'])
 
-        sources_url = (try_get(
+        sources_url = (traverse_obj(
             video_data,
-            (lambda x: x['plugins']['sources']['url'],
-             lambda x: x['sources']['url']), str)
+            (('plugins', 'sources', 'url'), ('sources', 'url')),
+            get_all=False, expected_type=str)
             or f'http://www.dailymail.co.uk/api/player/{video_id}/video-sources.json')
 
         video_sources = self._download_json(sources_url, video_id)

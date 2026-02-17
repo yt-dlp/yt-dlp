@@ -2,10 +2,11 @@ from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     int_or_none,
-    try_get,
+    int_or_none,
     unified_timestamp,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class EggheadBaseIE(InfoExtractor):
@@ -126,8 +127,7 @@ class EggheadLessonIE(EggheadBaseIE):
             'timestamp': unified_timestamp(lesson.get('published_at')),
             'duration': int_or_none(lesson.get('duration')),
             'view_count': int_or_none(lesson.get('plays_count')),
-            'tags': try_get(lesson, lambda x: x['tag_list'], list),
-            'series': try_get(
-                lesson, lambda x: x['series']['title'], str),
+            'tags': traverse_obj(lesson, ('tag_list', {list})),
+            'series': traverse_obj(lesson, ('series', 'title', {str})),
             'formats': formats,
         }

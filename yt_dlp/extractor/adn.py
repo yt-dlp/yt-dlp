@@ -20,7 +20,7 @@ from ..utils import (
     pkcs1pad,
     str_or_none,
     strip_or_none,
-    try_get,
+    strip_or_none,
     unified_strdate,
     urlencode_postdata,
 )
@@ -194,7 +194,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 'X-Player-Refresh-Token': user['refreshToken'],
             }, data=b'')['token']
 
-        links_url = try_get(options, lambda x: x['video']['url']) or (video_base_url + 'link')
+        links_url = traverse_obj(options, ('video', 'url')) or (video_base_url + 'link')
         self._K = ''.join(random.choices('0123456789abcdef', k=16))
         message = list(json.dumps({
             'k': self._K,

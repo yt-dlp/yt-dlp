@@ -7,10 +7,11 @@ from ..utils import (
     determine_ext,
     filter_dict,
     float_or_none,
+    format_field,
     int_or_none,
     orderedSet,
     str_or_none,
-    try_get,
+    str_or_none,
     url_or_none,
 )
 from ..utils.traversal import subs_list_to_dict, traverse_obj
@@ -130,8 +131,9 @@ class GloboIE(InfoExtractor):
                 'consumption': 'streaming',
                 'capabilities': {'low_latency': True},
                 'tz': '-03:00',
-                'Authorization': try_get(self._get_cookies('https://globo.com'),
-                                         lambda x: f'Bearer {x["GLBID"].value}'),
+                'Authorization': format_field(
+                    self._get_cookies('https://globo.com').get('GLBID'),
+                    None, 'Bearer %s.value'),
                 'version': 1,
             })).encode())
 

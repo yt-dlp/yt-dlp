@@ -6,7 +6,10 @@ from ..utils import (
     int_or_none,
     parse_duration,
     str_to_int,
-    try_get,
+    int_or_none,
+    parse_duration,
+    str_to_int,
+    traverse_obj,
     unified_strdate,
     url_or_none,
 )
@@ -16,7 +19,7 @@ class TedBaseIE(InfoExtractor):
     _VALID_URL_BASE = r'https?://www\.ted\.com/(?:{type})(?:/lang/[^/#?]+)?/(?P<id>[\w-]+)'
 
     def _parse_playlist(self, playlist):
-        for entry in try_get(playlist, lambda x: x['videos']['nodes'], list):
+        for entry in traverse_obj(playlist, ('videos', 'nodes')) or []:
             if entry.get('__typename') == 'Video' and entry.get('canonicalUrl'):
                 yield self.url_result(entry['canonicalUrl'], TedTalkIE.ie_key())
 
@@ -52,7 +55,7 @@ class TedTalkIE(TedBaseIE):
         formats, subtitles = [], {}
         for format_id, resources in (player_data.get('resources') or {}).items():
             if format_id == 'hls':
-                stream_url = url_or_none(try_get(resources, lambda x: x['stream']))
+                stream_url = traverse_obj(resources, 'stream', expected_type=url_or_none)
                 if not stream_url:
                     continue
                 m3u8_formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
@@ -141,7 +144,7 @@ class TedTalkIE(TedBaseIE):
             'view_count': str_to_int(talk_info.get('viewedCount')),
             'upload_date': unified_strdate(talk_info.get('publishedAt')),
             'release_date': unified_strdate(talk_info.get('recordedOn')),
-            'tags': try_get(player_data, lambda x: x['targeting']['tag'].split(',')),
+            'tags': traverse_obj(player_data, ('targeting', 'tag'), expected_type=lambda x: x.split(',')),
         }
 
 
@@ -176,8 +179,8 @@ class TedSeriesIE(TedBaseIE):
         entries = itertools.chain.from_iterable(
             self._parse_playlist(s) for s in info['seasons'] if season in [None, s.get('seasonNumber')])
 
-        series_id = try_get(info, lambda x: x['series']['id'])
-        series_name = try_get(info, lambda x: x['series']['name']) or self._og_search_title(webpage, fatal=False)
+        series_id = traverse_obj(info, ('series', 'id'))
+        series_name = traverse_obj(info, ('series', 'name')) or self._og_search_title(webpage, fatal=False)
 
         return self.playlist_result(
             entries,

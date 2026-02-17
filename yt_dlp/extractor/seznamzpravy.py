@@ -5,7 +5,7 @@ from ..utils import (
     int_or_none,
     parse_codecs,
     parse_qs,
-    try_get,
+    traverse_obj,
     urljoin,
 )
 
@@ -53,7 +53,7 @@ class SeznamZpravyIE(InfoExtractor):
             sdn_data = self._download_json(sdn_url, video_id)
 
         formats = []
-        mp4_formats = try_get(sdn_data, lambda x: x['data']['mp4'], dict) or {}
+        mp4_formats = traverse_obj(sdn_data, ('data', 'mp4'), expected_type=dict) or {}
         for format_id, format_data in mp4_formats.items():
             relative_url = format_data.get('url')
             if not relative_url:
@@ -77,7 +77,7 @@ class SeznamZpravyIE(InfoExtractor):
         pls = sdn_data.get('pls', {})
 
         def get_url(format_id):
-            return try_get(pls, lambda x: x[format_id]['url'], str)
+            return traverse_obj(pls, (format_id, 'url'), expected_type=str)
 
         dash_rel_url = get_url('dash')
         if dash_rel_url:

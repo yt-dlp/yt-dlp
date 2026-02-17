@@ -1,8 +1,8 @@
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
-    dict_get,
-    try_get,
+    clean_html,
+    traverse_obj,
     unified_strdate,
 )
 
@@ -77,14 +77,14 @@ class CanalAlphaIE(InfoExtractor):
         data_json = self._parse_json(self._search_regex(
             r'window\.__SERVER_STATE__\s?=\s?({(?:(?!};)[^"]|"([^"]|\\")*")+})\s?;',
             webpage, 'data_json'), video_id)['1']['data']['data']
-        manifests = try_get(data_json, lambda x: x['video']['manifests'], expected_type=dict) or {}
+        manifests = traverse_obj(data_json, ('video', 'manifests'), expected_type=dict) or {}
         subtitles = {}
         formats = [{
             'url': video['$url'],
             'ext': 'mp4',
-            'width': try_get(video, lambda x: x['res']['width'], expected_type=int),
-            'height': try_get(video, lambda x: x['res']['height'], expected_type=int),
-        } for video in try_get(data_json, lambda x: x['video']['mp4'], expected_type=list) or [] if video.get('$url')]
+            'width': traverse_obj(video, ('res', 'width'), expected_type=int),
+            'height': traverse_obj(video, ('res', 'height'), expected_type=int),
+        } for video in traverse_obj(data_json, ('video', 'mp4'), expected_type=list) or [] if video.get('$url')]
         if manifests.get('hls'):
             fmts, subs = self._extract_m3u8_formats_and_subtitles(
                 manifests['hls'], video_id, m3u8_id='hls', fatal=False)
@@ -98,10 +98,10 @@ class CanalAlphaIE(InfoExtractor):
         return {
             'id': video_id,
             'title': data_json.get('title').strip(),
-            'description': clean_html(dict_get(data_json, ('longDesc', 'shortDesc'))),
+            'description': clean_html(traverse_obj(data_json, (('longDesc', 'shortDesc'),))),
             'thumbnail': data_json.get('poster'),
-            'upload_date': unified_strdate(dict_get(data_json, ('webPublishAt', 'featuredAt', 'diffusionDate'))),
-            'duration': try_get(data_json, lambda x: x['video']['duration'], expected_type=int),
+            'upload_date': unified_strdate(traverse_obj(data_json, (('webPublishAt', 'featuredAt', 'diffusionDate'),))),
+            'duration': traverse_obj(data_json, ('video', 'duration'), expected_type=int),
             'formats': formats,
             'subtitles': subtitles,
         }

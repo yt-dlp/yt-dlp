@@ -2,7 +2,7 @@ from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     strip_or_none,
-    try_get,
+    traverse_obj,
     urljoin,
 )
 
@@ -56,7 +56,7 @@ class On24IE(InfoExtractor):
                 'key': event_key,
                 'contentType': 'A',
             })
-        event_id = str(try_get(event_data, lambda x: x['presentationLogInfo']['eventid'])) or event_id
+        event_id = str(traverse_obj(event_data, ('presentationLogInfo', 'eventid'))) or event_id
         language = event_data.get('localelanguagecode')
 
         formats = []
@@ -87,7 +87,7 @@ class On24IE(InfoExtractor):
         return {
             'id': event_id,
             'title': strip_or_none(event_data.get('description')),
-            'timestamp': int_or_none(try_get(event_data, lambda x: x['session']['startdate']), 1000),
+            'timestamp': int_or_none(traverse_obj(event_data, ('session', 'startdate')), 1000),
             'webpage_url': f'https://event.on24.com/wcc/r/{event_id}/{event_key}',
             'view_count': event_data.get('registrantcount'),
             'formats': formats,

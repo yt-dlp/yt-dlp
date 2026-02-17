@@ -3,7 +3,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     join_nonempty,
-    try_get,
+
     unified_strdate,
 )
 from ..utils.traversal import traverse_obj
@@ -118,8 +118,8 @@ class WatIE(InfoExtractor):
             'id': video_id,
             'title': title,
             'thumbnail': video_info.get('preview'),
-            'upload_date': unified_strdate(try_get(
-                video_data, lambda x: x['mediametrie']['chapters'][0]['estatS4'])),
+            'upload_date': unified_strdate(traverse_obj(
+                video_data, ('mediametrie', 'chapters', 0, 'estatS4'))),
             'duration': int_or_none(video_info.get('duration')),
             'formats': formats,
             'subtitles': subtitles,

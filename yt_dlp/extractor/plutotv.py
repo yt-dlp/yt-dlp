@@ -7,7 +7,7 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
-    try_get,
+    traverse_obj,
     url_or_none,
 )
 
@@ -133,7 +133,7 @@ class PlutoTVIE(InfoExtractor):
     def _get_video_info(self, video_json, slug, series_name=None):
         video_id = video_json.get('_id', slug)
         formats, subtitles = [], {}
-        for video_url in try_get(video_json, lambda x: x['stitched']['urls'], list) or []:
+        for video_url in traverse_obj(video_json, ('stitched', 'urls'), expected_type=list) or []:
             if video_url.get('type') != 'hls':
                 continue
             url = url_or_none(video_url.get('url'))

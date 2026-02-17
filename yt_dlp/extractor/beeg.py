@@ -3,7 +3,7 @@ from ..utils import (
     int_or_none,
     str_or_none,
     traverse_obj,
-    try_get,
+    traverse_obj,
     unified_timestamp,
 )
 
@@ -61,7 +61,7 @@ class BeegIE(InfoExtractor):
         fc_facts = video.get('fc_facts')
         first_fact = {}
         for fact in fc_facts:
-            if not first_fact or try_get(fact, lambda x: x['id'] < first_fact['id']):
+            if not first_fact or (fact.get('id') or 0) < (first_fact.get('id') or float('inf')):
                 first_fact = fact
 
         resources = traverse_obj(video, ('file', 'hls_resources')) or first_fact.get('hls_resources')

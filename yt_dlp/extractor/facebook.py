@@ -22,7 +22,6 @@ from ..utils import (
     qualities,
     str_or_none,
     traverse_obj,
-    try_get,
     url_or_none,
     urlencode_postdata,
     urljoin,
@@ -535,7 +534,7 @@ class FacebookIE(InfoExtractor):
         def extract_video_data(instances):
             video_data = []
             for item in instances:
-                if try_get(item, lambda x: x[1][0]) == 'VideoConfig':
+                if traverse_obj(item, (1, 0)) == 'VideoConfig':
                     video_item = item[2][0]
                     if video_item.get('video_id'):
                         video_data.append(video_item['videoData'])
@@ -550,8 +549,8 @@ class FacebookIE(InfoExtractor):
 
         def extract_from_jsmods_instances(js_data):
             if js_data:
-                return extract_video_data(try_get(
-                    js_data, lambda x: x['jsmods']['instances'], list) or [])
+                return extract_video_data(traverse_obj(
+                    js_data, ('jsmods', 'instances'), expected_type=list) or [])
 
         def extract_dash_manifest(vid_data, formats, mpd_url=None):
             dash_manifest = traverse_obj(
@@ -692,7 +691,7 @@ class FacebookIE(InfoExtractor):
                         'subtitles': subtitles,
                     }
                     process_formats(info)
-                    description = try_get(video, lambda x: x['savable_description']['text'])
+                    description = traverse_obj(video, ('savable_description', 'text'))
                     title = video.get('name')
                     if title:
                         info.update({
@@ -720,17 +719,17 @@ class FacebookIE(InfoExtractor):
                         parse_attachment(n)
                     parse_attachment(attachment)
 
-                edges = try_get(data, lambda x: x['mediaset']['currMedia']['edges'], list) or []
+                edges = traverse_obj(data, ('mediaset', 'currMedia', 'edges'), expected_type=list) or []
                 for edge in edges:
                     parse_attachment(edge, key='node')
 
                 video = traverse_obj(data, (
                     'event', 'cover_media_renderer', 'cover_video'), 'video', expected_type=dict) or {}
                 if video:
-                    attachments = try_get(video, [
-                        lambda x: x['story']['attachments'],
-                        lambda x: x['creation_story']['attachments'],
-                    ], list) or []
+                    attachments = traverse_obj(video, (
+                        ('story', 'attachments'),
+                        ('creation_story', 'attachments'),
+                    ), expected_type=list) or []
                     for attachment in attachments:
                         parse_attachment(attachment)
                     if not entries:
@@ -771,7 +770,7 @@ class FacebookIE(InfoExtractor):
 
             prefetched_data = extract_relay_prefetched_data(r'"login_data"\s*:\s*{')
             if prefetched_data:
-                lsd = try_get(prefetched_data, lambda x: x['login_data']['lsd'], dict)
+                lsd = traverse_obj(prefetched_data, ('login_data', 'lsd'), expected_type=dict)
                 if lsd:
                     post_data[lsd['name']] = lsd['value']
 
@@ -785,8 +784,8 @@ class FacebookIE(InfoExtractor):
                 data=urlencode_postdata(post_data))['data']['living_room']
 
             entries = []
-            for edge in (try_get(living_room, lambda x: x['recap']['watched_content']['edges']) or []):
-                video = try_get(edge, lambda x: x['node']['video']) or {}
+            for edge in (traverse_obj(living_room, ('recap', 'watched_content', 'edges')) or []):
+                video = traverse_obj(edge, ('node', 'video')) or {}
                 v_id = video.get('id')
                 if not v_id:
                     continue

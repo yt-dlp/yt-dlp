@@ -12,7 +12,7 @@ from ..utils import (
     smuggle_url,
     strip_or_none,
     traverse_obj,
-    try_get,
+
     unified_timestamp,
     unsmuggle_url,
     url_or_none,
@@ -213,9 +213,9 @@ class ViuOTTIE(InfoExtractor):
     _auth_codes = {}
 
     def _detect_error(self, response):
-        code = try_get(response, lambda x: x['status']['code'])
+        code = traverse_obj(response, ('status', 'code'))
         if code and code > 0:
-            message = try_get(response, lambda x: x['status']['message'])
+            message = traverse_obj(response, ('status', 'message'))
             raise ExtractorError(f'{self.IE_NAME} said: {message} ({code})', expected=True)
         return response.get('data') or {}
 
@@ -364,7 +364,7 @@ class ViuOTTIE(InfoExtractor):
                 'url': stream_url,
                 'height': height,
                 'ext': 'mp4',
-                'filesize': try_get(stream_data, lambda x: x['size'][vid_format], int),
+                'filesize': traverse_obj(stream_data, ('size', vid_format), expected_type=int),
             })
 
         subtitles = {}
@@ -388,7 +388,7 @@ class ViuOTTIE(InfoExtractor):
             'id': video_id,
             'title': title,
             'description': video_data.get('description'),
-            'series': try_get(product_data, lambda x: x['series']['name']),
+            'series': traverse_obj(product_data, ('series', 'name')),
             'episode': title,
             'episode_number': int_or_none(video_data.get('number')),
             'duration': int_or_none(stream_data.get('duration')),

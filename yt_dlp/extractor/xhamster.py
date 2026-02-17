@@ -7,14 +7,14 @@ from ..utils import (
     ExtractorError,
     clean_html,
     determine_ext,
-    dict_get,
+
     extract_attributes,
     float_or_none,
     int_or_none,
     join_nonempty,
     parse_duration,
     str_or_none,
-    try_get,
+    traverse_obj,
     unified_strdate,
     url_or_none,
 )
@@ -297,11 +297,11 @@ class XHamsterIE(InfoExtractor):
             formats = []
             format_urls = set()
             format_sizes = {}
-            sources = try_get(video, lambda x: x['sources'], dict) or {}
+            sources = traverse_obj(video, 'sources', expected_type=dict) or {}
             for format_id, formats_dict in sources.items():
                 if not isinstance(formats_dict, dict):
                     continue
-                download_sources = try_get(sources, lambda x: x['download'], dict) or {}
+                download_sources = traverse_obj(sources, 'download', expected_type=dict) or {}
                 for quality, format_dict in download_sources.items():
                     if not isinstance(format_dict, dict):
                         continue
@@ -326,8 +326,8 @@ class XHamsterIE(InfoExtractor):
                             'Referer': urlh.url,
                         },
                     })
-            xplayer_sources = try_get(
-                initials, lambda x: x['xplayerSettings']['sources'], dict)
+            xplayer_sources = traverse_obj(
+                initials, ('xplayerSettings', 'sources'), expected_type=dict)
             if xplayer_sources:
                 hls_sources = xplayer_sources.get('hls')
                 if isinstance(hls_sources, dict):
@@ -395,24 +395,24 @@ class XHamsterIE(InfoExtractor):
             else:
                 categories = None
 
-            uploader_url = url_or_none(try_get(video, lambda x: x['author']['pageURL']))
+            uploader_url = url_or_none(traverse_obj(video, ('author', 'pageURL')))
             return {
                 'id': video_id,
                 'display_id': display_id,
                 'title': title,
                 'description': video.get('description'),
                 'timestamp': int_or_none(video.get('created')),
-                'uploader': try_get(
-                    video, lambda x: x['author']['name'], str),
+                'uploader': traverse_obj(
+                    video, ('author', 'name'), expected_type=str),
                 'uploader_url': uploader_url,
                 'uploader_id': uploader_url.split('/')[-1] if uploader_url else None,
                 'thumbnail': video.get('thumbURL'),
                 'duration': int_or_none(video.get('duration')),
                 'view_count': int_or_none(video.get('views')),
-                'like_count': int_or_none(try_get(
-                    video, lambda x: x['rating']['likes'], int)),
-                'dislike_count': int_or_none(try_get(
-                    video, lambda x: x['rating']['dislikes'], int)),
+                'like_count': traverse_obj(
+                    video, ('rating', 'likes'), expected_type=int),
+                'dislike_count': traverse_obj(
+                    video, ('rating', 'dislikes'), expected_type=int),
                 'comment_count': int_or_none(video.get('comments')),
                 'age_limit': age_limit if age_limit is not None else 18,
                 'categories': categories,
@@ -577,7 +577,7 @@ class XHamsterEmbedIE(InfoExtractor):
             player_vars = self._parse_json(
                 self._search_regex(r'vars\s*:\s*({.+?})\s*,\s*\n', webpage, 'vars'),
                 video_id)
-            video_url = dict_get(player_vars, ('downloadLink', 'homepageLink', 'commentsLink', 'shareUrl'))
+            video_url = traverse_obj(player_vars, 'downloadLink', 'homepageLink', 'commentsLink', 'shareUrl')
 
         return self.url_result(video_url, 'XHamster')
 

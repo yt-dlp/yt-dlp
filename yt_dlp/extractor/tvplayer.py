@@ -3,7 +3,7 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     extract_attributes,
-    try_get,
+    traverse_obj,
     urlencode_postdata,
 )
 
@@ -46,8 +46,8 @@ class TVPlayerIE(InfoExtractor):
             })
 
         validate = context['validate']
-        platform = try_get(
-            context, lambda x: x['platform']['key'], str) or 'firefox'
+        platform = traverse_obj(
+            context, ('platform', 'key', {str})) or 'firefox'
 
         try:
             response = self._download_json(

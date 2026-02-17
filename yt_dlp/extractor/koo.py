@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -87,7 +87,7 @@ class KooIE(InfoExtractor):
         data_json = self._download_json(
             f'https://www.kooapp.com/apiV1/ku/{video_id}?limit=20&offset=0&showSimilarKoos=true', video_id)['parentContent']
         item_json = next(content['items'][0] for content in data_json
-                         if try_get(content, lambda x: x['items'][0]['id']) == video_id)
+                         if traverse_obj(content, ('items', 0, 'id')) == video_id)
         media_json = item_json['mediaMap']
         formats = []
 

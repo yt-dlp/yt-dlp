@@ -7,7 +7,7 @@ from ..utils import (
     int_or_none,
     js_to_json,
     parse_iso8601,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -124,7 +124,7 @@ class TagesschauIE(InfoExtractor):
             if not video:
                 continue
             video = self._parse_json(video, video_id, transform_source=js_to_json, fatal=False)
-            video_formats = try_get(video, lambda x: x['mc']['_mediaArray'][0]['_mediaStreamArray'])
+            video_formats = traverse_obj(video, ('mc', '_mediaArray', 0, '_mediaStreamArray'))
             if not video_formats:
                 continue
             num += 1
@@ -142,8 +142,8 @@ class TagesschauIE(InfoExtractor):
                     continue
                 entries.append({
                     'id': f'{display_id}-{num}',
-                    'title': try_get(video, lambda x: x['mc']['_title']),
-                    'duration': int_or_none(try_get(video, lambda x: x['mc']['_duration'])),
+                    'title': traverse_obj(video, ('mc', '_title')),
+                    'duration': traverse_obj(video, ('mc', '_duration'), expected_type=int_or_none),
                     'formats': formats,
                 })
 

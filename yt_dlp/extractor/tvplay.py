@@ -10,7 +10,6 @@ from ..utils import (
     parse_iso8601,
     qualities,
     traverse_obj,
-    try_get,
     update_url_query,
     url_or_none,
     urljoin,
@@ -204,7 +203,7 @@ class TVPlayIE(InfoExtractor):
             'season_number': season_number,
             'duration': int_or_none(video.get('duration')),
             'timestamp': parse_iso8601(video.get('created_at')),
-            'view_count': try_get(video, lambda x: x['views']['total'], int),
+            'view_count': traverse_obj(video, ('views', 'total'), expected_type=int),
             'age_limit': int_or_none(video.get('age_limit', 0)),
             'formats': formats,
             'subtitles': subtitles,
@@ -300,7 +299,12 @@ class TVPlayHomeIE(InfoExtractor):
 
     @staticmethod
     def _resolve_title(data):
-        return try_get(data, lambda x: (
-            f'{data["season"]["serial"]["title"]} ({data["season"]["serial"]["year"]}) | '
-            f'S{data["season"]["number"]:02d}E{data["episode"]:02d}: {data["title"]}'
-        )) or data.get('title')
+        serial_title = traverse_obj(data, ('season', 'serial', 'title'))
+        serial_year = traverse_obj(data, ('season', 'serial', 'year'))
+        season_number = traverse_obj(data, ('season', 'number'))
+        episode_number = data.get('episode')
+        title = data.get('title')
+
+        if None not in (serial_title, serial_year, season_number, episode_number, title):
+            return f'{serial_title} ({serial_year}) | S{season_number:02d}E{episode_number:02d}: {title}'
+        return title

@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
     float_or_none,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -42,8 +42,7 @@ class AliExpressLiveIE(InfoExtractor):
             'id': video_id,
             'title': title,
             'thumbnail': data.get('coverUrl'),
-            'uploader': try_get(
-                data, lambda x: x['followBar']['name'], str),
+            'uploader': traverse_obj(data, ('followBar', 'name'), expected_type=str),
             'timestamp': float_or_none(data.get('startTimeLong'), scale=1000),
             'formats': formats,
         }

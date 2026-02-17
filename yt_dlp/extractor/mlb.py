@@ -13,7 +13,6 @@ from ..utils import (
     jwt_decode_hs256,
     parse_duration,
     parse_iso8601,
-    try_get,
     url_or_none,
     urlencode_postdata,
 )
@@ -62,7 +61,7 @@ class MLBBaseIE(InfoExtractor):
                 formats.append(f)
 
         thumbnails = []
-        for cut in (try_get(feed, lambda x: x['image']['cuts'], list) or []):
+        for cut in (traverse_obj(feed, ('image', 'cuts'), expected_type=list) or []):
             src = cut.get('src')
             if not src:
                 continue

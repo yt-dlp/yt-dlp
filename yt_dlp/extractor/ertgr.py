@@ -6,18 +6,16 @@ from ..utils import (
     ExtractorError,
     clean_html,
     determine_ext,
-    dict_get,
     int_or_none,
     merge_dicts,
     parse_age_limit,
     parse_iso8601,
     parse_qs,
     str_or_none,
-    try_get,
+    traverse_obj,
     url_or_none,
     variadic,
 )
-from ..utils.traversal import traverse_obj
 
 
 class ERTFlixBaseIE(InfoExtractor):
@@ -38,7 +36,7 @@ class ERTFlixBaseIE(InfoExtractor):
         response = self._download_json(
             f'https://api.app.ertflix.gr/v{api_version!s}/{method}',
             video_id, fatal=False, query=query, data=data, headers=headers)
-        if try_get(response, lambda x: x['Result']['Success']) is True:
+        if traverse_obj(response, ('Result', 'Success')) is True:
             return response
 
     def _call_api_get_tiles(self, video_id, *tile_ids):
@@ -47,7 +45,7 @@ class ERTFlixBaseIE(InfoExtractor):
         tiles_response = self._call_api(
             video_id, method='Tile/GetTiles', api_version=2,
             data={'RequestedTiles': requested_tiles})
-        tiles = try_get(tiles_response, lambda x: x['Tiles'], list) or []
+        tiles = traverse_obj(tiles_response, ('Tiles', {list})) or []
         if tile_ids:
             if sorted([tile['Id'] for tile in tiles]) != sorted(requested_tile_ids):
                 raise ExtractorError('Requested tiles not found', video_id=video_id)
@@ -172,14 +170,14 @@ class ERTFlixIE(ERTFlixBaseIE):
     }]
 
     def _extract_episode(self, episode):
-        codename = try_get(episode, lambda x: x['Codename'], str)
+        codename = traverse_obj(episode, ('Codename', {str}))
         title = episode.get('Title')
-        description = clean_html(dict_get(episode, ('ShortDescription', 'TinyDescription')))
+        description = clean_html(traverse_obj(episode, 'ShortDescription', 'TinyDescription'))
         if not codename or not title or not episode.get('HasPlayableStream', True):
             return
         thumbnail = next((
             url_or_none(thumb.get('Url'))
-            for thumb in variadic(dict_get(episode, ('Images', 'Image')) or {})
+            for thumb in variadic(traverse_obj(episode, 'Images', 'Image') or {})
             if thumb.get('IsMain')),
             None)
         return {
@@ -206,23 +204,23 @@ class ERTFlixIE(ERTFlixBaseIE):
     def _extract_series(self, video_id, season_titles=None, season_numbers=None):
         media_info = self._call_api(video_id, method='Tile/GetSeriesDetails', id=video_id)
 
-        series = try_get(media_info, lambda x: x['Series'], dict) or {}
+        series = traverse_obj(media_info, ('Series', {dict})) or {}
         series_info = {
             'age_limit': self._parse_age_rating(series),
             'title': series.get('Title'),
-            'description': dict_get(series, ('ShortDescription', 'TinyDescription')),
+            'description': traverse_obj(series, 'ShortDescription', 'TinyDescription'),
         }
         if season_numbers:
             season_titles = season_titles or []
-            for season in try_get(series, lambda x: x['Seasons'], list) or []:
+            for season in traverse_obj(series, ('Seasons', {list})) or []:
                 if season.get('SeasonNumber') in season_numbers and season.get('Title'):
                     season_titles.append(season['Title'])
 
         def gen_episode(m_info, season_titles):
-            for episode_group in try_get(m_info, lambda x: x['EpisodeGroups'], list) or []:
+            for episode_group in traverse_obj(m_info, ('EpisodeGroups', {list})) or []:
                 if season_titles and episode_group.get('Title') not in season_titles:
                     continue
-                episodes = try_get(episode_group, lambda x: x['Episodes'], list)
+                episodes = traverse_obj(episode_group, ('Episodes', {list}))
                 if not episodes:
                     continue
                 season_info = {

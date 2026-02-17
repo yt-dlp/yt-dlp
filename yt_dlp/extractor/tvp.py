@@ -7,13 +7,9 @@ from ..utils import (
     ExtractorError,
     clean_html,
     determine_ext,
-    dict_get,
-    int_or_none,
-    js_to_json,
     str_or_none,
     strip_or_none,
     traverse_obj,
-    try_get,
     url_or_none,
 )
 
@@ -394,7 +390,7 @@ class TVPEmbedIE(InfoExtractor):
 
         content = self._parse_json(datastr, video_id)['content']
         info = content['info']
-        is_live = try_get(info, lambda x: x['isLive'], bool)
+        is_live = traverse_obj(info, 'isLive', expected_type=bool)
 
         if info.get('isGeoBlocked'):
             # actual country list is not provided, we just assume it's always available in PL
@@ -428,8 +424,8 @@ class TVPEmbedIE(InfoExtractor):
                     'height': int_or_none(traverse_obj(file, ('quality', 'height'))),
                 })
 
-        title = dict_get(info, ('subtitle', 'title', 'seoTitle'))
-        description = dict_get(info, ('description', 'seoDescription'))
+        title = traverse_obj(info, ('subtitle', 'title', 'seoTitle'), get_all=False)
+        description = traverse_obj(info, ('description', 'seoDescription'), get_all=False)
         thumbnails = []
         for thumb in content.get('posters') or ():
             thumb_url = thumb.get('src')
@@ -440,10 +436,10 @@ class TVPEmbedIE(InfoExtractor):
                 'width': thumb.get('width'),
                 'height': thumb.get('height'),
             })
-        age_limit = try_get(info, lambda x: x['ageGroup']['minAge'], int)
+        age_limit = traverse_obj(info, ('ageGroup', 'minAge'), expected_type=int)
         if age_limit == 1:
             age_limit = 0
-        duration = try_get(info, lambda x: x['duration'], int) if not is_live else None
+        duration = traverse_obj(info, 'duration', expected_type=int) if not is_live else None
 
         subtitles = {}
         for sub in content.get('subtitles') or []:
@@ -501,7 +497,7 @@ class TVPVODBaseIE(InfoExtractor):
             'series': ('season', 'serial', 'title', {str_or_none}),
             'thumbnails': ('images', ..., ..., {'url': ('url', {url_or_none})}),
         })
-        info_dict['description'] = clean_html(dict_get(video, ('lead', 'description')))
+        info_dict['description'] = clean_html(traverse_obj(video, ('lead', 'description'), get_all=False))
         if with_url:
             info_dict.update({
                 '_type': 'url',

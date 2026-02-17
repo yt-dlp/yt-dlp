@@ -2,7 +2,8 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
-    try_get,
+    int_or_none,
+    traverse_obj,
     unified_timestamp,
 )
 
@@ -74,7 +75,7 @@ class CiscoWebexIE(InfoExtractor):
             'acodec': 'mp4a.40.2',
         }]
         if stream.get('preventDownload') is False:
-            mp4url = try_get(stream, lambda x: x['downloadRecordingInfo']['downloadInfo']['mp4URL'])
+            mp4url = traverse_obj(stream, ('downloadRecordingInfo', 'downloadInfo', 'mp4URL'))
             if mp4url:
                 formats.append({
                     'format_id': 'video',
@@ -83,7 +84,7 @@ class CiscoWebexIE(InfoExtractor):
                     'vcodec': 'avc1.640028',
                     'acodec': 'mp4a.40.2',
                 })
-            audiourl = try_get(stream, lambda x: x['downloadRecordingInfo']['downloadInfo']['audioURL'])
+            audiourl = traverse_obj(stream, ('downloadRecordingInfo', 'downloadInfo', 'audioURL'))
             if audiourl:
                 formats.append({
                     'format_id': 'audio',

@@ -3,7 +3,7 @@ from ..utils import (
     format_field,
     int_or_none,
     js_to_json,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -72,7 +72,7 @@ class JojIE(InfoExtractor):
             video_id, transform_source=js_to_json, fatal=False)
 
         formats = []
-        for format_url in try_get(bitrates, lambda x: x['mp4'], list) or []:
+        for format_url in traverse_obj(bitrates, ('mp4', {list})) or []:
             if isinstance(format_url, str):
                 height = self._search_regex(
                     r'(\d+)[pP]|(pal)\.', format_url, 'height', default=None)

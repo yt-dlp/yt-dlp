@@ -2,7 +2,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
-    try_get,
+    traverse_obj,
     url_or_none,
     urlencode_postdata,
 )
@@ -85,7 +85,7 @@ class HiDiveIE(InfoExtractor):
         formats, parsed_urls = [], {None}
         for rendition_id, rendition in settings['renditions'].items():
             audio, version, extra = rendition_id.split('_')
-            m3u8_url = url_or_none(try_get(rendition, lambda x: x['bitrates']['hls']))
+            m3u8_url = url_or_none(traverse_obj(rendition, ('bitrates', 'hls')))
             if m3u8_url not in parsed_urls:
                 parsed_urls.add(m3u8_url)
                 frmt = self._extract_m3u8_formats(
@@ -99,8 +99,8 @@ class HiDiveIE(InfoExtractor):
         for rendition_id, rendition in settings['renditions'].items():
             audio, version, extra = rendition_id.split('_')
             for cc_file in rendition.get('ccFiles') or []:
-                cc_url = url_or_none(try_get(cc_file, lambda x: x[2]))
-                cc_lang = try_get(cc_file, (lambda x: x[1].replace(' ', '-').lower(), lambda x: x[0]), str)
+                cc_url = url_or_none(traverse_obj(cc_file, 2))
+                cc_lang = traverse_obj(cc_file, (1, {lambda x: x.replace(' ', '-').lower()}), 0, expected_type=str, get_all=False)
                 if cc_url not in parsed_urls and cc_lang:
                     parsed_urls.add(cc_url)
                     subtitles.setdefault(cc_lang, []).append({'url': cc_url})

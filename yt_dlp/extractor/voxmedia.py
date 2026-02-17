@@ -4,7 +4,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
-    try_get,
+    traverse_obj,
     unified_timestamp,
 )
 
@@ -28,7 +28,7 @@ class VoxMediaVolumeIE(InfoExtractor):
             'thumbnail': formatted_metadata.get('thumbnail') or video_data.get('brightcove_thumbnail'),
             'timestamp': unified_timestamp(formatted_metadata.get('video_publish_date')),
         }
-        asset = try_get(setup, lambda x: x['embed_assets']['chorus'], dict) or {}
+        asset = traverse_obj(setup, ('embed_assets', 'chorus'), expected_type=dict) or {}
 
         formats = []
         hls_url = asset.get('hls_url')

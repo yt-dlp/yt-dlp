@@ -6,9 +6,10 @@ from ..utils import (
     parse_duration,
     parse_iso8601,
     parse_resolution,
-    try_get,
+    parse_resolution,
     url_basename,
 )
+from ..utils.traversal import traverse_obj
 
 
 class MicrosoftStreamIE(InfoExtractor):
@@ -73,7 +74,7 @@ class MicrosoftStreamIE(InfoExtractor):
 
         thumbnails = []
         for thumbnail_id in ('extraSmall', 'small', 'medium', 'large'):
-            thumbnail_url = try_get(video_data, lambda x: x['posterImage'][thumbnail_id]['url'], str)
+            thumbnail_url = traverse_obj(video_data, ('posterImage', thumbnail_id, 'url', {str}))
             if not thumbnail_url:
                 continue
             thumb = {
@@ -106,16 +107,15 @@ class MicrosoftStreamIE(InfoExtractor):
             'id': video_id,
             'title': video_data['name'],
             'description': video_data.get('description'),
-            'uploader': try_get(video_data, lambda x: x['creator']['name'], str),
-            'uploader_id': try_get(video_data, (lambda x: x['creator']['mail'],
-                                                lambda x: x['creator']['id']), str),
+            'uploader': traverse_obj(video_data, ('creator', 'name', {str})),
+            'uploader_id': traverse_obj(video_data, ('creator', 'mail', {str}), ('creator', 'id', {str})),
             'thumbnails': thumbnails,
             **self.extract_all_subtitles(api_url, video_id, headers),
             'timestamp': parse_iso8601(video_data.get('created')),
-            'duration': parse_duration(try_get(video_data, lambda x: x['media']['duration'])),
+            'duration': traverse_obj(video_data, ('media', 'duration', {parse_duration})),
             'webpage_url': f'https://web.microsoftstream.com/video/{video_id}',
-            'view_count': try_get(video_data, lambda x: x['metrics']['views'], int),
-            'like_count': try_get(video_data, lambda x: x['metrics']['likes'], int),
-            'comment_count': try_get(video_data, lambda x: x['metrics']['comments'], int),
+            'view_count': traverse_obj(video_data, ('metrics', 'views', {int})),
+            'like_count': traverse_obj(video_data, ('metrics', 'likes', {int})),
+            'comment_count': traverse_obj(video_data, ('metrics', 'comments', {int})),
             'formats': formats,
         }

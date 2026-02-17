@@ -2,7 +2,7 @@ import random
 import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, str_or_none, try_get
+from ..utils import ExtractorError, str_or_none, traverse_obj
 
 
 class AudiusBaseIE(InfoExtractor):
@@ -121,7 +121,7 @@ class AudiusIE(AudiusBaseIE):
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
-        track_id = try_get(mobj, lambda x: x.group('track_id'))
+        track_id = traverse_obj(mobj, ({lambda x: x.group('track_id')},))
         if track_id is None:
             title = mobj.group('title')
             # uploader = mobj.group('uploader')
@@ -159,7 +159,7 @@ class AudiusIE(AudiusBaseIE):
             'description': track_data.get('description'),
             'duration': track_data.get('duration'),
             'track': track_data.get('title'),
-            'artist': try_get(track_data, lambda x: x['user']['name'], str),
+            'artist': traverse_obj(track_data, ('user', 'name', {str})),
             'genre': track_data.get('genre'),
             'thumbnails': thumbnails,
             'view_count': track_data.get('play_count'),

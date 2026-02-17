@@ -30,7 +30,6 @@ from ..utils import (
     str_or_none,
     truncate_string,
     try_call,
-    try_get,
     url_or_none,
     urlencode_postdata,
 )
@@ -467,7 +466,7 @@ class TikTokBaseIE(InfoExtractor):
                 formats.extend(extract_addr(bitrate['play_addr'], {
                     'format_id': bitrate.get('gear_name'),
                     'format_note': 'Playback video',
-                    'tbr': try_get(bitrate, lambda x: x['bit_rate'] / 1000),
+                    'tbr': traverse_obj(bitrate, ('bit_rate', {lambda x: x / 1000})),
                     'vcodec': 'h265' if traverse_obj(
                         bitrate, 'is_bytevc1', 'is_h265') else 'h264',
                     'fps': bitrate.get('FPS'),

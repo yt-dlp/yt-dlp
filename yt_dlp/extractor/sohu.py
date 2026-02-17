@@ -8,7 +8,6 @@ from ..utils import (
     float_or_none,
     int_or_none,
     traverse_obj,
-    try_get,
     unified_timestamp,
     url_or_none,
     urljoin,
@@ -193,7 +192,7 @@ class SohuIE(InfoExtractor):
                     'url': video_url,
                     'format_id': format_id,
                     'filesize': int_or_none(
-                        try_get(data, lambda x: x['clipsBytes'][i])),
+                        traverse_obj(data, ('clipsBytes', i))),
                     'width': int_or_none(data.get('width')),
                     'height': int_or_none(data.get('height')),
                     'fps': int_or_none(data.get('fps')),

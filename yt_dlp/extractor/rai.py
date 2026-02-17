@@ -14,7 +14,6 @@ from ..utils import (
     remove_start,
     strip_or_none,
     traverse_obj,
-    try_get,
     unified_strdate,
     unified_timestamp,
     update_url_query,
@@ -479,7 +478,7 @@ class RaiPlayPlaylistIE(InfoExtractor):
 
         return self.playlist_result(
             entries, playlist_id, playlist_title,
-            try_get(program, lambda x: x['program_info']['description']))
+            traverse_obj(program, ('program_info', 'description')))
 
 
 class RaiPlaySoundIE(RaiBaseIE):
@@ -530,7 +529,7 @@ class RaiPlaySoundIE(RaiBaseIE):
     def _real_extract(self, url):
         base, audio_id = self._match_valid_url(url).group('base', 'id')
         media = self._download_json(f'{base}.json', audio_id, 'Downloading audio JSON')
-        uid = try_get(media, lambda x: remove_start(remove_start(x['uniquename'], 'ContentItem-'), 'Page-'))
+        uid = traverse_obj(media, ('uniquename', {lambda x: remove_start(remove_start(x, 'ContentItem-'), 'Page-')}))
 
         info = {}
         formats = []
@@ -539,8 +538,8 @@ class RaiPlaySoundIE(RaiBaseIE):
             info = self._extract_relinker_info(r, audio_id, True)
             formats.extend(info.get('formats'))
 
-        date_published = try_get(media, (lambda x: f'{x["create_date"]} {x.get("create_time") or ""}',
-                                         lambda x: x['live']['create_date']))
+        date_published = (join_nonempty(media.get('create_date'), media.get('create_time'), delim=' ')
+                          or traverse_obj(media, ('live', 'create_date')))
 
         podcast_info = traverse_obj(media, 'podcast_info', ('live', 'cards', 0)) or {}
 

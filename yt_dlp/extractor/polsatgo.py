@@ -5,9 +5,10 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
-    try_get,
+    int_or_none,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class PolsatGoIE(InfoExtractor):
@@ -33,7 +34,7 @@ class PolsatGoIE(InfoExtractor):
                 continue
             yield {
                 'url': url,
-                'height': int_or_none(try_get(source, lambda x: x['quality'][:-1])),
+                'height': int_or_none(traverse_obj(source, ('quality', {lambda x: x[:-1]}))),
             }
 
     def _real_extract(self, url):
@@ -41,7 +42,7 @@ class PolsatGoIE(InfoExtractor):
         media = self._call_api('navigation', video_id, 'prePlayData', {'mediaId': video_id})['mediaItem']
 
         formats = list(self._extract_formats(
-            try_get(media, lambda x: x['playback']['mediaSources']), video_id))
+            traverse_obj(media, ('playback', 'mediaSources')), video_id))
 
         return {
             'id': video_id,

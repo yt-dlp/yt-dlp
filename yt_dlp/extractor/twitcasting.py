@@ -15,7 +15,7 @@ from ..utils import (
     parse_duration,
     qualities,
     str_to_int,
-    try_get,
+    str_to_int,
     unified_timestamp,
     update_url_query,
     url_or_none,
@@ -123,17 +123,23 @@ class TwitCastingIE(InfoExtractor):
         title = (clean_html(get_element_by_id('movietitle', webpage))
                  or self._html_search_meta(['og:title', 'twitter:title'], webpage, fatal=True))
 
-        video_js_data = try_get(
-            webpage,
-            lambda x: self._parse_data_movie_playlist(self._search_regex(
-                r'data-movie-playlist=\'([^\']+?)\'',
-                x, 'movie playlist', default=None), video_id)['2'], list)
+        video_js_data = None
+        movie_playlist = self._search_regex(
+            r'data-movie-playlist=\'([^\']+?)\'',
+            webpage, 'movie playlist', default=None)
+        if movie_playlist:
+            try:
+                video_js_data = traverse_obj(
+                    self._parse_data_movie_playlist(movie_playlist, video_id),
+                    ('2', {list}))
+            except Exception:
+                pass
 
         thumbnail = traverse_obj(video_js_data, (0, 'thumbnailUrl')) or self._og_search_thumbnail(webpage)
         description = clean_html(get_element_by_id(
             'authorcomment', webpage)) or self._html_search_meta(
             ['description', 'og:description', 'twitter:description'], webpage)
-        duration = (try_get(video_js_data, lambda x: sum(float_or_none(y.get('duration')) for y in x) / 1000)
+        duration = (sum(traverse_obj(video_js_data, (..., 'duration', {float_or_none}))) / 1000
                     or parse_duration(clean_html(get_element_by_class('tw-player-duration-time', webpage))))
         view_count = str_to_int(self._search_regex(
             (r'Total\s*:\s*Views\s*([\d,]+)', r'総視聴者\s*:\s*([\d,]+)\s*</'), webpage, 'views', None))
@@ -161,8 +167,7 @@ class TwitCastingIE(InfoExtractor):
             if data_movie_url:
                 return [data_movie_url]
 
-        m3u8_urls = (try_get(webpage, find_dmu, list)
-                     or traverse_obj(video_js_data, (..., 'source', 'url')))
+        m3u8_urls = find_dmu(webpage) or traverse_obj(video_js_data, (..., 'source', 'url'))
 
         if is_live:
             stream_data = self._download_json(

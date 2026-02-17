@@ -3,7 +3,8 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     float_or_none,
-    try_get,
+    float_or_none,
+    traverse_obj,
     unified_timestamp,
 )
 
@@ -165,8 +166,7 @@ class CCTVIE(InfoExtractor):
         video = data.get('video')
         if isinstance(video, dict):
             for quality, chapters_key in enumerate(('lowChapters', 'chapters')):
-                video_url = try_get(
-                    video, lambda x: x[chapters_key][0]['url'], str)
+                video_url = traverse_obj(video, (chapters_key, 0, 'url'), expected_type=str)
                 if video_url:
                     formats.append({
                         'url': video_url,
@@ -176,7 +176,7 @@ class CCTVIE(InfoExtractor):
                         'preference': -10,
                     })
 
-        hls_url = try_get(data, lambda x: x['hls_url'], str)
+        hls_url = traverse_obj(data, 'hls_url', expected_type=str)
         if hls_url:
             hls_url = re.sub(r'maxbr=\d+&?', '', hls_url)
             formats.extend(self._extract_m3u8_formats(
@@ -187,7 +187,7 @@ class CCTVIE(InfoExtractor):
         description = self._html_search_meta(
             'description', webpage, default=None)
         timestamp = unified_timestamp(data.get('f_pgmtime'))
-        duration = float_or_none(try_get(video, lambda x: x['totalLength']))
+        duration = float_or_none(traverse_obj(video, 'totalLength'))
 
         return {
             'id': video_id,

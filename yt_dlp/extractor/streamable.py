@@ -4,7 +4,7 @@ from ..utils import (
     float_or_none,
     int_or_none,
     parse_codecs,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -86,8 +86,8 @@ class StreamableIE(InfoExtractor):
                 'filesize': int_or_none(info.get('size')),
                 'fps': int_or_none(info.get('framerate')),
                 'vbr': float_or_none(info.get('bitrate'), 1000),
-                'vcodec': parse_codecs(try_get(info, lambda x: x['input_metadata']['video_codec_name'])).get('vcodec'),
-                'acodec': parse_codecs(try_get(info, lambda x: x['input_metadata']['audio_codec_name'])).get('acodec'),
+                'vcodec': parse_codecs(traverse_obj(info, ('input_metadata', 'video_codec_name'))).get('vcodec'),
+                'acodec': parse_codecs(traverse_obj(info, ('input_metadata', 'audio_codec_name'))).get('acodec'),
             })
 
         return {

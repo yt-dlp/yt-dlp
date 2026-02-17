@@ -9,9 +9,9 @@ from ..utils import (
     parse_iso8601,
     str_or_none,
     str_to_int,
-    try_get,
     unified_timestamp,
     url_or_none,
+    traverse_obj,
 )
 
 
@@ -239,12 +239,10 @@ class PornTubeIE(FourTubeBaseIE):
         formats = self._extract_formats(url, video_id, media_id, sources)
 
         thumbnail = url_or_none(video.get('masterThumb'))
-        uploader = try_get(video, lambda x: x['user']['username'], str)
-        uploader_id = str_or_none(try_get(
-            video, lambda x: x['user']['id'], int))
-        channel = try_get(video, lambda x: x['channel']['name'], str)
-        channel_id = str_or_none(try_get(
-            video, lambda x: x['channel']['id'], int))
+        uploader = traverse_obj(video, ('user', 'username'), expected_type=str)
+        uploader_id = traverse_obj(video, ('user', 'id'), expected_type=str_or_none)
+        channel = traverse_obj(video, ('channel', 'name'), expected_type=str)
+        channel_id = traverse_obj(video, ('channel', 'id'), expected_type=str_or_none)
         like_count = int_or_none(video.get('likes'))
         dislike_count = int_or_none(video.get('dislikes'))
         view_count = int_or_none(video.get('playsQty'))

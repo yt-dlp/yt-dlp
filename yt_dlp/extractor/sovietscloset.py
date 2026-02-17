@@ -1,6 +1,6 @@
 from .bunnycdn import BunnyCdnIE
 from .common import InfoExtractor
-from ..utils import make_archive_id, try_get, unified_timestamp
+from ..utils import make_archive_id, traverse_obj, unified_timestamp
 
 
 class SovietsClosetBaseIE(InfoExtractor):
@@ -111,7 +111,7 @@ class SovietsClosetIE(SovietsClosetBaseIE):
             f'https://iframe.mediadelivery.net/embed/5105/{stream["bunnyId"]}', ie=BunnyCdnIE, url_transparent=True,
             **self.video_meta(
                 video_id=video_id, game_name=stream['game']['name'],
-                category_name=try_get(stream, lambda x: x['subcategory']['name'], str),
+                category_name=traverse_obj(stream, ('subcategory', 'name', {str})),
                 episode_number=stream.get('number'), stream_date=stream.get('date')),
             _old_archive_ids=[make_archive_id(self, video_id)])
 

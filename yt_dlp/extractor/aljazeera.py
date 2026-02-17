@@ -2,7 +2,7 @@ import json
 
 from .common import InfoExtractor
 from ..utils import (
-    try_get,
+    traverse_obj,
 )
 
 
@@ -57,7 +57,7 @@ class AlJazeeraIE(InfoExtractor):
             }, headers={
                 'wp-site': wp,
             })
-        video = try_get(video, lambda x: x['data']['article']['video']) or {}
+        video = traverse_obj(video, ('data', 'article', 'video')) or {}
         video_id = video.get('id')
         account = video.get('accountId') or '911432371001'
         player_id = video.get('playerId') or 'csvTfAlKW'

@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    dict_get,
     float_or_none,
+    traverse_obj,
 )
 
 
@@ -67,7 +67,7 @@ class PlaywireIE(InfoExtractor):
 
         formats = self._extract_f4m_formats(src, video_id, m3u8_id='hls')
         for a_format in formats:
-            if not dict_get(a_format, ['tbr', 'width', 'height']):
+            if not traverse_obj(a_format, 'tbr', 'width', 'height', get_all=False):
                 a_format['quality'] = 1 if '-hd.' in a_format['url'] else 0
 
         return {

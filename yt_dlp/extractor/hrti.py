@@ -8,7 +8,7 @@ from ..utils import (
     clean_html,
     int_or_none,
     parse_age_limit,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -191,9 +191,9 @@ class HRTiPlaylistIE(HRTiBaseIE):
             f'{self._search_url}/category_id/{category_id}/format/json',
             display_id, 'Downloading video metadata JSON')
 
-        video_ids = try_get(
-            response, lambda x: x['video_listings'][0]['alternatives'][0]['list'],
-            list) or [video['id'] for video in response.get('videos', []) if video.get('id')]
+        video_ids = traverse_obj(
+            response, ('video_listings', 0, 'alternatives', 0, 'list', {list}),
+        ) or [video['id'] for video in response.get('videos', []) if video.get('id')]
 
         entries = [self.url_result(f'hrti:{video_id}') for video_id in video_ids]
 

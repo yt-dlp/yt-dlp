@@ -2,12 +2,10 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     bool_or_none,
-    dict_get,
     float_or_none,
     int_or_none,
     str_or_none,
     traverse_obj,
-    try_get,
     url_or_none,
     urljoin,
 )
@@ -79,7 +77,7 @@ class GettrIE(GettrBaseIE):
         api_data = self._call_api(f'post/{post_id}?incl="poststats|userinfo"', post_id)
 
         post_data = api_data.get('data')
-        user_data = try_get(api_data, lambda x: x['aux']['uinf'][post_data['uid']], dict) or {}
+        user_data = traverse_obj(api_data, ('aux', 'uinf', post_data.get('uid')), expected_type=dict) or {}
 
         vid = post_data.get('vid')
         ovid = post_data.get('ovid')
@@ -129,12 +127,12 @@ class GettrIE(GettrBaseIE):
             'subtitles': subtitles,
             'uploader': uploader,
             'uploader_id': str_or_none(
-                dict_get(user_data, ['_id', 'username'])
+                traverse_obj(user_data, '_id', 'username')
                 or post_data.get('uid')),
             'thumbnail': url_or_none(
                 urljoin(self._MEDIA_BASE_URL, post_data.get('main'))
                 or self._html_search_meta(['og:image', 'image'], webpage, 'thumbnail', fatal=False)),
-            'timestamp': float_or_none(dict_get(post_data, ['cdate', 'udate']), scale=1000),
+            'timestamp': float_or_none(traverse_obj(post_data, 'cdate', 'udate'), scale=1000),
             'duration': float_or_none(post_data.get('vid_dur')),
             'tags': post_data.get('htgs'),
         }
@@ -188,17 +186,17 @@ class GettrStreamingIE(GettrBaseIE):
 
         thumbnails = [{
             'url': urljoin(self._MEDIA_BASE_URL, thumbnail),
-        } for thumbnail in try_get(video_info, lambda x: x['postData']['imgs'], list) or []]
+        } for thumbnail in traverse_obj(video_info, ('postData', 'imgs'), expected_type=list) or []]
 
         return {
             'id': video_id,
-            'title': try_get(video_info, lambda x: x['postData']['ttl'], str),
-            'description': try_get(video_info, lambda x: x['postData']['dsc'], str),
+            'title': traverse_obj(video_info, ('postData', 'ttl'), expected_type=str),
+            'description': traverse_obj(video_info, ('postData', 'dsc'), expected_type=str),
             'formats': formats,
             'subtitles': subtitles,
             'thumbnails': thumbnails,
-            'uploader': try_get(video_info, lambda x: x['liveHostInfo']['nickname'], str),
-            'uploader_id': try_get(video_info, lambda x: x['liveHostInfo']['_id'], str),
+            'uploader': traverse_obj(video_info, ('liveHostInfo', 'nickname'), expected_type=str),
+            'uploader_id': traverse_obj(video_info, ('liveHostInfo', '_id'), expected_type=str),
             'view_count': int_or_none(live_info.get('viewsCount')),
             'timestamp': float_or_none(live_info.get('startAt'), scale=1000),
             'duration': float_or_none(live_info.get('duration'), scale=1000),

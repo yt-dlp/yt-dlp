@@ -6,7 +6,7 @@ from ..networking import HEADRequest
 from ..utils import (
     clean_html,
     int_or_none,
-    try_get,
+    traverse_obj,
     urlhandle_detect_ext,
 )
 
@@ -67,7 +67,7 @@ class JamendoIE(InfoExtractor):
         # track = models['track']['models'][0]
         track = self._call_api('track', track_id)
         title = track_name = track['name']
-        # get_model = lambda x: try_get(models, lambda y: y[x]['models'][0], dict) or {}
+
         # artist = get_model('artist')
         # artist_name = artist.get('name')
         # if artist_name:
@@ -213,4 +213,4 @@ class JamendoAlbumIE(JamendoIE):  # XXX: Do not subclass from concrete IE
 
         return self.playlist_result(
             entries, album_id, album_name,
-            clean_html(try_get(album, lambda x: x['description']['en'], str)))
+            clean_html(traverse_obj(album, ('description', 'en', {str}))))

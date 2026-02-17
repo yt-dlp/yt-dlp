@@ -4,8 +4,10 @@ from .common import InfoExtractor
 from ..utils import (
     orderedSet,
     parse_duration,
-    try_get,
+    orderedSet,
+    parse_duration,
 )
+from ..utils.traversal import traverse_obj
 
 
 class MarkizaIE(InfoExtractor):
@@ -58,12 +60,11 @@ class MarkizaIE(InfoExtractor):
         if info.get('_type') == 'playlist':
             info.update({
                 'id': video_id,
-                'title': try_get(
-                    data, lambda x: x['details']['name'], str),
+                'title': traverse_obj(data, ('details', 'name', {str})),
             })
         else:
             info['duration'] = parse_duration(
-                try_get(data, lambda x: x['details']['duration'], str))
+                traverse_obj(data, ('details', 'duration', {str})))
         return info
 
 

@@ -2,7 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    try_get,
+    traverse_obj,
     unescapeHTML,
     url_or_none,
     urljoin,
@@ -124,7 +124,7 @@ class WWEPlaylistIE(WWEBaseIE):
                 fatal=False)
             if not video:
                 continue
-            data = try_get(video, lambda x: x['playlist'][0], dict)
+            data = traverse_obj(video, ('playlist', 0), expected_type=dict)
             if not data:
                 continue
             try:

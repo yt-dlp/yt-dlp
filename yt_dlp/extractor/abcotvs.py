@@ -1,8 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    dict_get,
     int_or_none,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -59,8 +58,8 @@ class ABCOTVSIE(InfoExtractor):
                 'key': f'otv.web.{station}.story',
                 'station': station,
             })['data']
-        video = try_get(data, lambda x: x['featuredMedia']['video'], dict) or data
-        video_id = str(dict_get(video, ('id', 'publishedKey'), video_id))
+        video = traverse_obj(data, ('featuredMedia', 'video'), expected_type=dict) or data
+        video_id = str(traverse_obj(video, (('id', 'publishedKey'),), get_all=False) or video_id)
         title = video.get('title') or video['linkText']
 
         formats = []
@@ -84,8 +83,8 @@ class ABCOTVSIE(InfoExtractor):
             'id': video_id,
             'display_id': display_id,
             'title': title,
-            'description': dict_get(video, ('description', 'caption'), try_get(video, lambda x: x['meta']['description'])),
-            'thumbnail': dict_get(image, ('source', 'dynamicSource')),
+            'description': traverse_obj(video, (('description', 'caption'), ('meta', 'description')), get_all=False),
+            'thumbnail': traverse_obj(image, (('source', 'dynamicSource'),), get_all=False),
             'timestamp': int_or_none(video.get('date')),
             'duration': int_or_none(video.get('length')),
             'formats': formats,

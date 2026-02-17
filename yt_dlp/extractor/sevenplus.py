@@ -5,9 +5,9 @@ from .brightcove import BrightcoveNewBaseIE
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
-    try_get,
     update_url_query,
 )
+from ..utils.traversal import traverse_obj
 
 
 class SevenPlusIE(BrightcoveNewBaseIE):
@@ -118,8 +118,8 @@ class SevenPlusIE(BrightcoveNewBaseIE):
                     value = item.get(src_key)
                     if value:
                         info[dst_key] = value
-                info['series'] = try_get(
-                    item, lambda x: x['seriesLogo']['name'], str)
+                info['series'] = traverse_obj(
+                    item, ('seriesLogo', 'name'), expected_type=str)
                 mobj = re.search(r'^S(\d+)\s+E(\d+)\s+-\s+(.+)$', info['title'])
                 if mobj:
                     info.update({

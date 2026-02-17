@@ -3,7 +3,6 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
-    dict_get,
     int_or_none,
     parse_duration,
     unified_timestamp,
@@ -46,7 +45,7 @@ class SkyItBaseIE(InfoExtractor):
             'id': video_id,
             'title': video.get('title'),
             'formats': formats,
-            'thumbnail': dict_get(video, ('video_still', 'video_still_medium', 'thumb')),
+            'thumbnail': traverse_obj(video, ('video_still', 'video_still_medium', 'thumb')),
             'description': video.get('short_desc') or None,
             'timestamp': unified_timestamp(video.get('create_date')),
             'duration': int_or_none(video.get('duration_sec')) or parse_duration(video.get('duration')),
@@ -62,7 +61,7 @@ class SkyItPlayerIE(SkyItBaseIE):
         video_id = self._match_id(url)
         domain = urllib.parse.parse_qs(urllib.parse.urlparse(
             url).query).get('domain', [None])[0]
-        token = dict_get(self._TOKEN_MAP, (domain, 'sky'))
+        token = traverse_obj(self._TOKEN_MAP, (domain, 'sky'))
         video = self._download_json(
             'https://apid.sky.it/vdp/v1/getVideoData',
             video_id, query={

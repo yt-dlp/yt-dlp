@@ -7,7 +7,8 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     mimetype2ext,
-    try_get,
+    traverse_obj,
+
     urljoin,
 )
 
@@ -130,7 +131,7 @@ class YandexDiskIE(InfoExtractor):
                 })
 
         uid = resource.get('uid')
-        display_name = try_get(store, lambda x: x['users'][uid]['displayName'])
+        display_name = traverse_obj(store, ('users', uid, 'displayName'))
 
         return {
             'id': video_id,

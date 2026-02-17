@@ -6,8 +6,8 @@ from ..utils import (
     join_nonempty,
     parse_iso8601,
     qualities,
-    try_get,
 )
+from ..utils.traversal import traverse_obj
 
 
 class SRGSSRIE(InfoExtractor):
@@ -49,7 +49,7 @@ class SRGSSRIE(InfoExtractor):
         token = self._download_json(
             'http://tp.srgssr.ch/akahd/token?acl=*',
             video_id, f'Downloading {format_id} token', fatal=False) or {}
-        auth_params = try_get(token, lambda x: x['token']['authparams'])
+        auth_params = traverse_obj(token, ('token', 'authparams'))
         if auth_params:
             url += ('?' if '?' not in url else '&') + auth_params
         return url

@@ -5,7 +5,7 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     jwt_encode,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -34,7 +34,7 @@ class ATVAtIE(InfoExtractor):
         formats = []
         clip_urls = video['urls']
         for protocol, variant in clip_urls.items():
-            source_url = try_get(variant, lambda x: x['clear']['url'])
+            source_url = traverse_obj(variant, ('clear', 'url'))
             if not source_url:
                 continue
             if protocol == 'dash':
@@ -90,7 +90,7 @@ class ATVAtIE(InfoExtractor):
             })
 
         video_id, videos_data = next(iter(videos['data'].items()))
-        error_msg = try_get(videos_data, lambda x: x['error']['title'])
+        error_msg = traverse_obj(videos_data, ('error', 'title'))
         if error_msg == 'Geo check failed':
             self.raise_geo_restricted(error_msg)
         elif error_msg:

@@ -1,7 +1,7 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, int_or_none, traverse_obj, try_get
+from ..utils import ExtractorError, int_or_none, traverse_obj
 
 
 class AmazonMiniTVBaseIE(InfoExtractor):
@@ -161,7 +161,7 @@ query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, 
                 'variables': {'contentId': asin},
                 'query': self._GRAPHQL_QUERY_CONTENT,
             })
-        credits_time = try_get(title_info, lambda x: x['timecode']['endCreditsTime'] / 1000)
+        credits_time = traverse_obj(title_info, ('timecode', 'endCreditsTime', {lambda x: x / 1000}))
         is_episode = title_info.get('vodType') == 'EPISODE'
 
         return {
@@ -175,7 +175,7 @@ query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, 
                 'url': url,
             } for type_, url in (title_info.get('images') or {}).items()],
             'description': traverse_obj(title_info, ('description', 'synopsis')),
-            'release_timestamp': int_or_none(try_get(title_info, lambda x: x['publicReleaseDateUTC'] / 1000)),
+            'release_timestamp': int_or_none(traverse_obj(title_info, ('publicReleaseDateUTC', {lambda x: x / 1000}))),
             'duration': traverse_obj(title_info, ('description', 'contentLengthInSeconds')),
             'chapters': [{
                 'start_time': credits_time,

@@ -3,7 +3,7 @@ from ..utils import (
     clean_html,
     float_or_none,
     int_or_none,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -39,7 +39,7 @@ class HitRecordIE(InfoExtractor):
         video_url = video['source_url']['mp4_url']
 
         tags = None
-        tags_list = try_get(video, lambda x: x['tags'], list)
+        tags_list = traverse_obj(video, ('tags', {list}))
         if tags_list:
             tags = [
                 t['text']
@@ -54,10 +54,10 @@ class HitRecordIE(InfoExtractor):
             'description': clean_html(video.get('body')),
             'duration': float_or_none(video.get('duration'), 1000),
             'timestamp': int_or_none(video.get('created_at_i')),
-            'uploader': try_get(
-                video, lambda x: x['user']['username'], str),
-            'uploader_id': try_get(
-                video, lambda x: str(x['user']['id'])),
+            'uploader': traverse_obj(
+                video, ('user', 'username', {str})),
+            'uploader_id': traverse_obj(
+                video, ('user', 'id', {lambda x: str(x)})),
             'view_count': int_or_none(video.get('total_views_count')),
             'like_count': int_or_none(video.get('hearts_count')),
             'comment_count': int_or_none(video.get('comments_count')),

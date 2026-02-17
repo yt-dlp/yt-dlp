@@ -9,7 +9,7 @@ from ..utils import (
     smuggle_url,
     str_or_none,
     strip_or_none,
-    try_get,
+    traverse_obj,
     unsmuggle_url,
     urlencode_postdata,
 )
@@ -156,7 +156,7 @@ class VidioIE(VidioBaseIE):
             formats, subs = self._extract_m3u8_formats_and_subtitles(
                 hls_url, display_id, 'mp4', 'm3u8_native')
 
-        get_first = lambda x: try_get(data, lambda y: y[x + 's'][0], dict) or {}
+        get_first = lambda x: traverse_obj(data, (x + 's', 0), expected_type=dict) or {}
         channel = get_first('channel')
         user = get_first('user')
         username = user.get('username')
@@ -203,7 +203,7 @@ class VidioPremierIE(VidioBaseIE):
             for video_json in playlist_json.get('data', []):
                 link = video_json['links']['watchpage']
                 yield self.url_result(link, 'Vidio', video_json['id'])
-            playlist_url = try_get(playlist_json, lambda x: x['links']['next'])
+            playlist_url = traverse_obj(playlist_json, ('links', 'next'))
             index += 1
 
     def _real_extract(self, url):
@@ -224,7 +224,7 @@ class VidioPremierIE(VidioBaseIE):
             getter=lambda data: smuggle_url(url, {
                 'url': data['relationships']['videos']['links']['related'],
                 'id': data['id'],
-                'title': try_get(data, lambda x: x['attributes']['name']),
+                'title': traverse_obj(data, ('attributes', 'name')),
             }))
 
 

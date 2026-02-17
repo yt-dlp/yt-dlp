@@ -8,9 +8,10 @@ from ..utils import (
     int_or_none,
     parse_duration,
     remove_end,
-    try_get,
+    remove_end,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class MailRuIE(InfoExtractor):
@@ -325,8 +326,7 @@ class MailRuMusicSearchIE(MailRuMusicSearchBaseIE):
                 if track:
                     entries.append(track)
 
-            total = try_get(
-                search, lambda x: x['Results']['music']['Total'], int)
+            total = traverse_obj(search, ('Results', 'music', 'Total', {int}))
 
             if total is not None:
                 if offset > total:

@@ -8,9 +8,7 @@ from ..utils import (
     ExtractorError,
     format_field,
     int_or_none,
-    str_or_none,
     traverse_obj,
-    try_get,
 )
 
 
@@ -196,7 +194,7 @@ class TrovoVodIE(TrovoBaseIE):
         vod_info = vod_detail_info.get('vodInfo')
         title = vod_info.get('title')
 
-        if try_get(vod_info, lambda x: x['playbackRights']['playbackRights'] != 'Normal'):
+        if traverse_obj(vod_info, ('playbackRights', 'playbackRights')) not in ('Normal', None):
             playback_rights_setting = vod_info['playbackRights']['playbackRightsSetting']
             if playback_rights_setting == 'SubscriberOnly':
                 raise ExtractorError('This video is only available for subscribers', expected=True)

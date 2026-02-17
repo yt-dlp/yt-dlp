@@ -3,7 +3,7 @@ from ..utils import (
     determine_ext,
     int_or_none,
     parse_iso8601,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -64,7 +64,7 @@ class TelegraafIE(InfoExtractor):
             else:
                 self.report_warning(f'Unknown adaptive format {ext}')
         for location in locations.get('progressive', []):
-            src = try_get(location, lambda x: x['sources'][0]['src'])
+            src = traverse_obj(location, ('sources', 0, 'src'))
             if not src:
                 continue
             label = location.get('label')

@@ -3,7 +3,6 @@ import itertools
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
-    try_get,
     unified_strdate,
     url_or_none,
 )
@@ -39,7 +38,7 @@ class CrowdBunkerIE(InfoExtractor):
         video_json = data_json['video']
         formats, subtitles = [], {}
         for sub in video_json.get('captions') or []:
-            sub_url = try_get(sub, lambda x: x['file']['url'])
+            sub_url = traverse_obj(sub, ('file', 'url'))
             if not sub_url:
                 continue
             subtitles.setdefault(sub.get('languageCode', 'fr'), []).append({
@@ -68,8 +67,9 @@ class CrowdBunkerIE(InfoExtractor):
             'description': video_json.get('description'),
             'view_count': video_json.get('viewCount'),
             'duration': video_json.get('duration'),
-            'uploader': try_get(data_json, lambda x: x['channel']['name']),
-            'uploader_id': try_get(data_json, lambda x: x['channel']['id']),
+            'duration': video_json.get('duration'),
+            'uploader': traverse_obj(data_json, ('channel', 'name')),
+            'uploader_id': traverse_obj(data_json, ('channel', 'id')),
             'like_count': data_json.get('likesCount'),
             'upload_date': unified_strdate(video_json.get('publishedAt') or video_json.get('createdAt')),
             'thumbnails': thumbnails,

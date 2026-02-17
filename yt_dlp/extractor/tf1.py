@@ -4,7 +4,7 @@ from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     parse_iso8601,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -76,7 +76,7 @@ class TF1IE(InfoExtractor):
         decoration = video.get('decoration') or {}
 
         thumbnails = []
-        for source in (try_get(decoration, lambda x: x['image']['sources'], list) or []):
+        for source in (traverse_obj(decoration, ('image', 'sources', {list})) or []):
             source_url = source.get('url')
             if not source_url:
                 continue
@@ -93,7 +93,7 @@ class TF1IE(InfoExtractor):
             'thumbnails': thumbnails,
             'description': decoration.get('description'),
             'timestamp': parse_iso8601(video.get('date')),
-            'duration': int_or_none(try_get(video, lambda x: x['publicPlayingInfos']['duration'])),
+            'duration': int_or_none(traverse_obj(video, ('publicPlayingInfos', 'duration'))),
             'tags': tags,
             'series': decoration.get('programLabel'),
             'season_number': int_or_none(video.get('season')),

@@ -7,10 +7,11 @@ from ..utils import (
     float_or_none,
     parse_iso8601,
     str_or_none,
-    try_get,
+    str_or_none,
     unescapeHTML,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class RteBaseIE(InfoExtractor):
@@ -40,7 +41,7 @@ class RteBaseIE(InfoExtractor):
                 raise
 
             # NB the string values in the JSON are stored using XML escaping(!)
-            show = try_get(data, lambda x: x['shows'][0], dict)
+            show = traverse_obj(data, ('shows', 0), expected_type=dict)
             if not show:
                 continue
 
@@ -59,7 +60,7 @@ class RteBaseIE(InfoExtractor):
                     'duration': duration,
                 }
 
-            mg = try_get(show, lambda x: x['media:group'][0], dict)
+            mg = traverse_obj(show, ('media:group', 0), expected_type=dict)
             if not mg:
                 continue
 

@@ -13,12 +13,11 @@ from ..utils import (
     merge_dicts,
     parse_duration,
     smuggle_url,
-    try_get,
+    traverse_obj,
     url_basename,
     url_or_none,
     urljoin,
 )
-from ..utils.traversal import traverse_obj
 
 
 class ITVIE(InfoExtractor):
@@ -114,13 +113,13 @@ class ITVIE(InfoExtractor):
         platform_tag_subs, featureset_subs = next(
             ((platform_tag, featureset)
              for platform_tag, featuresets in reversed(list(variants.items())) for featureset in featuresets
-             if try_get(featureset, lambda x: x[2]) == 'outband-webvtt'),
+             if traverse_obj(featureset, (2)) == 'outband-webvtt'),
             (None, None))
 
         if platform_tag_subs and featureset_subs:
             subs_playlist = self._call_api(
                 video_id, ios_playlist_url, headers, platform_tag_subs, featureset_subs, fatal=False)
-            subs = try_get(subs_playlist, lambda x: x['Playlist']['Video']['Subtitles'], list) or []
+            subs = traverse_obj(subs_playlist, ('Playlist', 'Video', 'Subtitles', {list})) or []
             for sub in subs:
                 if not isinstance(sub, dict):
                     continue
@@ -136,14 +135,14 @@ class ITVIE(InfoExtractor):
         params = extract_attributes(self._search_regex(
             r'(?s)(<[^>]+id="video"[^>]*>)', webpage, 'params'))
         variants = self._parse_json(
-            try_get(params, lambda x: x['data-video-variants'], str) or '{}',
+            traverse_obj(params, ('data-video-variants', {str})) or '{}',
             video_id, fatal=False)
         # Prefer last matching featureset
         # See: https://github.com/yt-dlp/yt-dlp/issues/986
         platform_tag_video, featureset_video = next(
             ((platform_tag, featureset)
              for platform_tag, featuresets in reversed(list(variants.items())) for featureset in featuresets
-             if set(try_get(featureset, lambda x: x[:2]) or []) == {'aes', 'hls'}),
+             if set(featureset[:2] if featureset else []) == {'aes', 'hls'}),
             (None, None))
         if not platform_tag_video or not featureset_video:
             raise ExtractorError('No downloads available', expected=True, video_id=video_id)
@@ -153,7 +152,7 @@ class ITVIE(InfoExtractor):
         ios_playlist = self._call_api(
             video_id, ios_playlist_url, headers, platform_tag_video, featureset_video)
 
-        video_data = try_get(ios_playlist, lambda x: x['Playlist']['Video'], dict) or {}
+        video_data = traverse_obj(ios_playlist, ('Playlist', 'Video', {dict})) or {}
         ios_base_url = video_data.get('Base')
         formats = []
         for media_file in (video_data.get('MediaFiles') or []):
@@ -185,7 +184,7 @@ class ITVIE(InfoExtractor):
                         break
 
         thumbnails = []
-        thumbnail_url = try_get(params, lambda x: x['data-video-posterframe'], str)
+        thumbnail_url = traverse_obj(params, ('data-video-posterframe', {str}))
         if thumbnail_url:
             thumbnails.extend([{
                 'url': thumbnail_url.format(width=1920, height=1080, quality=100, blur=0, bg='false'),
@@ -239,9 +238,9 @@ class ITVBTCCIE(InfoExtractor):
 
         webpage = self._download_webpage(url, playlist_id)
 
-        json_map = try_get(
+        json_map = traverse_obj(
             self._search_nextjs_data(webpage, playlist_id),
-            lambda x: x['props']['pageProps']['article']['body']['content']) or []
+            ('props', 'pageProps', 'article', 'body', 'content')) or []
 
         entries = []
         for video in json_map:

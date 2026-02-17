@@ -29,7 +29,6 @@ from ..utils import (
     smuggle_url,
     str_or_none,
     try_call,
-    try_get,
     unified_timestamp,
     unsmuggle_url,
     url_basename,
@@ -1232,12 +1231,12 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'license': video.get('license'),
             'release_timestamp': get_timestamp('release'),
             'timestamp': get_timestamp('created'),
-            'view_count': int_or_none(try_get(video, lambda x: x['stats']['plays'])),
+            'view_count': int_or_none(traverse_obj(video, ('stats', 'plays'))),
         })
-        connections = try_get(
-            video, lambda x: x['metadata']['connections'], dict) or {}
+        connections = traverse_obj(
+            video, ('metadata', 'connections'), expected_type=dict) or {}
         for k in ('comment', 'like'):
-            info[k + '_count'] = int_or_none(try_get(connections, lambda x: x[k + 's']['total']))
+            info[k + '_count'] = int_or_none(traverse_obj(connections, (k + 's', 'total')))
         return info
 
     def _real_extract(self, url):
@@ -1342,7 +1341,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
         def is_rented():
             if '>You rented this title.<' in webpage:
                 return True
-            if try_get(config, lambda x: x['user']['purchased']):
+            if traverse_obj(config, ('user', 'purchased')):
                 return True
             for purchase_option in (vod.get('purchase_options') or []):
                 if purchase_option.get('purchased'):

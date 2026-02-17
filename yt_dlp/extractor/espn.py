@@ -7,7 +7,6 @@ from .adobepass import AdobePassIE
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
-    dict_get,
     int_or_none,
     traverse_obj,
     unified_strdate,
@@ -281,7 +280,7 @@ class ESPNCricInfoIE(InfoExtractor):
             'id': video_id,
             'title': data_json.get('title'),
             'description': data_json.get('summary'),
-            'upload_date': unified_strdate(dict_get(data_json, ('publishedAt', 'recordedAt'))),
+            'upload_date': unified_strdate(traverse_obj(data_json, 'publishedAt', 'recordedAt', get_all=False)),
             'duration': data_json.get('duration'),
             'formats': formats,
             'subtitles': subtitles,

@@ -6,7 +6,7 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     parse_iso8601,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -161,7 +161,7 @@ class ArcPublishingIE(InfoExtractor):
                 })
 
         subtitles = {}
-        for subtitle in (try_get(video, lambda x: x['subtitles']['urls'], list) or []):
+        for subtitle in (traverse_obj(video, ('subtitles', 'urls'), expected_type=list) or []):
             subtitle_url = subtitle.get('url')
             if subtitle_url:
                 subtitles.setdefault('en', []).append({'url': subtitle_url})
@@ -169,8 +169,8 @@ class ArcPublishingIE(InfoExtractor):
         return {
             'id': uuid,
             'title': title,
-            'thumbnail': try_get(video, lambda x: x['promo_image']['url']),
-            'description': try_get(video, lambda x: x['subheadlines']['basic']),
+            'thumbnail': traverse_obj(video, ('promo_image', 'url')),
+            'description': traverse_obj(video, ('subheadlines', 'basic')),
             'formats': formats,
             'duration': int_or_none(video.get('duration'), 100),
             'timestamp': parse_iso8601(video.get('created_date')),

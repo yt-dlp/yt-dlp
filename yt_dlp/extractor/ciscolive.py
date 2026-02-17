@@ -6,7 +6,9 @@ from ..utils import (
     float_or_none,
     int_or_none,
     parse_qs,
-    try_get,
+    int_or_none,
+    parse_qs,
+    traverse_obj,
     urlencode_postdata,
 )
 
@@ -36,11 +38,11 @@ class CiscoLiveBaseIE(InfoExtractor):
         event_name = rf_item.get('eventName')
         title = rf_item['title']
         description = clean_html(rf_item.get('abstract'))
-        presenter_name = try_get(rf_item, lambda x: x['participants'][0]['fullName'])
+        presenter_name = traverse_obj(rf_item, ('participants', 0, 'fullName'))
         bc_id = rf_item['videos'][0]['url']
         bc_url = self.BRIGHTCOVE_URL_TEMPLATE % bc_id
-        duration = float_or_none(try_get(rf_item, lambda x: x['times'][0]['length']))
-        location = try_get(rf_item, lambda x: x['times'][0]['room'])
+        duration = float_or_none(traverse_obj(rf_item, ('times', 0, 'length')))
+        location = traverse_obj(rf_item, ('times', 0, 'room'))
 
         if duration:
             duration = duration * 60
@@ -109,7 +111,7 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
 
     @staticmethod
     def _check_bc_id_exists(rf_item):
-        return int_or_none(try_get(rf_item, lambda x: x['videos'][0]['url'])) is not None
+        return int_or_none(traverse_obj(rf_item, ('videos', 0, 'url'))) is not None
 
     def _entries(self, query, url):
         query['size'] = 50
@@ -118,7 +120,7 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
             results = self._call_api(
                 'search', None, query, url,
                 f'Downloading search JSON page {page_num}')
-            sl = try_get(results, lambda x: x['sectionList'][0], dict)
+            sl = traverse_obj(results, ('sectionList', 0), expected_type=dict)
             if sl:
                 results = sl
             items = results.get('items')

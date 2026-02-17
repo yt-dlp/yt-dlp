@@ -2086,6 +2086,7 @@ from .threespeak import (
     ThreeSpeakIE,
     ThreeSpeakUserIE,
 )
+from .threads import ThreadsIE
 from .tiktok import (
     DouyinIE,
     TikTokCollectionIE,

@@ -6,8 +6,8 @@ from ..utils import (
     js_to_json,
     parse_duration,
     traverse_obj,
-    try_get,
     urljoin,
+
 )
 
 
@@ -146,9 +146,10 @@ class MainStreamingIE(InfoExtractor):
 
     def _real_extract(self, url):
         host, video_id = self._match_valid_url(url).groups()
-        content_info = try_get(
+        content_info = traverse_obj(
             self._call_api(
-                host, f'content/{video_id}', video_id, note='Downloading content info API JSON'), lambda x: x['playerContentInfo'])
+                host, f'content/{video_id}', video_id, note='Downloading content info API JSON'),
+            'playerContentInfo')
         # Fallback
         if not content_info:
             webpage = self._download_webpage(url, video_id)

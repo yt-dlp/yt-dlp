@@ -14,7 +14,6 @@ from ..utils import (
     extract_attributes,
     int_or_none,
     traverse_obj,
-    try_get,
     unescapeHTML,
     unsmuggle_url,
     update_url,
@@ -458,7 +457,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             title = error.get('title') or error['raw_message']
             # See https://developer.dailymotion.com/api#access-error
             if error.get('code') == 'DM007':
-                allowed_countries = try_get(media, lambda x: x['geoblockedCountries']['allowed'], list)
+                allowed_countries = traverse_obj(media, ('geoblockedCountries', 'allowed'), expected_type=list)
                 self.raise_geo_restricted(msg=title, countries=allowed_countries)
             raise ExtractorError(
                 f'{self.IE_NAME} said: {title}', expected=True)
@@ -503,7 +502,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             if not f.get('fps') and f['format_id'].endswith('@60'):
                 f['fps'] = 60
 
-        subtitles_data = try_get(metadata, lambda x: x['subtitles']['data'], dict) or {}
+        subtitles_data = traverse_obj(metadata, ('subtitles', 'data'), expected_type=dict) or {}
         for subtitle_lang, subtitle in subtitles_data.items():
             subtitles[subtitle_lang] = [{
                 'url': subtitle_url,
@@ -518,7 +517,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
 
         owner = metadata.get('owner') or {}
         stats = media.get('stats') or {}
-        get_count = lambda x: int_or_none(try_get(stats, lambda y: y[x + 's']['total']))
+        get_count = lambda x: int_or_none(traverse_obj(stats, (x + 's', 'total')))
 
         return {
             'id': video_id,

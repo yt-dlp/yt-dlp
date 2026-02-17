@@ -1,6 +1,5 @@
 from .common import InfoExtractor
 from ..utils import (
-    try_get,
     unified_timestamp,
 )
 
@@ -53,6 +52,10 @@ class CGTNIE(InfoExtractor):
         author = self._search_regex(
             r'<div class="news-author-name">\s*(.+?)\s*</div>', webpage, 'author', default=None)
 
+        timestamp = unified_timestamp(datetime_str)
+        if timestamp:
+            timestamp -= 8 * 3600
+
         return {
             'id': video_id,
             'title': self._og_search_title(webpage),
@@ -61,5 +64,5 @@ class CGTNIE(InfoExtractor):
             'formats': self._extract_m3u8_formats(download_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls'),
             'categories': [category] if category else None,
             'creators': [author] if author else None,
-            'timestamp': try_get(unified_timestamp(datetime_str), lambda x: x - 8 * 3600),
+            'timestamp': timestamp,
         }

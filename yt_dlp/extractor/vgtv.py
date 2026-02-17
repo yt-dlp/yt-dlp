@@ -5,7 +5,7 @@ from .xstream import XstreamIE
 from ..utils import (
     ExtractorError,
     float_or_none,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -231,8 +231,8 @@ class VGTVIE(XstreamIE):  # XXX: Do not subclass from concrete IE
         info['formats'].extend(formats)
 
         if not info['formats']:
-            properties = try_get(
-                data, lambda x: x['streamConfiguration']['properties'], list)
+            properties = traverse_obj(
+                data, ('streamConfiguration', 'properties'), expected_type=list)
             if properties and 'geoblocked' in properties:
                 raise self.raise_geo_restricted(
                     countries=[host.rpartition('.')[-1].partition('/')[0].upper()])

@@ -6,7 +6,7 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -165,10 +165,8 @@ class YandexMusicTrackIE(YandexMusicBaseIE):
             album = albums[0]
             if isinstance(album, dict):
                 year = album.get('year')
-                disc_number = int_or_none(try_get(
-                    album, lambda x: x['trackPosition']['volume']))
-                track_number = int_or_none(try_get(
-                    album, lambda x: x['trackPosition']['index']))
+                disc_number = traverse_obj(album, ('trackPosition', 'volume'), expected_type=int)
+                track_number = traverse_obj(album, ('trackPosition', 'index'), expected_type=int)
                 track_info.update({
                     'album': album.get('title'),
                     'album_artist': extract_artist(album.get('artists')),
@@ -296,7 +294,7 @@ class YandexMusicAlbumIE(YandexMusicPlaylistBaseIE):
         entries = self._build_playlist([track for volume in album['volumes'] for track in volume])
 
         title = album['title']
-        artist = try_get(album, lambda x: x['artists'][0]['name'], str)
+        artist = traverse_obj(album, ('artists', 0, 'name'), expected_type=str)
         if artist:
             title = f'{artist} - {title}'
         year = album.get('year')
@@ -380,7 +378,7 @@ class YandexMusicArtistBaseIE(YandexMusicPlaylistBaseIE):
         artist_id = mobj.group('id')
         data = self._call_artist(tld, url, artist_id)
         tracks = self._extract_tracks(data, artist_id, url, tld)
-        title = try_get(data, lambda x: x['artist']['name'], str)
+        title = traverse_obj(data, ('artist', 'name'), expected_type=str)
         return self.playlist_result(
             self._build_playlist(tracks), artist_id, title)
 
@@ -409,7 +407,7 @@ class YandexMusicArtistTracksIE(YandexMusicArtistBaseIE):
         artist_id = mobj.group('id')
         data = self._call_artist(tld, url, artist_id)
         tracks = self._extract_tracks(data, artist_id, url, tld)
-        artist = try_get(data, lambda x: x['artist']['name'], str)
+        artist = traverse_obj(data, ('artist', 'name'), expected_type=str)
         title = '{} - {}'.format(artist or artist_id, 'Треки')
         return self.playlist_result(
             self._build_playlist(tracks), artist_id, title)
@@ -448,6 +446,6 @@ class YandexMusicArtistAlbumsIE(YandexMusicArtistBaseIE):
             entries.append(self.url_result(
                 f'http://music.yandex.ru/album/{album_id}',
                 ie=YandexMusicAlbumIE.ie_key(), video_id=album_id))
-        artist = try_get(data, lambda x: x['artist']['name'], str)
+        artist = traverse_obj(data, ('artist', 'name'), expected_type=str)
         title = '{} - {}'.format(artist or artist_id, 'Альбомы')
         return self.playlist_result(entries, artist_id, title)

@@ -4,7 +4,7 @@ from .common import InfoExtractor
 from ..utils import (
     clean_html,
     int_or_none,
-    try_get,
+    traverse_obj,
     unified_strdate,
     unified_timestamp,
 )
@@ -100,7 +100,7 @@ class AmericasTestKitchenIE(InfoExtractor):
             'release_date': unified_strdate(video.get('publishDate')),
             'episode_number': int_or_none(episode.get('number')),
             'season_number': int_or_none(episode.get('season')),
-            'series': try_get(episode, lambda x: x['show']['title']),
+            'series': traverse_obj(episode, ('show', 'title')),
             'episode': episode.get('title'),
         }
 
@@ -202,7 +202,7 @@ class AmericasTestKitchenSeasonIE(InfoExtractor):
                 yield {
                     '_type': 'url',
                     'url': f'https://www.americastestkitchen.com{show_path or ""}{search_url}',
-                    'id': try_get(episode, lambda e: e['objectID'].split('_')[-1]),
+                    'id': traverse_obj(episode, 'objectID', {lambda x: x.split('_')[-1]}),
                     'title': episode.get('title'),
                     'description': episode.get('description'),
                     'timestamp': unified_timestamp(episode.get('search_document_date')),

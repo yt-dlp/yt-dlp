@@ -10,7 +10,7 @@ from ..utils import (
     parse_duration,
     srt_subtitles_timecode,
     traverse_obj,
-    try_get,
+    traverse_obj,
     urlencode_postdata,
 )
 
@@ -136,8 +136,7 @@ class NexxIE(InfoExtractor):
     def _handle_error(self, response):
         if traverse_obj(response, ('metadata', 'notice'), expected_type=str):
             self.report_warning('{} said: {}'.format(self.IE_NAME, response['metadata']['notice']))
-        status = int_or_none(try_get(
-            response, lambda x: x['metadata']['status']) or 200)
+        status = int_or_none(traverse_obj(response, ('metadata', 'status')) or 200)
         if 200 <= status < 300:
             return
         raise ExtractorError(
@@ -303,8 +302,7 @@ class NexxIE(InfoExtractor):
         azure_manifest_url = '{}{}/{}_src{}.ism/Manifest'.format(
             azure_stream_base, azure_locator, video_id, ('_manifest' if is_ml else '')) + '%s'
 
-        protection_token = try_get(
-            video, lambda x: x['protectiondata']['token'], str)
+        protection_token = traverse_obj(video, ('protectiondata', 'token'), expected_type=str)
         if protection_token:
             azure_manifest_url += f'?hdnts={protection_token}'
 
@@ -356,7 +354,7 @@ class NexxIE(InfoExtractor):
             elif isinstance(result, list):
                 vid = int(video_id)
                 for v in result:
-                    if try_get(v, lambda x: x['general']['ID'], int) == vid:
+                    if traverse_obj(v, ('general', 'ID'), expected_type=int) == vid:
                         return v
             return None
 
@@ -470,8 +468,7 @@ class NexxIE(InfoExtractor):
             'description': general.get('description'),
             'release_year': int_or_none(general.get('year')),
             'creator': general.get('studio') or general.get('studio_adref') or None,
-            'thumbnail': try_get(
-                video, lambda x: x['imagedata']['thumb'], str),
+            'thumbnail': traverse_obj(video, ('imagedata', 'thumb'), expected_type=str),
             'duration': parse_duration(general.get('runtime')),
             'timestamp': int_or_none(general.get('uploaded')),
             'episode_number': traverse_obj(

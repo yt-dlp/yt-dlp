@@ -9,7 +9,6 @@ from ..utils import (
     mimetype2ext,
     qualities,
     traverse_obj,
-    try_get,
     url_or_none,
 )
 
@@ -67,7 +66,7 @@ class ImdbIE(InfoExtractor):
         title = (traverse_obj(video_info, ('name', 'value'), ('primaryTitle', 'titleText', 'text'))
                  or self._html_search_meta(('og:title', 'twitter:title'), webpage, default=None)
                  or self._html_extract_title(webpage))
-        data = video_info.get('playbackURLs') or try_get(self._download_json(
+        data = video_info.get('playbackURLs') or traverse_obj(self._download_json(
             'https://www.imdb.com/ve/data/VIDEO_PLAYBACK_DATA', video_id,
             query={
                 'key': base64.b64encode(json.dumps({
@@ -75,7 +74,7 @@ class ImdbIE(InfoExtractor):
                     'subType': 'FORCE_LEGACY',
                     'id': f'vi{video_id}',
                 }).encode()).decode(),
-            }), lambda x: x[0]['videoLegacyEncodings'])
+            }), (0, 'videoLegacyEncodings'))
         quality = qualities(('SD', '480p', '720p', '1080p'))
         formats, subtitles = [], {}
         for encoding in data:
@@ -106,9 +105,9 @@ class ImdbIE(InfoExtractor):
             'title': title,
             'alt_title': info.get('videoSubTitle'),
             'formats': formats,
-            'description': try_get(video_info, lambda x: x['description']['value']),
-            'thumbnail': url_or_none(try_get(video_info, lambda x: x['thumbnail']['url'])),
-            'duration': int_or_none(try_get(video_info, lambda x: x['runtime']['value'])),
+            'description': traverse_obj(video_info, ('description', 'value')),
+            'thumbnail': url_or_none(traverse_obj(video_info, ('thumbnail', 'url'))),
+            'duration': int_or_none(traverse_obj(video_info, ('runtime', 'value'))),
             'subtitles': subtitles,
         }
 

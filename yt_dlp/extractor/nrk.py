@@ -3,6 +3,7 @@ import random
 import re
 
 from .common import InfoExtractor
+from ..utils.traversal import traverse_obj
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -11,7 +12,7 @@ from ..utils import (
     parse_duration,
     parse_iso8601,
     str_or_none,
-    try_get,
+
     update_url_query,
     url_or_none,
     urljoin,
@@ -54,7 +55,7 @@ class NRKBaseIE(InfoExtractor):
         }
         message_type = data.get('messageType', '')
         # Can be ProgramIsGeoBlocked or ChannelIsGeoBlocked*
-        if 'IsGeoBlocked' in message_type or try_get(data, lambda x: x['usageRights']['isGeoBlocked']) is True:
+        if 'IsGeoBlocked' in message_type or traverse_obj(data, ('usageRights', 'isGeoBlocked')) is True:
             self.raise_geo_restricted(
                 msg=MESSAGES.get('ProgramIsGeoBlocked'),
                 countries=self._GEO_COUNTRIES)
@@ -173,7 +174,7 @@ class NRKIE(NRKBaseIE):
         # known values for preferredCdn: akamai, globalconnect and telenor
         manifest = call_playback_api('manifest', {'preferredCdn': 'akamai'})
 
-        video_id = try_get(manifest, lambda x: x['id'], str) or video_id
+        video_id = traverse_obj(manifest, 'id', expected_type=str) or video_id
 
         if manifest.get('playability') == 'nonPlayable':
             self._raise_error(manifest['nonPlayable'])
@@ -206,12 +207,11 @@ class NRKIE(NRKBaseIE):
         title = titles['title']
         alt_title = titles.get('subtitle')
 
-        description = try_get(preplay, lambda x: x['description'].replace('\r', '\n'))
+        description = (traverse_obj(preplay, 'description') or '').replace('\r', '\n')
         duration = parse_duration(playable.get('duration')) or parse_duration(data.get('duration'))
 
         thumbnails = []
-        for image in try_get(
-                preplay, lambda x: x['poster']['images'], list) or []:
+        for image in traverse_obj(preplay, ('poster', 'images'), expected_type=list) or []:
             if not isinstance(image, dict):
                 continue
             image_url = url_or_none(image.get('url'))
@@ -224,7 +224,7 @@ class NRKIE(NRKBaseIE):
             })
 
         subtitles = {}
-        for sub in try_get(playable, lambda x: x['subtitles'], list) or []:
+        for sub in traverse_obj(playable, 'subtitles', expected_type=list) or []:
             if not isinstance(sub, dict):
                 continue
             sub_url = url_or_none(sub.get('webVtt'))
@@ -238,8 +238,7 @@ class NRKIE(NRKBaseIE):
                 'url': sub_url,
             })
 
-        legal_age = try_get(
-            data, lambda x: x['legalAge']['body']['rating']['code'], str)
+        legal_age = traverse_obj(data, ('legalAge', 'body', 'rating', 'code'), expected_type=str)
         # https://en.wikipedia.org/wiki/Norwegian_Media_Authority
         age_limit = None
         if legal_age:
@@ -248,7 +247,7 @@ class NRKIE(NRKBaseIE):
             elif legal_age.isdigit():
                 age_limit = int_or_none(legal_age)
 
-        is_series = try_get(data, lambda x: x['_links']['series']['name']) == 'series'
+        is_series = traverse_obj(data, ('_links', 'series', 'name')) == 'series'
 
         info = {
             'id': video_id,
@@ -260,7 +259,7 @@ class NRKIE(NRKBaseIE):
             'age_limit': age_limit,
             'formats': formats,
             'subtitles': subtitles,
-            'timestamp': parse_iso8601(try_get(manifest, lambda x: x['availability']['onDemand']['from'], str)),
+            'timestamp': parse_iso8601(traverse_obj(manifest, ('availability', 'onDemand', 'from'), expected_type=str)),
         }
 
         if is_series:
@@ -538,18 +537,17 @@ class NRKTVSerieBaseIE(NRKBaseIE):
             if not assets_key:
                 break
             # Extract entries
-            entries = try_get(
+            entries = traverse_obj(
                 embedded,
-                (lambda x: x[assets_key]['_embedded'][assets_key],
-                 lambda x: x[assets_key]),
-                list)
+                ((assets_key, '_embedded', assets_key), assets_key),
+                expected_type=list)
             yield from self._extract_entries(entries)
             # Find next URL
-            next_url_path = try_get(
+            next_url_path = traverse_obj(
                 data,
-                (lambda x: x['_links']['next']['href'],
-                 lambda x: x['_embedded'][assets_key]['_links']['next']['href']),
-                str)
+                (('_links', 'next', 'href'),
+                 ('_embedded', assets_key, '_links', 'next', 'href')),
+                expected_type=str)
             if not next_url_path:
                 break
             data = self._call_api(
@@ -635,7 +633,7 @@ class NRKTVSeasonIE(NRKTVSerieBaseIE):
             f'{domain}/catalog/{self._catalog_name(serie_kind)}/{serie}/seasons/{season_id}',
             display_id, 'season', query={'pageSize': 50})
 
-        title = try_get(data, lambda x: x['titles']['title'], str) or display_id
+        title = traverse_obj(data, ('titles', 'title'), expected_type=str) or display_id
         return self.playlist_result(
             self._entries(data, display_id),
             display_id, title)
@@ -729,16 +727,15 @@ class NRKTVSeriesIE(NRKTVSerieBaseIE):
         series = self._call_api(
             f'{domain}/catalog/{self._catalog_name(serie_kind)}/{series_id}',
             series_id, 'serie', query={size_prefix + 'ageSize': 50})
-        titles = try_get(series, [
-            lambda x: x['titles'],
-            lambda x: x[x['type']]['titles'],
-            lambda x: x[x['seriesType']]['titles'],
-        ]) or {}
+        titles = (traverse_obj(series, 'titles')
+                  or traverse_obj(series, (series.get('type'), 'titles'))
+                  or traverse_obj(series, (series.get('seriesType'), 'titles'))
+                  or {})
 
         entries = []
         entries.extend(self._entries(series, series_id))
         embedded = series.get('_embedded') or {}
-        linked_seasons = try_get(series, lambda x: x['_links']['seasons']) or []
+        linked_seasons = traverse_obj(series, ('_links', 'seasons')) or []
         embedded_seasons = embedded.get('seasons') or []
         if len(linked_seasons) > len(embedded_seasons):
             for season in linked_seasons:

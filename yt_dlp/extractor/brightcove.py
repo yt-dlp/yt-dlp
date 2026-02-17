@@ -12,7 +12,6 @@ from ..utils import (
     ExtractorError,
     UnsupportedError,
     clean_html,
-    dict_get,
     extract_attributes,
     find_xpath_attr,
     fix_xml_ampersands,
@@ -25,7 +24,6 @@ from ..utils import (
     parse_qs,
     smuggle_url,
     str_or_none,
-    try_get,
     unescapeHTML,
     unsmuggle_url,
     update_url_query,
@@ -589,7 +587,7 @@ class BrightcoveNewBaseIE(AdobePassIE):
             is_live = True
 
         common_res = [(160, 90), (320, 180), (480, 720), (640, 360), (768, 432), (1024, 576), (1280, 720), (1366, 768), (1920, 1080)]
-        thumb_base_url = dict_get(json_data, ('poster', 'thumbnail'))
+        thumb_base_url = traverse_obj(json_data, (('poster', 'thumbnail'),))
         thumbnails = [{
             'url': re.sub(r'\d+x\d+', f'{w}x{h}', thumb_base_url),
             'width': w,
@@ -862,8 +860,8 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
             base_url = f'https://players.brightcove.net/{account_id}/{player_id}_{embed}/'
             config = self._download_json(
                 base_url + 'config.json', video_id, fatal=False) or {}
-            policy_key = try_get(
-                config, lambda x: x['video_cloud']['policy_key'])
+            policy_key = traverse_obj(
+                config, ('video_cloud', 'policy_key'))
             if not policy_key:
                 webpage = self._download_webpage(
                     base_url + 'index.min.js', video_id)

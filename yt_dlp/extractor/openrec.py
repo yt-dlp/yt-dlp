@@ -4,7 +4,6 @@ from ..utils import (
     get_first,
     int_or_none,
     traverse_obj,
-    try_get,
     unified_strdate,
     unified_timestamp,
 )
@@ -44,8 +43,8 @@ class OpenRecBaseIE(InfoExtractor):
                 headers={
                     'Origin': 'https://www.openrec.tv',
                     'Referer': 'https://www.openrec.tv/',
-                    'access-token': try_get(cookies, lambda x: x.get('access_token').value),
-                    'uuid': try_get(cookies, lambda x: x.get('uuid').value),
+                    'access-token': traverse_obj(cookies, ('access_token', 'value')),
+                    'uuid': traverse_obj(cookies, ('uuid', 'value')),
                 })
             new_media = traverse_obj(detail, ('data', 'items', ..., 'media'), get_all=False)
             formats = list(self._expand_media(video_id, new_media))

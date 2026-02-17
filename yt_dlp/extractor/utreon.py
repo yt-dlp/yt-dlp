@@ -1,9 +1,8 @@
 from .common import InfoExtractor
 from ..utils import (
-    dict_get,
     int_or_none,
     str_or_none,
-    try_get,
+    traverse_obj,
     unified_strdate,
     url_or_none,
 )
@@ -85,14 +84,14 @@ class UtreonIE(InfoExtractor):
             'format_id': format_key.split('_')[1],
             'height': int(format_key.split('_')[1][:-1]),
         } for format_key, format_url in videos_json.items() if url_or_none(format_url)]
-        thumbnail = url_or_none(dict_get(json_data, ('cover_image_url', 'preview_image_url')))
+        thumbnail = url_or_none(traverse_obj(json_data, 'cover_image_url', 'preview_image_url'))
         return {
             'id': video_id,
             'title': json_data['title'],
             'formats': formats,
             'description': str_or_none(json_data.get('description')),
             'duration': int_or_none(json_data.get('duration')),
-            'uploader': str_or_none(try_get(json_data, lambda x: x['channel']['title'])),
+            'uploader': str_or_none(traverse_obj(json_data, ('channel', 'title'))),
             'thumbnail': thumbnail,
             'release_date': unified_strdate(json_data.get('published_datetime')),
         }

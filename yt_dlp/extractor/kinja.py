@@ -5,7 +5,7 @@ from ..utils import (
     int_or_none,
     parse_iso8601,
     strip_or_none,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -160,8 +160,8 @@ class KinjaEmbedIE(InfoExtractor):
                 'description': strip_or_none(data.get('description')),
                 'formats': formats,
                 'tags': data.get('tags'),
-                'timestamp': int_or_none(try_get(
-                    data, lambda x: x['postInfo']['publishTimeMillis']), 1000),
+                'timestamp': int_or_none(traverse_obj(
+                    data, ('postInfo', 'publishTimeMillis')), 1000),
                 'thumbnail': thumbnail,
                 'uploader': data.get('network'),
             }
@@ -197,10 +197,10 @@ class KinjaEmbedIE(InfoExtractor):
             return {
                 'id': video_id,
                 'title': title,
-                'thumbnail': try_get(iptc, lambda x: x['cloudinaryLink']['link'], str),
+                'thumbnail': traverse_obj(iptc, ('cloudinaryLink', 'link', {str})),
                 'uploader': fmg.get('network'),
                 'duration': int_or_none(iptc.get('fileDuration')),
                 'formats': formats,
-                'description': try_get(iptc, lambda x: x['description']['en'], str),
+                'description': traverse_obj(iptc, ('description', 'en', {str})),
                 'timestamp': parse_iso8601(iptc.get('dateReleased')),
             }

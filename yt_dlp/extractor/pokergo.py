@@ -3,7 +3,7 @@ import base64
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    try_get,
+    ExtractorError,
 )
 from ..utils.traversal import traverse_obj
 
@@ -77,7 +77,7 @@ class PokerGoIE(PokerGoBaseIE):
             'thumbnails': thumbnails,
             'season_number': series_json.get('season'),
             'episode_number': series_json.get('episode_number'),
-            'series': try_get(series_json, lambda x: x['tag']['name']),
+            'series': traverse_obj(series_json, ('tag', 'name')),
             'url': f'https://cdn.jwplayer.com/v2/media/{v_id}',
         }
 

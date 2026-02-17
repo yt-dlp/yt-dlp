@@ -10,7 +10,6 @@ from ..utils import (
     KNOWN_EXTENSIONS,
     bug_reports_message,
     clean_html,
-    dict_get,
     extract_attributes,
     get_element_by_id,
     get_element_text_and_html_by_tag,
@@ -1009,7 +1008,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             or search_meta(['description', 'og:description', 'twitter:description']))
 
         upload_date = unified_strdate(
-            dict_get(microformats, ('uploadDate', 'publishDate'))
+            traverse_obj(microformats, 'uploadDate', 'publishDate', get_all=False)
             or search_meta(['uploadDate', 'datePublished'])
             or self._search_regex(
                 [r'(?s)id="eow-date.*?>\s*(.*?)\s*</span>',

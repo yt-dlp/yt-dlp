@@ -6,7 +6,7 @@ from ..utils import (
     merge_dicts,
     parse_count,
     str_or_none,
-    try_get,
+    traverse_obj,
     unified_strdate,
     urlencode_postdata,
     urljoin,
@@ -135,7 +135,7 @@ class HKETVIE(InfoExtractor):
             })
 
         subtitles = {}
-        tracks = try_get(playlist0, lambda x: x['tracks'], list) or []
+        tracks = traverse_obj(playlist0, ('tracks', {list})) or []
         for track in tracks:
             if not isinstance(track, dict):
                 continue
@@ -164,8 +164,8 @@ class HKETVIE(InfoExtractor):
             }),
             headers={'Content-Type': 'application/x-www-form-urlencoded'},
             fatal=False) or {}
-        like_count = int_or_none(try_get(
-            emotion, lambda x: x['data']['emotion_data'][0]['count']))
+        like_count = int_or_none(traverse_obj(
+            emotion, ('data', 'emotion_data', 0, 'count')))
 
         return {
             'id': video_id,

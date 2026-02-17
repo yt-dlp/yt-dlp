@@ -10,7 +10,7 @@ from ..utils import (
     parse_duration,
     parse_iso8601,
     parse_qs,
-    try_get,
+    traverse_obj,
     update_url_query,
     urljoin,
 )
@@ -279,7 +279,7 @@ class NBABaseIE(NBACVPBaseIE):
         }
 
         subtitles = {}
-        captions = try_get(video, lambda x: x['videoCaptions']['sidecars'], dict) or {}
+        captions = traverse_obj(video, ('videoCaptions', 'sidecars'), expected_type=dict) or {}
         for caption_url in captions.values():
             subtitles.setdefault('en', []).append({'url': caption_url})
 

@@ -6,11 +6,13 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     merge_dicts,
-    try_get,
+    int_or_none,
+    merge_dicts,
     unescapeHTML,
     unified_timestamp,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class RayWenderlichIE(InfoExtractor):
@@ -51,13 +53,13 @@ class RayWenderlichIE(InfoExtractor):
     def _extract_video_id(data, lesson_id):
         if not data:
             return
-        groups = try_get(data, lambda x: x['groups'], list) or []
+        groups = traverse_obj(data, 'groups', expected_type=list) or []
         if not groups:
             return
         for group in groups:
             if not isinstance(group, dict):
                 continue
-            contents = try_get(data, lambda x: x['contents'], list) or []
+            contents = traverse_obj(data, 'contents', expected_type=list) or []
             for content in contents:
                 if not isinstance(content, dict):
                     continue

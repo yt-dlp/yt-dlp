@@ -5,7 +5,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -32,7 +32,7 @@ class WPPilotBaseIE(InfoExtractor):
             qhash_content = self._download_json(
                 f'{page_data_base_url}/sq/d/{qhash}.json', None,
                 'Searching for channel list')
-            channel_list = try_get(qhash_content, lambda x: x['data']['allChannels']['nodes'])
+            channel_list = traverse_obj(qhash_content, ('data', 'allChannels', 'nodes'))
             if channel_list is None:
                 continue
             self.cache.store('wppilot', 'channel-list', channel_list)
@@ -112,7 +112,7 @@ class WPPilotIE(WPPilotBaseIE):
             }, headers=self._HEADERS_WEB,
             expected_status=(200, 422))
 
-        stream_token = try_get(video, lambda x: x['_meta']['error']['info']['stream_token'])
+        stream_token = traverse_obj(video, ('_meta', 'error', 'info', 'stream_token'))
         if stream_token:
             close = self._download_json(
                 'https://pilot.wp.pl/api/v1/channels/close', video_id,
@@ -121,7 +121,7 @@ class WPPilotIE(WPPilotBaseIE):
                     'channelId': video_id,
                     't': stream_token,
                 }).encode())
-            if try_get(close, lambda x: x['data']['status']) == 'ok':
+            if traverse_obj(close, ('data', 'status')) == 'ok':
                 return self.url_result(url, ie=WPPilotIE.ie_key())
 
         formats = []

@@ -12,7 +12,7 @@ from ..utils import (
     int_or_none,
     js_to_json,
     smuggle_url,
-    try_get,
+    traverse_obj,
     unescapeHTML,
     unsmuggle_url,
     url_or_none,
@@ -326,7 +326,7 @@ class UdemyIE(InfoExtractor):
                 cc_url = url_or_none(cc.get('url'))
                 if not cc_url:
                     continue
-                lang = try_get(cc, lambda x: x['locale']['locale'], str)
+                lang = traverse_obj(cc, ('locale', 'locale'), expected_type=str)
                 sub_dict = (automatic_captions if cc.get('source') == 'auto'
                             else subtitles)
                 sub_dict.setdefault(lang or 'en', []).append({

@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    dict_get,
     int_or_none,
+    traverse_obj,
 )
 
 
@@ -45,9 +45,9 @@ class KinoPoiskIE(InfoExtractor):
             data['playlistEntity']['uri'], video_id, 'mp4',
             entry_protocol='m3u8_native', m3u8_id='hls')
 
-        description = dict_get(
-            film, ('descriptscription', 'description',
-                   'shortDescriptscription', 'shortDescription'))
+        description = traverse_obj(
+            film, 'descriptscription', 'description',
+            'shortDescriptscription', 'shortDescription', get_all=False)
         thumbnail = film.get('coverUrl') or film.get('posterUrl')
         duration = int_or_none(film.get('duration'))
         age_limit = int_or_none(film.get('restrictionAge'))

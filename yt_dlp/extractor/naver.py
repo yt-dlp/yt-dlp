@@ -10,13 +10,11 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    dict_get,
     int_or_none,
     join_nonempty,
     merge_dicts,
     parse_iso8601,
     traverse_obj,
-    try_get,
     unified_timestamp,
     update_url_query,
     url_or_none,
@@ -52,7 +50,7 @@ class NaverBaseIE(InfoExtractor):
         meta = video_data['meta']
         title = meta['subject']
         formats = []
-        get_list = lambda x: try_get(video_data, lambda y: y[x + 's']['list'], list) or []
+        get_list = lambda x: traverse_obj(video_data, (x + 's', 'list', {list})) or []
 
         def extract_formats(streams, stream_type, query={}):
             for stream in streams:
@@ -63,7 +61,7 @@ class NaverBaseIE(InfoExtractor):
                 encoding_option = stream.get('encodingOption', {})
                 bitrate = stream.get('bitrate', {})
                 formats.append({
-                    'format_id': '{}_{}'.format(stream.get('type') or stream_type, dict_get(encoding_option, ('name', 'id'))),
+                    'format_id': '{}_{}'.format(stream.get('type') or stream_type, traverse_obj(encoding_option, (('name', 'id'),))),
                     'url': stream_url,
                     'ext': 'mp4',
                     'width': int_or_none(encoding_option.get('width')),
@@ -108,7 +106,7 @@ class NaverBaseIE(InfoExtractor):
             'id': video_id,
             'title': title,
             'formats': formats,
-            'thumbnail': try_get(meta, lambda x: x['cover']['source']),
+            'thumbnail': traverse_obj(meta, ('cover', 'source')),
             'view_count': int_or_none(meta.get('count')),
             'uploader_id': user.get('id'),
             'uploader': user.get('name'),

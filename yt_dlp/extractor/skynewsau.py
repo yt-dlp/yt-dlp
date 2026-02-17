@@ -1,6 +1,6 @@
 from .common import InfoExtractor
 from ..utils import (
-    try_get,
+    traverse_obj,
     unified_strdate,
 )
 
@@ -39,5 +39,5 @@ class SkyNewsAUIE(InfoExtractor):
             'url': 'https://players.brightcove.net/{}/default_default/index.html?videoId={}'.format(*tuple(embedcode.split('-'))),
             'ie_key': 'BrightcoveNew',
             'title': data_json.get('caption'),
-            'upload_date': unified_strdate(try_get(data_json, lambda x: x['date']['created'])),
+            'upload_date': unified_strdate(traverse_obj(data_json, ('date', 'created'))),
         }

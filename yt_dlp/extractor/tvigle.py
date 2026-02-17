@@ -4,7 +4,7 @@ from ..utils import (
     float_or_none,
     int_or_none,
     parse_age_limit,
-    try_get,
+    traverse_obj,
     url_or_none,
 )
 
@@ -111,8 +111,8 @@ class TvigleIE(InfoExtractor):
                         continue
                     height = self._search_regex(
                         r'^(\d+)[pP]$', format_id, 'height', default=None)
-                    filesize = int_or_none(try_get(
-                        item, lambda x: x['video_files_size'][vcodec][format_id]))
+                    filesize = int_or_none(traverse_obj(
+                        item, ('video_files_size', vcodec, format_id)))
                     formats.append({
                         'url': video_url,
                         'format_id': f'{vcodec}-{format_id}',

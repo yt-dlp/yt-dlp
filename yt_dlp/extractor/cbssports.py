@@ -2,7 +2,8 @@
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
-    try_get,
+    int_or_none,
+    traverse_obj,
 )
 
 
@@ -60,7 +61,7 @@ class CBSSportsEmbedIE(InfoExtractor):
             'formats': formats,
             'thumbnails': thumbnails,
             'description': video.get('description'),
-            'timestamp': int_or_none(try_get(video, lambda x: x['dateCreated']['epoch'])),
+            'timestamp': int_or_none(traverse_obj(video, ('dateCreated', 'epoch'))),
             'duration': int_or_none(metadata.get('duration')),
         }
 

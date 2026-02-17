@@ -8,8 +8,8 @@ from ..utils import (
     OnDemandPagedList,
     int_or_none,
     qualities,
-    try_get,
 )
+from ..utils.traversal import traverse_obj
 
 
 class RedGifsBaseIE(InfoExtractor):
@@ -30,7 +30,8 @@ class RedGifsBaseIE(InfoExtractor):
         quality = qualities(tuple(self._FORMATS.keys()))
 
         orig_height = int_or_none(gif_data.get('height'))
-        aspect_ratio = try_get(gif_data, lambda x: orig_height / x['width'])
+        width = traverse_obj(gif_data, 'width')
+        aspect_ratio = orig_height / width if width else None
 
         formats = []
         for format_id, height in self._FORMATS.items():

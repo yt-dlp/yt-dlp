@@ -4,7 +4,7 @@ from ..utils import (
     parse_iso8601,
     str_or_none,
     strip_or_none,
-    try_get,
+    traverse_obj,
     urljoin,
 )
 
@@ -84,7 +84,7 @@ class StreetVoiceIE(InfoExtractor):
             'thumbnail': song.get('image'),
             'duration': int_or_none(song.get('length')),
             'timestamp': parse_iso8601(song.get('created_at')),
-            'uploader': try_get(user, lambda x: x['profile']['nickname']),
+            'uploader': traverse_obj(user, ('profile', 'nickname')),
             'uploader_id': str_or_none(user.get('id')),
             'uploader_url': urljoin(url, f'/{username}/') if username else None,
             'view_count': get_count('plays'),
@@ -93,5 +93,5 @@ class StreetVoiceIE(InfoExtractor):
             'repost_count': get_count('share'),
             'track': title,
             'track_id': song_id,
-            'album': try_get(song, lambda x: x['album']['name']),
+            'album': traverse_obj(song, ('album', 'name')),
         }

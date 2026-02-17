@@ -20,7 +20,6 @@ from ..utils import (
     replace_extension,
     smuggle_url,
     strip_or_none,
-    try_get,
     unified_timestamp,
     update_url,
     url_basename,
@@ -123,7 +122,7 @@ class CBCIE(InfoExtractor):
                 f'http://tpfeed.cbc.ca/f/ExhSPC/vms_5akSXx4Ng_Zn?byCustomValue={{:mpsReleases}}{{{clip_id}}}',
                 clip_id, fatal=False)
             if feed:
-                media_id = try_get(feed, lambda x: x['entries'][0]['guid'], str)
+                media_id = traverse_obj(feed, ('entries', 0, 'guid'), expected_type=str)
             if not media_id:
                 media_id = self._download_json(
                     'http://feed.theplatform.com/f/h9dtGB/punlNGjMlc1F?fields=id&byContent=byReleases%3DbyId%253D' + clip_id,

@@ -4,9 +4,10 @@ from .common import InfoExtractor
 from ..utils import (
     clean_podcast_url,
     int_or_none,
-    try_get,
+    int_or_none,
     urlencode_postdata,
 )
+from ..utils.traversal import traverse_obj
 
 
 class GooglePodcastsBaseIE(InfoExtractor):
@@ -26,7 +27,7 @@ class GooglePodcastsBaseIE(InfoExtractor):
             'url': clean_podcast_url(episode[13]),
             'thumbnail': episode[2],
             'description': episode[9],
-            'creator': try_get(episode, lambda x: x[14]),
+            'creator': traverse_obj(episode, 14),
             'timestamp': int_or_none(episode[11]),
             'duration': int_or_none(episode[12]),
             'series': episode[1],
@@ -75,10 +76,10 @@ class GooglePodcastsFeedIE(GooglePodcastsBaseIE):
         data = self._batch_execute('ncqJEe', b64_feed_url, [b64_feed_url])
 
         entries = []
-        for episode in (try_get(data, lambda x: x[1][0]) or []):
+        for episode in (traverse_obj(data, (1, 0)) or []):
             entries.append(self._extract_episode(episode))
 
-        feed = try_get(data, lambda x: x[3]) or []
+        feed = traverse_obj(data, 3) or []
         return self.playlist_result(
-            entries, playlist_title=try_get(feed, lambda x: x[0]),
-            playlist_description=try_get(feed, lambda x: x[2]))
+            entries, playlist_title=traverse_obj(feed, 0),
+            playlist_description=traverse_obj(feed, 2))

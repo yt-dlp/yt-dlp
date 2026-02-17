@@ -3,8 +3,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     qualities,
-    try_call,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -23,10 +22,7 @@ class WhoWatchIE(InfoExtractor):
         metadata = self._download_json(f'https://api.whowatch.tv/lives/{video_id}', video_id)
         live_data = self._download_json(f'https://api.whowatch.tv/lives/{video_id}/play', video_id)
 
-        title = try_call(
-            lambda: live_data['share_info']['live_title'][1:-1],
-            lambda: metadata['live']['title'],
-            expected_type=str)
+        title = traverse_obj(live_data, ('share_info', 'live_title', {lambda x: x[1:-1]}), expected_type=str) or traverse_obj(metadata, ('live', 'title'), expected_type=str)
 
         hls_url = live_data.get('hls_url')
         if not hls_url:
@@ -61,8 +57,8 @@ class WhoWatchIE(InfoExtractor):
                     'quality': quality,
                     'format_note': fmt.get('label'),
                     # note: HLS and RTMP have same resolution for now, so it's acceptable
-                    'width': try_get(hls_fmts, lambda x: x[0]['width'], int),
-                    'height': try_get(hls_fmts, lambda x: x[0]['height'], int),
+                    'width': traverse_obj(hls_fmts, (0, 'width'), expected_type=int),
+                    'height': traverse_obj(hls_fmts, (0, 'height'), expected_type=int),
                 })
 
         # This contains the same formats as the above manifests and is used only as a fallback
@@ -70,15 +66,15 @@ class WhoWatchIE(InfoExtractor):
             hls_url, video_id, ext='mp4', m3u8_id='hls'))
         self._remove_duplicate_formats(formats)
 
-        uploader_url = try_get(metadata, lambda x: x['live']['user']['user_path'], str)
+        uploader_url = traverse_obj(metadata, ('live', 'user', 'user_path'), expected_type=str)
         if uploader_url:
             uploader_url = f'https://whowatch.tv/profile/{uploader_url}'
-        uploader_id = str(try_get(metadata, lambda x: x['live']['user']['id'], int))
-        uploader = try_get(metadata, lambda x: x['live']['user']['name'], str)
-        thumbnail = try_get(metadata, lambda x: x['live']['latest_thumbnail_url'], str)
-        timestamp = int_or_none(try_get(metadata, lambda x: x['live']['started_at'], int), scale=1000)
-        view_count = try_get(metadata, lambda x: x['live']['total_view_count'], int)
-        comment_count = try_get(metadata, lambda x: x['live']['comment_count'], int)
+        uploader_id = str(traverse_obj(metadata, ('live', 'user', 'id'), expected_type=int))
+        uploader = traverse_obj(metadata, ('live', 'user', 'name'), expected_type=str)
+        thumbnail = traverse_obj(metadata, ('live', 'latest_thumbnail_url'), expected_type=str)
+        timestamp = int_or_none(traverse_obj(metadata, ('live', 'started_at'), expected_type=int), scale=1000)
+        view_count = traverse_obj(metadata, ('live', 'total_view_count'), expected_type=int)
+        comment_count = traverse_obj(metadata, ('live', 'comment_count'), expected_type=int)
 
         return {
             'id': video_id,

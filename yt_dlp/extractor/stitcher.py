@@ -5,9 +5,9 @@ from ..utils import (
     clean_podcast_url,
     int_or_none,
     str_or_none,
-    try_get,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class StitcherBaseIE(InfoExtractor):
@@ -17,7 +17,7 @@ class StitcherBaseIE(InfoExtractor):
         resp = self._download_json(
             'https://api.prod.stitcher.com/' + path,
             video_id, query=query)
-        error_massage = try_get(resp, lambda x: x['errors'][0]['message'])
+        error_massage = traverse_obj(resp, ('errors', 0, 'message'))
         if error_massage:
             raise ExtractorError(error_massage, expected=True)
         return resp['data']
@@ -102,7 +102,7 @@ class StitcherIE(StitcherBaseIE):
         audio_url = self._extract_audio_url(episode)
         if not audio_url:
             self.raise_login_required()
-        show = try_get(data, lambda x: x['shows'][0], dict) or {}
+        show = traverse_obj(data, ('shows', 0), expected_type=dict) or {}
         return self._extract_episode(
             episode, audio_url, self._extract_show_info(show))
 
@@ -126,7 +126,7 @@ class StitcherShowIE(StitcherBaseIE):
         show_slug = self._match_id(url)
         data = self._call_api(
             f'search/show/{show_slug}/allEpisodes', show_slug, {'count': 10000})
-        show = try_get(data, lambda x: x['shows'][0], dict) or {}
+        show = traverse_obj(data, ('shows', 0), expected_type=dict) or {}
         show_info = self._extract_show_info(show)
 
         entries = []

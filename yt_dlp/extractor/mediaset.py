@@ -7,10 +7,10 @@ from ..utils import (
     GeoRestrictedError,
     OnDemandPagedList,
     int_or_none,
-    try_get,
     update_url_query,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class MediasetIE(ThePlatformBaseIE):
@@ -315,6 +315,6 @@ class MediasetShowIE(MediasetIE):  # XXX: Do not subclass from concrete IE
         entries = OnDemandPagedList(
             functools.partial(self._fetch_page, sb),
             self._PAGE_SIZE)
-        title = try_get(entries, lambda x: x[0]['playlist_title'])
+        title = traverse_obj(entries, (0, 'playlist_title'))
 
         return self.playlist_result(entries, sb, title)

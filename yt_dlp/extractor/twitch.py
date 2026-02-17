@@ -12,17 +12,7 @@ from ..utils import (
     UserNotLive,
     base_url,
     clean_html,
-    dict_get,
-    float_or_none,
-    int_or_none,
-    join_nonempty,
-    make_archive_id,
-    parse_duration,
-    parse_iso8601,
-    parse_qs,
-    qualities,
     str_or_none,
-    try_get,
     unified_timestamp,
     update_url_query,
     url_or_none,
@@ -83,7 +73,7 @@ class TwitchBaseIE(InfoExtractor):
             response = self._download_json(
                 post_url, None, note, data=json.dumps(form).encode(),
                 headers=headers, expected_status=400)
-            error = dict_get(response, ('error', 'error_description', 'error_code'))
+            error = traverse_obj(response, ('error', 'error_description', 'error_code'), get_all=False)
             if error:
                 fail(error)
 
@@ -527,8 +517,8 @@ class TwitchVodIE(TwitchBaseIE):
             'description': info.get('description'),
             'duration': int_or_none(info.get('lengthSeconds')),
             'thumbnails': self._get_thumbnails(thumbnail),
-            'uploader': try_get(info, lambda x: x['owner']['displayName'], str),
-            'uploader_id': try_get(info, lambda x: x['owner']['login'], str),
+            'uploader': traverse_obj(info, ('owner', 'displayName', {str})),
+            'uploader_id': traverse_obj(info, ('owner', 'login', {str})),
             'timestamp': unified_timestamp(info.get('publishedAt')),
             'view_count': int_or_none(info.get('viewCount')),
             'chapters': list(self._extract_chapters(info, item_id)),
@@ -686,8 +676,7 @@ class TwitchPlaylistBaseIE(TwitchBaseIE):
                 raise ExtractorError(f'Channel "{channel_name}" not found', expected=True)
             if not page:
                 break
-            edges = try_get(
-                page, lambda x: x[0]['data']['user'][entries_key]['edges'], list)
+            edges = traverse_obj(page, (0, 'data', 'user', entries_key, 'edges', {list}))
             if not edges:
                 break
             for edge in edges:
@@ -1108,14 +1097,12 @@ class TwitchStreamIE(TwitchVideosBaseIE):
 
         view_count = stream.get('viewers')
 
-        sq_user = try_get(gql, lambda x: x[1]['data']['user'], dict) or {}
+        sq_user = traverse_obj(gql, (1, 'data', 'user', {dict})) or {}
         uploader = sq_user.get('displayName')
-        description = try_get(
-            sq_user, lambda x: x['broadcastSettings']['title'], str)
+        description = traverse_obj(sq_user, ('broadcastSettings', 'title', {str}))
 
-        thumbnail = url_or_none(try_get(
-            gql, lambda x: x[2]['data']['user']['stream']['previewImageURL'],
-            str))
+        thumbnail = url_or_none(traverse_obj(
+            gql, (2, 'data', 'user', 'stream', 'previewImageURL', {str})))
 
         title = uploader or channel_name
         stream_type = stream.get('type')

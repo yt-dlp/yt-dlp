@@ -6,11 +6,12 @@ from ..utils import (
     clean_html,
     int_or_none,
     str_or_none,
-    try_get,
+    str_or_none,
     url_or_none,
     urlencode_postdata,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class PlatziBaseIE(InfoExtractor):
@@ -205,7 +206,7 @@ class PlatziCourseIE(PlatziBaseIE):
                     'chapter_id': chapter_id,
                 })
 
-        course_id = str(try_get(props, lambda x: x['course']['id']))
-        course_title = try_get(props, lambda x: x['course']['name'], str)
+        course_id = str(traverse_obj(props, ('course', 'id')))
+        course_title = traverse_obj(props, ('course', 'name', {str}))
 
         return self.playlist_result(entries, course_id, course_title)

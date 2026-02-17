@@ -4,7 +4,7 @@ from ..utils import (
     int_or_none,
     parse_iso8601,
     strip_or_none,
-    try_get,
+    traverse_obj,
     urlencode_postdata,
 )
 
@@ -50,7 +50,7 @@ class SimplecastBaseIE(InfoExtractor):
             'url': clean_podcast_url(audio_file_url),
             'webpage_url': webpage_url,
             'channel_url': channel_url,
-            'series': try_get(episode, lambda x: x['podcast']['title']),
+            'series': traverse_obj(episode, ('podcast', 'title')),
             'season_number': int_or_none(season.get('number')),
             'season_id': season_id,
             'thumbnail': episode.get('image_url'),

@@ -10,12 +10,12 @@ from ..utils import (
     int_or_none,
     mimetype2ext,
     srt_subtitles_timecode,
-    try_get,
+    traverse_obj,
     url_or_none,
     urlencode_postdata,
     urljoin,
 )
-from ..utils.traversal import find_elements, require, traverse_obj
+from ..utils.traversal import find_elements, require
 
 
 class LinkedInBaseIE(InfoExtractor):
@@ -212,7 +212,7 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
 
         subtitles = {}
         duration = int_or_none(video_data.get('durationInSeconds'))
-        transcript_lines = try_get(video_data, lambda x: x['transcript']['lines'], expected_type=list)
+        transcript_lines = traverse_obj(video_data, ('transcript', 'lines', {list}))
         if transcript_lines:
             subtitles['en'] = [{
                 'ext': 'srt',

@@ -3,7 +3,6 @@ from ..utils import (
     int_or_none,
     remove_end,
     traverse_obj,
-    try_get,
     unified_timestamp,
     url_or_none,
     urlencode_postdata,
@@ -142,8 +141,8 @@ class HungamaSongIE(InfoExtractor):
         artist = data.get('singer_name')
         formats = []
         media_json = self._download_json(data.get('file') or data['preview_link'], audio_id)
-        media_url = try_get(media_json, lambda x: x['response']['media_url'], str)
-        media_type = try_get(media_json, lambda x: x['response']['type'], str)
+        media_url = traverse_obj(media_json, ('response', 'media_url', {str}))
+        media_type = traverse_obj(media_json, ('response', 'type', {str}))
 
         if media_url:
             formats.append({

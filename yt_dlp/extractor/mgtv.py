@@ -9,7 +9,6 @@ from ..utils import (
     int_or_none,
     parse_resolution,
     traverse_obj,
-    try_get,
     url_or_none,
     urljoin,
 )
@@ -147,7 +146,7 @@ class MGTVIE(InfoExtractor):
         info = self._download_json(f'https://pcweb.api.mgtv.com/video/title?videoId={video_id}',
                                    video_id, fatal=False) or {}
         subtitles = {}
-        for sub in try_get(info, lambda x: x['data']['title']) or []:
+        for sub in traverse_obj(info, ('data', 'title')) or []:
             url_sub = sub.get('url')
             if not url_sub:
                 continue

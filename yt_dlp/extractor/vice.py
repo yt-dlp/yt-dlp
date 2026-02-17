@@ -15,7 +15,7 @@ from ..utils import (
     int_or_none,
     parse_age_limit,
     str_or_none,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -157,7 +157,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
             cc_url = subtitle.get('url')
             if not cc_url:
                 continue
-            language_code = try_get(subtitle, lambda x: x['languages'][0]['language_code'], str) or 'en'
+            language_code = traverse_obj(subtitle, ('languages', 0, 'language_code'), expected_type=str) or 'en'
             subtitles.setdefault(language_code, []).append({
                 'url': cc_url,
             })
@@ -171,7 +171,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
             'duration': int_or_none(video_data.get('video_duration')),
             'timestamp': int_or_none(video_data.get('created_at'), 1000),
             'age_limit': parse_age_limit(video_data.get('video_rating') or rating),
-            'series': try_get(video_data, lambda x: x['show']['base']['display_title'], str),
+            'series': traverse_obj(video_data, ('show', 'base', 'display_title'), expected_type=str),
             'episode_number': int_or_none(episode.get('episode_number')),
             'episode_id': str_or_none(episode.get('id') or video_data.get('episode_id')),
             'season_number': int_or_none(season.get('season_number')),

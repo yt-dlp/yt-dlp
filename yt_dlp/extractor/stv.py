@@ -4,8 +4,8 @@ from ..utils import (
     int_or_none,
     smuggle_url,
     str_or_none,
-    try_get,
 )
+from ..utils.traversal import traverse_obj
 
 
 class STVPlayerIE(InfoExtractor):
@@ -41,8 +41,7 @@ class STVPlayerIE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_id, fatal=False) or ''
         props = self._search_nextjs_data(webpage, video_id, default={}).get('props') or {}
-        player_api_cache = try_get(
-            props, lambda x: x['initialReduxState']['playerApiCache']) or {}
+        player_api_cache = traverse_obj(props, ('initialReduxState', 'playerApiCache')) or {}
 
         api_path, resp = None, {}
         for k, v in player_api_cache.items():
@@ -50,8 +49,7 @@ class STVPlayerIE(InfoExtractor):
                 api_path, resp = k, v
                 break
         else:
-            episode_id = str_or_none(try_get(
-                props, lambda x: x['pageProps']['episodeId']))
+            episode_id = str_or_none(traverse_obj(props, ('pageProps', 'episodeId')))
             api_path = f'/{self._PTYPE_MAP[ptype]}/{episode_id or video_id}'
 
         result = resp.get('results')

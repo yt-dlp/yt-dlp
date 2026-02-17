@@ -4,7 +4,7 @@ from ..utils import (
     qualities,
     remove_end,
     strip_or_none,
-    try_get,
+    traverse_obj,
     unified_timestamp,
     url_basename,
 )
@@ -93,8 +93,7 @@ class AllocineIE(InfoExtractor):
                 })
             duration = int_or_none(video.get('duration'))
             view_count = int_or_none(video.get('view_count'))
-            timestamp = unified_timestamp(try_get(
-                video, lambda x: x['added_at']['date'], str))
+            timestamp = unified_timestamp(traverse_obj(video, ('added_at', 'date'), expected_type=str))
         else:
             video_id = display_id
             media_data = self._download_json(

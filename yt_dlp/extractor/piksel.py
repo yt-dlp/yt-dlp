@@ -3,12 +3,9 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    dict_get,
-    int_or_none,
     join_nonempty,
     parse_iso8601,
     traverse_obj,
-    try_get,
     unescapeHTML,
     urljoin,
 )
@@ -92,7 +89,7 @@ class PikselIE(InfoExtractor):
         video_id = program['uuid']
         video_data = program['asset']
         title = video_data['title']
-        asset_type = dict_get(video_data, ['assetType', 'asset_type'])
+        asset_type = traverse_obj(video_data, (('assetType', 'asset_type'),))
 
         formats = []
 
@@ -131,23 +128,23 @@ class PikselIE(InfoExtractor):
         if not formats:
             asset_id = video_data.get('assetid') or program.get('assetid')
             if asset_id:
-                process_asset_files(try_get(self._call_api(
+                process_asset_files(traverse_obj(self._call_api(
                     app_token, 'asset_file', display_id, {
                         'assetid': asset_id,
-                    }, url, False), lambda x: x['WsAssetFileResponse']['AssetFiles']))
+                    }, url, False), ('WsAssetFileResponse', 'AssetFiles')))
 
-        m3u8_url = dict_get(video_data, [
+        m3u8_url = traverse_obj(video_data, ((
             'm3u8iPadURL',
             'ipadM3u8Url',
             'm3u8AndroidURL',
             'm3u8iPhoneURL',
-            'iphoneM3u8Url'])
+            'iphoneM3u8Url'),))
         if m3u8_url:
             formats.extend(self._extract_m3u8_formats(
                 m3u8_url, video_id, 'mp4', 'm3u8_native',
                 m3u8_id='hls', fatal=False))
 
-        smil_url = dict_get(video_data, ['httpSmil', 'hdSmil', 'rtmpSmil'])
+        smil_url = traverse_obj(video_data, (('httpSmil', 'hdSmil', 'rtmpSmil'),))
         if smil_url:
             transform_source = lambda x: x.replace('src="/', 'src="')
             if ref_id == 'nhkworld':

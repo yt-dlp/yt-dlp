@@ -4,10 +4,11 @@ from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
-    dict_get,
     int_or_none,
     js_to_json,
     parse_iso8601,
+    traverse_obj,
+    url_or_none,
 )
 
 
@@ -100,7 +101,7 @@ class ZypeIE(InfoExtractor):
 
         if text_tracks:
             for text_track in text_tracks:
-                tt_url = dict_get(text_track, ('file', 'src'))
+                tt_url = traverse_obj(text_track, (('file', 'src'), {url_or_none}))
                 if not tt_url:
                     continue
                 subtitles.setdefault(text_track.get('label') or 'English', []).append({
@@ -123,7 +124,7 @@ class ZypeIE(InfoExtractor):
             'display_id': video.get('friendly_title'),
             'title': title,
             'thumbnails': thumbnails,
-            'description': dict_get(video, ('description', 'ott_description', 'short_description')),
+            'description': traverse_obj(video, (('description', 'ott_description', 'short_description'), {str})),
             'timestamp': parse_iso8601(video.get('published_at')),
             'duration': int_or_none(video.get('duration')),
             'view_count': int_or_none(video.get('request_count')),

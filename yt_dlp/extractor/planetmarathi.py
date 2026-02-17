@@ -1,6 +1,6 @@
 from .common import InfoExtractor
 from ..utils import (
-    try_get,
+    traverse_obj,
     unified_strdate,
 )
 
@@ -60,8 +60,8 @@ class PlanetMarathiIE(InfoExtractor):
             entries.append({
                 'id': asset_id,
                 'title': asset_title,
-                'alt_title': try_get(asset, lambda x: x['mediaAssetName']['mr']),
-                'description': try_get(asset, lambda x: x['mediaAssetDescription']['en']),
+                'alt_title': traverse_obj(asset, ('mediaAssetName', 'mr')),
+                'description': traverse_obj(asset, ('mediaAssetDescription', 'en')),
                 'season_number': asset.get('mediaAssetSeason'),
                 'episode_number': asset.get('mediaAssetIndexForAssetType'),
                 'duration': asset.get('mediaAssetDurationInSeconds'),

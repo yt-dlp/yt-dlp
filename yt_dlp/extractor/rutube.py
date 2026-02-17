@@ -9,7 +9,6 @@ from ..utils import (
     js_to_json,
     parse_qs,
     str_or_none,
-    try_get,
     unified_timestamp,
     url_or_none,
 )
@@ -36,8 +35,8 @@ class RutubeBaseIE(InfoExtractor):
         if age_limit is not None:
             age_limit = 18 if age_limit is True else 0
 
-        uploader_id = try_get(video, lambda x: x['author']['id'])
-        category = try_get(video, lambda x: x['category']['name'])
+        uploader_id = traverse_obj(video, ('author', 'id'))
+        category = traverse_obj(video, ('category', 'name'))
         description = video.get('description')
         duration = int_or_none(video.get('duration'))
 
@@ -47,7 +46,7 @@ class RutubeBaseIE(InfoExtractor):
             'description': description,
             'thumbnail': video.get('thumbnail_url'),
             'duration': duration,
-            'uploader': try_get(video, lambda x: x['author']['name']),
+            'uploader': traverse_obj(video, ('author', 'name')),
             'uploader_id': str(uploader_id) if uploader_id else None,
             'timestamp': unified_timestamp(video.get('created_ts')),
             'categories': [category] if category else None,

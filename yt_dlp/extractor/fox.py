@@ -10,7 +10,6 @@ from ..utils import (
     parse_age_limit,
     parse_duration,
     traverse_obj,
-    try_get,
     unified_timestamp,
     url_or_none,
 )
@@ -134,8 +133,7 @@ class FOXIE(InfoExtractor):
             m3u8_url, video_id, 'mp4',
             entry_protocol='m3u8_native', m3u8_id='hls')
 
-        data = try_get(
-            video, lambda x: x['trackingData']['properties'], dict) or {}
+        data = traverse_obj(video, ('trackingData', 'properties'), expected_type=dict) or {}
 
         duration = int_or_none(video.get('durationInSeconds')) or int_or_none(
             video.get('duration')) or parse_duration(video.get('duration'))

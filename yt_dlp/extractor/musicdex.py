@@ -2,7 +2,7 @@ from .common import InfoExtractor
 from ..utils import (
     date_from_str,
     format_field,
-    try_get,
+    traverse_obj,
     unified_strdate,
 )
 
@@ -24,7 +24,7 @@ class MusicdexBaseIE(InfoExtractor):
             'album_artists': [artist.get('name') for artist in album_json.get('artists') or []],
             'thumbnail': format_field(album_json, 'image', 'https://www.musicdex.org/%s'),
             'album': album_json.get('name'),
-            'release_year': try_get(album_json, lambda x: date_from_str(unified_strdate(x['release_date'])).year),
+            'release_year': traverse_obj(album_json, ('release_date', {unified_strdate}, {date_from_str}, 'year')),
             'extractor_key': MusicdexSongIE.ie_key(),
             'extractor': 'MusicdexSong',
         }
@@ -95,7 +95,7 @@ class MusicdexAlbumIE(MusicdexBaseIE):
             'view_count': data_json.get('plays'),
             'artists': [artist.get('name') for artist in data_json.get('artists') or []],
             'thumbnail': format_field(data_json, 'image', 'https://www.musicdex.org/%s'),
-            'release_year': try_get(data_json, lambda x: date_from_str(unified_strdate(x['release_date'])).year),
+            'release_year': traverse_obj(data_json, ('release_date', {unified_strdate}, {date_from_str}, 'year')),
             'entries': entries,
         }
 

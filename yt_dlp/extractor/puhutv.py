@@ -7,7 +7,6 @@ from ..utils import (
     parse_resolution,
     str_or_none,
     traverse_obj,
-    try_get,
     unified_timestamp,
     url_or_none,
     urljoin,
@@ -111,13 +110,13 @@ class PuhuTVIE(InfoExtractor):
             f['format_id'] = format_id
             formats.append(f)
 
-        creator = try_get(
-            show, lambda x: x['producer']['name'], str)
+        creator = traverse_obj(
+            show, ('producer', 'name'), expected_type=str)
 
         content = info.get('content') or {}
 
-        images = try_get(
-            content, lambda x: x['images']['wide'], dict) or {}
+        images = traverse_obj(
+            content, ('images', 'wide'), expected_type=dict) or {}
         thumbnails = []
         for image_id, image_url in images.items():
             if not isinstance(image_url, str):

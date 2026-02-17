@@ -4,7 +4,7 @@ from .common import InfoExtractor
 from ..utils import (
     float_or_none,
     int_or_none,
-    try_get,
+    traverse_obj,
     unified_timestamp,
     url_or_none,
 )
@@ -111,11 +111,11 @@ query GetCommentReplies($id: String!) {
         return {
             'id': comment_data.get('_id'),
             'text': comment_data.get('content'),
-            'author': try_get(comment_data, lambda x: x['user']['username']),
-            'author_id': try_get(comment_data, lambda x: x['user']['_id']),
+            'author': traverse_obj(comment_data, ('user', 'username')),
+            'author_id': traverse_obj(comment_data, ('user', '_id')),
             'timestamp': unified_timestamp(comment_data.get('createdAt')),
             'parent': parent,
-            'like_count': try_get(comment_data, lambda x: x['voteCount']['positive']),
+            'like_count': traverse_obj(comment_data, ('voteCount', 'positive')),
         }
 
     def _real_extract(self, url):
@@ -142,8 +142,8 @@ query GetCommentReplies($id: String!) {
             'formats': formats,
             'is_live': is_live,
             'description': video_info.get('summary'),
-            'channel': try_get(video_info, lambda x: x['channel']['title']),
-            'channel_id': try_get(video_info, lambda x: x['channel']['_id']),
+            'channel': traverse_obj(video_info, ('channel', 'title')),
+            'channel_id': traverse_obj(video_info, ('channel', '_id')),
             'view_count': int_or_none(video_info.get('playCount')),
             'thumbnail': url_or_none(video_info.get('largeImage')),
             'duration': float_or_none(video_info.get('videoDuration')),

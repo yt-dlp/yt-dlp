@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -73,9 +73,9 @@ class TwentyMinutenIE(InfoExtractor):
         thumbnail = video.get('thumbnail')
 
         def extract_count(kind):
-            return try_get(
+            return traverse_obj(
                 video,
-                lambda x: int_or_none(x['communityobject'][f'thumbs_{kind}']))
+                ('communityobject', f'thumbs_{kind}', {int_or_none}))
 
         like_count = extract_count('up')
         dislike_count = extract_count('down')

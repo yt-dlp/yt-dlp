@@ -13,7 +13,6 @@ from ..utils import (
     int_or_none,
     str_or_none,
     traverse_obj,
-    try_get,
     unescapeHTML,
     unified_timestamp,
     url_or_none,
@@ -255,7 +254,7 @@ class RokfinIE(InfoExtractor):
             - set(self._get_cookies(self._AUTH_BASE)))
 
     def _get_auth_token(self):
-        return try_get(self._access_mgmt_tokens, lambda x: ' '.join([x['token_type'], x['access_token']]))
+        return traverse_obj(self._access_mgmt_tokens, {lambda x: f"{x['token_type']} {x['access_token']}"})
 
     def _download_json_using_access_token(self, url_or_request, video_id, headers={}, query={}):
         assert 'authorization' not in headers

@@ -16,7 +16,8 @@ from ..utils import (
     parse_qs,
     str_or_none,
     strftime_or_none,
-    try_get,
+    str_or_none,
+    strftime_or_none,
     unified_timestamp,
     update_url_query,
     url_or_none,
@@ -165,7 +166,7 @@ class BandcampIE(InfoExtractor):
         duration = None
 
         formats = []
-        track_info = try_get(tralbum, lambda x: x['trackinfo'][0], dict)
+        track_info = traverse_obj(tralbum, ('trackinfo', 0), expected_type=dict)
         if track_info:
             file_ = track_info.get('file')
             if isinstance(file_, dict):
@@ -205,9 +206,7 @@ class BandcampIE(InfoExtractor):
 
             blob = self._extract_data_attr(download_webpage, track_id, 'blob')
 
-            info = try_get(
-                blob, (lambda x: x['digital_items'][0],
-                       lambda x: x['download_items'][0]), dict)
+            info = traverse_obj(blob, (('digital_items', 0), ('download_items', 0)), expected_type=dict)
             if info:
                 downloads = info.get('downloads')
                 if isinstance(downloads, dict):

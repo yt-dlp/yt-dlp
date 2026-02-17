@@ -8,17 +8,16 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    dict_get,
     float_or_none,
     int_or_none,
     parse_duration,
     parse_qs,
     qualities,
     srt_subtitles_timecode,
-    try_get,
     update_url_query,
     urlencode_postdata,
 )
+from ..utils.traversal import traverse_obj
 
 
 class PluralsightBaseIE(InfoExtractor):
@@ -95,9 +94,8 @@ query BootstrapPlayer {
                 'variables': {},
             }).encode(), headers=self._GRAPHQL_HEADERS)
 
-        course = try_get(
-            response, lambda x: x['data']['rpc']['bootstrapPlayer']['course'],
-            dict)
+        course = traverse_obj(
+            response, ('data', 'rpc', 'bootstrapPlayer', 'course', {dict}))
         if course:
             return course
 
@@ -240,12 +238,12 @@ query viewClip {
         for num, current in enumerate(subs):
             current = subs[num]
             start, text = (
-                float_or_none(dict_get(current, TIME_OFFSET_KEYS, skip_false_values=False)),
-                dict_get(current, TEXT_KEYS))
+                float_or_none(traverse_obj(current, (TIME_OFFSET_KEYS,))),
+                traverse_obj(current, (TEXT_KEYS,)))
             if start is None or text is None:
                 continue
             end = duration if num == len(subs) - 1 else float_or_none(
-                dict_get(subs[num + 1], TIME_OFFSET_KEYS, skip_false_values=False))
+                traverse_obj(subs, (num + 1, TIME_OFFSET_KEYS)))
             if end is None:
                 continue
             srt += os.linesep.join(

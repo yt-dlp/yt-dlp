@@ -6,7 +6,7 @@ from ..utils import (
     format_field,
     int_or_none,
     str_or_none,
-    try_get,
+    traverse_obj,
 )
 
 CDN_API_BASE = 'https://cdn.younow.com/php/api'
@@ -48,9 +48,8 @@ class YouNowLiveIE(InfoExtractor):
         if data.get('errorCode') != 0:
             raise ExtractorError(data['errorMsg'], expected=True)
 
-        uploader = try_get(
-            data, lambda x: x['user']['profileUrlString'],
-            str) or username
+        uploader = traverse_obj(
+            data, ('user', 'profileUrlString'), expected_type=str) or username
 
         return {
             'id': uploader,
@@ -87,8 +86,8 @@ def _extract_moment(item, fatal=True):
         title = 'YouNow %s' % (
             item.get('momentType') or item.get('titleType') or 'moment')
 
-    uploader = try_get(item, lambda x: x['owner']['name'], str)
-    uploader_id = try_get(item, lambda x: x['owner']['userId'])
+    uploader = traverse_obj(item, ('owner', 'name'), expected_type=str)
+    uploader_id = traverse_obj(item, ('owner', 'userId'))
     uploader_url = format_field(uploader, None, 'https://www.younow.com/%s')
 
     return {

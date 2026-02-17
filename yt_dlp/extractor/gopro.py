@@ -3,7 +3,7 @@ from ..utils import (
     int_or_none,
     remove_end,
     str_or_none,
-    try_get,
+    traverse_obj,
     unified_timestamp,
     url_or_none,
 )
@@ -65,7 +65,7 @@ class GoProIE(InfoExtractor):
             'https://api.gopro.com/media/{}/download'.format(video_info['id']), video_id)
 
         formats = []
-        for fmt in try_get(media_data, lambda x: x['_embedded']['variations']) or []:
+        for fmt in traverse_obj(media_data, ('_embedded', 'variations')) or []:
             format_url = url_or_none(fmt.get('url'))
             if not format_url:
                 continue
@@ -79,7 +79,7 @@ class GoProIE(InfoExtractor):
             })
 
         title = str_or_none(
-            try_get(metadata, lambda x: x['collection']['title'])
+            traverse_obj(metadata, ('collection', 'title'))
             or self._html_search_meta(['og:title', 'twitter:title'], webpage)
             or remove_end(self._html_search_regex(
                 r'<title[^>]*>([^<]+)</title>', webpage, 'title', fatal=False), ' | GoPro'))
@@ -93,9 +93,9 @@ class GoProIE(InfoExtractor):
             'thumbnail': url_or_none(
                 self._html_search_meta(['og:image', 'twitter:image'], webpage)),
             'timestamp': unified_timestamp(
-                try_get(metadata, lambda x: x['collection']['created_at'])),
+                traverse_obj(metadata, ('collection', 'created_at'))),
             'uploader_id': str_or_none(
-                try_get(metadata, lambda x: x['account']['nickname'])),
+                traverse_obj(metadata, ('account', 'nickname'))),
             'duration': int_or_none(
                 video_info.get('source_duration')),
             'artist': str_or_none(

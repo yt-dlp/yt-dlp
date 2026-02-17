@@ -10,7 +10,6 @@ from ..utils import (
     int_or_none,
     remove_start,
     strip_or_none,
-    try_get,
     unified_timestamp,
 )
 from ..utils.traversal import traverse_obj
@@ -1223,7 +1222,7 @@ class DiscoveryPlusShowBaseIE(DPlayBaseIE):
                     season_url.format(season_id, show_id, str(page_num + 1)), show_name, headers=headers,
                     note='Downloading season {} JSON metadata{}'.format(season_id, f' page {page_num}' if page_num else ''))
                 if page_num == 0:
-                    total_pages = try_get(season_json, lambda x: x['meta']['totalPages'], int) or 1
+                    total_pages = traverse_obj(season_json, ('meta', 'totalPages', {int})) or 1
                 episodes_json = season_json['data']
                 for episode in episodes_json:
                     video_path = episode['attributes']['path']

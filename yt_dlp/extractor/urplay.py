@@ -1,11 +1,10 @@
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    ExtractorError,
     ISO639Utils,
-    dict_get,
     int_or_none,
     parse_age_limit,
-    try_get,
     unified_timestamp,
     url_or_none,
 )
@@ -157,7 +156,7 @@ class URPlayIE(InfoExtractor):
             thumbnails.append(t)
 
         series = urplayer_data.get('series') or {}
-        series_title = dict_get(series, ('seriesTitle', 'title')) or dict_get(urplayer_data, ('seriesTitle', 'mainTitle'))
+        series_title = traverse_obj(series, ('seriesTitle', 'title')) or traverse_obj(urplayer_data, ('seriesTitle', 'mainTitle'))
 
         return {
             'id': video_id,
@@ -173,7 +172,7 @@ class URPlayIE(InfoExtractor):
             'season': series.get('label'),
             'episode': episode,
             'episode_number': int_or_none(urplayer_data.get('episodeNumber')),
-            'age_limit': parse_age_limit(min(try_get(a, lambda x: x['from'], int) or 0
+            'age_limit': parse_age_limit(min(traverse_obj(a, 'from', expected_type=int) or 0
                                              for a in urplayer_data.get('ageRanges', []))),
             'subtitles': subtitles,
         }

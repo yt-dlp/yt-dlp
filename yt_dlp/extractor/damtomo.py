@@ -1,7 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, clean_html, int_or_none, try_get, unified_strdate
+from ..utils import ExtractorError, clean_html, int_or_none, traverse_obj, unified_strdate
 
 
 class DamtomoBaseIE(InfoExtractor):
@@ -30,8 +30,9 @@ class DamtomoBaseIE(InfoExtractor):
             # doing this has no problem since there is no character outside ASCII,
             # and never likely to happen in the future
             transform_source=lambda x: re.sub(r'\s*encoding="[^"]+?"', '', x))
-        m3u8_url = try_get(stream_tree, lambda x: x.find(
-            './/d:streamingUrl', {'d': self._DKML_XML_NS}).text.strip(), str)
+        m3u8_url = traverse_obj(stream_tree, (
+            {lambda x: x.find('.//d:streamingUrl', {'d': self._DKML_XML_NS})},
+            {lambda x: x.text.strip()}, {str}))
         if not m3u8_url:
             raise ExtractorError('Failed to obtain m3u8 URL')
         formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4')

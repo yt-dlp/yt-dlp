@@ -9,7 +9,7 @@ from ..utils import (
     js_to_json,
     mimetype2ext,
     parse_iso8601,
-    try_get,
+    traverse_obj,
     unescapeHTML,
 )
 
@@ -114,7 +114,7 @@ class DVTVIE(InfoExtractor):
         data = self._parse_json(js, video_id, transform_source=js_to_json)
         title = unescapeHTML(data['title'])
 
-        live_starter = try_get(data, lambda x: x['plugins']['liveStarter'], dict)
+        live_starter = traverse_obj(data, ('plugins', 'liveStarter', {dict}))
         if live_starter:
             data.update(live_starter)
 

@@ -1,9 +1,8 @@
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    dict_get,
+    ExtractorError,
     traverse_obj,
-    try_get,
 )
 
 
@@ -46,7 +45,7 @@ class MirrativIE(MirrativBaseIE):
         live_response = self._download_json(f'https://www.mirrativ.com/api/live/live?live_id={video_id}', video_id)
         self.assert_error(live_response)
 
-        hls_url = dict_get(live_response, ('archive_url_hls', 'streaming_url_hls'))
+        hls_url = traverse_obj(live_response, 'archive_url_hls', 'streaming_url_hls')
         is_live = bool(live_response.get('is_live'))
         if not hls_url:
             raise ExtractorError('Neither archive nor live is available.', expected=True)
@@ -66,7 +65,10 @@ class MirrativIE(MirrativBaseIE):
             'thumbnail': live_response.get('image_url'),
             'uploader': traverse_obj(live_response, ('owner', 'name')),
             'uploader_id': traverse_obj(live_response, ('owner', 'user_id')),
-            'duration': try_get(live_response, lambda x: x['ended_at'] - x['started_at']) if not is_live else None,
+            'duration': (
+                live_response.get('ended_at') - live_response.get('started_at')
+                if live_response.get('ended_at') and live_response.get('started_at') and not is_live
+                else None),
             'view_count': live_response.get('total_viewer_num'),
             'release_timestamp': live_response.get('started_at'),
             'timestamp': live_response.get('created_at'),

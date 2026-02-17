@@ -9,7 +9,7 @@ from ..utils import (
     merge_dicts,
     parse_iso8601,
     qualities,
-    try_get,
+    traverse_obj,
     urljoin,
 )
 
@@ -276,7 +276,7 @@ class NDREmbedBaseIE(InfoExtractor):  # XXX: Conventionally, Concrete class name
         duration = int_or_none(config.get('duration'))
 
         thumbnails = []
-        poster = try_get(config, lambda x: x['poster'], dict) or {}
+        poster = traverse_obj(config, ('poster', {dict})) or {}
         for thumbnail_id, thumbnail in poster.items():
             thumbnail_url = urljoin(url, thumbnail.get('src'))
             if not thumbnail_url:

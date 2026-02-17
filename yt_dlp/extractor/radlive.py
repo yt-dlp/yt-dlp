@@ -5,7 +5,6 @@ from ..utils import (
     ExtractorError,
     format_field,
     traverse_obj,
-    try_get,
     unified_timestamp,
 )
 
@@ -119,7 +118,7 @@ class RadLiveSeasonIE(RadLiveIE):  # XXX: Do not subclass from concrete IE
             '_type': 'url_transparent',
             'id': episode['structured_data']['url'].split('/')[-1],
             'url': episode['structured_data']['url'],
-            'series': try_get(content_info, lambda x: x['series']['title']),
+            'series': traverse_obj(content_info, ('series', 'title')),
             'season': video_info['title'],
             'season_number': video_info.get('number'),
             'season_id': video_info.get('id'),

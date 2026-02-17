@@ -1,8 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
-    str_or_none,
-    try_get,
+    traverse_obj,
     url_or_none,
 )
 
@@ -83,8 +82,8 @@ class XinpianchangIE(InfoExtractor):
             'categories': data.get('categories'),
             'tags': data.get('keywords'),
             'thumbnail': data.get('cover'),
-            'uploader': try_get(data, lambda x: x['owner']['username']),
-            'uploader_id': str_or_none(try_get(data, lambda x: x['owner']['id'])),
+            'uploader': traverse_obj(data, ('owner', 'username')),
+            'uploader_id': traverse_obj(data, ('owner', 'id'), expected_type=str_or_none),
             'formats': formats,
             'subtitles': subtitles,
         }

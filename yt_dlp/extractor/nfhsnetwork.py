@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import try_get, unified_strdate, unified_timestamp
+from ..utils import traverse_obj, unified_strdate, unified_timestamp
 
 
 class NFHSNetworkIE(InfoExtractor):
@@ -112,7 +112,7 @@ class NFHSNetworkIE(InfoExtractor):
         title = title.split('|')[0].strip()
 
         video_type = 'broadcasts' if is_live else 'vods'
-        key = broadcast.get('key') if is_live else try_get(publisher, lambda x: x['vods'][0]['key'])
+        key = broadcast.get('key') if is_live else traverse_obj(publisher, ('vods', 0, 'key'))
         m3u8_url = self._download_json(
             f'https://cfunity.nfhsnetwork.com/v2/{video_type}/{key}/url',
             video_id).get('video_url')

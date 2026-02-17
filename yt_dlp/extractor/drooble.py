@@ -4,8 +4,9 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
-    try_get,
+    int_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class DroobleIE(InfoExtractor):
@@ -98,9 +99,9 @@ class DroobleIE(InfoExtractor):
                 'title': media['title'],
                 'duration': int_or_none(media.get('duration')),
                 'timestamp': int_or_none(media.get('timestamp')),
-                'album': try_get(media, lambda x: x['album']['title']),
-                'uploader': try_get(media, lambda x: x['creator']['display_name']),
-                'uploader_id': try_get(media, lambda x: x['creator']['id']),
+                'album': traverse_obj(media, ('album', 'title')),
+                'uploader': traverse_obj(media, ('creator', 'display_name')),
+                'uploader_id': traverse_obj(media, ('creator', 'id')),
                 'thumbnail': media.get('image_comment'),
                 'like_count': int_or_none(media.get('likes')),
                 'vcodec': 'none' if is_audio else None,

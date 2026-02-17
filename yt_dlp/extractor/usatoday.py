@@ -3,7 +3,7 @@ from ..utils import (
     ExtractorError,
     get_element_by_attribute,
     parse_duration,
-    try_get,
+    traverse_obj,
     update_url_query,
 )
 
@@ -45,7 +45,7 @@ class USATodayIE(InfoExtractor):
         if not ui_video_data:
             raise ExtractorError('no video on the webpage', expected=True)
         video_data = self._parse_json(ui_video_data, display_id)
-        item = try_get(video_data, lambda x: x['asset_metadata']['items'], dict) or {}
+        item = traverse_obj(video_data, ('asset_metadata', 'items', {dict})) or {}
 
         return {
             '_type': 'url_transparent',

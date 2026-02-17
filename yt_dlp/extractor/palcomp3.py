@@ -2,7 +2,8 @@ from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     str_or_none,
-    try_get,
+    str_or_none,
+    traverse_obj,
 )
 
 
@@ -112,7 +113,7 @@ class PalcoMP3ArtistIE(PalcoMP3BaseIE):
         artist = self._call_api(artist_slug, self._ARTIST_FIELDS_TMPL)['artist']
 
         def entries():
-            for music in (try_get(artist, lambda x: x['musics']['nodes'], list) or []):
+            for music in (traverse_obj(artist, ('musics', 'nodes', {list})) or []):
                 yield self._parse_music(music)
 
         return self.playlist_result(

@@ -11,7 +11,6 @@ from ..utils import (
     ExtractorError,
     OnDemandPagedList,
     clean_html,
-    dict_get,
     float_or_none,
     get_element_by_class,
     int_or_none,
@@ -21,8 +20,8 @@ from ..utils import (
     parse_iso8601,
     parse_qs,
     strip_or_none,
+    strip_or_none,
     traverse_obj,
-    try_get,
     unescapeHTML,
     unified_timestamp,
     url_or_none,
@@ -1073,10 +1072,9 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             r'<script[^>]+id=(["\'])initial-data\1[^>]+data-json=(["\'])(?P<json>(?:(?!\2).)+)',
             webpage, 'initial data', default='{}', group='json'), playlist_id, fatal=False)
         if initial_data:
-            init_data = try_get(
-                initial_data, lambda x: x['initData']['items'][0], dict) or {}
+            init_data = traverse_obj(initial_data, ('initData', 'items', 0), expected_type=dict) or {}
             smp_data = init_data.get('smpData') or {}
-            clip_data = try_get(smp_data, lambda x: x['items'][0], dict) or {}
+            clip_data = traverse_obj(smp_data, ('items', 0), expected_type=dict) or {}
             version_id = clip_data.get('versionID')
             if version_id:
                 title = smp_data['title']
@@ -1242,15 +1240,14 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                 return {
                     'id': clip_vpid,
                     'title': clip_title,
-                    'thumbnail': dict_get(clip, ('poster', 'imageUrl')),
+                    'thumbnail': traverse_obj(clip, (('poster', 'imageUrl'),)),
                     'description': clip.get('description'),
                     'duration': parse_duration(clip.get('duration')),
                     'formats': formats,
                     'subtitles': subtitles,
                 }
-            bbc3_playlist = try_get(
-                payload, lambda x: x['content']['bbcMedia']['playlist'],
-                dict)
+            bbc3_playlist = traverse_obj(
+                payload, ('content', 'bbcMedia', 'playlist'), expected_type=dict)
             if bbc3_playlist:
                 playlist_title = bbc3_playlist.get('title') or playlist_title
                 thumbnail = bbc3_playlist.get('holdingImageURL')
@@ -1320,25 +1317,25 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             def parse_media(media):
                 if not media:
                     return
-                for item in (try_get(media, lambda x: x['media']['items'], list) or []):
+                for item in (traverse_obj(media, ('media', 'items'), expected_type=list) or []):
                     item_id = item.get('id')
                     item_title = item.get('title')
                     if not (item_id and item_title):
                         continue
                     formats, subtitles = self._download_media_selector(item_id)
                     item_desc = None
-                    blocks = try_get(media, lambda x: x['summary']['blocks'], list)
+                    blocks = traverse_obj(media, ('summary', 'blocks'), expected_type=list)
                     if blocks:
                         summary = []
                         for block in blocks:
-                            text = try_get(block, lambda x: x['model']['text'], str)
+                            text = traverse_obj(block, ('model', 'text'), expected_type=str)
                             if text:
                                 summary.append(text)
                         if summary:
                             item_desc = '\n\n'.join(summary)
                     item_time = None
-                    for meta in try_get(media, lambda x: x['metadata']['items'], list) or []:
-                        if try_get(meta, lambda x: x['label']) == 'Published':
+                    for meta in traverse_obj(media, ('metadata', 'items'), expected_type=list) or []:
+                        if traverse_obj(meta, 'label') == 'Published':
                             item_time = unified_timestamp(meta.get('timestamp'))
                             break
                     entries.append({
@@ -1355,7 +1352,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             for resp in traverse_obj(initial_data, ('data', lambda _, v: v['name'])):
                 name = resp['name']
                 if name == 'media-experience':
-                    parse_media(try_get(resp, lambda x: x['data']['initialItem']['mediaItem'], dict))
+                    parse_media(traverse_obj(resp, ('data', 'initialItem', 'mediaItem'), expected_type=dict))
                 elif name == 'article':
                     for block in traverse_obj(resp, (
                             'data', (None, ('content', 'model')), 'blocks',
@@ -1592,11 +1589,11 @@ class BBCCoUkIPlayerPlaylistBaseIE(InfoExtractor):
 
     @staticmethod
     def _get_default(episode, key, default_key='default'):
-        return try_get(episode, lambda x: x[key][default_key])
+        return traverse_obj(episode, (key, default_key))
 
     def _get_description(self, data):
         synopsis = data.get(self._DESCRIPTION_KEY) or {}
-        return dict_get(synopsis, ('large', 'medium', 'small'))
+        return traverse_obj(synopsis, (('large', 'medium', 'small'),))
 
     def _fetch_page(self, programme_id, per_page, series_id, page):
         elements = self._get_elements(self._call_api(

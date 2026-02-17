@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, mimetype2ext, parse_iso8601, try_get
+from ..utils import ExtractorError, mimetype2ext, parse_iso8601, traverse_obj
 
 
 class FancodeVodIE(InfoExtractor):
@@ -55,7 +55,7 @@ class FancodeVodIE(InfoExtractor):
         }''' % password  # noqa: UP031
 
         token_json = self.download_gql('refresh token', data, 'Getting the Access token')
-        self._ACCESS_TOKEN = try_get(token_json, lambda x: x['data']['refreshToken']['accessToken'])
+        self._ACCESS_TOKEN = traverse_obj(token_json, ('data', 'refreshToken', 'accessToken'))
         if self._ACCESS_TOKEN is None:
             self.report_warning('Failed to get Access token')
         else:
@@ -95,8 +95,8 @@ class FancodeVodIE(InfoExtractor):
 
         metadata_json = self.download_gql(video_id, data, note='Downloading metadata')
 
-        media = try_get(metadata_json, lambda x: x['data']['media'], dict) or {}
-        brightcove_video_id = try_get(media, lambda x: x['mediaSource']['brightcove'], str)
+        media = traverse_obj(metadata_json, ('data', 'media', {dict})) or {}
+        brightcove_video_id = traverse_obj(media, ('mediaSource', 'brightcove', {str}))
 
         if brightcove_video_id is None:
             raise ExtractorError('Unable to extract brightcove Video ID')
@@ -158,7 +158,7 @@ class FancodeLiveIE(FancodeVodIE):  # XXX: Do not subclass from concrete IE
 
         info_json = self.download_gql(video_id, data, 'Info json')
 
-        match_info = try_get(info_json, lambda x: x['data']['match'])
+        match_info = traverse_obj(info_json, ('data', 'match'))
 
         if match_info.get('streamingStatus') != 'STARTED':
             raise ExtractorError('The stream can\'t be accessed', expected=True)
@@ -167,8 +167,8 @@ class FancodeLiveIE(FancodeVodIE):  # XXX: Do not subclass from concrete IE
         return {
             'id': video_id,
             'title': match_info.get('name'),
-            'formats': self._extract_akamai_formats(try_get(match_info, lambda x: x['videoStreamUrl']['url']), video_id),
-            'ext': mimetype2ext(try_get(match_info, lambda x: x['videoStreamUrl']['deliveryType'])),
+            'formats': self._extract_akamai_formats(traverse_obj(match_info, ('videoStreamUrl', 'url')), video_id),
+            'ext': mimetype2ext(traverse_obj(match_info, ('videoStreamUrl', 'deliveryType'))),
             'is_live': True,
             'release_timestamp': parse_iso8601(match_info.get('startTime')),
         }

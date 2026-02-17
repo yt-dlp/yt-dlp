@@ -1,7 +1,7 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import try_get, url_or_none
+from ..utils import traverse_obj, url_or_none
 
 
 class GoToStageIE(InfoExtractor):
@@ -56,11 +56,11 @@ class GoToStageIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': try_get(metadata, lambda x: x['title'], str),
-            'url': try_get(content_response, lambda x: x['cdnLocation'], str),
+            'title': traverse_obj(metadata, ('title', {str})),
+            'url': traverse_obj(content_response, ('cdnLocation', {str})),
             'ext': 'mp4',
-            'thumbnail': url_or_none(try_get(metadata, lambda x: x['thumbnail']['location'])),
-            'duration': try_get(metadata, lambda x: x['duration'], float),
-            'categories': [try_get(metadata, lambda x: x['category'], str)],
+            'thumbnail': url_or_none(traverse_obj(metadata, ('thumbnail', 'location'))),
+            'duration': traverse_obj(metadata, ('duration', {float})),
+            'categories': [traverse_obj(metadata, ('category', {str}))],
             'is_live': False,
         }

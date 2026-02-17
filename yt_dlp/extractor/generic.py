@@ -18,7 +18,6 @@ from ..utils import (
     UnsupportedError,
     determine_ext,
     determine_protocol,
-    dict_get,
     extract_basic_auth,
     filter_dict,
     format_field,
@@ -1082,7 +1081,7 @@ class GenericIE(InfoExtractor):
                 sub_src = str_or_none(sub.get('src'))
                 if not sub_src:
                     continue
-                subtitles.setdefault(dict_get(sub, ('language', 'srclang')) or 'und', []).append({
+                subtitles.setdefault(traverse_obj(sub, ('language', 'srclang'), get_all=False) or 'und', []).append({
                     'url': urllib.parse.urljoin(url, sub_src),
                     'name': sub.get('label'),
                     'http_headers': {

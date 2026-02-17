@@ -13,7 +13,7 @@ from ..utils import (
     int_or_none,
     parse_qs,
     traverse_obj,
-    try_get,
+
     update_url_query,
     urlhandle_detect_ext,
 )
@@ -301,7 +301,7 @@ class WistiaPlaylistIE(WistiaBaseIE):
         playlist = self._download_embed_config('playlists', playlist_id, url)
 
         entries = []
-        for media in (try_get(playlist, lambda x: x[0]['medias']) or []):
+        for media in (traverse_obj(playlist, (0, 'medias')) or []):
             embed_config = media.get('embed_config')
             if not embed_config:
                 continue

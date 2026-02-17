@@ -10,7 +10,7 @@ from ..utils import (
     smuggle_url,
     str_or_none,
     try_call,
-    try_get,
+    try_call,
     unsmuggle_url,
     url_or_none,
     urljoin,
@@ -386,8 +386,8 @@ class MediasiteCatalogIE(InfoExtractor):
                 f'{mediasite_url}/Play/{video_id}',
                 ie=MediasiteIE.ie_key(), video_id=video_id))
 
-        title = try_get(
-            catalog, lambda x: x['CurrentFolder']['Name'], str)
+        title = traverse_obj(
+            catalog, ('CurrentFolder', 'Name', {str}))
 
         return self.playlist_result(entries, catalog_id, title)
 

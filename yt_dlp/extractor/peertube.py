@@ -8,7 +8,8 @@ from ..utils import (
     int_or_none,
     parse_resolution,
     str_or_none,
-    try_get,
+    str_or_none,
+    traverse_obj,
     unified_timestamp,
     url_or_none,
     urljoin,
@@ -1518,7 +1519,7 @@ class PeerTubeIE(InfoExtractor):
             return
         subtitles = {}
         for e in data:
-            language_id = try_get(e, lambda x: x['language']['id'], str)
+            language_id = traverse_obj(e, ('language', 'id'), expected_type=str)
             caption_url = urljoin(f'https://{host}', e.get('captionPath'))
             if not caption_url:
                 continue
@@ -1557,8 +1558,8 @@ class PeerTubeIE(InfoExtractor):
             if not file_url:
                 continue
             file_size = int_or_none(file_.get('size'))
-            format_id = try_get(
-                file_, lambda x: x['resolution']['label'], str)
+            format_id = traverse_obj(
+                file_, ('resolution', 'label'), expected_type=str)
             f = parse_resolution(format_id)
             f.update({
                 'url': file_url,
@@ -1585,7 +1586,7 @@ class PeerTubeIE(InfoExtractor):
         subtitles = self.extract_subtitles(host, video_id)
 
         def data(section, field, type_):
-            return try_get(video, lambda x: x[section][field], type_)
+            return traverse_obj(video, (section, field), expected_type=type_)
 
         def account_data(field, type_):
             return data('account', field, type_)
@@ -1623,7 +1624,7 @@ class PeerTubeIE(InfoExtractor):
             'like_count': int_or_none(video.get('likes')),
             'dislike_count': int_or_none(video.get('dislikes')),
             'age_limit': age_limit,
-            'tags': try_get(video, lambda x: x['tags'], list),
+            'tags': traverse_obj(video, 'tags', expected_type=list),
             'categories': categories,
             'formats': formats,
             'subtitles': subtitles,
@@ -1707,8 +1708,8 @@ class PeerTubePlaylistIE(InfoExtractor):
             f'/videos?sort=-createdAt&start={self._PAGE_SIZE * (page - 1)}&count={self._PAGE_SIZE}&nsfw=both',
             playlist_type, note=f'Downloading page {page}').get('data', [])
         for video in video_data:
-            short_uuid = video.get('shortUUID') or try_get(video, lambda x: x['video']['shortUUID'])
-            video_title = video.get('name') or try_get(video, lambda x: x['video']['name'])
+            short_uuid = video.get('shortUUID') or traverse_obj(video, ('video', 'shortUUID'))
+            video_title = video.get('name') or traverse_obj(video, ('video', 'name'))
             yield self.url_result(
                 f'https://{host}/w/{short_uuid}', PeerTubeIE.ie_key(),
                 video_id=short_uuid, video_title=video_title)
@@ -1719,8 +1720,8 @@ class PeerTubePlaylistIE(InfoExtractor):
         playlist_title = info.get('displayName')
         playlist_description = info.get('description')
         playlist_timestamp = unified_timestamp(info.get('createdAt'))
-        channel = try_get(info, lambda x: x['ownerAccount']['name']) or info.get('displayName')
-        channel_id = try_get(info, lambda x: x['ownerAccount']['id']) or info.get('id')
+        channel = traverse_obj(info, ('ownerAccount', 'name')) or info.get('displayName')
+        channel_id = traverse_obj(info, ('ownerAccount', 'id')) or info.get('id')
         thumbnail = format_field(info, 'thumbnailPath', f'https://{host}%s')
 
         entries = OnDemandPagedList(functools.partial(

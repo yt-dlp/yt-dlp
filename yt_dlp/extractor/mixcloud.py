@@ -9,7 +9,6 @@ from ..utils import (
     int_or_none,
     parse_iso8601,
     strip_or_none,
-    try_get,
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
@@ -264,8 +263,8 @@ class MixcloudPlaylistBaseIE(MixcloudBaseIE):
                 cloudcast_url = cloudcast.get('url')
                 if not cloudcast_url:
                     continue
-                item_slug = try_get(cloudcast, lambda x: x['slug'], str)
-                owner_username = try_get(cloudcast, lambda x: x['owner']['username'], str)
+                item_slug = traverse_obj(cloudcast, ('slug', {str}))
+                owner_username = traverse_obj(cloudcast, ('owner', 'username', {str}))
                 video_id = f'{owner_username}_{item_slug}' if item_slug and owner_username else None
                 entries.append(self.url_result(
                     cloudcast_url, MixcloudIE.ie_key(), video_id))

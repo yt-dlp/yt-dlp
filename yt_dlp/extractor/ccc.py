@@ -2,7 +2,9 @@ from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     parse_iso8601,
-    try_get,
+    int_or_none,
+    parse_iso8601,
+    traverse_obj,
     url_or_none,
 )
 
@@ -87,7 +89,7 @@ class CCCIE(InfoExtractor):
             'id': event_id,
             'display_id': display_id,
             'title': event_data['title'],
-            'creator': try_get(event_data, lambda x: ', '.join(x['persons'])),
+            'creator': traverse_obj(event_data, ('persons', lambda _, v: ', '.join(v))),
             'description': event_data.get('description'),
             'thumbnail': event_data.get('thumb_url'),
             'timestamp': parse_iso8601(event_data.get('date')),

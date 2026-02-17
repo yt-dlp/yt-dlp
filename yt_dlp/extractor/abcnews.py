@@ -3,7 +3,8 @@ from .common import InfoExtractor
 from ..utils import (
     parse_duration,
     parse_iso8601,
-    try_get,
+    parse_iso8601,
+    traverse_obj,
 )
 
 
@@ -115,7 +116,7 @@ class AbcNewsIE(InfoExtractor):
 
         def entries():
             featured_video = story.get('featuredVideo') or {}
-            feed = try_get(featured_video, lambda x: x['video']['feed'])
+            feed = traverse_obj(featured_video, ('video', 'feed'))
             if feed:
                 yield {
                     '_type': 'url',
@@ -132,7 +133,7 @@ class AbcNewsIE(InfoExtractor):
             for inline in (article_contents.get('inlines') or []):
                 inline_type = inline.get('type')
                 if inline_type == 'iframe':
-                    iframe_url = try_get(inline, lambda x: x['attrs']['src'])
+                    iframe_url = traverse_obj(inline, ('attrs', 'src'))
                     if iframe_url:
                         yield self.url_result(iframe_url)
                 elif inline_type == 'video':

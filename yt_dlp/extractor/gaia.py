@@ -6,8 +6,8 @@ from ..utils import (
     int_or_none,
     str_or_none,
     strip_or_none,
-    try_get,
     urlencode_postdata,
+    traverse_obj,
 )
 
 
@@ -99,7 +99,7 @@ class GaiaIE(InfoExtractor):
         fields = node.get('fields', {})
 
         def get_field_value(key, value_key='value'):
-            return try_get(fields, lambda x: x[key][0][value_key])
+            return traverse_obj(fields, (key, 0, value_key))
 
         return {
             'id': media_id,
@@ -110,10 +110,10 @@ class GaiaIE(InfoExtractor):
             'timestamp': int_or_none(node.get('created')),
             'subtitles': subtitles,
             'duration': int_or_none(vdata.get('duration')),
-            'like_count': int_or_none(try_get(fivestar, lambda x: x['up_count']['value'])),
-            'dislike_count': int_or_none(try_get(fivestar, lambda x: x['down_count']['value'])),
+            'like_count': int_or_none(traverse_obj(fivestar, ('up_count', 'value'))),
+            'dislike_count': int_or_none(traverse_obj(fivestar, ('down_count', 'value'))),
             'comment_count': int_or_none(node.get('comment_count')),
-            'series': try_get(node, lambda x: x['series']['title'], str),
+            'series': traverse_obj(node, ('series', 'title'), expected_type=str),
             'season_number': int_or_none(get_field_value('season')),
             'season_id': str_or_none(get_field_value('series_nid', 'nid')),
             'episode_number': int_or_none(get_field_value('episode')),

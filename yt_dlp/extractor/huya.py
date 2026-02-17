@@ -11,13 +11,12 @@ from ..utils import (
     int_or_none,
     parse_duration,
     str_or_none,
-    try_get,
+    traverse_obj,
     unescapeHTML,
     update_url,
     update_url_query,
     url_or_none,
 )
-from ..utils.traversal import traverse_obj
 
 
 class HuyaLiveIE(InfoExtractor):
@@ -61,7 +60,7 @@ class HuyaLiveIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id=video_id)
         stream_data = self._search_json(r'stream:\s', webpage, 'stream', video_id=video_id, default=None)
-        room_info = try_get(stream_data, lambda x: x['data'][0]['gameLiveInfo'])
+        room_info = traverse_obj(stream_data, ('data', 0, 'gameLiveInfo'))
         if not room_info:
             raise ExtractorError('Can not extract the room info', expected=True)
         title = room_info.get('roomName') or room_info.get('introduction') or self._html_extract_title(webpage)

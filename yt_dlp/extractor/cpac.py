@@ -2,7 +2,8 @@ from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     str_or_none,
-    try_get,
+    str_or_none,
+    traverse_obj,
     unified_timestamp,
     update_url_query,
     urljoin,
@@ -37,7 +38,7 @@ class CPACIE(InfoExtractor):
         content = self._download_json(
             'https://www.cpac.ca/api/1/services/contentModel.json?url=/site/website/episode/index.xml&crafterSite=cpacca&id=' + video_id,
             video_id)
-        video_url = try_get(content, lambda x: x['page']['details']['videoUrl'], str)
+        video_url = traverse_obj(content, ('page', 'details', 'videoUrl'), expected_type=str)
         formats = []
         if video_url:
             content = content['page']
@@ -112,7 +113,7 @@ class CPACPlaylistIE(InfoExtractor):
             f'https://www.cpac.ca/api/1/services/contentModel.json?url=/site/website/{pl_type}/index.xml&crafterSite=cpacca&{video_id}')
         content = self._download_json(api_url, video_id)
         entries = []
-        total_pages = int_or_none(try_get(content, lambda x: x['page'][list_type]['totalPages']), default=1)
+        total_pages = int_or_none(traverse_obj(content, ('page', list_type, 'totalPages')), default=1)
         for page in range(1, total_pages + 1):
             if page > 1:
                 api_url = update_url_query(api_url, {'page': page})
@@ -121,14 +122,14 @@ class CPACPlaylistIE(InfoExtractor):
                     note=f'Downloading continuation - {page}',
                     fatal=False)
 
-            for item in try_get(content, lambda x: x['page'][list_type]['item'], list) or []:
-                episode_url = urljoin(url, try_get(item, lambda x: x[f'url_{url_lang}_s']))
+            for item in traverse_obj(content, ('page', list_type, 'item'), expected_type=list) or []:
+                episode_url = urljoin(url, traverse_obj(item, f'url_{url_lang}_s'))
                 if episode_url:
                     entries.append(episode_url)
 
         return self.playlist_result(
             (self.url_result(entry) for entry in entries),
             playlist_id=video_id,
-            playlist_title=try_get(content, lambda x: x['page']['program'][f'title_{url_lang}_t']) or video_id.split('=')[-1],
-            playlist_description=try_get(content, lambda x: x['page']['program'][f'description_{url_lang}_t']),
+            playlist_title=traverse_obj(content, ('page', 'program', f'title_{url_lang}_t')) or video_id.split('=')[-1],
+            playlist_description=traverse_obj(content, ('page', 'program', f'description_{url_lang}_t')),
         )

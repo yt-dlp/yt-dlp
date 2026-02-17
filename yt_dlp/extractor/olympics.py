@@ -5,7 +5,6 @@ from ..utils import (
     int_or_none,
     parse_iso8601,
     parse_qs,
-    try_get,
     update_url,
     url_or_none,
 )
@@ -135,7 +134,7 @@ class OlympicsReplayIE(InfoExtractor):
             thumbnails.append({
                 'url': thumbnail,
                 'width': width,
-                'height': int_or_none(try_get(width, lambda x: x * height_a / width_a)),
+                'height': int_or_none(traverse_obj(width, {lambda x: x * height_a / width_a})),
             })
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(

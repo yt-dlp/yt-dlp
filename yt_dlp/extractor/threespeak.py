@@ -2,7 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    try_get,
+    traverse_obj,
     unified_strdate,
 )
 
@@ -40,20 +40,20 @@ class ThreeSpeakIE(InfoExtractor):
             https_frmts, https_subs = self._extract_m3u8_formats_and_subtitles(og_m3u8, video_id, fatal=False, m3u8_id='https')
             formats.extend(https_frmts)
             subtitles = self._merge_subtitles(subtitles, https_subs)
-        ipfs_m3u8 = try_get(video_json, lambda x: x['video']['info']['ipfs'])
+        ipfs_m3u8 = traverse_obj(video_json, ('video', 'info', 'ipfs'))
         if ipfs_m3u8:
             ipfs_frmts, ipfs_subs = self._extract_m3u8_formats_and_subtitles(
                 f'https://ipfs.3speak.tv/ipfs/{ipfs_m3u8}', video_id, fatal=False, m3u8_id='ipfs')
             formats.extend(ipfs_frmts)
             subtitles = self._merge_subtitles(subtitles, ipfs_subs)
-        mp4_file = try_get(video_json, lambda x: x['video']['info']['file'])
+        mp4_file = traverse_obj(video_json, ('video', 'info', 'file'))
         if mp4_file:
             formats.append({
                 'url': f'https://threespeakvideo.b-cdn.net/{video_id}/{mp4_file}',
                 'ext': 'mp4',
                 'format_id': 'https-mp4',
-                'duration': try_get(video_json, lambda x: x['video']['info']['duration']),
-                'filesize': try_get(video_json, lambda x: x['video']['info']['filesize']),
+                'duration': traverse_obj(video_json, ('video', 'info', 'duration')),
+                'filesize': traverse_obj(video_json, ('video', 'info', 'filesize')),
                 'quality': 11,
                 'format_note': 'Original file',
             })
@@ -61,9 +61,9 @@ class ThreeSpeakIE(InfoExtractor):
             'id': video_id,
             'title': data_json.get('title') or data_json.get('root_title'),
             'uploader': data_json.get('author'),
-            'description': try_get(video_json, lambda x: x['video']['content']['description']),
-            'tags': try_get(video_json, lambda x: x['video']['content']['tags']),
-            'thumbnail': try_get(video_json, lambda x: x['image'][0]),
+            'description': traverse_obj(video_json, ('video', 'content', 'description')),
+            'tags': traverse_obj(video_json, ('video', 'content', 'tags')),
+            'thumbnail': traverse_obj(video_json, ('image', 0)),
             'upload_date': unified_strdate(data_json.get('created')),
             'formats': formats,
             'subtitles': subtitles,

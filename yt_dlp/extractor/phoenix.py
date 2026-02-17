@@ -3,7 +3,7 @@ from .zdf import ZDFBaseIE
 from ..utils import (
     int_or_none,
     merge_dicts,
-    try_get,
+    traverse_obj,
     unified_timestamp,
 )
 
@@ -74,15 +74,14 @@ class PhoenixIE(ZDFBaseIE):
             f'https://tmd.phoenix.de/tmd/2/android_native_6/vod/ptmd/phoenix/{content_id}',
             content_id)
 
-        duration = int_or_none(try_get(
-            details, lambda x: x['tracking']['nielsen']['content']['length']))
+        duration = int_or_none(traverse_obj(
+            details, ('tracking', 'nielsen', 'content', 'length')))
         timestamp = unified_timestamp(details.get('editorialDate'))
-        series = try_get(
-            details, lambda x: x['tracking']['nielsen']['content']['program'],
-            str)
+        series = traverse_obj(
+            details, ('tracking', 'nielsen', 'content', 'program', {str}))
         episode = title if details.get('contentType') == 'episode' else None
 
-        teaser_images = try_get(details, lambda x: x['teaserImageRef']['layouts'], dict) or {}
+        teaser_images = traverse_obj(details, ('teaserImageRef', 'layouts', {dict})) or {}
         thumbnails = self._extract_thumbnails(teaser_images)
 
         return merge_dicts(info, {

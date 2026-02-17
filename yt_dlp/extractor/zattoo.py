@@ -7,7 +7,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     join_nonempty,
-    try_get,
+    traverse_obj,
     url_or_none,
     urlencode_postdata,
 )
@@ -109,8 +109,8 @@ class ZattooPlatformBaseIE(InfoExtractor):
             'episode_number': int_or_none(p.get('e_no')),
             'season_number': int_or_none(p.get('s_no')),
             'release_year': int_or_none(p.get('year')),
-            'categories': try_get(p, lambda x: x['c'], list),
-            'tags': try_get(p, lambda x: x['g'], list),
+            'categories': traverse_obj(p, 'c', expected_type=list),
+            'tags': traverse_obj(p, 'g', expected_type=list),
         }
 
         return cid, info_dict
@@ -130,7 +130,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
             'release_year': int_or_none(data.get('year')),
             'episode_number': int_or_none(data.get('episode_number')),
             'season_number': int_or_none(data.get('season_number')),
-            'categories': try_get(data, lambda x: x['categories'], list),
+            'categories': traverse_obj(data, 'categories', expected_type=list),
         }
         return data['terms_catalog'][0]['terms'][0]['token'], data['type'], info_dict
 
@@ -165,8 +165,8 @@ class ZattooPlatformBaseIE(InfoExtractor):
             if not data:
                 continue
 
-            watch_urls = try_get(
-                data, lambda x: x['stream']['watch_urls'], list)
+            watch_urls = traverse_obj(
+                data, ('stream', 'watch_urls'), expected_type=list)
             if not watch_urls:
                 continue
 

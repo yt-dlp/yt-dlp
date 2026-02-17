@@ -8,7 +8,7 @@ from ..utils import (
     lowercase_escape,
     parse_qs,
     qualities,
-    try_get,
+
     update_url_query,
     url_or_none,
 )
@@ -70,7 +70,7 @@ class YandexVideoIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        player = try_get((self._download_json(
+        player = traverse_obj((self._download_json(
             'https://frontend.vh.yandex.ru/graphql', video_id, data=('''{
   player(content_id: "%s") {
     computed_title
@@ -91,7 +91,7 @@ class YandexVideoIE(InfoExtractor):
     title
     views_count
   }
-}''' % video_id).encode(), fatal=False)), lambda x: x['player']['content'])  # noqa: UP031
+}''' % video_id).encode(), fatal=False)), ('data', 'player', 'content'))
         if not player or player.get('error'):
             player = self._download_json(
                 f'https://frontend.vh.yandex.ru/v23/player/{video_id}.json',

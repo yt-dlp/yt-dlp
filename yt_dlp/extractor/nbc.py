@@ -25,7 +25,7 @@ from ..utils import (
     parse_duration,
     parse_iso8601,
     remove_end,
-    try_get,
+    remove_end,
     unescapeHTML,
     unified_timestamp,
     update_url_query,
@@ -561,7 +561,7 @@ class NBCNewsIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         webpage = self._download_webpage(url, video_id)
 
         data = self._search_nextjs_data(webpage, video_id)['props']['initialState']
-        video_data = try_get(data, lambda x: x['video']['current'], dict)
+        video_data = traverse_obj(data, ('video', 'current'), expected_type=dict)
         if not video_data:
             video_data = data['article']['content'][0]['primaryMedia']['video']
         title = video_data['headline']['primary']
@@ -602,8 +602,8 @@ class NBCNewsIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         return {
             'id': video_id,
             'title': title,
-            'description': try_get(video_data, lambda x: x['description']['primary']),
-            'thumbnail': try_get(video_data, lambda x: x['primaryImage']['url']['primary']),
+            'description': traverse_obj(video_data, ('description', 'primary')),
+            'thumbnail': traverse_obj(video_data, ('primaryImage', 'url', 'primary')),
             'duration': parse_duration(video_data.get('duration')),
             'timestamp': unified_timestamp(video_data.get('datePublished')),
             'formats': formats,

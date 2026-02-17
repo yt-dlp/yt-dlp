@@ -1,7 +1,7 @@
 import hashlib
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, try_get
+from ..utils import ExtractorError, traverse_obj
 
 
 class GofileIE(InfoExtractor):
@@ -80,7 +80,7 @@ class GofileIE(InfoExtractor):
             raise ExtractorError(f'{self.IE_NAME} said: status {status}', expected=True)
 
         found_files = False
-        for file in (try_get(files, lambda x: x['data']['children'], dict) or {}).values():
+        for file in (traverse_obj(files, ('data', 'children', {dict})) or {}).values():
             file_type, file_format = file.get('mimetype').split('/', 1)
             if file_type not in ('video', 'audio') and file_format != 'vnd.mts':
                 continue

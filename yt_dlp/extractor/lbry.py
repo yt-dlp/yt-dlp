@@ -14,7 +14,6 @@ from ..utils import (
     mimetype2ext,
     parse_qs,
     traverse_obj,
-    try_get,
     url_or_none,
     urlhandle_detect_ext,
     urljoin,
@@ -31,7 +30,7 @@ class LBRYBaseIE(InfoExtractor):
 
     def _call_api_proxy(self, method, display_id, params, resource):
         headers = {'Content-Type': 'application/json-rpc'}
-        token = try_get(self._get_cookies('https://odysee.com'), lambda x: x['auth_token'].value)
+        token = traverse_obj(self._get_cookies('https://odysee.com'), ('auth_token', {lambda x: x.value}))
         if token:
             headers['x-lbry-auth-token'] = token
         response = self._download_json(

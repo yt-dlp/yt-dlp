@@ -4,7 +4,8 @@ from ..utils import (
     int_or_none,
     parse_iso8601,
     str_or_none,
-    try_get,
+    str_or_none,
+    traverse_obj,
 )
 
 
@@ -30,7 +31,7 @@ class NineCNineMediaIE(InfoExtractor):
             })
 
         if (not self.get_param('allow_unplayable_formats')
-                and try_get(content_package, lambda x: x['Constraints']['Security']['Type'])):
+                and traverse_obj(content_package, ('Constraints', 'Security', 'Type'))):
             self.report_drm(content_id)
 
         manifest_base_url = content_package_url + 'manifest.'
@@ -75,7 +76,7 @@ class NineCNineMediaIE(InfoExtractor):
             'season': season.get('Name'),
             'season_number': int_or_none(season.get('Number')),
             'season_id': str_or_none(season.get('Id')),
-            'series': try_get(content, lambda x: x['Media']['Name']),
+            'series': traverse_obj(content, ('Media', 'Name')),
             'tags': tags,
             'categories': categories,
             'duration': float_or_none(content_package.get('Duration')),

@@ -7,7 +7,6 @@ from ..utils import (
     int_or_none,
     parse_qs,
     str_or_none,
-    try_get,
     unified_timestamp,
     url_or_none,
 )
@@ -18,8 +17,8 @@ def _extract_episode(data, episode_id=None):
     title = data['title']
     download_url = data['download_url']
 
-    series = try_get(data, lambda x: x['show']['title'], str)
-    uploader = try_get(data, lambda x: x['author']['fullname'], str)
+    series = traverse_obj(data, ('show', 'title'), expected_type=str)
+    uploader = traverse_obj(data, ('author', 'fullname'), expected_type=str)
 
     thumbnails = []
     for image in ('image_original', 'image_medium', 'image'):
@@ -28,10 +27,8 @@ def _extract_episode(data, episode_id=None):
             thumbnails.append({'url': image_url})
 
     def stats(key):
-        return int_or_none(try_get(
-            data,
-            (lambda x: x[f'{key}s_count'],
-             lambda x: x['stats'][f'{key}s'])))
+        return int_or_none(traverse_obj(
+            data, (f'{key}s_count', ('stats', f'{key}s')), get_all=False))
 
     def duration(key):
         return float_or_none(data.get(key), scale=1000)
@@ -160,7 +157,7 @@ class SpreakerShowIE(InfoExtractor):
                     'max_per_page': 100,
                     'key': key,
                 }))
-            pager = try_get(episodes, lambda x: x['response']['pager'], dict)
+            pager = traverse_obj(episodes, ('response', 'pager'), expected_type=dict)
             if not pager:
                 break
             results = pager.get('results')

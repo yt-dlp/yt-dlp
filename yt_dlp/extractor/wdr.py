@@ -5,10 +5,10 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     determine_ext,
-    dict_get,
+
     js_to_json,
     strip_jsonp,
-    try_get,
+    traverse_obj,
     unified_strdate,
     update_url_query,
     url_or_none,
@@ -262,7 +262,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
-        display_id = dict_get(mobj.groupdict(), ('display_id', 'maus_id'), 'wdrmaus')
+        display_id = traverse_obj(mobj.groupdict(), 'display_id', 'maus_id', default='wdrmaus')
         webpage = self._download_webpage(url, display_id)
 
         entries = []
@@ -285,15 +285,14 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                 fatal=False)
             if not media_link_obj:
                 continue
-            jsonp_url = try_get(
-                media_link_obj, lambda x: x['mediaObj']['url'], str)
+            jsonp_url = traverse_obj(media_link_obj, ('mediaObj', 'url'), expected_type=str)
             if jsonp_url:
                 # metadata, or player JS with ['ref'] giving WDR id, or just media, perhaps
                 clip_id = media_link_obj['mediaObj'].get('ref')
                 if jsonp_url.endswith('.assetjsonp'):
                     asset = self._download_json(
                         jsonp_url, display_id, fatal=False, transform_source=strip_jsonp)
-                    clip_id = try_get(asset, lambda x: x['trackerData']['trackerClipId'], str)
+                    clip_id = traverse_obj(asset, ('trackerData', 'trackerClipId'), expected_type=str)
                 if clip_id:
                     jsonp_url = self._asset_url(clip_id[4:])
                 entries.append(self.url_result(jsonp_url, ie=WDRIE.ie_key()))

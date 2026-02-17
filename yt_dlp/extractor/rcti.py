@@ -6,10 +6,8 @@ from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
-    dict_get,
     strip_or_none,
     traverse_obj,
-    try_get,
 )
 
 
@@ -149,9 +147,9 @@ class RCTIPlusIE(RCTIPlusBaseIE):
             f'https://api.rctiplus.com/api/{url_api_version}/{video_type}/{video_id}/url?appierid={appier_id}', display_id, 'Downloading video URL JSON')[0]
         video_url = video_json['url']
 
-        is_upcoming = try_get(video_json, lambda x: x['current_date'] < x['live_at'])
-        if is_upcoming is None:
-            is_upcoming = try_get(video_json, lambda x: x['current_date'] < x['start_date'])
+        is_upcoming = (traverse_obj(video_json, 'current_date') or 0) < (traverse_obj(video_json, 'live_at') or 0)
+        if not is_upcoming:
+            is_upcoming = (traverse_obj(video_json, 'current_date') or 0) < (traverse_obj(video_json, 'start_date') or 0)
         if is_upcoming:
             self.raise_no_formats(
                 'This event will start at {}.'.format(video_json['live_label']) if video_json.get('live_label') else 'This event has not started yet.', expected=True)
@@ -196,7 +194,7 @@ class RCTIPlusIE(RCTIPlusBaseIE):
 
         return {
             'id': video_meta.get('product_id') or video_json.get('product_id'),
-            'title': dict_get(video_meta, ('title', 'name')) or dict_get(video_json, ('content_name', 'assets_name')),
+            'title': traverse_obj(video_meta, (('title', 'name'),)) or traverse_obj(video_json, (('content_name', 'assets_name'),)),
             'display_id': display_id,
             'description': video_meta.get('summary'),
             'timestamp': video_meta.get('release_date') or video_json.get('start_date'),
@@ -324,7 +322,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
         series_meta, _ = self._call_api(
             f'https://api.rctiplus.com/api/v1/program/{series_id}/detail', display_id, 'Downloading series metadata')
         metadata = {
-            'age_limit': try_get(series_meta, lambda x: self._AGE_RATINGS[x['age_restriction'][0]['code']]),
+            'age_limit': traverse_obj(series_meta, ('age_restriction', 0, 'code', {self._AGE_RATINGS.get})),
             'cast': traverse_obj(series_meta, (('starring', 'creator', 'writer'), ..., 'name'),
                                  expected_type=lambda x: strip_or_none(x) or None),
             'tags': traverse_obj(series_meta, ('tag', ..., 'name'),

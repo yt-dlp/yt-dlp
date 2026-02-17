@@ -11,7 +11,8 @@ from ..utils import (
     orderedSet,
     parse_iso8601,
     strip_or_none,
-    try_get,
+    strip_or_none,
+    traverse_obj,
     urljoin,
 )
 
@@ -250,10 +251,10 @@ class CondeNastIE(InfoExtractor):
         if url_type == 'series':
             return self._extract_series(url, webpage)
         else:
-            video = try_get(self._parse_json(self._search_regex(
+            video = traverse_obj(self._parse_json(self._search_regex(
                 r'__PRELOADED_STATE__\s*=\s*({.+?});', webpage,
                 'preload state', '{}'), display_id),
-                lambda x: x['transformed']['video'])
+                ('transformed', 'video'))
             if video:
                 params = {'videoId': video['id']}
                 info = {'description': strip_or_none(video.get('description'))}

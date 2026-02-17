@@ -10,7 +10,6 @@ from ..utils import (
     int_or_none,
     str_or_none,
     traverse_obj,
-    try_get,
 )
 
 
@@ -87,8 +86,13 @@ class GameJoltBaseIE(InfoExtractor):
             'uploader': user_data.get('display_name') or user_data.get('name'),
             'uploader_id': user_data.get('username'),
             'uploader_url': format_field(user_data, 'url', 'https://gamejolt.com%s'),
-            'categories': [try_get(category, lambda x: '{} - {}'.format(x['community']['name'], x['channel'].get('display_title') or x['channel']['title']))
-                           for category in post_data.get('communities') or []],
+            'categories': [
+                f'{name} - {title}'
+                for name, title in [
+                    (traverse_obj(c, ('community', 'name')), traverse_obj(c, ('channel', ('display_title', 'title')), get_all=False))
+                    for c in (post_data.get('communities') or [])
+                ] if name and title
+            ],
             'tags': traverse_obj(
                 lead_content, ('content', ..., 'content', ..., 'marks', ..., 'attrs', 'tag'), expected_type=str_or_none),
             'like_count': int_or_none(post_data.get('like_count')),

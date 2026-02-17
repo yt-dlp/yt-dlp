@@ -9,8 +9,9 @@ from ..utils import (
     parse_age_limit,
     parse_iso8601,
     strip_or_none,
-    try_get,
+    strip_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class AdultSwimIE(TurnerBaseIE):
@@ -164,7 +165,7 @@ class AdultSwimIE(TurnerBaseIE):
                 extract_data = self._download_json(
                     'https://www.adultswim.com/api/shows/v1/videos/' + video_id,
                     video_id, query={'fields': 'stream'}, fatal=False) or {}
-                assets = try_get(extract_data, lambda x: x['data']['video']['stream']['assets'], list) or []
+                assets = traverse_obj(extract_data, ('data', 'video', 'stream', 'assets'), expected_type=list) or []
                 for asset in assets:
                     asset_url = asset.get('url')
                     if not asset_url:

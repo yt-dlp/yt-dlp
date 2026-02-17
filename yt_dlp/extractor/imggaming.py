@@ -6,7 +6,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     str_or_none,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -68,7 +68,7 @@ class ImgGamingBaseIE(InfoExtractor):
         if media_type == 'playlist':
             playlist = self._call_api('vod/playlist/', media_id)
             entries = []
-            for video in try_get(playlist, lambda x: x['videos']['vods']) or []:
+            for video in traverse_obj(playlist, ('videos', 'vods')) or []:
                 video_id = str_or_none(video.get('id'))
                 if not video_id:
                     continue
@@ -89,7 +89,7 @@ class ImgGamingBaseIE(InfoExtractor):
 
         formats = []
         for proto in ('hls', 'dash'):
-            media_url = video_data.get(proto + 'Url') or try_get(video_data, lambda x: x[proto]['url'])
+            media_url = video_data.get(proto + 'Url') or traverse_obj(video_data, (proto, 'url'))
             if not media_url:
                 continue
             if proto == 'hls':

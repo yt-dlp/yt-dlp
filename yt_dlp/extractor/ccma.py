@@ -5,7 +5,7 @@ from ..utils import (
     int_or_none,
     parse_duration,
     parse_resolution,
-    try_get,
+    traverse_obj,
     unified_timestamp,
     url_or_none,
 )
@@ -125,9 +125,9 @@ class CCMAIE(InfoExtractor):
         title = informacio['titol']
         durada = informacio.get('durada') or {}
         duration = int_or_none(durada.get('milisegons'), 1000) or parse_duration(durada.get('text'))
-        tematica = try_get(informacio, lambda x: x['tematica']['text'])
+        tematica = traverse_obj(informacio, ('tematica', 'text'))
 
-        data_utc = try_get(informacio, lambda x: x['data_emissio']['utc'])
+        data_utc = traverse_obj(informacio, ('data_emissio', 'utc'))
         timestamp = unified_timestamp(data_utc)
 
         subtitles = {}
@@ -154,7 +154,7 @@ class CCMAIE(InfoExtractor):
                 }]
 
         age_limit = None
-        codi_etic = try_get(informacio, lambda x: x['codi_etic']['id'])
+        codi_etic = traverse_obj(informacio, ('codi_etic', 'id'))
         if codi_etic:
             codi_etic_s = codi_etic.split('_')
             if len(codi_etic_s) == 2:

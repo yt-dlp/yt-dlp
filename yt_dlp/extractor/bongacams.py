@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
-    try_get,
+    traverse_obj,
     urlencode_postdata,
 )
 
@@ -46,12 +46,12 @@ class BongaCamsIE(InfoExtractor):
 
         server_url = amf['localData']['videoServerUrl']
 
-        uploader_id = try_get(
-            amf, lambda x: x['performerData']['username'], str) or channel_id
-        uploader = try_get(
-            amf, lambda x: x['performerData']['displayName'], str)
-        like_count = int_or_none(try_get(
-            amf, lambda x: x['performerData']['loversCount']))
+        uploader_id = traverse_obj(
+            amf, ('performerData', 'username'), expected_type=str) or channel_id
+        uploader = traverse_obj(
+            amf, ('performerData', 'displayName'), expected_type=str)
+        like_count = int_or_none(traverse_obj(
+            amf, ('performerData', 'loversCount')))
 
         formats = self._extract_m3u8_formats(
             f'{server_url}/hls/stream_{uploader_id}/playlist.m3u8',

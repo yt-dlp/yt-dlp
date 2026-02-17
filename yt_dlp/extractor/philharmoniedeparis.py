@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import try_get
+from ..utils import traverse_obj
 
 
 class PhilharmonieDeParisIE(InfoExtractor):
@@ -64,8 +64,8 @@ class PhilharmonieDeParisIE(InfoExtractor):
             format_urls = set()
             formats = []
             for format_id in ('mobile', 'desktop'):
-                format_url = try_get(
-                    files, lambda x: x[format_id]['file'], str)
+                format_url = traverse_obj(
+                    files, (format_id, 'file', {str}))
                 if not format_url or format_url in format_urls:
                     continue
                 format_urls.add(format_url)

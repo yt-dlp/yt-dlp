@@ -6,13 +6,8 @@ import time
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    dict_get,
-    int_or_none,
-    js_to_json,
-    parse_iso8601,
     str_or_none,
     traverse_obj,
-    try_get,
     unescapeHTML,
     update_url_query,
     url_or_none,
@@ -312,8 +307,7 @@ class ABCIViewIE(InfoExtractor):
             })
 
         for sd in ('1080', '720', 'sd', 'sd-low'):
-            sd_url = try_get(
-                stream, lambda x: x['streams']['hls'][sd], str)
+            sd_url = traverse_obj(stream, ('streams', 'hls', sd), expected_type=str)
             if not sd_url:
                 continue
             formats = self._extract_m3u8_formats(
@@ -423,7 +417,7 @@ class ABCIViewShowSeriesIE(InfoExtractor):
             transform_source=lambda x: x.encode().decode('unicode_escape'),
             end_pattern=r'[\'"]\s*;')['route']['pageData']['_embedded']
 
-        highlight = try_get(video_data, lambda x: x['highlightVideo']['shareUrl'])
+        highlight = traverse_obj(video_data, ('highlightVideo', 'shareUrl'))
         if not self._yes_playlist(show_id, bool(highlight), video_label='highlight video'):
             return self.url_result(highlight, ie=ABCIViewIE.ie_key())
 
@@ -434,10 +428,10 @@ class ABCIViewShowSeriesIE(InfoExtractor):
                         for episode_url in traverse_obj(series, (
                             '_embedded', 'videoEpisodes', (None, 'items'), ..., 'shareUrl', {url_or_none}))],
             'id': series.get('id'),
-            'title': dict_get(series, ('title', 'displaySubtitle')),
+            'title': traverse_obj(series, (('title', 'displaySubtitle'),), get_all=False),
             'description': series.get('description'),
-            'series': dict_get(series, ('showTitle', 'displayTitle')),
-            'season': dict_get(series, ('title', 'displaySubtitle')),
+            'series': traverse_obj(series, (('showTitle', 'displayTitle'),), get_all=False),
+            'season': traverse_obj(series, (('title', 'displaySubtitle'),), get_all=False),
             'thumbnail': traverse_obj(
-                series, 'thumbnail', ('images', lambda _, v: v['name'] == 'seriesThumbnail', 'url'), get_all=False),
+                series, ('images', lambda _, v: v['name'] == 'seriesThumbnail', 'url'), get_all=False),
         }

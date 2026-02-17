@@ -4,9 +4,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
-    dict_get,
     int_or_none,
-    try_get,
     unified_timestamp,
 )
 from ..utils.traversal import (
@@ -19,7 +17,7 @@ class SVTBaseIE(InfoExtractor):
     _GEO_COUNTRIES = ['SE']
 
     def _extract_video(self, video_info, video_id):
-        is_live = dict_get(video_info, ('live', 'simulcast'), default=False)
+        is_live = traverse_obj(video_info, ('live', 'simulcast'), default=False)
         m3u8_protocol = 'm3u8' if is_live else 'm3u8_native'
         formats = []
         subtitles = {}
@@ -48,13 +46,13 @@ class SVTBaseIE(InfoExtractor):
                     'format_id': player_type,
                     'url': vurl,
                 })
-        rights = try_get(video_info, lambda x: x['rights'], dict) or {}
+        rights = traverse_obj(video_info, 'rights', expected_type=dict) or {}
         if not formats and rights.get('geoBlockedSweden'):
             self.raise_geo_restricted(
                 'This video is only available in Sweden',
                 countries=self._GEO_COUNTRIES, metadata_available=True)
 
-        subtitle_references = dict_get(video_info, ('subtitles', 'subtitleReferences'))
+        subtitle_references = traverse_obj(video_info, ('subtitles', 'subtitleReferences'))
         if isinstance(subtitle_references, list):
             for sr in subtitle_references:
                 subtitle_url = sr.get('url')
@@ -76,11 +74,10 @@ class SVTBaseIE(InfoExtractor):
         episode_number = int_or_none(video_info.get('episodeNumber'))
 
         timestamp = unified_timestamp(rights.get('validFrom'))
-        duration = int_or_none(dict_get(video_info, ('materialLength', 'contentDuration')))
+        duration = int_or_none(traverse_obj(video_info, ('materialLength', 'contentDuration')))
         age_limit = None
-        adult = dict_get(
-            video_info, ('inappropriateForChildren', 'blockedForChildren'),
-            skip_false_values=False)
+        adult = traverse_obj(
+            video_info, ('inappropriateForChildren', 'blockedForChildren'))
         if adult is not None:
             age_limit = 18 if adult else 0
 
@@ -365,7 +362,7 @@ class SVTSeriesIE(SVTBaseIE):
 
         return self.playlist_result(
             entries, season_id or series.get('id'), title,
-            dict_get(series, ('longDescription', 'shortDescription')))
+            traverse_obj(series, ('longDescription', 'shortDescription')))
 
 
 class SVTPageIE(SVTBaseIE):

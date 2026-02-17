@@ -11,8 +11,9 @@ from ..utils import (
     parse_iso8601,
     remove_end,
     strip_or_none,
-    try_get,
+    strip_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class TV2IE(InfoExtractor):
@@ -221,7 +222,7 @@ class KatsomoIE(InfoExtractor):
                         self.raise_login_required()
                     raise ExtractorError(error['description'])
                 raise
-            items = try_get(data, lambda x: x['items']['item'])
+            items = traverse_obj(data, ('items', 'item'))
             if not items:
                 continue
             if not isinstance(items, list):

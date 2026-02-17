@@ -12,7 +12,6 @@ from ..utils import (
     mimetype2ext,
     parse_iso8601,
     traverse_obj,
-    try_get,
     update_url,
     url_or_none,
 )
@@ -239,7 +238,7 @@ class YahooIE(InfoExtractor):
                         entries.append(self.url_result(iframe_url))
 
             if item.get('type') == 'storywithleadvideo':
-                iframe_url = try_get(item, lambda x: x['meta']['player']['url'])
+                iframe_url = traverse_obj(item, ('meta', 'player', 'url'))
                 if iframe_url:
                     entries.append(self.url_result(iframe_url))
                 else:

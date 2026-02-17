@@ -10,11 +10,11 @@ from ..utils import (
     parse_age_limit,
     str_or_none,
     try_call,
-    try_get,
     unified_strdate,
     unified_timestamp,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class Zee5IE(InfoExtractor):
@@ -182,10 +182,10 @@ class Zee5IE(InfoExtractor):
             'timestamp': unified_timestamp(asset_data.get('release_date')),
             'thumbnail': url_or_none(asset_data.get('image_url')),
             'series': str_or_none(asset_data.get('tvshow_name')),
-            'season': try_get(show_data, lambda x: x['seasons']['title'], str),
-            'season_number': int_or_none(try_get(show_data, lambda x: x['seasons'][0]['orderid'])),
-            'episode_number': int_or_none(try_get(asset_data, lambda x: x['orderid'])),
-            'tags': try_get(asset_data, lambda x: x['tags'], list),
+            'season': traverse_obj(show_data, ('seasons', 'title', {str})),
+            'season_number': int_or_none(traverse_obj(show_data, ('seasons', 0, 'orderid'))),
+            'episode_number': int_or_none(asset_data.get('orderid')),
+            'tags': traverse_obj(asset_data, ('tags', {list})),
         }
 
 
@@ -250,14 +250,14 @@ class Zee5SeriesIE(InfoExtractor):
         page_num = 0
         show_json = self._download_json(show_url, video_id=show_id, headers=headers)
         for season in show_json.get('seasons') or []:
-            season_id = try_get(season, lambda x: x['id'], str)
+            season_id = traverse_obj(season, ('id', {str}))
             next_url = f'https://gwapi.zee5.com/content/tvshow/?season_id={season_id}&type=episode&translation=en&country=IN&on_air=false&asset_subtype=tvshow&page=1&limit=100'
             while next_url:
                 page_num += 1
                 episodes_json = self._download_json(
                     next_url, video_id=show_id, headers=headers,
                     note=f'Downloading JSON metadata page {page_num}')
-                for episode in try_get(episodes_json, lambda x: x['episode'], list) or []:
+                for episode in traverse_obj(episodes_json, ('episode', {list})) or []:
                     video_id = episode.get('id')
                     yield self.url_result(
                         f'zee5:{video_id}',

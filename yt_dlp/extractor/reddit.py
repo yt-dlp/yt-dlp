@@ -9,7 +9,8 @@ from ..utils import (
     parse_qs,
     traverse_obj,
     truncate_string,
-    try_get,
+    traverse_obj,
+    truncate_string,
     unescapeHTML,
     update_url_query,
     url_or_none,
@@ -339,7 +340,7 @@ class RedditIE(InfoExtractor):
                 'http_headers': {'Accept': '*/*'},
             })
 
-        for image in try_get(data, lambda x: x['preview']['images']) or []:
+        for image in traverse_obj(data, ('preview', 'images')) or []:
             if not isinstance(image, dict):
                 continue
             add_thumbnail(image.get('source'))
@@ -396,7 +397,7 @@ class RedditIE(InfoExtractor):
             (None, ('crosspost_parent_list', ...)), ('secure_media', 'media'), 'reddit_video'), get_all=False)
         if reddit_video:
             playlist_urls = [
-                try_get(reddit_video, lambda x: unescapeHTML(x[y]))
+                traverse_obj(reddit_video, (y, {unescapeHTML}))
                 for y in ('dash_url', 'hls_url')
             ]
 
