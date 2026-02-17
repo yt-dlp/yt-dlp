@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 from test.helper import FakeYDL, report_warning
-from yt_dlp.update import UpdateInfo, Updater
+from yt_dlp.update import UpdateInfo, Updater, UPDATE_SOURCES, _make_label
 
 
 # XXX: Keep in sync with yt_dlp.update.UPDATE_SOURCES
@@ -279,6 +279,26 @@ class TestUpdate(unittest.TestCase):
             '2023.12.31.987654', version='2023.12.31.987654', requested_version='2023.12.31.987654', commit='d' * 40))
         test('testing', None, current_commit='9' * 40)
         test('testing', UpdateInfo('testing', commit='9' * 40))
+
+    def test_make_label(self):
+        STABLE_REPO = UPDATE_SOURCES['stable']
+        NIGHTLY_REPO = UPDATE_SOURCES['nightly']
+        MASTER_REPO = UPDATE_SOURCES['master']
+
+        for inputs, expected in [
+            ([STABLE_REPO, '2025.09.02', '2025.09.02'], f'stable@2025.09.02 from {STABLE_REPO}'),
+            ([NIGHTLY_REPO, '2025.09.02.123456', '2025.09.02.123456'], f'nightly@2025.09.02.123456 from {NIGHTLY_REPO}'),
+            ([MASTER_REPO, '2025.09.02.987654', '2025.09.02.987654'], f'master@2025.09.02.987654 from {MASTER_REPO}'),
+            (['fork/yt-dlp', 'experimental', '2025.12.31.000000'], 'fork/yt-dlp@experimental build 2025.12.31.000000'),
+            (['fork/yt-dlp', '2025.09.02', '2025.09.02'], 'fork/yt-dlp@2025.09.02'),
+            ([STABLE_REPO, 'experimental', '2025.12.31.000000'], f'{STABLE_REPO}@experimental build 2025.12.31.000000'),
+            ([STABLE_REPO, 'experimental'], f'{STABLE_REPO}@experimental'),
+            (['fork/yt-dlp', 'experimental'], 'fork/yt-dlp@experimental'),
+        ]:
+            result = _make_label(*inputs)
+            self.assertEqual(
+                result, expected,
+                f'{inputs!r} returned {result!r} instead of {expected!r}')
 
 
 if __name__ == '__main__':
