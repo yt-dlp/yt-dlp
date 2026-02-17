@@ -3,6 +3,7 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
+from ..jsinterp import to_signed_32
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -18,10 +19,6 @@ from ..utils import (
     unified_strdate,
     url_or_none,
 )
-
-
-def to_signed_32(n):
-    return n % ((-1 if n < 0 else 1) * 2**32)
 
 
 class _ByteGenerator:
