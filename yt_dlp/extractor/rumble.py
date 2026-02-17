@@ -165,9 +165,12 @@ class RumbleEmbedIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        # Rumble requires curl-style TLS fingerprinting; use impersonate=True
+        # so curl_cffi is used when available (avoids 403 on datacenter IPs).
         video = self._download_json(
             'https://rumble.com/embedJS/u3/', video_id,
-            query={'request': 'video', 'ver': 2, 'v': video_id})
+            query={'request': 'video', 'ver': 2, 'v': video_id},
+            impersonate=True)
 
         sys_msg = traverse_obj(video, ('sys', 'msg'))
         if sys_msg:
@@ -184,8 +187,13 @@ class RumbleEmbedIE(InfoExtractor):
 
         formats = []
         for format_type, format_info in (video.get('ua') or {}).items():
+            # quality_label tracks Rumble's own key (e.g. '240', '360', '1081')
+            # for use in format_id, since multiple entries can share the same
+            # meta height (e.g. '240' and '360' both have meta.h=360).
+            quality_labels = {}
             if isinstance(format_info, dict):
                 for height, video_info in format_info.items():
+                    quality_labels[id(video_info)] = height
                     if not traverse_obj(video_info, ('meta', 'h', {int_or_none})):
                         video_info.setdefault('meta', {})['h'] = height
                 format_info = format_info.values()
@@ -194,8 +202,25 @@ class RumbleEmbedIE(InfoExtractor):
                 meta = video_info.get('meta') or {}
                 if not video_info.get('url'):
                     continue
-                # With default query params returns m3u8 variants which are duplicates, without returns tar files
+                quality_label = quality_labels.get(id(video_info))
+                # tar URLs are m3u8 chunklists delivered via CDN routing params
+                # (r_file=chunklist.m3u8). Treat as m3u8_native with explicit
+                # per-resolution metadata. Use Rumble's quality key in format_id
+                # to avoid collisions (e.g. '240' and '360' share meta.h=360).
                 if format_type == 'tar':
+                    formats.append({
+                        'url': video_info['url'],
+                        'ext': 'mp4',
+                        'format_id': join_nonempty('tar', quality_label and f'{quality_label}p'),
+                        'fps': video.get('fps'),
+                        'protocol': 'm3u8_native',
+                        **traverse_obj(meta, {
+                            'tbr': ('bitrate', {int_or_none}),
+                            'filesize': ('size', {int_or_none}),
+                            'width': ('w', {int_or_none}),
+                            'height': ('h', {int_or_none}),
+                        }),
+                    })
                     continue
                 if format_type == 'hls':
                     if meta.get('live') is True and video.get('live') == 1:
@@ -356,24 +381,52 @@ class RumbleIE(InfoExtractor):
 
     def _real_extract(self, url):
         page_id = self._match_id(url)
-        webpage = self._download_webpage(url, page_id)
-        url_info = next(RumbleEmbedIE.extract_from_webpage(self._downloader, url, webpage), None)
-        if not url_info:
-            raise UnsupportedError(url)
+
+        # Use the oEmbed endpoint to get the embed URL — avoids Cloudflare/TLS
+        # fingerprint 403 on the main page. Rumble allows curl-style TLS; pass
+        # impersonate=True so curl_cffi is used when available.
+        # The html field contains an iframe src with the embed URL.
+        oembed = self._download_json(
+            'https://rumble.com/api/Media/oembed.json', page_id,
+            query={'url': url}, fatal=False, impersonate=True)
+        embed_url = self._search_regex(
+            r'src="(https://rumble\.com/embed/[^"]+)"',
+            (oembed or {}).get('html') or '', 'embed url', default=None)
+
+        if embed_url:
+            url_info = self.url_result(embed_url, RumbleEmbedIE)
+        else:
+            # Fallback: fetch the full page and scrape for embed URL
+            webpage = self._download_webpage(url, page_id, impersonate=True)
+            url_info = next(RumbleEmbedIE.extract_from_webpage(self._downloader, url, webpage), None)
+            if not url_info:
+                raise UnsupportedError(url)
+
+        # Attempt to fetch the page for supplemental metadata (description,
+        # counts). May still 403 — that's okay, these fields are optional.
+        webpage = None
+        try:
+            webpage = self._download_webpage(url, page_id, fatal=False, impersonate=True)
+        except Exception:
+            pass
 
         return {
             '_type': 'url_transparent',
-            'ie_key': url_info['ie_key'],
-            'url': url_info['url'],
+            'ie_key': RumbleEmbedIE.ie_key(),
+            'url': url_info['url'] if isinstance(url_info, dict) else embed_url,
             'release_timestamp': parse_iso8601(self._search_regex(
-                r'(?:Livestream begins|Streamed on):\s+<time datetime="([^"]+)', webpage, 'release date', default=None)),
+                r'(?:Livestream begins|Streamed on):\s+<time datetime="([^"]+)',
+                webpage or '', 'release date', default=None)),
             'view_count': int_or_none(self._search_regex(
-                r'"userInteractionCount"\s*:\s*(\d+)', webpage, 'view count', default=None)),
+                r'"userInteractionCount"\s*:\s*(\d+)',
+                webpage or '', 'view count', default=None)),
             'like_count': parse_count(self._search_regex(
-                r'<span data-js="rumbles_up_votes">\s*([\d,.KM]+)', webpage, 'like count', default=None)),
+                r'<span data-js="rumbles_up_votes">\s*([\d,.KM]+)',
+                webpage or '', 'like count', default=None)),
             'dislike_count': parse_count(self._search_regex(
-                r'<span data-js="rumbles_down_votes">\s*([\d,.KM]+)', webpage, 'dislike count', default=None)),
-            'description': clean_html(get_element_by_class('media-description', webpage)),
+                r'<span data-js="rumbles_down_votes">\s*([\d,.KM]+)',
+                webpage or '', 'dislike count', default=None)),
+            'description': clean_html(get_element_by_class('media-description', webpage or '')),
         }
 
 
