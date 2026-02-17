@@ -376,6 +376,10 @@ class JSInterpreter:
         if not _OPERATORS.get(op):
             return right_val
 
+        # TODO: This is only correct for str+str and str+number; fix for str+array, str+object, etc
+        if op == '+' and (isinstance(left_val, str) or isinstance(right_val, str)):
+            return f'{left_val}{right_val}'
+
         try:
             return _OPERATORS[op](left_val, right_val)
         except Exception as e:
