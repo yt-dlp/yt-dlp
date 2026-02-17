@@ -18,7 +18,7 @@ x-pmoves-env: &pmoves-env-base
   environment:
     PMOVES_ENV: ${PMOVES_ENV:-production}
     TIER: ${TIER:-development}
-    NATS_URL: ${NATS_URL:-nats://nats:4222}
+    NATS_URL: ${NATS_URL:-nats://nats:pmoves@nats:4222}
     TENSORZERO_URL: ${TENSORZERO_URL:-http://tensorzero-gateway:3030}
 
 # API Tier Environment
@@ -29,7 +29,7 @@ x-env-tier-api: &env-tier-api
     # Base variables (from pmoves-env-base)
     PMOVES_ENV: ${PMOVES_ENV:-production}
     TIER: api
-    NATS_URL: ${NATS_URL:-nats://nats:4222}
+    NATS_URL: ${NATS_URL:-nats://nats:pmoves@nats:4222}
     TENSORZERO_URL: ${TENSORZERO_URL:-http://tensorzero-gateway:3030}
     # API tier specific
     MAX_CONCURRENT_REQUESTS: ${MAX_CONCURRENT_REQUESTS:-100}
@@ -43,7 +43,7 @@ x-env-tier-agent: &env-tier-agent
     # Base variables
     PMOVES_ENV: ${PMOVES_ENV:-production}
     TIER: agent
-    NATS_URL: ${NATS_URL:-nats://nats:4222}
+    NATS_URL: ${NATS_URL:-nats://nats:pmoves@nats:4222}
     TENSORZERO_URL: ${TENSORZERO_URL:-http://tensorzero-gateway:3030}
     # Agent tier specific
     MAX_CONCURRENT_AGENTS: ${MAX_CONCURRENT_AGENTS:-50}
@@ -57,7 +57,7 @@ x-env-tier-worker: &env-tier-worker
     # Base variables
     PMOVES_ENV: ${PMOVES_ENV:-production}
     TIER: worker
-    NATS_URL: ${NATS_URL:-nats://nats:4222}
+    NATS_URL: ${NATS_URL:-nats://nats:pmoves@nats:4222}
     TENSORZERO_URL: ${TENSORZERO_URL:-http://tensorzero-gateway:3030}
     # Worker tier specific
     MAX_CONCURRENT_JOBS: ${MAX_CONCURRENT_JOBS:-10}
@@ -71,7 +71,7 @@ x-env-tier-data: &env-tier-data
     # Base variables
     PMOVES_ENV: ${PMOVES_ENV:-production}
     TIER: data
-    NATS_URL: ${NATS_URL:-nats://nats:4222}
+    NATS_URL: ${NATS_URL:-nats://nats:pmoves@nats:4222}
     TENSORZERO_URL: ${TENSORZERO_URL:-http://tensorzero-gateway:3030}
     # Data tier specific
     MAX_CONNECTIONS: ${MAX_CONNECTIONS:-100}
@@ -84,7 +84,7 @@ x-env-tier-llm: &env-tier-llm
     # Base variables
     PMOVES_ENV: ${PMOVES_ENV:-production}
     TIER: llm
-    NATS_URL: ${NATS_URL:-nats://nats:4222}
+    NATS_URL: ${NATS_URL:-nats://nats:pmoves@nats:4222}
     TENSORZERO_URL: ${TENSORZERO_URL:-http://tensorzero-gateway:3030}
     # LLM tier specific
     MAX_CONCURRENT_REQUESTS: ${MAX_CONCURRENT_REQUESTS:-50}
@@ -97,7 +97,7 @@ x-env-tier-media: &env-tier-media
     # Base variables
     PMOVES_ENV: ${PMOVES_ENV:-production}
     TIER: media
-    NATS_URL: ${NATS_URL:-nats://nats:4222}
+    NATS_URL: ${NATS_URL:-nats://nats:pmoves@nats:4222}
     TENSORZERO_URL: ${TENSORZERO_URL:-http://tensorzero-gateway:3030}
     # Media tier specific
     GPU_ENABLED: ${GPU_ENABLED:-true}
@@ -111,7 +111,7 @@ x-env-tier-ui: &env-tier-ui
     # Base variables
     PMOVES_ENV: ${PMOVES_ENV:-production}
     TIER: ui
-    NATS_URL: ${NATS_URL:-nats://nats:4222}
+    NATS_URL: ${NATS_URL:-nats://nats:pmoves@nats:4222}
     TENSORZERO_URL: ${TENSORZERO_URL:-http://tensorzero-gateway:3030}
 
 # Health check template
