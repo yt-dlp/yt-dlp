@@ -70,6 +70,8 @@ from ...utils import (
 )
 from ...utils.networking import clean_headers, clean_proxies, select_proxy
 
+# from ..utils.progress import sleep
+
 STREAMING_DATA_CLIENT_NAME = '__yt_dlp_client'
 STREAMING_DATA_FETCH_SUBS_PO_TOKEN = '__yt_dlp_fetch_subs_po_token'
 STREAMING_DATA_FETCH_GVS_PO_TOKEN = '__yt_dlp_fetch_gvs_po_token'
@@ -2077,6 +2079,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # fragment count no longer increase since it starts
                 break
 
+            # utils.progress.sleep not used due to conflict with FD
+            # sleep(self._downloader, max(0, FETCH_SPAN + fetch_time - time.time()), 'Fetching new live fragments')
             time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
 
     def _get_player_js_version(self):
