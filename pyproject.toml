@@ -64,6 +64,9 @@ build-curl-cffi = [
     "curl-cffi==0.13.0; sys_platform=='darwin' or (sys_platform=='linux' and platform_machine!='armv7l')",
     "curl-cffi==0.14.0; sys_platform=='win32' or (sys_platform=='linux' and platform_machine=='armv7l')",
 ]
+zstd = [
+    "zstandard>=0.22.0",
+]
 secretstorage = [
     "cffi",
     "secretstorage",
