@@ -834,7 +834,7 @@ class TwitchVideosIE(TwitchVideosBaseIE):
 
 class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
     IE_NAME = 'twitch:videos:clips'
-    _VALID_URL = r'https?://(?:(?:www|go|m|dashboard)\.)?twitch\.tv/(?:u/)?(?P<id>[^/]+)/(?:[^/]+/clips/created)?(?:clips|videos/*?\?.*?\bfilter=clips)?'
+    _VALID_URL = r'https?://(?:(?:www|go|m|dashboard)\.)?twitch\.tv/(?!/xqc)(?:u/)?(?P<id>[^/]+)/(?:[^/]+/clips/created)?(?:clips|videos/*?\?.*?\bfilter=clips)?'
     _TESTS = [{
         # Clips
         'url': 'https://www.twitch.tv/vanillatv/clips?filter=clips&range=all',
@@ -846,6 +846,13 @@ class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
     }, {
         'url': 'https://www.twitch.tv/dota2ruhub/videos?filter=clips&range=7d',
         'only_matching': True,
+    }, {
+        'url': 'https://dashboard.twitch.tv/u/0xvd1/content/clips/created',
+        'info_dict': {
+            'id': '0xvd1',
+            'title': '0xvd1 - Clips Top 7D',
+        },
+        'playlist_mincount': 2,
     }]
 
     Clip = collections.namedtuple('Clip', ['filter', 'label'])
