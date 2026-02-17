@@ -18,7 +18,7 @@ from .utils import (
 )
 
 
-def to_signed_32(n):
+def int_to_signed_32bit_int(n):
     n &= 0xFFFFFFFF
     if n & 0x80000000:
         return n - 0x100000000
@@ -35,7 +35,9 @@ def _js_bit_op(op):
         return int(float(x))
 
     def wrapped(a, b):
-        return to_signed_32(op(to_signed_32(zeroise(a)), to_signed_32(zeroise(b))))
+        return int_to_signed_32bit_int(op(
+            int_to_signed_32bit_int(zeroise(a)),
+            int_to_signed_32bit_int(zeroise(b))))
 
     return wrapped
 

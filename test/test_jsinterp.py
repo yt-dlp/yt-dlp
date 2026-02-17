@@ -9,7 +9,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import math
 
-from yt_dlp.jsinterp import JS_Undefined, JSInterpreter, js_number_to_string, to_signed_32
+from yt_dlp.jsinterp import (
+    JS_Undefined,
+    JSInterpreter,
+    js_number_to_string,
+    int_to_signed_32bit_int,
+)
 
 
 class NaN:
@@ -447,7 +452,7 @@ class TestJSInterpreter(unittest.TestCase):
     def test_splice(self):
         self._test('function f(){var T = ["0", "1", "2"]; T["splice"](2, 1, "0")[0]; return T }', ['0', '1', '0'])
 
-    def test_to_signed_32(self):
+    def test_int_to_signed_32bit_int(self):
         for inp, exp in [
             (0, 0),
             (1, 1),
@@ -461,7 +466,7 @@ class TestJSInterpreter(unittest.TestCase):
             (-16799986688, 379882496),
             (39570129568, 915423904),
         ]:
-            assert to_signed_32(inp) == exp
+            assert int_to_signed_32bit_int(inp) == exp
 
     def test_js_number_to_string(self):
         for test, radix, expected in [
