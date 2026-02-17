@@ -11,10 +11,9 @@ from .http import HttpFD
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..networking import Request
 from ..networking.exceptions import HTTPError, IncompleteRead
-from ..utils import DownloadError, RetryManager, traverse_obj
+from ..utils import DownloadError, RetryManager, traverse_obj, int_or_none
 from ..utils.networking import HTTPHeaderDict
 from ..utils.progress import ProgressCalculator
-
 
 class HttpQuietDownloader(HttpFD):
     def to_screen(self, *args, **kargs):
@@ -118,7 +117,7 @@ class FragmentFD(FileDownloader):
             'extractor_key': info_dict.get('extractor_key') or info_dict.get('extractor'),
             'fragment_id': ctx['fragment_index'],
             'fragment_count': ctx.get('fragment_count') or ctx.get('total_frags'),
-            'is_live': bool(info_dict.get('is_live') or ctx.get('live')),
+            'is_live': info_dict.get('is_live') or ctx.get('live'),
         }
         frag_resume_len = 0
         if ctx['dl'].params.get('continuedl', True):
@@ -165,9 +164,7 @@ class FragmentFD(FileDownloader):
             ad_frags = ctx.get('ad_frags', 0)
             if ad_frags:
                 total_frags_str += ' (not including %d ad)' % ad_frags
-        else:
-            total_frags_str = 'unknown (live)'
-        self.to_screen(f'[{self.FD_NAME}] Total fragments: {total_frags_str}')
+            self.to_screen(f'[{self.FD_NAME}] Total fragments: {total_frags_str}')
         self.report_destination(ctx['filename'])
         dl = HttpQuietDownloader(self.ydl, {
             **self.params,
@@ -270,14 +267,18 @@ class FragmentFD(FileDownloader):
                 progress.update(s.get('downloaded_bytes'))
 
             if s['status'] == 'finished':
-                state['fragment_index'] += 1
-                ctx['fragment_index'] = state['fragment_index']
+                frag_id = int_or_none(traverse_obj(s, ('fragment_info_dict', 'fragment_id')))
+                if frag_id is not None:
+                    state['fragment_index'] = frag_id
+                    ctx['fragment_index'] = frag_id
+                else:
+                    state['fragment_index'] += 1
+                    ctx['fragment_index'] = state['fragment_index']
                 progress.thread_reset()
 
             state['downloaded_bytes'] = ctx['complete_frags_downloaded_bytes'] = progress.downloaded
             state['speed'] = ctx['speed'] = progress.speed.smooth
             state['eta'] = progress.eta.smooth
-
             self._hook_progress(state, info_dict)
 
         ctx['dl'].add_progress_hook(frag_progress_hook)
@@ -436,6 +437,9 @@ class FragmentFD(FileDownloader):
             pack_func=(lambda content, idx: content), finish_func=None,
             tpe=None, interrupt_trigger=(True, )):
 
+        is_live_stream = info_dict.get('is_live') or info_dict.get('is_from_start')
+        live_stream_resume = self.params.get('live_stream_resume', 60)  # need new config option?
+        
         if not self.params.get('skip_unavailable_fragments', True):
             is_fatal = lambda _: True
 
@@ -454,17 +458,18 @@ class FragmentFD(FileDownloader):
             fatal = is_fatal(fragment.get('index') or (frag_index - 1))
 
             def error_callback(err, count, retries):
+                if ctx.get('live_ended_gracefully'):
+                    return
                 if fatal and count > retries:
                     ctx['dest_stream'].close()
                 self.report_retry(err, count, retries, frag_index, fatal)
                 ctx['last_error'] = err
 
-            is_live_stream = info_dict.get('is_live') or info_dict.get('is_from_start')
-            live_reconnect_window = self.params.get('yt_live_reconnect_window', 90) # need new config option?
-            live_http_error_started = None
-
-            while True:
+            live_http_error_started, retry_cycles = None, 0
+            while True:  # while for live
                 for retry in RetryManager(self.params.get('fragment_retries'), error_callback):
+                    if not interrupt_trigger[0] or ctx.get('live_ended_gracefully'):
+                        return
                     try:
                         ctx['fragment_count'] = fragment.get('fragment_count')
                         if not self._download_fragment(
@@ -472,31 +477,24 @@ class FragmentFD(FileDownloader):
                             return
                         return
                     except (HTTPError, IncompleteRead) as err:
+                        if not interrupt_trigger[0]:
+                            return
                         if isinstance(err, HTTPError):
-                            status = err.status
-                            if 500 <= status < 600:
-                                self.to_screen(
-                                    f'[download] HTTP {status} (server error) on fragment {frag_index}, retrying with backoff...')
-                                retry.error = err
-                                continue
-                            elif 400 <= status < 500 and is_live_stream:
-                                if live_http_error_started is None:
-                                    live_http_error_started = time.time()
+                            if 400 <= err.status < 500 and is_live_stream:
+                                live_http_error_started = live_http_error_started or time.time()
                                 elapsed = time.time() - live_http_error_started
-                                
-                                # limit 90 sec stream down
-                                effective_window = min(live_reconnect_window, 90)
+                                effective_window = max(5, min(live_stream_resume, 300))
                                 if elapsed <= effective_window:
                                     self.to_screen(
-                                        f'[download] HTTP {status} on fragment {frag_index} during live stream. '
+                                        f'[{self.FD_NAME}] HTTP {err.status} on fragment {frag_index} during live stream. '
                                         f'Waiting for stream to resume ({int(elapsed)}s/{effective_window}s)...')
+                                    time.sleep(5) # min wait time
                                     retry.error = err
                                     continue
-                                
-                                # timeout - stream ended
-                                self.to_screen(
-                                    f'[download] HTTP {status} persisted for {elapsed:.0f}s (limit {effective_window}s). '
+                                self.write_debug(
+                                    f'[{self.FD_NAME}] HTTP {err.status} persisted for {elapsed:.0f}s (limit {effective_window}s). '
                                     f'Assuming live stream ended.')
+                                self.to_screen(f'[{self.FD_NAME}] Live stream ended.')
                                 interrupt_trigger[0] = False
                                 ctx['live_ended_gracefully'] = True
                                 return
@@ -507,8 +505,12 @@ class FragmentFD(FileDownloader):
                             raise
                 if not is_live_stream:
                     return
-                # livestream - restart RetryManager after sleep
-                time.sleep(10)
+                retry_cycles += 1
+                if retry_cycles >= 3:
+                    ctx['live_ended_gracefully'] = True
+                    interrupt_trigger[0] = False
+                    self.to_screen(f'[{self.FD_NAME}] Giving up live after 3 full retry cycles on fragment {frag_index}.')
+                    return
 
         def append_fragment(frag_content, frag_index, ctx):
             if frag_content is not None:
@@ -548,20 +550,15 @@ class FragmentFD(FileDownloader):
                     raise
         else:
             for fragment in fragments:
-                if ctx.get('live_ended_gracefully'):
-                    interrupt_trigger[0] = False
+                if not interrupt_trigger[0] or ctx.get('live_ended_gracefully'):
+                    self.write_debug(f'[{self.FD_NAME}] Aborting loop (interrupt_trigger).')
                     break
                 if ctx.get('live') and fragment.get('fragment_count'):
                     ctx['fragment_count'] = fragment['fragment_count']
-
-                if not interrupt_trigger[0]:
-                    break
                 try:
                     download_fragment(fragment, ctx)
-                    if ctx.get('live_ended_gracefully'):
-                         self.to_screen('[download] Live stream ended.')
-                         interrupt_trigger[0] = False
-                         break
+                    if not interrupt_trigger[0]:
+                        break
                     result = append_fragment(
                         decrypt_fragment(fragment, self._read_fragment(ctx)), fragment['frag_index'], ctx)
                 except KeyboardInterrupt:
@@ -570,11 +567,6 @@ class FragmentFD(FileDownloader):
                     raise
                 if not result:
                     return False
-
-        if ctx.get('live_ended_gracefully'):
-            # exit on multi-worker
-            self.to_screen('[download] Live stream ended (HTTP 4xx on fragment)')
-            interrupt_trigger[0] = False
 
         if finish_func is not None:
             ctx['dest_stream'].write(finish_func())
