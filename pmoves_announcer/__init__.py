@@ -147,7 +147,7 @@ class ServiceAnnouncer:
         self.tier = tier
 
         self.health_check = health_check or f"{url.rstrip('/')}/healthz"
-        self.nats_url = nats_url or os.getenv('NATS_URL', 'nats://nats:4222')
+        self.nats_url = nats_url or os.getenv('NATS_URL', 'nats://nats:pmoves@nats:4222')
         self.metadata = metadata or {}
 
     def create_announcement(self) -> ServiceAnnouncement:

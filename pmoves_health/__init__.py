@@ -266,7 +266,7 @@ if __name__ == '__main__':
         checker = HealthChecker('example-service')
 
         # Add checks
-        checker.nats('nats://nats:4222')
+        checker.nats('nats://nats:pmoves@nats:4222')
         checker.http('http://supabase:8000', name='supabase')
 
         # Add custom check
