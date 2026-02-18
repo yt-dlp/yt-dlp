@@ -1987,7 +1987,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         begin_index = 0
         known_idx = begin_index
-        
+
         no_fragment_score, last_segment_url, fragments, fragment_base_url = 0, None, None, None
         catching_up_shown, last_seq, total_fragments_downloaded = False, 0, 0
         interrupt_trigger = ctx.get('interrupt_trigger', [True])
@@ -2011,7 +2011,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     return False, last_seq
                 elif old_mpd_url == mpd_url:
                     return True, last_seq
-            
+
             if manifestless_orig_fmt:
                 fmt_info = manifestless_orig_fmt
             else:
@@ -2033,32 +2033,26 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             fragment_base_url = fmt_info.get('fragment_base_url')
             
             try:
-                #_last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
                 last_path = fragments[-1]['path']
-                m = re.search(r'(?:/|^)sq/(\d+)', last_path) # TEST
-                if m:
+                if m := re.search(r'(?:/|^)sq/(\d+)', last_path):
                     _last_seq = int(m.group(1))
                 else:
                     no_fragment_score += 2
                     return False, last_seq
-
             except (AttributeError, IndexError, ValueError):
                  no_fragment_score += 2
                  return False, last_seq
-
             return True, _last_seq
 
         self.write_debug(f'[{video_id}] Generating fragments for format {format_id}')
         while is_live:
-            if not interrupt_trigger[0] or ctx.get('live_ended_gracefully'):
-                self.write_debug(f'[{video_id}] Generator stopped by interrupt signal. TEST')
-                return
-
             if MAX_FRAGMENTS_LIMIT and total_fragments_downloaded >= MAX_FRAGMENTS_LIMIT:
-                self.write_debug(f'[{video_id}] Fragment download limit reached ({MAX_FRAGMENTS_LIMIT}).')
+                self.to_screen(f'[{video_id}] Fragment download limit reached ({MAX_FRAGMENTS_LIMIT}).')
                 interrupt_trigger[0] = False
                 return
-            
+            if not interrupt_trigger[0] or ctx.get('live_ended_gracefully'):
+                self.write_debug(f'[{video_id}] Live stream ended. TEST')
+                return
             if no_fragment_score > 30:
                 self.write_debug(f'[{video_id}] Aborting live stream: Stream ended?')
                 interrupt_trigger[0] = False
@@ -2073,7 +2067,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         last_segment_url, None, note=False, errnote=False, fatal=False)
                 except ExtractorError:
                     urlh = None
-                
                 current_seq = try_get(urlh, lambda x: int_or_none(x.headers['X-Head-Seqnum']))
                 if current_seq is None:
                     no_fragment_score += 2
@@ -2088,9 +2081,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
                     continue
                 last_seq = current_seq
-                #no_fragment_score = 0 #wait for actual yield
 
-            #TEST if known_idx > last_seq:
             if known_idx >= last_seq:
                 last_segment_url = None
                 no_fragment_score += 1
@@ -2100,41 +2091,39 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             frag_duration = float_or_none(fragments[-1].get('duration') if fragments else None) or 5.0
 
             if known_idx == 0 and begin_index >= 0:
-                 if CATCHUP_FRAGS:
-                      calculated_start = last_seq - CATCHUP_FRAGS
-                      known_idx = max(0, calculated_start)
-                 elif lack_early_segments:
-                      if fragments:
-                           max_history = int(MAX_DURATION // frag_duration)
-                           calculated_start = last_seq - max_history
-                           known_idx = max(0, calculated_start)
-                 else:
-                      known_idx = max(0, last_seq - 2)
+                if CATCHUP_FRAGS:
+                    calculated_start = last_seq - CATCHUP_FRAGS
+                    known_idx = max(0, calculated_start)
+                elif lack_early_segments:
+                    if fragments:
+                        max_history = int(MAX_DURATION // frag_duration)
+                        calculated_start = last_seq - max_history
+                        known_idx = max(0, calculated_start)
+                else:
+                    known_idx = max(0, last_seq - 2)
 
             try:
                 target_seq = last_seq + 1
                 fragments_yielded = False
                 range_start = known_idx + 1 if known_idx > 0 else max(0, known_idx)
-                
+
                 for idx in range(range_start, target_seq):
                     if not interrupt_trigger[0]:
-                       raise ExtractorError('Generator stopped by interrupt signal.', expected=True)
-
+                        break
                     if MAX_FRAGMENTS_LIMIT and total_fragments_downloaded >= MAX_FRAGMENTS_LIMIT:
                         interrupt_trigger[0] = False
-                        #raise ExtractorError('Generator stopped by interrupt signal.', expected=True)
                         break
 
                     lag = last_seq - idx
                     if not catching_up_shown and lag > 5:
                          est_time_sec = int(lag * frag_duration)
                          est_time = str(dt.timedelta(seconds=est_time_sec))
-                         self.to_screen(f'[{video_id}] Catching up to live: Seq: {idx}/{last_seq} Lag: ~{lag} (~{est_time})')
+                         self.to_screen(f'[{video_id}] Catching up to live: Seq: {idx}/{last_seq} Lag: ~{lag} (~{est_time})', only_once=True)
                          catching_up_shown = True
 
                     path = f'sq/{idx}'
                     segment_url = urljoin(fragment_base_url, path)
-                    
+
                     yield {
                         'url': segment_url,
                         'fragment_count': last_seq,
@@ -2144,7 +2133,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     last_segment_url = segment_url
                     fragments_yielded = True
                     total_fragments_downloaded += 1
-                
+
                 if fragments_yielded:
                     no_fragment_score = 0
                     known_idx = target_seq - 1
@@ -2162,6 +2151,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 break
 
             time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
+
+
 
     def _get_player_js_version(self):
         player_js_version = self._configuration_arg('player_js_version', [''])[0] or self._DEFAULT_PLAYER_JS_VERSION
