@@ -1,4 +1,4 @@
-import inspect
+import itertools
 import os
 
 from ..globals import LAZY_EXTRACTORS
@@ -17,12 +17,18 @@ else:
 if not _CLASS_LOOKUP:
     from . import _extractors
 
-    _CLASS_LOOKUP = {
-        name: value
-        for name, value in inspect.getmembers(_extractors)
-        if name.endswith('IE') and name != 'GenericIE'
-    }
-    _CLASS_LOOKUP['GenericIE'] = _extractors.GenericIE
+    members = tuple(
+        (name, getattr(_extractors, name))
+        for name in dir(_extractors)
+        if name.endswith('IE')
+    )
+    _CLASS_LOOKUP = dict(itertools.chain(
+        # Add Youtube first to improve matching performance
+        ((name, value) for name, value in members if '.youtube' in value.__module__),
+        # Add Generic last so that it is the fallback
+        ((name, value) for name, value in members if name != 'GenericIE'),
+        (('GenericIE', _extractors.GenericIE),),
+    ))
 
 # We want to append to the main lookup
 _current = _extractors_context.value
