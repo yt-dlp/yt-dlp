@@ -131,11 +131,16 @@ class TwitterBaseIE(InfoExtractor):
             video_id, headers=headers, query=query, expected_status=allowed_status,
             note=f'Downloading {"GraphQL" if graphql else "legacy API"} JSON')
 
-        if result.get('errors'):
-            errors = ', '.join(set(traverse_obj(result, ('errors', ..., 'message', {str}))))
-            if errors and 'not authorized' in errors:
-                self.raise_login_required(remove_end(errors, '.'))
-            raise ExtractorError(f'Error(s) while querying API: {errors or "Unknown error"}')
+        if errors := traverse_obj(result, ('errors', ..., {dict})):
+            error_msg = ', '.join(set(traverse_obj(errors, (..., 'message', {str}))))
+            # An error with the message 'Dependency: Unspecified' is a false positive
+            # See https://github.com/yt-dlp/yt-dlp/issues/15963
+            if len(errors) == 1 and 'dependency: unspecified' in error_msg.lower():
+                self.write_debug(f'Ignoring error message: "{error_msg}"')
+            elif 'not authorized' in error_msg.lower():
+                self.raise_login_required(remove_end(error_msg, '.'))
+            else:
+                raise ExtractorError(f'Error(s) while querying API: {error_msg or "Unknown error"}')
 
         return result
 
@@ -1078,7 +1083,7 @@ class TwitterIE(TwitterBaseIE):
             raise ExtractorError(f'Twitter API says: {cause or "Unknown error"}', expected=True)
         elif typename == 'TweetUnavailable':
             reason = result.get('reason')
-            if reason == 'NsfwLoggedOut':
+            if reason in ('NsfwLoggedOut', 'NsfwViewerHasNoStatedAge'):
                 self.raise_login_required('NSFW tweet requires authentication')
             elif reason == 'Protected':
                 self.raise_login_required('You are not authorized to view this protected tweet')
