@@ -139,11 +139,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     ]
     _RETURN_TYPE = 'video'  # XXX: How to handle multifeed?
 
-    _PLAYER_INFO_RE = (
-        r'/s/player/(?P<id>[a-zA-Z0-9_-]{8,})/(?:tv-)?player',
-        r'/(?P<id>[a-zA-Z0-9_-]{8,})/player(?:_ias\.vflset(?:/[a-zA-Z]{2,3}_[a-zA-Z]{2,3})?|-plasma-ias-(?:phone|tablet)-[a-z]{2}_[A-Z]{2}\.vflset)/base\.js$',
-        r'\b(?P<id>vfl[a-zA-Z0-9_-]+)\b.*?\.js$',
-    )
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
     _DEFAULT_CLIENTS = ('android_vr', 'web', 'web_safari')
     _DEFAULT_JSLESS_CLIENTS = ('android_vr',)
@@ -1886,10 +1881,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'tce': 'player_ias_tce.vflset/en_US/base.js',
         'es5': 'player_es5.vflset/en_US/base.js',
         'es6': 'player_es6.vflset/en_US/base.js',
+        'es6_tcc': 'player_es6_tcc.vflset/en_US/base.js',
+        'es6_tce': 'player_es6_tce.vflset/en_US/base.js',
         'tv': 'tv-player-ias.vflset/tv-player-ias.js',
         'tv_es6': 'tv-player-es6.vflset/tv-player-es6.js',
         'phone': 'player-plasma-ias-phone-en_US.vflset/base.js',
-        'tablet': 'player-plasma-ias-tablet-en_US.vflset/base.js',  # Dead since 19712d96 (2025.11.06)
+        'house': 'house_brand_player.vflset/en_US/base.js',  # Used by Google Drive
     }
     _INVERSE_PLAYER_JS_VARIANT_MAP = {v: k for k, v in _PLAYER_JS_VARIANT_MAP.items()}
 
@@ -2179,13 +2176,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     @classmethod
     def _extract_player_info(cls, player_url):
-        for player_re in cls._PLAYER_INFO_RE:
-            id_m = re.search(player_re, player_url)
-            if id_m:
-                break
-        else:
-            raise ExtractorError(f'Cannot identify player {player_url!r}')
-        return id_m.group('id')
+        if m := re.search(r'/s/player/(?P<id>[a-fA-F0-9]{8,})/', player_url):
+            return m.group('id')
+        raise ExtractorError(f'Cannot identify player {player_url!r}')
 
     def _load_player(self, video_id, player_url, fatal=True):
         player_js_key = self._player_js_cache_key(player_url)
