@@ -1967,6 +1967,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
             <script nonce="abc123">self.__next_f.push([1,"e:[false,[\"$\",\"div\",null,{\"children\":[\"$\",\"$L18\",null,{\"foo\":\"bar\"}]}],false]\n    "])</script>
             <script>self.__next_f.push([1,"2a:[[\"$\",\"div\",null,{\"className\":\"flex flex-col\",\"children\":[]}],[\"$\",\"$L16\",null,{\"meta\":{\"dateCreated\":1730489700,\"uuid\":\"40cac41d-8d29-4ef5-aa11-75047b9f0907\"}}]]\n"])</script>
             <script>self.__next_f.push([1,"df:[\"$undefined\",[\"$\",\"div\",null,{\"children\":[\"$\",\"$L17\",null,{}],\"do_not_include_this_field\":\"fail\"}],[\"$\",\"div\",null,{\"children\":[[\"$\",\"$L19\",null,{\"duplicated_field_name\":{\"x\":1}}],[\"$\",\"$L20\",null,{\"duplicated_field_name\":{\"y\":2}}]]}],\"$undefined\"]\n"])</script>
+            <script>self.__next_f.push([1,"2f:I[1,[],\"X\"]a:[[\"$\",\"$L2e\",null,{\"x\":1}]]\n"])</script>
             <script>self.__next_f.push([3,"MzM6WyIkIiwiJEwzMiIsbnVsbCx7ImRlY29kZWQiOiJzdWNjZXNzIn1d"])</script>
             '''
         EXPECTED = {
@@ -1984,6 +1985,9 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
             },
             '20': {
                 'duplicated_field_name': {'y': 2},
+            },
+            '2e': {
+                'x': 1,
             },
         }
         self.assertEqual(self.ie._search_nextjs_v13_data(HTML, None), EXPECTED)
