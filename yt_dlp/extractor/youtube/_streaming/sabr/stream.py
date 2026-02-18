@@ -75,7 +75,7 @@ class StreamStallTracker:
 class Heartbeat:
     is_live: bool
     video_id: str
-    broadcast_id: str
+    broadcast_id: str | None
 
 
 class SabrStream:

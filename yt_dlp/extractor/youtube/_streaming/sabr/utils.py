@@ -10,9 +10,9 @@ from yt_dlp.utils import int_or_none, orderedSet, parse_qs, str_or_none, travers
 
 
 def get_cr_chain(start_consumed_range: ConsumedRange | None, consumed_ranges: list[ConsumedRange]) -> list[ConsumedRange]:
-    # TODO: unit test
     # Return the continuous consumed range chain starting from the given consumed range
-    # Note: It is assumed a segment is only present in one consumed range - it should not be allowed in multiple (by process media header)
+    # Note: It is assumed a segment is only present in one consumed range -
+    # it should not be allowed in multiple (by process media header)
     if not start_consumed_range:
         return []
     chain = [start_consumed_range]
