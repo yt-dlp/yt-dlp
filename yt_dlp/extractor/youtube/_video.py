@@ -4090,9 +4090,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 protocol = fmt.get('protocol')
                 # Currently, protocol isn't set for adaptive https formats, but this could change
                 is_adaptive = protocol in (None, 'http', 'https')
-                # Is it a post-live adaptive https format that yields an empty response to yt-dlp?
                 if live_status == 'post_live' and is_adaptive:
-                    # Set preference <= -1000 so that FormatSorter flags it as 'hidden'
+                    # Post-live adaptive formats cause HttpFD to raise "Did not get any data blocks"
+                    # These formats are *only* useful to external applications, so we can hide them
+                    # Set their preference <= -1000 so that FormatSorter flags them as 'hidden'
                     adjust_incomplete_format(fmt, note_suffix='(ended)', pref_adjustment=-5000)
                 # Is it live with --live-from-start? Or is it post-live and its duration is >2hrs?
                 elif needs_live_processing:
