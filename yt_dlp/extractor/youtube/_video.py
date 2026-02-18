@@ -4090,7 +4090,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         for fmt in formats:
             if needs_live_processing:
                 if not fmt.get('is_from_start'):
-                    # Post-live formats for >2hr streams without --live-from-start
+                    # Post-live m3u8 formats for >2hr streams
                     adjust_incomplete_format(fmt)
             elif live_status == 'is_live':
                 protocol = fmt.get('protocol')
