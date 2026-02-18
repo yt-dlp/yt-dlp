@@ -133,17 +133,14 @@ class TwitterBaseIE(InfoExtractor):
 
         if errors := traverse_obj(result, ('errors', ..., {dict})):
             error_msg = ', '.join(set(traverse_obj(errors, (..., 'message', {str}))))
-
             # An error with the message 'Dependency: Unspecified' is a false positive
             # See https://github.com/yt-dlp/yt-dlp/issues/15963
-            if len(errors) == 1 and error_msg == 'Dependency: Unspecified':
+            if len(errors) == 1 and 'dependency: unspecified' in error_msg.lower():
                 self.write_debug(f'Ignoring error message: "{error_msg}"')
-                return result
-
-            if error_msg and 'not authorized' in error_msg:
+            elif 'not authorized' in error_msg.lower():
                 self.raise_login_required(remove_end(error_msg, '.'))
-
-            raise ExtractorError(f'Error(s) while querying API: {error_msg or "Unknown error"}')
+            else:
+                raise ExtractorError(f'Error(s) while querying API: {error_msg or "Unknown error"}')
 
         return result
 
