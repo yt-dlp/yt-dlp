@@ -145,13 +145,14 @@ class SabrFD(FileDownloader):
 
             lsr = traverse_obj(playability_status, ('liveStreamability', 'liveStreamabilityRenderer'))
 
+            # note: premieres do not have a broadcastId
             broadcast_id = traverse_obj(lsr, ('broadcastId', {str}))
             video_id = traverse_obj(lsr, ('videoId', {str}))
             status = traverse_obj(playability_status, 'status')
             reason = traverse_obj(playability_status, 'reason')
 
             logger.debug(
-                f'Heartbeat status: {status}, reason: {reason or "n/a"}, broadcast_id: {broadcast_id}, video_id: {video_id}')
+                f'Heartbeat status: {status}, reason: {reason or "n/a"}, broadcast_id: {broadcast_id or "n/a"}, video_id: {video_id}')
 
             if status == 'OK':
                 logger.debug('Live stream is online')
@@ -159,24 +160,30 @@ class SabrFD(FileDownloader):
             elif status == 'LIVE_STREAM_OFFLINE':
                 display_endscreen = traverse_obj(lsr, ('displayEndscreen', {bool}))
                 offline_slate = traverse_obj(lsr, 'offlineSlate')
+
+                # Streamer disconnected - may come back online shortly
                 if offline_slate and not display_endscreen:
-                    # Seen when stream went offline briefly and came back on same video id.
-                    # TODO: any case where the stream is actually finished and stays in this state?
                     logger.debug(
-                        'Live stream is offline but not displaying endscreen. '
-                        'Streamer may have disconnected. Assuming stream is still live.')
+                        'Streamer disconnected - live stream is offline. '
+                        'Considering as live until terminal status is reached. ')
                     return Heartbeat(is_live=True, broadcast_id=broadcast_id, video_id=video_id)
 
-                elif not lsr or display_endscreen:
+                elif lsr and display_endscreen:
                     # Otherwise, consider live stream offline
-                    # TODO: how to handle if we cannot extract the liveStreamabilityRenderer renderer?
-                    #  This could potentially happen if cookies were to expire and the response is an error?
-                    #  Or if response format changes. Needs testing
                     logger.debug('Live stream is offline')
                     return Heartbeat(is_live=False, broadcast_id=broadcast_id, video_id=video_id)
+                elif not lsr and not broadcast_id:
+                    # Might be a member's only stream - cannot determine if complete or not.
+                    # This could potentially happen if cookies have rotated and auth is not working.
+                    logger.warning(
+                        'Cannot determine the status of the live stream. '
+                        'If this stream requires an account to access, then the provided account cookies are probably no longer valid')
+                    return None
 
-            # TODO: handle stream going private (UNPLAYABLE), or cookies expiring (LOGIN_REQUIRED/UNPLAYABLE)?
-            #  Private stream should mark stream as offline
+            elif status == 'UNPLAYABLE':
+                # Stream has gone private. It may have finished and gone private, or temporarily gone private.
+                # Cannot determine the status. Note: None will cause it to be treated as ended.
+                return None
 
             # Cannot determine live status from heartbeat
             # TODO: we should consider returning a heartbeat anyways with the broadcast id if we can extract it.
