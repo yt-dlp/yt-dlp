@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import re
+
 import pytest
-from yt_dlp.extractor.youtube._streaming.sabr.utils import ticks_to_ms, broadcast_id_from_url
+
+from yt_dlp.extractor.youtube._streaming.sabr.exceptions import InvalidSabrUrl
+from yt_dlp.extractor.youtube._streaming.sabr.utils import ticks_to_ms, broadcast_id_from_url, validate_sabr_url
 from yt_dlp.extractor.youtube._streaming.sabr.utils import (
     get_cr_chain,
     find_consumed_range,
@@ -78,3 +82,37 @@ def test_broadcast_id_from_url():
     assert broadcast_id_from_url('https://example.com/path?other=param&id=example.3&other2=param2') == '3'
     assert broadcast_id_from_url('https://example.com/path?other=param&id=example.3.2&other2=param2') == '2'
     assert broadcast_id_from_url('https://example.com/path?other=param&other2=param2') is None
+
+
+class TestValidateSabrUrl:
+
+    @pytest.mark.parametrize('url, error', [
+        (None, 'not a valid https url'),
+        ('', 'not a valid https url'),
+        ('bad-url%', 'not a valid https url'),
+        ('http://test.googlevideo.com?sabr=1', 'not a valid https url'),
+        ('file:///etc/passwd', 'not a valid https url'),
+
+        ('https://test.example.com?sabr=1', 'not a valid googlevideo url'),
+        ('https://test.googlevideo.com.example.com?sabr=1', 'not a valid googlevideo url'),
+        ('https://test.googlevideo.co?sabr=1', 'not a valid googlevideo url'),
+        ('https://googlevideo.com?sabr=1', 'not a valid googlevideo url'),
+
+        ('https://test.googlevideo.com', 'missing sabr=1 parameter'),
+        ('https://test.googlevideo.com?sabr=', 'missing sabr=1 parameter'),
+        ('https://test.googlevideo.com?sabr=0', 'missing sabr=1 parameter'),
+        ('https://test.googlevideo.com?sabr=0&sabr=1', 'missing sabr=1 parameter'),
+    ])
+    def test_invalid_sabr_url(self, url, error):
+        with pytest.raises(InvalidSabrUrl, match=rf'Invalid SABR URL: {error} \(url={re.escape(str(url))}\)'):
+            validate_sabr_url(url)
+
+    @pytest.mark.parametrize('url', [
+        'https://test.googlevideo.com?sabr=1',
+        'https://sub.test.googlevideo.com?sabr=1',
+        'https://ss1--1234xyz-bbbb.googlevideo.com?sabr=1',
+        'https://test.googlevideo.com?other=xyz&sabr=1&test=yes',
+        'https://test.googlevideo.com?other=xyz&sabr=1&test=yes&sabr=0',
+    ])
+    def test_valid_sabr_url(self, url):
+        assert validate_sabr_url(url) == url

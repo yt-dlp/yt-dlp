@@ -4,8 +4,9 @@ import contextlib
 import math
 import urllib.parse
 
+from yt_dlp.extractor.youtube._streaming.sabr.exceptions import InvalidSabrUrl
 from yt_dlp.extractor.youtube._streaming.sabr.models import ConsumedRange
-from yt_dlp.utils import int_or_none, orderedSet, parse_qs, str_or_none, update_url_query
+from yt_dlp.utils import int_or_none, orderedSet, parse_qs, str_or_none, traverse_obj, update_url_query
 
 
 def get_cr_chain(start_consumed_range: ConsumedRange | None, consumed_ranges: list[ConsumedRange]) -> list[ConsumedRange]:
@@ -107,3 +108,20 @@ def broadcast_id_from_url(url: str) -> str | None:
     if id_val is None:
         return None
     return str_or_none(id_val.split('.')[-1])
+
+
+def validate_sabr_url(url):
+    parsed_url = urllib.parse.urlparse(url)
+
+    if not parsed_url.scheme or parsed_url.scheme != 'https':
+        raise InvalidSabrUrl('not a valid https url', url)
+
+    if not parsed_url.netloc.endswith('.googlevideo.com') or parsed_url.netloc == 'googlevideo.com':
+        raise InvalidSabrUrl('not a valid googlevideo url', url)
+
+    # Check if the query params include sabr=1
+    sabr_query = urllib.parse.parse_qs(parsed_url.query).get('sabr')
+    if traverse_obj(sabr_query, (0, {str})) != '1':
+        raise InvalidSabrUrl('missing sabr=1 parameter', url)
+
+    return url

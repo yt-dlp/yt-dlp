@@ -35,6 +35,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.exceptions import (
     UnexpectedConsumedMediaSegment,
     StreamStallError,
     BroadcastIdChanged,
+    InvalidSabrUrl,
 )
 from yt_dlp.extractor.youtube._streaming.ump import UMPPartId, UMPPart
 from yt_dlp.networking.exceptions import TransportError, HTTPError, RequestError
@@ -63,11 +64,12 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
 from yt_dlp.utils import parse_qs
 
 LIVE_BROADCAST_ID = '1'
-LIVE_URL = f'https://example.com/sabr_live?id={LIVE_BROADCAST_ID}&source=yt_live_broadcast'
+VALID_LIVE_URL = f'https://live.googlevideo.com/sabr_live?id={LIVE_BROADCAST_ID}&source=yt_live_broadcast&sabr=1'
+VALID_SABR_URL = 'https://test.googlevideo.com/sabr?sabr=1'
 
 
 def setup_sabr_stream_av(
-    url='https://example.com/sabr',
+    url=VALID_SABR_URL,
     sabr_response_processor=None,
     client_info=None,
     logger=None,
@@ -634,27 +636,27 @@ class TestStream:
         )
         audio_selector, video_selector = selectors
 
-        assert sabr_stream.url == 'https://example.com/sabr'
+        assert sabr_stream.url == VALID_SABR_URL
         parts = list(sabr_stream.iter_parts())
         assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
         assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
 
         assert len(rh.request_history) == 7
-        assert rh.request_history[0].request.url == 'https://example.com/sabr?rn=1'
-        assert rh.request_history[2].request.url == 'https://redirect.example.com/sabr?rn=3'
-        assert rh.request_history[3].request.url == 'https://redirect.example.com/final?rn=4'
-        assert rh.request_history[4].request.url == 'https://redirect.example.com/final?rn=5'
-        assert sabr_stream.url == 'https://redirect.example.com/final'
+        assert rh.request_history[0].request.url == VALID_SABR_URL + '&rn=1'
+        assert rh.request_history[2].request.url == 'https://redirect.googlevideo.com/sabr?sabr=1&rn=3'
+        assert rh.request_history[3].request.url == 'https://redirect.googlevideo.com/final?sabr=1&rn=4'
+        assert rh.request_history[4].request.url == 'https://redirect.googlevideo.com/final?sabr=1&rn=5'
+        assert sabr_stream.url == 'https://redirect.googlevideo.com/final?sabr=1'
 
     def test_reject_http_url(self, logger, client_info):
         # Do not allow HTTP URLs for server_abr_streaming_url
         rh = SabrRequestHandler(sabr_response_processor=BasicAudioVideoProfile())
         audio_selector = AudioSelector(display_name='audio')
         video_selector = VideoSelector(display_name='video')
-        with pytest.raises(SabrStreamError, match='Insecure URL scheme http:// is not allowed for SABR streaming URL'):
+        with pytest.raises(InvalidSabrUrl, match='Invalid SABR URL: not a valid https url'):
             SabrStream(
                 urlopen=rh.send,
-                server_abr_streaming_url='http://example.com/sabr',
+                server_abr_streaming_url='http://test.googlevideo.com/sabr?sabr=1',
                 logger=logger,
                 video_playback_ustreamer_config=VIDEO_PLAYBACK_USTREAMER_CONFIG,
                 client_info=client_info,
@@ -670,7 +672,11 @@ class TestStream:
             logger=logger,
         )
         audio_selector, video_selector = selectors
-        assert sabr_stream.url == 'https://example.com/sabr'
+        assert sabr_stream.url == VALID_SABR_URL
+
+        new_sabr_url = 'https://new.googlevideo.com/sabr?sabr=1'
+
+        assert new_sabr_url != VALID_SABR_URL
 
         # Retrieve 4 requests (based on request_history)
         parts = []
@@ -678,21 +684,21 @@ class TestStream:
         while len(rh.request_history) < 4:
             parts.append(next(parts_iter))
         # Update the URL
-        sabr_stream.url = 'https://new.example.com/sabr'
-        assert sabr_stream.url == 'https://new.example.com/sabr'
+        sabr_stream.url = new_sabr_url
+        assert sabr_stream.url == new_sabr_url
         # Continue retrieving parts
         parts.extend(list(parts_iter))
         assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
         assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
 
         assert len(rh.request_history) == 6
-        assert rh.request_history[0].request.url == 'https://example.com/sabr?rn=1'
-        assert rh.request_history[1].request.url == 'https://example.com/sabr?rn=2'
-        assert rh.request_history[2].request.url == 'https://example.com/sabr?rn=3'
-        assert rh.request_history[3].request.url == 'https://example.com/sabr?rn=4'
-        assert rh.request_history[4].request.url == 'https://new.example.com/sabr?rn=5'
-        assert rh.request_history[5].request.url == 'https://new.example.com/sabr?rn=6'
-        assert sabr_stream.url == 'https://new.example.com/sabr'
+        assert rh.request_history[0].request.url == VALID_SABR_URL + '&rn=1'
+        assert rh.request_history[1].request.url == VALID_SABR_URL + '&rn=2'
+        assert rh.request_history[2].request.url == VALID_SABR_URL + '&rn=3'
+        assert rh.request_history[3].request.url == VALID_SABR_URL + '&rn=4'
+        assert rh.request_history[4].request.url == new_sabr_url + '&rn=5'
+        assert rh.request_history[5].request.url == new_sabr_url + '&rn=6'
+        assert sabr_stream.url == new_sabr_url
 
     def test_close_prevents_iteration(self, logger, client_info):
         # If the stream is closed before iteration, it should be marked as consumed
@@ -758,7 +764,7 @@ class TestStream:
 
     @pytest.mark.parametrize(
         'bad_url',
-        [None, '', 'bad-url%', 'http://insecure.example.com', 'file:///etc/passwd', 'https://example.org/sabr'],
+        [None, '', 'bad-url%', 'http://insecure.googlevideo.com?sabr=1', 'file:///etc/passwd', 'https://example.org/sabr'],
         ids=['none', 'empty', 'malformed', 'insecure', 'file scheme', 'different domain'])
     def test_update_url_invalid(self, logger, client_info, bad_url):
         # Should reject invalid URLs relative to the current URL when updating sabr_stream.url
@@ -767,54 +773,62 @@ class TestStream:
             client_info=client_info,
             logger=logger,
         )
-        assert sabr_stream.url == 'https://example.com/sabr'
+        assert sabr_stream.url == VALID_SABR_URL
 
-        with pytest.raises(SabrStreamError, match='Invalid SABR streaming URL'):
+        with pytest.raises(InvalidSabrUrl, match=r'Invalid SABR URL:'):
             sabr_stream.url = bad_url
 
-        assert sabr_stream.url == 'https://example.com/sabr'
+        assert sabr_stream.url == VALID_SABR_URL
 
     @pytest.mark.parametrize(
         'bad_url',
-        [None, '', 'bad-url%', 'http://insecure.example.com', 'file:///etc/passwd', 'https://example.org/sabr'],
+        [None, '', 'bad-url%', 'http://insecure.googlevideo.com?sabr=1', 'file:///etc/passwd', 'https://example.org/sabr'],
         ids=['none', 'empty', 'malformed', 'insecure', 'file scheme', 'different domain'])
     def test_process_redirect_invalid_url(self, logger, client_info, bad_url):
-        # Should ignore an invalid redirect URl and continue with the current URL
-        sabr_stream, rh, selectors = setup_sabr_stream_av(
+        # Should validate redirect urls
+        sabr_stream, _, _ = setup_sabr_stream_av(
             sabr_response_processor=SabrRedirectAVProfile({'redirects': {2: {'url': bad_url, 'replace': True}}}),
             client_info=client_info,
             logger=logger,
         )
-        audio_selector, video_selector = selectors
-        parts = list(sabr_stream.iter_parts())
-        assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
-        assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
-        assert len(rh.request_history) == 7
-        assert sabr_stream.url == 'https://example.com/sabr'
-        logger.warning.assert_any_call(f'Server requested to redirect to an invalid URL: {bad_url}')
+        with pytest.raises(InvalidSabrUrl, match=r'Invalid SABR URL:'):
+            list(sabr_stream.iter_parts())
+
+        assert sabr_stream.url == VALID_SABR_URL
 
     def test_set_live_from_url_source(self, logger, client_info):
         # Should set is_live to True based on source URL parameter
+        valid_live_url_with_source = 'https://live.googlevideo.com/sabr?source=yt_live_broadcast&sabr=1'
         sabr_stream, _, _ = setup_sabr_stream_av(
             client_info=client_info,
             logger=logger,
-            url='https://example.com/sabr?source=yt_live_broadcast',
+            url=valid_live_url_with_source,
         )
-        assert sabr_stream.url == 'https://example.com/sabr?source=yt_live_broadcast'
+        assert sabr_stream.url == valid_live_url_with_source
         assert sabr_stream.processor.is_live is True
+
+    def test_not_set_live_from_url_no_source(self, logger, client_info):
+        valid_live_url_without_source = 'https://live.googlevideo.com/sabr?source=another_source&sabr=1'
+        sabr_stream, _, _ = setup_sabr_stream_av(
+            client_info=client_info,
+            logger=logger,
+            url=valid_live_url_without_source,
+        )
+        assert sabr_stream.url == valid_live_url_without_source
+        assert sabr_stream.processor.is_live is False
 
     def test_nonlive_ignore_broadcast_id_update(self, logger, client_info):
         # Should ignore broadcast_id updates in URL when non-live
         sabr_stream, _, _ = setup_sabr_stream_av(
             client_info=client_info,
             logger=logger,
-            url='https://example.com/sabr?id=1',
+            url=VALID_SABR_URL + '&id=1',
         )
 
         assert sabr_stream.processor.is_live is False
-        sabr_stream.url = 'https://example.com/sabr?id=2'
+        sabr_stream.url = VALID_SABR_URL + '&id=2'
         assert sabr_stream.processor.is_live is False
-        assert sabr_stream.url == 'https://example.com/sabr?id=2'
+        assert sabr_stream.url == VALID_SABR_URL + '&id=2'
 
     @pytest.mark.parametrize('post_live', [True, False], ids=['post_live=True', 'post_live=False'])
     def test_live_error_on_broadcast_id_update(self, logger, client_info, post_live):
@@ -822,13 +836,13 @@ class TestStream:
         sabr_stream, _, _ = setup_sabr_stream_av(
             client_info=client_info,
             logger=logger,
-            url='https://example.com/sabr?source=yt_live_broadcast&id=xyz.1',
+            url='https://live.googlevideo.com/sabr?sabr=1&source=yt_live_broadcast&id=xyz.1',
             post_live=post_live,
         )
 
         assert sabr_stream.processor.is_live is True
         with pytest.raises(BroadcastIdChanged, match=r'Broadcast ID changed from 1 to 2\. The download will need to be restarted\.'):
-            sabr_stream.url = 'https://example.com/sabr?source=yt_live_broadcast&id=xyz.2'
+            sabr_stream.url = 'https://live.googlevideo.com/sabr?sabr=1&source=yt_live_broadcast&id=xyz.2'
 
     def test_reload_player_response(self, logger, client_info):
         # Should yield a RefreshPlayerResponseSabrPart when instructed to reload the player response
@@ -915,7 +929,7 @@ class TestStream:
             if request_number == 2:
                 # On second request, return a redirect
                 payload = protobug.dumps(SabrRedirect(
-                    redirect_url='https://redirect.example.com/sabr'))
+                    redirect_url='https://redirect.googlevideo.com/sabr?sabr=1'))
                 return [
                     UMPPart(
                         part_id=UMPPartId.SABR_REDIRECT,
@@ -1062,7 +1076,7 @@ class TestStream:
             sabr_stream, rh, _ = setup_sabr_stream_av(
                 client_info=client_info,
                 logger=logger,
-                url=f'https://example.com/sabr?expire={int(expires_at)}',
+                url=f'https://expire.googlevideo.com/sabr?sabr=1&expire={int(expires_at)}',
                 # By default, expiry threshold is 60 seconds
             )
             # Retrieve parts until we get a RefreshPlayerResponseSabrPart
@@ -1083,7 +1097,7 @@ class TestStream:
             sabr_stream, rh, _ = setup_sabr_stream_av(
                 client_info=client_info,
                 logger=logger,
-                url=f'https://example.com/sabr?expire={int(expires_at)}',
+                url=f'https://expire.googlevideo.com/sabr?sabr=1&expire={int(expires_at)}',
                 expiry_threshold_sec=120,  # Set threshold to 2 minutes
             )
 
@@ -1105,7 +1119,7 @@ class TestStream:
             sabr_stream, _, _ = setup_sabr_stream_av(
                 client_info=client_info,
                 logger=logger,
-                url='https://example.com/sabr',
+                url='https://noexpire.googlevideo.com?sabr=1',
             )
             parts = list(sabr_stream.iter_parts())
             assert all(not isinstance(part, RefreshPlayerResponseSabrPart) for part in parts)
@@ -1117,7 +1131,7 @@ class TestStream:
             sabr_stream, _, _ = setup_sabr_stream_av(
                 client_info=client_info,
                 logger=logger,
-                url=f'https://example.com/sabr?expire={int(expires_at)}',
+                url=f'https://expire.googlevideo.com/sabr?expire={int(expires_at)}&sabr=1',
                 # By default, expiry threshold is 60 seconds
             )
             parts = list(sabr_stream.iter_parts())
@@ -1363,7 +1377,7 @@ class TestStream:
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(7))}),
                 client_info=client_info,
                 logger=logger,
-                url=f'https://example.com/sabr?expire={int(expires_at)}',
+                url=f'https://expire.googlevideo.com/sabr?sabr=1&expire={int(expires_at)}',
                 http_retries=5,
                 # By default, expiry threshold is 60 seconds
             )
@@ -1586,7 +1600,7 @@ class TestStream:
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(2, 10))}),
                 client_info=client_info,
                 logger=logger,
-                url='https://rr6---sn-6942067.googlevideo.com?mn=sn-6942067,sn-7654321&fvip=3&mvi=6',
+                url='https://rr6---sn-6942067.googlevideo.com?mn=sn-6942067,sn-7654321&fvip=3&mvi=6&sabr=1',
             )
             audio_selector, video_selector = selectors
 
@@ -1624,7 +1638,7 @@ class TestStream:
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(2, 15))}),
                 client_info=client_info,
                 logger=logger,
-                url='https://rr6---sn-6942067.googlevideo.com?mn=sn-6942067,sn-7654321&fvip=3&mvi=6',
+                url='https://rr6---sn-6942067.googlevideo.com?mn=sn-6942067,sn-7654321&fvip=3&mvi=6&sabr=1',
             )
 
             with pytest.raises(TransportError, match='simulated transport error'):
@@ -1660,7 +1674,7 @@ class TestStream:
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(2, 5))}),
                 client_info=client_info,
                 logger=logger,
-                url='https://rr6---sn-6942067.googlevideo.com?mn=sn-6942067,sn-7654321&fvip=3&mvi=6',
+                url='https://rr6---sn-6942067.googlevideo.com?mn=sn-6942067,sn-7654321&fvip=3&mvi=6&sabr=1',
                 host_fallback_threshold=3,
             )
 
@@ -1696,7 +1710,7 @@ class TestStream:
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(2, 15))}),
                 client_info=client_info,
                 logger=logger,
-                url='https://rr6---sn-6942067.googlevideo.com',
+                url='https://rr6---sn-6942067.googlevideo.com?sabr=1',
             )
 
             with pytest.raises(TransportError, match='simulated transport error'):
@@ -2341,7 +2355,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     post_live=post_live,
                 )
@@ -2384,7 +2398,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     live_end_wait_sec=live_end_wait_sec,
                     max_empty_requests=max_empty_requests,
@@ -2428,7 +2442,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     post_live=post_live,
                 )
@@ -2488,7 +2502,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     post_live=post_live,
                     heartbeat_callback=heartbeat_callback,
@@ -2548,7 +2562,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     post_live=post_live,
                 )
@@ -2586,7 +2600,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     post_live=post_live,
                 )
@@ -2644,7 +2658,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     heartbeat_callback=heartbeat_callback,
                 )
@@ -2696,7 +2710,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     heartbeat_callback=heartbeat_callback,
                 )
@@ -2749,7 +2763,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     heartbeat_callback=heartbeat_callback,
                 )
@@ -2802,7 +2816,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     heartbeat_callback=heartbeat_callback,
                 )
@@ -2856,7 +2870,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     heartbeat_callback=heartbeat_callback,
                 )
@@ -2893,7 +2907,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     enable_audio=False,
                     max_empty_requests=max_empty_requests,
@@ -2951,7 +2965,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     enable_audio=False,
                     max_empty_requests=max_empty_requests,
@@ -3012,7 +3026,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     enable_audio=False,
                     post_live=post_live,
@@ -3072,7 +3086,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     post_live=post_live,
                 )
@@ -3144,7 +3158,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     heartbeat_callback=heartbeat_callback,
                 )
@@ -3201,7 +3215,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                 )
 
@@ -3232,7 +3246,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                 )
                 audio_selector, video_selector = selectors
@@ -3297,7 +3311,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     post_live=post_live,
                 )
@@ -3364,7 +3378,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     max_empty_requests=max_empty_requests,
                     heartbeat_callback=heartbeat_callback,
@@ -3436,7 +3450,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     max_empty_requests=max_empty_requests,
                     heartbeat_callback=heartbeat_callback,
@@ -3481,7 +3495,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     post_live=True,
                 )
@@ -3517,7 +3531,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     post_live=True,
                     heartbeat_callback=heartbeat_callback,
@@ -3558,7 +3572,7 @@ class TestStream:
                     sabr_response_processor=profile,
                     client_info=client_info,
                     logger=logger,
-                    url=LIVE_URL,
+                    url=VALID_LIVE_URL,
                     live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                     post_live=True,
                 )
@@ -3602,7 +3616,7 @@ class TestStream:
                 sabr_response_processor=profile,
                 client_info=client_info,
                 logger=logger,
-                url=LIVE_URL,
+                url=VALID_LIVE_URL,
                 live_segment_target_duration_sec=segment_target_duration_ms // 1000,
             )
             audio_selector, video_selector = selectors
@@ -3641,7 +3655,7 @@ class TestStream:
                 sabr_response_processor=profile,
                 client_info=client_info,
                 logger=logger,
-                url=LIVE_URL,
+                url=VALID_LIVE_URL,
                 live_segment_target_duration_sec=segment_target_duration_ms // 1000,
             )
             audio_selector, video_selector = selectors
@@ -3686,7 +3700,7 @@ class TestStream:
                 sabr_response_processor=profile,
                 client_info=client_info,
                 logger=logger,
-                url=LIVE_URL,
+                url=VALID_LIVE_URL,
                 live_segment_target_duration_sec=segment_target_duration_ms // 1000,
             )
             audio_selector, video_selector = selectors
@@ -3718,7 +3732,7 @@ class TestStream:
                 sabr_response_processor=profile,
                 client_info=client_info,
                 logger=logger,
-                url=LIVE_URL,
+                url=VALID_LIVE_URL,
                 live_segment_target_duration_sec=segment_target_duration_ms // 1000,
             )
             audio_selector, video_selector = selectors
@@ -3768,7 +3782,7 @@ class TestStream:
                 sabr_response_processor=profile,
                 client_info=client_info,
                 logger=logger,
-                url=LIVE_URL,
+                url=VALID_LIVE_URL,
                 live_segment_target_duration_sec=segment_target_duration_ms // 1000,
             )
             audio_selector, video_selector = selectors
@@ -3809,7 +3823,7 @@ class TestStream:
                 sabr_response_processor=profile,
                 client_info=client_info,
                 logger=logger,
-                url=LIVE_URL,
+                url=VALID_LIVE_URL,
                 live_segment_target_duration_sec=segment_target_duration_ms // 1000,
                 start_time_ms=start_time_ms,  # start 10s past live head
             )

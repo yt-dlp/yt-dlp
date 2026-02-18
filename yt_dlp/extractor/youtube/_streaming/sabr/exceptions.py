@@ -10,6 +10,12 @@ class SabrStreamError(YoutubeDLError):
     pass
 
 
+class InvalidSabrUrl(YoutubeDLError):
+    def __init__(self, reason: str, url: str):
+        self.url = url
+        super().__init__(f'Invalid SABR URL: {reason} (url={url})')
+
+
 class BroadcastIdChanged(YoutubeDLError):
     def __init__(self, old: str, new: str):
         super().__init__(f'Broadcast ID changed from {old} to {new}. The download will need to be restarted.')

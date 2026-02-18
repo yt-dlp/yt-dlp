@@ -360,9 +360,9 @@ class SabrRedirectAVProfile(BasicAudioVideoProfile):
 
     DEFAULT_REDIRECTS = {
         # 1. Redirect with data on 2nd request
-        2: {'url': 'https://redirect.example.com/sabr', 'replace': False},
+        2: {'url': 'https://redirect.googlevideo.com/sabr?sabr=1', 'replace': False},
         # 2. Redirect with no other data after that
-        3: {'url': 'https://redirect.example.com/final', 'replace': True},
+        3: {'url': 'https://redirect.googlevideo.com/final?sabr=1', 'replace': True},
     }
 
     def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str, request_number: int) -> list[UMPPart]:

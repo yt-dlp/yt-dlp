@@ -40,7 +40,13 @@ from .part import (
     RefreshPlayerResponseSabrPart,
 )
 from .processor import SabrProcessor, build_vpabr_request
-from .utils import broadcast_id_from_url, find_consumed_range_by_time, next_gvs_fallback_url, ticks_to_ms
+from .utils import (
+    broadcast_id_from_url,
+    find_consumed_range_by_time,
+    next_gvs_fallback_url,
+    ticks_to_ms,
+    validate_sabr_url,
+)
 from ..ump import UMPDecoder, UMPPart, UMPPartId, read_varint
 
 
@@ -205,7 +211,7 @@ class SabrStream:
 
     @url.setter
     def url(self, url):
-        self.logger.debug(f'New URL: {url}')
+        validate_sabr_url(url)
         if self.processor.is_live and hasattr(self, '_url'):
             self._process_broadcast_id(broadcast_id_from_url(url))
         self._url = url
@@ -442,13 +448,6 @@ class SabrStream:
     def _process_sabr_redirect(self, part: UMPPart):
         sabr_redirect = protobug.load(part.data, SabrRedirect)
         self._log_part(part, protobug_obj=sabr_redirect)
-        # TODO: validate the url is:
-        # - A valid url
-        # - On the same domain as the previous url
-        # - Is HTTPS scheme
-        if not sabr_redirect.redirect_url:
-            self.logger.warning(f'Server requested to redirect to an invalid URL: {sabr_redirect.redirect_url}')
-            return
         self.url = sabr_redirect.redirect_url
 
     def _process_format_initialization_metadata(self, part: UMPPart):
