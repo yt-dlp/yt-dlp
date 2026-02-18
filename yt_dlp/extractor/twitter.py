@@ -137,6 +137,7 @@ class TwitterBaseIE(InfoExtractor):
             # An error with the message 'Dependency: Unspecified' is a false positive
             # See https://github.com/yt-dlp/yt-dlp/issues/15963
             if len(errors) == 1 and error_msg == 'Dependency: Unspecified':
+                self.write_debug(f'Ignoring error message: "{error_msg}"')
                 return result
 
             if error_msg and 'not authorized' in error_msg:
