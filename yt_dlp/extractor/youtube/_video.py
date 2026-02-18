@@ -3459,8 +3459,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                 for fmt_stream in streaming_formats:
                     # Live adaptive https formats are not supported: skip unless extractor-arg given
-                    # Post-live adaptive https formats are empty/broken: always skip
-                    if fmt_stream.get('targetDurationSec') and (skip_bad_formats or live_status != 'is_live'):
+                    if fmt_stream.get('targetDurationSec') and skip_bad_formats:
                         continue
 
                     # FORMAT_STREAM_TYPE_OTF(otf=1) requires downloading the init fragment
@@ -4079,30 +4078,34 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not duration and live_end_time and live_start_time:
             duration = live_end_time - live_start_time
 
-        # Is it live with --live-from-start? Or is it post-live and its duration is >2hrs?
         needs_live_processing = self._needs_live_processing(live_status, duration)
 
         def adjust_incomplete_format(fmt, note_suffix='(Last 2 hours)', pref_adjustment=-10):
             fmt['preference'] = (fmt.get('preference') or -1) + pref_adjustment
             fmt['format_note'] = join_nonempty(fmt.get('format_note'), note_suffix, delim=' ')
 
-        # Adjust preference and format note for incomplete formats
-        for fmt in formats:
-            if needs_live_processing:
-                if not fmt.get('is_from_start'):
-                    # Post-live m3u8 formats for >2hr streams
-                    adjust_incomplete_format(fmt)
-            elif live_status == 'is_live':
+        # Adjust preference and format note for incomplete live/post-live formats
+        if live_status in ('is_live', 'post_live'):
+            for fmt in formats:
                 protocol = fmt.get('protocol')
-                if protocol == 'http_dash_segments':
-                    # Live DASH formats without --live-from-start
-                    adjust_incomplete_format(fmt)
-                # Currently, protocol is not set for https formats (`None`), but that could change
-                elif protocol in (None, 'http', 'https'):
-                    # Incomplete live adaptive https formats
-                    adjust_incomplete_format(fmt, note_suffix='(incomplete)', pref_adjustment=-20)
-            else:
-                break
+                # Currently, protocol isn't set for adaptive https formats, but this could change
+                is_adaptive = protocol in (None, 'http', 'https')
+                # Is it a post-live adaptive https format that yields an empty response to yt-dlp?
+                if live_status == 'post_live' and is_adaptive:
+                    # Set preference <= -1000 so that FormatSorter flags it as 'hidden'
+                    adjust_incomplete_format(fmt, note_suffix='(ended)', pref_adjustment=-5000)
+                # Is it live with --live-from-start? Or is it post-live and its duration is >2hrs?
+                elif needs_live_processing:
+                    if not fmt.get('is_from_start'):
+                        # Post-live m3u8 formats for >2hr streams
+                        adjust_incomplete_format(fmt)
+                elif live_status == 'is_live':
+                    if protocol == 'http_dash_segments':
+                        # Live DASH formats without --live-from-start
+                        adjust_incomplete_format(fmt)
+                    elif is_adaptive:
+                        # Incomplete live adaptive https formats
+                        adjust_incomplete_format(fmt, note_suffix='(incomplete)', pref_adjustment=-20)
 
         if needs_live_processing:
             self._prepare_live_from_start_formats(
