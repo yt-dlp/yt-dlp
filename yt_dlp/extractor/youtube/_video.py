@@ -1973,7 +1973,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         mpd_url, stream_number, is_live = None, None, True
         download_start_time = ctx.get('start') or time.time()
         
-        # None = MAX_DURATION from start
+        # None = MAX_DURATION
         # 100 = -100 fragments from live
         CATCHUP_FRAGS = 150
         #CATCHUP_FRAGS = None
@@ -2089,6 +2089,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 continue
             
             frag_duration = float_or_none(fragments[-1].get('duration') if fragments else None) or 5.0
+            FETCH_SPAN = frag_duration + 1.0 if frag_duration < 5 else frag_duration
 
             if known_idx == 0 and begin_index >= 0:
                 if CATCHUP_FRAGS:
@@ -2151,8 +2152,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 break
 
             time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
-
-
 
     def _get_player_js_version(self):
         player_js_version = self._configuration_arg('player_js_version', [''])[0] or self._DEFAULT_PLAYER_JS_VERSION
