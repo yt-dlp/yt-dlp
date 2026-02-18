@@ -15,6 +15,7 @@ from ..utils import DownloadError, RetryManager, traverse_obj, int_or_none
 from ..utils.networking import HTTPHeaderDict
 from ..utils.progress import ProgressCalculator
 
+
 class HttpQuietDownloader(HttpFD):
     def to_screen(self, *args, **kargs):
         pass
