@@ -72,13 +72,8 @@ class DashSegmentsFD(FragmentFD):
     def _get_fragments(self, fmt, ctx, extra_query):
         fragment_base_url = fmt.get('fragment_base_url')
         fragments = self._resolve_fragments(fmt['fragments'], ctx)
-        #interrupt_trigger = ctx.get('interrupt_trigger', [True])
 
         for i, fragment in enumerate(fragments):
-            #if not interrupt_trigger[0] or ctx.get('live_ended_gracefully'):
-            #    self.write_debug(f'[{self.FD_NAME}] Download stopped by other stream. TEST1')
-            #    return
-
             frag_index = fragment.get('frag_index', i + 1)
             if frag_index <= ctx['fragment_index']:
                 continue
@@ -96,7 +91,3 @@ class DashSegmentsFD(FragmentFD):
                 'url': fragment_url,
                 'duration': fragment.get('duration'),
             }
-
-            #if not interrupt_trigger[0]:
-            #    self.write_debug(f'[{self.FD_NAME}] Download stopped by other stream. TEST2')
-            #    return
