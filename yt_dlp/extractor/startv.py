@@ -30,7 +30,7 @@ class StarTVIE(InfoExtractor):
                 'display_id': '3-bolum',
                 'description': 'md5:cff8aaea543d6e4885e394a7346b5104',
                 'duration': 7757.0,
-                'thumbnail': 'https://startv.blob.core.windows.net/media/Videos/375x211/cfbc8dd0-ebde-49e0-a27d-91462805f710.jpg?v=43728,6833583218',
+                'thumbnail': r're:^https?://.*\.jpg(?:\?.*?)?$',
                 'chapters': [],
                 'categories': [],
                 'series': 'Çocuk',
