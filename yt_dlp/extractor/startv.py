@@ -1,7 +1,9 @@
+import re
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    clean_html,
+    float_or_none,
     int_or_none,
     traverse_obj,
 )
@@ -20,15 +22,20 @@ class StarTVIE(InfoExtractor):
     _TESTS = [
         {
             'url': 'https://www.startv.com.tr/dizi/cocuk/bolumler/3-bolum',
-            'md5': '72381a32bcc2e2eb5841e8c8bf68f127',
             'info_dict': {
                 'id': '904972',
-                'display_id': '3-bolum',
                 'ext': 'mp4',
                 'title': '3. Bölüm',
-                'description': 'md5:3a8049f05a75c2e8747116a673275de4',
-                'thumbnail': r're:^https?://.*\.jpg(?:\?.*?)?$',
                 'timestamp': 1569281400,
+                'display_id': '3-bolum',
+                'description': 'md5:cff8aaea543d6e4885e394a7346b5104',
+                'duration': 7757.0,
+                'thumbnail': 'https://startv.blob.core.windows.net/media/Videos/375x211/cfbc8dd0-ebde-49e0-a27d-91462805f710.jpg?v=43728,6833583218',
+                'chapters': [],
+                'categories': [],
+                'series': 'Çocuk',
+                'episode': 'Episode 3',
+                'episode_number': 3,
                 'upload_date': '20190923',
             },
         },
@@ -69,29 +76,163 @@ class StarTVIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        info_url = self._search_regex(
-            r'(["\'])videoUrl\1\s*:\s*\1(?P<url>(?:(?!\1).)+)\1\s*',
-            webpage, 'video info url', group='url')
+        news_id = self._search_regex(r'\\"?snewsid\\"?\s*:\s*\\"?([^"\\]+)', webpage, 'news id')
+        reference_id = self._search_regex(r'\\"?referenceId\\"?\s*:\s*\\"?([^"\\]+)', webpage, 'reference id')
 
-        info = traverse_obj(self._download_json(info_url, display_id), 'data', expected_type=dict)
+        api_url = (
+            'https://dygvideo.dygdigital.com/api/video_info'
+            '?akamai=true&PublisherId=1'
+            f'&ReferenceId=StarTv_{news_id}'
+            '&SecretKey=NtvApiSecret2014*'
+        )
+
+        api_data = self._download_json(api_url, display_id, fatal=False)
+        if not api_data.get('data'):
+            api_url = api_url.replace(news_id, reference_id)
+            api_data = self._download_json(api_url, display_id)
+
+        info = traverse_obj(api_data, 'data', expected_type=dict)
+
         if not info:
             raise ExtractorError('Failed to extract API data')
 
-        video_id = str(info.get('id'))
-        title = info.get('title') or self._og_search_title(webpage)
-        description = clean_html(info.get('description')) or self._og_search_description(webpage, default=None)
-        thumbnail = self._proto_relative_url(
-            self._og_search_thumbnail(webpage), scheme='http:')
+        video_id = str(info.get('id') or display_id)
+        title = info.get('title', info.get('short_title'))
+        description = info.get('description', info.get('long_description'))
 
-        formats = self._extract_m3u8_formats(
-            traverse_obj(info, ('flavors', 'hls')), video_id, entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
+        thumbnail = traverse_obj(info, ('screenshots', 0, 'image_url'), default=info.get('image'))
 
+        flavors = info.get('flavors') or {}
+        extension = str(info.get('filename')).split('.')[-1]
+        release_date = info.get('release_date')
+
+        duration = float_or_none(info.get('duration'))
+        program_name = info.get('program_name', info.get('channel_name'))
+
+        episode_number = int_or_none(info.get('episode_number'))
+        season_number = int_or_none(info.get('season_number'))
+
+        web_url = info.get('web_url')
+        categories = traverse_obj(info, ('categories', ...), expected_type=str) or []
+        if isinstance(categories, str):
+            categories = categories.split('>')
+
+        chapters = []
+        intro_start = int_or_none(info.get('skip_intro_start_at'))
+        intro_end = int_or_none(info.get('skip_intro_finish_at'))
+        if intro_start and intro_end:
+            chapters.append(
+                {
+                    'title': 'Intro',
+                    'start_time': intro_start / 1000,
+                    'end_time': intro_end / 1000,
+                },
+            )
+
+        m3u8_urls = set()
+
+        if flavors.get('hls'):
+            m3u8_urls.add(flavors['hls'])
+        if flavors.get('hds') and flavors['hds'].endswith('.m3u8'):
+            m3u8_urls.add(flavors['hds'])
+        for v in flavors.values():
+            if isinstance(v, dict):
+                file_url = v.get('file_url_1')
+                if file_url and file_url.endswith('.m3u8'):
+                    m3u8_urls.add(file_url)
+
+        formats = []
+        for idx, m3u8_url in enumerate(m3u8_urls):
+            formats.extend(
+                self._extract_m3u8_formats(
+                    m3u8_url,
+                    video_id,
+                    entry_protocol='m3u8_native',
+                    m3u8_id=f'hls-{idx}',
+                    fatal=False,
+                ),
+            )
         return {
             'id': video_id,
-            'display_id': display_id,
             'title': title,
+            'display_id': display_id,
+            'ext': extension,
+            'timestamp': release_date,
+            'formats': formats,
             'description': description,
             'thumbnail': thumbnail,
-            'timestamp': int_or_none(info.get('release_date')),
-            'formats': formats,
+            'duration': duration,
+            'series': program_name,
+            'episode_number': episode_number,
+            'season_number': season_number,
+            'webpage_url': web_url,
+            'chapters': chapters,
+            'categories': categories,
         }
+
+
+class StarTVSerieIE(InfoExtractor):
+    IE_NAME = 'startv:serie'
+    _VALID_URL = r'https?://(?:www\.)?startv\.com\.tr/(?P<type>dizi|program)/(?P<id>[^/?#&]+)/bolumler/?$'
+    _DEFAULT_ID = '66e4852f0a0e0bf4d45f8c60'
+
+    _TESTS = [
+        {
+            'url': 'https://www.startv.com.tr/dizi/menajerimi-ara/bolumler',
+            'info_dict': {
+                'id': 'menajerimi-ara',
+                'title': 'Menajerimi Ara',
+            },
+            'playlist_mincount': 10,
+        },
+        {
+            'url': 'https://www.startv.com.tr/dizi/cocuk/bolumler',
+            'only_matching': True,
+        },
+    ]
+
+    def _extract_entries(self, series_id, seasons):
+        """
+        Generator that yields episode URL results for all seasons.
+        """
+        for season_number in seasons:
+            api_url = (
+                f'https://www.startv.com.tr/api/tv-series/{series_id}/episodes'
+                f'?sort=sys.published_at%20desc&skip=0&season={season_number}'
+            )
+            season_data = self._download_json(api_url, series_id)
+            episodes = traverse_obj(season_data, 'items', default=[])
+            episodes.reverse()  # earliest first
+
+            for episode in episodes:
+                episode_no = episode.get('episodeNo')
+                episode_title = episode.get('title')
+                yield self.url_result(
+                    f"https://www.startv.com.tr{episode.get('url')}",
+                    StarTVIE,
+                    episode_no,
+                    episode_title,
+                )
+
+    def extract_episodes(self, webpage, url):
+        last_episode = max([int(x) for x in re.findall(r'/bolumler/(\d+)-bolum', webpage)])
+        episodes = range(1, int(last_episode) + 1)
+        for episode_id in episodes:
+            yield self.url_result(
+                f'{url}/{episode_id}-bolum',
+                StarTVIE,
+                episode_id,
+            )
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        webpage = self._download_webpage(url, playlist_id)
+        title = self._search_regex(r'<h1[^>]*>([^<]+)</h1>', webpage, 'title')
+
+        seasons = re.findall(r'<button[^>]*data-season="(\d+)"', webpage, re.DOTALL)
+        series_id = self._search_regex(r'5d:\{\\"?_id\\"?\s*:\s*\\"?([^"\\]+)', webpage, 'series id')
+        if series_id == self._DEFAULT_ID:
+            results = list(self.extract_episodes(webpage, url))
+        else:
+            results = list(self._extract_entries(series_id, seasons))
+        return self.playlist_result(results, playlist_id, title)
