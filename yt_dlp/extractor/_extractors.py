@@ -891,6 +891,7 @@ from .iwara import (
 )
 from .ixigua import IxiguaIE
 from .izlesene import IzleseneIE
+from .izru import IzRuIE
 from .jamendo import (
     JamendoAlbumIE,
     JamendoIE,
