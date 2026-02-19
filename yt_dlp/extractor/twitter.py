@@ -131,12 +131,11 @@ class TwitterBaseIE(InfoExtractor):
             video_id, headers=headers, query=query, expected_status=allowed_status,
             note=f'Downloading {"GraphQL" if graphql else "legacy API"} JSON')
 
-        if errors := traverse_obj(result, ('errors', ..., {dict})):
-            error_msg = ', '.join(set(traverse_obj(errors, (..., 'message', {str}))))
-            # An error with the message 'Dependency: Unspecified' is a false positive
+        if error_msg := ', '.join(set(traverse_obj(result, ('errors', ..., 'message', {str})))):
+            # Errors with the message 'Dependency: Unspecified' are a false positive
             # See https://github.com/yt-dlp/yt-dlp/issues/15963
-            if len(errors) == 1 and 'dependency: unspecified' in error_msg.lower():
-                self.write_debug(f'Ignoring error message: "{error_msg}"')
+            if error_msg.lower() == 'dependency: unspecified':
+                self.write_debug(f'Ignoring Twitter API error: "{error_msg}"')
             elif 'not authorized' in error_msg.lower():
                 self.raise_login_required(remove_end(error_msg, '.'))
             else:
