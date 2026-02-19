@@ -2553,7 +2553,6 @@ from .youtube import (
     YoutubeNotificationsIE,
     YoutubePlaylistIE,
     YoutubeRecommendedIE,
-    YoutubeSearchDateIE,
     YoutubeSearchIE,
     YoutubeSearchURLIE,
     YoutubeShortsAudioPivotIE,
