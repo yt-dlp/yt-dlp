@@ -1981,6 +1981,7 @@ from .svt import (
     SVTSeriesIE,
 )
 from .swearnet import SwearnetEpisodeIE
+from .swisscom import SwisscomWebcastIE
 from .syvdk import SYVDKIE
 from .sztvhu import SztvHuIE
 from .tagesschau import TagesschauIE
