@@ -192,9 +192,6 @@ class StarTVSerieIE(InfoExtractor):
     ]
 
     def _extract_entries(self, series_id, seasons):
-        """
-        Generator that yields episode URL results for all seasons.
-        """
         for season_number in seasons:
             api_url = (
                 f'https://www.startv.com.tr/api/tv-series/{series_id}/episodes'
