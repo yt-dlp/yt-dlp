@@ -130,7 +130,9 @@ class PornHubIE(PornHubBaseIE):
                         (?:
                             (?:[^/]+\.)?
                             {PornHubBaseIE._PORNHUB_HOST_RE}
-                            /(?:(?:view_video\.php|video/show)\?viewkey=|embed/)|
+                            /(?:
+                               (?:view_video\.php|video/show)\?viewkey=|
+                               (?:embed|shorties)/)|
                             (?:www\.)?thumbzilla\.com/video/
                         )
                         (?P<id>[\da-z]+)
@@ -263,6 +265,9 @@ class PornHubIE(PornHubBaseIE):
         'only_matching': True,
     }, {
         'url': 'http://pornhubvybmsymdol4iibwgwtkpwmeyd6luq2gxajgjzfjvotyt5zhyd.onion/view_video.php?viewkey=ph5a9813bfa7156',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.pornhub.com/shorties/68dbebc3b76ae',
         'only_matching': True,
     }]
 
