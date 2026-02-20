@@ -22,7 +22,7 @@ class StreaksBaseIE(InfoExtractor):
     _GEO_BYPASS = False
     _GEO_COUNTRIES = ['JP']
 
-    def _extract_from_streaks_api(self, project_id, media_id, headers=None, query=None, ssai=False):
+    def _extract_from_streaks_api(self, project_id, media_id, headers=None, query=None, ssai=False, live_from_start=False):
         try:
             response = self._download_json(
                 self._API_URL_TEMPLATE.format('playback', project_id, media_id, ''),
@@ -33,16 +33,20 @@ class StreaksBaseIE(InfoExtractor):
                     **(headers or {}),
                 })
         except ExtractorError as e:
-            if isinstance(e.cause, HTTPError) and e.cause.status in {403, 404}:
+            if isinstance(e.cause, HTTPError) and e.cause.status in (403, 404):
                 error = self._parse_json(e.cause.response.read().decode(), media_id, fatal=False)
                 message = traverse_obj(error, ('message', {str}))
                 code = traverse_obj(error, ('code', {str}))
+                error_id = traverse_obj(error, ('id', {int}))
                 if code == 'REQUEST_FAILED':
-                    self.raise_geo_restricted(message, countries=self._GEO_COUNTRIES)
-                elif code == 'MEDIA_NOT_FOUND':
-                    raise ExtractorError(message, expected=True)
-                elif code or message:
-                    raise ExtractorError(join_nonempty(code, message, delim=': '))
+                    if error_id == 124:
+                        self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
+                    elif error_id == 126:
+                        raise ExtractorError('Access is denied (possibly due to invalid/missing API key)')
+                if code == 'MEDIA_NOT_FOUND':
+                    raise ExtractorError(join_nonempty(code, message, delim=': '), expected=True)
+                if code or message:
+                    raise ExtractorError(join_nonempty(code, error_id, message, delim=': '))
             raise
 
         streaks_id = response['id']
@@ -79,6 +83,10 @@ class StreaksBaseIE(InfoExtractor):
 
             fmts, subs = self._extract_m3u8_formats_and_subtitles(
                 src_url, media_id, 'mp4', m3u8_id='hls', fatal=False, live=is_live, query=query)
+            for fmt in fmts:
+                if live_from_start:
+                    fmt.setdefault('downloader_options', {}).update({'ffmpeg_args': ['-live_start_index', '0']})
+                    fmt['is_from_start'] = True
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 

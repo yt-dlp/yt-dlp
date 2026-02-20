@@ -58,6 +58,14 @@ class TestCookies(unittest.TestCase):
             ({'DESKTOP_SESSION': 'kde'}, _LinuxDesktopEnvironment.KDE3),
             ({'DESKTOP_SESSION': 'xfce'}, _LinuxDesktopEnvironment.XFCE),
 
+            ({'XDG_CURRENT_DESKTOP': 'my_custom_de', 'DESKTOP_SESSION': 'gnome'}, _LinuxDesktopEnvironment.GNOME),
+            ({'XDG_CURRENT_DESKTOP': 'my_custom_de', 'DESKTOP_SESSION': 'mate'}, _LinuxDesktopEnvironment.GNOME),
+            ({'XDG_CURRENT_DESKTOP': 'my_custom_de', 'DESKTOP_SESSION': 'kde4'}, _LinuxDesktopEnvironment.KDE4),
+            ({'XDG_CURRENT_DESKTOP': 'my_custom_de', 'DESKTOP_SESSION': 'kde'}, _LinuxDesktopEnvironment.KDE3),
+            ({'XDG_CURRENT_DESKTOP': 'my_custom_de', 'DESKTOP_SESSION': 'xfce'}, _LinuxDesktopEnvironment.XFCE),
+
+            ({'XDG_CURRENT_DESKTOP': 'my_custom_de', 'DESKTOP_SESSION': 'my_custom_de', 'GNOME_DESKTOP_SESSION_ID': 1}, _LinuxDesktopEnvironment.GNOME),
+
             ({'GNOME_DESKTOP_SESSION_ID': 1}, _LinuxDesktopEnvironment.GNOME),
             ({'KDE_FULL_SESSION': 1}, _LinuxDesktopEnvironment.KDE3),
             ({'KDE_FULL_SESSION': 1, 'DESKTOP_SESSION': 'kde4'}, _LinuxDesktopEnvironment.KDE4),
@@ -197,8 +205,8 @@ class TestLenientSimpleCookie(unittest.TestCase):
             ),
             (
                 'Test quoted cookie',
-                'keebler="E=mc2; L=\\"Loves\\"; fudge=\\012;"',
-                {'keebler': 'E=mc2; L="Loves"; fudge=\012;'},
+                'keebler="E=mc2; L=\\"Loves\\"; fudge=;"',
+                {'keebler': 'E=mc2; L="Loves"; fudge=;'},
             ),
             (
                 "Allow '=' in an unquoted value",
@@ -319,5 +327,31 @@ class TestLenientSimpleCookie(unittest.TestCase):
                 'Invalid Morsel keys should not result in an error',
                 'Key=Value; [Invalid]=Value; Another=Value',
                 {'Key': 'Value', 'Another': 'Value'},
+            ),
+            # Ref: https://github.com/python/cpython/issues/143919
+            (
+                'Test invalid cookie name w/ control character',
+                'foo\012=bar;',
+                {},
+            ),
+            (
+                'Test invalid cookie name w/ control character 2',
+                'foo\015baz=bar',
+                {},
+            ),
+            (
+                'Test invalid cookie name w/ control character followed by valid cookie',
+                'foo\015=bar; x=y;',
+                {'x': 'y'},
+            ),
+            (
+                'Test invalid cookie value w/ control character',
+                'keebler="E=mc2; L=\\"Loves\\"; fudge=\\012;"',
+                {},
+            ),
+            (
+                'Test invalid quoted attribute value w/ control character',
+                'Customer="WILE_E_COYOTE"; Version="1\\012"; Path="/acme"',
+                {},
             ),
         )

@@ -5,7 +5,9 @@ from ..utils import (
     int_or_none,
     try_get,
     unified_strdate,
+    url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class CrowdBunkerIE(InfoExtractor):
@@ -44,16 +46,15 @@ class CrowdBunkerIE(InfoExtractor):
                 'url': sub_url,
             })
 
-        mpd_url = try_get(video_json, lambda x: x['dashManifest']['url'])
-        if mpd_url:
-            fmts, subs = self._extract_mpd_formats_and_subtitles(mpd_url, video_id)
+        if mpd_url := traverse_obj(video_json, ('dashManifest', 'url', {url_or_none})):
+            fmts, subs = self._extract_mpd_formats_and_subtitles(mpd_url, video_id, mpd_id='dash', fatal=False)
             formats.extend(fmts)
-            subtitles = self._merge_subtitles(subtitles, subs)
-        m3u8_url = try_get(video_json, lambda x: x['hlsManifest']['url'])
-        if m3u8_url:
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(mpd_url, video_id)
+            self._merge_subtitles(subs, target=subtitles)
+
+        if m3u8_url := traverse_obj(video_json, ('hlsManifest', 'url', {url_or_none})):
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, m3u8_id='hls', fatal=False)
             formats.extend(fmts)
-            subtitles = self._merge_subtitles(subtitles, subs)
+            self._merge_subtitles(subs, target=subtitles)
 
         thumbnails = [{
             'url': image['url'],

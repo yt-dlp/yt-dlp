@@ -9,7 +9,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import math
 
-from yt_dlp.jsinterp import JS_Undefined, JSInterpreter, js_number_to_string
+from yt_dlp.jsinterp import (
+    JS_Undefined,
+    JSInterpreter,
+    int_to_int32,
+    js_number_to_string,
+)
 
 
 class NaN:
@@ -101,8 +106,16 @@ class TestJSInterpreter(unittest.TestCase):
         self._test('function f(){return 5 ^ 9;}', 12)
         self._test('function f(){return 0.0 << NaN}', 0)
         self._test('function f(){return null << undefined}', 0)
-        # TODO: Does not work due to number too large
-        # self._test('function f(){return 21 << 4294967297}', 42)
+        self._test('function f(){return -12616 ^ 5041}', -8951)
+        self._test('function f(){return 21 << 4294967297}', 42)
+
+    def test_string_concat(self):
+        self._test('function f(){return "a" + "b";}', 'ab')
+        self._test('function f(){let x = "a"; x += "b"; return x;}', 'ab')
+        self._test('function f(){return "a" + 1;}', 'a1')
+        self._test('function f(){let x = "a"; x += 1; return x;}', 'a1')
+        self._test('function f(){return 2 + "b";}', '2b')
+        self._test('function f(){let x = 2; x += "b"; return x;}', '2b')
 
     def test_array_access(self):
         self._test('function f(){var x = [1,2,3]; x[0] = 4; x[0] = 5; x[2.0] = 7; return x;}', [5, 2, 7])
@@ -325,6 +338,7 @@ class TestJSInterpreter(unittest.TestCase):
         self._test('function f() { let a = {m1: 42, m2: 0 }; return [a["m1"], a.m2]; }', [42, 0])
         self._test('function f() { let a; return a?.qq; }', JS_Undefined)
         self._test('function f() { let a = {m1: 42, m2: 0 }; return a?.qq; }', JS_Undefined)
+        self._test('function f() { let a = {"1": 123}; return a[1]; }', 123)
 
     def test_regex(self):
         self._test('function f() { let a=/,,[/,913,/](,)}/; }', None)
@@ -447,6 +461,22 @@ class TestJSInterpreter(unittest.TestCase):
     def test_splice(self):
         self._test('function f(){var T = ["0", "1", "2"]; T["splice"](2, 1, "0")[0]; return T }', ['0', '1', '0'])
 
+    def test_int_to_int32(self):
+        for inp, exp in [
+            (0, 0),
+            (1, 1),
+            (-1, -1),
+            (-8951, -8951),
+            (2147483647, 2147483647),
+            (2147483648, -2147483648),
+            (2147483649, -2147483647),
+            (-2147483649, 2147483647),
+            (-2147483648, -2147483648),
+            (-16799986688, 379882496),
+            (39570129568, 915423904),
+        ]:
+            assert int_to_int32(inp) == exp
+
     def test_js_number_to_string(self):
         for test, radix, expected in [
             (0, None, '0'),
@@ -477,6 +507,69 @@ class TestJSInterpreter(unittest.TestCase):
         jsi = JSInterpreter('function c(d) { return d + e + f + g; }')
         func = jsi.extract_function('c', {'e': 10}, {'f': 100, 'g': 1000})
         self.assertEqual(func([1]), 1111)
+
+    def test_extract_object(self):
+        jsi = JSInterpreter('var a={};a.xy={};var xy;var zxy={};xy={z:function(){return "abc"}};')
+        self.assertTrue('z' in jsi.extract_object('xy', None))
+
+    def test_increment_decrement(self):
+        self._test('function f() { var x = 1; return ++x; }', 2)
+        self._test('function f() { var x = 1; return x++; }', 1)
+        self._test('function f() { var x = 1; x--; return x }', 0)
+        self._test('function f() { var y; var x = 1; x++, --x, x--, x--, y="z", "abc", x++; return --x }', -1)
+        self._test('function f() { var a = "test--"; return a; }', 'test--')
+        self._test('function f() { var b = 1; var a = "b--"; return a; }', 'b--')
+
+    def test_nested_function_scoping(self):
+        self._test(R'''
+            function f() {
+                var g = function() {
+                    var P = 2;
+                    return P;
+                };
+                var P = 1;
+                g();
+                return P;
+            }
+        ''', 1)
+        self._test(R'''
+            function f() {
+                var x = function() {
+                    for (var w = 1, M = []; w < 2; w++) switch (w) {
+                        case 1:
+                            M.push("a");
+                        case 2:
+                            M.push("b");
+                    }
+                    return M
+                };
+                var w = "c";
+                var M = "d";
+                var y = x();
+                y.push(w);
+                y.push(M);
+                return y;
+            }
+        ''', ['a', 'b', 'c', 'd'])
+        self._test(R'''
+            function f() {
+                var P, Q;
+                var z = 100;
+                var g = function() {
+                    var P, Q; P = 2; Q = 15;
+                    z = 0;
+                    return P+Q;
+                };
+                P = 1; Q = 10;
+                var x = g(), y = 3;
+                return P+Q+x+y+z;
+            }
+        ''', 31)
+
+    def test_undefined_varnames(self):
+        jsi = JSInterpreter('function f(){ var a; return [a, b]; }')
+        self._test(jsi, [JS_Undefined, JS_Undefined])
+        self.assertEqual(jsi._undefined_varnames, {'b'})
 
 
 if __name__ == '__main__':

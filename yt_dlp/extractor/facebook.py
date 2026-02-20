@@ -4,8 +4,7 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import compat_etree_fromstring
-from ..networking import Request
-from ..networking.exceptions import network_exceptions
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -64,9 +63,6 @@ class FacebookIE(InfoExtractor):
                 class=(?P<q1>[\'"])[^\'"]*\bfb-(?:video|post)\b[^\'"]*(?P=q1)[^>]+
                 data-href=(?P<q2>[\'"])(?P<url>(?:https?:)?//(?:www\.)?facebook.com/.+?)(?P=q2)''',
     ]
-    _LOGIN_URL = 'https://www.facebook.com/login.php?next=http%3A%2F%2Ffacebook.com%2Fhome.php&login_attempt=1'
-    _CHECKPOINT_URL = 'https://www.facebook.com/checkpoint/?next=http%3A%2F%2Ffacebook.com%2Fhome.php&_fb_noscript=1'
-    _NETRC_MACHINE = 'facebook'
     IE_NAME = 'facebook'
 
     _VIDEO_PAGE_TEMPLATE = 'https://www.facebook.com/video/video.php?v=%s'
@@ -81,13 +77,14 @@ class FacebookIE(InfoExtractor):
             'description': 'md5:34675bda53336b1d16400265c2bb9b3b',
             'uploader': 'RADIO KICKS FM',
             'upload_date': '20230818',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1692346159,
-            'thumbnail': r're:^https?://.*',
             'uploader_id': '100063551323670',
             'duration': 3133.583,
             'view_count': int,
             'concurrent_view_count': 0,
         },
+        'expected_warnings': ['Cannot parse data'],
     }, {
         'url': 'https://www.facebook.com/video.php?v=637842556329505&fref=nf',
         'md5': '6a40d33c0eccbb1af76cf0485a052659',
@@ -106,17 +103,18 @@ class FacebookIE(InfoExtractor):
         'info_dict': {
             'id': '274175099429670',
             'ext': 'mp4',
-            'title': 'Asif',
+            'title': '119 reactions · 1.4K shares | Asif Nawab Butt on Reels',
             'description': '',
             'uploader': 'Asif Nawab Butt',
             'upload_date': '20140506',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1399398998,
-            'thumbnail': r're:^https?://.*',
-            'uploader_id': 'pfbid05AzrFTXgY37tqwaSgbFTTEpCLBjjEJHkigogwGiRPtKEpAsJYJpzE94H1RxYXWEtl',
+            'uploader_id': 'pfbid028xue38TBXRyNbiqBSV2LFs3QK3yopvKjupbqFoL6U9SKbx4p2SMdJjQSBvnjsHGWl',
             'duration': 131.03,
             'concurrent_view_count': int,
             'view_count': int,
         },
+        'expected_warnings': ['Cannot parse data'],
     }, {
         'note': 'Video with DASH manifest',
         'url': 'https://www.facebook.com/video.php?v=957955867617029',
@@ -158,7 +156,7 @@ class FacebookIE(InfoExtractor):
             'id': '10153664894881749',
             'ext': 'mp4',
             'title': 'Average time to confirm recent Supreme Court nominees: 67 days Longest it\'s t...',
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1456259628,
             'upload_date': '20160223',
             'uploader': 'Barack Obama',
@@ -168,7 +166,7 @@ class FacebookIE(InfoExtractor):
         # have 1080P, but only up to 720p in swf params
         # data.video.story.attachments[].media
         'url': 'https://www.facebook.com/cnn/videos/10155529876156509/',
-        'md5': '1659aa21fb3dd1585874f668e81a72c8',
+        'md5': '70b82ebf5f0e9b91b2a49d3db3563611',
         'info_dict': {
             'id': '10155529876156509',
             'ext': 'mp4',
@@ -177,7 +175,7 @@ class FacebookIE(InfoExtractor):
             'timestamp': 1477818095,
             'upload_date': '20161030',
             'uploader': 'CNN',
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'view_count': int,
             'uploader_id': '100059479812265',
             'concurrent_view_count': int,
@@ -198,13 +196,11 @@ class FacebookIE(InfoExtractor):
             'uploader': 'Yaroslav Korpan',
             'uploader_id': 'pfbid06AScABAWcW91qpiuGrLt99Ef9tvwHoXP6t8KeFYEqkSfreMtfa9nTveh8b2ZEVSWl',
             'concurrent_view_count': int,
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'view_count': int,
             'duration': 11736.446,
         },
-        'params': {
-            'skip_download': True,
-        },
+        'skip': 'Invalid URL',
     }, {
         # FIXME: Cannot parse data error
         'url': 'https://www.facebook.com/LaGuiaDelVaron/posts/1072691702860471',
@@ -215,7 +211,7 @@ class FacebookIE(InfoExtractor):
             'timestamp': 1477305000,
             'upload_date': '20161024',
             'uploader': 'La Guía Del Varón',
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
         },
         'skip': 'Requires logging in',
     }, {
@@ -244,9 +240,10 @@ class FacebookIE(InfoExtractor):
             'upload_date': '20171124',
             'uploader': 'Vickie Gentry',
             'uploader_id': 'pfbid0FkkycT95ySNNyfCw4Cho6u5G7WbbZEcxT496Hq8rtx1K3LcTCATpR3wnyYhmyGC5l',
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'duration': 148.224,
         },
+        'skip': 'Invalid URL',
     }, {
         # data.node.comet_sections.content.story.attachments[].styles.attachment.media
         'url': 'https://www.facebook.com/attn/posts/pfbid0j1Czf2gGDVqeQ8KiMLFm3pWN8GxsQmeRrVhimWDzMuKQoR8r4b1knNsejELmUgyhl',
@@ -260,7 +257,7 @@ class FacebookIE(InfoExtractor):
             'duration': 132.675,
             'uploader_id': '100064451419378',
             'view_count': int,
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1701975646,
         },
     }, {
@@ -271,9 +268,9 @@ class FacebookIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Lela Evans',
             'description': 'Today Makkovik\'s own Pilot Mandy Smith made her inaugural landing on the airstrip in her hometown. What a proud moment as we all cheered and...',
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'uploader': 'Lela Evans',
-            'uploader_id': 'pfbid0swT2y7t6TAsZVBvcyeYPdhTMefGaS26mzUwML3vd1ma6ndGZKxsyS4Ssu3jitZLXl',
+            'uploader_id': 'pfbid02wjMpknobSMnyynK3TNKN4Ww1StcpAKXgowqTyge3bz7LwHZMQ68uiXzzbu7xeryBl',
             'upload_date': '20231228',
             'timestamp': 1703804085,
             'duration': 394.347,
@@ -326,28 +323,27 @@ class FacebookIE(InfoExtractor):
             'uploader_id': '100066514874195',
             'duration': 4524.001,
             'view_count': int,
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'concurrent_view_count': int,
         },
-        'params': {
-            'skip_download': True,
-        },
+        'params': {'skip_download': True},
     }, {
         # data.node.comet_sections.content.story.attachments[].style_type_renderer.attachment.all_subattachments.nodes[].media
         'url': 'https://www.facebook.com/100033620354545/videos/106560053808006/',
         'info_dict': {
             'id': '106560053808006',
             'ext': 'mp4',
-            'title': 'Josef',
-            'thumbnail': r're:^https?://.*',
+            'title': 'Josef Novak on Reels',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'concurrent_view_count': int,
-            'uploader_id': 'pfbid02gpfwRM2XvdEJfsERupwQiNmBiDArc38RMRYZnap372q6Vs7MtFTVy72mmFWpJBTKl',
+            'uploader_id': 'pfbid0cjYJYXpePWqhZ9DgpB6gKXrN2q3obwducdKm4wT7K5nkhbfKg5cneocYbsdaji7fl',
             'timestamp': 1549275572,
             'duration': 3.283,
             'uploader': 'Josef Novak',
             'description': '',
             'upload_date': '20190204',
         },
+        'expected_warnings': ['Cannot parse data'],
     }, {
         # data.video.story.attachments[].media
         'url': 'https://www.facebook.com/watch/?v=647537299265662',
@@ -406,7 +402,7 @@ class FacebookIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'ANALISI IN CAMPO OSCURO " Coaguli nel sangue dei vaccinati"',
             'description': 'Other event by Comitato Liberi Pensatori on Tuesday, October 18 2022',
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'uploader': 'Comitato Liberi Pensatori',
             'uploader_id': '100065709540881',
         },
@@ -414,69 +410,60 @@ class FacebookIE(InfoExtractor):
         'url': 'https://www.facebook.com/groups/1513990329015294/posts/d41d8cd9/2013209885760000/?app=fbl',
         'only_matching': True,
     }]
+    _WEBPAGE_TESTS = [{
+        # <iframe> embed
+        'url': 'http://www.unique-almeria.com/mini-hollywood.html',
+        'md5': 'cba5d8c5021e9340dcefe925255e2c3e',
+        'info_dict': {
+            'id': '1529066599879',
+            'ext': 'mp4',
+            'title': 'Facebook video #1529066599879',
+        },
+        'expected_warnings': ['unable to extract uploader'],
+    }, {
+        # FIXME: Embed detection
+        # <iframe> embed, plugin video
+        'url': 'https://www.newsmemory.com/eedition/e-publishing-solutions/2-in-one-app/',
+        'md5': 'ae97d4a44f8cc9a8b1a4c03b9ed793af',
+        'info_dict': {
+            'id': '10155710648695814',
+            'ext': 'mp4',
+            'title': 'Download the all new and improved Trinidad Express App',
+            'concurrent_view_count': int,
+            'description': 'md5:4806195c99908e4189b45b1c23bd4f89',
+            'duration': 69.408,
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
+            'timestamp': 1533919195,
+            'upload_date': '20180810',
+            'uploader': 'Trinidad Express Newspapers',
+            'uploader_id': '100064446413648',
+            'view_count': int,
+        },
+        'expected_warnings': ['Cannot parse data'],
+    }, {
+        # API embed
+        'url': 'https://www.curs.md/ro',
+        'md5': '090bae53b9bff2be993c896edc2ea205',
+        'info_dict': {
+            'id': '334484292523563',
+            'ext': 'mp4',
+            'title': 'md5:9abffe1c86cdd967ffa224e1ccc13b90',
+            'concurrent_view_count': int,
+            'description': 'md5:0ba98567a61c640f9fabf1882235b33d',
+            'duration': 8789.891,
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
+            'timestamp': 1700603114,
+            'upload_date': '20231121',
+            'uploader': 'Istoria Moldovei',
+            'uploader_id': '100063529778592',
+            'view_count': int,
+        },
+        'params': {'extractor_args': {'generic': {'impersonate': ['chrome']}}},
+    }]
     _SUPPORTED_PAGLETS_REGEX = r'(?:pagelet_group_mall|permalink_video_pagelet|hyperfeed_story_id_[0-9a-f]+)'
     _api_config = {
         'graphURI': '/api/graphql/',
     }
-
-    def _perform_login(self, username, password):
-        login_page_req = Request(self._LOGIN_URL)
-        self._set_cookie('facebook.com', 'locale', 'en_US')
-        login_page = self._download_webpage(login_page_req, None,
-                                            note='Downloading login page',
-                                            errnote='Unable to download login page')
-        lsd = self._search_regex(
-            r'<input type="hidden" name="lsd" value="([^"]*)"',
-            login_page, 'lsd')
-        lgnrnd = self._search_regex(r'name="lgnrnd" value="([^"]*?)"', login_page, 'lgnrnd')
-
-        login_form = {
-            'email': username,
-            'pass': password,
-            'lsd': lsd,
-            'lgnrnd': lgnrnd,
-            'next': 'http://facebook.com/home.php',
-            'default_persistent': '0',
-            'legacy_return': '1',
-            'timezone': '-60',
-            'trynum': '1',
-        }
-        request = Request(self._LOGIN_URL, urlencode_postdata(login_form))
-        request.headers['Content-Type'] = 'application/x-www-form-urlencoded'
-        try:
-            login_results = self._download_webpage(request, None,
-                                                   note='Logging in', errnote='unable to fetch login page')
-            if re.search(r'<form(.*)name="login"(.*)</form>', login_results) is not None:
-                error = self._html_search_regex(
-                    r'(?s)<div[^>]+class=(["\']).*?login_error_box.*?\1[^>]*><div[^>]*>.*?</div><div[^>]*>(?P<error>.+?)</div>',
-                    login_results, 'login error', default=None, group='error')
-                if error:
-                    raise ExtractorError(f'Unable to login: {error}', expected=True)
-                self.report_warning('unable to log in: bad username/password, or exceeded login rate limit (~3/min). Check credentials or wait.')
-                return
-
-            fb_dtsg = self._search_regex(
-                r'name="fb_dtsg" value="(.+?)"', login_results, 'fb_dtsg', default=None)
-            h = self._search_regex(
-                r'name="h"\s+(?:\w+="[^"]+"\s+)*?value="([^"]+)"', login_results, 'h', default=None)
-
-            if not fb_dtsg or not h:
-                return
-
-            check_form = {
-                'fb_dtsg': fb_dtsg,
-                'h': h,
-                'name_action_selected': 'dont_save',
-            }
-            check_req = Request(self._CHECKPOINT_URL, urlencode_postdata(check_form))
-            check_req.headers['Content-Type'] = 'application/x-www-form-urlencoded'
-            check_response = self._download_webpage(check_req, None,
-                                                    note='Confirming login')
-            if re.search(r'id="checkpointSubmitButton"', check_response) is not None:
-                self.report_warning('Unable to confirm login, you have to login in your browser and authorize the login.')
-        except network_exceptions as err:
-            self.report_warning(f'unable to log in: {err}')
-            return
 
     def _extract_from_url(self, url, video_id):
         webpage = self._download_webpage(
@@ -898,20 +885,24 @@ class FacebookIE(InfoExtractor):
 
 class FacebookPluginsVideoIE(InfoExtractor):
     _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/plugins/video\.php\?.*?\bhref=(?P<id>https.+)'
-
     _TESTS = [{
         'url': 'https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Fgov.sg%2Fvideos%2F10154383743583686%2F&show_text=0&width=560',
-        'md5': '5954e92cdfe51fe5782ae9bda7058a07',
+        'md5': 'af83aeae1d595f377c6e47a450828155',
         'info_dict': {
             'id': '10154383743583686',
             'ext': 'mp4',
-            # TODO: Fix title, uploader
             'title': 'What to do during the haze?',
-            'uploader': 'Gov.sg',
-            'upload_date': '20160826',
+            'concurrent_view_count': int,
+            'description': 'md5:81839c0979803a014b20798df255ed0b',
+            'duration': 65.087,
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1472184808,
+            'upload_date': '20160826',
+            'uploader': 'gov.sg',
+            'uploader_id': '100064718678925',
+            'view_count': int,
         },
-        'add_ie': [FacebookIE.ie_key()],
+        'expected_warnings': ['Cannot parse data'],
     }, {
         'url': 'https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Fvideo.php%3Fv%3D10204634152394104',
         'only_matching': True,
@@ -945,7 +936,7 @@ class FacebookRedirectURLIE(InfoExtractor):
             'tags': 'count:11',
             'duration': 3332,
             'live_status': 'not_live',
-            'thumbnail': 'https://i.ytimg.com/vi/pO8h3EaFRdo/maxresdefault.jpg',
+            'thumbnail': r're:https?://i\.ytimg\.com/vi/.+',
             'channel_url': 'https://www.youtube.com/channel/UCGBpxWJr9FNOcFYA5GkKrMg',
             'availability': 'public',
             'uploader_url': 'http://www.youtube.com/user/brtvofficial',
@@ -954,8 +945,7 @@ class FacebookRedirectURLIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
         },
-        'add_ie': ['Youtube'],
-        'params': {'skip_download': 'Youtube'},
+        'skip': 'Youtube video is now private',
     }]
 
     def _real_extract(self, url):
@@ -968,22 +958,20 @@ class FacebookRedirectURLIE(InfoExtractor):
 class FacebookReelIE(InfoExtractor):
     _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/reel/(?P<id>\d+)'
     IE_NAME = 'facebook:reel'
-
     _TESTS = [{
         'url': 'https://www.facebook.com/reel/1195289147628387',
-        'md5': 'a53256d10fc2105441fe0c4212ed8cea',
+        'md5': 'aeb0153ecb2eaacdf2dc2bf88f593fef',
         'info_dict': {
             'id': '1195289147628387',
             'ext': 'mp4',
-            'title': r're:9\.6K views · 355 reactions .+ Let the “Slapathon” commence!! .+ LL COOL J · Mama Said Knock You Out$',
-            'description': r're:When your trying to help your partner .+ LL COOL J · Mama Said Knock You Out$',
-            'uploader': 'Beast Camp Training',
+            'title': '9.7K views · 352 reactions | When your trying to help your partner out with an arrest and #FAAFO games begin. Let the “Slapathon” commence!! 👊👋 | Beast Camp Training',
+            'description': 'md5:5a767dc7e78718667b150a7facc4a34f',
+            'uploader': '9.7K views &#xb7; 352 reactions | When your trying to help your partner out with an arrest and #FAAFO games begin. Let the &#x201c;Slapathon&#x201d; commence!! &#x1f44a;&#x1f44b; | Beast Camp Training',
             'uploader_id': '100040874179269',
             'duration': 9.579,
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1637502609,
             'upload_date': '20211121',
-            'thumbnail': r're:^https?://.*',
-            'like_count': int,
             'comment_count': int,
             'repost_count': int,
         },
@@ -998,7 +986,6 @@ class FacebookReelIE(InfoExtractor):
 class FacebookAdsIE(InfoExtractor):
     _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/ads/library/?\?(?:[^#]+&)?id=(?P<id>\d+)'
     IE_NAME = 'facebook:ads'
-
     _TESTS = [{
         'url': 'https://www.facebook.com/ads/library/?id=899206155126718',
         'info_dict': {
@@ -1008,12 +995,13 @@ class FacebookAdsIE(InfoExtractor):
             'description': 'md5:0822724069e3aca97cbed5dabbab282e',
             'uploader': 'Kandao',
             'uploader_id': '774114102743284',
-            'uploader_url': r're:^https?://.*',
+            'uploader_url': 'https://facebook.com/KandaoVR',
             'timestamp': 1702548330,
-            'thumbnail': r're:^https?://.*',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'upload_date': '20231214',
             'like_count': int,
         },
+        'skip': 'Invalid URL',
     }, {
         # key 'watermarked_video_sd_url' missing
         'url': 'https://www.facebook.com/ads/library/?id=501152689226254',
@@ -1024,12 +1012,13 @@ class FacebookAdsIE(InfoExtractor):
             'description': 'md5:02a446ace7ff8c3c37a2892922492490',
             'uploader': 'mat.nawrocki',
             'uploader_id': '148586968341456',
-            'uploader_url': r're:^https?://.*',
+            'uploader_url': 'https://www.instagram.com/_u/mat.nawrocki',
+            'thumbnail': r're:https?://scontent\.fitm\d-1\.fna\.fbcdn\.net/.+',
             'timestamp': 1723452305,
-            'thumbnail': r're:^https?://.*',
             'upload_date': '20240812',
             'like_count': int,
         },
+        'skip': 'Invalid URL',
     }, {
         'url': 'https://www.facebook.com/ads/library/?id=893637265423481',
         'info_dict': {
@@ -1037,12 +1026,49 @@ class FacebookAdsIE(InfoExtractor):
             'title': 'Jusqu\u2019\u00e0 -25% sur une s\u00e9lection de vins p\u00e9tillants italiens ',
             'uploader': 'Eataly Paris Marais',
             'uploader_id': '2086668958314152',
-            'uploader_url': r're:^https?://.*',
+            'uploader_url': 'https://facebook.com/EatalyParisMarais',
             'timestamp': 1703571529,
             'upload_date': '20231226',
             'like_count': int,
         },
         'playlist_count': 3,
+        'skip': 'Invalid URL',
+    }, {
+        'url': 'https://www.facebook.com/ads/library/?id=312304267031140',
+        'info_dict': {
+            'id': '312304267031140',
+            'title': 'Casper Wave Hybrid Mattress',
+            'uploader': 'Casper',
+            'uploader_id': '224110981099062',
+            'uploader_url': 'https://www.facebook.com/Casper/',
+            'like_count': int,
+        },
+        'playlist_count': 2,
+    }, {
+        'url': 'https://www.facebook.com/ads/library/?id=874812092000430',
+        'info_dict': {
+            'id': '874812092000430',
+            'title': 'TikTok',
+            'uploader': 'Case \u00e0 Chocs',
+            'uploader_id': '112960472096793',
+            'uploader_url': 'https://www.facebook.com/Caseachocs/',
+            'like_count': int,
+            'description': 'md5:f02a255fcf7dce6ed40e9494cf4bc49a',
+        },
+        'playlist_count': 3,
+    }, {
+        'url': 'https://www.facebook.com/ads/library/?id=1704834754236452',
+        'info_dict': {
+            'id': '1704834754236452',
+            'ext': 'mp4',
+            'title': 'Get answers now!',
+            'description': 'Ask the best psychics and get accurate answers on questions that bother you!',
+            'uploader': 'Your Relationship Advisor',
+            'uploader_id': '108939234726306',
+            'uploader_url': 'https://www.facebook.com/100068970634636/',
+            'like_count': int,
+            'thumbnail': r're:https://.+/.+\.jpg',
+        },
     }, {
         'url': 'https://es-la.facebook.com/ads/library/?id=901230958115569',
         'only_matching': True,
@@ -1072,15 +1098,45 @@ class FacebookAdsIE(InfoExtractor):
             })
         return formats
 
+    def _download_fb_webpage_and_verify(self, url, video_id):
+        # See https://github.com/yt-dlp/yt-dlp/issues/15577
+
+        try:
+            return self._download_webpage(url, video_id)
+        except ExtractorError as e:
+            if (
+                not isinstance(e.cause, HTTPError)
+                or e.cause.status != 403
+                or e.cause.reason != 'Client challenge'
+            ):
+                raise
+            error_page = self._webpage_read_content(e.cause.response, url, video_id)
+
+        self.write_debug('Received a client challenge response')
+
+        challenge_path = self._search_regex(
+            r'fetch\s*\(\s*["\'](/__rd_verify[^"\']+)["\']',
+            error_page, 'challenge path')
+
+        # Successful response will set the necessary cookie
+        self._request_webpage(
+            urljoin(url, challenge_path), video_id, 'Requesting verification cookie',
+            'Unable to get verification cookie', data=b'')
+
+        return self._download_webpage(url, video_id)
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        webpage = self._download_fb_webpage_and_verify(url, video_id)
 
         post_data = traverse_obj(
             re.findall(r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage), (..., {json.loads}))
         data = get_first(post_data, (
-            'require', ..., ..., ..., '__bbox', 'require', ..., ..., ...,
-            'entryPointRoot', 'otherProps', 'deeplinkAdCard', 'snapshot', {dict}))
+            'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., (
+                ('__bbox', 'result', 'data', 'ad_library_main', 'deeplink_ad_archive_result', 'deeplink_ad_archive'),
+                # old path
+                ('entryPointRoot', 'otherProps', 'deeplinkAdCard'),
+            ), 'snapshot', {dict}))
         if not data:
             raise ExtractorError('Unable to extract ad data')
 
@@ -1096,11 +1152,12 @@ class FacebookAdsIE(InfoExtractor):
             'title': title,
             'description': markup or None,
         }, traverse_obj(data, {
-            'description': ('link_description', {lambda x: x if not x.startswith('{{product.') else None}),
+            'description': (
+                (('body', 'text'), 'link_description'),
+                {lambda x: x if not x.startswith('{{product.') else None}, any),
             'uploader': ('page_name', {str}),
             'uploader_id': ('page_id', {str_or_none}),
             'uploader_url': ('page_profile_uri', {url_or_none}),
-            'timestamp': ('creation_time', {int_or_none}),
             'like_count': ('page_like_count', {int_or_none}),
         }))
 
@@ -1111,7 +1168,8 @@ class FacebookAdsIE(InfoExtractor):
             entries.append({
                 'id': f'{video_id}_{idx}',
                 'title': entry.get('title') or title,
-                'description': traverse_obj(entry, 'body', 'link_description') or info_dict.get('description'),
+                'description': traverse_obj(
+                    entry, 'body', 'link_description', expected_type=str) or info_dict.get('description'),
                 'thumbnail': url_or_none(entry.get('video_preview_image_url')),
                 'formats': self._extract_formats(entry),
             })

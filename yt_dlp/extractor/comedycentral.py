@@ -1,55 +1,27 @@
-from .mtv import MTVServicesInfoExtractor
+from .mtv import MTVServicesBaseIE
 
 
-class ComedyCentralIE(MTVServicesInfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?cc\.com/(?:episodes|video(?:-clips)?|collection-playlist|movies)/(?P<id>[0-9a-z]{6})'
-    _FEED_URL = 'http://comedycentral.com/feeds/mrss/'
-
+class ComedyCentralIE(MTVServicesBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?cc\.com/video-clips/(?P<id>[\da-z]{6})'
     _TESTS = [{
-        'url': 'http://www.cc.com/video-clips/5ke9v2/the-daily-show-with-trevor-noah-doc-rivers-and-steve-ballmer---the-nba-player-strike',
-        'md5': 'b8acb347177c680ff18a292aa2166f80',
+        'url': 'https://www.cc.com/video-clips/wl12cx',
         'info_dict': {
-            'id': '89ccc86e-1b02-4f83-b0c9-1d9592ecd025',
+            'id': 'dec6953e-80c8-43b3-96cd-05e9230e704d',
             'ext': 'mp4',
-            'title': 'The Daily Show with Trevor Noah|August 28, 2020|25|25149|Doc Rivers and Steve Ballmer - The NBA Player Strike',
-            'description': 'md5:5334307c433892b85f4f5e5ac9ef7498',
-            'timestamp': 1598670000,
-            'upload_date': '20200829',
+            'display_id': 'wl12cx',
+            'title': 'Alison Brie and Dave Franco -"Together"- Extended Interview',
+            'description': 'md5:ec68e38d3282f863de9cde0ce5cd231c',
+            'duration': 516.76,
+            'thumbnail': r're:https://images\.paramount\.tech/uri/mgid:arc:imageassetref:',
+            'series': 'The Daily Show',
+            'season': 'Season 30',
+            'season_number': 30,
+            'episode': 'Episode 0',
+            'episode_number': 0,
+            'timestamp': 1753973314,
+            'upload_date': '20250731',
+            'release_timestamp': 1753977914,
+            'release_date': '20250731',
         },
-    }, {
-        'url': 'http://www.cc.com/episodes/pnzzci/drawn-together--american-idol--parody-clip-show-season-3-ep-314',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.cc.com/video/k3sdvm/the-daily-show-with-jon-stewart-exclusive-the-fourth-estate',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.cc.com/collection-playlist/cosnej/stand-up-specials/t6vtjb',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.cc.com/movies/tkp406/a-cluesterfuenke-christmas',
-        'only_matching': True,
+        'params': {'skip_download': 'm3u8'},
     }]
-
-
-class ComedyCentralTVIE(MTVServicesInfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?comedycentral\.tv/folgen/(?P<id>[0-9a-z]{6})'
-    _TESTS = [{
-        'url': 'https://www.comedycentral.tv/folgen/pxdpec/josh-investigates-klimawandel-staffel-1-ep-1',
-        'info_dict': {
-            'id': '15907dc3-ec3c-11e8-a442-0e40cf2fc285',
-            'ext': 'mp4',
-            'title': 'Josh Investigates',
-            'description': 'Steht uns das Ende der Welt bevor?',
-        },
-    }]
-    _FEED_URL = 'http://feeds.mtvnservices.com/od/feed/intl-mrss-player-feed'
-    _GEO_COUNTRIES = ['DE']
-
-    def _get_feed_query(self, uri):
-        return {
-            'accountOverride': 'intl.mtvi.com',
-            'arcEp': 'web.cc.tv',
-            'ep': 'b9032c3a',
-            'imageEp': 'web.cc.tv',
-            'mgid': uri,
-        }

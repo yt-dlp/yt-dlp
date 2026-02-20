@@ -1,3 +1,5 @@
+import json
+
 from .theplatform import ThePlatformIE
 from ..utils import (
     ExtractorError,
@@ -6,7 +8,6 @@ from ..utils import (
     remove_start,
     traverse_obj,
     update_url_query,
-    urlencode_postdata,
 )
 
 
@@ -20,13 +21,13 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
     _THEPLATFORM_KEY = '43jXaGRQud'
     _THEPLATFORM_SECRET = 'S10BPXHMlb'
     _DOMAIN_MAP = {
-        'history.com': ('HISTORY', 'history'),
-        'aetv.com': ('AETV', 'aetv'),
-        'mylifetime.com': ('LIFETIME', 'lifetime'),
-        'lifetimemovieclub.com': ('LIFETIMEMOVIECLUB', 'lmc'),
-        'fyi.tv': ('FYI', 'fyi'),
-        'historyvault.com': (None, 'historyvault'),
-        'biography.com': (None, 'biography'),
+        'history.com': ('HISTORY', 'history', 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiI1MzZlMTQ3ZS0zMzFhLTQxY2YtYTMwNC01MDA2NzNlOGYwYjYiLCJuYmYiOjE1Mzg2NjMzMDksImlzcyI6ImF1dGguYWRvYmUuY29tIiwiaWF0IjoxNTM4NjYzMzA5fQ.n24-FVHLGXJe2D4atIQZ700aiXKIajKh5PWFoHJ40Az4itjtwwSFHnvufnoal3T8lYkwNLxce7H-IEGxIykRkZEdwq09pMKMT-ft9ASzE4vQ8fAWbf5ZgDME86x4Jq_YaxkRc9Ne0eShGhl8fgTJHvk07sfWcol61HJ7kU7K8FzzcHR0ucFQgA5VNd8RyjoGWY7c6VxnXR214LOpXsywmit04-vGJC102b_WA2EQfqI93UzG6M6l0EeV4n0_ijP3s8_i8WMJZ_uwnTafCIY6G_731i01dKXDLSFzG1vYglAwDa8DTcdrAAuIFFDF6QNGItCCmwbhjufjmoeVb7R1Gg'),
+        'aetv.com': ('AETV', 'aetv', 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiI5Y2IwNjg2Yy03ODUxLTRiZDUtODcyMC00MjNlZTg1YTQ1NzMiLCJuYmYiOjE1Mzg2NjMyOTAsImlzcyI6ImF1dGguYWRvYmUuY29tIiwiaWF0IjoxNTM4NjYzMjkwfQ.T5Elf0X4TndO4NEgqBas1gDxNHGPVk_daO2Ha5FBzVO6xi3zM7eavdAKfYMCN7gpWYJx03iADaVPtczO_t_aGZczDjpwJHgTUzDgvcLZAVsVDqtDIAMy3S846rPgT6UDbVoxurA7B2VTPm9phjrSXhejvd0LBO8MQL4AZ3sy2VmiPJ2noT1ily5PuHCYlkrT1fheO064duR__Cd9DQ5VTMnKjzY3Cx345CEwKDkUk5gwgxhXM-aY0eblehrq8VD81_aRM_O3tvh7nbTydHOnUpV-k_iKVi49gqz7Sf8zb6Zh5z2Uftn3vYCfE5NQuesitoRMnsH17nW7o_D59hkRgg'),
+        'mylifetime.com': ('LIFETIME', 'lifetime', 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJmODg0MDM1ZC1mZGRmLTRmYjgtYmRkMC05MzRhZDdiYTAwYTciLCJuYmYiOjE1NDkzOTI2NDQsImlzcyI6ImF1dGguYWRvYmUuY29tIiwiaWF0IjoxNTQ5MzkyNjQ0fQ.vkTIaCpheKdKQd__2-3ec4qkcpbAhyCTvwe5iTl922ItSQfVhpEJG4wseVSNmBTrpBi0hvLedcw6Hj1_UuzBMVuVcCqLprU-pI8recEwL0u7G-eVkylsxe1OTUm1o3V6OykXQ9KlA-QQLL1neUhdhR1n5B1LZ4cmtBmiEpfgf4rFwXD1ScFylIcaWKLBqHoRBNUmxyTmoXXvn_A-GGSj9eCizFzY8W5uBwUcsoiw2Cr1skx7PbB2RSP1I5DsoIJKG-8XV1KS7MWl-fNLjE-hVAsI9znqfEEFcPBiv3LhCP4Nf4OIs7xAselMn0M0c8igRUZhURWX_hdygUAxkbKFtQ'),
+        'fyi.tv': ('FYI', 'fyi', 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxOGZiOWM3Ny1mYmMzLTQxYTktYmE1Yi1lMzM0ZmUzNzU4NjEiLCJuYmYiOjE1ODc1ODAzNzcsImlzcyI6ImF1dGguYWRvYmUuY29tIiwiaWF0IjoxNTg3NTgwMzc3fQ.AYDuipKswmIfLBfOjHRsfc5fMV5NmJUmiJnkpiep4VEw9QiXkygFj4bN06Si5tFc5Mee5TDrGzDpV6iuKbVpLT5kuqXhAn-Wozf5zKPsg_IpdEKO7gsiCq4calt72ct44KTqtKD_hVcoxQU24_HaJsRgXzu3B-6Ff6UrmsXkyvYifYVC9v2DSkdCuA02_IrlllzVT2kRuefUXgL4vQRtTFf77uYa0RKSTG7uVkiQ_AU41eXevKlO2qgtc14Hk5cZ7-ZNrDyMCXYA5ngdIHP7Gs9PWaFXT36PFHI_rC4EfxUABPzjQFxjpP75aX5qn8SH__HbM9q3hoPWgaEaf76qIQ'),
+        'lifetimemovieclub.com': ('LIFETIMEMOVIECLUB', 'lmc', None),
+        'historyvault.com': (None, 'historyvault', None),
+        'biography.com': (None, 'biography', None),
     }
 
     def _extract_aen_smil(self, smil_url, video_id, auth=None):
@@ -71,7 +72,7 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         }
 
     def _extract_aetn_info(self, domain, filter_key, filter_value, url):
-        requestor_id, brand = self._DOMAIN_MAP[domain]
+        requestor_id, brand, software_statement = self._DOMAIN_MAP[domain]
         result = self._download_json(
             f'https://feeds.video.aetnd.com/api/v2/{brand}/videos',
             filter_value, query={f'filter[{filter_key}]': filter_value})
@@ -95,7 +96,7 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 theplatform_metadata.get('AETN$PPL_pplProgramId') or theplatform_metadata.get('AETN$PPL_pplProgramId_OLD'),
                 traverse_obj(theplatform_metadata, ('ratings', 0, 'rating')))
             auth = self._extract_mvpd_auth(
-                url, video_id, requestor_id, resource)
+                url, video_id, requestor_id, resource, software_statement)
         info.update(self._extract_aen_smil(media_url, video_id, auth))
         info.update({
             'title': title,
@@ -110,11 +111,9 @@ class AENetworksIE(AENetworksBaseIE):
     IE_NAME = 'aenetworks'
     IE_DESC = 'A+E Networks: A&E, Lifetime, History.com, FYI Network and History Vault'
     _VALID_URL = AENetworksBaseIE._BASE_URL_REGEX + r'''(?P<id>
-        shows/[^/]+/season-\d+/episode-\d+|
-        (?:
-            (?:movie|special)s/[^/]+|
-            (?:shows/[^/]+/)?videos
-        )/[^/?#&]+
+        shows/[^/?#]+/season-\d+/episode-\d+|
+        (?P<type>movie|special)s/[^/?#]+(?P<extra>/[^/?#]+)?|
+        (?:shows/[^/?#]+/)?videos/[^/?#]+
     )'''
     _TESTS = [{
         'url': 'http://www.history.com/shows/mountain-men/season-1/episode-1',
@@ -127,20 +126,18 @@ class AENetworksIE(AENetworksBaseIE):
             'upload_date': '20120529',
             'uploader': 'AENE-NEW',
             'duration': 2592.0,
-            'thumbnail': r're:^https?://.*\.jpe?g$',
+            'thumbnail': r're:https?://.+/.+\.jpg',
             'chapters': 'count:5',
             'tags': 'count:14',
             'categories': ['Mountain Men'],
             'episode_number': 1,
-            'episode': 'Episode 1',
+            'episode': 'Winter Is Coming',
             'season': 'Season 1',
             'season_number': 1,
             'series': 'Mountain Men',
+            'age_limit': 0,
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
+        'params': {'skip_download': 'm3u8'},
         'add_ie': ['ThePlatform'],
         'skip': 'Geo-restricted - This content is not available in your location.',
     }, {
@@ -154,21 +151,64 @@ class AENetworksIE(AENetworksBaseIE):
             'upload_date': '20160112',
             'uploader': 'AENE-NEW',
             'duration': 1277.695,
-            'thumbnail': r're:^https?://.*\.jpe?g$',
+            'thumbnail': r're:https?://.+/.+\.jpg',
             'chapters': 'count:4',
             'tags': 'count:23',
-            'episode': 'Episode 1',
+            'episode': 'Inlawful Entry',
             'episode_number': 1,
             'season': 'Season 9',
             'season_number': 9,
             'series': 'Duck Dynasty',
+            'age_limit': 0,
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
+        'params': {'skip_download': 'm3u8'},
         'add_ie': ['ThePlatform'],
-        'skip': 'This video is only available for users of participating TV providers.',
+    }, {
+        'url': 'https://play.mylifetime.com/movies/v-c-andrews-web-of-dreams',
+        'info_dict': {
+            'id': '1590627395981',
+            'ext': 'mp4',
+            'title': 'VC Andrews\' Web of Dreams',
+            'description': 'md5:2a8ba13ae64271c79eb65c0577d312ce',
+            'uploader': 'AENE-NEW',
+            'age_limit': 14,
+            'duration': 5253.665,
+            'thumbnail': r're:https?://.+/.+\.jpg',
+            'chapters': 'count:8',
+            'tags': ['lifetime', 'mylifetime', 'lifetime channel', "VC Andrews' Web of Dreams"],
+            'series': '',
+            'season': 'Season 0',
+            'season_number': 0,
+            'episode': 'VC Andrews\' Web of Dreams',
+            'episode_number': 0,
+            'timestamp': 1566489703.0,
+            'upload_date': '20190822',
+        },
+        'params': {'skip_download': 'm3u8'},
+        'add_ie': ['ThePlatform'],
+    }, {
+        'url': 'https://www.aetv.com/specials/hunting-jonbenets-killer-the-untold-story',
+        'info_dict': {
+            'id': '1488235587551',
+            'ext': 'mp4',
+            'title': 'Hunting JonBenet\'s Killer: The Untold Story',
+            'description': 'md5:209869425ee392d74fe29201821e48b4',
+            'uploader': 'AENE-NEW',
+            'age_limit': 14,
+            'duration': 5003.903,
+            'thumbnail': r're:https?://.+/.+\.jpg',
+            'chapters': 'count:10',
+            'tags': 'count:11',
+            'series': '',
+            'season': 'Season 0',
+            'season_number': 0,
+            'episode': 'Hunting JonBenet\'s Killer: The Untold Story',
+            'episode_number': 0,
+            'timestamp': 1554987697.0,
+            'upload_date': '20190411',
+        },
+        'params': {'skip_download': 'm3u8'},
+        'add_ie': ['ThePlatform'],
     }, {
         'url': 'http://www.fyi.tv/shows/tiny-house-nation/season-1/episode-8',
         'only_matching': True,
@@ -196,25 +236,28 @@ class AENetworksIE(AENetworksBaseIE):
     }]
 
     def _real_extract(self, url):
-        domain, canonical = self._match_valid_url(url).groups()
+        domain, canonical, url_type, extra = self._match_valid_url(url).group('domain', 'id', 'type', 'extra')
+        if url_type in ('movie', 'special') and not extra:
+            canonical += f'/full-{url_type}'
         return self._extract_aetn_info(domain, 'canonical', '/' + canonical, url)
 
 
 class AENetworksListBaseIE(AENetworksBaseIE):
     def _call_api(self, resource, slug, brand, fields):
         return self._download_json(
-            'https://yoga.appsvcs.aetnd.com/graphql',
-            slug, query={'brand': brand}, data=urlencode_postdata({
+            'https://yoga.appsvcs.aetnd.com/graphql', slug,
+            query={'brand': brand}, headers={'Content-Type': 'application/json'},
+            data=json.dumps({
                 'query': '''{
   %s(slug: "%s") {
     %s
   }
 }''' % (resource, slug, fields),  # noqa: UP031
-            }))['data'][resource]
+            }).encode())['data'][resource]
 
     def _real_extract(self, url):
         domain, slug = self._match_valid_url(url).groups()
-        _, brand = self._DOMAIN_MAP[domain]
+        _, brand, _ = self._DOMAIN_MAP[domain]
         playlist = self._call_api(self._RESOURCE, slug, brand, self._FIELDS)
         base_url = f'http://watch.{domain}'
 

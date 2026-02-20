@@ -18,12 +18,10 @@ class LibsynIE(InfoExtractor):
         'info_dict': {
             'id': '6385796',
             'ext': 'mp3',
-            'title': 'Champion Minded - Developing a Growth Mindset',
-            # description fetched using another request:
-            # http://html5-player.libsyn.com/embed/getitemdetails?item_id=6385796
-            # 'description': 'In this episode, Allistair talks about the importance of developing a growth mindset, not only in sports, but in life too.',
+            'title': 'The Allistair McCaw Podcast - Developing a Growth Mindset',
+            'duration': 834.0,
+            'thumbnail': r're:https?://assets\.libsyn\.com/.+',
             'upload_date': '20180320',
-            'thumbnail': 're:^https?://.*',
         },
     }, {
         'url': 'https://html5-player.libsyn.com/embed/episode/id/3727166/height/75/width/200/theme/standard/direction/no/autoplay/no/autonext/no/thumbnail/no/preload/no/no_addthis/no/',
@@ -32,8 +30,32 @@ class LibsynIE(InfoExtractor):
             'id': '3727166',
             'ext': 'mp3',
             'title': 'Clients From Hell Podcast - How a Sex Toy Company Kickstarted my Freelance Career',
+            'thumbnail': r're:https?://assets\.libsyn\.com/.+',
             'upload_date': '20150818',
-            'thumbnail': 're:^https?://.*',
+        },
+        'skip': 'Invalid URL',
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://html5-player.libsyn.com/',
+        'md5': '50cff329596b8f674d4449ed077ef2f9',
+        'info_dict': {
+            'id': '2378831',
+            'ext': 'mp3',
+            'title': 'md5:54108b15f98e1b4056612c10b50106b2',
+            'duration': 3561.0,
+            'thumbnail': r're:https?://assets\.libsyn\.com/.+',
+            'upload_date': '20130630',
+        },
+    }, {
+        'url': 'https://undergroundwellness.com/podcasts/306-5-steps-to-permanent-gut-healing/',
+        'md5': '23576952577f9604520a730d90371761',
+        'info_dict': {
+            'id': '3793998',
+            'ext': 'mp3',
+            'title': 'Underground Wellness Radio - Jack Tips: 5 Steps to Permanent Gut Healing',
+            'duration': 3989.0,
+            'thumbnail': r're:https?://assets\.libsyn\.com/.+',
+            'upload_date': '20141126',
         },
     }]
 

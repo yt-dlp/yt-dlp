@@ -388,7 +388,8 @@ class RedditIE(InfoExtractor):
                     })
             if entries:
                 return self.playlist_result(entries, video_id, **info)
-            raise ExtractorError('No media found', expected=True)
+            self.raise_no_formats('No media found', expected=True, video_id=video_id)
+            return {**info, 'id': video_id}
 
         # Check if media is hosted on reddit:
         reddit_video = traverse_obj(data, (
