@@ -236,8 +236,15 @@ class TestInfoExtractor(unittest.TestCase):
       }
                 </script>''',
                 {
-                    'timestamp': 1636523400,
                     'title': 'md5:91fe569e952e4d146485740ae927662b',
+                    'categories': ['Κοινωνία'],
+                    'creators': ['Ant1news'],
+                    'description': 'md5:16756d0a18f33bf550e683d134a72f3c',
+                    'modified_timestamp': 1636523573,
+                    'release_timestamp': 1636523400,
+                    'tags': 'count:6',
+                    'thumbnails': [{'url': 'https://ant1media.azureedge.net/imgHandler/1100/a635c968-be71-447c-bf9c-80d843ece21e.jpg'}],
+                    'uploader': 'Ant1news',
                 },
                 {'expected_type': 'NewsArticle'},
             ),
