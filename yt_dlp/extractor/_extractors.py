@@ -1792,6 +1792,7 @@ from .safari import (
 from .saitosan import SaitosanIE
 from .samplefocus import SampleFocusIE
 from .sapo import SapoIE
+from .sasflix import SasflixIE
 from .sauceplus import (
     SaucePlusChannelIE,
     SaucePlusIE,
