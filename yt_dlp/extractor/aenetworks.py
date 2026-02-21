@@ -5,10 +5,12 @@ from ..utils import (
     ExtractorError,
     GeoRestrictedError,
     int_or_none,
+    make_archive_id,
     remove_start,
-    traverse_obj,
     update_url_query,
+    url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
@@ -29,6 +31,19 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         'historyvault.com': (None, 'historyvault', None),
         'biography.com': (None, 'biography', None),
     }
+    _GRAPHQL_QUERY = '''
+        query getUserVideo($videoId: ID!) {
+            video(id: $videoId) {
+                title
+                publicUrl
+                programId
+                tvSeasonNumber
+                tvSeasonEpisodeNumber
+                series {
+                    title
+                }
+            }
+        }'''
 
     def _extract_aen_smil(self, smil_url, video_id, auth=None):
         query = {
@@ -73,22 +88,39 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
 
     def _extract_aetn_info(self, domain, filter_key, filter_value, url):
         requestor_id, brand, software_statement = self._DOMAIN_MAP[domain]
-        graphql_video_id = (self._search_regex(
-            r'<meta\s[^>]*(?:content="[^"]*tpid/(\d+)"|name="videoId"[^>]+content="(\d+)")',
-            self._download_webpage(url, filter_value), 'video ID') if filter_key == 'canonical' else filter_value)
+        if filter_key == 'canonical':
+            webpage = self._download_webpage(url, filter_value)
+            graphql_video_id = self._search_regex(
+                r'<meta\b[^>]+\bcontent="[^"]*\btpid/(\d+)"', webpage,
+                'id') or self._html_search_meta('videoId', webpage, 'GraphQL video ID', fatal=True)
+        else:
+            graphql_video_id = filter_value
+
         result = self._download_json(
             'https://yoga.appsvcs.aetnd.com/', graphql_video_id,
-            query={'brand': brand, 'mode': 'live', 'platform': 'web'},
-            data=json.dumps({'operationName': 'getUserVideo', 'variables': {'videoId': graphql_video_id},
-                             'query': 'query getUserVideo($videoId: ID!) { video(id: $videoId) { title publicUrl programId tvSeasonNumber tvSeasonEpisodeNumber series { title } } }'}).encode(),
-            headers={'Content-Type': 'application/json'})
-        result = traverse_obj(result, ('data', 'video', {lambda x: x.get('publicUrl') and x}))
-        if not result:
+            query={
+                'brand': brand,
+                'mode': 'live',
+                'platform': 'web',
+            },
+            data=json.dumps({
+                'operationName': 'getUserVideo',
+                'variables': {
+                    'videoId': graphql_video_id,
+                },
+                'query': self._GRAPHQL_QUERY,
+            }).encode(),
+            headers={
+                'Content-Type': 'application/json',
+            })
+
+        result = traverse_obj(result, ('data', 'video', {dict}))
+        media_url = traverse_obj(result, ('publicUrl', {url_or_none}))
+        if not media_url:
             raise ExtractorError('Show not found in A&E feed (too new?)', expected=True,
                                  video_id=remove_start(filter_value, '/'))
         title = result['title']
         video_id = result['programId']
-        media_url = result['publicUrl']
         theplatform_metadata = self._download_theplatform_metadata(self._search_regex(
             r'https?://link\.theplatform\.com/s/([^?]+)', media_url, 'theplatform_path'), video_id)
         info = self._parse_theplatform_metadata(theplatform_metadata)
@@ -103,6 +135,8 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         info.update(self._extract_aen_smil(media_url, video_id, auth))
         info.update({
             'title': title,
+            'display_id': graphql_video_id,
+            '_old_archive_ids': [make_archive_id(self, graphql_video_id)],
             **traverse_obj(result, {
                 'series': ('series', 'title', {str}),
                 'season_number': ('tvSeasonNumber', {int_or_none}),
@@ -120,9 +154,8 @@ class AENetworksIE(AENetworksBaseIE):
         (?P<type>movie|special)s/[^/?#]+(?P<extra>/[^/?#]+)?|
         (?:shows/[^/?#]+/)?videos/[^/?#]+
     )'''
-
     _TESTS = [{
-        'url': 'http://www.history.com/shows/mountain-men/season-1/episode-1',
+        'url': 'https://www.history.com/shows/mountain-men/season-1/episode-1',
         'info_dict': {
             'id': '22253814',
             'ext': 'mp4',
@@ -145,11 +178,11 @@ class AENetworksIE(AENetworksBaseIE):
         },
         'params': {'skip_download': 'm3u8'},
         'add_ie': ['ThePlatform'],
-        'skip': 'Geo-restricted - This content is not available in your location.',
+        'skip': 'This content requires a valid, unexpired auth token',
     }, {
-        'url': 'http://www.aetv.com/shows/duck-dynasty/season-9/episode-1',
+        'url': 'https://www.aetv.com/shows/duck-dynasty/season-9/episode-1',
         'info_dict': {
-            'id': '600587331957',
+            'id': '147486',
             'ext': 'mp4',
             'title': 'Inlawful Entry',
             'description': 'md5:57c12115a2b384d883fe64ca50529e08',
@@ -166,6 +199,8 @@ class AENetworksIE(AENetworksBaseIE):
             'season_number': 9,
             'series': 'Duck Dynasty',
             'age_limit': 0,
+            'display_id': '600587331957',
+            '_old_archive_ids': ['aenetworks 600587331957'],
         },
         'params': {'skip_download': 'm3u8'},
         'add_ie': ['ThePlatform'],
@@ -192,6 +227,7 @@ class AENetworksIE(AENetworksBaseIE):
         },
         'params': {'skip_download': 'm3u8'},
         'add_ie': ['ThePlatform'],
+        'skip': '404 Not Found',
     }, {
         'url': 'https://www.aetv.com/specials/hunting-jonbenets-killer-the-untold-story',
         'info_dict': {
@@ -215,6 +251,7 @@ class AENetworksIE(AENetworksBaseIE):
         },
         'params': {'skip_download': 'm3u8'},
         'add_ie': ['ThePlatform'],
+        'skip': 'This content requires a valid, unexpired auth token',
     }, {
         'url': 'http://www.fyi.tv/shows/tiny-house-nation/season-1/episode-8',
         'only_matching': True,
@@ -265,7 +302,7 @@ class AENetworksListBaseIE(AENetworksBaseIE):
         domain, slug = self._match_valid_url(url).groups()
         _, brand, _ = self._DOMAIN_MAP[domain]
         playlist = self._call_api(self._RESOURCE, slug, brand, self._FIELDS)
-        base_url = f'http://watch.{domain}'
+        base_url = f'https://watch.{domain}'
 
         entries = []
         for item in (playlist.get(self._ITEMS_KEY) or []):
