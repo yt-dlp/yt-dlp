@@ -1,6 +1,6 @@
 from .common import InfoExtractor
 from .wat import WatIE
-from ..utils import ExtractorError, int_or_none
+from ..utils import ExtractorError, str_or_none
 from ..utils.traversal import traverse_obj
 
 
@@ -19,10 +19,11 @@ class LCIIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+        'skip': 'This content is no longer available',
     }, {
         'url': 'https://www.tf1info.fr/politique/election-presidentielle-2022-second-tour-j-2-marine-le-pen-et-emmanuel-macron-en-interview-de-lci-vendredi-soir-2217486.html',
         'info_dict': {
-            'id': '13875948',
+            'id': 'c5647202-4549-4644-a892-1976e78fc5f8',
             'ext': 'mp4',
             'title': 'md5:660df5481fd418bc3bbb0d070e6fdb5a',
             'thumbnail': 'https://photos.tf1.fr/1280/720/presidentielle-2022-marine-le-pen-et-emmanuel-macron-invites-de-lci-ce-vendredi-9c0e73-e1a036-0@1x.jpg',
@@ -33,8 +34,18 @@ class LCIIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
-        'url': 'https://www.lci.fr/politique/election-presidentielle-2022-second-tour-j-2-marine-le-pen-et-emmanuel-macron-en-interview-de-lci-vendredi-soir-2217486.html',
-        'only_matching': True,
+        'url': 'https://www.tf1info.fr/replay-lci/videos/video-24h-pujadas-du-mercredi-2-juillet-2025-73777-2380589.html',
+        'info_dict': {
+            'id': 'f0550853-c949-4e0e-8ba4-8237cbb512af',
+            'ext': 'mp4',
+            'title': '24H Pujadas du mercredi 2 juillet 2025',
+            'thumbnail': 'https://photos.tf1.fr/1280/720/24h-pujadas-du-mercredi-2-juillet-2025-394752-0@1x.jpg',
+            'upload_date': '20250702',
+            'duration': 5866,
+        },
+        'params': {
+            'skip_download': True,
+        },
     }]
 
     def _real_extract(self, url):
@@ -42,7 +53,7 @@ class LCIIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         next_data = self._search_nextjs_data(webpage, video_id)
         wat_id = traverse_obj(next_data, (
-            'props', 'pageProps', 'page', 'tms', 'videos', {dict.keys}, ..., {int_or_none}, any))
+            'props', 'pageProps', 'page', 'tms', 'videos', {dict.keys}, ..., {str_or_none}, any))
         if wat_id is None:
             raise ExtractorError('Could not find wat_id')
 
