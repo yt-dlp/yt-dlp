@@ -51,7 +51,8 @@ class TruthIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        status = self._download_json(f'https://truthsocial.com/api/v1/statuses/{video_id}', video_id)
+        status = self._download_json(
+            f'https://truthsocial.com/api/v1/statuses/{video_id}', video_id, impersonate=True)
         uploader_id = strip_or_none(traverse_obj(status, ('account', 'username')))
         return {
             'id': video_id,
