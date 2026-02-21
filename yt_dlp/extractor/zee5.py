@@ -1,3 +1,4 @@
+import base64
 import json
 import time
 import uuid
@@ -96,27 +97,94 @@ class Zee5IE(InfoExtractor):
         'only_matching': True,
     }]
     _DEVICE_ID = str(uuid.uuid4())
+    raw_esk = f'{_DEVICE_ID}__gBQaZLiNdGN9UsCKZaloghz9t9StWLSD__{int(time.time() * 1000)}'
+    _ESK = base64.b64encode(raw_esk.encode()).decode()
     _USER_TOKEN = None
     _LOGIN_HINT = 'Use "--username <mobile_number>" to login using otp or "--username token" and "--password <user_token>" to login using user token.'
     _NETRC_MACHINE = 'zee5'
     _GEO_COUNTRIES = ['IN']
     _USER_COUNTRY = None
+    _REFRESH_TOKEN = None
+    _CACHE_KEY = 'zee5_data'
+
+    def is_jwt_expired(self, jwt_token):
+        return jwt_decode_hs256(jwt_token)['exp'] - time.time() < 300
+
+    def get_user_token(self):
+        if self._USER_TOKEN and not self.is_jwt_expired(self._USER_TOKEN):
+            return self._USER_TOKEN
+        self._USER_TOKEN, self._REFRESH_TOKEN = self.cache.load(self._NETRC_MACHINE, self._CACHE_KEY, default=[None, None])
+        if self._USER_TOKEN and not self.is_jwt_expired(self._USER_TOKEN):
+            return self._USER_TOKEN
+        if not self._USER_TOKEN and self._REFRESH_TOKEN:
+            self.refresh_token()
+
+        return None
+
+    def default_headers(self):
+        return {
+            'content-type': 'application/json',
+            'device_id': self._DEVICE_ID,
+            'x-z5-guest-token': self._DEVICE_ID,
+            'Esk': self._ESK,
+            'referer': 'https://www.zee5.com/',
+        }
+
+    def refresh_token(self):
+        if not self._REFRESH_TOKEN:
+            return self._perform_login(*self._get_login_info())
+        try:
+            data = self._download_json(
+                url=f'/v1/user/renew?refresh_token={self._REFRESH_TOKEN}',
+                headers={**self.default_headers()},
+            )
+        except ExtractorError:
+            self.to_screen('Unable to Refresh token')
+            return self._perform_login(*self._get_login_info())
+
+        self._USER_TOKEN = data.get('access_token')
+        self._REFRESH_TOKEN = data.get('refresh_token')
+        self.cache.store(self._NETRC_MACHINE, self._CACHE_KEY, [self._USER_TOKEN, self._REFRESH_TOKEN])
+        return
 
     def _perform_login(self, username, password):
+        if self.get_user_token():
+            return
         if len(username) == 10 and username.isdigit() and self._USER_TOKEN is None:
             self.report_login()
-            otp_request_json = self._download_json(f'https://b2bapi.zee5.com/device/sendotp_v1.php?phoneno=91{username}',
-                                                   None, note='Sending OTP')
+            otp_request_json = self._download_json(
+                'https://auth.zee5.com/v1/user/sendotp',
+                None,
+                data=json.dumps({
+                    'phoneno': username if '91' in username else f'91{username}',
+                }).encode(),
+                headers={**self.default_headers()},
+                note='Sending OTP')
             if otp_request_json['code'] == 0:
                 self.to_screen(otp_request_json['message'])
             else:
                 raise ExtractorError(otp_request_json['message'], expected=True)
             otp_code = self._get_tfa_info('OTP')
-            otp_verify_json = self._download_json(f'https://b2bapi.zee5.com/device/verifyotp_v1.php?phoneno=91{username}&otp={otp_code}&guest_token={self._DEVICE_ID}&platform=web',
-                                                  None, note='Verifying OTP', fatal=False)
+            otp_verify_json = self._download_json(
+                'https://auth.zee5.com/v1/user/verifyotp',
+                None,
+                data=json.dumps({
+                    'aid': '91955485578',  # Static in browser
+                    'appflyer_id': '65368gdbso90oNinja4AS133436',  # Static in browser
+                    'phoneno': username if '91' in username else f'91{username}',
+                    'otp': otp_code,
+                    'guest_token': self._DEVICE_ID,
+                    'lotame_cookie_id': '',
+                    'platform': 'PWA',
+                    'version': '5.2.1',
+                }).encode(),
+                headers={**self.default_headers()},
+                note='Verifying OTP', fatal=False)
             if not otp_verify_json:
                 raise ExtractorError('Unable to verify OTP.', expected=True)
-            self._USER_TOKEN = otp_verify_json.get('token')
+            self._USER_TOKEN = otp_verify_json.get('access_token')
+            self._REFRESH_TOKEN = otp_verify_json.get('refresh_token')
+            self.cache.store(self._NETRC_MACHINE, self._CACHE_KEY, [self._USER_TOKEN, self._REFRESH_TOKEN])
             if not self._USER_TOKEN:
                 raise ExtractorError(otp_request_json['message'], expected=True)
         elif username.lower() == 'token' and try_call(lambda: jwt_decode_hs256(password)):
