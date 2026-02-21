@@ -790,34 +790,9 @@ def _htmlentity_transform(entity_with_semicolon):
     if entity in html.entities.name2codepoint:
         return chr(html.entities.name2codepoint[entity])
 
-    # TODO: HTML5 allows entities without a semicolon.
-    # E.g. '&Eacuteric' should be decoded as 'Éric'.
-    if entity_with_semicolon in html.entities.html5:
-        return html.entities.html5[entity_with_semicolon]
-
-    mobj = re.match(r'#(x[0-9a-fA-F]+|[0-9]+)', entity)
-    if mobj is not None:
-        numstr = mobj.group(1)
-        if numstr.startswith('x'):
-            base = 16
-            numstr = f'0{numstr}'
-        else:
-            base = 10
-        # See https://github.com/ytdl-org/youtube-dl/issues/7518
-        with contextlib.suppress(ValueError):
-            return chr(int(numstr, base))
-
-    # Unknown entity in name, return its literal representation
-    return f'&{entity};'
-
 
 def unescapeHTML(s):
-    if s is None:
-        return None
-    assert isinstance(s, str)
-
-    return re.sub(
-        r'&([^&;]+;)', lambda m: _htmlentity_transform(m.group(1)), s)
+    return html.unescape(s) if isinstance(s, str) else None
 
 
 def escapeHTML(text):
