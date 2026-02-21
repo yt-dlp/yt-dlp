@@ -22,10 +22,10 @@ from ..utils.traversal import (
 
 class ZapiksIE(InfoExtractor):
     _VALID_URL = [
-        r'https?://(www\.)?zapiks\.(?:com|fr)/(?P<id>[\w-]+)\.html',
-        r'https?://(www\.)?zapiks\.fr/index\.php\?.*\bmedia_id=(?P<id>\d+)',
+        r'https?://(?:www\.)?zapiks\.(?:com|fr)/(?P<id>[\w-]+)\.html',
+        r'https?://(?:www\.)?zapiks\.fr/index\.php\?.*\bmedia_id=(?P<id>\d+)',
     ]
-    _EMBED_REGEX = [r'<iframe[^>]+\bsrc=(["\'])(?P<url>https?://(?:www\.)?zapiks\.fr/index\.php\?.+?)\1']
+    _EMBED_REGEX = [r'<iframe[^>]+\bsrc=["\'](?P<url>(?:https?:)?//(?:www\.)?zapiks\.fr/index\.php\?.*\bmedia_id=(?P<id>\d+))']
     _TESTS = [{
         'url': 'https://www.zapiks.fr/ep2s3-bon-appetit-eh-be-viva.html',
         'md5': 'aeb3c473b2d564b2d46d664d28d5f050',
