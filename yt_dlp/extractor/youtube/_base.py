@@ -640,17 +640,36 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         pref.update({'hl': self._preferred_lang or 'en', 'tz': 'UTC'})
         self._set_cookie('.youtube.com', name='PREF', value=urllib.parse.urlencode(pref))
 
+    def _get_visitor_data(self):
+        return try_call(lambda: self._youtube_cookies['VISITOR_INFO1_LIVE'].value)
+
+    def _track_session_age(self):
+        visitor_data = self._get_visitor_data()
+        if visitor_data and visitor_data not in self._known_sessions:
+            self._known_sessions[visitor_data] = int(time.time())
+
+    def _get_session_age(self):
+        visitor_data = self._get_visitor_data()
+        if visitor_data and visitor_data in self._known_sessions:
+            return int(time.time()) - self._known_sessions[visitor_data]
+        return 0
+
     def _initialize_cookie_auth(self):
-        self._passed_auth_cookies = False
         if self._has_auth_cookies:
             self._passed_auth_cookies = True
             self.write_debug('Found YouTube account cookies')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._known_sessions = {}
+        self._passed_auth_cookies = False
 
     def _real_initialize(self):
         self._initialize_pref()
         self._initialize_consent()
         self._initialize_cookie_auth()
         self._check_login_required()
+        self._track_session_age()
 
     def _perform_login(self, username, password):
         if username.startswith('oauth'):
@@ -782,9 +801,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _request_webpage(self, *args, **kwargs):
         response = super()._request_webpage(*args, **kwargs)
+        self._track_session_age()
 
         # Check that we are still logged-in and cookies have not rotated after every request
-        if getattr(self, '_passed_auth_cookies', None) and not self._has_auth_cookies:
+        if self._passed_auth_cookies and not self._has_auth_cookies:
             self.report_warning(
                 'The provided YouTube account cookies are no longer valid. '
                 'They have likely been rotated in the browser as a security measure. '

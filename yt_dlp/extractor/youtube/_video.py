@@ -4156,7 +4156,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return (remove_start(track.get('vssId') or '', '.').replace('.', '-')
                     or track.get('languageCode'))
 
-        def process_language(container, base_url, lang_code, sub_name, client_name, query):
+        def process_language(container, base_url, lang_code, sub_name, client_name, query, available_at=None):
             lang_subs = container.setdefault(lang_code, [])
             for fmt in self._SUBTITLE_FORMATS:
                 # xosf=1 results in undesirable text position data for vtt, json3 & srv* subtitles
@@ -4167,6 +4167,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'url': urljoin('https://www.youtube.com', update_url_query(base_url, query)),
                     'name': sub_name,
                     'impersonate': True,
+                    'available_at': available_at,
                     STREAMING_DATA_CLIENT_NAME: client_name,
                 })
 
@@ -4197,7 +4198,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         need_subs_langs = {get_lang_code(sub) for sub in all_captions if sub.get('kind') != 'asr'}
         need_caps_langs = {
             remove_start(get_lang_code(sub), 'a-')
-            for sub in all_captions if sub.get('kind') == 'asr'}
+            for sub in all_captions if sub.get('kind') == 'asr'
+        }
+        # See https://github.com/yt-dlp/yt-dlp/issues/13831
+        translations_available_at = int(time.time()) + (75 - self._get_session_age())
 
         for pr in prs:
             pctr = pr['captions']['playerCaptionsTracklistRenderer']
@@ -4262,7 +4266,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # Setting tlang=lang returns damaged subtitles.
                     process_language(
                         automatic_captions, base_url, trans_code, trans_name, client_name,
-                        pot_params if orig_lang == orig_trans_code else {'tlang': trans_code, **pot_params})
+                        pot_params if orig_lang == orig_trans_code else {'tlang': trans_code, **pot_params},
+                        available_at=None if orig_lang == orig_trans_code else translations_available_at)
 
                 # Extract automatic captions when the language is not in 'translationLanguages'
                 # e.g. Cantonese [yue], see https://github.com/yt-dlp/yt-dlp/issues/14889
@@ -4277,7 +4282,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         automatic_captions, base_url, f'{lang_code}-orig',
                         f'{lang_name} (Original)', client_name, pot_params)
                 process_language(
-                    automatic_captions, base_url, lang_code, lang_name, client_name, pot_params)
+                    automatic_captions, base_url, lang_code, lang_name, client_name, pot_params,
+                    available_at=translations_available_at)
 
             # Avoid duplication if we've already got everything we need
             need_subs_langs.difference_update(subtitles)
