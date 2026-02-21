@@ -10,7 +10,7 @@ class SasflixIE(InfoExtractor):
             'id': 'a7851209-c06a-446a-9adc-aaf92ef8fae0',
             'title': 'Сильный паспорт // Долину обездолили // Венесуэле хана №177 / Публикации / Сасфликс',
             'ext': 'mp4',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -23,5 +23,5 @@ class SasflixIE(InfoExtractor):
             'id': topic_id,
             'formats': self._extract_m3u8_formats(
                 f'https://sasflix.ru/api/video/{video_id}', video_id),
-            'title': self._og_search_title(webpage)
+            'title': self._og_search_title(webpage),
         }
