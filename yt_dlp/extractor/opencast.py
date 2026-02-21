@@ -132,8 +132,11 @@ class OpencastIE(OpencastBaseIE):
 
     def _real_extract(self, url):
         host, video_id = self._match_valid_url(url).group('host', 'id')
-        res = self._call_api(host, video_id)
-        package = res['search-results']['result']['mediapackage'] if 'search-results' in res else res['result'][0]['mediapackage']
+        response = self._call_api(host, video_id)
+        package = traverse_obj(response, (
+            ('search-results', 'result'),
+            ('result', ...), # Path needed for oc-p.uni-jena.de
+            'mediapackage', {dict}, any)) or {}
         return self._parse_mediapackage(package)
 
 
