@@ -6,6 +6,7 @@ import re
 from .common import InfoExtractor, SearchInfoExtractor
 from ..networking import HEADRequest
 from ..networking.exceptions import HTTPError
+from ..networking.impersonate import ImpersonateTarget
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -833,6 +834,30 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudBaseIE):
             'entries': self._entries(base_url, playlist_id),
         }
 
+    @functools.cached_property
+    def _browser_impersonate_target(self):
+        available_targets = self._downloader._get_available_impersonate_targets()
+        if not available_targets:
+            # impersonate=True gives a generic warning when no impersonation targets are available
+            return True
+
+        # Any browser target older than chrome-116 is 403'd by Datadome
+        MIN_SUPPORTED_TARGET = ImpersonateTarget('chrome', '116', 'windows', '10')
+        version_as_float = lambda x: float(x.version) if x.version else 0
+
+        # Always try to use the newest Chrome target available
+        newest_chrome_target = sorted([
+            target[0] for target in available_targets
+            if target[0].client == 'chrome' and target[0].os in ('windows', 'macos')
+        ], key=version_as_float)[-1]
+
+        if version_as_float(newest_chrome_target) < version_as_float(MIN_SUPPORTED_TARGET):
+            # Newest available target is too old, so warn that the user should upgrade
+            # their impersonation dependency to a version with the minimum supported target
+            return MIN_SUPPORTED_TARGET
+
+        return newest_chrome_target
+
     def _entries(self, url, playlist_id):
         # Per the SoundCloud documentation, the maximum limit for a linked partitioning query is 200.
         # https://developers.soundcloud.com/blog/offset-pagination-deprecated
@@ -848,9 +873,8 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudBaseIE):
                     response = self._call_api(
                         url, playlist_id, query=query, headers=self._HEADERS,
                         note=f'Downloading track page {i + 1}',
-                        # Any browser target older than chrome-116 is 403'd by Datadome
                         # See: https://github.com/yt-dlp/yt-dlp/issues/15660
-                        impersonate=('chrome-131', 'chrome-124', 'chrome-116'))
+                        impersonate=self._browser_impersonate_target)
                     break
                 except ExtractorError as e:
                     # Downloading page may result in intermittent 502 HTTP error
