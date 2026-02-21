@@ -847,7 +847,10 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudBaseIE):
                 try:
                     response = self._call_api(
                         url, playlist_id, query=query, headers=self._HEADERS,
-                        note=f'Downloading track page {i + 1}')
+                        note=f'Downloading track page {i + 1}',
+                        # Any browser target older than chrome-116 is 403'd by Datadome
+                        # See: https://github.com/yt-dlp/yt-dlp/issues/15660
+                        impersonate=('chrome-131', 'chrome-124', 'chrome-116'))
                     break
                 except ExtractorError as e:
                     # Downloading page may result in intermittent 502 HTTP error
