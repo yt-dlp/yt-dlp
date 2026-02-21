@@ -345,6 +345,9 @@ def get_element_html_by_attribute(attribute, value, html, **kwargs):
 def get_elements_by_class(class_name, html, *, escape_value=True, quoted=True, **kwargs):
     """Return the content of all tags with the specified class in the passed HTML document as a list"""
     if quoted:
+        if class_name == '':
+            return get_elements_by_attribute(
+                'class', r'\s*', html, escape_value=False, quoted=True, **kwargs)
         class_name = re.escape(class_name) if escape_value else class_name
         return get_elements_by_attribute(
             'class', rf'[^\'"]*(?<=[\'"\s]){class_name}(?=[\'"\s])[^\'"]*',
@@ -356,6 +359,9 @@ def get_elements_by_class(class_name, html, *, escape_value=True, quoted=True, *
 def get_elements_html_by_class(class_name, html, *, escape_value=True, quoted=True, **kwargs):
     """Return the html of all tags with the specified class in the passed HTML document as a list"""
     if quoted:
+        if class_name == '':
+            return get_elements_html_by_attribute(
+                'class', r'\s*', html, escape_value=False, quoted=True, **kwargs)
         class_name = re.escape(class_name) if escape_value else class_name
         return get_elements_html_by_attribute(
             'class', rf'[^\'"]*(?<=[\'"\s]){class_name}(?=[\'"\s])[^\'"]*',

@@ -46,7 +46,9 @@ _TEST_HTML = '''<html><body>
     <p class="a">4</p>
     <p id="d" custom="e">5</p>
     <p class=foo>bar</p>
+    <p class="a b">c</p>
     <p class="">123</p>
+    <p class=" ">456</p>
     <TIME id="t">12</TIME>
     <link rel="canonical" href="url">
     <input type="checkbox" checked />
@@ -614,13 +616,14 @@ class TestTraversalHelpers:
             with pytest.raises(AssertionError):
                 find_elements(**improper_kwargs)(_TEST_HTML)
 
-        assert find_elements(cls='a')(_TEST_HTML) == ['1', '2', '4']
+        assert find_elements(cls='a')(_TEST_HTML) == ['1', '2', '4', 'c']
         assert find_elements(cls='a', html=True)(_TEST_HTML) == [
-            '<div class="a">1</div>', '<div class="a" id="x" custom="z">2</div>', '<p class="a">4</p>']
-        assert find_elements(cls='[ab]', regex=True)(_TEST_HTML) == ['1', '2', '3', '4']
+            '<div class="a">1</div>', '<div class="a" id="x" custom="z">2</div>', '<p class="a">4</p>', '<p class="a b">c</p>']
+        assert find_elements(cls='[ab]', regex=True)(_TEST_HTML) == ['1', '2', '3', '4', 'c']
         assert find_elements(attr='custom', value='z')(_TEST_HTML) == ['2', '3']
         assert find_elements(attr='custom', value='[ez]')(_TEST_HTML) == []
         assert find_elements(attr='custom', value='[ez]', regex=True)(_TEST_HTML) == ['2', '3', '5']
+        assert find_elements(cls='')(_TEST_HTML) == ['123', '456']
 
 
 class TestDictGet:
