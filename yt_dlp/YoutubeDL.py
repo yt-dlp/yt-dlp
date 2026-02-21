@@ -59,6 +59,7 @@ from .networking.impersonate import ImpersonateRequestHandler, ImpersonateTarget
 from .plugins import directories as plugin_directories, load_all_plugins
 from .postprocessor import (
     EmbedThumbnailPP,
+    FFmpegCENCDecryptPP,
     FFmpegFixupDuplicateMoovPP,
     FFmpegFixupDurationPP,
     FFmpegFixupM3u8PP,
@@ -3444,6 +3445,8 @@ class YoutubeDL:
                         self.report_error(f'{msg}. Aborting')
                         return
 
+                decrypter = FFmpegCENCDecryptPP(self)
+                info_dict.setdefault('__files_to_cenc_decrypt', [])
                 if info_dict.get('requested_formats') is not None:
                     old_ext = info_dict['ext']
                     if self.params.get('merge_output_format') is None:
@@ -3511,6 +3514,7 @@ class YoutubeDL:
                                 f'You have requested downloading multiple formats to stdout {reason}. '
                                 'The formats will be streamed one after the other')
                             fname = temp_filename
+                        first_cenc = next((f['dash_cenc'] for f in info_dict['requested_formats'] if 'dash_cenc' in f), None)
                         for f in info_dict['requested_formats']:
                             new_info = dict(info_dict)
                             del new_info['requested_formats']
@@ -3525,8 +3529,20 @@ class YoutubeDL:
                                 downloaded.append(fname)
                             partial_success, real_download = self.dl(fname, new_info)
                             info_dict['__real_download'] = info_dict['__real_download'] or real_download
+                            if new_info.get('dash_cenc', {}).get('key'):
+                                info_dict['__files_to_cenc_decrypt'].append((fname, new_info['dash_cenc']['key']))
+                            else:
+                                # If a file is encrypted but not specified as such in the manifest, fallback to another key
+                                # This is the same observed behavior as Chrome
+                                with open(fname, 'rb') as f:
+                                    if re.search(br'schm\x00\x00\x00\x00(cbcs|cenc)', f.read()):
+                                        if not first_cenc:
+                                            raise ExtractorError('Cannot decrypt this format')
+                                        info_dict['__files_to_cenc_decrypt'].append((fname, first_cenc['key']))
                             success = success and partial_success
 
+                    if downloaded and info_dict['__files_to_cenc_decrypt'] and decrypter.available:
+                        info_dict['__postprocessors'].append(decrypter)
                     if downloaded and merger.available and not self.params.get('allow_unplayable_formats'):
                         info_dict['__postprocessors'].append(merger)
                         info_dict['__files_to_merge'] = downloaded
@@ -3543,6 +3559,9 @@ class YoutubeDL:
                         # So we should try to resume the download
                         success, real_download = self.dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download
+                        if info_dict.get('dash_cenc', {}).get('key') and decrypter.available:
+                            info_dict['__postprocessors'].append(decrypter)
+                            info_dict['__files_to_cenc_decrypt'] = [(temp_filename, info_dict['dash_cenc']['key'])]
                     else:
                         self.report_file_already_downloaded(dl_filename)
 
