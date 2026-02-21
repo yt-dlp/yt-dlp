@@ -307,6 +307,7 @@ class YoutubeDL:
     getcomments:       Extract video comments. This will not be written to disk
                        unless writeinfojson is also given
     writethumbnail:    Write the thumbnail image to a file
+    thumbnail_format:  Format code of thumbnail to write
     allow_playlist_files: Whether to write playlists' description, infojson etc
                        also to disk when using the 'write*' options
     write_all_thumbnails:  Write all thumbnail formats to files
@@ -4461,9 +4462,24 @@ class YoutubeDL:
     def _write_thumbnails(self, label, info_dict, filename, thumb_filename_base=None):
         """ Write thumbnails to file and return list of (thumb_filename, final_thumb_filename); or None if error """
         write_all = self.params.get('write_all_thumbnails', False)
+        write_any = write_all or self.params.get('writethumbnail', False)
         thumbnails, ret = [], []
-        if write_all or self.params.get('writethumbnail', False):
-            thumbnails = info_dict.get('thumbnails') or []
+
+        if write_any:
+            all_thumbnails = info_dict.get('thumbnails') or []
+            thumbnail_id = self.params.get('thumbnail_format')
+            if thumbnail_id and not write_all:
+                for t in all_thumbnails:
+                    if t.get('id') == thumbnail_id:
+                        thumbnails.append(t)
+                        break
+                else:
+                    self.raise_no_formats(
+                        info_dict, msg=('Invalid thumbnail ID specified. Use --list-thumbnails to see available IDs'),
+                    )
+            else:
+                thumbnails = all_thumbnails
+
             if not thumbnails:
                 self.to_screen(f'[info] There are no {label} thumbnails to download')
                 return ret
