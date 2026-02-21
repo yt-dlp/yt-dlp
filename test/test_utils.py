@@ -1799,12 +1799,20 @@ Line 1
     GET_ELEMENT_BY_CLASS_TEST_STRING = '''
         <span class="foo bar">nice</span>
     '''
+    GET_ELEMENT_BY_CLASS_UNQUOTED_TEST_STRING = '''
+        <span class=foobar>bad</span><span class=foo>good</span>
+    '''
 
     def test_get_element_by_class(self):
         html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
 
         self.assertEqual(get_element_by_class('foo', html), 'nice')
         self.assertEqual(get_element_by_class('no-such-class', html), None)
+        self.assertEqual(get_element_by_class('foo bar', html, quoted=False), None)
+
+        html = self.GET_ELEMENT_BY_CLASS_UNQUOTED_TEST_STRING
+
+        self.assertEqual(get_element_by_class('foo', html, quoted=False), 'good')
 
     def test_get_element_html_by_class(self):
         html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
@@ -1815,6 +1823,9 @@ Line 1
     GET_ELEMENT_BY_ATTRIBUTE_TEST_STRING = '''
         <div itemprop="author" itemscope>foo</div>
     '''
+    GET_ELEMENT_BY_ATTRIBUTE_UNQUOTED_TEST_STRING = '''
+        <div data=foobar>bad</div><div data=foo>good</div>
+    '''
 
     def test_get_element_by_attribute(self):
         html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
@@ -1822,10 +1833,15 @@ Line 1
         self.assertEqual(get_element_by_attribute('class', 'foo bar', html), 'nice')
         self.assertEqual(get_element_by_attribute('class', 'foo', html), None)
         self.assertEqual(get_element_by_attribute('class', 'no-such-foo', html), None)
+        self.assertEqual(get_element_by_attribute('class', 'foo bar', html, quoted=False), None)
 
         html = self.GET_ELEMENT_BY_ATTRIBUTE_TEST_STRING
 
         self.assertEqual(get_element_by_attribute('itemprop', 'author', html), 'foo')
+
+        html = self.GET_ELEMENT_BY_ATTRIBUTE_UNQUOTED_TEST_STRING
+
+        self.assertEqual(get_element_by_attribute('data', 'foo', html, quoted=False), 'good')
 
     def test_get_element_html_by_attribute(self):
         html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
@@ -1838,10 +1854,17 @@ Line 1
 
         self.assertEqual(get_element_html_by_attribute('itemprop', 'author', html), html.strip())
 
+        html = self.GET_ELEMENT_BY_ATTRIBUTE_UNQUOTED_TEST_STRING
+
+        self.assertEqual(get_element_html_by_attribute('data', 'foo', html, quoted=False), '<div data=foo>good</div>')
+
     GET_ELEMENTS_BY_CLASS_TEST_STRING = '''
         <span class="foo bar">nice</span><span class="foo bar">also nice</span>
     '''
     GET_ELEMENTS_BY_CLASS_RES = ['<span class="foo bar">nice</span>', '<span class="foo bar">also nice</span>']
+    VOID_ELEMENTS_TEST_STRING = '''
+        <img alt="foo" src="bar.png"><img alt="foobar" src="baz.jpg"><img alt="foo"/>
+    '''
 
     def test_get_elements_by_class(self):
         html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
@@ -1881,6 +1904,18 @@ Line 1
         self.assertEqual(list(get_elements_text_and_html_by_attribute(
             'class', 'foo', '<a class="foo">nice</a><span class="foo">nice</span>', tag='a')), [('nice', '<a class="foo">nice</a>')])
 
+        html = self.VOID_ELEMENTS_TEST_STRING
+        self.assertEqual(list(get_elements_text_and_html_by_attribute(
+            'alt', 'foo', html, tag='img')), [('', '<img alt="foo" src="bar.png">'), ('', '<img alt="foo"/>')])
+
+        html = '<span data-video="1">v</span><span data-playlist="2">p</span>'
+        self.assertEqual(list(get_elements_text_and_html_by_attribute(
+            r'data-(?:video|playlist)', '1', html, escape_attr=False)), [('v', '<span data-video="1">v</span>')])
+
+        html = '<script crossorigin></script><script crossorigin=""></script>'
+        self.assertEqual(list(get_elements_text_and_html_by_attribute(
+            'crossorigin', None, html, tag='script', require_value=False)), [('', '<script crossorigin></script>')])
+
     GET_ELEMENT_BY_TAG_TEST_STRING = '''
     random text lorem ipsum</p>
     <div>
@@ -1908,6 +1943,14 @@ Line 1
             get_element_text_and_html_by_tag('span', html),
             (self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_TEXT, self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML))
         self.assertRaises(compat_HTMLParseError, get_element_text_and_html_by_tag, 'article', html)
+        self.assertEqual(
+            get_element_text_and_html_by_tag('time', '<TIME>2026-01-01</TIME>'),
+            ('2026-01-01', '<TIME>2026-01-01</TIME>'))
+
+        html = self.VOID_ELEMENTS_TEST_STRING
+        self.assertEqual(
+            get_element_text_and_html_by_tag('img', html),
+            ('', '<img alt="foo" src="bar.png">'))
 
     def test_iri_to_uri(self):
         self.assertEqual(
