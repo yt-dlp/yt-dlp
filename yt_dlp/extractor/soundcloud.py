@@ -118,9 +118,9 @@ class SoundcloudBaseIE(InfoExtractor):
         self.cache.store('soundcloud', 'client_id', client_id)
 
     def _update_client_id(self):
-        webpage = self._download_webpage('https://soundcloud.com/', None)
+        webpage = self._download_webpage('https://soundcloud.com/', None, 'Downloading main page')
         for src in reversed(re.findall(r'<script[^>]+src="([^"]+)"', webpage)):
-            script = self._download_webpage(src, None, fatal=False)
+            script = self._download_webpage(src, None, 'Downloading JS asset', fatal=False)
             if script:
                 client_id = self._search_regex(
                     r'client_id\s*:\s*"([0-9a-zA-Z]{32})"',
@@ -136,13 +136,13 @@ class SoundcloudBaseIE(InfoExtractor):
         if non_fatal:
             del kwargs['fatal']
         query = kwargs.get('query', {}).copy()
-        for _ in range(2):
+        for is_first_attempt in (True, False):
             query['client_id'] = self._CLIENT_ID
             kwargs['query'] = query
             try:
                 return self._download_json(*args, **kwargs)
             except ExtractorError as e:
-                if isinstance(e.cause, HTTPError) and e.cause.status in (401, 403):
+                if is_first_attempt and isinstance(e.cause, HTTPError) and e.cause.status in (401, 403):
                     self._store_client_id(None)
                     self._update_client_id()
                     continue
@@ -152,7 +152,10 @@ class SoundcloudBaseIE(InfoExtractor):
                 raise
 
     def _initialize_pre_login(self):
-        self._CLIENT_ID = self.cache.load('soundcloud', 'client_id') or 'a3e059563d7fd3372b49b37f00a00bcf'
+        self._CLIENT_ID = self.cache.load('soundcloud', 'client_id')
+        if self._CLIENT_ID:
+            return
+        self._update_client_id()
 
     def _verify_oauth_token(self, token):
         if self._request_webpage(
