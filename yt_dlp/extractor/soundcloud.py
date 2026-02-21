@@ -846,17 +846,17 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudBaseIE):
         version_as_float = lambda x: float(x.version) if x.version else 0
 
         # Always try to use the newest Chrome target available
-        newest_chrome_target = sorted([
+        filtered = sorted([
             target[0] for target in available_targets
             if target[0].client == 'chrome' and target[0].os in ('windows', 'macos')
-        ], key=version_as_float)[-1]
+        ], key=version_as_float)
 
-        if version_as_float(newest_chrome_target) < version_as_float(MIN_SUPPORTED_TARGET):
-            # Newest available target is too old, so warn that the user should upgrade
-            # their impersonation dependency to a version with the minimum supported target
+        if not filtered or version_as_float(filtered[-1]) < version_as_float(MIN_SUPPORTED_TARGET):
+            # All available targets are inadequate or newest available Chrome target is too old, so
+            # warn the user to upgrade their dependency to a version with the minimum supported target
             return MIN_SUPPORTED_TARGET
 
-        return newest_chrome_target
+        return filtered[-1]
 
     def _entries(self, url, playlist_id):
         # Per the SoundCloud documentation, the maximum limit for a linked partitioning query is 200.
