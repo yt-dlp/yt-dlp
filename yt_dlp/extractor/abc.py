@@ -321,6 +321,8 @@ class ABCIViewIE(InfoExtractor):
                 entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
             if formats:
                 break
+        else:
+            formats = []
 
         subtitles = {}
         src_vtt = stream.get('captions', {}).get('src-vtt')

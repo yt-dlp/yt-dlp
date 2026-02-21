@@ -16,7 +16,7 @@ from ..utils.traversal import find_element, traverse_obj
 
 
 class BunnyCdnIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:iframe\.mediadelivery\.net|video\.bunnycdn\.com)/(?:embed|play)/(?P<library_id>\d+)/(?P<id>[\da-f-]+)'
+    _VALID_URL = r'https?://(?:(?:iframe|player)\.mediadelivery\.net|video\.bunnycdn\.com)/(?:embed|play)/(?P<library_id>\d+)/(?P<id>[\da-f-]+)'
     _EMBED_REGEX = [rf'<iframe[^>]+src=[\'"](?P<url>{_VALID_URL}[^\'"]*)[\'"]']
     _TESTS = [{
         'url': 'https://iframe.mediadelivery.net/embed/113933/e73edec1-e381-4c8b-ae73-717a140e0924',
@@ -72,6 +72,9 @@ class BunnyCdnIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.b-cdn\.net/6372f5a3-68df-4ef7-a115-e1110186c477/thumbnail\.jpg',
         },
         'params': {'skip_download': True},
+    }, {
+        'url': 'https://player.mediadelivery.net/embed/519128/875880a9-bcc2-4038-9e05-e5024bba9b70',
+        'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
         # Stream requires Referer

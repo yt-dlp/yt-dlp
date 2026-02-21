@@ -441,7 +441,7 @@ def create_parser():
             '("-" for stdin). Can be used multiple times and inside other configuration files'))
     general.add_option(
         '--plugin-dirs',
-        metavar='PATH',
+        metavar='DIR',
         dest='plugin_dirs',
         action='callback',
         callback=_list_from_options_callback,
@@ -466,9 +466,13 @@ def create_parser():
         callback_kwargs={'delim': None},
         default=['deno'],
         help=(
-            'Additional JavaScript runtime to enable, with an optional path to the runtime location. '
+            'Additional JavaScript runtime to enable, with an optional location for the runtime '
+            '(either the path to the binary or its containing directory). '
             'This option can be used multiple times to enable multiple runtimes. '
-            'Supported runtimes: deno, node, bun, quickjs. By default, only "deno" runtime is enabled.'))
+            'Supported runtimes are (in order of priority, from highest to lowest): deno, node, quickjs, bun. '
+            'Only "deno" is enabled by default. The highest priority runtime that is both enabled and '
+            'available will be used. In order to use a lower priority runtime when "deno" is available, '
+            '--no-js-runtimes needs to be passed before enabling other runtimes'))
     general.add_option(
         '--no-js-runtimes',
         dest='js_runtimes', action='store_const', const=[],
@@ -484,9 +488,12 @@ def create_parser():
         default=[],
         help=(
             'Remote components to allow yt-dlp to fetch when required. '
+            'This option is currently not needed if you are using an official executable '
+            'or have the requisite version of the yt-dlp-ejs package installed. '
             'You can use this option multiple times to allow multiple components. '
-            'Supported values: ejs:npm (external JavaScript components from npm), ejs:github (external JavaScript components from yt-dlp-ejs GitHub). '
-            'By default, no remote components are allowed.'))
+            'Supported values: ejs:npm (external JavaScript components from npm), '
+            'ejs:github (external JavaScript components from yt-dlp-ejs GitHub). '
+            'By default, no remote components are allowed'))
     general.add_option(
         '--no-remote-components',
         dest='remote_components', action='store_const', const=[],
@@ -504,7 +511,7 @@ def create_parser():
     general.add_option(
         '--live-from-start',
         action='store_true', dest='live_from_start',
-        help='Download livestreams from the start. Currently experimental and only supported for YouTube and Twitch')
+        help='Download livestreams from the start. Currently experimental and only supported for YouTube, Twitch, and TVer')
     general.add_option(
         '--no-live-from-start',
         action='store_false', dest='live_from_start',
@@ -567,7 +574,8 @@ def create_parser():
                 '2021': ['2022', 'no-certifi', 'filename-sanitization'],
                 '2022': ['2023', 'no-external-downloader-progress', 'playlist-match-filter', 'prefer-legacy-http-handler', 'manifest-filesize-approx'],
                 '2023': ['2024', 'prefer-vp9-sort'],
-                '2024': ['mtime-by-default'],
+                '2024': ['2025', 'mtime-by-default'],
+                '2025': [],
             },
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
@@ -682,7 +690,7 @@ def create_parser():
         '-I', '--playlist-items',
         dest='playlist_items', metavar='ITEM_SPEC', default=None,
         help=(
-            'Comma separated playlist_index of the items to download. '
+            'Comma-separated playlist_index of the items to download. '
             'You can specify a range using "[START]:[STOP][:STEP]". For backward compatibility, START-STOP is also supported. '
             'Use negative indices to count from the right and negative STEP to download in reverse order. '
             'E.g. "-I 1:3,7,-5::2" used on a playlist of size 15 will download the items at index 1,2,3,7,11,13,15'))
@@ -875,6 +883,10 @@ def create_parser():
         dest='format_sort', default=[], type='str', action='callback',
         callback=_list_from_options_callback, callback_kwargs={'append': -1},
         help='Sort the formats by the fields given, see "Sorting Formats" for more details')
+    video_format.add_option(
+        '--format-sort-reset',
+        dest='format_sort', action='store_const', const=[],
+        help='Disregard previous user specified sort order and reset to the default')
     video_format.add_option(
         '--format-sort-force', '--S-force',
         action='store_true', dest='format_sort_force', metavar='FORMAT', default=False,
@@ -1205,7 +1217,7 @@ def create_parser():
         help='Maximum number of seconds to sleep. Can only be used along with --min-sleep-interval')
     workarounds.add_option(
         '--sleep-subtitles', metavar='SECONDS',
-        dest='sleep_interval_subtitles', default=0, type=int,
+        dest='sleep_interval_subtitles', default=0, type=float,
         help='Number of seconds to sleep before each subtitle download')
 
     verbosity = optparse.OptionGroup(parser, 'Verbosity and Simulation Options')
