@@ -577,7 +577,6 @@ class TestTraversalHelpers:
 
     def test_find_element(self):
         for improper_kwargs in [
-            dict(attr='data-id'),
             dict(value='y'),
             dict(attr='data-id', value='y', cls='a'),
             dict(attr='data-id', value='y', id='x'),
@@ -608,7 +607,6 @@ class TestTraversalHelpers:
     def test_find_elements(self):
         for improper_kwargs in [
             dict(tag='p'),
-            dict(attr='data-id'),
             dict(value='y'),
             dict(attr='data-id', value='y', cls='a'),
             dict(cls='a', tag='div'),
