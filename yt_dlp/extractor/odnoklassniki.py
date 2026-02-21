@@ -9,13 +9,13 @@ from ..utils import (
     int_or_none,
     qualities,
     smuggle_url,
-    traverse_obj,
     unescapeHTML,
     unified_strdate,
     unsmuggle_url,
     url_or_none,
     urlencode_postdata,
 )
+from ..utils.traversal import find_element, traverse_obj
 
 
 class OdnoklassnikiIE(InfoExtractor):
@@ -264,9 +264,7 @@ class OdnoklassnikiIE(InfoExtractor):
             note='Downloading desktop webpage',
             headers={'Referer': smuggled['referrer']} if smuggled.get('referrer') else {})
 
-        error = self._search_regex(
-            r'[^>]+class="vp_video_stub_txt"[^>]*>([^<]+)<',
-            webpage, 'error', default=None)
+        error = traverse_obj(webpage, {find_element(cls='vp_video_stub_txt')})
         # Direct link from boosty
         if (error == 'The author of this video has not been found or is blocked'
                 and not smuggled.get('referrer') and mode == 'videoembed'):
