@@ -27,7 +27,7 @@ class HotStarBaseIE(InfoExtractor):
     _TOKEN_NAME = 'userUP'
     _BASE_URL = 'https://www.hotstar.com'
     _API_URL = 'https://api.hotstar.com'
-    _API_URL_V2 = 'https://apix.hotstar.com/v2'
+    _API_URL_V2 = 'https://www.hotstar.com/api/internal/bff/v2'
     _AKAMAI_ENCRYPTION_KEY = b'\x05\xfc\x1a\x01\xca\xc9\x4b\xc4\x12\xfc\x53\x12\x07\x75\xf9\xee'
 
     _FREE_HEADERS = {
@@ -42,6 +42,7 @@ class HotStarBaseIE(InfoExtractor):
     }
 
     def _has_active_subscription(self, cookies, server_time):
+        server_time = int_or_none(server_time) or int(time.time())
         expiry = traverse_obj(cookies, (
             self._TOKEN_NAME, 'value', {jwt_decode_hs256}, 'sub', {json.loads},
             'subscriptions', 'in', ..., 'expiry', {parse_iso8601}, all, {max})) or 0

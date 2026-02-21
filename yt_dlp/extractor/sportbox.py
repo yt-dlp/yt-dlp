@@ -8,6 +8,7 @@ from ..utils import (
 
 
 class SportBoxIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:news\.sportbox|matchtv)\.ru/vdl/player(?:/[^/]+/|\?.*?\bn?id=)(?P<id>\d+)'
     _EMBED_REGEX = [r'<iframe[^>]+src="(?P<url>https?://(?:news\.sportbox|matchtv)\.ru/vdl/player[^"]+)"']
     _TESTS = [{
@@ -17,7 +18,7 @@ class SportBoxIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'В Новороссийске прошел детский турнир «Поле славы боевой»',
             'description': 'В Новороссийске прошел детский турнир «Поле славы боевой»',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+\.jpg',
             'duration': 292,
             'view_count': int,
             'timestamp': 1426237001,
@@ -39,6 +40,15 @@ class SportBoxIE(InfoExtractor):
     }, {
         'url': 'https://matchtv.ru/vdl/player/media/109158',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'http://www.vestifinance.ru/articles/25753',
+        'info_dict': {
+            'id': '25753',
+            'title': 'Прямые трансляции с Форума-выставки "Госзаказ-2013"',
+        },
+        'playlist_count': 3,
+        'skip': 'Invalid URL',
     }]
 
     def _real_extract(self, url):
