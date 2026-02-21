@@ -180,8 +180,7 @@ class SpankBangPlaylistIE(InfoExtractor):
         playlist_id = mobj.group('id')
         country = self.get_param('geo_bypass_country') or 'US'
         self._set_cookie('.spankbang.com', 'country', country.upper())
-        webpage = self._download_webpage(
-            url, playlist_id, impersonate=True)
+        webpage = self._download_webpage(url, playlist_id, impersonate=True)
 
         entries = [self.url_result(
             urljoin(url, mobj.group('path')),
