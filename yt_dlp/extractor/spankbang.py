@@ -3,6 +3,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    clean_html,
     determine_ext,
     merge_dicts,
     parse_duration,
@@ -12,6 +13,7 @@ from ..utils import (
     urlencode_postdata,
     urljoin,
 )
+from ..utils.traversal import find_element, traverse_obj, trim_str
 
 
 class SpankBangIE(InfoExtractor):
@@ -189,8 +191,8 @@ class SpankBangPlaylistIE(InfoExtractor):
                 r'<a[^>]+\bhref=(["\'])(?P<path>/?[\da-z]+-(?P<id>[\da-z]+)/playlist/[^"\'](?:(?!\1).)*)\1',
                 webpage)]
 
-        title = self._html_search_regex(
-            r'<em>([^<]+)</em>\s+playlist\s*<', webpage, 'playlist title',
-            fatal=False)
+        title = traverse_obj(webpage, (
+            {find_element(tag='h1', attr='data-testid', value='playlist-title')},
+            {clean_html}, {trim_str(end=' Playlist')}))
 
         return self.playlist_result(entries, playlist_id, title)
