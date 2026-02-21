@@ -392,7 +392,6 @@ class GenericIE(InfoExtractor):
         },
         'expected_warnings': ['Untested major version'],
     }, {
-        # FIXME: Unable to extract flashvars
         # KVS Player v7.11.4
         # kt_player.js?v=2.11.5.1
         # https://github.com/yt-dlp/yt-dlp/commit/a318f59d14792d25b2206c3f50181e03e8716db7
@@ -414,6 +413,17 @@ class GenericIE(InfoExtractor):
             'title': 'Kelis - 4th Of July / Embed Player',
             'display_id': 'kelis-4th-of-july',
             'thumbnail': r're:https?://www\.kvs-demo\.com/contents/videos_screenshots/.+\.jpg',
+        },
+        # https://www.kvs-demo.com/player/kt_player.js?v=4.15.9.1
+    }, {
+        'url': 'https://www.kvs-demo.com/video/32/baby-alice-pina-colada-boy',
+        'info_dict': {
+            'id': '32',
+            'ext': 'mp4',
+            'display_id': 'baby-alice-pina-colada-boy',
+            'title': 'Baby Alice - Piña Colada Boy',
+            'description': 'Baby Alice - Piña Colada Boy',
+            'thumbnail': 'https://www.kvs-demo.com/contents/videos_screenshots/0/32/preview.jpg',
         },
     }, {
         # twitter:player:stream
@@ -719,10 +729,13 @@ class GenericIE(InfoExtractor):
         ]
 
     def _extract_kvs(self, url, webpage, video_id):
+        varname = self._search_regex(
+            r'''(?<![=!+*-])=\s*kt_player\s*\(\s*'kt_player'\s*,\s*[^)]+,\s*(?!params)([\w$]+)\s*\)''',
+            webpage, 'flashvars name', default='flashvars')
         flashvars = self._search_json(
-            r'(?s:<script\b[^>]*>.*?var\s+flashvars\s*=)',
-            webpage, 'flashvars', video_id, transform_source=js_to_json)
-
+            fr'<script(?:\s[^>]*)?>[\s\S]*?\bvar\s+{varname}\s*=',
+            webpage, 'flashvars', video_id, end_pattern=r';[\s\S]*?</script>',
+            transform_source=js_to_json)
         # extract the part after the last / as the display_id from the
         # canonical URL.
         display_id = self._search_regex(
@@ -1103,7 +1116,7 @@ class GenericIE(InfoExtractor):
         ), webpage, 'KVS player', group='ver', default=False)
         if found:
             self.report_detected('KVS Player')
-            if found.split('.')[0] not in ('4', '5', '6'):
+            if found.split('.')[0] not in ('2', '3', '4', '5', '6', '13'):
                 self.report_warning(f'Untested major version ({found}) in player engine - download may fail.')
             return [self._extract_kvs(url, webpage, video_id)]
 
