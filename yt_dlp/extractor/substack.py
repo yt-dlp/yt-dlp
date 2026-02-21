@@ -12,7 +12,7 @@ from ..utils.traversal import traverse_obj
 
 
 class SubstackIE(InfoExtractor):
-    _VALID_URL = r'https?://(?P<username>[\w-]+)\.substack\.com/p/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://[\w-]+\.substack\.com/p/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://haleynahman.substack.com/p/i-made-a-vlog?s=r',
         'md5': 'f27e4fc6252001d48d479f45e65cdfd5',
@@ -116,7 +116,7 @@ class SubstackIE(InfoExtractor):
         return formats, subtitles
 
     def _real_extract(self, url):
-        display_id, username = self._match_valid_url(url).group('id', 'username')
+        display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
 
         webpage_info = self._parse_json(self._search_json(
