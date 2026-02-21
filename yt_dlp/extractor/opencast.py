@@ -135,7 +135,7 @@ class OpencastIE(OpencastBaseIE):
         response = self._call_api(host, video_id)
         package = traverse_obj(response, (
             ('search-results', 'result'),
-            ('result', ...), # Path needed for oc-p.uni-jena.de
+            ('result', ...),  # Path needed for oc-p.uni-jena.de
             'mediapackage', {dict}, any)) or {}
         return self._parse_mediapackage(package)
 
