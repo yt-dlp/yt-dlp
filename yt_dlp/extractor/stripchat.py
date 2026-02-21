@@ -2,60 +2,85 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     UserNotLive,
-    lowercase_escape,
-    traverse_obj,
+)
+from ..utils import (
+    base_url as get_base_url,
 )
 
 
 class StripchatIE(InfoExtractor):
-    _VALID_URL = r'https?://stripchat\.com/(?P<id>[^/?#]+)'
-    _TESTS = [{
-        'url': 'https://stripchat.com/Joselin_Flower',
-        'info_dict': {
-            'id': 'Joselin_Flower',
-            'ext': 'mp4',
-            'title': 're:^Joselin_Flower [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
-            'description': str,
-            'is_live': True,
-            'age_limit': 18,
+    _VALID_URL = r'https?://(?:vr\.)?stripchat\.com/(?:cam/)?(?P<id>[^/?&#]+)'
+    _TESTS = [
+        {
+            'url': 'https://vr.stripchat.com/cam/Heather_Ivy',
+            'info_dict': {
+                'id': 'Heather_Ivy',
+                'ext': 'mp4',
+                'title': 're:^Heather_Ivy [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+                'age_limit': 18,
+                'is_live': True,
+            },
+            'params': {
+                'skip_download': True,
+            },
+            'skip': 'Stream might be offline',
         },
-        'skip': 'Room is offline',
-    }, {
-        'url': 'https://stripchat.com/Rakhijaan@xh',
-        'only_matching': True,
-    }]
+        {
+            'url': 'https://stripchat.com/Heather_Ivy',
+            'info_dict': {
+                'id': 'Heather_Ivy',
+                'ext': 'mp4',
+                'title': 're:^Heather_Ivy [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+                'age_limit': 18,
+                'is_live': True,
+            },
+            'params': {
+                'skip_download': True,
+            },
+            'skip': 'Stream might be offline',
+        },
+    ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id, headers=self.geo_verification_headers())
-        data = self._search_json(
-            r'<script\b[^>]*>\s*window\.__PRELOADED_STATE__\s*=',
-            webpage, 'data', video_id, transform_source=lowercase_escape)
+        is_vr = get_base_url(url) in ('https://vr.stripchat.com/cam/', 'http://vr.stripchat.com/cam/')
 
-        if traverse_obj(data, ('viewCam', 'show', {dict})):
-            raise ExtractorError('Model is in a private show', expected=True)
-        if not traverse_obj(data, ('viewCam', 'model', 'isLive', {bool})):
+        # The API is the same for both VR and non-VR
+        # f'https://vr.stripchat.com/api/vr/v2/models/username/{video_id}'
+        api_url = f'https://stripchat.com/api/vr/v2/models/username/{video_id}'
+        api_json = self._download_json(api_url, video_id)
+
+        model = api_json.get('model', {})
+
+        if model.get('status', {}) == 'off':
             raise UserNotLive(video_id=video_id)
 
-        model_id = data['viewCam']['model']['id']
+        cam = api_json.get('cam') or {}
+        show = cam.get('show') or {}
+        details = show.get('details') or {}
 
-        formats = []
-        # HLS hosts are currently found in .configV3.static.features.hlsFallback.fallbackDomains[]
-        # The rest of the path is for backwards compatibility and to guard against A/B testing
-        for host in traverse_obj(data, ((('config', 'data'), ('configV3', 'static')), (
-                (('features', 'featuresV2'), 'hlsFallback', 'fallbackDomains', ...), 'hlsStreamHost'))):
-            formats = self._extract_m3u8_formats(
-                f'https://edge-hls.{host}/hls/{model_id}/master/{model_id}_auto.m3u8',
-                video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True)
-            if formats:
-                break
-        if not formats:
-            self.raise_no_formats('Unable to extract stream host', video_id=video_id)
+        if details.get('startMode') == 'private':
+            raise ExtractorError('Room is currently in a private show', expected=True)
+
+        # You can retrieve this value from "model.id," "streamName," or "cam.streamName"
+        model_id = api_json.get('streamName')
+
+        if is_vr:
+            m3u8_url = f'https://edge-hls.doppiocdn.net/hls/{model_id}_vr/master/{model_id}_vr_auto.m3u8'
+        else:
+            m3u8_url = f'https://edge-hls.doppiocdn.net/hls/{model_id}/master/{model_id}_auto.m3u8'
+
+        formats = self._extract_m3u8_formats(
+            m3u8_url, video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True,
+        )
+
+        # You can also use previewUrlThumbBig and previewUrlThumbSmall
+        preview_url = model.get('previewUrl', {})
 
         return {
             'id': video_id,
             'title': video_id,
-            'description': self._og_search_description(webpage),
+            'thumbnail': preview_url,
             'is_live': True,
             'formats': formats,
             # Stripchat declares the RTA meta-tag, but in an non-standard format so _rta_search() can't be used
