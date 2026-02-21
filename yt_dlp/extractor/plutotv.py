@@ -3,29 +3,11 @@ import urllib.parse
 import uuid
 
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    float_or_none,
-    int_or_none,
-    try_get,
-    url_or_none,
-)
+from ..utils import ExtractorError, float_or_none, int_or_none, smuggle_url, traverse_obj, unsmuggle_url
 
 
-class PlutoTVIE(InfoExtractor):
-    _WORKING = False
-    _VALID_URL = r'''(?x)
-        https?://(?:www\.)?pluto\.tv(?:/[^/]+)?/on-demand
-        /(?P<video_type>movies|series)
-        /(?P<series_or_movie_slug>[^/]+)
-        (?:
-            (?:/seasons?/(?P<season_no>\d+))?
-            (?:/episode/(?P<episode_slug>[^/]+))?
-        )?
-        /?(?:$|[#?])'''
-
-    _INFO_URL = 'https://service-vod.clusters.pluto.tv/v3/vod/slugs/'
-    _INFO_QUERY_PARAMS = {
+class PlutoTVBase(InfoExtractor):
+    _START_QUERY = {
         'appName': 'web',
         'appVersion': 'na',
         'clientID': str(uuid.uuid1()),
@@ -35,158 +17,202 @@ class PlutoTVIE(InfoExtractor):
         'deviceModel': 'web',
         'deviceType': 'web',
         'deviceVersion': 'unknown',
-        'sid': str(uuid.uuid1()),
     }
-    _TESTS = [
-        {
-            'url': 'https://pluto.tv/on-demand/series/i-love-money/season/2/episode/its-in-the-cards-2009-2-3',
-            'md5': 'ebcdd8ed89aaace9df37924f722fd9bd',
-            'info_dict': {
-                'id': '5de6c598e9379ae4912df0a8',
-                'ext': 'mp4',
-                'title': 'It\'s In The Cards',
-                'episode': 'It\'s In The Cards',
-                'description': 'The teams face off against each other in a 3-on-2 soccer showdown.  Strategy comes into play, though, as each team gets to select their opposing teams’ two defenders.',
-                'series': 'I Love Money',
-                'season_number': 2,
-                'episode_number': 3,
-                'duration': 3600,
-            },
-        }, {
-            'url': 'https://pluto.tv/on-demand/series/i-love-money/season/1/',
-            'playlist_count': 11,
-            'info_dict': {
-                'id': '5de6c582e9379ae4912dedbd',
-                'title': 'I Love Money - Season 1',
-            },
-        }, {
-            'url': 'https://pluto.tv/on-demand/series/i-love-money/',
-            'playlist_count': 26,
-            'info_dict': {
-                'id': '5de6c582e9379ae4912dedbd',
-                'title': 'I Love Money',
-            },
-        }, {
-            'url': 'https://pluto.tv/on-demand/movies/arrival-2015-1-1',
-            'md5': '3cead001d317a018bf856a896dee1762',
-            'info_dict': {
-                'id': '5e83ac701fa6a9001bb9df24',
-                'ext': 'mp4',
-                'title': 'Arrival',
-                'description': 'When mysterious spacecraft touch down across the globe, an elite team - led by expert translator Louise Banks (Academy Award® nominee Amy Adams) – races against time to decipher their intent.',
-                'duration': 9000,
-            },
-        }, {
-            'url': 'https://pluto.tv/en/on-demand/series/manhunters-fugitive-task-force/seasons/1/episode/third-times-the-charm-1-1',
-            'only_matching': True,
-        }, {
-            'url': 'https://pluto.tv/it/on-demand/series/csi-vegas/episode/legacy-2021-1-1',
-            'only_matching': True,
-        },
-        {
-            'url': 'https://pluto.tv/en/on-demand/movies/attack-of-the-killer-tomatoes-1977-1-1-ptv1',
-            'md5': '7db56369c0da626a32d505ec6eb3f89f',
-            'info_dict': {
-                'id': '5b190c7bb0875c36c90c29c4',
-                'ext': 'mp4',
-                'title': 'Attack of the Killer Tomatoes',
-                'description': 'A group of scientists band together to save the world from mutated tomatoes that KILL! (1978)',
-                'duration': 5700,
-            },
-        },
-    ]
 
-    def _to_ad_free_formats(self, video_id, formats, subtitles):
-        ad_free_formats, ad_free_subtitles, m3u8_urls = [], {}, set()
+    def _resolve_data(self, start, element):
+        return {
+            'stitcher': start['servers']['stitcher'],
+            'path': element['stitched']['path'],
+            'stitcherParams': start['stitcherParams'],
+            'sessionToken': start['sessionToken'],
+            'id': element.get('id') or element['_id'],
+        }
+
+    def _to_ad_free_formats(self, video_id, formats):
         for fmt in formats:
-            res = self._download_webpage(
-                fmt.get('url'), video_id, note='Downloading m3u8 playlist',
+            res, base = self._download_webpage_handle(
+                fmt.get('url'), video_id, 'Downloading m3u8 playlist',
                 fatal=False)
             if not res:
                 continue
-            first_segment_url = re.search(
-                r'^(https?://.*/)0\-(end|[0-9]+)/[^/]+\.ts$', res,
-                re.MULTILINE)
-            if first_segment_url:
-                m3u8_urls.add(
-                    urllib.parse.urljoin(first_segment_url.group(1), '0-end/master.m3u8'))
-                continue
-            first_segment_url = re.search(
-                r'^(https?://.*/).+\-0+[0-1]0\.ts$', res,
-                re.MULTILINE)
-            if first_segment_url:
-                m3u8_urls.add(
-                    urllib.parse.urljoin(first_segment_url.group(1), 'master.m3u8'))
-                continue
+            base = base.url
+            res = res.splitlines()
+            paths = {}
+            current = None
+            fmt['hls_media_playlist_data'] = ''
+            for line in res:
+                inf_match = re.match(r'#EXTINF:(\d+)', line)
+                if (not current):
+                    if (inf_match or line.startswith('#EXT-X-KEY:')):
+                        current = {
+                            'data': line + '\n',
+                            'duration': float(inf_match.group(1)) if inf_match else 0,
+                        }
+                    else:
+                        fmt['hls_media_playlist_data'] += line + '\n'
+                elif inf_match:
+                    current['duration'] += float(inf_match.group(1))
+                    current['data'] += line + '\n'
+                elif line.startswith('#'):
+                    current['data'] += line + '\n'
+                else:
+                    # match up to 3 nested paths to avoid including segment specific parts
+                    path = re.match(r'(?:/[^/]*){1,3}', urllib.parse.urlparse(urllib.parse.urljoin(base, line)).path or '/').group()
+                    current['data'] += line + '\n'
+                    if path in paths:
+                        paths[path]['data'] += current['data']
+                        paths[path]['duration'] += current['duration']
+                    else:
+                        paths[path] = current
+                    current = {'data': '', 'duration': 0}
+            longest = max(paths.values(), key=lambda x: x['duration'])
+            if (longest):
+                fmt['hls_media_playlist_data'] += longest['data'] + current['data']
+            else:
+                fmt['hls_media_playlist_data'] = None
+                self.report_warning(f'Unable to find ad-free playlist in format {fmt.get("format_id")}')
 
-        for m3u8_url in m3u8_urls:
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False)
-            ad_free_formats.extend(fmts)
-            ad_free_subtitles = self._merge_subtitles(ad_free_subtitles, subs)
-        if ad_free_formats:
-            formats, subtitles = ad_free_formats, ad_free_subtitles
-        else:
-            self.report_warning('Unable to find ad-free formats')
-        return formats, subtitles
+    def _extract_formats(self, video_data):
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(f"{video_data['stitcher']}/v2{video_data['path']}?{video_data['stitcherParams']}&jwt={video_data['sessionToken']}", video_data['id'])
+        for f in formats:
+            f['url'] += f"&jwt={video_data['sessionToken']}"
+            f.setdefault('vcodec', 'avc1.64001f')
+            f.setdefault('acodec', 'mp4a.40.2')
+            f.setdefault('fps', 30)
+        for d in subtitles.values():
+            for f in d:
+                f['url'] += f"&jwt={video_data['sessionToken']}"
+        self._to_ad_free_formats(video_data['id'], formats)
+        return {'formats': formats, 'subtitles': subtitles}
 
-    def _get_video_info(self, video_json, slug, series_name=None):
-        video_id = video_json.get('_id', slug)
-        formats, subtitles = [], {}
-        for video_url in try_get(video_json, lambda x: x['stitched']['urls'], list) or []:
-            if video_url.get('type') != 'hls':
-                continue
-            url = url_or_none(video_url.get('url'))
 
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False)
-            formats.extend(fmts)
-            subtitles = self._merge_subtitles(subtitles, subs)
+class PlutoTVIE(PlutoTVBase):
+    _VALID_URL = r'''(?x)
+        https?://(?:www\.)?pluto\.tv(?:/[^/]+)?/on-demand
+        /(movies|series)
+        /(?P<slug>[^/]+)
+        (?:
+            (?:/seasons?/(?P<season>\d+))?
+            (?:/episode/(?P<episode>[^/]+))?
+        )?'''
+    _TESTS = [{
+        'url': 'https://pluto.tv/it/on-demand/movies/6246b0adef11000014d220c3',
+        'md5': '966ed552cf5500b23b7eee66b6890cad',
+        'info_dict': {
+            'id': '6246b0adef11000014d220c3',
+            'ext': 'mp4',
+            'episode_id': '6246b0adef11000014d220c3',
+            'description': 'md5:c9a412d330d3d73a527e9ba981c0ddb8',
+            'episode': 'Non Bussate A Quella Porta',
+            'thumbnail': 'http://images.pluto.tv/episodes/6246b0adef11000014d220c3/poster.jpg?fm=png&q=100',
+            'display_id': 'dont-knock-twice-it-2016-1-1',
+            'genres': ['Horror'],
+            'title': 'Non Bussate A Quella Porta',
+            'duration': 5940,
+        },
+    }, {
+        'url': 'https://pluto.tv/on-demand/movies/6246b0adef11000014d220c3',
+        'only_matching': True,
+    }, {
+        'url': 'https://pluto.tv/on-demand/series/6655b0c5cceea000134aee27',
+        'info_dict': {
+            'id': '6655b0c5cceea000134aee27',
+            'title': 'Mission Impossible',
+            'description': 'md5:2b4a80beff586df77238775a5a67f7bd',
+        },
+        'playlist_mincount': 113,
+    }, {
+        'url': 'https://pluto.tv/on-demand/series/66ab6d80b20e79001338fe4c/season/5',
+        'info_dict': {
+            'id': '66ab6d80b20e79001338fe4c-5',
+            'title': 'Squadra Speciale Cobra 11 - Season 5',
+        },
+        'playlist_count': 17,
+    }, {
+        'note': 'Video doesn\'t exist, but API returns another one',
+        'url': 'https://pluto.tv/it/on-demand/movies/00000000000000000000000000000000',
+        'expected_exception': 'ExtractorError',
+    }]
 
-        formats, subtitles = self._to_ad_free_formats(video_id, formats, subtitles)
-
-        info = {
-            'id': video_id,
-            'formats': formats,
-            'subtitles': subtitles,
-            'title': video_json.get('name'),
-            'description': video_json.get('description'),
-            'duration': float_or_none(video_json.get('duration'), scale=1000),
-        }
-        if series_name:
-            info.update({
-                'series': series_name,
-                'episode': video_json.get('name'),
-                'season_number': int_or_none(video_json.get('season')),
-                'episode_number': int_or_none(video_json.get('number')),
+    def _get_video_info(self, video, series=None, season_number=None):
+        thumbnails = [{
+            'url': cover['url'],
+            'width': int(m.group(1)) if (m := re.search(r'w=(\d+)&h=(\d+)', cover['url'])) else None,
+            'height': int(m.group(2)) if m else None,
+        } for cover in video.get('covers', [])]
+        first_cover = traverse_obj(video, ('covers', 0, 'url'))
+        if first_cover:
+            thumbnails.append({
+                'id': 'original',
+                'url': re.sub(r'\?.*$', '?fm=png&q=100', first_cover),
+                'preference': 1,
             })
-        return info
+        return {
+            'id': video.get('id') or video['_id'],
+            'title': video.get('name'),
+            'display_id': video.get('slug'),
+            'thumbnails': thumbnails,
+            'description': video.get('description'),
+            'duration': float_or_none(video.get('duration'), scale=1000),
+            'genres': [video.get('genre')],
+            'series_id': series and series.get('id'),
+            'series': series and series.get('name'),
+            'episode': video.get('name'),
+            'episode_id': video.get('id') or video['_id'],
+            'season_number': int_or_none(season_number),
+        }
+
+    def _playlist_entry(self, video_json, series, season, ep):
+        episode_id = ep.get('id') or ep['_id']
+        return self.url_result(
+            smuggle_url(
+                f"https://pluto.tv/on-demand/series/{series.get('id') or series['_id']}/season/{season['number']}/episode/{episode_id}",
+                self._resolve_data(video_json, ep),
+            ),
+            PlutoTVIE,
+            episode_id,
+            ep.get('name'),
+            **self._get_video_info(ep, series, season.get('number')),
+            url_transparent=True,
+        )
 
     def _real_extract(self, url):
+        url, video_data = unsmuggle_url(url)
+        if video_data:
+            return {**self._extract_formats(video_data), 'id': video_data['id']}
+
         mobj = self._match_valid_url(url).groupdict()
-        info_slug = mobj['series_or_movie_slug']
-        video_json = self._download_json(self._INFO_URL + info_slug, info_slug, query=self._INFO_QUERY_PARAMS)
+        # here slug may also be the video id, URLs and API accept both
+        slug = mobj['slug']
+        season_number, episode_id = mobj.get('season'), mobj.get('episode')
+        query = {**self._START_QUERY, 'seriesIDs': slug}
+        if episode_id:
+            query['episodeIDs'] = episode_id
 
-        if mobj['video_type'] == 'series':
-            series_name = video_json.get('name', info_slug)
-            season_number, episode_slug = mobj.get('season_number'), mobj.get('episode_slug')
+        video_json = self._download_json('https://boot.pluto.tv/v4/start', slug, 'Downloading info json', query=query)
+        series = video_json['VOD'][0]
 
-            videos = []
-            for season in video_json['seasons']:
-                if season_number is not None and season_number != int_or_none(season.get('number')):
-                    continue
-                for episode in season['episodes']:
-                    if episode_slug is not None and episode_slug != episode.get('slug'):
-                        continue
-                    videos.append(self._get_video_info(episode, episode_slug, series_name))
-            if not videos:
-                raise ExtractorError('Failed to find any videos to extract')
-            if episode_slug is not None and len(videos) == 1:
-                return videos[0]
-            playlist_title = series_name
-            if season_number is not None:
-                playlist_title += ' - Season %d' % season_number
-            return self.playlist_result(videos,
-                                        playlist_id=video_json.get('_id', info_slug),
-                                        playlist_title=playlist_title)
-        return self._get_video_info(video_json, info_slug)
+        # sometimes if the link is not valid the API returns a random video as result
+        # we have to check if the id is what we expect
+        if (series.get('id') or series.get('_id')) != slug and series.get('slug') != slug:
+            raise ExtractorError('Failed to find movie or series', expected=True)
+
+        if episode_id:
+            episode = traverse_obj(video_json, ('VOD', 1))
+            if not episode or ((episode.get('id') or episode.get('_id')) != episode_id and episode.get('slug') != episode_id):
+                raise ExtractorError('Failed to find episode', expected=True)
+            return {**self._get_video_info(episode, series, season_number), **self._extract_formats(self._resolve_data(video_json, episode))}
+
+        if season_number:
+            season = next((s for s in series['seasons'] if s['number'] == int(season_number)), None)
+            if not season:
+                raise ExtractorError(f'Failed to find season {season_number}', expected=True)
+            return self.playlist_result(
+                [self._playlist_entry(video_json, series, season, ep) for ep in season['episodes']],
+                f"{series['id']}-{season_number}", f"{series['name']} - Season {season_number}",
+            )
+
+        return self.playlist_result(
+            [self._playlist_entry(video_json, series, season, ep) for season in series.get('seasons', []) for ep in season['episodes']],
+            series['id'], series['name'], series.get('description'),
+        ) if 'seasons' in series else {**self._get_video_info(series), **self._extract_formats(self._resolve_data(video_json, series))}
