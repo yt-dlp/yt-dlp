@@ -122,7 +122,7 @@ class SpankBangIE(InfoExtractor):
                 }), headers={
                     'Referer': url,
                     'X-Requested-With': 'XMLHttpRequest',
-                })
+                }, impersonate=True)
 
             for format_id, format_url in stream.items():
                 if format_url and isinstance(format_url, list):
@@ -178,9 +178,9 @@ class SpankBangPlaylistIE(InfoExtractor):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         playlist_id = mobj.group('id')
-
-        webpage = self._download_webpage(
-            url, playlist_id, headers={'Cookie': 'country=US; mobile=on'})
+        country = self.get_param('geo_bypass_country') or 'US'
+        self._set_cookie('.spankbang.com', 'country', country.upper())
+        webpage = self._download_webpage(url, playlist_id, impersonate=True)
 
         entries = [self.url_result(
             urljoin(url, mobj.group('path')),
