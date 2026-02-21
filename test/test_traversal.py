@@ -239,6 +239,7 @@ class TestTraversal:
             'accept matching `expected_type` type'
         assert traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=int) is None, \
             'reject non matching `expected_type` type'
+        # ruff: noqa: PLW0108 `type`s get special treatment, so wrap in lambda
         assert traverse_obj(_EXPECTED_TYPE_DATA, 'int', expected_type=lambda x: str(x)) == '0', \
             'transform type using type function'
         assert traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=lambda _: 1 / 0) is None, \
@@ -417,7 +418,7 @@ class TestTraversal:
 
     def test_traversal_morsel(self):
         morsel = http.cookies.Morsel()
-        values = dict(zip(morsel, 'abcdefghijklmnop'))
+        values = dict(zip(morsel, 'abcdefghijklmnop', strict=False))
         morsel.set('item_key', 'item_value', 'coded_value')
         morsel.update(values)
         values['key'] = 'item_key'
