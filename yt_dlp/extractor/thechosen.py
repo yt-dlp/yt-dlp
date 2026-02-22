@@ -1,6 +1,10 @@
 from .common import InfoExtractor
 from .frontro import FrontroGroupBaseIE
-from ..utils import determine_ext
+from ..utils import (
+    determine_ext,
+    int_or_none,
+    url_or_none,
+)
 from ..utils.traversal import traverse_obj
 
 
@@ -59,7 +63,7 @@ class TheChosenIE(InfoExtractor):
         metadata = self._download_json(f'https://api.watch.thechosen.tv/v1/videos/{video_id}', video_id)
 
         formats, subtitles = [], {}
-        for vurl in traverse_obj(metadata, ('details', 'video', ..., 'url', {url_or_none}))::
+        for vurl in traverse_obj(metadata, ('details', 'video', ..., 'url', {url_or_none})):
             ext = determine_ext(vurl)
             if ext == 'm3u8':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(vurl, video_id, 'mp4', fatal=False)
