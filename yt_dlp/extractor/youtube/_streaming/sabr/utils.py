@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import contextlib
 import math
 import urllib.parse
 
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import InvalidSabrUrl
 from yt_dlp.extractor.youtube._streaming.sabr.models import ConsumedRange
-from yt_dlp.utils import int_or_none, orderedSet, parse_qs, str_or_none, traverse_obj, update_url_query
+from yt_dlp.utils import int_or_none, parse_qs, str_or_none, traverse_obj, update_url_query
 
 
 def get_cr_chain(start_consumed_range: ConsumedRange | None, consumed_ranges: list[ConsumedRange]) -> list[ConsumedRange]:
@@ -45,8 +44,30 @@ def find_consumed_range_chain(sequence_number: int, consumed_ranges: list[Consum
     return get_cr_chain(start_cr, consumed_ranges)
 
 
-def next_gvs_fallback_url(gvs_url):
-    # TODO: unit test
+def fallback_gvs_url(gvs_url):
+    """
+    Calculate the fallback URL for a given GVS URL using the fvip, mvi, and mn query parameters.
+
+    This only provides the next fallback URL that the server indicates. It does not brute force all possible fallback hosts.
+
+    GVS URL is in the format:
+
+    https://rr?{number}---{mn value}.googlevideo.com/videoplayback?fvip={fvip}&mvi={mvi}&mn={mn}&fallback_count={fallback_count}
+
+    Reference:
+    - mvi: original URL number that follows rr/r in the host.
+    - fvip: fallback URL number that follows rr/r in the host.
+    - mn: comma-separated list of fallback host mn values. The first is the original host.
+    - fallback_count: number of fallbacks attempted so far.
+        Note this may include fallbacks actioned outside of this function - e.g the server may increment this on SABR_REDIRECT.
+
+    This function simply calculates the next fallback host from the fvip and the fallback hosts in mn.
+    """
+
+    def build_host(current_host, f, m):
+        rr = current_host.startswith('rr')
+        return ('rr' if rr else 'r') + str(f) + '---' + m + '.googlevideo.com'
+
     qs = parse_qs(gvs_url)
     gvs_url_parsed = urllib.parse.urlparse(gvs_url)
     fvip = int_or_none(qs.get('fvip', [None])[0])
@@ -54,47 +75,35 @@ def next_gvs_fallback_url(gvs_url):
     mn = str_or_none(qs.get('mn', [None])[0], default='').split(',')
     fallback_count = int_or_none(qs.get('fallback_count', ['0'])[0], default=0)
 
-    hosts = []
-
-    def build_host(current_host, f, m):
-        rr = current_host.startswith('rr')
-        if f is None or m is None:
-            return None
-        return ('rr' if rr else 'r') + str(f) + '---' + m + '.googlevideo.com'
-
-    original_host = build_host(gvs_url_parsed.netloc, mvi, mn[0])
-
-    # Order of fallback hosts:
-    # 1. Fallback host in url (mn[1] + fvip)
-    # 2. Fallback hosts brute forced (this usually contains the original host)
-    for mn_entry in reversed(mn):
-        for fvip_entry in orderedSet([fvip, 1, 2, 3, 4, 5]):
-            fallback_host = build_host(gvs_url_parsed.netloc, fvip_entry, mn_entry)
-            if fallback_host and fallback_host not in hosts:
-                hosts.append(fallback_host)
-
-    if not hosts or len(hosts) == 1:
+    if fvip is None or mvi is None or not mn:
         return None
 
-    # if first fallback, anchor to start of list so we start with the known fallback hosts
-    # Sometimes we may get a SABR_REDIRECT after a fallback, which gives a new host with new fallbacks.
-    # In this case, the original host indicated by the url params would match the current host
-    current_host_index = -1
-    if fallback_count > 0 and gvs_url_parsed.netloc != original_host:
-        with contextlib.suppress(ValueError):
-            current_host_index = hosts.index(gvs_url_parsed.netloc)
+    original_host = build_host(gvs_url_parsed.netloc, mvi, mn[0])
+    current_host = gvs_url_parsed.netloc
 
-    def next_host(idx, h):
-        return h[(idx + 1) % len(h)]
+    # No fallback hosts available
+    if len(mn) < 2:
+        return None
 
-    new_host = next_host(current_host_index + 1, hosts)
-    # If the current URL only has one fallback host, then the first fallback host is the same as the current host.
-    if new_host == gvs_url_parsed.netloc:
-        new_host = next_host(current_host_index + 2, hosts)
+    # Calculate all the possible fallback hosts indicated by the URL parameters.
+    fallback_hosts = []
+    for mn_entry in mn[1:]:
+        fallback_hosts.append(build_host(gvs_url_parsed.netloc, fvip, mn_entry))
 
-    # TODO: do not return new_host if it still matches the original host
+    # Find where the current host is in the fallback host list, and return the next one as the fallback URL
+    next_host = None
+    if current_host == original_host:
+        next_host = fallback_hosts[0]
+    elif current_host in fallback_hosts:
+        current_index = fallback_hosts.index(current_host)
+        if current_index < len(fallback_hosts) - 1:
+            next_host = fallback_hosts[current_index + 1]
+
+    if not next_host:
+        return None
+
     return update_url_query(
-        gvs_url_parsed._replace(netloc=new_host).geturl(), {'fallback_count': fallback_count + 1})
+        gvs_url_parsed._replace(netloc=next_host).geturl(), {'fallback_count': fallback_count + 1})
 
 
 def ticks_to_ms(time_ticks: int, timescale: int):

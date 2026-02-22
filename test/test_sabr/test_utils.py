@@ -5,7 +5,7 @@ import re
 import pytest
 
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import InvalidSabrUrl
-from yt_dlp.extractor.youtube._streaming.sabr.utils import ticks_to_ms, broadcast_id_from_url, validate_sabr_url
+from yt_dlp.extractor.youtube._streaming.sabr.utils import ticks_to_ms, broadcast_id_from_url, validate_sabr_url, fallback_gvs_url
 from yt_dlp.extractor.youtube._streaming.sabr.utils import (
     get_cr_chain,
     find_consumed_range,
@@ -116,3 +116,44 @@ class TestValidateSabrUrl:
     ])
     def test_valid_sabr_url(self, url):
         assert validate_sabr_url(url) == url
+
+
+@pytest.mark.parametrize('url, expected', [
+    # No fallback
+    ('https://rr1---host1.googlevideo.com?mvi=1&mn=host1&fvip=5', None),
+
+    # Single fallback
+    ('https://rr1---host1.googlevideo.com?mvi=1&mn=host1%2Chost2&fvip=5', 'https://rr5---host2.googlevideo.com?mvi=1&mn=host1%2Chost2&fvip=5&fallback_count=1'),
+    ('https://rr5---host2.googlevideo.com?mvi=1&mn=host1%2Chost2&fvip=5&fallback_count=1', None),
+
+    # Multiple fallbacks
+    ('https://rr1---host1.googlevideo.com?mvi=1&mn=host1%2Chost2%2Chost3&fvip=5', 'https://rr5---host2.googlevideo.com?mvi=1&mn=host1%2Chost2%2Chost3&fvip=5&fallback_count=1'),
+    ('https://rr5---host2.googlevideo.com?mvi=1&mn=host1%2Chost2%2Chost3&fvip=5&fallback_count=1', 'https://rr5---host3.googlevideo.com?mvi=1&mn=host1%2Chost2%2Chost3&fvip=5&fallback_count=2'),
+    ('https://rr5---host3.googlevideo.com?mvi=1&mn=host1%2Chost2%2Chost3&fvip=5&fallback_count=2', None),
+
+    # Single r with multiple fallbacks
+    ('https://r1---host1.googlevideo.com?mvi=1&mn=host1%2Chost2%2Chost3&fvip=5', 'https://r5---host2.googlevideo.com?mvi=1&mn=host1%2Chost2%2Chost3&fvip=5&fallback_count=1'),
+    ('https://r5---host2.googlevideo.com?mvi=1&mn=host1%2Chost2%2Chost3&fvip=5&fallback_count=1', 'https://r5---host3.googlevideo.com?mvi=1&mn=host1%2Chost2%2Chost3&fvip=5&fallback_count=2'),
+    ('https://r5---host3.googlevideo.com?mvi=1&mn=host1%2Chost2%2Chost3&fvip=5&fallback_count=2', None),
+
+    # Missing fvip - should not fallback
+    ('https://rr1---host1.googlevideo.com?mvi=1&mn=host1%2Chost2%2Chost3&fvip=', None),
+    ('https://rr1---host1.googlevideo.com?mvi=1&mn=host1%2Chost2%2Chost3', None),
+
+    # Missing mn - should not fallback
+    ('https://rr1---host1.googlevideo.com?mvi=1&fvip=5', None),
+
+    # Does not start with r or rr - should not fallback
+    ('https://x1---host1.googlevideo.com?mvi=1&mn=host1%2Chost2%2Chost3&fvip=5', None),
+    ('https://rrr1---host1.googlevideo.com?mvi=1&mn=host1%2Chost2%2Chost3&fvip=5', None),
+
+    # Missing mvi - should not fallback
+    ('https://rr1---host1.googlevideo.com?mn=host1%2Chost2%2Chost3&fvip=5', None),
+
+    # fvip is same as mvi - should fallback to next host
+    ('https://rr1---host1.googlevideo.com?mvi=1&mn=host1%2Chost2%2Chost3&fvip=1', 'https://rr1---host2.googlevideo.com?mvi=1&mn=host1%2Chost2%2Chost3&fvip=1&fallback_count=1'),
+    ('https://rr1---host2.googlevideo.com?mvi=1&mn=host1%2Chost2%2Chost3&fvip=1&fallback_count=1', 'https://rr1---host3.googlevideo.com?mvi=1&mn=host1%2Chost2%2Chost3&fvip=1&fallback_count=2'),
+    ('https://rr1---host3.googlevideo.com?mvi=1&mn=host1%2Chost2%2Chost3&fvip=1&fallback_count=2', None),
+])
+def test_fallback_url(url, expected):
+    assert fallback_gvs_url(url) == expected

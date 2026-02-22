@@ -42,8 +42,8 @@ from .part import (
 from .processor import SabrProcessor, build_vpabr_request
 from .utils import (
     broadcast_id_from_url,
+    fallback_gvs_url,
     find_consumed_range_by_time,
-    next_gvs_fallback_url,
     ticks_to_ms,
     validate_sabr_url,
 )
@@ -449,6 +449,7 @@ class SabrStream:
         sabr_redirect = protobug.load(part.data, SabrRedirect)
         self._log_part(part, protobug_obj=sabr_redirect)
         self.url = sabr_redirect.redirect_url
+        self.logger.debug(f'Redirecting to {self.url}')
 
     def _process_format_initialization_metadata(self, part: UMPPart):
         fmt_init_metadata = protobug.load(part.data, FormatInitializationMetadata)
@@ -499,9 +500,10 @@ class SabrStream:
 
     def _process_fallback_server(self):
         # Attempt to fall back to another GVS host in the case the current one fails
-        new_url = next_gvs_fallback_url(self.url)
+        new_url = fallback_gvs_url(self.url)
         if not new_url:
             self.logger.debug('No more fallback hosts available')
+            return
 
         self.logger.warning(f'Falling back to host {urllib.parse.urlparse(new_url).netloc}')
         self.url = new_url

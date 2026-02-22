@@ -5,6 +5,7 @@ import time
 from unittest.mock import Mock, MagicMock
 import protobug
 import pytest
+import urllib.parse
 from yt_dlp.extractor.youtube._proto.innertube import NextRequestPolicy
 from test.test_sabr.test_stream.helpers import (
     VIDEO_PLAYBACK_USTREAMER_CONFIG,
@@ -1619,18 +1620,19 @@ class TestStream:
             # Check that the host was switched after 8 retries
             last_error_request = error_requests[-1]
             for following_request in rh.request_history[rh.request_history.index(last_error_request) + 1:]:
-                # TODO: this should be rr3, gvs fallback function needs fixing
-                assert 'rr1---sn-7654321.googlevideo.com' in following_request.request.url
-                assert 'fallback_count=1' in following_request.request.url
+                following_request_url = urllib.parse.urlparse(following_request.request.url)
+                assert following_request_url.netloc == 'rr3---sn-7654321.googlevideo.com'
+                assert 'fallback_count=1' in following_request_url.query
 
             # Check request before fallback
-            assert 'rr6---sn-6942067.googlevideo.com' in last_error_request.request.url
+            last_error_request_url = urllib.parse.urlparse(last_error_request.request.url)
+            assert last_error_request_url.netloc == 'rr6---sn-6942067.googlevideo.com'
 
             # Should have 8 fallback attempts logged
             for i in range(1, 9):
                 logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/10)...')
 
-            logger.warning.assert_any_call('Falling back to host rr1---sn-7654321.googlevideo.com')
+            logger.warning.assert_any_call('Falling back to host rr3---sn-7654321.googlevideo.com')
 
         def test_gvs_fallback_multiple_hosts(self, logger, client_info):
             # Should keep falling back to next gvs server until default max total attempts exceeded
@@ -1638,7 +1640,7 @@ class TestStream:
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(2, 15))}),
                 client_info=client_info,
                 logger=logger,
-                url='https://rr6---sn-6942067.googlevideo.com?mn=sn-6942067,sn-7654321&fvip=3&mvi=6&sabr=1',
+                url='https://rr6---sn-6942067.googlevideo.com?mn=sn-6942067,sn-7654321,sn-0000000-0000&fvip=3&mvi=6&sabr=1',
             )
 
             with pytest.raises(TransportError, match='simulated transport error'):
@@ -1654,19 +1656,23 @@ class TestStream:
 
             # TODO: fix these hosts, gvs fallback function needs fixing
             retry_request_one = error_requests[8]  # first fallback
-            assert 'rr1---sn-7654321.googlevideo.com' in retry_request_one.request.url
-            assert 'fallback_count=1' in retry_request_one.request.url
-            logger.warning.assert_any_call('Falling back to host rr1---sn-7654321.googlevideo.com')
+            retry_request_one_url = urllib.parse.urlparse(retry_request_one.request.url)
+            assert retry_request_one_url.netloc == 'rr3---sn-7654321.googlevideo.com'
+            assert 'fallback_count=1' in retry_request_one_url.query
+            logger.warning.assert_any_call('Falling back to host rr3---sn-7654321.googlevideo.com')
 
             retry_request_two = error_requests[9]  # second fallback
-            assert 'rr4---sn-7654321.googlevideo.com' in retry_request_two.request.url
+            retry_request_two_url = urllib.parse.urlparse(retry_request_two.request.url)
+            assert retry_request_two_url.netloc == 'rr3---sn-0000000-0000.googlevideo.com'
             assert 'fallback_count=2' in retry_request_two.request.url
-            logger.warning.assert_any_call('Falling back to host rr4---sn-7654321.googlevideo.com')
+            logger.warning.assert_any_call('Falling back to host rr3---sn-0000000-0000.googlevideo.com')
 
-            retry_request_three = error_requests[10]  # third fallback before giving up
-            assert 'rr3---sn-6942067.googlevideo.com' in retry_request_three.request.url
-            assert 'fallback_count=3' in retry_request_three.request.url
-            logger.warning.assert_any_call('Falling back to host rr3---sn-6942067.googlevideo.com')
+            # No more fallbacks, should stay on the same host for the remaining retries until giving up
+            retry_request_three = error_requests[10]  # third fallback attempt before giving up
+            retry_request_three_url = urllib.parse.urlparse(retry_request_three.request.url)
+            assert retry_request_three_url.netloc == 'rr3---sn-0000000-0000.googlevideo.com'
+            assert 'fallback_count=2' in retry_request_three.request.url
+            logger.debug.assert_any_call('No more fallback hosts available')
 
         def test_gvs_fallback_threshold_option(self, logger, client_info):
             # Should respect the host_fallback_threshold option for retries before fallback
@@ -1691,18 +1697,19 @@ class TestStream:
             # Check that the host was switched after 3 retries
             last_error_request = error_requests[-1]
             for following_request in rh.request_history[rh.request_history.index(last_error_request) + 1:]:
-                # TODO: this should be rr3, gvs fallback function needs fixing
-                assert 'rr1---sn-7654321.googlevideo.com' in following_request.request.url
-                assert 'fallback_count=1' in following_request.request.url
+                following_request_url = urllib.parse.urlparse(following_request.request.url)
+                assert following_request_url.netloc == 'rr3---sn-7654321.googlevideo.com'
+                assert 'fallback_count=1' in following_request_url.query
 
-            # Check request before fallback
-            assert 'rr6---sn-6942067.googlevideo.com' in last_error_request.request.url
+            # Request before fallback
+            last_error_request_url = urllib.parse.urlparse(last_error_request.request.url)
+            assert last_error_request_url.netloc == 'rr6---sn-6942067.googlevideo.com'
 
             # Should have 4 fallback attempts logged
             for i in range(1, 4):
                 logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/10)...')
 
-            logger.warning.assert_any_call('Falling back to host rr1---sn-7654321.googlevideo.com')
+            logger.warning.assert_any_call('Falling back to host rr3---sn-7654321.googlevideo.com')
 
         def test_gvs_fallback_no_fallback_available(self, logger, client_info):
             # Should not fallback if there are no fallback options available
@@ -1725,10 +1732,11 @@ class TestStream:
 
             # All should have the same host
             for request in error_requests:
-                assert 'rr6---sn-6942067.googlevideo.com' in request.request.url
+                request_url = urllib.parse.urlparse(request.request.url)
+                assert request_url.netloc == 'rr6---sn-6942067.googlevideo.com'
 
             assert not any('Falling back to host' in call.args[0] for call in logger.warning.call_args_list)
-            assert logger.debug.assert_any_call('No more fallback hosts available')
+            logger.debug.assert_any_call('No more fallback hosts available')
 
     class TestStreamProtectionStatusRetries:
 
