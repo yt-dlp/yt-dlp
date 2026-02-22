@@ -3157,7 +3157,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _needs_live_processing(self, live_status, duration):
         if ((live_status == 'is_live' and self.get_param('live_from_start'))
-                or (live_status == 'post_live' and (duration or 0) > 2 * 3600)):
+                or (live_status == 'post_live' and (duration or 0) > 4 * 3600)):
             return live_status
 
     def _report_pot_format_skipped(self, video_id, client_name, proto):
@@ -4080,7 +4080,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         needs_live_processing = self._needs_live_processing(live_status, duration)
 
-        def adjust_incomplete_format(fmt, note_suffix='(Last 2 hours)', pref_adjustment=-10):
+        def adjust_incomplete_format(fmt, note_suffix='(last ~4 hours)', pref_adjustment=-10):
             fmt['preference'] = (fmt.get('preference') or -1) + pref_adjustment
             fmt['format_note'] = join_nonempty(fmt.get('format_note'), note_suffix, delim=' ')
 
@@ -4095,10 +4095,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # These formats are *only* useful to external applications, so we can hide them
                     # Set their preference <= -1000 so that FormatSorter flags them as 'hidden'
                     adjust_incomplete_format(fmt, note_suffix='(ended)', pref_adjustment=-5000)
-                # Is it live with --live-from-start? Or is it post-live and its duration is >2hrs?
+                # Is it live with --live-from-start? Or is it post-live and its duration is >4hrs?
                 elif needs_live_processing:
                     if not fmt.get('is_from_start'):
-                        # Post-live m3u8 formats for >2hr streams
+                        # Post-live m3u8 formats for >4hr streams
                         adjust_incomplete_format(fmt)
                 elif live_status == 'is_live':
                     if protocol == 'http_dash_segments':
