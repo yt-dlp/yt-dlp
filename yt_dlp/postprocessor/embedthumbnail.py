@@ -79,7 +79,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
         # Convert unsupported thumbnail formats (see #25687, #25717)
         # PNG is preferred since JPEG is lossy
-        thumbnail_ext = os.path.splitext(thumbnail_filename)[1][1:]
+        thumbnail_ext = os.path.splitext(thumbnail_filename)[1][1:].lower()
         if info['ext'] not in ('mkv', 'mka') and thumbnail_ext not in ('jpg', 'jpeg', 'png'):
             thumbnail_filename = convertor.convert_thumbnail(thumbnail_filename, 'png')
             thumbnail_ext = 'png'
