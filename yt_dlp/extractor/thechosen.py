@@ -53,46 +53,43 @@ class TheChosenIE(InfoExtractor):
         },
         'params': {'skip_download': 'm3u8'},
     }]
-    _API_TMPL = 'https://api.watch.thechosen.tv/v1/videos/{}'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        metadata = self._download_json(self._API_TMPL.format(video_id), video_id)
+        metadata = self._download_json(f'https://api.watch.thechosen.tv/v1/videos/{video_id}', video_id)
 
         formats, subtitles = [], {}
-        video_data = traverse_obj(metadata, ('details', 'video'))
-        for item in video_data:
-            vurl = item.get('url')
-            if not vurl:
-                continue
+        for vurl in traverse_obj(metadata, ('details', 'video', ..., 'url', {url_or_none}))::
             ext = determine_ext(vurl)
             if ext == 'm3u8':
-                formats, subtitles = self._extract_m3u8_formats_and_subtitles(vurl, video_id)
-                formats.extend(formats)
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(vurl, video_id, 'mp4', fatal=False)
             elif ext == 'mpd':
-                formats, subtitles = self._extract_mpd_formats_and_subtitles(vurl, video_id)
-                subtitles.utend(formats)
-                subtitles.update(subtitles)
+                fmts, subs = self._extract_mpd_formats_and_subtitles(vurl, video_id, fatal=False)
             else:
+                self.report_warning(f'Skipping unsupported format extension "{ext}"', video_id=video_id)
                 continue
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
 
         thumbnails = []
-        if thumb_data := traverse_obj(metadata, ('thumbs'), ('thumbnails'), default=None):
-            for _, thumb_url in thumb_data.items():
-                if thumb_url is None:
-                    continue
-                thumbnails.append({'url': thumb_url})
+        for thumb_id, thumb_url in traverse_obj(metadata, (
+            ('thumbs', 'thumbnails'), {dict.items}, lambda _, v: url_or_none(v[1]),
+        )):
+            thumbnails.append({
+                'id': thumb_id,
+                'url': thumb_url,
+            })
 
         return {
             'id': video_id,
             **traverse_obj(metadata, ({
-                'title': ('title'),
-                'description': ('description'),
-                'duration': ('duration'),
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+                'duration': ('duration', {int_or_none}),
             })),
             'thumbnails': thumbnails,
             'formats': formats,
-            'subtitles': self._merge_subtitles(subtitles),
+            'subtitles': subtitles,
         }
 
 
