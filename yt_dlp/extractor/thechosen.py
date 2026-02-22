@@ -63,12 +63,12 @@ class TheChosenIE(InfoExtractor):
         metadata = self._download_json(f'https://api.watch.thechosen.tv/v1/videos/{video_id}', video_id)
 
         formats, subtitles = [], {}
-        for vurl in traverse_obj(metadata, ('details', 'video', ..., 'url', {url_or_none})):
-            ext = determine_ext(vurl)
+        for fmt_url in traverse_obj(metadata, ('details', 'video', ..., 'url', {url_or_none})):
+            ext = determine_ext(fmt_url)
             if ext == 'm3u8':
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(vurl, video_id, 'mp4', fatal=False)
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(fmt_url, video_id, 'mp4', fatal=False)
             elif ext == 'mpd':
-                fmts, subs = self._extract_mpd_formats_and_subtitles(vurl, video_id, fatal=False)
+                fmts, subs = self._extract_mpd_formats_and_subtitles(fmt_url, video_id, fatal=False)
             else:
                 self.report_warning(f'Skipping unsupported format extension "{ext}"', video_id=video_id)
                 continue
