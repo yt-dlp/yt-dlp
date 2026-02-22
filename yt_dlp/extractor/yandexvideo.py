@@ -5,7 +5,6 @@ from ..utils import (
     bug_reports_message,
     determine_ext,
     int_or_none,
-    lowercase_escape,
     parse_qs,
     qualities,
     try_get,
@@ -178,14 +177,24 @@ class YandexVideoPreviewIE(InfoExtractor):
     }, {  # Odnoklassniki
         'url': 'https://yandex.com/video/preview/?text=dossier%2051%20film%201978&path=yandex_search&parent-reqid=1664361087754492-8727541069609384458-sas2-0340-sas-l7-balancer-8080-BAL-8045&noreask=1&from_type=vast&filmId=5794987234584444632',
         'only_matching': True,
+    }, {
+        # rutube
+        'url': 'https://yandex.ru/video/preview/13569186295594031271',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        data_raw = self._search_regex(r'window.Ya.__inline_params__\s*=\s*JSON.parse\(\'([^"]+?\\u0022video\\u0022:[^"]+?})\'\);', webpage, 'data_raw')
-        data_json = self._parse_json(data_raw, video_id, transform_source=lowercase_escape)
-        return self.url_result(data_json['video']['url'])
+        data = self._search_json(r'<noframes[^>]+PreloadedState[^>]+>\s*', webpage, 'data', video_id, end_pattern=r'\s*</\s*noframes>', default=None)
+        if data:
+            purl = traverse_obj(data,
+                                ('viewer', 'clips', 'items', video_id, 'relatedParams', 'related_url', {url_or_none}),
+                                ('viewer', 'dups', video_id, 'host', 'href', {url_or_none}),
+                                ('viewer', 'dups', video_id, 'player', 'videoUrl', {url_or_none}))
+        else:
+            purl = self._search_regex(r'<a[^>]+VideoViewer-(?:SourceIconLink|SourceContent)[^>]+href\s*=\s*"([^"]+)"', webpage, 'url')
+        return self.url_result(purl)
 
 
 class ZenYandexBaseIE(InfoExtractor):
