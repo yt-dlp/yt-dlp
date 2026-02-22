@@ -28,6 +28,7 @@ from .jsc._director import initialize_jsc_director
 from .jsc.provider import JsChallengeRequest, JsChallengeType, NChallengeInput, SigChallengeInput
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
+from ...dependencies import protobug
 from ...networking.exceptions import HTTPError
 from ...utils import (
     NO_DEFAULT,
@@ -75,6 +76,7 @@ STREAMING_DATA_FETCH_SUBS_PO_TOKEN = '__yt_dlp_fetch_subs_po_token'
 STREAMING_DATA_FETCH_GVS_PO_TOKEN = '__yt_dlp_fetch_gvs_po_token'
 STREAMING_DATA_PLAYER_TOKEN_PROVIDED = '__yt_dlp_player_token_provided'
 STREAMING_DATA_INNERTUBE_CONTEXT = '__yt_dlp_innertube_context'
+STREAMING_DATA_EXTRACT_HEARTBEAT = '__yt_dlp_extract_heartbeat'
 STREAMING_DATA_IS_PREMIUM_SUBSCRIBER = '__yt_dlp_is_premium_subscriber'
 STREAMING_DATA_AVAILABLE_AT_TIMESTAMP = '__yt_dlp_available_at_timestamp'
 
@@ -1913,7 +1915,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _prepare_live_from_start_formats(self, formats, video_id, live_start_time, url, webpage_url, smuggled_data, is_live):
         lock = threading.Lock()
         start_time = time.time()
-        formats = [f for f in formats if f.get('is_from_start')]
+        # TODO: only include dash formats
+        formats = [f for f in formats if f.get('is_from_start') and f.get('protocol') != 'sabr']
 
         def refetch_manifest(format_id, delay):
             nonlocal formats, start_time, is_live
@@ -2675,16 +2678,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return {'contentCheckOk': True, 'racyCheckOk': True}
 
     @classmethod
-    def _generate_player_context(cls, sts=None, use_ad_playback_context=False):
-        context = {
+    def _generate_player_context(cls, sts=None, reload_playback_token=None, use_ad_playback_context=False):
+        content_playback_context = {
             'html5Preference': 'HTML5_PREF_WANTS',
         }
+
         if sts is not None:
-            context['signatureTimestamp'] = sts
+            content_playback_context['signatureTimestamp'] = sts
 
         playback_context = {
-            'contentPlaybackContext': context,
+            'contentPlaybackContext': content_playback_context,
         }
+
+        if reload_playback_token:
+            playback_context['reloadPlaybackContext'] = {
+                'reloadPlaybackParams': {'token': reload_playback_token},
+            }
+
         if use_ad_playback_context:
             playback_context['adPlaybackContext'] = {
                 'pyv': True,
@@ -2733,7 +2743,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def fetch_po_token(self, client='web', context: _PoTokenContext = _PoTokenContext.GVS, ytcfg=None, visitor_data=None,
                        data_sync_id=None, session_index=None, player_url=None, video_id=None, webpage=None,
-                       required=False, **kwargs):
+                       required=False, bypass_cache=None, **kwargs):
         """
         Fetch a PO Token for a given client and context. This function will validate required parameters for a given context and client.
 
@@ -2749,6 +2759,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         @param video_id: video ID.
         @param webpage: video webpage.
         @param required: Whether the PO Token is required (i.e. try to fetch unless policy is "never").
+        @param bypass_cache: Whether to bypass the cache.
         @param kwargs: Additional arguments to pass down. May be more added in the future.
         @return: The fetched PO Token. None if it could not be fetched.
         """
@@ -2782,7 +2793,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return
 
         config_po_token = self._get_config_po_token(client, context)
-        if config_po_token:
+        if config_po_token and not bypass_cache:
             # GVS WebPO token is bound to data_sync_id / account Session ID when logged in.
             if (
                 player_url and context == _PoTokenContext.GVS
@@ -2812,6 +2823,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             player_url=player_url,
             video_id=video_id,
             video_webpage=webpage,
+            bypass_cache=bypass_cache,
             required=required,
             _gvs_bind_to_video_id=gvs_bind_to_video_id,
             **kwargs,
@@ -2870,7 +2882,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             request_verify_tls=not self.get_param('nocheckcertificate'),
             request_source_address=self.get_param('source_address'),
 
-            bypass_cache=False,
+            bypass_cache=kwargs.get('bypass_cache', False),
         )
 
         return self._pot_director.get_po_token(pot_request)
@@ -2891,7 +2903,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _is_unplayable(player_response):
         return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'UNPLAYABLE'
 
-    def _extract_player_response(self, client, video_id, webpage_ytcfg, player_ytcfg, player_url, initial_pr, visitor_data, data_sync_id, po_token):
+    def _extract_player_response(self, client, video_id, webpage_ytcfg, player_ytcfg, player_url, initial_pr, visitor_data, data_sync_id, po_token, reload_playback_token):
         headers = self.generate_api_headers(
             ytcfg=player_ytcfg,
             default_client=client,
@@ -2925,13 +2937,51 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._configuration_arg('use_ad_playback_context', ['false'])[0] != 'false'
             and traverse_obj(INNERTUBE_CLIENTS, (client, 'SUPPORTS_AD_PLAYBACK_CONTEXT', {bool})))
 
-        yt_query.update(self._generate_player_context(sts, use_ad_playback_context))
+        yt_query.update(
+            self._generate_player_context(
+                sts=sts,
+                reload_playback_token=reload_playback_token,
+                use_ad_playback_context=use_ad_playback_context))
 
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
             ytcfg=player_ytcfg, headers=headers, fatal=True,
             default_client=client,
             note='Downloading {} player API JSON'.format(client.replace('_', ' ').strip()),
+        ) or None
+
+    def _extract_heartbeat(self, *, client, video_id, webpage_ytcfg, player_ytcfg, initial_pr, visitor_data, data_sync_id, heartbeat_token, quiet=True):
+        headers = self.generate_api_headers(
+            ytcfg=player_ytcfg,
+            default_client=client,
+            visitor_data=visitor_data,
+            session_index=self._extract_session_index(webpage_ytcfg, player_ytcfg),
+            delegated_session_id=(
+                self._parse_data_sync_id(data_sync_id)[0]
+                or self._extract_delegated_session_id(webpage_ytcfg, initial_pr, player_ytcfg)
+            ),
+            user_session_id=(
+                self._parse_data_sync_id(data_sync_id)[1]
+                or self._extract_user_session_id(webpage_ytcfg, initial_pr, player_ytcfg)
+            ),
+        )
+
+        payload = {
+            'videoId': video_id,
+            'heartbeatRequestParams': {
+                'heartbeatChecks': ['HEARTBEAT_CHECK_TYPE_LIVE_STREAM_STATUS'],
+            },
+        }
+
+        # For members-only livestreams
+        if heartbeat_token:
+            payload['heartbeatToken'] = heartbeat_token
+
+        return self._extract_response(
+            item_id=video_id, ep='player/heartbeat', query=payload,
+            ytcfg=player_ytcfg, headers=headers, fatal=True,
+            default_client=client,
+            note=False if quiet else 'Downloading {} live heartbeat API JSON'.format(client.replace('_', ' ').strip()),
         ) or None
 
     def _get_requested_clients(self, url, smuggled_data, is_premium_subscriber):
@@ -2993,7 +3043,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if (pr_id := traverse_obj(pr, ('videoDetails', 'videoId'))) != video_id:
             return pr_id
 
-    def _extract_player_responses(self, clients, video_id, webpage, webpage_client, webpage_ytcfg, is_premium_subscriber):
+    def _extract_player_responses(self, clients, video_id, webpage, webpage_client, webpage_ytcfg, is_premium_subscriber, reload_playback_token):
         initial_pr = None
         if webpage:
             initial_pr = self._search_json(
@@ -3044,7 +3094,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 tried_iframe_fallback = True
 
             pr = None
-            if client == webpage_client and 'player_response' not in self._configuration_arg('webpage_skip'):
+            if (
+                client == webpage_client
+                and 'player_response' not in self._configuration_arg('webpage_skip')
+                and not reload_playback_token
+            ):
                 pr = initial_pr
 
             visitor_data = visitor_data or self._extract_visitor_data(webpage_ytcfg, initial_pr, player_ytcfg)
@@ -3082,7 +3136,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     initial_pr=initial_pr,
                     visitor_data=visitor_data,
                     data_sync_id=data_sync_id,
-                    po_token=player_po_token)
+                    po_token=player_po_token,
+                    reload_playback_token=reload_playback_token)
             except ExtractorError as e:
                 self.report_warning(e)
                 continue
@@ -3090,6 +3145,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if pr_id := self._invalid_player_response(pr, video_id):
                 skipped_clients[client] = pr_id
             elif pr:
+                # Player Heartbeat callback for livestreams
+                # Used by SABR downloader
+                heartbeat_func = functools.partial(
+                    self._extract_heartbeat,
+                    client=client, video_id=video_id,
+                    webpage_ytcfg=player_ytcfg or webpage_ytcfg,
+                    player_ytcfg=player_ytcfg,
+                    initial_pr=initial_pr,
+                    visitor_data=visitor_data,
+                    data_sync_id=data_sync_id,
+                    # Required for members-only streams
+                    heartbeat_token=traverse_obj(pr, ('heartbeatParams', 'heartbeatToken', {str})),
+                )
+
                 # Save client details for introspection later
                 innertube_context = traverse_obj(player_ytcfg or self._get_default_ytcfg(client), 'INNERTUBE_CONTEXT')
                 sd = pr.setdefault('streamingData', {})
@@ -3097,6 +3166,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 sd[STREAMING_DATA_FETCH_GVS_PO_TOKEN] = fetch_gvs_po_token_func
                 sd[STREAMING_DATA_PLAYER_TOKEN_PROVIDED] = bool(player_po_token)
                 sd[STREAMING_DATA_INNERTUBE_CONTEXT] = innertube_context
+                sd[STREAMING_DATA_EXTRACT_HEARTBEAT] = heartbeat_func
                 sd[STREAMING_DATA_FETCH_SUBS_PO_TOKEN] = fetch_subs_po_token_func
                 sd[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER] = is_premium_subscriber
                 sd[STREAMING_DATA_AVAILABLE_AT_TIMESTAMP] = self._get_available_at_timestamp(pr, video_id, client)
@@ -3191,6 +3261,24 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.write_debug(msg, only_once=True)
         else:
             self.report_warning(msg, only_once=True)
+
+    def _reload_sabr_config(self, video_id, client_name, reload_playback_token):
+        # xxx: may also update client info?
+        url = 'https://www.youtube.com/watch?v=' + video_id
+        _, _, _, _, prs, player_url = self._initial_extract(url, {}, url, 'web', video_id, reload_playback_token)
+        video_details = traverse_obj(prs, (..., 'videoDetails'), expected_type=dict)
+        microformats = traverse_obj(
+            prs, (..., 'microformat', 'playerMicroformatRenderer'),
+            expected_type=dict)
+        _, _, formats, _ = self._list_formats(video_id, microformats, video_details, prs, player_url)
+
+        for f in formats:
+            if f.get('protocol') == 'sabr':
+                sabr_config = f['_sabr_config']
+                if sabr_config['client_name'] == client_name:
+                    return f['url'], sabr_config['video_playback_ustreamer_config']
+
+        raise ExtractorError('No SABR formats found', expected=True)
 
     def _extract_formats_and_subtitles(self, video_id, player_responses, player_url, live_status, duration):
         CHUNK_SIZE = 10 << 20
@@ -3344,6 +3432,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if n_challenge := traverse_obj(fmt_url, ({parse_qs}, 'n', 0)):
                     n_challenges.add(n_challenge)
 
+            # SABR formats
+            if n_challenge := traverse_obj(streaming_data, ('serverAbrStreamingUrl', {parse_qs}, 'n', 0)):
+                n_challenges.add(n_challenge)
+
             # Manifest formats
             n_challenges.update(traverse_obj(
                 streaming_data, (('hlsManifestUrl', 'dashManifestUrl'), {get_manifest_n_challenge})))
@@ -3357,6 +3449,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_premium_subscriber = streaming_data[STREAMING_DATA_IS_PREMIUM_SUBSCRIBER]
             player_token_provided = streaming_data[STREAMING_DATA_PLAYER_TOKEN_PROVIDED]
             client_name = streaming_data.get(STREAMING_DATA_CLIENT_NAME)
+            innertube_context = streaming_data.get(STREAMING_DATA_INNERTUBE_CONTEXT)
+            extract_heartbeat_func = streaming_data[STREAMING_DATA_EXTRACT_HEARTBEAT]
             available_at = streaming_data[STREAMING_DATA_AVAILABLE_AT_TIMESTAMP]
             streaming_formats = traverse_obj(streaming_data, (('formats', 'adaptiveFormats'), ...))
 
@@ -3496,18 +3590,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         fmt_url = traverse_obj(sc, ('url', 0, {url_or_none}))
                         encrypted_sig = traverse_obj(sc, ('s', 0))
                         if not all((sc, fmt_url, skip_player_js or player_url, encrypted_sig)):
-                            msg_tmpl = (
-                                '{}Some {} client https formats have been skipped as they are missing a URL. '
-                                '{}. See  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details')
-                            if client_name in ('web', 'web_safari'):
-                                self.write_debug(msg_tmpl.format(
-                                    f'{video_id}: ', client_name,
-                                    'YouTube is forcing SABR streaming for this client'), only_once=True)
-                            else:
-                                msg = (
-                                    f'YouTube may have enabled the SABR-only streaming experiment for '
-                                    f'{"your account" if self.is_authenticated else "the current session"}')
-                                self.report_warning(msg_tmpl.format('', client_name, msg), video_id, only_once=True)
+                            self.write_debug(
+                                f'{video_id}: {client_name} client https formats have been skipped as they are missing a URL.'
+                                ' YouTube is forcing SABR streaming for this client', only_once=True)
                             continue
 
                     fmt = process_format_stream(
@@ -3568,7 +3653,114 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         fmt['downloader_options'] = {'http_chunk_size': CHUNK_SIZE}
                         yield fmt
 
+            def process_sabr_formats_and_subtitles():
+                proto = 'sabr'
+                server_abr_streaming_url = streaming_data.get('serverAbrStreamingUrl')
+                query = parse_qs(server_abr_streaming_url)
+
+                # n challenge
+                if query.get('n'):
+                    if skip_player_js:
+                        return
+                    n_challenge = query['n'][0]
+                    solve_js_challenges()
+                    n_result = self._load_player_data_from_cache('n', player_url, n_challenge)
+                    if not n_result:
+                        return
+                    server_abr_streaming_url = update_url_query(server_abr_streaming_url, {'n': n_result})
+
+                video_playback_ustreamer_config = traverse_obj(
+                    pr, ('playerConfig', 'mediaCommonConfig', 'mediaUstreamerRequestConfig', 'videoPlaybackUstreamerConfig'))
+
+                if not server_abr_streaming_url or not video_playback_ustreamer_config:
+                    return
+
+                if client_name == 'android_vr' and live_status in ('post_live', 'is_live'):
+                    # android_vr SABR live does not work (and previously was very unstable)
+                    self.report_warning(
+                        f'{video_id}: android_vr client {proto} live formats will be skipped as they are not playable', only_once=True)
+                    return
+
+                if protobug is None:
+                    self.report_warning(
+                        f'{video_id}: {client_name} client {proto} formats will be skipped as protobug is not installed',
+                        only_once=True)
+                    return
+
+                pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(client_name)['GVS_PO_TOKEN_POLICY'][StreamingProtocol.SABR]
+                require_po_token = gvs_pot_required(pot_policy, is_premium_subscriber, player_token_provided)
+
+                po_token = (
+                    gvs_pots.get(client_name)
+                    or fetch_po_token_func(required=require_po_token or pot_policy.recommended))
+
+                if po_token:
+                    if client_name not in gvs_pots:
+                        gvs_pots[client_name] = po_token
+
+                # Only add fields to infodict that we use to avoid bloating it
+                client_info = traverse_obj(
+                    innertube_context, ('client', {
+                        'client_name': 'clientName',
+                        'client_version': 'clientVersion',
+                        'os_version': 'osVersion',
+                        'os_name': 'osName',
+                        'device_model': 'deviceModel',
+                        'device_make': 'deviceMake',
+                    }))
+
+                sabr_config = {
+                    'video_playback_ustreamer_config': video_playback_ustreamer_config,
+                    'po_token': po_token,
+                    'fetch_po_token_fn': fetch_po_token_func,
+                    'client_name': client_name,
+                    'client_info': client_info,
+                    'reload_config_fn': functools.partial(self._reload_sabr_config, video_id, client_name),
+                    'extract_heartbeat_fn': extract_heartbeat_func,
+                    'video_id': video_id,
+                    'live_status': live_status,
+                }
+
+                for fmt_stream in streaming_formats:
+                    stream_id = get_stream_id(fmt_stream)
+                    if not all_formats:
+                        if stream_id in stream_ids:
+                            continue
+
+                    fmt = process_format_stream(fmt_stream, proto, missing_pot=require_po_token and not po_token)
+                    if not fmt:
+                        continue
+
+                    caption_track = fmt_stream.get('captionTrack')
+
+                    fmt.update({
+                        'is_from_start': live_status == 'is_live' and self.get_param('live_from_start'),
+                        'url': server_abr_streaming_url,
+                        'protocol': 'sabr',
+                    })
+
+                    fmt['_sabr_config'] = {
+                        **sabr_config,
+                        'itag': stream_id[0],
+                        'xtags': fmt_stream.get('xtags'),
+                        'last_modified': fmt_stream.get('lastModified'),
+                        'target_duration_sec': fmt_stream.get('targetDurationSec'),
+                    }
+
+                    single_stream = 'none' in (fmt.get('acodec'), fmt.get('vcodec'))
+
+                    nonlocal subtitles
+                    if caption_track:
+                        # TODO: proper live subtitle extraction
+                        subtitles = self._merge_subtitles({str(stream_id[0]): [fmt]}, subtitles)
+                    elif single_stream:
+                        if stream_id[0]:
+                            itags[stream_id[0]].add((proto, fmt.get('language')))
+                            stream_ids.append(stream_id)
+                        yield fmt
+
             yield from process_https_formats()
+            yield from process_sabr_formats_and_subtitles()
 
             needs_live_processing = self._needs_live_processing(live_status, duration)
 
@@ -3852,7 +4044,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or 'premium' in (self._get_text(tlr, 'tooltipText') or '').lower()
         )
 
-    def _initial_extract(self, url, smuggled_data, webpage_url, webpage_client, video_id):
+    def _initial_extract(self, url, smuggled_data, webpage_url, webpage_client, video_id, reload_playback_token=None):
         # This function is also used by live-from-start refresh
         webpage = self._download_initial_webpage(webpage_url, webpage_client, video_id)
         webpage_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg(webpage_client)
@@ -3865,7 +4057,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         player_responses, player_url = self._extract_player_responses(
             self._get_requested_clients(url, smuggled_data, is_premium_subscriber),
-            video_id, webpage, webpage_client, webpage_ytcfg, is_premium_subscriber)
+            video_id, webpage, webpage_client, webpage_ytcfg, is_premium_subscriber, reload_playback_token)
 
         return webpage, webpage_ytcfg, initial_data, is_premium_subscriber, player_responses, player_url
 
@@ -4096,11 +4288,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # Set their preference <= -1000 so that FormatSorter flags them as 'hidden'
                     adjust_incomplete_format(fmt, note_suffix='(ended)', pref_adjustment=-5000)
                 # Is it live with --live-from-start? Or is it post-live and its duration is >2hrs?
-                elif needs_live_processing:
+                elif needs_live_processing and protocol != 'sabr':
                     if not fmt.get('is_from_start'):
                         # Post-live m3u8 formats for >2hr streams
                         adjust_incomplete_format(fmt)
-                elif live_status == 'is_live':
+                elif live_status == 'is_live' and protocol != 'sabr':
                     if protocol == 'http_dash_segments':
                         # Live DASH formats without --live-from-start
                         adjust_incomplete_format(fmt)
