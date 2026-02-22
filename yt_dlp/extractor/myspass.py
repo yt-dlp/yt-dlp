@@ -47,6 +47,8 @@ class MySpassIE(InfoExtractor):
         formats, subtitles = [], {}
         if video_url.endswith('m3u8'):  # older videos are served as .mp4
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, video_id, ext='mp4', fatal=False)
+            for fmt in formats:  # sometimes formats are missing
+                fmt['__needs_testing'] = True
         else:
             formats.append({'url': video_url})
         return {
