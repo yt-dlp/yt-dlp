@@ -1,12 +1,8 @@
 import dataclasses
-import tempfile
 from pathlib import Path
 import pytest
-import uuid
 from yt_dlp.utils._utils import DownloadError
 from yt_dlp.downloader.sabr._io import MemoryFormatIOBackend, DiskFormatIOBackend
-from yt_dlp.downloader import SabrFD
-from yt_dlp import YoutubeDL
 from yt_dlp.downloader.sabr._file import SequenceFile, Sequence, Segment, SegmentFile
 
 INIT_SEQUENCE_CONTENT_LENGTH = 1024
@@ -14,13 +10,6 @@ INIT_SEGMENT_DATA = b'\x00' * INIT_SEQUENCE_CONTENT_LENGTH
 
 GENERAL_SEGMENT_CONTENT_LENGTH = 2048
 GENERAL_SEGMENT_DATA = b'\x00' * GENERAL_SEGMENT_CONTENT_LENGTH
-
-
-@pytest.fixture
-def filename():
-    # use tmp file module to generate a temporary filename
-    with tempfile.TemporaryDirectory() as tmp:
-        yield str(Path(tmp) / f'{uuid.uuid4()}.mp4')
 
 
 @pytest.fixture
@@ -53,12 +42,6 @@ def init_sequence():
     return Sequence(
         sequence_id='i',
     )
-
-
-@pytest.fixture
-def fd():
-    with YoutubeDL() as ydl:
-        yield SabrFD(ydl, {})
 
 
 @pytest.fixture

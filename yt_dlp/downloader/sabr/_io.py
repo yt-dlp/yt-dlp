@@ -95,7 +95,7 @@ class FormatIOBackend(abc.ABC):
 
     def read_into(self, backend):
         if not backend.writer:
-            raise ValueError('Backend writer not initialized')
+            raise ValueError('Destination backend writer not initialized')
         if not self.reader:
             raise ValueError('Backend reader not initialized')
         shutil.copyfileobj(self.reader, backend.writer, length=self.write_buffer)
@@ -153,7 +153,7 @@ class MemoryFormatIOBackend(FormatIOBackend):
         return NonClosingBufferedReader(self._memory_store)
 
     def validate_length(self, expected_length):
-        return self._memory_store.getbuffer().nbytes != expected_length
+        return self._memory_store.getbuffer().nbytes == expected_length
 
     def _remove(self):
         self._memory_store = io.BytesIO()
