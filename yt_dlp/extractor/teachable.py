@@ -102,7 +102,7 @@ class TeachableIE(TeachableBaseIE):
     _WORKING = False
     _VALID_URL = r'''(?x)
                     (?:
-                        {}https?://(?P<site_t>[^/]+)|
+                        {}https?://(?P<site_t>[a-zA-Z0-9.-]+)|
                         https?://(?:www\.)?(?P<site>{})
                     )
                     /courses/[^/]+/lectures/(?P<id>\d+)
@@ -211,7 +211,7 @@ class TeachableIE(TeachableBaseIE):
 class TeachableCourseIE(TeachableBaseIE):
     _VALID_URL = r'''(?x)
                         (?:
-                            {}https?://(?P<site_t>[^/]+)|
+                            {}https?://(?P<site_t>[a-zA-Z0-9.-]+)|
                             https?://(?:www\.)?(?P<site>{})
                         )
                         /(?:courses|p)/(?:enrolled/)?(?P<id>[^/?#&]+)

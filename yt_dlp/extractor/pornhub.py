@@ -128,7 +128,7 @@ class PornHubIE(PornHubBaseIE):
     _VALID_URL = rf'''(?x)
                     https?://
                         (?:
-                            (?:[^/]+\.)?
+                            (?:[a-zA-Z0-9.-]+\.)?
                             {PornHubBaseIE._PORNHUB_HOST_RE}
                             /(?:(?:view_video\.php|video/show)\?viewkey=|embed/)|
                             (?:www\.)?thumbzilla\.com/video/
@@ -534,7 +534,7 @@ class PornHubPlaylistBaseIE(PornHubBaseIE):
 
 
 class PornHubUserIE(PornHubPlaylistBaseIE):
-    _VALID_URL = rf'(?P<url>https?://(?:[^/]+\.)?{PornHubBaseIE._PORNHUB_HOST_RE}/(?:(?:user|channel)s|model|pornstar)/(?P<id>[^/?#&]+))(?:[?#&]|/(?!videos)|$)'
+    _VALID_URL = rf'(?P<url>https?://(?:[a-zA-Z0-9.-]+\.)?{PornHubBaseIE._PORNHUB_HOST_RE}/(?:(?:user|channel)s|model|pornstar)/(?P<id>[^/?#&]+))(?:[?#&]|/(?!videos)|$)'
     _TESTS = [{
         'url': 'https://www.pornhub.com/model/zoe_ph',
         'playlist_mincount': 118,

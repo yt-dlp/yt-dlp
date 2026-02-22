@@ -33,9 +33,12 @@ class Variant(enum.Enum):
     tce = 'player_ias_tce.vflset/en_US/base.js'
     es5 = 'player_es5.vflset/en_US/base.js'
     es6 = 'player_es6.vflset/en_US/base.js'
+    es6_tcc = 'player_es6_tcc.vflset/en_US/base.js'
+    es6_tce = 'player_es6_tce.vflset/en_US/base.js'
     tv = 'tv-player-ias.vflset/tv-player-ias.js'
     tv_es6 = 'tv-player-es6.vflset/tv-player-es6.js'
     phone = 'player-plasma-ias-phone-en_US.vflset/base.js'
+    house = 'house_brand_player.vflset/en_US/base.js'
 
 
 @dataclasses.dataclass
@@ -101,6 +104,66 @@ CHALLENGES: list[Challenge] = [
     Challenge('c1c87fb0', Variant.tce, JsChallengeType.SIG, {
         'gN7a-hudCuAuPH6fByOk1_GNXN0yNMHShjZXS2VOgsEItAJz0tipeavEOmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt':
             'ttJC2JfQdSswRAIgGBCxZyAfKyi0cjXCb3DqEctUw-NYdNmOEvaepit0zJAtIEsgOV2SXZjhSHMNy0NXNGa1kOyBf6HPuAuCduh-_',
+    }),
+    # 4e51e895: main variant broke sig solving; n challenge is added only for regression testing
+    Challenge('4e51e895', Variant.main, JsChallengeType.N, {
+        '0eRGgQWJGfT5rFHFj': 't5kO23_msekBur',
+    }),
+    Challenge('4e51e895', Variant.main, JsChallengeType.SIG, {
+        'AL6p_8AwdY9yAhRzK8rYA_9n97Kizf7_9n97Kizf7_9n97Kizf7_9n97Kizf7_9n97Kizf7_9n97Kizf7':
+            'AwdY9yAhRzK8rYA_9n97Kizf7_9n97Kizf7_9n9pKizf7_9n97Kizf7_9n97Kizf7_9n97Kizf7',
+    }),
+    # 42c5570b: tce variant broke sig solving; n challenge is added only for regression testing
+    Challenge('42c5570b', Variant.tce, JsChallengeType.N, {
+        'ZdZIqFPQK-Ty8wId': 'CRoXjB-R-R',
+    }),
+    Challenge('42c5570b', Variant.tce, JsChallengeType.SIG, {
+        'gN7a-hudCuAuPH6fByOk1_GNXN0yNMHShjZXS2VOgsEItAJz0tipeavEOmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt':
+            'EN7a-hudCuAuPH6fByOk1_GNXN0yNMHShjZXS2VOgsEItAJz0tipeavcOmNdYN-wUtgEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt',
+    }),
+    # 54bd1de4: tce variant broke sig solving; n challenge is added only for regression testing
+    Challenge('54bd1de4', Variant.tce, JsChallengeType.N, {
+        'ZdZIqFPQK-Ty8wId': 'ka-slAQ31sijFN',
+    }),
+    Challenge('54bd1de4', Variant.tce, JsChallengeType.SIG, {
+        'gN7a-hudCuAuPH6fByOk1_GNXN0yNMHShjZXS2VOgsEItAJz0tipeavEOmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt':
+            'gN7a-hudCuAuPH6fByOk1_GNXN0yNMHShjZXS2VOgsEItAJz0titeavEOmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtp',
+    }),
+    # 94667337: tce and es6 variants broke sig solving; n and main/tv variants are added only for regression testing
+    Challenge('94667337', Variant.main, JsChallengeType.N, {
+        'BQoJvGBkC2nj1ZZLK-': 'ib1ShEOGoFXIIw',
+    }),
+    Challenge('94667337', Variant.main, JsChallengeType.SIG, {
+        'NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz':
+            'AJEij0EwRgIhAI0KExTgjfPk-MPM9MNdzyyPRtzBM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=',
+    }),
+    Challenge('94667337', Variant.tv, JsChallengeType.N, {
+        'BQoJvGBkC2nj1ZZLK-': 'ib1ShEOGoFXIIw',
+    }),
+    Challenge('94667337', Variant.tv, JsChallengeType.SIG, {
+        'NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz':
+            'AJEij0EwRgIhAI0KExTgjfPk-MPM9MNdzyyPRtzBM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=',
+    }),
+    Challenge('94667337', Variant.es6, JsChallengeType.N, {
+        'BQoJvGBkC2nj1ZZLK-': 'ib1ShEOGoFXIIw',
+    }),
+    Challenge('94667337', Variant.es6, JsChallengeType.SIG, {
+        'NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz':
+            'AJEij0EwRgIhAI0KExTgjfPk-MPM9MNdzyyPRtzBM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=',
+    }),
+    Challenge('94667337', Variant.tce, JsChallengeType.N, {
+        'BQoJvGBkC2nj1ZZLK-': 'ib1ShEOGoFXIIw',
+    }),
+    Challenge('94667337', Variant.tce, JsChallengeType.SIG, {
+        'NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz':
+            'AJEij0EwRgIhAI0KExTgjfPk-MPM9MNdzyyPRtzBM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=',
+    }),
+    Challenge('94667337', Variant.es6_tce, JsChallengeType.N, {
+        'BQoJvGBkC2nj1ZZLK-': 'ib1ShEOGoFXIIw',
+    }),
+    Challenge('94667337', Variant.es6_tce, JsChallengeType.SIG, {
+        'NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz':
+            'AJEij0EwRgIhAI0KExTgjfPk-MPM9MNdzyyPRtzBM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=',
     }),
 ]
 
