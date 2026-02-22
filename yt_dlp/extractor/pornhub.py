@@ -11,6 +11,7 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
+    base_url,
     clean_html,
     determine_ext,
     format_field,
@@ -23,6 +24,7 @@ from ..utils import (
     update_url_query,
     url_or_none,
     urlencode_postdata,
+    urljoin,
 )
 from ..utils.traversal import find_elements, traverse_obj
 
@@ -142,6 +144,7 @@ class PornHubIE(PornHubBaseIE):
         'info_dict': {
             'id': '648719015',
             'ext': 'mp4',
+            'thumbnail': r're:^https://.i\.phncdn\.com/videos/201306/28/14084201/original/.*\.jpg',
             'title': 'Seductive Indian beauty strips down and fingers her pink pussy',
             'uploader': 'BABES-COM',
             'uploader_id': '/users/babes-com',
@@ -209,11 +212,22 @@ class PornHubIE(PornHubBaseIE):
         'url': 'http://www.pornhub.com/view_video.php?viewkey=ph601dc30bae19a',
         'info_dict': {
             'id': 'ph601dc30bae19a',
+            'ext': 'mp4',
             'uploader': 'Projekt Melody',
             'uploader_id': 'projekt-melody',
             'upload_date': '20210205',
             'title': '"Welcome to My Pussy Mansion" - CB Stream (02/03/21)',
             'thumbnail': r're:https?://.+',
+            'age_limit': 18,
+            'view_count': int,
+            'cast': [],
+            'like_count': int,
+            'comment_count': int,
+            'dislike_count': int,
+            'timestamp': 1612564932,
+            'duration': 8173,
+            'categories': list,
+            'tags': list,
         },
     }, {
         'url': 'http://www.pornhub.com/view_video.php?viewkey=ph557bbb6676d2d',
@@ -319,10 +333,10 @@ class PornHubIE(PornHubBaseIE):
                 r'var\s+flashvars_\d+\s*=\s*({.+?});', webpage, 'flashvars', default='{}'),
             video_id)
         if flashvars:
-            subtitle_url = url_or_none(flashvars.get('closedCaptionsFile'))
+            subtitle_url = flashvars.get('closedCaptionsFile')
             if subtitle_url:
                 subtitles.setdefault('en', []).append({
-                    'url': subtitle_url,
+                    'url': urljoin(base_url(url), subtitle_url),
                     'ext': 'srt',
                 })
             thumbnail = flashvars.get('image_url')
