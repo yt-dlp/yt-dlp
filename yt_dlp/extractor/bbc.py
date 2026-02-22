@@ -60,6 +60,11 @@ class BBCCoUkIE(InfoExtractor):
         'iptv-all',
         'pc',
     ]
+    _SECURE_MEDIA_SELECTOR_URL_TEMPL = 'https://securegate.iplayer.bbc.co.uk/mediaselector/6/select/version/2.0/vpid/%s/format/json/mediaset/%s/proto/https'
+    _SECURE_MEDIA_SETS = [
+        'iptv-uhd',  # 2160p H.265
+        'iptv-bvq',  # 1080p H.264
+    ]
 
     _EMP_PLAYLIST_NS = 'http://bbc.co.uk/2008/emp/playlist'
 
@@ -318,10 +323,15 @@ class BBCCoUkIE(InfoExtractor):
     def _download_media_selector(self, programme_id):
         last_exception = None
         formats, subtitles = [], {}
+        urls = []
+        if self._downloader.params.get('client_certificate'):
+            for media_set in self._SECURE_MEDIA_SETS:
+                urls.append(self._SECURE_MEDIA_SELECTOR_URL_TEMPL % (programme_id, media_set))
         for media_set in self._MEDIA_SETS:
+            urls.append(self._MEDIA_SELECTOR_URL_TEMPL % (media_set, programme_id))
+        for url in urls:
             try:
-                fmts, subs = self._download_media_selector_url(
-                    self._MEDIA_SELECTOR_URL_TEMPL % (media_set, programme_id), programme_id)
+                fmts, subs = self._download_media_selector_url(url, programme_id)
                 formats.extend(fmts)
                 if subs:
                     self._merge_subtitles(subs, target=subtitles)
