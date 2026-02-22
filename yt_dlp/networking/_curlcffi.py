@@ -175,6 +175,13 @@ _TARGETS_COMPAT_LOOKUP = {
     'safari180_ios': 'safari18_0_ios',
 }
 
+# These targets are known to be insufficient, unreliable or blocked
+# See: https://github.com/yt-dlp/yt-dlp/issues/16012
+_DEPRIORITIZED_TARGETS = {
+    ImpersonateTarget('chrome', '133', 'macos', '15'),  # chrome133a
+    ImpersonateTarget('chrome', '136', 'macos', '15'),  # chrome136
+}
+
 
 @register_rh
 class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
@@ -192,6 +199,8 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
             for version, targets in BROWSER_TARGETS.items()
             if curl_cffi_version >= version
         ), key=lambda x: (
+            # deprioritize unreliable targets so they are not selected by default
+            x[1] not in _DEPRIORITIZED_TARGETS,
             # deprioritize mobile targets since they give very different behavior
             x[1].os not in ('ios', 'android'),
             # prioritize tor < edge < firefox < safari < chrome
