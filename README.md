@@ -1968,6 +1968,9 @@ The following extractors use this feature:
 #### sonylivseries
 * `sort_order`: Episode sort order for series extraction - one of `asc` (ascending, oldest first) or `desc` (descending, newest first). Default is `asc`
 
+#### rplaylive
+* `lang`: Provide language code (`en`, `jp`, `ko`) to use translated metadata (`title`, `description`, and `uploader`) when possible
+
 #### tver
 * `backend`: Backend API to use for extraction - one of `streaks` (default) or `brightcove` (deprecated)
 
