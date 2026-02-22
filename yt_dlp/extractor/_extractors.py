@@ -2495,6 +2495,10 @@ from .xinpianchang import XinpianchangIE
 from .xminus import XMinusIE
 from .xnxx import XNXXIE
 from .xstream import XstreamIE
+from .xumo import (
+    XumoIE,
+    XumoTVShowsIE,
+)
 from .xvideos import (
     XVideosIE,
     XVideosQuickiesIE,
