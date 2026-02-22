@@ -585,20 +585,6 @@ class TestStream:
         audio_parts = [part for part in parts if hasattr(part, 'format_selector') and isinstance(part.format_selector, AudioSelector)]
         assert not audio_parts
 
-    def test_sps_ok(self, logger, client_info):
-        # Should not fail on SPS OK status (when po token is provided)
-        sabr_stream, rh, selectors = setup_sabr_stream_av(
-            sabr_response_processor=PoTokenAVProfile({'sps_status': PoTokenStatusSabrPart.PoTokenStatus.OK}),
-            client_info=client_info,
-            logger=logger,
-        )
-        sabr_stream.processor.po_token = base64.b64encode(b'valid-po-token')
-        audio_selector, video_selector = selectors
-        parts = list(sabr_stream.iter_parts())
-        assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
-        assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
-        assert len(rh.request_history) == 6
-
     def test_request_number(self, logger, client_info):
         # Should set the "rn" query parameter correctly on each request
         sabr_stream, rh, _ = setup_sabr_stream_av(
@@ -1738,9 +1724,23 @@ class TestStream:
             assert not any('Falling back to host' in call.args[0] for call in logger.warning.call_args_list)
             logger.debug.assert_any_call('No more fallback hosts available')
 
-    class TestStreamProtectionStatusRetries:
+    class TestStreamProtectionStatus:
 
         DEFAULT_RETRIES = 5
+
+        def test_sps_ok(self, logger, client_info):
+            # Should not fail on SPS OK status (when po token is provided)
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                sabr_response_processor=PoTokenAVProfile({'sps_status': PoTokenStatusSabrPart.PoTokenStatus.OK}),
+                client_info=client_info,
+                logger=logger,
+            )
+            sabr_stream.processor.po_token = base64.b64encode(b'valid-po-token')
+            audio_selector, video_selector = selectors
+            parts = list(sabr_stream.iter_parts())
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+            assert len(rh.request_history) == 6
 
         def test_sps_retry_on_required(self, logger, client_info):
             # Should retry when StreamProtectionStatus is REQUIRED
@@ -1776,7 +1776,6 @@ class TestStream:
             retry_request_vpabr = rh.request_history[1].vpabr
             assert retry_request_vpabr.client_abr_state.player_time_ms == rh.request_history[0].vpabr.client_abr_state.player_time_ms
 
-            # TODO: last retry is warning the po token is invalid, which is not correct
             for i in range(1, self.DEFAULT_RETRIES):
                 logger.warning.assert_any_call(f'[sabr] Got error: This stream requires a GVS PO Token to continue. Retrying ({i}/5)...')
 
@@ -1836,9 +1835,91 @@ class TestStream:
             for part in po_token_status_parts[pending_requests + self.DEFAULT_RETRIES:]:
                 assert part.status == PoTokenStatusSabrPart.PoTokenStatus.OK
 
-            # TODO: last retry is warning the po token is invalid, which is not correct
             for i in range(1, self.DEFAULT_RETRIES + 1):
                 logger.warning.assert_any_call(f'[sabr] Got error: This stream requires a GVS PO Token to continue. Retrying ({i}/5)...')
+
+        def test_sps_required_retries_exhausted(self, logger, client_info):
+            # Should raise PoTokenError after exhausting retries when StreamProtectionStatus is REQUIRED
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                sabr_response_processor=PoTokenAVProfile(),
+                client_info=client_info,
+                logger=logger,
+            )
+            sabr_stream.processor.po_token = None
+
+            parts = []
+            with pytest.raises(PoTokenError, match='This stream requires a GVS PO Token to continue'):
+                for part in sabr_stream.iter_parts():
+                    parts.append(part)
+
+            # Should have 6 PoTokenStatusSabrPart parts indicating missing
+            po_token_status_parts = [part for part in parts if isinstance(part, PoTokenStatusSabrPart)]
+            assert len(po_token_status_parts) == self.DEFAULT_RETRIES + 1
+            for part in po_token_status_parts:
+                assert part.status == PoTokenStatusSabrPart.PoTokenStatus.MISSING
+
+            for i in range(1, self.DEFAULT_RETRIES + 1):
+                logger.warning.assert_any_call(f'[sabr] Got error: This stream requires a GVS PO Token to continue. Retrying ({i}/5)...')
+
+            for request_details in rh.request_history[1:]:
+                assert not any(isinstance(part, PoTokenStatusSabrPart) for part in request_details.parts)
+
+        def test_sps_invalid_retries_exhausted(self, logger, client_info):
+            # Should raise PoTokenError after exhausting retries when StreamProtectionStatus is INVALID
+            sabr_stream, _, _ = setup_sabr_stream_av(
+                sabr_response_processor=PoTokenAVProfile(),
+                client_info=client_info,
+                logger=logger,
+            )
+            sabr_stream.processor.po_token = base64.b64encode(b'invalid')
+
+            parts = []
+            with pytest.raises(PoTokenError, match='This stream requires a GVS PO Token to continue and the one provided is invalid'):
+                for part in sabr_stream.iter_parts():
+                    parts.append(part)
+
+            # Should have 6 PoTokenStatusSabrPart parts indicating invalid
+            po_token_status_parts = [part for part in parts if isinstance(part, PoTokenStatusSabrPart)]
+            assert len(po_token_status_parts) == self.DEFAULT_RETRIES + 1
+            for part in po_token_status_parts:
+                assert part.status == PoTokenStatusSabrPart.PoTokenStatus.INVALID
+
+            for i in range(1, self.DEFAULT_RETRIES + 1):
+                logger.warning.assert_any_call(
+                    f'[sabr] Got error: This stream requires a GVS PO Token to continue and the one provided is invalid. Retrying ({i}/5)...')
+
+        def test_sps_retry_server_stops_sending_sps(self, logger, client_info):
+            # Should continue to retry if StreamProtectionStatus is REQUIRED
+            # and the server stops sending SPS status parts
+
+            class RemoveSPSAfterFirstRequest(PoTokenAVProfile):
+                def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str, request_number: int) -> list[UMPPart | Exception]:
+                    parts = super().get_parts(vpabr, url, request_number)
+                    if request_number > 1:
+                        parts = [part for part in parts if not isinstance(part, PoTokenStatusSabrPart)]
+                    return parts
+
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                sabr_response_processor=RemoveSPSAfterFirstRequest(),
+                client_info=client_info,
+                logger=logger,
+            )
+            parts = []
+            with pytest.raises(PoTokenError, match='This stream requires a GVS PO Token to continue'):
+                for part in sabr_stream.iter_parts():
+                    parts.append(part)
+
+            # Should have 6 PoTokenStatusSabrPart parts indicating missing
+            po_token_status_parts = [part for part in parts if isinstance(part, PoTokenStatusSabrPart)]
+            assert len(po_token_status_parts) == self.DEFAULT_RETRIES + 1
+            for part in po_token_status_parts:
+                assert part.status == PoTokenStatusSabrPart.PoTokenStatus.MISSING
+
+            for i in range(1, self.DEFAULT_RETRIES + 1):
+                logger.warning.assert_any_call(f'[sabr] Got error: This stream requires a GVS PO Token to continue. Retrying ({i}/5)...')
+
+            for request_details in rh.request_history[1:]:
+                assert not any(isinstance(part, PoTokenStatusSabrPart) for part in request_details.parts)
 
         def test_required_exceed_max_retries(self, logger, client_info):
             # Should raise PoTokenError after exceeding max retries when StreamProtectionStatus is REQUIRED

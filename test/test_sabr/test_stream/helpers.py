@@ -527,12 +527,13 @@ class PoTokenAVProfile(BasicAudioVideoProfile):
     Require a PO token to be present in the vpabr.streamer_context.po_token.
     If not present, return a StreamProtectionStatus part indicating attestation is required.
     If the po_token is 'pending', returns a StreamProtectionStatus part indicating attestation is pending.
+    If the po_token is 'invalid', returns a StreamProtectionStatus part indicating attestation is required.
     Otherwise, indicate OK.
     """
 
     def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str, request_number: int) -> list[UMPPart | Exception]:
         parts = []
-        if vpabr.streamer_context.po_token is None:
+        if vpabr.streamer_context.po_token is None or vpabr.streamer_context.po_token == b'invalid':
             status = StreamProtectionStatus.Status.ATTESTATION_REQUIRED
         elif vpabr.streamer_context.po_token == b'pending':
             status = StreamProtectionStatus.Status.ATTESTATION_PENDING

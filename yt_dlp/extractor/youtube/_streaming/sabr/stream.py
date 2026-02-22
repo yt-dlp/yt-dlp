@@ -194,6 +194,8 @@ class SabrStream:
         self._current_http_retry = None
         self._unknown_part_types = set()
 
+        self._last_vpabr = None
+
         # Whether the current request is a result of a retry
         self._is_retry = False
 
@@ -270,6 +272,8 @@ class SabrStream:
 
             yield from self._process_expiry()
             vpabr = build_vpabr_request(self.processor)
+            self._last_vpabr = vpabr
+
             payload = protobug.dumps(vpabr)
             self.logger.trace(f'Ustreamer Config: {self.processor.video_playback_ustreamer_config}')
             self.logger.trace(f'Sending SABR request: {vpabr}')
@@ -338,7 +342,9 @@ class SabrStream:
         self._log_state()
 
     def _process_sps_retry(self):
-        error = PoTokenError(missing=not self.processor.po_token)
+        # The PO Token may be updated during the request.
+        # For logging purposes, the error is determined by the state at the time of the request.
+        error = PoTokenError(missing=not self._last_vpabr.streamer_context.po_token)
 
         if self.processor.stream_protection_status == StreamProtectionStatus.Status.ATTESTATION_REQUIRED:
             # Always start retrying immediately on ATTESTATION_REQUIRED
