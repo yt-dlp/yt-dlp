@@ -8,7 +8,7 @@ from ..utils.traversal import traverse_obj
 
 
 class GetCourseRuPlayerIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:player02\.getcourse\.ru|cf-api-2\.vhcdn\.com)/sign-player/?\?(?:[^#]+&)?json=[^#&]+'
+    _VALID_URL = r'https?://(?:player02\.getcourse\.ru|cf-api-2\.vhcdn\.com|vh-api-1-de\.gceuproxy\.com)/sign-player/?\?(?:[^#]+&)?json=[^#&]+'
     _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL}[^\'"]*)']
     _TESTS = [{
         'url': 'http://player02.getcourse.ru/sign-player/?json=eyJ2aWRlb19oYXNoIjoiMTkwYmRmOTNmMWIyOTczNTMwOTg1M2E3YTE5ZTI0YjMiLCJ1c2VyX2lkIjozNTk1MjUxODMsInN1Yl9sb2dpbl91c2VyX2lkIjpudWxsLCJsZXNzb25faWQiOm51bGwsImlwIjoiNDYuMTQyLjE4Mi4yNDciLCJnY19ob3N0IjoiYWNhZGVteW1lbC5vbmxpbmUiLCJ0aW1lIjoxNzA1NDQ5NjQyLCJwYXlsb2FkIjoidV8zNTk1MjUxODMiLCJ1aV9sYW5ndWFnZSI6InJ1IiwiaXNfaGF2ZV9jdXN0b21fc3R5bGUiOnRydWV9&s=354ad2c993d95d5ac629e3133d6cefea&vh-static-feature=zigzag',
@@ -28,6 +28,16 @@ class GetCourseRuPlayerIE(InfoExtractor):
             'ext': 'mp4',
             'thumbnail': 'https://preview-htz.vhcdn.com/preview/8afd7c489952108e00f019590f3711f3/preview.jpg?version=1682170973&host=vh-72',
             'duration': 777,
+        },
+        'skip': 'JWT expired',
+    }, {
+        'url': 'https://vh-api-1-de.gceuproxy.com/sign-player/?json=example&s=48819348308660cfa1d9fe19b9ce047a',
+        'info_dict': {
+            'id': '441791773',
+            'title': '8d768d9387ea561f4b5569ecdfa7e282',
+            'ext': 'mp4',
+            'thumbnail': 'https://vh-71-integros.kinescopecdn.net/preview/8d768d9387ea561f4b5569ecdfa7e282/preview.jpg?version=1683705167&host=vh-71',
+            'duration': 500,
         },
         'skip': 'JWT expired',
     }]
