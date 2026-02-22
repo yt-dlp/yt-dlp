@@ -54,7 +54,7 @@ from ..ump import UMPDecoder, UMPPart, UMPPartId, read_varint
 class StreamStallTracker:
     stalled_requests: int = 0
     # note: lambda to allow mocking of time in tests
-    last_active_time: float = dataclasses.field(default_factory=lambda: time.time())
+    last_active_time: float = dataclasses.field(default_factory=lambda: time.time())  # noqa: PLW0108
     # Whether the last request resulted in any activity (new segments)
     activity_detected: bool = False
 

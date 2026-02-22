@@ -57,7 +57,7 @@ class SabrRequestDetails:
     vpabr: VideoPlaybackAbrRequest | None = None
     error: Exception | None = None
     # lambda so mock time is respected
-    time: float = dataclasses.field(default_factory=lambda: time.time())
+    time: float = dataclasses.field(default_factory=lambda: time.time())  # noqa: PLW0108
 
 
 class MockBaseIO(io.BytesIO):
