@@ -2496,8 +2496,12 @@ from .xminus import XMinusIE
 from .xnxx import XNXXIE
 from .xstream import XstreamIE
 from .xvideos import (
+    XVideosChannelIE,
     XVideosIE,
+    XVideosPlaylistIE,
     XVideosQuickiesIE,
+    XVideosRelatedIE,
+    XVideosSearchIE,
 )
 from .xxxymovies import XXXYMoviesIE
 from .yahoo import (
