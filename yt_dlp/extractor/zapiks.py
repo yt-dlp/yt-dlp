@@ -1,5 +1,6 @@
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -10,7 +11,6 @@ from ..utils import (
     parse_resolution,
     str_or_none,
     unified_timestamp,
-    url_basename,
     url_or_none,
 )
 from ..utils.traversal import (
@@ -21,11 +21,12 @@ from ..utils.traversal import (
 
 
 class ZapiksIE(InfoExtractor):
+    _UPLOADER_ID_RE = re.compile(r'/pro(?:fil)?/(?P<id>[^/?#]+)/?')
     _VALID_URL = [
         r'https?://(?:www\.)?zapiks\.(?:com|fr)/(?P<id>[\w-]+)\.html',
-        r'https?://(?:www\.)?zapiks\.fr/index\.php\?.*\bmedia_id=(?P<id>\d+)',
+        r'https?://(?:www\.)?zapiks\.fr/index\.php\?(?:(?:[^&#]+&(?:amp;)?)+)?media_id=(?P<id>\d+)',
     ]
-    _EMBED_REGEX = [r'<iframe[^>]+\bsrc=["\'](?P<url>(?:https?:)?//(?:www\.)?zapiks\.fr/index\.php\?.*\bmedia_id=(?P<id>\d+))']
+    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=["\'](?P<url>(?:https?:)?//(?:www\.)?zapiks\.fr/index\.php\?(?:(?:[^&#"\']+&(?:amp;)?)+)?media_id=(?P<id>\d+))']
     _TESTS = [{
         'url': 'https://www.zapiks.fr/ep2s3-bon-appetit-eh-be-viva.html',
         'md5': 'aeb3c473b2d564b2d46d664d28d5f050',
@@ -162,11 +163,9 @@ class ZapiksIE(InfoExtractor):
 
         video_responsive = traverse_obj(webpage, (
             {find_element(cls='video-responsive', html=True)}, {extract_attributes}, {dict}))
-        if url_basename(url) == 'index.php':
-            if data_media_url := traverse_obj(video_responsive, (
-                'data-media-url', {url_or_none},
-            )):
-                return self.url_result(data_media_url, ZapiksIE)
+        data_media_url = traverse_obj(video_responsive, ('data-media-url', {url_or_none}))
+        if data_media_url and urllib.parse.urlparse(url).path == '/index.php':
+            return self.url_result(data_media_url, ZapiksIE)
 
         data_playlist = traverse_obj(video_responsive, ('data-playlist', {json.loads}, ..., any))
         formats = []
@@ -196,8 +195,7 @@ class ZapiksIE(InfoExtractor):
             }),
             **traverse_obj(webpage, ({find_element(cls='video-content-user-link', html=True)}, {
                 'uploader': ({clean_html}, filter),
-                'uploader_id': (
-                    {extract_attributes}, 'href', {lambda x: re.sub(r'(?:/|pro(?:fil)?)', '', x)}, filter),
+                'uploader_id': ({extract_attributes}, 'href', {self._UPLOADER_ID_RE.fullmatch}, 'id'),
             })),
             **traverse_obj(data_playlist, {
                 'id': ('mediaid', {str_or_none}),
