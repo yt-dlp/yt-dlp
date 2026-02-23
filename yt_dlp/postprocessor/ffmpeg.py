@@ -777,7 +777,11 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         stream_idx = 0
         for fmt in info.get('requested_formats') or [info]:
             stream_count = 2 if 'none' not in (fmt.get('vcodec'), fmt.get('acodec')) else 1
-            lang = ISO639Utils.short2long(fmt.get('language') or '') or fmt.get('language')
+            lang = fmt.get('language') or ''
+            if len(lang) == 3:
+                lang = lang.lower()
+            else:
+                lang = ISO639Utils.short2long(lang.lower()) or lang
             for i in range(stream_idx, stream_idx + stream_count):
                 if lang:
                     metadata[str(i)].setdefault('language', lang)
