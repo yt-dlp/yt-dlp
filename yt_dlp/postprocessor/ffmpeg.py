@@ -778,6 +778,11 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         for fmt in info.get('requested_formats') or [info]:
             stream_count = 2 if 'none' not in (fmt.get('vcodec'), fmt.get('acodec')) else 1
             lang = fmt.get('language') or ''
+            # Avoid using ISO639Utils.short2long if `lang` is likely already a valid long code.
+            # Some languages have only a long code and no short code, but the language map in
+            # ISO639Utils only contains languages with *both* a short and long code.
+            # If the language doesn't have a short code, short2long will give the wrong result.
+            # See https://github.com/yt-dlp/yt-dlp/issues/16045
             if len(lang) == 3:
                 lang = lang.lower()
             else:
