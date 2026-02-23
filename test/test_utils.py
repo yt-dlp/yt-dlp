@@ -134,7 +134,7 @@ from yt_dlp.utils import (
     xpath_text,
     xpath_with_ns,
 )
-from yt_dlp.utils._utils import _UnsafeExtensionError
+from yt_dlp.utils._utils import ISO639Utils, _UnsafeExtensionError
 from yt_dlp.utils.networking import (
     HTTPHeaderDict,
     escape_rfc3986,
@@ -2242,6 +2242,46 @@ Line 1
         test(self._JWT_WITH_REORDERED_HEADERS)
         test(self._JWT_WITH_REORDERED_HEADERS_AND_RS256_ALG)
         test(self._JWT_WITH_EXTRA_HEADERS_AND_ES256_ALG)
+
+    def test_iso639_utils(self):
+        # Test short2long: valid 2-char codes (ISO 639-1 -> ISO 639-2/T)
+        self.assertEqual(ISO639Utils.short2long('en'), 'eng')
+        self.assertEqual(ISO639Utils.short2long('de'), 'deu')
+        self.assertEqual(ISO639Utils.short2long('fr'), 'fra')
+        self.assertEqual(ISO639Utils.short2long('es'), 'spa')
+        self.assertEqual(ISO639Utils.short2long('zh'), 'zho')
+        self.assertEqual(ISO639Utils.short2long('ja'), 'jpn')
+
+        # Test short2long: invalid 2-char codes should return None
+        self.assertIsNone(ISO639Utils.short2long('zz'))
+        self.assertIsNone(ISO639Utils.short2long(''))
+
+        # Test short2long: 3-char codes (ISO 639-3 like 'tlh' for Klingon) should NOT be converted
+        # Previously this would truncate 'tlh' to 'tl' and return 'tgl' (Tagalog) - GH#16045
+        self.assertIsNone(ISO639Utils.short2long('tlh'))  # Klingon
+        self.assertIsNone(ISO639Utils.short2long('eng'))  # Already 3-char
+        self.assertIsNone(ISO639Utils.short2long('tgl'))  # Already 3-char
+
+        # Test long2short: valid 3-char codes (ISO 639-2/T -> ISO 639-1)
+        self.assertEqual(ISO639Utils.long2short('eng'), 'en')
+        self.assertEqual(ISO639Utils.long2short('deu'), 'de')
+        self.assertEqual(ISO639Utils.long2short('fra'), 'fr')
+        self.assertEqual(ISO639Utils.long2short('spa'), 'es')
+        self.assertEqual(ISO639Utils.long2short('zho'), 'zh')
+        self.assertEqual(ISO639Utils.long2short('jpn'), 'ja')
+
+        # Test long2short: invalid 3-char codes should return None
+        self.assertIsNone(ISO639Utils.long2short('zzz'))
+        self.assertIsNone(ISO639Utils.long2short(''))
+
+        # Test long2short: 2-char codes should NOT be converted (they're already short)
+        self.assertIsNone(ISO639Utils.long2short('en'))
+        self.assertIsNone(ISO639Utils.long2short('de'))
+
+        # Test deprecated/alternative codes
+        self.assertEqual(ISO639Utils.short2long('iw'), 'heb')  # Hebrew (old code)
+        self.assertEqual(ISO639Utils.short2long('he'), 'heb')  # Hebrew (new code)
+        self.assertEqual(ISO639Utils.long2short('heb'), 'he')  # Should return new code
 
 
 if __name__ == '__main__':

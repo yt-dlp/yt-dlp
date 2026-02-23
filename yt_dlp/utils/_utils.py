@@ -3819,14 +3819,17 @@ class ISO639Utils:
     @classmethod
     def short2long(cls, code):
         """Convert language code from ISO 639-1 to ISO 639-2/T"""
-        return cls._lang_map.get(code[:2])
+        # Only convert 2-character ISO 639-1 codes; leave 3-character codes (e.g., 'tlh' for Klingon) unchanged
+        if len(code) == 2:
+            return cls._lang_map.get(code)
 
     @classmethod
     def long2short(cls, code):
         """Convert language code from ISO 639-2/T to ISO 639-1"""
-        for short_name, long_name in cls._lang_map.items():
-            if long_name == code:
-                return short_name
+        if len(code) == 3:
+            for short_name, long_name in cls._lang_map.items():
+                if long_name == code:
+                    return short_name
 
 
 class ISO3166Utils:
