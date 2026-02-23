@@ -1063,7 +1063,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'ext': 'mp4',
             'title': 'German Gold',
             'description': 'md5:f3073306553a8d9b40e6ac4cdbf09fc6',
-            'display_id': 'german-gold',
+            'display_id': 'goldrausch-in-australien/german-gold',
             'episode': 'Episode 1',
             'episode_number': 1,
             'season': 'Season 5',
@@ -1112,7 +1112,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'ext': 'mp4',
             'title': '24 Stunden auf der Feuerwache 3',
             'description': 'md5:f3084ef6170bfb79f9a6e0c030e09330',
-            'display_id': '24-stunden-auf-der-feuerwache-3',
+            'display_id': 'feuerwache-3-alarm-in-muenchen/24-stunden-auf-der-feuerwache-3',
             'episode': 'Episode 1',
             'episode_number': 1,
             'season': 'Season 1',
@@ -1134,7 +1134,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'ext': 'mp4',
             'title': 'Der Poltergeist im Kostümladen',
             'description': 'md5:20b52b9736a0a3a7873d19a238fad7fc',
-            'display_id': 'der-poltergeist-im-kostumladen',
+            'display_id': 'ghost-adventures/der-poltergeist-im-kostumladen',
             'episode': 'Episode 1',
             'episode_number': 1,
             'season': 'Season 25',
@@ -1156,7 +1156,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'ext': 'mp4',
             'title': 'Das Geheimnis meines Bruders',
             'description': 'md5:3167550bb582eb9c92875c86a0a20882',
-            'display_id': 'das-geheimnis-meines-bruders',
+            'display_id': 'evil-gesichter-des-boesen/das-geheimnis-meines-bruders',
             'episode': 'Episode 1',
             'episode_number': 1,
             'season': 'Season 1',
@@ -1175,18 +1175,19 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
 
     def _real_extract(self, url):
         domain, programme, alternate_id = self._match_valid_url(url).groups()
+        display_id = f'{programme}/{alternate_id}'
         meta = self._download_json(
             f'https://de-api.loma-cms.com/feloma/videos/{alternate_id}/',
-            alternate_id, query={
+            display_id, query={
                 'environment': domain.split('.')[0],
                 'v': '2',
                 'filter[show.slug]': programme,
             }, fatal=False)
-        video_id = traverse_obj(meta, ('uid', {str}, {lambda s: s[-7:]})) or alternate_id
+        video_id = traverse_obj(meta, ('uid', {str}, {lambda s: s[-7:]})) or display_id
 
         disco_api_info = self._get_disco_api_info(
             url, video_id, 'eu1-prod.disco-api.com', domain.replace('.', ''), 'DE')
-        disco_api_info['display_id'] = alternate_id
+        disco_api_info['display_id'] = display_id
         disco_api_info['categories'] = traverse_obj(meta, (
             'taxonomies', lambda _, v: v['category'] == 'genre', 'title', {str.strip}, filter, all, filter))
 

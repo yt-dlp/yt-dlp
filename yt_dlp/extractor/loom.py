@@ -8,12 +8,10 @@ from ..utils import (
     ExtractorError,
     determine_ext,
     filter_dict,
-    get_first,
     int_or_none,
     parse_iso8601,
     update_url,
     url_or_none,
-    variadic,
 )
 from ..utils.traversal import traverse_obj
 
@@ -51,7 +49,7 @@ class LoomIE(InfoExtractor):
     }, {
         # m3u8 raw-url, mp4 transcoded-url, cdn url == raw-url, vtt sub and json subs
         'url': 'https://www.loom.com/share/9458bcbf79784162aa62ffb8dd66201b',
-        'md5': '51737ec002969dd28344db4d60b9cbbb',
+        'md5': '7b6bfdef8181c4ffc376e18919a4dcc2',
         'info_dict': {
             'id': '9458bcbf79784162aa62ffb8dd66201b',
             'ext': 'mp4',
@@ -71,12 +69,13 @@ class LoomIE(InfoExtractor):
             'ext': 'webm',
             'title': 'OMFG clown',
             'description': 'md5:285c5ee9d62aa087b7e3271b08796815',
-            'uploader': 'MrPumkin B',
+            'uploader': 'Brailey Bragg',
             'upload_date': '20210924',
             'timestamp': 1632519618,
             'duration': 210,
         },
         'params': {'skip_download': 'dash'},
+        'expected_warnings': ['Failed to parse JSON'],  # transcoded-url no longer available
     }, {
         # password-protected
         'url': 'https://www.loom.com/share/50e26e8aeb7940189dff5630f95ce1f4',
@@ -91,10 +90,11 @@ class LoomIE(InfoExtractor):
             'duration': 35,
         },
         'params': {'videopassword': 'seniorinfants2'},
+        'expected_warnings': ['Failed to parse JSON'],  # transcoded-url no longer available
     }, {
         # embed, transcoded-url endpoint sends empty JSON response, split video and audio HLS formats
         'url': 'https://www.loom.com/embed/ddcf1c1ad21f451ea7468b1e33917e4e',
-        'md5': 'b321d261656848c184a94e3b93eae28d',
+        'md5': 'f983a0f02f24331738b2f43aecb05256',
         'info_dict': {
             'id': 'ddcf1c1ad21f451ea7468b1e33917e4e',
             'ext': 'mp4',
@@ -119,11 +119,12 @@ class LoomIE(InfoExtractor):
             'duration': 247,
             'timestamp': 1676274030,
         },
+        'skip': '404 Not Found',
     }]
 
     _GRAPHQL_VARIABLES = {
         'GetVideoSource': {
-            'acceptableMimes': ['DASH', 'M3U8', 'MP4'],
+            'acceptableMimes': ['DASH', 'M3U8', 'MP4', 'WEBM'],
         },
     }
     _GRAPHQL_QUERIES = {
@@ -192,6 +193,12 @@ class LoomIE(InfoExtractor):
                   id
                   nullableRawCdnUrl(acceptableMimes: $acceptableMimes, password: $password) {
                     url
+                    credentials {
+                      Policy
+                      Signature
+                      KeyPairId
+                      __typename
+                    }
                     __typename
                   }
                   __typename
@@ -240,9 +247,9 @@ class LoomIE(InfoExtractor):
               }
             }\n'''),
     }
-    _APOLLO_GRAPHQL_VERSION = '0a1856c'
+    _APOLLO_GRAPHQL_VERSION = '45a5bd4'
 
-    def _call_graphql_api(self, operations, video_id, note=None, errnote=None):
+    def _call_graphql_api(self, operation_name, video_id, note=None, errnote=None, fatal=True):
         password = self.get_param('videopassword')
         return self._download_json(
             'https://www.loom.com/graphql', video_id, note or 'Downloading GraphQL JSON',
@@ -252,7 +259,9 @@ class LoomIE(InfoExtractor):
                 'x-loom-request-source': f'loom_web_{self._APOLLO_GRAPHQL_VERSION}',
                 'apollographql-client-name': 'web',
                 'apollographql-client-version': self._APOLLO_GRAPHQL_VERSION,
-            }, data=json.dumps([{
+                'graphql-operation-name': operation_name,
+                'Origin': 'https://www.loom.com',
+            }, data=json.dumps({
                 'operationName': operation_name,
                 'variables': {
                     'videoId': video_id,
@@ -260,7 +269,7 @@ class LoomIE(InfoExtractor):
                     **self._GRAPHQL_VARIABLES.get(operation_name, {}),
                 },
                 'query': self._GRAPHQL_QUERIES[operation_name],
-            } for operation_name in variadic(operations)], separators=(',', ':')).encode())
+            }, separators=(',', ':')).encode(), fatal=fatal)
 
     def _call_url_api(self, endpoint, video_id):
         response = self._download_json(
@@ -275,7 +284,7 @@ class LoomIE(InfoExtractor):
             }, separators=(',', ':')).encode())
         return traverse_obj(response, ('url', {url_or_none}))
 
-    def _extract_formats(self, video_id, metadata, gql_data):
+    def _extract_formats(self, video_id, metadata, video_data):
         formats = []
         video_properties = traverse_obj(metadata, ('video_properties', {
             'width': ('width', {int_or_none}),
@@ -330,7 +339,7 @@ class LoomIE(InfoExtractor):
         transcoded_url = self._call_url_api('transcoded-url', video_id)
         formats.extend(get_formats(transcoded_url, 'transcoded', quality=-1))  # transcoded quality
 
-        cdn_url = get_first(gql_data, ('data', 'getVideo', 'nullableRawCdnUrl', 'url', {url_or_none}))
+        cdn_url = traverse_obj(video_data, ('data', 'getVideo', 'nullableRawCdnUrl', 'url', {url_or_none}))
         # cdn_url is usually a dupe, but the raw-url/transcoded-url endpoints could return errors
         valid_urls = [update_url(url, query=None) for url in (raw_url, transcoded_url) if url]
         if cdn_url and update_url(cdn_url, query=None) not in valid_urls:
@@ -338,10 +347,21 @@ class LoomIE(InfoExtractor):
 
         return formats
 
+    def _get_subtitles(self, video_id):
+        subs_data = self._call_graphql_api(
+            'FetchVideoTranscript', video_id, 'Downloading GraphQL subtitles JSON', fatal=False)
+        return filter_dict({
+            'en': traverse_obj(subs_data, (
+                'data', 'fetchVideoTranscript',
+                ('source_url', 'captions_source_url'), {
+                    'url': {url_or_none},
+                })) or None,
+        })
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        metadata = get_first(
-            self._call_graphql_api('GetVideoSSR', video_id, 'Downloading GraphQL metadata JSON'),
+        metadata = traverse_obj(
+            self._call_graphql_api('GetVideoSSR', video_id, 'Downloading GraphQL metadata JSON', fatal=False),
             ('data', 'getVideo', {dict})) or {}
 
         if metadata.get('__typename') == 'VideoPasswordMissingOrIncorrect':
@@ -350,22 +370,19 @@ class LoomIE(InfoExtractor):
                     'This video is password-protected, use the --video-password option', expected=True)
             raise ExtractorError('Invalid video password', expected=True)
 
-        gql_data = self._call_graphql_api(['FetchChapters', 'FetchVideoTranscript', 'GetVideoSource'], video_id)
+        video_data = self._call_graphql_api(
+            'GetVideoSource', video_id, 'Downloading GraphQL video JSON')
+        chapter_data = self._call_graphql_api(
+            'FetchChapters', video_id, 'Downloading GraphQL chapters JSON', fatal=False)
         duration = traverse_obj(metadata, ('video_properties', 'duration', {int_or_none}))
 
         return {
             'id': video_id,
             'duration': duration,
             'chapters': self._extract_chapters_from_description(
-                get_first(gql_data, ('data', 'fetchVideoChapters', 'content', {str})), duration) or None,
-            'formats': self._extract_formats(video_id, metadata, gql_data),
-            'subtitles': filter_dict({
-                'en': traverse_obj(gql_data, (
-                    ..., 'data', 'fetchVideoTranscript',
-                    ('source_url', 'captions_source_url'), {
-                        'url': {url_or_none},
-                    })) or None,
-            }),
+                traverse_obj(chapter_data, ('data', 'fetchVideoChapters', 'content', {str})), duration) or None,
+            'formats': self._extract_formats(video_id, metadata, video_data),
+            'subtitles': self.extract_subtitles(video_id),
             **traverse_obj(metadata, {
                 'title': ('name', {str}),
                 'description': ('description', {str}),
@@ -376,6 +393,7 @@ class LoomIE(InfoExtractor):
 
 
 class LoomFolderIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'loom:folder'
     _VALID_URL = r'https?://(?:www\.)?loom\.com/share/folder/(?P<id>[\da-f]{32})'
     _TESTS = [{

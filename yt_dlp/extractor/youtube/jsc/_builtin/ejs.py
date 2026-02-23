@@ -21,6 +21,7 @@ from yt_dlp.extractor.youtube.jsc.provider import (
 )
 from yt_dlp.extractor.youtube.pot._provider import configuration_arg
 from yt_dlp.extractor.youtube.pot.provider import provider_bug_report_message
+from yt_dlp.utils import version_tuple
 from yt_dlp.utils._jsruntime import JsRuntimeInfo
 
 if _has_ejs:
@@ -223,7 +224,8 @@ class EJSBaseJCP(JsChallengeProvider):
                 skipped_components.append(script)
                 continue
             if not self.is_dev:
-                if script.version != self._SCRIPT_VERSION:
+                # Matching patch version is expected to have same hash
+                if version_tuple(script.version, lenient=True)[:2] != version_tuple(self._SCRIPT_VERSION, lenient=True)[:2]:
                     self.logger.warning(
                         f'Challenge solver {script_type.value} script version {script.version} '
                         f'is not supported (source: {script.source.value}, variant: {script.variant}, supported version: {self._SCRIPT_VERSION})')

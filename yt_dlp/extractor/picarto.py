@@ -4,6 +4,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     str_or_none,
+    strip_or_none,
     traverse_obj,
     update_url,
 )
@@ -50,7 +51,6 @@ class PicartoIE(InfoExtractor):
 
         if metadata.get('online') == 0:
             raise ExtractorError('Stream is offline', expected=True)
-        title = metadata['title']
 
         cdn_data = self._download_json(''.join((
             update_url(data['getLoadBalancerUrl']['url'], scheme='https'),
@@ -79,7 +79,7 @@ class PicartoIE(InfoExtractor):
 
         return {
             'id': channel_id,
-            'title': title.strip(),
+            'title': strip_or_none(metadata.get('title')),
             'is_live': True,
             'channel': channel_id,
             'channel_id': metadata.get('id'),
@@ -159,7 +159,7 @@ class PicartoVodIE(InfoExtractor):
             'id': video_id,
             **traverse_obj(data, {
                 'id': ('id', {str_or_none}),
-                'title': ('title', {str}),
+                'title': ('title', {str.strip}),
                 'thumbnail': 'video_recording_image_url',
                 'channel': ('channel', 'name', {str}),
                 'age_limit': ('adult', {lambda x: 18 if x else 0}),

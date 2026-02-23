@@ -66,7 +66,9 @@ def list_wheel_contents(
 ) -> str:
     assert folders or files, 'at least one of "folders" or "files" must be True'
 
-    path_gen = (zinfo.filename for zinfo in zipfile.ZipFile(io.BytesIO(wheel_data)).infolist())
+    with zipfile.ZipFile(io.BytesIO(wheel_data)) as zipf:
+        path_gen = (zinfo.filename for zinfo in zipf.infolist())
+
     filtered = filter(lambda path: path.startswith('yt_dlp_ejs/'), path_gen)
     if suffix:
         filtered = filter(lambda path: path.endswith(f'.{suffix}'), filtered)

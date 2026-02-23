@@ -7,15 +7,15 @@ from ..utils import (
     parse_age_limit,
     try_get,
     unified_timestamp,
+    url_or_none,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import require, traverse_obj
 
 
 class URPlayIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?ur(?:play|skola)\.se/(?:program|Produkter)/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://urplay.se/program/203704-ur-samtiden-livet-universum-och-rymdens-markliga-musik-om-vetenskap-kritiskt-tankande-och-motstand',
-        'md5': '5ba36643c77cc3d34ffeadad89937d1e',
         'info_dict': {
             'id': '203704',
             'ext': 'mp4',
@@ -31,6 +31,7 @@ class URPlayIE(InfoExtractor):
             'episode': 'Om vetenskap, kritiskt tänkande och motstånd',
             'age_limit': 15,
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://urplay.se/program/222967-en-foralders-dagbok-mitt-barn-skadar-sig-sjalv',
         'info_dict': {
@@ -49,6 +50,7 @@ class URPlayIE(InfoExtractor):
             'tags': 'count:7',
             'episode': 'Mitt barn skadar sig själv',
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://urskola.se/Produkter/190031-Tripp-Trapp-Trad-Sovkudde',
         'info_dict': {
@@ -68,6 +70,27 @@ class URPlayIE(InfoExtractor):
             'episode': 'Sovkudde',
             'season': 'Säsong 1',
         },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # Only accessible through new media api
+        'url': 'https://urplay.se/program/242932-vulkanernas-krafter-fran-kraftfull-till-forgorande',
+        'info_dict': {
+            'id': '242932',
+            'ext': 'mp4',
+            'title': 'Vulkanernas krafter : Från kraftfull till förgörande',
+            'description': 'md5:742bb87048e7d5a7f209d28f9bb70ab1',
+            'age_limit': 15,
+            'duration': 2613,
+            'thumbnail': 'https://assets.ur.se/id/242932/images/1_hd.jpg',
+            'categories': ['Vetenskap & teknik'],
+            'tags': ['Geofysik', 'Naturvetenskap', 'Vulkaner', 'Vulkanutbrott'],
+            'series': 'Vulkanernas krafter',
+            'episode': 'Från kraftfull till förgörande',
+            'episode_number': 2,
+            'timestamp': 1763514000,
+            'upload_date': '20251119',
+        },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'http://urskola.se/Produkter/155794-Smasagor-meankieli-Grodan-i-vida-varlden',
         'only_matching': True,
@@ -88,21 +111,12 @@ class URPlayIE(InfoExtractor):
                 webpage, 'urplayer data'), video_id)['accessibleEpisodes']
             urplayer_data = next(e for e in accessible_episodes if e.get('id') == int_or_none(video_id))
         episode = urplayer_data['title']
-
-        host = self._download_json('http://streaming-loadbalancer.ur.se/loadbalancer.json', video_id)['redirect']
-        formats = []
-        urplayer_streams = urplayer_data.get('streamingInfo', {})
-
-        for k, v in urplayer_streams.get('raw', {}).items():
-            if not (k in ('sd', 'hd', 'mp3', 'm4a') and isinstance(v, dict)):
-                continue
-            file_http = v.get('location')
-            if file_http:
-                formats.extend(self._extract_wowza_formats(
-                    f'http://{host}/{file_http}playlist.m3u8',
-                    video_id, skip_protocols=['f4m', 'rtmp', 'rtsp']))
-
-        subtitles = {}
+        sources = self._download_json(
+            f'https://media-api.urplay.se/config-streaming/v1/urplay/sources/{video_id}', video_id,
+            note='Downloading streaming information')
+        hls_url = traverse_obj(sources, ('sources', 'hls', {url_or_none}, {require('HLS URL')}))
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            hls_url, video_id, 'mp4', m3u8_id='hls')
 
         def parse_lang_code(code):
             "3-character language code or None (utils candidate)"
