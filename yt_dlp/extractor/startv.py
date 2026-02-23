@@ -216,7 +216,7 @@ class StarTVIE(InfoExtractor):
             'id': video_id,
             'display_id': f'{content["parent_slug"]}-{content["slug"]}',
             'title': f'{show_name}: {video["title"]}',
-            'description': content['plain_summary'],
+            'description': content.get('plain_summary'),
             'duration': float_or_none(video.get('duration'), scale=1000),
             'series': show_name,
             'series_id': content.get('tvSeriesId') or content.get('programId'),
