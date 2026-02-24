@@ -82,7 +82,7 @@ class BloggerIE(InfoExtractor):
             }),
         )
 
-        wrb_data = self._search_regex(r'WcwnYd\s*",\s*"(\[\[.*?\]\])', data, 'wrb.fr')
+        wrb_data = self._search_regex(r'(\[\[.*?"WcwnYd".*?\]\])\s(?:\d+)?', data, 'wrb.fr')
         data = self._parse_json(self._parse_json(wrb_data, None)[0][2], None)
 
         formats = []
@@ -92,7 +92,7 @@ class BloggerIE(InfoExtractor):
             fmt_url = traverse_obj(fmtl, (0))
             itag = traverse_obj(fmtl, (1, 0)) or traverse_obj(parse_qs(fmt_url), ('itag', 0))
             formats.append({
-                'format_id': itag,
+                'format_id': str(itag),
                 'url': fmt_url,
                 'ext': 'mp4',
                 'http_headers': {
