@@ -62,14 +62,10 @@ class BloggerIE(InfoExtractor):
         token_id = self._match_id(url)
 
         fsid = random.randint(-9999999999999999999, 9999999999999999999)  # Blogger require 19 digit number can be negative or positive
-
         data, _ = self._download_webpage_handle(
             'https://www.blogger.com/_/BloggerVideoPlayerUi/data/batchexecute',
             token_id,
-            note='Downloading blogger batch information',
-            headers={
-                'Referer': 'https://www.blogger.com/',
-            },
+            headers={'Referer': 'https://www.blogger.com/'},
             query={
                 'rpcids': 'WcwnYd',
                 'f.sid': fsid,
@@ -103,11 +99,8 @@ class BloggerIE(InfoExtractor):
 
         thumbnail = None
         title = None
-
         for block in data:
-            if block is None:
-                continue
-            if isinstance(block, (list, int)):
+            if isinstance(block, (list, int)) or block is None:
                 continue
             if url_or_none(block):
                 thumbnail = block
