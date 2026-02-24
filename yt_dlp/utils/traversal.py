@@ -35,18 +35,6 @@ from ._utils import (
 )
 
 
-_Traversable: typing.TypeAlias = (
-    None | typing.Mapping | typing.Iterable | re.Match
-    | xml.etree.ElementTree.Element | http.cookies.Morsel)
-_TraversePathComponent: typing.TypeAlias = typing.Union[
-    None, set[typing.Callable[[typing.Any], typing.Any]], set[type], str, int, float,
-    slice, 'EllipsisType', tuple['_TraversePaths', ...], list['_TraversePaths'],
-    typing.Callable[[typing.Any, typing.Any], bool],  # filter function
-    dict[typing.Any, '_TraversePaths'],
-    typing.Callable[[typing.Iterable], bool], type[filter]]  # for any/all/filter
-_TraversePaths = typing.Iterable[_TraversePathComponent] | _TraversePathComponent
-
-
 def traverse_obj(
         obj: _Traversable, *paths: _TraversePaths, default: typing.Any = NO_DEFAULT,
         expected_type: typing.Callable[[typing.Any], typing.Any] | type | None = None,
@@ -492,3 +480,13 @@ def dict_get(d, key_or_keys, default=None, skip_false_values=True):
 
 if typing.TYPE_CHECKING:
     from types import EllipsisType
+    _Traversable: typing.TypeAlias = (
+        None | typing.Mapping | typing.Iterable | re.Match
+        | xml.etree.ElementTree.Element | http.cookies.Morsel)
+    _TraversePathComponent: typing.TypeAlias = (
+        None | set[typing.Callable[[typing.Any], typing.Any]] | set[type] | str
+        | int | float | slice | EllipsisType | tuple['_TraversePaths', ...]
+        | list['_TraversePaths'] | typing.Callable[[typing.Any, typing.Any], bool]  # filter function
+        | dict[typing.Any, '_TraversePaths']
+        | typing.Callable[[typing.Iterable], bool] | type[filter])  # for any/all/filter
+    _TraversePaths = typing.Iterable[_TraversePathComponent] | _TraversePathComponent
