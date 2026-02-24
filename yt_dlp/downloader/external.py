@@ -638,7 +638,11 @@ class FFmpegFD(ExternalFD):
         self._debug_cmd(args)
 
         piped = any(fmt['url'] in ('-', 'pipe:') for fmt in selected_formats)
-        ffmpeg_progress_tracker = FFmpegProgressTracker(info_dict, args, self._ffmpeg_hook)
+        ffmpeg_progress_tracker = FFmpegProgressTracker(
+            info_dict, args, self._ffmpeg_hook,
+            env=env, stdin=subprocess.PIPE if piped else None,
+            output_filename=tmpfilename)
+        ffmpeg_progress_tracker.start()
         proc = ffmpeg_progress_tracker.ffmpeg_proc
         if piped:
             self.on_process_started(proc, proc.stdin)

@@ -6,6 +6,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import time
 from queue import Queue
 from threading import Thread
@@ -356,12 +357,16 @@ class FFmpegPostProcessor(PostProcessor):
         cmd += ['-progress', 'pipe:1']
         self.write_debug(f'ffmpeg command line: {shell_quote(cmd)}')
 
-        ffmpeg_progress_tracker = FFmpegProgressTracker(information, cmd, self._ffmpeg_hook, self._downloader)
+        out_path = next((p for p, _ in output_path_opts if p), None)
+        ffmpeg_progress_tracker = FFmpegProgressTracker(
+            information, cmd, self._ffmpeg_hook, self._downloader,
+            output_filename=out_path)
         stdout, stderr, return_code = ffmpeg_progress_tracker.run_ffmpeg_subprocess()
         if return_code not in variadic(expected_retcodes):
             stderr = stderr.strip()
             self.write_debug(stderr)
-            raise FFmpegPostProcessorError(stderr.splitlines()[-1] if stderr else f'ffmpeg exited with code {return_code}')
+            raise FFmpegPostProcessorError(
+                stderr.splitlines()[-1] if stderr else f'ffmpeg exited with code {return_code}')
         for out_path, _ in output_path_opts:
             if out_path:
                 self.try_utime(out_path, oldest_mtime, oldest_mtime)
@@ -1188,7 +1193,7 @@ class FFmpegProgressTracker:
         (?:
             frame=\s*(?P<frame>\S+)\n
             fps=\s*(?P<fps>\S+)\n
-            stream_\d+_\d+_q=\s*(?P<stream_d_d_q>\S+)\n
+            (?:stream_\d+_\d+_q=\s*\S+\n)+
         )?
         bitrate=\s*(?P<bitrate>\S+)\n
         total_size=\s*(?P<total_size>\S+)\n
@@ -1201,25 +1206,41 @@ class FFmpegProgressTracker:
         progress=\s*(?P<progress>\S+)
     ''')
 
-    def __init__(self, info_dict, ffmpeg_args, hook_progress, ydl=None):
+    def __init__(self, info_dict, ffmpeg_args, hook_progress, ydl=None,
+                 env=None, stdin=None, output_filename=None):
         self.ydl = ydl
         self._info_dict = info_dict
         self._ffmpeg_args = ffmpeg_args
         self._hook_progress = hook_progress
+        self._env = env
+        self._stdin = stdin
+        self._output_filename = output_filename
         self._stdout_queue, self._stderr_queue = Queue(), Queue()
-        self._streams, self._stdout_buffer = ['', ''], ''
-
-        if self.ydl:
-            self.ydl.write_debug(f'ffmpeg command line: {shell_quote(self._ffmpeg_args)}')
-        self.ffmpeg_proc = Popen(self._ffmpeg_args, universal_newlines=True,
-                                 encoding='utf8', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        self._start_time = time.time()
+        self._stdout_data, self._stderr_data = '', ''
+        self._stdout_buffer = ''
+        self._status = {
+            'filename': output_filename or '',
+            'status': 'ffmpeg_running',
+            'elapsed': 0,
+            'outputted': 0,
+        }
+        self.ffmpeg_proc = None
 
     def trigger_progress_hook(self, dct):
         self._status.update(dct)
         self._hook_progress(self._status, self._info_dict)
 
+    def start(self):
+        self.ffmpeg_proc = Popen(
+            self._ffmpeg_args, universal_newlines=True, encoding='utf8',
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            stdin=self._stdin, env=self._env)
+        self._start_time = time.time()
+        return self
+
     def run_ffmpeg_subprocess(self):
+        if not self.ffmpeg_proc:
+            self.start()
         if self._info_dict and self.ydl:
             return self._track_ffmpeg_progress()
         return self._run_ffmpeg_without_progress_tracking()
@@ -1231,18 +1252,10 @@ class FFmpegProgressTracker:
         return stdout, stderr, retcode
 
     def _track_ffmpeg_progress(self):
-        """ Track ffmpeg progress in a non blocking way using queues"""
-        self._start_time = time.time()
-        # args needed to track ffmpeg progress from stdout
+        """Track ffmpeg progress in a non blocking way using queues"""
         self._duration_to_track, self._total_duration = self._compute_duration_to_track()
         self._total_filesize = self._compute_total_filesize(self._duration_to_track, self._total_duration)
-        self._status = {
-            'filename': self._ffmpeg_args[-3].split(':')[-1],
-            'status': 'ffmpeg_running',
-            'total_bytes': self._total_filesize,
-            'elapsed': 0,
-            'outputted': 0,
-        }
+        self._status['total_bytes'] = self._total_filesize
 
         out_listener = Thread(
             target=self._enqueue_lines,
@@ -1262,12 +1275,9 @@ class FFmpegProgressTracker:
         err_listener.join(timeout=5)
         self._handle_lines()  # Drain remaining lines from queues
 
-        self._status.update({
-            'status': 'finished',
-            'outputted': self._total_filesize,
-        })
-        time.sleep(.5)  # Wait for OS to release file handles (Windows)
-        return self._streams[0], self._streams[1], retcode
+        if sys.platform == 'win32':
+            time.sleep(.5)  # Wait for OS to release file handles
+        return self._stdout_data, self._stderr_data, retcode
 
     @staticmethod
     def _enqueue_lines(out, queue):
@@ -1278,7 +1288,10 @@ class FFmpegProgressTracker:
     def _save_stream(self, lines, to_stderr=False):
         if not lines:
             return
-        self._streams[to_stderr] += lines
+        if to_stderr:
+            self._stderr_data += lines
+        else:
+            self._stdout_data += lines
 
         if self.ydl:
             self.ydl.to_screen('\r', skip_eol=True)
@@ -1299,7 +1312,7 @@ class FFmpegProgressTracker:
     def _wait_for_ffmpeg(self):
         retcode = self.ffmpeg_proc.poll()
         while retcode is None:
-            time.sleep(.01)
+            time.sleep(.05)
             self._handle_lines()
             self._status.update({
                 'elapsed': time.time() - self._start_time,
@@ -1342,25 +1355,30 @@ class FFmpegProgressTracker:
         if not duration:
             return 0, 0
 
-        start_time, end_time = 0, duration
+        start_time, end_time, explicit_duration = 0, duration, None
         for i, arg in enumerate(self._ffmpeg_args[:-1]):
-            next_arg_is_a_timestamp = re.match(r'(?P<at>(-ss|-sseof|-to))', arg)
-            this_arg_is_a_timestamp = re.match(r'(?P<at>(-ss|-sseof|-to))=(?P<timestamp>\d+)', arg)
-            if not (next_arg_is_a_timestamp or this_arg_is_a_timestamp):
+            next_arg_match = re.fullmatch(r'(?P<at>-ss|-sseof|-to|-t)', arg)
+            this_arg_match = re.fullmatch(r'(?P<at>-ss|-sseof|-to|-t)=(?P<timestamp>.+)', arg)
+            if not (next_arg_match or this_arg_match):
                 continue
-            elif next_arg_is_a_timestamp:
+            if next_arg_match:
                 timestamp_seconds = self.ffmpeg_time_string_to_seconds(self._ffmpeg_args[i + 1])
             else:
-                timestamp_seconds = self.ffmpeg_time_string_to_seconds(this_arg_is_a_timestamp.group('timestamp'))
-            match_obj = next_arg_is_a_timestamp or this_arg_is_a_timestamp
+                timestamp_seconds = self.ffmpeg_time_string_to_seconds(this_arg_match.group('timestamp'))
+            match_obj = next_arg_match or this_arg_match
             if match_obj.group('at') == '-ss':
                 start_time = timestamp_seconds
             elif match_obj.group('at') == '-sseof':
                 start_time = end_time - timestamp_seconds
             elif match_obj.group('at') == '-to':
                 end_time = timestamp_seconds
+            elif match_obj.group('at') == '-t':
+                explicit_duration = timestamp_seconds
 
-        duration_to_track = end_time - start_time
+        if explicit_duration is not None:
+            duration_to_track = explicit_duration
+        else:
+            duration_to_track = end_time - start_time
         if duration_to_track >= 0:
             return duration_to_track, duration
         return 0, duration
@@ -1368,7 +1386,8 @@ class FFmpegProgressTracker:
     @staticmethod
     def _compute_eta(ffmpeg_prog_infos, duration_to_track):
         try:
-            speed = float_or_none(ffmpeg_prog_infos.group('speed')[:-1])
+            speed_str = ffmpeg_prog_infos.group('speed')
+            speed = float_or_none(speed_str.rstrip('x')) if speed_str else None
             out_time_second = (int_or_none(ffmpeg_prog_infos.group('out_time_us')) or 0) // 1_000_000
             eta_seconds = (duration_to_track - out_time_second) // speed
         except (TypeError, ZeroDivisionError):
@@ -1378,9 +1397,17 @@ class FFmpegProgressTracker:
     @staticmethod
     def ffmpeg_time_string_to_seconds(time_string):
         ffmpeg_time_seconds = 0
-        hms_parsed = re.match(r'((?P<Hour>\d+):)?((?P<Minute>\d+):)?(?P<Second>\d+)(\.(?P<float>\d+))?', time_string)
-        smu_parse = re.match(r'(?P<Time>\d+)(?P<Unit>[mu]?s)', time_string)
-        if hms_parsed:
+        smu_parse = re.fullmatch(r'(?P<Time>\d+)(?P<Unit>[mu]?s)', time_string)
+        hms_parsed = re.fullmatch(
+            r'((?P<Hour>\d+):)?((?P<Minute>\d+):)?(?P<Second>\d+)(\.(?P<float>\d+))?', time_string)
+        if smu_parse:
+            ffmpeg_time_seconds = int_or_none(smu_parse.group('Time'))
+            prefix_and_unit = smu_parse.group('Unit')
+            if prefix_and_unit == 'ms':
+                ffmpeg_time_seconds /= 1_000
+            elif prefix_and_unit == 'us':
+                ffmpeg_time_seconds /= 1_000_000
+        elif hms_parsed:
             if hms_parsed.group('Hour'):
                 ffmpeg_time_seconds += 3600 * int_or_none(hms_parsed.group('Hour'))
             if hms_parsed.group('Minute'):
@@ -1389,13 +1416,6 @@ class FFmpegProgressTracker:
             if hms_parsed.group('float'):
                 float_part = hms_parsed.group('float')
                 ffmpeg_time_seconds += int_or_none(float_part) / (10 ** len(float_part))
-        elif smu_parse:
-            ffmpeg_time_seconds = int_or_none(smu_parse.group('Time'))
-            prefix_and_unit = smu_parse.group('Unit')
-            if prefix_and_unit == 'ms':
-                ffmpeg_time_seconds /= 1_000
-            elif prefix_and_unit == 'us':
-                ffmpeg_time_seconds /= 1_000_000
         return ffmpeg_time_seconds
 
     @staticmethod
