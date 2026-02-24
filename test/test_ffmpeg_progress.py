@@ -614,5 +614,88 @@ class TestHandleLines(unittest.TestCase):
             self.assertIn(f'line {i}', tracker._stderr_data)
 
 
+class TestReportProgress(unittest.TestCase):
+    """Test PostProcessor.report_progress display logic"""
+
+    def _make_pp(self, params=None):
+        from test.helper import FakeYDL
+        from yt_dlp.postprocessor.common import PostProcessor
+        with FakeYDL(params) as ydl:
+            pp = PostProcessor(ydl)
+        return pp
+
+    def test_finished_without_data_is_silent(self):
+        """Metaclass finished hook sends minimal dict - should not crash or display"""
+        pp = self._make_pp()
+        # Simulate what PostProcessorMetaClass.run_wrapper sends
+        pp.report_progress({
+            'status': 'finished',
+            'info_dict': {'id': 'test'},
+            'postprocessor': 'Test',
+        })
+        # Should return early without error (no total_bytes)
+
+    def test_finished_with_data(self):
+        """Finished with progress data should not crash"""
+        pp = self._make_pp()
+        pp.report_progress({
+            'status': 'finished',
+            'info_dict': {'id': 'test'},
+            'postprocessor': 'Test',
+            'total_bytes': 1000000,
+            'elapsed': 10.0,
+        })
+
+    def test_started_is_ignored(self):
+        """Started status should be silently ignored"""
+        pp = self._make_pp()
+        pp.report_progress({
+            'status': 'started',
+            'info_dict': {'id': 'test'},
+            'postprocessor': 'Test',
+        })
+
+    def test_processing_with_all_fields(self):
+        """Processing status with full data should not crash"""
+        pp = self._make_pp()
+        pp.report_progress({
+            'status': 'processing',
+            'info_dict': {'id': 'test'},
+            'postprocessor': 'Test',
+            'processed_bytes': 500000,
+            'total_bytes': 1000000,
+            'speed': 100000,
+            'eta': 5,
+            'elapsed': 5.0,
+        })
+
+    def test_processing_minimal_fields(self):
+        """Processing status with minimal data should not crash"""
+        pp = self._make_pp()
+        pp.report_progress({
+            'status': 'processing',
+            'info_dict': {'id': 'test'},
+            'postprocessor': 'Test',
+        })
+
+    def test_no_downloader_returns_early(self):
+        """Without a downloader, report_progress should return immediately"""
+        from yt_dlp.postprocessor.common import PostProcessor
+        pp = PostProcessor.__new__(PostProcessor)
+        pp._progress_hooks = []
+        pp._downloader = None
+        pp.PP_NAME = 'Test'
+        pp._prepare_multiline_status()
+        pp.report_progress({'status': 'processing'})
+
+    def test_report_progress_status_without_info_dict(self):
+        """_report_progress_status should not crash without info_dict"""
+        pp = self._make_pp()
+        pp.report_progress({
+            'status': 'processing',
+            'postprocessor': 'Test',
+        })
+
+
 if __name__ == '__main__':
     unittest.main()

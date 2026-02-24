@@ -206,11 +206,11 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
                 self._multiline = QuietMultilinePrinter()
             elif self._downloader.params.get('logger'):
                 self._multiline = MultilineLogger(self._downloader.params['logger'], lines)
-            elif self._downloader.params.get('progress_with_newline'):
-                self._multiline = BreaklineStatusPrinter(self._downloader._out_files.out, lines)
-            elif hasattr(self._downloader, '_out_files'):
+            elif self._downloader.params.get('progress_with_newline') and self._out_files:
+                self._multiline = BreaklineStatusPrinter(self._out_files.out, lines)
+            elif self._out_files:
                 self._multiline = MultilinePrinter(
-                    self._downloader._out_files.out, lines, not self._downloader.params.get('quiet'))
+                    self._out_files.out, lines, not self._downloader.params.get('quiet'))
             else:
                 self._multiline = MultilinePrinter(
                     sys.stdout, lines, not self._downloader.params.get('quiet'))
@@ -242,8 +242,8 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         s['_default_template'] = default_template % s
 
         progress_dict = s.copy()
-        progress_dict.pop('info_dict')
-        progress_dict = {'info': s['info_dict'], 'progress': progress_dict}
+        progress_dict.pop('info_dict', None)
+        progress_dict = {'info': s.get('info_dict', {}), 'progress': progress_dict}
 
         progress_template = self._downloader.params.get('progress_template', {})
         self._multiline.print_at_line(self._downloader.evaluate_outtmpl(
@@ -268,6 +268,8 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
             return
 
         if s['status'] == 'finished':
+            if not s.get('info_dict') or s.get('total_bytes') is None:
+                return
             if self._downloader.params.get('noprogress'):
                 self.to_screen('[processing] Download completed')
             speed = try_call(lambda: s['total_bytes'] / s['elapsed'])

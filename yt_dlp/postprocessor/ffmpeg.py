@@ -354,7 +354,8 @@ class FFmpegPostProcessor(PostProcessor):
                 make_args(path, list(opts), arg_type, i + 1)
                 for i, (path, opts) in enumerate(path_opts) if path)
 
-        cmd += ['-progress', 'pipe:1']
+        if information:
+            cmd += ['-progress', 'pipe:1']
         self.write_debug(f'ffmpeg command line: {shell_quote(cmd)}')
 
         out_path = next((p for p, _ in output_path_opts if p), None)
@@ -1339,7 +1340,6 @@ class FFmpegProgressTracker:
             'eta': eta_seconds,
         })
         self._hook_progress(self._status, self._info_dict)
-        self._save_stream(self._stdout_buffer)
         self._stdout_buffer = ''
 
     def _compute_total_filesize(self, duration_to_track, total_duration):
@@ -1420,7 +1420,7 @@ class FFmpegProgressTracker:
 
     @staticmethod
     def _compute_bitrate(bitrate):
-        bitrate_str = re.match(r'(?P<Integer>\d+)(\.(?P<float>\d+))?(?P<Prefix>[gmk])?bits/s', bitrate)
+        bitrate_str = re.fullmatch(r'(?P<Integer>\d+)(\.(?P<float>\d+))?(?P<Prefix>[gmk])?bits/s', bitrate)
         try:
             no_prefix_bitrate = int_or_none(bitrate_str.group('Integer'))
             if bitrate_str.group('float'):
