@@ -95,7 +95,7 @@ class JsChallengeProviderError(IEContentProviderError):
 class JsChallengeProvider(IEContentProvider, abc.ABC, suffix='JCP'):
 
     # Set to None to disable the check
-    _SUPPORTED_TYPES: tuple[JsChallengeType] | None = ()
+    _SUPPORTED_TYPES: tuple[JsChallengeType, ...] | None = ()
 
     def __validate_request(self, request: JsChallengeRequest):
         if not self.is_available():

@@ -109,20 +109,20 @@ class ExternalRequestFeature(enum.Enum):
 class PoTokenProvider(IEContentProvider, abc.ABC, suffix='PTP'):
 
     # Set to None to disable the check
-    _SUPPORTED_CONTEXTS: tuple[PoTokenContext] | None = ()
+    _SUPPORTED_CONTEXTS: tuple[PoTokenContext, ...] | None = ()
 
     # Innertube Client Name.
     # For example, "WEB", "ANDROID", "TVHTML5".
     # For a list of WebPO client names, see yt_dlp.extractor.youtube.pot.utils.WEBPO_CLIENTS.
     # Also see yt_dlp.extractor.youtube._base.INNERTUBE_CLIENTS
     #  for a list of client names currently supported by the YouTube extractor.
-    _SUPPORTED_CLIENTS: tuple[str] | None = ()
+    _SUPPORTED_CLIENTS: tuple[str, ...] | None = ()
 
     # If making external requests to websites (i.e. to youtube.com)
     #  using another library or service (i.e., not _request_webpage),
     #  add the request features that are supported.
     # If only using _request_webpage to make external requests, set this to None.
-    _SUPPORTED_EXTERNAL_REQUEST_FEATURES: tuple[ExternalRequestFeature] | None = ()
+    _SUPPORTED_EXTERNAL_REQUEST_FEATURES: tuple[ExternalRequestFeature, ...] | None = ()
 
     def __validate_request(self, request: PoTokenRequest):
         if not self.is_available():
