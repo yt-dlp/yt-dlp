@@ -1311,7 +1311,7 @@ class FFmpegProgressTracker:
         try:
             while True:
                 stderr_line = self._stderr_queue.get_nowait()
-                self._save_stream(stderr_line, to_stderr=True)
+                self._save_stream(stderr_line + '\n', to_stderr=True)
         except Empty:
             pass
 
