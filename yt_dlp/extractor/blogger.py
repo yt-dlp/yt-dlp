@@ -109,9 +109,9 @@ class BloggerIE(InfoExtractor):
                 continue
             if isinstance(block, (list, int)):
                 continue
-            if 'ytimg.com' in block:
+            if url_or_none(block):
                 thumbnail = block
-            elif isinstance(block, str):
+            elif str_or_none(block):
                 title = block
             else:
                 continue
