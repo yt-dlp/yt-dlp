@@ -262,8 +262,7 @@ class TestComputeDurationToTrack(unittest.TestCase):
 
     def _make_tracker(self, args, duration=100):
         info_dict = {'duration': duration} if duration else {}
-        tracker = FFmpegProgressTracker(info_dict, args, lambda s, i: None)
-        return tracker
+        return FFmpegProgressTracker(info_dict, args, lambda s, i: None)
 
     def test_no_seek_args(self):
         tracker = self._make_tracker(['ffmpeg', '-i', 'in.mp4', 'out.mp4'])
@@ -621,8 +620,7 @@ class TestReportProgress(unittest.TestCase):
         from test.helper import FakeYDL
         from yt_dlp.postprocessor.common import PostProcessor
         with FakeYDL(params) as ydl:
-            pp = PostProcessor(ydl)
-        return pp
+            return PostProcessor(ydl)
 
     def test_finished_without_data_is_silent(self):
         """Metaclass finished hook sends minimal dict - should not crash or display"""

@@ -362,7 +362,7 @@ class FFmpegPostProcessor(PostProcessor):
         ffmpeg_progress_tracker = FFmpegProgressTracker(
             information, cmd, self._ffmpeg_hook, self._downloader,
             output_filename=out_path)
-        stdout, stderr, return_code = ffmpeg_progress_tracker.run_ffmpeg_subprocess()
+        _, stderr, return_code = ffmpeg_progress_tracker.run_ffmpeg_subprocess()
         if return_code not in variadic(expected_retcodes):
             stderr = stderr.strip()
             self.write_debug(stderr)
