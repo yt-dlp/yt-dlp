@@ -389,15 +389,15 @@ class TestComputeEta(unittest.TestCase):
         eta = FFmpegProgressTracker._compute_eta(m, 60)
         self.assertEqual(eta, 30)
 
-    def test_na_speed_returns_zero(self):
+    def test_na_speed_returns_none(self):
         m = self._make_match(speed='N/A', out_time_us='0')
         eta = FFmpegProgressTracker._compute_eta(m, 60)
-        self.assertEqual(eta, 0)
+        self.assertIsNone(eta)
 
-    def test_zero_speed_returns_zero(self):
+    def test_zero_speed_returns_none(self):
         m = self._make_match(speed='0.00x', out_time_us='0')
         eta = FFmpegProgressTracker._compute_eta(m, 60)
-        self.assertEqual(eta, 0)
+        self.assertIsNone(eta)
 
     def test_zero_duration_returns_zero(self):
         m = self._make_match(speed='2.00x', out_time_us='0')

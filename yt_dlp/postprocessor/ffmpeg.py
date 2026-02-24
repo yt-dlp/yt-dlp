@@ -8,7 +8,7 @@ import re
 import subprocess
 import sys
 import time
-from queue import Queue
+from queue import Empty, Queue
 from threading import Thread
 
 from .common import PostProcessor
@@ -1229,7 +1229,7 @@ class FFmpegProgressTracker:
 
     def trigger_progress_hook(self, dct):
         self._status.update(dct)
-        self._hook_progress(self._status, self._info_dict)
+        self._hook_progress(self._status.copy(), self._info_dict)
 
     def start(self):
         self.ffmpeg_proc = Popen(
@@ -1295,20 +1295,25 @@ class FFmpegProgressTracker:
             self._stdout_data += lines
 
         if self.ydl:
-            self.ydl.to_screen('\r', skip_eol=True)
             for msg in lines.splitlines():
                 if msg.strip():
                     self.ydl.write_debug(f'ffmpeg: {msg}')
 
     def _handle_lines(self):
-        while not self._stdout_queue.empty():
-            stdout_line = self._stdout_queue.get_nowait()
-            self._stdout_buffer += stdout_line + '\n'
-            self._parse_ffmpeg_output()
+        try:
+            while True:
+                stdout_line = self._stdout_queue.get_nowait()
+                self._stdout_buffer += stdout_line + '\n'
+                self._parse_ffmpeg_output()
+        except Empty:
+            pass
 
-        while not self._stderr_queue.empty():
-            stderr_line = self._stderr_queue.get_nowait()
-            self._save_stream(stderr_line, to_stderr=True)
+        try:
+            while True:
+                stderr_line = self._stderr_queue.get_nowait()
+                self._save_stream(stderr_line, to_stderr=True)
+        except Empty:
+            pass
 
     def _wait_for_ffmpeg(self):
         retcode = self.ffmpeg_proc.poll()
@@ -1318,7 +1323,7 @@ class FFmpegProgressTracker:
             self._status.update({
                 'elapsed': time.time() - self._start_time,
             })
-            self._hook_progress(self._status, self._info_dict)
+            self._hook_progress(self._status.copy(), self._info_dict)
             retcode = self.ffmpeg_proc.poll()
         return retcode
 
@@ -1339,7 +1344,7 @@ class FFmpegProgressTracker:
             'speed': bitrate_int,
             'eta': eta_seconds,
         })
-        self._hook_progress(self._status, self._info_dict)
+        self._hook_progress(self._status.copy(), self._info_dict)
         self._stdout_buffer = ''
 
     def _compute_total_filesize(self, duration_to_track, total_duration):
@@ -1389,10 +1394,9 @@ class FFmpegProgressTracker:
             speed_str = ffmpeg_prog_infos.group('speed')
             speed = float_or_none(speed_str.rstrip('x')) if speed_str else None
             out_time_second = (int_or_none(ffmpeg_prog_infos.group('out_time_us')) or 0) // 1_000_000
-            eta_seconds = (duration_to_track - out_time_second) // speed
+            return (duration_to_track - out_time_second) // speed
         except (TypeError, ZeroDivisionError):
-            eta_seconds = 0
-        return eta_seconds
+            return None
 
     @staticmethod
     def ffmpeg_time_string_to_seconds(time_string):

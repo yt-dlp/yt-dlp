@@ -279,6 +279,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
                 '_total_bytes_str': format_bytes(s.get('total_bytes')),
                 '_elapsed_str': FileDownloader.format_seconds(s.get('elapsed')),
                 '_percent_str': FileDownloader.format_percent(100),
+                '_percent': 100,
             })
             self._report_progress_status(s, join_nonempty(
                 '100%%',
@@ -292,13 +293,15 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         if s['status'] != 'processing':
             return
 
+        percent = try_call(
+            lambda: 100 * s['processed_bytes'] / s['total_bytes'],
+            lambda: 100 * s['processed_bytes'] / s['total_bytes_estimate'],
+            lambda: s['processed_bytes'] == 0 and 0)
         s.update({
             '_eta_str': FileDownloader.format_eta(s.get('eta')),
             '_speed_str': FileDownloader.format_speed(s.get('speed')),
-            '_percent_str': FileDownloader.format_percent(try_call(
-                lambda: 100 * s['processed_bytes'] / s['total_bytes'],
-                lambda: 100 * s['processed_bytes'] / s['total_bytes_estimate'],
-                lambda: s['processed_bytes'] == 0 and 0)),
+            '_percent_str': FileDownloader.format_percent(percent),
+            '_percent': percent,
             '_total_bytes_str': format_bytes(s.get('total_bytes')),
             '_total_bytes_estimate_str': format_bytes(s.get('total_bytes_estimate')),
             '_processed_bytes_str': format_bytes(s.get('processed_bytes')),
