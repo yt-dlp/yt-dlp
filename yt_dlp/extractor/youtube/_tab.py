@@ -85,7 +85,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         detailed_metadata_snippets = renderer.get('detailedMetadataSnippets')
 
         if description is None and isinstance(detailed_metadata_snippets, list) and len(detailed_metadata_snippets) > 0:
-            description = self._get_text(detailed_metadata_snippets[0].get("snippetText"))
+            description = self._get_text(detailed_metadata_snippets[0].get('snippetText'))
 
         duration = int_or_none(renderer.get('lengthSeconds'))
         if duration is None:
