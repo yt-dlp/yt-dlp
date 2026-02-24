@@ -11,6 +11,54 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from yt_dlp.postprocessor.ffmpeg import FFmpegProgressTracker
 
 
+def _make_progress_block(bitrate='512.0kbits/s', total_size='131072',
+                         out_time_us='4000000', speed='2.00x',
+                         progress='continue', streams=None):
+    """Build an ffmpeg -progress output block for testing"""
+    lines = []
+    if streams is not None:
+        lines.append('frame=  120\n')
+        lines.append('fps=30.00\n')
+        for s in streams:
+            lines.append(f'{s}\n')
+    lines.extend([
+        f'bitrate={bitrate}\n',
+        f'total_size={total_size}\n',
+        f'out_time_us={out_time_us}\n',
+        f'out_time_ms={out_time_us}\n',
+        'out_time=00:00:00.000000\n',
+        'dup_frames=0\n',
+        'drop_frames=0\n',
+        f'speed={speed}\n',
+        f'progress={progress}',
+    ])
+    return ''.join(lines)
+
+
+def _make_tracker(args=None, duration=100, filesize=1000,
+                  filesize_approx=None, hook=None):
+    """Build an FFmpegProgressTracker with sensible defaults for testing"""
+    info_dict = {}
+    if duration is not None:
+        info_dict['duration'] = duration
+    if filesize is not None:
+        info_dict['filesize'] = filesize
+    if filesize_approx is not None:
+        info_dict['filesize_approx'] = filesize_approx
+    return FFmpegProgressTracker(
+        info_dict, args or ['ffmpeg', '-i', 'in.mp4', 'out.mp4'],
+        hook or (lambda s, i: None))
+
+
+def _make_tracking_tracker(args=None, duration=100, filesize=1000, hook=None):
+    """Build a tracker with _duration_to_track/_total_filesize pre-computed"""
+    tracker = _make_tracker(args=args, duration=duration, filesize=filesize, hook=hook)
+    tracker._duration_to_track = duration
+    tracker._total_duration = duration
+    tracker._total_filesize = filesize
+    return tracker
+
+
 class TestProgressPattern(unittest.TestCase):
     """Test _progress_pattern regex against various ffmpeg -progress outputs"""
 
@@ -18,20 +66,7 @@ class TestProgressPattern(unittest.TestCase):
         return re.match(FFmpegProgressTracker._progress_pattern, text)
 
     def test_single_video_stream(self):
-        output = (
-            'frame=  120\n'
-            'fps=30.00\n'
-            'stream_0_0_q=28.0\n'
-            'bitrate= 512.0kbits/s\n'
-            'total_size=  131072\n'
-            'out_time_us=4000000\n'
-            'out_time_ms=4000000\n'
-            'out_time=00:00:04.000000\n'
-            'dup_frames=0\n'
-            'drop_frames=0\n'
-            'speed=2.00x\n'
-            'progress=continue'
-        )
+        output = _make_progress_block(streams=['stream_0_0_q=28.0'])
         m = self._match(output)
         self.assertIsNotNone(m)
         self.assertEqual(m.group('frame'), '120')
@@ -43,59 +78,23 @@ class TestProgressPattern(unittest.TestCase):
         self.assertEqual(m.group('progress'), 'continue')
 
     def test_two_streams_video_audio(self):
-        output = (
-            'frame=  240\n'
-            'fps=24.00\n'
-            'stream_0_0_q=28.0\n'
-            'stream_0_1_q=-1.0\n'
-            'bitrate= 1024.5kbits/s\n'
-            'total_size=  262144\n'
-            'out_time_us=10000000\n'
-            'out_time_ms=10000000\n'
-            'out_time=00:00:10.000000\n'
-            'dup_frames=0\n'
-            'drop_frames=0\n'
-            'speed=1.50x\n'
-            'progress=continue'
-        )
+        output = _make_progress_block(
+            bitrate=' 1024.5kbits/s',
+            streams=['stream_0_0_q=28.0', 'stream_0_1_q=-1.0'])
         m = self._match(output)
         self.assertIsNotNone(m, 'Regex must match 2-stream output')
-        self.assertEqual(m.group('frame'), '240')
+        self.assertEqual(m.group('frame'), '120')
         self.assertEqual(m.group('bitrate'), '1024.5kbits/s')
 
     def test_three_streams(self):
-        output = (
-            'frame=  100\n'
-            'fps=25.00\n'
-            'stream_0_0_q=23.0\n'
-            'stream_0_1_q=-1.0\n'
-            'stream_0_2_q=-1.0\n'
-            'bitrate= 2048.0kbits/s\n'
-            'total_size=  524288\n'
-            'out_time_us=4000000\n'
-            'out_time_ms=4000000\n'
-            'out_time=00:00:04.000000\n'
-            'dup_frames=0\n'
-            'drop_frames=0\n'
-            'speed=1.00x\n'
-            'progress=continue'
-        )
+        output = _make_progress_block(
+            streams=['stream_0_0_q=23.0', 'stream_0_1_q=-1.0', 'stream_0_2_q=-1.0'])
         m = self._match(output)
         self.assertIsNotNone(m, 'Regex must match 3-stream output')
 
     def test_audio_only_no_frame(self):
         """Audio-only encoding: no frame/fps/stream lines"""
-        output = (
-            'bitrate= 128.0kbits/s\n'
-            'total_size=  65536\n'
-            'out_time_us=4000000\n'
-            'out_time_ms=4000000\n'
-            'out_time=00:00:04.000000\n'
-            'dup_frames=0\n'
-            'drop_frames=0\n'
-            'speed=5.00x\n'
-            'progress=continue'
-        )
+        output = _make_progress_block(bitrate=' 128.0kbits/s', speed='5.00x')
         m = self._match(output)
         self.assertIsNotNone(m, 'Regex must match audio-only output (no frame/fps/stream)')
         self.assertIsNone(m.group('frame'))
@@ -103,17 +102,7 @@ class TestProgressPattern(unittest.TestCase):
         self.assertEqual(m.group('speed'), '5.00x')
 
     def test_progress_end(self):
-        output = (
-            'bitrate=N/A\n'
-            'total_size=  1048576\n'
-            'out_time_us=60000000\n'
-            'out_time_ms=60000000\n'
-            'out_time=00:01:00.000000\n'
-            'dup_frames=0\n'
-            'drop_frames=0\n'
-            'speed=N/A\n'
-            'progress=end'
-        )
+        output = _make_progress_block(bitrate='N/A', speed='N/A', progress='end')
         m = self._match(output)
         self.assertIsNotNone(m)
         self.assertEqual(m.group('progress'), 'end')
@@ -122,20 +111,9 @@ class TestProgressPattern(unittest.TestCase):
 
     def test_na_values_at_start(self):
         """ffmpeg outputs N/A for bitrate and speed at the very beginning"""
-        output = (
-            'frame=    1\n'
-            'fps=0.00\n'
-            'stream_0_0_q=0.0\n'
-            'bitrate=N/A\n'
-            'total_size=       0\n'
-            'out_time_us=0\n'
-            'out_time_ms=0\n'
-            'out_time=00:00:00.000000\n'
-            'dup_frames=0\n'
-            'drop_frames=0\n'
-            'speed=N/A\n'
-            'progress=continue'
-        )
+        output = _make_progress_block(
+            bitrate='N/A', total_size='       0', out_time_us='0',
+            speed='N/A', streams=['stream_0_0_q=0.0'])
         m = self._match(output)
         self.assertIsNotNone(m)
         self.assertEqual(m.group('bitrate'), 'N/A')
@@ -150,48 +128,21 @@ class TestProgressPattern(unittest.TestCase):
             'stream_0_0_q=28.0\n'
             'bitrate= 512.0kbits/s\n'
         )
-        m = self._match(partial)
-        self.assertIsNone(m)
+        self.assertIsNone(self._match(partial))
 
     def test_no_match_on_empty(self):
         self.assertIsNone(self._match(''))
 
     def test_large_stream_indices(self):
         """Stream indices can be large numbers"""
-        output = (
-            'frame=  100\n'
-            'fps=25.00\n'
-            'stream_0_10_q=23.0\n'
-            'stream_0_11_q=-1.0\n'
-            'bitrate= 1024.0kbits/s\n'
-            'total_size=  262144\n'
-            'out_time_us=4000000\n'
-            'out_time_ms=4000000\n'
-            'out_time=00:00:04.000000\n'
-            'dup_frames=0\n'
-            'drop_frames=0\n'
-            'speed=1.00x\n'
-            'progress=continue'
-        )
+        output = _make_progress_block(
+            streams=['stream_0_10_q=23.0', 'stream_0_11_q=-1.0'])
         m = self._match(output)
         self.assertIsNotNone(m, 'Must handle large stream indices')
 
     def test_negative_q_values(self):
         """Audio streams typically have q=-1.0"""
-        output = (
-            'frame=  100\n'
-            'fps=25.00\n'
-            'stream_0_0_q=-1.0\n'
-            'bitrate= 128.0kbits/s\n'
-            'total_size=  65536\n'
-            'out_time_us=4000000\n'
-            'out_time_ms=4000000\n'
-            'out_time=00:00:04.000000\n'
-            'dup_frames=0\n'
-            'drop_frames=0\n'
-            'speed=3.00x\n'
-            'progress=continue'
-        )
+        output = _make_progress_block(streams=['stream_0_0_q=-1.0'])
         m = self._match(output)
         self.assertIsNotNone(m)
 
@@ -256,78 +207,83 @@ class TestTimeStringToSeconds(unittest.TestCase):
         self.assertAlmostEqual(
             FFmpegProgressTracker.ffmpeg_time_string_to_seconds('1000000us'), 1.0)
 
+    def test_invalid_string_returns_zero(self):
+        self.assertEqual(FFmpegProgressTracker.ffmpeg_time_string_to_seconds('abc'), 0)
+
+    def test_empty_string_returns_zero(self):
+        self.assertEqual(FFmpegProgressTracker.ffmpeg_time_string_to_seconds(''), 0)
+
 
 class TestComputeDurationToTrack(unittest.TestCase):
     """Test _compute_duration_to_track with various ffmpeg arg combinations"""
 
-    def _make_tracker(self, args, duration=100):
-        info_dict = {'duration': duration} if duration else {}
-        return FFmpegProgressTracker(info_dict, args, lambda s, i: None)
-
     def test_no_seek_args(self):
-        tracker = self._make_tracker(['ffmpeg', '-i', 'in.mp4', 'out.mp4'])
+        tracker = _make_tracker(args=['ffmpeg', '-i', 'in.mp4', 'out.mp4'])
         self.assertEqual(tracker._compute_duration_to_track(), (100, 100))
 
     def test_ss_only(self):
-        tracker = self._make_tracker(['ffmpeg', '-ss', '10', '-i', 'in.mp4', 'out.mp4'])
+        tracker = _make_tracker(args=['ffmpeg', '-ss', '10', '-i', 'in.mp4', 'out.mp4'])
+        self.assertEqual(tracker._compute_duration_to_track(), (90, 100))
+
+    def test_ss_after_input(self):
+        """Output seeking: -ss after -i is also valid"""
+        tracker = _make_tracker(args=['ffmpeg', '-i', 'in.mp4', '-ss', '10', 'out.mp4'])
         self.assertEqual(tracker._compute_duration_to_track(), (90, 100))
 
     def test_to_only(self):
-        tracker = self._make_tracker(['ffmpeg', '-to', '50', '-i', 'in.mp4', 'out.mp4'])
+        tracker = _make_tracker(args=['ffmpeg', '-to', '50', '-i', 'in.mp4', 'out.mp4'])
         self.assertEqual(tracker._compute_duration_to_track(), (50, 100))
 
     def test_ss_and_to(self):
-        tracker = self._make_tracker(['ffmpeg', '-ss', '10', '-to', '50', '-i', 'in.mp4', 'out.mp4'])
+        tracker = _make_tracker(args=['ffmpeg', '-ss', '10', '-to', '50', '-i', 'in.mp4', 'out.mp4'])
         self.assertEqual(tracker._compute_duration_to_track(), (40, 100))
 
     def test_t_duration(self):
         """ffmpeg -t specifies explicit duration, not end time"""
-        tracker = self._make_tracker(['ffmpeg', '-ss', '10', '-t', '30', '-i', 'in.mp4', 'out.mp4'])
+        tracker = _make_tracker(args=['ffmpeg', '-ss', '10', '-t', '30', '-i', 'in.mp4', 'out.mp4'])
         self.assertEqual(tracker._compute_duration_to_track(), (30, 100))
 
     def test_t_alone(self):
-        tracker = self._make_tracker(['ffmpeg', '-t', '45', '-i', 'in.mp4', 'out.mp4'])
+        tracker = _make_tracker(args=['ffmpeg', '-t', '45', '-i', 'in.mp4', 'out.mp4'])
         self.assertEqual(tracker._compute_duration_to_track(), (45, 100))
 
     def test_sseof(self):
-        tracker = self._make_tracker(['ffmpeg', '-sseof', '30', '-i', 'in.mp4', 'out.mp4'])
+        tracker = _make_tracker(args=['ffmpeg', '-sseof', '30', '-i', 'in.mp4', 'out.mp4'])
         self.assertEqual(tracker._compute_duration_to_track(), (30, 100))
 
     def test_equals_form(self):
         """ffmpeg accepts -ss=10 as well as -ss 10"""
-        tracker = self._make_tracker(['ffmpeg', '-ss=10', '-to=50', '-i', 'in.mp4', 'out.mp4'])
+        tracker = _make_tracker(args=['ffmpeg', '-ss=10', '-to=50', '-i', 'in.mp4', 'out.mp4'])
         self.assertEqual(tracker._compute_duration_to_track(), (40, 100))
 
     def test_t_equals_form(self):
-        tracker = self._make_tracker(['ffmpeg', '-t=30', '-i', 'in.mp4', 'out.mp4'])
+        tracker = _make_tracker(args=['ffmpeg', '-t=30', '-i', 'in.mp4', 'out.mp4'])
         self.assertEqual(tracker._compute_duration_to_track(), (30, 100))
 
     def test_no_duration_in_info(self):
-        tracker = self._make_tracker(['ffmpeg', '-i', 'in.mp4', 'out.mp4'], duration=None)
+        tracker = _make_tracker(args=['ffmpeg', '-i', 'in.mp4', 'out.mp4'], duration=None)
         self.assertEqual(tracker._compute_duration_to_track(), (0, 0))
 
     def test_negative_duration_returns_zero(self):
         """If -to < -ss, duration_to_track should be 0"""
-        tracker = self._make_tracker(['ffmpeg', '-ss', '50', '-to', '10', '-i', 'in.mp4', 'out.mp4'])
+        tracker = _make_tracker(args=['ffmpeg', '-ss', '50', '-to', '10', '-i', 'in.mp4', 'out.mp4'])
         self.assertEqual(tracker._compute_duration_to_track(), (0, 100))
 
     def test_hms_timestamps(self):
-        tracker = self._make_tracker(
-            ['ffmpeg', '-ss', '0:01:00', '-to', '0:02:00', '-i', 'in.mp4', 'out.mp4'],
+        tracker = _make_tracker(
+            args=['ffmpeg', '-ss', '0:01:00', '-to', '0:02:00', '-i', 'in.mp4', 'out.mp4'],
             duration=300)
         self.assertEqual(tracker._compute_duration_to_track(), (60, 300))
 
     def test_does_not_match_similar_args(self):
         """Args like -ssa or -strict should NOT be treated as -ss"""
-        tracker = self._make_tracker(
-            ['ffmpeg', '-ssa', '10', '-strict', '-2', '-i', 'in.mp4', 'out.mp4'])
-        # Should return full duration since no seek args
+        tracker = _make_tracker(args=['ffmpeg', '-ssa', '10', '-strict', '-2', '-i', 'in.mp4', 'out.mp4'])
         self.assertEqual(tracker._compute_duration_to_track(), (100, 100))
 
     def test_t_takes_precedence_over_to(self):
         """-t explicitly sets duration regardless of -to"""
-        tracker = self._make_tracker(
-            ['ffmpeg', '-ss', '10', '-t', '20', '-to', '90', '-i', 'in.mp4', 'out.mp4'])
+        tracker = _make_tracker(
+            args=['ffmpeg', '-ss', '10', '-t', '20', '-to', '90', '-i', 'in.mp4', 'out.mp4'])
         self.assertEqual(tracker._compute_duration_to_track(), (20, 100))
 
 
@@ -364,84 +320,60 @@ class TestComputeEta(unittest.TestCase):
     """Test _compute_eta with various speed and progress scenarios"""
 
     def _make_match(self, speed='2.00x', out_time_us='30000000'):
-        text = (
-            'bitrate= 512.0kbits/s\n'
-            'total_size=  131072\n'
-            f'out_time_us={out_time_us}\n'
-            'out_time_ms=0\n'
-            'out_time=00:00:00.000000\n'
-            'dup_frames=0\n'
-            'drop_frames=0\n'
-            f'speed={speed}\n'
-            'progress=continue'
-        )
-        return re.match(FFmpegProgressTracker._progress_pattern, text)
+        return re.match(FFmpegProgressTracker._progress_pattern,
+                        _make_progress_block(speed=speed, out_time_us=out_time_us))
 
     def test_normal_eta(self):
         m = self._make_match(speed='2.00x', out_time_us='30000000')
         # duration=60, out_time=30s, speed=2x => ETA = (60-30)/2 = 15
-        eta = FFmpegProgressTracker._compute_eta(m, 60)
-        self.assertEqual(eta, 15)
+        self.assertEqual(FFmpegProgressTracker._compute_eta(m, 60), 15)
 
     def test_speed_1x(self):
         m = self._make_match(speed='1.00x', out_time_us='30000000')
-        eta = FFmpegProgressTracker._compute_eta(m, 60)
-        self.assertEqual(eta, 30)
+        self.assertEqual(FFmpegProgressTracker._compute_eta(m, 60), 30)
 
     def test_na_speed_returns_none(self):
         m = self._make_match(speed='N/A', out_time_us='0')
-        eta = FFmpegProgressTracker._compute_eta(m, 60)
-        self.assertIsNone(eta)
+        self.assertIsNone(FFmpegProgressTracker._compute_eta(m, 60))
 
     def test_zero_speed_returns_none(self):
         m = self._make_match(speed='0.00x', out_time_us='0')
-        eta = FFmpegProgressTracker._compute_eta(m, 60)
-        self.assertIsNone(eta)
+        self.assertIsNone(FFmpegProgressTracker._compute_eta(m, 60))
 
     def test_zero_duration_returns_zero(self):
         m = self._make_match(speed='2.00x', out_time_us='0')
-        eta = FFmpegProgressTracker._compute_eta(m, 0)
-        self.assertEqual(eta, 0)
+        self.assertEqual(FFmpegProgressTracker._compute_eta(m, 0), 0)
 
     def test_very_fast_speed(self):
         m = self._make_match(speed='100.0x', out_time_us='0')
-        eta = FFmpegProgressTracker._compute_eta(m, 60)
-        self.assertEqual(eta, 0)  # 60/100 rounds down to 0
+        self.assertEqual(FFmpegProgressTracker._compute_eta(m, 60), 0)  # 60/100 rounds down
 
 
 class TestComputeTotalFilesize(unittest.TestCase):
     """Test _compute_total_filesize edge cases"""
 
-    def _make_tracker(self, filesize=None, filesize_approx=None):
-        info_dict = {}
-        if filesize is not None:
-            info_dict['filesize'] = filesize
-        if filesize_approx is not None:
-            info_dict['filesize_approx'] = filesize_approx
-        return FFmpegProgressTracker(info_dict, [], lambda s, i: None)
-
     def test_with_filesize(self):
-        tracker = self._make_tracker(filesize=1000)
+        tracker = _make_tracker(filesize=1000)
         self.assertEqual(tracker._compute_total_filesize(50, 100), 500)
 
     def test_with_filesize_approx(self):
-        tracker = self._make_tracker(filesize_approx=1000)
+        tracker = _make_tracker(filesize=None, filesize_approx=1000)
         self.assertEqual(tracker._compute_total_filesize(50, 100), 500)
 
     def test_filesize_preferred_over_approx(self):
-        tracker = self._make_tracker(filesize=2000, filesize_approx=1000)
+        tracker = _make_tracker(filesize=2000, filesize_approx=1000)
         self.assertEqual(tracker._compute_total_filesize(50, 100), 1000)
 
     def test_zero_duration_returns_zero(self):
-        tracker = self._make_tracker(filesize=1000)
+        tracker = _make_tracker(filesize=1000)
         self.assertEqual(tracker._compute_total_filesize(0, 0), 0)
 
     def test_no_filesize_returns_zero(self):
-        tracker = self._make_tracker()
+        tracker = _make_tracker(filesize=None)
         self.assertEqual(tracker._compute_total_filesize(50, 100), 0)
 
     def test_full_duration(self):
-        tracker = self._make_tracker(filesize=1000)
+        tracker = _make_tracker(filesize=1000)
         self.assertEqual(tracker._compute_total_filesize(100, 100), 1000)
 
 
@@ -449,7 +381,7 @@ class TestTrackerInit(unittest.TestCase):
     """Test FFmpegProgressTracker construction and status initialization"""
 
     def test_init_status_has_required_keys(self):
-        tracker = FFmpegProgressTracker({}, [], lambda s, i: None)
+        tracker = _make_tracker()
         self.assertIn('filename', tracker._status)
         self.assertIn('status', tracker._status)
         self.assertIn('elapsed', tracker._status)
@@ -462,18 +394,17 @@ class TestTrackerInit(unittest.TestCase):
         self.assertEqual(tracker._status['filename'], '/tmp/out.mp4')
 
     def test_init_without_output_filename(self):
-        tracker = FFmpegProgressTracker({}, [], lambda s, i: None)
+        tracker = _make_tracker()
         self.assertEqual(tracker._status['filename'], '')
 
     def test_proc_is_none_before_start(self):
-        tracker = FFmpegProgressTracker({}, [], lambda s, i: None)
+        tracker = _make_tracker()
         self.assertIsNone(tracker.ffmpeg_proc)
 
     def test_trigger_progress_hook_works_immediately(self):
         """trigger_progress_hook should work even before start()"""
         received = []
-        tracker = FFmpegProgressTracker(
-            {'id': 'test'}, [], lambda s, i: received.append(s.copy()))
+        tracker = _make_tracker(hook=lambda s, i: received.append(s.copy()))
         tracker.trigger_progress_hook({'custom_key': 'value'})
         self.assertEqual(len(received), 1)
         self.assertEqual(received[0]['custom_key'], 'value')
@@ -492,29 +423,26 @@ class TestTrackerInit(unittest.TestCase):
 class TestTrackerStreams(unittest.TestCase):
     """Test _save_stream correctly separates stdout and stderr"""
 
-    def _make_tracker(self):
-        return FFmpegProgressTracker({}, [], lambda s, i: None)
-
     def test_save_stdout(self):
-        tracker = self._make_tracker()
+        tracker = _make_tracker()
         tracker._save_stream('hello\n', to_stderr=False)
         self.assertEqual(tracker._stdout_data, 'hello\n')
         self.assertEqual(tracker._stderr_data, '')
 
     def test_save_stderr(self):
-        tracker = self._make_tracker()
+        tracker = _make_tracker()
         tracker._save_stream('error\n', to_stderr=True)
         self.assertEqual(tracker._stderr_data, 'error\n')
         self.assertEqual(tracker._stdout_data, '')
 
     def test_accumulation(self):
-        tracker = self._make_tracker()
+        tracker = _make_tracker()
         tracker._save_stream('line1\n', to_stderr=False)
         tracker._save_stream('line2\n', to_stderr=False)
         self.assertEqual(tracker._stdout_data, 'line1\nline2\n')
 
     def test_empty_lines_ignored(self):
-        tracker = self._make_tracker()
+        tracker = _make_tracker()
         tracker._save_stream('', to_stderr=False)
         self.assertEqual(tracker._stdout_data, '')
 
@@ -522,57 +450,31 @@ class TestTrackerStreams(unittest.TestCase):
 class TestParseFFmpegOutput(unittest.TestCase):
     """Test _parse_ffmpeg_output status updates"""
 
-    def _make_tracker(self, duration=100, filesize=1000):
-        info_dict = {'duration': duration, 'filesize': filesize}
-        tracker = FFmpegProgressTracker(info_dict, ['ffmpeg', '-i', 'in.mp4', 'out.mp4'], lambda s, i: None)
-        tracker._duration_to_track = duration
-        tracker._total_duration = duration
-        tracker._total_filesize = filesize
-        return tracker
-
     def test_full_progress_block_updates_status(self):
-        tracker = self._make_tracker()
-        tracker._stdout_buffer = (
-            'frame=  120\n'
-            'fps=30.00\n'
-            'stream_0_0_q=28.0\n'
-            'bitrate= 512.0kbits/s\n'
-            'total_size=  131072\n'
-            'out_time_us=50000000\n'
-            'out_time_ms=50000000\n'
-            'out_time=00:00:50.000000\n'
-            'dup_frames=0\n'
-            'drop_frames=0\n'
-            'speed=2.00x\n'
-            'progress=continue'
-        )
+        tracker = _make_tracking_tracker()
+        # out_time_us=50000000 (50s), duration=100, filesize=1000
+        # => outputted = 50/100 * 1000 = 500
+        # bitrate=512.0kbits/s => speed = 512000.0
+        # speed=2.00x, (100-50)/2 = 25 => eta = 25
+        tracker._stdout_buffer = _make_progress_block(
+            out_time_us='50000000', speed='2.00x',
+            streams=['stream_0_0_q=28.0'])
         tracker._parse_ffmpeg_output()
-        self.assertGreater(tracker._status['outputted'], 0)
-        self.assertIn('speed', tracker._status)
-        self.assertIn('eta', tracker._status)
-        # Buffer should be cleared after successful parse
+        self.assertEqual(tracker._status['outputted'], 500)
+        self.assertAlmostEqual(tracker._status['speed'], 512000.0)
+        self.assertEqual(tracker._status['eta'], 25)
         self.assertEqual(tracker._stdout_buffer, '')
 
     def test_partial_block_does_not_clear_buffer(self):
-        tracker = self._make_tracker()
+        tracker = _make_tracking_tracker()
         tracker._stdout_buffer = 'frame=  120\nfps=30.00\n'
         tracker._parse_ffmpeg_output()
-        # Buffer should not be cleared since regex didn't match
         self.assertEqual(tracker._stdout_buffer, 'frame=  120\nfps=30.00\n')
 
     def test_na_bitrate_gives_zero_speed(self):
-        tracker = self._make_tracker()
-        tracker._stdout_buffer = (
-            'bitrate=N/A\n'
-            'total_size=       0\n'
-            'out_time_us=0\n'
-            'out_time_ms=0\n'
-            'out_time=00:00:00.000000\n'
-            'dup_frames=0\n'
-            'drop_frames=0\n'
-            'speed=N/A\n'
-            'progress=continue'
-        )
+        tracker = _make_tracking_tracker()
+        tracker._stdout_buffer = _make_progress_block(
+            bitrate='N/A', total_size='       0', out_time_us='0', speed='N/A')
         tracker._parse_ffmpeg_output()
         self.assertEqual(tracker._status['speed'], 0)
 
@@ -580,37 +482,29 @@ class TestParseFFmpegOutput(unittest.TestCase):
 class TestHandleLines(unittest.TestCase):
     """Test _handle_lines drains both queues"""
 
-    def _make_tracker(self, duration=100, filesize=1000):
-        info_dict = {'duration': duration, 'filesize': filesize}
-        tracker = FFmpegProgressTracker(info_dict, ['ffmpeg', '-i', 'in.mp4', 'out.mp4'], lambda s, i: None)
-        tracker._duration_to_track = duration
-        tracker._total_duration = duration
-        tracker._total_filesize = filesize
-        return tracker
-
-    def test_drains_stdout_queue(self):
-        tracker = self._make_tracker()
+    def test_drains_stdout_queue_into_buffer(self):
+        tracker = _make_tracking_tracker()
         tracker._stdout_queue.put('frame=  120')
         tracker._stdout_queue.put('fps=30.00')
         tracker._handle_lines()
         self.assertTrue(tracker._stdout_queue.empty())
-        self.assertIn('frame=  120', tracker._stdout_buffer)
+        # Partial block: lines go to buffer, not cleared by parse
+        self.assertEqual(tracker._stdout_buffer, 'frame=  120\nfps=30.00\n')
 
-    def test_drains_stderr_queue(self):
-        tracker = self._make_tracker()
+    def test_drains_stderr_queue_into_data(self):
+        tracker = _make_tracking_tracker()
         tracker._stderr_queue.put('warning: something')
         tracker._handle_lines()
         self.assertTrue(tracker._stderr_queue.empty())
-        self.assertIn('warning: something', tracker._stderr_data)
+        self.assertEqual(tracker._stderr_data, 'warning: something\n')
 
-    def test_multiple_lines_in_queue(self):
-        tracker = self._make_tracker()
+    def test_multiple_stderr_lines(self):
+        tracker = _make_tracking_tracker()
         for i in range(10):
             tracker._stderr_queue.put(f'line {i}')
         tracker._handle_lines()
         self.assertTrue(tracker._stderr_queue.empty())
-        for i in range(10):
-            self.assertIn(f'line {i}', tracker._stderr_data)
+        self.assertEqual(tracker._stderr_data, ''.join(f'line {i}\n' for i in range(10)))
 
 
 class TestReportProgress(unittest.TestCase):
@@ -619,19 +513,17 @@ class TestReportProgress(unittest.TestCase):
     def _make_pp(self, params=None):
         from test.helper import FakeYDL
         from yt_dlp.postprocessor.common import PostProcessor
-        with FakeYDL(params) as ydl:
-            return PostProcessor(ydl)
+        ydl = FakeYDL(params)
+        return PostProcessor(ydl)
 
     def test_finished_without_data_is_silent(self):
         """Metaclass finished hook sends minimal dict - should not crash or display"""
         pp = self._make_pp()
-        # Simulate what PostProcessorMetaClass.run_wrapper sends
         pp.report_progress({
             'status': 'finished',
             'info_dict': {'id': 'test'},
             'postprocessor': 'Test',
         })
-        # Should return early without error (no total_bytes)
 
     def test_finished_with_data(self):
         """Finished with progress data should not crash"""
@@ -679,11 +571,7 @@ class TestReportProgress(unittest.TestCase):
     def test_no_downloader_returns_early(self):
         """Without a downloader, report_progress should return immediately"""
         from yt_dlp.postprocessor.common import PostProcessor
-        pp = PostProcessor.__new__(PostProcessor)
-        pp._progress_hooks = []
-        pp._downloader = None
-        pp.PP_NAME = 'Test'
-        pp._prepare_multiline_status()
+        pp = PostProcessor(None)
         pp.report_progress({'status': 'processing'})
 
     def test_report_progress_status_without_info_dict(self):
