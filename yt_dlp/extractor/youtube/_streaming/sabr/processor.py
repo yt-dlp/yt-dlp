@@ -384,7 +384,7 @@ class SabrProcessor:
                 format_id=segment.format_id,
                 player_time_ms=self.player_time_ms,
                 sequence_number=segment.sequence_number,
-                total_segments=segment.initialized_format.total_segments,
+                total_segments=segment.initialized_format.last_segment_number,
                 duration_ms=segment.duration_ms,
                 duration_estimated=segment.duration_estimated,
                 start_bytes=segment.start_data_range,
@@ -415,7 +415,7 @@ class SabrProcessor:
                 format_id=segment.format_id,
                 sequence_number=segment.sequence_number,
                 is_init_segment=segment.is_init_segment,
-                total_segments=segment.initialized_format.total_segments,
+                total_segments=segment.initialized_format.last_segment_number,
                 data=data.read(),
                 content_length=content_length,
                 segment_start_bytes=segment_start_bytes,
@@ -460,7 +460,7 @@ class SabrProcessor:
                 format_id=segment.format_id,
                 sequence_number=segment.sequence_number,
                 is_init_segment=segment.is_init_segment,
-                total_segments=segment.initialized_format.total_segments,
+                total_segments=segment.initialized_format.last_segment_number,
             )
         else:
             self.logger.trace(f'Discarding media for {segment.initialized_format.format_id}')
@@ -520,7 +520,7 @@ class SabrProcessor:
         # For livestreams, it is not available in the format initialization metadata
         if self.live_metadata.head_sequence_number:
             for izf in self.initialized_formats.values():
-                izf.total_segments = self.live_metadata.head_sequence_number
+                izf.last_segment_number = self.live_metadata.head_sequence_number
 
         result = ProcessLiveMetadataResult()
 
@@ -620,7 +620,7 @@ class SabrProcessor:
             mime_type=format_init_metadata.mime_type,
             video_id=format_init_metadata.video_id,
             format_selector=format_selector,
-            total_segments=total_segments,
+            last_segment_number=total_segments,
             discard=format_selector.discard_media,
         )
 

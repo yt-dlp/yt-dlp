@@ -404,7 +404,7 @@ class TestFormatInitialization:
             video_id='test_video',
             mime_type='audio/mp4',
             duration_ms=10000,
-            total_segments=5,
+            last_segment_number=5,
             end_time_ms=10000,
             format_selector=selector,
             expected_start_sequence_number=1,
@@ -440,7 +440,7 @@ class TestFormatInitialization:
         assert len(processor.initialized_formats) == 1
         assert str(format_id) in processor.initialized_formats
         initialized_format = processor.initialized_formats[str(format_id)]
-        assert initialized_format.total_segments == 5
+        assert initialized_format.last_segment_number == 5
 
     def test_initialize_multiple_formats(self, logger, base_args):
         audio_selector = make_selector('audio')
@@ -764,7 +764,7 @@ class TestFormatInitialization:
 
         processor.process_format_initialization_metadata(format_init_metadata_part)
         assert str(format_id) in processor.initialized_formats
-        assert processor.initialized_formats[str(format_id)].total_segments is None
+        assert processor.initialized_formats[str(format_id)].last_segment_number is None
 
     def test_total_segment_count_live_metadata(self, logger, base_args):
         # Test that total_segments is set from live_metadata when not in the format
@@ -788,7 +788,7 @@ class TestFormatInitialization:
         processor.live_metadata = LiveMetadata(head_sequence_number=10)
         processor.process_format_initialization_metadata(format_init_metadata_part)
         assert str(audio_format_id) in processor.initialized_formats
-        assert processor.initialized_formats[str(audio_format_id)].total_segments == 10
+        assert processor.initialized_formats[str(audio_format_id)].last_segment_number == 10
 
         # But live metadata should not override total_segments if it is present
         # XXX: when live metadata is updated, it will update the total_segments.
@@ -811,7 +811,7 @@ class TestFormatInitialization:
 
         processor.process_format_initialization_metadata(video_format_init_metadata_part)
         assert str(video_format_id) in processor.initialized_formats
-        assert processor.initialized_formats[str(video_format_id)].total_segments == 9
+        assert processor.initialized_formats[str(video_format_id)].last_segment_number == 9
 
     def test_set_expected_start_segment_nonlive(self, logger, base_args):
         # Should set the expected_start_sequence_number to 1 when:
@@ -1020,8 +1020,8 @@ class TestLiveMetadata:
         assert processor.live_metadata is live_metadata
 
         # Check that total_segments is updated in both formats
-        assert processor.initialized_formats[str(audio_format_id)].total_segments == 10
-        assert processor.initialized_formats[str(video_format_id)].total_segments == 10
+        assert processor.initialized_formats[str(audio_format_id)].last_segment_number == 10
+        assert processor.initialized_formats[str(video_format_id)].last_segment_number == 10
 
     def test_min_seekable_time_ms_less_than_player_time_ms(self, base_args):
         # If min_seekable_time_ms is greater or equal to player time, there should not be a seek

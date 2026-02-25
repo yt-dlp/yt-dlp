@@ -47,7 +47,7 @@ class InitializedFormat:
     previous_segment: Segment | None = None
     init_segment: Segment | None | bool = None
     consumed_ranges: list[ConsumedRange] = dataclasses.field(default_factory=list)
-    total_segments: int = None
+    last_segment_number: int = None
     # Whether we should discard any data received for this format
     discard: bool = False
     sequence_lmt: int | None = None

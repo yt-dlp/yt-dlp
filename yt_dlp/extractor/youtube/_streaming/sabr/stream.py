@@ -624,9 +624,8 @@ class SabrStream:
 
         # 1. All enabled formats have a consumed range for the current player time,
         #  and they are all at the end of their consumed ranges.
-        # TODO: rename "total segments" to "last segment number" or similar
         if all(
-            cr is not None and izf.total_segments is not None and cr.end_sequence_number >= izf.total_segments
+            cr is not None and izf.last_segment_number is not None and cr.end_sequence_number >= izf.last_segment_number
             for izf, cr in self._current_consumed_ranges()
         ):
             self.logger.trace(
@@ -881,8 +880,8 @@ class SabrStream:
             if izf.discard:
                 s += 'd'
             p = []
-            if izf.total_segments:
-                p.append(f'{izf.total_segments}')
+            if izf.last_segment_number:
+                p.append(f'{izf.last_segment_number}')
             if izf.sequence_lmt is not None:
                 p.append(f'lmt={izf.sequence_lmt}')
             if p:
