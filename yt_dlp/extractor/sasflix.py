@@ -21,7 +21,7 @@ class SasflixIE(InfoExtractor):
             f'https://sasflix.ru/api/web/topics/{topic_id}', topic_id)
 
         if not topic_data.get('has_video'):
-            raise ExtractorError("no video available")
+            raise ExtractorError('no video available')
 
         video_id = traverse_obj(topic_data, ('video', 'id'))
 
@@ -30,5 +30,5 @@ class SasflixIE(InfoExtractor):
             'formats': self._extract_m3u8_formats(
                 f'https://sasflix.ru/api/video/{video_id}', video_id),
             'title': topic_data.get('title'),
-            'duration': traverse_obj(topic_data, ('video', 'duration'))
+            'duration': traverse_obj(topic_data, ('video', 'duration')),
         }
