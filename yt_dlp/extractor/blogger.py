@@ -62,7 +62,7 @@ class BloggerIE(InfoExtractor):
         token_id = self._match_id(url)
 
         fsid = random.randint(-9999999999999999999, 9999999999999999999)  # Blogger require 19 digit number can be negative or positive
-        data, _ = self._download_webpage_handle(
+        data = self._download_webpage(
             'https://www.blogger.com/_/BloggerVideoPlayerUi/data/batchexecute',
             token_id,
             headers={'Referer': 'https://www.blogger.com/'},
@@ -78,8 +78,10 @@ class BloggerIE(InfoExtractor):
             }),
         )
 
-        wrb_data = self._search_regex(r'(\[\[.*?"WcwnYd".*?\]\])\s(?:\d+)?', data, 'wrb.fr')
-        data = self._parse_json(self._parse_json(wrb_data, None)[0][2], None)
+        wrb_data = self._search_json(
+            '', data, 'wrb.fr', token_id, contains_pattern=r'\[\[(?s:.*?)"WcwnYd"(?s:.*?)\]\]',
+            end_pattern=r'\s')
+        data = self._parse_json(wrb_data[0][2], token_id)
 
         formats = []
         for fmtl in traverse_obj(data, (2), default=[]):
@@ -115,8 +117,8 @@ class BloggerIE(InfoExtractor):
             'thumbnail': thumbnail,
             'duration': parse_duration(traverse_obj(parse_qs(formats[0]['url']), ('dur', 0))),
             'formats': formats,
-            **traverse_obj(data, (2, {
-                'title': (-1, {str_or_none}),
-                'thumbnail': (-2, {url_or_none}),
+            **traverse_obj(data, {
+                'title': (..., {str}, {lambda s: None if url_or_none(s) else s}, any),
+                'thumbnail': (..., {str}, {url_or_none}, any),
             })),
         }
