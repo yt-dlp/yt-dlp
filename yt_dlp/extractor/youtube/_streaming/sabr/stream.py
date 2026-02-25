@@ -44,7 +44,6 @@ from .utils import (
     broadcast_id_from_url,
     fallback_gvs_url,
     find_consumed_range_by_time,
-    ticks_to_ms,
     validate_sabr_url,
 )
 from ..ump import UMPDecoder, UMPPart, UMPPartId, read_varint
@@ -575,13 +574,11 @@ class SabrStream:
             # Does not apply for post live as all segments should be available
             return
 
-        max_seekable_time_ms = ticks_to_ms(
-            time_ticks=getattr(self.processor.live_metadata, 'max_seekable_time_ticks', None),
-            timescale=getattr(self.processor.live_metadata, 'max_seekable_timescale', None))
+        max_seekable_time_ms = getattr(self.processor.live_state, 'max_seekable_time_ms', None)
 
         if max_seekable_time_ms is None:
             # fallback to live head
-            max_seekable_time_ms = getattr(self.processor.live_metadata, 'head_sequence_time_ms', None)
+            max_seekable_time_ms = getattr(self.processor.live_state, 'head_sequence_time_ms', None)
 
         if max_seekable_time_ms is not None and self.processor.player_time_ms >= max_seekable_time_ms:
             self.logger.trace(f'Setting player time to max seekable time ms: {max_seekable_time_ms}ms (-{self.processor.player_time_ms - max_seekable_time_ms}ms)')
@@ -711,7 +708,7 @@ class SabrStream:
         # To allow the stream to end, consider it as near live head in this case.
         # This has been seen on ANDROID_VR client.
         is_near_live_head = self._is_near_head_of_live_stream()
-        if is_near_live_head or not self.processor.live_metadata:
+        if is_near_live_head or not self.processor.live_state:
             context_msg = 'Near live stream head' if is_near_live_head else 'No live metadata available'
 
             # TODO: add a timeout on how long heartbeat can indicate it is still live
@@ -761,7 +758,7 @@ class SabrStream:
 
     def _is_near_head_of_live_stream(self):
         # 1. Check if near head segment based on consumed segments
-        head_sequence_number = getattr(self.processor.live_metadata, 'head_sequence_number', None)
+        head_sequence_number = getattr(self.processor.live_state, 'head_sequence_number', None)
         if head_sequence_number is not None:
             if all(
                 cr is not None and (head_sequence_number - cr.end_sequence_number) <= self.live_end_segment_tolerance
@@ -808,7 +805,7 @@ class SabrStream:
         # with an optional tolerance for considering "near" the head
 
         player_time_ms = self.processor.player_time_ms
-        head_sequence_time_ms = getattr(self.processor.live_metadata, 'head_sequence_time_ms', None)
+        head_sequence_time_ms = getattr(self.processor.live_state, 'head_sequence_time_ms', None)
         live_segment_target_duration_ms = self.processor.live_segment_target_duration_sec * 1000
         live_segment_duration_tolerance_ms = self.processor.live_segment_target_duration_tolerance_ms
         estimated_head_duration_ms = live_segment_target_duration_ms - live_segment_duration_tolerance_ms

@@ -22,6 +22,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.processor import (
     ProcessMediaHeaderResult,
     ProcessMediaResult,
     ProcessMediaEndResult,
+    LiveState,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.models import (
     AudioSelector,
@@ -785,7 +786,7 @@ class TestFormatInitialization:
             duration_timescale=1000,
         )
 
-        processor.live_metadata = LiveMetadata(head_sequence_number=10)
+        processor.live_state = LiveState(head_sequence_number=10)
         processor.process_format_initialization_metadata(format_init_metadata_part)
         assert str(audio_format_id) in processor.initialized_formats
         assert processor.initialized_formats[str(audio_format_id)].last_segment_number == 10
@@ -951,7 +952,7 @@ class TestLiveMetadata:
 
     def test_live_metadata_initialization(self, base_args):
         processor = SabrProcessor(**base_args)
-        assert processor.live_metadata is None
+        assert processor.live_state is None
 
     def test_live_metadata_update(self, base_args):
         processor = SabrProcessor(**base_args)
@@ -960,7 +961,9 @@ class TestLiveMetadata:
         result = processor.process_live_metadata(live_metadata)
         assert isinstance(result, ProcessLiveMetadataResult)
         assert len(result.seek_sabr_parts) == 0
-        assert processor.live_metadata is live_metadata
+        first_live_state = processor.live_state
+        assert isinstance(processor.live_state, LiveState)
+        assert processor.live_state.head_sequence_number == live_metadata.head_sequence_number
 
         # Ensure new live_metadata replaces the old one
         live_metadata = dataclasses.replace(live_metadata, head_sequence_number=20)
@@ -968,21 +971,45 @@ class TestLiveMetadata:
 
         assert isinstance(result, ProcessLiveMetadataResult)
         assert len(result.seek_sabr_parts) == 0
-        assert processor.live_metadata is live_metadata
+        assert isinstance(processor.live_state, LiveState)
+        assert processor.live_state is not first_live_state
+        assert processor.live_state.head_sequence_number == live_metadata.head_sequence_number
 
     def test_live_metadata_no_head_sequence_time_ms(self, base_args):
         processor = SabrProcessor(**base_args)
         live_metadata = LiveMetadata(head_sequence_number=10, head_sequence_time_ms=None)
 
         processor.process_live_metadata(live_metadata)
-        assert processor.live_metadata is live_metadata
+        assert isinstance(processor.live_state, LiveState)
+        assert processor.live_state.head_sequence_number == live_metadata.head_sequence_number
+        assert processor.live_state.head_sequence_time_ms == live_metadata.head_sequence_time_ms
 
     def test_live_metadata_with_head_sequence_time_ms(self, base_args):
         processor = SabrProcessor(**base_args)
         live_metadata = LiveMetadata(head_sequence_number=10, head_sequence_time_ms=5000)
 
         processor.process_live_metadata(live_metadata)
-        assert processor.live_metadata is live_metadata
+        assert isinstance(processor.live_state, LiveState)
+        assert processor.live_state.head_sequence_number == live_metadata.head_sequence_number
+        assert processor.live_state.head_sequence_time_ms == live_metadata.head_sequence_time_ms
+
+    def test_live_metadata_with_min_max_seekable(self, base_args):
+        processor = SabrProcessor(**base_args)
+        live_metadata = LiveMetadata(
+            head_sequence_number=10,
+            head_sequence_time_ms=5000,
+            min_seekable_time_ticks=10000,
+            min_seekable_timescale=100,
+            max_seekable_time_ticks=100000,
+            max_seekable_timescale=10000,
+        )
+
+        processor.process_live_metadata(live_metadata)
+        assert isinstance(processor.live_state, LiveState)
+        assert processor.live_state.head_sequence_number == live_metadata.head_sequence_number
+        assert processor.live_state.head_sequence_time_ms == live_metadata.head_sequence_time_ms
+        assert processor.live_state.min_seekable_time_ms == 100000
+        assert processor.live_state.max_seekable_time_ms == 10000
 
     def test_update_izf_total_segments(self, base_args):
 
@@ -1017,7 +1044,7 @@ class TestLiveMetadata:
 
         # Process live metadata
         processor.process_live_metadata(live_metadata)
-        assert processor.live_metadata is live_metadata
+        assert processor.live_state
 
         # Check that total_segments is updated in both formats
         assert processor.initialized_formats[str(audio_format_id)].last_segment_number == 10
@@ -1066,7 +1093,7 @@ class TestLiveMetadata:
         result = processor.process_live_metadata(live_metadata)
         assert isinstance(result, ProcessLiveMetadataResult)
         assert len(result.seek_sabr_parts) == 0
-        assert processor.live_metadata is live_metadata
+        assert processor.live_state
         assert processor.client_abr_state.player_time_ms == 5001
 
         for izf in processor.initialized_formats.values():
@@ -1122,7 +1149,7 @@ class TestLiveMetadata:
         result = processor.process_live_metadata(live_metadata)
         assert isinstance(result, ProcessLiveMetadataResult)
         assert len(result.seek_sabr_parts) == 2
-        assert processor.live_metadata is live_metadata
+        assert processor.live_state
         assert processor.client_abr_state.player_time_ms == 5000
 
         for seek_part in result.seek_sabr_parts:

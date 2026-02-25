@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import dataclasses
 import io
 import math
 
@@ -81,6 +82,14 @@ class ProcessSabrSeekResult:
         self.seek_sabr_parts = seek_sabr_parts or []
 
 
+@dataclasses.dataclass
+class LiveState:
+    head_sequence_number: int = None
+    head_sequence_time_ms: int = None
+    min_seekable_time_ms: int = None
+    max_seekable_time_ms: int = None
+
+
 JS_MAX_SAFE_INTEGER = (2**53) - 1
 MIN_SEQUENCE_NUMBER = 1
 
@@ -141,7 +150,7 @@ class SabrProcessor:
         self.preferred_video_format_ids = []
         self.preferred_caption_format_ids = []
         self.next_request_policy: NextRequestPolicy | None = None
-        self.live_metadata: LiveMetadata | None = None
+        self.live_state: LiveState | None = None
         self.client_abr_state: ClientAbrState
         self.sabr_contexts_to_send: set[int] = set()
         self.sabr_context_updates: dict[int, SabrContextUpdate] = {}
@@ -153,7 +162,7 @@ class SabrProcessor:
     def is_live(self):
         return bool(
             self._is_live
-            or self.live_metadata
+            or self.live_state
             or self.post_live,
         )
 
@@ -514,26 +523,31 @@ class SabrProcessor:
         return result
 
     def process_live_metadata(self, live_metadata: LiveMetadata) -> ProcessLiveMetadataResult:
-        self.live_metadata = live_metadata
+
+        self.live_state = LiveState(
+            head_sequence_time_ms=live_metadata.head_sequence_time_ms,
+            head_sequence_number=live_metadata.head_sequence_number,
+            min_seekable_time_ms=ticks_to_ms(live_metadata.min_seekable_time_ticks, live_metadata.min_seekable_timescale),
+            max_seekable_time_ms=ticks_to_ms(live_metadata.max_seekable_time_ticks, live_metadata.max_seekable_timescale))
 
         # If we have a head sequence number, we need to update the total sequences for each initialized format
         # For livestreams, it is not available in the format initialization metadata
-        if self.live_metadata.head_sequence_number:
+        if self.live_state.head_sequence_number:
             for izf in self.initialized_formats.values():
-                izf.last_segment_number = self.live_metadata.head_sequence_number
+                izf.last_segment_number = self.live_state.head_sequence_number
 
         result = ProcessLiveMetadataResult()
 
         # If the current player time is less than the min dvr time, simulate a server seek to the min dvr time.
         # The server SHOULD send us a SABR_SEEK part in this case, but it does not always happen (e.g. ANDROID_VR)
         # The server SHOULD NOT send us segments before the min dvr time, so we should assume that the player time is correct.
-        min_seekable_time_ms = ticks_to_ms(self.live_metadata.min_seekable_time_ticks, self.live_metadata.min_seekable_timescale)
-        if min_seekable_time_ms is not None and self.player_time_ms < min_seekable_time_ms:
-            self.logger.debug(f'Player time {self.player_time_ms} is less than min seekable time {min_seekable_time_ms}, simulating server seek')
-            self.player_time_ms = min_seekable_time_ms
+        if self.live_state.min_seekable_time_ms is not None and self.player_time_ms < self.live_state.min_seekable_time_ms:
+            self.logger.debug(
+                f'Player time {self.player_time_ms} is less than min seekable time {self.live_state.min_seekable_time_ms}, simulating server seek')
+            self.player_time_ms = self.live_state.min_seekable_time_ms
 
             for izf in self.initialized_formats.values():
-                izf.seek_ms = min_seekable_time_ms
+                izf.seek_ms = self.live_state.min_seekable_time_ms
                 result.seek_sabr_parts.append(MediaSeekSabrPart(
                     reason=MediaSeekSabrPart.Reason.SERVER_SEEK,
                     format_id=izf.format_id,
@@ -610,8 +624,8 @@ class SabrProcessor:
         duration_ms = ticks_to_ms(format_init_metadata.duration_ticks, format_init_metadata.duration_timescale)
 
         total_segments = format_init_metadata.total_segments
-        if not total_segments and self.live_metadata and self.live_metadata.head_sequence_number:
-            total_segments = self.live_metadata.head_sequence_number
+        if not total_segments and self.live_state and self.live_state.head_sequence_number:
+            total_segments = self.live_state.head_sequence_number
 
         initialized_format = InitializedFormat(
             format_id=format_init_metadata.format_id,
