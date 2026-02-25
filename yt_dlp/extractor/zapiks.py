@@ -21,12 +21,11 @@ from ..utils.traversal import (
 
 
 class ZapiksIE(InfoExtractor):
-    _UPLOADER_ID_RE = re.compile(r'/pro(?:fil)?/(?P<id>[^/?#]+)/?')
     _VALID_URL = [
         r'https?://(?:www\.)?zapiks\.(?:com|fr)/(?P<id>[\w-]+)\.html',
-        r'https?://(?:www\.)?zapiks\.fr/index\.php\?(?:(?:[^&#]+&(?:amp;)?)+)?media_id=(?P<id>\d+)',
+        r'https?://(?:www\.)?zapiks\.fr/index\.php\?(?:[^#]+&)?media_id=(?P<id>\d+)',
     ]
-    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=["\'](?P<url>(?:https?:)?//(?:www\.)?zapiks\.fr/index\.php\?(?:(?:[^&#"\']+&(?:amp;)?)+)?media_id=(?P<id>\d+))']
+    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=["\'](?P<url>(?:https?:)?//(?:www\.)?zapiks\.fr/index\.php\?(?:[^#"\']+&(?:amp;)?)?media_id=\d+)']
     _TESTS = [{
         'url': 'https://www.zapiks.fr/ep2s3-bon-appetit-eh-be-viva.html',
         'md5': 'aeb3c473b2d564b2d46d664d28d5f050',
@@ -150,6 +149,7 @@ class ZapiksIE(InfoExtractor):
             'view_count': int,
         },
     }]
+    _UPLOADER_ID_RE = re.compile(r'/pro(?:fil)?/(?P<id>[^/?#]+)/?')
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
