@@ -26,7 +26,7 @@ class Vbox7IE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Борисов: Притеснен съм за бъдещето на България',
             'description': 'По думите му е опасно страната ни да бъде обявена за "сигурна"',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+\.jpg',
             'timestamp': 1470982814,
             'upload_date': '20160812',
             'uploader': 'zdraveibulgaria',
@@ -48,13 +48,28 @@ class Vbox7IE(InfoExtractor):
             'upload_date': '20130207',
             'duration': 83,
         },
-        'expected_warnings': ['Failed to download m3u8 information'],
+        'skip': 'Invalid URL',
     }, {
         'url': 'http://vbox7.com/emb/external.php?vid=a240d20f9c&autoplay=1',
         'only_matching': True,
     }, {
         'url': 'http://i49.vbox7.com/player/ext.swf?vid=0946fff23c&autoplay=1',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://nova.bg/news/view/2016/08/16/156543/%D0%BD%D0%B0-%D0%BA%D0%BE%D1%81%D1%8A%D0%BC-%D0%BE%D1%82-%D0%B2%D0%B7%D1%80%D0%B8%D0%B2-%D0%BE%D1%82%D1%86%D0%B5%D0%BF%D0%B8%D1%85%D0%B0-%D1%86%D1%8F%D0%BB-%D0%BA%D0%B2%D0%B0%D1%80%D1%82%D0%B0%D0%BB-%D0%B7%D0%B0%D1%80%D0%B0%D0%B4%D0%B8-%D0%B8%D0%B7%D1%82%D0%B8%D1%87%D0%B0%D0%BD%D0%B5-%D0%BD%D0%B0-%D0%B3%D0%B0%D0%B7-%D0%B2-%D0%BF%D0%BB%D0%BE%D0%B2%D0%B4%D0%B8%D0%B2/',
+        'info_dict': {
+            'id': '5a4d12166d',
+            'ext': 'mp4',
+            'title': 'НА КОСЪМ ОТ ВЗРИВ: Отцепиха цял квартал заради изтичане на газ в Пловдив',
+            'description': 'Инцидентът е станал на бензиностанция',
+            'duration': 200,
+            'thumbnail': r're:https?://.+\.jpg',
+            'timestamp': 1471353501,
+            'upload_date': '20160816',
+            'uploader': 'novinitenanova',
+            'view_count': int,
+        },
     }]
 
     def _real_extract(self, url):

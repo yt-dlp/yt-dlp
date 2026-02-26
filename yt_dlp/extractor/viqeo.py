@@ -24,7 +24,7 @@ class ViqeoIE(InfoExtractor):
             'id': 'cde96f09d25f39bee837',
             'ext': 'mp4',
             'title': 'cde96f09d25f39bee837',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+\.jpg',
             'duration': 76,
         },
     }, {
@@ -33,6 +33,19 @@ class ViqeoIE(InfoExtractor):
     }, {
         'url': 'https://api.viqeo.tv/v1/data/startup?video%5B%5D=71bbec412ade45c3216c&profile=112',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://viqeo.tv/',
+        'info_dict': {
+            'id': 'viqeo',
+            'title': 'Viqeo video platform',
+            'age_limit': 0,
+            'description': 'md5:e8e06e20df92ed66febeaef2533a0d5d',
+            'thumbnail': r're:https?://static\.tildacdn\.com/.+\.png',
+            'timestamp': 1751479769,
+            'upload_date': '20250702',
+        },
+        'playlist_count': 3,
     }]
 
     def _real_extract(self, url):

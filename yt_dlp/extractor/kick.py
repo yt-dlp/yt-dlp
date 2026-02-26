@@ -95,26 +95,47 @@ class KickVODIE(KickBaseIE):
     IE_NAME = 'kick:vod'
     _VALID_URL = r'https?://(?:www\.)?kick\.com/[\w-]+/videos/(?P<id>[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})'
     _TESTS = [{
-        'url': 'https://kick.com/xqc/videos/8dd97a8d-e17f-48fb-8bc3-565f88dbc9ea',
-        'md5': '3870f94153e40e7121a6e46c068b70cb',
+        # Regular VOD
+        'url': 'https://kick.com/xqc/videos/5c697a87-afce-4256-b01f-3c8fe71ef5cb',
         'info_dict': {
-            'id': '8dd97a8d-e17f-48fb-8bc3-565f88dbc9ea',
+            'id': '5c697a87-afce-4256-b01f-3c8fe71ef5cb',
             'ext': 'mp4',
-            'title': '18+ #ad 🛑LIVE🛑CLICK🛑DRAMA🛑NEWS🛑STUFF🛑REACT🛑GET IN HHERE🛑BOP BOP🛑WEEEE WOOOO🛑',
+            'title': '🐗LIVE🐗CLICK🐗HERE🐗DRAMA🐗ALL DAY🐗NEWS🐗VIDEOS🐗CLIPS🐗GAMES🐗STUFF🐗WOW🐗IM HERE🐗LETS GO🐗COOL🐗VERY NICE🐗',
             'description': 'THE BEST AT ABSOLUTELY EVERYTHING. THE JUICER. LEADER OF THE JUICERS.',
-            'channel': 'xqc',
-            'channel_id': '668',
             'uploader': 'xQc',
             'uploader_id': '676',
-            'upload_date': '20240909',
-            'timestamp': 1725919141,
-            'duration': 10155.0,
-            'thumbnail': r're:^https?://.*\.jpg',
+            'channel': 'xqc',
+            'channel_id': '668',
             'view_count': int,
-            'categories': ['Just Chatting'],
-            'age_limit': 0,
+            'age_limit': 18,
+            'duration': 22278.0,
+            'thumbnail': r're:^https?://.*\.jpg',
+            'categories': ['Deadlock'],
+            'timestamp': 1756082443,
+            'upload_date': '20250825',
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        # VOD of ongoing livestream (at the time of writing the test, ID rotates every two days)
+        'url': 'https://kick.com/a-log-burner/videos/5230df84-ea38-46e1-be4f-f5949ae55641',
+        'info_dict': {
+            'id': '5230df84-ea38-46e1-be4f-f5949ae55641',
+            'ext': 'mp4',
+            'title': r're:😴 Cozy Fireplace ASMR 🔥 | Relax, Focus, Sleep 💤',
+            'description': 'md5:080bc713eac0321a7b376a1b53816d1b',
+            'uploader': 'A_Log_Burner',
+            'uploader_id': '65114691',
+            'channel': 'a-log-burner',
+            'channel_id': '63967687',
+            'view_count': int,
+            'age_limit': 18,
+            'thumbnail': r're:^https?://.*\.jpg',
+            'categories': ['Other, Watch Party'],
+            'timestamp': int,
+            'upload_date': str,
+            'live_status': 'is_live',
+        },
+        'skip': 'live',
     }]
 
     def _real_extract(self, url):
@@ -137,6 +158,7 @@ class KickVODIE(KickBaseIE):
                 'categories': ('livestream', 'categories', ..., 'name', {str}),
                 'view_count': ('views', {int_or_none}),
                 'age_limit': ('livestream', 'is_mature', {bool}, {lambda x: 18 if x else 0}),
+                'is_live': ('livestream', 'is_live', {bool}),
             }),
         }
 

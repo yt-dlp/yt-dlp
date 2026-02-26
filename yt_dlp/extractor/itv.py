@@ -18,6 +18,7 @@ from ..utils import (
     url_or_none,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class ITVIE(InfoExtractor):
@@ -223,6 +224,7 @@ class ITVBTCCIE(InfoExtractor):
         },
         'playlist_count': 12,
     }, {
+        # news page, can have absent `data` field
         'url': 'https://www.itv.com/news/2021-10-27/i-have-to-protect-the-country-says-rishi-sunak-as-uk-faces-interest-rate-hike',
         'info_dict': {
             'id': 'i-have-to-protect-the-country-says-rishi-sunak-as-uk-faces-interest-rate-hike',
@@ -243,7 +245,7 @@ class ITVBTCCIE(InfoExtractor):
 
         entries = []
         for video in json_map:
-            if not any(video['data'].get(attr) == 'Brightcove' for attr in ('name', 'type')):
+            if not any(traverse_obj(video, ('data', attr)) == 'Brightcove' for attr in ('name', 'type')):
                 continue
             video_id = video['data']['id']
             account_id = video['data']['accountId']

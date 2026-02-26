@@ -3,11 +3,11 @@ from __future__ import annotations
 import re
 from abc import ABC
 from dataclasses import dataclass
+from types import NoneType
 from typing import Any
 
 from .common import RequestHandler, register_preference, Request
 from .exceptions import UnsupportedRequest
-from ..compat.types import NoneType
 from ..utils import classproperty, join_nonempty
 from ..utils.networking import std_headers, HTTPHeaderDict
 
