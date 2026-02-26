@@ -181,6 +181,8 @@ class KhanAcademyIE(KhanAcademyBaseIE):
             'like_count': int,
             'heatmap': list,
             'media_type': 'video',
+            'categories': ['Education'],
+            'availability': 'public',
         },
         'expected_warnings': ['[0-9a-f]+ has no hash record for it, skip'],
         'add_ie': ['Youtube'],
