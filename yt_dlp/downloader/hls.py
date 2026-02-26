@@ -16,6 +16,7 @@ from ..utils import (
     update_url_query,
     urljoin,
 )
+from ..utils._utils import _request_dump_filename
 
 
 class HlsFD(FragmentFD):
@@ -72,21 +73,40 @@ class HlsFD(FragmentFD):
 
     def real_download(self, filename, info_dict):
         man_url = info_dict['url']
-        self.to_screen(f'[{self.FD_NAME}] Downloading m3u8 manifest')
 
-        urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
-        man_url = urlh.url
-        s = urlh.read().decode('utf-8', 'ignore')
+        s = info_dict.get('hls_media_playlist_data')
+        if s:
+            self.to_screen(f'[{self.FD_NAME}] Using m3u8 manifest from extracted info')
+        else:
+            self.to_screen(f'[{self.FD_NAME}] Downloading m3u8 manifest')
+            urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
+            man_url = urlh.url
+            s_bytes = urlh.read()
+            if self.params.get('write_pages'):
+                dump_filename = _request_dump_filename(
+                    man_url, info_dict['id'], None,
+                    trim_length=self.params.get('trim_file_name'))
+                self.to_screen(f'[{self.FD_NAME}] Saving request to {dump_filename}')
+                with open(dump_filename, 'wb') as outf:
+                    outf.write(s_bytes)
+            s = s_bytes.decode('utf-8', 'ignore')
 
         can_download, message = self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')), None
         if can_download:
             has_ffmpeg = FFmpegFD.available()
-            no_crypto = not Cryptodome.AES and '#EXT-X-KEY:METHOD=AES-128' in s
-            if no_crypto and has_ffmpeg:
-                can_download, message = False, 'The stream has AES-128 encryption and pycryptodomex is not available'
-            elif no_crypto:
-                message = ('The stream has AES-128 encryption and neither ffmpeg nor pycryptodomex are available; '
-                           'Decryption will be performed natively, but will be extremely slow')
+            if not Cryptodome.AES and '#EXT-X-KEY:METHOD=AES-128' in s:
+                # Even if pycryptodomex isn't available, force HlsFD for m3u8s that won't work with ffmpeg
+                ffmpeg_can_dl = not traverse_obj(info_dict, ((
+                    'extra_param_to_segment_url', 'extra_param_to_key_url',
+                    'hls_media_playlist_data', ('hls_aes', ('uri', 'key', 'iv')),
+                ), any))
+                message = 'The stream has AES-128 encryption and {} available'.format(
+                    'neither ffmpeg nor pycryptodomex are' if ffmpeg_can_dl and not has_ffmpeg else
+                    'pycryptodomex is not')
+                if has_ffmpeg and ffmpeg_can_dl:
+                    can_download = False
+                else:
+                    message += '; decryption will be performed natively, but will be extremely slow'
             elif info_dict.get('extractor_key') == 'Generic' and re.search(r'(?m)#EXT-X-MEDIA-SEQUENCE:(?!0$)', s):
                 install_ffmpeg = '' if has_ffmpeg else 'install ffmpeg and '
                 message = ('Live HLS streams are not supported by the native downloader. If this is a livestream, '
@@ -177,6 +197,7 @@ class HlsFD(FragmentFD):
         if external_aes_iv:
             external_aes_iv = binascii.unhexlify(remove_start(external_aes_iv, '0x').zfill(32))
         byte_range = {}
+        byte_range_offset = 0
         discontinuity_count = 0
         frag_index = 0
         ad_frag_next = False
@@ -184,7 +205,7 @@ class HlsFD(FragmentFD):
             line = line.strip()
             if line:
                 if not line.startswith('#'):
-                    if format_index and discontinuity_count != format_index:
+                    if format_index is not None and discontinuity_count != format_index:
                         continue
                     if ad_frag_next:
                         continue
@@ -204,8 +225,13 @@ class HlsFD(FragmentFD):
                     })
                     media_sequence += 1
 
+                    # If the byte_range is truthy, reset it after appending a fragment that uses it
+                    if byte_range:
+                        byte_range_offset = byte_range['end']
+                        byte_range = {}
+
                 elif line.startswith('#EXT-X-MAP'):
-                    if format_index and discontinuity_count != format_index:
+                    if format_index is not None and discontinuity_count != format_index:
                         continue
                     if frag_index > 0:
                         self.report_error(
@@ -217,10 +243,12 @@ class HlsFD(FragmentFD):
                     if extra_segment_query:
                         frag_url = update_url_query(frag_url, extra_segment_query)
 
+                    map_byte_range = {}
+
                     if map_info.get('BYTERANGE'):
                         splitted_byte_range = map_info.get('BYTERANGE').split('@')
-                        sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
-                        byte_range = {
+                        sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else 0
+                        map_byte_range = {
                             'start': sub_range_start,
                             'end': sub_range_start + int(splitted_byte_range[0]),
                         }
@@ -229,7 +257,7 @@ class HlsFD(FragmentFD):
                         'frag_index': frag_index,
                         'url': frag_url,
                         'decrypt_info': decrypt_info,
-                        'byte_range': byte_range,
+                        'byte_range': map_byte_range,
                         'media_sequence': media_sequence,
                     })
                     media_sequence += 1
@@ -257,7 +285,7 @@ class HlsFD(FragmentFD):
                     media_sequence = int(line[22:])
                 elif line.startswith('#EXT-X-BYTERANGE'):
                     splitted_byte_range = line[17:].split('@')
-                    sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
+                    sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range_offset
                     byte_range = {
                         'start': sub_range_start,
                         'end': sub_range_start + int(splitted_byte_range[0]),

@@ -129,7 +129,7 @@ class NownessSeriesIE(NownessBaseIE):
     }
 
     def _real_extract(self, url):
-        display_id, series = self._api_request(url, 'series/getBySlug/%s')
+        _, series = self._api_request(url, 'series/getBySlug/%s')
         entries = [self._extract_url_result(post) for post in series['posts']]
         series_title = None
         series_description = None

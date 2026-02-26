@@ -6,7 +6,7 @@ from ..utils import (
 )
 
 
-class HSEShowBaseInfoExtractor(InfoExtractor):
+class HSEShowBaseIE(InfoExtractor):
     _GEO_COUNTRIES = ['DE']
 
     def _extract_redux_data(self, url, video_id):
@@ -28,7 +28,7 @@ class HSEShowBaseInfoExtractor(InfoExtractor):
         return formats, subtitles
 
 
-class HSEShowIE(HSEShowBaseInfoExtractor):
+class HSEShowIE(HSEShowBaseIE):
     _VALID_URL = r'https?://(?:www\.)?hse\.de/dpl/c/tv-shows/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://www.hse.de/dpl/c/tv-shows/505350',
@@ -64,7 +64,7 @@ class HSEShowIE(HSEShowBaseInfoExtractor):
         }
 
 
-class HSEProductIE(HSEShowBaseInfoExtractor):
+class HSEProductIE(HSEShowBaseIE):
     _VALID_URL = r'https?://(?:www\.)?hse\.de/dpl/p/product/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://www.hse.de/dpl/p/product/408630',

@@ -39,7 +39,7 @@ class LaracastsBaseIE(InfoExtractor):
                 'description': ('body', {clean_html}),
                 'thumbnail': ('largeThumbnail', {url_or_none}),
                 'duration': ('length', {int_or_none}),
-                'date': ('dateSegments', 'published', {unified_strdate}),
+                'upload_date': ('dateSegments', 'published', {unified_strdate}),
             }))
 
 
@@ -54,7 +54,7 @@ class LaracastsIE(LaracastsBaseIE):
             'title': 'Hello, Laravel',
             'ext': 'mp4',
             'duration': 519,
-            'date': '20240312',
+            'upload_date': '20240312',
             'thumbnail': 'https://laracasts.s3.amazonaws.com/videos/thumbnails/youtube/30-days-to-learn-laravel-11-1.png',
             'description': 'md5:ddd658bb241975871d236555657e1dd1',
             'season_number': 1,

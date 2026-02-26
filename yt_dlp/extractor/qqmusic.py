@@ -15,7 +15,6 @@ from ..utils import (
     str_or_none,
     strip_jsonp,
     traverse_obj,
-    unescapeHTML,
     url_or_none,
     urljoin,
 )
@@ -425,7 +424,7 @@ class QQMusicPlaylistIE(QQPlaylistBaseIE):
 
         return self.playlist_result(entries, list_id, **traverse_obj(list_json, ('cdlist', 0, {
             'title': ('dissname', {str}),
-            'description': ('desc', {unescapeHTML}, {clean_html}),
+            'description': ('desc', {clean_html}),
         })))
 
 

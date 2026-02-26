@@ -8,7 +8,7 @@ def main():
     return  # This is unused in yt-dlp
 
     parser = optparse.OptionParser(usage='%prog INFILE OUTFILE')
-    options, args = parser.parse_args()
+    _, args = parser.parse_args()
     if len(args) != 2:
         parser.error('Expected an input and an output filename')
 

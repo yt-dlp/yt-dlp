@@ -27,6 +27,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
         'filler': 'Filler Tangent',
         'interaction': 'Interaction Reminder',
         'music_offtopic': 'Non-Music Section',
+        'hook': 'Hook/Greetings',
         **NON_SKIPPABLE_CATEGORIES,
     }
 

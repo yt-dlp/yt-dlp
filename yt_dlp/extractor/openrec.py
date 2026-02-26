@@ -67,7 +67,7 @@ class OpenRecBaseIE(InfoExtractor):
 
 class OpenRecIE(OpenRecBaseIE):
     IE_NAME = 'openrec'
-    _VALID_URL = r'https?://(?:www\.)?openrec\.tv/live/(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?openrec\.tv/live/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.openrec.tv/live/2p8v31qe4zy',
         'only_matching': True,
@@ -85,7 +85,7 @@ class OpenRecIE(OpenRecBaseIE):
 
 class OpenRecCaptureIE(OpenRecBaseIE):
     IE_NAME = 'openrec:capture'
-    _VALID_URL = r'https?://(?:www\.)?openrec\.tv/capture/(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?openrec\.tv/capture/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.openrec.tv/capture/l9nk2x4gn14',
         'only_matching': True,
@@ -129,7 +129,7 @@ class OpenRecCaptureIE(OpenRecBaseIE):
 
 class OpenRecMovieIE(OpenRecBaseIE):
     IE_NAME = 'openrec:movie'
-    _VALID_URL = r'https?://(?:www\.)?openrec\.tv/movie/(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?openrec\.tv/movie/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.openrec.tv/movie/nqz5xl5km8v',
         'info_dict': {
@@ -141,6 +141,9 @@ class OpenRecMovieIE(OpenRecBaseIE):
             'uploader_id': 'taiki_to_kazuhiro',
             'timestamp': 1638856800,
         },
+    }, {
+        'url': 'https://www.openrec.tv/movie/2p8vvex548y?playlist_id=98brq96vvsgn2nd',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):

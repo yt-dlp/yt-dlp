@@ -45,7 +45,7 @@ class XinpianchangIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id=video_id)
+        webpage = self._download_webpage(url, video_id=video_id, headers={'Referer': url})
         video_data = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['detail']['video']
 
         data = self._download_json(

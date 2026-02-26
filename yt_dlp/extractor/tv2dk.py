@@ -2,12 +2,13 @@ import json
 import re
 
 from .common import InfoExtractor
+from .jwplatform import JWPlatformIE
 from ..utils import (
     determine_ext,
-    extract_attributes,
     js_to_json,
     url_or_none,
 )
+from ..utils.traversal import find_element, traverse_obj
 
 
 class TV2DKIE(InfoExtractor):
@@ -21,35 +22,46 @@ class TV2DKIE(InfoExtractor):
                             tv2fyn|
                             tv2east|
                             tv2lorry|
-                            tv2nord
+                            tv2nord|
+                            tv2kosmopol
                         )\.dk/
-                        (:[^/]+/)*
+                        (?:[^/?#]+/)*
                         (?P<id>[^/?\#&]+)
                     '''
     _TESTS = [{
         'url': 'https://www.tvsyd.dk/nyheder/28-10-2019/1930/1930-28-okt-2019?autoplay=1#player',
         'info_dict': {
-            'id': '0_52jmwa0p',
+            'id': 'sPp5z21q',
             'ext': 'mp4',
             'title': '19:30 - 28. okt. 2019',
-            'timestamp': 1572290248,
+            'description': '',
+            'thumbnail': 'https://cdn.jwplayer.com/v2/media/sPp5z21q/poster.jpg?width=720',
+            'timestamp': 1572287400,
             'upload_date': '20191028',
-            'uploader_id': 'tvsyd',
-            'duration': 1347,
-            'view_count': int,
         },
-        'add_ie': ['Kaltura'],
     }, {
         'url': 'https://www.tv2lorry.dk/gadekamp/gadekamp-6-hoejhuse-i-koebenhavn',
         'info_dict': {
-            'id': '1_7iwll9n0',
+            'id': 'oD9cyq0m',
             'ext': 'mp4',
-            'upload_date': '20211027',
             'title': 'Gadekamp #6 - Højhuse i København',
-            'uploader_id': 'tv2lorry',
-            'timestamp': 1635345229,
+            'description': '',
+            'thumbnail': 'https://cdn.jwplayer.com/v2/media/oD9cyq0m/poster.jpg?width=720',
+            'timestamp': 1635348600,
+            'upload_date': '20211027',
         },
-        'add_ie': ['Kaltura'],
+    }, {
+        'url': 'https://www.tvsyd.dk/haderslev/x-factor-brodre-fulde-af-selvtillid-er-igen-hjemme-hos-mor-vores-diagnoser-har-vaeret-en-fordel',
+        'info_dict': {
+            'id': 'x-factor-brodre-fulde-af-selvtillid-er-igen-hjemme-hos-mor-vores-diagnoser-har-vaeret-en-fordel',
+        },
+        'playlist_count': 2,
+    }, {
+        'url': 'https://www.tv2ostjylland.dk/aarhus/dom-kan-fa-alvorlige-konsekvenser',
+        'info_dict': {
+            'id': 'dom-kan-fa-alvorlige-konsekvenser',
+        },
+        'playlist_count': 3,
     }, {
         'url': 'https://www.tv2ostjylland.dk/artikel/minister-gaar-ind-i-sag-om-diabetes-teknologi',
         'only_matching': True,
@@ -71,40 +83,22 @@ class TV2DKIE(InfoExtractor):
     }, {
         'url': 'https://www.tv2nord.dk/artikel/dybt-uacceptabelt',
         'only_matching': True,
+    }, {
+        'url': 'https://www.tv2kosmopol.dk/metropolen/chaufforer-beordres-til-at-kore-videre-i-ulovlige-busser-med-rode-advarselslamper',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
         webpage = self._download_webpage(url, video_id)
+        search_space = traverse_obj(webpage, {find_element(tag='article')}) or webpage
 
-        entries = []
+        player_ids = traverse_obj(
+            re.findall(r'x-data="(?:video_player|simple_player)\(({[^"]+})', search_space),
+            (..., {js_to_json}, {json.loads}, ('jwpMediaId', 'videoId'), {str}))
 
-        def add_entry(partner_id, kaltura_id):
-            entries.append(self.url_result(
-                f'kaltura:{partner_id}:{kaltura_id}', 'Kaltura',
-                video_id=kaltura_id))
-
-        for video_el in re.findall(r'(?s)<[^>]+\bdata-entryid\s*=[^>]*>', webpage):
-            video = extract_attributes(video_el)
-            kaltura_id = video.get('data-entryid')
-            if not kaltura_id:
-                continue
-            partner_id = video.get('data-partnerid')
-            if not partner_id:
-                continue
-            add_entry(partner_id, kaltura_id)
-        if not entries:
-            kaltura_id = self._search_regex(
-                (r'entry_id\s*:\s*["\']([0-9a-z_]+)',
-                 r'\\u002FentryId\\u002F(\w+)\\u002F'), webpage, 'kaltura id')
-            partner_id = self._search_regex(
-                (r'\\u002Fp\\u002F(\d+)\\u002F', r'/p/(\d+)/'), webpage,
-                'partner id')
-            add_entry(partner_id, kaltura_id)
-        if len(entries) == 1:
-            return entries[0]
-        return self.playlist_result(entries)
+        return self.playlist_from_matches(
+            player_ids, video_id, getter=lambda x: f'jwplatform:{x}', ie=JWPlatformIE)
 
 
 class TV2DKBornholmPlayIE(InfoExtractor):

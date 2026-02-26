@@ -1,5 +1,13 @@
+
 from .common import InfoExtractor
-from ..utils import ExtractorError, str_or_none, traverse_obj, unified_strdate
+from ..utils import (
+    ExtractorError,
+    int_or_none,
+    str_or_none,
+    traverse_obj,
+    unified_strdate,
+    url_or_none,
+)
 
 
 class IchinanaLiveIE(InfoExtractor):
@@ -157,3 +165,51 @@ class IchinanaLiveClipIE(InfoExtractor):
             'description': view_data.get('caption'),
             'upload_date': unified_strdate(str_or_none(view_data.get('createdAt'))),
         }
+
+
+class IchinanaLiveVODIE(InfoExtractor):
+    IE_NAME = '17live:vod'
+    _VALID_URL = r'https?://(?:www\.)?17\.live/ja/vod/[^/?#]+/(?P<id>[^/?#]+)'
+    _TESTS = [{
+        'url': 'https://17.live/ja/vod/27323042/2cf84520-e65e-4b22-891e-1d3a00b0f068',
+        'md5': '3299b930d7457b069639486998a89580',
+        'info_dict': {
+            'id': '2cf84520-e65e-4b22-891e-1d3a00b0f068',
+            'ext': 'mp4',
+            'title': 'md5:b5f8cbf497d54cc6a60eb3b480182f01',
+            'uploader': 'md5:29fb12122ab94b5a8495586e7c3085a5',
+            'uploader_id': '27323042',
+            'channel': '🌟オールナイトニッポン アーカイブ🌟',
+            'channel_id': '2b4f85f1-d61e-429d-a901-68d32bdd8645',
+            'like_count': int,
+            'view_count': int,
+            'thumbnail': r're:https?://.+/.+\.(?:jpe?g|png)',
+            'duration': 549,
+            'description': 'md5:116f326579700f00eaaf5581aae1192e',
+            'timestamp': 1741058645,
+            'upload_date': '20250304',
+        },
+    }, {
+        'url': 'https://17.live/ja/vod/27323042/0de11bac-9bea-40b8-9eab-0239a7d88079',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        json_data = self._download_json(f'https://wap-api.17app.co/api/v1/vods/{video_id}', video_id)
+
+        return traverse_obj(json_data, {
+            'id': ('vodID', {str}),
+            'title': ('title', {str}),
+            'formats': ('vodURL', {lambda x: self._extract_m3u8_formats(x, video_id)}),
+            'uploader': ('userInfo', 'displayName', {str}),
+            'uploader_id': ('userInfo', 'roomID', {int}, {str_or_none}),
+            'channel': ('userInfo', 'name', {str}),
+            'channel_id': ('userInfo', 'userID', {str}),
+            'like_count': ('likeCount', {int_or_none}),
+            'view_count': ('viewCount', {int_or_none}),
+            'thumbnail': ('imageURL', {url_or_none}),
+            'duration': ('duration', {int_or_none}),
+            'description': ('description', {str}),
+            'timestamp': ('createdAt', {int_or_none}),
+        })

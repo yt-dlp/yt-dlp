@@ -30,11 +30,12 @@ class SpringboardPlatformIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Redman "BUD like YOU" "Usher Good Kisser" REMIX',
             'description': 'Redman "BUD like YOU" "Usher Good Kisser" REMIX',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+\.jpg',
             'timestamp': 1409132328,
             'upload_date': '20140827',
             'duration': 193,
         },
+        'skip': 'Invalid URL',
     }, {
         'url': 'http://cms.springboardplatform.com/embed_iframe/159/video/981017/rab007/rapbasement.com/1/1',
         'only_matching': True,
@@ -44,6 +45,15 @@ class SpringboardPlatformIE(InfoExtractor):
     }, {
         'url': 'http://cms.springboardplatform.com/xml_feeds_advanced/index/159/rss3/981017/0/0/1/',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.kidzworld.com/article/30935-trolls-the-beat-goes-on-interview-skylar-astin-and-amanda-leighton',
+        'info_dict': {
+            'id': '1731611',
+            'ext': 'mp4',
+            'title': 'Official Trailer | TROLLS: THE BEAT GOES ON!',
+        },
+        'skip': 'Invalid URL',
     }]
 
     def _real_extract(self, url):

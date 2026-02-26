@@ -11,12 +11,15 @@ class On24IE(InfoExtractor):
     IE_NAME = 'on24'
     IE_DESC = 'ON24'
 
-    _VALID_URL = r'''(?x)
-                    https?://event\.on24\.com/(?:
-                        wcc/r/(?P<id_1>\d{7})/(?P<key_1>[0-9A-F]{32})|
-                        eventRegistration/(?:console/EventConsoleApollo|EventLobbyServlet\?target=lobby30)
-                            \.jsp\?(?:[^/#?]*&)?eventid=(?P<id_2>\d{7})[^/#?]*&key=(?P<key_2>[0-9A-F]{32})
-                    )'''
+    _ID_RE = r'(?P<id>\d{7})'
+    _KEY_RE = r'(?P<key>[0-9A-F]{32})'
+    _URL_BASE_RE = r'https?://event\.on24\.com'
+    _URL_QUERY_RE = rf'(?:[^#]*&)?eventid={_ID_RE}&(?:[^#]+&)?key={_KEY_RE}'
+    _VALID_URL = [
+        rf'{_URL_BASE_RE}/wcc/r/{_ID_RE}/{_KEY_RE}',
+        rf'{_URL_BASE_RE}/eventRegistration/console/(?:EventConsoleApollo\.jsp|apollox/mainEvent/?)\?{_URL_QUERY_RE}',
+        rf'{_URL_BASE_RE}/eventRegistration/EventLobbyServlet/?\?{_URL_QUERY_RE}',
+    ]
 
     _TESTS = [{
         'url': 'https://event.on24.com/eventRegistration/console/EventConsoleApollo.jsp?uimode=nextgeneration&eventid=2197467&sessionid=1&key=5DF57BE53237F36A43B478DD36277A84&contenttype=A&eventuserid=305999&playerwidth=1000&playerheight=650&caller=previewLobby&text_language_id=en&format=fhaudio&newConsole=false',
@@ -34,12 +37,16 @@ class On24IE(InfoExtractor):
     }, {
         'url': 'https://event.on24.com/eventRegistration/console/EventConsoleApollo.jsp?&eventid=2639291&sessionid=1&username=&partnerref=&format=fhvideo1&mobile=&flashsupportedmobiledevice=&helpcenter=&key=82829018E813065A122363877975752E&newConsole=true&nxChe=true&newTabCon=true&text_language_id=en&playerwidth=748&playerheight=526&eventuserid=338788762&contenttype=A&mediametricsessionid=384764716&mediametricid=3558192&usercd=369267058&mode=launch',
         'only_matching': True,
+    }, {
+        'url': 'https://event.on24.com/eventRegistration/EventLobbyServlet?target=reg20.jsp&eventid=3543176&key=BC0F6B968B67C34B50D461D40FDB3E18&groupId=3143628',
+        'only_matching': True,
+    }, {
+        'url': 'https://event.on24.com/eventRegistration/console/apollox/mainEvent?&eventid=4843671&sessionid=1&username=&partnerref=&format=fhvideo1&mobile=&flashsupportedmobiledevice=&helpcenter=&key=4EAC9B5C564CC98FF29E619B06A2F743&newConsole=true&nxChe=true&newTabCon=true&consoleEarEventConsole=false&consoleEarCloudApi=false&text_language_id=en&playerwidth=748&playerheight=526&referrer=https%3A%2F%2Fevent.on24.com%2Finterface%2Fregistration%2Fautoreg%2Findex.html%3Fsessionid%3D1%26eventid%3D4843671%26key%3D4EAC9B5C564CC98FF29E619B06A2F743%26email%3D000a3e42-7952-4dd6-8f8a-34c38ea3cf02%2540platform%26firstname%3Ds%26lastname%3Ds%26deletecookie%3Dtrue%26event_email%3DN%26marketing_email%3DN%26std1%3D0642572014177%26std2%3D0642572014179%26std3%3D550165f7-a44e-4725-9fe6-716f89908c2b%26std4%3D0&eventuserid=745776448&contenttype=A&mediametricsessionid=640613707&mediametricid=6810717&usercd=745776448&mode=launch',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        event_id = mobj.group('id_1') or mobj.group('id_2')
-        event_key = mobj.group('key_1') or mobj.group('key_2')
+        event_id, event_key = self._match_valid_url(url).group('id', 'key')
 
         event_data = self._download_json(
             'https://event.on24.com/apic/utilApp/EventConsoleCachedServlet',

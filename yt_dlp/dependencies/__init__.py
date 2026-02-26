@@ -81,6 +81,12 @@ except ImportError:
 
 from . import Cryptodome
 
+try:
+    import yt_dlp_ejs
+except ImportError:
+    yt_dlp_ejs = None
+
+
 all_dependencies = {k: v for k, v in globals().items() if not k.startswith('_')}
 available_dependencies = {k: v for k, v in all_dependencies.items() if v}
 

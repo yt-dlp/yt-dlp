@@ -513,7 +513,7 @@ class TVPVODBaseIE(InfoExtractor):
 
 class TVPVODVideoIE(TVPVODBaseIE):
     IE_NAME = 'tvp:vod'
-    _VALID_URL = r'https?://vod\.tvp\.pl/(?P<category>[a-z\d-]+,\d+)/[a-z\d-]+(?<!-odcinki)(?:-odcinki,\d+/odcinek-\d+,S\d+E\d+)?,(?P<id>\d+)/?(?:[?#]|$)'
+    _VALID_URL = r'https?://vod\.tvp\.pl/(?P<category>[a-z\d-]+,\d+)/[a-z\d-]+(?<!-odcinki)(?:-odcinki,\d+/odcinek--?\d+,S-?\d+E-?\d+)?,(?P<id>\d+)/?(?:[?#]|$)'
 
     _TESTS = [{
         'url': 'https://vod.tvp.pl/dla-dzieci,24/laboratorium-alchemika-odcinki,309338/odcinek-24,S01E24,311357',
@@ -568,6 +568,9 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'live_status': 'is_live',
             'thumbnail': 're:https?://.+',
         },
+    }, {
+        'url': 'https://vod.tvp.pl/informacje-i-publicystyka,205/konskie-2025-debata-przedwyborcza-odcinki,2028435/odcinek--1,S01E-1,2028419',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):

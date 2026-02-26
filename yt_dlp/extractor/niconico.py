@@ -3,404 +3,367 @@ import functools
 import itertools
 import json
 import re
-import time
-import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
-from ..networking import Request
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
     clean_html,
+    determine_ext,
+    extract_attributes,
     float_or_none,
     int_or_none,
-    join_nonempty,
-    parse_duration,
+    parse_bitrate,
     parse_iso8601,
+    parse_qs,
     parse_resolution,
     qualities,
-    remove_start,
     str_or_none,
-    traverse_obj,
-    try_get,
-    unescapeHTML,
+    time_seconds,
+    truncate_string,
+    unified_timestamp,
     update_url_query,
+    url_basename,
     url_or_none,
     urlencode_postdata,
     urljoin,
 )
+from ..utils.traversal import (
+    find_element,
+    require,
+    traverse_obj,
+)
 
 
-class NiconicoIE(InfoExtractor):
+class NiconicoBaseIE(InfoExtractor):
+    _API_BASE = 'https://nvapi.nicovideo.jp'
+    _BASE_URL = 'https://www.nicovideo.jp'
+    _GEO_BYPASS = False
+    _GEO_COUNTRIES = ['JP']
+    _HEADERS = {
+        'X-Frontend-ID': '6',
+        'X-Frontend-Version': '0',
+    }
+    _LOGIN_BASE = 'https://account.nicovideo.jp'
+    _NETRC_MACHINE = 'niconico'
+
+    @property
+    def is_logged_in(self):
+        return bool(self._get_cookies('https://www.nicovideo.jp').get('user_session'))
+
+    def _raise_login_error(self, message, expected=True):
+        raise ExtractorError(f'Unable to login: {message}', expected=expected)
+
+    def _perform_login(self, username, password):
+        if self.is_logged_in:
+            return
+
+        self._request_webpage(
+            f'{self._LOGIN_BASE}/login', None, 'Requesting session cookies')
+        webpage = self._download_webpage(
+            f'{self._LOGIN_BASE}/login/redirector', None,
+            'Logging in', 'Unable to log in', headers={
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Referer': f'{self._LOGIN_BASE}/login',
+            }, data=urlencode_postdata({
+                'mail_tel': username,
+                'password': password,
+            }))
+
+        if self.is_logged_in:
+            return
+        elif err_msg := traverse_obj(webpage, (
+            {find_element(cls='notice error')}, {find_element(cls='notice__text')}, {clean_html},
+        )):
+            self._raise_login_error(err_msg or 'Invalid username or password')
+        elif 'oneTimePw' in webpage:
+            post_url = self._search_regex(
+                r'<form[^>]+action=(["\'])(?P<url>.+?)\1', webpage, 'post url', group='url')
+            mfa, urlh = self._download_webpage_handle(
+                urljoin(self._LOGIN_BASE, post_url), None,
+                'Performing MFA', 'Unable to complete MFA', headers={
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                }, data=urlencode_postdata({
+                    'otp': self._get_tfa_info('6 digit number shown on app'),
+                }))
+            if self.is_logged_in:
+                return
+            elif 'error-code' in parse_qs(urlh.url):
+                err_msg = traverse_obj(mfa, ({find_element(cls='pageMainMsg')}, {clean_html}))
+                self._raise_login_error(err_msg or 'MFA session expired')
+            elif 'formError' in mfa:
+                err_msg = traverse_obj(mfa, (
+                    {find_element(cls='formError')}, {find_element(tag='div')}, {clean_html}))
+                self._raise_login_error(err_msg or 'MFA challenge failed')
+
+        self._raise_login_error('Unexpected login error', expected=False)
+
+
+class NiconicoIE(NiconicoBaseIE):
     IE_NAME = 'niconico'
     IE_DESC = 'ニコニコ動画'
-    _GEO_COUNTRIES = ['JP']
-    _GEO_BYPASS = False
 
+    _VALID_URL = r'https?://(?:(?:embed|sp|www)\.)?nicovideo\.jp/watch/(?P<id>(?:[a-z]{2})?\d+)'
+    _ERROR_MAP = {
+        'FORBIDDEN': {
+            'ADMINISTRATOR_DELETE_VIDEO': 'Video unavailable, possibly removed by admins',
+            'CHANNEL_MEMBER_ONLY': 'Channel members only',
+            'DELETED_CHANNEL_VIDEO': 'Video unavailable, channel was closed',
+            'DELETED_COMMUNITY_VIDEO': 'Video unavailable, community deleted or missing',
+            'DEFAULT': 'Page unavailable, check the URL',
+            'HARMFUL_VIDEO': 'Sensitive content, login required',
+            'HIDDEN_VIDEO': 'Video unavailable, set to private',
+            'NOT_ALLOWED': 'No permission',
+            'PPV_VIDEO': 'PPV video, payment information required',
+            'PREMIUM_ONLY': 'Premium members only',
+        },
+        'INVALID_PARAMETER': {
+            'DEFAULT': 'Video unavailable, may not exist or was deleted',
+        },
+        'MAINTENANCE': {
+            'DEFAULT': 'Maintenance is in progress',
+        },
+        'NOT_FOUND': {
+            'DEFAULT': 'Video unavailable, may not exist or was deleted',
+            'RIGHT_HOLDER_DELETE_VIDEO': 'Removed by rights-holder request',
+        },
+        'UNAUTHORIZED': {
+            'DEFAULT': 'Invalid session, re-login required',
+        },
+        'UNKNOWN': {
+            'DEFAULT': 'Failed to fetch content',
+        },
+    }
+    _STATUS_MAP = {
+        'needs_auth': 'PPV video, payment information required',
+        'premium_only': 'Premium members only',
+        'subscriber_only': 'Channel members only',
+    }
     _TESTS = [{
-        'url': 'http://www.nicovideo.jp/watch/sm22312215',
+        'url': 'https://www.nicovideo.jp/watch/1173108780',
         'info_dict': {
-            'id': 'sm22312215',
+            'id': 'sm9',
             'ext': 'mp4',
-            'title': 'Big Buck Bunny',
-            'thumbnail': r're:https?://.*',
-            'uploader': 'takuya0301',
-            'uploader_id': '2698420',
-            'upload_date': '20131123',
-            'timestamp': int,  # timestamp is unstable
-            'description': '(c) copyright 2008, Blender Foundation / www.bigbuckbunny.org',
-            'duration': 33,
-            'view_count': int,
+            'title': '新・豪血寺一族 -煩悩解放 - レッツゴー！陰陽師',
+            'availability': 'public',
+            'channel': '中の',
+            'channel_id': '4',
             'comment_count': int,
+            'description': 'md5:b7f6d3e6c29552cc19fdea6a4b7dc194',
+            'display_id': '1173108780',
+            'duration': 320,
             'genres': ['未設定'],
-            'tags': [],
+            'like_count': int,
+            'tags': 'mincount:5',
+            'thumbnail': r're:https?://img\.cdn\.nimg\.jp/s/nicovideo/thumbnails/.+',
+            'timestamp': 1173108780,
+            'upload_date': '20070305',
+            'uploader': '中の',
+            'uploader_id': '4',
+            'view_count': int,
         },
         'params': {'skip_download': 'm3u8'},
     }, {
-        # File downloaded with and without credentials are different, so omit
-        # the md5 field
-        'url': 'http://www.nicovideo.jp/watch/nm14296458',
+        'url': 'https://www.nicovideo.jp/watch/sm8628149',
+        'info_dict': {
+            'id': 'sm8628149',
+            'ext': 'mp4',
+            'title': '【東方】Bad Apple!!\u3000ＰＶ【影絵】',
+            'availability': 'public',
+            'channel': 'あにら',
+            'channel_id': '10731211',
+            'comment_count': int,
+            'description': 'md5:1999669158cb77a45bab123c4fafe1d7',
+            'display_id': 'sm8628149',
+            'duration': 219,
+            'genres': ['ゲーム'],
+            'like_count': int,
+            'tags': 'mincount:3',
+            'thumbnail': r're:https?://img\.cdn\.nimg\.jp/s/nicovideo/thumbnails/.+',
+            'timestamp': 1256580802,
+            'upload_date': '20091026',
+            'uploader': 'あにら',
+            'uploader_id': '10731211',
+            'view_count': int,
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.nicovideo.jp/watch/nm14296458',
         'info_dict': {
             'id': 'nm14296458',
             'ext': 'mp4',
-            'title': '【Kagamine Rin】Dance on media【Original】take2!',
+            'title': '【鏡音リン】Dance on media【オリジナル】take2!',
+            'availability': 'public',
+            'channel': 'りょうた',
+            'channel_id': '18822557',
+            'comment_count': int,
             'description': 'md5:9368f2b1f4178de64f2602c2f3d6cbf5',
-            'thumbnail': r're:https?://.*',
+            'display_id': 'nm14296458',
+            'duration': 208,
+            'genres': ['音楽・サウンド'],
+            'like_count': int,
+            'tags': 'mincount:1',
+            'thumbnail': r're:https?://img\.cdn\.nimg\.jp/s/nicovideo/thumbnails/.+',
+            'timestamp': 1304065916,
+            'upload_date': '20110429',
             'uploader': 'りょうた',
             'uploader_id': '18822557',
-            'upload_date': '20110429',
-            'timestamp': 1304065916,
-            'duration': 208.0,
-            'comment_count': int,
             'view_count': int,
-            'genres': ['音楽・サウンド'],
-            'tags': ['Translation_Request', 'Kagamine_Rin', 'Rin_Original'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
-        # 'video exists but is marked as "deleted"
-        # md5 is unstable
-        'url': 'http://www.nicovideo.jp/watch/sm10000',
+        'url': 'https://www.nicovideo.jp/watch/nl1872567',
         'info_dict': {
-            'id': 'sm10000',
-            'ext': 'unknown_video',
-            'description': 'deleted',
-            'title': 'ドラえもんエターナル第3話「決戦第3新東京市」＜前編＞',
-            'thumbnail': r're:https?://.*',
-            'upload_date': '20071224',
-            'timestamp': int,  # timestamp field has different value if logged in
-            'duration': 304,
-            'view_count': int,
-        },
-        'skip': 'Requires an account',
-    }, {
-        'url': 'http://www.nicovideo.jp/watch/so22543406',
-        'info_dict': {
-            'id': '1388129933',
+            'id': 'nl1872567',
             'ext': 'mp4',
-            'title': '【第1回】RADIOアニメロミックス ラブライブ！～のぞえりRadio Garden～',
-            'description': 'md5:b27d224bb0ff53d3c8269e9f8b561cf1',
-            'thumbnail': r're:https?://.*',
-            'timestamp': 1388851200,
-            'upload_date': '20140104',
-            'uploader': 'アニメロチャンネル',
-            'uploader_id': '312',
-        },
-        'skip': 'The viewing period of the video you were searching for has expired.',
-    }, {
-        # video not available via `getflv`; "old" HTML5 video
-        'url': 'http://www.nicovideo.jp/watch/sm1151009',
-        'info_dict': {
-            'id': 'sm1151009',
-            'ext': 'mp4',
-            'title': 'マスターシステム本体内蔵のスペハリのメインテーマ（ＰＳＧ版）',
-            'description': 'md5:f95a3d259172667b293530cc2e41ebda',
-            'thumbnail': r're:https?://.*',
-            'duration': 184,
-            'timestamp': 1190835883,
-            'upload_date': '20070926',
-            'uploader': 'denden2',
-            'uploader_id': '1392194',
-            'view_count': int,
+            'title': '【12/25放送分】『生対談!!ひろゆきと戀塚のニコニコを作った人 』前半',
+            'availability': 'public',
+            'channel': 'nicolive',
+            'channel_id': '394',
             'comment_count': int,
-            'genres': ['ゲーム'],
-            'tags': [],
-        },
-        'params': {'skip_download': 'm3u8'},
-    }, {
-        # "New" HTML5 video
-        'url': 'http://www.nicovideo.jp/watch/sm31464864',
-        'info_dict': {
-            'id': 'sm31464864',
-            'ext': 'mp4',
-            'title': '新作TVアニメ「戦姫絶唱シンフォギアAXZ」PV 最高画質',
-            'description': 'md5:e52974af9a96e739196b2c1ca72b5feb',
-            'timestamp': 1498481660,
-            'upload_date': '20170626',
-            'uploader': 'no-namamae',
-            'uploader_id': '40826363',
-            'thumbnail': r're:https?://.*',
-            'duration': 198,
-            'view_count': int,
-            'comment_count': int,
-            'genres': ['アニメ'],
-            'tags': [],
-        },
-        'params': {'skip_download': 'm3u8'},
-    }, {
-        # Video without owner
-        'url': 'http://www.nicovideo.jp/watch/sm18238488',
-        'info_dict': {
-            'id': 'sm18238488',
-            'ext': 'mp4',
-            'title': '【実写版】ミュータントタートルズ',
-            'description': 'md5:15df8988e47a86f9e978af2064bf6d8e',
-            'timestamp': 1341128008,
-            'upload_date': '20120701',
-            'thumbnail': r're:https?://.*',
-            'duration': 5271,
-            'view_count': int,
-            'comment_count': int,
+            'description': 'md5:79fc3a54cfdc93ecc2b883285149e548',
+            'display_id': 'nl1872567',
+            'duration': 586,
             'genres': ['エンターテイメント'],
-            'tags': [],
+            'like_count': int,
+            'tags': 'mincount:3',
+            'thumbnail': r're:https?://img\.cdn\.nimg\.jp/s/nicovideo/thumbnails/.+',
+            'timestamp': 1198637246,
+            'upload_date': '20071226',
+            'uploader': 'nicolive',
+            'uploader_id': '394',
+            'view_count': int,
         },
         'params': {'skip_download': 'm3u8'},
     }, {
-        'url': 'http://sp.nicovideo.jp/watch/sm28964488?ss_pos=1&cp_in=wt_tg',
-        'only_matching': True,
-    }, {
-        'note': 'a video that is only served as an ENCRYPTED HLS.',
         'url': 'https://www.nicovideo.jp/watch/so38016254',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'so38016254',
+            'ext': 'mp4',
+            'title': '「のんのんびより のんすとっぷ」 PV',
+            'availability': 'public',
+            'channel': 'のんのんびより のんすとっぷ',
+            'channel_id': 'ch2647028',
+            'comment_count': int,
+            'description': 'md5:6e2ff55b33e3645d59ef010869cde6a2',
+            'display_id': 'so38016254',
+            'duration': 114,
+            'genres': ['アニメ'],
+            'like_count': int,
+            'tags': 'mincount:4',
+            'thumbnail': r're:https?://img\.cdn\.nimg\.jp/s/nicovideo/thumbnails/.+',
+            'timestamp': 1609146000,
+            'upload_date': '20201228',
+            'uploader': 'のんのんびより のんすとっぷ',
+            'uploader_id': 'ch2647028',
+            'view_count': int,
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # smile official, but marked as user video
+        'url': 'https://www.nicovideo.jp/watch/so37602536',
+        'info_dict': {
+            'id': 'so37602536',
+            'ext': 'mp4',
+            'title': '田中有紀とゆきだるまと！ 限定放送アーカイブ（第12回）',
+            'availability': 'subscriber_only',
+            'channel': 'あみあみ16',
+            'channel_id': '91072761',
+            'comment_count': int,
+            'description': 'md5:2ee357ec4e76d7804fb59af77107ab67',
+            'display_id': 'so37602536',
+            'duration': 980,
+            'genres': ['エンターテイメント'],
+            'like_count': int,
+            'tags': 'count:4',
+            'thumbnail': r're:https?://img\.cdn\.nimg\.jp/s/nicovideo/thumbnails/.+',
+            'timestamp': 1601377200,
+            'upload_date': '20200929',
+            'uploader': 'あみあみ16',
+            'uploader_id': '91072761',
+            'view_count': int,
+        },
+        'params': {'skip_download': 'm3u8'},
+        'skip': 'Channel members only',
+    }, {
+        'url': 'https://www.nicovideo.jp/watch/so41370536',
+        'info_dict': {
+            'id': 'so41370536',
+            'ext': 'mp4',
+            'title': 'ZUN【出演者別】超パーティー2022',
+            'availability': 'premium_only',
+            'channel': 'ニコニコ超会議チャンネル',
+            'channel_id': 'ch2607134',
+            'comment_count': int,
+            'description': 'md5:5692db5ac40d3a374fc5ec182d0249c3',
+            'display_id': 'so41370536',
+            'duration': 63,
+            'genres': ['音楽・サウンド'],
+            'like_count': int,
+            'tags': 'mincount:5',
+            'thumbnail': r're:https?://img\.cdn\.nimg\.jp/s/nicovideo/thumbnails/.+',
+            'timestamp': 1668394800,
+            'upload_date': '20221114',
+            'uploader': 'ニコニコ超会議チャンネル',
+            'uploader_id': 'ch2607134',
+            'view_count': int,
+        },
+        'params': {'skip_download': 'm3u8'},
+        'skip': 'Premium members only',
+    }, {
+        'url': 'https://www.nicovideo.jp/watch/so37574174',
+        'info_dict': {
+            'id': 'so37574174',
+            'ext': 'mp4',
+            'title': 'ひぐらしのなく頃に 廿回し編\u3000第1回',
+            'availability': 'subscriber_only',
+            'channel': '「ひぐらしのなく頃に」オフィシャルチャンネル',
+            'channel_id': 'ch2646036',
+            'comment_count': int,
+            'description': 'md5:5296196d51d9c0b7272b73f9a99c236a',
+            'display_id': 'so37574174',
+            'duration': 1931,
+            'genres': ['ラジオ'],
+            'like_count': int,
+            'tags': 'mincount:5',
+            'thumbnail': r're:https?://img\.cdn\.nimg\.jp/s/nicovideo/thumbnails/.+',
+            'timestamp': 1601028000,
+            'upload_date': '20200925',
+            'uploader': '「ひぐらしのなく頃に」オフィシャルチャンネル',
+            'uploader_id': 'ch2646036',
+            'view_count': int,
+        },
+        'params': {'skip_download': 'm3u8'},
+        'skip': 'Channel members only',
+    }, {
+        'url': 'https://www.nicovideo.jp/watch/so44060088',
+        'info_dict': {
+            'id': 'so44060088',
+            'ext': 'mp4',
+            'title': '松田的超英雄電波。《仮面ライダーガッチャード 放送終了記念特別番組》',
+            'availability': 'subscriber_only',
+            'channel': 'あみあみチャンネル',
+            'channel_id': 'ch2638921',
+            'comment_count': int,
+            'description': 'md5:9dec5bb9a172b6d20a255ecb64fbd03e',
+            'display_id': 'so44060088',
+            'duration': 1881,
+            'genres': ['ラジオ'],
+            'like_count': int,
+            'tags': 'mincount:7',
+            'thumbnail': r're:https?://img\.cdn\.nimg\.jp/s/nicovideo/thumbnails/.+',
+            'timestamp': 1725361200,
+            'upload_date': '20240903',
+            'uploader': 'あみあみチャンネル',
+            'uploader_id': 'ch2638921',
+            'view_count': int,
+        },
+        'params': {'skip_download': 'm3u8'},
+        'skip': 'Channel members only; specified continuous membership period required',
     }]
 
-    _VALID_URL = r'https?://(?:(?:www\.|secure\.|sp\.)?nicovideo\.jp/watch|nico\.ms)/(?P<id>(?:[a-z]{2})?[0-9]+)'
-    _NETRC_MACHINE = 'niconico'
-    _API_HEADERS = {
-        'X-Frontend-ID': '6',
-        'X-Frontend-Version': '0',
-        'X-Niconico-Language': 'en-us',
-        'Referer': 'https://www.nicovideo.jp/',
-        'Origin': 'https://www.nicovideo.jp',
-    }
-
-    def _perform_login(self, username, password):
-        login_ok = True
-        login_form_strs = {
-            'mail_tel': username,
-            'password': password,
-        }
-        self._request_webpage(
-            'https://account.nicovideo.jp/login', None,
-            note='Acquiring Login session')
-        page = self._download_webpage(
-            'https://account.nicovideo.jp/login/redirector?show_button_twitter=1&site=niconico&show_button_facebook=1', None,
-            note='Logging in', errnote='Unable to log in',
-            data=urlencode_postdata(login_form_strs),
-            headers={
-                'Referer': 'https://account.nicovideo.jp/login',
-                'Content-Type': 'application/x-www-form-urlencoded',
-            })
-        if 'oneTimePw' in page:
-            post_url = self._search_regex(
-                r'<form[^>]+action=(["\'])(?P<url>.+?)\1', page, 'post url', group='url')
-            page = self._download_webpage(
-                urljoin('https://account.nicovideo.jp', post_url), None,
-                note='Performing MFA', errnote='Unable to complete MFA',
-                data=urlencode_postdata({
-                    'otp': self._get_tfa_info('6 digits code'),
-                }), headers={
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                })
-            if 'oneTimePw' in page or 'formError' in page:
-                err_msg = self._html_search_regex(
-                    r'formError["\']+>(.*?)</div>', page, 'form_error',
-                    default='There\'s an error but the message can\'t be parsed.',
-                    flags=re.DOTALL)
-                self.report_warning(f'Unable to log in: MFA challenge failed, "{err_msg}"')
-                return False
-        login_ok = 'class="notice error"' not in page
-        if not login_ok:
-            self.report_warning('Unable to log in: bad username or password')
-        return login_ok
-
-    def _get_heartbeat_info(self, info_dict):
-        video_id, video_src_id, audio_src_id = info_dict['url'].split(':')[1].split('/')
-        dmc_protocol = info_dict['expected_protocol']
-
-        api_data = (
-            info_dict.get('_api_data')
-            or self._parse_json(
-                self._html_search_regex(
-                    'data-api-data="([^"]+)"',
-                    self._download_webpage('https://www.nicovideo.jp/watch/' + video_id, video_id),
-                    'API data', default='{}'),
-                video_id))
-
-        session_api_data = try_get(api_data, lambda x: x['media']['delivery']['movie']['session'])
-        session_api_endpoint = try_get(session_api_data, lambda x: x['urls'][0])
-
-        def ping():
-            tracking_id = traverse_obj(api_data, ('media', 'delivery', 'trackingId'))
-            if tracking_id:
-                tracking_url = update_url_query('https://nvapi.nicovideo.jp/v1/2ab0cbaa/watch', {'t': tracking_id})
-                watch_request_response = self._download_json(
-                    tracking_url, video_id,
-                    note='Acquiring permission for downloading video', fatal=False,
-                    headers=self._API_HEADERS)
-                if traverse_obj(watch_request_response, ('meta', 'status')) != 200:
-                    self.report_warning('Failed to acquire permission for playing video. Video download may fail.')
-
-        yesno = lambda x: 'yes' if x else 'no'
-
-        if dmc_protocol == 'http':
-            protocol = 'http'
-            protocol_parameters = {
-                'http_output_download_parameters': {
-                    'use_ssl': yesno(session_api_data['urls'][0]['isSsl']),
-                    'use_well_known_port': yesno(session_api_data['urls'][0]['isWellKnownPort']),
-                },
-            }
-        elif dmc_protocol == 'hls':
-            protocol = 'm3u8'
-            segment_duration = try_get(self._configuration_arg('segment_duration'), lambda x: int(x[0])) or 6000
-            parsed_token = self._parse_json(session_api_data['token'], video_id)
-            encryption = traverse_obj(api_data, ('media', 'delivery', 'encryption'))
-            protocol_parameters = {
-                'hls_parameters': {
-                    'segment_duration': segment_duration,
-                    'transfer_preset': '',
-                    'use_ssl': yesno(session_api_data['urls'][0]['isSsl']),
-                    'use_well_known_port': yesno(session_api_data['urls'][0]['isWellKnownPort']),
-                },
-            }
-            if 'hls_encryption' in parsed_token and encryption:
-                protocol_parameters['hls_parameters']['encryption'] = {
-                    parsed_token['hls_encryption']: {
-                        'encrypted_key': encryption['encryptedKey'],
-                        'key_uri': encryption['keyUri'],
-                    },
-                }
-            else:
-                protocol = 'm3u8_native'
-        else:
-            raise ExtractorError(f'Unsupported DMC protocol: {dmc_protocol}')
-
-        session_response = self._download_json(
-            session_api_endpoint['url'], video_id,
-            query={'_format': 'json'},
-            headers={'Content-Type': 'application/json'},
-            note='Downloading JSON metadata for {}'.format(info_dict['format_id']),
-            data=json.dumps({
-                'session': {
-                    'client_info': {
-                        'player_id': session_api_data.get('playerId'),
-                    },
-                    'content_auth': {
-                        'auth_type': try_get(session_api_data, lambda x: x['authTypes'][session_api_data['protocols'][0]]),
-                        'content_key_timeout': session_api_data.get('contentKeyTimeout'),
-                        'service_id': 'nicovideo',
-                        'service_user_id': session_api_data.get('serviceUserId'),
-                    },
-                    'content_id': session_api_data.get('contentId'),
-                    'content_src_id_sets': [{
-                        'content_src_ids': [{
-                            'src_id_to_mux': {
-                                'audio_src_ids': [audio_src_id],
-                                'video_src_ids': [video_src_id],
-                            },
-                        }],
-                    }],
-                    'content_type': 'movie',
-                    'content_uri': '',
-                    'keep_method': {
-                        'heartbeat': {
-                            'lifetime': session_api_data.get('heartbeatLifetime'),
-                        },
-                    },
-                    'priority': session_api_data['priority'],
-                    'protocol': {
-                        'name': 'http',
-                        'parameters': {
-                            'http_parameters': {
-                                'parameters': protocol_parameters,
-                            },
-                        },
-                    },
-                    'recipe_id': session_api_data.get('recipeId'),
-                    'session_operation_auth': {
-                        'session_operation_auth_by_signature': {
-                            'signature': session_api_data.get('signature'),
-                            'token': session_api_data.get('token'),
-                        },
-                    },
-                    'timing_constraint': 'unlimited',
-                },
-            }).encode())
-
-        info_dict['url'] = session_response['data']['session']['content_uri']
-        info_dict['protocol'] = protocol
-
-        # get heartbeat info
-        heartbeat_info_dict = {
-            'url': session_api_endpoint['url'] + '/' + session_response['data']['session']['id'] + '?_format=json&_method=PUT',
-            'data': json.dumps(session_response['data']),
-            # interval, convert milliseconds to seconds, then halve to make a buffer.
-            'interval': float_or_none(session_api_data.get('heartbeatLifetime'), scale=3000),
-            'ping': ping,
-        }
-
-        return info_dict, heartbeat_info_dict
-
-    def _extract_format_for_quality(self, video_id, audio_quality, video_quality, dmc_protocol):
-
-        if not audio_quality.get('isAvailable') or not video_quality.get('isAvailable'):
-            return None
-
-        format_id = '-'.join(
-            [remove_start(s['id'], 'archive_') for s in (video_quality, audio_quality)] + [dmc_protocol])
-
-        vid_qual_label = traverse_obj(video_quality, ('metadata', 'label'))
-
-        return {
-            'url': 'niconico_dmc:{}/{}/{}'.format(video_id, video_quality['id'], audio_quality['id']),
-            'format_id': format_id,
-            'format_note': join_nonempty('DMC', vid_qual_label, dmc_protocol.upper(), delim=' '),
-            'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
-            'acodec': 'aac',
-            'vcodec': 'h264',
-            **traverse_obj(audio_quality, ('metadata', {
-                'abr': ('bitrate', {float_or_none(scale=1000)}),
-                'asr': ('samplingRate', {int_or_none}),
-            })),
-            **traverse_obj(video_quality, ('metadata', {
-                'vbr': ('bitrate', {float_or_none(scale=1000)}),
-                'height': ('resolution', 'height', {int_or_none}),
-                'width': ('resolution', 'width', {int_or_none}),
-            })),
-            'quality': -2 if 'low' in video_quality['id'] else None,
-            'protocol': 'niconico_dmc',
-            'expected_protocol': dmc_protocol,  # XXX: This is not a documented field
-            'http_headers': {
-                'Origin': 'https://www.nicovideo.jp',
-                'Referer': 'https://www.nicovideo.jp/watch/' + video_id,
-            },
-        }
-
-    def _yield_dmc_formats(self, api_data, video_id):
-        dmc_data = traverse_obj(api_data, ('media', 'delivery', 'movie'))
-        audios = traverse_obj(dmc_data, ('audios', ..., {dict}))
-        videos = traverse_obj(dmc_data, ('videos', ..., {dict}))
-        protocols = traverse_obj(dmc_data, ('session', 'protocols', ..., {str}))
-        if not all((audios, videos, protocols)):
-            return
-
-        for audio_quality, video_quality, protocol in itertools.product(audios, videos, protocols):
-            if fmt := self._extract_format_for_quality(video_id, audio_quality, video_quality, protocol):
-                yield fmt
-
-    def _yield_dms_formats(self, api_data, video_id):
+    def _extract_formats(self, api_data, video_id):
         fmt_filter = lambda _, v: v['isAvailable'] and v['id']
         videos = traverse_obj(api_data, ('media', 'domand', 'videos', fmt_filter))
         audios = traverse_obj(api_data, ('media', 'domand', 'audios', fmt_filter))
@@ -409,142 +372,135 @@ class NiconicoIE(InfoExtractor):
         if not all((videos, audios, access_key, track_id)):
             return
 
-        dms_m3u8_url = self._download_json(
-            f'https://nvapi.nicovideo.jp/v1/watch/{video_id}/access-rights/hls', video_id,
-            data=json.dumps({
+        m3u8_url = self._download_json(
+            f'{self._API_BASE}/v1/watch/{video_id}/access-rights/hls',
+            video_id, headers={
+                'Accept': 'application/json;charset=utf-8',
+                'Content-Type': 'application/json',
+                'X-Access-Right-Key': access_key,
+                'X-Request-With': self._BASE_URL,
+                **self._HEADERS,
+            }, query={
+                'actionTrackId': track_id,
+            }, data=json.dumps({
                 'outputs': list(itertools.product((v['id'] for v in videos), (a['id'] for a in audios))),
-            }).encode(), query={'actionTrackId': track_id}, headers={
-                'x-access-right-key': access_key,
-                'x-frontend-id': 6,
-                'x-frontend-version': 0,
-                'x-request-with': 'https://www.nicovideo.jp',
-            })['data']['contentUrl']
-        # Getting all audio formats results in duplicate video formats which we filter out later
-        dms_fmts = self._extract_m3u8_formats(dms_m3u8_url, video_id, 'mp4')
+            }).encode(),
+        )['data']['contentUrl']
+        raw_fmts = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4')
 
-        # m3u8 extraction does not provide audio bitrates, so extract from the API data and fix
-        for audio_fmt in traverse_obj(dms_fmts, lambda _, v: v['vcodec'] == 'none'):
-            yield {
-                **audio_fmt,
-                **traverse_obj(audios, (lambda _, v: audio_fmt['format_id'].startswith(v['id']), {
-                    'format_id': ('id', {str}),
+        formats = []
+        for a_fmt in traverse_obj(raw_fmts, lambda _, v: v['vcodec'] == 'none'):
+            formats.append({
+                **a_fmt,
+                **traverse_obj(audios, (lambda _, v: a_fmt['format_id'].startswith(v['id']), {
                     'abr': ('bitRate', {float_or_none(scale=1000)}),
                     'asr': ('samplingRate', {int_or_none}),
-                }), get_all=False),
+                    'format_id': ('id', {str}),
+                    'quality': ('qualityLevel', {int_or_none}),
+                }, any)),
                 'acodec': 'aac',
-            }
+            })
 
-        # Sort before removing dupes to keep the format dicts with the lowest tbr
-        video_fmts = sorted((fmt for fmt in dms_fmts if fmt['vcodec'] != 'none'), key=lambda f: f['tbr'])
-        self._remove_duplicate_formats(video_fmts)
+        # Sort first, keeping the lowest-tbr formats
+        v_fmts = sorted((fmt for fmt in raw_fmts if fmt['vcodec'] != 'none'), key=lambda f: f['tbr'])
+        self._remove_duplicate_formats(v_fmts)
         # Calculate the true vbr/tbr by subtracting the lowest abr
-        min_abr = min(traverse_obj(audios, (..., 'bitRate', {float_or_none})), default=0) / 1000
-        for video_fmt in video_fmts:
-            video_fmt['tbr'] -= min_abr
-            video_fmt['format_id'] = f'video-{video_fmt["tbr"]:.0f}'
-            yield video_fmt
+        min_abr = traverse_obj(audios, (..., 'bitRate', {float_or_none(scale=1000)}, all, {min})) or 0
+        for v_fmt in v_fmts:
+            v_fmt['format_id'] = url_basename(v_fmt['url']).rpartition('.')[0]
+            v_fmt['quality'] = traverse_obj(videos, (
+                lambda _, v: v['id'] == v_fmt['format_id'], 'qualityLevel', {int_or_none}, any)) or -1
+            v_fmt['tbr'] -= min_abr
+        formats.extend(v_fmts)
+
+        return formats
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        try:
-            webpage, handle = self._download_webpage_handle(
-                'https://www.nicovideo.jp/watch/' + video_id, video_id)
-            if video_id.startswith('so'):
-                video_id = self._match_id(handle.url)
+        path = 'v3' if self.is_logged_in else 'v3_guest'
+        api_resp = self._download_json(
+            f'{self._BASE_URL}/api/watch/{path}/{video_id}', video_id,
+            'Downloading API JSON', 'Unable to fetch data', headers={
+                **self._HEADERS,
+                **self.geo_verification_headers(),
+            }, query={
+                'actionTrackId': f'AAAAAAAAAA_{round(time_seconds() * 1000)}',
+            }, expected_status=[400, 404])
 
-            api_data = traverse_obj(
-                self._parse_json(self._html_search_meta('server-response', webpage) or '', video_id),
-                ('data', 'response', {dict}))
-            if not api_data:
-                raise ExtractorError('Server response data not found')
-        except ExtractorError as e:
-            try:
-                api_data = self._download_json(
-                    f'https://www.nicovideo.jp/api/watch/v3/{video_id}?_frontendId=6&_frontendVersion=0&actionTrackId=AAAAAAAAAA_{round(time.time() * 1000)}', video_id,
-                    note='Downloading API JSON', errnote='Unable to fetch data')['data']
-            except ExtractorError:
-                if not isinstance(e.cause, HTTPError):
-                    raise
-                webpage = e.cause.response.read().decode('utf-8', 'replace')
-                error_msg = self._html_search_regex(
-                    r'(?s)<section\s+class="(?:(?:ErrorMessage|WatchExceptionPage-message)\s*)+">(.+?)</section>',
-                    webpage, 'error reason', default=None)
-                if not error_msg:
-                    raise
-                raise ExtractorError(clean_html(error_msg), expected=True)
+        api_data = api_resp['data']
+        scheduled_time = traverse_obj(api_data, ('publishScheduledAt', {str}))
+        status = traverse_obj(api_resp, ('meta', 'status', {int}))
 
-        availability = self._availability(**(traverse_obj(api_data, ('payment', 'video', {
-            'needs_premium': ('isPremium', {bool}),
+        if status != 200:
+            err_code = traverse_obj(api_resp, ('meta', 'errorCode', {str.upper}))
+            reason_code = traverse_obj(api_data, ('reasonCode', {str_or_none}))
+            err_msg = traverse_obj(self._ERROR_MAP, (err_code, (reason_code, 'DEFAULT'), {str}, any))
+
+            if reason_code in ('DOMESTIC_VIDEO', 'HIGH_RISK_COUNTRY_VIDEO'):
+                self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
+            elif reason_code == 'HARMFUL_VIDEO' and traverse_obj(api_data, (
+                'viewer', 'allowSensitiveContents', {bool},
+            )) is False:
+                err_msg = 'Sensitive content, adjust display settings to watch'
+            elif reason_code == 'HIDDEN_VIDEO' and scheduled_time:
+                err_msg = f'This content is scheduled to be released at {scheduled_time}'
+            elif reason_code in ('CHANNEL_MEMBER_ONLY', 'HARMFUL_VIDEO', 'HIDDEN_VIDEO', 'PPV_VIDEO', 'PREMIUM_ONLY'):
+                self.raise_login_required(err_msg)
+
+            if err_msg:
+                raise ExtractorError(err_msg, expected=True)
+            if status and status >= 500:
+                raise ExtractorError('Service temporarily unavailable', expected=True)
+            raise ExtractorError(f'API returned error status {status}')
+
+        availability = self._availability(**traverse_obj(api_data, ('payment', 'video', {
+            'needs_auth': (('isContinuationBenefit', 'isPpv'), {bool}, any),
             'needs_subscription': ('isAdmission', {bool}),
-        })) or {'needs_auth': True}))
-        formats = [*self._yield_dmc_formats(api_data, video_id),
-                   *self._yield_dms_formats(api_data, video_id)]
-        if not formats:
-            fail_msg = clean_html(self._html_search_regex(
-                r'<p[^>]+\bclass="fail-message"[^>]*>(?P<msg>.+?)</p>',
-                webpage, 'fail message', default=None, group='msg'))
-            if fail_msg:
-                self.to_screen(f'Niconico said: {fail_msg}')
-            if fail_msg and 'された地域と同じ地域からのみ視聴できます。' in fail_msg:
-                availability = None
-                self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
-            elif availability == 'premium_only':
-                self.raise_login_required('This video requires premium', metadata_available=True)
-            elif availability == 'subscriber_only':
-                self.raise_login_required('This video is for members only', metadata_available=True)
-            elif availability == 'needs_auth':
-                self.raise_login_required(metadata_available=False)
+            'needs_premium': ('isPremium', {bool}),
+        }))) or 'public'
 
-        # Start extracting information
-        tags = None
-        if webpage:
-            # use og:video:tag (not logged in)
-            og_video_tags = re.finditer(r'<meta\s+property="og:video:tag"\s*content="(.*?)">', webpage)
-            tags = list(filter(None, (clean_html(x.group(1)) for x in og_video_tags)))
-            if not tags:
-                # use keywords and split with comma (not logged in)
-                kwds = self._html_search_meta('keywords', webpage, default=None)
-                if kwds:
-                    tags = [x for x in kwds.split(',') if x]
-        if not tags:
-            # find in json (logged in)
-            tags = traverse_obj(api_data, ('tag', 'items', ..., 'name'))
+        formats = self._extract_formats(api_data, video_id)
+        err_msg = self._STATUS_MAP.get(availability)
+        if not formats and err_msg:
+            self.raise_login_required(err_msg, metadata_available=True)
 
         thumb_prefs = qualities(['url', 'middleUrl', 'largeUrl', 'player', 'ogp'])
 
-        def get_video_info(*items, get_first=True, **kwargs):
-            return traverse_obj(api_data, ('video', *items), get_all=not get_first, **kwargs)
-
         return {
-            'id': video_id,
-            '_api_data': api_data,
-            'title': get_video_info(('originalTitle', 'title')) or self._og_search_title(webpage, default=None),
-            'formats': formats,
             'availability': availability,
-            'thumbnails': [{
-                'id': key,
-                'url': url,
-                'ext': 'jpg',
-                'preference': thumb_prefs(key),
-                **parse_resolution(url, lenient=True),
-            } for key, url in (get_video_info('thumbnail') or {}).items() if url],
-            'description': clean_html(get_video_info('description')),
-            'uploader': traverse_obj(api_data, ('owner', 'nickname'), ('channel', 'name'), ('community', 'name')),
-            'uploader_id': str_or_none(traverse_obj(api_data, ('owner', 'id'), ('channel', 'id'), ('community', 'id'))),
-            'timestamp': parse_iso8601(get_video_info('registeredAt')) or parse_iso8601(
-                self._html_search_meta('video:release_date', webpage, 'date published', default=None)),
-            'channel': traverse_obj(api_data, ('channel', 'name'), ('community', 'name')),
-            'channel_id': traverse_obj(api_data, ('channel', 'id'), ('community', 'id')),
-            'view_count': int_or_none(get_video_info('count', 'view')),
-            'tags': tags,
-            'genre': traverse_obj(api_data, ('genre', 'label'), ('genre', 'key')),
-            'comment_count': get_video_info('count', 'comment', expected_type=int),
-            'duration': (
-                parse_duration(self._html_search_meta('video:duration', webpage, 'video duration', default=None))
-                or get_video_info('duration')),
-            'webpage_url': url_or_none(url) or f'https://www.nicovideo.jp/watch/{video_id}',
+            'display_id': video_id,
+            'formats': formats,
+            'genres': traverse_obj(api_data, ('genre', 'label', {str}, filter, all, filter)),
+            'release_timestamp': parse_iso8601(scheduled_time),
             'subtitles': self.extract_subtitles(video_id, api_data),
+            'tags': traverse_obj(api_data, ('tag', 'items', ..., 'name', {str}, filter, all, filter)),
+            'thumbnails': [{
+                'ext': 'jpg',
+                'id': key,
+                'preference': thumb_prefs(key),
+                'url': url,
+                **parse_resolution(url, lenient=True),
+            } for key, url in traverse_obj(api_data, (
+                'video', 'thumbnail', {dict}), default={}).items()],
+            **traverse_obj(api_data, (('channel', 'owner'), any, {
+                'channel': (('name', 'nickname'), {str}, any),
+                'channel_id': ('id', {str_or_none}),
+                'uploader': (('name', 'nickname'), {str}, any),
+                'uploader_id': ('id', {str_or_none}),
+            })),
+            **traverse_obj(api_data, ('video', {
+                'id': ('id', {str_or_none}),
+                'title': ('title', {str}),
+                'description': ('description', {clean_html}, filter),
+                'duration': ('duration', {int_or_none}),
+                'timestamp': ('registeredAt', {parse_iso8601}),
+            })),
+            **traverse_obj(api_data, ('video', 'count', {
+                'comment_count': ('comment', {int_or_none}),
+                'like_count': ('like', {int_or_none}),
+                'view_count': ('view', {int_or_none}),
+            })),
         }
 
     def _get_subtitles(self, video_id, api_data):
@@ -553,21 +509,19 @@ class NiconicoIE(InfoExtractor):
             return
 
         danmaku = traverse_obj(self._download_json(
-            f'{comments_info["server"]}/v1/threads', video_id, data=json.dumps({
+            f'{comments_info["server"]}/v1/threads', video_id,
+            'Downloading comments', 'Failed to download comments', headers={
+                'Content-Type': 'text/plain;charset=UTF-8',
+                'Origin': self._BASE_URL,
+                'Referer': f'{self._BASE_URL}/',
+                'X-Client-Os-Type': 'others',
+                **self._HEADERS,
+            }, data=json.dumps({
                 'additionals': {},
                 'params': comments_info.get('params'),
                 'threadKey': comments_info.get('threadKey'),
             }).encode(), fatal=False,
-            headers={
-                'Referer': 'https://www.nicovideo.jp/',
-                'Origin': 'https://www.nicovideo.jp',
-                'Content-Type': 'text/plain;charset=UTF-8',
-                'x-client-os-type': 'others',
-                'x-frontend-id': '6',
-                'x-frontend-version': '0',
-            },
-            note='Downloading comments', errnote='Failed to download comments'),
-            ('data', 'threads', ..., 'comments', ...))
+        ), ('data', 'threads', ..., 'comments', ...))
 
         return {
             'comments': [{
@@ -592,8 +546,8 @@ class NiconicoPlaylistBaseIE(InfoExtractor):
     @staticmethod
     def _parse_owner(item):
         return {
-            'uploader': traverse_obj(item, ('owner', 'name')),
-            'uploader_id': traverse_obj(item, ('owner', 'id')),
+            'uploader': traverse_obj(item, ('owner', ('name', ('user', 'nickname')), {str}, any)),
+            'uploader_id': traverse_obj(item, ('owner', 'id', {str})),
         }
 
     def _fetch_page(self, list_id, page):
@@ -666,7 +620,7 @@ class NiconicoPlaylistIE(NiconicoPlaylistBaseIE):
             mylist.get('name'), mylist.get('description'), **self._parse_owner(mylist))
 
 
-class NiconicoSeriesIE(InfoExtractor):
+class NiconicoSeriesIE(NiconicoPlaylistBaseIE):
     IE_NAME = 'niconico:series'
     _VALID_URL = r'https?://(?:(?:www\.|sp\.)?nicovideo\.jp(?:/user/\d+)?|nico\.ms)/series/(?P<id>\d+)'
 
@@ -675,6 +629,9 @@ class NiconicoSeriesIE(InfoExtractor):
         'info_dict': {
             'id': '110226',
             'title': 'ご立派ァ！のシリーズ',
+            'description': '楽しそうな外人の吹き替えをさせたら終身名誉ホモガキの右に出る人はいませんね…',
+            'uploader': 'アルファるふぁ',
+            'uploader_id': '44113208',
         },
         'playlist_mincount': 10,
     }, {
@@ -682,6 +639,9 @@ class NiconicoSeriesIE(InfoExtractor):
         'info_dict': {
             'id': '12312',
             'title': 'バトルスピリッツ　お勧めカード紹介(調整中)',
+            'description': '',
+            'uploader': '野鳥',
+            'uploader_id': '2275360',
         },
         'playlist_mincount': 103,
     }, {
@@ -689,19 +649,21 @@ class NiconicoSeriesIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    def _call_api(self, list_id, resource, query):
+        return self._download_json(
+            f'https://nvapi.nicovideo.jp/v2/series/{list_id}', list_id,
+            f'Downloading {resource}', query=query,
+            headers=self._API_HEADERS)['data']
+
     def _real_extract(self, url):
         list_id = self._match_id(url)
-        webpage = self._download_webpage(url, list_id)
+        series = self._call_api(list_id, 'list', {
+            'pageSize': 1,
+        })['detail']
 
-        title = self._search_regex(
-            (r'<title>「(.+)（全',
-             r'<div class="TwitterShareButton"\s+data-text="(.+)\s+https:'),
-            webpage, 'title', fatal=False)
-        if title:
-            title = unescapeHTML(title)
-        json_data = next(self._yield_json_ld(webpage, None, fatal=False))
-        return self.playlist_from_matches(
-            traverse_obj(json_data, ('itemListElement', ..., 'url')), list_id, title, ie=NiconicoIE)
+        return self.playlist_result(
+            self._entries(list_id), list_id,
+            series.get('title'), series.get('description'), **self._parse_owner(series))
 
 
 class NiconicoHistoryIE(NiconicoPlaylistBaseIE):
@@ -906,79 +868,101 @@ class NiconicoUserIE(InfoExtractor):
         return self.playlist_result(self._entries(list_id), list_id)
 
 
-class NiconicoLiveIE(InfoExtractor):
+class NiconicoLiveIE(NiconicoBaseIE):
     IE_NAME = 'niconico:live'
     IE_DESC = 'ニコニコ生放送'
     _VALID_URL = r'https?://(?:sp\.)?live2?\.nicovideo\.jp/(?:watch|gate)/(?P<id>lv\d+)'
     _TESTS = [{
-        'note': 'this test case includes invisible characters for title, pasting them as-is',
-        'url': 'https://live.nicovideo.jp/watch/lv339533123',
+        'url': 'https://live.nicovideo.jp/watch/lv329299587',
         'info_dict': {
-            'id': 'lv339533123',
-            'title': '激辛ペヤング食べます\u202a( ;ᯅ; )\u202c（歌枠オーディション参加中）',
-            'view_count': 1526,
-            'comment_count': 1772,
-            'description': '初めましてもかって言います❕\nのんびり自由に適当に暮らしてます',
-            'uploader': 'もか',
-            'channel': 'ゲストさんのコミュニティ',
-            'channel_id': 'co5776900',
-            'channel_url': 'https://com.nicovideo.jp/community/co5776900',
-            'timestamp': 1670677328,
-            'is_live': True,
+            'id': 'lv329299587',
+            'ext': 'mp4',
+            'title': str,
+            'channel': 'ニコニコエンタメチャンネル',
+            'channel_id': 'ch2640322',
+            'channel_url': 'https://ch.nicovideo.jp/channel/ch2640322',
+            'comment_count': int,
+            'description': 'md5:281edd7f00309e99ec46a87fb16d7033',
+            'live_status': 'is_live',
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1608803400,
+            'upload_date': '20201224',
+            'uploader': '株式会社ドワンゴ',
+            'view_count': int,
         },
-        'skip': 'livestream',
+        'params': {'skip_download': True},
     }, {
-        'url': 'https://live2.nicovideo.jp/watch/lv339533123',
-        'only_matching': True,
-    }, {
-        'url': 'https://sp.live.nicovideo.jp/watch/lv339533123',
-        'only_matching': True,
-    }, {
-        'url': 'https://sp.live2.nicovideo.jp/watch/lv339533123',
-        'only_matching': True,
+        'url': 'https://live.nicovideo.jp/watch/lv331050399',
+        'info_dict': {
+            'id': 'lv331050399',
+            'ext': 'mp4',
+            'title': str,
+            'age_limit': 18,
+            'channel': 'みんなのおもちゃ REBOOT',
+            'channel_id': 'ch2642088',
+            'channel_url': 'https://ch.nicovideo.jp/channel/ch2642088',
+            'comment_count': int,
+            'description': 'md5:8d0bb5beaca73b911725478a1e7c7b91',
+            'live_status': 'is_live',
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1617029400,
+            'upload_date': '20210329',
+            'uploader': '株式会社ドワンゴ',
+            'view_count': int,
+        },
+        'params': {'skip_download': True},
     }]
-
-    _KNOWN_LATENCY = ('high', 'low')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage, urlh = self._download_webpage_handle(f'https://live.nicovideo.jp/watch/{video_id}', video_id)
+        webpage, urlh = self._download_webpage_handle(url, video_id, expected_status=404)
+        if err_msg := traverse_obj(webpage, ({find_element(cls='message')}, {clean_html})):
+            raise ExtractorError(err_msg, expected=True)
 
-        embedded_data = self._parse_json(unescapeHTML(self._search_regex(
-            r'<script\s+id="embedded-data"\s*data-props="(.+?)"', webpage, 'embedded data')), video_id)
+        age_limit = 18 if 'age_auth' in urlh.url else None
+        if age_limit:
+            if not self.is_logged_in:
+                self.raise_login_required('Login is required to access age-restricted content')
 
-        ws_url = traverse_obj(embedded_data, ('site', 'relive', 'webSocketUrl'))
-        if not ws_url:
-            raise ExtractorError('The live hasn\'t started yet or already ended.', expected=True)
-        ws_url = update_url_query(ws_url, {
-            'frontend_id': traverse_obj(embedded_data, ('site', 'frontendId')) or '9',
-        })
+            my = self._download_webpage('https://www.nicovideo.jp/my', None, 'Checking age verification')
+            if traverse_obj(my, (
+                {find_element(id='js-initial-userpage-data', html=True)}, {extract_attributes},
+                'data-environment', {json.loads}, 'allowSensitiveContents', {bool},
+            )):
+                self._set_cookie('.nicovideo.jp', 'age_auth', '1')
+                webpage = self._download_webpage(url, video_id)
+            else:
+                raise ExtractorError('Sensitive content setting must be enabled', expected=True)
 
-        hostname = remove_start(urllib.parse.urlparse(urlh.url).hostname, 'sp.')
-        latency = try_get(self._configuration_arg('latency'), lambda x: x[0])
-        if latency not in self._KNOWN_LATENCY:
-            latency = 'high'
+        embedded_data = traverse_obj(webpage, (
+            {find_element(tag='script', id='embedded-data', html=True)},
+            {extract_attributes}, 'data-props', {json.loads}))
+        frontend_id = traverse_obj(embedded_data, ('site', 'frontendId', {str_or_none}), default='9')
 
+        ws_url = traverse_obj(embedded_data, (
+            'site', 'relive', 'webSocketUrl', {url_or_none}, {require('websocket URL')}))
+        ws_url = update_url_query(ws_url, {'frontend_id': frontend_id})
         ws = self._request_webpage(
-            Request(ws_url, headers={'Origin': f'https://{hostname}'}),
-            video_id=video_id, note='Connecting to WebSocket server')
+            ws_url, video_id, 'Connecting to WebSocket server',
+            headers={'Origin': 'https://live.nicovideo.jp'})
 
-        self.write_debug('[debug] Sending HLS server request')
+        self.write_debug('Sending HLS server request')
         ws.send(json.dumps({
-            'type': 'startWatching',
             'data': {
-                'stream': {
-                    'quality': 'abr',
-                    'protocol': 'hls+fmp4',
-                    'latency': latency,
-                    'chasePlay': False,
-                },
-                'room': {
-                    'protocol': 'webSocket',
-                    'commentable': True,
-                },
                 'reconnect': False,
+                'room': {
+                    'commentable': True,
+                    'protocol': 'webSocket',
+                },
+                'stream': {
+                    'accessRightMethod': 'single_cookie',
+                    'chasePlay': False,
+                    'latency': 'high',
+                    'protocol': 'hls',
+                    'quality': 'abr',
+                },
             },
+            'type': 'startWatching',
         }))
 
         while True:
@@ -991,23 +975,22 @@ class NiconicoLiveIE(InfoExtractor):
             if data.get('type') == 'stream':
                 m3u8_url = data['data']['uri']
                 qualities = data['data']['availableQualities']
+                cookies = data['data']['cookies']
                 break
             elif data.get('type') == 'disconnect':
                 self.write_debug(recv)
                 raise ExtractorError('Disconnected at middle of extraction')
             elif data.get('type') == 'error':
                 self.write_debug(recv)
-                message = traverse_obj(data, ('body', 'code')) or recv
+                message = traverse_obj(data, ('body', 'code', {str_or_none}), default=recv)
                 raise ExtractorError(message)
             elif self.get_param('verbose', False):
-                if len(recv) > 100:
-                    recv = recv[:100] + '...'
-                self.write_debug(f'Server said: {recv}')
+                self.write_debug(f'Server response: {truncate_string(recv, 100)}')
 
         title = traverse_obj(embedded_data, ('program', 'title')) or self._html_search_meta(
             ('og:title', 'twitter:title'), webpage, 'live title', fatal=False)
 
-        raw_thumbs = traverse_obj(embedded_data, ('program', 'thumbnail')) or {}
+        raw_thumbs = traverse_obj(embedded_data, ('program', 'thumbnail', {dict})) or {}
         thumbnails = []
         for name, value in raw_thumbs.items():
             if not isinstance(value, dict):
@@ -1025,23 +1008,40 @@ class NiconicoLiveIE(InfoExtractor):
                 thumbnails.append({
                     'id': f'{name}_{width}x{height}',
                     'url': img_url,
+                    'ext': traverse_obj(parse_qs(img_url), ('image', 0, {determine_ext(default_ext='jpg')})),
                     **res,
                 })
 
+        for cookie in cookies:
+            self._set_cookie(
+                cookie['domain'], cookie['name'], cookie['value'],
+                expire_time=unified_timestamp(cookie.get('expires')), path=cookie['path'], secure=cookie['secure'])
+
+        q_iter = (q for q in qualities[1:] if not q.startswith('audio_'))  # ignore initial 'abr'
+        a_map = {96: 'audio_low', 192: 'audio_high'}
+
         formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', live=True)
-        for fmt, q in zip(formats, reversed(qualities[1:])):
-            fmt.update({
-                'format_id': q,
-                'protocol': 'niconico_live',
-                'ws': ws,
-                'video_id': video_id,
-                'live_latency': latency,
-                'origin': hostname,
-            })
+        for fmt in formats:
+            fmt['protocol'] = 'niconico_live'
+            if fmt.get('acodec') == 'none':
+                fmt['format_id'] = next(q_iter, fmt['format_id'])
+            elif fmt.get('vcodec') == 'none':
+                abr = parse_bitrate(fmt['url'].lower())
+                fmt.update({
+                    'abr': abr,
+                    'acodec': 'mp4a.40.2',
+                    'format_id': a_map.get(abr, fmt['format_id']),
+                })
 
         return {
             'id': video_id,
             'title': title,
+            'age_limit': age_limit,
+            'downloader_options': {
+                'max_quality': traverse_obj(embedded_data, ('program', 'stream', 'maxQuality', {str})) or 'normal',
+                'ws': ws,
+                'ws_url': ws_url,
+            },
             **traverse_obj(embedded_data, {
                 'view_count': ('program', 'statistics', 'watchCount'),
                 'comment_count': ('program', 'statistics', 'commentCount'),

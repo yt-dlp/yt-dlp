@@ -1,4 +1,6 @@
+import datetime as dt
 import functools
+import time
 
 from .common import InfoExtractor
 from ..networking import Request
@@ -10,12 +12,28 @@ from ..utils import (
     filter_dict,
     int_or_none,
     orderedSet,
-    unified_timestamp,
+    parse_iso8601,
     url_or_none,
     urlencode_postdata,
     urljoin,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import require, traverse_obj
+
+
+def _cloudfront_auth_request(m3u8_url, strm_id, video_id, referer_url):
+    return Request(
+        'https://live.sooplive.co.kr/api/private_auth.php',
+        method='POST',
+        headers={
+            'Referer': referer_url,
+            'Origin': 'https://vod.sooplive.co.kr',
+        },
+        data=urlencode_postdata({
+            'type': 'vod',
+            'strm_id': strm_id,
+            'title_no': video_id,
+            'url': m3u8_url,
+        }))
 
 
 class AfreecaTVBaseIE(InfoExtractor):
@@ -87,9 +105,9 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'uploader_id': 'rlantnghks',
             'uploader': '페이즈으',
             'duration': 10840,
-            'thumbnail': r're:https?://videoimg\.sooplive\.co/.kr/.+',
+            'thumbnail': r're:https?://videoimg\.(?:sooplive\.co\.kr|afreecatv\.com)/.+',
             'upload_date': '20230108',
-            'timestamp': 1673218805,
+            'timestamp': 1673186405,
             'title': '젠지 페이즈',
         },
         'params': {
@@ -102,7 +120,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'id': '20170411_BE689A0E_190960999_1_2_h',
             'ext': 'mp4',
             'title': '혼자사는여자집',
-            'thumbnail': r're:https?://(?:video|st)img\.sooplive\.co\.kr/.+',
+            'thumbnail': r're:https?://(?:video|st)img\.(?:sooplive\.co\.kr|afreecatv\.com)/.+',
             'uploader': '♥이슬이',
             'uploader_id': 'dasl8121',
             'upload_date': '20170411',
@@ -119,7 +137,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'id': '20180327_27901457_202289533_1',
             'ext': 'mp4',
             'title': '[생]빨개요♥ (part 1)',
-            'thumbnail': r're:https?://(?:video|st)img\.sooplive\.co\.kr/.+',
+            'thumbnail': r're:https?://(?:video|st)img\.(?:sooplive\.co\.kr|afreecatv\.com)/.+',
             'uploader': '[SA]서아',
             'uploader_id': 'bjdyrksu',
             'upload_date': '20180327',
@@ -152,6 +170,13 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                 'nApiLevel': 10,
             }))['data']
 
+        initial_refresh_time = 0
+        strm_id = None
+        # For subscriber-only VODs, we need to call private_auth.php to get CloudFront cookies
+        needs_private_auth = traverse_obj(data, ('sub_upload_type', {str}))
+        if needs_private_auth:
+            strm_id = traverse_obj(data, ('bj_id', {str}, {require('stream ID')}))
+
         error_code = traverse_obj(data, ('code', {int}))
         if error_code == -6221:
             raise ExtractorError('The VOD does not exist', expected=True)
@@ -171,9 +196,23 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                 traverse_obj(data, ('files', lambda _, v: url_or_none(v['file']))), start=1):
             file_url = file_element['file']
             if determine_ext(file_url) == 'm3u8':
+                if needs_private_auth:
+                    self._request_webpage(
+                        _cloudfront_auth_request(file_url, strm_id, video_id, url),
+                        video_id, 'Requesting CloudFront cookies', 'Failed to get CloudFront cookies')
+                    initial_refresh_time = time.time()
                 formats = self._extract_m3u8_formats(
                     file_url, video_id, 'mp4', m3u8_id='hls',
                     note=f'Downloading part {file_num} m3u8 information')
+                if needs_private_auth:
+                    for fmt in formats:
+                        fmt['protocol'] = 'soopvod'
+                        fmt['_cookie_refresh_params'] = {
+                            'm3u8_url': file_url,
+                            'strm_id': strm_id,
+                            'video_id': video_id,
+                            '_last_refresh': initial_refresh_time,
+                        }
             else:
                 formats = [{
                     'url': file_url,
@@ -187,7 +226,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                 'formats': formats,
                 **traverse_obj(file_element, {
                     'duration': ('duration', {int_or_none(scale=1000)}),
-                    'timestamp': ('file_start', {unified_timestamp}),
+                    'timestamp': ('file_start', {parse_iso8601(delimiter=' ', timezone=dt.timedelta(hours=9))}),
                 }),
             })
 
@@ -370,7 +409,7 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
             'title': channel_info.get('TITLE') or station_info.get('station_title'),
             'uploader': channel_info.get('BJNICK') or station_info.get('station_name'),
             'uploader_id': broadcaster_id,
-            'timestamp': unified_timestamp(station_info.get('broad_start')),
+            'timestamp': parse_iso8601(station_info.get('broad_start'), delimiter=' ', timezone=dt.timedelta(hours=9)),
             'formats': formats,
             'is_live': True,
             'http_headers': {'Referer': url},

@@ -1,55 +1,82 @@
-from .common import InfoExtractor
+from .streaks import StreaksBaseIE
 from ..utils import (
-    ExtractorError,
-    smuggle_url,
-    traverse_obj,
+    int_or_none,
+    parse_iso8601,
+    str_or_none,
+    url_or_none,
 )
+from ..utils.traversal import require, traverse_obj
 
 
-class NTVCoJpCUIE(InfoExtractor):
+class NTVCoJpCUIE(StreaksBaseIE):
     IE_NAME = 'cu.ntv.co.jp'
-    IE_DESC = 'Nippon Television Network'
-    _VALID_URL = r'https?://cu\.ntv\.co\.jp/(?!program)(?P<id>[^/?&#]+)'
-    _TEST = {
-        'url': 'https://cu.ntv.co.jp/televiva-chill-gohan_181031/',
+    IE_DESC = '日テレ無料TADA!'
+    _VALID_URL = r'https?://cu\.ntv\.co\.jp/(?!program-list|search)(?P<id>[\w-]+)/?(?:[?#]|$)'
+    _TESTS = [{
+        'url': 'https://cu.ntv.co.jp/gaki_20250525/',
         'info_dict': {
-            'id': '5978891207001',
+            'id': 'gaki_20250525',
             'ext': 'mp4',
-            'title': '桜エビと炒り卵がポイント！ 「中華風 エビチリおにぎり」──『美虎』五十嵐美幸',
-            'upload_date': '20181213',
-            'description': 'md5:1985b51a9abc285df0104d982a325f2a',
-            'uploader_id': '3855502814001',
-            'timestamp': 1544669941,
+            'title': '放送開始36年!方正ココリコが選ぶ神回&地獄回!',
+            'cast': 'count:2',
+            'description': 'md5:1e1db556224d627d4d2f74370c650927',
+            'display_id': 'ref:gaki_20250525',
+            'duration': 1450,
+            'episode': '放送開始36年!方正ココリコが選ぶ神回&地獄回!',
+            'episode_id': '000000010172808',
+            'episode_number': 255,
+            'genres': ['variety'],
+            'live_status': 'not_live',
+            'modified_date': '20250525',
+            'modified_timestamp': 1748145537,
+            'release_date': '20250525',
+            'release_timestamp': 1748145539,
+            'series': 'ダウンタウンのガキの使いやあらへんで！',
+            'series_id': 'gaki',
+            'thumbnail': r're:https?://.+\.jpg',
+            'timestamp': 1748145197,
+            'upload_date': '20250525',
+            'uploader': '日本テレビ放送網',
+            'uploader_id': '0x7FE2',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
-    }
-
-    BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s'
+    }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        player_config = self._search_nuxt_data(webpage, display_id)
-        video_id = traverse_obj(player_config, ('movie', 'video_id'))
-        if not video_id:
-            raise ExtractorError('Failed to extract video ID for Brightcove')
-        account_id = traverse_obj(player_config, ('player', 'account')) or '3855502814001'
-        title = traverse_obj(player_config, ('movie', 'name'))
-        if not title:
-            og_title = self._og_search_title(webpage, fatal=False) or traverse_obj(player_config, ('player', 'title'))
-            if og_title:
-                title = og_title.split('(', 1)[0].strip()
-        description = (traverse_obj(player_config, ('movie', 'description'))
-                       or self._html_search_meta(['description', 'og:description'], webpage))
+
+        info = self._search_json(
+            r'window\.app\s*=', webpage, 'video info',
+            display_id)['falcorCache']['catalog']['episode'][display_id]['value']
+        media_id = traverse_obj(info, (
+            'streaks_data', 'mediaid', {str_or_none}, {require('Streaks media ID')}))
+        non_phonetic = (lambda _, v: v['is_phonetic'] is False, 'value', {str})
+
         return {
-            '_type': 'url_transparent',
-            'id': video_id,
-            'display_id': display_id,
-            'title': title,
-            'description': description,
-            'url': smuggle_url(self.BRIGHTCOVE_URL_TEMPLATE % (account_id, video_id), {'geo_countries': ['JP']}),
-            'ie_key': 'BrightcoveNew',
+            **self._extract_from_streaks_api('ntv-tada', media_id, headers={
+                'X-Streaks-Api-Key': 'df497719056b44059a0483b8faad1f4a',
+            }),
+            **traverse_obj(info, {
+                'id': ('content_id', {str_or_none}),
+                'title': ('title', *non_phonetic, any),
+                'age_limit': ('is_adult_only_content', {lambda x: 18 if x else None}),
+                'cast': ('credit', ..., 'name', *non_phonetic),
+                'genres': ('genre', ..., {str}),
+                'release_timestamp': ('pub_date', {parse_iso8601}),
+                'tags': ('tags', ..., {str}),
+                'thumbnail': ('artwork', ..., 'url', any, {url_or_none}),
+            }),
+            **traverse_obj(info, ('tv_episode_info', {
+                'duration': ('duration', {int_or_none}),
+                'episode_number': ('episode_number', {int}),
+                'series': ('parent_show_title', *non_phonetic, any),
+                'series_id': ('show_content_id', {str}),
+            })),
+            **traverse_obj(info, ('custom_data', {
+                'description': ('program_detail', {str}),
+                'episode': ('episode_title', {str}),
+                'episode_id': ('episode_id', {str_or_none}),
+                'uploader': ('network_name', {str}),
+                'uploader_id': ('network_id', {str}),
+            })),
         }

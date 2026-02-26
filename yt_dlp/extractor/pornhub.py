@@ -24,6 +24,7 @@ from ..utils import (
     url_or_none,
     urlencode_postdata,
 )
+from ..utils.traversal import find_elements, traverse_obj
 
 
 class PornHubBaseIE(InfoExtractor):
@@ -127,7 +128,7 @@ class PornHubIE(PornHubBaseIE):
     _VALID_URL = rf'''(?x)
                     https?://
                         (?:
-                            (?:[^/]+\.)?
+                            (?:[a-zA-Z0-9.-]+\.)?
                             {PornHubBaseIE._PORNHUB_HOST_RE}
                             /(?:(?:view_video\.php|video/show)\?viewkey=|embed/)|
                             (?:www\.)?thumbzilla\.com/video/
@@ -137,23 +138,24 @@ class PornHubIE(PornHubBaseIE):
     _EMBED_REGEX = [r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//(?:www\.)?pornhub(?:premium)?\.(?:com|net|org)/embed/[\da-z]+)']
     _TESTS = [{
         'url': 'http://www.pornhub.com/view_video.php?viewkey=648719015',
-        'md5': 'a6391306d050e4547f62b3f485dd9ba9',
+        'md5': '4d4a4e9178b655776f86cf89ecaf0edf',
         'info_dict': {
             'id': '648719015',
             'ext': 'mp4',
             'title': 'Seductive Indian beauty strips down and fingers her pink pussy',
-            'uploader': 'Babes',
+            'uploader': 'BABES-COM',
+            'uploader_id': '/users/babes-com',
             'upload_date': '20130628',
             'timestamp': 1372447216,
             'duration': 361,
             'view_count': int,
             'like_count': int,
-            'dislike_count': int,
             'comment_count': int,
             'age_limit': 18,
             'tags': list,
             'categories': list,
             'cast': list,
+            'thumbnail': r're:https?://.+',
         },
     }, {
         # non-ASCII title
@@ -480,13 +482,6 @@ class PornHubIE(PornHubBaseIE):
         comment_count = self._extract_count(
             r'All Comments\s*<span>\(([\d,.]+)\)', webpage, 'comment')
 
-        def extract_list(meta_key):
-            div = self._search_regex(
-                rf'(?s)<div[^>]+\bclass=["\'].*?\b{meta_key}Wrapper[^>]*>(.+?)</div>',
-                webpage, meta_key, default=None)
-            if div:
-                return [clean_html(x).strip() for x in re.findall(r'(?s)<a[^>]+\bhref=[^>]+>.+?</a>', div)]
-
         info = self._search_json_ld(webpage, video_id, default={})
         # description provided in JSON-LD is irrelevant
         info['description'] = None
@@ -505,10 +500,13 @@ class PornHubIE(PornHubBaseIE):
             'comment_count': comment_count,
             'formats': formats,
             'age_limit': 18,
-            'tags': extract_list('tags'),
-            'categories': extract_list('categories'),
-            'cast': extract_list('pornstars'),
+            **traverse_obj(webpage, {
+                'tags': ({find_elements(attr='data-label', value='tag')}, ..., {clean_html}),
+                'categories': ({find_elements(attr='data-label', value='category')}, ..., {clean_html}),
+                'cast': ({find_elements(attr='data-label', value='pornstar')}, ..., {clean_html}),
+            }),
             'subtitles': subtitles,
+            'http_headers': {'Referer': f'https://www.{host}/'},
         }, info)
 
 
@@ -536,7 +534,7 @@ class PornHubPlaylistBaseIE(PornHubBaseIE):
 
 
 class PornHubUserIE(PornHubPlaylistBaseIE):
-    _VALID_URL = rf'(?P<url>https?://(?:[^/]+\.)?{PornHubBaseIE._PORNHUB_HOST_RE}/(?:(?:user|channel)s|model|pornstar)/(?P<id>[^/?#&]+))(?:[?#&]|/(?!videos)|$)'
+    _VALID_URL = rf'(?P<url>https?://(?:[a-zA-Z0-9.-]+\.)?{PornHubBaseIE._PORNHUB_HOST_RE}/(?:(?:user|channel)s|model|pornstar)/(?P<id>[^/?#&]+))(?:[?#&]|/(?!videos)|$)'
     _TESTS = [{
         'url': 'https://www.pornhub.com/model/zoe_ph',
         'playlist_mincount': 118,

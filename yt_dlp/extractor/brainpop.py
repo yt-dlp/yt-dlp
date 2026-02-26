@@ -174,7 +174,7 @@ class BrainPOPLegacyBaseIE(BrainPOPBaseIE):
         }
 
     def _real_extract(self, url):
-        slug, display_id = self._match_valid_url(url).group('slug', 'id')
+        display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         topic_data = self._search_json(
             r'var\s+content\s*=\s*', webpage, 'content data',

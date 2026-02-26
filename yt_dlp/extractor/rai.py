@@ -81,7 +81,7 @@ class RaiBaseIE(InfoExtractor):
         # geo flag is a bit unreliable and not properly set all the time
         geoprotection = xpath_text(relinker, './geoprotection', default='N') == 'Y'
 
-        ext = determine_ext(media_url)
+        ext = determine_ext(media_url).lower()
         formats = []
 
         if ext == 'mp3':
@@ -108,7 +108,7 @@ class RaiBaseIE(InfoExtractor):
                 'format_id': join_nonempty('https', bitrate, delim='-'),
             })
         else:
-            raise ExtractorError('Unrecognized media file found')
+            raise ExtractorError(f'Unrecognized media extension "{ext}"')
 
         if (not formats and geoprotection is True) or '/video_no_available.mp4' in media_url:
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
@@ -322,6 +322,27 @@ class RaiPlayIE(RaiBaseIE):
             'upload_date': '20120924',
         },
     }, {
+        # checking program_info gives false positive for DRM
+        'url': 'https://www.raiplay.it/video/2022/10/Ad-ogni-costo---Un-giorno-in-Pretura---Puntata-del-15102022-1dfd1295-ea38-4bac-b51e-f87e2881693b.html',
+        'md5': '572c6f711b7c5f2d670ba419b4ae3b08',
+        'info_dict': {
+            'id': '1dfd1295-ea38-4bac-b51e-f87e2881693b',
+            'ext': 'mp4',
+            'title': 'Ad ogni costo - Un giorno in Pretura - Puntata del 15/10/2022',
+            'alt_title': 'St 2022/23 - Un giorno in pretura - Ad ogni costo',
+            'description': 'md5:4046d97b2687f74f06a8b8270ba5599f',
+            'uploader': 'Rai 3',
+            'duration': 3773.0,
+            'thumbnail': 'https://www.raiplay.it/dl/img/2022/10/12/1665586539957_2048x2048.png',
+            'creators': ['Rai 3'],
+            'series': 'Un giorno in pretura',
+            'season': '2022/23',
+            'episode': 'Ad ogni costo',
+            'timestamp': 1665507240,
+            'upload_date': '20221011',
+            'release_year': 2025,
+        },
+    }, {
         'url': 'http://www.raiplay.it/video/2016/11/gazebotraindesi-efebe701-969c-4593-92f3-285f0d1ce750.html?',
         'only_matching': True,
     }, {
@@ -340,9 +361,8 @@ class RaiPlayIE(RaiBaseIE):
         media = self._download_json(
             f'{base}.json', video_id, 'Downloading video JSON')
 
-        if not self.get_param('allow_unplayable_formats'):
-            if traverse_obj(media, (('program_info', None), 'rights_management', 'rights', 'drm')):
-                self.report_drm(video_id)
+        if traverse_obj(media, ('rights_management', 'rights', 'drm')):
+            self.report_drm(video_id)
 
         video = media['video']
         relinker_info = self._extract_relinker_info(video['content_url'], video_id)
@@ -483,6 +503,28 @@ class RaiPlaySoundIE(RaiBaseIE):
             'upload_date': '20211201',
         },
         'params': {'skip_download': True},
+    }, {
+        # case-sensitivity test for uppercase extension
+        'url': 'https://www.raiplaysound.it/audio/2020/05/Storia--Lunita-dItalia-e-lunificazione-della-Germania-b4c16390-7f3f-4282-b353-d94897dacb7c.html',
+        'md5': 'c69ebd69282f0effd7ef67b7e2f6c7d8',
+        'info_dict': {
+            'id': 'b4c16390-7f3f-4282-b353-d94897dacb7c',
+            'ext': 'mp3',
+            'title': "Storia | 01 L'unità d'Italia e l'unificazione della Germania",
+            'alt_title': 'md5:ed4ed82585c52057b71b43994a59b705',
+            'description': 'md5:92818b6f31b2c150567d56b75db2ea7f',
+            'uploader': 'rai radio 3',
+            'duration': 2439.0,
+            'thumbnail': 'https://www.raiplaysound.it/dl/img/2023/09/07/1694084898279_Maturadio-LOGO-2048x1152.jpg',
+            'creators': ['rai radio 3'],
+            'series': 'Maturadio',
+            'season': 'Season 9',
+            'season_number': 9,
+            'episode': "01. L'unità d'Italia e l'unificazione della Germania",
+            'episode_number': 1,
+            'timestamp': 1590400740,
+            'upload_date': '20200525',
+        },
     }]
 
     def _real_extract(self, url):
@@ -745,7 +787,7 @@ class RaiCulturaIE(RaiNewsIE):  # XXX: Do not subclass from concrete IE
 
 
 class RaiSudtirolIE(RaiBaseIE):
-    _VALID_URL = r'https?://raisudtirol\.rai\.it/.+media=(?P<id>\w+)'
+    _VALID_URL = r'https?://rai(?:bz|sudtirol)\.rai\.it/.+media=(?P<id>\w+)'
     _TESTS = [{
         # mp4 file
         'url': 'https://raisudtirol.rai.it/la/index.php?media=Ptv1619729460',
@@ -771,6 +813,9 @@ class RaiSudtirolIE(RaiBaseIE):
             'formats': 'count:6',
         },
         'params': {'skip_download': True},
+    }, {
+        'url': 'https://raibz.rai.it/de/index.php?media=Ptv1751660400',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
