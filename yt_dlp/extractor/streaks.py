@@ -22,7 +22,7 @@ class StreaksBaseIE(InfoExtractor):
     _GEO_BYPASS = False
     _GEO_COUNTRIES = ['JP']
 
-    def _extract_from_streaks_api(self, project_id, media_id, headers=None, query=None, ssai=False):
+    def _extract_from_streaks_api(self, project_id, media_id, headers=None, query=None, ssai=False, live_from_start=False):
         try:
             response = self._download_json(
                 self._API_URL_TEMPLATE.format('playback', project_id, media_id, ''),
@@ -83,6 +83,10 @@ class StreaksBaseIE(InfoExtractor):
 
             fmts, subs = self._extract_m3u8_formats_and_subtitles(
                 src_url, media_id, 'mp4', m3u8_id='hls', fatal=False, live=is_live, query=query)
+            for fmt in fmts:
+                if live_from_start:
+                    fmt.setdefault('downloader_options', {}).update({'ffmpeg_args': ['-live_start_index', '0']})
+                    fmt['is_from_start'] = True
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
