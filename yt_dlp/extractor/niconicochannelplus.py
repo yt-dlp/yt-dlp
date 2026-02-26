@@ -397,7 +397,6 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             'channel': '東山奈央のラジオ＠リビング',
             'channel_id': 'qlover_jp_naoliving',
             'channel_url': 'https://qlover.jp/naoliving',
-            'age_limit': 0,
             'live_status': 'not_live',
             'thumbnail': r're:https://qlover\.jp/public_html/.*',
             'timestamp': 1772010000,
