@@ -1350,9 +1350,7 @@ class FFmpegProgressTracker:
     def _compute_total_filesize(self, duration_to_track, total_duration):
         if not total_duration:
             return 0
-        filesize = self._info_dict.get('filesize')
-        if not filesize:
-            filesize = self._info_dict.get('filesize_approx', 0)
+        filesize = self._info_dict.get('filesize') or self._info_dict.get('filesize_approx') or 0
         return filesize * duration_to_track // total_duration
 
     def _compute_duration_to_track(self):
