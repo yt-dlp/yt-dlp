@@ -1,27 +1,16 @@
 import json
 import re
+import string
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    caesar,
     int_or_none,
     str_or_none,
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
-
-
-def _caesar_decode(text, shift):
-    """Decode Caesar cipher by shifting each letter forward by ``shift`` positions."""
-    result = []
-    for ch in text:
-        if 'a' <= ch <= 'z':
-            result.append(chr((ord(ch) - ord('a') + shift) % 26 + ord('a')))
-        elif 'A' <= ch <= 'Z':
-            result.append(chr((ord(ch) - ord('A') + shift) % 26 + ord('A')))
-        else:
-            result.append(ch)
-    return ''.join(result)
 
 
 class TldvIE(InfoExtractor):
@@ -36,14 +25,36 @@ class TldvIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    def _perform_login(self, username, password):
+        response = self._download_json(
+            f'{self._API_BASE}/auth/login', None,
+            note='Logging in to tldv',
+            errnote='Login failed',
+            data=json.dumps({
+                'email': username,
+                'password': password,
+            }).encode(),
+            headers={'Content-Type': 'application/json'},
+            expected_status=(401, 403))
+
+        self._token = traverse_obj(response, (
+            ('token', 'accessToken', 'access_token'), {str}, any))
+        if not self._token:
+            self._token = traverse_obj(response, ('data', 'token', {str}))
+
+        if not self._token:
+            raise ExtractorError(
+                'Login failed. Check your credentials or provide the token directly:\n'
+                '  --extractor-args "tldv:token=YOUR_JWT_TOKEN"',
+                expected=True)
+
     def _get_auth_token(self, video_id):
         token = self._configuration_arg('token', [None], casesense=True)[0]
         if token:
             return token
 
-        username, password = self._get_login_info()
-        if username and password:
-            return self._login(username, password, video_id)
+        if getattr(self, '_token', None):
+            return self._token
 
         token = self._get_token_from_cookies()
         if token:
@@ -60,31 +71,6 @@ class TldvIE(InfoExtractor):
             '  3. Run: JSON.parse(localStorage.getItem("_cap_jwt")).token\n'
             '  4. Copy the output',
             expected=True)
-
-    def _login(self, username, password, video_id):
-        response = self._download_json(
-            f'{self._API_BASE}/auth/login', video_id,
-            note='Logging in to tldv',
-            errnote='Login failed',
-            data=json.dumps({
-                'email': username,
-                'password': password,
-            }).encode(),
-            headers={'Content-Type': 'application/json'},
-            expected_status=(401, 403))
-
-        token = traverse_obj(response, (
-            ('token', 'accessToken', 'access_token'), {str}, any))
-        if not token:
-            token = traverse_obj(response, ('data', 'token', {str}))
-
-        if not token:
-            raise ExtractorError(
-                'Login failed. Check your credentials or provide the token directly:\n'
-                '  --extractor-args "tldv:token=YOUR_JWT_TOKEN"',
-                expected=True)
-
-        return token
 
     def _get_token_from_cookies(self):
         cookies = self._get_cookies('https://tldv.io')
@@ -108,7 +94,9 @@ class TldvIE(InfoExtractor):
             if line.startswith('#') or not line.strip():
                 decoded_lines.append(line)
                 continue
-            decoded_lines.append(base_url + _caesar_decode(line.strip(), shift))
+            decoded_url = caesar(line.strip(), string.ascii_lowercase, shift)
+            decoded_url = caesar(decoded_url, string.ascii_uppercase, shift)
+            decoded_lines.append(base_url + decoded_url)
 
         return '\n'.join(decoded_lines)
 
