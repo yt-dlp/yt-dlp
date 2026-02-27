@@ -406,7 +406,7 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     (default)
     --live-from-start               Download livestreams from the start.
                                     Currently experimental and only supported
-                                    for YouTube and Twitch
+                                    for YouTube, Twitch, and TVer
     --no-live-from-start            Download livestreams from the current time
                                     (default)
     --wait-for-video MIN[-MAX]      Wait for scheduled streams to become
