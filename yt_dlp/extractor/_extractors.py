@@ -2039,6 +2039,7 @@ from .telequebec import (
 )
 from .teletask import TeleTaskIE
 from .telewebion import TelewebionIE
+from .tldv import TldvIE
 from .tempo import (
     IVXPlayerIE,
     TempoIE,
