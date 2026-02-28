@@ -337,5 +337,10 @@
         "when": "e2ea6bd6ab639f910b99e55add18856974ff4c3a",
         "short": "[ie] Fix prioritization of Youtube URL matching (#15596)",
         "authors": ["Grub4K"]
+    },
+    {
+        "action": "add",
+        "when": "1fbbe29b99dc61375bf6d786f824d9fcf6ea9c1a",
+        "short": "[priority] Security: [[CVE-2026-26331](https://nvd.nist.gov/vuln/detail/CVE-2026-26331)] [Arbitrary command injection with the `--netrc-cmd` option](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-g3gw-q23r-pgqm)\n    - The argument passed to the command in `--netrc-cmd` is now limited to a safe subset of characters"
     }
 ]
