@@ -252,28 +252,6 @@ class NPORadioIE(NPOBaseIE):
         return data
 
 
-class NPO3IE(NPOBaseIE):
-    IE_NAME = 'npo.nl:npo3'
-    _VALID_URL = r'https?://(?:www\.)?npo\.nl/npo3/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
-
-    _TEST = {
-        'url': 'https://npo.nl/npo3/vlees-smakelijk/11-10-2024/WO_KN_20222563',
-        'md5': '991525bfd0532a93322a9ed3123c730c',
-        'info_dict': {
-            'id': 'WO_KN_20222563',
-            'ext': 'mp4',
-            'description': 'md5:31f5ffff8c70af1635cbb93a8205e0c4',
-            'duration': 1021.994,
-            'title': 'Vlees smakelijk',
-            'thumbnail': 'https://images.poms.omroep.nl/image/s1080/2215940',
-            'genres': ['Human Interest', 'Reality TV'],
-        },
-    }
-
-    def _real_extract(self, url):
-        return self._extract_product_id_information(self._match_id(url))
-
-
 class SchoolTVIE(NPOBaseIE):
     IE_NAME = 'schooltv'
     _VALID_URL = r'https?://(?:www\.)?schooltv\.nl/video-item/(?P<id>[^/?#&]+)'

@@ -1361,7 +1361,6 @@ from .nowness import (
 )
 from .noz import NozIE
 from .npo import (
-    NPO3IE,
     NTRIE,
     AndereTijdenIE,
     HetKlokhuisIE,
