@@ -343,7 +343,7 @@ class StarTVSeriesIE(InfoExtractor):
             content_type,
         ]
         parameters = [
-            'sort=episodeNo asc' if content_type == "episodes" else 'sort=sys.published_at asc',
+            'sort=episodeNo asc' if content_type == 'episodes' else 'sort=sys.published_at asc',
             'skip={skip}',
             'limit={limit}',
         ]
