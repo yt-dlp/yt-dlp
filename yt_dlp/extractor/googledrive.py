@@ -1,4 +1,6 @@
+import hashlib
 import re
+import time
 
 from .common import InfoExtractor
 from ..utils import (
@@ -11,6 +13,7 @@ from ..utils import (
     mimetype2ext,
     parse_duration,
     str_or_none,
+    try_call,
     update_url_query,
     url_or_none,
 )
@@ -136,12 +139,52 @@ class GoogleDriveIE(InfoExtractor):
             } for sub_fmt in subtitle_formats])
         return subtitles
 
+    @staticmethod
+    def _make_sid_authorization(scheme, sid, origin, timestamp):
+        sidhash = hashlib.sha1(' '.join((timestamp, sid, origin)).encode())
+        return f'{scheme} {timestamp}_{sidhash.hexdigest()}'
+
+    def _get_sid_cookies(self, origin):
+        """
+        Get SAPISID, 1PSAPISID, 3PSAPISID cookie values
+        @returns sapisid, 1psapisid, 3psapisid
+        """
+        g_cookies = self._get_cookies(origin)
+        g_sapisid = try_call(lambda: g_cookies['SAPISID'].value)
+        g_3papisid = try_call(lambda: g_cookies['__Secure-3PAPISID'].value)
+        g_1papisid = try_call(lambda: g_cookies['__Secure-1PAPISID'].value)
+
+        # Sometimes SAPISID cookie isn't present but __Secure-3PAPISID is.
+        # YouTube also falls back to __Secure-3PAPISID if SAPISID is missing.
+        # See: https://github.com/yt-dlp/yt-dlp/issues/393
+
+        return g_sapisid or g_3papisid, g_1papisid, g_3papisid
+
+    def _make_sid_auth_header(self, origin):
+        timestamp = str(round(time.time()))
+        schemes_and_sids = zip(
+            ('SAPISIDHASH', 'SAPISID1PHASH', 'SAPISID3PHASH'),
+            self._get_sid_cookies(origin), strict=True)
+        return ' '.join(
+            self._make_sid_authorization(scheme, sid, origin, timestamp)
+            for scheme, sid in schemes_and_sids if sid)
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        origin = 'https://drive.google.com'
+        headers = {}
+
+        if auth_hdr := self._make_sid_auth_header(origin):
+            headers = {'Authorization': auth_hdr}
+
         video_info = self._download_json(
-            f'https://content-workspacevideo-pa.googleapis.com/v1/drive/media/{video_id}/playback',
+            f'https://workspacevideo-pa.clients6.google.com/v1/drive/media/{video_id}/playback',
             video_id, 'Downloading video webpage', query={'key': 'AIzaSyDVQw45DwoYh632gvsP5vPDqEKvb-Ywnb8'},
-            headers={'Referer': 'https://drive.google.com/'})
+            headers={
+                'Referer': 'https://drive.google.com/',
+                'Origin': origin,
+                **headers,
+            })
 
         formats = []
         for fmt in traverse_obj(video_info, (
