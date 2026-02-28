@@ -195,7 +195,12 @@ class PlutoTVIE(PlutoTVBase):
         # sometimes if the link is not valid the API returns a random video as result
         # we have to check if the id is what we expect
         if (series.get('id') or series.get('_id')) != slug and series.get('slug') != slug:
-            raise ExtractorError('Failed to find movie or series', expected=True)
+            query['drmCapabilities'] = 'widevine:L3'
+            video_json = self._download_json('https://boot.pluto.tv/v4/start', slug, 'Checking if video is DRM protected', query=query)
+            series = video_json['VOD'][0]
+            if (series.get('id') or series.get('_id')) != slug and series.get('slug') != slug:
+                raise ExtractorError('Failed to find movie or series', expected=True)
+            self.report_drm(slug)
 
         if episode_id:
             episode = traverse_obj(video_json, ('VOD', 1))
