@@ -47,6 +47,7 @@ def get_formats(host, video_file):
 
 class TxxxIE(InfoExtractor):
     _DOMAINS = (
+        'fullvideosporn.com',
         'hclips.com',
         'hdzog.com',
         'hdzog.tube',
@@ -117,6 +118,22 @@ class TxxxIE(InfoExtractor):
             'dislike_count': int,
             'age_limit': 18,
             'thumbnail': 'https://tn.vxxx.com/contents/videos_sources/68000/68925/screenshots/1.jpg',
+        },
+    }, {
+        'url': 'https://fullvideosporn.com/video/1182723/carrie-sass-and-lucy-li-her-wonderful-breasts/',
+        'md5': 'c676fe0a0fbbad421a0b329f01a6d52d',
+        'info_dict': {
+            'id': '1182723',
+            'display_id': 'carrie-sass-and-lucy-li-her-wonderful-breasts',
+            'ext': 'mp4',
+            'title': 'Carrie Sass And Lucy Li - Her Wonderful Breasts',
+            'uploader': 'Walter Kostovski',
+            'duration': 1577,
+            'view_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'age_limit': 18,
+            'thumbnail': 'https://tn.sextu.com/media/tn/1182723_preview.webp',
         },
     }, {
         'url': 'https://hclips.com/videos/6291073/malena-morgan-masturbates-her-sweet/',
