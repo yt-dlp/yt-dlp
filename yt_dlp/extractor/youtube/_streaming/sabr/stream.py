@@ -828,6 +828,7 @@ class SabrStream:
             for selector in self.processor.format_selectors() if not selector.discard_media
         )
 
+    # region: logging
     def _log_part(self, part: UMPPart, msg=None, protobug_obj=None, data=None):
         if self.logger.log_level > self.logger.LogLevel.TRACE:
             return
@@ -843,35 +844,38 @@ class SabrStream:
             message += f' Data: {base64.b64encode(data).decode("utf-8")}'
         self.logger.trace(message.strip())
 
-    def _log_state(self):
-        # TODO: refactor
-        if self.logger.log_level > self.logger.LogLevel.DEBUG:
-            return
-
-        if self.processor.is_live and self.processor.post_live:
-            live_message = f'post_live ({self.processor.live_segment_target_duration_sec}s)'
-        elif self.processor.is_live:
-            live_message = f'live ({self.processor.live_segment_target_duration_sec}s)'
-        else:
-            live_message = 'not_live'
-
+    def _stats_live_parts(self):
+        parts = []
         if self.processor.is_live:
-            live_message += ' bid:' + str_or_none(broadcast_id_from_url(self.url))
+            if self.processor.post_live:
+                parts.append('post_live')
+            else:
+                parts.append('live')
+            parts.append(f'{self.processor.live_segment_target_duration_sec}s')
+            parts.append('bid:' + (str_or_none(broadcast_id_from_url(self.url)) or 'n/a'))
 
-        consumed_ranges_message = (
-            ', '.join(
-                f'{izf.format_id.itag}:'
-                + ', '.join(
-                    f'{cf.start_sequence_number}-{cf.end_sequence_number} '
-                    f'({cf.start_time_ms}-'
-                    f'{cf.start_time_ms + cf.duration_ms})'
-                    for cf in izf.consumed_ranges
-                )
-                for izf in self.processor.initialized_formats.values()
-            ) or 'none'
-        )
+            if self.processor.live_state:
+                parts.append(f'hs:{self.processor.live_state.head_sequence_number}')
+                parts.append(f'hst:{self.processor.live_state.head_sequence_time_ms}')
+                parts.append(f'mxt:{self.processor.live_state.max_seekable_time_ms}')
+                parts.append(f'mnt:{self.processor.live_state.min_seekable_time_ms}')
+        else:
+            parts.append('vod')
+        return parts
 
-        izf_parts = []
+    def _stats_cr_part(self):
+        parts = []
+        for izf in self.processor.initialized_formats.values():
+            segs = ', '.join(
+                f'{cf.start_sequence_number}-{cf.end_sequence_number} ({cf.start_time_ms}-{cf.start_time_ms + cf.duration_ms})'
+                for cf in izf.consumed_ranges
+            )
+            parts.append(f'{izf.format_id.itag}:' + (segs or ''))
+        message = ', '.join(parts) if parts else 'none'
+        return f'cr:[{message}]'
+
+    def _stats_izf_part(self):
+        parts = []
         for izf in self.processor.initialized_formats.values():
             s = f'{izf.format_id.itag}'
             if izf.discard:
@@ -879,39 +883,71 @@ class SabrStream:
             p = []
             if izf.last_segment_number:
                 p.append(f'{izf.last_segment_number}')
+            # TODO: what is sequence_lmt?
             if izf.sequence_lmt is not None:
                 p.append(f'lmt={izf.sequence_lmt}')
             if p:
-                s += ('(' + ','.join(p) + ')')
-            izf_parts.append(s)
+                s += '(' + ','.join(p) + ')'
+            parts.append(s)
+        message = ', '.join(parts) if parts else 'none'
+        return f'if:[{message}]'
 
-        initialized_formats_message = ', '.join(izf_parts) or 'none'
+    def _stats_unkpt_parts(self):
+        if not self._unknown_part_types:
+            return []
+        return ['unkpt:' + ', '.join(part_type.name for part_type in self._unknown_part_types)]
 
-        unknown_part_message = ''
-        if self._unknown_part_types:
-            unknown_part_message = 'unkpt:' + ', '.join(part_type.name for part_type in self._unknown_part_types)
+    def _stats_cu_part(self):
+        if not self.processor.sabr_context_updates:
+            return ''
+        items = []
+        for k in self.processor.sabr_context_updates:
+            items.append(f'{k}{"(n)" if k not in self.processor.sabr_contexts_to_send else ""}')
+        return 'cu:[' + ','.join(items) + ']'
 
-        sabr_context_update_msg = ''
-        if self.processor.sabr_context_updates:
-            sabr_context_update_msg += 'cu:[' + ','.join(
-                f'{k}{"(n)" if k not in self.processor.sabr_contexts_to_send else ""}'
-                for k in self.processor.sabr_context_updates
-            ) + ']'
+    def _stats_host_part(self):
+        host = urllib.parse.urlparse(self.url).netloc
+        return f'h:{host[:-len(".googlevideo.com")]}'
 
-        self.logger.debug(
-            "[SABR State] "
-            f"v:{self.processor.video_id or 'unknown'} "
-            f"c:{self.processor.client_info.client_name.name} "
-            f"t:{self.processor.player_time_ms} "
-            f"h:{urllib.parse.urlparse(self.url).netloc} "
-            f"exp:{dt.timedelta(seconds=int(self._gvs_expiry() - time.time())) if self._gvs_expiry() else 'n/a'} "
-            f"rn:{self._request_number} sr:{self._stream_stall_tracker.stalled_requests} "
-            f"act:{'Y' if self._stream_stall_tracker.activity_detected else 'N'} "
-            f"pot:{'Y' if self.processor.po_token else 'N'} "
-            f"sps:{self.processor.stream_protection_status.name if self.processor.stream_protection_status else 'n/a'} "
-            f"{live_message} "
-            f"if:[{initialized_formats_message}] "
-            f"cr:[{consumed_ranges_message}] "
-            f"{sabr_context_update_msg} "
-            f"{unknown_part_message}",
-        )
+    def _stats_pot_parts(self):
+        parts = [f"pot:{'Y' if self.processor.po_token else 'N'}"]
+        status = getattr(self.processor.stream_protection_status, 'name', 'n/a')
+        parts.append(f'sps:{status}')
+        return parts
+
+    def _stats_stall_parts(self):
+        return [
+            f'sr:{self._stream_stall_tracker.stalled_requests}',
+            f'act:{"Y" if self._stream_stall_tracker.activity_detected else "N"}']
+
+    def _stats_exp_part(self):
+        expires_at = self._gvs_expiry()
+        if expires_at is None:
+            return 'exp:n/a'
+        expires_in = dt.timedelta(seconds=int(expires_at - time.time()))
+        return f'exp:{expires_in}'
+
+    def create_stats_str(self):
+        parts = [
+            f"v:{self.processor.video_id or 'unknown'}",
+            f'c:{self.processor.client_info.client_name.name}',
+            f't:{self.processor.player_time_ms}',
+            self._stats_host_part(),
+            self._stats_exp_part(),
+            f'rn:{self._request_number}',
+            *self._stats_stall_parts(),
+            *self._stats_pot_parts(),
+            *self._stats_live_parts(),
+            self._stats_izf_part(),
+            self._stats_cr_part(),
+            self._stats_cu_part(),
+            *self._stats_unkpt_parts(),
+        ]
+        return ' '.join(parts)
+
+    def _log_state(self):
+        if self.logger.log_level > self.logger.LogLevel.DEBUG:
+            return
+        self.logger.debug(f'[SABR State] {self.create_stats_str()}')
+
+    # endregion
