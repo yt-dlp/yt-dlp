@@ -37,7 +37,7 @@ class IwaraBaseIE(InfoExtractor):
         user_token = IwaraBaseIE._USERTOKEN or self.cache.load(self._NETRC_MACHINE, username)
         if not user_token or self._is_token_expired(user_token, 'User'):
             response = self._download_json(
-                'https://api.iwara.tv/user/login', None, note='Logging in',
+                'https://apiq.iwara.tv/user/login', None, note='Logging in',
                 headers={'Content-Type': 'application/json'}, data=json.dumps({
                     'email': username,
                     'password': password,
@@ -61,7 +61,7 @@ class IwaraBaseIE(InfoExtractor):
 
         if not IwaraBaseIE._MEDIATOKEN or self._is_token_expired(IwaraBaseIE._MEDIATOKEN, 'Media'):
             IwaraBaseIE._MEDIATOKEN = self._download_json(
-                'https://api.iwara.tv/user/token', None, note='Fetching media token',
+                'https://apiq.iwara.tv/user/token', None, note='Fetching media token',
                 data=b'', headers={
                     'Authorization': f'Bearer {IwaraBaseIE._USERTOKEN}',
                     'Content-Type': 'application/json',
@@ -147,7 +147,7 @@ class IwaraIE(IwaraBaseIE):
         q = urllib.parse.parse_qs(up.query)
         paths = up.path.rstrip('/').split('/')
         # https://github.com/yt-dlp/yt-dlp/issues/6549#issuecomment-1473771047
-        x_version = hashlib.sha1('_'.join((paths[-1], q['expires'][0], '5nFp9kmbNnHdAFhaqMvt')).encode()).hexdigest()
+        x_version = hashlib.sha1('_'.join((paths[-1], q['expires'][0], 'mSvL05GfEmeEmsEYfGCnVpEjYgTJraJN')).encode()).hexdigest()
 
         preference = qualities(['preview', '360', '540', 'Source'])
 
@@ -165,7 +165,7 @@ class IwaraIE(IwaraBaseIE):
         video_id = self._match_id(url)
         username, _ = self._get_login_info()
         video_data = self._download_json(
-            f'https://api.iwara.tv/video/{video_id}', video_id,
+            f'https://apiq.iwara.tv/video/{video_id}', video_id,
             expected_status=lambda x: True, headers=self._get_media_token())
         errmsg = video_data.get('message')
         # at this point we can actually get uploaded user info, but do we need it?
@@ -238,7 +238,7 @@ class IwaraUserIE(IwaraBaseIE):
 
     def _entries(self, playlist_id, user_id, page):
         videos = self._download_json(
-            'https://api.iwara.tv/videos', playlist_id,
+            'https://apiq.iwara.tv/videos', playlist_id,
             note=f'Downloading page {page}',
             query={
                 'page': page,
@@ -252,7 +252,7 @@ class IwaraUserIE(IwaraBaseIE):
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
         user_info = self._download_json(
-            f'https://api.iwara.tv/profile/{playlist_id}', playlist_id,
+            f'https://apiq.iwara.tv/profile/{playlist_id}', playlist_id,
             note='Requesting user info')
         user_id = traverse_obj(user_info, ('user', 'id'))
 
@@ -278,7 +278,7 @@ class IwaraPlaylistIE(IwaraBaseIE):
 
     def _entries(self, playlist_id, first_page, page):
         videos = self._download_json(
-            'https://api.iwara.tv/videos', playlist_id, f'Downloading page {page}',
+            'https://apiq.iwara.tv/videos', playlist_id, f'Downloading page {page}',
             query={'page': page, 'limit': self._PER_PAGE},
             headers=self._get_media_token()) if page else first_page
         for x in traverse_obj(videos, ('results', ..., 'id')):
@@ -287,7 +287,7 @@ class IwaraPlaylistIE(IwaraBaseIE):
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
         page_0 = self._download_json(
-            f'https://api.iwara.tv/playlist/{playlist_id}?page=0&limit={self._PER_PAGE}', playlist_id,
+            f'https://apiq.iwara.tv/playlist/{playlist_id}?page=0&limit={self._PER_PAGE}', playlist_id,
             note='Requesting playlist info', headers=self._get_media_token())
 
         return self.playlist_result(
