@@ -31,52 +31,65 @@ class AccountantsAcademyBaseIE(InfoExtractor):
     def cached_tokens(self):
         if self._ACCESS_TOKEN and not self._is_jwt_expired(self._ACCESS_TOKEN):
             return self._ACCESS_TOKEN
+
+        self._ACCESS_TOKEN, self._REFRESH_TOKEN = self.cache.load(
+            self._NETRC_MACHINE, self._CACHE_KEY, default=[None, None])
+
+        if self._ACCESS_TOKEN and not self._is_jwt_expired(self._ACCESS_TOKEN):
+            return self._ACCESS_TOKEN
         elif self._REFRESH_TOKEN:
-            self._refresh_access_token()
-            return True
-        else:
-            self._ACCESS_TOKEN, self._REFRESH_TOKEN = self.cache.load(
-                self._NETRC_MACHINE, self._CACHE_KEY, default=[None, None])
-            if self._ACCESS_TOKEN and not self._is_jwt_expired(self._ACCESS_TOKEN):
-                return self._ACCESS_TOKEN
-            elif self._REFRESH_TOKEN:
-                self._refresh_access_token()
-                return True
+            try:
+                return self._refresh_access_token()
+            except ExtractorError:
+                return None
 
         return None
 
     def _refresh_access_token(self):
-        refresh_data = traverse_obj(self._call_api(
+        refresh_data = self._graphql(
             None,
-            note='Refreshing access token',
             operationname=None,
             variables={'refresh_token': self._REFRESH_TOKEN},
             query='''
-                mutation RefreshToken($refresh_token: String!) {
-                    refreshToken(refresh_token: $refresh_token) {
-                        access_token
-                        refresh_token
+                    mutation RefreshToken($refresh_token: String!) {
+                        refreshToken(refresh_token: $refresh_token) {
+                            access_token
+                            refresh_token
+                        }
                     }
-                }
-            ''',
-        ), ('refreshToken'))
+                ''',
+            note='Refreshing token',
+        )
 
-        self._ACCESS_TOKEN = refresh_data.get('access_token')
+        if errors := refresh_data.get('errors'):
+            msg = traverse_obj(errors, (..., 'message', {str}), default='', get_all=False)
+            raise ExtractorError(msg)
+
+        data = traverse_obj(refresh_data, ('data', 'refreshToken'))
+        self._ACCESS_TOKEN = data.get('access_token')
         if not self._ACCESS_TOKEN:
-            raise ExtractorError('Unable to refresh: no access token found')
-        self._REFRESH_TOKEN = refresh_data.get('refresh_token')
-        self.cache.store(self._NETRC_MACHINE, self._CACHE_KEY, [self._ACCESS_TOKEN, self._REFRESH_TOKEN])
+            raise ExtractorError('Unable to refresh access token')
 
-    def _perform_login(self, username, password):
+        self._REFRESH_TOKEN = data.get('refresh_token')
+        self.cache.store(
+            self._NETRC_MACHINE,
+            self._CACHE_KEY,
+            [self._ACCESS_TOKEN, self._REFRESH_TOKEN],
+        )
+        return self._ACCESS_TOKEN
+
+    def _perform_login(self, username, password, force=False):
         if username.lower() == 'token' and password:
             self._ACCESS_TOKEN = password
-            return
-        elif self.cached_tokens():
-            return
+            return self._ACCESS_TOKEN
 
-        login = traverse_obj(self._call_api(
+        if not force:
+            if token := self.cached_tokens():
+                return token
+
+        login = self._graphql(
             None,
-            note='Loggin in',
+            note='Logging in',
             operationname='login',
             variables={
                 'email': username,
@@ -91,55 +104,68 @@ class AccountantsAcademyBaseIE(InfoExtractor):
                     }
                 }
             ''',
-        ), ('login'))
+        )
 
-        self._ACCESS_TOKEN = login.get('access_token')
+        if errors := login.get('errors'):
+            msg = traverse_obj(errors, (..., 'message', {str}), default='', get_all=False)
+            if 'invalid credentials' in msg.lower():
+                raise ExtractorError('Login failed: Invalid username or password')
+            raise ExtractorError(msg)
+
+        data = traverse_obj(login, ('data', 'login'))
+        self._ACCESS_TOKEN = data.get('access_token')
         if not self._ACCESS_TOKEN:
             raise ExtractorError('Login failed: no access token found')
-        self._REFRESH_TOKEN = login.get('refresh_token')
-        self.cache.store(self._NETRC_MACHINE, self._CACHE_KEY, [self._ACCESS_TOKEN, self._REFRESH_TOKEN])
+
+        self._REFRESH_TOKEN = data.get('refresh_token')
+        self.cache.store(
+            self._NETRC_MACHINE,
+            self._CACHE_KEY,
+            [self._ACCESS_TOKEN, self._REFRESH_TOKEN])
+
+        return self._ACCESS_TOKEN
 
     def _call_api(self, video_id, query, operationname, variables, note='Downloading JSON metadata', **kwargs):
         headers = kwargs.get('headers') or {}
         if self._ACCESS_TOKEN:
             headers['Authorization'] = f'Bearer {self._ACCESS_TOKEN}'
 
-        data = self._download_json(
+        data = self._graphql(video_id, query, operationname, variables, note, headers=headers)
+
+        if errors := data.get('errors'):
+            msg = traverse_obj(errors, (..., 'message', {str}), default='', get_all=False)
+
+            if msg == 'Unauthorized':
+                self.raise_login_required()
+            elif 'api-key' in msg.lower():
+                self.to_screen('Access token expired, refreshing token')
+                try:
+                    self._refresh_access_token()
+                except ExtractorError:
+                    self._perform_login(*self._get_login_info(), force=True)
+                return self._call_api(video_id, query, operationname, variables, note)
+            raise ExtractorError(msg)
+
+        return data.get('data')
+
+    def _graphql(self, video_id, query, operationname, variables, note='Downloading JSON metadata', **kwargs):
+        headers = dict(kwargs.get('headers') or {})
+        return self._download_json(
             'https://platform.accountantsacademy.be/graphql',
             video_id,
             data=json.dumps({
-                'operationname': operationname,
+                'operationName': operationname,
                 'query': query,
                 'variables': variables,
             }).encode(),
             headers={
-                **headers,
                 'referer': 'https://platform.accountantsacademy.be/',
                 'x-academy-host': 'platform.accountantsacademy.be',
                 'content-type': 'application/json',
+                **headers,
             },
             note=note,
         )
-        errors = data.get('errors')
-        msg = traverse_obj(errors, (..., 'message', {str}), default='', get_all=False)
-        is_expected = msg in ('Invalid credentials',)
-
-        if errors and msg == 'Unauthorized':
-            self.raise_login_required()
-        elif errors and 'api-key' in msg.lower():
-            self.to_screen('Access token expired refreshing token')
-            self._refresh_access_token()
-            return self._call_api(video_id, query, operationname, variables)
-        elif errors and 'token not found or expired' in msg.lower():
-            self.report_warning('refresh token expired, retrying with credentials')
-            self._ACCESS_TOKEN, self._REFRESH_TOKEN = None, None
-            self.cache.store(self._NETRC_MACHINE, self._CACHE_KEY, [self._ACCESS_TOKEN, self._REFRESH_TOKEN])
-            self._perform_login(*self._get_login_info())
-            return self._call_api(video_id, query, operationname, variables)
-        elif errors:
-            raise ExtractorError(msg, expected=is_expected)
-
-        return data['data']
 
     def _parse_cf_formats_and_subtitles(self, video_id, data):
         if isinstance(data, list):
@@ -315,10 +341,9 @@ class AccountantsAcademyIE(AccountantsAcademyBaseIE):
                         _id
                         title
                         units {
-                            ... on ContentUnit {
-                                _id
-                            }
                             ... on VideoUnit {
+                                _id
+                                name
                                 cf_stream {
                                     duration
                                     thumbnail
@@ -353,26 +378,23 @@ class AccountantsAcademyIE(AccountantsAcademyBaseIE):
             })}
 
         def entries(metadata):
-            for units in metadata.get('contents', []):
-                title = units.get('title', '')
-                unit_id = units.get('_id')
-                if 'afsluitende toets' in title.lower() or 'feedbackformulier' in title.lower():
+            for unit in traverse_obj(metadata, ('contents', ..., 'units', lambda _, v: v.get('__typename') == 'VideoUnit'), default=[]):
+                unit_id = unit.get('_id')
+                title = unit.get('name') or unit.get('title') or f'Course by Accountantsacademy_{unit_id}'
+                if not unit.get('cf_stream') or not unit:
                     continue
-                for unit in traverse_obj(units, ('units', lambda _, v: v.get('__typename') == 'VideoUnit'), default=[]):
-                    if not unit.get('cf_stream') or not unit:
-                        continue
-                    formats, subtitles = self._parse_cf_formats_and_subtitles(unit_id, unit)
-                    if not formats and subtitles:
-                        continue
+                formats, subtitles = self._parse_cf_formats_and_subtitles(unit_id, unit)
+                if not formats and subtitles:
+                    continue
 
-                    yield {
-                        'id': unit_id,
-                        'title': title,
-                        'formats': formats,
-                        'subtitles': subtitles,
-                        **self._parse_cf_metadata(metadata),
-                        **unit_metadata,
-                    }
+                yield {
+                    'id': unit_id,
+                    'title': title,
+                    'formats': formats,
+                    'subtitles': subtitles,
+                    **self._parse_cf_metadata(metadata),
+                    **unit_metadata,
+                }
 
         return self.playlist_result(
             entries=entries(metadata), playlist_id=slug,
