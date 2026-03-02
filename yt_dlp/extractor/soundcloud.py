@@ -6,6 +6,7 @@ import re
 from .common import InfoExtractor, SearchInfoExtractor
 from ..networking import HEADRequest
 from ..networking.exceptions import HTTPError
+from ..networking.impersonate import ImpersonateTarget
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -118,9 +119,9 @@ class SoundcloudBaseIE(InfoExtractor):
         self.cache.store('soundcloud', 'client_id', client_id)
 
     def _update_client_id(self):
-        webpage = self._download_webpage('https://soundcloud.com/', None)
+        webpage = self._download_webpage('https://soundcloud.com/', None, 'Downloading main page')
         for src in reversed(re.findall(r'<script[^>]+src="([^"]+)"', webpage)):
-            script = self._download_webpage(src, None, fatal=False)
+            script = self._download_webpage(src, None, 'Downloading JS asset', fatal=False)
             if script:
                 client_id = self._search_regex(
                     r'client_id\s*:\s*"([0-9a-zA-Z]{32})"',
@@ -136,13 +137,13 @@ class SoundcloudBaseIE(InfoExtractor):
         if non_fatal:
             del kwargs['fatal']
         query = kwargs.get('query', {}).copy()
-        for _ in range(2):
+        for is_first_attempt in (True, False):
             query['client_id'] = self._CLIENT_ID
             kwargs['query'] = query
             try:
                 return self._download_json(*args, **kwargs)
             except ExtractorError as e:
-                if isinstance(e.cause, HTTPError) and e.cause.status in (401, 403):
+                if is_first_attempt and isinstance(e.cause, HTTPError) and e.cause.status in (401, 403):
                     self._store_client_id(None)
                     self._update_client_id()
                     continue
@@ -152,7 +153,10 @@ class SoundcloudBaseIE(InfoExtractor):
                 raise
 
     def _initialize_pre_login(self):
-        self._CLIENT_ID = self.cache.load('soundcloud', 'client_id') or 'a3e059563d7fd3372b49b37f00a00bcf'
+        self._CLIENT_ID = self.cache.load('soundcloud', 'client_id')
+        if self._CLIENT_ID:
+            return
+        self._update_client_id()
 
     def _verify_oauth_token(self, token):
         if self._request_webpage(
@@ -830,6 +834,30 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudBaseIE):
             'entries': self._entries(base_url, playlist_id),
         }
 
+    @functools.cached_property
+    def _browser_impersonate_target(self):
+        available_targets = self._downloader._get_available_impersonate_targets()
+        if not available_targets:
+            # impersonate=True gives a generic warning when no impersonation targets are available
+            return True
+
+        # Any browser target older than chrome-116 is 403'd by Datadome
+        MIN_SUPPORTED_TARGET = ImpersonateTarget('chrome', '116', 'windows', '10')
+        version_as_float = lambda x: float(x.version) if x.version else 0
+
+        # Always try to use the newest Chrome target available
+        filtered = sorted([
+            target[0] for target in available_targets
+            if target[0].client == 'chrome' and target[0].os in ('windows', 'macos')
+        ], key=version_as_float)
+
+        if not filtered or version_as_float(filtered[-1]) < version_as_float(MIN_SUPPORTED_TARGET):
+            # All available targets are inadequate or newest available Chrome target is too old, so
+            # warn the user to upgrade their dependency to a version with the minimum supported target
+            return MIN_SUPPORTED_TARGET
+
+        return filtered[-1]
+
     def _entries(self, url, playlist_id):
         # Per the SoundCloud documentation, the maximum limit for a linked partitioning query is 200.
         # https://developers.soundcloud.com/blog/offset-pagination-deprecated
@@ -844,7 +872,9 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudBaseIE):
                 try:
                     response = self._call_api(
                         url, playlist_id, query=query, headers=self._HEADERS,
-                        note=f'Downloading track page {i + 1}')
+                        note=f'Downloading track page {i + 1}',
+                        # See: https://github.com/yt-dlp/yt-dlp/issues/15660
+                        impersonate=self._browser_impersonate_target)
                     break
                 except ExtractorError as e:
                     # Downloading page may result in intermittent 502 HTTP error

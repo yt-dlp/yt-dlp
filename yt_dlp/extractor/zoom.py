@@ -4,13 +4,15 @@ from ..utils import (
     int_or_none,
     js_to_json,
     parse_filesize,
+    parse_qs,
     parse_resolution,
     str_or_none,
-    traverse_obj,
+    update_url_query,
     url_basename,
     urlencode_postdata,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class ZoomIE(InfoExtractor):
@@ -87,6 +89,7 @@ class ZoomIE(InfoExtractor):
     def _real_extract(self, url):
         base_url, url_type, video_id = self._match_valid_url(url).group('base_url', 'type', 'id')
         query = {}
+        start_params = traverse_obj(url, {'startTime': ({parse_qs}, 'startTime', -1)})
 
         if url_type == 'share':
             webpage = self._get_real_webpage(url, base_url, video_id, 'share')
@@ -94,7 +97,7 @@ class ZoomIE(InfoExtractor):
             redirect_path = self._download_json(
                 f'{base_url}nws/recording/1.0/play/share-info/{meeting_id}',
                 video_id, note='Downloading share info JSON')['result']['redirectUrl']
-            url = urljoin(base_url, redirect_path)
+            url = update_url_query(urljoin(base_url, redirect_path), start_params)
             query['continueMode'] = 'true'
 
         webpage = self._get_real_webpage(url, base_url, video_id, 'play')
@@ -103,6 +106,7 @@ class ZoomIE(InfoExtractor):
             # When things go wrong, file_id can be empty string
             raise ExtractorError('Unable to extract file ID')
 
+        query.update(start_params)
         data = self._download_json(
             f'{base_url}nws/recording/1.0/play/info/{file_id}', video_id, query=query,
             note='Downloading play info JSON')['result']
