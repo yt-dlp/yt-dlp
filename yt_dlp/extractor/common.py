@@ -1828,6 +1828,7 @@ class InfoExtractor:
             # Ref: https://github.com/vercel/next.js/blob/5a4a08fdc/packages/next/src/server/app-render/use-flight-response.tsx#L11-L14
             payload_type, chunk = segment
             if payload_type == 1:
+                flight_text += '\n'
                 flight_text += chunk
 
         for f in flight_text.splitlines():

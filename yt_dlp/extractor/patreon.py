@@ -681,6 +681,7 @@ class PatreonCampaignIE(PatreonBaseIE):
             webpage = self._download_webpage(url, vanity, headers={'User-Agent': self.patreon_user_agent})
             campaign_id = traverse_obj(self._search_nextjs_data(webpage, vanity, default=None), (
                 'props', 'pageProps', 'bootstrapEnvelope', 'pageBootstrap', 'campaign', 'data', 'id', {str}))
+            
             if not campaign_id:
                 campaign_id = traverse_obj(self._search_nextjs_v13_data(webpage, vanity), (
                     ((..., 'value', 'campaign', 'data'), lambda _, v: v['type'] == 'campaign'),
