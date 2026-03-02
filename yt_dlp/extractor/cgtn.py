@@ -2,14 +2,14 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     clean_html,
+    extract_attributes,
     float_or_none,
+    get_element_html_by_id,
     try_get,
     unescapeHTML,
     unified_strdate,
     unified_timestamp,
     url_or_none,
-    get_element_html_by_id,
-    extract_attributes,
 )
 from ..utils.traversal import traverse_obj
 
