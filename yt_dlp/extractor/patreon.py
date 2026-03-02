@@ -25,6 +25,7 @@ from ..utils.traversal import (
     find_elements,
     require,
     traverse_obj,
+    trim_str,
     value,
 )
 
@@ -624,14 +625,13 @@ class PatreonCampaignIE(PatreonBaseIE):
         'info_dict': {
             'id': '9631148',
             'title': 'Anything Else?',
-            'description': 'md5:2ee1db4aed2f9460c2b295825a24aa08',
+            'description': 'md5:b2f20eec4cb5520d9a4be4971f28add5',
             'uploader': 'dan ',
             'uploader_id': '13852412',
             'uploader_url': 'https://www.patreon.com/anythingelse',
             'channel': 'Anything Else?',
             'channel_id': '9631148',
             'channel_url': 'https://www.patreon.com/anythingelse',
-            'channel_follower_count': int,
             'age_limit': 0,
             'thumbnail': r're:https?://.+/.+',
         },
@@ -676,18 +676,15 @@ class PatreonCampaignIE(PatreonBaseIE):
                 break
 
     def _real_extract(self, url):
-
         campaign_id, vanity = self._match_valid_url(url).group('campaign_id', 'vanity')
         if campaign_id is None:
-            webpage = self._download_webpage(
-                url, vanity, headers=filter_dict({'User-Agent': self.patreon_user_agent}),
-                impersonate=not self.patreon_user_agent)
-            campaign_id = traverse_obj(self._search_nextjs_data(webpage, vanity, default=None), (
-                'props', 'pageProps', 'bootstrapEnvelope', 'pageBootstrap', 'campaign', 'data', 'id', {str}))
-            if not campaign_id:
-                campaign_id = traverse_obj(self._search_nextjs_v13_data(webpage, vanity), (
-                    ((..., 'value', 'campaign', 'data'), lambda _, v: v['type'] == 'campaign'),
-                    'id', {str}, any, {require('campaign ID')}))
+            results = self._call_api('search', vanity, query={
+                'q': vanity,
+                'page[size]': '5',
+            })['data']
+            campaign_id = traverse_obj(results, (
+                lambda _, v: v['type'] == 'campaign-document' and v['attributes']['url'].lower().endswith(f'/{vanity.lower()}'),
+                'id', {trim_str(start='campaign_')}, filter, any, {require('campaign ID')}))
 
         params = {
             'json-api-use-default-includes': 'false',
