@@ -680,6 +680,10 @@ class TwitchPlaylistBaseIE(TwitchBaseIE):
                 }],
                 f'Downloading {self._NODE_KIND}s GraphQL page {page_num}',
                 fatal=False)
+            # Avoid extracting random/unrelated entries when channel_name doesn't exist
+            # See https://github.com/yt-dlp/yt-dlp/issues/15450
+            if traverse_obj(page, (0, 'data', 'user', 'id', {str})) == '':
+                raise ExtractorError(f'Channel "{channel_name}" not found', expected=True)
             if not page:
                 break
             edges = try_get(
