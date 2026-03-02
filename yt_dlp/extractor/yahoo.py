@@ -13,55 +13,16 @@ from ..utils import (
     parse_iso8601,
     traverse_obj,
     try_get,
+    update_url,
     url_or_none,
 )
 
 
 class YahooIE(InfoExtractor):
-    IE_DESC = 'Yahoo screen and movies'
+    IE_NAME = 'yahoo'
     _VALID_URL = r'(?P<url>https?://(?:(?P<country>[a-zA-Z]{2}(?:-[a-zA-Z]{2})?|malaysia)\.)?(?:[\da-zA-Z_-]+\.)?yahoo\.com/(?:[^/]+/)*(?P<id>[^?&#]*-[0-9]+(?:-[a-z]+)?)\.html)'
-    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>https?://(?:screen|movies)\.yahoo\.com/.+?\.html\?format=embed)\1']
-
     _TESTS = [{
-        'url': 'http://screen.yahoo.com/julian-smith-travis-legg-watch-214727115.html',
-        'info_dict': {
-            'id': '2d25e626-2378-391f-ada0-ddaf1417e588',
-            'ext': 'mp4',
-            'title': 'Julian Smith & Travis Legg Watch Julian Smith',
-            'description': 'Julian and Travis watch Julian Smith',
-            'duration': 6863,
-            'timestamp': 1369812016,
-            'upload_date': '20130529',
-        },
-        'skip': 'No longer exists',
-    }, {
-        'url': 'https://screen.yahoo.com/community/community-sizzle-reel-203225340.html?format=embed',
-        'md5': '7993e572fac98e044588d0b5260f4352',
-        'info_dict': {
-            'id': '4fe78544-8d48-39d8-97cd-13f205d9fcdb',
-            'ext': 'mp4',
-            'title': "Yahoo Saves 'Community'",
-            'description': 'md5:4d4145af2fd3de00cbb6c1d664105053',
-            'duration': 170,
-            'timestamp': 1406838636,
-            'upload_date': '20140731',
-        },
-        'skip': 'Unfortunately, this video is not available in your region',
-    }, {
-        'url': 'https://uk.screen.yahoo.com/editor-picks/cute-raccoon-freed-drain-using-091756545.html',
-        'md5': '71298482f7c64cbb7fa064e4553ff1c1',
-        'info_dict': {
-            'id': 'b3affa53-2e14-3590-852b-0e0db6cd1a58',
-            'ext': 'webm',
-            'title': 'Cute Raccoon Freed From Drain\u00a0Using Angle Grinder',
-            'description': 'md5:f66c890e1490f4910a9953c941dee944',
-            'duration': 97,
-            'timestamp': 1414489862,
-            'upload_date': '20141028',
-        },
-        'skip': 'No longer exists',
-    }, {
-        'url': 'http://news.yahoo.com/video/china-moses-crazy-blues-104538833.html',
+        'url': 'https://news.yahoo.com/video/china-moses-crazy-blues-104538833.html',
         'md5': '88e209b417f173d86186bef6e4d1f160',
         'info_dict': {
             'id': 'f885cf7f-43d4-3450-9fac-46ac30ece521',
@@ -69,27 +30,33 @@ class YahooIE(InfoExtractor):
             'title': 'China Moses Is Crazy About the Blues',
             'description': 'md5:9900ab8cd5808175c7b3fe55b979bed0',
             'duration': 128,
-            'timestamp': 1385722202,
+            'timestamp': 1385721938,
             'upload_date': '20131129',
+            'display_id': 'china-moses-crazy-blues-104538833',
+            'view_count': int,
+            'thumbnail': r're:https://media\.zenfs\.com/.+',
         },
     }, {
         'url': 'https://www.yahoo.com/movies/v/true-story-trailer-173000497.html',
-        'md5': '2a9752f74cb898af5d1083ea9f661b58',
+        # 'md5': '989396ae73d20c6f057746fb226aa215',  # varies between this and 'b17ac378b1134fa44370fb27db09a744'
         'info_dict': {
             'id': '071c4013-ce30-3a93-a5b2-e0413cd4a9d1',
             'ext': 'mp4',
             'title': '\'True Story\' Trailer',
             'description': 'True Story',
             'duration': 150,
-            'timestamp': 1418919206,
+            'timestamp': 1418923800,
             'upload_date': '20141218',
+            'display_id': 'true-story-trailer-173000497',
+            'view_count': int,
+            'thumbnail': r're:https://media\.zenfs\.com/.+\.jpg',
         },
     }, {
         'url': 'https://gma.yahoo.com/pizza-delivery-man-surprised-huge-tip-college-kids-195200785.html',
         'only_matching': True,
     }, {
         'note': 'NBC Sports embeds',
-        'url': 'http://sports.yahoo.com/blogs/ncaab-the-dagger/tyler-kalinoski-s-buzzer-beater-caps-davidson-s-comeback-win-185609842.html?guid=nbc_cbk_davidsonbuzzerbeater_150313',
+        'url': 'https://sports.yahoo.com/blogs/ncaab-the-dagger/tyler-kalinoski-s-buzzer-beater-caps-davidson-s-comeback-win-185609842.html?guid=nbc_cbk_davidsonbuzzerbeater_150313',
         'info_dict': {
             'id': '9CsDKds0kvHI',
             'ext': 'flv',
@@ -99,26 +66,10 @@ class YahooIE(InfoExtractor):
             'uploader': 'NBCU-SPORTS',
             'timestamp': 1426270238,
         },
+        'skip': 'Page no longer has video',
     }, {
         'url': 'https://tw.news.yahoo.com/-100120367.html',
         'only_matching': True,
-    }, {
-        # Query result is embedded in webpage, but explicit request to video API fails with geo restriction
-        'url': 'https://screen.yahoo.com/community/communitary-community-episode-1-ladders-154501237.html',
-        'md5': '4fbafb9c9b6f07aa8f870629f6671b35',
-        'info_dict': {
-            'id': '1f32853c-a271-3eef-8cb6-f6d6872cb504',
-            'ext': 'mp4',
-            'title': 'Communitary - Community Episode 1: Ladders',
-            'description': 'md5:8fc39608213295748e1e289807838c97',
-            'duration': 1646,
-            'timestamp': 1440436550,
-            'upload_date': '20150824',
-            'series': 'Communitary',
-            'season_number': 6,
-            'episode_number': 1,
-        },
-        'skip': 'No longer exists',
     }, {
         # ytwnews://cavideo/
         'url': 'https://tw.video.yahoo.com/movie-tw/單車天使-中文版預-092316541.html',
@@ -129,12 +80,16 @@ class YahooIE(InfoExtractor):
             'description': '中文版預',
             'timestamp': 1476696196,
             'upload_date': '20161017',
+            'view_count': int,
+            'duration': 141,
+            'thumbnail': r're:https://media\.zenfs\.com/.+\.jpg',
+            'series': '電影',
+            'display_id': '單車天使-中文版預-092316541',
         },
         'params': {
             'skip_download': True,
         },
     }, {
-        # Contains both a Yahoo hosted video and multiple Youtube embeds
         'url': 'https://www.yahoo.com/entertainment/gwen-stefani-reveals-the-pop-hit-she-passed-on-assigns-it-to-her-voice-contestant-instead-033045672.html',
         'info_dict': {
             'id': '46c5d95a-528f-3d03-b732-732fcadd51de',
@@ -147,24 +102,29 @@ class YahooIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Gwen Stefani reveals she turned down one of Sia\'s best songs',
                 'description': 'On "The Voice" Tuesday, Gwen Stefani told Taylor Swift which Sia hit was almost hers.',
-                'timestamp': 1572406500,
+                'timestamp': 1572406499,
                 'upload_date': '20191030',
-            },
-        }, {
-            'info_dict': {
-                'id': '352CFDOQrKg',
-                'ext': 'mp4',
-                'title': 'Kyndal Inskeep "Performs the Hell Out of" Sia\'s "Elastic Heart" - The Voice Knockouts 2019',
-                'description': 'md5:7fe8e3d5806f96002e55f190d1d94479',
-                'uploader': 'The Voice',
-                'uploader_id': 'NBCTheVoice',
-                'upload_date': '20191029',
+                'display_id': 'gwen-stefani-reveals-she-turned-033459311',
+                'view_count': int,
+                'duration': 97,
+                'thumbnail': 'https://s.yimg.com/os/creatr-uploaded-images/2019-10/348bb330-fac6-11e9-8d27-38e85d573702',
+                'series': 'Last Night Now',
             },
         }],
-        'params': {
-            'playlistend': 2,
+    }, {
+        'url': 'https://sports.yahoo.com/video/rams-lose-grip-nfcs-top-174614409.html',
+        'info_dict': {
+            'id': '6b15f100-cf5c-3ad0-9c96-87cbd2f72d4a',
+            'ext': 'mp4',
+            'display_id': 'rams-lose-grip-nfcs-top-174614409',
+            'title': 'Rams lose their grip on NFC\'s top seed — can they still secure the bye?',
+            'description': 'md5:5f4f98ab3c4de80e54c105b6bbb1d024',
+            'view_count': int,
+            'duration': 85,
+            'thumbnail': 'https://s.yimg.com/os/creatr-uploaded-images/2025-12/94fc4840-dd02-11f0-beff-38ba3a4992e3',
+            'timestamp': 1766166374,
+            'upload_date': '20251219',
         },
-        'expected_warnings': ['HTTP Error 404', 'Ignoring subtitle tracks'],
     }, {
         'url': 'https://malaysia.news.yahoo.com/video/bystanders-help-ontario-policeman-bust-190932818.html',
         'only_matching': True,
@@ -178,14 +138,12 @@ class YahooIE(InfoExtractor):
 
     def _extract_yahoo_video(self, video_id, country):
         video = self._download_json(
-            f'https://{country}.yahoo.com/_td/api/resource/VideoService.videos;view=full;video_ids=["{video_id}"]',
-            video_id, 'Downloading video JSON metadata')[0]
-        title = video['title']
-
+            f'https://video-api.yql.yahoo.com/v1/video/sapi/streams/{video_id}',
+            video_id, 'Downloading video JSON metadata')['query']['results']['mediaObj'][0]['meta']
         if country == 'malaysia':
             country = 'my'
 
-        is_live = video.get('live_state') == 'live'
+        is_live = traverse_obj(video, ('uplynk_live', {bool})) is True
         fmts = ('m3u8',) if is_live else ('webm', 'mp4')
 
         urls = []
@@ -231,43 +189,23 @@ class YahooIE(InfoExtractor):
                     'ext': mimetype2ext(cc.get('content_type')),
                 })
 
-        streaming_url = video.get('streaming_url')
-        if streaming_url and not is_live:
-            formats.extend(self._extract_m3u8_formats(
-                streaming_url, video_id, 'mp4',
-                'm3u8_native', m3u8_id='hls', fatal=False))
-
         if not formats and msg == 'geo restricted':
             self.raise_geo_restricted(metadata_available=True)
 
-        thumbnails = []
-        for thumb in video.get('thumbnails', []):
-            thumb_url = thumb.get('url')
-            if not thumb_url:
-                continue
-            thumbnails.append({
-                'id': thumb.get('tag'),
-                'url': thumb.get('url'),
-                'width': int_or_none(thumb.get('width')),
-                'height': int_or_none(thumb.get('height')),
-            })
-
-        series_info = video.get('series_info') or {}
-
         return {
             'id': video_id,
-            'title': title,
             'formats': formats,
-            'thumbnails': thumbnails,
-            'description': clean_html(video.get('description')),
-            'timestamp': parse_iso8601(video.get('publish_time')),
             'subtitles': subtitles,
-            'duration': int_or_none(video.get('duration')),
-            'view_count': int_or_none(video.get('view_count')),
             'is_live': is_live,
-            'series': video.get('show_name'),
-            'season_number': int_or_none(series_info.get('season_number')),
-            'episode_number': int_or_none(series_info.get('episode_number')),
+            **traverse_obj(video, {
+                'title': ('title', {clean_html}),
+                'description': ('description', {clean_html}),
+                'thumbnail': ('thumbnail', {url_or_none}, {update_url(scheme='https')}),
+                'timestamp': ('publish_time', {parse_iso8601}),
+                'duration': ('duration', {int_or_none}),
+                'view_count': ('view_count', {int_or_none}),
+                'series': ('show_name', {str}, filter),
+            }),
         }
 
     def _real_extract(self, url):
@@ -321,14 +259,13 @@ class YahooIE(InfoExtractor):
 
 
 class YahooSearchIE(SearchInfoExtractor):
-    IE_DESC = 'Yahoo screen search'
     _MAX_RESULTS = 1000
-    IE_NAME = 'screen.yahoo:search'
+    IE_NAME = 'yahoo:search'
     _SEARCH_KEY = 'yvsearch'
 
     def _search_results(self, query):
         for pagenum in itertools.count(0):
-            result_url = f'http://video.search.yahoo.com/search/?p={urllib.parse.quote_plus(query)}&fr=screen&o=js&gs=0&b={pagenum * 30}'
+            result_url = f'https://video.search.yahoo.com/search/?p={urllib.parse.quote_plus(query)}&fr=screen&o=js&gs=0&b={pagenum * 30}'
             info = self._download_json(result_url, query,
                                        note='Downloading results page ' + str(pagenum + 1))
             yield from (self.url_result(result['rurl']) for result in info['results'])

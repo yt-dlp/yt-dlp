@@ -5,6 +5,7 @@ import dataclasses
 import functools
 import os.path
 import sys
+import sysconfig
 
 from ._utils import _get_exe_version_output, detect_exe_version, version_tuple
 
@@ -13,6 +14,13 @@ _FALLBACK_PATHEXT = ('.COM', '.EXE', '.BAT', '.CMD')
 
 
 def _find_exe(basename: str) -> str:
+    # Check in Python "scripts" path, e.g. for pipx-installed binaries
+    binary = os.path.join(
+        sysconfig.get_path('scripts'),
+        basename + sysconfig.get_config_var('EXE'))
+    if os.access(binary, os.F_OK | os.X_OK) and not os.path.isdir(binary):
+        return binary
+
     if os.name != 'nt':
         return basename
 

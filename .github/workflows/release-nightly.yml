@@ -2,21 +2,43 @@ name: Release (nightly)
 on:
   schedule:
     - cron: '23 23 * * *'
-permissions:
-  contents: read
+  workflow_dispatch:
+
+permissions: {}
 
 jobs:
   check_nightly:
-    if: vars.BUILD_NIGHTLY
+    name: Check for new commits
+    if: github.event_name == 'workflow_dispatch' || vars.BUILD_NIGHTLY
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     outputs:
       commit: ${{ steps.check_for_new_commits.outputs.commit }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           fetch-depth: 0
+          persist-credentials: false
+
+      - name: Retrieve HEAD commit hash
+        id: head
+        shell: bash
+        run: echo "head=$(git rev-parse HEAD)" | tee -a "${GITHUB_OUTPUT}"
+
+      - name: Cache nightly commit hash
+        uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7  # v5.0.2
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
+        with:
+          path: .nightly_commit_hash
+          key: release-nightly-${{ steps.head.outputs.head }}
+          restore-keys: |
+            release-nightly-
+
       - name: Check for new commits
         id: check_for_new_commits
+        shell: bash
         run: |
           relevant_files=(
             "yt_dlp/*.py"
@@ -30,34 +52,54 @@ jobs:
             ".github/workflows/release.yml"
             ".github/workflows/release-nightly.yml"
           )
-          echo "commit=$(git log --format=%H -1 --since="24 hours ago" -- "${relevant_files[@]}")" | tee "$GITHUB_OUTPUT"
+          if [[ -f .nightly_commit_hash ]]; then
+            limit_args=(
+              "$(cat .nightly_commit_hash)..HEAD"
+            )
+          else
+            limit_args=(
+              --since="24 hours ago"
+            )
+          fi
+          echo "commit=$(git log --format=%H -1 "${limit_args[@]}" -- "${relevant_files[@]}")" | tee -a "${GITHUB_OUTPUT}"
+
+      - name: Record new nightly commit hash
+        env:
+          HEAD: ${{ steps.head.outputs.head }}
+        shell: bash
+        run: echo "${HEAD}" | tee .nightly_commit_hash
 
   release:
+    name: Publish Github release
     needs: [check_nightly]
-    if: ${{ needs.check_nightly.outputs.commit }}
+    if: needs.check_nightly.outputs.commit
+    permissions:
+      contents: write  # May be needed to publish release
+      id-token: write  # Needed for trusted publishing
     uses: ./.github/workflows/release.yml
     with:
       prerelease: true
       source: ${{ (github.repository != 'yt-dlp/yt-dlp' && vars.NIGHTLY_ARCHIVE_REPO) || 'nightly' }}
       target: 'nightly'
-    permissions:
-      contents: write
-      id-token: write  # mandatory for trusted publishing
-    secrets: inherit
+    secrets:
+      ARCHIVE_REPO_TOKEN: ${{ secrets.ARCHIVE_REPO_TOKEN }}
+      GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 
   publish_pypi:
+    name: Publish to PyPI
     needs: [release]
     if: vars.NIGHTLY_PYPI_PROJECT
-    runs-on: ubuntu-latest
     permissions:
-      id-token: write  # mandatory for trusted publishing
+      id-token: write  # Needed for trusted publishing
+    runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131  # v7.0.0
         with:
           path: dist
           name: build-pypi
+
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # v1.13.0
         with:
           verbose: true
