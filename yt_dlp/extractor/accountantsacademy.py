@@ -76,7 +76,7 @@ class AccountantsAcademyBaseIE(InfoExtractor):
 
         login = traverse_obj(self._call_api(
             None,
-            note='Loggin in',
+            note='Logging in',
             operationname='login',
             variables={
                 'email': username,
