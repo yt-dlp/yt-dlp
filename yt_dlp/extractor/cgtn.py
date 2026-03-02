@@ -73,6 +73,7 @@ class CGTNIE(InfoExtractor):
             'timestamp': try_get(unified_timestamp(datetime_str), lambda x: x - 8 * 3600),
         }
 
+
 class CGTNRUSSIANIE(InfoExtractor):
     _VALID_URL = r'https?://russian\.cgtn\.com/news/(?P<date>\d{4}-\d{2}-\d{2})/(?P<id>\d+)/.*$'
     _TESTS = [
