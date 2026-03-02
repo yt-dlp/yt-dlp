@@ -1,8 +1,18 @@
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
+    clean_html,
+    float_or_none,
+    int_or_none,
     try_get,
+    unescapeHTML,
+    unified_strdate,
     unified_timestamp,
+    url_or_none,
+    get_element_html_by_id,
+    extract_attributes,
 )
+from ..utils.traversal import traverse_obj
 
 
 class CGTNIE(InfoExtractor):
@@ -62,4 +72,71 @@ class CGTNIE(InfoExtractor):
             'categories': [category] if category else None,
             'creators': [author] if author else None,
             'timestamp': try_get(unified_timestamp(datetime_str), lambda x: x - 8 * 3600),
+        }
+
+class CGTNRUSSIANIE(InfoExtractor):
+    _VALID_URL = r"https?://russian\.cgtn\.com/news/(?P<date>\d{4}-\d{2}-\d{2})/(?P<id>\d+)/.*$"
+    _TESTS = [
+        {
+            'url': "https://russian.cgtn.com/news/2026-03-02/2028389396766744578/index.html",
+            'info_dict': {
+                "id": "2028389396766744578",
+                "title": "Министр культуры РФ о сотрудничестве России и КНР в сфере кинопроизводства",
+                "description": 'Москва и Пекин продолжают развивать сотрудничество в гуманитарной сфере. В 2024 и 2025 в Китае и России прошло более 430 мероприятий в рамках перекрестных Годов культуры. Подписанный в прошлом году Документ о совместном кинопроизводстве РФ и КНР до 2030 года открывает новые возможности. Интересные перспективы открываются и у студентов двух стран, которые обучаются творческим профессиям. Об этом в эксклюзивном интервью нашему телеканалу рассказала министр культуры России Ольга Любимова. Министр культуры России Ольга Любимова: "Очень важно, что между нашими ведомствами подписан очень такой значимый для нас стратегический документ о совместном сотрудничестве в области кинематографии до 2030 года. И нам очень важно и дорого участие китайских кинематографистов в важнейших наших международных кинофестивалях. Вы знаете, что китайская кинематография первые в мире – 120 000 кинозалов. Это невероятный совершенно объем. И невероятное совершенно количество зрителей, которые ежегодно посещают кинотеатры с большим удовольствием. В России российские продюсеры борются за честь обрести печать дракона, прокатное удостоверение и возможность прокатать российское кино. И мы очень рады, что российское кино получает эту печать дракона. Это такой, мне кажется, знак качества для любой картины, из какой бы страны она не пожаловала в Китай. Я хочу упомянуть еще одно ключевое для нас направление в нашей деятельности - это образование. Мы очень любим китайских студентов, но это невероятно талантливые художники, невероятно талантливые артисты балета. Поэтому впереди, мне кажется, у нас много и совместных постановок, и мы ждем премьер, и гастролей, и с огромным интересом.',
+                "thumbnail": r"re:https?://russian\.cgtn\.com/.+\.(?:jpg|png)",
+                "duration": 123.48,
+            },
+        },
+    ]
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        date = unified_strdate(mobj.group('date'))
+        video_id = mobj.group('id')
+        description = ''
+        webpage = self._download_webpage(url, video_id)
+        # Extracting data-json from the tag with id='cmsMainContent'
+        target_element = get_element_html_by_id('cmsMainContent', webpage)
+        if not target_element:
+            raise ExtractorError('Cannot get html element with data')
+        json_data = extract_attributes(target_element).get('data-json')
+        if not json_data:
+            raise ExtractorError('Cannot extract data from html element')
+        json_data = unescapeHTML(json_data)
+        if not json_data:
+            raise ExtractorError('Cannot unescape html data')
+        json_data = self._parse_json(json_data, video_id)
+        for d in json_data:
+            if d.get('type') == 3:
+                content_data = d.get('content')
+            if d.get('type') == 0:
+                description += d.get('content', '')
+        if not content_data:
+            raise ExtractorError('Cannot get content data')
+        content_data = traverse_obj(
+            self._parse_json(content_data, video_id),
+            (
+                {
+                    'thumbnail': ('poster', 'url', {url_or_none}),
+                    'm3u8_url': ('url', {url_or_none}),
+                    'duration': ('duration', {float_or_none}),
+                }
+            ),
+        )
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            content_data['m3u8_url'],
+            video_id,
+            'mp4',
+            m3u8_id='hls',
+        )
+
+        return {
+            'id': video_id,
+            'formats': formats,
+            'subtitles': subtitles,
+            'release_date': date,
+            'title': self._og_search_title(webpage)
+            or self._html_extract_title(webpage),
+            'description': clean_html(description),
+            **content_data,
         }
