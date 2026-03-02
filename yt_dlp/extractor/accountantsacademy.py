@@ -65,6 +65,7 @@ class AccountantsAcademyBaseIE(InfoExtractor):
         if not self._ACCESS_TOKEN:
             raise ExtractorError('Unable to refresh: no access token found')
         self._REFRESH_TOKEN = refresh_data.get('refresh_token')
+        self.cache.store(self._NETRC_MACHINE, self._CACHE_KEY, [self._ACCESS_TOKEN, self._REFRESH_TOKEN])
 
     def _perform_login(self, username, password):
         if username.lower() == 'token' and password:
@@ -121,13 +122,20 @@ class AccountantsAcademyBaseIE(InfoExtractor):
         )
         errors = data.get('errors')
         msg = traverse_obj(errors, (..., 'message', {str}), default='', get_all=False)
-        is_expected = msg in ['token not found or expired', 'Invalid credentials']
-        if errors and 'api-key' in msg.lower():
+        is_expected = msg in ('Invalid credentials',)
+
+        if errors and msg == 'Unauthorized':
+            self.raise_login_required()
+        elif errors and 'api-key' in msg.lower():
             self.to_screen('Access token expired refreshing token')
             self._refresh_access_token()
             return self._call_api(video_id, query, operationname, variables)
-        elif errors and msg == 'Unauthorized':
-            self.raise_login_required()
+        elif errors and 'token not found or expired' in msg.lower():
+            self.report_warning('refresh token expired, retrying with credentials')
+            self._ACCESS_TOKEN, self._REFRESH_TOKEN = None, None
+            self.cache.store(self._NETRC_MACHINE, self._CACHE_KEY, [self._ACCESS_TOKEN, self._REFRESH_TOKEN])
+            self._perform_login(*self._get_login_info())
+            return self._call_api(video_id, query, operationname, variables)
         elif errors:
             raise ExtractorError(msg, expected=is_expected)
 
@@ -262,7 +270,7 @@ class AccountantsAcademyUnitIE(AccountantsAcademyBaseIE):
 
 class AccountantsAcademyIE(AccountantsAcademyBaseIE):
     IE_NAME = 'accountantsacademy:single_course'
-    _VALID_URL = fr'{AccountantsAcademyBaseIE._BASE_URL_RE}/courses/(?!unit)(?P<slug>[^/#&?]+)'
+    _VALID_URL = fr'{AccountantsAcademyBaseIE._BASE_URL_RE}/courses/(?!unit)(?P<id>[^/#&?]+)'
     _TESTS = [{
         'url': 'https://platform.accountantsacademy.be/courses/ergonomie-2',
         'info_dict': {
@@ -283,7 +291,7 @@ class AccountantsAcademyIE(AccountantsAcademyBaseIE):
     }]
 
     def _real_extract(self, url):
-        slug = self._match_valid_url(url).group('slug')
+        slug = self._match_id(url)
 
         metadata = traverse_obj(self._call_api(
             slug,
@@ -345,25 +353,26 @@ class AccountantsAcademyIE(AccountantsAcademyBaseIE):
             })}
 
         def entries(metadata):
-            for unit in metadata.get('contents', []):
-                title = unit.get('title', '')
-                unit_id = unit.get('_id')
+            for units in metadata.get('contents', []):
+                title = units.get('title', '')
+                unit_id = units.get('_id')
                 if 'afsluitende toets' in title.lower() or 'feedbackformulier' in title.lower():
                     continue
-                elif not unit.get('units'):
-                    continue
-                formats, subtitles = self._parse_cf_formats_and_subtitles(unit_id, traverse_obj(unit, ('units', lambda _, v: v.get('__typename') == 'VideoUnit')))
-                if not formats and subtitles:
-                    continue
+                for unit in traverse_obj(units, ('units', lambda _, v: v.get('__typename') == 'VideoUnit'), default=[]):
+                    if not unit.get('cf_stream') or not unit:
+                        continue
+                    formats, subtitles = self._parse_cf_formats_and_subtitles(unit_id, unit)
+                    if not formats and subtitles:
+                        continue
 
-                yield {
-                    'id': unit_id,
-                    'title': title,
-                    'formats': formats,
-                    'subtitles': subtitles,
-                    **self._parse_cf_metadata(metadata),
-                    **unit_metadata,
-                }
+                    yield {
+                        'id': unit_id,
+                        'title': title,
+                        'formats': formats,
+                        'subtitles': subtitles,
+                        **self._parse_cf_metadata(metadata),
+                        **unit_metadata,
+                    }
 
         return self.playlist_result(
             entries=entries(metadata), playlist_id=slug,
