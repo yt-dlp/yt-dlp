@@ -37,7 +37,7 @@ class LocoIE(InfoExtractor):
         },
     }, {
         'url': 'https://loco.com/stream/c64916eb-10fb-46a9-9a19-8c4b7ed064e7',
-        'md5': '45ebc8a47ee1c2240178757caf8881b5',
+        'md5': '8b9bda03eba4d066928ae8d71f19befb',
         'info_dict': {
             'id': 'c64916eb-10fb-46a9-9a19-8c4b7ed064e7',
             'ext': 'mp4',
@@ -55,9 +55,9 @@ class LocoIE(InfoExtractor):
             'tags': ['Gameplay'],
             'series': 'GTA 5',
             'timestamp': 1740612872,
-            'modified_timestamp': 1740613037,
+            'modified_timestamp': 1750948439,
             'upload_date': '20250226',
-            'modified_date': '20250226',
+            'modified_date': '20250626',
         },
     }, {
         # Requires video authorization
@@ -123,8 +123,8 @@ class LocoIE(InfoExtractor):
     def _real_extract(self, url):
         video_type, video_id = self._match_valid_url(url).group('type', 'id')
         webpage = self._download_webpage(url, video_id)
-        stream = traverse_obj(self._search_nextjs_data(webpage, video_id), (
-            'props', 'pageProps', ('liveStreamData', 'stream', 'liveStream'), {dict}, any, {require('stream info')}))
+        stream = traverse_obj(self._search_nextjs_v13_data(webpage, video_id), (
+            ..., (None, 'ssrData'), ('liveStreamData', 'stream', 'liveStream'), {dict}, any, {require('stream info')}))
 
         if access_token := self._get_access_token(video_id):
             self._request_webpage(

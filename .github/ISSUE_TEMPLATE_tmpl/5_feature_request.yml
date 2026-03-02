@@ -18,6 +18,8 @@ body:
           required: true
         - label: I've searched the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=is%%3Aissue%%20-label%%3Aspam%%20%%20) for similar requests **including closed ones**. DO NOT post duplicates
           required: true
+        - label: I've read the [policy against AI/LLM contributions](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#automated-contributions-ai--llm-policy) and understand I may be blocked from the repository if it is violated
+          required: true
   - type: textarea
     id: description
     attributes:

@@ -76,6 +76,8 @@ class TestInfoExtractor(unittest.TestCase):
             self.assertEqual(ie._get_netrc_login_info(netrc_machine='empty_pass'), ('user', ''))
             self.assertEqual(ie._get_netrc_login_info(netrc_machine='both_empty'), ('', ''))
             self.assertEqual(ie._get_netrc_login_info(netrc_machine='nonexistent'), (None, None))
+            with self.assertRaises(ExtractorError):
+                ie._get_netrc_login_info(netrc_machine=';echo rce')
 
     def test_html_search_regex(self):
         html = '<p id="foo">Watch this <a href="http://www.youtube.com/watch?v=BaW_jenozKc">video</a></p>'
@@ -1945,7 +1947,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         server_thread.daemon = True
         server_thread.start()
 
-        (content, urlh) = self.ie._download_webpage_handle(
+        content, _ = self.ie._download_webpage_handle(
             f'http://127.0.0.1:{port}/teapot', None,
             expected_status=TEAPOT_RESPONSE_STATUS)
         self.assertEqual(content, TEAPOT_RESPONSE_BODY)

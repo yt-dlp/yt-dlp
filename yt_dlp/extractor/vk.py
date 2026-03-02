@@ -1,14 +1,15 @@
 import collections
 import hashlib
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from .dailymotion import DailymotionIE
 from .odnoklassniki import OdnoklassnikiIE
-from .pladform import PladformIE
 from .sibnet import SibnetEmbedIE
 from .vimeo import VimeoIE
 from .youtube import YoutubeIE
+from ..jsinterp import JSInterpreter
 from ..utils import (
     ExtractorError,
     UserNotLive,
@@ -37,16 +38,38 @@ class VKBaseIE(InfoExtractor):
 
     def _download_webpage_handle(self, url_or_request, video_id, *args, fatal=True, **kwargs):
         response = super()._download_webpage_handle(url_or_request, video_id, *args, fatal=fatal, **kwargs)
-        challenge_url, cookie = response[1].url if response else '', None
-        if challenge_url.startswith('https://vk.com/429.html?'):
-            cookie = self._get_cookies(challenge_url).get('hash429')
-        if not cookie:
+        if response is False:
             return response
 
-        hash429 = hashlib.md5(cookie.value.encode('ascii')).hexdigest()
+        webpage, urlh = response
+        challenge_url = urlh.url
+        if urllib.parse.urlparse(challenge_url).path != '/challenge.html':
+            return response
+
+        self.to_screen(join_nonempty(
+            video_id and f'[{video_id}]',
+            'Received a JS challenge response',
+            delim=' '))
+
+        challenge_hash = traverse_obj(challenge_url, (
+            {parse_qs}, 'hash429', -1, {require('challenge hash')}))
+
+        func_code = self._search_regex(
+            r'(?s)var\s+salt\s*=\s*\(\s*function\s*\(\)\s*(\{.+?\})\s*\)\(\);\s*var\s+hash',
+            webpage, 'JS challenge salt function')
+
+        jsi = JSInterpreter(f'function salt() {func_code}')
+        salt = jsi.extract_function('salt')([])
+        self.write_debug(f'Generated salt with native JS interpreter: {salt}')
+
+        key_hash = hashlib.md5(f'{challenge_hash}:{salt}'.encode()).hexdigest()
+        self.write_debug(f'JS challenge key hash: {key_hash}')
+
+        # Request with the challenge key and the response should set a 'solution429' cookie
         self._request_webpage(
-            update_url_query(challenge_url, {'key': hash429}), video_id, fatal=fatal,
-            note='Resolving WAF challenge', errnote='Failed to bypass WAF challenge')
+            update_url_query(challenge_url, {'key': key_hash}), video_id,
+            'Submitting JS challenge solution', 'Unable to solve JS challenge', fatal=True)
+
         return super()._download_webpage_handle(url_or_request, video_id, *args, fatal=True, **kwargs)
 
     def _perform_login(self, username, password):
@@ -97,12 +120,12 @@ class VKIE(VKBaseIE):
                     https?://
                         (?:
                             (?:
-                                (?:(?:m|new)\.)?vk(?:(?:video)?\.ru|\.com)/video_|
+                                (?:(?:m|new|vksport)\.)?vk(?:(?:video)?\.ru|\.com)/video_|
                                 (?:www\.)?daxab\.com/
                             )
                             ext\.php\?(?P<embed_query>.*?\boid=(?P<oid>-?\d+).*?\bid=(?P<id>\d+).*)|
                             (?:
-                                (?:(?:m|new)\.)?vk(?:(?:video)?\.ru|\.com)/(?:.+?\?.*?z=)?(?:video|clip)|
+                                (?:(?:m|new|vksport)\.)?vk(?:(?:video)?\.ru|\.com)/(?:.+?\?.*?z=)?(?:video|clip)|
                                 (?:www\.)?daxab\.com/embed/
                             )
                             (?P<videoid>-?\d+_\d+)(?:.*\blist=(?P<list_id>([\da-f]+)|(ln-[\da-zA-Z]+)))?
@@ -335,11 +358,6 @@ class VKIE(VKBaseIE):
             'only_matching': True,
         },
         {
-            # pladform embed
-            'url': 'https://vk.com/video-76116461_171554880',
-            'only_matching': True,
-        },
-        {
             'url': 'http://new.vk.com/video205387401_165548505',
             'only_matching': True,
         },
@@ -363,6 +381,10 @@ class VKIE(VKBaseIE):
         },
         {
             'url': 'https://vk.ru/video-220754053_456242564',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://vksport.vkvideo.ru/video-124096712_456240773',
             'only_matching': True,
         },
     ]
@@ -455,10 +477,6 @@ class VKIE(VKBaseIE):
         vimeo_url = VimeoIE._extract_url(url, info_page)
         if vimeo_url is not None:
             return self.url_result(vimeo_url, VimeoIE.ie_key())
-
-        pladform_url = PladformIE._extract_url(info_page)
-        if pladform_url:
-            return self.url_result(pladform_url, PladformIE.ie_key())
 
         m_rutube = re.search(
             r'\ssrc="((?:https?:)?//rutube\.ru\\?/(?:video|play)\\?/embed(?:.*?))\\?"', info_page)
@@ -578,7 +596,7 @@ class VKUserVideosIE(VKBaseIE):
     IE_DESC = "VK - User's Videos"
     _BASE_URL_RE = r'https?://(?:(?:m|new)\.)?vk(?:video\.ru|\.com/video)'
     _VALID_URL = [
-        rf'{_BASE_URL_RE}/playlist/(?P<id>-?\d+_\d+)',
+        rf'{_BASE_URL_RE}/playlist/(?P<id>-?\d+_-?\d+)',
         rf'{_BASE_URL_RE}/(?P<id>@[^/?#]+)(?:/all)?/?(?!\?.*\bz=video)(?:[?#]|$)',
     ]
     _TESTS = [{
@@ -607,6 +625,9 @@ class VKUserVideosIE(VKBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://vk.com/video/playlist/-174476437_2',
+        'only_matching': True,
+    }, {
+        'url': 'https://vkvideo.ru/playlist/-51890028_-2',
         'only_matching': True,
     }]
     _VIDEO = collections.namedtuple('Video', ['owner_id', 'id'])
@@ -733,7 +754,7 @@ class VKWallPostIE(VKBaseIE):
     def _unmask_url(self, mask_url, vk_id):
         if 'audio_api_unavailable' in mask_url:
             extra = mask_url.split('?extra=')[1].split('#')
-            func, base = self._decode(extra[1]).split(chr(11))
+            _, base = self._decode(extra[1]).split(chr(11))
             mask_url = list(self._decode(extra[0]))
             url_len = len(mask_url)
             indexes = [None] * url_len
