@@ -420,37 +420,37 @@ class AfreecaTVUserIE(AfreecaTVBaseIE):
     IE_NAME = 'soop:user'
     _VALID_URL = r'https?://(?:ch\.(?:sooplive\.co\.kr|afreecatv\.com)/|(www\.)?(?:sooplive\.co\.kr|afreecatv\.com)/station/)(?P<id>[^/?#]+)/(?:vods|vod)/?(?P<slug_type>[^/?#]+)?'
     _TESTS = [{
-        'url': 'https://ch.sooplive.co.kr/ryuryu24/vods/review',
+        'url': 'https://www.sooplive.co.kr/station/jsc9905/vod/review',
         'info_dict': {
             '_type': 'playlist',
-            'id': 'ryuryu24',
-            'title': 'ryuryu24 - review',
+            'id': 'jsc9905',
+            'title': 'jsc9905 - review',
         },
-        'playlist_count': 218,
+        'playlist_mincount': 1391,
     }, {
-        'url': 'https://ch.sooplive.co.kr/parang1995/vods/highlight',
+        'url': 'https://ch.sooplive.co.kr/parang1995/vods/review',
         'info_dict': {
             '_type': 'playlist',
             'id': 'parang1995',
             'title': 'parang1995 - highlight',
         },
-        'playlist_count': 997,
+        'playlist_mincount': 997,
     }, {
-        'url': 'https://ch.sooplive.co.kr/ryuryu24/vods',
+        'url': 'https://www.afreecatv.com/station/peros777/vod/clip',
         'info_dict': {
             '_type': 'playlist',
-            'id': 'ryuryu24',
-            'title': 'ryuryu24 - all',
+            'id': 'peros777',
+            'title': 'peros777 - clip',
         },
-        'playlist_count': 221,
+        'playlist_mincount': 199,
     }, {
-        'url': 'https://ch.sooplive.co.kr/ryuryu24/vods/balloonclip',
+        'url': 'https://www.sooplive.co.kr/station/rlekfu6/vods/normal',
         'info_dict': {
             '_type': 'playlist',
-            'id': 'ryuryu24',
-            'title': 'ryuryu24 - balloonclip',
+            'id': 'rlekfu6',
+            'title': 'rlekfu6 - normal',
         },
-        'playlist_count': 0,
+        'playlist_mincount': 244,
     }]
     _PER_PAGE = 60
 
