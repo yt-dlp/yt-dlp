@@ -615,7 +615,6 @@ from .foxnews import (
 from .foxsports import FoxSportsIE
 from .fptplay import FptplayIE
 from .francaisfacile import FrancaisFacileIE
-from .franceinter import FranceInterIE
 from .francetv import (
     FranceTVIE,
     FranceTVInfoIE,
@@ -632,7 +631,6 @@ from .frontendmasters import (
     FrontendMastersIE,
     FrontendMastersLessonIE,
 )
-from .fujitv import FujiTVFODPlus7IE
 from .funk import FunkIE
 from .funker530 import Funker530IE
 from .fuyintv import FuyinTVIE
