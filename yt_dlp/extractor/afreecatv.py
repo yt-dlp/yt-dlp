@@ -418,7 +418,7 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
 
 class AfreecaTVUserIE(AfreecaTVBaseIE):
     IE_NAME = 'soop:user'
-    _VALID_URL = r'https?://ch\.(?:sooplive\.co\.kr|afreecatv\.com)/(?P<id>[^/?#]+)/vods/?(?P<slug_type>[^/?#]+)?'
+    _VALID_URL = r'https?://(?:ch\.(?:sooplive\.co\.kr|afreecatv\.com)/|(www\.)?(?:sooplive\.co\.kr|afreecatv\.com)/station/)(?P<id>[^/?#]+)/(?:vods|vod)/?(?P<slug_type>[^/?#]+)?'
     _TESTS = [{
         'url': 'https://ch.sooplive.co.kr/ryuryu24/vods/review',
         'info_dict': {
