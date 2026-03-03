@@ -509,8 +509,6 @@ from .eggs import (
     EggsArtistIE,
     EggsIE,
 )
-from .eighttracks import EightTracksIE
-from .eitb import EitbIE
 from .elementorembed import ElementorEmbedIE
 from .elonet import ElonetIE
 from .elpais import ElPaisIE
@@ -554,7 +552,6 @@ from .europeantour import EuropeanTourIE
 from .eurosport import EurosportIE
 from .euscreen import EUScreenIE
 from .expressen import ExpressenIE
-from .eyedotv import EyedoTVIE
 from .facebook import (
     FacebookAdsIE,
     FacebookIE,
