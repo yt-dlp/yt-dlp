@@ -172,10 +172,6 @@ from .bbc import (
     BBCCoUkPlaylistIE,
 )
 from .beacon import BeaconTvIE
-from .beatbump import (
-    BeatBumpPlaylistIE,
-    BeatBumpVideoIE,
-)
 from .beatport import BeatportIE
 from .beeg import BeegIE
 from .behindkink import BehindKinkIE
@@ -192,7 +188,6 @@ from .bibeltv import (
     BibelTVSeriesIE,
     BibelTVVideoIE,
 )
-from .bigflix import BigflixIE
 from .bigo import BigoIE
 from .bild import BildIE
 from .bilibili import (
@@ -237,7 +232,6 @@ from .blerp import BlerpIE
 from .blogger import BloggerIE
 from .bloomberg import BloombergIE
 from .bluesky import BlueskyIE
-from .bokecc import BokeCCIE
 from .bongacams import BongaCamsIE
 from .boosty import BoostyIE
 from .bostonglobe import BostonGlobeIE
