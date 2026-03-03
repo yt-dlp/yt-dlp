@@ -351,6 +351,9 @@ class ARDBetaMediathekIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    def _display_id(self, url):
+        return self._match_id(url)
+
     def _extract_episode_info(self, title):
         patterns = [
             # Pattern for title like "Homo sapiens (S06/E07) - Originalversion"
@@ -380,7 +383,7 @@ class ARDBetaMediathekIE(InfoExtractor):
         }), get_all=False)
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
+        display_id = self._display_id(url)
         query = {'embedded': 'false', 'mcV6': 'true'}
         headers = {}
 
@@ -603,6 +606,48 @@ class ARDMediathekCollectionIE(InfoExtractor):
         return self.playlist_result(
             OnDemandPagedList(fetch_page, self._PAGE_SIZE), full_id, display_id=display_id,
             title=page_data.get('title'), description=page_data.get('synopsis'))
+
+class ARDMediathekTvGuideIE(ARDBetaMediathekIE):
+    _VALID_URL = r'''(?x)https?://
+        (?:(?:beta|www)\.)?ardmediathek\.de/
+        (?:[^/]+/)?
+        (?:tv-programm)/
+        (?:[^?#]+/)?
+        (?P<teaser_id>[a-zA-Z0-9]+)
+        /?(?:[?#]|$)'''
+
+    _TESTS = [{
+        'url': 'https://www.ardmediathek.de/tv-programm/69434b0edb5daba16d33d4d3',
+        'md5': 'd40fd676b84b7ae0f6620f18cdd1db36',
+        'info_dict': {
+            'display_id': 'Y3JpZDovL2JyLmRlL2Jyb2FkY2FzdC9GMjAxNldPMDAwNTQzQTA',
+            'id': '13294183',
+            'title': 'How to become an Astronaut',
+            'description': 'Der Film zeigt den italienischen Astronauten Luca Parmitano bei der ESA-Vorbereitung auf seinen Astronauteneinsatz, zeigt ihn beim Start im russischen Baikonur und begleitet ihn in seinem ALLtag auf der ISS.',
+            'duration': 3503,
+            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:732f4f5a126e332a?w=960&ch=18817790e5eae7bb',
+            'timestamp': 1680367140,
+            'upload_date': '20230401',
+            'ext': 'mp4',
+            'episode': 'How to become an Astronaut',
+            'series': 'Space Night',
+            'channel': 'BR',
+            '_old_archive_ids': ['ardbetamediathek Y3JpZDovL2JyLmRlL2Jyb2FkY2FzdC9GMjAxNldPMDAwNTQzQTA'],
+        },
+    }]
+
+    def _display_id(self, url):
+        return ARDBetaMediathekIE._match_id(url)
+
+    def _real_extract(self, url):
+        teaser_id = self._match_valid_url(url).group('teaser_id')
+
+        details = self._download_json(
+            f'https://programm-api.ard.de/program/api/detail?teaserId={teaser_id}',
+            teaser_id
+            )
+
+        return super()._real_extract(details['teaser']['video']['webUrl'])
 
 
 class ARDAudiothekBaseIE(InfoExtractor):
