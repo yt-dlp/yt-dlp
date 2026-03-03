@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "api/download.py": {
+      "maxDuration": 30,
+      "memory": 1024
+    }
+  }
+}
