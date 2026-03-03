@@ -1873,6 +1873,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'params': {'skip_download': True},
     }]
 
+    @property
+    def _skipped_webpage_data(self):
+        # XXX: player_response as a default is a TEMPORARY workaround for pinning _DEFAULT_PLAYER_JS_VERSION
+        return self._configuration_arg('webpage_skip', default=['player_response'])
+
     _DEFAULT_PLAYER_JS_VERSION = '20514@9f4cc5e4'
     _DEFAULT_PLAYER_JS_VARIANT = 'tv'
     _PLAYER_JS_VARIANT_MAP = {
@@ -3044,7 +3049,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 tried_iframe_fallback = True
 
             pr = None
-            if client == webpage_client and 'player_response' not in self._configuration_arg('webpage_skip'):
+            if client == webpage_client and 'player_response' not in self._skipped_webpage_data:
                 pr = initial_pr
 
             visitor_data = visitor_data or self._extract_visitor_data(webpage_ytcfg, initial_pr, player_ytcfg)
@@ -3827,7 +3832,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _download_initial_data(self, video_id, webpage, webpage_client, webpage_ytcfg):
         initial_data = None
-        if webpage and 'initial_data' not in self._configuration_arg('webpage_skip'):
+        if webpage and 'initial_data' not in self._skipped_webpage_data:
             initial_data = self.extract_yt_initial_data(video_id, webpage, fatal=False)
             if not traverse_obj(initial_data, 'contents'):
                 self.report_warning('Incomplete data received in embedded initial data; re-fetching using API.')
