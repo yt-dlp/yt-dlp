@@ -634,10 +634,7 @@ from .frontendmasters import (
 from .funk import FunkIE
 from .funker530 import Funker530IE
 from .fuyintv import FuyinTVIE
-from .gab import (
-    GabIE,
-    GabTVIE,
-)
+from .gab import GabIE
 from .gaia import GaiaIE
 from .gamedevtv import GameDevTVDashboardIE
 from .gamejolt import (
@@ -701,16 +698,10 @@ from .googledrive import (
     GoogleDriveFolderIE,
     GoogleDriveIE,
 )
-from .googlepodcasts import (
-    GooglePodcastsFeedIE,
-    GooglePodcastsIE,
-)
 from .googlesearch import GoogleSearchIE
 from .goplay import GoPlayIE
 from .gopro import GoProIE
-from .goshgay import GoshgayIE
 from .gotostage import GoToStageIE
-from .gputechconf import GPUTechConfIE
 from .graspop import GraspopIE
 from .gronkh import (
     GronkhFeedIE,
