@@ -383,8 +383,13 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(unescapeHTML('&#x2F;'), '/')
         self.assertEqual(unescapeHTML('&#47;'), '/')
         self.assertEqual(unescapeHTML('&eacute;'), 'é')
-        self.assertEqual(unescapeHTML('&#2013266066;'), '&#2013266066;')
+        self.assertEqual(unescapeHTML('&#2013266066;'), '\uFFFD')
         self.assertEqual(unescapeHTML('&a&quot;'), '&a"')
+        self.assertEqual(unescapeHTML('&#X2F;'), '/')
+        self.assertEqual(unescapeHTML('&#38amp;'), '&amp;')
+        self.assertEqual(unescapeHTML('&amp'), '&')
+        self.assertEqual(unescapeHTML('&copy'), '©')
+        self.assertEqual(unescapeHTML('&Eacuteric'), 'Éric')
         # HTML5 entities
         self.assertEqual(unescapeHTML('&period;&apos;'), '.\'')
 
