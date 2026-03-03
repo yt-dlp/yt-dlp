@@ -478,7 +478,6 @@ from .dplay import (
 )
 from .drbonanza import DRBonanzaIE
 from .dreisat import DreiSatIE
-from .drooble import DroobleIE
 from .dropbox import DropboxIE
 from .dropout import (
     DropoutIE,
@@ -493,10 +492,6 @@ from .drtv import (
     DRTVSeriesIE,
 )
 from .dtube import DTubeIE
-from .duboku import (
-    DubokuIE,
-    DubokuPlaylistIE,
-)
 from .dumpert import DumpertIE
 from .duoplay import DuoplayIE
 from .dvtv import DVTVIE
