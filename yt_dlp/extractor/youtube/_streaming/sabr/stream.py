@@ -943,7 +943,7 @@ class SabrStream:
             self._stats_cu_part(),
             *self._stats_unkpt_parts(),
         ]
-        return ' '.join(parts)
+        return ' '.join(filter(None, parts))
 
     def _log_state(self):
         if self.logger.log_level > self.logger.LogLevel.DEBUG:

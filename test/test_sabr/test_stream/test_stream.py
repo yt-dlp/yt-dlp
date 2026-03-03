@@ -1,6 +1,7 @@
 from __future__ import annotations
 import base64
 import io
+import re
 import time
 from unittest.mock import Mock, MagicMock
 import protobug
@@ -702,6 +703,68 @@ class TestStream:
             list(sabr_stream.iter_parts())
         assert not rh.request_history
 
+    def test_create_stats_str_vod(self, logger, client_info):
+        # Test that the stats string is created correctly for VOD stream
+        sabr_stream, _, _ = setup_sabr_stream_av(
+            sabr_response_processor=BasicAudioVideoProfile(),
+            client_info=client_info,
+            logger=logger,
+        )
+
+        initial_str = sabr_stream.create_stats_str()
+        assert initial_str == 'v:unknown c:WEB t:0 h:test exp:n/a rn:0 sr:0 act:N pot:N sps:n/a vod if:[none] cr:[none]'
+        list(sabr_stream.iter_parts())
+
+        final_str = sabr_stream.create_stats_str()
+        assert final_str == 'v:unknown c:WEB t:10001 h:test exp:n/a rn:6 sr:0 act:Y pot:N sps:n/a vod if:[140(5), 248(10)] cr:[140:1-5 (0-10001), 248:1-10 (0-10001)]'
+
+    def test_create_stats_str_vod_discard(self, logger, client_info):
+        # Test that the stats string is created correctly for VOD stream
+        sabr_stream, _, _ = setup_sabr_stream_av(
+            sabr_response_processor=BasicAudioVideoProfile(),
+            client_info=client_info,
+            logger=logger,
+            enable_audio=False,
+        )
+
+        initial_str = sabr_stream.create_stats_str()
+        assert initial_str == 'v:unknown c:WEB t:0 h:test exp:n/a rn:0 sr:0 act:N pot:N sps:n/a vod if:[none] cr:[none]'
+        list(sabr_stream.iter_parts())
+
+        final_str = sabr_stream.create_stats_str()
+        assert final_str == 'v:unknown c:WEB t:10001 h:test exp:n/a rn:6 sr:0 act:Y pot:N sps:n/a vod if:[140d(5), 248(10)] cr:[140:0-9007199254740991 (0-9007199254740991), 248:1-10 (0-10001)]'
+
+    def test_no_print_stats_no_debug(self, logger, client_info):
+        # Should not print stats during the stream
+        logger.log_level = logger.LogLevel.INFO
+        sabr_stream, _, _ = setup_sabr_stream_av(
+            sabr_response_processor=BasicAudioVideoProfile(),
+            client_info=client_info,
+            logger=logger,
+        )
+        initial_stats = sabr_stream.create_stats_str()
+        list(sabr_stream.iter_parts())
+        with pytest.raises(AssertionError):
+            logger.debug.assert_any_call(f'[SABR State] {initial_stats}')
+
+    def test_print_stats_debug(self, logger, client_info):
+        # Should print stats during the stream if log level is set to debug
+        logger.log_level = logger.LogLevel.DEBUG
+        sabr_stream, _, _ = setup_sabr_stream_av(
+            sabr_response_processor=BasicAudioVideoProfile(),
+            client_info=client_info,
+            logger=logger,
+        )
+        initial_stats = sabr_stream.create_stats_str()
+        list(sabr_stream.iter_parts())
+
+        # should print stats during the stream
+        logger.debug.assert_any_call(f'[SABR State] {initial_stats}')
+
+        # last stats state should indicate end of stream with all segments retrieved
+        final_str = sabr_stream.create_stats_str()
+        logger.debug.assert_any_call(f'[SABR State] {final_str}')
+
     def test_consumed_after_full_iteration(self, logger, client_info):
         # After fully consuming the stream, any attempt to use it should raise SabrStreamConsumedError
         sabr_stream, _, _ = setup_sabr_stream_av(
@@ -1077,6 +1140,9 @@ class TestStream:
             assert refresh_part is not None
             assert refresh_part.reason == RefreshPlayerResponseSabrPart.Reason.SABR_URL_EXPIRY
             logger.debug.assert_called_with(r'Requesting player response refresh as SABR URL is due to expire within 60 seconds')
+
+            stats_str = sabr_stream.create_stats_str()
+            assert re.search(r'exp:0:00:\d{1,2}', stats_str)
 
         def test_expiry_threshold_sec(self, logger, client_info):
             # Should use the configured expiry threshold seconds when determining to refresh player response
@@ -1742,6 +1808,10 @@ class TestStream:
             assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
             assert len(rh.request_history) == 6
 
+            stats_str = sabr_stream.create_stats_str()
+            assert 'pot:Y' in stats_str
+            assert 'sps:OK' in stats_str
+
         def test_sps_retry_on_required(self, logger, client_info):
             # Should retry when StreamProtectionStatus is REQUIRED
             sabr_stream, rh, selectors = setup_sabr_stream_av(
@@ -1863,6 +1933,10 @@ class TestStream:
 
             for request_details in rh.request_history[1:]:
                 assert not any(isinstance(part, PoTokenStatusSabrPart) for part in request_details.parts)
+
+            stats_str = sabr_stream.create_stats_str()
+            assert 'pot:N' in stats_str
+            assert 'sps:ATTESTATION_REQUIRED' in stats_str
 
         def test_sps_invalid_retries_exhausted(self, logger, client_info):
             # Should raise PoTokenError after exhausting retries when StreamProtectionStatus is INVALID
@@ -2110,6 +2184,9 @@ class TestStream:
             assert sabr_stream.processor.sabr_context_updates[5].scope >= AdWaitAVProfile.CONTEXT_UPDATE_SCOPE
             assert AdWaitAVProfile.CONTEXT_UPDATE_TYPE in sabr_stream.processor.sabr_contexts_to_send
 
+            stats_str = sabr_stream.create_stats_str()
+            assert 'cu:[5]' in stats_str
+
         def test_sending_policy(self, logger, client_info):
             # Should respect the sending policy part to update sabr context state
             sabr_stream, rh, selectors = setup_sabr_stream_av(
@@ -2164,6 +2241,11 @@ class TestStream:
 
             # Should have made 3 requests before failing
             assert len(rh.request_history) == 3
+
+            stats_str = sabr_stream.create_stats_str()
+            assert 'sr:3' in stats_str
+            assert 'rn:3' in stats_str
+            assert 'act:N' in stats_str
 
         def test_no_new_segments_custom(self, logger, client_info):
             # Should raise SabrStreamError if no new segments are received on the fifth request (custom)
@@ -3986,3 +4068,35 @@ class TestStream:
 
             logger.debug.assert_any_call('Skipping player time increment; one or more initialized formats is missing a consumed range for current player time')
             logger.trace.assert_any_call(f'Setting player time to max seekable time ms: {profile.max_seekable_time_ms}ms (-5900ms)')
+
+        @mock_time
+        def test_create_stats_str_live(self, logger, client_info):
+            # Simple test of the stats string created for live streams
+            total_segments = 10
+            segment_target_duration_ms = 2000
+            dvr_segments = 9
+            profile = LiveAVProfile({
+                'total_segments': total_segments,
+                'segment_target_duration_ms': segment_target_duration_ms,
+                'dvr_segments': dvr_segments,
+            })
+            sabr_stream, _, selectors = setup_sabr_stream_av(
+                sabr_response_processor=profile,
+                client_info=client_info,
+                logger=logger,
+                url=VALID_LIVE_URL,
+                live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            )
+            audio_selector, video_selector = selectors
+
+            parts = list(sabr_stream.iter_parts())
+            assert_media_sequence_in_order(parts, audio_selector, total_segments)
+            assert_media_sequence_in_order(parts, video_selector, total_segments)
+
+            stats_str = sabr_stream.create_stats_str()
+            expected_stats_str = (
+                'v:unknown c:WEB t:18000 h:live exp:n/a rn:15 sr:5 act:N pot:N sps:n/a'
+                ' live 2s bid:1 hs:10 hst:18000 mxt:18000 mnt:0'
+                ' if:[140(10), 248(10)] cr:[140:1-10 (0-19900), 248:1-10 (0-19900)]'
+            )
+            assert stats_str == expected_stats_str
