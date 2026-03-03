@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>yt-dlp Web UI</title>
+  <style>
+    :root {
+      --bg: #0d1330;
+      --panel: #123c73;
+      --panel-dark: #0f2c56;
+      --text: #f8f7ff;
+      --muted: #b8bfd7;
+      --accent: #ff5d72;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: linear-gradient(135deg, #0b1030 0%, #10153d 100%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 28px 16px;
+    }
+    .container { max-width: 960px; margin: 0 auto; }
+    h1 { text-align: center; margin: 0; color: #ff6a80; font-size: 2.7rem; }
+    .subtitle { text-align: center; color: var(--muted); margin: 12px 0 28px; }
+    .card {
+      background: var(--panel);
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.24);
+      margin-bottom: 20px;
+    }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    input[type="url"], select {
+      flex: 1 1 560px;
+      min-width: 240px;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 1.05rem;
+      color: #fff;
+      background: #13264e;
+    }
+    button {
+      background: var(--accent);
+      border: none;
+      color: #fff;
+      border-radius: 12px;
+      padding: 14px 28px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .controls {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 14px;
+      color: var(--muted);
+    }
+    label.inline { display: inline-flex; align-items: center; gap: 8px; }
+    .downloads {
+      min-height: 170px;
+      background: var(--panel-dark);
+      border-radius: 14px;
+      padding: 16px;
+      color: var(--muted);
+    }
+    .download-item {
+      background: #0e2346;
+      border: 1px solid #22467f;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+    .download-item a { color: #8fd3ff; }
+    .status { margin-top: 10px; min-height: 24px; color: var(--muted); }
+    .status.error { color: #ff9ca7; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>yt-dlp Web UI</h1>
+    <p class="subtitle">Paste a YouTube or X/Twitter link and get a direct download URL.</p>
+
+    <div class="card">
+      <form id="downloadForm">
+        <div class="row">
+          <input id="url" type="url" required placeholder="https://x.com/... or https://www.youtube.com/watch?v=..." />
+          <button type="submit">Download</button>
+        </div>
+        <div class="controls">
+          <label class="inline">Quality:
+            <select id="format">
+              <option value="best" selected>Best Available</option>
+              <option value="bestvideo+bestaudio/best">Best Video + Audio</option>
+              <option value="worst">Smallest/Lowest</option>
+            </select>
+          </label>
+          <label class="inline"><input id="audioOnly" type="checkbox" /> Audio only</label>
+          <label class="inline"><input id="singleVideo" type="checkbox" checked /> Single video only</label>
+        </div>
+      </form>
+      <div id="status" class="status"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Downloads</h2>
+      <div id="downloads" class="downloads">No downloads yet. Paste a URL above to get started.</div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('downloadForm');
+    const statusEl = document.getElementById('status');
+    const downloadsEl = document.getElementById('downloads');
+
+    const setStatus = (message, isError = false) => {
+      statusEl.textContent = message || '';
+      statusEl.className = `status${isError ? ' error' : ''}`;
+    };
+
+    const addDownload = (data) => {
+      if (downloadsEl.textContent.includes('No downloads yet')) downloadsEl.innerHTML = '';
+      const item = document.createElement('div');
+      item.className = 'download-item';
+      const title = data.title || data.id || 'Untitled';
+      item.innerHTML = `
+        <div><strong>${title}</strong></div>
+        <div>Extractor: ${data.extractor || 'unknown'}</div>
+        <div><a href="${data.stream_url}" target="_blank" rel="noopener">Open direct media URL</a></div>
+      `;
+      downloadsEl.prepend(item);
+    };
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      setStatus('Resolving media URL...');
+
+      const url = document.getElementById('url').value.trim();
+      const format = document.getElementById('format').value;
+      const audio_only = document.getElementById('audioOnly').checked;
+      const single_video = document.getElementById('singleVideo').checked;
+
+      const query = new URLSearchParams({
+        url,
+        format,
+        audio_only: String(audio_only),
+        single_video: String(single_video)
+      });
+
+      try {
+        const response = await fetch(`/api/download?${query.toString()}`);
+        const payload = await response.json();
+
+        if (!response.ok) {
+          setStatus(payload.error || 'Download failed', true);
+          return;
+        }
+
+        addDownload(payload);
+        setStatus('Done. Open the direct media URL from the downloads list.');
+      } catch (error) {
+        setStatus(error.message || 'Unexpected error', true);
+      }
+    });
+  </script>
+</body>
+</html>
