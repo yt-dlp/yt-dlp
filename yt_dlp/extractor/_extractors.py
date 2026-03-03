@@ -264,14 +264,8 @@ from .businessinsider import BusinessInsiderIE
 from .buzzfeed import BuzzFeedIE
 from .byutv import BYUtvIE
 from .c56 import C56IE
-from .caffeinetv import CaffeineTVIE
-from .callin import CallinIE
 from .caltrans import CaltransIE
 from .cam4 import CAM4IE
-from .camdemy import (
-    CamdemyFolderIE,
-    CamdemyIE,
-)
 from .camfm import (
     CamFMEpisodeIE,
     CamFMShowIE,
@@ -347,7 +341,6 @@ from .ciscolive import (
 from .ciscowebex import CiscoWebexIE
 from .cjsw import CJSWIE
 from .clipchamp import ClipchampIE
-from .clippit import ClippitIE
 from .cliprs import ClipRsIE
 from .closertotruth import CloserToTruthIE
 from .cloudflarestream import CloudflareStreamIE
@@ -371,7 +364,6 @@ from .commonprotocols import (
     ViewSourceIE,
 )
 from .condenast import CondeNastIE
-from .contv import CONtvIE
 from .corus import CorusIE
 from .coub import CoubIE
 from .cozytv import CozyTVIE
