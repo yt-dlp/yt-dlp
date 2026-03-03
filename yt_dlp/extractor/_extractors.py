@@ -54,7 +54,6 @@ from .agora import (
     WyborczaPodcastIE,
     WyborczaVideoIE,
 )
-from .airtv import AirTVIE
 from .aitube import AitubeKZVideoIE
 from .alibaba import AlibabaIE
 from .aliexpress import AliExpressLiveIE
@@ -65,10 +64,6 @@ from .allstar import (
     AllstarProfileIE,
 )
 from .alphaporno import AlphaPornoIE
-from .alsace20tv import (
-    Alsace20TVEmbedIE,
-    Alsace20TVIE,
-)
 from .altcensored import (
     AltCensoredChannelIE,
     AltCensoredIE,
@@ -93,7 +88,6 @@ from .americastestkitchen import (
     AmericasTestKitchenIE,
     AmericasTestKitchenSeasonIE,
 )
-from .anchorfm import AnchorFMEpisodeIE
 from .angel import AngelIE
 from .antenna import (
     Ant1NewsGrArticleIE,
@@ -106,10 +100,6 @@ from .apa import APAIE
 from .aparat import AparatIE
 from .appleconnect import AppleConnectIE
 from .applepodcasts import ApplePodcastsIE
-from .appletrailers import (
-    AppleTrailersIE,
-    AppleTrailersSectionIE,
-)
 from .archiveorg import (
     ArchiveOrgIE,
     YoutubeWebArchiveIE,
@@ -140,7 +130,6 @@ from .asobichannel import (
 from .asobistage import AsobiStageIE
 from .atresplayer import AtresPlayerIE
 from .atscaleconf import AtScaleConfEventIE
-from .atvat import ATVAtIE
 from .audimedia import AudiMediaIE
 from .audioboom import AudioBoomIE
 from .audiodraft import (
@@ -157,13 +146,6 @@ from .audius import (
     AudiusProfileIE,
     AudiusTrackIE,
 )
-from .awaan import (
-    AWAANIE,
-    AWAANLiveIE,
-    AWAANSeasonIE,
-    AWAANVideoIE,
-)
-from .axs import AxsIE
 from .azmedien import AZMedienIE
 from .baidu import BaiduVideoIE
 from .banbye import (
