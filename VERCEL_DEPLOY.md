@@ -13,7 +13,6 @@ After deploy, visit your project URL and use the form on `/`.
 
 - `index.html` → Web UI where you paste links and request a download URL.
 - `api/download.py` → serverless API route that uses yt-dlp to resolve a direct media URL.
-- `vercel.json` → function runtime/duration config.
 
 ## Supported links
 
@@ -42,7 +41,10 @@ To run serverless routes locally, use Vercel CLI:
 vercel dev
 ```
 
+## Troubleshooting: runtime-version error
 
-## Troubleshooting
+If Vercel build fails with `Function Runtimes must have a valid version`:
 
-If Vercel build fails with `Function Runtimes must have a valid version`, remove any explicit runtime like `python3.12` from `vercel.json`. This repo now relies on Vercel's default Python runtime selection for `api/download.py`.
+- Ensure you are deploying the **latest commit** from your branch.
+- Remove any custom runtime/build overrides in Vercel project settings.
+- This repo intentionally avoids runtime pinning in `vercel.json`; Vercel should auto-detect `api/download.py`.
