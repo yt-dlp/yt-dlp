@@ -41,3 +41,8 @@ To run serverless routes locally, use Vercel CLI:
 ```bash
 vercel dev
 ```
+
+
+## Troubleshooting
+
+If Vercel build fails with `Function Runtimes must have a valid version`, remove any explicit runtime like `python3.12` from `vercel.json`. This repo now relies on Vercel's default Python runtime selection for `api/download.py`.
