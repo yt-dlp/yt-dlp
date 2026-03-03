@@ -71,6 +71,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'watch\.telusoriginals\.com',
         r'video\.unext\.jp',
         r'www\.web\.nhk',
+        r'fod\.fujitv\.co\.jp',
     )
 
     _TESTS = [{
@@ -251,6 +252,11 @@ class KnownDRMIE(UnsupportedInfoExtractor):
     }, {
         # https://github.com/yt-dlp/yt-dlp/issues/14620
         'url': 'https://www.web.nhk/tv/an/72hours/pl/series-tep-W3W8WRN8M3/ep/QW8ZY6146V',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/7064
+        # https://github.com/yt-dlp/yt-dlp/issues/10264
+        'url': 'https://fod.fujitv.co.jp/title/709f/709f130001/',
         'only_matching': True,
     }]
 
