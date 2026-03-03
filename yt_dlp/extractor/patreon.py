@@ -25,6 +25,7 @@ from ..utils.traversal import (
     find_elements,
     require,
     traverse_obj,
+    trim_str,
     value,
 )
 
@@ -32,16 +33,15 @@ from ..utils.traversal import (
 class PatreonBaseIE(InfoExtractor):
     @functools.cached_property
     def patreon_user_agent(self):
-        # Patreon mobile UA is needed to avoid triggering Cloudflare anti-bot protection.
-        # Newer UA yields higher res m3u8 formats for locked posts, but gives 401 if not logged-in
+        # Patreon mobile UA yields higher res m3u8 for locked posts, but gives 401 if not logged-in
         if self._get_cookies('https://www.patreon.com/').get('session_id'):
-            return 'Patreon/72.2.28 (Android; Android 14; Scale/2.10)'
-        return 'Patreon/7.6.28 (Android; Android 11; Scale/2.10)'
+            return 'Patreon/126.9.0.15 (Android; Android 14; Scale/2.10)'
+        return None
 
     def _call_api(self, ep, item_id, query=None, headers=None, fatal=True, note=None):
         if headers is None:
             headers = {}
-        if 'User-Agent' not in headers:
+        if 'User-Agent' not in headers and self.patreon_user_agent:
             headers['User-Agent'] = self.patreon_user_agent
         if query:
             query.update({'json-api-version': 1.0})
@@ -50,7 +50,9 @@ class PatreonBaseIE(InfoExtractor):
             return self._download_json(
                 f'https://www.patreon.com/api/{ep}',
                 item_id, note=note if note else 'Downloading API JSON',
-                query=query, fatal=fatal, headers=headers)
+                query=query, fatal=fatal, headers=headers,
+                # If not using Patreon mobile UA, we need impersonation due to Cloudflare
+                impersonate=not self.patreon_user_agent)
         except ExtractorError as e:
             if not isinstance(e.cause, HTTPError) or mimetype2ext(e.cause.response.headers.get('Content-Type')) != 'json':
                 raise
@@ -623,14 +625,13 @@ class PatreonCampaignIE(PatreonBaseIE):
         'info_dict': {
             'id': '9631148',
             'title': 'Anything Else?',
-            'description': 'md5:2ee1db4aed2f9460c2b295825a24aa08',
+            'description': 'md5:b2f20eec4cb5520d9a4be4971f28add5',
             'uploader': 'dan ',
             'uploader_id': '13852412',
             'uploader_url': 'https://www.patreon.com/anythingelse',
             'channel': 'Anything Else?',
             'channel_id': '9631148',
             'channel_url': 'https://www.patreon.com/anythingelse',
-            'channel_follower_count': int,
             'age_limit': 0,
             'thumbnail': r're:https?://.+/.+',
         },
@@ -675,16 +676,15 @@ class PatreonCampaignIE(PatreonBaseIE):
                 break
 
     def _real_extract(self, url):
-
         campaign_id, vanity = self._match_valid_url(url).group('campaign_id', 'vanity')
         if campaign_id is None:
-            webpage = self._download_webpage(url, vanity, headers={'User-Agent': self.patreon_user_agent})
-            campaign_id = traverse_obj(self._search_nextjs_data(webpage, vanity, default=None), (
-                'props', 'pageProps', 'bootstrapEnvelope', 'pageBootstrap', 'campaign', 'data', 'id', {str}))
-            if not campaign_id:
-                campaign_id = traverse_obj(self._search_nextjs_v13_data(webpage, vanity), (
-                    ((..., 'value', 'campaign', 'data'), lambda _, v: v['type'] == 'campaign'),
-                    'id', {str}, any, {require('campaign ID')}))
+            results = self._call_api('search', vanity, query={
+                'q': vanity,
+                'page[size]': '5',
+            })['data']
+            campaign_id = traverse_obj(results, (
+                lambda _, v: v['type'] == 'campaign-document' and v['attributes']['url'].lower().endswith(f'/{vanity.lower()}'),
+                'id', {trim_str(start='campaign_')}, filter, any, {require('campaign ID')}))
 
         params = {
             'json-api-use-default-includes': 'false',
