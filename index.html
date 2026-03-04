@@ -15,8 +15,9 @@
       --teal: #016c73;
       --teal-dark: #035760;
       --line: #d7cdb8;
-      --shadow-raised: 0 10px 22px rgba(92, 77, 56, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-      --shadow-inset: inset 6px 6px 14px rgba(145, 126, 99, 0.3), inset -4px -4px 12px rgba(255, 255, 255, 0.75);
+      --shadow-raised: -5px -5px 12px rgba(255, 251, 242, 0.95), 7px 8px 16px rgba(167, 147, 113, 0.35);
+      --shadow-inset: inset 4px 4px 10px rgba(176, 152, 113, 0.35), inset -5px -5px 10px rgba(255, 251, 242, 0.95);
+      --shadow-pressed: inset 6px 6px 13px rgba(126, 106, 74, 0.4), inset -4px -4px 10px rgba(160, 240, 242, 0.2);
     }
 
     * { box-sizing: border-box; }
@@ -43,7 +44,7 @@
     .logo {
       width: min(340px, 82vw);
       height: auto;
-      filter: drop-shadow(0 8px 16px rgba(89, 71, 45, 0.15));
+      filter: drop-shadow(0 4px 8px rgba(89, 71, 45, 0.12));
     }
 
     .subtitle {
@@ -55,7 +56,7 @@
 
     .card {
       background: var(--surface);
-      border: 1px solid var(--line);
+      border: 1px solid #dfd5c2;
       border-radius: 22px;
       padding: 22px;
       box-shadow: var(--shadow-raised);
@@ -67,12 +68,12 @@
     input[type="url"], select {
       flex: 1 1 560px;
       min-width: 220px;
-      border: 1px solid #d6c8ad;
+      border: 1px solid #dfd2bb;
       border-radius: 14px;
       padding: 14px 16px;
       font-size: 1.05rem;
       color: var(--text);
-      background: #fffdf8;
+      background: #f4ecdc;
       box-shadow: var(--shadow-inset);
       outline: none;
     }
@@ -88,15 +89,15 @@
       cursor: pointer;
       color: #fff;
       background: linear-gradient(180deg, #087980 0%, #046069 100%);
-      box-shadow: 0 8px 16px rgba(2, 104, 111, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      box-shadow: -5px -5px 12px rgba(31, 140, 147, 0.26), 7px 8px 15px rgba(3, 84, 90, 0.45), inset 1px 1px 0 rgba(190, 255, 255, 0.2);
       transition: transform .15s ease, box-shadow .2s ease, filter .2s ease;
     }
 
     button:hover { transform: translateY(-1px); filter: brightness(1.03); }
 
     button.is-pressed {
-      transform: translateY(2px);
-      box-shadow: inset 4px 4px 10px rgba(0, 49, 55, 0.35), inset -2px -2px 8px rgba(109, 211, 214, 0.16);
+      transform: translateY(1px);
+      box-shadow: var(--shadow-pressed);
       filter: saturate(.9);
     }
 
@@ -109,8 +110,8 @@
       width: 18px;
       height: 18px;
       border-radius: 5px;
-      border: 1px solid #a9a091;
-      background: #fff9ef;
+      border: 1px solid #d9ccb4;
+      background: #f2e8d8;
       box-shadow: var(--shadow-inset);
       position: relative;
       cursor: pointer;
@@ -135,7 +136,7 @@
 
     .downloads {
       min-height: 170px;
-      background: var(--surface-soft);
+      background: #efe4d2;
       border-radius: 16px;
       padding: 14px;
       border: 1px solid var(--line);
@@ -143,7 +144,7 @@
     }
 
     .download-item {
-      background: #fff9ef;
+      background: #f4ebdc;
       border: 1px solid #d9cfbc;
       border-radius: 14px;
       margin-bottom: 10px;
@@ -214,7 +215,7 @@
       <form id="downloadForm">
         <div class="row">
           <input id="url" type="url" required placeholder="https://x.com/... or https://www.youtube.com/watch?v=..." />
-          <button id="loadBtn" type="submit">Load</button>
+          <button id="loadBtn" type="submit">Download</button>
         </div>
         <div class="controls">
           <label class="inline">Quality:
@@ -294,7 +295,7 @@
 
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.textContent = 'Download';
+      btn.textContent = 'Download again';
       btn.addEventListener('click', () => {
         pressForFiveSeconds(btn);
         triggerDownload(params);
