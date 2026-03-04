@@ -99,6 +99,7 @@ class LBRYBaseIE(InfoExtractor):
                 '_type': 'url',
                 'id': item['claim_id'],
                 'url': self._permanent_url(url, item['name'], item['claim_id']),
+                'ie_key': 'LBRY',
             }
 
     def _metapage_entries(self, display_id, url, params):
