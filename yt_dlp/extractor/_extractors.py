@@ -2106,12 +2106,8 @@ from .udemy import (
     UdemyIE,
 )
 from .udn import UDNEmbedIE
-from .ufctv import (
-    UFCTVIE,
-    UFCArabiaIE,
-)
+from .ufctv import UFCTVIE
 from .ukcolumn import UkColumnIE
-from .uktvplay import UKTVPlayIE
 from .uliza import (
     UlizaPlayerIE,
     UlizaPortalIE,
@@ -2141,7 +2137,6 @@ from .ustudio import (
     UstudioEmbedIE,
     UstudioIE,
 )
-from .utreon import UtreonIE
 from .varzesh3 import Varzesh3IE
 from .vbox7 import Vbox7IE
 from .veo import VeoIE
