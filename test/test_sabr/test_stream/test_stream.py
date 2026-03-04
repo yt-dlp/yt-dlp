@@ -7,6 +7,7 @@ from unittest.mock import Mock, MagicMock
 import protobug
 import pytest
 import urllib.parse
+
 from yt_dlp.extractor.youtube._proto.innertube import NextRequestPolicy
 from test.test_sabr.test_stream.helpers import (
     VIDEO_PLAYBACK_USTREAMER_CONFIG,
@@ -1647,8 +1648,8 @@ class TestStream:
             logger.warning.assert_any_call("[sabr] Got error: SABR Protocol Error: SabrError(type='simulated SABR error', action=1, error=None). Retrying (1/10)...")
 
     class TestGVSFallbackRetries:
-        def test_gvs_fallback_after_8_retries(self, logger, client_info):
-            # Should fallback to next gvs server after max retries exceeded
+        def test_gvs_fallback_after_8_retries_transport_error(self, logger, client_info):
+            # Should fallback to next gvs server after max retries exceeded on transport error
             sabr_stream, rh, selectors = setup_sabr_stream_av(
                 sabr_response_processor=RequestRetryAVProfile({'mode': 'transport', 'rn': list(range(2, 10))}),
                 client_info=client_info,
@@ -1683,6 +1684,45 @@ class TestStream:
             # Should have 8 fallback attempts logged
             for i in range(1, 9):
                 logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/10)...')
+
+            logger.warning.assert_any_call('Falling back to host rr3---sn-7654321.googlevideo.com')
+
+        def test_gvs_fallback_after_8_retries_http_error(self, logger, client_info):
+            # Should fallback to next gvs server after max retries exceeded on http error
+            sabr_stream, rh, selectors = setup_sabr_stream_av(
+                sabr_response_processor=RequestRetryAVProfile({'mode': 'http', 'rn': list(range(2, 10))}),
+                client_info=client_info,
+                logger=logger,
+                url='https://rr6---sn-6942067.googlevideo.com?mn=sn-6942067,sn-7654321&fvip=3&mvi=6&sabr=1',
+            )
+            audio_selector, video_selector = selectors
+
+            # Should complete successfully
+            parts = list(sabr_stream.iter_parts())
+            assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
+            assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
+
+            # There should be 8 error requests recorded
+            error_requests = [d for d in rh.request_history if d.error is not None]
+            assert len(error_requests) == 8
+            for request in error_requests:
+                assert isinstance(request.error, HTTPError)
+                assert request.error.status == 500
+
+            # Check that the host was switched after 8 retries
+            last_error_request = error_requests[-1]
+            for following_request in rh.request_history[rh.request_history.index(last_error_request) + 1:]:
+                following_request_url = urllib.parse.urlparse(following_request.request.url)
+                assert following_request_url.netloc == 'rr3---sn-7654321.googlevideo.com'
+                assert 'fallback_count=1' in following_request_url.query
+
+            # Check request before fallback
+            last_error_request_url = urllib.parse.urlparse(last_error_request.request.url)
+            assert last_error_request_url.netloc == 'rr6---sn-6942067.googlevideo.com'
+
+            # Should have 8 fallback attempts logged
+            for i in range(1, 9):
+                logger.warning.assert_any_call(f'[sabr] Got error: HTTP Error 500: Internal Server Error. Retrying ({i}/10)...')
 
             logger.warning.assert_any_call('Falling back to host rr3---sn-7654321.googlevideo.com')
 
@@ -1789,6 +1829,40 @@ class TestStream:
 
             assert not any('Falling back to host' in call.args[0] for call in logger.warning.call_args_list)
             logger.debug.assert_any_call('No more fallback hosts available')
+
+        def test_gvs_no_fallback_not_sabr_error(self, logger, client_info):
+            # Should not fallback if the error is not a TransportError/HTTPError.
+            # For example, on a SabrStreamError from a SABR_ERROR part.
+
+            def sabr_error_injector(parts, vpabr, url, request_number):
+                if request_number in list(range(2, 15)):
+                    message = protobug.dumps(SabrError(action=1, type='simulated SABR error'))
+                    return [UMPPart(
+                        part_id=UMPPartId.SABR_ERROR,
+                        size=len(message),
+                        data=io.BytesIO(message))]
+
+                return parts
+
+            sabr_stream, rh, _ = setup_sabr_stream_av(
+                sabr_response_processor=CustomAVProfile({'custom_parts_function': sabr_error_injector}),
+                client_info=client_info,
+                logger=logger,
+                url='https://rr6---sn-6942067.googlevideo.com?mn=sn-6942067,sn-7654321&fvip=3&mvi=6&sabr=1',
+            )
+
+            expected_cause = r"SABR Protocol Error: SabrError\(type='simulated SABR error', action=1, error=None\)"
+            with pytest.raises(SabrStreamError, match=expected_cause):
+                list(sabr_stream.iter_parts())
+
+            # xxx: not recorded as an error in the request history as SabrError is part of normal processing.
+            logger.warning.assert_any_call(
+                "[sabr] Got error: SABR Protocol Error: SabrError(type='simulated SABR error', action=1, error=None). Retrying (1/10)...")
+
+            # All requests should have the same host
+            for request in rh.request_history:
+                request_url = urllib.parse.urlparse(request.request.url)
+                assert request_url.netloc == 'rr6---sn-6942067.googlevideo.com'
 
     class TestStreamProtectionStatus:
 

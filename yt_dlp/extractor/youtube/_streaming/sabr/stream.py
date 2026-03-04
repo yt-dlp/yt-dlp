@@ -239,7 +239,7 @@ class SabrStream:
         self._sps_retry_manager = None
 
         def report_retry(err, count, retries, fatal=True):
-            if count >= self.host_fallback_threshold:
+            if count >= self.host_fallback_threshold and isinstance(err, (HTTPError, TransportError)):
                 self._process_fallback_server()
             RetryManager.report_retry(
                 err, count, retries, info=self.logger.info,
