@@ -368,6 +368,7 @@ class SabrFD(FileDownloader):
             for writer in writers.values():
                 writer.finish()
         except SabrStreamError as e:
+            self.write_debug(f'[SABR Debug Info]: {stream.create_stats_str()}')
             raise DownloadError(str(e)) from e
         except KeyboardInterrupt:
             if (
