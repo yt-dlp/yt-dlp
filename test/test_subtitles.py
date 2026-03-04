@@ -16,7 +16,6 @@ from yt_dlp.extractor import (
     CeskaTelevizeIE,
     DailymotionIE,
     DemocracynowIE,
-    LyndaIE,
     RaiPlayIE,
     RTVEALaCartaIE,
     TedTalkIE,
@@ -248,20 +247,6 @@ class TestCeskaTelevizeSubtitles(BaseTestSubtitles):
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
         self.assertFalse(subtitles)
-
-
-@is_download_test
-@unittest.skip('IE broken')
-class TestLyndaSubtitles(BaseTestSubtitles):
-    url = 'http://www.lynda.com/Bootstrap-tutorials/Using-exercise-files/110885/114408-4.html'
-    IE = LyndaIE
-
-    def test_allsubtitles(self):
-        self.DL.params['writesubtitles'] = True
-        self.DL.params['allsubtitles'] = True
-        subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), {'en'})
-        self.assertEqual(md5(subtitles['en']), '09bbe67222259bed60deaa26997d73a7')
 
 
 @is_download_test
