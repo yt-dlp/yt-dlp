@@ -1,7 +1,6 @@
 import datetime as dt
 
 from .common import InfoExtractor
-from .redge import RedCDNLivxIE
 from ..utils import (
     clean_html,
     join_nonempty,
@@ -185,7 +184,7 @@ class SejmIE(InfoExtractor):
                 entries.append({
                     **common_info,
                     '_type': 'url_transparent',
-                    'ie_key': RedCDNLivxIE.ie_key(),
+                    'ie_key': 'redcdnlivx',
                     'id': stream_id,
                     'title': join_nonempty(title, stream_id, delim=' - '),
                 })
