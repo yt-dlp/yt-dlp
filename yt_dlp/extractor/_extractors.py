@@ -1413,26 +1413,17 @@ from .pinterest import (
     PinterestCollectionIE,
     PinterestIE,
 )
-from .piramidetv import (
-    PiramideTVChannelIE,
-    PiramideTVIE,
-)
-from .planetmarathi import PlanetMarathiIE
 from .platzi import (
     PlatziCourseIE,
     PlatziIE,
 )
 from .playerfm import PlayerFmIE
-from .playplustv import PlayPlusTVIE
 from .playsuisse import PlaySuisseIE
-from .playtvak import PlaytvakIE
-from .playwire import PlaywireIE
 from .pluralsight import (
     PluralsightCourseIE,
     PluralsightIE,
 )
 from .plutotv import PlutoTVIE
-from .plvideo import PlVideoIE
 from .plyr import PlyrEmbedIE
 from .podbayfm import (
     PodbayFMChannelIE,
@@ -1476,7 +1467,6 @@ from .prankcast import (
 from .premiershiprugby import PremiershipRugbyIE
 from .presstv import PressTVIE
 from .projectveritas import ProjectVeritasIE
-from .prosiebensat1 import ProSiebenSat1IE
 from .prx import (
     PRXAccountIE,
     PRXSeriesIE,
@@ -1488,7 +1478,6 @@ from .puhutv import (
     PuhuTVIE,
     PuhuTVSerieIE,
 )
-from .puls4 import Puls4IE
 from .pyvideo import PyvideoIE
 from .qdance import QDanceIE
 from .qingting import QingTingIE
