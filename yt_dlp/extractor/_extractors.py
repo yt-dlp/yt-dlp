@@ -1500,10 +1500,6 @@ from .radiocanada import (
     RadioCanadaAudioVideoIE,
     RadioCanadaIE,
 )
-from .radiocomercial import (
-    RadioComercialIE,
-    RadioComercialPlaylistIE,
-)
 from .radiode import RadioDeIE
 from .radiofrance import (
     FranceCultureIE,
@@ -1568,7 +1564,6 @@ from .redbulltv import (
     RedBullTVRrnContentIE,
 )
 from .reddit import RedditIE
-from .redge import RedCDNLivxIE
 from .redgifs import (
     RedGifsIE,
     RedGifsSearchIE,
@@ -1582,13 +1577,11 @@ from .rentv import (
 from .restudy import RestudyIE
 from .reuters import ReutersIE
 from .reverbnation import ReverbNationIE
-from .rheinmaintv import RheinMainTVIE
 from .ridehome import RideHomeIE
 from .rinsefm import (
     RinseFMArtistPlaylistIE,
     RinseFMIE,
 )
-from .rmcdecouverte import RMCDecouverteIE
 from .rockstargames import RockstarGamesIE
 from .rokfin import (
     RokfinChannelIE,
