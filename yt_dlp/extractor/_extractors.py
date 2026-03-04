@@ -1698,7 +1698,6 @@ from .senategov import (
     SenateGovIE,
     SenateISVPIE,
 )
-from .sendtonews import SendtoNewsIE
 from .servus import ServusIE
 from .sevenplus import SevenPlusIE
 from .sexu import SexuIE
@@ -1711,7 +1710,6 @@ from .shahid import (
     ShahidShowIE,
 )
 from .sharepoint import SharePointIE
-from .sharevideos import ShareVideosEmbedIE
 from .shemaroome import ShemarooMeIE
 from .shiey import ShieyIE
 from .showroomlive import ShowRoomLiveIE
@@ -1756,7 +1754,6 @@ from .smotrim import (
     SmotrimPlaylistIE,
 )
 from .snapchat import SnapchatSpotlightIE
-from .snotr import SnotrIE
 from .softwhiteunderbelly import SoftWhiteUnderbellyIE
 from .sohu import (
     SohuIE,
@@ -1806,7 +1803,6 @@ from .spreaker import (
     SpreakerIE,
     SpreakerShowIE,
 )
-from .springboardplatform import SpringboardPlatformIE
 from .sproutvideo import (
     SproutVideoIE,
     VidsIoIE,
@@ -1823,17 +1819,12 @@ from .stacommu import (
     TheaterComplexTownVODIE,
 )
 from .stageplus import StagePlusVODConcertIE
-from .stanfordoc import StanfordOpenClassroomIE
 from .startrek import StarTrekIE
 from .startv import StarTVIE
 from .steam import (
     SteamCommunityBroadcastIE,
     SteamCommunityIE,
     SteamIE,
-)
-from .stitcher import (
-    StitcherIE,
-    StitcherShowIE,
 )
 from .storyfire import (
     StoryFireIE,
@@ -1844,7 +1835,6 @@ from .streaks import StreaksIE
 from .streamable import StreamableIE
 from .streamcz import StreamCZIE
 from .streetvoice import StreetVoiceIE
-from .stretchinternet import StretchInternetIE
 from .stripchat import StripchatIE
 from .stv import STVPlayerIE
 from .subsplash import (
@@ -1862,8 +1852,6 @@ from .svt import (
     SVTPlayIE,
     SVTSeriesIE,
 )
-from .swearnet import SwearnetEpisodeIE
-from .syvdk import SYVDKIE
 from .sztvhu import SztvHuIE
 from .tagesschau import TagesschauIE
 from .taptap import (
