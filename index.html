@@ -7,17 +7,16 @@
   <link rel="icon" type="image/svg+xml" href="/downer-favicon.svg" />
   <style>
     :root {
-      --bg: #f3ecdd;
-      --surface: #f8f3e8;
-      --surface-soft: #f1e8d8;
-      --text: #1f2d2f;
-      --muted: #5f6f71;
-      --teal: #016c73;
-      --teal-dark: #035760;
-      --line: #d7cdb8;
-      --shadow-raised: -5px -5px 12px rgba(255, 251, 242, 0.95), 7px 8px 16px rgba(167, 147, 113, 0.35);
-      --shadow-inset: inset 4px 4px 10px rgba(176, 152, 113, 0.35), inset -5px -5px 10px rgba(255, 251, 242, 0.95);
-      --shadow-pressed: inset 6px 6px 13px rgba(126, 106, 74, 0.4), inset -4px -4px 10px rgba(160, 240, 242, 0.2);
+      --bg: #eee6d6;
+      --surface: #f3ecdd;
+      --surface-deep: #efe6d5;
+      --text: #1d363a;
+      --muted: #4d6670;
+      --teal: #06727a;
+      --teal-dark: #045d64;
+      --edge-light: rgba(255, 251, 242, 0.95);
+      --edge-dark: rgba(188, 168, 136, 0.42);
+      --edge-dark-inset: rgba(168, 148, 116, 0.45);
     }
 
     * { box-sizing: border-box; }
@@ -25,149 +24,186 @@
     body {
       margin: 0;
       font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      background: radial-gradient(circle at 8% 0%, #fbf6ea, var(--bg));
+      background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      padding: 30px 16px;
+      padding: 24px 16px 30px;
     }
 
-    .container { max-width: 980px; margin: 0 auto; }
+    .container { max-width: 1120px; margin: 0 auto; }
 
-    .header {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 24px;
+    .top-strip {
+      height: 20px;
+      margin: -24px -16px 28px;
+      background: #2f444e;
+    }
+
+    .logo-wrap {
+      display: grid;
+      place-items: center;
+      margin-bottom: 28px;
     }
 
     .logo {
-      width: min(340px, 82vw);
+      width: min(620px, 92vw);
       height: auto;
-      filter: drop-shadow(0 4px 8px rgba(89, 71, 45, 0.12));
+      display: block;
     }
 
     .subtitle {
-      margin: 0;
+      margin: 8px 0 0;
       color: var(--muted);
-      font-size: 1.15rem;
+      font-size: 1.05rem;
       text-align: center;
     }
 
     .card {
       background: var(--surface);
-      border: 1px solid #dfd5c2;
-      border-radius: 22px;
-      padding: 22px;
-      box-shadow: var(--shadow-raised);
-      margin-bottom: 20px;
+      border-radius: 24px;
+      padding: 26px;
+      margin-bottom: 22px;
+      box-shadow:
+        -7px -7px 13px var(--edge-light),
+        8px 9px 16px var(--edge-dark);
+      border: 1px solid #dccfb8;
     }
 
-    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+
+    .inset {
+      background: var(--surface-deep);
+      border: 1px solid #ddd0ba;
+      box-shadow:
+        inset 5px 5px 11px var(--edge-dark-inset),
+        inset -6px -6px 11px var(--edge-light);
+    }
 
     input[type="url"], select {
-      flex: 1 1 560px;
+      flex: 1 1 620px;
       min-width: 220px;
-      border: 1px solid #dfd2bb;
-      border-radius: 14px;
-      padding: 14px 16px;
+      border-radius: 18px;
+      padding: 16px 20px;
       font-size: 1.05rem;
       color: var(--text);
-      background: #f4ecdc;
-      box-shadow: var(--shadow-inset);
       outline: none;
     }
 
-    input[type="url"]:focus, select:focus { border-color: #2b8288; }
+    input[type="url"]:focus,
+    select:focus {
+      border-color: #4fa0a6;
+      box-shadow:
+        inset 5px 5px 11px var(--edge-dark-inset),
+        inset -6px -6px 11px var(--edge-light),
+        0 0 0 2px rgba(8, 123, 132, 0.2);
+    }
 
-    button {
-      border: none;
-      border-radius: 14px;
-      padding: 12px 28px;
-      font-size: 1.02rem;
+    .btn {
+      border: 0;
+      border-radius: 18px;
+      padding: 14px 34px;
+      font-size: 1.1rem;
       font-weight: 700;
       cursor: pointer;
       color: #fff;
-      background: linear-gradient(180deg, #087980 0%, #046069 100%);
-      box-shadow: -5px -5px 12px rgba(31, 140, 147, 0.26), 7px 8px 15px rgba(3, 84, 90, 0.45), inset 1px 1px 0 rgba(190, 255, 255, 0.2);
-      transition: transform .15s ease, box-shadow .2s ease, filter .2s ease;
+      background: linear-gradient(180deg, #0a7c84 0%, #05656d 100%);
+      transform: translateZ(0);
+      box-shadow:
+        -5px -5px 10px rgba(120, 219, 223, 0.3),
+        8px 9px 16px rgba(1, 90, 96, 0.5),
+        inset 1px 1px 0 rgba(196, 255, 255, 0.25);
+      transition: transform .14s ease, box-shadow .18s ease, filter .15s ease;
     }
 
-    button:hover { transform: translateY(-1px); filter: brightness(1.03); }
+    .btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.03);
+    }
 
-    button.is-pressed {
+    .btn.is-pressed {
       transform: translateY(1px);
-      box-shadow: var(--shadow-pressed);
-      filter: saturate(.9);
+      box-shadow:
+        inset 7px 7px 14px rgba(3, 71, 76, 0.58),
+        inset -5px -5px 12px rgba(108, 211, 214, 0.22);
     }
 
-    .controls { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-top: 14px; color: var(--muted); }
+    .controls {
+      margin-top: 16px;
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 1.07rem;
+    }
 
-    label.inline { display: inline-flex; align-items: center; gap: 8px; }
+    label.inline { display: inline-flex; align-items: center; gap: 10px; }
 
     input[type="checkbox"] {
       appearance: none;
-      width: 18px;
-      height: 18px;
-      border-radius: 5px;
-      border: 1px solid #d9ccb4;
-      background: #f2e8d8;
-      box-shadow: var(--shadow-inset);
+      width: 24px;
+      height: 24px;
+      border-radius: 8px;
+      border: 1px solid #d7cab0;
+      background: var(--surface-deep);
+      box-shadow:
+        inset 4px 4px 8px var(--edge-dark-inset),
+        inset -4px -4px 8px var(--edge-light);
       position: relative;
       cursor: pointer;
     }
 
     input[type="checkbox"]:checked {
       background: linear-gradient(180deg, #0f7f86 0%, #045e66 100%);
-      border-color: #05656c;
+      box-shadow:
+        inset 4px 4px 9px rgba(2, 68, 73, 0.5),
+        inset -3px -3px 8px rgba(112, 217, 220, 0.2);
     }
 
     input[type="checkbox"]:checked::after {
       content: '';
       position: absolute;
-      left: 5px;
-      top: 2px;
-      width: 4px;
-      height: 8px;
+      left: 8px;
+      top: 5px;
+      width: 6px;
+      height: 10px;
       border: solid #fff;
       border-width: 0 2px 2px 0;
       transform: rotate(45deg);
     }
 
+    h2 { margin: 0 0 12px; }
+
     .downloads {
       min-height: 170px;
-      background: #efe4d2;
-      border-radius: 16px;
+      border-radius: 18px;
       padding: 14px;
-      border: 1px solid var(--line);
       color: var(--muted);
     }
 
     .download-item {
-      background: #f4ebdc;
-      border: 1px solid #d9cfbc;
-      border-radius: 14px;
+      border-radius: 16px;
+      padding: 14px;
       margin-bottom: 10px;
-      padding: 12px;
-      box-shadow: var(--shadow-raised);
       display: flex;
       justify-content: space-between;
       gap: 14px;
       align-items: center;
-      animation: reveal .5s cubic-bezier(.2,.9,.25,1);
+      animation: reveal .5s cubic-bezier(.21,.9,.25,1);
+      box-shadow:
+        -6px -6px 11px var(--edge-light),
+        7px 8px 13px var(--edge-dark);
+      border: 1px solid #ddd1bb;
+      background: #f4eddf;
     }
 
-    .download-main {
-      flex: 1;
-      min-width: 0;
-    }
+    .download-main { flex: 1; min-width: 0; }
 
     .download-title {
       margin: 0;
-      font-size: 1.03rem;
       line-height: 1.35;
+      font-size: 1.03rem;
       font-weight: 700;
-      color: #213538;
+      color: var(--text);
       display: -webkit-box;
       -webkit-line-clamp: 3;
       line-clamp: 3;
@@ -177,20 +213,18 @@
 
     .download-platform {
       margin-top: 6px;
-      font-size: 0.95rem;
       color: var(--muted);
+      font-size: .95rem;
     }
 
-    .status { margin-top: 10px; min-height: 24px; color: var(--muted); }
-    .status.error { color: #b34f4f; }
-
-    h2 { margin: 0 0 12px; }
+    .status { margin-top: 12px; min-height: 24px; color: var(--muted); }
+    .status.error { color: #b24e48; }
 
     .footer {
       text-align: center;
       margin-top: 28px;
-      font-size: .95rem;
       color: #706250;
+      font-size: .95rem;
     }
 
     @keyframes reveal {
@@ -198,15 +232,17 @@
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    @media (max-width: 700px) {
+    @media (max-width: 820px) {
       .download-item { flex-direction: column; align-items: stretch; }
-      .download-item button { width: 100%; }
+      .download-item .btn { width: 100%; }
+      .btn { width: 100%; }
     }
   </style>
 </head>
 <body>
+  <div class="top-strip"></div>
   <div class="container">
-    <header class="header">
+    <header class="logo-wrap">
       <img class="logo" src="/downer-logo2.svg" alt="Downer" />
       <p class="subtitle">Download videos from X or Youtube.</p>
     </header>
@@ -214,12 +250,12 @@
     <div class="card">
       <form id="downloadForm">
         <div class="row">
-          <input id="url" type="url" required placeholder="https://x.com/... or https://www.youtube.com/watch?v=..." />
-          <button id="loadBtn" type="submit">Download</button>
+          <input class="inset" id="url" type="url" required placeholder="https://x.com/... or https://www.youtube.com/watch?v=..." />
+          <button class="btn" id="loadBtn" type="submit">Download</button>
         </div>
         <div class="controls">
           <label class="inline">Quality:
-            <select id="format">
+            <select class="inset" id="format">
               <option value="best" selected>Best Available</option>
               <option value="bestvideo+bestaudio/best">Best Video + Audio</option>
               <option value="worst">Smallest/Lowest</option>
@@ -233,7 +269,7 @@
 
     <div class="card">
       <h2>Downloads</h2>
-      <div id="downloads" class="downloads">No downloads yet. Paste a URL above to get started.</div>
+      <div id="downloads" class="downloads inset">No downloads yet. Paste a URL above to get started.</div>
     </div>
 
     <p class="footer">(c) downer '26. vibed by cb.</p>
@@ -294,6 +330,7 @@
       `;
 
       const btn = document.createElement('button');
+      btn.className = 'btn';
       btn.type = 'button';
       btn.textContent = 'Download again';
       btn.addEventListener('click', () => {

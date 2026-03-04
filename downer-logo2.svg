@@ -1,15 +1,8 @@
-<svg width="760" height="180" viewBox="0 0 760 180" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Downer logo">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0A8188"/>
-      <stop offset="1" stop-color="#045C63"/>
-    </linearGradient>
-    <filter id="s" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#857255" flood-opacity="0.3"/>
-    </filter>
-  </defs>
-  <rect x="10" y="20" width="140" height="140" rx="34" fill="#F8F2E4" stroke="#D3C7AF"/>
-  <rect x="32" y="42" width="96" height="96" rx="24" fill="url(#g)" filter="url(#s)"/>
-  <path d="M57 92L74 110L106 78" stroke="#F8F2E4" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="176" y="115" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="92" font-weight="800" fill="#1D3336">Downer</text>
+<svg width="1400" height="340" viewBox="0 0 1400 340" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Downer logo">
+  <g fill="#056A72">
+    <path d="M95 195C95 151 129 117 171 117C177 81 211 53 252 53C294 53 329 82 334 119C382 122 421 161 421 209C421 259 380 300 330 300H171C128 300 95 268 95 225V195Z"/>
+    <rect x="223" y="151" width="57" height="102" rx="18"/>
+    <path d="M193 250C187 250 184 257 188 262L247 326C250 330 257 330 260 326L319 262C323 257 320 250 314 250H193Z"/>
+  </g>
+  <text x="455" y="248" fill="#056A72" font-family="'Trebuchet MS', 'Segoe UI', system-ui, sans-serif" font-size="220" font-weight="500" letter-spacing="1">Downer</text>
 </svg>
