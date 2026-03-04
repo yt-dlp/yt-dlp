@@ -2137,7 +2137,6 @@ from .ustudio import (
     UstudioEmbedIE,
     UstudioIE,
 )
-from .varzesh3 import Varzesh3IE
 from .vbox7 import Vbox7IE
 from .veo import VeoIE
 from .vevo import (
@@ -2161,19 +2160,7 @@ from .videocampus_sachsen import (
     VideocampusSachsenIE,
     ViMPPlaylistIE,
 )
-from .videofyme import VideofyMeIE
-from .videoken import (
-    VideoKenCategoryIE,
-    VideoKenIE,
-    VideoKenPlayerIE,
-    VideoKenPlaylistIE,
-    VideoKenTopicIE,
-)
-from .videomore import (
-    VideomoreIE,
-    VideomoreSeasonIE,
-    VideomoreVideoIE,
-)
+from .videoken import VideoKenPlayerIE
 from .videopress import VideoPressIE
 from .vidflex import VidflexIE
 from .vidio import (
@@ -2203,10 +2190,6 @@ from .vimeo import (
     VimeoUserIE,
     VimeoWatchLaterIE,
 )
-from .vimm import (
-    VimmIE,
-    VimmRecordingIE,
-)
 from .viously import ViouslyIE
 from .viqeo import ViqeoIE
 from .visir import VisirIE
@@ -2224,7 +2207,6 @@ from .vk import (
     VKWallPostIE,
 )
 from .vocaroo import VocarooIE
-from .vodpl import VODPlIE
 from .vodplatform import VODPlatformIE
 from .voicy import (
     VoicyChannelIE,
@@ -2255,11 +2237,6 @@ from .vtm import VTMIE
 from .vtv import (
     VTVIE,
     VTVGoIE,
-)
-from .vuclip import VuClipIE
-from .vvvvid import (
-    VVVVIDIE,
-    VVVVIDShowIE,
 )
 from .walla import WallaIE
 from .washingtonpost import (
