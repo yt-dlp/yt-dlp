@@ -293,11 +293,11 @@ class Aria2cFD(ExternalFD):
         return super()._call_downloader(tmpfilename, info_dict)
 
     def _make_cmd(self, tmpfilename, info_dict):
-        cmd = [self.exe, '-c', '--no-conf',
+        cmd = [self.exe, '--no-conf', '--auto-save-interval=10',
                '--console-log-level=warn', '--summary-interval=0', '--download-result=hide',
                '--http-accept-gzip=true', '--file-allocation=none', '-x16', '-j16', '-s16']
         if 'fragments' in info_dict:
-            cmd += ['--allow-overwrite=true', '--allow-piece-length-change=true']
+            cmd += ['--allow-piece-length-change=true']
         else:
             cmd += ['--min-split-size', '1M']
 
@@ -312,7 +312,13 @@ class Aria2cFD(ExternalFD):
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
         cmd += self._bool_option('--show-console-readout', 'noprogress', 'false', 'true', '=')
+        cmd += self._bool_option('--remove-control-file', 'continuedl', 'false', 'true', '=')
         cmd += self._configuration_args()
+        # do not allow changing these flags
+        cmd += ['--allow-overwrite=true']
+        cmd += ['--always-resume=false']
+        cmd += ['--auto-file-renaming=false']
+        cmd += ['--force-save=false']
 
         if '__rpc' in info_dict:
             cmd += [
@@ -331,7 +337,6 @@ class Aria2cFD(ExternalFD):
             cmd += ['--dir', self._aria2c_filename(dn) + os.path.sep]
         if 'fragments' not in info_dict:
             cmd += ['--out', self._aria2c_filename(os.path.basename(tmpfilename))]
-        cmd += ['--auto-file-renaming=false']
 
         if 'fragments' in info_dict:
             cmd += ['--uri-selector=inorder']
