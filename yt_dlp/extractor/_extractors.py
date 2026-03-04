@@ -1340,7 +1340,6 @@ from .openrec import (
     OpenRecIE,
     OpenRecMovieIE,
 )
-from .ora import OraTVIE
 from .orf import (
     ORFIPTVIE,
     ORFONIE,
