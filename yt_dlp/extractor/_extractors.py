@@ -1000,10 +1000,6 @@ from .mangomolo import (
 )
 from .manyvids import ManyVidsIE
 from .maoritv import MaoriTVIE
-from .markiza import (
-    MarkizaIE,
-    MarkizaPageIE,
-)
 from .massengeschmacktv import MassengeschmackTVIE
 from .masters import MastersIE
 from .matchitv import MatchiTVIE
@@ -1050,13 +1046,11 @@ from .microsoftembed import (
     MicrosoftLearnSessionIE,
     MicrosoftMediusIE,
 )
-from .microsoftstream import MicrosoftStreamIE
 from .minds import (
     MindsChannelIE,
     MindsGroupIE,
     MindsIE,
 )
-from .minoto import MinotoIE
 from .mir24tv import Mir24TvIE
 from .mirrativ import (
     MirrativIE,
@@ -1090,7 +1084,6 @@ from .mlb import (
 from .mlssoccer import MLSSoccerIE
 from .mocha import MochaVideoIE
 from .mojevideo import MojevideoIE
-from .mojvideo import MojvideoIE
 from .monstercat import MonstercatIE
 from .motherless import (
     MotherlessGalleryIE,
@@ -1100,7 +1093,6 @@ from .motherless import (
 )
 from .motorsport import MotorsportIE
 from .moviepilot import MoviepilotIE
-from .moview import MoviewPlayIE
 from .moviezine import MoviezineIE
 from .movingimage import MovingImageIE
 from .msn import MSNIE
@@ -1112,12 +1104,6 @@ from .murrtube import (
 )
 from .museai import MuseAIIE
 from .musescore import MuseScoreIE
-from .musicdex import (
-    MusicdexAlbumIE,
-    MusicdexArtistIE,
-    MusicdexPlaylistIE,
-    MusicdexSongIE,
-)
 from .mux import MuxIE
 from .mx3 import (
     Mx3IE,
