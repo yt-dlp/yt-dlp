@@ -143,7 +143,7 @@ class SabrResponseProcessor:
     def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str, request_number: int) -> list[UMPPart]:
         raise NotImplementedError
 
-    def determine_formats(self, vpabr: VideoPlaybackAbrRequest) -> tuple[FormatId, FormatId]:
+    def determine_formats(self, vpabr: VideoPlaybackAbrRequest) -> tuple[FormatId | None, FormatId | None]:
         # Check selected_audio_format_ids and selected_video_format_ids
         # TODO: caption format ids, consider initialized_format_ids
 

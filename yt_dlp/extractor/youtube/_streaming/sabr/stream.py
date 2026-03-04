@@ -535,7 +535,6 @@ class SabrStream:
     # region: Stream progression
 
     def _process_next_player_time(self):
-        # TODO: handle if there are no enabled format selectors
         # 1. If any enabled format selector does not have an initialized format, skip
         if self._missing_initialized_format():
             self.logger.debug(
@@ -548,7 +547,7 @@ class SabrStream:
                 'Skipping player time increment; one or more initialized formats are currently seeking')
             return
 
-        # 2. If missing a consumed range for the current player time, skip
+        # 3. If missing a consumed range for the current player time, skip
         current_consumed_ranges = self._current_consumed_ranges()
         if any(
             cr is None for _, cr in current_consumed_ranges
@@ -558,7 +557,7 @@ class SabrStream:
                 'is missing a consumed range for current player time')
             return
 
-        # 3. Update player time to the lowest end time of consumed ranges that match the current player time
+        # 4. Update player time to the lowest end time of consumed ranges that match the current player time
         min_izf, min_cr = min(
             current_consumed_ranges,
             key=lambda pair: pair[1].start_time_ms + pair[1].duration_ms)
@@ -718,12 +717,16 @@ class SabrStream:
                     f'{context_msg} but heartbeat indicates stream is still live; continuing to wait for segments.')
                 return
 
-            # TODO: check all enabled format selectors have an initialized format
-            self.logger.debug(
-                f'No activity detected in {empty_requests} requests and {seconds_since_last_activity:.1f} seconds. '
-                f'{context_msg} and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
-            self._consumed = True
-            return
+            # In the case we only get one format at the start of a stream and stall, it should fail with a stall
+            if self._missing_initialized_format():
+                self.logger.debug(
+                    'Skipping end of live stream check; not all enabled format selectors have an initialized format yet')
+            else:
+                self.logger.debug(
+                    f'No activity detected in {empty_requests} requests and {seconds_since_last_activity:.1f} seconds. '
+                    f'{context_msg} and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+                self._consumed = True
+                return
 
         raise StreamStallError(
             f'Stream stalled; no activity detected in '

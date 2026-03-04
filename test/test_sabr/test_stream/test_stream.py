@@ -2799,6 +2799,47 @@ class TestStream:
                 assert_media_sequence_in_order(parts, video_selector, total_segments - 2, check_segment_total_segments=False)
 
             @mock_time
+            @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
+            def test_stream_stall_header_consumed_ranges_missing_izf(self, logger, client_info, post_live):
+                # Stream stalled near the head of the stream, but not all format selectors are initialized
+                # This can happen at the start of the stream
+                total_segments = 2
+                segment_target_duration_ms = 2000
+                dvr_segments = 1
+
+                class MissingAudioFormatLiveAVProfile(LiveAVProfile):
+                    def determine_formats(self, vpabr: VideoPlaybackAbrRequest):
+                        video_format_id, _ = super().determine_formats(vpabr)
+                        return video_format_id, None
+
+                def stall_func(parts, vpabr, url, request_number):
+                    # Stop returning new segments after 8 requests
+                    if request_number >= 2:
+                        return []
+                    return parts
+
+                profile = MissingAudioFormatLiveAVProfile({
+                    'total_segments': total_segments,
+                    'segment_target_duration_ms': segment_target_duration_ms,
+                    'dvr_segments': dvr_segments,
+                    'custom_parts_function': stall_func,
+                })
+
+                sabr_stream, _, _ = setup_sabr_stream_av(
+                    sabr_response_processor=profile,
+                    client_info=client_info,
+                    logger=logger,
+                    url=VALID_LIVE_URL,
+                    live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+                    post_live=post_live,
+                )
+                assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+                with pytest.raises(StreamStallError, match=r'Stream stalled; no activity detected in 6 requests and 10.0 seconds and not near live head.'):
+                    list(sabr_stream.iter_parts())
+
+                assert len(sabr_stream.processor.initialized_formats) == 1
+
+            @mock_time
             def test_stream_stall_head_consumed_ranges_with_heartbeat(self, logger, client_info):
                 # Should consider near live head based on consumed ranges and finish stream on stall
                 # This should calculate a default live_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
