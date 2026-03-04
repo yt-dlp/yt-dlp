@@ -884,11 +884,9 @@ from .kika import (
     KikaIE,
     KikaPlaylistIE,
 )
-from .kinja import KinjaEmbedIE
 from .kinopoisk import KinoPoiskIE
 from .kommunetv import KommunetvIE
 from .kompas import KompasVideoIE
-from .koo import KooIE
 from .krasview import KrasViewIE
 from .kth import KTHIE
 from .ku6 import Ku6IE
@@ -1371,7 +1369,6 @@ from .onet import (
     OnetMVPIE,
     OnetPlIE,
 )
-from .onionstudios import OnionStudiosIE
 from .onsen import OnsenIE
 from .opencast import (
     OpencastIE,
