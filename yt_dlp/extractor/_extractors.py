@@ -1093,7 +1093,6 @@ from .motherless import (
 )
 from .motorsport import MotorsportIE
 from .moviepilot import MoviepilotIE
-from .moviezine import MoviezineIE
 from .movingimage import MovingImageIE
 from .msn import MSNIE
 from .mtv import MTVIE
