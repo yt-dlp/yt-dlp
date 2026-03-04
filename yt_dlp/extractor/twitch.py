@@ -52,6 +52,7 @@ class TwitchBaseIE(InfoExtractor):
         'VideoMetadata': '45111672eea2e507f8ba44d101a61862f9c56b11dee09a15634cb75cb9b9084d',
         'VideoPlayer_ChapterSelectButtonVideo': '71835d5ef425e154bf282453a926d99b328cdc5e32f36d3a209d0f4778b41203',
         'VideoPlayer_VODSeekbarPreviewVideo': '07e99e4d56c5a7c67117a154777b0baf85a5ffefa393b213f4bc712ccaf85dd6',
+        'ContentClipsManager_User': 'bdaf6f0fe8563e619dfbafc2b759f47f861b86b142d0f9b740b0614b763551f8',
     }
 
     @property
@@ -833,7 +834,7 @@ class TwitchVideosIE(TwitchVideosBaseIE):
 
 class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
     IE_NAME = 'twitch:videos:clips'
-    _VALID_URL = r'https?://(?:(?:www|go|m)\.)?twitch\.tv/(?P<id>[^/]+)/(?:clips|videos/*?\?.*?\bfilter=clips)'
+    _VALID_URL = r'https?://(?:(?:www|go|m|dashboard)\.)?twitch\.tv/(?:[^/]+/)?(?P<id>[^/]+)/(?:content/)?(?:clips|videos)?(?:\s*\?\s*filter=clips|/created)(?:[^#/]+)?$'
     _TESTS = [{
         # Clips
         'url': 'https://www.twitch.tv/vanillatv/clips?filter=clips&range=all',
@@ -845,6 +846,13 @@ class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
     }, {
         'url': 'https://www.twitch.tv/dota2ruhub/videos?filter=clips&range=7d',
         'only_matching': True,
+    }, {
+        'url': 'https://dashboard.twitch.tv/u/0xvd1/content/clips/created',
+        'info_dict': {
+            'id': '0xvd1',
+            'title': '0xvd1 - Clips Top 7D',
+        },
+        'playlist_mincount': 2,
     }]
 
     Clip = collections.namedtuple('Clip', ['filter', 'label'])
@@ -860,17 +868,30 @@ class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
     # NB: values other than 20 result in skipped videos
     _PAGE_LIMIT = 20
 
-    _OPERATION_NAME = 'ClipsCards__User'
+    _URL = None
     _ENTRY_KIND = 'clip'
     _EDGE_KIND = 'ClipEdge'
     _NODE_KIND = 'Clip'
 
-    @staticmethod
-    def _make_variables(channel_name, channel_filter):
+    @property
+    def _OPERATION_NAME(self):
+        if 'dashboard.' in self._URL:
+            return 'ContentClipsManager_User'
+        else:
+            return 'ClipsCards__User'
+
+    def _make_variables(self, channel_name, channel_filter):
+        criteria = {}
+        if 'dashboard.' in self._URL:
+            criteria = {
+                'period': 'ALL_TIME',
+                'role': 'CURATOR',
+            }
         return {
             'login': channel_name,
             'criteria': {
                 'filter': channel_filter,
+                **criteria,
             },
         }
 
@@ -894,6 +915,7 @@ class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
         }
 
     def _real_extract(self, url):
+        self._URL = url
         channel_name = self._match_id(url)
         qs = parse_qs(url)
         date_range = qs.get('range', ['7d'])[0]
