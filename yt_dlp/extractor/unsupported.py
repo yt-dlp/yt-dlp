@@ -297,6 +297,7 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
         r'einthusan\.(?:tv|com|ca)',
         r'yourupload\.com',
         r'xanimu\.com',
+        r'musicdex\.org',
     )
 
     _TESTS = [{
