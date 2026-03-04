@@ -766,7 +766,6 @@ from .idagio import (
     IdagioRecordingIE,
     IdagioTrackIE,
 )
-from .idolplus import IdolPlusIE
 from .ign import (
     IGNIE,
     IGNArticleIE,
@@ -799,7 +798,6 @@ from .instagram import (
     InstagramUserIE,
 )
 from .internazionale import InternazionaleIE
-from .internetvideoarchive import InternetVideoArchiveIE
 from .iprima import (
     IPrimaCNNIE,
     IPrimaIE,
@@ -834,7 +832,6 @@ from .iwara import (
     IwaraUserIE,
 )
 from .ixigua import IxiguaIE
-from .izlesene import IzleseneIE
 from .jamendo import (
     JamendoAlbumIE,
     JamendoIE,
