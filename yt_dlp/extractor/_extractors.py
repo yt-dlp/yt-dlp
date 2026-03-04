@@ -1909,11 +1909,6 @@ from .telequebec import (
     TeleQuebecVideoIE,
 )
 from .teletask import TeleTaskIE
-from .telewebion import TelewebionIE
-from .tempo import (
-    IVXPlayerIE,
-    TempoIE,
-)
 from .tencent import (
     IflixEpisodeIE,
     IflixSeriesIE,
@@ -1939,7 +1934,6 @@ from .theguardian import (
     TheGuardianPodcastPlaylistIE,
 )
 from .thehighwire import TheHighWireIE
-from .theholetv import TheHoleTvIE
 from .theintercept import TheInterceptIE
 from .theplatform import (
     ThePlatformFeedIE,
@@ -1990,12 +1984,6 @@ from .toutv import TouTvIE
 from .toypics import (
     ToypicsIE,
     ToypicsUserIE,
-)
-from .traileraddict import TrailerAddictIE
-from .triller import (
-    TrillerIE,
-    TrillerShortIE,
-    TrillerUserIE,
 )
 from .trovo import (
     TrovoChannelClipIE,
@@ -2079,7 +2067,6 @@ from .tvplay import (
     TVPlayHomeIE,
     TVPlayIE,
 )
-from .tvplayer import TVPlayerIE
 from .tvw import (
     TvwIE,
     TvwNewsIE,
