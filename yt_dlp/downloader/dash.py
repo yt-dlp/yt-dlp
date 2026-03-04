@@ -23,14 +23,12 @@ class DashSegmentsFD(FragmentFD):
             real_downloader = get_suitable_downloader(
                 info_dict, self.params, None, protocol='dash_frag_urls', to_stdout=(filename == '-'))
 
-        real_start = time.time()
-
+        args, real_start = [], time.time()
         requested_formats = [{**info_dict, **fmt} for fmt in info_dict.get('requested_formats', [])]
-        args = []
         for fmt in requested_formats or [info_dict]:
-            # Re-extract if --load-info-json is used and 'fragments' was originally a generator
-            # See https://github.com/yt-dlp/yt-dlp/issues/13906
             if isinstance(fmt['fragments'], str):
+                # Live managed by extractor
+                self.to_screen(f'[{self.FD_NAME}] Warning: fragments is string type for live stream')
                 raise ReExtractInfo('the stream needs to be re-extracted', expected=True)
 
             try:
@@ -40,7 +38,7 @@ class DashSegmentsFD(FragmentFD):
             ctx = {
                 'filename': fmt.get('filepath') or filename,
                 'live': 'is_from_start' if fmt.get('is_from_start') else fmt.get('is_live'),
-                'total_frags': fragment_count,
+                'total_frags': None if (fmt.get('is_live') or fmt.get('is_from_start')) else fragment_count,
             }
 
             if real_downloader:
@@ -75,9 +73,8 @@ class DashSegmentsFD(FragmentFD):
         fragment_base_url = fmt.get('fragment_base_url')
         fragments = self._resolve_fragments(fmt['fragments'], ctx)
 
-        frag_index = 0
         for i, fragment in enumerate(fragments):
-            frag_index += 1
+            frag_index = fragment.get('frag_index', i + 1)
             if frag_index <= ctx['fragment_index']:
                 continue
             fragment_url = fragment.get('url')
@@ -92,4 +89,5 @@ class DashSegmentsFD(FragmentFD):
                 'fragment_count': fragment.get('fragment_count'),
                 'index': i,
                 'url': fragment_url,
+                'duration': fragment.get('duration'),
             }
