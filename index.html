@@ -3,75 +3,219 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>yt-dlp Web UI</title>
+  <title>Downer</title>
+  <link rel="icon" type="image/svg+xml" href="/downer-favicon.svg" />
   <style>
     :root {
-      --panel: #123c73;
-      --panel-dark: #0f2c56;
-      --text: #f8f7ff;
-      --muted: #b8bfd7;
-      --accent: #ff5d72;
+      --bg: #f3ecdd;
+      --surface: #f8f3e8;
+      --surface-soft: #f1e8d8;
+      --text: #1f2d2f;
+      --muted: #5f6f71;
+      --teal: #016c73;
+      --teal-dark: #035760;
+      --line: #d7cdb8;
+      --shadow-raised: -5px -5px 12px rgba(255, 251, 242, 0.95), 7px 8px 16px rgba(167, 147, 113, 0.35);
+      --shadow-inset: inset 4px 4px 10px rgba(176, 152, 113, 0.35), inset -5px -5px 10px rgba(255, 251, 242, 0.95);
+      --shadow-pressed: inset 6px 6px 13px rgba(126, 106, 74, 0.4), inset -4px -4px 10px rgba(160, 240, 242, 0.2);
     }
+
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      background: linear-gradient(135deg, #0b1030 0%, #10153d 100%);
+      background: radial-gradient(circle at 8% 0%, #fbf6ea, var(--bg));
       color: var(--text);
       min-height: 100vh;
-      padding: 28px 16px;
+      padding: 30px 16px;
     }
-    .container { max-width: 960px; margin: 0 auto; }
-    h1 { text-align: center; margin: 0; color: #ff6a80; font-size: 2.7rem; }
-    .subtitle { text-align: center; color: var(--muted); margin: 12px 0 28px; }
+
+    .container { max-width: 980px; margin: 0 auto; }
+
+    .header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .logo {
+      width: min(340px, 82vw);
+      height: auto;
+      filter: drop-shadow(0 4px 8px rgba(89, 71, 45, 0.12));
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.15rem;
+      text-align: center;
+    }
+
     .card {
-      background: var(--panel);
-      border-radius: 20px;
+      background: var(--surface);
+      border: 1px solid #dfd5c2;
+      border-radius: 22px;
       padding: 22px;
-      box-shadow: 0 16px 48px rgba(0,0,0,0.24);
+      box-shadow: var(--shadow-raised);
       margin-bottom: 20px;
     }
+
     .row { display: flex; gap: 12px; flex-wrap: wrap; }
+
     input[type="url"], select {
       flex: 1 1 560px;
-      min-width: 240px;
-      border: none;
-      border-radius: 12px;
-      padding: 16px;
+      min-width: 220px;
+      border: 1px solid #dfd2bb;
+      border-radius: 14px;
+      padding: 14px 16px;
       font-size: 1.05rem;
-      color: #fff;
-      background: #13264e;
+      color: var(--text);
+      background: #f4ecdc;
+      box-shadow: var(--shadow-inset);
+      outline: none;
     }
+
+    input[type="url"]:focus, select:focus { border-color: #2b8288; }
+
     button {
-      background: var(--accent);
       border: none;
-      color: #fff;
-      border-radius: 12px;
-      padding: 14px 28px;
-      font-size: 1.1rem;
+      border-radius: 14px;
+      padding: 12px 28px;
+      font-size: 1.02rem;
       font-weight: 700;
       cursor: pointer;
+      color: #fff;
+      background: linear-gradient(180deg, #087980 0%, #046069 100%);
+      box-shadow: -5px -5px 12px rgba(31, 140, 147, 0.26), 7px 8px 15px rgba(3, 84, 90, 0.45), inset 1px 1px 0 rgba(190, 255, 255, 0.2);
+      transition: transform .15s ease, box-shadow .2s ease, filter .2s ease;
     }
-    .controls { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin-top: 14px; color: var(--muted); }
+
+    button:hover { transform: translateY(-1px); filter: brightness(1.03); }
+
+    button.is-pressed {
+      transform: translateY(1px);
+      box-shadow: var(--shadow-pressed);
+      filter: saturate(.9);
+    }
+
+    .controls { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-top: 14px; color: var(--muted); }
+
     label.inline { display: inline-flex; align-items: center; gap: 8px; }
-    .downloads { min-height: 170px; background: var(--panel-dark); border-radius: 14px; padding: 16px; color: var(--muted); }
-    .download-item { background: #0e2346; border: 1px solid #22467f; padding: 12px; border-radius: 10px; margin-bottom: 10px; }
-    .download-item a { color: #8fd3ff; }
+
+    input[type="checkbox"] {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      border: 1px solid #d9ccb4;
+      background: #f2e8d8;
+      box-shadow: var(--shadow-inset);
+      position: relative;
+      cursor: pointer;
+    }
+
+    input[type="checkbox"]:checked {
+      background: linear-gradient(180deg, #0f7f86 0%, #045e66 100%);
+      border-color: #05656c;
+    }
+
+    input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      left: 5px;
+      top: 2px;
+      width: 4px;
+      height: 8px;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    .downloads {
+      min-height: 170px;
+      background: #efe4d2;
+      border-radius: 16px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+
+    .download-item {
+      background: #f4ebdc;
+      border: 1px solid #d9cfbc;
+      border-radius: 14px;
+      margin-bottom: 10px;
+      padding: 12px;
+      box-shadow: var(--shadow-raised);
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+      animation: reveal .5s cubic-bezier(.2,.9,.25,1);
+    }
+
+    .download-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .download-title {
+      margin: 0;
+      font-size: 1.03rem;
+      line-height: 1.35;
+      font-weight: 700;
+      color: #213538;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .download-platform {
+      margin-top: 6px;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
     .status { margin-top: 10px; min-height: 24px; color: var(--muted); }
-    .status.error { color: #ff9ca7; }
-    .mini-btn { margin-top: 8px; padding: 8px 10px; font-size: .95rem; }
+    .status.error { color: #b34f4f; }
+
+    h2 { margin: 0 0 12px; }
+
+    .footer {
+      text-align: center;
+      margin-top: 28px;
+      font-size: .95rem;
+      color: #706250;
+    }
+
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(16px) scale(.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @media (max-width: 700px) {
+      .download-item { flex-direction: column; align-items: stretch; }
+      .download-item button { width: 100%; }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>yt-dlp Web UI</h1>
-    <p class="subtitle">Paste a YouTube or X/Twitter link. Click Download to start a direct file download.</p>
+    <header class="header">
+      <img class="logo" src="/downer-logo2.svg" alt="Downer" />
+      <p class="subtitle">Download videos from X or Youtube.</p>
+    </header>
 
     <div class="card">
       <form id="downloadForm">
         <div class="row">
           <input id="url" type="url" required placeholder="https://x.com/... or https://www.youtube.com/watch?v=..." />
-          <button type="submit">Download</button>
+          <button id="loadBtn" type="submit">Download</button>
         </div>
         <div class="controls">
           <label class="inline">Quality:
@@ -82,34 +226,48 @@
             </select>
           </label>
           <label class="inline"><input id="audioOnly" type="checkbox" /> Audio only</label>
-          <label class="inline"><input id="singleVideo" type="checkbox" checked /> Single video only</label>
         </div>
       </form>
       <div id="status" class="status"></div>
     </div>
 
     <div class="card">
-      <h2 style="margin-top:0">Downloads</h2>
+      <h2>Downloads</h2>
       <div id="downloads" class="downloads">No downloads yet. Paste a URL above to get started.</div>
     </div>
+
+    <p class="footer">(c) downer '26. vibed by cb.</p>
   </div>
 
   <script>
     const form = document.getElementById('downloadForm');
     const statusEl = document.getElementById('status');
     const downloadsEl = document.getElementById('downloads');
+    const pressTimers = new WeakMap();
 
     const setStatus = (message, isError = false) => {
       statusEl.textContent = message || '';
       statusEl.className = `status${isError ? ' error' : ''}`;
     };
 
-    const buildQuery = ({url, format, audio_only, single_video}) => {
+    const pressForFiveSeconds = (button) => {
+      if (!button) return;
+      button.classList.add('is-pressed');
+      const existingTimer = pressTimers.get(button);
+      if (existingTimer) clearTimeout(existingTimer);
+      const timeout = setTimeout(() => {
+        button.classList.remove('is-pressed');
+        pressTimers.delete(button);
+      }, 5000);
+      pressTimers.set(button, timeout);
+    };
+
+    const buildQuery = ({ url, format, audio_only, single_video }) => {
       return new URLSearchParams({
         url,
         format,
         audio_only: String(audio_only),
-        single_video: String(single_video)
+        single_video: String(single_video),
       }).toString();
     };
 
@@ -127,29 +285,36 @@
       const item = document.createElement('div');
       item.className = 'download-item';
       const title = data.title || data.id || 'Untitled';
-      const original = data.stream_url || '#';
-      item.innerHTML = `
-        <div><strong>${title}</strong></div>
-        <div>Extractor: ${data.extractor || 'unknown'}</div>
-        <div><a href="${original}" target="_blank" rel="noopener">Open resolved direct URL (debug)</a></div>
+
+      const content = document.createElement('div');
+      content.className = 'download-main';
+      content.innerHTML = `
+        <p class="download-title">${title}</p>
+        <div class="download-platform">Platform: ${data.extractor || 'unknown'}</div>
       `;
+
       const btn = document.createElement('button');
-      btn.className = 'mini-btn';
       btn.type = 'button';
       btn.textContent = 'Download again';
-      btn.addEventListener('click', () => triggerDownload(params));
-      item.appendChild(btn);
+      btn.addEventListener('click', () => {
+        pressForFiveSeconds(btn);
+        triggerDownload(params);
+      });
+
+      item.append(content, btn);
       downloadsEl.prepend(item);
     };
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
+      const loadButton = document.getElementById('loadBtn');
+      pressForFiveSeconds(loadButton);
 
       const params = {
         url: document.getElementById('url').value.trim(),
         format: document.getElementById('format').value,
         audio_only: document.getElementById('audioOnly').checked,
-        single_video: document.getElementById('singleVideo').checked,
+        single_video: true,
       };
 
       if (!params.url) {
@@ -157,7 +322,7 @@
         return;
       }
 
-      setStatus('Resolving media URL and starting download... You can already paste another link.');
+      setStatus('Loading media details and preparing your download...');
 
       try {
         const response = await fetch(`/api/download?${buildQuery(params)}`);
@@ -170,7 +335,7 @@
 
         addDownload(payload, params);
         triggerDownload(params);
-        setStatus('Download started. Add another URL anytime.');
+        setStatus('Loaded. Your media is ready in Downloads.');
       } catch (error) {
         setStatus(error.message || 'Unexpected error', true);
       }
