@@ -2198,7 +2198,6 @@ from .videocampus_sachsen import (
     VideocampusSachsenIE,
     ViMPPlaylistIE,
 )
-from .videodetective import VideoDetectiveIE
 from .videofyme import VideofyMeIE
 from .videoken import (
     VideoKenCategoryIE,
