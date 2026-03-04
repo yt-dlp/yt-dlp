@@ -934,7 +934,6 @@ from .lecturio import (
 from .leeco import (
     LeIE,
     LePlaylistIE,
-    LetvCloudIE,
 )
 from .lefigaro import (
     LeFigaroVideoEmbedIE,
@@ -963,11 +962,6 @@ from .liputan6 import Liputan6IE
 from .listennotes import ListenNotesIE
 from .litv import LiTVIE
 from .livejournal import LiveJournalIE
-from .livestream import (
-    LivestreamIE,
-    LivestreamOriginalIE,
-    LivestreamShortenerIE,
-)
 from .livestreamfails import LivestreamfailsIE
 from .lnk import LnkIE
 from .locipo import (
@@ -991,10 +985,6 @@ from .lsm import (
     LSMReplayIE,
 )
 from .lumni import LumniIE
-from .lynda import (
-    LyndaCourseIE,
-    LyndaIE,
-)
 from .maariv import MaarivIE
 from .magellantv import MagellanTVIE
 from .magentamusik import MagentaMusikIE
