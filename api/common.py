@@ -1,6 +1,5 @@
 import os
 import re
-import os
 from urllib.parse import urlparse
 
 from yt_dlp import YoutubeDL
@@ -50,17 +49,31 @@ def _configured_cookie_opts():
     return opts
 
 
-def _youtube_extractor_args():
-    # Try clients that are usually more resilient for public videos
-    return {
-        'youtube': {
-            'player_client': ['android', 'web'],
-            'player_skip': ['configs'],
-        }
-    }
+def _youtube_extractor_arg_profiles():
+    # Try resilient YouTube client combinations before asking for cookies.
+    return [
+        {
+            'youtube': {
+                'player_client': ['android', 'web'],
+                'player_skip': ['configs'],
+            }
+        },
+        {
+            'youtube': {
+                'player_client': ['ios', 'android', 'tv_embedded'],
+                'player_skip': ['webpage', 'configs'],
+            }
+        },
+        {
+            'youtube': {
+                'player_client': ['mweb', 'android'],
+                'player_skip': ['webpage', 'configs'],
+            }
+        },
+    ]
 
 
-def _base_ydl_opts(fmt, audio_only, single_video):
+def _base_ydl_opts(fmt, audio_only, single_video, extractor_args=None):
     resolved_format = 'bestaudio/best' if audio_only else fmt
     return {
         'format': resolved_format,
@@ -68,7 +81,7 @@ def _base_ydl_opts(fmt, audio_only, single_video):
         'no_warnings': True,
         'skip_download': True,
         'noplaylist': bool(single_video),
-        'extractor_args': _youtube_extractor_args(),
+        'extractor_args': extractor_args or _youtube_extractor_arg_profiles()[0],
     }
 
 
@@ -86,8 +99,18 @@ def extract_media(url, fmt='best', audio_only=False, single_video=True):
         last_error = exc
         cookie_opts = _configured_cookie_opts()
 
-        for cookie_opt in cookie_opts:
-            retry_opts = {**ydl_opts, **cookie_opt}
+        retry_opts_list = []
+        for extractor_args in _youtube_extractor_arg_profiles():
+            retry_opts_list.append(_base_ydl_opts(fmt, audio_only, single_video, extractor_args=extractor_args))
+
+        if cookie_opts:
+            retry_opts_list.extend(
+                {**opts, **cookie_opt}
+                for opts in retry_opts_list
+                for cookie_opt in cookie_opts
+            )
+
+        for retry_opts in retry_opts_list:
             try:
                 with YoutubeDL(retry_opts) as ydl:
                     info = ydl.extract_info(url, download=False)
