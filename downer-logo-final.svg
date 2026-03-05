@@ -1,0 +1,7 @@
+<svg width="1400" height="340" viewBox="0 0 1400 340" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Downer logo">
+  <g fill="#06727A">
+    <path d="M100 198C100 151 137 114 183 112C193 77 225 52 266 52C309 52 344 80 352 117C397 121 432 158 432 204C432 253 394 292 346 292H183C137 292 100 255 100 209V198Z"/>
+    <path d="M229 246C222 246 218 254 222 260L259 300C262 304 268 304 271 300L308 260C312 254 308 246 301 246H229Z"/>
+  </g>
+  <text x="468" y="233" fill="#06727A" font-family="'Segoe UI', 'Trebuchet MS', system-ui, sans-serif" font-size="188" font-weight="500" letter-spacing="0.4">Downer</text>
+</svg>
