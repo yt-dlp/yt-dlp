@@ -298,6 +298,7 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
         r'yourupload\.com',
         r'xanimu\.com',
         r'musicdex\.org',
+        r'duboku\.io',
     )
 
     _TESTS = [{
