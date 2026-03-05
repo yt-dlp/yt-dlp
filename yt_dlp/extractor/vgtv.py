@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-from .xstream import XstreamIE
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -9,7 +8,7 @@ from ..utils import (
 )
 
 
-class VGTVIE(XstreamIE):  # XXX: Do not subclass from concrete IE
+class VGTVIE(InfoExtractor):
     IE_DESC = 'VGTV, BTTV, FTV, Aftenposten and Aftonbladet'
     _GEO_BYPASS = False
 
