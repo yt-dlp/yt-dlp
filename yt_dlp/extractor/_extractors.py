@@ -2255,6 +2255,10 @@ from .wdr import (
     WDRPageIE,
 )
 from .webcamerapl import WebcameraplIE
+from .webcaster import (
+    WebcasterFeedIE,
+    WebcasterIE,
+)
 from .webofstories import (
     WebOfStoriesIE,
     WebOfStoriesPlaylistIE,
