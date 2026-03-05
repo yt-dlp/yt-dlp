@@ -11,9 +11,15 @@ After deploy, visit your project URL and use the form on `/`.
 
 ## What is included
 
-- `index.html` → Web UI where you paste links and request a download URL.
-- `api/download.py` → serverless API route that uses yt-dlp to resolve a direct media URL.
-- `vercel.json` → function runtime/duration config.
+- `index.html` → Web UI where you paste links and click Download.
+- `api/download.py` → resolves media metadata/link via yt-dlp.
+- `api/fetch.py` → server-side proxied download endpoint (`Content-Disposition: attachment`).
+
+## Why this fixes your 401 problem
+
+Some providers (especially X/Twitter broadcasts) return signed media URLs that require request headers/tokens and fail with `401 unauthorized` when opened directly in a browser tab.
+
+This project now uses `/api/fetch` to re-resolve and stream the file from the server, so pressing **Download** starts an actual browser file download instead of requiring you to open the raw media URL manually.
 
 ## Supported links
 
@@ -23,21 +29,28 @@ After deploy, visit your project URL and use the form on `/`.
 
 ## Important limits
 
-- Vercel functions are short-lived. Some URLs can timeout.
+- Vercel functions are short-lived. Large downloads may timeout.
 - Private/age-restricted/rate-limited content may require cookies/auth.
-- This setup resolves direct media URLs. For very large/long jobs, use a worker/container platform.
+- For heavy long-running downloads, use a worker/container platform.
 
 ## Local run
 
-You can preview the UI locally:
+UI preview only:
 
 ```bash
 python -m http.server 8000
-# open http://localhost:8000
 ```
 
-To run serverless routes locally, use Vercel CLI:
+Full local function emulation:
 
 ```bash
 vercel dev
 ```
+
+## Troubleshooting: runtime-version error
+
+If Vercel build fails with `Function Runtimes must have a valid version`:
+
+- Ensure you are deploying the **latest commit** from your branch.
+- Remove any custom runtime/build overrides in Vercel project settings.
+- Trigger a fresh deploy without cache.

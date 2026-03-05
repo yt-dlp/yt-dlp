@@ -2,40 +2,7 @@ from http.server import BaseHTTPRequestHandler
 import json
 from urllib.parse import parse_qs, urlparse
 
-from yt_dlp import YoutubeDL
-
-
-def _is_http_url(value):
-    parsed = urlparse(value)
-    return parsed.scheme in {'http', 'https'} and bool(parsed.netloc)
-
-
-def _extract(url, fmt='best', audio_only=False, single_video=True):
-    ydl_opts = {
-        'format': fmt,
-        'quiet': True,
-        'no_warnings': True,
-        'skip_download': True,
-        'noplaylist': bool(single_video),
-    }
-
-    if audio_only:
-        ydl_opts['format'] = 'bestaudio/best'
-
-    with YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-
-    if 'entries' in info and info.get('entries'):
-        info = next((entry for entry in info['entries'] if entry), None) or info
-
-    return {
-        'id': info.get('id'),
-        'title': info.get('title'),
-        'duration': info.get('duration'),
-        'webpage_url': info.get('webpage_url') or url,
-        'stream_url': info.get('url'),
-        'extractor': info.get('extractor_key') or info.get('extractor'),
-    }
+from api.common import extract_media, is_http_url
 
 
 class handler(BaseHTTPRequestHandler):
@@ -79,11 +46,11 @@ class handler(BaseHTTPRequestHandler):
         audio_only = ((query.get('audio_only') or ['false'])[0].lower() == 'true')
         single_video = ((query.get('single_video') or ['true'])[0].lower() != 'false')
 
-        if not url or not _is_http_url(url):
+        if not url or not is_http_url(url):
             return self._send_json(400, {'error': "Query/body field 'url' must be a valid http/https URL"})
 
         try:
-            result = _extract(url, fmt=fmt, audio_only=audio_only, single_video=single_video)
+            result = extract_media(url, fmt=fmt, audio_only=audio_only, single_video=single_video)
             if not result.get('stream_url'):
                 return self._send_json(422, {'error': 'Could not resolve direct media URL for this input'})
             return self._send_json(200, result)
