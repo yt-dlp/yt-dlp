@@ -2247,14 +2247,9 @@ from .wat import WatIE
 from .wdr import (
     WDRIE,
     WDRElefantIE,
-    WDRMobileIE,
     WDRPageIE,
 )
 from .webcamerapl import WebcameraplIE
-from .webcaster import (
-    WebcasterFeedIE,
-    WebcasterIE,
-)
 from .webofstories import (
     WebOfStoriesIE,
     WebOfStoriesPlaylistIE,
@@ -2274,7 +2269,6 @@ from .weverse import (
     WeverseMomentIE,
 )
 from .wevidi import WeVidiIE
-from .weyyak import WeyyakIE
 from .whowatch import WhoWatchIE
 from .whyp import WhypIE
 from .wikimedia import WikimediaIE
