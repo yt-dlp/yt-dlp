@@ -1,22 +1,18 @@
 import os
 import re
-import os
 from urllib.parse import urlparse
 
 from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadError
 
-
 def is_http_url(value):
     parsed = urlparse(value)
     return parsed.scheme in {'http', 'https'} and bool(parsed.netloc)
-
 
 def safe_filename(name, fallback='video'):
     name = (name or fallback).strip()
     name = re.sub(r'[\\/:*?"<>|]+', '_', name)
     return name[:180] or fallback
-
 
 def _cookies_from_browser_value(raw):
     # Supported values:
@@ -34,7 +30,6 @@ def _cookies_from_browser_value(raw):
         return (parts[0], parts[1])
     return tuple(parts)
 
-
 def _configured_cookie_opts():
     cookiefile = os.getenv('YTDLP_COOKIE_FILE', '').strip()
     cookies_from_browser = os.getenv('YTDLP_COOKIES_FROM_BROWSER', '').strip()
@@ -50,17 +45,26 @@ def _configured_cookie_opts():
     return opts
 
 
-def _youtube_extractor_args():
-    # Try clients that are usually more resilient for public videos
-    return {
-        'youtube': {
-            'player_client': ['android', 'web'],
-            'player_skip': ['configs'],
-        }
-    }
+def _youtube_extractor_arg_profiles():
+    # None means using yt-dlp defaults, which should be tried first.
+    return [
+        None,
+        {
+            'youtube': {
+                'player_client': ['android', 'web'],
+                'player_skip': ['configs'],
+            }
+        },
+        {
+            'youtube': {
+                'player_client': ['ios', 'android', 'tv_embedded'],
+                'player_skip': ['webpage', 'configs'],
+            }
+        },
+    ]
 
 
-def _base_ydl_opts(fmt, audio_only, single_video):
+def _base_ydl_opts(fmt, audio_only, single_video, extractor_args=None):
     resolved_format = 'bestaudio/best' if audio_only else fmt
     return {
         'format': resolved_format,
@@ -68,8 +72,34 @@ def _base_ydl_opts(fmt, audio_only, single_video):
         'no_warnings': True,
         'skip_download': True,
         'noplaylist': bool(single_video),
-        'extractor_args': _youtube_extractor_args(),
+        **({'extractor_args': extractor_args} if extractor_args else {}),
     }
+
+
+def _looks_like_cookie_error(error_message):
+    message = (error_message or '').lower()
+    cookie_signals = (
+        'cookies',
+        'sign in to confirm',
+        "confirm you're not a bot",
+        'login required',
+        'age-restricted',
+    )
+    return any(signal in message for signal in cookie_signals)
+
+
+def _looks_like_network_or_proxy_error(error_message):
+    message = (error_message or '').lower()
+    network_signals = (
+        'proxyerror',
+        'tunnel connection failed',
+        'network is unreachable',
+        'name or service not known',
+        'temporary failure in name resolution',
+        'timed out',
+        'connection reset',
+    )
+    return any(signal in message for signal in network_signals)
 
 
 def extract_media(url, fmt='best', audio_only=False, single_video=True):
@@ -86,8 +116,18 @@ def extract_media(url, fmt='best', audio_only=False, single_video=True):
         last_error = exc
         cookie_opts = _configured_cookie_opts()
 
-        for cookie_opt in cookie_opts:
-            retry_opts = {**ydl_opts, **cookie_opt}
+        retry_opts_list = []
+        for extractor_args in _youtube_extractor_arg_profiles():
+            retry_opts_list.append(_base_ydl_opts(fmt, audio_only, single_video, extractor_args=extractor_args))
+
+        if cookie_opts:
+            retry_opts_list.extend(
+                {**opts, **cookie_opt}
+                for opts in retry_opts_list
+                for cookie_opt in cookie_opts
+            )
+
+        for retry_opts in retry_opts_list:
             try:
                 with YoutubeDL(retry_opts) as ydl:
                     info = ydl.extract_info(url, download=False)
@@ -96,18 +136,30 @@ def extract_media(url, fmt='best', audio_only=False, single_video=True):
                 last_error = retry_exc
 
         if info is None:
+            error_text = str(last_error)
             if cookie_opts:
                 raise RuntimeError(
                     'YouTube extraction failed even with configured cookies. '
                     'Please refresh/export cookies and try again. '
-                    f'Original error: {last_error}'
+                    f'Original error: {error_text}'
                 )
-            raise RuntimeError(
-                'YouTube may require authenticated cookies for this request. '
-                'Set YTDLP_COOKIE_FILE to an exported cookies.txt, or set '
-                'YTDLP_COOKIES_FROM_BROWSER (e.g. chrome or firefox:default), '
-                'then retry.'
-            )
+
+            if _looks_like_network_or_proxy_error(error_text):
+                raise RuntimeError(
+                    'Could not reach YouTube from this server (network/proxy issue). '
+                    'If you use an outbound proxy, verify it allows youtube.com/googlevideo.com. '
+                    f'Original error: {error_text}'
+                )
+
+            if _looks_like_cookie_error(error_text):
+                raise RuntimeError(
+                    'YouTube may require authenticated cookies for this request. '
+                    'Set YTDLP_COOKIE_FILE to an exported cookies.txt, or set '
+                    'YTDLP_COOKIES_FROM_BROWSER (e.g. chrome or firefox:default), '
+                    f'then retry. Original error: {error_text}'
+                )
+
+            raise RuntimeError(f'YouTube extraction failed: {error_text}')
 
     if 'entries' in info and info.get('entries'):
         info = next((entry for entry in info['entries'] if entry), None) or info
