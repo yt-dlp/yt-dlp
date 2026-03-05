@@ -4479,7 +4479,7 @@ class YoutubeDL:
             return None
 
         for idx, t in list(enumerate(thumbnails))[::-1]:
-            thumb_ext = t.get('ext') or determine_ext(t['url'], 'jpg')
+            thumb_ext = (t.get('ext') or determine_ext(t['url'], 'jpg')).lower()
             if multiple:
                 thumb_ext = f'{t["id"]}.{thumb_ext}'
             thumb_display_id = f'{label} thumbnail {t["id"]}'
