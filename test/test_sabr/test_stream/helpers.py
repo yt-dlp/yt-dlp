@@ -26,11 +26,15 @@ from yt_dlp.extractor.youtube._streaming.sabr.part import (
     MediaSegmentDataSabrPart,
     MediaSegmentEndSabrPart,
 )
+from yt_dlp.extractor.youtube._streaming.sabr.stream import SabrStream
 from yt_dlp.extractor.youtube._streaming.ump import UMPEncoder, UMPPart, UMPPartId, write_varint
 from yt_dlp.networking import Request, Response
 from yt_dlp.networking.exceptions import TransportError, HTTPError, RequestError
 from yt_dlp.utils import parse_qs
 
+LIVE_BROADCAST_ID = '1'
+VALID_LIVE_URL = f'https://live.googlevideo.com/sabr_live?id={LIVE_BROADCAST_ID}&source=yt_live_broadcast&sabr=1'
+VALID_SABR_URL = 'https://test.googlevideo.com/sabr?sabr=1'
 RAW_VIDEO_PLAYBACK_USTREAMER_CONFIG = b'test-config'
 VIDEO_PLAYBACK_USTREAMER_CONFIG = base64.urlsafe_b64encode(RAW_VIDEO_PLAYBACK_USTREAMER_CONFIG).decode('utf-8')
 VIDEO_ID = 'test_video_id'
@@ -952,3 +956,28 @@ def mock_time(func=None):
         with mock.patch('time.time', new=time_mock), mock.patch('time.sleep', new=sleep_mock):
             return func(*args, **kwargs)
     return wrapper
+
+
+def setup_sabr_stream_av(
+    url=VALID_SABR_URL,
+    sabr_response_processor=None,
+    client_info=None,
+    logger=None,
+    enable_audio=True,
+    enable_video=True,
+    **options,
+):
+    rh = SabrRequestHandler(sabr_response_processor=sabr_response_processor or BasicAudioVideoProfile())
+    audio_selector = AudioSelector(display_name='audio') if enable_audio else None
+    video_selector = VideoSelector(display_name='video') if enable_video else None
+    sabr_stream = SabrStream(
+        urlopen=rh.send,
+        server_abr_streaming_url=url,
+        logger=logger,
+        video_playback_ustreamer_config=VIDEO_PLAYBACK_USTREAMER_CONFIG,
+        client_info=client_info,
+        audio_selection=audio_selector,
+        video_selection=video_selector,
+        **options,
+    )
+    return sabr_stream, rh, (audio_selector, video_selector)
