@@ -47,17 +47,42 @@ def _configured_cookie_opts():
 
 def _youtube_extractor_arg_profiles():
     # None means using yt-dlp defaults, which should be tried first.
+    # Clients that do not require authentication or a PO token are preferred
+    # for unauthenticated server-side extraction.  The valid names come from
+    # yt_dlp/extractor/youtube/_base.py INNERTUBE_CLIENTS.
+    # 'tv' (TVHTML5) and 'web_embedded' have no REQUIRE_AUTH and no mandatory
+    # GVS_PO_TOKEN_POLICY, making them the most reliable without cookies.
     return [
         None,
+        # TV client – no auth, no PO-token requirement
         {
             'youtube': {
-                'player_client': ['android', 'web'],
+                'player_client': ['tv'],
+            }
+        },
+        # Embedded web player – minimal requirements
+        {
+            'youtube': {
+                'player_client': ['web_embedded'],
+            }
+        },
+        # android_vr – no auth, no JS player, no PO-token requirement
+        {
+            'youtube': {
+                'player_client': ['android_vr'],
+            }
+        },
+        # Combination of the two most permissive clients, skipping remote configs
+        {
+            'youtube': {
+                'player_client': ['tv', 'android_vr'],
                 'player_skip': ['configs'],
             }
         },
+        # Last-resort: all non-auth clients, skip both webpage JS and configs
         {
             'youtube': {
-                'player_client': ['ios', 'android', 'tv_embedded'],
+                'player_client': ['tv', 'web_embedded', 'android_vr'],
                 'player_skip': ['webpage', 'configs'],
             }
         },
