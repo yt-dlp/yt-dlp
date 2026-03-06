@@ -143,7 +143,7 @@ async def get_video_info(url: str) -> VideoInfo:
         "extract_flat": False,
     })
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
 
     def _extract():
         with yt_dlp.YoutubeDL(opts) as ydl:
@@ -310,7 +310,7 @@ async def download_video(
     output_template = str(output_dir / "%(title).80s.%(ext)s")
 
     opts = _base_opts()
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     tracker = ProgressTracker(progress_callback, loop)
 
     def _cancel_hook(d: dict) -> None:
@@ -353,7 +353,6 @@ async def download_video(
         "noplaylist": True,
     })
 
-    loop = asyncio.get_event_loop()
     result_holder = {}
 
     def _download():
@@ -440,7 +439,7 @@ async def download_playlist(
         "retries": 3,
     })
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     results = []
 
     def _download():
@@ -467,10 +466,16 @@ def _height_from_fid(format_id: str) -> int:
     return int(m.group(1)) if m else 9999
 
 
+_EXTRACTORS: list | None = None
+
+
 def is_supported_url(url: str) -> bool:
-    extractors = yt_dlp.extractor.gen_extractors()
-    for e in extractors:
+    """Проверяет URL без инстанциирования всех экстракторов каждый раз."""
+    global _EXTRACTORS
+    if _EXTRACTORS is None:
+        _EXTRACTORS = list(yt_dlp.extractor.gen_extractors())
+    for e in _EXTRACTORS:
         if e.suitable(url) and e.IE_NAME != "generic":
             return True
-    # Generic is fine too
+    # Любой http(s) URL допускаем (generic extractor)
     return bool(re.match(r"https?://", url))

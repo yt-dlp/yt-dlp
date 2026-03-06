@@ -234,7 +234,7 @@ async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         + SUPPORTED_SITES_TEXT +
         "\n\n⚠️ <b>Ограничения:</b>\n"
         f"• Максимальный размер файла: {config.MAX_FILE_SIZE_MB} МБ\n"
-        "• Таймаут загрузки: 10 минут\n\n"
+        f"• Таймаут загрузки: {config.DOWNLOAD_TIMEOUT // 60} мин\n\n"
         "<b>Команды:</b>\n"
         "/start — главное меню\n"
         "/help — эта справка\n"
@@ -497,7 +497,7 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if not info:
             await query.answer("❌ Сессия истекла. Отправьте ссылку заново.", show_alert=True)
             return
-        await _show_info(query, info)
+        await _show_info(query, info, url=ctx.user_data.get(KEY_PENDING_URL, ""))
         return
 
     if data == "back_to_quality":
@@ -624,6 +624,9 @@ async def _handle_resolve_callback(query, ctx, data: str):
     else:
         url = ctx.user_data.get(KEY_ORIG_URL)  # оригинальный URL (с list=)
 
+    # Очищаем временный оригинальный URL — он больше не нужен
+    ctx.user_data.pop(KEY_ORIG_URL, None)
+
     if not url:
         await query.edit_message_text("❌ Сессия истекла. Отправьте ссылку заново.")
         return
@@ -632,7 +635,7 @@ async def _handle_resolve_callback(query, ctx, data: str):
     await _fetch_and_show_menu(url, query.message, ctx)
 
 
-async def _show_info(query, info: VideoInfo):
+async def _show_info(query, info: VideoInfo, url: str = ""):
     text = (
         f"ℹ️ <b>{_esc(info.title)}</b>\n\n"
         f"👤 Автор: {_esc(info.uploader or '—')}\n"
@@ -649,6 +652,12 @@ async def _show_info(query, info: VideoInfo):
         await query.edit_message_caption(text, parse_mode=ParseMode.HTML, reply_markup=back_kb)
     except TelegramError:
         await query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=back_kb)
+    # Сбрасываем таймер 2-часовой очистки при активном использовании
+    if url:
+        try:
+            db.save_session(query.message.chat_id, query.message.message_id, url, _serialize_video_info(info))
+        except Exception:
+            pass
 
 
 async def _handle_back_to_quality(query, ctx: ContextTypes.DEFAULT_TYPE):
@@ -673,6 +682,13 @@ async def _handle_back_to_quality(query, ctx: ContextTypes.DEFAULT_TYPE):
         try:
             await query.edit_message_text(caption, parse_mode=ParseMode.HTML, reply_markup=keyboard)
         except TelegramError:
+            pass
+    # Сбрасываем таймер 2-часовой очистки при активном использовании
+    url = ctx.user_data.get(KEY_PENDING_URL, "")
+    if url:
+        try:
+            db.save_session(query.message.chat_id, query.message.message_id, url, _serialize_video_info(info))
+        except Exception:
             pass
 
 
@@ -715,6 +731,16 @@ async def _handle_download_callback(query, ctx, data: str):
     parts = data.split(":", 2)
     dl_type = parts[1]
     format_id = parts[2]
+
+    # Проверяем лимит одновременных загрузок
+    sem: asyncio.Semaphore = ctx.bot_data.get("_download_sem")
+    if sem is not None and sem._value <= 0:
+        await query.answer(
+            f"⚠️ Достигнут лимит одновременных загрузок ({config.MAX_CONCURRENT_DOWNLOADS}). "
+            "Подождите завершения текущих загрузок.",
+            show_alert=True,
+        )
+        return
 
     info: VideoInfo = ctx.user_data.get(KEY_VIDEO_INFO)
     url = ctx.user_data.get(KEY_PENDING_URL)
@@ -818,92 +844,97 @@ async def _handle_download_callback(query, ctx, data: str):
         logger.warning("re-key session failed: %s", e)
 
     tmp_dir = config.DOWNLOAD_DIR / f"user_{user.id}" / f"dl_{dl_id}"
-    try:
-        result: DownloadResult = await download_video(
-            url=url,
-            format_id=format_id,
-            output_dir=tmp_dir,
-            audio_only=audio_only,
-            subtitle_lang=subtitle_lang,
-            progress_callback=_on_progress,
-            cancel_flag=cancel_flag,
-        )
+    async with (sem or asyncio.Semaphore(1)):
+        try:
+            result: DownloadResult = await download_video(
+                url=url,
+                format_id=format_id,
+                output_dir=tmp_dir,
+                audio_only=audio_only,
+                subtitle_lang=subtitle_lang,
+                progress_callback=_on_progress,
+                cancel_flag=cancel_flag,
+            )
 
-        ctx.user_data.pop("cancel_flag", None)
+            ctx.user_data.pop("cancel_flag", None)
 
-        if not result.success:
-            _caption, _keyboard = _build_quality_menu(info)
-            if result.error == "CANCELLED":
-                # Отмена — возвращаем меню выбора качества
+            if not result.success:
+                _caption, _keyboard = _build_quality_menu(info)
+                if result.error == "CANCELLED":
+                    # Отмена — возвращаем меню выбора качества
+                    try:
+                        await status_msg.edit_text(_caption, parse_mode=ParseMode.HTML, reply_markup=_keyboard)
+                    except TelegramError:
+                        pass
+                    return
+                db.update_download(dl_id, status="error", error=result.error)
                 try:
-                    await status_msg.edit_text(_caption, parse_mode=ParseMode.HTML, reply_markup=_keyboard)
+                    await status_msg.edit_text(
+                        f"❌ Ошибка: <code>{_esc(result.error[:300])}</code>\n\n{_caption}",
+                        parse_mode=ParseMode.HTML,
+                        reply_markup=_keyboard,
+                    )
                 except TelegramError:
                     pass
                 return
-            db.update_download(dl_id, status="error", error=result.error)
+
+            db.update_download(dl_id, status="sending", file_size=result.file_size)
+            await status_msg.edit_text(
+                f"📤 Отправляю <b>{_esc(result.title or info.title)}</b> "
+                f"({_human_size(result.file_size)})…",
+                parse_mode=ParseMode.HTML,
+            )
+            await ctx.bot.send_chat_action(query.message.chat_id, ChatAction.UPLOAD_DOCUMENT)
+
+            await _deliver_file(query.message.chat_id, result, ctx.bot)
+            db.update_download(dl_id, status="done", file_size=result.file_size)
+
+            # Возвращаем меню выбора качества — пользователь может скачать другой формат
+            _caption, _keyboard = _build_quality_menu(info)
             try:
                 await status_msg.edit_text(
-                    f"❌ Ошибка: <code>{_esc(result.error[:300])}</code>\n\n{_caption}",
+                    f"✅ <b>{_esc(result.title or info.title)}</b>  {_human_size(result.file_size)}\n\n"
+                    + _caption,
                     parse_mode=ParseMode.HTML,
                     reply_markup=_keyboard,
                 )
             except TelegramError:
                 pass
-            return
 
-        db.update_download(dl_id, status="sending", file_size=result.file_size)
-        await status_msg.edit_text(
-            f"📤 Отправляю <b>{_esc(result.title or info.title)}</b> "
-            f"({_human_size(result.file_size)})…",
-            parse_mode=ParseMode.HTML,
-        )
-        await ctx.bot.send_chat_action(query.message.chat_id, ChatAction.UPLOAD_DOCUMENT)
+            # Обновляем сессию (сбрасываем 2-часовой таймер очистки)
+            try:
+                db.save_session(status_msg.chat_id, status_msg.message_id, url, _serialize_video_info(info))
+            except Exception:
+                pass
 
-        await _deliver_file(query.message.chat_id, result, ctx.bot)
-        db.update_download(dl_id, status="done", file_size=result.file_size)
-
-        # Возвращаем меню выбора качества — пользователь может скачать другой формат
-        _caption, _keyboard = _build_quality_menu(info)
-        try:
-            await status_msg.edit_text(
-                f"✅ <b>{_esc(result.title or info.title)}</b>  {_human_size(result.file_size)}\n\n"
-                + _caption,
-                parse_mode=ParseMode.HTML,
-                reply_markup=_keyboard,
-            )
-        except TelegramError:
-            pass
-
-        # Обновляем сессию (сбрасываем 2-часовой таймер очистки)
-        try:
-            db.save_session(status_msg.chat_id, status_msg.message_id, url, _serialize_video_info(info))
-        except Exception:
-            pass
-
-    except Exception as e:
-        logger.error("Download error: %s\n%s", e, traceback.format_exc())
-        db.update_download(dl_id, status="error", error=str(e))
-        _caption, _keyboard = _build_quality_menu(info)
-        try:
-            await status_msg.edit_text(
-                f"❌ Неожиданная ошибка:\n<code>{_esc(str(e)[:200])}</code>\n\n{_caption}",
-                parse_mode=ParseMode.HTML,
-                reply_markup=_keyboard,
-            )
-        except TelegramError:
-            pass
-    finally:
-        shutil.rmtree(tmp_dir, ignore_errors=True)
-        ctx.user_data.pop("cancel_flag", None)
-        # KEY_VIDEO_INFO и KEY_PENDING_URL не очищаем — пользователь может
-        # скачать другой формат без повторной отправки ссылки.
-        # Сессия удаляется только при явной отмене (❌ Отмена).
+        except Exception as e:
+            logger.error("Download error: %s\n%s", e, traceback.format_exc())
+            db.update_download(dl_id, status="error", error=str(e))
+            _caption, _keyboard = _build_quality_menu(info)
+            try:
+                await status_msg.edit_text(
+                    f"❌ Неожиданная ошибка:\n<code>{_esc(str(e)[:200])}</code>\n\n{_caption}",
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=_keyboard,
+                )
+            except TelegramError:
+                pass
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            ctx.user_data.pop("cancel_flag", None)
+            # KEY_VIDEO_INFO и KEY_PENDING_URL не очищаем — пользователь может
+            # скачать другой формат без повторной отправки ссылки.
+            # Сессия удаляется только при явной отмене (❌ Отмена).
 
 
 async def _handle_playlist_callback(query, ctx, data: str):
     parts = data.split(":")
-    max_items = int(parts[1])
-    quality = parts[2]
+    try:
+        max_items = int(parts[1])
+        quality = parts[2]
+    except (IndexError, ValueError):
+        await query.answer("❌ Некорректный запрос.", show_alert=True)
+        return
     audio_only = quality == "audio"
 
     info: VideoInfo = ctx.user_data.get(KEY_VIDEO_INFO)
@@ -986,12 +1017,10 @@ async def _deliver_file(chat_id: int, result: DownloadResult, bot: Bot, keep_fil
     # ─────────────────────────────────────────────────────────────────────────────────
     """
     fp = result.file_path
-    caption = f"📁 {fp.stem[:200]}"
+    caption = f"📁 {fp.stem[:200]}  ({_human_size(result.file_size)})"
     with fp.open("rb") as fh:
         if fp.suffix in (".mp3", ".ogg", ".m4a", ".flac", ".wav"):
             await bot.send_audio(chat_id, audio=InputFile(fh, filename=fp.name), caption=caption)
-        elif fp.suffix in (".mp4", ".mkv", ".webm", ".mov"):
-            await bot.send_document(chat_id, document=InputFile(fh, filename=fp.name), caption=caption)
         else:
             await bot.send_document(chat_id, document=InputFile(fh, filename=fp.name), caption=caption)
     if not keep_file:
@@ -1173,6 +1202,7 @@ async def _cleanup_loop() -> None:
 
 
 async def _post_init(application) -> None:
+    application.bot_data["_download_sem"] = asyncio.Semaphore(config.MAX_CONCURRENT_DOWNLOADS)
     task = asyncio.create_task(_cleanup_loop())
     application.bot_data["_cleanup_task"] = task
 

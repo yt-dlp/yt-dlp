@@ -1,0 +1,24 @@
+# Git
+.git
+.gitignore
+
+# Данные и секреты
+.env
+data/
+*.db
+
+# Python
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Документация и прочее
+*.md
+.env.example
