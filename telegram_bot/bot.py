@@ -10,6 +10,7 @@ import os
 import re
 import shutil
 import tempfile
+import time
 import traceback
 from dataclasses import asdict
 from datetime import datetime
@@ -542,7 +543,13 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
         ctx.user_data.clear()
-        await query.edit_message_text("🛑 Отменено.")
+        try:
+            await query.edit_message_text("🛑 Отменено.")
+        except TelegramError:
+            try:
+                await query.message.delete()
+            except TelegramError:
+                pass
         return
 
     if data == "info":
