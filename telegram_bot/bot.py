@@ -36,7 +36,7 @@ from telegram.ext import (
 
 import config
 import database as db
-import fileserver
+# import fileserver  # файловый сервер: раскомментировать при включении
 from downloader import (
     DownloadResult,
     VideoInfo,
@@ -703,36 +703,22 @@ async def _handle_download_callback(query, ctx, data: str):
             return
 
         db.update_download(dl_id, status="sending", file_size=result.file_size)
-        if config.PUBLIC_BASE_URL:
-            await status_msg.edit_text(
-                f"🔗 Формирую ссылку для <b>{_esc(result.title or info.title)}</b>…",
-                parse_mode=ParseMode.HTML,
-            )
-        else:
-            await status_msg.edit_text(
-                f"📤 Отправляю <b>{_esc(result.title or info.title)}</b> "
-                f"({_human_size(result.file_size)})…",
-                parse_mode=ParseMode.HTML,
-            )
-            await ctx.bot.send_chat_action(query.message.chat_id, ChatAction.UPLOAD_DOCUMENT)
+        await status_msg.edit_text(
+            f"📤 Отправляю <b>{_esc(result.title or info.title)}</b> "
+            f"({_human_size(result.file_size)})…",
+            parse_mode=ParseMode.HTML,
+        )
+        await ctx.bot.send_chat_action(query.message.chat_id, ChatAction.UPLOAD_DOCUMENT)
 
         await _deliver_file(query.message.chat_id, result, ctx.bot)
         db.update_download(dl_id, status="done", file_size=result.file_size)
 
-        if config.PUBLIC_BASE_URL:
-            await status_msg.edit_text(
-                f"✅ Ссылка для скачивания отправлена!\n"
-                f"<b>{_esc(result.title or info.title)}</b> · {_human_size(result.file_size)}\n\n"
-                "Отправьте новую ссылку для следующей загрузки!",
-                parse_mode=ParseMode.HTML,
-            )
-        else:
-            await status_msg.edit_text(
-                f"✅ <b>{_esc(result.title or info.title)}</b>\n"
-                f"Размер: {_human_size(result.file_size)}\n\n"
-                "Отправьте новую ссылку для следующей загрузки!",
-                parse_mode=ParseMode.HTML,
-            )
+        await status_msg.edit_text(
+            f"✅ <b>{_esc(result.title or info.title)}</b>\n"
+            f"Размер: {_human_size(result.file_size)}\n\n"
+            "Отправьте новую ссылку для следующей загрузки!",
+            parse_mode=ParseMode.HTML,
+        )
 
     except Exception as e:
         logger.error("Download error: %s\n%s", e, traceback.format_exc())
@@ -809,46 +795,40 @@ async def _handle_playlist_callback(query, ctx, data: str):
 
 async def _deliver_file(chat_id: int, result: DownloadResult, bot: Bot, keep_file: bool = False):
     """
-    Доставляет файл пользователю.
+    Отправляет файл напрямую через Telegram Bot API (локальный сервер снимает лимит 2 ГБ).
 
-    Если PUBLIC_BASE_URL задан — генерирует ссылку для скачивания,
-    файл удаляется сервером после первого скачивания или по TTL.
-
-    Иначе — отправляет файл напрямую в Telegram и сразу удаляет с диска
-    (если keep_file=False).
+    # ── Режим файлового HTTP-сервера (закомментировано) ─────────────────────────────
+    # При включении: раскомментировать import fileserver, _post_init и .post_init() в main(),
+    # задать PUBLIC_BASE_URL в .env — бот отправит ссылку вместо файла.
+    #
+    # if config.PUBLIC_BASE_URL:
+    #     token = fileserver.register_file(fp, ttl_seconds=config.FILE_TTL_SECONDS)
+    #     url = f"{config.PUBLIC_BASE_URL}/dl/{token}"
+    #     ttl_h = config.FILE_TTL_SECONDS // 3600
+    #     ttl_label = f"{ttl_h} ч" if ttl_h < 24 else f"{ttl_h // 24} д"
+    #     await bot.send_message(
+    #         chat_id,
+    #         f"📥 <b>Файл готов!</b>\n\n"
+    #         f"🔗 <a href='{url}'>{_esc(fp.name)}</a>\n"
+    #         f"📦 Размер: {_human_size(result.file_size)}\n"
+    #         f"⏳ Ссылка действительна: {ttl_label} (удаляется после скачивания)",
+    #         parse_mode=ParseMode.HTML,
+    #         disable_web_page_preview=True,
+    #     )
+    #     return
+    # ─────────────────────────────────────────────────────────────────────────────────
     """
     fp = result.file_path
-
-    if config.PUBLIC_BASE_URL:
-        # ── Режим ссылки ────────────────────────────────────────────────────────
-        # Файл НЕ удаляется здесь — fileserver сам удалит после скачивания/TTL
-        token = fileserver.register_file(fp, ttl_seconds=config.FILE_TTL_SECONDS)
-        url = f"{config.PUBLIC_BASE_URL}/dl/{token}"
-
-        ttl_h = config.FILE_TTL_SECONDS // 3600
-        ttl_label = f"{ttl_h} ч" if ttl_h < 24 else f"{ttl_h // 24} д"
-
-        await bot.send_message(
-            chat_id,
-            f"📥 <b>Файл готов!</b>\n\n"
-            f"🔗 <a href='{url}'>{_esc(fp.name)}</a>\n"
-            f"📦 Размер: {_human_size(result.file_size)}\n"
-            f"⏳ Ссылка действительна: {ttl_label} (удаляется после скачивания)",
-            parse_mode=ParseMode.HTML,
-            disable_web_page_preview=True,
-        )
-    else:
-        # ── Режим прямой отправки в Telegram ────────────────────────────────────
-        caption = f"📁 {fp.stem[:200]}"
-        with fp.open("rb") as fh:
-            if fp.suffix in (".mp3", ".ogg", ".m4a", ".flac", ".wav"):
-                await bot.send_audio(chat_id, audio=InputFile(fh, filename=fp.name), caption=caption)
-            elif fp.suffix in (".mp4", ".mkv", ".webm", ".mov"):
-                await bot.send_video(chat_id, video=InputFile(fh, filename=fp.name), caption=caption)
-            else:
-                await bot.send_document(chat_id, document=InputFile(fh, filename=fp.name), caption=caption)
-        if not keep_file:
-            fp.unlink(missing_ok=True)
+    caption = f"📁 {fp.stem[:200]}"
+    with fp.open("rb") as fh:
+        if fp.suffix in (".mp3", ".ogg", ".m4a", ".flac", ".wav"):
+            await bot.send_audio(chat_id, audio=InputFile(fh, filename=fp.name), caption=caption)
+        elif fp.suffix in (".mp4", ".mkv", ".webm", ".mov"):
+            await bot.send_video(chat_id, video=InputFile(fh, filename=fp.name), caption=caption)
+        else:
+            await bot.send_document(chat_id, document=InputFile(fh, filename=fp.name), caption=caption)
+    if not keep_file:
+        fp.unlink(missing_ok=True)
 
 
 # ── Команды администратора ───────────────────────────────────────────────────────
@@ -999,18 +979,18 @@ def _fmt_num(n: int) -> str:
     return str(n)
 
 
-# ── PTB lifecycle hooks ──────────────────────────────────────────────────────────
-
-async def _post_init(application: Application) -> None:
-    """Запускает файловый HTTP-сервер вместе с ботом."""
-    if config.PUBLIC_BASE_URL:
-        await fileserver.start(port=config.HTTP_PORT)
-        logger.info(
-            "Файловый сервер: порт %d, публичный URL: %s",
-            config.HTTP_PORT, config.PUBLIC_BASE_URL,
-        )
-    else:
-        logger.info("PUBLIC_BASE_URL не задан — файлы отправляются напрямую в Telegram")
+# ── PTB lifecycle hooks (файловый сервер — закомментировано) ─────────────────────
+#
+# async def _post_init(application: Application) -> None:
+#     """Запускает файловый HTTP-сервер вместе с ботом."""
+#     if config.PUBLIC_BASE_URL:
+#         await fileserver.start(port=config.HTTP_PORT)
+#         logger.info(
+#             "Файловый сервер: порт %d, публичный URL: %s",
+#             config.HTTP_PORT, config.PUBLIC_BASE_URL,
+#         )
+#     else:
+#         logger.info("PUBLIC_BASE_URL не задан — файлы отправляются напрямую в Telegram")
 
 
 # ── Запуск ───────────────────────────────────────────────────────────────────────
@@ -1034,7 +1014,8 @@ def main():
 
     from telegram.request import HTTPXRequest
 
-    builder = Application.builder().token(config.BOT_TOKEN).post_init(_post_init)
+    builder = Application.builder().token(config.BOT_TOKEN)
+    # При включении файлового сервера добавить: .post_init(_post_init)
 
     # Локальный Bot API сервер снимает лимит 50 МБ → до 2 ГБ
     if config.LOCAL_API_SERVER:
