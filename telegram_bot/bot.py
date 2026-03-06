@@ -1036,14 +1036,8 @@ async def _handle_download_callback(query, ctx, data: str):
                     return
 
                 db.update_download(dl_id, status="sending", file_size=result.file_size)
-                await status_msg.edit_text(
-                    f"📤 Отправляю <b>{_esc(result.title or info.title)}</b> "
-                    f"({_human_size(result.file_size)})…",
-                    parse_mode=ParseMode.HTML,
-                )
                 await ctx.bot.send_chat_action(query.message.chat_id, ChatAction.UPLOAD_DOCUMENT)
-
-                await _deliver_file(query.message.chat_id, result, ctx.bot)
+                await _deliver_file_with_progress(query.message.chat_id, result, ctx.bot, status_msg)
                 db.update_download(dl_id, status="done", file_size=result.file_size)
 
                 # Возвращаем меню выбора качества — пользователь может скачать другой формат
@@ -1210,6 +1204,55 @@ async def _deliver_file(chat_id: int, result: DownloadResult, bot: Bot, keep_fil
 
     if not keep_file:
         fp.unlink(missing_ok=True)
+
+
+async def _deliver_file_with_progress(
+    chat_id: int,
+    result: DownloadResult,
+    bot: Bot,
+    status_msg: Message,
+) -> None:
+    """Обёртка над _deliver_file: каждые 3 с обновляет статусное сообщение
+    с анимированным спиннером и таймером, чтобы пользователь видел прогресс."""
+    total_str = _human_size(result.file_size)
+    name_str = _esc((result.file_path.stem)[:80])
+
+    stop_event = asyncio.Event()
+    start_ts = time.monotonic()
+
+    async def _spin() -> None:
+        frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+        i = 0
+        while not stop_event.is_set():
+            elapsed = int(time.monotonic() - start_ts)
+            m, s = divmod(elapsed, 60)
+            t_str = f"{m}м {s:02d}с" if m else f"{s}с"
+            try:
+                await status_msg.edit_text(
+                    f"📤 {frames[i % len(frames)]} Отправляю <b>{name_str}</b>\n"
+                    f"📦 {total_str}  •  ⏱ {t_str}",
+                    parse_mode=ParseMode.HTML,
+                )
+            except TelegramError:
+                pass
+            # Обновляем индикатор «загружает документ» (действует ~5 с)
+            try:
+                await bot.send_chat_action(chat_id, ChatAction.UPLOAD_DOCUMENT)
+            except TelegramError:
+                pass
+            i += 1
+            await asyncio.sleep(3.0)
+
+    spin_task = asyncio.create_task(_spin())
+    try:
+        await _deliver_file(chat_id, result, bot)
+    finally:
+        stop_event.set()
+        spin_task.cancel()
+        try:
+            await spin_task
+        except (asyncio.CancelledError, Exception):
+            pass
 
 
 # ── Команды администратора ───────────────────────────────────────────────────────
