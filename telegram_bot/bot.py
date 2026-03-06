@@ -971,15 +971,27 @@ def main():
         db.approve_user(admin_id, admin_id)
         db.set_admin(admin_id, True)
 
+    from telegram.request import HTTPXRequest
+
     builder = Application.builder().token(config.BOT_TOKEN)
 
+    # Локальный Bot API сервер снимает лимит 50 МБ → до 2 ГБ
+    if config.LOCAL_API_SERVER:
+        base_url      = f"{config.LOCAL_API_SERVER}/bot"
+        base_file_url = f"{config.LOCAL_API_SERVER}/file/bot"
+        builder = builder.base_url(base_url).base_file_url(base_file_url)
+        logger.info("Используется локальный Bot API сервер: %s", config.LOCAL_API_SERVER)
+
+    # Большие таймауты: файлы до 1.6 ГБ могут загружаться долго
+    read_timeout  = 300.0   # 5 минут на чтение ответа при отправке большого файла
+    write_timeout = 300.0   # 5 минут на запись (upload)
+
     if config.PROXY_URL:
-        from telegram.request import HTTPXRequest
         request = HTTPXRequest(
             proxy=config.PROXY_URL,
             connect_timeout=20.0,
-            read_timeout=30.0,
-            write_timeout=30.0,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
         )
         builder = builder.request(request).get_updates_request(HTTPXRequest(
             proxy=config.PROXY_URL,
@@ -987,11 +999,10 @@ def main():
             read_timeout=30.0,
         ))
     else:
-        from telegram.request import HTTPXRequest
         builder = builder.request(HTTPXRequest(
             connect_timeout=20.0,
-            read_timeout=30.0,
-            write_timeout=30.0,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
         ))
 
     app = builder.build()

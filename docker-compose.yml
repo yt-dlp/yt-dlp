@@ -1,47 +1,74 @@
 services:
+
+  # ── Локальный Telegram Bot API сервер ────────────────────────────────────────
+  # Снимает лимит 50 МБ на файлы — позволяет отправлять до 2 ГБ.
+  # Требует: TELEGRAM_API_ID и TELEGRAM_API_HASH из https://my.telegram.org
+  telegram-bot-api:
+    image: aiogram/telegram-bot-api:latest
+    container_name: telegram-bot-api
+    restart: unless-stopped
+    environment:
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
+      TELEGRAM_LOCAL: "1"        # включает режим без лимитов на файлы (до 2 ГБ)
+    volumes:
+      - ./data/telegram-bot-api:/var/lib/telegram-bot-api
+    networks:
+      - botnet
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── YT-DLP бот ───────────────────────────────────────────────────────────────
   ytdlp-bot:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: ytdlp-bot
     restart: unless-stopped
+    depends_on:
+      telegram-bot-api:
+        condition: service_healthy
 
-    # ── Environment variables ───────────────────────────────────────────────
+    # ── Переменные окружения ─────────────────────────────────────────────────
     env_file:
       - .env
 
-    # ── Persistent volumes ──────────────────────────────────────────────────
+    # ── Тома ────────────────────────────────────────────────────────────────
     volumes:
-      # Downloaded files (temporary during session)
+      # Загружаемые файлы (временные)
       - ./data/downloads:/downloads
-      # SQLite database (users, history)
+      # SQLite база данных
       - ./data/db:/data
-      # Optional: cookie file for age-restricted videos
+      # Опционально: куки для контента 18+
       # - ./cookies.txt:/cookies.txt:ro
 
-    # ── Resource limits (adjust to your server) ────────────────────────────
+    # ── Лимиты ресурсов ──────────────────────────────────────────────────────
+    # memory увеличен: бот буферизует файлы до 1.6 ГБ при отправке
     deploy:
       resources:
         limits:
           cpus: "2.0"
-          memory: 1G
+          memory: 4G
         reservations:
           cpus: "0.25"
-          memory: 128M
+          memory: 256M
 
-    # ── Logging ─────────────────────────────────────────────────────────────
+    # ── Логи ────────────────────────────────────────────────────────────────
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-    # ── Network ────────────────────────────────────────────────────────────
-    # Must be in nftables docker_nets set for outbound access
+    # ── Сеть ────────────────────────────────────────────────────────────────
     networks:
       - botnet
 
-    # ── Health check ─────────────────────────────────────────────────────────
+    # ── Healthcheck ──────────────────────────────────────────────────────────
     healthcheck:
       test: ["CMD", "python", "-c", "import yt_dlp; print('ok')"]
       interval: 60s
