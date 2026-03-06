@@ -736,7 +736,31 @@ def main():
         db.approve_user(admin_id, admin_id)
         db.set_admin(admin_id, True)
 
-    app = Application.builder().token(config.BOT_TOKEN).build()
+    builder = Application.builder().token(config.BOT_TOKEN)
+
+    # If PROXY_URL is set, use it for bot ↔ Telegram API connection too
+    if config.PROXY_URL:
+        from telegram.request import HTTPXRequest
+        request = HTTPXRequest(
+            proxy=config.PROXY_URL,
+            connect_timeout=20.0,
+            read_timeout=30.0,
+            write_timeout=30.0,
+        )
+        builder = builder.request(request).get_updates_request(HTTPXRequest(
+            proxy=config.PROXY_URL,
+            connect_timeout=20.0,
+            read_timeout=30.0,
+        ))
+    else:
+        from telegram.request import HTTPXRequest
+        builder = builder.request(HTTPXRequest(
+            connect_timeout=20.0,
+            read_timeout=30.0,
+            write_timeout=30.0,
+        ))
+
+    app = builder.build()
 
     # Commands
     app.add_handler(CommandHandler("start", cmd_start))
