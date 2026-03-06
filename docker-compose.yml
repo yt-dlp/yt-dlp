@@ -36,6 +36,11 @@ services:
         max-size: "10m"
         max-file: "3"
 
+    # ── Network ────────────────────────────────────────────────────────────
+    # Must be in nftables docker_nets set for outbound access
+    networks:
+      - botnet
+
     # ── Health check ─────────────────────────────────────────────────────────
     healthcheck:
       test: ["CMD", "python", "-c", "import yt_dlp; print('ok')"]
@@ -43,3 +48,10 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+
+networks:
+  botnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.2.0/24
