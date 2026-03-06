@@ -25,26 +25,34 @@ from ..utils import (
     parse_duration,
     parse_iso8601,
     remove_end,
+    str_or_none,
     try_get,
     unescapeHTML,
     unified_timestamp,
+    update_url,
     update_url_query,
     url_basename,
     url_or_none,
 )
-from ..utils.traversal import require, traverse_obj
+from ..utils.traversal import (
+    find_element,
+    require,
+    traverse_obj,
+    trim_str,
+)
 
 
 class NBCUniversalBaseIE(ThePlatformBaseIE):
     _GEO_COUNTRIES = ['US']
     _GEO_BYPASS = False
     _M3U8_RE = r'https?://[^/?#]+/prod/[\w-]+/(?P<folders>[^?#]+/)cmaf/mpeg_(?:cbcs|cenc)\w*/master_cmaf\w*\.m3u8'
+    _TP_BASE = 'https://link.theplatform.com/s'
 
-    def _download_nbcu_smil_and_extract_m3u8_url(self, tp_path, video_id, query):
+    def _download_nbcu_smil_and_extract_m3u8_url(self, tp_path, video_id, query=None):
         smil = self._download_xml(
-            f'https://link.theplatform.com/s/{tp_path}', video_id,
+            f'{self._TP_BASE}/{tp_path}', video_id,
             'Downloading SMIL manifest', 'Failed to download SMIL manifest', query={
-                **query,
+                **(query or {}),
                 'format': 'SMIL',  # XXX: Do not confuse "format" with "formats"
                 'manifest': 'm3u',
                 'switch': 'HLSServiceSecure',  # Or else we get broken mp4 http URLs instead of HLS
@@ -59,7 +67,9 @@ class NBCUniversalBaseIE(ThePlatformBaseIE):
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
         raise ExtractorError(traverse_obj(smil, (f'{ns}ref/@abstract', ..., any)), expected=exc == 'Expired')
 
-    def _extract_nbcu_formats_and_subtitles(self, tp_path, video_id, query):
+    def _extract_nbcu_formats_and_subtitles(self, tp_path, video_id, query=None):
+        if query is None:
+            query = {}
         # formats='mpeg4' will return either a working m3u8 URL or an m3u8 template for non-DRM HLS
         # formats='m3u+none,mpeg4' may return DRM HLS but w/the "folders" needed for non-DRM template
         query['formats'] = 'm3u+none,mpeg4'
@@ -318,142 +328,102 @@ class NBCIE(NBCUniversalBaseIE):
         }
 
 
-class NBCSportsVPlayerIE(InfoExtractor):
-    _WORKING = False
-    _VALID_URL_BASE = r'https?://(?:vplayer\.nbcsports\.com|(?:www\.)?nbcsports\.com/vplayer)/'
-    _VALID_URL = _VALID_URL_BASE + r'(?:[^/]+/)+(?P<id>[0-9a-zA-Z_]+)'
-    _EMBED_REGEX = [rf'(?:iframe[^>]+|var video|div[^>]+data-(?:mpx-)?)[sS]rc\s?=\s?"(?P<url>{_VALID_URL_BASE}[^\"]+)']
+class NBCSportsIE(NBCUniversalBaseIE):
+    IE_NAME = 'nbc:sports'
 
+    _REGIONAL_NETWORKS = ['bayarea', 'boston', 'philadelphia']
+    _VALID_URL = rf'''(?x)
+        https?://(?:www\.)?nbcsports(?:{"|".join(map(re.escape, _REGIONAL_NETWORKS))})?\.com/
+        (?:[^/]+/)+(?P<id>(?!\d+(?:/|$))[0-9a-z-]+)(?:/(?P<display_id>\d+))?/?(?:[?#]|$)
+    '''
     _TESTS = [{
-        'url': 'https://vplayer.nbcsports.com/p/BxmELC/nbcsports_embed/select/9CsDKds0kvHI',
-        'info_dict': {
-            'id': '9CsDKds0kvHI',
-            'ext': 'mp4',
-            'description': 'md5:df390f70a9ba7c95ff1daace988f0d8d',
-            'title': 'Tyler Kalinoski hits buzzer-beater to lift Davidson',
-            'timestamp': 1426270238,
-            'upload_date': '20150313',
-            'uploader': 'NBCU-SPORTS',
-            'duration': 72.818,
-            'chapters': [],
-            'thumbnail': r're:^https?://.*\.jpg$',
-        },
-    }, {
-        'url': 'https://vplayer.nbcsports.com/p/BxmELC/nbcsports_embed/select/media/PEgOtlNcC_y2',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.nbcsports.com/vplayer/p/BxmELC/nbcsports/select/PHJSaFWbrTY9?form=html&autoPlay=true',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-        theplatform_url = self._html_search_regex(r'tp:releaseUrl="(.+?)"', webpage, 'url')
-        return self.url_result(theplatform_url, 'ThePlatform')
-
-
-class NBCSportsIE(InfoExtractor):
-    _WORKING = False
-    _VALID_URL = r'https?://(?:www\.)?nbcsports\.com//?(?!vplayer/)(?:[^/]+/)+(?P<id>[0-9a-z-]+)'
-
-    _TESTS = [{
-        # iframe src
         'url': 'https://www.nbcsports.com/watch/nfl/profootballtalk/pft-pm/unpacking-addisons-reckless-driving-citation',
         'info_dict': {
-            'id': 'PHJSaFWbrTY9',
+            'id': 'unpacking-addisons-reckless-driving-citation',
             'ext': 'mp4',
-            'title': 'Tom Izzo, Michigan St. has \'so much respect\' for Duke',
-            'description': 'md5:ecb459c9d59e0766ac9c7d5d0eda8113',
+            'title': 'Unpacking Addison\'s reckless driving citation',
+            'description': 'md5:b3488b6d90ca1220a4c739d98509fb21',
+            'duration': 127.661,
+            'episode': 'Unpacking Addison\'s reckless driving citation',
+            'series': 'PFT PM',
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1689960112,
+            'upload_date': '20230721',
             'uploader': 'NBCU-SPORTS',
-            'upload_date': '20150330',
-            'timestamp': 1427726529,
-            'chapters': [],
-            'thumbnail': 'https://hdliveextra-a.akamaihd.net/HD/image_sports/NBCU_Sports_Group_-_nbcsports/253/303/izzodps.jpg',
-            'duration': 528.395,
         },
     }, {
-        # data-mpx-src
-        'url': 'https://www.nbcsports.com/philadelphia/philadelphia-phillies/bruce-bochy-hector-neris-hes-idiot',
-        'only_matching': True,
-    }, {
-        # data-src
-        'url': 'https://www.nbcsports.com/boston/video/report-card-pats-secondary-no-match-josh-allen',
-        'only_matching': True,
-    }]
-    _WEBPAGE_TESTS = [{
-        'url': 'http://www.riderfans.com/forum/showthread.php?121827-Freeman&s=e98fa1ea6dc08e886b1678d35212494a',
+        'url': 'https://www.nbcsportsboston.com/video/nfl/new-england-patriots/report-card-pats-secondary-is-no-match-for-josh-allen/211779/',
         'info_dict': {
-            'id': 'ln7x1qSThw4k',
-            'ext': 'flv',
-            'title': "PFT Live: New leader in the 'new-look' defense",
-        },
-        'skip': 'Invalid URL',
-    }]
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-        return self.url_result(
-            NBCSportsVPlayerIE._extract_url(webpage), 'NBCSportsVPlayer')
-
-
-class NBCSportsStreamIE(AdobePassIE):
-    _WORKING = False
-    _VALID_URL = r'https?://stream\.nbcsports\.com/.+?\bpid=(?P<id>\d+)'
-    _TESTS = [{
-        'url': 'http://stream.nbcsports.com/nbcsn/generic?pid=206559',
-        'info_dict': {
-            'id': '206559',
+            'id': 'report-card-pats-secondary-is-no-match-for-josh-allen',
             'ext': 'mp4',
-            'title': 'Amgen Tour of California Women\'s Recap',
-            'description': 'md5:66520066b3b5281ada7698d0ea2aa894',
+            'title': 'Report Card: Pats secondary is no match for Josh Allen',
+            'categories': ['Mass School of Law'],
+            'description': 'md5:539ea545871c9c8684c77d9d0cc04458',
+            'display_id': '211779',
+            'duration': 59.993,
+            'episode': 'Report Card: Pats secondary is no match for Josh Allen',
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1609224514,
+            'upload_date': '20201229',
+            'uploader': 'NBCU-MPAT-OTS',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
+    }, {
+        'url': 'https://www.nbcsportsphiladelphia.com/mlb/bruce-bochy-on-hector-neris-hes-an-idiot/383698/',
+        'info_dict': {
+            'id': 'bruce-bochy-on-hector-neris-hes-an-idiot',
+            'ext': 'mp4',
+            'title': "Bruce Bochy on Neris: 'I'll say it, he's an idiot'",
+            'categories': ['Phillies'],
+            'description': 'md5:a9fa0000b6a3b93744eea133723f58f6',
+            'display_id': '383698',
+            'duration': 51.351,
+            'episode': "Bruce Bochy on Neris: 'I'll say it, he's an idiot'",
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1503363885,
+            'upload_date': '20170822',
+            'uploader': 'NBCU-MPAT-OTS',
         },
-        'skip': 'Requires Adobe Pass Authentication',
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        live_source = self._download_json(
-            f'http://stream.nbcsports.com/data/live_sources_{video_id}.json',
-            video_id)
-        video_source = live_source['videoSources'][0]
-        title = video_source['title']
-        source_url = None
-        for k in ('source', 'msl4source', 'iossource', 'hlsv4'):
-            sk = k + 'Url'
-            source_url = video_source.get(sk) or video_source.get(sk + 'Alt')
-            if source_url:
-                break
+        video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
+        webpage = self._download_webpage(url, video_id)
+        netloc = urllib.parse.urlparse(url).netloc.removeprefix('www.')
+
+        if netloc == 'nbcsports.com':
+            tp_path = traverse_obj(webpage, (
+                {find_element(cls='jwplayer', html=True)}, {extract_attributes},
+                ('data-hls', 'data-mp4'), {url_or_none}, {update_url(query=None)},
+                {trim_str(start=f'{self._TP_BASE}/')}, any, {require('thePlatform path')}))
+        elif netloc == 'nbcsportsboston.com':
+            account_id = traverse_obj(webpage, (
+                {find_element(cls='single-video__video', html=True)},
+                {extract_attributes}, 'data-account-id', {str_or_none}, {require('account ID')}))
+            data_videos = self._search_json(
+                r'data-videos="\[', webpage, 'data-videos',
+                video_id, default={}, transform_source=unescapeHTML)
+            media_id = traverse_obj(data_videos, (
+                'video', 'meta', 'media_pid', {str_or_none}, {require('media ID')}))
+            tp_path = f'{account_id}/media/{media_id}'
         else:
-            source_url = video_source['ottStreamUrl']
-        is_live = video_source.get('type') == 'live' or video_source.get('status') == 'Live'
-        resource = self._get_mvpd_resource('nbcsports', title, video_id, '')
-        token = self._extract_mvpd_auth(url, video_id, 'nbcsports', resource, None)  # XXX: None arg needs to be software_statement
-        tokenized_url = self._download_json(
-            'https://token.playmakerservices.com/cdn',
-            video_id, data=json.dumps({
-                'requestorId': 'nbcsports',
-                'pid': video_id,
-                'application': 'NBCSports',
-                'version': 'v1',
-                'platform': 'desktop',
-                'cdn': 'akamai',
-                'url': video_source['sourceUrl'],
-                'token': base64.b64encode(token.encode()).decode(),
-                'resourceId': base64.b64encode(resource.encode()).decode(),
-            }).encode())['tokenizedUrl']
-        formats = self._extract_m3u8_formats(tokenized_url, video_id, 'mp4')
+            video_flyout = traverse_obj(webpage, ({find_element(cls='video-flyout')}))
+            data_props = self._search_json(
+                r'data-props\s*=\s*(["\'])', video_flyout, 'data-props',
+                video_id, end_pattern=r'\1', default={}, transform_source=unescapeHTML)
+            account_id = traverse_obj(data_props, (
+                'accountId', {str_or_none}, {require('account ID')}))
+            media_id = traverse_obj(data_props, (
+                'videos', ..., 'mediaId', {str_or_none}, any, {require('media ID')}))
+            tp_path = f'{account_id}/media/{media_id}'
+
+        formats, subtitles = self._extract_nbcu_formats_and_subtitles(tp_path, video_id)
+
         return {
             'id': video_id,
-            'title': title,
-            'description': live_source.get('description'),
+            'display_id': display_id,
             'formats': formats,
-            'is_live': is_live,
+            'subtitles': subtitles,
+            **self._extract_theplatform_metadata(tp_path, video_id),
         }
 
 
@@ -695,6 +665,7 @@ class NBCOlympicsStreamIE(AdobePassIE):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
+
         pid = self._search_regex(r'pid\s*=\s*(\d+);', webpage, 'pid')
 
         event_config = self._download_json(
@@ -748,7 +719,7 @@ class NBCOlympicsStreamIE(AdobePassIE):
         }
 
 
-class NBCStationsIE(InfoExtractor):
+class NBCStationsIE(NBCUniversalBaseIE):
     _DOMAIN_RE = '|'.join(map(re.escape, (
         'nbcbayarea', 'nbcboston', 'nbcchicago', 'nbcconnecticut', 'nbcdfw', 'nbclosangeles',
         'nbcmiami', 'nbcnewyork', 'nbcphiladelphia', 'nbcsandiego', 'nbcwashington',
@@ -888,7 +859,7 @@ class NBCStationsIE(InfoExtractor):
         smil = None
         if player_id and fw_ssid:
             smil = self._download_xml(
-                f'https://link.theplatform.com/s/{pdk_acct}/{player_id}', video_id,
+                f'{self._TP_BASE}/{pdk_acct}/{player_id}', video_id,
                 note='Downloading SMIL data', query=query, fatal=is_live)
             if not isinstance(smil, xml.etree.ElementTree.Element):
                 smil = None
