@@ -19,6 +19,17 @@ USER_AGENTS = {
 class CeskaTelevizeIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?ceskatelevize\.cz/(?:ivysilani|porady|zive)/(?:[^/?#&]+/)*(?P<id>[^/#?]+)'
     _TESTS = [{
+        'url': 'https://www.ceskatelevize.cz/porady/10520528904-queer/215562210900007-bogotart/',
+        'info_dict': {
+            'id': '215562210900007',
+            'title': 'Bogotart - Queer',
+            'description': 'md5:f70d04206e31e2033d4feea0f3c7e72b',
+        },
+        'playlist_count': 2,
+        'params': {
+            'skip_download': True,
+        },
+    }, {
         'url': 'http://www.ceskatelevize.cz/ivysilani/10441294653-hyde-park-civilizace/215411058090502/bonus/20641-bonus-01-en',
         'info_dict': {
             'id': '61924494877028507',
@@ -32,6 +43,7 @@ class CeskaTelevizeIE(InfoExtractor):
             # m3u8 download
             'skip_download': True,
         },
+        'skip': 'Old API may not work anymore, sestimsmir.',
     }, {
         # live stream
         'url': 'http://www.ceskatelevize.cz/zive/ct1/',
@@ -94,6 +106,47 @@ class CeskaTelevizeIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    def _extract_formats_from_stream_data(self, idec, video_id):
+        """Extract formats from new stream-data API."""
+        formats = []
+        for stream_type in ('dash', 'hls'):
+            stream_data = self._download_json(
+                f'https://api.ceskatelevize.cz/video/v1/playlist-vod/v1/stream-data/media/external/{idec}',
+                video_id, f'Downloading {stream_type} stream data', fatal=False,
+                query={
+                    'canPlayDrm': 'false',
+                    'streamType': stream_type,
+                    'origin': 'ivysilani',
+                    'client': 'ivysilaniweb',
+                    'clientVersion': '0.6.0',
+                })
+            if not stream_data:
+                continue
+
+            streams = traverse_obj(stream_data, ('streams', ...), expected_type=dict)
+            for stream in streams:
+                stream_url = stream.get('url')
+                if not stream_url:
+                    continue
+
+                has_drm = stream.get('drm', False)
+                if stream_type == 'dash':
+                    stream_formats = self._extract_mpd_formats(
+                        stream_url, video_id, mpd_id='dash', fatal=False)
+                elif stream_type == 'hls':
+                    stream_formats = self._extract_m3u8_formats(
+                        stream_url, video_id, 'mp4', 'm3u8_native',
+                        m3u8_id='hls', fatal=False)
+                else:
+                    continue
+
+                if has_drm:
+                    for f in stream_formats:
+                        f['has_drm'] = True
+                formats.extend(stream_formats)
+
+        return formats
+
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
         webpage, urlh = self._download_webpage_handle(url, playlist_id)
@@ -119,9 +172,25 @@ class CeskaTelevizeIE(InfoExtractor):
                         type_ = 'bonus'
             if not idec:
                 raise ExtractorError('Failed to find IDEC id')
+
+            # For VOD content (/porady/), try new API first
+            if '/porady/' in parsed_url.path:
+                formats = self._extract_formats_from_stream_data(idec, playlist_id)
+                if formats:
+                    return {
+                        'id': str(idec),
+                        'title': playlist_title,
+                        'description': playlist_description,
+                        'formats': formats,
+                    }
+                # If new API fails, fall through to old method
+
+            # Old method for live streams and fallback
             iframe_hash = self._download_webpage(
                 'https://www.ceskatelevize.cz/v-api/iframe-hash/',
-                playlist_id, note='Getting IFRAME hash')
+                playlist_id, note='Getting IFRAME hash', fatal=False)
+            if not iframe_hash:
+                raise ExtractorError('Failed to get IFRAME hash and stream data API failed')
             query = {'hash': iframe_hash, 'origin': 'iVysilani', 'autoStart': 'true', type_: idec}
             webpage = self._download_webpage(
                 'https://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php',
