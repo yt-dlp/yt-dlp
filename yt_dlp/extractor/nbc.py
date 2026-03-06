@@ -5,7 +5,7 @@ import urllib.parse
 import xml.etree.ElementTree
 
 from .adobepass import AdobePassIE
-from .theplatform import ThePlatformBaseIE, ThePlatformIE, default_ns
+from .theplatform import ThePlatformBaseIE, default_ns
 from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
@@ -24,11 +24,9 @@ from ..utils import (
     parse_iso8601,
     remove_end,
     str_or_none,
-    try_get,
     unescapeHTML,
     unified_timestamp,
     update_url,
-    update_url_query,
     url_basename,
     url_or_none,
 )
@@ -428,157 +426,221 @@ class NBCSportsIE(NBCUniversalBaseIE):
         }
 
 
-class NBCNewsIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
-    _VALID_URL = r'(?x)https?://(?:www\.)?(?:nbcnews|today|msnbc)\.com/([^/]+/)*(?:.*-)?(?P<id>[^/?]+)'
-    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//www\.nbcnews\.com/widget/video-embed/[^"\']+)\1']
+class NBCNewsIE(NBCUniversalBaseIE):
+    IE_NAME = 'nbc:news'
 
+    _VALID_URL = r'https?://(?:www\.)?(?:ms\.now|(?:nbcnews|today)\.com)/([^/?#]+/)+(?P<id>[^/?#]+)'
+    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//(?:www\.)?nbcnews\.com/([^/?#]+/)embedded-video/[^"\']+)\1']
     _TESTS = [{
-        'url': 'http://www.nbcnews.com/watch/nbcnews-com/how-twitter-reacted-to-the-snowden-interview-269389891880',
-        'md5': 'fb3dcd2d7b1dd9804305fa2fc95ab610',  # md5 tends to fluctuate
+        'url': 'https://www.nbcnews.com/video/how-twitter-reacted-to-the-snowden-interview-269389891880',
         'info_dict': {
-            'id': '269389891880',
+            'id': 'mmvo43404357837',
             'ext': 'mp4',
             'title': 'How Twitter Reacted To The Snowden Interview',
             'description': 'md5:65a0bd5d76fe114f3c2727aa3a81fe64',
-            'timestamp': 1401363060,
-            'upload_date': '20140529',
-            'duration': 46.0,
-            'thumbnail': 'https://media-cldnry.s-nbcnews.com/image/upload/MSNBC/Components/Video/140529/p_tweet_snow_140529.jpg',
+            'display_id': 'how-twitter-reacted-to-the-snowden-interview-269389891880',
+            'duration': 46,
+            'modified_date': '20240624',
+            'modified_timestamp': 1719190835,
+            'release_date': '20140529',
+            'release_timestamp': 1401363060,
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1542422556,
+            'upload_date': '20181117',
+            'uploader': 'nbcnews',
+            '_old_archive_ids': ['nbcnews 269389891880'],
         },
     }, {
-        'url': 'http://www.nbcnews.com/feature/dateline-full-episodes/full-episode-family-business-n285156',
-        'md5': 'fdbf39ab73a72df5896b6234ff98518a',
+        'url': 'https://www.nbcnews.com/nightly-news/video/nightly-news-with-brian-williams-full-broadcast-february-4-394064451844',
         'info_dict': {
-            'id': '529953347624',
-            'ext': 'mp4',
-            'title': 'FULL EPISODE: Family Business',
-            'description': 'md5:757988edbaae9d7be1d585eb5d55cc04',
-        },
-        'skip': 'This page is unavailable.',
-    }, {
-        'url': 'http://www.nbcnews.com/nightly-news/video/nightly-news-with-brian-williams-full-broadcast-february-4-394064451844',
-        'md5': '40d0e48c68896359c80372306ece0fc3',
-        'info_dict': {
-            'id': '394064451844',
+            'id': 'mmvo43426885979',
             'ext': 'mp4',
             'title': 'Nightly News with Brian Williams Full Broadcast (February 4)',
             'description': 'md5:1c10c1eccbe84a26e5debb4381e2d3c5',
-            'timestamp': 1423104900,
-            'upload_date': '20150205',
-            'duration': 1236.0,
-            'thumbnail': 'https://media-cldnry.s-nbcnews.com/image/upload/MSNBC/Components/Video/__NEW/nn_netcast_150204.jpg',
+            'display_id': 'nightly-news-with-brian-williams-full-broadcast-february-4-394064451844',
+            'duration': 1236,
+            'modified_date': '20231010',
+            'modified_timestamp': 1696956468,
+            'release_date': '20150205',
+            'release_timestamp': 1423104900,
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1542424633,
+            'upload_date': '20181117',
+            'uploader': 'nbcnews',
+            '_old_archive_ids': ['nbcnews 394064451844'],
         },
     }, {
-        'url': 'http://www.nbcnews.com/business/autos/volkswagen-11-million-vehicles-could-have-suspect-software-emissions-scandal-n431456',
-        'md5': 'ffb59bcf0733dc3c7f0ace907f5e3939',
+        'url': 'https://www.nbcnews.com/business/autos/volkswagen-11-million-vehicles-could-have-suspect-software-emissions-scandal-n431456',
         'info_dict': {
-            'id': 'n431456',
+            'id': 'mmvo43452997652',
             'ext': 'mp4',
-            'title': "Volkswagen U.S. Chief:  We 'Totally Screwed Up'",
+            'title': 'Volkswagen U.S. Chief: We \'Totally Screwed Up\'',
             'description': 'md5:d22d1281a24f22ea0880741bb4dd6301',
-            'upload_date': '20150922',
-            'timestamp': 1442917800,
-            'duration': 37.0,
-            'thumbnail': 'https://media-cldnry.s-nbcnews.com/image/upload/MSNBC/Components/Video/__NEW/x_lon_vwhorn_150922.jpg',
+            'display_id': 'volkswagen-11-million-vehicles-could-have-suspect-software-emissions-scandal-n431456',
+            'duration': 37,
+            'modified_date': '20231010',
+            'modified_timestamp': 1696967654,
+            'release_date': '20150922',
+            'release_timestamp': 1442917800,
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1542426443,
+            'upload_date': '20181117',
+            'uploader': 'nbcnews',
+            '_old_archive_ids': ['nbcnews n431456'],
         },
     }, {
-        'url': 'http://www.today.com/video/see-the-aurora-borealis-from-space-in-stunning-new-nasa-video-669831235788',
-        'md5': '693d1fa21d23afcc9b04c66b227ed9ff',
+        'url': 'https://www.today.com/video/massive-sinkhole-in-bangkok-collapses-road-swallows-cars-248315461622',
         'info_dict': {
-            'id': '669831235788',
+            'id': 'mmvo248315461622',
             'ext': 'mp4',
-            'title': 'See the aurora borealis from space in stunning new NASA video',
-            'description': 'md5:74752b7358afb99939c5f8bb2d1d04b1',
-            'upload_date': '20160420',
-            'timestamp': 1461152093,
-            'duration': 69.0,
-            'thumbnail': 'https://media-cldnry.s-nbcnews.com/image/upload/MSNBC/Components/Video/201604/2016-04-20T11-35-09-133Z--1280x720.jpg',
+            'title': 'Video: Road Collapses in Bangkok, Opening Up Massive Sinkhole',
+            'description': 'md5:6b4a888d0856814386dd320b6652f85e',
+            'display_id': 'massive-sinkhole-in-bangkok-collapses-road-swallows-cars-248315461622',
+            'duration': 26,
+            'modified_date': '20250925',
+            'modified_timestamp': 1758800673,
+            'release_date': '20250925',
+            'release_timestamp': 1758800614,
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1758800614,
+            'upload_date': '20250925',
+            'uploader': 'today',
+            '_old_archive_ids': ['nbcnews 248315461622'],
         },
-        'skip': 'Invalid URL',
     }, {
-        'url': 'http://www.msnbc.com/all-in-with-chris-hayes/watch/the-chaotic-gop-immigration-vote-314487875924',
-        'md5': '6d236bf4f3dddc226633ce6e2c3f814d',
+        'url': 'https://www.ms.now/all-in/watch/it-s-wrong-hayes-says-trump-s-war-on-iran-is-morally-reprehensible-2490171459841',
         'info_dict': {
-            'id': '314487875924',
+            'id': 'mmvo2490171459841',
             'ext': 'mp4',
-            'title': 'The chaotic GOP immigration vote',
-            'description': 'The Republican House votes on a border bill that has no chance of getting through the Senate or signed by the President and is drawing criticism from all sides.',
-            'thumbnail': r're:https?://.+\.jpg',
-            'timestamp': 1406937606,
-            'upload_date': '20140802',
-            'duration': 940.0,
+            'title': '‘It’s wrong’: Hayes says Trump’s war on Iran is ‘morally reprehensible’',
+            'description': 'md5:8cd5251eba8ee4782498d31f782ee914',
+            'display_id': 'it-s-wrong-hayes-says-trump-s-war-on-iran-is-morally-reprehensible-2490171459841',
+            'duration': 657,
+            'modified_date': '20260303',
+            'modified_timestamp': 1772513074,
+            'release_date': '20260303',
+            'release_timestamp': 1772511990,
+            'series': 'All In with Chris Hayes',
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1772511990,
+            'upload_date': '20260303',
+            'uploader': 'MS NOW',
+            'uploader_id': 'msnow',
+            '_old_archive_ids': ['nbcnews 2490171459841'],
         },
-        'skip': 'Invalid URL',
     }, {
-        'url': 'http://www.nbcnews.com/watch/dateline/full-episode--deadly-betrayal-386250819952',
-        'only_matching': True,
-    }, {
-        # From http://www.vulture.com/2016/06/letterman-couldnt-care-less-about-late-night.html
-        'url': 'http://www.nbcnews.com/widget/video-embed/701714499682',
-        'only_matching': True,
-    }]
-    _WEBPAGE_TESTS = [{
-        'url': 'http://www.vulture.com/2016/06/letterman-couldnt-care-less-about-late-night.html',
+        # https://www.nbcnews.com/dateline/video/preview-on-assignment-david-letterman-701714499682
+        'url': 'https://www.nbcnews.com/embedded-video/mmvo701714499682',
         'info_dict': {
-            'id': 'x_dtl_oa_LettermanliftPR_160608',
+            'id': 'mmvo43442757503',
             'ext': 'mp4',
             'title': 'David Letterman: A Preview',
+            'description': 'md5:5b045757ebc35046c3ae21e0ba327f47',
+            'display_id': 'preview-on-assignment-david-letterman-701714499682',
+            'duration': 61,
+            'modified_date': '20231010',
+            'modified_timestamp': 1696963052,
+            'release_date': '20160608',
+            'release_timestamp': 1465425637,
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1542425580,
+            'upload_date': '20181117',
+            'uploader': 'nbcnews',
+            '_old_archive_ids': ['nbcnews 701714499682'],
         },
-        'skip': 'Invalid URL',
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+        common_info = {
+            'display_id': display_id,
+            '_old_archive_ids': [make_archive_id(self, display_id.rpartition('-')[2])],
+        }
 
-        data = self._search_nextjs_data(webpage, video_id)['props']['initialState']
-        video_data = try_get(data, lambda x: x['video']['current'], dict)
-        if not video_data:
-            video_data = data['article']['content'][0]['primaryMedia']['video']
-        title = video_data['headline']['primary']
+        if urllib.parse.urlparse(url).netloc.removeprefix('www.') == 'ms.now':
+            msnow_metadata = self._search_json(
+                r'window\.__MSNOW_META_DATA\s*=', webpage, 'msnow metadata', display_id)
+            video_data = traverse_obj(webpage, (
+                {find_element(attr='data-wp-interactive', value='msnbcVideo', html=True)},
+                {extract_attributes}, 'data-wp-context', {json.loads}, 'post', {dict}))
+            m3u8_url = traverse_obj(video_data, ('url', {url_or_none}, {require('m3u8 URL')}))
 
-        formats = []
-        for va in video_data.get('videoAssets', []):
-            public_url = va.get('publicUrl')
-            if not public_url:
-                continue
-            if '://link.theplatform.com/' in public_url:
-                public_url = update_url_query(public_url, {'format': 'redirect'})
-            format_id = va.get('format')
+            return {
+                'formats': self._extract_m3u8_formats(m3u8_url, display_id, 'mp4'),
+                **common_info,
+                **traverse_obj(msnow_metadata, {
+                    'id': ('vcpsId', {str_or_none}),
+                    'title': ('title', {clean_html}, filter),
+                    'description': ('description', {clean_html}, filter),
+                    'modified_timestamp': ('dateLastPublished', {parse_iso8601}),
+                    'release_timestamp': ('datePublished', {parse_iso8601}),
+                    'thumbnail': ('promoImage', 'source', {url_or_none}),
+                    'timestamp': ('dateFirstPublished', {parse_iso8601}),
+                    'uploader': ('publisher', 'name', {clean_html}, filter),
+                    'uploader_id': ('brand', {clean_html}, filter),
+                }),
+                **traverse_obj(video_data, {
+                    'duration': ('durationSeconds', {int_or_none}),
+                    'series': ('show_name', {clean_html}, filter),
+                }),
+            }
+
+        nextjs_data = self._search_nextjs_data(webpage, display_id)
+        video_data = traverse_obj(nextjs_data, ('props', 'initialState', (
+            ('video', 'current'),
+            ('article', 'content', ..., 'primaryMedia', 'video'),
+        ), {dict}, any))
+
+        if 'embedded-video' in url:
+            canonical_url = traverse_obj(video_data, ('url', 'canonical', {url_or_none}))
+            if canonical_url not in url:
+                return self.url_result(canonical_url, self)
+
+        formats, subtitles = [], {}
+        for asset in traverse_obj(video_data, (
+            'videoAssets', lambda _, v: url_or_none(v['publicUrl']),
+        )):
+            public_url = asset['publicUrl']
+            format_id = traverse_obj(asset, ('format', {clean_html}, filter))
             if format_id == 'M3U':
                 formats.extend(self._extract_m3u8_formats(
-                    public_url, video_id, 'mp4', 'm3u8_native',
-                    m3u8_id=format_id, fatal=False))
-                continue
-            tbr = int_or_none(va.get('bitrate'), 1000)
-            formats.append({
-                'format_id': join_nonempty(format_id, tbr),
-                'url': public_url,
-                'width': int_or_none(va.get('width')),
-                'height': int_or_none(va.get('height')),
-                'tbr': tbr,
-                'ext': 'mp4',
-            })
-
-        subtitles = {}
-        closed_captioning = video_data.get('closedCaptioning')
-        if closed_captioning:
-            for cc_url in closed_captioning.values():
-                if not cc_url:
-                    continue
-                subtitles.setdefault('en', []).append({
-                    'url': cc_url,
+                    public_url, display_id, 'mp4', m3u8_id='hls', fatal=False))
+            else:
+                tbr = traverse_obj(asset, ('bitrate', {int_or_none(scale=1000)}))
+                formats.append({
+                    'ext': 'mp4',
+                    'format_id': join_nonempty(format_id.lower(), tbr),
+                    'tbr': tbr,
+                    'url': public_url,
+                    **traverse_obj(asset, {
+                        'height': ('height', {int_or_none}),
+                        'width': ('width', {int_or_none}),
+                    }),
                 })
 
+        for caption_url in traverse_obj(video_data, (
+            'closedCaptioning', {dict.values}, ..., {url_or_none},
+        )):
+            subtitles.setdefault('en', []).append({'url': caption_url})
+
         return {
-            'id': video_id,
-            'title': title,
-            'description': try_get(video_data, lambda x: x['description']['primary']),
-            'thumbnail': try_get(video_data, lambda x: x['primaryImage']['url']['primary']),
-            'duration': parse_duration(video_data.get('duration')),
-            'timestamp': unified_timestamp(video_data.get('datePublished')),
             'formats': formats,
             'subtitles': subtitles,
+            **common_info,
+            **traverse_obj(video_data, {
+                'id': ('id', {str_or_none}),
+                'title': ('headline', 'primary', {clean_html}, filter),
+                'description': ('description', 'primary', {clean_html}, filter),
+                'duration': ('duration', {parse_duration}),
+                'thumbnail': ('primaryImage', 'url', 'primary', {url_or_none}),
+                'uploader': ('publisher', 'name', {clean_html}, filter),
+            }),
+            **traverse_obj(video_data, ('date', {
+                'modified_timestamp': ('modifiedAt', {parse_iso8601}),
+                'release_timestamp': ('publishedAt', {parse_iso8601}),
+                'timestamp': ('createdAt', {parse_iso8601}),
+            })),
         }
 
 
@@ -661,7 +723,7 @@ class NBCOlympicsIE(NBCUniversalBaseIE):
 
 class NBCOlympicsStreamIE(AdobePassIE):
     _WORKING = False
-    IE_NAME = 'nbcolympics:stream'
+    IE_NAME = 'nbc:olympics:stream'
     _VALID_URL = r'https?://stream\.nbcolympics\.com/(?P<id>[0-9a-z-]+)'
     _TESTS = [{
         'note': 'Tokenized m3u8 source URL',
