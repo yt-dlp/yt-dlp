@@ -19,9 +19,9 @@ services:
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8081"]
       interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 120s    # первый запуск: скачивает данные Telegram (~2-3 мин)
 
   # ── YT-DLP бот ───────────────────────────────────────────────────────────────
   ytdlp-bot:
