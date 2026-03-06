@@ -383,13 +383,10 @@ async def _fetch_and_show_menu(url: str, msg: Message, ctx: ContextTypes.DEFAULT
 
 # ── Меню видео ───────────────────────────────────────────────────────────────────
 
-async def _show_video_menu(msg: Message, info: VideoInfo, ctx: ContextTypes.DEFAULT_TYPE):
+def _build_quality_menu(info: VideoInfo) -> tuple[str, InlineKeyboardMarkup]:
+    """Строит текст и клавиатуру меню выбора качества. Используется при показе и возврате."""
     video_fmts = get_best_video_formats(info.formats)
-
-    likes_str = ""
-    if info.like_count:
-        likes_str = f"  👍 {_fmt_num(info.like_count)}"
-
+    likes_str = f"  👍 {_fmt_num(info.like_count)}" if info.like_count else ""
     caption = (
         f"🎬 <b>{_esc(info.title)}</b>\n"
         f"👤 {_esc(info.uploader or '—')}\n"
@@ -397,38 +394,29 @@ async def _show_video_menu(msg: Message, info: VideoInfo, ctx: ContextTypes.DEFA
         f"🌐 {_esc(info.extractor or '—')}\n\n"
         "Выберите качество для загрузки:"
     )
-
     buttons = []
-
-    # Кнопки качества видео
     for f in video_fmts:
         size_hint = f" [{f.size_str}]" if f.filesize or f.tbr else ""
         fps_hint = f" {f.fps}fps" if f.fps and f.fps > 30 else ""
         label = f"🎥 {f.resolution}{fps_hint} {f.ext.upper()}{size_hint}"
         buttons.append([InlineKeyboardButton(label, callback_data=f"dl:v:{f.format_id}")])
-
-    # Лучшее качество (авто)
     buttons.append([InlineKeyboardButton("⚡ Лучшее качество (авто)", callback_data="dl:v:best")])
-
-    # Аудио
     if config.ALLOW_AUDIO:
         buttons.append([InlineKeyboardButton("🎵 Только аудио (MP3 192kbps)", callback_data="dl:a:best")])
-
-    # Субтитры
     if config.ALLOW_SUBTITLES:
         buttons.append([
             InlineKeyboardButton("📄 + Субтитры RU", callback_data="dl:s:ru"),
             InlineKeyboardButton("📄 + Субтитры EN", callback_data="dl:s:en"),
         ])
-
-    # Инфо и отмена
     buttons.append([
         InlineKeyboardButton("ℹ️ Подробнее", callback_data="info"),
         InlineKeyboardButton("❌ Отмена", callback_data="cancel"),
     ])
+    return caption, InlineKeyboardMarkup(buttons)
 
-    keyboard = InlineKeyboardMarkup(buttons)
 
+async def _show_video_menu(msg: Message, info: VideoInfo, ctx: ContextTypes.DEFAULT_TYPE):
+    caption, keyboard = _build_quality_menu(info)
     try:
         if info.thumbnail:
             await msg.delete()
@@ -442,7 +430,6 @@ async def _show_video_menu(msg: Message, info: VideoInfo, ctx: ContextTypes.DEFA
             return sent
     except TelegramError:
         pass
-
     return await msg.edit_text(caption, parse_mode=ParseMode.HTML, reply_markup=keyboard)
 
 
@@ -502,9 +489,13 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if data == "info":
         info: VideoInfo = ctx.user_data.get(KEY_VIDEO_INFO)
         if not info:
-            await query.edit_message_text("❌ Сессия истекла. Отправьте ссылку заново.")
+            await query.answer("❌ Сессия истекла. Отправьте ссылку заново.", show_alert=True)
             return
         await _show_info(query, info)
+        return
+
+    if data == "back_to_quality":
+        await _handle_back_to_quality(query, ctx)
         return
 
     # Выбор: видео или плейлист для смешанного URL
@@ -647,10 +638,36 @@ async def _show_info(query, info: VideoInfo):
         text += f"👍 Лайки: {_fmt_num(info.like_count)}\n"
     if info.description:
         text += f"\n📝 {_esc(info.description[:400])}…"
+    back_kb = InlineKeyboardMarkup([[InlineKeyboardButton("« Назад к выбору качества", callback_data="back_to_quality")]])
     try:
-        await query.edit_message_caption(text, parse_mode=ParseMode.HTML)
+        await query.edit_message_caption(text, parse_mode=ParseMode.HTML, reply_markup=back_kb)
     except TelegramError:
-        await query.edit_message_text(text, parse_mode=ParseMode.HTML)
+        await query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=back_kb)
+
+
+async def _handle_back_to_quality(query, ctx: ContextTypes.DEFAULT_TYPE):
+    """Возврат к меню выбора качества из экрана 'Подробнее'."""
+    info: VideoInfo = ctx.user_data.get(KEY_VIDEO_INFO)
+    if not info:
+        session = db.get_session(query.message.chat_id, query.message.message_id)
+        if session:
+            try:
+                info = _deserialize_video_info(session["video_info_json"])
+                ctx.user_data[KEY_VIDEO_INFO] = info
+                ctx.user_data[KEY_PENDING_URL] = session["url"]
+            except Exception as e:
+                logger.warning("restore_session (back) failed: %s", e)
+    if not info:
+        await query.answer("❌ Сессия истекла. Отправьте ссылку заново.", show_alert=True)
+        return
+    caption, keyboard = _build_quality_menu(info)
+    try:
+        await query.edit_message_caption(caption, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+    except TelegramError:
+        try:
+            await query.edit_message_text(caption, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+        except TelegramError:
+            pass
 
 
 async def _handle_admin_approval(query, ctx, data: str):
@@ -1103,9 +1120,34 @@ def _fmt_num(n: int) -> str:
 #         logger.info("PUBLIC_BASE_URL не задан — файлы отправляются напрямую в Telegram")
 
 
-# ── Периодическая очистка ────────────────────────────────────────────────────────
+# ── Периодическая очистка (asyncio, без APScheduler) ─────────────────────────────
 
-async def _cleanup_job(context: ContextTypes.DEFAULT_TYPE) -> None:
+async def _cleanup_loop() -> None:
+    """Фоновый цикл: очистка каждый час. Запускается через post_init."""
+    while True:
+        await asyncio.sleep(3600)
+        try:
+            await _cleanup_job()
+        except Exception as e:
+            logger.error("Ошибка очистки: %s", e)
+
+
+async def _post_init(application) -> None:
+    task = asyncio.create_task(_cleanup_loop())
+    application.bot_data["_cleanup_task"] = task
+
+
+async def _post_shutdown(application) -> None:
+    task = application.bot_data.get("_cleanup_task")
+    if task:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+
+async def _cleanup_job() -> None:
     """Каждый час: удаляет файлы и данные старше 24 часов."""
     removed_dirs = 0
     cutoff_ts = datetime.now().timestamp() - 86400  # 24 часа
@@ -1159,8 +1201,12 @@ def main():
 
     from telegram.request import HTTPXRequest
 
-    builder = Application.builder().token(config.BOT_TOKEN)
-    # При включении файлового сервера добавить: .post_init(_post_init)
+    builder = (
+        Application.builder()
+        .token(config.BOT_TOKEN)
+        .post_init(_post_init)
+        .post_shutdown(_post_shutdown)
+    )
 
     # Локальный Bot API сервер снимает лимит 50 МБ → до 2 ГБ
     if config.LOCAL_API_SERVER:
@@ -1218,9 +1264,6 @@ def main():
     app.add_handler(CallbackQueryHandler(handle_callback))
 
     app.add_error_handler(error_handler)
-
-    # Очистка каждый час: файлы и данные старше 24 часов
-    app.job_queue.run_repeating(_cleanup_job, interval=3600, first=3600)
 
     logger.info("Бот запускается… Администраторы: %s", config.ADMIN_IDS)
     app.run_polling(drop_pending_updates=True, bootstrap_retries=5)
