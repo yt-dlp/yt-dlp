@@ -308,6 +308,7 @@ from .canalalpha import CanalAlphaIE
 from .canalc2 import Canalc2IE
 from .canalplus import CanalplusIE
 from .canalsurmas import CanalsurmasIE
+from .canva import CanvaIE
 from .caracoltv import CaracolTvPlayIE
 from .cbc import (
     CBCIE,
