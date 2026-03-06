@@ -17,7 +17,9 @@ services:
       botnet:
         ipv4_address: 10.10.2.3   # фиксированный IP для ограничения исходящего трафика в nftables
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8081"]
+      # 404 at root is normal — the server is up. wget exits 8 on HTTP errors,
+      # so we accept codes 0 and 8 (any HTTP response = healthy).
+      test: ["CMD-SHELL", "wget -q --timeout=5 http://localhost:8081; [ $? -le 8 ]"]
       interval: 30s
       timeout: 10s
       retries: 10
