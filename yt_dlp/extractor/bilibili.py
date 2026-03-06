@@ -914,6 +914,9 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'upload_date': '20201016',
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
         },
+    }, {
+        'url': 'https://www.bilibili.com/bangumi/play/ep810041',
+        'expected_exception': 'ExtractorError',  # DRM
     }]
 
     def _real_extract(self, url):
