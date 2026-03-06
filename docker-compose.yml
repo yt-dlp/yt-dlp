@@ -14,7 +14,8 @@ services:
     volumes:
       - ./data/telegram-bot-api:/var/lib/telegram-bot-api
     networks:
-      - botnet
+      botnet:
+        ipv4_address: 10.10.2.3   # фиксированный IP для ограничения исходящего трафика в nftables
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8081"]
       interval: 30s
