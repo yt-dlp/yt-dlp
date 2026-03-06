@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 """
-YT-DLP Telegram Bot
-────────────────────────────────────────────────────────────
-A full-featured, access-controlled Telegram bot that wraps
-yt-dlp to let authorised users download videos and audio
-from YouTube and thousands of other sites.
+YT-DLP Telegram Bot — русскоязычный интерфейс
 """
 
 import asyncio
@@ -17,6 +13,7 @@ import traceback
 from functools import wraps
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlparse, urlencode, parse_qs, urlunparse
 
 from telegram import (
     Bot,
@@ -49,7 +46,7 @@ from downloader import (
     is_supported_url,
 )
 
-# ── Logging ─────────────────────────────────────────────────────────────────────
+# ── Logging ──────────────────────────────────────────────────────────────────────
 
 logging.basicConfig(
     level=logging.INFO,
@@ -58,18 +55,30 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ── Session state keys ──────────────────────────────────────────────────────────
-# stored in context.user_data
-
-KEY_VIDEO_INFO = "video_info"       # VideoInfo object
-KEY_DOWNLOAD_ID = "download_id"     # DB row id
+# ── Session state keys ───────────────────────────────────────────────────────────
+KEY_VIDEO_INFO  = "video_info"
+KEY_DOWNLOAD_ID = "download_id"
 KEY_PENDING_URL = "pending_url"
+KEY_ORIG_URL    = "original_url"   # сохраняем оригинальный URL (с list=) для плейлиста
 
 
-# ── Decorators ──────────────────────────────────────────────────────────────────
+# ── Поддерживаемые платформы (текст для /start и /help) ─────────────────────────
+
+SUPPORTED_SITES_TEXT = (
+    "📌 <b>Поддерживаемые платформы:</b>\n"
+    "• <b>Видео:</b> YouTube, Vimeo, Dailymotion, Rutube, ВКонтакте, OK.ru\n"
+    "• <b>Соцсети:</b> Instagram, TikTok, Twitter/X, Facebook, Pinterest\n"
+    "• <b>Стриминг:</b> Twitch, Kick, YouTube Live\n"
+    "• <b>Музыка:</b> SoundCloud, Bandcamp, Mixcloud, YouTube Music\n"
+    "• <b>Новости/прочее:</b> Reddit, Telegram, Coub, и 1000+ других\n"
+    "(<a href='https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md'>полный список</a>)"
+)
+
+
+# ── Декораторы ───────────────────────────────────────────────────────────────────
 
 def require_auth(func):
-    """Reject users who are not approved."""
+    """Отклоняет неавторизованных пользователей."""
     @wraps(func)
     async def wrapper(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
@@ -80,11 +89,11 @@ def require_auth(func):
             row = db.get_user(user.id)
             if row and not row["is_approved"] and not row["is_banned"]:
                 await update.effective_message.reply_text(
-                    "⏳ Your access request is pending admin approval.\n"
-                    "You will be notified when approved."
+                    "⏳ Ваша заявка на доступ ожидает одобрения администратора.\n"
+                    "Вы получите уведомление после одобрения."
                 )
             elif row and row["is_banned"]:
-                await update.effective_message.reply_text("🚫 You are banned from using this bot.")
+                await update.effective_message.reply_text("🚫 Вы заблокированы и не можете использовать этого бота.")
             else:
                 await _send_access_request(update, ctx)
             return
@@ -93,18 +102,18 @@ def require_auth(func):
 
 
 def require_admin(func):
-    """Reject non-admins."""
+    """Отклоняет не-администраторов."""
     @wraps(func)
     async def wrapper(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
         if not db.is_admin(user.id):
-            await update.effective_message.reply_text("🚫 Admin access required.")
+            await update.effective_message.reply_text("🚫 Требуется доступ администратора.")
             return
         return await func(update, ctx)
     return wrapper
 
 
-# ── Access-request flow ─────────────────────────────────────────────────────────
+# ── Запрос доступа ───────────────────────────────────────────────────────────────
 
 async def _send_access_request(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -113,28 +122,28 @@ async def _send_access_request(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if config.REGISTRATION_MODE == "open":
         db.approve_user(user.id, 0)
         await update.effective_message.reply_text(
-            "✅ Registration is open! You now have access.\n"
-            "Send /start to begin."
+            "✅ Регистрация открыта! Вы получили доступ.\n"
+            "Отправьте /start для начала."
         )
         return
 
     await update.effective_message.reply_text(
-        "👋 Welcome! This is a private bot.\n\n"
-        "Your access request has been sent to the admin.\n"
-        "Please wait for approval."
+        "👋 Добро пожаловать! Это приватный бот.\n\n"
+        "Ваша заявка на доступ отправлена администратору.\n"
+        "Пожалуйста, ожидайте одобрения."
     )
 
-    # Notify admins
+    # Уведомляем администраторов
     uname = f"@{_esc(user.username)}" if user.username else _esc(user.full_name)
     msg = (
-        f"🔔 <b>New access request</b>\n\n"
-        f"👤 Name: {_esc(user.full_name)}\n"
+        f"🔔 <b>Новая заявка на доступ</b>\n\n"
+        f"👤 Имя: {_esc(user.full_name)}\n"
         f"🔗 Username: {uname}\n"
         f"🆔 ID: <code>{user.id}</code>"
     )
     keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton("✅ Approve", callback_data=f"approve:{user.id}"),
-        InlineKeyboardButton("🚫 Deny", callback_data=f"deny:{user.id}"),
+        InlineKeyboardButton("✅ Одобрить", callback_data=f"approve:{user.id}"),
+        InlineKeyboardButton("🚫 Отклонить", callback_data=f"deny:{user.id}"),
     ]])
     for admin_id in config.ADMIN_IDS:
         try:
@@ -143,24 +152,35 @@ async def _send_access_request(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             pass
 
 
-# ── Core handlers ────────────────────────────────────────────────────────────────
+# ── Основные команды ─────────────────────────────────────────────────────────────
 
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     db.upsert_user(user.id, user.username, user.full_name)
 
     if db.is_admin(user.id) or db.is_authorized(user.id):
+        text = (
+            f"👋 Привет, <b>{_esc(user.first_name)}</b>!\n\n"
+            "Я помогу тебе скачать видео или аудио с популярных сайтов.\n"
+            "Просто отправь мне ссылку на видео!\n\n"
+            + SUPPORTED_SITES_TEXT +
+            "\n\n📋 <b>Команды:</b>\n"
+            "/help — справка\n"
+            "/history — история загрузок\n"
+            "/status — статус бота"
+        )
+        keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("📖 Справка", callback_data="menu:help"),
+                InlineKeyboardButton("📜 История", callback_data="menu:history"),
+                InlineKeyboardButton("📊 Статус", callback_data="menu:status"),
+            ]
+        ])
         await update.message.reply_text(
-            f"👋 Hello, <b>{_esc(user.first_name)}</b>!\n\n"
-            "Send me a video URL and I'll help you download it.\n\n"
-            "Supported: YouTube, Instagram, TikTok, Twitter/X, "
-            "Twitch, SoundCloud, and <a href='https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md'>1000+ more sites</a>.\n\n"
-            "📋 Commands:\n"
-            "/help — full help\n"
-            "/history — your download history\n"
-            "/status — bot status",
+            text,
             parse_mode=ParseMode.HTML,
             disable_web_page_preview=True,
+            reply_markup=keyboard,
         )
     else:
         await _send_access_request(update, ctx)
@@ -169,41 +189,45 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     is_adm = db.is_admin(update.effective_user.id)
     text = (
-        "📖 <b>Bot Help</b>\n\n"
-        "<b>Basic usage:</b>\n"
-        "1. Send a video URL\n"
-        "2. Choose quality or audio\n"
-        "3. Wait for the download\n\n"
-        "<b>Commands:</b>\n"
-        "/start — welcome screen\n"
-        "/help — this message\n"
-        "/history — last 10 downloads\n"
-        "/status — bot &amp; server stats\n"
-        "/cancel — cancel current operation\n"
+        "📖 <b>Справка по боту</b>\n\n"
+        "<b>Как использовать:</b>\n"
+        "1. Отправьте ссылку на видео\n"
+        "2. Выберите качество или аудио\n"
+        "3. Дождитесь загрузки и отправки файла\n\n"
+        + SUPPORTED_SITES_TEXT +
+        "\n\n⚠️ <b>Ограничения:</b>\n"
+        f"• Максимальный размер файла: {config.MAX_FILE_SIZE_MB} МБ\n"
+        "• Таймаут загрузки: 10 минут\n\n"
+        "<b>Команды:</b>\n"
+        "/start — главное меню\n"
+        "/help — эта справка\n"
+        "/history — последние 10 загрузок\n"
+        "/status — статус бота и диск\n"
+        "/cancel — отменить текущую операцию\n"
     )
     if is_adm:
         text += (
-            "\n<b>Admin commands:</b>\n"
-            "/pending — pending access requests\n"
-            "/users — list approved users\n"
-            "/approve &lt;id&gt; — approve user\n"
-            "/deny &lt;id&gt; — deny/remove user\n"
-            "/ban &lt;id&gt; — ban user\n"
-            "/unban &lt;id&gt; — unban user\n"
-            "/addadmin &lt;id&gt; — promote to admin\n"
-            "/stats — global download stats\n"
+            "\n<b>Команды администратора:</b>\n"
+            "/pending — заявки на доступ\n"
+            "/users — список пользователей\n"
+            "/approve &lt;id&gt; — одобрить пользователя\n"
+            "/deny &lt;id&gt; — отклонить пользователя\n"
+            "/ban &lt;id&gt; — заблокировать\n"
+            "/unban &lt;id&gt; — разблокировать\n"
+            "/addadmin &lt;id&gt; — назначить администратором\n"
+            "/stats — глобальная статистика\n"
         )
-    await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+    await update.message.reply_text(text, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 
 
 @require_auth
 async def cmd_history(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     rows = db.get_user_history(update.effective_user.id, limit=10)
     if not rows:
-        await update.message.reply_text("📭 No download history yet.")
+        await update.message.reply_text("📭 История загрузок пуста.")
         return
 
-    lines = ["📜 <b>Your last downloads:</b>\n"]
+    lines = ["📜 <b>Последние загрузки:</b>\n"]
     for i, row in enumerate(rows, 1):
         status_icon = {"done": "✅", "error": "❌", "pending": "⏳"}.get(row["status"], "•")
         title = (row["title"] or row["url"])[:50]
@@ -218,12 +242,12 @@ async def cmd_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     stats = db.get_global_stats()
     disk = shutil.disk_usage(str(config.DOWNLOAD_DIR))
     text = (
-        "📊 <b>Bot Status</b>\n\n"
-        f"👥 Users: {stats['total_users']}\n"
-        f"📥 Total downloads: {stats['total_downloads']}\n"
-        f"💾 Total downloaded: {_human_size(stats['total_size_bytes'])}\n"
-        f"⏳ Pending requests: {stats['pending_requests']}\n\n"
-        f"🖥 Disk free: {_human_size(disk.free)} / {_human_size(disk.total)}"
+        "📊 <b>Статус бота</b>\n\n"
+        f"👥 Пользователей: {stats['total_users']}\n"
+        f"📥 Всего загрузок: {stats['total_downloads']}\n"
+        f"💾 Объём отправленного: {_human_size(stats['total_size_bytes'])}\n"
+        f"⏳ Ожидают одобрения: {stats['pending_requests']}\n\n"
+        f"🖥 Диск: {_human_size(disk.free)} свободно / {_human_size(disk.total)} всего"
     )
     await update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
@@ -231,30 +255,76 @@ async def cmd_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 @require_auth
 async def cmd_cancel(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     ctx.user_data.clear()
-    await update.message.reply_text("🛑 Cancelled. Send a new URL whenever you're ready.")
+    await update.message.reply_text("🛑 Отменено. Отправьте новую ссылку когда будете готовы.")
 
 
-# ── URL handler ──────────────────────────────────────────────────────────────────
+# ── Обработчик URL ───────────────────────────────────────────────────────────────
+
+def _strip_playlist_param(url: str) -> str:
+    """Убирает параметры list= и index= из YouTube URL."""
+    parsed = urlparse(url)
+    params = parse_qs(parsed.query, keep_blank_values=True)
+    params.pop("list", None)
+    params.pop("index", None)
+    params.pop("start_radio", None)
+    new_query = urlencode({k: v[0] for k, v in params.items()})
+    return urlunparse(parsed._replace(query=new_query))
+
+
+def _is_youtube_mixed_url(url: str) -> bool:
+    """True если YouTube URL содержит и v= и list= (видео + плейлист/миксTape)."""
+    parsed = urlparse(url)
+    if "youtube.com" not in parsed.netloc and "youtu.be" not in parsed.netloc:
+        return False
+    params = parse_qs(parsed.query)
+    return "v" in params and "list" in params
+
 
 @require_auth
 async def handle_url(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     url = update.message.text.strip()
-    user = update.effective_user
 
     if not is_supported_url(url):
         await update.message.reply_text(
-            "❓ That doesn't look like a supported URL.\n"
-            "Send a direct link to a video page."
+            "❓ Ссылка не распознана как поддерживаемая.\n\n"
+            "Отправьте прямую ссылку на страницу видео.\n"
+            + SUPPORTED_SITES_TEXT,
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
         )
         return
 
-    msg = await update.message.reply_text("🔍 Fetching video info…")
+    # Если YouTube URL с и video, и playlist — предлагаем выбор
+    if _is_youtube_mixed_url(url):
+        clean_url = _strip_playlist_param(url)
+        ctx.user_data[KEY_PENDING_URL] = clean_url
+        ctx.user_data[KEY_ORIG_URL] = url
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("📹 Скачать это видео", callback_data="resolve:video")],
+            [InlineKeyboardButton("📋 Скачать плейлист целиком", callback_data="resolve:playlist")],
+            [InlineKeyboardButton("❌ Отмена", callback_data="cancel")],
+        ])
+        await update.message.reply_text(
+            "🔗 Ссылка содержит и видео, и плейлист.\n"
+            "Что вы хотите скачать?",
+            reply_markup=keyboard,
+        )
+        return
 
+    msg = await update.message.reply_text("🔍 Получаю информацию о видео…")
+    await _fetch_and_show_menu(url, msg, ctx)
+
+
+async def _fetch_and_show_menu(url: str, msg: Message, ctx: ContextTypes.DEFAULT_TYPE):
+    """Получает информацию о видео и показывает меню выбора качества."""
     try:
         info: VideoInfo = await get_video_info(url)
     except Exception as e:
         logger.error("get_video_info error: %s", e)
-        await msg.edit_text(f"❌ Could not fetch video info:\n<code>{_esc(str(e)[:300])}</code>", parse_mode=ParseMode.HTML)
+        await msg.edit_text(
+            f"❌ Не удалось получить информацию о видео:\n<code>{_esc(str(e)[:300])}</code>",
+            parse_mode=ParseMode.HTML,
+        )
         return
 
     ctx.user_data[KEY_VIDEO_INFO] = info
@@ -266,41 +336,51 @@ async def handle_url(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await _show_video_menu(msg, info, ctx)
 
 
+# ── Меню видео ───────────────────────────────────────────────────────────────────
+
 async def _show_video_menu(msg: Message, info: VideoInfo, ctx: ContextTypes.DEFAULT_TYPE):
     video_fmts = get_best_video_formats(info.formats)
-    audio_fmts = get_audio_formats(info.formats)
+
+    likes_str = ""
+    if info.like_count:
+        likes_str = f"  👍 {_fmt_num(info.like_count)}"
 
     caption = (
         f"🎬 <b>{_esc(info.title)}</b>\n"
-        f"👤 {_esc(info.uploader)}\n"
-        f"⏱ {info.duration_str}  👁 {info.views_str} views\n\n"
-        "Choose quality to download:"
+        f"👤 {_esc(info.uploader or '—')}\n"
+        f"⏱ {info.duration_str}  👁 {info.views_str}{likes_str}\n"
+        f"🌐 {_esc(info.extractor or '—')}\n\n"
+        "Выберите качество для загрузки:"
     )
 
     buttons = []
 
-    # Video quality buttons
+    # Кнопки качества видео
     for f in video_fmts:
-        size_hint = f" [{f.size_str}]" if f.filesize else ""
-        label = f"🎥 {f.resolution}"
-        if f.fps and f.fps > 30:
-            label += f" {f.fps}fps"
-        label += f" {f.ext.upper()}{size_hint}"
+        size_hint = f" [{f.size_str}]" if f.filesize or f.tbr else ""
+        fps_hint = f" {f.fps}fps" if f.fps and f.fps > 30 else ""
+        label = f"🎥 {f.resolution}{fps_hint} {f.ext.upper()}{size_hint}"
         buttons.append([InlineKeyboardButton(label, callback_data=f"dl:v:{f.format_id}")])
 
-    # Best-quality shortcut
-    buttons.append([InlineKeyboardButton("⚡ Best quality (auto)", callback_data="dl:v:best")])
+    # Лучшее качество (авто)
+    buttons.append([InlineKeyboardButton("⚡ Лучшее качество (авто)", callback_data="dl:v:best")])
 
-    # Audio button
+    # Аудио
     if config.ALLOW_AUDIO:
-        buttons.append([InlineKeyboardButton("🎵 Audio only (MP3)", callback_data="dl:a:best")])
+        buttons.append([InlineKeyboardButton("🎵 Только аудио (MP3 192kbps)", callback_data="dl:a:best")])
 
-    # Subtitles button
+    # Субтитры
     if config.ALLOW_SUBTITLES:
-        buttons.append([InlineKeyboardButton("📄 Download with subtitles (EN)", callback_data="dl:s:en")])
+        buttons.append([
+            InlineKeyboardButton("📄 + Субтитры RU", callback_data="dl:s:ru"),
+            InlineKeyboardButton("📄 + Субтитры EN", callback_data="dl:s:en"),
+        ])
 
-    # Info button
-    buttons.append([InlineKeyboardButton("ℹ️ More info", callback_data="info")])
+    # Инфо и отмена
+    buttons.append([
+        InlineKeyboardButton("ℹ️ Подробнее", callback_data="info"),
+        InlineKeyboardButton("❌ Отмена", callback_data="cancel"),
+    ])
 
     keyboard = InlineKeyboardMarkup(buttons)
 
@@ -321,26 +401,31 @@ async def _show_video_menu(msg: Message, info: VideoInfo, ctx: ContextTypes.DEFA
     await msg.edit_text(caption, parse_mode=ParseMode.HTML, reply_markup=keyboard)
 
 
+# ── Меню плейлиста ───────────────────────────────────────────────────────────────
+
 async def _show_playlist_menu(msg: Message, info: VideoInfo, ctx: ContextTypes.DEFAULT_TYPE):
     if not config.ALLOW_PLAYLISTS:
-        await msg.edit_text("⚠️ Playlist downloads are disabled.")
+        await msg.edit_text("⚠️ Загрузка плейлистов отключена администратором.")
         return
 
+    count_str = f"{info.playlist_count} видео" if info.playlist_count else "несколько видео"
     caption = (
-        f"📋 <b>Playlist: {_esc(info.title)}</b>\n"
-        f"🎬 {info.playlist_count} videos\n\n"
-        "Playlists are large. Choose an action:"
+        f"📋 <b>Плейлист: {_esc(info.title)}</b>\n"
+        f"🎬 Количество: {count_str}\n\n"
+        "⚠️ Плейлисты могут быть очень большими.\n"
+        "Выберите действие:"
     )
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("📥 Download first 5 videos (best)", callback_data="pl:5:best")],
-        [InlineKeyboardButton("📥 Download first 10 videos (best)", callback_data="pl:10:best")],
-        [InlineKeyboardButton("🎵 Audio only – first 5", callback_data="pl:5:audio")],
-        [InlineKeyboardButton("❌ Cancel", callback_data="cancel")],
+        [InlineKeyboardButton("📥 Первые 5 видео (лучшее качество)", callback_data="pl:5:best")],
+        [InlineKeyboardButton("📥 Первые 10 видео (лучшее качество)", callback_data="pl:10:best")],
+        [InlineKeyboardButton("🎵 Только аудио — первые 5", callback_data="pl:5:audio")],
+        [InlineKeyboardButton("🎵 Только аудио — первые 10", callback_data="pl:10:audio")],
+        [InlineKeyboardButton("❌ Отмена", callback_data="cancel")],
     ])
     await msg.edit_text(caption, parse_mode=ParseMode.HTML, reply_markup=keyboard)
 
 
-# ── Callback query handler ──────────────────────────────────────────────────────
+# ── Callback-обработчик ──────────────────────────────────────────────────────────
 
 async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -349,27 +434,37 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     data = query.data
 
-    # Admin approval buttons (available without full auth)
+    # Кнопки меню /start (без скачивания)
+    if data.startswith("menu:"):
+        await _handle_menu_callback(query, ctx, data)
+        return
+
+    # Кнопки одобрения/отклонения (доступны без авторизации для админа)
     if data.startswith("approve:") or data.startswith("deny:"):
         await _handle_admin_approval(query, ctx, data)
         return
 
     if data == "cancel":
         ctx.user_data.clear()
-        await query.edit_message_text("🛑 Cancelled.")
+        await query.edit_message_text("🛑 Отменено.")
         return
 
     if data == "info":
         info: VideoInfo = ctx.user_data.get(KEY_VIDEO_INFO)
         if not info:
-            await query.edit_message_text("❌ Session expired. Send the URL again.")
+            await query.edit_message_text("❌ Сессия истекла. Отправьте ссылку заново.")
             return
         await _show_info(query, info)
         return
 
-    # Auth check for download actions
+    # Выбор: видео или плейлист для смешанного URL
+    if data.startswith("resolve:"):
+        await _handle_resolve_callback(query, ctx, data)
+        return
+
+    # Проверка авторизации для загрузок
     if not db.is_authorized(user.id) and not db.is_admin(user.id):
-        await query.answer("🚫 Access denied.", show_alert=True)
+        await query.answer("🚫 Доступ запрещён.", show_alert=True)
         return
 
     if data.startswith("dl:"):
@@ -378,60 +473,172 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await _handle_playlist_callback(query, ctx, data)
 
 
+async def _handle_menu_callback(query, ctx, data: str):
+    """Обрабатывает inline-кнопки главного меню /start."""
+    action = data.split(":", 1)[1]
+    user = query.from_user
+
+    if action == "help":
+        is_adm = db.is_admin(user.id)
+        text = (
+            "📖 <b>Справка по боту</b>\n\n"
+            "<b>Как использовать:</b>\n"
+            "1. Отправьте ссылку на видео\n"
+            "2. Выберите качество или аудио\n"
+            "3. Дождитесь файла\n\n"
+            + SUPPORTED_SITES_TEXT +
+            "\n\n⚠️ <b>Ограничения:</b>\n"
+            f"• Максимальный размер: {config.MAX_FILE_SIZE_MB} МБ\n\n"
+            "<b>Команды:</b>\n"
+            "/history, /status, /cancel"
+        )
+        if is_adm:
+            text += "\n/pending, /users, /ban, /stats"
+        await query.edit_message_text(
+            text,
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("« Назад", callback_data="menu:back"),
+            ]]),
+        )
+
+    elif action == "history":
+        rows = db.get_user_history(user.id, limit=10)
+        if not rows:
+            text = "📭 История загрузок пуста."
+        else:
+            lines = ["📜 <b>Последние загрузки:</b>\n"]
+            for i, row in enumerate(rows, 1):
+                icon = {"done": "✅", "error": "❌", "pending": "⏳"}.get(row["status"], "•")
+                title = (row["title"] or row["url"])[:50]
+                lines.append(f"{i}. {icon} {title}")
+            text = "\n".join(lines)
+        await query.edit_message_text(
+            text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("« Назад", callback_data="menu:back"),
+            ]]),
+        )
+
+    elif action == "status":
+        stats = db.get_global_stats()
+        disk = shutil.disk_usage(str(config.DOWNLOAD_DIR))
+        text = (
+            "📊 <b>Статус бота</b>\n\n"
+            f"👥 Пользователей: {stats['total_users']}\n"
+            f"📥 Всего загрузок: {stats['total_downloads']}\n"
+            f"💾 Отправлено: {_human_size(stats['total_size_bytes'])}\n"
+            f"⏳ Ожидают: {stats['pending_requests']}\n\n"
+            f"🖥 Диск: {_human_size(disk.free)} свободно / {_human_size(disk.total)}"
+        )
+        await query.edit_message_text(
+            text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("« Назад", callback_data="menu:back"),
+            ]]),
+        )
+
+    elif action == "back":
+        user_obj = query.from_user
+        text = (
+            f"👋 Привет, <b>{_esc(user_obj.first_name)}</b>!\n\n"
+            "Я помогу тебе скачать видео или аудио с популярных сайтов.\n"
+            "Просто отправь мне ссылку на видео!\n\n"
+            + SUPPORTED_SITES_TEXT +
+            "\n\n📋 <b>Команды:</b>\n"
+            "/help — справка\n"
+            "/history — история загрузок\n"
+            "/status — статус бота"
+        )
+        keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("📖 Справка", callback_data="menu:help"),
+                InlineKeyboardButton("📜 История", callback_data="menu:history"),
+                InlineKeyboardButton("📊 Статус", callback_data="menu:status"),
+            ]
+        ])
+        await query.edit_message_text(
+            text,
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+            reply_markup=keyboard,
+        )
+
+
+async def _handle_resolve_callback(query, ctx, data: str):
+    """Обрабатывает выбор 'видео' или 'плейлист' для смешанного URL."""
+    choice = data.split(":", 1)[1]
+
+    if choice == "video":
+        url = ctx.user_data.get(KEY_PENDING_URL)  # clean URL (без list=)
+    else:
+        url = ctx.user_data.get(KEY_ORIG_URL)  # оригинальный URL (с list=)
+
+    if not url:
+        await query.edit_message_text("❌ Сессия истекла. Отправьте ссылку заново.")
+        return
+
+    await query.edit_message_text("🔍 Получаю информацию о видео…")
+    await _fetch_and_show_menu(url, query.message, ctx)
+
+
 async def _show_info(query, info: VideoInfo):
     text = (
         f"ℹ️ <b>{_esc(info.title)}</b>\n\n"
-        f"👤 Uploader: {_esc(info.uploader)}\n"
-        f"⏱ Duration: {info.duration_str}\n"
-        f"👁 Views: {info.views_str}\n"
-        f"🌐 Site: {_esc(info.extractor)}\n"
+        f"👤 Автор: {_esc(info.uploader or '—')}\n"
+        f"⏱ Длительность: {info.duration_str}\n"
+        f"👁 Просмотры: {info.views_str}\n"
+        f"🌐 Платформа: {_esc(info.extractor or '—')}\n"
     )
+    if info.like_count:
+        text += f"👍 Лайки: {_fmt_num(info.like_count)}\n"
     if info.description:
-        text += f"\n📝 {_esc(info.description[:300])}…"
+        text += f"\n📝 {_esc(info.description[:400])}…"
     try:
         await query.edit_message_caption(text, parse_mode=ParseMode.HTML)
     except TelegramError:
-        # Message was sent as text (no photo), fall back to edit_message_text
         await query.edit_message_text(text, parse_mode=ParseMode.HTML)
 
 
 async def _handle_admin_approval(query, ctx, data: str):
     if not db.is_admin(query.from_user.id):
-        await query.answer("Not authorised.", show_alert=True)
+        await query.answer("Нет прав.", show_alert=True)
         return
 
     action, uid_str = data.split(":", 1)
     try:
         target_id = int(uid_str)
     except ValueError:
-        await query.answer("Invalid user ID.", show_alert=True)
+        await query.answer("Некорректный ID пользователя.", show_alert=True)
         return
 
     if action == "approve":
         ok = db.approve_user(target_id, query.from_user.id)
         if ok:
-            await query.edit_message_text(f"✅ User {target_id} approved.")
+            await query.edit_message_text(f"✅ Пользователь {target_id} одобрен.")
             try:
                 await ctx.bot.send_message(
                     target_id,
-                    "✅ Your access request has been approved! Send /start to begin."
+                    "✅ Ваша заявка одобрена! Отправьте /start для начала."
                 )
             except TelegramError:
                 pass
         else:
-            await query.answer("User not found.", show_alert=True)
+            await query.answer("Пользователь не найден.", show_alert=True)
     else:
         db.ban_user(target_id)
-        await query.edit_message_text(f"🚫 User {target_id} denied/banned.")
+        await query.edit_message_text(f"🚫 Пользователь {target_id} отклонён/заблокирован.")
         try:
-            await ctx.bot.send_message(target_id, "❌ Your access request was denied.")
+            await ctx.bot.send_message(target_id, "❌ Ваша заявка на доступ отклонена.")
         except TelegramError:
             pass
 
 
 async def _handle_download_callback(query, ctx, data: str):
-    # data format: dl:<type>:<format_id>
-    # type: v=video, a=audio, s=subtitle
+    # data: dl:<type>:<format_id>   type: v=video, a=audio, s=subtitle
     parts = data.split(":", 2)
     dl_type = parts[1]
     format_id = parts[2]
@@ -439,7 +646,7 @@ async def _handle_download_callback(query, ctx, data: str):
     info: VideoInfo = ctx.user_data.get(KEY_VIDEO_INFO)
     url = ctx.user_data.get(KEY_PENDING_URL)
     if not info or not url:
-        await query.edit_message_text("❌ Session expired. Send the URL again.")
+        await query.edit_message_text("❌ Сессия истекла. Отправьте ссылку заново.")
         return
 
     user = query.from_user
@@ -452,22 +659,30 @@ async def _handle_download_callback(query, ctx, data: str):
         format_id = "best"
 
     quality_label = {
-        "a": "Audio MP3",
-        "s": f"Subtitles ({subtitle_lang})",
-    }.get(dl_type, format_id)
+        "a": "Аудио MP3",
+        "s": f"Субтитры ({subtitle_lang})",
+    }.get(dl_type, f"Видео {format_id}" if format_id != "best" else "Лучшее качество")
 
     db.update_download(dl_id, title=info.title, format_id=format_id, quality=quality_label, status="downloading")
 
-    status_msg = await query.edit_message_text(
-        f"⬇️ Downloading: <b>{_esc(info.title)}</b>\n"
-        f"Quality: {quality_label}\n\n"
-        "⏳ Please wait…",
-        parse_mode=ParseMode.HTML,
-    )
+    try:
+        status_msg = await query.edit_message_text(
+            f"⬇️ Загружаю: <b>{_esc(info.title)}</b>\n"
+            f"Качество: {quality_label}\n\n"
+            "⏳ Пожалуйста, подождите…",
+            parse_mode=ParseMode.HTML,
+        )
+    except TelegramError:
+        status_msg = await ctx.bot.send_message(
+            query.message.chat_id,
+            f"⬇️ Загружаю: <b>{_esc(info.title)}</b>\n"
+            f"Качество: {quality_label}\n\n"
+            "⏳ Пожалуйста, подождите…",
+            parse_mode=ParseMode.HTML,
+        )
 
     await ctx.bot.send_chat_action(query.message.chat_id, ChatAction.UPLOAD_DOCUMENT)
 
-    # Per-user temp directory
     tmp_dir = config.DOWNLOAD_DIR / f"user_{user.id}" / f"dl_{dl_id}"
     try:
         result: DownloadResult = await download_video(
@@ -481,14 +696,14 @@ async def _handle_download_callback(query, ctx, data: str):
         if not result.success:
             db.update_download(dl_id, status="error", error=result.error)
             await status_msg.edit_text(
-                f"❌ Download failed:\n<code>{_esc(result.error)}</code>",
+                f"❌ Ошибка загрузки:\n<code>{_esc(result.error)}</code>",
                 parse_mode=ParseMode.HTML,
             )
             return
 
         db.update_download(dl_id, status="sending", file_size=result.file_size)
         await status_msg.edit_text(
-            f"📤 Uploading <b>{_esc(result.title or info.title)}</b> "
+            f"📤 Отправляю <b>{_esc(result.title or info.title)}</b> "
             f"({_human_size(result.file_size)})…",
             parse_mode=ParseMode.HTML,
         )
@@ -499,8 +714,8 @@ async def _handle_download_callback(query, ctx, data: str):
 
         await status_msg.edit_text(
             f"✅ <b>{_esc(result.title or info.title)}</b>\n"
-            f"Size: {_human_size(result.file_size)}\n\n"
-            "Send another URL anytime!",
+            f"Размер: {_human_size(result.file_size)}\n\n"
+            "Отправьте новую ссылку для следующей загрузки!",
             parse_mode=ParseMode.HTML,
         )
 
@@ -508,7 +723,7 @@ async def _handle_download_callback(query, ctx, data: str):
         logger.error("Download error: %s\n%s", e, traceback.format_exc())
         db.update_download(dl_id, status="error", error=str(e))
         await status_msg.edit_text(
-            f"❌ Unexpected error:\n<code>{_esc(str(e)[:300])}</code>",
+            f"❌ Неожиданная ошибка:\n<code>{_esc(str(e)[:300])}</code>",
             parse_mode=ParseMode.HTML,
         )
     finally:
@@ -526,15 +741,15 @@ async def _handle_playlist_callback(query, ctx, data: str):
     info: VideoInfo = ctx.user_data.get(KEY_VIDEO_INFO)
     url = ctx.user_data.get(KEY_PENDING_URL)
     if not info or not url:
-        await query.edit_message_text("❌ Session expired.")
+        await query.edit_message_text("❌ Сессия истекла.")
         return
 
     user = query.from_user
     dl_id = db.add_download(user.id, url)
 
     await query.edit_message_text(
-        f"⬇️ Downloading playlist: <b>{_esc(info.title)}</b>\n"
-        f"Up to {max_items} videos\n\n⏳ This may take a while…",
+        f"⬇️ Загружаю плейлист: <b>{_esc(info.title)}</b>\n"
+        f"До {max_items} видео\n\n⏳ Это может занять несколько минут…",
         parse_mode=ParseMode.HTML,
     )
 
@@ -549,24 +764,28 @@ async def _handle_playlist_callback(query, ctx, data: str):
         )
 
         sent = 0
+        skipped = 0
         for r in results:
             if r.success and r.file_path and r.file_path.exists():
                 if r.file_size <= config.MAX_FILE_SIZE_BYTES:
                     await _send_file(query.message.chat_id, r, ctx.bot)
                     sent += 1
                     await asyncio.sleep(1)
+                else:
+                    skipped += 1
 
         db.update_download(dl_id, title=info.title, status="done")
-        await ctx.bot.send_message(
-            query.message.chat_id,
-            f"✅ Playlist done. Sent {sent}/{len(results)} files.",
-        )
+        summary = f"✅ Плейлист загружен. Отправлено: {sent}/{len(results)}"
+        if skipped:
+            summary += f" (пропущено {skipped} — превышен лимит размера)"
+        await ctx.bot.send_message(query.message.chat_id, summary)
+
     except Exception as e:
         logger.error("Playlist error: %s", e)
         db.update_download(dl_id, status="error", error=str(e))
         await ctx.bot.send_message(
             query.message.chat_id,
-            f"❌ Playlist error:\n<code>{_esc(str(e)[:300])}</code>",
+            f"❌ Ошибка при загрузке плейлиста:\n<code>{_esc(str(e)[:300])}</code>",
             parse_mode=ParseMode.HTML,
         )
     finally:
@@ -585,25 +804,25 @@ async def _send_file(chat_id: int, result: DownloadResult, bot: Bot):
             await bot.send_document(chat_id, document=InputFile(fh, filename=fp.name), caption=caption)
 
 
-# ── Admin commands ───────────────────────────────────────────────────────────────
+# ── Команды администратора ───────────────────────────────────────────────────────
 
 @require_admin
 async def cmd_pending(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     rows = db.pending_users()
     if not rows:
-        await update.message.reply_text("✅ No pending access requests.")
+        await update.message.reply_text("✅ Заявок на доступ нет.")
         return
 
     for row in rows:
-        uname = f"@{row['username']}" if row['username'] else "(no username)"
+        uname = f"@{row['username']}" if row['username'] else "(нет username)"
         text = (
             f"👤 <b>{_esc(row['full_name'])}</b> {uname}\n"
             f"🆔 <code>{row['user_id']}</code>\n"
-            f"📅 Requested: {row['created_at'][:16]}"
+            f"📅 Заявка: {row['created_at'][:16]}"
         )
         keyboard = InlineKeyboardMarkup([[
-            InlineKeyboardButton("✅ Approve", callback_data=f"approve:{row['user_id']}"),
-            InlineKeyboardButton("🚫 Deny", callback_data=f"deny:{row['user_id']}"),
+            InlineKeyboardButton("✅ Одобрить", callback_data=f"approve:{row['user_id']}"),
+            InlineKeyboardButton("🚫 Отклонить", callback_data=f"deny:{row['user_id']}"),
         ]])
         await update.message.reply_text(text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
 
@@ -612,10 +831,10 @@ async def cmd_pending(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def cmd_users(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     rows = db.list_users(approved=True)
     if not rows:
-        await update.message.reply_text("No approved users yet.")
+        await update.message.reply_text("Нет одобренных пользователей.")
         return
 
-    lines = [f"👥 <b>Approved users ({len(rows)}):</b>\n"]
+    lines = [f"👥 <b>Одобренные пользователи ({len(rows)}):</b>\n"]
     for r in rows:
         uname = f"@{r['username']}" if r['username'] else r['full_name']
         admin_tag = " 👑" if r['is_admin'] else ""
@@ -652,40 +871,37 @@ async def cmd_addadmin(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def _admin_user_action(update: Update, ctx: ContextTypes.DEFAULT_TYPE, action: str):
     args = ctx.args
     if not args:
-        await update.message.reply_text(f"Usage: /{action} <user_id>")
+        await update.message.reply_text(f"Использование: /{action} <user_id>")
         return
 
     try:
         target_id = int(args[0])
     except ValueError:
-        await update.message.reply_text("Invalid user ID.")
+        await update.message.reply_text("Некорректный user ID.")
         return
 
     if action == "approve":
         ok = db.approve_user(target_id, update.effective_user.id)
-        msg = f"✅ User {target_id} approved." if ok else "User not found."
+        msg = f"✅ Пользователь {target_id} одобрен." if ok else "Пользователь не найден."
         if ok:
             try:
-                await ctx.bot.send_message(
-                    target_id,
-                    "✅ Your access has been approved! Send /start to begin."
-                )
+                await ctx.bot.send_message(target_id, "✅ Ваш доступ одобрен! Отправьте /start.")
             except TelegramError:
                 pass
     elif action == "deny":
         db.ban_user(target_id)
-        msg = f"🚫 User {target_id} removed."
+        msg = f"🚫 Пользователь {target_id} отклонён."
     elif action == "ban":
         ok = db.ban_user(target_id)
-        msg = f"🔨 User {target_id} banned." if ok else "User not found."
+        msg = f"🔨 Пользователь {target_id} заблокирован." if ok else "Пользователь не найден."
     elif action == "unban":
         ok = db.unban_user(target_id)
-        msg = f"✅ User {target_id} unbanned." if ok else "User not found."
+        msg = f"✅ Пользователь {target_id} разблокирован." if ok else "Пользователь не найден."
     elif action == "addadmin":
         ok = db.set_admin(target_id, True)
-        msg = f"👑 User {target_id} promoted to admin." if ok else "User not found."
+        msg = f"👑 Пользователь {target_id} назначен администратором." if ok else "Пользователь не найден."
     else:
-        msg = "Unknown action."
+        msg = "Неизвестное действие."
 
     await update.message.reply_text(msg)
 
@@ -695,52 +911,59 @@ async def cmd_stats(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     stats = db.get_global_stats()
     disk = shutil.disk_usage(str(config.DOWNLOAD_DIR))
     text = (
-        "📊 <b>Global Stats</b>\n\n"
-        f"👥 Approved users: {stats['total_users']}\n"
-        f"⏳ Pending requests: {stats['pending_requests']}\n"
-        f"📥 Successful downloads: {stats['total_downloads']}\n"
-        f"💾 Total data sent: {_human_size(stats['total_size_bytes'])}\n\n"
-        f"🖥 Disk: {_human_size(disk.free)} free / {_human_size(disk.total)} total"
+        "📊 <b>Глобальная статистика</b>\n\n"
+        f"👥 Пользователей: {stats['total_users']}\n"
+        f"⏳ Ожидают: {stats['pending_requests']}\n"
+        f"📥 Загрузок: {stats['total_downloads']}\n"
+        f"💾 Отправлено: {_human_size(stats['total_size_bytes'])}\n\n"
+        f"🖥 Диск: {_human_size(disk.free)} свободно / {_human_size(disk.total)}"
     )
     await update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
 
-# ── Error handler ────────────────────────────────────────────────────────────────
+# ── Обработчик ошибок ────────────────────────────────────────────────────────────
 
 async def error_handler(update: object, ctx: ContextTypes.DEFAULT_TYPE):
     logger.error("Exception: %s", ctx.error, exc_info=ctx.error)
 
 
-# ── Utilities ────────────────────────────────────────────────────────────────────
+# ── Утилиты ──────────────────────────────────────────────────────────────────────
 
 def _esc(text: str) -> str:
-    """Escape HTML special characters."""
     return (text or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 def _human_size(n) -> str:
     if not n:
-        return "0 B"
+        return "0 Б"
     n = int(n)
-    for unit in ("B", "KB", "MB", "GB", "TB"):
+    for unit in ("Б", "КБ", "МБ", "ГБ", "ТБ"):
         if n < 1024:
             return f"{n:.1f} {unit}"
         n /= 1024
-    return f"{n:.1f} PB"
+    return f"{n:.1f} ПБ"
 
 
-# ── Main ─────────────────────────────────────────────────────────────────────────
+def _fmt_num(n: int) -> str:
+    if n >= 1_000_000:
+        return f"{n/1_000_000:.1f}М"
+    if n >= 1_000:
+        return f"{n/1_000:.1f}К"
+    return str(n)
+
+
+# ── Запуск ───────────────────────────────────────────────────────────────────────
 
 def main():
     if not config.BOT_TOKEN:
-        raise RuntimeError("BOT_TOKEN environment variable is not set!")
+        raise RuntimeError("BOT_TOKEN не задан!")
     if not config.ADMIN_IDS:
-        raise RuntimeError("ADMIN_IDS environment variable is not set! (comma-separated Telegram user IDs)")
+        raise RuntimeError("ADMIN_IDS не задан! (через запятую Telegram user ID)")
 
     db.init_db()
     config.DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Auto-approve admins in DB
+    # Авто-одобрение администраторов
     for admin_id in config.ADMIN_IDS:
         row = db.get_user(admin_id)
         if row is None:
@@ -750,7 +973,6 @@ def main():
 
     builder = Application.builder().token(config.BOT_TOKEN)
 
-    # If PROXY_URL is set, use it for bot ↔ Telegram API connection too
     if config.PROXY_URL:
         from telegram.request import HTTPXRequest
         request = HTTPXRequest(
@@ -774,14 +996,14 @@ def main():
 
     app = builder.build()
 
-    # Commands
+    # Команды
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("help", cmd_help))
     app.add_handler(CommandHandler("history", cmd_history))
     app.add_handler(CommandHandler("status", cmd_status))
     app.add_handler(CommandHandler("cancel", cmd_cancel))
 
-    # Admin commands
+    # Команды администратора
     app.add_handler(CommandHandler("pending", cmd_pending))
     app.add_handler(CommandHandler("users", cmd_users))
     app.add_handler(CommandHandler("approve", cmd_approve))
@@ -791,15 +1013,15 @@ def main():
     app.add_handler(CommandHandler("addadmin", cmd_addadmin))
     app.add_handler(CommandHandler("stats", cmd_stats))
 
-    # URL messages
+    # URL-сообщения
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_url))
 
-    # Inline buttons
+    # Inline-кнопки
     app.add_handler(CallbackQueryHandler(handle_callback))
 
     app.add_error_handler(error_handler)
 
-    logger.info("Bot starting… Admin IDs: %s", config.ADMIN_IDS)
+    logger.info("Бот запускается… Администраторы: %s", config.ADMIN_IDS)
     app.run_polling(drop_pending_updates=True, bootstrap_retries=5)
 
 
