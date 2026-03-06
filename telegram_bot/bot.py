@@ -479,9 +479,15 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if data == "cancel":
         cancel_flag = ctx.user_data.get("cancel_flag")
         if cancel_flag is not None:
+            # Загрузка активна — устанавливаем флаг, меню вернётся автоматически
             cancel_flag[0] = True
             await query.answer("Отменяем загрузку…", show_alert=False)
             return
+        # Пользователь явно закрывает меню — удаляем сессию из БД
+        try:
+            db.delete_session(query.message.chat_id, query.message.message_id)
+        except Exception:
+            pass
         ctx.user_data.clear()
         await query.edit_message_text("🛑 Отменено.")
         return
@@ -803,6 +809,14 @@ async def _handle_download_callback(query, ctx, data: str):
 
     await ctx.bot.send_chat_action(query.message.chat_id, ChatAction.UPLOAD_DOCUMENT)
 
+    # Перепривязываем сессию к текущему сообщению (если меню было фото и удалено)
+    try:
+        db.save_session(status_msg.chat_id, status_msg.message_id, url, _serialize_video_info(info))
+        if _session_msg_id != status_msg.message_id:
+            db.delete_session(_session_chat_id, _session_msg_id)
+    except Exception as e:
+        logger.warning("re-key session failed: %s", e)
+
     tmp_dir = config.DOWNLOAD_DIR / f"user_{user.id}" / f"dl_{dl_id}"
     try:
         result: DownloadResult = await download_video(
@@ -815,16 +829,26 @@ async def _handle_download_callback(query, ctx, data: str):
             cancel_flag=cancel_flag,
         )
 
+        ctx.user_data.pop("cancel_flag", None)
+
         if not result.success:
-            ctx.user_data.pop("cancel_flag", None)
+            _caption, _keyboard = _build_quality_menu(info)
             if result.error == "CANCELLED":
-                await status_msg.edit_text("🛑 Загрузка отменена.")
+                # Отмена — возвращаем меню выбора качества
+                try:
+                    await status_msg.edit_text(_caption, parse_mode=ParseMode.HTML, reply_markup=_keyboard)
+                except TelegramError:
+                    pass
                 return
             db.update_download(dl_id, status="error", error=result.error)
-            await status_msg.edit_text(
-                f"❌ Ошибка загрузки:\n<code>{_esc(result.error)}</code>",
-                parse_mode=ParseMode.HTML,
-            )
+            try:
+                await status_msg.edit_text(
+                    f"❌ Ошибка: <code>{_esc(result.error[:300])}</code>\n\n{_caption}",
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=_keyboard,
+                )
+            except TelegramError:
+                pass
             return
 
         db.update_download(dl_id, status="sending", file_size=result.file_size)
@@ -838,26 +862,42 @@ async def _handle_download_callback(query, ctx, data: str):
         await _deliver_file(query.message.chat_id, result, ctx.bot)
         db.update_download(dl_id, status="done", file_size=result.file_size)
 
-        await status_msg.edit_text(
-            f"✅ <b>{_esc(result.title or info.title)}</b>\n"
-            f"Размер: {_human_size(result.file_size)}\n\n"
-            "Отправьте новую ссылку для следующей загрузки!",
-            parse_mode=ParseMode.HTML,
-        )
+        # Возвращаем меню выбора качества — пользователь может скачать другой формат
+        _caption, _keyboard = _build_quality_menu(info)
+        try:
+            await status_msg.edit_text(
+                f"✅ <b>{_esc(result.title or info.title)}</b>  {_human_size(result.file_size)}\n\n"
+                + _caption,
+                parse_mode=ParseMode.HTML,
+                reply_markup=_keyboard,
+            )
+        except TelegramError:
+            pass
+
+        # Обновляем сессию (сбрасываем 2-часовой таймер очистки)
+        try:
+            db.save_session(status_msg.chat_id, status_msg.message_id, url, _serialize_video_info(info))
+        except Exception:
+            pass
 
     except Exception as e:
         logger.error("Download error: %s\n%s", e, traceback.format_exc())
         db.update_download(dl_id, status="error", error=str(e))
-        await status_msg.edit_text(
-            f"❌ Неожиданная ошибка:\n<code>{_esc(str(e)[:300])}</code>",
-            parse_mode=ParseMode.HTML,
-        )
+        _caption, _keyboard = _build_quality_menu(info)
+        try:
+            await status_msg.edit_text(
+                f"❌ Неожиданная ошибка:\n<code>{_esc(str(e)[:200])}</code>\n\n{_caption}",
+                parse_mode=ParseMode.HTML,
+                reply_markup=_keyboard,
+            )
+        except TelegramError:
+            pass
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
-        ctx.user_data.pop(KEY_VIDEO_INFO, None)
-        ctx.user_data.pop(KEY_PENDING_URL, None)
         ctx.user_data.pop("cancel_flag", None)
-        db.delete_session(_session_chat_id, _session_msg_id)
+        # KEY_VIDEO_INFO и KEY_PENDING_URL не очищаем — пользователь может
+        # скачать другой формат без повторной отправки ссылки.
+        # Сессия удаляется только при явной отмене (❌ Отмена).
 
 
 async def _handle_playlist_callback(query, ctx, data: str):
@@ -1148,9 +1188,9 @@ async def _post_shutdown(application) -> None:
 
 
 async def _cleanup_job() -> None:
-    """Каждый час: удаляет файлы и данные старше 24 часов."""
+    """Каждый час: удаляет файлы и данные старше 2 часов."""
     removed_dirs = 0
-    cutoff_ts = datetime.now().timestamp() - 86400  # 24 часа
+    cutoff_ts = datetime.now().timestamp() - 7200  # 2 часа
 
     if config.DOWNLOAD_DIR.exists():
         for item in config.DOWNLOAD_DIR.iterdir():
@@ -1164,7 +1204,7 @@ async def _cleanup_job() -> None:
             except Exception:
                 pass
 
-    old_sessions = db.cleanup_old_sessions(max_age_hours=24)
+    old_sessions = db.cleanup_old_sessions(max_age_hours=2)
     old_history  = db.cleanup_old_history(max_age_days=30)
 
     if removed_dirs or old_sessions or old_history:
