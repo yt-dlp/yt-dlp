@@ -1,7 +1,7 @@
 import sqlite3
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -55,6 +55,15 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_history_user ON download_history(user_id);
             CREATE INDEX IF NOT EXISTS idx_history_status ON download_history(status);
+
+            CREATE TABLE IF NOT EXISTS sessions (
+                chat_id         INTEGER NOT NULL,
+                message_id      INTEGER NOT NULL,
+                url             TEXT NOT NULL,
+                video_info_json TEXT NOT NULL,
+                created_at      TEXT,
+                PRIMARY KEY (chat_id, message_id)
+            );
         """)
     logger.info("Database initialized at %s", DB_PATH)
 
@@ -207,6 +216,49 @@ def get_user_history(user_id: int, limit: int = 10) -> list:
              ORDER BY created_at DESC
              LIMIT ?
         """, (user_id, limit)).fetchall()
+
+
+# ── Sessions (persistent quality-selection state) ──────────────────────────────
+
+def save_session(chat_id: int, message_id: int, url: str, video_info_json: str) -> None:
+    with get_connection() as conn:
+        conn.execute("""
+            INSERT OR REPLACE INTO sessions (chat_id, message_id, url, video_info_json, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (chat_id, message_id, url, video_info_json, datetime.utcnow().isoformat()))
+
+
+def get_session(chat_id: int, message_id: int) -> Optional[dict]:
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT url, video_info_json FROM sessions WHERE chat_id=? AND message_id=?",
+            (chat_id, message_id)
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def delete_session(chat_id: int, message_id: int) -> None:
+    with get_connection() as conn:
+        conn.execute(
+            "DELETE FROM sessions WHERE chat_id=? AND message_id=?",
+            (chat_id, message_id)
+        )
+
+
+# ── Cleanup ────────────────────────────────────────────────────────────────────
+
+def cleanup_old_sessions(max_age_hours: int = 24) -> int:
+    cutoff = (datetime.utcnow() - timedelta(hours=max_age_hours)).isoformat()
+    with get_connection() as conn:
+        cur = conn.execute("DELETE FROM sessions WHERE created_at < ?", (cutoff,))
+        return cur.rowcount
+
+
+def cleanup_old_history(max_age_days: int = 30) -> int:
+    cutoff = (datetime.utcnow() - timedelta(days=max_age_days)).isoformat()
+    with get_connection() as conn:
+        cur = conn.execute("DELETE FROM download_history WHERE created_at < ?", (cutoff,))
+        return cur.rowcount
 
 
 def get_global_stats() -> dict:

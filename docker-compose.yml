@@ -11,6 +11,7 @@ services:
       TELEGRAM_API_ID: ${TELEGRAM_API_ID}
       TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
       TELEGRAM_LOCAL: "1"        # включает режим без лимитов на файлы (до 2 ГБ)
+      TELEGRAM_LOCAL_ID: "bot"   # имя папки вместо токена (data/telegram-bot-api/bot/)
     volumes:
       - ./data/telegram-bot-api:/var/lib/telegram-bot-api
     networks:

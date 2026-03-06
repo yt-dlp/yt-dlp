@@ -4,12 +4,15 @@ YT-DLP Telegram Bot — русскоязычный интерфейс
 """
 
 import asyncio
+import json
 import logging
 import os
 import re
 import shutil
 import tempfile
 import traceback
+from dataclasses import asdict
+from datetime import datetime
 from functools import wraps
 from pathlib import Path
 from typing import Optional
@@ -39,6 +42,7 @@ import database as db
 # import fileserver  # файловый сервер: раскомментировать при включении
 from downloader import (
     DownloadResult,
+    FormatInfo,
     ProgressTracker,
     VideoInfo,
     download_video,
@@ -57,11 +61,42 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+class _TokenMaskFilter(logging.Filter):
+    """Заменяет токен бота на <TOKEN> во всех лог-сообщениях."""
+    def __init__(self, token: str):
+        super().__init__()
+        self._token = token
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if not self._token:
+            return True
+        record.msg = str(record.msg).replace(self._token, "<TOKEN>")
+        if record.args:
+            args = record.args if isinstance(record.args, tuple) else (record.args,)
+            record.args = tuple(
+                a.replace(self._token, "<TOKEN>") if isinstance(a, str) else a
+                for a in args
+            )
+        return True
+
 # ── Session state keys ───────────────────────────────────────────────────────────
 KEY_VIDEO_INFO  = "video_info"
 KEY_DOWNLOAD_ID = "download_id"
 KEY_PENDING_URL = "pending_url"
 KEY_ORIG_URL    = "original_url"   # сохраняем оригинальный URL (с list=) для плейлиста
+
+
+# ── Session serialization (persist quality-menu state across restarts) ───────────
+
+def _serialize_video_info(info: VideoInfo) -> str:
+    return json.dumps(asdict(info))
+
+
+def _deserialize_video_info(data: str) -> VideoInfo:
+    d = json.loads(data)
+    formats = [FormatInfo(**f) for f in d.pop("formats", [])]
+    return VideoInfo(formats=formats, **d)
 
 
 # ── Поддерживаемые платформы (текст для /start и /help) ─────────────────────────
@@ -256,6 +291,9 @@ async def cmd_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 @require_auth
 async def cmd_cancel(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    cancel_flag = ctx.user_data.get("cancel_flag")
+    if cancel_flag is not None:
+        cancel_flag[0] = True
     ctx.user_data.clear()
     await update.message.reply_text("🛑 Отменено. Отправьте новую ссылку когда будете готовы.")
 
@@ -335,7 +373,12 @@ async def _fetch_and_show_menu(url: str, msg: Message, ctx: ContextTypes.DEFAULT
     if info.is_playlist:
         await _show_playlist_menu(msg, info, ctx)
     else:
-        await _show_video_menu(msg, info, ctx)
+        sent = await _show_video_menu(msg, info, ctx)
+        if sent:
+            try:
+                db.save_session(sent.chat_id, sent.message_id, url, _serialize_video_info(info))
+            except Exception as e:
+                logger.warning("save_session failed: %s", e)
 
 
 # ── Меню видео ───────────────────────────────────────────────────────────────────
@@ -389,18 +432,18 @@ async def _show_video_menu(msg: Message, info: VideoInfo, ctx: ContextTypes.DEFA
     try:
         if info.thumbnail:
             await msg.delete()
-            await ctx.bot.send_photo(
+            sent = await ctx.bot.send_photo(
                 msg.chat_id,
                 photo=info.thumbnail,
                 caption=caption,
                 parse_mode=ParseMode.HTML,
                 reply_markup=keyboard,
             )
-            return
+            return sent
     except TelegramError:
         pass
 
-    await msg.edit_text(caption, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+    return await msg.edit_text(caption, parse_mode=ParseMode.HTML, reply_markup=keyboard)
 
 
 # ── Меню плейлиста ───────────────────────────────────────────────────────────────
@@ -653,8 +696,24 @@ async def _handle_download_callback(query, ctx, data: str):
     info: VideoInfo = ctx.user_data.get(KEY_VIDEO_INFO)
     url = ctx.user_data.get(KEY_PENDING_URL)
     if not info or not url:
-        await query.edit_message_text("❌ Сессия истекла. Отправьте ссылку заново.")
-        return
+        # Пробуем восстановить сессию из БД (пережила перезапуск бота)
+        session = db.get_session(query.message.chat_id, query.message.message_id)
+        if session:
+            try:
+                info = _deserialize_video_info(session["video_info_json"])
+                url = session["url"]
+                ctx.user_data[KEY_VIDEO_INFO] = info
+                ctx.user_data[KEY_PENDING_URL] = url
+            except Exception as e:
+                logger.warning("restore_session failed: %s", e)
+        if not info or not url:
+            # query.answer работает и для фото-сообщений (edit_message_text — нет)
+            await query.answer("❌ Сессия истекла. Отправьте ссылку заново.", show_alert=True)
+            return
+
+    # Сохраняем до возможного удаления сообщения (при фото-меню)
+    _session_chat_id = query.message.chat_id
+    _session_msg_id  = query.message.message_id
 
     user = query.from_user
     dl_id = db.add_download(user.id, url)
@@ -690,6 +749,11 @@ async def _handle_download_callback(query, ctx, data: str):
             reply_markup=cancel_kb,
         )
     except TelegramError:
+        # Фото-сообщение нельзя отредактировать в текст — удаляем и отправляем новое
+        try:
+            await query.message.delete()
+        except TelegramError:
+            pass
         status_msg = await ctx.bot.send_message(
             query.message.chat_id,
             f"⬇️ Загружаю: <b>{_esc(info.title)}</b>\n"
@@ -700,7 +764,7 @@ async def _handle_download_callback(query, ctx, data: str):
         )
 
     async def _on_progress(tracker: ProgressTracker) -> None:
-        if not tracker.total:
+        if cancel_flag[0] or not tracker.total:
             return
         pct = tracker.downloaded / tracker.total * 100
         speed_str = f"{tracker.speed / 1_048_576:.1f} МБ/с" if tracker.speed else "—"
@@ -776,6 +840,7 @@ async def _handle_download_callback(query, ctx, data: str):
         ctx.user_data.pop(KEY_VIDEO_INFO, None)
         ctx.user_data.pop(KEY_PENDING_URL, None)
         ctx.user_data.pop("cancel_flag", None)
+        db.delete_session(_session_chat_id, _session_msg_id)
 
 
 async def _handle_playlist_callback(query, ctx, data: str):
@@ -1038,6 +1103,35 @@ def _fmt_num(n: int) -> str:
 #         logger.info("PUBLIC_BASE_URL не задан — файлы отправляются напрямую в Telegram")
 
 
+# ── Периодическая очистка ────────────────────────────────────────────────────────
+
+async def _cleanup_job(context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Каждый час: удаляет файлы и данные старше 24 часов."""
+    removed_dirs = 0
+    cutoff_ts = datetime.now().timestamp() - 86400  # 24 часа
+
+    if config.DOWNLOAD_DIR.exists():
+        for item in config.DOWNLOAD_DIR.iterdir():
+            try:
+                if item.stat().st_mtime < cutoff_ts:
+                    if item.is_dir():
+                        shutil.rmtree(item, ignore_errors=True)
+                    else:
+                        item.unlink(missing_ok=True)
+                    removed_dirs += 1
+            except Exception:
+                pass
+
+    old_sessions = db.cleanup_old_sessions(max_age_hours=24)
+    old_history  = db.cleanup_old_history(max_age_days=30)
+
+    if removed_dirs or old_sessions or old_history:
+        logger.info(
+            "Очистка: файлов/папок=%d, сессий=%d, истории=%d",
+            removed_dirs, old_sessions, old_history,
+        )
+
+
 # ── Запуск ───────────────────────────────────────────────────────────────────────
 
 def main():
@@ -1045,6 +1139,12 @@ def main():
         raise RuntimeError("BOT_TOKEN не задан!")
     if not config.ADMIN_IDS:
         raise RuntimeError("ADMIN_IDS не задан! (через запятую Telegram user ID)")
+
+    # Маскируем токен в логах — должно быть первым делом
+    _mask = _TokenMaskFilter(config.BOT_TOKEN)
+    logging.root.addFilter(_mask)
+    for _h in logging.root.handlers:
+        _h.addFilter(_mask)
 
     db.init_db()
     config.DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -1118,6 +1218,9 @@ def main():
     app.add_handler(CallbackQueryHandler(handle_callback))
 
     app.add_error_handler(error_handler)
+
+    # Очистка каждый час: файлы и данные старше 24 часов
+    app.job_queue.run_repeating(_cleanup_job, interval=3600, first=3600)
 
     logger.info("Бот запускается… Администраторы: %s", config.ADMIN_IDS)
     app.run_polling(drop_pending_updates=True, bootstrap_retries=5)
