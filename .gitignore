@@ -20,6 +20,7 @@ cookies
 *.temp
 *.unknown_video
 *.ytdl
+*.state
 .cache/
 
 *.3gp
