@@ -91,8 +91,8 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         if filter_key == 'canonical':
             webpage = self._download_webpage(url, filter_value)
             graphql_video_id = self._search_regex(
-                r'<meta\b[^>]+\bcontent="[^"]*\btpid/(\d+)"', webpage,
-                'id') or self._html_search_meta('videoId', webpage, 'GraphQL video ID', fatal=True)
+                r'<meta\b[^>]+\bcontent="[^"]*\btpid/(\d+)"', webpage, 'id',
+                default=None) or self._html_search_meta('videoId', webpage, 'GraphQL video ID', fatal=True)
         else:
             graphql_video_id = filter_value
 
