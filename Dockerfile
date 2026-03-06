@@ -9,14 +9,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Install Python dependencies first (cache layer)
+# Install Python dependencies (yt-dlp pulled from PyPI, always latest)
 COPY telegram_bot/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Install yt-dlp from the local repo (so you always use the latest code)
-COPY pyproject.toml /app/pyproject.toml
-COPY yt_dlp/ /app/yt_dlp/
-RUN pip install --no-cache-dir -e .
 
 # Copy the bot source
 COPY telegram_bot/ /app/
