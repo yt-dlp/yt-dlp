@@ -26,8 +26,6 @@ def test_ad_wait(logger, client_info):
     parts = list(sabr_stream.iter_parts())
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
     assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
-    logger.warning.assert_any_call(
-        'Received a SABR Context Update. YouTube is likely trying to force ads on the client. This may cause issues with playback.')
 
     # Second request should be sending the ad wait sabr context update
     ad_wait_request_vpabr = rh.request_history[1].vpabr

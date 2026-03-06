@@ -707,10 +707,6 @@ class SabrProcessor:
                 'matching an existing SABR Context Update. Ignoring update')
             return
 
-        self.logger.warning(
-            'Received a SABR Context Update. YouTube is likely trying to force ads on the client. '
-            'This may cause issues with playback.')
-
         self.sabr_context_updates[sabr_ctx_update.type] = sabr_ctx_update
         if sabr_ctx_update.send_by_default:
             self.sabr_contexts_to_send.add(sabr_ctx_update.type)
