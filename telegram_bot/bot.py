@@ -528,8 +528,12 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if data == "cancel":
         cancel_flag = ctx.user_data.get("cancel_flag")
         if cancel_flag is not None:
-            # Загрузка активна — устанавливаем флаг, меню вернётся автоматически
+            # Загрузка активна — устанавливаем флаг И отменяем asyncio-задачу
+            # (task.cancel() нужен для aria2c: он не опрашивает progress_hook)
             cancel_flag[0] = True
+            task = ctx.user_data.get("_download_task")
+            if task and not task.done():
+                task.cancel()
             await query.answer("Отменяем загрузку…", show_alert=False)
             return
         # Пользователь явно закрывает меню — удаляем сессию из БД
@@ -826,6 +830,36 @@ async def _handle_admin_approval(query, ctx, data: str):
             pass
 
 
+def _estimate_download_size(fmt_obj: Optional[FormatInfo], duration: int, audio_only: bool) -> Optional[int]:
+    """Оценивает итоговый размер файла ДО загрузки.
+
+    Возвращает None если нет данных для оценки.
+    При audio_only оценивает только аудио (~192 kbps MP3).
+    При video оценивает видео + аудио-дорожку (~128 kbps).
+    """
+    if audio_only:
+        # MP3 192 kbps
+        if duration:
+            return int(192 * 1000 / 8 * duration)
+        return None
+
+    if not fmt_obj:
+        return None
+
+    # Точный размер известен
+    if fmt_obj.filesize:
+        base = fmt_obj.filesize
+    elif fmt_obj.tbr and duration:
+        base = int(fmt_obj.tbr * 1000 / 8 * duration)
+    else:
+        return None
+
+    # Прибавляем примерный размер аудио-дорожки (128 kbps * duration)
+    audio_overhead = int(128 * 1000 / 8 * duration) if duration else 0
+    # Добавляем 10% запас на контейнер и метаданные
+    return int((base + audio_overhead) * 1.1)
+
+
 async def _handle_download_callback(query, ctx, data: str):
     # data: dl:<type>:<format_id>   type: v=video, a=audio, s=subtitle
     parts = data.split(":", 2)
@@ -886,20 +920,28 @@ async def _handle_download_callback(query, ctx, data: str):
         fmt_obj = next((f for f in info.formats if f.format_id == format_id), None)
         quality_label = f"Видео {fmt_obj.resolution}" if fmt_obj else "Лучшее качество"
 
-    # Проверяем известный размер файла ДО начала загрузки
-    if fmt_obj and fmt_obj.filesize and fmt_obj.filesize > config.MAX_FILE_SIZE_BYTES:
+    # Проверяем размер файла ДО начала загрузки (экономит трафик и время).
+    # Для форматов без точного filesize оцениваем по TBR × длительность.
+    _est_size = _estimate_download_size(fmt_obj, info.duration or 0, audio_only)
+    if _est_size and _est_size > config.MAX_FILE_SIZE_BYTES:
+        _known = fmt_obj and fmt_obj.filesize
+        _label = _human_size(_est_size) + ("" if _known else " (оценка)")
         await query.answer(
-            f"❌ Файл слишком большой: ~{_human_size(fmt_obj.filesize)}\n"
-            f"Лимит: {config.MAX_FILE_SIZE_MB} МБ ({_human_size(config.MAX_FILE_SIZE_BYTES)})",
+            f"❌ Файл слишком большой: {_label}\n"
+            f"Лимит: {config.MAX_FILE_SIZE_MB} МБ ({_human_size(config.MAX_FILE_SIZE_BYTES)})\n"
+            "Выберите меньшее качество.",
             show_alert=True,
         )
-        db.update_download(dl_id, status="error", error="pre-check: file too large")
+        db.update_download(dl_id, status="error", error=f"pre-check: too large ~{_est_size}")
         return
 
     db.update_download(dl_id, title=info.title, format_id=format_id, quality=quality_label, status="downloading")
 
     cancel_flag = [False]
     ctx.user_data["cancel_flag"] = cancel_flag
+    # Сохраняем текущую задачу — нужно для надёжной отмены через task.cancel()
+    # (при aria2c progress_hook вызывается редко, поэтому cancel_flag недостаточно)
+    ctx.user_data["_download_task"] = asyncio.current_task()
     cancel_kb = InlineKeyboardMarkup([[InlineKeyboardButton("🛑 Отменить", callback_data="cancel")]])
 
     try:
@@ -957,87 +999,104 @@ async def _handle_download_callback(query, ctx, data: str):
         logger.warning("re-key session failed: %s", e)
 
     tmp_dir = config.DOWNLOAD_DIR / f"user_{user.id}" / f"dl_{dl_id}"
-    async with (sem or asyncio.Semaphore(1)):
-        try:
-            result: DownloadResult = await download_video(
-                url=url,
-                format_id=format_id,
-                output_dir=tmp_dir,
-                audio_only=audio_only,
-                subtitle_lang=subtitle_lang,
-                progress_callback=_on_progress,
-                cancel_flag=cancel_flag,
-            )
+    try:
+        async with (sem or asyncio.Semaphore(1)):
+            try:
+                result: DownloadResult = await download_video(
+                    url=url,
+                    format_id=format_id,
+                    output_dir=tmp_dir,
+                    audio_only=audio_only,
+                    subtitle_lang=subtitle_lang,
+                    progress_callback=_on_progress,
+                    cancel_flag=cancel_flag,
+                )
 
-            ctx.user_data.pop("cancel_flag", None)
+                ctx.user_data.pop("cancel_flag", None)
+                ctx.user_data.pop("_download_task", None)
 
-            if not result.success:
-                _caption, _keyboard = _build_quality_menu(info)
-                if result.error == "CANCELLED":
-                    # Отмена — возвращаем меню выбора качества
+                if not result.success:
+                    _caption, _keyboard = _build_quality_menu(info)
+                    if result.error == "CANCELLED":
+                        # Отмена через progress_hook — возвращаем меню качества
+                        try:
+                            await status_msg.edit_text(_caption, parse_mode=ParseMode.HTML, reply_markup=_keyboard)
+                        except TelegramError:
+                            pass
+                        return
+                    db.update_download(dl_id, status="error", error=result.error)
                     try:
-                        await status_msg.edit_text(_caption, parse_mode=ParseMode.HTML, reply_markup=_keyboard)
+                        await status_msg.edit_text(
+                            f"❌ Ошибка: <code>{_esc(result.error[:300])}</code>\n\n{_caption}",
+                            parse_mode=ParseMode.HTML,
+                            reply_markup=_keyboard,
+                        )
                     except TelegramError:
                         pass
                     return
-                db.update_download(dl_id, status="error", error=result.error)
+
+                db.update_download(dl_id, status="sending", file_size=result.file_size)
+                await status_msg.edit_text(
+                    f"📤 Отправляю <b>{_esc(result.title or info.title)}</b> "
+                    f"({_human_size(result.file_size)})…",
+                    parse_mode=ParseMode.HTML,
+                )
+                await ctx.bot.send_chat_action(query.message.chat_id, ChatAction.UPLOAD_DOCUMENT)
+
+                await _deliver_file(query.message.chat_id, result, ctx.bot)
+                db.update_download(dl_id, status="done", file_size=result.file_size)
+
+                # Возвращаем меню выбора качества — пользователь может скачать другой формат
+                _caption, _keyboard = _build_quality_menu(info)
                 try:
                     await status_msg.edit_text(
-                        f"❌ Ошибка: <code>{_esc(result.error[:300])}</code>\n\n{_caption}",
+                        f"✅ <b>{_esc(result.title or info.title)}</b>  {_human_size(result.file_size)}\n\n"
+                        + _caption,
                         parse_mode=ParseMode.HTML,
                         reply_markup=_keyboard,
                     )
                 except TelegramError:
                     pass
-                return
 
-            db.update_download(dl_id, status="sending", file_size=result.file_size)
-            await status_msg.edit_text(
-                f"📤 Отправляю <b>{_esc(result.title or info.title)}</b> "
-                f"({_human_size(result.file_size)})…",
-                parse_mode=ParseMode.HTML,
-            )
-            await ctx.bot.send_chat_action(query.message.chat_id, ChatAction.UPLOAD_DOCUMENT)
+                # Обновляем сессию (сбрасываем 2-часовой таймер очистки)
+                try:
+                    db.save_session(status_msg.chat_id, status_msg.message_id, url, _serialize_video_info(info))
+                except Exception:
+                    pass
 
-            await _deliver_file(query.message.chat_id, result, ctx.bot)
-            db.update_download(dl_id, status="done", file_size=result.file_size)
+            except asyncio.CancelledError:
+                raise  # Поднимаем наверх — будет поймано во внешнем try
 
-            # Возвращаем меню выбора качества — пользователь может скачать другой формат
-            _caption, _keyboard = _build_quality_menu(info)
-            try:
-                await status_msg.edit_text(
-                    f"✅ <b>{_esc(result.title or info.title)}</b>  {_human_size(result.file_size)}\n\n"
-                    + _caption,
-                    parse_mode=ParseMode.HTML,
-                    reply_markup=_keyboard,
-                )
-            except TelegramError:
-                pass
+            except Exception as e:
+                logger.error("Download error: %s\n%s", e, traceback.format_exc())
+                db.update_download(dl_id, status="error", error=str(e))
+                _caption, _keyboard = _build_quality_menu(info)
+                try:
+                    await status_msg.edit_text(
+                        f"❌ Неожиданная ошибка:\n<code>{_esc(str(e)[:200])}</code>\n\n{_caption}",
+                        parse_mode=ParseMode.HTML,
+                        reply_markup=_keyboard,
+                    )
+                except TelegramError:
+                    pass
+            finally:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+                ctx.user_data.pop("cancel_flag", None)
+                ctx.user_data.pop("_download_task", None)
+                # KEY_VIDEO_INFO и KEY_PENDING_URL не очищаем — пользователь может
+                # скачать другой формат без повторной отправки ссылки.
+                # Сессия удаляется только при явной отмене (❌ Отмена).
 
-            # Обновляем сессию (сбрасываем 2-часовой таймер очистки)
-            try:
-                db.save_session(status_msg.chat_id, status_msg.message_id, url, _serialize_video_info(info))
-            except Exception:
-                pass
-
-        except Exception as e:
-            logger.error("Download error: %s\n%s", e, traceback.format_exc())
-            db.update_download(dl_id, status="error", error=str(e))
-            _caption, _keyboard = _build_quality_menu(info)
-            try:
-                await status_msg.edit_text(
-                    f"❌ Неожиданная ошибка:\n<code>{_esc(str(e)[:200])}</code>\n\n{_caption}",
-                    parse_mode=ParseMode.HTML,
-                    reply_markup=_keyboard,
-                )
-            except TelegramError:
-                pass
-        finally:
-            shutil.rmtree(tmp_dir, ignore_errors=True)
-            ctx.user_data.pop("cancel_flag", None)
-            # KEY_VIDEO_INFO и KEY_PENDING_URL не очищаем — пользователь может
-            # скачать другой формат без повторной отправки ссылки.
-            # Сессия удаляется только при явной отмене (❌ Отмена).
+    except asyncio.CancelledError:
+        # Отмена через task.cancel() — срабатывает при aria2c, когда progress_hook
+        # вызывается редко и cancel_flag не успевает прочитаться до окончания загрузки.
+        # finally выше уже убрал tmp_dir; показываем меню качества.
+        db.update_download(dl_id, status="error", error="CANCELLED")
+        _caption, _keyboard = _build_quality_menu(info)
+        try:
+            await status_msg.edit_text(_caption, parse_mode=ParseMode.HTML, reply_markup=_keyboard)
+        except TelegramError:
+            pass
 
 
 async def _handle_playlist_callback(query, ctx, data: str):
