@@ -5,12 +5,10 @@ import urllib.parse
 import xml.etree.ElementTree
 
 from .adobepass import AdobePassIE
-from .common import InfoExtractor
 from .theplatform import ThePlatformBaseIE, ThePlatformIE, default_ns
 from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
-    RegexNotFoundError,
     UserNotLive,
     clean_html,
     determine_ext,
@@ -95,6 +93,7 @@ class NBCUniversalBaseIE(ThePlatformBaseIE):
             formats = [f for f in orig_fmts if not f.get('has_drm')]
             if orig_fmts and not formats:
                 self.report_drm(video_id)
+        self._remove_duplicate_formats(formats)
 
         return formats, subtitles
 
@@ -334,15 +333,16 @@ class NBCSportsIE(NBCUniversalBaseIE):
     _REGIONAL_NETWORKS = ['bayarea', 'boston', 'philadelphia']
     _VALID_URL = rf'''(?x)
         https?://(?:www\.)?nbcsports(?:{"|".join(map(re.escape, _REGIONAL_NETWORKS))})?\.com/
-        (?:[^/]+/)+(?P<id>(?!\d+(?:/|$))[0-9a-z-]+)(?:/(?P<display_id>\d+))?/?(?:[?#]|$)
+        (?:[^/]+/)+(?P<id>(?!\d+(?:/|$))[0-9a-z-]+)(?:/\d+)?/?(?:[?#]|$)
     '''
     _TESTS = [{
         'url': 'https://www.nbcsports.com/watch/nfl/profootballtalk/pft-pm/unpacking-addisons-reckless-driving-citation',
         'info_dict': {
-            'id': 'unpacking-addisons-reckless-driving-citation',
+            'id': '_5VvAd4hk2Vg',
             'ext': 'mp4',
             'title': 'Unpacking Addison\'s reckless driving citation',
             'description': 'md5:b3488b6d90ca1220a4c739d98509fb21',
+            'display_id': 'unpacking-addisons-reckless-driving-citation',
             'duration': 127.661,
             'episode': 'Unpacking Addison\'s reckless driving citation',
             'series': 'PFT PM',
@@ -354,12 +354,12 @@ class NBCSportsIE(NBCUniversalBaseIE):
     }, {
         'url': 'https://www.nbcsportsboston.com/video/nfl/new-england-patriots/report-card-pats-secondary-is-no-match-for-josh-allen/211779/',
         'info_dict': {
-            'id': 'report-card-pats-secondary-is-no-match-for-josh-allen',
+            'id': 'OdxClzBpdrs0',
             'ext': 'mp4',
             'title': 'Report Card: Pats secondary is no match for Josh Allen',
             'categories': ['Mass School of Law'],
             'description': 'md5:539ea545871c9c8684c77d9d0cc04458',
-            'display_id': '211779',
+            'display_id': 'report-card-pats-secondary-is-no-match-for-josh-allen',
             'duration': 59.993,
             'episode': 'Report Card: Pats secondary is no match for Josh Allen',
             'thumbnail': r're:https?://.+',
@@ -370,12 +370,12 @@ class NBCSportsIE(NBCUniversalBaseIE):
     }, {
         'url': 'https://www.nbcsportsphiladelphia.com/mlb/bruce-bochy-on-hector-neris-hes-an-idiot/383698/',
         'info_dict': {
-            'id': 'bruce-bochy-on-hector-neris-hes-an-idiot',
+            'id': '2gv5rriGMbK3',
             'ext': 'mp4',
             'title': "Bruce Bochy on Neris: 'I'll say it, he's an idiot'",
             'categories': ['Phillies'],
             'description': 'md5:a9fa0000b6a3b93744eea133723f58f6',
-            'display_id': '383698',
+            'display_id': 'bruce-bochy-on-hector-neris-hes-an-idiot',
             'duration': 51.351,
             'episode': "Bruce Bochy on Neris: 'I'll say it, he's an idiot'",
             'thumbnail': r're:https?://.+',
@@ -386,8 +386,8 @@ class NBCSportsIE(NBCUniversalBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
-        webpage = self._download_webpage(url, video_id)
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
         netloc = urllib.parse.urlparse(url).netloc.removeprefix('www.')
 
         if netloc == 'nbcsports.com':
@@ -395,13 +395,14 @@ class NBCSportsIE(NBCUniversalBaseIE):
                 {find_element(cls='jwplayer', html=True)}, {extract_attributes},
                 ('data-hls', 'data-mp4'), {url_or_none}, {update_url(query=None)},
                 {trim_str(start=f'{self._TP_BASE}/')}, any, {require('thePlatform path')}))
+            media_id = tp_path.split('/')[-1]
         elif netloc == 'nbcsportsboston.com':
             account_id = traverse_obj(webpage, (
                 {find_element(cls='single-video__video', html=True)},
                 {extract_attributes}, 'data-account-id', {str_or_none}, {require('account ID')}))
             data_videos = self._search_json(
                 r'data-videos="\[', webpage, 'data-videos',
-                video_id, default={}, transform_source=unescapeHTML)
+                display_id, default={}, transform_source=unescapeHTML)
             media_id = traverse_obj(data_videos, (
                 'video', 'meta', 'media_pid', {str_or_none}, {require('media ID')}))
             tp_path = f'{account_id}/media/{media_id}'
@@ -409,21 +410,21 @@ class NBCSportsIE(NBCUniversalBaseIE):
             video_flyout = traverse_obj(webpage, ({find_element(cls='video-flyout')}))
             data_props = self._search_json(
                 r'data-props\s*=\s*(["\'])', video_flyout, 'data-props',
-                video_id, end_pattern=r'\1', default={}, transform_source=unescapeHTML)
+                display_id, end_pattern=r'\1', default={}, transform_source=unescapeHTML)
             account_id = traverse_obj(data_props, (
                 'accountId', {str_or_none}, {require('account ID')}))
             media_id = traverse_obj(data_props, (
                 'videos', ..., 'mediaId', {str_or_none}, any, {require('media ID')}))
             tp_path = f'{account_id}/media/{media_id}'
 
-        formats, subtitles = self._extract_nbcu_formats_and_subtitles(tp_path, video_id)
+        formats, subtitles = self._extract_nbcu_formats_and_subtitles(tp_path, display_id)
 
         return {
-            'id': video_id,
+            'id': media_id,
             'display_id': display_id,
             'formats': formats,
             'subtitles': subtitles,
-            **self._extract_theplatform_metadata(tp_path, video_id),
+            **self._extract_theplatform_metadata(tp_path, media_id),
         }
 
 
@@ -581,54 +582,75 @@ class NBCNewsIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         }
 
 
-class NBCOlympicsIE(InfoExtractor):
-    IE_NAME = 'nbcolympics'
-    _VALID_URL = r'https?://www\.nbcolympics\.com/videos?/(?P<id>[0-9a-z-]+)'
+class NBCOlympicsIE(NBCUniversalBaseIE):
+    IE_NAME = 'nbc:olympics'
 
+    _VALID_URL = r'https?://(?:www\.)?nbcolympics\.com/videos/(?P<id>[0-9a-z-]+)'
     _TESTS = [{
-        # Geo-restricted to US
         'url': 'https://www.nbcolympics.com/videos/watch-final-minutes-team-usas-mens-basketball-gold',
         'info_dict': {
             'id': 'SAwGfPlQ1q01',
             'ext': 'mp4',
-            'display_id': 'watch-final-minutes-team-usas-mens-basketball-gold',
             'title': 'Watch the final minutes of Team USA\'s men\'s basketball gold',
+            'alt_title': 'Watch the final minutes of Team USA\'s men\'s basketball gold',
             'description': 'md5:f704f591217305c9559b23b877aa8d31',
-            'episode': 'Watch the final minutes of Team USA\'s men\'s basketball gold',
-            'uploader': 'NBCU-SPORTS',
-            'duration': 387.053,
-            'thumbnail': r're:https?://.+\.jpg',
+            'display_id': 'watch-final-minutes-team-usas-mens-basketball-gold',
+            'duration': 395,
+            'tags': 'count:15',
+            'thumbnail': r're:https?://.+',
             'timestamp': 1723346984,
             'upload_date': '20240811',
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
-        'url': 'http://www.nbcolympics.com/video/justin-roses-son-leo-was-tears-after-his-dad-won-gold',
-        'only_matching': True,
+        'url': 'https://www.nbcolympics.com/videos/winter-paralympics-promise-elite-action-50th-anniversary',
+        'info_dict': {
+            'id': 'UQjkM_RSJAgj',
+            'ext': 'mp4',
+            'title': 'Winter Paralympics promise elite action for 50th anniversary',
+            'alt_title': 'Winter Paralympics promise elite action for 50th anniversary',
+            'description': 'md5:fe97cd549f0321e868ae02165ff9b79e',
+            'display_id': 'winter-paralympics-promise-elite-action-50th-anniversary',
+            'duration': 158,
+            'tags': 'count:3',
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1771691104,
+            'upload_date': '20260221',
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-
         webpage = self._download_webpage(url, display_id)
+        tp_path_base = traverse_obj(webpage, (
+            {find_element(attr='data-drupal-selector', value='drupal-settings-json')},
+            {json.loads}, 'oly', 'mpxVideoPlayerUrl', {url_or_none}, {update_url(query=None)},
+            {trim_str(start=f'{self._TP_BASE}/')}, {require('thePlatform path')}))
 
-        try:
-            drupal_settings = self._parse_json(self._search_regex(
-                r'jQuery\.extend\(Drupal\.settings\s*,\s*({.+?})\);',
-                webpage, 'drupal settings'), display_id)
+        data_settings = traverse_obj(webpage, (
+            {find_element(id='oly-video-player-page-app', html=True)},
+            {extract_attributes}, 'data-settings', {unescapeHTML}, {json.loads}, {dict}))
+        media_id = traverse_obj(data_settings, (
+            'video_id', {str_or_none}, {require('media ID')}))
 
-            iframe_url = drupal_settings['vod']['iframe_url']
-            theplatform_url = iframe_url.replace(
-                'vplayer.nbcolympics.com', 'player.theplatform.com')
-        except RegexNotFoundError:
-            theplatform_url = self._search_regex(
-                r"([\"'])embedUrl\1: *([\"'])(?P<embedUrl>.+)\2",
-                webpage, 'embedding URL', group='embedUrl')
+        tp_path = f'{tp_path_base}{media_id}'
+        formats, subtitles = self._extract_nbcu_formats_and_subtitles(tp_path, display_id)
 
         return {
-            '_type': 'url_transparent',
-            'url': theplatform_url,
-            'ie_key': ThePlatformIE.ie_key(),
+            'id': media_id,
             'display_id': display_id,
+            'formats': formats,
+            'subtitles': subtitles,
+            **traverse_obj(data_settings, {
+                'title': ('title', {clean_html}, filter),
+                'alt_title': ('alt', {clean_html}, filter),
+                'description': ('description', {clean_html}, filter),
+                'duration': ('duration', {int_or_none}),
+                'tags': ('tags', ..., 'label', {clean_html}, filter),
+                'thumbnail': ('thumbnail', {url_or_none}),
+                'timestamp': ('field_sfv_available_date', {parse_iso8601}),
+            }),
         }
 
 
