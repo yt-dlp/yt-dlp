@@ -66,14 +66,16 @@ services:
         max-file: "3"
 
     # ── Порт файлового HTTP-сервера ──────────────────────────────────────────
-    # Откройте только если PUBLIC_BASE_URL настроен.
-    # Рекомендуется ставить nginx/caddy перед этим портом (с HTTPS).
-    ports:
-      - "${HTTP_PORT:-8080}:8080"
+    # ports: НЕ используется — Docker iptables отключён (daemon.json: iptables=false).
+    # Проброс порта делается через DNAT в nftables (dockernat.prerouting).
+    # Раскомментировать ТОЛЬКО для отладки без nftables (создаст docker-proxy):
+    # ports:
+    #   - "${HTTP_PORT:-8080}:8080"
 
     # ── Сеть ────────────────────────────────────────────────────────────────
     networks:
-      - botnet
+      botnet:
+        ipv4_address: 10.10.2.2   # фиксированный IP для DNAT в nftables
 
     # ── Healthcheck ──────────────────────────────────────────────────────────
     healthcheck:
