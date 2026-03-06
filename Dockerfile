@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ffmpeg \
         ca-certificates \
         curl \
+        su-exec \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -21,7 +22,9 @@ RUN mkdir -p /downloads /data
 
 # Non-root user for security
 RUN useradd -r -u 1001 botuser \
-    && chown -R botuser:botuser /app /downloads /data
-USER botuser
+    && chown -R botuser:botuser /app
 
-CMD ["python", "bot.py"]
+# entrypoint fixes volume permissions then drops to botuser
+RUN chmod +x /app/entrypoint.sh
+
+CMD ["/app/entrypoint.sh"]
