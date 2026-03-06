@@ -277,6 +277,12 @@ class PornHubIE(PornHubBaseIE):
         self._login(host)
         self._set_age_cookies(host)
 
+        # Define strict headers to prevent 404/410 errors on segments
+        http_headers = {
+            'Referer': url,
+            'Origin': f'https://www.{host}',
+        }
+
         def dl_webpage(platform):
             self._set_cookie(host, 'platform', platform)
             return self._download_webpage(
@@ -425,13 +431,19 @@ class PornHubIE(PornHubBaseIE):
         def add_format(format_url, height=None):
             ext = determine_ext(format_url)
             if ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(
-                    format_url, video_id, mpd_id='dash', fatal=False))
+                mpd_formats = self._extract_mpd_formats(
+                    format_url, video_id, mpd_id='dash', fatal=False, mpd_headers=http_headers)
+                for f in mpd_formats:
+                    f.setdefault('http_headers', {}).update(http_headers)
+                formats.extend(mpd_formats)
                 return
             if ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
+                m3u8_formats = self._extract_m3u8_formats(
                     format_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                    m3u8_id='hls', fatal=False))
+                    m3u8_id='hls', fatal=False, m3u8_headers=http_headers)
+                for f in m3u8_formats:
+                    f.setdefault('http_headers', {}).update(http_headers)
+                formats.extend(m3u8_formats)
                 return
             if not height:
                 height = int_or_none(self._search_regex(
@@ -441,6 +453,7 @@ class PornHubIE(PornHubBaseIE):
                 'url': format_url,
                 'format_id': format_field(height, None, '%dp'),
                 'height': height,
+                'http_headers': http_headers,
             })
 
         for video_url, height in video_urls:
@@ -506,7 +519,7 @@ class PornHubIE(PornHubBaseIE):
                 'cast': ({find_elements(attr='data-label', value='pornstar')}, ..., {clean_html}),
             }),
             'subtitles': subtitles,
-            'http_headers': {'Referer': f'https://www.{host}/'},
+            'http_headers': http_headers,
         }, info)
 
 
