@@ -991,7 +991,7 @@ async def _deliver_file(chat_id: int, result: DownloadResult, bot: Bot, keep_fil
         if fp.suffix in (".mp3", ".ogg", ".m4a", ".flac", ".wav"):
             await bot.send_audio(chat_id, audio=InputFile(fh, filename=fp.name), caption=caption)
         elif fp.suffix in (".mp4", ".mkv", ".webm", ".mov"):
-            await bot.send_video(chat_id, video=InputFile(fh, filename=fp.name), caption=caption)
+            await bot.send_document(chat_id, document=InputFile(fh, filename=fp.name), caption=caption)
         else:
             await bot.send_document(chat_id, document=InputFile(fh, filename=fp.name), caption=caption)
     if not keep_file:
