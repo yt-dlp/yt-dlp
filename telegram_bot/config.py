@@ -24,6 +24,15 @@ DB_PATH = Path(os.environ.get("DB_PATH", "/data/bot.db"))
 MAX_HISTORY_PER_USER = int(os.environ.get("MAX_HISTORY_PER_USER", "50"))
 DOWNLOAD_TIMEOUT = int(os.environ.get("DOWNLOAD_TIMEOUT", "600"))  # seconds
 
+# Файловый HTTP-сервер (вместо отправки файла в Telegram — даёт ссылку на скачивание)
+# PUBLIC_BASE_URL — публичный адрес, который видят пользователи (без trailing slash)
+#   Пример: https://myserver.com  или  http://1.2.3.4:8080
+#   Если пусто — бот отправляет файл напрямую в Telegram (старое поведение)
+PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "").rstrip("/")
+HTTP_PORT = int(os.environ.get("HTTP_PORT", "8080"))
+# Сколько секунд ссылка остаётся активной (по умолчанию 24 часа)
+FILE_TTL_SECONDS = int(os.environ.get("FILE_TTL_HOURS", "24")) * 3600
+
 # Feature flags
 ALLOW_PLAYLISTS = os.environ.get("ALLOW_PLAYLISTS", "true").lower() == "true"
 ALLOW_AUDIO = os.environ.get("ALLOW_AUDIO", "true").lower() == "true"
