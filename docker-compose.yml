@@ -14,6 +14,9 @@ services:
       TELEGRAM_LOCAL_ID: "bot"   # имя папки вместо токена (data/telegram-bot-api/bot/)
     volumes:
       - ./data/telegram-bot-api:/var/lib/telegram-bot-api
+      # Общий том с ботом: локальный сервер читает файлы напрямую с диска
+      # (local_mode=True в PTB) — устраняет HTTP-upload между контейнерами
+      - ./data/downloads:/downloads:ro
     networks:
       botnet:
         ipv4_address: 10.10.2.3   # фиксированный IP для ограничения исходящего трафика в nftables

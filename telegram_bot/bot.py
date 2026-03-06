@@ -20,6 +20,7 @@ from urllib.parse import urlparse, urlencode, parse_qs, urlunparse
 
 from telegram import (
     Bot,
+    BotCommand,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     InputFile,
@@ -286,6 +287,14 @@ async def cmd_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"⏳ Ожидают одобрения: {stats['pending_requests']}\n\n"
         f"🖥 Диск: {_human_size(disk.free)} свободно / {_human_size(disk.total)} всего"
     )
+    # Для администраторов — показываем кто именно ожидает
+    if db.is_admin(update.effective_user.id) and stats['pending_requests']:
+        pending = db.get_pending_users()
+        lines = ["\n⏳ <b>Ожидают одобрения:</b>"]
+        for r in pending:
+            uname = f"@{_esc(r['username'])}" if r['username'] else _esc(r['full_name'])
+            lines.append(f"• {uname} — <code>{r['user_id']}</code>")
+        text += "\n".join(lines)
     await update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
 
@@ -296,6 +305,36 @@ async def cmd_cancel(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         cancel_flag[0] = True
     ctx.user_data.clear()
     await update.message.reply_text("🛑 Отменено. Отправьте новую ссылку когда будете готовы.")
+
+
+@require_auth
+async def cmd_menu(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Показывает клавиатуру с командами бота."""
+    is_adm = db.is_admin(update.effective_user.id)
+    user_buttons = [
+        [
+            InlineKeyboardButton("📜 История", callback_data="menu:history"),
+            InlineKeyboardButton("📊 Статус", callback_data="menu:status"),
+        ],
+        [
+            InlineKeyboardButton("❓ Справка", callback_data="menu:help"),
+        ],
+    ]
+    admin_buttons = [
+        [
+            InlineKeyboardButton("⏳ Заявки (/pending)", callback_data="menu:pending"),
+            InlineKeyboardButton("👥 Пользователи (/users)", callback_data="menu:users"),
+        ],
+        [
+            InlineKeyboardButton("📊 Статистика (/stats)", callback_data="menu:stats"),
+        ],
+    ]
+    buttons = user_buttons + (admin_buttons if is_adm else [])
+    await update.message.reply_text(
+        "📋 <b>Меню команд</b>\n\nВыберите действие или отправьте ссылку на видео:",
+        parse_mode=ParseMode.HTML,
+        reply_markup=InlineKeyboardMarkup(buttons),
+    )
 
 
 # ── Обработчик URL ───────────────────────────────────────────────────────────────
@@ -466,14 +505,24 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     data = query.data
 
+    # Кнопки одобрения/отклонения — обрабатываются отдельно (до auth-проверки),
+    # т.к. приходят от администраторов (их авторизацию проверяет сам handler)
+    if data.startswith("approve:") or data.startswith("deny:"):
+        await _handle_admin_approval(query, ctx, data)
+        return
+
+    # ── Авторизация: все остальные callback требуют одобренного аккаунта ─────────
+    user_is_auth = db.is_authorized(user.id) or db.is_admin(user.id)
+    if not user_is_auth:
+        await query.answer(
+            "🚫 Доступ запрещён. Отправьте /start чтобы запросить доступ.",
+            show_alert=True,
+        )
+        return
+
     # Кнопки меню /start (без скачивания)
     if data.startswith("menu:"):
         await _handle_menu_callback(query, ctx, data)
-        return
-
-    # Кнопки одобрения/отклонения (доступны без авторизации для админа)
-    if data.startswith("approve:") or data.startswith("deny:"):
-        await _handle_admin_approval(query, ctx, data)
         return
 
     if data == "cancel":
@@ -507,11 +556,6 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # Выбор: видео или плейлист для смешанного URL
     if data.startswith("resolve:"):
         await _handle_resolve_callback(query, ctx, data)
-        return
-
-    # Проверка авторизации для загрузок
-    if not db.is_authorized(user.id) and not db.is_admin(user.id):
-        await query.answer("🚫 Доступ запрещён.", show_alert=True)
         return
 
     if data.startswith("dl:"):
@@ -612,6 +656,62 @@ async def _handle_menu_callback(query, ctx, data: str):
             parse_mode=ParseMode.HTML,
             disable_web_page_preview=True,
             reply_markup=keyboard,
+        )
+
+    elif action == "pending":
+        if not db.is_admin(user.id):
+            await query.answer("🚫 Только для администраторов.", show_alert=True)
+            return
+        rows = db.get_pending_users()
+        if not rows:
+            text = "✅ Заявок на доступ нет."
+        else:
+            lines = ["⏳ <b>Ожидают одобрения:</b>\n"]
+            for r in rows:
+                uname = f"@{r['username']}" if r['username'] else r['full_name']
+                lines.append(f"• {uname} <code>{r['user_id']}</code>")
+            text = "\n".join(lines) + "\n\nИспользуйте /pending для одобрения."
+        await query.edit_message_text(
+            text, parse_mode=ParseMode.HTML,
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("« Назад", callback_data="menu:back")]]),
+        )
+
+    elif action == "users":
+        if not db.is_admin(user.id):
+            await query.answer("🚫 Только для администраторов.", show_alert=True)
+            return
+        rows = db.list_users(approved=True)
+        if not rows:
+            text = "Нет одобренных пользователей."
+        else:
+            lines = [f"👥 <b>Пользователи ({len(rows)}):</b>\n"]
+            for r in rows[:20]:  # ограничиваем 20
+                uname = f"@{r['username']}" if r['username'] else r['full_name']
+                admin_tag = " 👑" if r['is_admin'] else ""
+                lines.append(f"• {uname} <code>{r['user_id']}</code>{admin_tag}")
+            text = "\n".join(lines)
+        await query.edit_message_text(
+            text, parse_mode=ParseMode.HTML,
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("« Назад", callback_data="menu:back")]]),
+        )
+
+    elif action == "stats":
+        if not db.is_admin(user.id):
+            await query.answer("🚫 Только для администраторов.", show_alert=True)
+            return
+        stats = db.get_global_stats()
+        disk = shutil.disk_usage(str(config.DOWNLOAD_DIR))
+        text = (
+            "📊 <b>Глобальная статистика</b>\n\n"
+            f"👥 Пользователей: {stats['total_users']}\n"
+            f"⏳ Ожидают: {stats['pending_requests']}\n"
+            f"📥 Загрузок: {stats['total_downloads']}\n"
+            f"💾 Отправлено: {_human_size(stats['total_size_bytes'])}\n\n"
+            f"🖥 Диск: {_human_size(disk.free)} свободно / {_human_size(disk.total)}"
+        )
+        await query.edit_message_text(
+            text, parse_mode=ParseMode.HTML,
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("« Назад", callback_data="menu:back")]]),
         )
 
 
@@ -775,13 +875,26 @@ async def _handle_download_callback(query, ctx, data: str):
 
     if dl_type == "a":
         quality_label = "Аудио MP3"
+        fmt_obj = None
     elif dl_type == "s":
         quality_label = f"Субтитры ({subtitle_lang})"
+        fmt_obj = None
     elif format_id == "best":
         quality_label = "Лучшее качество"
+        fmt_obj = None
     else:
         fmt_obj = next((f for f in info.formats if f.format_id == format_id), None)
         quality_label = f"Видео {fmt_obj.resolution}" if fmt_obj else "Лучшее качество"
+
+    # Проверяем известный размер файла ДО начала загрузки
+    if fmt_obj and fmt_obj.filesize and fmt_obj.filesize > config.MAX_FILE_SIZE_BYTES:
+        await query.answer(
+            f"❌ Файл слишком большой: ~{_human_size(fmt_obj.filesize)}\n"
+            f"Лимит: {config.MAX_FILE_SIZE_MB} МБ ({_human_size(config.MAX_FILE_SIZE_BYTES)})",
+            show_alert=True,
+        )
+        db.update_download(dl_id, status="error", error="pre-check: file too large")
+        return
 
     db.update_download(dl_id, title=info.title, format_id=format_id, quality=quality_label, status="downloading")
 
@@ -1018,11 +1131,24 @@ async def _deliver_file(chat_id: int, result: DownloadResult, bot: Bot, keep_fil
     """
     fp = result.file_path
     caption = f"📁 {fp.stem[:200]}  ({_human_size(result.file_size)})"
-    with fp.open("rb") as fh:
+
+    if config.LOCAL_API_SERVER:
+        # local_mode=True: передаём абсолютный путь к файлу.
+        # Локальный Bot API сервер читает файл напрямую с диска через
+        # общий том /downloads — не нужен HTTP-upload от бота к серверу.
+        # Это устраняет узкое место при отправке больших файлов.
+        fp_path = fp.resolve()
         if fp.suffix in (".mp3", ".ogg", ".m4a", ".flac", ".wav"):
-            await bot.send_audio(chat_id, audio=InputFile(fh, filename=fp.name), caption=caption)
+            await bot.send_audio(chat_id, audio=fp_path, caption=caption)
         else:
-            await bot.send_document(chat_id, document=InputFile(fh, filename=fp.name), caption=caption)
+            await bot.send_document(chat_id, document=fp_path, caption=caption)
+    else:
+        with fp.open("rb") as fh:
+            if fp.suffix in (".mp3", ".ogg", ".m4a", ".flac", ".wav"):
+                await bot.send_audio(chat_id, audio=InputFile(fh, filename=fp.name), caption=caption)
+            else:
+                await bot.send_document(chat_id, document=InputFile(fh, filename=fp.name), caption=caption)
+
     if not keep_file:
         fp.unlink(missing_ok=True)
 
@@ -1205,6 +1331,18 @@ async def _post_init(application) -> None:
     application.bot_data["_download_sem"] = asyncio.Semaphore(config.MAX_CONCURRENT_DOWNLOADS)
     task = asyncio.create_task(_cleanup_loop())
     application.bot_data["_cleanup_task"] = task
+    # Устанавливаем список команд (видны при вводе "/" в Telegram)
+    try:
+        await application.bot.set_my_commands([
+            BotCommand("start",   "Главное меню"),
+            BotCommand("menu",    "Все команды"),
+            BotCommand("history", "История загрузок"),
+            BotCommand("status",  "Статус бота"),
+            BotCommand("cancel",  "Отменить загрузку"),
+            BotCommand("help",    "Справка"),
+        ])
+    except Exception as e:
+        logger.warning("set_my_commands failed: %s", e)
 
 
 async def _post_shutdown(application) -> None:
@@ -1261,6 +1399,10 @@ def main():
     db.init_db()
     config.DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Синхронизируем права администраторов с текущим ADMIN_IDS в .env
+    # Если кто-то убран из ADMIN_IDS — теряет флаг is_admin в БД
+    db.sync_admin_ids(config.ADMIN_IDS)
+
     # Авто-одобрение администраторов
     for admin_id in config.ADMIN_IDS:
         row = db.get_user(admin_id)
@@ -1282,7 +1424,8 @@ def main():
     if config.LOCAL_API_SERVER:
         base_url      = f"{config.LOCAL_API_SERVER}/bot"
         base_file_url = f"{config.LOCAL_API_SERVER}/file/bot"
-        builder = builder.base_url(base_url).base_file_url(base_file_url)
+        # local_mode=True: PTB передаёт пути к файлам вместо их содержимого
+        builder = builder.base_url(base_url).base_file_url(base_file_url).local_mode(True)
         logger.info("Используется локальный Bot API сервер: %s", config.LOCAL_API_SERVER)
 
     # Большие таймауты: файлы до 1.6 ГБ могут загружаться долго
@@ -1313,6 +1456,7 @@ def main():
     # Команды
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("help", cmd_help))
+    app.add_handler(CommandHandler("menu", cmd_menu))
     app.add_handler(CommandHandler("history", cmd_history))
     app.add_handler(CommandHandler("status", cmd_status))
     app.add_handler(CommandHandler("cancel", cmd_cancel))

@@ -281,3 +281,30 @@ def get_global_stats() -> dict:
             "total_size_bytes": total_size,
             "pending_requests": pending,
         }
+
+
+def get_pending_users() -> list:
+    """Возвращает список пользователей, ожидающих одобрения."""
+    with get_connection() as conn:
+        return conn.execute(
+            "SELECT user_id, username, full_name, created_at FROM users "
+            "WHERE is_approved=0 AND is_banned=0 ORDER BY created_at"
+        ).fetchall()
+
+
+def sync_admin_ids(admin_ids: list) -> None:
+    """Синхронизирует is_admin в БД с ADMIN_IDS из конфига.
+
+    Снимает флаг is_admin у пользователей, которых нет в ADMIN_IDS.
+    Гарантирует, что смена ADMIN_IDS в .env вступает в силу при перезапуске.
+    """
+    with get_connection() as conn:
+        if admin_ids:
+            placeholders = ",".join("?" * len(admin_ids))
+            conn.execute(
+                f"UPDATE users SET is_admin = 0 "
+                f"WHERE is_admin = 1 AND user_id NOT IN ({placeholders})",
+                admin_ids,
+            )
+        else:
+            conn.execute("UPDATE users SET is_admin = 0")

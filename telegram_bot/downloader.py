@@ -10,15 +10,28 @@ from typing import Callable, Optional
 
 import yt_dlp
 
+import shutil
+
 from config import (
     COOKIES_FILE,
     DOWNLOAD_DIR,
     DOWNLOAD_TIMEOUT,
     MAX_FILE_SIZE_BYTES,
     PROXY_URL,
+    USE_ARIA2C,
+    USE_SPONSORBLOCK,
 )
 
 logger = logging.getLogger(__name__)
+
+
+class _DownloadCancelled(BaseException):
+    """Поднимается из progress-хука для прерывания загрузки.
+
+    Наследует BaseException, а не Exception — yt-dlp использует
+    `except Exception` внутри, поэтому только BaseException гарантированно
+    пробьётся через все обёртки yt-dlp и отменит загрузку немедленно.
+    """
 
 
 # ── Data classes ────────────────────────────────────────────────────────────────
@@ -120,6 +133,10 @@ def _base_opts() -> dict:
         opts["proxy"] = PROXY_URL
     if COOKIES_FILE and Path(COOKIES_FILE).exists():
         opts["cookiefile"] = COOKIES_FILE
+    # aria2c: параллельные соединения (до 16) — ускоряет HTTP-загрузки
+    if USE_ARIA2C and shutil.which("aria2c"):
+        opts["external_downloader"] = "aria2c"
+        opts["external_downloader_args"] = {"default": ["-x16", "-s16", "-k1M", "--quiet"]}
     return opts
 
 
@@ -314,8 +331,13 @@ async def download_video(
     tracker = ProgressTracker(progress_callback, loop)
 
     def _cancel_hook(d: dict) -> None:
+        """Вызывается из yt-dlp прогресс-хука.
+
+        Поднимаем _DownloadCancelled (BaseException), чтобы пробить
+        все `except Exception` внутри yt-dlp и немедленно прервать загрузку.
+        """
         if cancel_flag and cancel_flag[0]:
-            raise Exception("CANCELLED")
+            raise _DownloadCancelled("CANCELLED")
 
     if audio_only:
         opts.update({
@@ -341,6 +363,10 @@ async def download_video(
             "subtitleslangs": [subtitle_lang],
             "writeautomaticsub": True,
         })
+
+    # SponsorBlock: автоматически вырезать рекламные вставки из YouTube
+    if USE_SPONSORBLOCK and not audio_only:
+        opts["sponsorblock_remove"] = ["sponsor", "selfpromo", "interaction"]
 
     hooks = [tracker.hook, _cancel_hook]
     opts.update({
@@ -371,6 +397,9 @@ async def download_video(
 
                 result_holder["title"] = info.get("title", "")
                 result_holder["file_path"] = Path(filename)
+        except _DownloadCancelled:
+            # Отмена пользователем — не логируем как ошибку
+            result_holder["error"] = "CANCELLED"
         except Exception as e:
             result_holder["error"] = str(e)
 

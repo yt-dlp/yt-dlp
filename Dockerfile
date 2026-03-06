@@ -3,6 +3,7 @@ FROM python:3.12-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ffmpeg \
         ca-certificates \
+        aria2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Создаём непривилегированного пользователя (UID/GID 1000)

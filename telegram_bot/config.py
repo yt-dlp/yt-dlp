@@ -37,6 +37,11 @@ FILE_TTL_SECONDS = int(os.environ.get("FILE_TTL_HOURS", "24")) * 3600
 ALLOW_PLAYLISTS = os.environ.get("ALLOW_PLAYLISTS", "true").lower() == "true"
 ALLOW_AUDIO = os.environ.get("ALLOW_AUDIO", "true").lower() == "true"
 ALLOW_SUBTITLES = os.environ.get("ALLOW_SUBTITLES", "true").lower() == "true"
+# aria2c: параллельные соединения ускоряют загрузку больших файлов по HTTP
+# Требует aria2 в системе (уже установлен в Dockerfile)
+USE_ARIA2C = os.environ.get("USE_ARIA2C", "true").lower() == "true"
+# SponsorBlock: убирать рекламные вставки из YouTube-видео
+USE_SPONSORBLOCK = os.environ.get("USE_SPONSORBLOCK", "false").lower() == "true"
 
 # Proxy (optional)
 PROXY_URL = os.environ.get("PROXY_URL", "")
