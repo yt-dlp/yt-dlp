@@ -1,0 +1,45 @@
+services:
+  ytdlp-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ytdlp-bot
+    restart: unless-stopped
+
+    # ── Environment variables ───────────────────────────────────────────────
+    env_file:
+      - .env
+
+    # ── Persistent volumes ──────────────────────────────────────────────────
+    volumes:
+      # Downloaded files (temporary during session)
+      - ./data/downloads:/downloads
+      # SQLite database (users, history)
+      - ./data/db:/data
+      # Optional: cookie file for age-restricted videos
+      # - ./cookies.txt:/cookies.txt:ro
+
+    # ── Resource limits (adjust to your server) ────────────────────────────
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+    # ── Logging ─────────────────────────────────────────────────────────────
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # ── Health check ─────────────────────────────────────────────────────────
+    healthcheck:
+      test: ["CMD", "python", "-c", "import yt_dlp; print('ok')"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
