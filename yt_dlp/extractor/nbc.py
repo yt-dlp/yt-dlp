@@ -596,10 +596,12 @@ class NBCOlympicsIE(NBCUniversalBaseIE):
             'description': 'md5:f704f591217305c9559b23b877aa8d31',
             'display_id': 'watch-final-minutes-team-usas-mens-basketball-gold',
             'duration': 395,
+            'episode': 'Watch the final minutes of Team USA\'s men\'s basketball gold',
             'tags': 'count:15',
             'thumbnail': r're:https?://.+',
             'timestamp': 1723346984,
             'upload_date': '20240811',
+            'uploader': 'NBCU-SPORTS',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -612,10 +614,12 @@ class NBCOlympicsIE(NBCUniversalBaseIE):
             'description': 'md5:fe97cd549f0321e868ae02165ff9b79e',
             'display_id': 'winter-paralympics-promise-elite-action-50th-anniversary',
             'duration': 158,
+            'episode': 'Winter Paralympics promise elite action for 50th anniversary',
             'tags': 'count:3',
             'thumbnail': r're:https?://.+',
             'timestamp': 1771691104,
             'upload_date': '20260221',
+            'uploader': 'NBCU-SPORTS',
         },
         'params': {'skip_download': 'm3u8'},
     }]
@@ -642,6 +646,7 @@ class NBCOlympicsIE(NBCUniversalBaseIE):
             'display_id': display_id,
             'formats': formats,
             'subtitles': subtitles,
+            **self._extract_theplatform_metadata(tp_path, media_id),
             **traverse_obj(data_settings, {
                 'title': ('title', {clean_html}, filter),
                 'alt_title': ('alt', {clean_html}, filter),
