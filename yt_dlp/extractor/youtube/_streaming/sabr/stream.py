@@ -336,6 +336,7 @@ class SabrStream:
                 self._is_retry = False
             else:
                 self._is_retry = True
+                self._check_retry_live_stream_end()
 
         self._consumed = True
         self._log_state()
@@ -641,6 +642,41 @@ class SabrStream:
             return True
 
         return False
+
+    def _check_retry_live_stream_end(self):
+        # For live and post-live, if:
+        # - on last http retry
+        # - and stream is near the head
+        # - and the live stream is no longer live (or is post-live)
+        # then mark the stream as consumed rather than failing.
+        # Sometimes the last segment or two of a live stream is unavailable and get a read error.
+        if (
+            not self.processor.is_live or not self._is_retry
+            or not self._current_http_retry
+            or self._current_http_retry.attempt <= self.http_retries
+        ):
+            return
+
+        last_retry_msg = '; not marking stream as consumed on last retry'
+        is_near_live_head = self._is_near_head_of_live_stream()
+        if not is_near_live_head:
+            context_msg = 'Not near live stream head' if self.processor.live_state else 'No live metadata available'
+            self.logger.debug(context_msg + last_retry_msg)
+            return
+
+        if self._missing_initialized_format():
+            self.logger.debug('Not all enabled format selectors have an initialized format yet' + last_retry_msg)
+            return
+
+        if not self.processor.post_live and self._heartbeat_is_live() is not False:
+            self.logger.debug(
+                'Heartbeat does not indicate stream has finished' + last_retry_msg)
+            return
+
+        self.logger.debug(
+            'Retry attempts exceeded, but near the live stream head and live stream has ended. '
+            'Assuming reached end of stream.')
+        self._consumed = True
 
     # endregion
 

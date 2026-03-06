@@ -821,6 +821,10 @@ class LiveAVProfile(BasicAudioVideoProfile):
         return parts
 
 
+class LiveRetryAVProfile(LiveAVProfile, RequestRetryAVProfile):
+    pass
+
+
 class SkipSegmentProfile(BasicAudioVideoProfile):
     def get_media_segments(
         self,

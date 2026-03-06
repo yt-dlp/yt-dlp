@@ -12,6 +12,7 @@ from test.test_sabr.test_stream.helpers import (
     LIVE_BROADCAST_ID,
     VALID_LIVE_URL,
     setup_sabr_stream_av,
+    LiveRetryAVProfile,
 )
 from yt_dlp.extractor.youtube._proto.videostreaming.reload_player_response import ReloadPlaybackParams
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import (
@@ -34,6 +35,7 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     LiveMetadata,
     SabrSeek,
 )
+from yt_dlp.networking.exceptions import TransportError, HTTPError
 
 
 class TestLiveStreamStall:
@@ -354,8 +356,8 @@ class TestLiveStreamStall:
 
         class MissingAudioFormatLiveAVProfile(LiveAVProfile):
             def determine_formats(self, vpabr: VideoPlaybackAbrRequest):
-                video_format_id, _ = super().determine_formats(vpabr)
-                return video_format_id, None
+                audio_format_id, _ = super().determine_formats(vpabr)
+                return audio_format_id, None
 
         def stall_func(parts, vpabr, url, request_number):
             # Stop returning new segments after 8 requests
@@ -1740,3 +1742,658 @@ class TestLive:
             ' if:[140(10), 248(10)] cr:[140:1-10 (0-19900), 248:1-10 (0-19900)]'
         )
         assert stats_str == expected_stats_str
+
+
+class TestLiveEndErrorRetriesExhausted:
+    @mock_time
+    @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
+    def test_transport_error_at_end_consumed(self, logger, client_info, post_live):
+        # Should mark the stream as consumed and safely exit when:
+        # - On last retry for transport errors
+        # - near the head of the stream
+        # - heartbeat strictly indicates stream is no longer live
+        # - all formats have been initialized
+        total_segments = 10
+        segment_target_duration_ms = 2000
+        dvr_segments = 9
+        heartbeat_callback = MagicMock()
+        heartbeat_callback.return_value = Heartbeat(
+            is_live=False, broadcast_id=LIVE_BROADCAST_ID, video_id='video_id')
+
+        profile = LiveRetryAVProfile({
+            'total_segments': total_segments,
+            'segment_target_duration_ms': segment_target_duration_ms,
+            'dvr_segments': dvr_segments,
+            'mode': 'transport',
+            'rn': list(range(10, 30)),
+        })
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=profile,
+            client_info=client_info,
+            logger=logger,
+            url=VALID_LIVE_URL,
+            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            heartbeat_callback=heartbeat_callback,
+            post_live=post_live,
+        )
+        assert sabr_stream.http_retries == 10  # default of 10 retries
+        audio_selector, video_selector = selectors
+
+        parts = list(sabr_stream.iter_parts())
+
+        # It should get all but the last segment (9)
+        assert_media_sequence_in_order(parts, audio_selector, total_segments - 1, check_segment_total_segments=False)
+        assert_media_sequence_in_order(parts, video_selector, total_segments - 1, check_segment_total_segments=False)
+
+        # There should be 10 error requests recorded
+        error_requests = [d for d in rh.request_history if d.error is not None]
+        assert len(error_requests) == 11
+        for request in error_requests:
+            assert isinstance(request.error, TransportError)
+            assert request.error.cause == 'simulated transport error'
+
+        # Should have 10 fallback attempts logged
+        for i in range(1, 10):
+            logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/10)...')
+
+        # Both formats should have been initialized
+        assert len(sabr_stream.processor.initialized_formats) == 2
+
+        # Callback should have been called only for live streams
+        if not post_live:
+            heartbeat_callback.assert_called()
+        else:
+            heartbeat_callback.assert_not_called()
+
+        logger.debug.assert_any_call(
+            'Retry attempts exceeded, but near the live stream head and live stream has ended. '
+            'Assuming reached end of stream.')
+
+    @mock_time
+    @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
+    def test_http_error_at_end_consumed(self, logger, client_info, post_live):
+        # Should mark the stream as consumed and safely exit when:
+        # - On last retry for http errors
+        # - near the head of the stream
+        # - heartbeat strictly indicates stream is no longer live
+        # - all formats have been initialized
+        total_segments = 10
+        segment_target_duration_ms = 2000
+        dvr_segments = 9
+        heartbeat_callback = MagicMock()
+        heartbeat_callback.return_value = Heartbeat(
+            is_live=False, broadcast_id=LIVE_BROADCAST_ID, video_id='video_id')
+
+        profile = LiveRetryAVProfile({
+            'total_segments': total_segments,
+            'segment_target_duration_ms': segment_target_duration_ms,
+            'dvr_segments': dvr_segments,
+            'mode': 'http',
+            'rn': list(range(10, 30)),
+        })
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=profile,
+            client_info=client_info,
+            logger=logger,
+            url=VALID_LIVE_URL,
+            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            heartbeat_callback=heartbeat_callback,
+            post_live=post_live,
+        )
+        assert sabr_stream.http_retries == 10  # default of 10 retries
+        audio_selector, video_selector = selectors
+
+        parts = list(sabr_stream.iter_parts())
+
+        # It should get all but the last segment (9)
+        assert_media_sequence_in_order(parts, audio_selector, total_segments - 1, check_segment_total_segments=False)
+        assert_media_sequence_in_order(parts, video_selector, total_segments - 1, check_segment_total_segments=False)
+
+        # There should be 10 error requests recorded
+        error_requests = [d for d in rh.request_history if d.error is not None]
+        assert len(error_requests) == 11
+        for request in error_requests:
+            assert isinstance(request.error, HTTPError)
+            assert request.error.status == 500
+
+        # Should have 10 fallback attempts logged
+        for i in range(1, 10):
+            logger.warning.assert_any_call(f'[sabr] Got error: HTTP Error 500: Internal Server Error. Retrying ({i}/10)...')
+
+        # Both formats should have been initialized
+        assert len(sabr_stream.processor.initialized_formats) == 2
+
+        # Callback should have been called only for live streams
+        if not post_live:
+            heartbeat_callback.assert_called()
+        else:
+            heartbeat_callback.assert_not_called()
+
+        logger.debug.assert_any_call(
+            'Retry attempts exceeded, but near the live stream head and live stream has ended. '
+            'Assuming reached end of stream.')
+
+    @mock_time
+    @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
+    def test_transport_error_at_end_consumed_custom_retry(self, logger, client_info, post_live):
+        # Should mark the stream as consumed and safely exit when:
+        # - On last retry for transport errors
+        # - near the head of the stream
+        # - heartbeat strictly indicates stream is no longer live
+        # - all formats have been initialized
+        # With a custom http_retries value
+
+        http_retries = 4
+        total_segments = 10
+        segment_target_duration_ms = 2000
+        dvr_segments = 9
+        heartbeat_callback = MagicMock()
+        heartbeat_callback.return_value = Heartbeat(
+            is_live=False, broadcast_id=LIVE_BROADCAST_ID, video_id='video_id')
+
+        profile = LiveRetryAVProfile({
+            'total_segments': total_segments,
+            'segment_target_duration_ms': segment_target_duration_ms,
+            'dvr_segments': dvr_segments,
+            'mode': 'transport',
+            'rn': list(range(10, 30)),
+        })
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=profile,
+            client_info=client_info,
+            logger=logger,
+            url=VALID_LIVE_URL,
+            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            heartbeat_callback=heartbeat_callback,
+            post_live=post_live,
+            http_retries=http_retries,
+        )
+        assert sabr_stream.http_retries == http_retries
+        audio_selector, video_selector = selectors
+
+        parts = list(sabr_stream.iter_parts())
+
+        # It should get all but the last segment (9)
+        assert_media_sequence_in_order(parts, audio_selector, total_segments - 1, check_segment_total_segments=False)
+        assert_media_sequence_in_order(parts, video_selector, total_segments - 1, check_segment_total_segments=False)
+
+        # There should be 10 error requests recorded
+        error_requests = [d for d in rh.request_history if d.error is not None]
+        assert len(error_requests) == http_retries + 1
+        for request in error_requests:
+            assert isinstance(request.error, TransportError)
+            assert request.error.cause == 'simulated transport error'
+
+        # Should have 10 fallback attempts logged
+        for i in range(1, http_retries):
+            logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/{http_retries})...')
+
+        # Both formats should have been initialized
+        assert len(sabr_stream.processor.initialized_formats) == 2
+
+        # Callback should have been called only for live streams
+        if not post_live:
+            heartbeat_callback.assert_called()
+        else:
+            heartbeat_callback.assert_not_called()
+
+        logger.debug.assert_any_call(
+            'Retry attempts exceeded, but near the live stream head and live stream has ended. '
+            'Assuming reached end of stream.')
+
+    @mock_time
+    def test_error_at_end_no_heartbeat_configured(self, logger, client_info):
+        # Should NOT mark the stream as consumed and safely exit when:
+        # - On last retry of transport error
+        # - near the head of the stream
+        # - heartbeat IS NOT CONFIGURED
+        # - all formats have been initialized
+        total_segments = 10
+        segment_target_duration_ms = 2000
+        dvr_segments = 9
+
+        profile = LiveRetryAVProfile({
+            'total_segments': total_segments,
+            'segment_target_duration_ms': segment_target_duration_ms,
+            'dvr_segments': dvr_segments,
+            'mode': 'transport',
+            'rn': list(range(10, 30)),
+        })
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=profile,
+            client_info=client_info,
+            logger=logger,
+            url=VALID_LIVE_URL,
+            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            heartbeat_callback=None,  # no heartbeat configured
+        )
+        assert sabr_stream.http_retries == 10  # default of 10 retries
+        audio_selector, video_selector = selectors
+
+        parts = []
+
+        with pytest.raises(TransportError, match='simulated transport error'):
+            for part in sabr_stream.iter_parts():
+                parts.append(part)
+
+        # It should get all but the last segment (9)
+        assert_media_sequence_in_order(parts, audio_selector, total_segments - 1, check_segment_total_segments=False)
+        assert_media_sequence_in_order(parts, video_selector, total_segments - 1, check_segment_total_segments=False)
+
+        # There should be 10 error requests recorded
+        error_requests = [d for d in rh.request_history if d.error is not None]
+        assert len(error_requests) == 11
+        for request in error_requests:
+            assert isinstance(request.error, TransportError)
+            assert request.error.cause == 'simulated transport error'
+
+        # Should have 10 fallback attempts logged
+        for i in range(1, 10):
+            logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/10)...')
+
+        # Both formats should have been initialized
+        assert len(sabr_stream.processor.initialized_formats) == 2
+
+        logger.debug.assert_any_call('No heartbeat callback provided, skipping heartbeat check')
+        logger.debug.assert_any_call('Heartbeat does not indicate stream has finished; not marking stream as consumed on last retry')
+
+    @mock_time
+    def test_error_at_end_heartbeat_no_response(self, logger, client_info):
+        # Should NOT mark the stream as consumed and safely exit when:
+        # - On last retry of transport error
+        # - near the head of the stream
+        # - heartbeat RETURNS NO RESPONSE
+        # - all formats have been initialized
+        total_segments = 10
+        segment_target_duration_ms = 2000
+        dvr_segments = 9
+
+        profile = LiveRetryAVProfile({
+            'total_segments': total_segments,
+            'segment_target_duration_ms': segment_target_duration_ms,
+            'dvr_segments': dvr_segments,
+            'mode': 'transport',
+            'rn': list(range(10, 30)),
+        })
+        heartbeat_callback = MagicMock()
+        # no response from callback
+        heartbeat_callback.return_value = None
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=profile,
+            client_info=client_info,
+            logger=logger,
+            url=VALID_LIVE_URL,
+            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            heartbeat_callback=heartbeat_callback,
+        )
+        assert sabr_stream.http_retries == 10  # default of 10 retries
+        audio_selector, video_selector = selectors
+
+        parts = []
+
+        with pytest.raises(TransportError, match='simulated transport error'):
+            for part in sabr_stream.iter_parts():
+                parts.append(part)
+
+        # It should get all but the last segment (9)
+        assert_media_sequence_in_order(parts, audio_selector, total_segments - 1, check_segment_total_segments=False)
+        assert_media_sequence_in_order(parts, video_selector, total_segments - 1, check_segment_total_segments=False)
+
+        # There should be 10 error requests recorded
+        error_requests = [d for d in rh.request_history if d.error is not None]
+        assert len(error_requests) == 11
+        for request in error_requests:
+            assert isinstance(request.error, TransportError)
+            assert request.error.cause == 'simulated transport error'
+
+        # Should have 10 fallback attempts logged
+        for i in range(1, 10):
+            logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/10)...')
+
+        # Both formats should have been initialized
+        assert len(sabr_stream.processor.initialized_formats) == 2
+
+        # Heartbeat should have been called at least once
+        heartbeat_callback.assert_called()
+        logger.debug.assert_any_call('Heartbeat callback returned no response, skipping heartbeat check')
+        logger.debug.assert_any_call('Heartbeat does not indicate stream has finished; not marking stream as consumed on last retry')
+
+    @mock_time
+    def test_error_at_end_heartbeat_error(self, logger, client_info):
+        # Should NOT mark the stream as consumed and safely exit when:
+        # - On last retry of transport error
+        # - near the head of the stream
+        # - heartbeat RAISES AN ERROR
+        # - all formats have been initialized
+        total_segments = 10
+        segment_target_duration_ms = 2000
+        dvr_segments = 9
+
+        profile = LiveRetryAVProfile({
+            'total_segments': total_segments,
+            'segment_target_duration_ms': segment_target_duration_ms,
+            'dvr_segments': dvr_segments,
+            'mode': 'transport',
+            'rn': list(range(10, 30)),
+        })
+        heartbeat_callback = MagicMock()
+        # raise an error on callback
+        heartbeat_callback.side_effect = Exception('heartbeat error')
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=profile,
+            client_info=client_info,
+            logger=logger,
+            url=VALID_LIVE_URL,
+            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            heartbeat_callback=heartbeat_callback,
+        )
+        assert sabr_stream.http_retries == 10  # default of 10 retries
+        audio_selector, video_selector = selectors
+
+        parts = []
+
+        with pytest.raises(TransportError, match='simulated transport error'):
+            for part in sabr_stream.iter_parts():
+                parts.append(part)
+
+        # It should get all but the last segment (9)
+        assert_media_sequence_in_order(parts, audio_selector, total_segments - 1, check_segment_total_segments=False)
+        assert_media_sequence_in_order(parts, video_selector, total_segments - 1, check_segment_total_segments=False)
+
+        # There should be 10 error requests recorded
+        error_requests = [d for d in rh.request_history if d.error is not None]
+        assert len(error_requests) == 11
+        for request in error_requests:
+            assert isinstance(request.error, TransportError)
+            assert request.error.cause == 'simulated transport error'
+
+        # Should have 10 fallback attempts logged
+        for i in range(1, 10):
+            logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/10)...')
+
+        # Both formats should have been initialized
+        assert len(sabr_stream.processor.initialized_formats) == 2
+
+        # Heartbeat should have been called at least once
+        heartbeat_callback.assert_called()
+        logger.warning.assert_any_call(
+            'Error occurred while calling heartbeat callback, skipping heartbeat check: heartbeat error')
+        logger.debug.assert_any_call('Heartbeat does not indicate stream has finished; not marking stream as consumed on last retry')
+
+    @mock_time
+    def test_error_at_end_heartbeat_still_live(self, logger, client_info):
+        # Should NOT mark the stream as consumed and safely exit when:
+        # - On last retry of transport error
+        # - near the head of the stream
+        # - heartbeat STRICTLY INDICATES STREAM IS STILL LIVE
+        # - all formats have been initialized
+        total_segments = 10
+        segment_target_duration_ms = 2000
+        dvr_segments = 9
+
+        heartbeat_callback = MagicMock()
+
+        def safe_still_live_func(parts, vpabr, url, request_number):
+            # Update the callback to is_live=False after many requests,
+            # to avoid infinite loop in case of code error
+            is_live = True
+            if request_number > 100:
+                is_live = False
+            heartbeat_callback.return_value = Heartbeat(
+                is_live=is_live, broadcast_id=LIVE_BROADCAST_ID, video_id='video_id')
+            return parts
+
+        profile = LiveRetryAVProfile({
+            'total_segments': total_segments,
+            'segment_target_duration_ms': segment_target_duration_ms,
+            'dvr_segments': dvr_segments,
+            'custom_parts_function': safe_still_live_func,
+            'mode': 'transport',
+            'rn': list(range(10, 30)),
+        })
+
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=profile,
+            client_info=client_info,
+            logger=logger,
+            url=VALID_LIVE_URL,
+            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            heartbeat_callback=heartbeat_callback,
+        )
+        assert sabr_stream.http_retries == 10  # default of 10 retries
+        audio_selector, video_selector = selectors
+
+        parts = []
+
+        with pytest.raises(TransportError, match='simulated transport error'):
+            for part in sabr_stream.iter_parts():
+                parts.append(part)
+
+        # It should get all but the last segment (9)
+        assert_media_sequence_in_order(parts, audio_selector, total_segments - 1, check_segment_total_segments=False)
+        assert_media_sequence_in_order(parts, video_selector, total_segments - 1, check_segment_total_segments=False)
+
+        # There should be 10 error requests recorded
+        error_requests = [d for d in rh.request_history if d.error is not None]
+        assert len(error_requests) == 11
+        for request in error_requests:
+            assert isinstance(request.error, TransportError)
+            assert request.error.cause == 'simulated transport error'
+
+        # Should have 10 fallback attempts logged
+        for i in range(1, 10):
+            logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/10)...')
+
+        # Both formats should have been initialized
+        assert len(sabr_stream.processor.initialized_formats) == 2
+
+        # Heartbeat should have been called at least once
+        heartbeat_callback.assert_called()
+        logger.debug.assert_any_call(
+            'Heartbeat does not indicate stream has finished; not marking stream as consumed on last retry')
+
+    @mock_time
+    @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
+    def test_error_at_end_not_near_head(self, logger, client_info, post_live):
+        # Should NOT mark the stream as consumed and safely exit when:
+        # - On last retry of transport error
+        # - NOT near the head of the stream
+        # - heartbeat indicates stream is not live
+        # - all formats have been initialized
+        total_segments = 10
+        segment_target_duration_ms = 2000
+        dvr_segments = 9
+
+        profile = LiveRetryAVProfile({
+            'total_segments': total_segments,
+            'segment_target_duration_ms': segment_target_duration_ms,
+            'dvr_segments': dvr_segments,
+            'mode': 'transport',
+            'rn': list(range(2, 30)),  # not near the head of the stream
+        })
+        heartbeat_callback = MagicMock()
+        heartbeat_callback.return_value = Heartbeat(
+            is_live=False, broadcast_id=LIVE_BROADCAST_ID, video_id='video_id')
+
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=profile,
+            client_info=client_info,
+            logger=logger,
+            url=VALID_LIVE_URL,
+            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            heartbeat_callback=heartbeat_callback,
+            post_live=post_live,
+        )
+        assert sabr_stream.http_retries == 10  # default of 10 retries
+        audio_selector, video_selector = selectors
+
+        parts = []
+
+        with pytest.raises(TransportError, match='simulated transport error'):
+            for part in sabr_stream.iter_parts():
+                parts.append(part)
+
+        # It should the first segments
+        assert_media_sequence_in_order(parts, audio_selector, 1, check_segment_total_segments=False)
+        assert_media_sequence_in_order(parts, video_selector, 1, check_segment_total_segments=False)
+
+        # There should be 10 error requests recorded
+        error_requests = [d for d in rh.request_history if d.error is not None]
+        assert len(error_requests) == 11
+        for request in error_requests:
+            assert isinstance(request.error, TransportError)
+            assert request.error.cause == 'simulated transport error'
+
+        # Should have 10 fallback attempts logged
+        for i in range(1, 10):
+            logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/10)...')
+
+        # Both formats should have been initialized
+        assert len(sabr_stream.processor.initialized_formats) == 2
+
+        # Callback should not have been called - check for near head should happen before heartbeat check
+        heartbeat_callback.assert_not_called()
+
+        logger.debug.assert_any_call('Not near live stream head; not marking stream as consumed on last retry')
+
+    @mock_time
+    @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
+    def test_error_at_end_no_live_metadata(self, logger, client_info, post_live):
+        # Should NOT mark the stream as consumed and safely exit when:
+        # - On last retry of transport error
+        # - NO live metadata available (so cannot determine if near head or not)
+        # - heartbeat indicates stream is not live
+        # - all formats have been initialized
+        # logger = SabrFDLogger(ydl=YoutubeDL({'verbose': True}), prefix='live', log_level=SabrFDLogger.LogLevel.TRACE)
+        total_segments = 10
+        segment_target_duration_ms = 2000
+        dvr_segments = 9
+
+        heartbeat_callback = MagicMock()
+        heartbeat_callback.return_value = Heartbeat(
+            is_live=False, broadcast_id=LIVE_BROADCAST_ID, video_id='video_id')
+
+        profile = LiveRetryAVProfile({
+            'total_segments': total_segments,
+            'segment_target_duration_ms': segment_target_duration_ms,
+            'dvr_segments': dvr_segments,
+            'omit_live_metadata': True,  # no live metadata
+            'mode': 'transport',
+            'rn': list(range(10, 30)),
+        })
+
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=profile,
+            client_info=client_info,
+            logger=logger,
+            url=VALID_LIVE_URL,
+            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            heartbeat_callback=heartbeat_callback,
+            post_live=post_live,
+        )
+        assert sabr_stream.http_retries == 10  # default of 10 retries
+        audio_selector, video_selector = selectors
+
+        parts = []
+
+        with pytest.raises(TransportError, match='simulated transport error'):
+            for part in sabr_stream.iter_parts():
+                parts.append(part)
+
+        # It should get all but the last segment (9)
+        assert_media_sequence_in_order(parts, audio_selector, total_segments - 1, check_segment_total_segments=False)
+        assert_media_sequence_in_order(parts, video_selector, total_segments - 1, check_segment_total_segments=False)
+
+        # There should be 10 error requests recorded
+        error_requests = [d for d in rh.request_history if d.error is not None]
+        assert len(error_requests) == 11
+        for request in error_requests:
+            assert isinstance(request.error, TransportError)
+            assert request.error.cause == 'simulated transport error'
+
+        # Should have 10 fallback attempts logged
+        for i in range(1, 10):
+            logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/10)...')
+
+        # Both formats should have been initialized
+        assert len(sabr_stream.processor.initialized_formats) == 2
+
+        # Callback should not have been called - check for live metadata should happen before heartbeat check
+        heartbeat_callback.assert_not_called()
+
+        # No live metadata should available
+        assert sabr_stream.processor.live_state is None
+
+        logger.debug.assert_any_call('No live metadata available; not marking stream as consumed on last retry')
+
+    @mock_time
+    @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
+    def test_error_at_end_missing_izf(self, logger, client_info, post_live):
+        # Should NOT mark the stream as consumed and safely exit when:
+        # - On last retry for transport errors
+        # - near the head of the stream
+        # - heartbeat strictly indicates stream is no longer live
+        # - NOT all formats have been initialized
+        # NOTE: This technically would only happen on a VERY short stream... pretty much unheard of
+
+        total_segments = 2
+        segment_target_duration_ms = 2000
+        dvr_segments = 1
+
+        heartbeat_callback = MagicMock()
+        heartbeat_callback.return_value = Heartbeat(
+            is_live=False, broadcast_id=LIVE_BROADCAST_ID, video_id='video_id')
+
+        class MissingAudioFormatLiveRetryAVProfile(LiveRetryAVProfile):
+            def determine_formats(self, vpabr: VideoPlaybackAbrRequest):
+                audio_format_id, _ = super().determine_formats(vpabr)
+                return audio_format_id, None
+
+        profile = MissingAudioFormatLiveRetryAVProfile({
+            'total_segments': total_segments,
+            'segment_target_duration_ms': segment_target_duration_ms,
+            'dvr_segments': dvr_segments,
+            'mode': 'transport',
+            'rn': list(range(2, 30)),
+        })
+
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=profile,
+            client_info=client_info,
+            logger=logger,
+            url=VALID_LIVE_URL,
+            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            heartbeat_callback=heartbeat_callback,
+            post_live=post_live,
+        )
+        assert sabr_stream.http_retries == 10  # default of 10 retries
+        audio_selector, _ = selectors
+
+        parts = []
+
+        with pytest.raises(TransportError, match='simulated transport error'):
+            for part in sabr_stream.iter_parts():
+                parts.append(part)
+
+        # It should get all but the last segment (1)
+        assert_media_sequence_in_order(parts, audio_selector, total_segments - 1, check_segment_total_segments=False)
+
+        # There should be 10 error requests recorded
+        error_requests = [d for d in rh.request_history if d.error is not None]
+        assert len(error_requests) == 11
+        for request in error_requests:
+            assert isinstance(request.error, TransportError)
+            assert request.error.cause == 'simulated transport error'
+
+        # Should have 10 fallback attempts logged
+        for i in range(1, 10):
+            logger.warning.assert_any_call(f'[sabr] Got error: simulated transport error. Retrying ({i}/10)...')
+
+        # Only one format should have been initialized
+        assert len(sabr_stream.processor.initialized_formats) == 1
+
+        # Callback should not have been called - check for missing initialized format should happen before heartbeat check
+        heartbeat_callback.assert_not_called()
+
+        logger.debug.assert_any_call(
+            'Not all enabled format selectors have an initialized format yet; not marking stream as consumed on last retry')
