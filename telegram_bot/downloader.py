@@ -406,8 +406,14 @@ async def download_playlist(
 ) -> list[DownloadResult]:
     output_dir.mkdir(parents=True, exist_ok=True)
     opts = _base_opts()
+    if format_id == "bestaudio":
+        fmt = "bestaudio/best"
+    elif format_id != "best":
+        fmt = f"{format_id}+bestaudio/best"
+    else:
+        fmt = "bestvideo+bestaudio/best"
     opts.update({
-        "format": f"{format_id}+bestaudio/best" if format_id != "best" else "bestvideo+bestaudio/best",
+        "format": fmt,
         "merge_output_format": "mp4",
         "outtmpl": str(output_dir / "%(playlist_index)s-%(title).60s.%(ext)s"),
         "noplaylist": False,

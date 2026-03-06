@@ -125,10 +125,10 @@ async def _send_access_request(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
     # Notify admins
-    uname = f"@{user.username}" if user.username else user.full_name
+    uname = f"@{_esc(user.username)}" if user.username else _esc(user.full_name)
     msg = (
         f"🔔 <b>New access request</b>\n\n"
-        f"👤 Name: {user.full_name}\n"
+        f"👤 Name: {_esc(user.full_name)}\n"
         f"🔗 Username: {uname}\n"
         f"🆔 ID: <code>{user.id}</code>"
     )
@@ -151,7 +151,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     if db.is_admin(user.id) or db.is_authorized(user.id):
         await update.message.reply_text(
-            f"👋 Hello, <b>{user.first_name}</b>!\n\n"
+            f"👋 Hello, <b>{_esc(user.first_name)}</b>!\n\n"
             "Send me a video URL and I'll help you download it.\n\n"
             "Supported: YouTube, Instagram, TikTok, Twitter/X, "
             "Twitch, SoundCloud, and <a href='https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md'>1000+ more sites</a>.\n\n"
@@ -254,7 +254,7 @@ async def handle_url(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         info: VideoInfo = await get_video_info(url)
     except Exception as e:
         logger.error("get_video_info error: %s", e)
-        await msg.edit_text(f"❌ Could not fetch video info:\n<code>{str(e)[:300]}</code>", parse_mode=ParseMode.HTML)
+        await msg.edit_text(f"❌ Could not fetch video info:\n<code>{_esc(str(e)[:300])}</code>", parse_mode=ParseMode.HTML)
         return
 
     ctx.user_data[KEY_VIDEO_INFO] = info
@@ -384,11 +384,15 @@ async def _show_info(query, info: VideoInfo):
         f"👤 Uploader: {_esc(info.uploader)}\n"
         f"⏱ Duration: {info.duration_str}\n"
         f"👁 Views: {info.views_str}\n"
-        f"🌐 Site: {info.extractor}\n"
+        f"🌐 Site: {_esc(info.extractor)}\n"
     )
     if info.description:
         text += f"\n📝 {_esc(info.description[:300])}…"
-    await query.edit_message_caption(text, parse_mode=ParseMode.HTML)
+    try:
+        await query.edit_message_caption(text, parse_mode=ParseMode.HTML)
+    except TelegramError:
+        # Message was sent as text (no photo), fall back to edit_message_text
+        await query.edit_message_text(text, parse_mode=ParseMode.HTML)
 
 
 async def _handle_admin_approval(query, ctx, data: str):
@@ -397,7 +401,11 @@ async def _handle_admin_approval(query, ctx, data: str):
         return
 
     action, uid_str = data.split(":", 1)
-    target_id = int(uid_str)
+    try:
+        target_id = int(uid_str)
+    except ValueError:
+        await query.answer("Invalid user ID.", show_alert=True)
+        return
 
     if action == "approve":
         ok = db.approve_user(target_id, query.from_user.id)
@@ -556,7 +564,11 @@ async def _handle_playlist_callback(query, ctx, data: str):
     except Exception as e:
         logger.error("Playlist error: %s", e)
         db.update_download(dl_id, status="error", error=str(e))
-        await ctx.bot.send_message(query.message.chat_id, f"❌ Playlist error: {e}")
+        await ctx.bot.send_message(
+            query.message.chat_id,
+            f"❌ Playlist error:\n<code>{_esc(str(e)[:300])}</code>",
+            parse_mode=ParseMode.HTML,
+        )
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
@@ -788,7 +800,7 @@ def main():
     app.add_error_handler(error_handler)
 
     logger.info("Bot starting… Admin IDs: %s", config.ADMIN_IDS)
-    app.run_polling(drop_pending_updates=True)
+    app.run_polling(drop_pending_updates=True, bootstrap_retries=5)
 
 
 if __name__ == "__main__":
