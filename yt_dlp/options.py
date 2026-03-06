@@ -1049,6 +1049,10 @@ def create_parser():
         action='store_true', dest='skip_unavailable_fragments', default=True,
         help='Skip unavailable fragments for DASH, hlsnative and ISM downloads (default) (Alias: --no-abort-on-unavailable-fragments)')
     downloader.add_option(
+        '--allow-empty-fragments',
+        action='store_true', dest='allow_empty_fragments', default=False,
+        help='Allow downloading empty fragments (useful for some broken streams)')
+    downloader.add_option(
         '--abort-on-unavailable-fragments', '--no-skip-unavailable-fragments',
         action='store_false', dest='skip_unavailable_fragments',
         help='Abort download if a fragment is unavailable (Alias: --no-skip-unavailable-fragments)')
