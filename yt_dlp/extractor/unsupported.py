@@ -71,7 +71,8 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'watch\.telusoriginals\.com',
         r'video\.unext\.jp',
         r'www\.web\.nhk',
-        r'nbc.com/live',
+        r'nbc\.com/live',
+        r'nbcnews\.com/watch(?:#|$)',
     )
 
     _TESTS = [{
@@ -255,6 +256,9 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.nbc.com/live?brand=nbc-news&callsign=NBCNN',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.nbcnews.com/watch#new-york',
         'only_matching': True,
     }]
 
