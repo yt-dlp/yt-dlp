@@ -1,8 +1,11 @@
 from .common import InfoExtractor
 from ..utils import (
+    clean_html,
     int_or_none,
     parse_iso8601,
+    str_or_none,
     unescapeHTML,
+    url_or_none,
 )
 from ..utils.traversal import traverse_obj
 
@@ -18,29 +21,24 @@ class PeriscopeBaseIE(InfoExtractor):
             item_id, query=query)
 
     def _parse_broadcast_data(self, broadcast, video_id):
-        title = broadcast.get('status') or 'Periscope Broadcast'
-        uploader = broadcast.get('user_display_name') or broadcast.get('username')
-        title = f'{uploader} - {title}' if uploader else title
-        thumbnails = [{
-            'url': broadcast[image],
-        } for image in ('image_url', 'image_url_medium', 'image_url_small') if broadcast.get(image)]
-
         return {
-            'id': broadcast.get('id') or video_id,
-            'title': title,
-            'timestamp': parse_iso8601(broadcast.get('created_at')) or int_or_none(
-                broadcast.get('created_at_ms'), scale=1000),
-            'release_timestamp': int_or_none(broadcast.get('scheduled_start_ms'), scale=1000),
-            'uploader': uploader,
-            'uploader_id': broadcast.get('user_id') or broadcast.get('username'),
-            'thumbnails': thumbnails,
-            'view_count': int_or_none(broadcast.get('total_watched')),
-            'concurrent_view_count': int_or_none(broadcast.get('total_watching')),
-            'tags': broadcast.get('tags'),
+            'display_id': video_id,
             'live_status': {
                 'running': 'is_live',
                 'not_started': 'is_upcoming',
             }.get(traverse_obj(broadcast, ('state', {str.lower}))) or 'was_live',
+            **traverse_obj(broadcast, {
+                'id': ('id', {str_or_none}),
+                'title': ('status', {clean_html}, filter),
+                'concurrent_view_count': ('total_watching', {int_or_none}),
+                'release_timestamp': (('scheduled_start_ms', 'start_ms'), {int_or_none(scale=1000)}, any),
+                'tags': ('tags', ..., {clean_html}, filter),
+                'thumbnail': (('image_url', 'image_url_medium', 'image_url_small'), {url_or_none}, any),
+                'timestamp': ((('created_at', {parse_iso8601}), ('created_at_ms', {int_or_none(scale=1000)})), any),
+                'uploader': ('user_display_name', {clean_html}, filter),
+                'uploader_id': ('username', {clean_html}, filter),
+                'view_count': ('total_watched', {int_or_none}),
+            }),
         }
 
     @staticmethod
@@ -71,20 +69,20 @@ class PeriscopeIE(PeriscopeBaseIE):
     IE_NAME = 'periscope'
     _VALID_URL = r'https?://(?:www\.)?(?:periscope|pscp)\.tv/[^/]+/(?P<id>[^/?#]+)'
     _EMBED_REGEX = [r'<iframe[^>]+src=([\'"])(?P<url>(?:https?:)?//(?:www\.)?(?:periscope|pscp)\.tv/(?:(?!\1).)+)\1']
-    # Alive example URLs can be found here https://www.periscope.tv/
     _TESTS = [{
-        'url': 'https://www.periscope.tv/w/aJUQnjY3MjA3ODF8NTYxMDIyMDl2zCg2pECBgwTqRpQuQD352EMPTKQjT4uqlM3cgWFA-g==',
-        'md5': '65b57957972e503fcbbaeed8f4fa04ca',
+        'url': 'https://www.periscope.tv/LularoeHusbandMike/1mrGmgaXAVqxy',
         'info_dict': {
-            'id': '56102209',
+            'id': '1mrGmgaXAVqxy',
             'ext': 'mp4',
-            'title': 'Bec Boop - 🚠✈️🇬🇧 Fly above #London in Emirates Air Line cable car at night 🇬🇧✈️🚠 #BoopScope 🎀💗',
-            'timestamp': 1438978559,
-            'upload_date': '20150807',
-            'uploader': 'Bec Boop',
-            'uploader_id': '1465763',
+            'title': '🎉👍🏼 BROWSE OUR ENTIRE 1,900 +PIECE INVENTORY! 👍🏼🎉 #lularoe',
+            'live_status': 'was_live',
+            'tags': 'count:1',
+            'thumbnail': r're:https?://prod-fastly-us-east-1\.video\.pscp\.tv/.+',
+            'timestamp': 1498621952,
+            'upload_date': '20170628',
+            'uploader': 'LuLaRoe Husband Mike',
+            'uploader_id': 'LularoeHusbandMike',
         },
-        'skip': 'Expires in 24 hours',
     }, {
         'url': 'https://www.periscope.tv/w/1ZkKzPbMVggJv',
         'only_matching': True,
