@@ -889,7 +889,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'episode_number': 1,
             'title': '1 残酷',
             'duration': 1425.256,
-            'timestamp': 1554566400,
+            'timestamp': 1554566401,
             'upload_date': '20190406',
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
         },
@@ -957,6 +957,8 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
         premium_only = status_code == -10403
 
         video_info = traverse_obj(play_info, ('video_info', {dict})) or {}
+        if traverse_obj(video_info, 'is_drm'):
+            self.report_drm(episode_id)
         formats = self.extract_formats(video_info)
 
         if not formats:
