@@ -39,6 +39,7 @@ import database as db
 # import fileserver  # файловый сервер: раскомментировать при включении
 from downloader import (
     DownloadResult,
+    ProgressTracker,
     VideoInfo,
     download_video,
     get_audio_formats,
@@ -446,6 +447,11 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
 
     if data == "cancel":
+        cancel_flag = ctx.user_data.get("cancel_flag")
+        if cancel_flag is not None:
+            cancel_flag[0] = True
+            await query.answer("Отменяем загрузку…", show_alert=False)
+            return
         ctx.user_data.clear()
         await query.edit_message_text("🛑 Отменено.")
         return
@@ -659,12 +665,21 @@ async def _handle_download_callback(query, ctx, data: str):
     if dl_type == "s":
         format_id = "best"
 
-    quality_label = {
-        "a": "Аудио MP3",
-        "s": f"Субтитры ({subtitle_lang})",
-    }.get(dl_type, f"Видео {format_id}" if format_id != "best" else "Лучшее качество")
+    if dl_type == "a":
+        quality_label = "Аудио MP3"
+    elif dl_type == "s":
+        quality_label = f"Субтитры ({subtitle_lang})"
+    elif format_id == "best":
+        quality_label = "Лучшее качество"
+    else:
+        fmt_obj = next((f for f in info.formats if f.format_id == format_id), None)
+        quality_label = f"Видео {fmt_obj.resolution}" if fmt_obj else "Лучшее качество"
 
     db.update_download(dl_id, title=info.title, format_id=format_id, quality=quality_label, status="downloading")
+
+    cancel_flag = [False]
+    ctx.user_data["cancel_flag"] = cancel_flag
+    cancel_kb = InlineKeyboardMarkup([[InlineKeyboardButton("🛑 Отменить", callback_data="cancel")]])
 
     try:
         status_msg = await query.edit_message_text(
@@ -672,6 +687,7 @@ async def _handle_download_callback(query, ctx, data: str):
             f"Качество: {quality_label}\n\n"
             "⏳ Пожалуйста, подождите…",
             parse_mode=ParseMode.HTML,
+            reply_markup=cancel_kb,
         )
     except TelegramError:
         status_msg = await ctx.bot.send_message(
@@ -680,7 +696,29 @@ async def _handle_download_callback(query, ctx, data: str):
             f"Качество: {quality_label}\n\n"
             "⏳ Пожалуйста, подождите…",
             parse_mode=ParseMode.HTML,
+            reply_markup=cancel_kb,
         )
+
+    async def _on_progress(tracker: ProgressTracker) -> None:
+        if not tracker.total:
+            return
+        pct = tracker.downloaded / tracker.total * 100
+        speed_str = f"{tracker.speed / 1_048_576:.1f} МБ/с" if tracker.speed else "—"
+        if tracker.eta:
+            m, s = divmod(int(tracker.eta), 60)
+            eta_str = f"{m}м {s:02d}с" if m else f"{s}с"
+        else:
+            eta_str = "—"
+        try:
+            await status_msg.edit_text(
+                f"⬇️ Загружаю: <b>{_esc(info.title)}</b>\n"
+                f"Качество: {quality_label}\n\n"
+                f"⏳ {pct:.1f}% • {speed_str} • ETA: {eta_str}",
+                parse_mode=ParseMode.HTML,
+                reply_markup=cancel_kb,
+            )
+        except TelegramError:
+            pass
 
     await ctx.bot.send_chat_action(query.message.chat_id, ChatAction.UPLOAD_DOCUMENT)
 
@@ -692,9 +730,15 @@ async def _handle_download_callback(query, ctx, data: str):
             output_dir=tmp_dir,
             audio_only=audio_only,
             subtitle_lang=subtitle_lang,
+            progress_callback=_on_progress,
+            cancel_flag=cancel_flag,
         )
 
         if not result.success:
+            ctx.user_data.pop("cancel_flag", None)
+            if result.error == "CANCELLED":
+                await status_msg.edit_text("🛑 Загрузка отменена.")
+                return
             db.update_download(dl_id, status="error", error=result.error)
             await status_msg.edit_text(
                 f"❌ Ошибка загрузки:\n<code>{_esc(result.error)}</code>",
@@ -731,6 +775,7 @@ async def _handle_download_callback(query, ctx, data: str):
         shutil.rmtree(tmp_dir, ignore_errors=True)
         ctx.user_data.pop(KEY_VIDEO_INFO, None)
         ctx.user_data.pop(KEY_PENDING_URL, None)
+        ctx.user_data.pop("cancel_flag", None)
 
 
 async def _handle_playlist_callback(query, ctx, data: str):

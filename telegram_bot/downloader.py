@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import tempfile
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Optional
@@ -272,13 +273,15 @@ def get_audio_formats(formats: list[FormatInfo]) -> list[FormatInfo]:
 # ── Download ────────────────────────────────────────────────────────────────────
 
 class ProgressTracker:
-    def __init__(self, callback: Optional[Callable] = None):
+    def __init__(self, callback: Optional[Callable] = None, loop=None):
         self.callback = callback
+        self.loop = loop
         self.downloaded = 0
         self.total = 0
         self.speed = 0
         self.eta = 0
         self.status = "downloading"
+        self._last_update = 0.0
 
     def hook(self, d: dict) -> None:
         self.status = d.get("status", "")
@@ -287,8 +290,11 @@ class ProgressTracker:
             self.total = d.get("total_bytes") or d.get("total_bytes_estimate", 0)
             self.speed = d.get("speed", 0) or 0
             self.eta = d.get("eta", 0) or 0
-            if self.callback:
-                asyncio.run_coroutine_threadsafe(self.callback(self), asyncio.get_event_loop())
+            if self.callback and self.loop:
+                now = time.monotonic()
+                if now - self._last_update >= 5.0:   # не чаще раза в 5 секунд
+                    self._last_update = now
+                    asyncio.run_coroutine_threadsafe(self.callback(self), self.loop)
 
 
 async def download_video(
@@ -298,12 +304,18 @@ async def download_video(
     progress_callback: Optional[Callable] = None,
     audio_only: bool = False,
     subtitle_lang: Optional[str] = None,
+    cancel_flag: Optional[list] = None,
 ) -> DownloadResult:
     output_dir.mkdir(parents=True, exist_ok=True)
     output_template = str(output_dir / "%(title).80s.%(ext)s")
 
     opts = _base_opts()
-    tracker = ProgressTracker(progress_callback)
+    loop = asyncio.get_event_loop()
+    tracker = ProgressTracker(progress_callback, loop)
+
+    def _cancel_hook(d: dict) -> None:
+        if cancel_flag and cancel_flag[0]:
+            raise Exception("CANCELLED")
 
     if audio_only:
         opts.update({
@@ -330,9 +342,10 @@ async def download_video(
             "writeautomaticsub": True,
         })
 
+    hooks = [tracker.hook, _cancel_hook]
     opts.update({
         "outtmpl": output_template,
-        "progress_hooks": [tracker.hook],
+        "progress_hooks": hooks,
         "socket_timeout": 30,
         "retries": 3,
         "fragment_retries": 3,
@@ -371,7 +384,12 @@ async def download_video(
         return DownloadResult(success=False, error="Download timed out")
 
     if "error" in result_holder:
+        if cancel_flag and cancel_flag[0]:
+            return DownloadResult(success=False, error="CANCELLED")
         return DownloadResult(success=False, error=result_holder["error"])
+
+    if cancel_flag and cancel_flag[0]:
+        return DownloadResult(success=False, error="CANCELLED")
 
     file_path: Path = result_holder.get("file_path")
     if not file_path or not file_path.exists():
