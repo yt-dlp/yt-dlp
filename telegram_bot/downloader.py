@@ -133,10 +133,14 @@ def _base_opts() -> dict:
         opts["proxy"] = PROXY_URL
     if COOKIES_FILE and Path(COOKIES_FILE).exists():
         opts["cookiefile"] = COOKIES_FILE
-    # aria2c: параллельные соединения (до 16) — ускоряет HTTP-загрузки
     if USE_ARIA2C and shutil.which("aria2c"):
+        # aria2c: до 16 параллельных соединений на файл — ускоряет HTTP/HTTPS загрузки
         opts["external_downloader"] = "aria2c"
         opts["external_downloader_args"] = {"default": ["-x16", "-s16", "-k1M", "--quiet"]}
+    else:
+        # Встроенный загрузчик yt-dlp: 3 потока для HLS/DASH фрагментов
+        # (concurrent_fragment_downloads — официальная опция yt-dlp, см. README/download-options)
+        opts["concurrent_fragment_downloads"] = 3
     return opts
 
 

@@ -24,14 +24,17 @@ DB_PATH = Path(os.environ.get("DB_PATH", "/data/bot.db"))
 MAX_HISTORY_PER_USER = int(os.environ.get("MAX_HISTORY_PER_USER", "50"))
 DOWNLOAD_TIMEOUT = int(os.environ.get("DOWNLOAD_TIMEOUT", "3600"))  # seconds (1 час для больших файлов)
 
-# Файловый HTTP-сервер (вместо отправки файла в Telegram — даёт ссылку на скачивание)
+# Файловый HTTP-сервер (вместо/вместе с отправкой файла в Telegram — даёт ссылку)
 # PUBLIC_BASE_URL — публичный адрес, который видят пользователи (без trailing slash)
 #   Пример: https://myserver.com  или  http://1.2.3.4:8080
-#   Если пусто — бот отправляет файл напрямую в Telegram (старое поведение)
+#   Если пусто — только Telegram (старое поведение), кнопка «Ссылка» не появляется
 PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "").rstrip("/")
 HTTP_PORT = int(os.environ.get("HTTP_PORT", "8080"))
-# Сколько секунд ссылка остаётся активной (по умолчанию 24 часа)
-FILE_TTL_SECONDS = int(os.environ.get("FILE_TTL_HOURS", "24")) * 3600
+# TTL ссылки: по умолчанию 1 час (файл удаляется после скачивания ИЛИ по истечении TTL)
+FILE_TTL_SECONDS = int(os.environ.get("FILE_TTL_HOURS", "1")) * 3600
+# Секретный ключ для HMAC-подписи токенов файлового сервера (рекомендуется задать)
+# Генерация: python3 -c "import secrets; print(secrets.token_hex(32))"
+SERVER_SECRET = os.environ.get("SERVER_SECRET", "")
 
 # Feature flags
 ALLOW_PLAYLISTS = os.environ.get("ALLOW_PLAYLISTS", "true").lower() == "true"

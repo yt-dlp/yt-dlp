@@ -40,7 +40,7 @@ from telegram.ext import (
 
 import config
 import database as db
-# import fileserver  # файловый сервер: раскомментировать при включении
+import fileserver
 from downloader import (
     DownloadResult,
     FormatInfo,
@@ -562,7 +562,9 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await _handle_resolve_callback(query, ctx, data)
         return
 
-    if data.startswith("dl:"):
+    if data.startswith("deliver:"):
+        await _handle_deliver_callback(query, ctx, data)
+    elif data.startswith("dl:"):
         await _handle_download_callback(query, ctx, data)
     elif data.startswith("pl:"):
         await _handle_playlist_callback(query, ctx, data)
@@ -1035,28 +1037,81 @@ async def _handle_download_callback(query, ctx, data: str):
                         pass
                     return
 
-                db.update_download(dl_id, status="sending", file_size=result.file_size)
-                await ctx.bot.send_chat_action(query.message.chat_id, ChatAction.UPLOAD_DOCUMENT)
-                await _deliver_file_with_progress(query.message.chat_id, result, ctx.bot, status_msg)
                 db.update_download(dl_id, status="done", file_size=result.file_size)
 
-                # Возвращаем меню выбора качества — пользователь может скачать другой формат
-                _caption, _keyboard = _build_quality_menu(info)
-                try:
-                    await status_msg.edit_text(
-                        f"✅ <b>{_esc(result.title or info.title)}</b>  {_human_size(result.file_size)}\n\n"
-                        + _caption,
-                        parse_mode=ParseMode.HTML,
-                        reply_markup=_keyboard,
+                if config.PUBLIC_BASE_URL:
+                    # Файловый сервер включён — предлагаем выбор доставки
+                    try:
+                        fs_token = fileserver.move_and_register(
+                            result.file_path, config.FILE_TTL_SECONDS
+                        )
+                        ctx.user_data["_pending_delivery"] = {
+                            "token": fs_token,
+                            "dl_id": dl_id,
+                            "info": info,
+                            "url": url,
+                            "file_size": result.file_size,
+                            "title": result.title or info.title,
+                        }
+                        ttl_h = max(1, config.FILE_TTL_SECONDS // 3600)
+                        await status_msg.edit_text(
+                            f"✅ <b>{_esc(result.title or info.title)}</b>\n"
+                            f"📦 {_human_size(result.file_size)}\n\n"
+                            "Как получить файл?",
+                            parse_mode=ParseMode.HTML,
+                            reply_markup=InlineKeyboardMarkup([
+                                [
+                                    InlineKeyboardButton(
+                                        "📤 Отправить в Telegram",
+                                        callback_data="deliver:tg",
+                                    ),
+                                    InlineKeyboardButton(
+                                        f"🔗 Ссылка ({ttl_h}ч)",
+                                        callback_data="deliver:link",
+                                    ),
+                                ],
+                            ]),
+                        )
+                    except Exception as e:
+                        logger.error("fileserver.move_and_register failed: %s", e)
+                        # Фолбэк: отправляем через Telegram напрямую
+                        await ctx.bot.send_chat_action(query.message.chat_id, ChatAction.UPLOAD_DOCUMENT)
+                        await _deliver_file_with_progress(
+                            query.message.chat_id, result, ctx.bot, status_msg
+                        )
+                        _caption, _keyboard = _build_quality_menu(info)
+                        try:
+                            await status_msg.edit_text(
+                                f"✅ <b>{_esc(result.title or info.title)}</b>  {_human_size(result.file_size)}\n\n"
+                                + _caption,
+                                parse_mode=ParseMode.HTML,
+                                reply_markup=_keyboard,
+                            )
+                        except TelegramError:
+                            pass
+                else:
+                    # Прямая отправка в Telegram
+                    await ctx.bot.send_chat_action(query.message.chat_id, ChatAction.UPLOAD_DOCUMENT)
+                    await _deliver_file_with_progress(
+                        query.message.chat_id, result, ctx.bot, status_msg
                     )
-                except TelegramError:
-                    pass
-
-                # Обновляем сессию (сбрасываем 2-часовой таймер очистки)
-                try:
-                    db.save_session(status_msg.chat_id, status_msg.message_id, url, _serialize_video_info(info))
-                except Exception:
-                    pass
+                    _caption, _keyboard = _build_quality_menu(info)
+                    try:
+                        await status_msg.edit_text(
+                            f"✅ <b>{_esc(result.title or info.title)}</b>  {_human_size(result.file_size)}\n\n"
+                            + _caption,
+                            parse_mode=ParseMode.HTML,
+                            reply_markup=_keyboard,
+                        )
+                    except TelegramError:
+                        pass
+                    try:
+                        db.save_session(
+                            status_msg.chat_id, status_msg.message_id,
+                            url, _serialize_video_info(info),
+                        )
+                    except Exception:
+                        pass
 
             except asyncio.CancelledError:
                 raise  # Поднимаем наверх — будет поймано во внешнем try
@@ -1091,6 +1146,121 @@ async def _handle_download_callback(query, ctx, data: str):
             await status_msg.edit_text(_caption, parse_mode=ParseMode.HTML, reply_markup=_keyboard)
         except TelegramError:
             pass
+
+
+async def _handle_deliver_callback(query, ctx, data: str):
+    """Обрабатывает выбор способа доставки файла: Telegram или ссылка."""
+    action = data.split(":", 1)[1]  # "tg" или "link"
+    pd = ctx.user_data.get("_pending_delivery")
+
+    if not pd:
+        await query.answer(
+            "❌ Сессия доставки истекла. Скачайте файл заново.",
+            show_alert=True,
+        )
+        try:
+            await query.edit_message_text("❌ Сессия доставки истекла. Отправьте ссылку заново.")
+        except TelegramError:
+            pass
+        return
+
+    token: str = pd["token"]
+    dl_id: int = pd["dl_id"]
+    info: VideoInfo = pd["info"]
+    url: str = pd.get("url", "")
+    file_size: int = pd.get("file_size", 0)
+    title: str = pd.get("title", "")
+
+    entry = fileserver.get_entry(token)
+
+    if action == "tg":
+        # ── Доставка через Telegram ──────────────────────────────────────────────
+        if not entry or not entry.path.exists():
+            await query.answer("❌ Файл недоступен (истёк TTL). Скачайте заново.", show_alert=True)
+            ctx.user_data.pop("_pending_delivery", None)
+            return
+
+        # Снимаем с учёта файлового сервера ДО отправки (чтобы TTL-cleanup не удалил файл)
+        fileserver.unregister(token, delete_file=False)
+        ctx.user_data.pop("_pending_delivery", None)
+
+        result = DownloadResult(
+            success=True,
+            file_path=entry.path,
+            title=title,
+            file_size=entry.file_size,
+        )
+
+        try:
+            await query.edit_message_text(
+                f"📤 Отправляю <b>{_esc(title)}</b> ({_human_size(entry.file_size)})…",
+                parse_mode=ParseMode.HTML,
+            )
+        except TelegramError:
+            pass
+
+        await ctx.bot.send_chat_action(query.message.chat_id, ChatAction.UPLOAD_DOCUMENT)
+        await _deliver_file_with_progress(query.message.chat_id, result, ctx.bot, query.message)
+
+        # Удаляем директорию файлового сервера (файл удалён _deliver_file)
+        try:
+            entry.path.parent.rmdir()
+        except OSError:
+            pass
+
+        db.update_download(dl_id, status="done")
+        _caption, _keyboard = _build_quality_menu(info)
+        try:
+            await query.message.edit_text(
+                f"✅ <b>{_esc(title)}</b>  {_human_size(entry.file_size)}\n\n" + _caption,
+                parse_mode=ParseMode.HTML,
+                reply_markup=_keyboard,
+            )
+        except TelegramError:
+            pass
+        if url:
+            try:
+                db.save_session(
+                    query.message.chat_id, query.message.message_id,
+                    url, _serialize_video_info(info),
+                )
+            except Exception:
+                pass
+
+    elif action == "link":
+        # ── Доставка через ссылку файлового сервера ──────────────────────────────
+        if not entry:
+            await query.answer("❌ Файл недоступен (истёк TTL). Скачайте заново.", show_alert=True)
+            ctx.user_data.pop("_pending_delivery", None)
+            return
+
+        ctx.user_data.pop("_pending_delivery", None)
+
+        info_url = f"{config.PUBLIC_BASE_URL}/info/{token}"
+        ttl_h = max(1, config.FILE_TTL_SECONDS // 3600)
+        _caption, _keyboard = _build_quality_menu(info)
+
+        try:
+            await query.edit_message_text(
+                f"🔗 <b>Ссылка для скачивания:</b>\n"
+                f"<a href='{info_url}'>{info_url}</a>\n\n"
+                f"📦 {_human_size(file_size)}\n"
+                f"⏱ Действует <b>{ttl_h} ч</b> (удаляется после первого скачивания)\n\n"
+                + _caption,
+                parse_mode=ParseMode.HTML,
+                disable_web_page_preview=True,
+                reply_markup=_keyboard,
+            )
+        except TelegramError:
+            pass
+        if url:
+            try:
+                db.save_session(
+                    query.message.chat_id, query.message.message_id,
+                    url, _serialize_video_info(info),
+                )
+            except Exception:
+                pass
 
 
 async def _handle_playlist_callback(query, ctx, data: str):
@@ -1403,20 +1573,6 @@ def _fmt_num(n: int) -> str:
     return str(n)
 
 
-# ── PTB lifecycle hooks (файловый сервер — закомментировано) ─────────────────────
-#
-# async def _post_init(application: Application) -> None:
-#     """Запускает файловый HTTP-сервер вместе с ботом."""
-#     if config.PUBLIC_BASE_URL:
-#         await fileserver.start(port=config.HTTP_PORT)
-#         logger.info(
-#             "Файловый сервер: порт %d, публичный URL: %s",
-#             config.HTTP_PORT, config.PUBLIC_BASE_URL,
-#         )
-#     else:
-#         logger.info("PUBLIC_BASE_URL не задан — файлы отправляются напрямую в Telegram")
-
-
 # ── Периодическая очистка (asyncio, без APScheduler) ─────────────────────────────
 
 async def _cleanup_loop() -> None:
@@ -1433,6 +1589,20 @@ async def _post_init(application) -> None:
     application.bot_data["_download_sem"] = asyncio.Semaphore(config.MAX_CONCURRENT_DOWNLOADS)
     task = asyncio.create_task(_cleanup_loop())
     application.bot_data["_cleanup_task"] = task
+
+    # Файловый HTTP-сервер: запускается если задан PUBLIC_BASE_URL
+    if config.PUBLIC_BASE_URL:
+        try:
+            await fileserver.start(port=config.HTTP_PORT)
+            logger.info(
+                "Файловый сервер запущен: порт %d | публичный URL: %s",
+                config.HTTP_PORT, config.PUBLIC_BASE_URL,
+            )
+        except Exception as e:
+            logger.error("Не удалось запустить файловый сервер: %s", e)
+    else:
+        logger.info("PUBLIC_BASE_URL не задан — файловый сервер отключён")
+
     # Устанавливаем список команд (видны при вводе "/" в Telegram)
     try:
         await application.bot.set_my_commands([
@@ -1455,6 +1625,9 @@ async def _post_shutdown(application) -> None:
             await task
         except asyncio.CancelledError:
             pass
+    # Останавливаем файловый сервер
+    if config.PUBLIC_BASE_URL:
+        await fileserver.stop()
 
 
 async def _cleanup_job() -> None:
