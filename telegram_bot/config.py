@@ -44,6 +44,8 @@ ALLOW_SUBTITLES = os.environ.get("ALLOW_SUBTITLES", "true").lower() == "true"
 MAX_PLAYLIST_ITEMS = int(os.environ.get("MAX_PLAYLIST_ITEMS", "10"))
 # Аудио в формате OPUS — ремукс без перекодирования, значительно быстрее MP3
 ALLOW_OPUS = os.environ.get("ALLOW_OPUS", "true").lower() == "true"
+# Аудио в формате WAV — несжатый PCM, максимальное качество, большие файлы
+ALLOW_WAV = os.environ.get("ALLOW_WAV", "false").lower() == "true"
 # aria2c: параллельные соединения ускоряют загрузку больших файлов по HTTP
 # Требует aria2 в системе (уже установлен в Dockerfile)
 USE_ARIA2C = os.environ.get("USE_ARIA2C", "true").lower() == "true"

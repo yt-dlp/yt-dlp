@@ -335,7 +335,7 @@ async def download_video(
     output_dir: Path,
     progress_callback: Optional[Callable] = None,
     audio_only: bool = False,
-    audio_format: str = "mp3",   # "mp3" | "opus"  (opus = ремукс, без перекодирования)
+    audio_format: str = "mp3",   # "mp3" | "opus" | "wav"
     subtitle_lang: Optional[str] = None,
     cancel_flag: Optional[list] = None,
 ) -> DownloadResult:
@@ -374,6 +374,15 @@ async def download_video(
                 "postprocessors": [{
                     "key": "FFmpegExtractAudio",
                     "preferredcodec": "opus",
+                }],
+            })
+        elif audio_format == "wav":
+            # WAV: несжатый PCM — без потерь, максимальный размер
+            opts.update({
+                "format": "bestaudio/best",
+                "postprocessors": [{
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "wav",
                 }],
             })
         else:

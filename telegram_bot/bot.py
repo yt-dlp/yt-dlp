@@ -559,13 +559,15 @@ def _build_quality_menu(info: VideoInfo) -> tuple[str, InlineKeyboardMarkup]:
         size_hint = f" [{f.size_str}]" if f.filesize or f.tbr else ""
         fps_hint = f" {f.fps}fps" if f.fps and f.fps > 30 else ""
         warn = " ⚠️" if too_large else ""
-        label = f"🎥 {f.resolution}{fps_hint} {f.ext.upper()}{size_hint}{warn}"
+        label = f"🎥 {f.resolution}{fps_hint} MP4{size_hint}{warn}"
         buttons.append([InlineKeyboardButton(label, callback_data=f"dl:v:{f.format_id}")])
     buttons.append([InlineKeyboardButton("⚡ Лучшее качество (авто)", callback_data="dl:v:best")])
     if config.ALLOW_AUDIO:
         buttons.append([InlineKeyboardButton("🎵 Аудио MP3 (192 kbps)", callback_data="dl:a:best")])
         if config.ALLOW_OPUS:
             buttons.append([InlineKeyboardButton("⚡ Аудио OPUS (быстро, без конвертации)", callback_data="dl:ao:best")])
+        if config.ALLOW_WAV:
+            buttons.append([InlineKeyboardButton("🎵 Аудио WAV (несжатый, PCM)", callback_data="dl:aw:best")])
     if config.ALLOW_SUBTITLES:
         buttons.append([
             InlineKeyboardButton("📄 + Субтитры RU", callback_data="dl:s:ru"),
@@ -1071,8 +1073,8 @@ async def _handle_download_callback(query, ctx, data: str):
             await query.answer("❌ Неверный формат. Отправьте ссылку заново.", show_alert=True)
             return
 
-    audio_only = dl_type in ("a", "ao")
-    audio_format = "opus" if dl_type == "ao" else "mp3"
+    audio_only = dl_type in ("a", "ao", "aw")
+    audio_format = "opus" if dl_type == "ao" else "wav" if dl_type == "aw" else "mp3"
     subtitle_lang = format_id if dl_type == "s" else None
     if dl_type == "s":
         format_id = "best"
@@ -1082,6 +1084,9 @@ async def _handle_download_callback(query, ctx, data: str):
         fmt_obj = None
     elif dl_type == "ao":
         quality_label = "Аудио OPUS"
+        fmt_obj = None
+    elif dl_type == "aw":
+        quality_label = "Аудио WAV"
         fmt_obj = None
     elif dl_type == "s":
         quality_label = f"Субтитры ({subtitle_lang})"
