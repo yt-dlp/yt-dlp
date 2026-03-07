@@ -437,7 +437,7 @@ async def download_video(
                 filename = ydl.prepare_filename(info)
                 result_holder["title"] = info.get("title", "")
                 if audio_only:
-                    ext = ".opus" if audio_format == "opus" else ".mp3"
+                    ext = ".opus" if audio_format == "opus" else ".wav" if audio_format == "wav" else ".mp3"
                     filename = Path(filename).with_suffix(ext)
                 else:
                     filename = Path(filename).with_suffix(".mp4")

@@ -770,7 +770,7 @@ async def _handle_menu_callback(query, ctx, data: str):
             "/history, /status, /cancel"
         )
         if is_adm:
-            text += "\n/pending, /users, /ban, /stats"
+            text += "\n/pending, /users, /approve, /deny, /ban, /unban, /addadmin, /stats"
         await query.edit_message_text(
             text,
             parse_mode=ParseMode.HTML,
@@ -1159,7 +1159,14 @@ async def _handle_download_callback(query, ctx, data: str):
             # Загрузка потока завершена — идёт пост-обработка (FFmpeg).
             # Для аудио: конвертация в MP3.
             # Для видео: слияние видео+аудио потоков (fired дважды — после каждого потока).
-            proc_str = "🔄 Конвертирую в MP3..." if audio_only else "🔄 Обрабатываю (FFmpeg)..."
+            if not audio_only:
+                proc_str = "🔄 Обрабатываю (FFmpeg)..."
+            elif audio_format == "opus":
+                proc_str = "🔄 Извлекаю OPUS..."
+            elif audio_format == "wav":
+                proc_str = "🔄 Конвертирую в WAV..."
+            else:
+                proc_str = "🔄 Конвертирую в MP3..."
             try:
                 await status_msg.edit_text(
                     f"⬇️ Загружаю: <b>{_esc(info.title)}</b>\n"
