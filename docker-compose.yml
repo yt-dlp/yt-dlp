@@ -1,0 +1,100 @@
+services:
+
+  # ── Локальный Telegram Bot API сервер ────────────────────────────────────────
+  # Снимает лимит 50 МБ на файлы — позволяет отправлять до 2 ГБ.
+  # Требует: TELEGRAM_API_ID и TELEGRAM_API_HASH из https://my.telegram.org
+  telegram-bot-api:
+    image: aiogram/telegram-bot-api:latest
+    container_name: telegram-bot-api
+    restart: unless-stopped
+    environment:
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
+      TELEGRAM_LOCAL: "1"        # включает режим без лимитов на файлы (до 2 ГБ)
+      TELEGRAM_LOCAL_ID: "bot"   # имя папки вместо токена (data/telegram-bot-api/bot/)
+    volumes:
+      - ./data/telegram-bot-api:/var/lib/telegram-bot-api
+      # Общий том с ботом: локальный сервер читает файлы напрямую с диска
+      # (local_mode=True в PTB) — устраняет HTTP-upload между контейнерами
+      - ./data/downloads:/downloads:ro
+    networks:
+      botnet:
+        ipv4_address: 10.10.2.3   # фиксированный IP для ограничения исходящего трафика в nftables
+    healthcheck:
+      # 404 at root is normal — the server is up. wget exits 8 on HTTP errors,
+      # so we accept codes 0 and 8 (any HTTP response = healthy).
+      test: ["CMD-SHELL", "wget -q --timeout=5 http://localhost:8081; [ $? -le 8 ]"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s    # первый запуск: скачивает данные Telegram (~2-3 мин)
+
+  # ── YT-DLP бот ───────────────────────────────────────────────────────────────
+  ytdlp-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ytdlp-bot
+    restart: unless-stopped
+    depends_on:
+      telegram-bot-api:
+        condition: service_healthy
+
+    # ── Переменные окружения ─────────────────────────────────────────────────
+    env_file:
+      - .env
+
+    # ── Тома ────────────────────────────────────────────────────────────────
+    volumes:
+      # Загружаемые файлы (временные)
+      - ./data/downloads:/downloads
+      # SQLite база данных
+      - ./data/db:/data
+      # Опционально: куки для контента 18+
+      # - ./cookies.txt:/cookies.txt:ro
+
+    # ── Лимиты ресурсов ──────────────────────────────────────────────────────
+    # memory: файлы не буферизуются в RAM (стриминг при отправке в Telegram),
+    # поэтому 2G достаточно даже для файлов до 10 ГБ.
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+    # ── Логи ────────────────────────────────────────────────────────────────
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # ── Порт файлового HTTP-сервера ──────────────────────────────────────────
+    # ports: НЕ используется — Docker iptables отключён (daemon.json: iptables=false).
+    # Проброс порта делается через DNAT в nftables (dockernat.prerouting).
+    # Раскомментировать ТОЛЬКО для отладки без nftables (создаст docker-proxy):
+    # ports:
+    #   - "${HTTP_PORT:-8080}:8080"
+
+    # ── Сеть ────────────────────────────────────────────────────────────────
+    networks:
+      botnet:
+        ipv4_address: 10.10.2.2   # фиксированный IP для DNAT в nftables
+
+    # ── Healthcheck ──────────────────────────────────────────────────────────
+    healthcheck:
+      test: ["CMD", "python", "-c", "import yt_dlp; print('ok')"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+networks:
+  botnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.2.0/24
