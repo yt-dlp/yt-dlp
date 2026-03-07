@@ -554,8 +554,15 @@ class BBCCoUkIE(InfoExtractor):
             programme_id = player.get('vpid')
 
         if not programme_id:
-            programme_id = self._search_regex(
-                rf'"vpid"\s*:\s*"({self._ID_REGEX})"', webpage, 'vpid', fatal=False, default=None)
+            programme_id = traverse_obj(
+                self._search_json(
+                    r'window\s*\.\s*__IPLAYER_REDUX_STATE__\s*=',
+                    webpage,
+                    '__IPLAYER_REDUX_STATE__',
+                    group_id,
+                    default=None,
+                ), ('versions', (lambda _, v: v.get('id') == 'original',
+                    lambda _, v: v.get('id') != 'original'), 'id', {str}, any))
 
         if programme_id:
             formats, subtitles = self._download_media_selector(programme_id)
