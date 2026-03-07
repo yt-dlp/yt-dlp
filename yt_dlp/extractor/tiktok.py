@@ -385,6 +385,10 @@ class TikTokBaseIE(InfoExtractor):
             'quality': qualities(self.QUALITIES)(res),
         }, res
 
+    @staticmethod
+    def _is_story(aweme_detail):
+        return traverse_obj(aweme_detail, ('story', 'ExpiredAt')) is not None
+
     def _parse_aweme_video_app(self, aweme_detail):
         aweme_id = aweme_detail['aweme_id']
         video_info = aweme_detail['video']
@@ -544,6 +548,7 @@ class TikTokBaseIE(InfoExtractor):
                 needs_subscription='Friends only' in labels,
                 is_unlisted='Followers only' in labels),
             '_format_sort_fields': ('quality', 'codec', 'size', 'br'),
+            'is_story': self._is_story(aweme_detail),
         }
 
     def _extract_web_formats(self, aweme_detail):
@@ -678,6 +683,7 @@ class TikTokBaseIE(InfoExtractor):
                 for cover_id in ('thumbnail', 'cover', 'dynamicCover', 'originCover')
                 for cover_url in traverse_obj(aweme_detail, ((None, 'video'), cover_id, {url_or_none}))
             ],
+            'is_story': self._is_story(aweme_detail),
         }
 
 
