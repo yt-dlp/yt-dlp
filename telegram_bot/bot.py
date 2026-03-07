@@ -548,13 +548,25 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if data == "cancel":
         cancel_flag = ctx.user_data.get("cancel_flag")
         if cancel_flag is not None:
-            # Загрузка активна — устанавливаем флаг И отменяем asyncio-задачу
-            # (task.cancel() нужен для aria2c: он не опрашивает progress_hook)
+            # Загрузка активна: сигнализируем через cancel_flag.
+            # _cancel_hook в progress_hook yt-dlp поднимает _DownloadCancelled
+            # (BaseException) → поток корректно завершается → download_video()
+            # возвращает result.error="CANCELLED" → меню качества показывается снова.
+            #
+            # НЕ вызываем task.cancel(): он прерывает asyncio-сторону, но поток
+            # в executor продолжает работать и скачивать файл — это и есть
+            # причина «кнопка Стоп не работает».
             cancel_flag[0] = True
-            task = ctx.user_data.get("_download_task")
-            if task and not task.done():
-                task.cancel()
-            await query.answer("Отменяем загрузку…", show_alert=False)
+            # Визуальный фидбек: меняем кнопку на «Останавливаем…»
+            try:
+                await query.edit_message_reply_markup(
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton("⏳ Останавливаем…", callback_data="noop"),
+                    ]])
+                )
+            except TelegramError:
+                pass
+            await query.answer("Останавливаем загрузку…", show_alert=False)
             return
         # Пользователь явно закрывает меню — удаляем сессию из БД
         try:
@@ -1068,19 +1080,27 @@ async def _handle_download_callback(query, ctx, data: str):
                 if not result.success:
                     _caption, _keyboard = _build_quality_menu(info)
                     if result.error == "CANCELLED":
-                        # Отмена через progress_hook — возвращаем меню качества
+                        # Отмена через _cancel_hook — возвращаем меню качества
                         try:
                             await status_msg.edit_text(_caption, parse_mode=ParseMode.HTML, reply_markup=_keyboard)
                         except TelegramError:
                             pass
                         return
                     db.update_download(dl_id, status="error", error=result.error)
-                    try:
-                        await status_msg.edit_text(
-                            f"❌ Ошибка: <code>{_esc(result.error[:300])}</code>\n\n{_caption}",
-                            parse_mode=ParseMode.HTML,
-                            reply_markup=_keyboard,
+                    # Специальное сообщение для превышения лимита размера файла
+                    if result.error and result.error.startswith("File too large"):
+                        # Парсим "File too large: 12.3 GB (max 10.0 GB)" → берём размер
+                        actual_size = result.error.replace("File too large: ", "").split(" (")[0]
+                        err_text = (
+                            f"⚠️ <b>Файл слишком большой</b>\n\n"
+                            f"Скачанный файл <b>{actual_size}</b> превысил лимит "
+                            f"<b>{config.MAX_FILE_SIZE_MB} МБ</b>.\n\n"
+                            f"Выберите более низкое качество:\n\n{_caption}"
                         )
+                    else:
+                        err_text = f"❌ Ошибка: <code>{_esc(result.error[:300])}</code>\n\n{_caption}"
+                    try:
+                        await status_msg.edit_text(err_text, parse_mode=ParseMode.HTML, reply_markup=_keyboard)
                     except TelegramError:
                         pass
                     return
@@ -1185,15 +1205,10 @@ async def _handle_download_callback(query, ctx, data: str):
                 # Сессия удаляется только при явной отмене (❌ Отмена).
 
     except asyncio.CancelledError:
-        # Отмена через task.cancel() — срабатывает при aria2c, когда progress_hook
-        # вызывается редко и cancel_flag не успевает прочитаться до окончания загрузки.
-        # finally выше уже убрал tmp_dir; показываем меню качества.
+        # Не должно возникать при нормальной работе (task.cancel() больше не вызывается).
+        # Оставляем как safety-net на случай внешней отмены задачи (например, shutdown бота).
         db.update_download(dl_id, status="error", error="CANCELLED")
-        _caption, _keyboard = _build_quality_menu(info)
-        try:
-            await status_msg.edit_text(_caption, parse_mode=ParseMode.HTML, reply_markup=_keyboard)
-        except TelegramError:
-            pass
+        raise
 
 
 async def _handle_deliver_callback(query, ctx, data: str):

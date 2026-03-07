@@ -316,7 +316,7 @@ class ProgressTracker:
                 return
             if self.callback and self.loop:
                 now = time.monotonic()
-                if now - self._last_update >= 5.0:   # не чаще раза в 5 секунд
+                if now - self._last_update >= 3.0:   # не чаще раза в 3 секунды
                     self._last_update = now
                     asyncio.run_coroutine_threadsafe(self.callback(self), self.loop)
 
