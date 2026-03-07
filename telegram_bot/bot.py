@@ -521,7 +521,12 @@ async def _show_playlist_menu(msg: Message, info: VideoInfo, ctx: ContextTypes.D
 async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user = update.effective_user
-    await query.answer()
+    # Отвечаем на callback сразу — убирает «часики» на кнопке у пользователя.
+    # Игнорируем ошибку если запрос уже протух (повторное нажатие, рестарт бота).
+    try:
+        await query.answer()
+    except TelegramError:
+        pass
 
     data = query.data
 
@@ -981,12 +986,19 @@ async def _handle_download_callback(query, ctx, data: str):
     if _est_size and _est_size > config.MAX_FILE_SIZE_BYTES:
         _known = fmt_obj and fmt_obj.filesize
         _label = _human_size(_est_size) + ("" if _known else " (оценка)")
-        await query.answer(
-            f"❌ Файл слишком большой: {_label}\n"
-            f"Лимит: {config.MAX_FILE_SIZE_MB} МБ ({_human_size(config.MAX_FILE_SIZE_BYTES)})\n"
-            "Выберите меньшее качество.",
-            show_alert=True,
-        )
+        # ВАЖНО: query.answer() уже вызван в handle_callback → второй вызов
+        # show_alert=True Telegram игнорирует. Показываем ошибку редактированием.
+        _caption, _keyboard = _build_quality_menu(info)
+        try:
+            await query.edit_message_text(
+                f"⚠️ <b>Файл слишком большой</b>: {_label}\n"
+                f"Лимит: <b>{config.MAX_FILE_SIZE_MB} МБ</b>\n"
+                f"Выберите более низкое качество:\n\n{_caption}",
+                parse_mode=ParseMode.HTML,
+                reply_markup=_keyboard,
+            )
+        except TelegramError:
+            pass
         db.update_download(dl_id, status="error", error=f"pre-check: too large ~{_est_size}")
         return
 
@@ -1101,6 +1113,7 @@ async def _handle_download_callback(query, ctx, data: str):
                         err_text = f"❌ Ошибка: <code>{_esc(result.error[:300])}</code>\n\n{_caption}"
                     try:
                         await status_msg.edit_text(err_text, parse_mode=ParseMode.HTML, reply_markup=_keyboard)
+                        _schedule_delete(ctx.bot, status_msg.chat_id, status_msg.message_id)
                     except TelegramError:
                         pass
                     return
@@ -1155,6 +1168,7 @@ async def _handle_download_callback(query, ctx, data: str):
                                 parse_mode=ParseMode.HTML,
                                 reply_markup=_keyboard,
                             )
+                            _schedule_delete(ctx.bot, status_msg.chat_id, status_msg.message_id)
                         except TelegramError:
                             pass
                 else:
@@ -1171,6 +1185,7 @@ async def _handle_download_callback(query, ctx, data: str):
                             parse_mode=ParseMode.HTML,
                             reply_markup=_keyboard,
                         )
+                        _schedule_delete(ctx.bot, status_msg.chat_id, status_msg.message_id)
                     except TelegramError:
                         pass
                     try:
@@ -1279,6 +1294,7 @@ async def _handle_deliver_callback(query, ctx, data: str):
                 parse_mode=ParseMode.HTML,
                 reply_markup=_keyboard,
             )
+            _schedule_delete(ctx.bot, query.message.chat_id, query.message.message_id)
         except TelegramError:
             pass
         if url:
@@ -1314,6 +1330,7 @@ async def _handle_deliver_callback(query, ctx, data: str):
                 disable_web_page_preview=True,
                 reply_markup=_keyboard,
             )
+            _schedule_delete(ctx.bot, query.message.chat_id, query.message.message_id)
         except TelegramError:
             pass
         if url:
@@ -1652,6 +1669,22 @@ async def error_handler(update: object, ctx: ContextTypes.DEFAULT_TYPE):
 
 def _esc(text: str) -> str:
     return (text or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _schedule_delete(bot, chat_id: int, message_id: int, delay: int = 0) -> None:
+    """Планирует удаление сообщения через delay секунд (если AUTO_DELETE_SECONDS > 0)."""
+    secs = delay or config.AUTO_DELETE_SECONDS
+    if secs <= 0:
+        return
+
+    async def _do_delete():
+        await asyncio.sleep(secs)
+        try:
+            await bot.delete_message(chat_id=chat_id, message_id=message_id)
+        except TelegramError:
+            pass  # уже удалено или нет прав
+
+    asyncio.create_task(_do_delete())
 
 
 def _human_size(n) -> str:

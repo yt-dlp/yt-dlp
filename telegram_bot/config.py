@@ -54,3 +54,7 @@ COOKIES_FILE = os.environ.get("COOKIES_FILE", "")
 
 # Registration mode: "open" (anyone can register) or "closed" (admin approves only)
 REGISTRATION_MODE = os.environ.get("REGISTRATION_MODE", "closed")
+
+# Авто-удаление сообщений бота после завершения загрузки (секунды).
+# 0 = выключено. Пример: AUTO_DELETE_SECONDS=300 → удаляет через 5 минут.
+AUTO_DELETE_SECONDS = int(os.environ.get("AUTO_DELETE_SECONDS", "0"))
