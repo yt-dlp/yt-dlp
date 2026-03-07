@@ -460,12 +460,20 @@ def _build_quality_menu(info: VideoInfo) -> tuple[str, InlineKeyboardMarkup]:
     """Строит текст и клавиатуру меню выбора качества. Используется при показе и возврате."""
     video_fmts = get_best_video_formats(info.formats)
     likes_str = f"  👍 {_fmt_num(info.like_count)}" if info.like_count else ""
+    has_oversized = any(
+        (_estimate_download_size(f, info.duration or 0, audio_only=False) or 0) > config.MAX_FILE_SIZE_BYTES
+        for f in video_fmts
+    )
+    size_note = (
+        f"\n\n⚠️ — файл превышает лимит <b>{config.MAX_FILE_SIZE_MB} МБ</b>, скачивание будет отклонено"
+        if has_oversized else ""
+    )
     caption = (
         f"🎬 <b>{_esc(info.title)}</b>\n"
         f"👤 {_esc(info.uploader or '—')}\n"
         f"⏱ {info.duration_str}  👁 {info.views_str}{likes_str}\n"
         f"🌐 {_esc(info.extractor or '—')}\n\n"
-        "Выберите качество для загрузки:"
+        f"Выберите качество для загрузки:{size_note}"
     )
     buttons = []
     for f in video_fmts:
