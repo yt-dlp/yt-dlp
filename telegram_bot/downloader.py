@@ -335,6 +335,7 @@ async def download_video(
     output_dir: Path,
     progress_callback: Optional[Callable] = None,
     audio_only: bool = False,
+    audio_format: str = "mp3",   # "mp3" | "opus"  (opus = ремукс, без перекодирования)
     subtitle_lang: Optional[str] = None,
     cancel_flag: Optional[list] = None,
 ) -> DownloadResult:
@@ -365,14 +366,28 @@ async def download_video(
             raise _DownloadCancelled("CANCELLED")
 
     if audio_only:
-        opts.update({
-            "format": "bestaudio/best",
-            "postprocessors": [{
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "mp3",
-                "preferredquality": "192",
-            }],
-        })
+        if audio_format == "opus":
+            # OPUS: ремукс из webm-контейнера — транскодирование не требуется,
+            # работает в 10–50x быстрее MP3. Исходный поток YouTube уже в OPUS.
+            opts.update({
+                "format": "bestaudio[ext=webm]/bestaudio",
+                "postprocessors": [{
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "opus",
+                }],
+            })
+        else:
+            # MP3: транскодирование libmp3lame с многопоточным FFmpeg
+            opts.update({
+                "format": "bestaudio/best",
+                "postprocessors": [{
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "mp3",
+                    "preferredquality": "192",
+                }],
+                # -threads 0 → FFmpeg использует все доступные ядра CPU
+                "postprocessor_args": {"ffmpeg": ["-threads", "0"]},
+            })
     else:
         # Combine selected video with best audio
         if format_id and format_id != "best":
@@ -411,16 +426,14 @@ async def download_video(
             with yt_dlp.YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(url, download=True)
                 filename = ydl.prepare_filename(info)
-                # Handle post-processing extension change (e.g. mp3)
+                result_holder["title"] = info.get("title", "")
                 if audio_only:
-                    filename = Path(filename).with_suffix(".mp3")
+                    ext = ".opus" if audio_format == "opus" else ".mp3"
+                    filename = Path(filename).with_suffix(ext)
                 else:
                     filename = Path(filename).with_suffix(".mp4")
                     if not filename.exists():
-                        # Try original
                         filename = Path(ydl.prepare_filename(info))
-
-                result_holder["title"] = info.get("title", "")
                 result_holder["file_path"] = Path(filename)
         except _DownloadCancelled:
             # Отмена пользователем — не логируем как ошибку

@@ -299,6 +299,20 @@ def get_pending_users() -> list:
         ).fetchall()
 
 
+def get_user_stats(user_id: int) -> dict:
+    """Возвращает статистику по конкретному пользователю."""
+    with get_connection() as conn:
+        total = conn.execute(
+            "SELECT COUNT(*) FROM download_history WHERE user_id=? AND status='done'",
+            (user_id,)
+        ).fetchone()[0]
+        size = conn.execute(
+            "SELECT COALESCE(SUM(file_size), 0) FROM download_history WHERE user_id=? AND status='done'",
+            (user_id,)
+        ).fetchone()[0]
+        return {"downloads": total, "total_bytes": size}
+
+
 def sync_admin_ids(admin_ids: list) -> None:
     """Синхронизирует is_admin в БД с ADMIN_IDS из конфига.
 
