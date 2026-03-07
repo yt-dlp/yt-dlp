@@ -1295,7 +1295,8 @@ async def _handle_download_callback(query, ctx, data: str):
 
                 db.update_download(dl_id, status="done", file_size=result.file_size)
 
-                if config.PUBLIC_BASE_URL:
+                _has_fileserver = config.PUBLIC_BASE_URL or config.DIRECT_BASE_URL
+                if _has_fileserver:
                     # Файловый сервер включён — предлагаем выбор доставки
                     try:
                         fs_token = fileserver.move_and_register(
@@ -1310,23 +1311,28 @@ async def _handle_download_callback(query, ctx, data: str):
                             "title": result.title or info.title,
                         }
                         ttl_h = max(1, config.FILE_TTL_SECONDS // 3600)
+                        deliver_buttons = [[
+                            InlineKeyboardButton(
+                                "📤 Отправить в Telegram",
+                                callback_data="deliver:tg",
+                            ),
+                        ]]
+                        if config.PUBLIC_BASE_URL:
+                            deliver_buttons.append([InlineKeyboardButton(
+                                f"🔗 Ссылка через туннель ({ttl_h}ч)",
+                                callback_data="deliver:link",
+                            )])
+                        if config.DIRECT_BASE_URL:
+                            deliver_buttons.append([InlineKeyboardButton(
+                                f"🌐 Прямая ссылка IP ({ttl_h}ч)",
+                                callback_data="deliver:direct",
+                            )])
                         await status_msg.edit_text(
                             f"✅ <b>{_esc(result.title or info.title)}</b>\n"
                             f"📦 {_human_size(result.file_size)}\n\n"
                             "Как получить файл?",
                             parse_mode=ParseMode.HTML,
-                            reply_markup=InlineKeyboardMarkup([
-                                [
-                                    InlineKeyboardButton(
-                                        "📤 Отправить в Telegram",
-                                        callback_data="deliver:tg",
-                                    ),
-                                    InlineKeyboardButton(
-                                        f"🔗 Ссылка ({ttl_h}ч)",
-                                        callback_data="deliver:link",
-                                    ),
-                                ],
-                            ]),
+                            reply_markup=InlineKeyboardMarkup(deliver_buttons),
                         )
                     except Exception as e:
                         logger.error("fileserver.move_and_register failed: %s", e)
@@ -1420,8 +1426,8 @@ async def _notify_link_expiry(bot: Bot, chat_id: int, title: str, info_url: str,
 
 
 async def _handle_deliver_callback(query, ctx, data: str):
-    """Обрабатывает выбор способа доставки файла: Telegram или ссылка."""
-    action = data.split(":", 1)[1]  # "tg" или "link"
+    """Обрабатывает выбор способа доставки файла: Telegram, ссылка или прямой IP."""
+    action = data.split(":", 1)[1]  # "tg", "link" или "direct"
     pd = ctx.user_data.get("_pending_delivery")
 
     if not pd:
@@ -1443,6 +1449,53 @@ async def _handle_deliver_callback(query, ctx, data: str):
     title: str = pd.get("title", "")
 
     entry = fileserver.get_entry(token)
+
+    if action in ("link", "direct"):
+        # ── Доставка через ссылку файлового сервера ──────────────────────────────
+        if not entry:
+            await query.answer("❌ Файл недоступен (истёк TTL). Скачайте заново.", show_alert=True)
+            ctx.user_data.pop("_pending_delivery", None)
+            return
+
+        ctx.user_data.pop("_pending_delivery", None)
+
+        base = config.DIRECT_BASE_URL if action == "direct" else config.PUBLIC_BASE_URL
+        info_url = f"{base}/info/{token}"
+        ttl_h = max(1, config.FILE_TTL_SECONDS // 3600)
+        _caption, _keyboard = _build_quality_menu(info)
+
+        via_label = "IP" if action == "direct" else "туннель"
+
+        # Планируем уведомление за 10 мин до истечения TTL
+        notify_delay = config.FILE_TTL_SECONDS - 600
+        if notify_delay > 60:
+            asyncio.create_task(_notify_link_expiry(
+                ctx.bot, query.message.chat_id, title, info_url, token, notify_delay
+            ))
+
+        try:
+            await query.edit_message_text(
+                f"🔗 <b>Ссылка для скачивания ({via_label}):</b>\n"
+                f"<a href='{info_url}'>{info_url}</a>\n\n"
+                f"📦 {_human_size(file_size)}\n"
+                f"⏱ Действует <b>{ttl_h} ч</b> (удаляется после первого скачивания)\n\n"
+                + _caption,
+                parse_mode=ParseMode.HTML,
+                disable_web_page_preview=True,
+                reply_markup=_keyboard,
+            )
+            _schedule_delete(ctx.bot, query.message.chat_id, query.message.message_id)
+        except TelegramError:
+            pass
+        if url:
+            try:
+                db.save_session(
+                    query.message.chat_id, query.message.message_id,
+                    url, _serialize_video_info(info),
+                )
+            except Exception:
+                pass
+        return
 
     if action == "tg":
         # ── Доставка через Telegram ──────────────────────────────────────────────
@@ -1499,48 +1552,6 @@ async def _handle_deliver_callback(query, ctx, data: str):
             except Exception:
                 pass
 
-    elif action == "link":
-        # ── Доставка через ссылку файлового сервера ──────────────────────────────
-        if not entry:
-            await query.answer("❌ Файл недоступен (истёк TTL). Скачайте заново.", show_alert=True)
-            ctx.user_data.pop("_pending_delivery", None)
-            return
-
-        ctx.user_data.pop("_pending_delivery", None)
-
-        info_url = f"{config.PUBLIC_BASE_URL}/info/{token}"
-        ttl_h = max(1, config.FILE_TTL_SECONDS // 3600)
-        _caption, _keyboard = _build_quality_menu(info)
-
-        # Планируем уведомление за 10 мин до истечения TTL
-        notify_delay = config.FILE_TTL_SECONDS - 600
-        if notify_delay > 60:
-            asyncio.create_task(_notify_link_expiry(
-                ctx.bot, query.message.chat_id, title, info_url, token, notify_delay
-            ))
-
-        try:
-            await query.edit_message_text(
-                f"🔗 <b>Ссылка для скачивания:</b>\n"
-                f"<a href='{info_url}'>{info_url}</a>\n\n"
-                f"📦 {_human_size(file_size)}\n"
-                f"⏱ Действует <b>{ttl_h} ч</b> (удаляется после первого скачивания)\n\n"
-                + _caption,
-                parse_mode=ParseMode.HTML,
-                disable_web_page_preview=True,
-                reply_markup=_keyboard,
-            )
-            _schedule_delete(ctx.bot, query.message.chat_id, query.message.message_id)
-        except TelegramError:
-            pass
-        if url:
-            try:
-                db.save_session(
-                    query.message.chat_id, query.message.message_id,
-                    url, _serialize_video_info(info),
-                )
-            except Exception:
-                pass
 
 
 async def _handle_playlist_callback(query, ctx, data: str):
@@ -1585,15 +1596,16 @@ async def _handle_playlist_callback(query, ctx, data: str):
         for r in results:
             if r.success and r.file_path and r.file_path.exists():
                 if r.file_size <= config.MAX_FILE_SIZE_BYTES:
-                    if config.PUBLIC_BASE_URL:
+                    if config.PUBLIC_BASE_URL or config.DIRECT_BASE_URL:
                         # Файловый сервер включён — регистрируем файл и собираем ссылки.
                         # move_and_register перемещает файл из tmp_dir → папку fileserver,
                         # поэтому shutil.rmtree в finally не затронет его.
+                        _pl_base = config.DIRECT_BASE_URL or config.PUBLIC_BASE_URL
                         try:
                             token = fileserver.move_and_register(
                                 r.file_path, config.FILE_TTL_SECONDS
                             )
-                            info_url = f"{config.PUBLIC_BASE_URL}/info/{token}"
+                            info_url = f"{_pl_base}/info/{token}"
                             fs_links.append((
                                 r.title or r.file_path.stem,
                                 _human_size(r.file_size),
@@ -1957,18 +1969,23 @@ async def _post_init(application) -> None:
     task = asyncio.create_task(_cleanup_loop(application.bot))
     application.bot_data["_cleanup_task"] = task
 
-    # Файловый HTTP-сервер: запускается если задан PUBLIC_BASE_URL
-    if config.PUBLIC_BASE_URL:
+    # Файловый HTTP-сервер: запускается если задан PUBLIC_BASE_URL или DIRECT_BASE_URL
+    if config.PUBLIC_BASE_URL or config.DIRECT_BASE_URL:
         try:
             await fileserver.start(port=config.HTTP_PORT)
+            urls = []
+            if config.PUBLIC_BASE_URL:
+                urls.append(f"туннель: {config.PUBLIC_BASE_URL}")
+            if config.DIRECT_BASE_URL:
+                urls.append(f"прямой IP: {config.DIRECT_BASE_URL}")
             logger.info(
-                "Файловый сервер запущен: порт %d | публичный URL: %s",
-                config.HTTP_PORT, config.PUBLIC_BASE_URL,
+                "Файловый сервер запущен: порт %d | %s",
+                config.HTTP_PORT, " | ".join(urls),
             )
         except Exception as e:
             logger.error("Не удалось запустить файловый сервер: %s", e)
     else:
-        logger.info("PUBLIC_BASE_URL не задан — файловый сервер отключён")
+        logger.info("PUBLIC_BASE_URL и DIRECT_BASE_URL не заданы — файловый сервер отключён")
 
     # Устанавливаем список команд (видны при вводе "/" в Telegram)
     try:
@@ -1993,7 +2010,7 @@ async def _post_shutdown(application) -> None:
         except asyncio.CancelledError:
             pass
     # Останавливаем файловый сервер
-    if config.PUBLIC_BASE_URL:
+    if config.PUBLIC_BASE_URL or config.DIRECT_BASE_URL:
         await fileserver.stop()
 
 

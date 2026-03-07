@@ -76,11 +76,11 @@ services:
         max-file: "3"
 
     # ── Порт файлового HTTP-сервера ──────────────────────────────────────────
-    # ports: НЕ используется — Docker iptables отключён (daemon.json: iptables=false).
-    # Проброс порта делается через DNAT в nftables (dockernat.prerouting).
-    # Раскомментировать ТОЛЬКО для отладки без nftables (создаст docker-proxy):
-    # ports:
-    #   - "${HTTP_PORT:-8080}:8080"
+    # Проброс порта для прямого скачивания по IP (DIRECT_BASE_URL).
+    # Если используете nftables DNAT — закомментируйте ports и настройте DNAT.
+    # Если DIRECT_BASE_URL не задан — можно закомментировать.
+    ports:
+      - "${HTTP_PORT:-8080}:8080"
 
     # ── Сеть ────────────────────────────────────────────────────────────────
     networks:

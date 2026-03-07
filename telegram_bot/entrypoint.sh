@@ -36,10 +36,18 @@ if [ -z "$PUBLIC_BASE_URL" ]; then
         i=$((i + 1))
     done
     if [ -z "$PUBLIC_BASE_URL" ]; then
-        echo "[entrypoint] Quick Tunnel URL не найден за 90 сек — файловый сервер отключён (режим Telegram API)"
+        if [ -n "$DIRECT_BASE_URL" ]; then
+            echo "[entrypoint] Quick Tunnel не найден, но DIRECT_BASE_URL задан: $DIRECT_BASE_URL — файловый сервер будет доступен по IP"
+        else
+            echo "[entrypoint] Quick Tunnel URL не найден за 90 сек — файловый сервер отключён (режим Telegram API)"
+        fi
     fi
 else
     echo "[entrypoint] PUBLIC_BASE_URL задан вручную: $PUBLIC_BASE_URL"
+fi
+
+if [ -n "$DIRECT_BASE_URL" ]; then
+    echo "[entrypoint] DIRECT_BASE_URL задан: $DIRECT_BASE_URL (прямой доступ по IP)"
 fi
 
 # ── Снижаем привилегии и запускаем бота ───────────────────────────────────────

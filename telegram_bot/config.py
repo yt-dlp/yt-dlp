@@ -29,6 +29,10 @@ DOWNLOAD_TIMEOUT = int(os.environ.get("DOWNLOAD_TIMEOUT", "3600"))  # seconds (1
 #   Пример: https://myserver.com  или  http://1.2.3.4:8080
 #   Если пусто — только Telegram (старое поведение), кнопка «Ссылка» не появляется
 PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "").rstrip("/")
+# Прямая ссылка на сервер по IP (без Cloudflare Tunnel).
+# Пример: http://1.2.3.4:8080
+# Если задан — добавляется кнопка «Прямая ссылка (IP)» в меню доставки.
+DIRECT_BASE_URL = os.environ.get("DIRECT_BASE_URL", "").rstrip("/")
 HTTP_PORT = int(os.environ.get("HTTP_PORT", "8080"))
 # TTL ссылки: по умолчанию 1 час (файл удаляется после скачивания ИЛИ по истечении TTL)
 FILE_TTL_SECONDS = int(os.environ.get("FILE_TTL_HOURS", "1")) * 3600
