@@ -12,7 +12,8 @@
 # Переменные окружения:
 #   SSLIP_DOMAIN   — обязательно (например: 150-241-90-145.sslip.io)
 #   HTTPS_PORT     — порт HTTPS (по умолчанию 7443)
-#   CERTBOT_EMAIL  — email для Let's Encrypt (если пусто — только self-signed)
+#   CERTBOT_EMAIL  — email для Let's Encrypt (пусто → без email, --register-unsafely-without-email)
+#   ENABLE_CERTBOT — "true" для включения certbot (по умолчанию true)
 # ══════════════════════════════════════════════════════════════════════════════
 set -e
 
@@ -21,6 +22,7 @@ HTTPS_PORT="${HTTPS_PORT:-7443}"
 CERT_DIR="/etc/nginx/ssl"
 LE_DIR="/etc/letsencrypt/live/${DOMAIN}"
 WEBROOT="/var/www/certbot"
+ENABLE_CERTBOT="${ENABLE_CERTBOT:-true}"
 
 mkdir -p "$CERT_DIR" "$WEBROOT"
 
@@ -63,12 +65,20 @@ fi
 # ── Certbot: получение Let's Encrypt сертификата (фоновый процесс) ────────────
 # Запускается ПОСЛЕ nginx (нужен webroot на порту 80 для ACME challenge).
 # Требования:
-#   - CERTBOT_EMAIL задан в .env
+#   - ENABLE_CERTBOT=true (по умолчанию)
 #   - Порт 80 маршрутизирован через nftables DNAT на этот контейнер (10.10.2.5:80)
 #
+# Email необязателен: если CERTBOT_EMAIL пуст — используется --register-unsafely-without-email.
 # Если порт 80 НЕ маршрутизирован — certbot gracefully fail, бот работает
 # с self-signed сертификатом (шифрование есть, верификация — нет).
-if [ -n "$CERTBOT_EMAIL" ]; then
+if [ "$ENABLE_CERTBOT" = "true" ]; then
+    # Формируем аргументы certbot
+    if [ -n "$CERTBOT_EMAIL" ]; then
+        CERTBOT_AUTH="--email $CERTBOT_EMAIL --agree-tos --non-interactive"
+    else
+        CERTBOT_AUTH="--agree-tos --register-unsafely-without-email --non-interactive"
+    fi
+
     (
         # Ждём пока nginx стартует
         sleep 5
@@ -76,10 +86,14 @@ if [ -n "$CERTBOT_EMAIL" ]; then
         if [ "$HAVE_LE" = "0" ]; then
             echo "[nginx-ssl] Запрашиваю Let's Encrypt сертификат для ${DOMAIN}..."
             echo "[nginx-ssl] (нужен nftables DNAT: порт 80 → 10.10.2.5:80)"
+            if [ -n "$CERTBOT_EMAIL" ]; then
+                echo "[nginx-ssl] Email: ${CERTBOT_EMAIL}"
+            else
+                echo "[nginx-ssl] Email: не задан (--register-unsafely-without-email)"
+            fi
             if certbot certonly --webroot -w "$WEBROOT" \
                 -d "$DOMAIN" \
-                --email "$CERTBOT_EMAIL" \
-                --agree-tos --non-interactive \
+                $CERTBOT_AUTH \
                 --preferred-challenges http 2>&1; then
 
                 if [ -f "$LE_DIR/fullchain.pem" ]; then
@@ -114,7 +128,7 @@ if [ -n "$CERTBOT_EMAIL" ]; then
     ) &
     echo "[nginx-ssl] Certbot запущен в фоне (renewal каждые 12ч)"
 else
-    echo "[nginx-ssl] CERTBOT_EMAIL не задан — Let's Encrypt отключён"
+    echo "[nginx-ssl] ENABLE_CERTBOT=false — Let's Encrypt отключён"
     echo "[nginx-ssl] HTTPS работает с self-signed сертификатом"
 fi
 

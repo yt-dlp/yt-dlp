@@ -164,26 +164,32 @@ services:
   # Сертификат: self-signed сразу, Let's Encrypt автоматически (если порт 80 доступен).
   #
   # ── nftables (обязательно) ──────────────────────────────────────────────────
-  # Добавить в defines:
+  #
+  # 1. Добавить в defines:
   #   define NGINX_SSL_IP         = 10.10.2.5
   #   define HTTPS_DIRECT_INPUT   = 7443
   #   define HTTPS_DIRECT_OUTPUT  = 7443
   #
-  # Добавить в dockernat.prerouting:
+  # 2. DNAT — добавить в dockernat.prerouting:
   #   fib daddr type local tcp dport $HTTPS_DIRECT_INPUT dnat to $NGINX_SSL_IP:$HTTPS_DIRECT_OUTPUT
   #
-  # Добавить в dockernat.output:
+  # 3. DNAT — добавить в dockernat.output:
   #   ip daddr != 127.0.0.0/8 fib daddr type local tcp dport $HTTPS_DIRECT_INPUT dnat to $NGINX_SSL_IP:$HTTPS_DIRECT_OUTPUT
   #
-  # Удалить старый HTTP DNAT (порт 8080 больше не нужен снаружи):
+  # 4. Фильтрация — в forward chain (ПЕРЕД общим docker_nets accept):
+  #   Доступ к nginx-ssl ТОЛЬКО для $ASN и $MY_SERVER:
+  #   meta mark { $ASN, $MY_SERVER } ip daddr $NGINX_SSL_IP tcp dport $HTTPS_DIRECT_OUTPUT counter accept
+  #   ip daddr $NGINX_SSL_IP tcp dport $HTTPS_DIRECT_OUTPUT counter log prefix "[nft] nginx-ssl BLOCKED " drop
+  #
+  # 5. Удалить старый HTTP DNAT (порт 8080 больше не нужен снаружи):
   #   # fib daddr type local tcp dport $FILESERVER_INPUT dnat to $YTDLP_IP:$FILESERVER_OUTPUT
   #
-  # Для Let's Encrypt (опционально, можно добавить временно):
-  #   define ACME_PORT = 80
-  #   fib daddr type local tcp dport $ACME_PORT dnat to $NGINX_SSL_IP:80
-  #   ⚠ Если порт 80 уже занят (DNAT → vpnbot nginx) — временно замените правило
-  #     или добавьте проксирование ACME через vpnbot nginx.
-  #     Без порта 80 — бот работает с self-signed cert (шифрование есть).
+  # 6. Let's Encrypt (вручную, временно на время получения/обновления cert):
+  #   Заменить правило DNAT для порта 80 в prerouting/output:
+  #     fib daddr type local tcp dport 80 dnat to $NGINX_SSL_IP:80
+  #   ⚠ Порт 80 нужен ТОЛЬКО на время certbot (30 сек). После получения cert
+  #     верните DNAT порта 80 на vpnbot nginx и перезагрузите: nft -f /etc/nftables.conf
+  #   ⚠ Для ACME challenge порт 80 должен быть открыт всем (LE серверы не из $ASN)
   #
   # MASQUERADE: 10.10.2.0/24 уже покрыт. docker_nets set тоже содержит 10.10.2.0/24.
   # ────────────────────────────────────────────────────────────────────────────
@@ -201,6 +207,7 @@ services:
       SSLIP_DOMAIN: ${SSLIP_DOMAIN:-}
       HTTPS_PORT: ${HTTPS_PORT:-7443}
       CERTBOT_EMAIL: ${CERTBOT_EMAIL:-}
+      ENABLE_CERTBOT: ${ENABLE_CERTBOT:-true}
     volumes:
       # Сертификаты (persist между перезапусками)
       - nginx-ssl-certs:/etc/nginx/ssl
