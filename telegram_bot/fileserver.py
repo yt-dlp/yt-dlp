@@ -512,6 +512,13 @@ async def start(host: str = "0.0.0.0", port: int = 8080) -> web.AppRunner:
     """Запускает HTTP-сервер и фоновую очистку."""
     global _runner, _cleanup_task
 
+    # HIGH-2: warn when SERVER_SECRET is not set (tokens lack HMAC protection)
+    if not _SERVER_SECRET:
+        logger.warning(
+            "SERVER_SECRET не задан — токены выдаются без HMAC-подписи. "
+            "Установите SERVER_SECRET в .env для усиленной защиты."
+        )
+
     # Восстанавливаем файлы, зарегистрированные до рестарта бота
     _restore_registry()
 

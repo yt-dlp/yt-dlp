@@ -23,10 +23,13 @@ if [ -z "$PUBLIC_BASE_URL" ]; then
     while [ $i -lt 45 ]; do
         if [ -f "$CF_URL_FILE" ] && [ -s "$CF_URL_FILE" ]; then
             CF_URL="$(cat "$CF_URL_FILE" | tr -d '[:space:]')"
-            if [ -n "$CF_URL" ]; then
+            # HIGH-6: validate CF_URL matches expected Cloudflare tunnel pattern
+            if echo "$CF_URL" | grep -qE '^https://[a-zA-Z0-9-]+\.trycloudflare\.com$'; then
                 export PUBLIC_BASE_URL="$CF_URL"
                 echo "[entrypoint] PUBLIC_BASE_URL из Quick Tunnel: $PUBLIC_BASE_URL"
                 break
+            elif [ -n "$CF_URL" ]; then
+                echo "[entrypoint] WARN: отклонён подозрительный CF URL: $CF_URL"
             fi
         fi
         sleep 2

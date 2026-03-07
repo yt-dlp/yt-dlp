@@ -1,12 +1,15 @@
 import asyncio
+import ipaddress
 import logging
 import os
 import re
+import socket
 import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Optional
+from urllib.parse import urlparse
 
 import yt_dlp
 
@@ -445,6 +448,13 @@ async def download_video(
         else:
             return DownloadResult(success=False, error="Downloaded file not found")
 
+    # CRITICAL-2: path traversal guard — reject files outside output_dir
+    try:
+        file_path.resolve().relative_to(output_dir.resolve())
+    except ValueError:
+        logger.error("Path traversal detected: %s is outside %s", file_path, output_dir)
+        return DownloadResult(success=False, error="Download path validation failed")
+
     file_size = file_path.stat().st_size
     if file_size > MAX_FILE_SIZE_BYTES:
         file_path.unlink(missing_ok=True)
@@ -507,15 +517,26 @@ async def download_playlist(
     if error_holder.get("error") and not any(output_dir.iterdir()):
         raise RuntimeError(error_holder["error"])
 
+    base_resolved = output_dir.resolve()
     for f in sorted(output_dir.iterdir()):
-        if f.is_file() and f.suffix in (".mp4", ".webm", ".mkv", ".mp3"):
-            size = f.stat().st_size
-            results.append(DownloadResult(
-                success=True,
-                file_path=f,
-                title=f.stem,
-                file_size=size,
-            ))
+        # HIGH-5: skip symlinks and files outside output_dir
+        if f.is_symlink():
+            logger.warning("Skipping symlink in playlist output: %s", f)
+            continue
+        if not f.is_file() or f.suffix not in (".mp4", ".webm", ".mkv", ".mp3"):
+            continue
+        try:
+            f.resolve().relative_to(base_resolved)
+        except ValueError:
+            logger.warning("Skipping out-of-directory file in playlist: %s", f)
+            continue
+        size = f.stat().st_size
+        results.append(DownloadResult(
+            success=True,
+            file_path=f,
+            title=f.stem,
+            file_size=size,
+        ))
     return results
 
 
@@ -528,13 +549,51 @@ def _height_from_fid(format_id: str) -> int:
 _EXTRACTORS: list | None = None
 
 
+def _is_ssrf_url(url: str) -> bool:
+    """Возвращает True, если URL ведёт на приватный/loopback адрес (SSRF-защита)."""
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+        if not hostname:
+            return True
+        # Разрешаем имя в IP; если резолюция падает — блокируем
+        try:
+            addr = socket.getaddrinfo(hostname, None, proto=socket.IPPROTO_TCP)
+        except OSError:
+            return True
+        for family, _, _, _, sockaddr in addr:
+            ip_str = sockaddr[0]
+            try:
+                ip = ipaddress.ip_address(ip_str)
+            except ValueError:
+                return True
+            if (
+                ip.is_loopback
+                or ip.is_private
+                or ip.is_link_local
+                or ip.is_multicast
+                or ip.is_reserved
+                or ip.is_unspecified
+            ):
+                return True
+        return False
+    except Exception:
+        return True
+
+
 def is_supported_url(url: str) -> bool:
     """Проверяет URL без инстанциирования всех экстракторов каждый раз."""
     global _EXTRACTORS
+    if not re.match(r"https?://", url, re.IGNORECASE):
+        return False
+    # SSRF: блокируем приватные/loopback адреса
+    if _is_ssrf_url(url):
+        logger.warning("Blocked SSRF attempt: %s", url)
+        return False
     if _EXTRACTORS is None:
         _EXTRACTORS = list(yt_dlp.extractor.gen_extractors())
     for e in _EXTRACTORS:
         if e.suitable(url) and e.IE_NAME != "generic":
             return True
-    # Любой http(s) URL допускаем (generic extractor)
-    return bool(re.match(r"https?://", url))
+    # Любой публичный http(s) URL допускаем (generic extractor)
+    return True

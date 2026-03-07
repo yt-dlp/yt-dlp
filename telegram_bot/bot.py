@@ -289,7 +289,7 @@ async def cmd_history(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     lines = ["📜 <b>Последние загрузки:</b>\n"]
     for i, row in enumerate(rows, 1):
         status_icon = {"done": "✅", "error": "❌", "pending": "⏳"}.get(row["status"], "•")
-        title = (row["title"] or row["url"])[:50]
+        title = _esc((row["title"] or row["url"])[:50])  # MEDIUM-3: escape HTML
         lines.append(f"{i}. {status_icon} {title}")
         if row["quality"]:
             lines.append(f"   └ {row['quality']}, {_human_size(row['file_size'])}")
@@ -706,7 +706,7 @@ async def _handle_menu_callback(query, ctx, data: str):
             lines = ["📜 <b>Последние загрузки:</b>\n"]
             for i, row in enumerate(rows, 1):
                 icon = {"done": "✅", "error": "❌", "pending": "⏳"}.get(row["status"], "•")
-                title = (row["title"] or row["url"])[:50]
+                title = _esc((row["title"] or row["url"])[:50])  # MEDIUM-3: escape HTML
                 lines.append(f"{i}. {icon} {title}")
             text = "\n".join(lines)
             buttons = [
@@ -757,7 +757,7 @@ async def _handle_menu_callback(query, ctx, data: str):
         else:
             lines = ["⏳ <b>Ожидают одобрения:</b>\n"]
             for r in rows:
-                uname = f"@{r['username']}" if r['username'] else r['full_name']
+                uname = f"@{r['username']}" if r['username'] else _esc(r['full_name'])  # LOW-4
                 lines.append(f"• {uname} <code>{r['user_id']}</code>")
             text = "\n".join(lines) + "\n\nИспользуйте /pending для одобрения."
         await query.edit_message_text(
@@ -951,9 +951,9 @@ async def _handle_download_callback(query, ctx, data: str):
     dl_type = parts[1]
     format_id = parts[2]
 
-    # Проверяем лимит одновременных загрузок
+    # Проверяем лимит одновременных загрузок (HIGH-4: используем публичный API)
     sem: asyncio.Semaphore = ctx.bot_data.get("_download_sem")
-    if sem is not None and sem._value <= 0:
+    if sem is not None and sem.locked():
         await query.answer(
             f"⚠️ Достигнут лимит одновременных загрузок ({config.MAX_CONCURRENT_DOWNLOADS}). "
             "Подождите завершения текущих загрузок.",
@@ -986,6 +986,17 @@ async def _handle_download_callback(query, ctx, data: str):
     user = query.from_user
     dl_id = db.add_download(user.id, url)
     ctx.user_data[KEY_DOWNLOAD_ID] = dl_id
+
+    # CRITICAL-3: validate format_id against known formats (allowlist)
+    if dl_type == "v" and format_id not in ("best",):
+        valid_fids = {f.format_id for f in info.formats}
+        if format_id not in valid_fids:
+            logger.warning(
+                "Invalid format_id %r from user %s (not in offered formats)",
+                format_id, query.from_user.id,
+            )
+            await query.answer("❌ Неверный формат. Отправьте ссылку заново.", show_alert=True)
+            return
 
     audio_only = dl_type == "a"
     subtitle_lang = format_id if dl_type == "s" else None
@@ -1098,6 +1109,13 @@ async def _handle_download_callback(query, ctx, data: str):
         logger.warning("re-key session failed: %s", e)
 
     tmp_dir = config.DOWNLOAD_DIR / f"user_{user.id}" / f"dl_{dl_id}"
+    # MEDIUM-4: ensure tmp_dir is inside DOWNLOAD_DIR before use
+    try:
+        tmp_dir.resolve().relative_to(config.DOWNLOAD_DIR.resolve())
+    except ValueError:
+        logger.error("Download dir path traversal: %s is outside %s", tmp_dir, config.DOWNLOAD_DIR)
+        await query.answer("❌ Внутренняя ошибка.", show_alert=True)
+        return
     try:
         async with (sem or asyncio.Semaphore(1)):
             try:
@@ -1599,7 +1617,7 @@ async def cmd_users(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     lines = [f"👥 <b>Одобренные пользователи ({len(rows)}):</b>\n"]
     for r in rows:
-        uname = f"@{r['username']}" if r['username'] else r['full_name']
+        uname = f"@{r['username']}" if r['username'] else _esc(r['full_name'])  # LOW-4
         admin_tag = " 👑" if r['is_admin'] else ""
         lines.append(f"• {uname} <code>{r['user_id']}</code>{admin_tag}")
 
