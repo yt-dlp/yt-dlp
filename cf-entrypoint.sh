@@ -12,7 +12,7 @@ CF_LOG="/cf-url/cf.log"
 # ── Named Tunnel (CLOUDFLARE_TUNNEL_TOKEN задан) ──────────────────────────────
 if [ -n "$TUNNEL_TOKEN" ]; then
     echo "[cloudflared] Named tunnel mode"
-    exec cloudflared tunnel --no-autoupdate --metrics 0.0.0.0:2000 --edge-ip-version 4 run --token "$TUNNEL_TOKEN"
+    exec cloudflared tunnel --no-autoupdate --metrics 0.0.0.0:2000 --edge-ip-version 4 --no-icmp-proxy run --token "$TUNNEL_TOKEN"
 fi
 
 # ── Quick Tunnel (без токена, URL меняется при перезапуске) ───────────────────
@@ -25,6 +25,7 @@ mkdir -p /cf-url
 cloudflared tunnel --no-autoupdate \
     --metrics 0.0.0.0:2000 \
     --edge-ip-version 4 \
+    --no-icmp-proxy \
     --url "http://ytdlp-bot:${HTTP_PORT:-8080}" \
     >"$CF_LOG" 2>&1 &
 CF_PID=$!
