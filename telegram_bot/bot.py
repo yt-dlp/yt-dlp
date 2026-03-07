@@ -1074,12 +1074,15 @@ async def _handle_download_callback(query, ctx, data: str):
         if cancel_flag[0]:
             return
         if tracker.status == "finished":
-            # FFmpeg конвертация (после завершения HTTP-загрузки)
+            # Загрузка потока завершена — идёт пост-обработка (FFmpeg).
+            # Для аудио: конвертация в MP3.
+            # Для видео: слияние видео+аудио потоков (fired дважды — после каждого потока).
+            proc_str = "🔄 Конвертирую в MP3..." if audio_only else "🔄 Обрабатываю (FFmpeg)..."
             try:
                 await status_msg.edit_text(
                     f"⬇️ Загружаю: <b>{_esc(info.title)}</b>\n"
                     f"Качество: {quality_label}\n\n"
-                    f"🔄 Конвертирую...",
+                    f"{proc_str}",
                     parse_mode=ParseMode.HTML,
                     reply_markup=cancel_kb,
                 )
