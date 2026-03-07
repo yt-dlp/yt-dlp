@@ -33,6 +33,20 @@ if [ -z "$DOMAIN" ]; then
     exit 1
 fi
 
+# Защита от частой ошибки: порт в SSLIP_DOMAIN (должен быть только домен)
+case "$DOMAIN" in
+    *:*)
+        echo "[nginx-ssl] FATAL: SSLIP_DOMAIN содержит порт ('$DOMAIN')"
+        echo "[nginx-ssl] Укажите только домен: SSLIP_DOMAIN=150-241-90-145.sslip.io"
+        echo "[nginx-ssl] Порт задаётся отдельно через HTTPS_PORT=${HTTPS_PORT}"
+        exit 1
+        ;;
+    */*|*..)
+        echo "[nginx-ssl] FATAL: SSLIP_DOMAIN содержит недопустимые символы ('$DOMAIN')"
+        exit 1
+        ;;
+esac
+
 # ── Генерация nginx.conf из шаблона ──────────────────────────────────────────
 envsubst '${SSLIP_DOMAIN} ${HTTPS_PORT}' \
     < /etc/nginx/templates/nginx.conf.template \
