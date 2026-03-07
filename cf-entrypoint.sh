@@ -18,8 +18,11 @@ fi
 # ── Quick Tunnel (без токена, URL меняется при перезапуске) ───────────────────
 echo "[cloudflared] Quick tunnel mode — URL появится ниже (занимает ~10 сек)"
 
-rm -f "$CF_LOG" "$CF_URL_FILE"
+rm -f "$CF_LOG"
 mkdir -p /cf-url
+# Перезаписываем старый URL до запуска cloudflared — бот увидит "STARTING"
+# и не будет использовать stale URL из предыдущего сеанса.
+echo "STARTING" > "$CF_URL_FILE"
 
 # Запускаем cloudflared в фоне, логи пишем в файл
 cloudflared tunnel --no-autoupdate \
