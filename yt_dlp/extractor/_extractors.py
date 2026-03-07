@@ -898,6 +898,9 @@ from .japandiet import (
     ShugiinItvLiveRoomIE,
     ShugiinItvVodIE,
 )
+
+from .jditemvideo import JdItemVideoIE
+
 from .jeuxvideo import JeuxVideoIE
 from .jiosaavn import (
     JioSaavnAlbumIE,
