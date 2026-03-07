@@ -32,26 +32,6 @@ class PiczelIE(InfoExtractor):
             # m3u8 download
             'skip_download': True,
         },
-    }, {
-        'url': 'https://piczel.tv/watch/Mangrover',
-        'info_dict': {
-            'id': '140239',
-            'formats': list,
-            'title': 'Stream',
-            'age_limit': int,
-            'uploader': 'Mangrover',
-            'uploader_id': 146061,
-            'ext': 'mp4',
-            'description': None,
-            'tags': list,
-            'concurrent_view_count': int,
-            'channel_follower_count': int,
-        },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
-        'skip': 'HTTP Error 404: Not Found',
     }]
 
     def _real_extract(self, url):
