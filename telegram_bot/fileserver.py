@@ -352,11 +352,18 @@ async def _handle_download(request: web.Request) -> web.StreamResponse:
         )
 
     file_size = entry.path.stat().st_size
-    safe_name = entry.filename.replace('"', "_")
+    # RFC 5987: для ASCII-имён используем filename=, для Unicode добавляем filename*=
+    ascii_name = entry.filename.encode("ascii", errors="replace").decode().replace('"', "_")
+    utf8_name = entry.filename.replace("\\", "").replace('"', "")
+    from urllib.parse import quote as _urlquote
+    content_disposition = (
+        f'attachment; filename="{ascii_name}"; '
+        f"filename*=UTF-8''{_urlquote(utf8_name, safe='')}"
+    )
 
     response = web.StreamResponse(
         headers={
-            "Content-Disposition": f'attachment; filename="{safe_name}"',
+            "Content-Disposition": content_disposition,
             "Content-Type": "application/octet-stream",
             "Content-Length": str(file_size),
             **_SEC_HEADERS,
@@ -398,9 +405,9 @@ async def _handle_health(request: web.Request) -> web.Response:
 # ── Фоновая очистка ──────────────────────────────────────────────────────────────
 
 async def _cleanup_loop() -> None:
-    """Каждый час: удаляет файлы с истёкшим TTL и очищает rate-counters."""
+    """Каждые 5 минут: удаляет файлы с истёкшим TTL и очищает rate-counters."""
     while True:
-        await asyncio.sleep(3600)
+        await asyncio.sleep(300)
         now = time.time()
 
         # Удаляем просроченные файлы

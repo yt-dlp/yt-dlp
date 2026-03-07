@@ -977,20 +977,27 @@ async def _handle_download_callback(query, ctx, data: str):
         )
 
     async def _on_progress(tracker: ProgressTracker) -> None:
-        if cancel_flag[0] or not tracker.total:
+        if cancel_flag[0]:
             return
-        pct = tracker.downloaded / tracker.total * 100
         speed_str = f"{tracker.speed / 1_048_576:.1f} МБ/с" if tracker.speed else "—"
         if tracker.eta:
             m, s = divmod(int(tracker.eta), 60)
             eta_str = f"{m}м {s:02d}с" if m else f"{s}с"
         else:
             eta_str = "—"
+        if tracker.total:
+            pct = tracker.downloaded / tracker.total * 100
+            dl_str = f"⏳ {pct:.1f}% • {speed_str} • ETA: {eta_str}"
+        else:
+            # Размер неизвестен (HLS/DASH фрагменты, aria2c) — показываем скачанное
+            dl_str = f"⏳ {_human_size(tracker.downloaded)} • {speed_str}"
+            if eta_str != "—":
+                dl_str += f" • ETA: {eta_str}"
         try:
             await status_msg.edit_text(
                 f"⬇️ Загружаю: <b>{_esc(info.title)}</b>\n"
                 f"Качество: {quality_label}\n\n"
-                f"⏳ {pct:.1f}% • {speed_str} • ETA: {eta_str}",
+                f"{dl_str}",
                 parse_mode=ParseMode.HTML,
                 reply_markup=cancel_kb,
             )
