@@ -1,0 +1,153 @@
+worker_processes auto;
+error_log /var/log/nginx/error.log warn;
+pid /var/run/nginx.pid;
+
+events {
+    worker_connections 256;
+}
+
+http {
+    # ── Безопасность ──────────────────────────────────────────────────────────
+    server_tokens off;
+
+    log_format main '$remote_addr [$time_local] "$request" $status $body_bytes_sent';
+    access_log /var/log/nginx/access.log main;
+
+    # ── Таймауты ──────────────────────────────────────────────────────────────
+    client_body_timeout   10s;
+    client_header_timeout 10s;
+    send_timeout          300s;   # большие файлы
+    keepalive_timeout     30s;
+
+    # ── Буферы (защита от overflow-атак) ──────────────────────────────────────
+    client_body_buffer_size    16k;
+    client_header_buffer_size  1k;
+    large_client_header_buffers 2 4k;
+    client_max_body_size       1k;   # тут нет upload — только download
+
+    # ── Rate limiting: 30 req/min per IP (совпадает с fileserver) ─────────────
+    limit_req_zone $binary_remote_addr zone=info:10m rate=30r/m;
+    limit_req_status 429;
+
+    # ── Upstream ──────────────────────────────────────────────────────────────
+    upstream fileserver {
+        server ytdlp-bot:8080;
+        keepalive 4;
+    }
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # HTTP :80 — ТОЛЬКО для Let's Encrypt ACME challenge
+    # Порт 80 НЕ обязателен. Если не маршрутизирован в nftables — certbot
+    # просто не сможет получить сертификат и бот будет работать с self-signed.
+    # ══════════════════════════════════════════════════════════════════════════
+    server {
+        listen 80;
+        server_name ${SSLIP_DOMAIN};
+
+        location /.well-known/acme-challenge/ {
+            root /var/www/certbot;
+        }
+
+        location / {
+            return 444;    # drop connection
+        }
+    }
+
+    # Catch-all для неизвестных Host на порту 80
+    server {
+        listen 80 default_server;
+        server_name _;
+        return 444;
+    }
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # HTTPS — TLS-терминация + reverse proxy к fileserver
+    # ══════════════════════════════════════════════════════════════════════════
+    server {
+        listen ${HTTPS_PORT} ssl;
+        http2 on;
+        server_name ${SSLIP_DOMAIN};
+
+        # ── TLS сертификаты ───────────────────────────────────────────────
+        ssl_certificate     /etc/nginx/ssl/fullchain.pem;
+        ssl_certificate_key /etc/nginx/ssl/privkey.pem;
+
+        # ── TLS hardening (A+ конфигурация) ───────────────────────────────
+        # Только TLS 1.2 и 1.3. Все шифры — ECDHE (forward secrecy) + AEAD.
+        # Нет CBC, нет RSA key exchange, нет DHE (dhparam не нужен).
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
+        ssl_prefer_server_ciphers off;     # TLS 1.3: клиент выбирает лучше
+
+        ssl_session_cache   shared:SSL:10m;
+        ssl_session_timeout 1d;
+        ssl_session_tickets off;           # forward secrecy
+
+        # OCSP stapling (работает с LE cert, игнорируется с self-signed)
+        ssl_stapling on;
+        ssl_stapling_verify on;
+        resolver 1.1.1.1 8.8.8.8 valid=300s;
+        resolver_timeout 5s;
+
+        # ── Security headers ──────────────────────────────────────────────
+        add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
+        add_header X-Content-Type-Options   "nosniff" always;
+        add_header X-Frame-Options          "DENY" always;
+        add_header Referrer-Policy          "no-referrer" always;
+        add_header X-Robots-Tag             "noindex, nofollow" always;
+        add_header Content-Security-Policy  "default-src 'none'; style-src 'unsafe-inline'" always;
+
+        # ── /info/ — страница с кнопкой скачивания (rate limited) ─────────
+        location /info/ {
+            limit_req zone=info burst=10 nodelay;
+
+            proxy_pass         http://fileserver;
+            proxy_http_version 1.1;
+            proxy_set_header   Host              $host;
+            proxy_set_header   X-Real-IP         $remote_addr;
+            proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+            proxy_set_header   X-Forwarded-Proto https;
+            proxy_set_header   Connection        "";
+        }
+
+        # ── /dl/ — стриминг файла (токен одноразовый, rate limit не нужен)
+        location /dl/ {
+            proxy_pass         http://fileserver;
+            proxy_http_version 1.1;
+            proxy_set_header   Host              $host;
+            proxy_set_header   X-Real-IP         $remote_addr;
+            proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+            proxy_set_header   X-Forwarded-Proto https;
+            proxy_set_header   Connection        "";
+
+            # Стриминг больших файлов без буферизации
+            proxy_buffering         off;
+            proxy_request_buffering off;
+            proxy_read_timeout      300s;
+            proxy_send_timeout      300s;
+        }
+
+        # ── Health check ──────────────────────────────────────────────────
+        location = /health {
+            proxy_pass         http://fileserver;
+            proxy_http_version 1.1;
+        }
+
+        # ── Всё остальное — drop ─────────────────────────────────────────
+        location / {
+            return 444;
+        }
+    }
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # Catch-all: неизвестный SNI → сброс TLS-соединения
+    # Сертификат НЕ отправляется (ssl_reject_handshake отклоняет до обмена)
+    # ══════════════════════════════════════════════════════════════════════════
+    server {
+        listen ${HTTPS_PORT} ssl default_server;
+        server_name _;
+        ssl_certificate     /etc/nginx/ssl/fullchain.pem;
+        ssl_certificate_key /etc/nginx/ssl/privkey.pem;
+        ssl_reject_handshake on;
+    }
+}

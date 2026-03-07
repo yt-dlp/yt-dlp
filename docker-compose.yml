@@ -155,6 +155,75 @@ services:
         max-size: "5m"
         max-file: "2"
 
+  # ── Nginx SSL reverse proxy (прямой доступ по IP через HTTPS) ────────────────
+  # Активируется через: COMPOSE_PROFILES=ssl в .env
+  # (или: docker compose --profile ssl up -d)
+  #
+  # TLS-терминация: HTTPS на порту 7443 → проксирует к файловому серверу ytdlp-bot:8080.
+  # sslip.io даёт доменное имя для IP (напр. 150-241-90-145.sslip.io → 150.241.90.145).
+  # Сертификат: self-signed сразу, Let's Encrypt автоматически (если порт 80 доступен).
+  #
+  # ── nftables (обязательно) ──────────────────────────────────────────────────
+  # Добавить в defines:
+  #   define NGINX_SSL_IP         = 10.10.2.5
+  #   define HTTPS_DIRECT_INPUT   = 7443
+  #   define HTTPS_DIRECT_OUTPUT  = 7443
+  #
+  # Добавить в dockernat.prerouting:
+  #   fib daddr type local tcp dport $HTTPS_DIRECT_INPUT dnat to $NGINX_SSL_IP:$HTTPS_DIRECT_OUTPUT
+  #
+  # Добавить в dockernat.output:
+  #   ip daddr != 127.0.0.0/8 fib daddr type local tcp dport $HTTPS_DIRECT_INPUT dnat to $NGINX_SSL_IP:$HTTPS_DIRECT_OUTPUT
+  #
+  # Удалить старый HTTP DNAT (порт 8080 больше не нужен снаружи):
+  #   # fib daddr type local tcp dport $FILESERVER_INPUT dnat to $YTDLP_IP:$FILESERVER_OUTPUT
+  #
+  # Для Let's Encrypt (опционально, можно добавить временно):
+  #   define ACME_PORT = 80
+  #   fib daddr type local tcp dport $ACME_PORT dnat to $NGINX_SSL_IP:80
+  #   ⚠ Если порт 80 уже занят (DNAT → vpnbot nginx) — временно замените правило
+  #     или добавьте проксирование ACME через vpnbot nginx.
+  #     Без порта 80 — бот работает с self-signed cert (шифрование есть).
+  #
+  # MASQUERADE: 10.10.2.0/24 уже покрыт. docker_nets set тоже содержит 10.10.2.0/24.
+  # ────────────────────────────────────────────────────────────────────────────
+  nginx-ssl:
+    profiles: ["ssl"]
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    image: yt-dlp-nginx-ssl
+    container_name: nginx-ssl
+    restart: unless-stopped
+    depends_on:
+      - ytdlp-bot
+    environment:
+      SSLIP_DOMAIN: ${SSLIP_DOMAIN:-}
+      HTTPS_PORT: ${HTTPS_PORT:-7443}
+      CERTBOT_EMAIL: ${CERTBOT_EMAIL:-}
+    volumes:
+      # Сертификаты (persist между перезапусками)
+      - nginx-ssl-certs:/etc/nginx/ssl
+      # Let's Encrypt state (persist для renewal)
+      - nginx-le-data:/etc/letsencrypt
+      # ACME challenge webroot (ephemeral)
+      - nginx-webroot:/var/www/certbot
+    networks:
+      botnet:
+        ipv4_address: 10.10.2.5
+    # ports: нет — nftables DNAT на 10.10.2.5:7443 (и опционально :80)
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --no-check-certificate https://localhost:${HTTPS_PORT:-7443}/health 2>/dev/null | grep -q 'ok' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
 networks:
   botnet:
     driver: bridge
@@ -167,3 +236,7 @@ volumes:
   # Quick tunnel: cf-entrypoint.sh пишет URL → entrypoint.sh читает и экспортирует.
   # Named tunnel: том примонтирован, но не используется (PUBLIC_BASE_URL из .env).
   cf-url:
+  # nginx-ssl: TLS-сертификаты и Let's Encrypt данные
+  nginx-ssl-certs:
+  nginx-le-data:
+  nginx-webroot:
