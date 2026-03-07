@@ -193,28 +193,34 @@ async def _send_access_request(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 # ── Основные команды ─────────────────────────────────────────────────────────────
 
+def _build_main_menu(user_obj) -> tuple[str, InlineKeyboardMarkup]:
+    """Возвращает (текст, клавиатура) главного меню для авторизованного пользователя."""
+    text = (
+        f"👋 Привет, <b>{_esc(user_obj.first_name)}</b>!\n\n"
+        "Я помогу тебе скачать видео или аудио с популярных сайтов.\n"
+        "Просто отправь мне ссылку на видео!\n\n"
+        + SUPPORTED_SITES_TEXT +
+        "\n\n📋 <b>Команды:</b>\n"
+        "/help — справка\n"
+        "/history — история загрузок\n"
+        "/status — статус бота"
+    )
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("📖 Справка", callback_data="menu:help"),
+            InlineKeyboardButton("📜 История", callback_data="menu:history"),
+            InlineKeyboardButton("📊 Статус", callback_data="menu:status"),
+        ]
+    ])
+    return text, keyboard
+
+
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     db.upsert_user(user.id, user.username, user.full_name)
 
     if db.is_admin(user.id) or db.is_authorized(user.id):
-        text = (
-            f"👋 Привет, <b>{_esc(user.first_name)}</b>!\n\n"
-            "Я помогу тебе скачать видео или аудио с популярных сайтов.\n"
-            "Просто отправь мне ссылку на видео!\n\n"
-            + SUPPORTED_SITES_TEXT +
-            "\n\n📋 <b>Команды:</b>\n"
-            "/help — справка\n"
-            "/history — история загрузок\n"
-            "/status — статус бота"
-        )
-        keyboard = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("📖 Справка", callback_data="menu:help"),
-                InlineKeyboardButton("📜 История", callback_data="menu:history"),
-                InlineKeyboardButton("📊 Статус", callback_data="menu:status"),
-            ]
-        ])
+        text, keyboard = _build_main_menu(user)
         await update.message.reply_text(
             text,
             parse_mode=ParseMode.HTML,
@@ -556,13 +562,27 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
         ctx.user_data.clear()
+        # Возвращаем пользователя на главное меню вместо тупика "Отменено"
+        main_text, main_kb = _build_main_menu(user)
         try:
-            await query.edit_message_text("🛑 Отменено.")
+            await query.edit_message_text(
+                main_text,
+                parse_mode=ParseMode.HTML,
+                disable_web_page_preview=True,
+                reply_markup=main_kb,
+            )
         except TelegramError:
             try:
                 await query.message.delete()
             except TelegramError:
                 pass
+            await ctx.bot.send_message(
+                query.message.chat_id,
+                main_text,
+                parse_mode=ParseMode.HTML,
+                disable_web_page_preview=True,
+                reply_markup=main_kb,
+            )
         return
 
     if data == "info":
@@ -585,8 +605,14 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if data == "clear_history":
         deleted = db.clear_user_history(user.id)
         await query.answer(f"🗑 Удалено записей: {deleted}", show_alert=True)
+        main_text, main_kb = _build_main_menu(user)
         try:
-            await query.edit_message_reply_markup(reply_markup=None)
+            await query.edit_message_text(
+                main_text,
+                parse_mode=ParseMode.HTML,
+                disable_web_page_preview=True,
+                reply_markup=main_kb,
+            )
         except TelegramError:
             pass
         return
@@ -671,24 +697,7 @@ async def _handle_menu_callback(query, ctx, data: str):
         )
 
     elif action == "back":
-        user_obj = query.from_user
-        text = (
-            f"👋 Привет, <b>{_esc(user_obj.first_name)}</b>!\n\n"
-            "Я помогу тебе скачать видео или аудио с популярных сайтов.\n"
-            "Просто отправь мне ссылку на видео!\n\n"
-            + SUPPORTED_SITES_TEXT +
-            "\n\n📋 <b>Команды:</b>\n"
-            "/help — справка\n"
-            "/history — история загрузок\n"
-            "/status — статус бота"
-        )
-        keyboard = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("📖 Справка", callback_data="menu:help"),
-                InlineKeyboardButton("📜 История", callback_data="menu:history"),
-                InlineKeyboardButton("📊 Статус", callback_data="menu:status"),
-            ]
-        ])
+        text, keyboard = _build_main_menu(query.from_user)
         await query.edit_message_text(
             text,
             parse_mode=ParseMode.HTML,
