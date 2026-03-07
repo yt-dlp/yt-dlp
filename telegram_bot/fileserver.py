@@ -389,7 +389,7 @@ async def _handle_download(request: web.Request) -> web.StreamResponse:
         return response
 
     if downloaded_ok:
-        logger.info("Файл '%s' успешно отдан клиенту %s", safe_name, ip)
+        logger.info("Файл '%s' успешно отдан клиенту %s", entry.filename, ip)
         _remove(uuid_key, "успешно скачан")
 
     return response
