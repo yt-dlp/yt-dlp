@@ -83,11 +83,9 @@ http {
         ssl_session_timeout 1d;
         ssl_session_tickets off;           # forward secrecy
 
-        # OCSP stapling (работает с LE cert, игнорируется с self-signed)
-        ssl_stapling on;
-        ssl_stapling_verify on;
-        resolver 1.1.1.1 8.8.8.8 valid=300s;
-        resolver_timeout 5s;
+        # OCSP stapling отключено: новые промежуточные CA Let's Encrypt (R10/R11/E5/E6)
+        # не включают OCSP responder URL — LE переходит на CRL вместо OCSP.
+        # ssl_stapling on;  ← вызывало warn в логах, функционала не давало.
 
         # ── Security headers ──────────────────────────────────────────────
         add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
