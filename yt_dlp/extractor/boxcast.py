@@ -45,6 +45,19 @@ class BoxCastVideoIE(InfoExtractor):
             'description': 'md5:ac23e3d01b0b0be592e8f7fe0ec3a340',
             'title': 'New Year\'s Eve CROSSOVER Service at LHMI | December 31, 2022',
         },
+    }, {
+        # Test case for playlist-based extraction
+        'url': 'https://boxcast.tv/channel/thzz3mve4hxxwwce9csj?b=k1rlqzhv9jk5of1vujzs',
+        'info_dict': {
+            'id': 'k1rlqzhv9jk5of1vujzs',
+            'ext': 'mp4',
+            'thumbnail': r're:https?://uploads\.boxcast\.com/(?:[\w-]+/){3}.+\.jpg$',
+            'release_date': '20260107',
+            'uploader_id': 'qwdn19qiip1t4hbenfuw',
+            'release_timestamp': 1767829804,
+            'uploader': 'City of Louisburg KS - Louisburg, KS',
+            'title': 'Special meeting of the Fox Hall/Cemetery Board',
+        },
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://childrenshealthdefense.eu/live-stream/',
@@ -77,9 +90,11 @@ class BoxCastVideoIE(InfoExtractor):
                                    display_id, fatal=False) or {})
 
         formats, subtitles = [], {}
-        if view_json_data.get('status') == 'recorded':
+        playlist = view_json_data.get('playlist')
+        if playlist:
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                view_json_data['playlist'], display_id)
+                playlist, display_id)
+
 
         return {
             'id': str(broadcast_json_data['id']),
