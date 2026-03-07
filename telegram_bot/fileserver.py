@@ -443,9 +443,77 @@ _runner: Optional[web.AppRunner] = None
 _cleanup_task: Optional[asyncio.Task] = None
 
 
+def _restore_registry() -> None:
+    """Восстанавливает реестр из файловой системы после перезапуска бота.
+
+    Сканирует DOWNLOAD_DIR/fileserver/<uuid_key>/<filename> и добавляет
+    в _registry все файлы, у которых TTL ещё не истёк.
+    TTL считается от mtime файла: expires_at = mtime + FILE_TTL_SECONDS.
+
+    Это решает «ссылка не работает после перезапуска»: файлы на диске живут,
+    но in-memory _registry был пуст → бот возвращал 410 Gone.
+    """
+    from config import DOWNLOAD_DIR, FILE_TTL_SECONDS
+
+    fs_root = DOWNLOAD_DIR / "fileserver"
+    if not fs_root.exists():
+        return
+
+    now = time.time()
+    restored = expired_removed = 0
+
+    for serve_dir in fs_root.iterdir():
+        if not serve_dir.is_dir():
+            continue
+        uuid_key = serve_dir.name
+        # Валидируем: должен быть ровно 32 hex-символа
+        if len(uuid_key) != 32 or not all(c in "0123456789abcdef" for c in uuid_key):
+            continue
+
+        files = [f for f in serve_dir.iterdir() if f.is_file()]
+        if not files:
+            try:
+                serve_dir.rmdir()
+            except OSError:
+                pass
+            continue
+
+        f = files[0]
+        # TTL отсчитываем от момента записи файла на диск (mtime)
+        expires_at = f.stat().st_mtime + FILE_TTL_SECONDS
+
+        if expires_at < now:
+            # Срок истёк — убираем с диска
+            for ff in files:
+                ff.unlink(missing_ok=True)
+            try:
+                serve_dir.rmdir()
+            except OSError:
+                pass
+            expired_removed += 1
+            continue
+
+        _registry[uuid_key] = FileEntry(
+            path=f,
+            filename=f.name,
+            file_size=f.stat().st_size,
+            expires_at=expires_at,
+        )
+        restored += 1
+
+    if restored or expired_removed:
+        logger.info(
+            "Файловый сервер: восстановлено %d файлов, удалено %d просроченных после рестарта",
+            restored, expired_removed,
+        )
+
+
 async def start(host: str = "0.0.0.0", port: int = 8080) -> web.AppRunner:
     """Запускает HTTP-сервер и фоновую очистку."""
     global _runner, _cleanup_task
+
+    # Восстанавливаем файлы, зарегистрированные до рестарта бота
+    _restore_registry()
 
     app = web.Application()
     app.router.add_get("/info/{token}", _handle_info)
