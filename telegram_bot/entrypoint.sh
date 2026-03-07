@@ -1,6 +1,12 @@
 #!/bin/sh
 set -e
 
+# Устанавливаем umask до сброса привилегий:
+# 0022 → файлы 644, директории 755 — мир может читать.
+# Это критично: telegram-bot-api контейнер (другой UID) должен
+# иметь возможность stat() файлов в /downloads/fileserver/
+umask 0022
+
 # ── Права на смонтированных томах (нужны root-права, только здесь) ────────────
 chown -R botuser:botuser /downloads /data 2>/dev/null || true
 

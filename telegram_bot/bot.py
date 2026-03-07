@@ -1427,23 +1427,35 @@ async def _deliver_file(chat_id: int, result: DownloadResult, bot: Bot, keep_fil
     """
     fp = result.file_path
     caption = f"📁 {fp.stem[:200]}  ({_human_size(result.file_size)})"
+    is_audio = fp.suffix in (".mp3", ".ogg", ".m4a", ".flac", ".wav")
 
     if config.LOCAL_API_SERVER:
-        # local_mode=True: передаём абсолютный путь к файлу.
-        # Локальный Bot API сервер читает файл напрямую с диска через
-        # общий том /downloads — не нужен HTTP-upload от бота к серверу.
-        # Это устраняет узкое место при отправке больших файлов.
+        # local_mode=True: передаём абсолютный путь — локальный Bot API сервер
+        # читает файл напрямую с диска через общий том /downloads.
+        # Если API сервер не может stat() файл (например, права доступа),
+        # падаем на чтение содержимого через bot-контейнер (fallback).
         fp_path = fp.resolve()
-        if fp.suffix in (".mp3", ".ogg", ".m4a", ".flac", ".wav"):
-            await bot.send_audio(chat_id, audio=fp_path, caption=caption)
-        else:
-            await bot.send_document(chat_id, document=fp_path, caption=caption)
-    else:
-        with fp.open("rb") as fh:
-            if fp.suffix in (".mp3", ".ogg", ".m4a", ".flac", ".wav"):
-                await bot.send_audio(chat_id, audio=InputFile(fh, filename=fp.name), caption=caption)
+        try:
+            if is_audio:
+                await bot.send_audio(chat_id, audio=fp_path, caption=caption)
             else:
-                await bot.send_document(chat_id, document=InputFile(fh, filename=fp.name), caption=caption)
+                await bot.send_document(chat_id, document=fp_path, caption=caption)
+            if not keep_file:
+                fp.unlink(missing_ok=True)
+            return
+        except TelegramError as exc:
+            if "stat" not in str(exc).lower() and "bad request" not in str(exc).lower():
+                raise
+            logger.warning(
+                "_deliver_file: local API stat() failed (%s), falling back to direct upload", exc
+            )
+            # Продолжаем ниже — читаем файл и шлём как multipart
+
+    with fp.open("rb") as fh:
+        if is_audio:
+            await bot.send_audio(chat_id, audio=InputFile(fh, filename=fp.name), caption=caption)
+        else:
+            await bot.send_document(chat_id, document=InputFile(fh, filename=fp.name), caption=caption)
 
     if not keep_file:
         fp.unlink(missing_ok=True)

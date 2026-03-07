@@ -123,13 +123,24 @@ def move_and_register(src: Path, ttl_seconds: int = 3600) -> str:
     Возвращает full_token. Файл переносится из временной папки бота в
     /downloads/fileserver/<uuid_key>/<filename>, чтобы TTL-очистка не
     зависела от tmp_dir загрузчика.
+
+    Права явно выставляются в 755/644, чтобы telegram-bot-api контейнер
+    (работает под другим UID) мог выполнить stat() на файл через
+    общий том /downloads:ro — независимо от umask процесса.
     """
     from config import DOWNLOAD_DIR
     uuid_key, full_token = _make_token()
-    serve_dir = DOWNLOAD_DIR / "fileserver" / uuid_key
+    # Создаём промежуточный каталог /downloads/fileserver/ и uuid-подкаталог
+    fs_root = DOWNLOAD_DIR / "fileserver"
+    fs_root.mkdir(parents=True, exist_ok=True)
+    fs_root.chmod(0o755)
+    serve_dir = fs_root / uuid_key
     serve_dir.mkdir(parents=True, exist_ok=True)
+    serve_dir.chmod(0o755)
     dest = serve_dir / src.name
     shutil.move(str(src), str(dest))
+    # Явно выставляем 644: файл должен быть читаем другим UID (telegram-bot-api)
+    dest.chmod(0o644)
     _registry[uuid_key] = FileEntry(
         path=dest,
         filename=dest.name,
