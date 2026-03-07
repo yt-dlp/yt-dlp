@@ -307,10 +307,13 @@ class ProgressTracker:
     def hook(self, d: dict) -> None:
         self.status = d.get("status", "")
         if self.status == "downloading":
-            self.downloaded = d.get("downloaded_bytes", 0)
-            self.total = d.get("total_bytes") or d.get("total_bytes_estimate", 0)
+            self.downloaded = d.get("downloaded_bytes", 0) or 0
+            self.total = d.get("total_bytes") or d.get("total_bytes_estimate", 0) or 0
             self.speed = d.get("speed", 0) or 0
             self.eta = d.get("eta", 0) or 0
+            # Не показываем пока ничего не скачали (первый вызов с 0 байт)
+            if not self.downloaded:
+                return
             if self.callback and self.loop:
                 now = time.monotonic()
                 if now - self._last_update >= 5.0:   # не чаще раза в 5 секунд
@@ -331,6 +334,16 @@ async def download_video(
     output_template = str(output_dir / "%(title).80s.%(ext)s")
 
     opts = _base_opts()
+
+    # Когда ждём прогресс — используем нативный загрузчик yt-dlp:
+    # aria2c как внешний загрузчик вызывает progress_hook только при старте/финише,
+    # из-за чего сообщение застревает на «Пожалуйста, подождите…».
+    # Нативный загрузчик с 3 потоками даёт полноценный прогресс на каждом фрагменте.
+    if progress_callback and USE_ARIA2C:
+        opts.pop("external_downloader", None)
+        opts.pop("external_downloader_args", None)
+        opts["concurrent_fragment_downloads"] = 3
+
     loop = asyncio.get_running_loop()
     tracker = ProgressTracker(progress_callback, loop)
 
