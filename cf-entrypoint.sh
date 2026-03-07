@@ -12,7 +12,7 @@ CF_LOG="/cf-url/cf.log"
 # ── Named Tunnel (CLOUDFLARE_TUNNEL_TOKEN задан) ──────────────────────────────
 if [ -n "$TUNNEL_TOKEN" ]; then
     echo "[cloudflared] Named tunnel mode"
-    exec cloudflared tunnel --no-autoupdate --metrics 0.0.0.0:2000 --edge-ip-version 4 --no-icmp-proxy run --token "$TUNNEL_TOKEN"
+    exec cloudflared tunnel --no-autoupdate --metrics 0.0.0.0:2000 --edge-ip-version 4 run --token "$TUNNEL_TOKEN"
 fi
 
 # ── Quick Tunnel (без токена, URL меняется при перезапуске) ───────────────────
@@ -25,10 +25,12 @@ mkdir -p /cf-url
 cloudflared tunnel --no-autoupdate \
     --metrics 0.0.0.0:2000 \
     --edge-ip-version 4 \
-    --no-icmp-proxy \
     --url "http://ytdlp-bot:${HTTP_PORT:-8080}" \
     >"$CF_LOG" 2>&1 &
 CF_PID=$!
+
+# Пробрасываем логи cloudflared в stdout сразу (видно в docker compose logs)
+tail -f "$CF_LOG" &
 
 # Ищем URL в логах (cloudflared печатает его в первые ~15 сек)
 FOUND=0
@@ -54,9 +56,6 @@ done
 if [ "$FOUND" -eq 0 ]; then
     echo "[cloudflared] WARNING: URL тоннеля не найден в логах за 3 минуты"
 fi
-
-# Пробрасываем логи cloudflared в stdout (видно в docker compose logs)
-tail -f "$CF_LOG" &
 
 # Ждём завершения cloudflared (если упадёт — контейнер перестартует)
 wait "$CF_PID"
