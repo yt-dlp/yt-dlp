@@ -1348,17 +1348,50 @@ async def _handle_playlist_callback(query, ctx, data: str):
 
         sent = 0
         skipped = 0
+        fs_links: list[tuple[str, str, str]] = []  # (title, size_str, url)
+
         for r in results:
             if r.success and r.file_path and r.file_path.exists():
                 if r.file_size <= config.MAX_FILE_SIZE_BYTES:
-                    await _deliver_file(query.message.chat_id, r, ctx.bot)
+                    if config.PUBLIC_BASE_URL:
+                        # Файловый сервер включён — регистрируем файл и собираем ссылки.
+                        # move_and_register перемещает файл из tmp_dir → папку fileserver,
+                        # поэтому shutil.rmtree в finally не затронет его.
+                        try:
+                            token = fileserver.move_and_register(
+                                r.file_path, config.FILE_TTL_SECONDS
+                            )
+                            info_url = f"{config.PUBLIC_BASE_URL}/info/{token}"
+                            fs_links.append((
+                                r.title or r.file_path.stem,
+                                _human_size(r.file_size),
+                                info_url,
+                            ))
+                        except Exception as fs_err:
+                            logger.warning("fileserver playlist item failed: %s — fallback to TG", fs_err)
+                            await _deliver_file(query.message.chat_id, r, ctx.bot)
+                    else:
+                        await _deliver_file(query.message.chat_id, r, ctx.bot)
                     sent += 1
                     await asyncio.sleep(1)
                 else:
                     skipped += 1
 
+        # Отправляем все ссылки одним сообщением (только в режиме файлового сервера)
+        if fs_links:
+            ttl_h = max(1, config.FILE_TTL_SECONDS // 3600)
+            lines = [f"🔗 <b>Ссылки для скачивания</b> (действуют {ttl_h} ч):\n"]
+            for i, (title, size_str, link_url) in enumerate(fs_links, 1):
+                lines.append(f"{i}. <a href='{link_url}'>{_esc(title[:60])}</a>  {size_str}")
+            await ctx.bot.send_message(
+                query.message.chat_id,
+                "\n".join(lines),
+                parse_mode=ParseMode.HTML,
+                disable_web_page_preview=True,
+            )
+
         db.update_download(dl_id, title=info.title, status="done")
-        summary = f"✅ Плейлист загружен. Отправлено: {sent}/{len(results)}"
+        summary = f"✅ Плейлист готов. Отправлено: {sent}/{len(results)}"
         if skipped:
             summary += f" (пропущено {skipped} — превышен лимит размера)"
         await ctx.bot.send_message(query.message.chat_id, summary)
@@ -1382,29 +1415,15 @@ async def _handle_playlist_callback(query, ctx, data: str):
 
 
 async def _deliver_file(chat_id: int, result: DownloadResult, bot: Bot, keep_file: bool = False):
-    """
-    Отправляет файл напрямую через Telegram Bot API (локальный сервер снимает лимит 2 ГБ).
+    """Отправляет файл напрямую через Telegram Bot API.
 
-    # ── Режим файлового HTTP-сервера (закомментировано) ─────────────────────────────
-    # При включении: раскомментировать import fileserver, _post_init и .post_init() в main(),
-    # задать PUBLIC_BASE_URL в .env — бот отправит ссылку вместо файла.
-    #
-    # if config.PUBLIC_BASE_URL:
-    #     token = fileserver.register_file(fp, ttl_seconds=config.FILE_TTL_SECONDS)
-    #     url = f"{config.PUBLIC_BASE_URL}/dl/{token}"
-    #     ttl_h = config.FILE_TTL_SECONDS // 3600
-    #     ttl_label = f"{ttl_h} ч" if ttl_h < 24 else f"{ttl_h // 24} д"
-    #     await bot.send_message(
-    #         chat_id,
-    #         f"📥 <b>Файл готов!</b>\n\n"
-    #         f"🔗 <a href='{url}'>{_esc(fp.name)}</a>\n"
-    #         f"📦 Размер: {_human_size(result.file_size)}\n"
-    #         f"⏳ Ссылка действительна: {ttl_label} (удаляется после скачивания)",
-    #         parse_mode=ParseMode.HTML,
-    #         disable_web_page_preview=True,
-    #     )
-    #     return
-    # ─────────────────────────────────────────────────────────────────────────────────
+    Используется в двух случаях:
+    - Режим Telegram API (LOCAL_API_SERVER): локальный сервер читает файл
+      с диска через общий том — нет ограничения 50 МБ, лимит до 2 ГБ.
+    - Режим файлового сервера: вызывается только когда пользователь выбрал
+      «📤 Отправить в Telegram» в _handle_deliver_callback() или при ошибке
+      fileserver.move_and_register(). Регистрация в fileserver и выдача
+      ссылок происходит в _handle_download_callback() / _handle_playlist_callback().
     """
     fp = result.file_path
     caption = f"📁 {fp.stem[:200]}  ({_human_size(result.file_size)})"
