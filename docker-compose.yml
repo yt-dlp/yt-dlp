@@ -118,15 +118,16 @@ services:
   #   URL появится в логах: docker compose logs -f cloudflared | grep trycloudflare
   #   Затем: PUBLIC_BASE_URL=https://<random>.trycloudflare.com + restart ytdlp-bot
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    # cloudflare/cloudflared:latest — scratch-образ, нет /bin/sh.
+    # Собираем свой: берём бинарник из scratch-образа, кладём в alpine + наш скрипт.
+    # Dockerfile.cloudflared использует multi-stage build.
+    build:
+      context: .
+      dockerfile: Dockerfile.cloudflared
+    image: yt-dlp-cloudflared   # кэшируем под именем, чтобы не пересобирать каждый раз
     container_name: cloudflared
     restart: unless-stopped
-    # cf-entrypoint.sh: named tunnel → exec cloudflared run --token
-    #                   quick tunnel → cloudflared в фоне, извлекает URL,
-    #                                  пишет в /cf-url/public_url для бота
-    entrypoint: ["/bin/sh", "/cf-entrypoint.sh"]
     volumes:
-      - ./cf-entrypoint.sh:/cf-entrypoint.sh:ro
       - cf-url:/cf-url   # shared с ytdlp-bot: сюда пишется URL тоннеля
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}

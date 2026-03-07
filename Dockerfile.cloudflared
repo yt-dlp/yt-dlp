@@ -1,0 +1,14 @@
+FROM cloudflare/cloudflared:latest AS cloudflared-src
+
+# cloudflare/cloudflared:latest — scratch-образ без shell.
+# Берём только бинарник cloudflared и запускаем его в alpine (есть /bin/sh, grep, seq...).
+FROM alpine:latest
+
+# ca-certificates нужны cloudflared для TLS-соединения с Cloudflare
+RUN apk add --no-cache ca-certificates
+
+COPY --from=cloudflared-src /usr/local/bin/cloudflared /usr/local/bin/cloudflared
+COPY cf-entrypoint.sh /cf-entrypoint.sh
+RUN chmod +x /cf-entrypoint.sh
+
+ENTRYPOINT ["/bin/sh", "/cf-entrypoint.sh"]
