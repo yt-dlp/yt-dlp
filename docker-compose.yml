@@ -52,6 +52,9 @@ services:
       - ./data/db:/data
       # Опционально: куки для контента 18+
       # - ./cookies.txt:/cookies.txt:ro
+      # Shared с cloudflared: entrypoint.sh читает URL тоннеля отсюда
+      # (только в quick tunnel режиме; в named tunnel PUBLIC_BASE_URL берётся из .env)
+      - cf-url:/cf-url
 
     # ── Лимиты ресурсов ──────────────────────────────────────────────────────
     # memory: файлы не буферизуются в RAM (стриминг при отправке в Telegram),
@@ -118,21 +121,21 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared
     restart: unless-stopped
+    # cf-entrypoint.sh: named tunnel → exec cloudflared run --token
+    #                   quick tunnel → cloudflared в фоне, извлекает URL,
+    #                                  пишет в /cf-url/public_url для бота
+    entrypoint: ["/bin/sh", "/cf-entrypoint.sh"]
+    volumes:
+      - ./cf-entrypoint.sh:/cf-entrypoint.sh:ro
+      - cf-url:/cf-url   # shared с ytdlp-bot: сюда пишется URL тоннеля
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
       HTTP_PORT: ${HTTP_PORT:-8080}
-    # Named tunnel если токен есть, иначе quick tunnel
-    command: >
-      sh -c '
-        if [ -n "$$TUNNEL_TOKEN" ]; then
-          exec cloudflared tunnel --no-autoupdate run --token "$$TUNNEL_TOKEN"
-        else
-          echo "CLOUDFLARE_TUNNEL_TOKEN не задан — запуск quick tunnel (URL см. в логах)"
-          exec cloudflared tunnel --no-autoupdate --url "http://ytdlp-bot:$$HTTP_PORT"
-        fi
-      '
+    # Запускаем параллельно с ytdlp-bot (оба ждут telegram-bot-api).
+    # Убрано depends_on ytdlp-bot — иначе deadlock в quick tunnel режиме
+    # (ytdlp-bot ждёт URL от cloudflared, cloudflared ждёт health ytdlp-bot).
     depends_on:
-      ytdlp-bot:
+      telegram-bot-api:
         condition: service_healthy
     networks:
       botnet:
@@ -156,3 +159,9 @@ networks:
     ipam:
       config:
         - subnet: 10.10.2.0/24
+
+volumes:
+  # Канал передачи URL тоннеля от cloudflared к ytdlp-bot.
+  # Quick tunnel: cf-entrypoint.sh пишет URL → entrypoint.sh читает и экспортирует.
+  # Named tunnel: том примонтирован, но не используется (PUBLIC_BASE_URL из .env).
+  cf-url:
