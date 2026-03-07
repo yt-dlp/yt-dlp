@@ -273,7 +273,13 @@ async def cmd_history(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         lines.append(f"{i}. {status_icon} {title}")
         if row["quality"]:
             lines.append(f"   └ {row['quality']}, {_human_size(row['file_size'])}")
-    await update.message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
+    await update.message.reply_text(
+        "\n".join(lines),
+        parse_mode=ParseMode.HTML,
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("🗑 Очистить историю", callback_data="clear_history"),
+        ]]),
+    )
 
 
 @require_auth
@@ -391,7 +397,14 @@ async def handle_url(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    msg = await update.message.reply_text("🔍 Получаю информацию о видео…")
+    user_msg = update.message
+    msg = await user_msg.reply_text("🔍 Получаю информацию о видео…")
+    # Удаляем оригинальное сообщение пользователя (убирает превью ссылки).
+    # В личных чатах бот не имеет прав на удаление чужих сообщений — ошибка игнорируется.
+    try:
+        await user_msg.delete()
+    except TelegramError:
+        pass
     await _fetch_and_show_menu(url, msg, ctx)
 
 
@@ -569,6 +582,15 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await _handle_resolve_callback(query, ctx, data)
         return
 
+    if data == "clear_history":
+        deleted = db.clear_user_history(user.id)
+        await query.answer(f"🗑 Удалено записей: {deleted}", show_alert=True)
+        try:
+            await query.edit_message_reply_markup(reply_markup=None)
+        except TelegramError:
+            pass
+        return
+
     if data.startswith("deliver:"):
         await _handle_deliver_callback(query, ctx, data)
     elif data.startswith("dl:"):
@@ -611,6 +633,7 @@ async def _handle_menu_callback(query, ctx, data: str):
         rows = db.get_user_history(user.id, limit=10)
         if not rows:
             text = "📭 История загрузок пуста."
+            buttons = [[InlineKeyboardButton("« Назад", callback_data="menu:back")]]
         else:
             lines = ["📜 <b>Последние загрузки:</b>\n"]
             for i, row in enumerate(rows, 1):
@@ -618,12 +641,14 @@ async def _handle_menu_callback(query, ctx, data: str):
                 title = (row["title"] or row["url"])[:50]
                 lines.append(f"{i}. {icon} {title}")
             text = "\n".join(lines)
+            buttons = [
+                [InlineKeyboardButton("🗑 Очистить историю", callback_data="clear_history")],
+                [InlineKeyboardButton("« Назад", callback_data="menu:back")],
+            ]
         await query.edit_message_text(
             text,
             parse_mode=ParseMode.HTML,
-            reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("« Назад", callback_data="menu:back"),
-            ]]),
+            reply_markup=InlineKeyboardMarkup(buttons),
         )
 
     elif action == "status":
@@ -1332,11 +1357,17 @@ async def _handle_playlist_callback(query, ctx, data: str):
     except Exception as e:
         logger.error("Playlist error: %s", e)
         db.update_download(dl_id, status="error", error=str(e))
-        await ctx.bot.send_message(
-            query.message.chat_id,
-            f"❌ Ошибка при загрузке плейлиста:\n<code>{_esc(str(e)[:300])}</code>",
-            parse_mode=ParseMode.HTML,
-        )
+        err_str = str(e)
+        if "rate-limit" in err_str.lower() or "ratelimit" in err_str.lower() or "429" in err_str:
+            user_msg = (
+                "⚠️ <b>YouTube ограничил скорость запросов</b>\n\n"
+                "YouTube временно заблокировал скачивание (rate limit).\n"
+                "Попробуйте снова через 30–60 минут.\n\n"
+                "<i>Совет: начните с меньшего количества видео (5 вместо 10).</i>"
+            )
+        else:
+            user_msg = f"❌ Ошибка при загрузке плейлиста:\n<code>{_esc(err_str[:300])}</code>"
+        await ctx.bot.send_message(query.message.chat_id, user_msg, parse_mode=ParseMode.HTML)
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 

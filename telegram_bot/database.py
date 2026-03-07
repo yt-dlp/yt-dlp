@@ -263,6 +263,12 @@ def cleanup_old_history(max_age_days: int = 30) -> int:
         return cur.rowcount
 
 
+def clear_user_history(user_id: int) -> int:
+    with get_connection() as conn:
+        cur = conn.execute("DELETE FROM download_history WHERE user_id = ?", (user_id,))
+        return cur.rowcount
+
+
 def get_global_stats() -> dict:
     with get_connection() as conn:
         total_users = conn.execute("SELECT COUNT(*) FROM users WHERE is_approved=1").fetchone()[0]

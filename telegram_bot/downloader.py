@@ -482,17 +482,30 @@ async def download_playlist(
         "noplaylist": False,
         "playlistend": max_items,
         "socket_timeout": 30,
-        "retries": 3,
+        "retries": 5,
+        # Задержки между запросами для обхода rate-limit YouTube
+        "sleep_interval": 3,
+        "max_sleep_interval": 8,
+        "sleep_interval_requests": 1,
+        "ignoreerrors": True,  # не прерываем плейлист на недоступном видео
     })
 
     loop = asyncio.get_running_loop()
     results = []
+    error_holder: dict = {}
 
     def _download():
-        with yt_dlp.YoutubeDL(opts) as ydl:
-            ydl.download([url])
+        try:
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                ydl.download([url])
+        except Exception as e:
+            error_holder["error"] = str(e)
 
     await loop.run_in_executor(None, _download)
+
+    # Если плейлист не скачал ни одного файла и была ошибка — пробрасываем
+    if error_holder.get("error") and not any(output_dir.iterdir()):
+        raise RuntimeError(error_holder["error"])
 
     for f in sorted(output_dir.iterdir()):
         if f.is_file() and f.suffix in (".mp4", ".webm", ".mkv", ".mp3"):
