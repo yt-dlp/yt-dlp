@@ -322,6 +322,11 @@ class ProgressTracker:
                 if now - self._last_update >= 3.0:   # не чаще раза в 3 секунды
                     self._last_update = now
                     asyncio.run_coroutine_threadsafe(self.callback(self), self.loop)
+        elif self.status == "finished":
+            # Загрузка завершена, идёт пост-обработка (FFmpeg конвертация).
+            # Уведомляем UI один раз, чтобы бот показал "Конвертирую..."
+            if self.callback and self.loop:
+                asyncio.run_coroutine_threadsafe(self.callback(self), self.loop)
 
 
 async def download_video(

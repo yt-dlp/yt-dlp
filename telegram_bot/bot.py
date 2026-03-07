@@ -1073,6 +1073,19 @@ async def _handle_download_callback(query, ctx, data: str):
     async def _on_progress(tracker: ProgressTracker) -> None:
         if cancel_flag[0]:
             return
+        if tracker.status == "finished":
+            # FFmpeg конвертация (после завершения HTTP-загрузки)
+            try:
+                await status_msg.edit_text(
+                    f"⬇️ Загружаю: <b>{_esc(info.title)}</b>\n"
+                    f"Качество: {quality_label}\n\n"
+                    f"🔄 Конвертирую...",
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=cancel_kb,
+                )
+            except TelegramError:
+                pass
+            return
         speed_str = f"{tracker.speed / 1_048_576:.1f} МБ/с" if tracker.speed else "—"
         if tracker.eta:
             m, s = divmod(int(tracker.eta), 60)
