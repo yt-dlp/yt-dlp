@@ -92,6 +92,64 @@ services:
       retries: 3
       start_period: 15s
 
+  # ── Cloudflare Tunnel ────────────────────────────────────────────────────────
+  # Даёт публичный HTTPS-URL для файлового сервера без открытия портов на хосте.
+  # Cloudflared устанавливает ИСХОДЯЩЕЕ соединение к Cloudflare (443/7844) —
+  # дополнительных правил DNAT в nftables НЕ требуется.
+  #
+  # ВАЖНО — nftables: убедитесь, что MASQUERADE/SNAT покрывает весь subnet,
+  # а не только .2 и .3. Пример минимального правила (замените eth0 на ваш iface):
+  #   ip saddr 10.10.2.0/24 oifname "eth0" masquerade
+  # Если у вас правила на конкретные IP — добавьте 10.10.2.4:
+  #   ip saddr { 10.10.2.2, 10.10.2.3, 10.10.2.4 } oifname "eth0" masquerade
+  #
+  # ── Режимы (задаётся через .env) ───────────────────────────────────────────
+  # Режим A — NAMED TUNNEL (рекомендуется, постоянный URL):
+  #   1. Cloudflare Dashboard → Zero Trust → Networks → Tunnels → Create
+  #   2. Скопируйте токен → .env: CLOUDFLARE_TUNNEL_TOKEN=eyJ...
+  #   3. В настройках тоннеля: Public Hostname → Service http://ytdlp-bot:8080
+  #   4. .env: PUBLIC_BASE_URL=https://ваш-поддомен.domain.com
+  #
+  # Режим B — QUICK TUNNEL (тест, URL меняется при каждом рестарте):
+  #   Оставьте CLOUDFLARE_TUNNEL_TOKEN= пустым в .env.
+  #   URL появится в логах: docker compose logs -f cloudflared | grep trycloudflare
+  #   Затем: PUBLIC_BASE_URL=https://<random>.trycloudflare.com + restart ytdlp-bot
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+      HTTP_PORT: ${HTTP_PORT:-8080}
+    # Named tunnel если токен есть, иначе quick tunnel
+    command: >
+      sh -c '
+        if [ -n "$$TUNNEL_TOKEN" ]; then
+          exec cloudflared tunnel --no-autoupdate run --token "$$TUNNEL_TOKEN"
+        else
+          echo "CLOUDFLARE_TUNNEL_TOKEN не задан — запуск quick tunnel (URL см. в логах)"
+          exec cloudflared tunnel --no-autoupdate --url "http://ytdlp-bot:$$HTTP_PORT"
+        fi
+      '
+    depends_on:
+      ytdlp-bot:
+        condition: service_healthy
+    networks:
+      botnet:
+        ipv4_address: 10.10.2.4   # добавьте в nftables MASQUERADE если нужно (см. выше)
+    healthcheck:
+      # cloudflared поднимает metrics-сервер на :2000 с /readyz
+      test: ["CMD-SHELL", "wget -qO- http://localhost:2000/readyz 2>/dev/null | grep -q 'ok' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
 networks:
   botnet:
     driver: bridge
