@@ -87,6 +87,7 @@ KEY_VIDEO_INFO  = "video_info"
 KEY_DOWNLOAD_ID = "download_id"
 KEY_PENDING_URL = "pending_url"
 KEY_ORIG_URL    = "original_url"   # сохраняем оригинальный URL (с list=) для плейлиста
+KEY_MAIN_MENU_MSG = "main_menu_msg_id"  # message_id последнего сообщения главного меню
 
 
 # ── Session serialization (persist quality-menu state across restarts) ───────────
@@ -220,13 +221,26 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     db.upsert_user(user.id, user.username, user.full_name)
 
     if db.is_admin(user.id) or db.is_authorized(user.id):
+        # Удаляем предыдущее сообщение главного меню, чтобы не накапливались
+        prev_msg_id = ctx.user_data.get(KEY_MAIN_MENU_MSG)
+        if prev_msg_id:
+            try:
+                await ctx.bot.delete_message(chat_id=update.effective_chat.id, message_id=prev_msg_id)
+            except TelegramError:
+                pass
         text, keyboard = _build_main_menu(user)
-        await update.message.reply_text(
+        sent = await update.message.reply_text(
             text,
             parse_mode=ParseMode.HTML,
             disable_web_page_preview=True,
             reply_markup=keyboard,
         )
+        ctx.user_data[KEY_MAIN_MENU_MSG] = sent.message_id
+        # Удаляем само сообщение /start чтобы не засорять чат
+        try:
+            await update.message.delete()
+        except TelegramError:
+            pass
     else:
         await _send_access_request(update, ctx)
 
@@ -455,9 +469,12 @@ def _build_quality_menu(info: VideoInfo) -> tuple[str, InlineKeyboardMarkup]:
     )
     buttons = []
     for f in video_fmts:
+        est = _estimate_download_size(f, info.duration or 0, audio_only=False)
+        too_large = est is not None and est > config.MAX_FILE_SIZE_BYTES
         size_hint = f" [{f.size_str}]" if f.filesize or f.tbr else ""
         fps_hint = f" {f.fps}fps" if f.fps and f.fps > 30 else ""
-        label = f"🎥 {f.resolution}{fps_hint} {f.ext.upper()}{size_hint}"
+        warn = " ⚠️" if too_large else ""
+        label = f"🎥 {f.resolution}{fps_hint} {f.ext.upper()}{size_hint}{warn}"
         buttons.append([InlineKeyboardButton(label, callback_data=f"dl:v:{f.format_id}")])
     buttons.append([InlineKeyboardButton("⚡ Лучшее качество (авто)", callback_data="dl:v:best")])
     if config.ALLOW_AUDIO:
