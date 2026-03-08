@@ -403,7 +403,7 @@ class XHamsterIE(InfoExtractor):
                     video, lambda x: x['author']['name'], str),
                 'uploader_url': uploader_url,
                 'uploader_id': uploader_url.split('/')[-1] if uploader_url else None,
-                'thumbnail': video.get('thumbURL'),
+                'thumbnail': url_or_none(re.sub(r'/v\d+$', '', video.get('thumbURL') or '')),
                 'duration': int_or_none(video.get('duration')),
                 'view_count': int_or_none(video.get('views')),
                 'like_count': int_or_none(try_get(
@@ -469,10 +469,11 @@ class XHamsterIE(InfoExtractor):
             r'<span[^>]+itemprop=["\']author[^>]+><a[^>]+><span[^>]+>([^<]+)',
             webpage, 'uploader', default='anonymous')
 
-        thumbnail = self._search_regex(
-            [r'''["']thumbUrl["']\s*:\s*(?P<q>["'])(?P<thumbnail>.+?)(?P=q)''',
-             r'''<video[^>]+"poster"=(?P<q>["'])(?P<thumbnail>.+?)(?P=q)[^>]*>'''],
-            webpage, 'thumbnail', fatal=False, group='thumbnail')
+        thumbnail = url_or_none(re.sub(
+            r'/v\d+$', '', self._search_regex(
+                [r'''["']thumbUrl["']\s*:\s*(?P<q>["'])(?P<thumbnail>.+?)(?P=q)''',
+                 r'''<video[^>]+"poster"=(?P<q>["'])(?P<thumbnail>.+?)(?P=q)[^>]*>'''],
+                webpage, 'thumbnail', fatal=False, group='thumbnail') or ''))
 
         duration = parse_duration(self._search_regex(
             [r'<[^<]+\bitemprop=["\']duration["\'][^<]+\bcontent=["\'](.+?)["\']',
