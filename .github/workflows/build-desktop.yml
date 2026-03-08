@@ -5,6 +5,8 @@ on:
     branches:
       - master
       - main
+    tags:
+      - 'v*'
   pull_request:
     branches:
       - master
@@ -16,14 +18,14 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-desktop:
     name: Build Desktop App
     runs-on: windows-latest
     permissions:
-      contents: read
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -61,3 +63,15 @@ jobs:
         with:
           name: yt-dlp-Desktop-Installer
           path: dist/yt-dlp-Desktop-Setup.exe
+
+      - name: Release Software
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8
+        with:
+          files: |
+            dist/yt-dlp-Desktop.exe
+            dist/yt-dlp-Desktop-Setup.exe
+          name: yt-dlp Desktop Application Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
