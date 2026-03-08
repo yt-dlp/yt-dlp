@@ -1,0 +1,51 @@
+name: Build Desktop Application Version 1
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-desktop:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller pythonnet clr_loader bottle webview pywebview
+
+      - name: Install yt-dlp
+        run: pip install .
+
+      - name: Build Executable using PyInstaller
+        run: python build.py
+
+      - name: Compile Inno Setup Installer
+        run: |
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+
+      - name: Upload Standalone Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: yt-dlp-Desktop-Standalone
+          path: dist/yt-dlp-Desktop.exe
+
+      - name: Upload Setup Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: yt-dlp-Desktop-Installer
+          path: dist/yt-dlp-Desktop-Setup.exe

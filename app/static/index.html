@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>yt-dlp Desktop</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <div class="app-logo">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+            </div>
+            <h1 class="app-title">yt-dlp <span class="title-accent">Desktop</span></h1>
+        </div>
+        <div class="header-right">
+            <span class="version-badge" id="versionBadge" title="yt-dlp version"></span>
+            <span class="ffmpeg-badge" id="ffmpegBadge" title="FFmpeg status"></span>
+            <button class="btn-icon" id="btnOpenFolder" title="Open downloads folder">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                </svg>
+            </button>
+            <button class="btn-icon" id="btnSettings" title="Settings">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="app-main">
+
+        <!-- URL Input Section -->
+        <section class="url-section">
+            <div class="url-input-group">
+                <div class="url-input-wrapper">
+                    <svg class="url-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                    </svg>
+                    <input type="text" id="urlInput" class="url-input" placeholder="Paste video or playlist URL here..."
+                        autocomplete="off" spellcheck="false">
+                    <button class="btn-paste" id="btnPaste" title="Paste from clipboard">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                        </svg>
+                    </button>
+                </div>
+                <button class="btn-primary" id="btnExtract">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <span>Extract</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Loading State -->
+        <section class="loading-section" id="loadingSection" style="display:none;">
+            <div class="spinner"></div>
+            <p class="loading-text">Extracting video information...</p>
+        </section>
+
+        <!-- Video Preview Section -->
+        <section class="preview-section" id="previewSection" style="display:none;">
+            <div class="preview-card">
+                <div class="preview-thumbnail-wrap">
+                    <img id="previewThumb" class="preview-thumbnail" src="" alt="Thumbnail">
+                    <span class="preview-duration" id="previewDuration"></span>
+                </div>
+                <div class="preview-info">
+                    <h2 class="preview-title" id="previewTitle"></h2>
+                    <p class="preview-channel" id="previewChannel"></p>
+                    <div class="preview-meta">
+                        <span id="previewViews" class="meta-item"></span>
+                        <span id="previewDate" class="meta-item"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Format Selection -->
+            <div class="format-section">
+                <div class="format-header">
+                    <h3>Select Format</h3>
+                    <div class="format-tabs">
+                        <button class="format-tab active" data-filter="all">All</button>
+                        <button class="format-tab" data-filter="video">Video</button>
+                        <button class="format-tab" data-filter="audio">Audio</button>
+                    </div>
+                </div>
+                <div class="format-list" id="formatList"></div>
+                <button class="btn-download" id="btnDownload">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    <span>Download Selected</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Downloads Section -->
+        <section class="downloads-section" id="downloadsSection">
+            <div class="section-header">
+                <h3>Downloads</h3>
+                <button class="btn-text" id="btnClearHistory">Clear History</button>
+            </div>
+            <div class="downloads-list" id="downloadsList">
+                <div class="empty-state" id="emptyState">
+                    <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"
+                        opacity="0.3">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    <p>No downloads yet. Paste a URL above to get started.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal" style="display:none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Settings</h3>
+                <button class="btn-icon modal-close" id="btnCloseSettings">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Updates Section -->
+                <div class="setting-group">
+                    <label class="setting-label">Updates</label>
+                    <div class="update-status" id="updateStatus">
+                        <span id="updateText">Checking for updates...</span>
+                    </div>
+                    <div class="setting-row" style="gap:8px;">
+                        <button class="btn-secondary" id="btnCheckUpdate">Check for Updates</button>
+                        <button class="btn-secondary" id="btnDoUpdate" style="display:none;">Update yt-dlp</button>
+                        <button class="btn-secondary" id="btnInstallFFmpeg" style="display:none;">Install
+                            FFmpeg</button>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-label">Download Location</label>
+                    <div class="setting-row">
+                        <input type="text" id="settingOutputDir" class="setting-input" readonly>
+                        <button class="btn-secondary" id="btnBrowseFolder">Browse</button>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">Default Format</label>
+                    <select id="settingFormat" class="setting-select">
+                        <option value="best">Best Quality (Video + Audio)</option>
+                        <option value="bestvideo+bestaudio">Best Video + Best Audio (Merge)</option>
+                        <option value="bestaudio">Audio Only (Best)</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label class="setting-toggle">
+                        <input type="checkbox" id="settingEmbedThumb">
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-text">Embed Thumbnail</span>
+                    </label>
+                </div>
+                <div class="setting-group">
+                    <label class="setting-toggle">
+                        <input type="checkbox" id="settingEmbedMeta">
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-text">Embed Metadata</span>
+                    </label>
+                </div>
+                <div class="setting-group">
+                    <label class="setting-toggle">
+                        <input type="checkbox" id="settingSubtitles">
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-text">Download Subtitles</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="developer-credits" style="font-size: 0.8rem; color: var(--text-muted);">
+                    Developed by Infinity <span style="color: var(--primary-color); font-weight: 500;"></span>
+                </div>
+                <button class="btn-primary" id="btnSaveSettings">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast" style="display:none;">
+        <span class="toast-icon" id="toastIcon"></span>
+        <span class="toast-message" id="toastMessage"></span>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+
+</html>
