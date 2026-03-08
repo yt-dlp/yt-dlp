@@ -213,6 +213,17 @@ def _check_rate_limit(ip: str) -> bool:
     return True
 
 
+def _sanitize_header_value(name: str) -> str:
+    """Удаляет символы которые могут инжектировать дополнительные HTTP-заголовки.
+
+    Основная угроза: имя файла содержит \\r\\n — браузер или прокси интерпретирует
+    это как конец текущего заголовка и начало нового (HTTP response splitting).
+    aiohttp 3.x тоже выбрасывает исключение при \\r/\\n в заголовке, но явная
+    санитизация защищает на уровне приложения независимо от версии библиотеки.
+    """
+    return "".join(c for c in name if c not in "\r\n\x00")
+
+
 def _fmt_size(n: int) -> str:
     for unit in ("Б", "КБ", "МБ", "ГБ"):
         if n < 1024:
@@ -290,7 +301,10 @@ _INFO_TEMPLATE = """\
 async def _handle_info(request: web.Request) -> web.Response:
     """HTML-страница с информацией о файле и кнопкой «Скачать»."""
     token = request.match_info["token"]
-    ip = request.remote or "unknown"
+    # SECURITY: за nginx request.remote — это IP контейнера, а не реального клиента.
+    # Nginx выставляет X-Real-IP = $remote_addr; читаем его для корректного rate-limit.
+    # Поскольку fileserver слушает только внутри Docker-сети, этому заголовку можно доверять.
+    ip = request.headers.get("X-Real-IP") or request.remote or "unknown"
 
     if not _check_rate_limit(ip):
         raise web.HTTPTooManyRequests(
@@ -332,7 +346,8 @@ async def _handle_info(request: web.Request) -> web.Response:
 async def _handle_download(request: web.Request) -> web.StreamResponse:
     """Стриминг файла клиенту с последующим удалением."""
     token = request.match_info["token"]
-    ip = request.remote or "unknown"
+    # SECURITY: используем X-Real-IP от nginx, а не IP Docker-контейнера.
+    ip = request.headers.get("X-Real-IP") or request.remote or "unknown"
 
     if not _check_rate_limit(ip):
         raise web.HTTPTooManyRequests(
@@ -344,7 +359,11 @@ async def _handle_download(request: web.Request) -> web.StreamResponse:
     if uuid_key is None:
         raise web.HTTPNotFound(headers=_SEC_HEADERS)
 
-    entry = _registry.get(uuid_key)
+    # SECURITY TOCTOU: атомарно извлекаем запись из реестра ДО начала стриминга.
+    # _registry.pop — атомарная операция в asyncio (однопоточный event loop), поэтому
+    # два одновременных запроса с одним токеном не могут оба получить entry.
+    # Первый получает entry, второй получает None → 410 Gone.
+    entry = _registry.pop(uuid_key, None)
     if entry is None:
         raise web.HTTPGone(
             reason="Файл не найден или ссылка уже использована.",
@@ -352,11 +371,13 @@ async def _handle_download(request: web.Request) -> web.StreamResponse:
         )
 
     if time.time() > entry.expires_at:
-        _remove(uuid_key, "TTL истёк (download)")
+        # TTL истёк — удаляем файл с диска (из реестра уже вынули выше)
+        entry.path.unlink(missing_ok=True)
+        _rmdir_safe(entry.path.parent)
+        logger.info("Файл '%s' удалён (TTL истёк на /dl/)", entry.filename)
         raise web.HTTPGone(reason="Срок действия ссылки истёк.", headers=_SEC_HEADERS)
 
     if not entry.path.exists():
-        _registry.pop(uuid_key, None)
         raise web.HTTPNotFound(
             reason="Файл не найден на диске.",
             headers=_SEC_HEADERS,
@@ -364,8 +385,10 @@ async def _handle_download(request: web.Request) -> web.StreamResponse:
 
     file_size = entry.path.stat().st_size
     # RFC 5987: для ASCII-имён используем filename=, для Unicode добавляем filename*=
-    ascii_name = entry.filename.encode("ascii", errors="replace").decode().replace('"', "_")
-    utf8_name = entry.filename.replace("\\", "").replace('"', "")
+    # SECURITY: сначала удаляем \r\n\x00 (HTTP response splitting), затем " (разрыв кавычек)
+    _clean = _sanitize_header_value(entry.filename)
+    ascii_name = _clean.encode("ascii", errors="replace").decode().replace('"', "_")
+    utf8_name = _clean.replace("\\", "").replace('"', "")
     from urllib.parse import quote as _urlquote
     content_disposition = (
         f'attachment; filename="{ascii_name}"; '
@@ -399,9 +422,15 @@ async def _handle_download(request: web.Request) -> web.StreamResponse:
         logger.error("Ошибка при отдаче '%s': %s", entry.filename, e)
         return response
 
+    # Удаляем файл с диска после стриминга (из реестра уже вынули в начале).
+    # Если соединение прервалось — файл всё равно удаляется: токен уже недействителен,
+    # пользователь должен запросить новую ссылку в боте.
+    entry.path.unlink(missing_ok=True)
+    _rmdir_safe(entry.path.parent)
     if downloaded_ok:
-        logger.info("Файл '%s' успешно отдан клиенту %s", entry.filename, ip)
-        _remove(uuid_key, "успешно скачан")
+        logger.info("Файл '%s' успешно отдан клиенту %s и удалён", entry.filename, ip)
+    else:
+        logger.warning("Файл '%s' удалён (соединение прервано клиентом %s)", entry.filename, ip)
 
     return response
 
