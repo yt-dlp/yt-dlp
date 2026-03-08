@@ -576,10 +576,14 @@ def _build_quality_menu(info: VideoInfo) -> tuple[str, InlineKeyboardMarkup]:
     buttons.append([InlineKeyboardButton("⚡ Лучшее качество (авто)", callback_data="dl:v:best")])
     if config.ALLOW_AUDIO:
         buttons.append([InlineKeyboardButton("🎵 Аудио MP3 (192 kbps)", callback_data="dl:a:best")])
+        # Альтернативные аудио-форматы объединяем в одну строку
+        _alt_audio: list[InlineKeyboardButton] = []
         if config.ALLOW_OPUS:
-            buttons.append([InlineKeyboardButton("⚡ Аудио OPUS (быстро, без конвертации)", callback_data="dl:ao:best")])
+            _alt_audio.append(InlineKeyboardButton("⚡ OPUS (быстро)", callback_data="dl:ao:best"))
         if config.ALLOW_WAV:
-            buttons.append([InlineKeyboardButton("🎵 Аудио WAV (несжатый, PCM)", callback_data="dl:aw:best")])
+            _alt_audio.append(InlineKeyboardButton("🎵 WAV (PCM)", callback_data="dl:aw:best"))
+        if _alt_audio:
+            buttons.append(_alt_audio)
     if config.ALLOW_SUBTITLES:
         buttons.append([
             InlineKeyboardButton("📄 + Субтитры RU", callback_data="dl:s:ru"),
@@ -1331,16 +1335,20 @@ async def _handle_download_callback(query, ctx, data: str):
                                 callback_data="deliver:tg",
                             ),
                         ]]
+                        # Cloudflare и «с сервера» объединяем в одну строку если оба включены
+                        _url_row: list[InlineKeyboardButton] = []
                         if config.PUBLIC_BASE_URL:
-                            deliver_buttons.append([InlineKeyboardButton(
-                                f"🔗 Ссылка через туннель ({ttl_h}ч)",
+                            _url_row.append(InlineKeyboardButton(
+                                f"🔗 Ссылка через Cloudflare ({ttl_h}ч)",
                                 callback_data="deliver:link",
-                            )])
+                            ))
                         if config.DIRECT_BASE_URL:
-                            deliver_buttons.append([InlineKeyboardButton(
-                                f"🌐 Прямая ссылка IP ({ttl_h}ч)",
+                            _url_row.append(InlineKeyboardButton(
+                                f"🌐 Прямая ссылка с сервера ({ttl_h}ч)",
                                 callback_data="deliver:direct",
-                            )])
+                            ))
+                        if _url_row:
+                            deliver_buttons.append(_url_row)
                         if config.RELAY_BASE_URL:
                             deliver_buttons.append([InlineKeyboardButton(
                                 f"🔄 Relay-ссылка ({ttl_h}ч)",
@@ -1445,8 +1453,8 @@ async def _notify_link_expiry(bot: Bot, chat_id: int, title: str, info_url: str,
 
 
 async def _handle_deliver_callback(query, ctx, data: str):
-    """Обрабатывает выбор способа доставки файла: Telegram, ссылка или прямой IP."""
-    action = data.split(":", 1)[1]  # "tg", "link" или "direct"
+    """Обрабатывает выбор способа доставки файла: Telegram, ссылка Cloudflare, прямая с сервера или relay."""
+    action = data.split(":", 1)[1]  # "tg", "link", "direct" или "relay"
     pd = ctx.user_data.get("_pending_delivery")
 
     if not pd:
@@ -1487,7 +1495,7 @@ async def _handle_deliver_callback(query, ctx, data: str):
         ttl_h = max(1, config.FILE_TTL_SECONDS // 3600)
         _caption, _keyboard = _build_quality_menu(info)
 
-        via_label = "IP" if action == "direct" else "relay" if action == "relay" else "туннель"
+        via_label = "сервер" if action == "direct" else "relay" if action == "relay" else "Cloudflare"
 
         # Планируем уведомление за 10 мин до истечения TTL
         notify_delay = config.FILE_TTL_SECONDS - 600
