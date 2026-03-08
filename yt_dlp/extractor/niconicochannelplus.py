@@ -432,8 +432,8 @@ class NiconicoChannelPlusIE(NicoChannelBaseIE):
     @classmethod
     def suitable(cls, url):
         return super().suitable(url) or (
-            '_match_video_id' in cls.__dict__ and  # lazy extractor check
-            cls._check_domain_suitable(url) and cls._match_video_id(url)
+            '_match_video_id' in cls.__dict__  # lazy extractor check
+            and cls._check_domain_suitable(url) and cls._match_video_id(url)
         )
 
     def _extract_from_webpage(self, url, webpage):
