@@ -18,14 +18,14 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-desktop:
     name: Build Desktop App
     runs-on: windows-latest
     permissions:
-      contents: write
+      contents: write # needed to create GitHub release
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
