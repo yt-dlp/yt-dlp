@@ -91,6 +91,7 @@ KEY_DOWNLOAD_ID = "download_id"
 KEY_PENDING_URL = "pending_url"
 KEY_ORIG_URL    = "original_url"   # сохраняем оригинальный URL (с list=) для плейлиста
 KEY_MAIN_MENU_MSG = "main_menu_msg_id"  # message_id последнего сообщения главного меню
+KEY_QUALITY_MSG   = "quality_menu_msg_id"  # message_id меню выбора качества (для удаления при новой ссылке)
 
 
 # ── Session serialization (persist quality-menu state across restarts) ───────────
@@ -422,6 +423,15 @@ async def handle_url(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     except TelegramError:
         pass
 
+    # Удаляем предыдущее меню выбора качества (если не было нажато ни одной кнопки).
+    # Это очищает чат от неактуальных меню при вставке новой ссылки.
+    _prev_quality_msg = ctx.user_data.pop(KEY_QUALITY_MSG, None)
+    if _prev_quality_msg:
+        try:
+            await ctx.bot.delete_message(update.effective_chat.id, _prev_quality_msg)
+        except TelegramError:
+            pass  # уже удалено или бот нажал кнопку → меню трансформировалось в прогресс
+
     # Одна ссылка — стандартный флоу с поддержкой смешанного YouTube URL
     if len(valid_urls) == 1:
         url = valid_urls[0]
@@ -537,6 +547,8 @@ async def _fetch_and_show_menu(url: str, msg: Message, ctx: ContextTypes.DEFAULT
     else:
         sent = await _show_video_menu(msg, info, ctx)
         if sent:
+            # Запоминаем message_id меню выбора качества — удалим при следующей ссылке.
+            ctx.user_data[KEY_QUALITY_MSG] = sent.message_id
             try:
                 db.save_session(sent.chat_id, sent.message_id, url, _serialize_video_info(info))
             except Exception as e:
@@ -598,19 +610,28 @@ def _build_quality_menu(info: VideoInfo) -> tuple[str, InlineKeyboardMarkup]:
 
 async def _show_video_menu(msg: Message, info: VideoInfo, ctx: ContextTypes.DEFAULT_TYPE):
     caption, keyboard = _build_quality_menu(info)
-    try:
-        if info.thumbnail:
+    if info.thumbnail:
+        try:
             await msg.delete()
-            sent = await ctx.bot.send_photo(
+            return await ctx.bot.send_photo(
                 msg.chat_id,
                 photo=info.thumbnail,
                 caption=caption,
                 parse_mode=ParseMode.HTML,
                 reply_markup=keyboard,
             )
-            return sent
-    except TelegramError:
-        pass
+        except TelegramError:
+            # Миниатюра недоступна или сообщение уже удалено —
+            # отправляем новое текстовое сообщение вместо редактирования удалённого.
+            try:
+                return await ctx.bot.send_message(
+                    msg.chat_id,
+                    text=caption,
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=keyboard,
+                )
+            except TelegramError:
+                pass
     return await msg.edit_text(caption, parse_mode=ParseMode.HTML, reply_markup=keyboard)
 
 
@@ -1074,6 +1095,10 @@ async def _handle_download_callback(query, ctx, data: str):
     _session_chat_id = query.message.chat_id
     _session_msg_id  = query.message.message_id
 
+    # Меню выбора качества трансформируется в сообщение прогресса —
+    # сбрасываем ключ, чтобы следующий URL не пытался удалить уже изменившееся сообщение.
+    ctx.user_data.pop(KEY_QUALITY_MSG, None)
+
     user = query.from_user
     dl_id = db.add_download(user.id, url)
     ctx.user_data[KEY_DOWNLOAD_ID] = dl_id
@@ -1335,20 +1360,16 @@ async def _handle_download_callback(query, ctx, data: str):
                                 callback_data="deliver:tg",
                             ),
                         ]]
-                        # Cloudflare и «с сервера» объединяем в одну строку если оба включены
-                        _url_row: list[InlineKeyboardButton] = []
                         if config.PUBLIC_BASE_URL:
-                            _url_row.append(InlineKeyboardButton(
+                            deliver_buttons.append([InlineKeyboardButton(
                                 f"🔗 Ссылка через Cloudflare ({ttl_h}ч)",
                                 callback_data="deliver:link",
-                            ))
+                            )])
                         if config.DIRECT_BASE_URL:
-                            _url_row.append(InlineKeyboardButton(
+                            deliver_buttons.append([InlineKeyboardButton(
                                 f"🌐 Прямая ссылка с сервера ({ttl_h}ч)",
                                 callback_data="deliver:direct",
-                            ))
-                        if _url_row:
-                            deliver_buttons.append(_url_row)
+                            )])
                         if config.RELAY_BASE_URL:
                             deliver_buttons.append([InlineKeyboardButton(
                                 f"🔄 Relay-ссылка ({ttl_h}ч)",
