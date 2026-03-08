@@ -13,6 +13,11 @@ http {
     log_format main '$remote_addr [$time_local] "$request" $status $body_bytes_sent';
     access_log /var/log/nginx/access.log main;
 
+    # Детальный лог TLS-соединений: протокол, шифр, переиспользование сессии
+    log_format ssl_detail '$remote_addr [$time_local] "$request" $status $body_bytes_sent '
+                          'tls=$ssl_protocol cipher=$ssl_cipher reused=$ssl_session_reused';
+    # ssl_detail пишется только в HTTPS-сервере (см. ниже)
+
     # ── Таймауты ──────────────────────────────────────────────────────────────
     client_body_timeout   10s;
     client_header_timeout 10s;
@@ -67,6 +72,9 @@ http {
         listen ${HTTPS_PORT} ssl;
         http2 on;
         server_name ${SSLIP_DOMAIN};
+
+        # Детальный лог TLS для этого сервера (протокол, шифр, сессия)
+        access_log /var/log/nginx/access.log ssl_detail;
 
         # ── TLS сертификаты ───────────────────────────────────────────────
         ssl_certificate     /etc/nginx/ssl/fullchain.pem;

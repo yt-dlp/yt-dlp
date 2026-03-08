@@ -444,13 +444,20 @@ async def handle_url(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await _fetch_and_show_menu(url, msg, ctx)
         return
 
-    # Несколько ссылок — обрабатываем каждую последовательно (максимум 5)
+    # Несколько ссылок — отправляем все статусы сразу, затем получаем инфо параллельно.
+    # Сессии сохраняются в БД по (chat_id, message_id), поэтому параллельное обновление
+    # ctx.user_data не мешает: при нажатии кнопки бот восстанавливает данные из БД.
     batch = valid_urls[:5]
+    msgs = []
     for i, url in enumerate(batch, 1):
         msg = await update.effective_chat.send_message(
             f"🔍 [{i}/{len(batch)}] Получаю информацию о видео…"
         )
-        await _fetch_and_show_menu(url, msg, ctx)
+        msgs.append(msg)
+    await asyncio.gather(*(
+        _fetch_and_show_menu(url, msg, ctx)
+        for url, msg in zip(batch, msgs)
+    ))
 
 
 async def handle_inline_query(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:

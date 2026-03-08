@@ -164,7 +164,10 @@ async def get_video_info(url: str) -> VideoInfo:
     opts = _base_opts()
     opts.update({
         "skip_download": True,
-        "extract_flat": False,
+        # extract_flat=True: для плейлистов возвращает только плоский список
+        # (id, title, url) без HTTP-запросов для каждого видео — на порядок быстрее.
+        # Для одиночных видео поведение не меняется.
+        "extract_flat": True,
     })
 
     loop = asyncio.get_running_loop()
@@ -178,7 +181,7 @@ async def get_video_info(url: str) -> VideoInfo:
     is_playlist = info.get("_type") == "playlist"
     if is_playlist:
         # Return minimal playlist info
-        entries = info.get("entries") or []
+        entries = list(info.get("entries") or [])
         return VideoInfo(
             url=url,
             title=info.get("title", "Playlist"),

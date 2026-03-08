@@ -115,6 +115,8 @@ if [ "$ENABLE_CERTBOT" = "true" ]; then
                     cp -f "$LE_DIR/privkey.pem"   "$CERT_DIR/privkey.pem"
                     nginx -s reload
                     echo "[nginx-ssl] ✓ Let's Encrypt сертификат установлен!"
+                    openssl x509 -in "$CERT_DIR/fullchain.pem" -noout \
+                        -subject -issuer -dates 2>/dev/null | sed 's/^/[nginx-ssl]   /'
                 fi
             else
                 echo ""
@@ -145,6 +147,17 @@ else
     echo "[nginx-ssl] ENABLE_CERTBOT=false — Let's Encrypt отключён"
     echo "[nginx-ssl] HTTPS работает с self-signed сертификатом"
 fi
+
+# ── Вывод информации о сертификате перед стартом nginx ────────────────────────
+echo "[nginx-ssl] ── Информация о сертификате ──────────────────────────────"
+openssl x509 -in "$CERT_DIR/fullchain.pem" -noout \
+    -subject -issuer -dates \
+    2>/dev/null | sed 's/^/[nginx-ssl]   /'
+# Fingerprint (SHA-256) — для верификации что нужный cert
+FINGERPRINT=$(openssl x509 -in "$CERT_DIR/fullchain.pem" -noout -fingerprint -sha256 2>/dev/null \
+    | sed 's/SHA256 Fingerprint=//')
+echo "[nginx-ssl]   fingerprint: ${FINGERPRINT}"
+echo "[nginx-ssl] ─────────────────────────────────────────────────────────"
 
 # ── Запуск nginx как PID 1 (получает SIGTERM при остановке контейнера) ─────────
 echo "[nginx-ssl] nginx запущен: https://${DOMAIN}:${HTTPS_PORT}"
