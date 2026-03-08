@@ -518,10 +518,15 @@ async def _fetch_and_show_menu(url: str, msg: Message, ctx: ContextTypes.DEFAULT
         info: VideoInfo = await get_video_info(url)
     except Exception as e:
         logger.error("get_video_info error: %s", e)
-        await msg.edit_text(
-            f"❌ Не удалось получить информацию о видео:\n<code>{_esc(str(e)[:300])}</code>",
-            parse_mode=ParseMode.HTML,
-        )
+        err_str = str(e)
+        friendly = _login_required_text(err_str)
+        if friendly:
+            await msg.edit_text(friendly, parse_mode=ParseMode.HTML)
+        else:
+            await msg.edit_text(
+                f"❌ Не удалось получить информацию о видео:\n<code>{_esc(err_str[:300])}</code>",
+                parse_mode=ParseMode.HTML,
+            )
         return
 
     ctx.user_data[KEY_VIDEO_INFO] = info
@@ -1291,6 +1296,8 @@ async def _handle_download_callback(query, ctx, data: str):
                             f"<b>{config.MAX_FILE_SIZE_MB} МБ</b>.\n\n"
                             f"Выберите более низкое качество:\n\n{_caption}"
                         )
+                    elif result.error and _login_required_text(result.error):
+                        err_text = _login_required_text(result.error)
                     else:
                         err_text = f"❌ Ошибка: <code>{_esc(result.error[:300])}</code>\n\n{_caption}"
                     try:
@@ -1888,6 +1895,37 @@ async def error_handler(update: object, ctx: ContextTypes.DEFAULT_TYPE):
 
 def _esc(text: str) -> str:
     return (text or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+_LOGIN_REQUIRED_HINTS = (
+    "login required",
+    "login_required",
+    "cookies",
+    "rate-limit reached",
+    "rate limit reached",
+    "not available",
+    "requested content is not available",
+    "private",
+    "sign in",
+)
+
+
+def _login_required_text(err: str) -> str | None:
+    """Если ошибка связана с авторизацией/куками — возвращает понятное сообщение,
+    иначе None. Используется для Instagram, TikTok, Twitter/X и т.п."""
+    low = err.lower()
+    if not any(h in low for h in _LOGIN_REQUIRED_HINTS):
+        return None
+    return (
+        "🔒 <b>Требуется авторизация</b>\n\n"
+        "Этот контент недоступен без входа в аккаунт (Instagram, TikTok, Twitter/X и т.п.).\n\n"
+        "<b>Как исправить:</b>\n"
+        "1. Экспортируйте cookies из браузера в формате Netscape (расширение <i>Get cookies.txt</i>)\n"
+        "2. Сохраните файл на сервер (например <code>/data/cookies.txt</code>)\n"
+        "3. Добавьте в <code>.env</code>:\n"
+        "   <code>COOKIES_FILE=/data/cookies.txt</code>\n"
+        "4. Перезапустите бот: <code>docker compose up -d --build ytdlp-bot</code>"
+    )
 
 
 def _schedule_delete(bot, chat_id: int, message_id: int, delay: int = 0) -> None:
