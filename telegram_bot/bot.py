@@ -1341,6 +1341,11 @@ async def _handle_download_callback(query, ctx, data: str):
                                 f"🌐 Прямая ссылка IP ({ttl_h}ч)",
                                 callback_data="deliver:direct",
                             )])
+                        if config.RELAY_BASE_URL:
+                            deliver_buttons.append([InlineKeyboardButton(
+                                f"🔄 Relay-ссылка ({ttl_h}ч)",
+                                callback_data="deliver:relay",
+                            )])
                         await status_msg.edit_text(
                             f"✅ <b>{_esc(result.title or info.title)}</b>\n"
                             f"📦 {_human_size(result.file_size)}\n\n"
@@ -1464,7 +1469,7 @@ async def _handle_deliver_callback(query, ctx, data: str):
 
     entry = fileserver.get_entry(token)
 
-    if action in ("link", "direct"):
+    if action in ("link", "direct", "relay"):
         # ── Доставка через ссылку файлового сервера ──────────────────────────────
         if not entry:
             await query.answer("❌ Файл недоступен (истёк TTL). Скачайте заново.", show_alert=True)
@@ -1473,12 +1478,16 @@ async def _handle_deliver_callback(query, ctx, data: str):
 
         ctx.user_data.pop("_pending_delivery", None)
 
-        base = config.DIRECT_BASE_URL if action == "direct" else config.PUBLIC_BASE_URL
+        base = (
+            config.DIRECT_BASE_URL if action == "direct" else
+            config.RELAY_BASE_URL  if action == "relay"  else
+            config.PUBLIC_BASE_URL
+        )
         info_url = f"{base}/info/{token}"
         ttl_h = max(1, config.FILE_TTL_SECONDS // 3600)
         _caption, _keyboard = _build_quality_menu(info)
 
-        via_label = "IP" if action == "direct" else "туннель"
+        via_label = "IP" if action == "direct" else "relay" if action == "relay" else "туннель"
 
         # Планируем уведомление за 10 мин до истечения TTL
         notify_delay = config.FILE_TTL_SECONDS - 600
