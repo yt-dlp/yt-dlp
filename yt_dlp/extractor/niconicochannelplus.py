@@ -4,6 +4,7 @@ import hashlib
 import json
 import random
 import re
+import string
 import time
 import urllib.parse
 
@@ -23,149 +24,111 @@ from ..utils import (
     urljoin,
 )
 
-_SUITABLE_NICOCHANNEL_PLUS_DOMAINS = set()
 
+class SiteContext:
+    _REFRESH_TIMEOUT_THRES = 30
 
-class NicoChannelCommonBaseIE(InfoExtractor):
-    _SITE_SETTINGS = {}
+    def __init__(self, ie: InfoExtractor, url, video_id=None):
+        self._ie = ie
+        self._site_url = urljoin(url, '/')
+        self._access_token = None
+        self._refresh_token = None
+        self._settings = self._ie._download_json(
+            urljoin(self._site_url, '/site/settings.json'), video_id,
+            headers={'Referer': url}, note='Downloading nicochannel site settings')
+        if 'api_base_url' not in self._settings or 'fanclub_site_id' not in self._settings:
+            raise ExtractorError('Failed to get site settings')
+        if (platform := self._settings.get('platform_id')) not in ['CHPL', 'SHTA', 'JOQR', 'TKFM']:
+            self._ie.report_warning(f'Unknown platform type: {platform}')
+        self._perform_login()
 
-    def _get_jwt_token(self, url):
-        pass
+    @property
+    def _netrc(self):
+        domain = urllib.parse.urlparse(self._site_url).hostname
+        return 'nicochannel' if domain == 'nicochannel.jp' else f'nicochannel-{domain.replace(".", "-")}'
 
-    def _get_settings(self, url, video_id=None):
-        base_url = urljoin(url, '/')
-        if base_url not in self._SITE_SETTINGS:
-            site_settings = self._download_json(
-                urljoin(base_url, '/site/settings.json'), video_id, note='Downloading site settings')
-            if 'api_base_url' not in site_settings or 'fanclub_site_id' not in site_settings:
-                raise ExtractorError('Unable to get site settings')
-            self._SITE_SETTINGS[base_url] = site_settings
-        _SUITABLE_NICOCHANNEL_PLUS_DOMAINS.add(urllib.parse.urlparse(url).netloc)
+    @property
+    def _login_hint(self):
+        return (f'Use --username and --password, --netrc-cmd, or --netrc ({self._netrc}) to provide '
+                'account credentials. For third-party login, use --username jwt_token --password <token> '
+                'or --username refresh_token --password <token> to provide auth token')
 
-        if self._SITE_SETTINGS[base_url].get('platform_id') not in ['CHPL', 'SHTA', 'JOQR', 'TKFM']:
-            self.report_warning(f'Unknown platform type: {self._SITE_SETTINGS[base_url].get("platform_id")}')
-        return self._SITE_SETTINGS[base_url]
+    def _parse_jwt_timeout(self, access_token):
+        return jwt_decode_hs256(access_token)['exp'] - time.time()
 
-    def _download_api_json(self, site_url, path, video_id, headers={}, **kwargs):
-        path = f'/{path}' if path[0] != '/' else path
-        settings = self._get_settings(site_url, video_id)
-        headers = {
-            'origin': urljoin(site_url, '/').strip('/'),
-            'referer': urljoin(site_url, '/'),
-            'fc_site_id': settings['fanclub_site_id'],
-            'fc_use_device': 'null',
-            **headers,
-        }
-        if jwt_token := self._get_jwt_token(site_url):
-            headers['Authorization'] = f'Bearer {jwt_token}'
+    @functools.cached_property
+    def _auth_settings(self):
+        auth_data = self._ie._download_json(
+            f'{self._settings["api_base_url"]}/fanclub_sites/{self._settings["fanclub_site_id"]}/login',
+            None, note='Downloading auth settings', headers={
+                'origin': self._site_url.strip('/'), 'referer': self._site_url,
+                'Fc_site_id': self._settings['fanclub_site_id'], 'Fc_use_device': 'null'})
+        return traverse_obj(auth_data, ('data', 'fanclub_site', {
+            'auth0_web_client': ('auth0_web_client_id', {str}),
+            'auth0_domain': ('fanclub_group', 'auth0_domain', {str}),
+        }))
 
-        data, handle = self._download_json_handle(
-            f'{settings["api_base_url"]}{path}', video_id, headers=headers, expected_status=403, **kwargs)
-        if handle.status == 403:
-            if not self._get_jwt_token(site_url):
-                self.raise_login_required()
-            raise ExtractorError('You may have no access to this video')
-        return data
+    @property
+    def _jwt_token(self):
+        if self._access_token:
+            if self._parse_jwt_timeout(self._access_token) < self._REFRESH_TIMEOUT_THRES:
+                self._perform_jwt_refresh()
+            if self._parse_jwt_timeout(self._access_token) < 0:
+                self._ie.report_warning('JWT token expired, continuing without login.')
+                self._access_token = None
+        return self._access_token
 
+    def _deprecated_load_args_tokens(self):
+        if refresh := self._ie._configuration_arg('refresh_token', ie_key='niconicochannelplus', casesense=True):
+            self._ie.report_warning('niconicochannelplus:refresh_token is deprecated in favor of using'
+                                    '--username refresh_token --password <token> instead', only_once=True)
+            return 'refresh_token', refresh[0]
+        if jwt := self._ie._configuration_arg('jwt_token', ie_key='niconicochannelplus', casesense=True):
+            self._ie.report_warning('niconicochannelplus:jwt_token is deprecated in favor of using'
+                                    '--username jwt_token --password <token> instead', only_once=True)
+            return 'jwt_token', jwt[0]
+        return None, None
 
-class NicoChannelAuthBaseIE(NicoChannelCommonBaseIE):
-    _NETRC_MACHINE = False
+    def _perform_login(self):
+        username, password = self._ie._get_login_info(netrc_machine=self._netrc)
+        if not username:
+            username, password = self._deprecated_load_args_tokens()
 
-    _AUTH_SETTINGS = {}
-    _AUTH_TOKENS = {}
-    _ARG_REFRESH_USED = False
-    _REFRESH_TIMEOUT_THRES = 15
-    _netrc_domain: str
-
-    def _get_auth(self, url) -> dict:
-        return self._AUTH_TOKENS.get(urljoin(url, '/'), {})
-
-    def _set_auth(self, url, auth):
-        self._AUTH_TOKENS[urljoin(url, '/')] = auth
-
-    def _login_hint(self, *args, **kwargs):
-        return (super()._login_hint('password', netrc=getattr(self, '_netrc_domain', None))
-                + ', or --extractor-args "niconicochannelplus:jwt_token=xxx" or --extractor-args '
-                '"niconicochannelplus:refresh_token=xxx" to directly providing auth token')
-
-    def _get_auth_settings(self, url):
-        fanclub_site_id = self._get_settings(url)['fanclub_site_id']
-        if fanclub_site_id not in self._AUTH_SETTINGS:
-            self._AUTH_SETTINGS[fanclub_site_id] = traverse_obj(self._download_api_json(
-                url, f'/fanclub_sites/{fanclub_site_id}/login', f'site/{fanclub_site_id}',
-                note='Downloading auth settings'), ('data', 'fanclub_site', {
-                    'auth0_web_client': ('auth0_web_client_id', {str}),
-                    'auth0_domain': ('fanclub_group', 'auth0_domain', {str}),
-                }))
-        return self._AUTH_SETTINGS[fanclub_site_id]
-
-    def _get_jwt_token(self, url):
-        def _load_access_token():
-            if access_token := self._get_auth(url).get('access_token'):
-                if time.time() < jwt_decode_hs256(access_token)['exp'] - self._REFRESH_TIMEOUT_THRES:
-                    return access_token
-
-        def _try_then_load(func, error_msg, *args, **kwargs):
+        if username == 'jwt_token':
             try:
-                func(*args, **kwargs)
-                return _load_access_token()
-            except Exception as e:
-                self.report_warning(f'{error_msg}: {e}')
-
-        if access_token := _load_access_token():
-            return access_token
-
-        if access_token := _try_then_load(self._refresh_sheeta_token, 'Failed to refresh token', url):
-            return access_token
-
-        if not self._has_attempted_login:
-            if access_token := _try_then_load(self._perform_sheeta_login, 'Failed to login', url):
-                return access_token
-
-        if jwt_args := self._configuration_arg('jwt_token', ie_key='niconicochannelplus', casesense=True):
-            jwt_token = jwt_args[0]
-            try:
-                if time.time() < jwt_decode_hs256(jwt_token)['exp']:
-                    return jwt_token
-                else:
-                    self.report_warning('JWT token expired, continuing without login.')
-            except Exception:
-                self.report_warning('Invalid JWT token, continuing without login.')
+                self._parse_jwt_timeout(password)
+                self._access_token = password
+            except ValueError:
+                self._ie.report_warning('Invalid JWT token, continuing without login')
+        elif username == 'refresh_token':
+            self._refresh_token = password
+            self._perform_jwt_refresh()
+        elif username and password:
+            self._perform_password_login(username, password)
 
     @property
     def _auth0_client(self):
-        return base64.b64encode(json.dumps({  # index.js: btoa(JSON.stringify(s || Aq))
-            'name': 'auth0-spa-js',  # index.js: Aq = ...
-            'version': '2.0.6',
+        return base64.b64encode(json.dumps({
+            'name': 'auth0-spa-js',
+            'version': '2.8.0',
         }, separators=(',', ':')).encode()).decode()
 
-    @property
-    def _has_attempted_login(self):
-        return getattr(self, '_netrc_domain', None) is not None
-
-    def _perform_sheeta_login(self, url):
+    def _perform_password_login(self, username, password):
         def _random_string():
-            return ''.join(random.choices('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_~.', k=43))
-
-        self._netrc_domain = urllib.parse.urlparse(url).netloc
-        username, password = self._get_login_info(netrc_machine=self._netrc_domain)
-        if not username or not password:
-            return
-
-        auth_settings = self._get_auth_settings(url)
-        site_settings = self._get_settings(url)
+            return ''.join(random.choices(f'{string.digits}{string.ascii_letters}-_~.', k=43))
 
         code_verifier = _random_string()
-        code_challenge = base64.urlsafe_b64encode(hashlib.sha256(code_verifier.encode()).digest()).decode().rstrip('=')
+        code_challenge = base64.urlsafe_b64encode(
+            hashlib.sha256(code_verifier.encode()).digest()).decode().rstrip('=')
 
         preauth_query = {
-            'client_id': auth_settings['auth0_web_client'],
+            'client_id': self._auth_settings['auth0_web_client'],
             'scope': 'openid profile email offline_access',
-            'redirect_uri': urljoin(url, '/login/login-redirect'),
-            'audience': urllib.parse.urlparse(site_settings['api_base_url']).hostname,
-            'ext-group_id': site_settings['fanclub_group_id'],
-            'ext-platform_id': site_settings['platform_id'],
-            'ext-terms': urljoin(url, '/terms__content_type___nfc_terms_of_services'),
+            'redirect_uri': urljoin(self._site_url, '/login/login-redirect'),
+            'audience': urllib.parse.urlparse(self._settings['api_base_url']).hostname,
+            'ext-group_id': self._settings['fanclub_group_id'],
+            'ext-platform_id': self._settings['platform_id'],
+            'ext-redirect_url': self._site_url,
             'prompt': 'login',
             'response_type': 'code',
             'response_mode': 'query',
@@ -176,105 +139,140 @@ class NicoChannelAuthBaseIE(NicoChannelCommonBaseIE):
             'auth0Client': self._auth0_client,
         }
 
-        _, handler = self._download_webpage_handle(
-            f'https://{auth_settings["auth0_domain"]}/authorize', 'preauth', query=preauth_query)
+        _, handler = self._ie._download_webpage_handle(
+            f'https://{self._auth_settings["auth0_domain"]}/authorize', None, query=preauth_query,
+            note='Performing login preauth', errnote='Failed to login')
 
-        _, handler = self._download_webpage_handle(handler.url, 'login', data=urlencode_postdata({
+        _, handler = self._ie._download_webpage_handle(handler.url, None, data=urlencode_postdata({
             'state': parse_qs(handler.url)['state'][0],
             'username': username,
             'password': password,
-            'action': 'default',
         }), headers={
             'Content-Type': 'application/x-www-form-urlencoded',
             'Origin': urljoin(handler.url, '/').rstrip('/'),
             'Referer': handler.url,
-        }, expected_status=404)
+        }, expected_status=404, note='Performing login', errnote='Failed to login')
 
-        data = self._download_json(
-            f'https://{auth_settings["auth0_domain"]}/oauth/token', 'login-token',
+        data = self._ie._download_json(
+            f'https://{self._auth_settings["auth0_domain"]}/oauth/token', None,
             data=urlencode_postdata({
-                'client_id': auth_settings['auth0_web_client'],
+                'client_id': self._auth_settings['auth0_web_client'],
                 'code_verifier': code_verifier,
                 'grant_type': 'authorization_code',
                 'code': parse_qs(handler.url)['code'][0],
-                'redirect_uri': urljoin(url, '/login/login-redirect'),
+                'redirect_uri': urljoin(self._site_url, '/login/login-redirect'),
             }), headers={
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Origin': urljoin(handler.url, '/').rstrip('/'),
                 'Referer': handler.url,
-            })
+            }, note='Downloading login token', errnote='Failed to login')
 
-        self._set_auth(url, {
-            'access_token': data['access_token'],
-            'refresh_token': data['refresh_token'],
-        })
+        self._access_token = traverse_obj(data, ('access_token', {str}))
+        self._refresh_token = traverse_obj(data, ('refresh_token', {str}))
 
-    def _load_args_refresh_token(self):
-        if self._ARG_REFRESH_USED:
-            return
-        if refresh_token_args := self._configuration_arg('refresh_token', ie_key='niconicochannelplus', casesense=True):
-            self._ARG_REFRESH_USED = True
-            return refresh_token_args[0]
-
-    def _refresh_sheeta_token(self, url):
-        if not (refresh_token := self._get_auth(url).get('refresh_token') or self._load_args_refresh_token()):
+    def _perform_jwt_refresh(self):
+        if not self._refresh_token:
             return
 
-        auth_settings = self._get_auth_settings(url)
-        data = self._download_json(
-            f'https://{auth_settings["auth0_domain"]}/oauth/token', 'refresh',
+        data = self._ie._download_json(
+            f'https://{self._auth_settings["auth0_domain"]}/oauth/token', None,
             data=urlencode_postdata({
-                'client_id': auth_settings['auth0_web_client'],
-                'redirect_uri': urljoin(url, '/login/login-redirect'),
+                'client_id': self._auth_settings['auth0_web_client'],
+                'redirect_uri': urljoin(self._site_url, '/login/login-redirect'),
                 'grant_type': 'refresh_token',
-                'refresh_token': refresh_token,
+                'refresh_token': self._refresh_token,
             }), headers={
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Auth0-Client': self._auth0_client,
-                'Origin': urljoin(url, '/').rstrip('/'),
-                'Referer': urljoin(url, '/'),
-            }, note='Refreshing auth token')
+                'Origin': self._site_url.rstrip('/'),
+                'Referer': self._site_url,
+            }, note='Refreshing auth token', errnote='Failed to refresh login state')
 
-        self._set_auth(url, {
-            'access_token': data['access_token'],
-            'refresh_token': data['refresh_token'],
-        })
+        self._access_token = traverse_obj(data, ('access_token', {str}))
+        self._refresh_token = traverse_obj(data, ('refresh_token', {str}))
+
+    @property
+    def settings(self):
+        return self._settings
+
+    def download_api_json(self, path, video_id, headers={}, **kwargs):
+        path = f'/{path}' if path[0] != '/' else path
+        headers = {
+            'Origin': self._site_url.strip('/'),
+            'Referer': self._site_url,
+            'Fc_site_id': self._settings['fanclub_site_id'],
+            'Fc_use_device': 'null',
+            **headers,
+        }
+        if self._jwt_token:
+            headers['Authorization'] = f'Bearer {self._jwt_token}'
+
+        data, handle = self._ie._download_json_handle(
+            f'{self._settings["api_base_url"]}{path}', video_id, headers=headers, expected_status=403, **kwargs)
+        if handle.status == 403:
+            msg = 'You have no access to this video'
+            if not self._jwt_token:
+                msg += f'. {self._login_hint}'
+            raise ExtractorError(msg, expected=True)
+        return data
 
 
-class NiconicoChannelPlusBaseIE(NicoChannelAuthBaseIE):
+class NicoChannelBaseIE(InfoExtractor):
+    _NETRC_MACHINE = False
+
+    _SITE_CONTEXTS = {}
     _CHANNEL_NAMES = {}
     _CHANNEL_AGE_LIMIT = {}
-    _DOMAIN_SITE_ID = {}
+    _DOMAIN_IDS = {}
 
-    def _get_channel_id(self, url):
+    @classmethod
+    def _check_domain_suitable(cls, url):
+        return urljoin(url, '/') in cls._SITE_CONTEXTS
+
+    @classmethod
+    def _add_domain_suitable(cls, url):
+        cls._SITE_CONTEXTS.setdefault(urljoin(url, '/'), None)
+
+    def _get_context(self, url, video_id=None):
+        base_url = urljoin(url, '/')
+        if not self._SITE_CONTEXTS.get(base_url):
+            self._SITE_CONTEXTS[base_url] = SiteContext(self, url, video_id)
+        return self._SITE_CONTEXTS[base_url]
+
+    def _get_site_settings(self, url, video_id=None):
+        return self._get_context(url, video_id).settings
+
+    def _download_api_json(self, url, path, video_id, **kwargs):
+        return self._get_context(url, video_id).download_api_json(path, video_id, **kwargs)
+
+    def _make_channel_id(self, url):
         parsed = urllib.parse.urlparse(url)
-        if self._get_settings(url)['platform_id'] == 'SHTA':
+        if self._get_site_settings(url)['platform_id'] == 'SHTA':
             return parsed.hostname.replace('.', '_')
-        elif self._get_settings(url)['platform_id'] == 'CHPL':
+        elif self._get_site_settings(url)['platform_id'] == 'CHPL':
             return parsed.path.split('/')[1]
         else:
             return f'{parsed.hostname.replace(".", "_")}_{parsed.path.split("/")[1]}'
 
+    def _get_channel_url(self, url):
+        parsed = urllib.parse.urlparse(url)
+        if self._get_site_settings(url)['platform_id'] == 'SHTA':
+            return f'{parsed.scheme}://{parsed.netloc}'
+        else:
+            # parsed.path starts with '/', so index 0 is empty string and use 1 here
+            return f'{parsed.scheme}://{parsed.netloc}/{parsed.path.split("/")[1].lower()}'
+
     def _get_fanclub_site_id(self, url):
-        settings = self._get_settings(url)
+        settings = self._get_site_settings(url)
         if settings['platform_id'] == 'SHTA':
             return str(settings['fanclub_site_id'])
         else:
-            parsed = urllib.parse.urlparse(url)
-            # parsed.path starts with '/', so index 0 is empty string
-            domain_url = f'{parsed.scheme}://{parsed.netloc}/{parsed.path.split("/")[1].lower()}'
-            if domain_url not in self._DOMAIN_SITE_ID:
-                self._DOMAIN_SITE_ID[domain_url] = str(self._download_api_json(
-                    url, '/content_providers/channel_domain', domain_url,
-                    query={'current_site_domain': domain_url})['data']['content_providers']['id'])
-            return self._DOMAIN_SITE_ID[domain_url]
-
-    def _get_channel_url(self, url):
-        parsed = urllib.parse.urlparse(url)
-        if self._get_settings(url)['platform_id'] == 'SHTA':
-            return f'{parsed.scheme}://{parsed.netloc}'
-        else:
-            return f'{parsed.scheme}://{parsed.netloc}/{parsed.path.split("/")[1]}'
+            channel_url = self._get_channel_url(url)
+            if channel_url not in self._DOMAIN_IDS:
+                self._DOMAIN_IDS[channel_url] = str(self._download_api_json(
+                    url, '/content_providers/channel_domain', channel_url,
+                    query={'current_site_domain': channel_url})['data']['content_providers']['id'])
+            return self._DOMAIN_IDS[channel_url]
 
     def _get_channel_name(self, url):
         fanclub_site_id = self._get_fanclub_site_id(url)
@@ -298,7 +296,7 @@ class NiconicoChannelPlusBaseIE(NicoChannelAuthBaseIE):
         return 'GTM-KXT7G5G' in webpage or 'NicoGoogleTagManagerDataLayer' in webpage
 
 
-class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
+class NiconicoChannelPlusIE(NicoChannelBaseIE):
     IE_NAME = 'NiconicoChannelPlus'
     IE_DESC = 'ニコニコチャンネルプラス'
     _VALID_URL = r'https?://nicochannel\.jp/(?P<channel>[\w.-]+)/(?:video|live)/(?P<code>sm\w+)'
@@ -388,22 +386,42 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
         },
     }, {
         'note': 'JOQR',
-        'url': 'https://qlover.jp/naoliving/video/sm3Lm9FHmvnM7Rgfgxjp6pTw',
+        'url': 'https://qlover.jp/bokuao/video/smLwXUJUDbXMARwxB56KuVee',
         'info_dict': {
-            'id': 'sm3Lm9FHmvnM7Rgfgxjp6pTw',
-            'title': '『東山奈央のラジオ＠リビング』第439回（2026年2月23日放送）',
-            'description': 'md5:119c590ce984a86df1e89eaa77828615',
+            'id': 'smLwXUJUDbXMARwxB56KuVee',
+            'title': '【特番終了後コメント】チーム『僕』',
+            'description': 'md5:ae8267483de8550f4799bb731b6cc99b',
             'ext': 'mp4',
-            'channel': '東山奈央のラジオ＠リビング',
-            'channel_id': 'qlover_jp_naoliving',
-            'channel_url': 'https://qlover.jp/naoliving',
+            'channel': '僕が見たかった青空の 「青天のヘキレキ！」',
+            'channel_id': 'qlover_jp_bokuao',
+            'channel_url': 'https://qlover.jp/bokuao',
             'live_status': 'not_live',
             'thumbnail': r're:https://qlover\.jp/public_html/.*',
-            'timestamp': 1772010000,
-            'upload_date': '20260225',
-            'duration': 1741,
+            'timestamp': 1703226426,
+            'upload_date': '20231222',
+            'duration': 67,
             'comment_count': int,
             'view_count': int,
+        },
+    }, {
+        'note': 'TKFM',
+        'url': 'https://audee-membership.jp/hanamiya-nina/audio/smJqiUSD8MUb6BcdoYggCRfZ',
+        'info_dict': {
+            'id': 'smJqiUSD8MUb6BcdoYggCRfZ',
+            'title': '4/5（金）から花宮初奈はじめての単独音声番組がスタート！',
+            'description': 'md5:16804599152cf7ed1e02b5b73dbf1e93',
+            'ext': 'm4a',
+            'channel': '花宮初奈「217find!」',
+            'channel_id': 'audee-membership_jp_hanamiya-nina',
+            'channel_url': 'https://audee-membership.jp/hanamiya-nina',
+            'live_status': 'not_live',
+            'thumbnail': r're:https://audee-membership\.jp/public_html/.*',
+            'timestamp': 1711698600,
+            'upload_date': '20240329',
+            'duration': 523,
+            'comment_count': int,
+            'view_count': int,
+            'tags': ['RADIO'],
         },
     }]
 
@@ -413,17 +431,16 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        try:
-            return super().suitable(url) or (
-                urllib.parse.urlparse(url).netloc in _SUITABLE_NICOCHANNEL_PLUS_DOMAINS
-                and cls._match_video_id(url))
-        except NameError:
-            # fallback for lazy extractor
-            return super().suitable(url)
+        return super().suitable(url) or (
+            '_match_video_id' in cls.__dict__ and  # lazy extractor check
+            cls._check_domain_suitable(url) and cls._match_video_id(url)
+        )
 
     def _extract_from_webpage(self, url, webpage):
         if self._match_video_id(url) and self._is_channel_plus_webpage(webpage):
-            yield self._real_extract(url)
+            self._add_domain_suitable(url)
+            yield self.url_result(url, NiconicoChannelPlusIE)
+            raise self.StopExtraction
 
     def _download_channel_data(self, url, *args, headers={}, **kwargs):
         headers['fc_site_id'] = self._get_fanclub_site_id(url)
@@ -462,7 +479,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             'formats': formats,
             '_format_sort_fields': ('tbr', 'vcodec', 'acodec'),
             'channel': self._get_channel_name(url),
-            'channel_id': self._get_channel_id(url),
+            'channel_id': self._make_channel_id(url),
             'channel_url': self._get_channel_url(url),
             'age_limit': self._get_age_limit(url),
             'live_status': live_status,
@@ -557,7 +574,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
         return live_status, payload, unified_timestamp(release_timestamp_str)
 
 
-class NiconicoChannelPlusChannelBaseIE(NiconicoChannelPlusBaseIE):
+class NiconicoChannelPlusChannelBaseIE(NicoChannelBaseIE):
     _PAGE_SIZE = 12
 
     def _fetch_paged_channel_video_list(self, site_url, path, query, video_id, page):
@@ -665,6 +682,27 @@ class NiconicoChannelPlusChannelVideosIE(NiconicoChannelPlusChannelBaseIE):
         },
         'playlist_mincount': 6,
     }]
+    _WEBPAGE_TESTS = [{
+        'note': 'SHTA',
+        'url': 'https://tenshi-nano.com/videos',
+        'info_dict': {
+            'id': 'tenshi-nano_com-videos',
+            'title': '天使なのファンクラブ-videos',
+            'timestamp': int,
+            'upload_date': str,
+        },
+        'playlist_mincount': 30,
+    }, {
+        'note': 'JOQR',
+        'url': 'https://qlover.jp/naoliving/videos',
+        'info_dict': {
+            'id': 'qlover_jp_naoliving-videos',
+            'title': '東山奈央のラジオ＠リビング-videos',
+            'timestamp': int,
+            'upload_date': str,
+        },
+        'playlist_mincount': 30,
+    }]
 
     def _extract_from_webpage(self, url, webpage):
         if re.search(r'/videos/?(?:[\?#]|$)', url) and self._is_channel_plus_webpage(webpage):
@@ -687,7 +725,7 @@ class NiconicoChannelPlusChannelVideosIE(NiconicoChannelPlusChannelBaseIE):
                 5 アップロード動画 (uploaded videos)
         """
 
-        channel_id = self._get_channel_id(url)
+        channel_id = self._make_channel_id(url)
         qs = parse_qs(url)
 
         return self.playlist_result(
@@ -732,6 +770,17 @@ class NiconicoChannelPlusChannelLivesIE(NiconicoChannelPlusChannelBaseIE):
         },
         'playlist_mincount': 6,
     }]
+    _WEBPAGE_TESTS = [{
+        'note': 'SHTA',
+        'url': 'https://itomiku-fc.jp/lives',
+        'info_dict': {
+            'id': 'itomiku-fc_jp-lives',
+            'title': '伊藤美来 Official Fanclub 「all yours」-lives',
+            'timestamp': int,
+            'upload_date': str,
+        },
+        'playlist_mincount': 10,
+    }]
 
     def _extract_from_webpage(self, url, webpage):
         if re.search(r'/lives/?(?:[\?#]|$)', url) and self._is_channel_plus_webpage(webpage):
@@ -748,7 +797,7 @@ class NiconicoChannelPlusChannelLivesIE(NiconicoChannelPlusChannelBaseIE):
             We use "4" instead of "3" because some recently ended live streams could not be downloaded.
         """
 
-        channel_id = self._get_channel_id(url)
+        channel_id = self._make_channel_id(url)
 
         return self.playlist_result(
             OnDemandPagedList(
