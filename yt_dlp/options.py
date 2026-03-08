@@ -1351,8 +1351,15 @@ def create_parser():
             '"download-title:" (the console title), "postprocess:",  or "postprocess-title:". '
             'The video\'s fields are accessible under the "info" key and '
             'the progress attributes are accessible under "progress" key. E.g. '
-            # TODO: Document the fields inside "progress"
-            '--console-title --progress-template "download-title:%(info.id)s-%(progress.eta)s"'))
+            '--console-title --progress-template "download-title:%(info.id)s-%(progress.eta)s"\n'
+            '\n'
+            'Available progress fields:\n'
+            '  progress.downloaded    - Total bytes downloaded (int)\n'
+            '  progress.total        - Total bytes expected (int, 0 if unknown)\n'
+            '  progress.elapsed     - Time elapsed since download started (float, seconds)\n'
+            '  progress.speed       - Download speed (float, bytes per second)\n'
+            '  progress.eta         - Estimated time remaining (float, seconds, None if unknown)\n'
+            '  progress._default_template - Default format string for progress'))
     verbosity.add_option(
         '--progress-delta',
         metavar='SECONDS', action='store', dest='progress_delta', type=float, default=0,
