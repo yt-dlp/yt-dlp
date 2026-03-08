@@ -96,7 +96,7 @@ http {
         # ssl_stapling on;  ← вызывало warn в логах, функционала не давало.
 
         # ── Security headers ──────────────────────────────────────────────
-        add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
+        add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
         add_header X-Content-Type-Options   "nosniff" always;
         add_header X-Frame-Options          "DENY" always;
         add_header Referrer-Policy          "no-referrer" always;

@@ -159,7 +159,7 @@ def get_entry(full_token: str) -> Optional[FileEntry]:
     if not uuid_key:
         return None
     entry = _registry.get(uuid_key)
-    if entry and time.time() > entry.expires_at:
+    if entry and time.time() >= entry.expires_at:
         _remove(uuid_key, "TTL истёк (get_entry)")
         return None
     return entry
@@ -307,6 +307,7 @@ async def _handle_info(request: web.Request) -> web.Response:
     ip = request.headers.get("X-Real-IP") or request.remote or "unknown"
 
     if not _check_rate_limit(ip):
+        logger.warning("Rate limit exceeded: %s /info/%s…", ip, token[:8])
         raise web.HTTPTooManyRequests(
             reason="Слишком много запросов. Попробуйте через минуту.",
             headers=_SEC_HEADERS,
@@ -323,12 +324,17 @@ async def _handle_info(request: web.Request) -> web.Response:
             headers=_SEC_HEADERS,
         )
 
-    if time.time() > entry.expires_at:
+    if time.time() >= entry.expires_at:
         _remove(uuid_key, "TTL истёк (info)")
         raise web.HTTPGone(reason="Срок действия ссылки истёк.", headers=_SEC_HEADERS)
 
     remaining = int(entry.expires_at - time.time())
-    safe_name = entry.filename.replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+    # & должен экранироваться первым, иначе уже экранированные &lt; превратятся в &amp;lt;
+    safe_name = (entry.filename
+                 .replace("&", "&amp;")
+                 .replace("<", "&lt;")
+                 .replace(">", "&gt;")
+                 .replace('"', "&quot;"))
     html = _INFO_TEMPLATE.format(
         safe_name=safe_name,
         size_str=_fmt_size(entry.file_size),
@@ -350,6 +356,7 @@ async def _handle_download(request: web.Request) -> web.StreamResponse:
     ip = request.headers.get("X-Real-IP") or request.remote or "unknown"
 
     if not _check_rate_limit(ip):
+        logger.warning("Rate limit exceeded: %s /dl/%s…", ip, token[:8])
         raise web.HTTPTooManyRequests(
             reason="Слишком много запросов.",
             headers=_SEC_HEADERS,
@@ -370,7 +377,7 @@ async def _handle_download(request: web.Request) -> web.StreamResponse:
             headers=_SEC_HEADERS,
         )
 
-    if time.time() > entry.expires_at:
+    if time.time() >= entry.expires_at:
         # TTL истёк — удаляем файл с диска (из реестра уже вынули выше)
         entry.path.unlink(missing_ok=True)
         _rmdir_safe(entry.path.parent)
@@ -451,7 +458,7 @@ async def _cleanup_loop() -> None:
         now = time.time()
 
         # Удаляем просроченные файлы
-        expired = [k for k, e in list(_registry.items()) if now > e.expires_at]
+        expired = [k for k, e in list(_registry.items()) if now >= e.expires_at]
         for key in expired:
             _remove(key, "TTL истёк (cleanup)")
 
