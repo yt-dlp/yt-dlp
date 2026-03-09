@@ -15,10 +15,20 @@ data/
 **/.pytest_cache
 
 # Docker
-Dockerfile
+Dockerfile*
 docker-compose.yml
 .dockerignore
 
 # Документация и прочее
 *.md
+!README.md
 .env.example
+
+# yt-dlp: исключаем ненужные для Docker-сборки файлы
+# (yt_dlp/ и pyproject.toml нужны для pip install)
+test/
+devscripts/
+bundle/
+completions/
+supportedsites.md
+.github/
