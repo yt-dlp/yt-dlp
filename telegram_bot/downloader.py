@@ -131,6 +131,8 @@ def _base_opts() -> dict:
         "quiet": True,
         "no_warnings": True,
         "ignoreerrors": False,
+        # Блокируем доступ к приватным/loopback сетям из yt-dlp (защита от DNS rebinding)
+        "source_address": "0.0.0.0",
     }
     if PROXY_URL:
         opts["proxy"] = PROXY_URL
@@ -150,11 +152,12 @@ def _base_opts() -> dict:
 def _human_size(n: Optional[int]) -> str:
     if not n:
         return "?"
+    size = float(n)
     for unit in ("B", "KB", "MB", "GB"):
-        if n < 1024:
-            return f"{n:.1f} {unit}"
-        n /= 1024
-    return f"{n:.1f} TB"
+        if size < 1024:
+            return f"{size:.1f} {unit}"
+        size /= 1024
+    return f"{size:.1f} TB"
 
 
 # ── Info extraction ─────────────────────────────────────────────────────────────
@@ -625,5 +628,5 @@ def is_supported_url(url: str) -> bool:
     for e in _EXTRACTORS:
         if e.suitable(url) and e.IE_NAME != "generic":
             return True
-    # Любой публичный http(s) URL допускаем (generic extractor)
-    return True
+    # Не допускаем произвольные URL через generic extractor — защита от SSRF/прокси
+    return False

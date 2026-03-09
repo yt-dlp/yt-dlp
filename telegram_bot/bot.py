@@ -249,6 +249,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await _send_access_request(update, ctx)
 
 
+@require_auth
 async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     is_adm = db.is_admin(update.effective_user.id)
     text = (
@@ -386,7 +387,7 @@ def _strip_playlist_param(url: str) -> str:
     params.pop("list", None)
     params.pop("index", None)
     params.pop("start_radio", None)
-    new_query = urlencode({k: v[0] for k, v in params.items()})
+    new_query = urlencode([(k, val) for k, vals in params.items() for val in vals])
     return urlunparse(parsed._replace(query=new_query))
 
 
@@ -401,6 +402,8 @@ def _is_youtube_mixed_url(url: str) -> bool:
 
 @require_auth
 async def handle_url(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.message.text:
+        return
     text = update.message.text.strip()
 
     # Ищем все URL в сообщении
@@ -1073,23 +1076,28 @@ async def _handle_download_callback(query, ctx, data: str):
 
     sem: asyncio.Semaphore = ctx.bot_data.get("_download_sem")
 
-    info: VideoInfo = ctx.user_data.get(KEY_VIDEO_INFO)
-    url = ctx.user_data.get(KEY_PENDING_URL)
+    # Сначала ищем сессию в БД по message_id — это корректно при групповой загрузке,
+    # когда каждое видео имеет своё сообщение-меню. ctx.user_data содержит данные
+    # только последнего видео и ведёт к ошибке при выборе качества для предыдущих.
+    info: VideoInfo = None
+    url: str = None
+    session = db.get_session(query.message.chat_id, query.message.message_id)
+    if session:
+        try:
+            info = _deserialize_video_info(session["video_info_json"])
+            url = session["url"]
+        except Exception as e:
+            logger.warning("restore_session failed: %s", e)
+    # Фолбэк на user_data (одиночная ссылка или отсутствие сессии в БД)
     if not info or not url:
-        # Пробуем восстановить сессию из БД (пережила перезапуск бота)
-        session = db.get_session(query.message.chat_id, query.message.message_id)
-        if session:
-            try:
-                info = _deserialize_video_info(session["video_info_json"])
-                url = session["url"]
-                ctx.user_data[KEY_VIDEO_INFO] = info
-                ctx.user_data[KEY_PENDING_URL] = url
-            except Exception as e:
-                logger.warning("restore_session failed: %s", e)
-        if not info or not url:
-            # query.answer работает и для фото-сообщений (edit_message_text — нет)
-            await query.answer("❌ Сессия истекла. Отправьте ссылку заново.", show_alert=True)
-            return
+        info = ctx.user_data.get(KEY_VIDEO_INFO)
+        url = ctx.user_data.get(KEY_PENDING_URL)
+    if not info or not url:
+        await query.answer("❌ Сессия истекла. Отправьте ссылку заново.", show_alert=True)
+        return
+    # Обновляем user_data для совместимости с остальным кодом
+    ctx.user_data[KEY_VIDEO_INFO] = info
+    ctx.user_data[KEY_PENDING_URL] = url
 
     # Сохраняем до возможного удаления сообщения (при фото-меню)
     _session_chat_id = query.message.chat_id
@@ -1264,7 +1272,7 @@ async def _handle_download_callback(query, ctx, data: str):
         return
     # Если все слоты заняты — уведомляем пользователя и ждём в очереди.
     _sem = sem or asyncio.Semaphore(1)
-    _need_queue = sem is not None and sem._value == 0
+    _need_queue = sem is not None and getattr(sem, '_value', 1) == 0
     if _need_queue:
         try:
             await status_msg.edit_text(
@@ -2104,6 +2112,9 @@ async def _cleanup_job() -> None:
 
     if config.DOWNLOAD_DIR.exists():
         for item in config.DOWNLOAD_DIR.iterdir():
+            # Не удаляем директорию fileserver — её TTL управляется модулем fileserver
+            if item.name == "fileserver":
+                continue
             try:
                 if item.stat().st_mtime < cutoff_ts:
                     if item.is_dir():
@@ -2228,11 +2239,14 @@ def main():
 
     if config.WEBHOOK_URL:
         logger.info("Webhook-режим: %s → порт %d", config.WEBHOOK_URL, config.WEBHOOK_PORT)
+        # Используем безопасный путь вместо BOT_TOKEN — токен не попадёт в логи прокси
+        import hashlib as _hashlib
+        _webhook_path = _hashlib.sha256(config.BOT_TOKEN.encode()).hexdigest()[:24]
         app.run_webhook(
             listen="0.0.0.0",
             port=config.WEBHOOK_PORT,
-            url_path=config.BOT_TOKEN,
-            webhook_url=f"{config.WEBHOOK_URL}/{config.BOT_TOKEN}",
+            url_path=_webhook_path,
+            webhook_url=f"{config.WEBHOOK_URL}/{_webhook_path}",
             secret_token=config.WEBHOOK_SECRET_TOKEN or None,
             drop_pending_updates=True,
         )

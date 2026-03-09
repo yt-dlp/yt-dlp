@@ -172,7 +172,9 @@ def unregister(full_token: str, *, delete_file: bool = False) -> None:
     когда файл будет удалён отправителем (например, после send_document).
     delete_file=True: удаляет файл и его директорию.
     """
-    uuid_key = (full_token[:32] if len(full_token) >= 32 else full_token)
+    uuid_key = _verify_token(full_token)
+    if uuid_key is None:
+        return
     entry = _registry.pop(uuid_key, None)
     if entry is None:
         return
@@ -202,9 +204,15 @@ def _rmdir_safe(d: Path) -> None:
         pass
 
 
+_MAX_RATE_KEYS = 10_000  # Лимит уникальных IP в словаре (защита от memory leak)
+
+
 def _check_rate_limit(ip: str) -> bool:
     """True если IP ещё не исчерпал лимит запросов."""
     now = time.time()
+    # Защита от переполнения: если слишком много ключей — сбрасываем
+    if len(_rate_counters) > _MAX_RATE_KEYS:
+        _rate_counters.clear()
     hits = _rate_counters[ip]
     _rate_counters[ip] = [h for h in hits if now - h < 60]
     if len(_rate_counters[ip]) >= _RATE_LIMIT:
@@ -225,11 +233,12 @@ def _sanitize_header_value(name: str) -> str:
 
 
 def _fmt_size(n: int) -> str:
+    size = float(n)
     for unit in ("Б", "КБ", "МБ", "ГБ"):
-        if n < 1024:
-            return f"{n:.1f} {unit}"
-        n /= 1024
-    return f"{n:.1f} ТБ"
+        if size < 1024:
+            return f"{size:.1f} {unit}"
+        size /= 1024
+    return f"{size:.1f} ТБ"
 
 
 def _fmt_ttl(seconds: int) -> str:
@@ -334,7 +343,8 @@ async def _handle_info(request: web.Request) -> web.Response:
                  .replace("&", "&amp;")
                  .replace("<", "&lt;")
                  .replace(">", "&gt;")
-                 .replace('"', "&quot;"))
+                 .replace('"', "&quot;")
+                 .replace("'", "&#x27;"))
     html = _INFO_TEMPLATE.format(
         safe_name=safe_name,
         size_str=_fmt_size(entry.file_size),

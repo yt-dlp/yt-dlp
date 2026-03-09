@@ -18,11 +18,15 @@ fi
 # ── Quick Tunnel (без токена, URL меняется при перезапуске) ───────────────────
 echo "[cloudflared] Quick tunnel mode — URL появится ниже (занимает ~10 сек)"
 
-rm -f "$CF_LOG"
 mkdir -p /cf-url
+rm -f "$CF_LOG"
 # Перезаписываем старый URL до запуска cloudflared — бот увидит "STARTING"
 # и не будет использовать stale URL из предыдущего сеанса.
-echo "STARTING" > "$CF_URL_FILE"
+# Используем атомарную запись: write→rename, чтобы бот не прочитал пустой файл.
+echo "STARTING" > "${CF_URL_FILE}.tmp"
+mv -f "${CF_URL_FILE}.tmp" "$CF_URL_FILE"
+# Также убеждаемся, что файл видим по NFS/shared-volume
+sync 2>/dev/null || true
 
 # Запускаем cloudflared в фоне, логи пишем в файл
 cloudflared tunnel --no-autoupdate \
@@ -40,7 +44,10 @@ FOUND=0
 for i in $(seq 1 90); do
     URL=$(grep -oE 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' "$CF_LOG" 2>/dev/null | head -1)
     if [ -n "$URL" ]; then
-        echo "$URL" > "$CF_URL_FILE"
+        # Атомарная запись: write→rename, чтобы бот не прочитал частично записанный файл
+        echo "$URL" > "${CF_URL_FILE}.tmp"
+        mv -f "${CF_URL_FILE}.tmp" "$CF_URL_FILE"
+        sync 2>/dev/null || true
         echo ""
         echo "╔══════════════════════════════════════════════════════════╗"
         echo "║  Cloudflare Quick Tunnel URL:                            ║"
