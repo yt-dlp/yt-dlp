@@ -30,8 +30,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY telegram_bot/ /app/
 
 # ── Версия: записываем git commit в файл ───────────────────────────────────
-# RELEASE_GIT_HEAD из yt_dlp/version.py используется как fallback.
-# Для точного коммита бота: GIT_COMMIT=$(git rev-parse --short=7 HEAD) docker compose build
+# Передаётся автоматически через deploy.sh (рекомендуется).
+# Fallback: RELEASE_GIT_HEAD из yt_dlp/version.py.
 ARG GIT_COMMIT=
 RUN if [ -n "${GIT_COMMIT}" ]; then \
       echo "${GIT_COMMIT}" > /app/.git_commit; \

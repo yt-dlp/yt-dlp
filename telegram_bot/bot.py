@@ -1621,7 +1621,17 @@ async def _handle_deliver_callback(query, ctx, data: str):
             pass
 
         await ctx.bot.send_chat_action(query.message.chat_id, ChatAction.UPLOAD_DOCUMENT)
-        await _deliver_file_with_progress(query.message.chat_id, result, ctx.bot, query.message)
+        try:
+            await _deliver_file_with_progress(query.message.chat_id, result, ctx.bot, query.message)
+        except Exception as e:
+            logger.error("Telegram delivery failed, cleaning up: %s", e)
+            entry.path.unlink(missing_ok=True)
+            try:
+                entry.path.parent.rmdir()
+            except OSError:
+                pass
+            await query.answer("❌ Не удалось отправить файл. Скачайте заново.", show_alert=True)
+            return
 
         # Удаляем директорию файлового сервера (файл удалён _deliver_file)
         try:
@@ -2143,9 +2153,11 @@ async def _post_shutdown(application) -> None:
 
 
 async def _cleanup_job() -> None:
-    """Каждый час: удаляет файлы и данные старше 2 часов."""
-    removed_dirs = 0
-    cutoff_ts = datetime.now().timestamp() - 7200  # 2 часа
+    """Каждый час: удаляет файлы старше FILE_TTL и данные."""
+    removed = 0
+    # Используем TTL из конфига (минимум 2 часа, чтобы не удалять активные загрузки)
+    ttl = max(config.FILE_TTL_SECONDS, 7200)
+    cutoff_ts = datetime.now().timestamp() - ttl
 
     if config.DOWNLOAD_DIR.exists():
         for item in config.DOWNLOAD_DIR.iterdir():
@@ -2158,11 +2170,19 @@ async def _cleanup_job() -> None:
                         shutil.rmtree(item, ignore_errors=True)
                     else:
                         item.unlink(missing_ok=True)
-                    removed_dirs += 1
+                    removed += 1
             except Exception:
                 pass
+        # Удаляем пустые user_* директории
+        for item in config.DOWNLOAD_DIR.iterdir():
+            if item.name.startswith("user_") and item.is_dir():
+                try:
+                    item.rmdir()  # rmdir only succeeds if empty
+                except OSError:
+                    pass
 
-    old_sessions = db.cleanup_old_sessions(max_age_hours=2)
+    ttl_hours = max(1, ttl // 3600)
+    old_sessions = db.cleanup_old_sessions(max_age_hours=ttl_hours)
     old_history  = db.cleanup_old_history(max_age_days=30)
 
     if removed_dirs or old_sessions or old_history:
