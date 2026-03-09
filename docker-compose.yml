@@ -32,11 +32,13 @@ services:
   # ── YT-DLP бот ───────────────────────────────────────────────────────────────
   ytdlp-bot:
     build:
-      # Локальная сборка из текущей директории.
-      # Обновление: git pull && GIT_COMMIT=$(git rev-parse --short=7 HEAD) docker compose build && docker compose up -d
+      # Локальная сборка из локального исходного кода.
+      # yt-dlp устанавливается из репозитория (yt_dlp/ + pyproject.toml), НЕ из PyPI.
+      # Обновление: git pull && docker compose build && docker compose up -d
       context: .
       dockerfile: Dockerfile
       args:
+        # Опционально: точный коммит бота. Без этого — RELEASE_GIT_HEAD из yt_dlp/version.py.
         GIT_COMMIT: "${GIT_COMMIT:-}"
     container_name: ytdlp-bot
     restart: unless-stopped
