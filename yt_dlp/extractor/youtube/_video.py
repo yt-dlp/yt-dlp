@@ -2932,6 +2932,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         yt_query.update(self._generate_player_context(sts, use_ad_playback_context))
 
+        encrypted_host_flags = traverse_obj(player_ytcfg, ('WEB_PLAYER_CONTEXT_CONFIGS', 'WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER', 'encryptedHostFlags'))
+        if encrypted_host_flags:
+            yt_query['playbackContext']['contentPlaybackContext']['encryptedHostFlags'] = encrypted_host_flags
+
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
             ytcfg=player_ytcfg, headers=headers, fatal=True,

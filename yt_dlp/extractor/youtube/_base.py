@@ -369,7 +369,7 @@ def short_client_name(client_name):
 
 def _fix_embedded_ytcfg(ytcfg):
     ytcfg['INNERTUBE_CONTEXT'].setdefault('thirdParty', {}).update({
-        'embedUrl': 'https://www.youtube.com/',  # Can be any valid URL
+        'embedUrl': 'https://www.reddit.com/',  # Can be any valid external URL
     })
 
 
@@ -964,11 +964,14 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         }.get(client)
         if not url:
             return {}
+        headers = traverse_obj(self._get_default_ytcfg(client), {
+            'User-Agent': ('INNERTUBE_CONTEXT', 'client', 'userAgent', {str}),
+        })
+        if client == 'web_embedded':
+            headers['Referer'] = 'https://www.reddit.com/'
         webpage = self._download_webpage_with_retries(
             url, video_id, note=f'Downloading {client.replace("_", " ").strip()} client config',
-            headers=traverse_obj(self._get_default_ytcfg(client), {
-                'User-Agent': ('INNERTUBE_CONTEXT', 'client', 'userAgent', {str}),
-            }))
+            headers=headers)
 
         ytcfg = self.extract_ytcfg(video_id, webpage) or {}
 
