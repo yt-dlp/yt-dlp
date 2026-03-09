@@ -196,6 +196,37 @@ async def _send_access_request(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             pass
 
 
+# ── Версия бота ──────────────────────────────────────────────────────────────────
+
+def _get_bot_version() -> str:
+    """Возвращает версию бота: <yt-dlp version>-<git commit hash>.
+
+    Пример: 2026.03.03-1feacfc
+    """
+    # yt-dlp версия (из установленного пакета)
+    try:
+        from yt_dlp.version import __version__ as ytdlp_ver
+    except Exception:
+        ytdlp_ver = "unknown"
+    # Git commit hash бота (из .git или переменной окружения)
+    commit = os.environ.get("GIT_COMMIT", "")
+    if not commit:
+        try:
+            import subprocess
+            commit = subprocess.check_output(
+                ["git", "rev-parse", "--short=7", "HEAD"],
+                cwd=os.path.dirname(__file__) or ".",
+                stderr=subprocess.DEVNULL,
+                timeout=5,
+            ).decode().strip()
+        except Exception:
+            commit = "dev"
+    return f"{ytdlp_ver}-{commit[:7]}"
+
+
+BOT_VERSION = _get_bot_version()
+
+
 # ── Основные команды ─────────────────────────────────────────────────────────────
 
 def _build_main_menu(user_obj) -> tuple[str, InlineKeyboardMarkup]:
@@ -208,7 +239,8 @@ def _build_main_menu(user_obj) -> tuple[str, InlineKeyboardMarkup]:
         "\n\n📋 <b>Команды:</b>\n"
         "/help — справка\n"
         "/history — история загрузок\n"
-        "/status — статус бота"
+        "/status — статус бота\n\n"
+        f"<code>v{BOT_VERSION}</code>"
     )
     keyboard = InlineKeyboardMarkup([
         [
