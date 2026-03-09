@@ -554,15 +554,20 @@ class BBCCoUkIE(InfoExtractor):
             programme_id = player.get('vpid')
 
         if not programme_id:
-            programme_id = traverse_obj(
-                self._search_json(
-                    r'window\s*\.\s*__IPLAYER_REDUX_STATE__\s*=',
-                    webpage,
-                    '__IPLAYER_REDUX_STATE__',
-                    group_id,
-                    default=None,
-                ), ('versions', (lambda _, v: v.get('id') == 'original',
-                    lambda _, v: v.get('id') != 'original'), 'id', {str}, any))
+            data = self._search_json(
+                r'window.__IPLAYER_REDUX_STATE__\s*=',
+                webpage,
+                '__IPLAYER_REDUX_STATE__',
+                group_id,
+                default=None)
+            if data:
+                versions = traverse_obj(data, ('versions', ..., 'kind'))
+                self.to_screen(f'versions: {versions}, add --extractor-args BBCCoUk:programme_version=<YOUR_VERSION> to your command for using specific version.')
+                selected_v = self._configuration_arg('programme_version', default=['original'], ie_key=self.ie_key())[0]
+                if selected_v not in versions:
+                    raise ExtractorError(f'got unexpected version {selected_v}')
+                self.to_screen(f'using {selected_v} version')
+                programme_id = traverse_obj(data, ('versions', lambda _, v: v.get('kind') == selected_v, 'id', {str}), get_all=False)
 
         if programme_id:
             formats, subtitles = self._download_media_selector(programme_id)
