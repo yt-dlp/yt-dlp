@@ -160,13 +160,16 @@ def is_authorized(user_id: int) -> bool:
 
 def is_admin(user_id: int) -> bool:
     from config import ADMIN_IDS
-    if user_id in ADMIN_IDS:
-        return True
+    # Проверяем бан: забаненный пользователь НЕ может быть админом
     with get_connection() as conn:
         row = conn.execute(
-            "SELECT is_admin FROM users WHERE user_id = ?", (user_id,)
+            "SELECT is_admin, is_banned FROM users WHERE user_id = ?", (user_id,)
         ).fetchone()
-        return bool(row["is_admin"]) if row else False
+        if row and row["is_banned"]:
+            return False
+    if user_id in ADMIN_IDS:
+        return True
+    return bool(row["is_admin"]) if row else False
 
 
 # ── Download history ───────────────────────────────────────────────────────────
