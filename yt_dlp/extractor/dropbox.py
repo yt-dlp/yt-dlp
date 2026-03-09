@@ -14,7 +14,7 @@ from ..utils import (
 
 
 class DropboxIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?dropbox\.com/(?:(?:e/)?scl/fi|sh?)/(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?dropbox\.com/(?:(?:e/)?scl/f[io]|sh?)/(?P<id>\w+)'
     _TESTS = [
         {
             'url': 'https://www.dropbox.com/s/nelirfsxnmcfbfh/youtube-dl%20test%20video%20%27%C3%A4%22BaW_jenozKc.mp4?dl=0',
@@ -34,6 +34,9 @@ class DropboxIE(InfoExtractor):
             'only_matching': True,
         }, {
             'url': 'https://www.dropbox.com/e/scl/fi/r2kd2skcy5ylbbta5y1pz/DJI_0003.MP4?dl=0&rlkey=wcdgqangn7t3lnmmv6li9mu9h',
+            'only_matching': True,
+        }, {
+            'url': 'https://www.dropbox.com/scl/fo/zjfqse5txqfd7twa8iewj/AOfZzSYWUSKle2HD7XF7kzQ/A-BEAT%20C.mp4?rlkey=6tg3jkp4tv6a5vt58a6dag0mm&dl=0',
             'only_matching': True,
         },
     ]
