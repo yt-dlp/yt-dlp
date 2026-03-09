@@ -30,8 +30,9 @@ http {
     large_client_header_buffers 2 4k;
     client_max_body_size       1k;   # тут нет upload — только download
 
-    # ── Rate limiting: 30 req/min per IP (совпадает с fileserver) ─────────────
+    # ── Rate limiting: per IP (совпадает с fileserver) ────────────────────────
     limit_req_zone $binary_remote_addr zone=info:10m rate=30r/m;
+    limit_req_zone $binary_remote_addr zone=dl:10m   rate=30r/m;
     limit_req_status 429;
 
     # ── Upstream ──────────────────────────────────────────────────────────────
@@ -116,8 +117,10 @@ http {
             proxy_set_header   Connection        "";
         }
 
-        # ── /dl/ — стриминг файла (токен одноразовый, rate limit не нужен)
+        # ── /dl/ — стриминг файла (одноразовый токен + rate limit от сканирования)
         location /dl/ {
+            limit_req zone=dl burst=10 nodelay;
+
             proxy_pass         http://fileserver;
             proxy_http_version 1.1;
             proxy_set_header   Host              $host;
