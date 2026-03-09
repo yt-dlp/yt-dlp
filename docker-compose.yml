@@ -32,10 +32,9 @@ services:
   # ── YT-DLP бот ───────────────────────────────────────────────────────────────
   ytdlp-bot:
     build:
-      # Сборка напрямую из ветки telegram-bot на GitHub.
-      # docker compose build — клонирует актуальный код без ручного git pull.
-      # После пуша изменений на GitHub: docker compose build ytdlp-bot && docker compose up -d ytdlp-bot
-      context: https://github.com/syntakt/yt-dlp.git#telegram-bot
+      # Локальная сборка из текущей директории.
+      # Обновление: git pull && docker compose build && docker compose up -d
+      context: .
       dockerfile: Dockerfile
     container_name: ytdlp-bot
     restart: unless-stopped
@@ -126,7 +125,7 @@ services:
     # Собираем свой: берём бинарник из scratch-образа, кладём в alpine + наш скрипт.
     # Dockerfile.cloudflared использует multi-stage build.
     build:
-      context: https://github.com/syntakt/yt-dlp.git#telegram-bot
+      context: .
       dockerfile: Dockerfile.cloudflared
     image: yt-dlp-cloudflared   # кэшируем под именем, чтобы не пересобирать каждый раз
     container_name: cloudflared
@@ -199,7 +198,7 @@ services:
   nginx-ssl:
     profiles: ["ssl"]
     build:
-      context: https://github.com/syntakt/yt-dlp.git#telegram-bot
+      context: .
       dockerfile: Dockerfile.nginx
     image: yt-dlp-nginx-ssl
     container_name: nginx-ssl
