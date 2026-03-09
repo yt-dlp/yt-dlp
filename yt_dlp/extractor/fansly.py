@@ -11,7 +11,8 @@ class FanslyLiveIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://fansly.com/live/YuukoVT',
         'info_dict': {
-            'channel_id': '713619348626874370',
+            'id': '622010656702345216',
+            'channel_id': '530029089403183104',
             'ext': 'mp4',
         },
         'params': {
