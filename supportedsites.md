@@ -440,6 +440,8 @@ The only reliable way to check if a site is supported is to try it.
  - **FacebookPluginsVideo**
  - **fancode:live**: [*fancode*](## "netrc machine") (**Currently broken**)
  - **fancode:vod**: [*fancode*](## "netrc machine") (**Currently broken**)
+ - **Fansly**
+ - **Fansly:live**
  - **Fathom**
  - **Faulio**
  - **FaulioLive**
