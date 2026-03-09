@@ -208,9 +208,14 @@ def _get_bot_version() -> str:
         from yt_dlp.version import __version__ as ytdlp_ver
     except Exception:
         ytdlp_ver = "unknown"
-    # Git commit hash бота (из .git или переменной окружения)
+    # Git commit hash бота (из ENV → файла .git_commit → git → "dev")
     commit = os.environ.get("GIT_COMMIT", "")
-    if not commit:
+    if not commit or commit == "dev":
+        try:
+            commit = open(os.path.join(os.path.dirname(__file__) or ".", ".git_commit")).read().strip()
+        except Exception:
+            pass
+    if not commit or commit == "dev":
         try:
             import subprocess
             commit = subprocess.check_output(
