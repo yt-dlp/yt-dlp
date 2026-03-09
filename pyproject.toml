@@ -53,7 +53,7 @@ default = [
     "mutagen",
     "pycryptodomex",
     "requests>=2.32.2,<3",
-    "urllib3>=2.0.2,<3",
+    "urllib3>=2.6.3,<3",
     "websockets>=13.0",
     "yt-dlp-ejs==0.4.0",
 ]
