@@ -33,9 +33,11 @@ services:
   ytdlp-bot:
     build:
       # Локальная сборка из текущей директории.
-      # Обновление: git pull && docker compose build && docker compose up -d
+      # Обновление: git pull && GIT_COMMIT=$(git rev-parse --short=7 HEAD) docker compose build && docker compose up -d
       context: .
       dockerfile: Dockerfile
+      args:
+        GIT_COMMIT: "${GIT_COMMIT:-}"
     container_name: ytdlp-bot
     restart: unless-stopped
     depends_on:

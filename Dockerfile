@@ -15,10 +15,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
+ARG GIT_COMMIT=dev
+ENV GIT_COMMIT=${GIT_COMMIT}
+
 COPY telegram_bot/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY telegram_bot/ /app/
+
+# Сохраняем git commit в файл (доступен в runtime без .git)
+RUN echo "${GIT_COMMIT}" > /app/.git_commit
+
 RUN chmod +x /app/entrypoint.sh \
     # Папки создаются заранее; entrypoint исправляет владельца после монтирования томов
     && mkdir -p /downloads /data \
