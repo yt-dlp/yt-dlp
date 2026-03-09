@@ -34,7 +34,7 @@ services:
     build:
       # Локальная сборка из локального исходного кода.
       # yt-dlp устанавливается из репозитория (yt_dlp/ + pyproject.toml), НЕ из PyPI.
-      # Обновление: git pull && docker compose build && docker compose up -d
+      # Обновление: git pull && ./deploy.sh
       context: .
       dockerfile: Dockerfile
       args:
