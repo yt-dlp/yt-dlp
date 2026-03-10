@@ -142,7 +142,7 @@ class BlackSkyProfileIE(InfoExtractor):
 
                 if cursor:
                     query['cursor'] = cursor
-                
+
                 page = self._download_json(
                     'https://api.blacksky.community/xrpc/app.bsky.feed.getAuthorFeed',
                     username,
