@@ -247,10 +247,7 @@ from .blackboardcollaborate import (
     BlackboardCollaborateIE,
     BlackboardCollaborateLaunchIE,
 )
-from .blacksky import (
-    BlackSkyIE,
-    BlackSkyProfileIE,
-)
+from .blacksky import BlackSkyIE
 from .bleacherreport import (
     BleacherReportCMSIE,
     BleacherReportIE,
