@@ -2680,12 +2680,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return {'contentCheckOk': True, 'racyCheckOk': True}
 
     @classmethod
-    def _generate_player_context(cls, sts=None, use_ad_playback_context=False):
+    def _generate_player_context(cls, sts=None, use_ad_playback_context=False, encrypted_context=None):
         context = {
             'html5Preference': 'HTML5_PREF_WANTS',
         }
         if sts is not None:
             context['signatureTimestamp'] = sts
+        if encrypted_context:
+            context['encryptedHostFlags'] = encrypted_context
 
         playback_context = {
             'contentPlaybackContext': context,
@@ -2930,11 +2932,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._configuration_arg('use_ad_playback_context', ['false'])[0] != 'false'
             and traverse_obj(INNERTUBE_CLIENTS, (client, 'SUPPORTS_AD_PLAYBACK_CONTEXT', {bool})))
 
-        yt_query.update(self._generate_player_context(sts, use_ad_playback_context))
+        # web_embedded player requests may need to include encryptedHostFlags in its contentPlaybackContext.
+        # This can be detected with the embeds_enable_encrypted_host_flags_enforcement experiemnt flag,
+        # but there is no harm in including encryptedHostFlags with all web_embedded player requests.
+        encrypted_context = None
+        if client == 'web_embedded':
+            encrypted_context = traverse_obj(player_ytcfg, (
+                'WEB_PLAYER_CONTEXT_CONFIGS', 'WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER', 'encryptedHostFlags'))
 
-        encrypted_host_flags = traverse_obj(player_ytcfg, ('WEB_PLAYER_CONTEXT_CONFIGS', 'WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER', 'encryptedHostFlags'))
-        if encrypted_host_flags:
-            yt_query['playbackContext']['contentPlaybackContext']['encryptedHostFlags'] = encrypted_host_flags
+        yt_query.update(
+            self._generate_player_context(
+                sts=sts,
+                use_ad_playback_context=use_ad_playback_context,
+                encrypted_context=encrypted_context))
 
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
