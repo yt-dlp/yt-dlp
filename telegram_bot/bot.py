@@ -642,6 +642,7 @@ def _build_quality_menu(info: VideoInfo) -> tuple[str, InlineKeyboardMarkup]:
             InlineKeyboardButton("📄 + Субтитры EN", callback_data="dl:s:en"),
         ])
     buttons.append([
+        InlineKeyboardButton("🔄 Обновить", callback_data="refresh"),
         InlineKeyboardButton("ℹ️ Подробнее", callback_data="info"),
         InlineKeyboardButton("❌ Отмена", callback_data="cancel"),
     ])
@@ -797,6 +798,10 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     if data == "back_to_quality":
         await _handle_back_to_quality(query, ctx)
+        return
+
+    if data == "refresh":
+        await _handle_refresh_quality(query, ctx)
         return
 
     # Выбор: видео или плейлист для смешанного URL
@@ -1039,6 +1044,84 @@ async def _handle_back_to_quality(query, ctx: ContextTypes.DEFAULT_TYPE):
             db.save_session(query.message.chat_id, query.message.message_id, url, _serialize_video_info(info))
         except Exception:
             pass
+
+
+async def _handle_refresh_quality(query, ctx: ContextTypes.DEFAULT_TYPE):
+    """Повторно запрашивает форматы видео и обновляет меню выбора качества."""
+    # Восстанавливаем URL из user_data или сессии в БД
+    url = ctx.user_data.get(KEY_PENDING_URL)
+    if not url:
+        session = db.get_session(query.message.chat_id, query.message.message_id)
+        if session:
+            url = session["url"]
+            try:
+                old_info = _deserialize_video_info(session["video_info_json"])
+                ctx.user_data[KEY_VIDEO_INFO] = old_info
+            except Exception:
+                pass
+    if not url:
+        await query.answer("❌ Сессия истекла. Отправьте ссылку заново.", show_alert=True)
+        return
+
+    # Показываем индикатор загрузки — заменяем кнопки на «Обновление…»
+    try:
+        await query.edit_message_reply_markup(
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("⏳ Обновление форматов…", callback_data="noop"),
+            ]])
+        )
+    except TelegramError:
+        pass
+
+    # Повторная экстракция форматов
+    try:
+        info: VideoInfo = await get_video_info(url)
+    except Exception as e:
+        logger.error("refresh get_video_info error: %s", e)
+        # Восстанавливаем старое меню при ошибке
+        old_info = ctx.user_data.get(KEY_VIDEO_INFO)
+        if old_info:
+            caption, keyboard = _build_quality_menu(old_info)
+            try:
+                await query.edit_message_caption(caption, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            except TelegramError:
+                try:
+                    await query.edit_message_text(caption, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+                except TelegramError:
+                    pass
+        await query.answer(f"❌ Ошибка обновления: {str(e)[:100]}", show_alert=True)
+        return
+
+    old_info = ctx.user_data.get(KEY_VIDEO_INFO)
+    old_count = len(get_best_video_formats(old_info.formats)) if old_info else 0
+    new_count = len(get_best_video_formats(info.formats))
+
+    # Сохраняем обновлённую информацию
+    ctx.user_data[KEY_VIDEO_INFO] = info
+    ctx.user_data[KEY_PENDING_URL] = url
+
+    caption, keyboard = _build_quality_menu(info)
+    try:
+        await query.edit_message_caption(caption, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+    except TelegramError:
+        try:
+            await query.edit_message_text(caption, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+        except TelegramError:
+            pass
+
+    # Обновляем сессию в БД
+    try:
+        db.save_session(query.message.chat_id, query.message.message_id, url, _serialize_video_info(info))
+    except Exception:
+        pass
+
+    # Уведомляем пользователя о результате
+    if new_count > old_count:
+        await query.answer(f"✅ Найдено форматов: {new_count} (было {old_count})", show_alert=False)
+    elif new_count == old_count:
+        await query.answer(f"Форматов: {new_count} (без изменений)", show_alert=False)
+    else:
+        await query.answer(f"Форматов: {new_count}", show_alert=False)
 
 
 async def _handle_admin_approval(query, ctx, data: str):
@@ -1795,10 +1878,14 @@ async def _deliver_file(chat_id: int, result: DownloadResult, bot: Bot, keep_fil
                 fp.unlink(missing_ok=True)
             return
         except TelegramError as exc:
-            if "stat" not in str(exc).lower() and "bad request" not in str(exc).lower():
+            exc_lower = str(exc).lower()
+            # Если ошибка связана с доступом к файлу (stat, path, bad request) —
+            # fallback на прямую загрузку через multipart (бот читает файл сам).
+            # Иначе пробрасываем (ошибка сети, невалидный токен и т.д.)
+            if not any(kw in exc_lower for kw in ("stat", "bad request", "find", "path", "file")):
                 raise
             logger.warning(
-                "_deliver_file: local API stat() failed (%s), falling back to direct upload", exc
+                "_deliver_file: local API can't access file (%s), falling back to direct upload", exc
             )
             # Продолжаем ниже — читаем файл и шлём как multipart
 
@@ -2185,10 +2272,10 @@ async def _cleanup_job() -> None:
     old_sessions = db.cleanup_old_sessions(max_age_hours=ttl_hours)
     old_history  = db.cleanup_old_history(max_age_days=30)
 
-    if removed_dirs or old_sessions or old_history:
+    if removed or old_sessions or old_history:
         logger.info(
             "Очистка: файлов/папок=%d, сессий=%d, истории=%d",
-            removed_dirs, old_sessions, old_history,
+            removed, old_sessions, old_history,
         )
 
 
