@@ -151,7 +151,7 @@ class BlackSkyProfileIE(InfoExtractor):
                 )
 
                 for uri in traverse_obj(page, ('feed', ..., 'post', 'uri')):
-                    url = f'https://https://blacksky.community/profile/{uri}'
+                    url = f'https://blacksky.community/profile/{uri}'
                     yield self.url_result(url, ie=BlackSkyIE.ie_key())
 
                 cursor = page.get('cursor')
