@@ -732,10 +732,14 @@ class GenericIE(InfoExtractor):
         varname = self._search_regex(
             r'''(?<![=!+*-])=\s*kt_player\s*\(\s*'kt_player'\s*,\s*[^)]+,\s*(?!params)([\w$]+)\s*\)''',
             webpage, 'flashvars name', default='flashvars')
-        flashvars = self._search_json(
-            fr'<script(?:\s[^>]*)?>[\s\S]*?\bvar\s+{varname}\s*=',
+        # combine flashvars if defined twice in if...else blocks
+        flashvars = merge_dicts(*(self._search_json(
+            r'<script(?:\s[^>]*)?>[\s\S]*?%svar\s+%s\s*=' % (extra, varname),
             webpage, 'flashvars', video_id, end_pattern=r';[\s\S]*?</script>',
-            transform_source=js_to_json)
+            # further  to strixformationp non-JSON JS
+            transform_source=lambda s: js_to_json(re.sub(r'(?<!-)\badv_\w+\s*:.+?,', '', s)),
+            fatal=not extra, default={} if extra else None)
+            for extra in (r'', r'(?<!-)\belse\s*\{\s*')))
         # extract the part after the last / as the display_id from the
         # canonical URL.
         display_id = self._search_regex(
