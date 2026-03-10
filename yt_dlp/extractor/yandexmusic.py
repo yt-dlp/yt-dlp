@@ -14,14 +14,6 @@ class YandexMusicBaseIE(InfoExtractor):
     _VALID_URL_BASE = r'https?://music\.yandex\.(?P<tld>ru|kz|ua|by|com)'
 
     @staticmethod
-    def _ensure_secure_url(url):
-        if url and url.startswith('//'):
-            return f'https:{url}'
-        if url and url.startswith('http://'):
-            return f'https://{url[7:]}'
-        return url
-
-    @staticmethod
     def _handle_error(response):
         if isinstance(response, dict):
             error = response.get('error')
@@ -125,19 +117,19 @@ class YandexMusicTrackIE(YandexMusicBaseIE):
             track_id, 'Downloading track location url JSON', query={'hq': 1}, headers={'X-Retpath-Y': url})
 
         fd_data = self._download_json(
-            self._ensure_secure_url(download_data['src']), track_id,
+            self._proto_relative_url(download_data['src'], scheme='https:'), track_id,
             'Downloading track location JSON',
             query={'format': 'json'})
         key = hashlib.md5(('XGRlBW9FXlekgbPrRHuSiA' + fd_data['path'][1:] + fd_data['s']).encode()).hexdigest()
-        f_url = self._ensure_secure_url(
-            'http://{}/get-mp3/{}/{}?track-id={} '.format(fd_data['host'], key, fd_data['ts'] + fd_data['path'], track['id']))
+        f_url = 'https://{}/get-mp3/{}/{}?track-id={} '.format(fd_data['host'], key, fd_data['ts'] + fd_data['path'], track['id'])
 
         thumbnail = None
         cover_uri = track.get('albums', [{}])[0].get('coverUri')
         if cover_uri:
             thumbnail = cover_uri.replace('%%', 'orig')
-            if not thumbnail.startswith('http'):
-                thumbnail = f'https://{thumbnail}'
+            if not thumbnail.startswith(('http', '//')):
+                thumbnail = f'//{thumbnail}'
+            thumbnail = self._proto_relative_url(thumbnail, scheme='https:')
 
         track_info = {
             'id': track_id,
