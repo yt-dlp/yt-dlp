@@ -171,7 +171,8 @@ class PlaySuisseIE(InfoExtractor):
             hashlib.sha256(code_verifier.encode()).digest()).decode().rstrip('=')
 
         request_id = parse_qs(self._request_webpage(
-            f'{self._LOGIN_BASE}/authz-srv/authz', None, 'Requesting session ID', query={
+            f'{self._LOGIN_BASE}/authz-srv/authz', None, 'Requesting session ID',
+            headers={'Origin': 'https://www.playsuisse.ch'}, query={
                 'client_id': self._CLIENT_ID,
                 'redirect_uri': 'https://www.playsuisse.ch/auth',
                 'scope': 'email profile openid offline_access',
