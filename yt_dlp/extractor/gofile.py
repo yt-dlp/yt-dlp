@@ -48,7 +48,6 @@ class GofileIE(InfoExtractor):
             'videopassword': 'password',
         },
     }]
-    _STATIC_TOKEN = '4fd6sg89d7s6'  # From https://gofile.io/dist/js/config.js
     _TOKEN = None
 
     def _real_initialize(self):
