@@ -1795,10 +1795,14 @@ async def _deliver_file(chat_id: int, result: DownloadResult, bot: Bot, keep_fil
                 fp.unlink(missing_ok=True)
             return
         except TelegramError as exc:
-            if "stat" not in str(exc).lower() and "bad request" not in str(exc).lower():
+            exc_lower = str(exc).lower()
+            # Если ошибка связана с доступом к файлу (stat, path, bad request) —
+            # fallback на прямую загрузку через multipart (бот читает файл сам).
+            # Иначе пробрасываем (ошибка сети, невалидный токен и т.д.)
+            if not any(kw in exc_lower for kw in ("stat", "bad request", "find", "path", "file")):
                 raise
             logger.warning(
-                "_deliver_file: local API stat() failed (%s), falling back to direct upload", exc
+                "_deliver_file: local API can't access file (%s), falling back to direct upload", exc
             )
             # Продолжаем ниже — читаем файл и шлём как multipart
 
@@ -2185,10 +2189,10 @@ async def _cleanup_job() -> None:
     old_sessions = db.cleanup_old_sessions(max_age_hours=ttl_hours)
     old_history  = db.cleanup_old_history(max_age_days=30)
 
-    if removed_dirs or old_sessions or old_history:
+    if removed or old_sessions or old_history:
         logger.info(
             "Очистка: файлов/папок=%d, сессий=%d, истории=%d",
-            removed_dirs, old_sessions, old_history,
+            removed, old_sessions, old_history,
         )
 
 
