@@ -223,7 +223,8 @@ INNERTUBE_CLIENTS = {
         },
         'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
     },
-    # YouTube Kids videos aren't returned on this client for some reason
+    # "Made for kids" videos aren't available with this client
+    # Using a clientVersion>1.65 may return SABR streams only
     'android_vr': {
         'INNERTUBE_CONTEXT': {
             'client': {
