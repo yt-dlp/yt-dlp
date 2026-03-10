@@ -131,8 +131,6 @@ def _base_opts() -> dict:
         "quiet": True,
         "no_warnings": True,
         "ignoreerrors": False,
-        # Блокируем доступ к приватным/loopback сетям из yt-dlp (защита от DNS rebinding)
-        "source_address": "0.0.0.0",
     }
     if PROXY_URL:
         opts["proxy"] = PROXY_URL
@@ -628,5 +626,6 @@ def is_supported_url(url: str) -> bool:
     for e in _EXTRACTORS:
         if e.suitable(url) and e.IE_NAME != "generic":
             return True
-    # Не допускаем произвольные URL через generic extractor — защита от SSRF/прокси
-    return False
+    # Публичные http(s) URL допускаем через generic extractor.
+    # SSRF-защита обеспечивается _is_ssrf_url() выше (блокирует private/loopback IP).
+    return True
