@@ -1,3 +1,4 @@
+import itertools
 
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
@@ -13,7 +14,7 @@ from ..utils.traversal import traverse_obj
 
 
 class BlackSkyIE(InfoExtractor):
-    _VALID_URL = r'https://?(?:www\.)?blacksky\.community/profile/(?P<did>[^?#&]+)/post/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https://?(?:www\.)?blacksky\.community/profile/(?:at://)?(?P<did>[^?#&]+)/(?:app.bsky.feed\.)?post/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://blacksky.community/profile/did:plc:tpv66pk3fqlpfudmh5zi3hzo/post/3mgjxbnwktk26',
         'info_dict': {
@@ -105,3 +106,56 @@ class BlackSkyIE(InfoExtractor):
 
             return self._parse_threads(data)
         return self.playlist_result(entries(did, pid), did, f'Post by {did}')
+
+
+class BlackSkyProfileIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?blacksky\.community/profile/(?![^/]+/post/)(?P<id>[^/?#&]+)'
+    _TESTS = [{
+        'url': 'https://blacksky.community/profile/did:plc:lsjo5pnx6byjoo27omtcoyly',
+        'info_dict': {
+            'id': 'did:plc:lsjo5pnx6byjoo27omtcoyly',
+            'title': 'did:plc:lsjo5pnx6byjoo27omtcoyly',
+        },
+        'playlist_count': 33,
+    }, {
+        'url': 'https://blacksky.community/profile/did:plc:3aeskgbrjanrt7zi34d2gw7l',
+        'info_dict': {
+            'id': 'did:plc:3aeskgbrjanrt7zi34d2gw7l',
+            'title': 'did:plc:3aeskgbrjanrt7zi34d2gw7l',
+        },
+        'playlist_count': 4,
+    }]
+
+    def _real_extract(self, url):
+        username = self._match_id(url)
+
+        def entries(username):
+            cursor = None
+
+            for pagenum in itertools.count(1):
+                query = {
+                    'actor': username,
+                    'filter': 'posts_with_video',  # Forcing to video posts only
+                    'includePins': True,
+                    'limit': 30,
+                }
+
+                if cursor:
+                    query['cursor'] = cursor
+                
+                page = self._download_json(
+                    'https://api.blacksky.community/xrpc/app.bsky.feed.getAuthorFeed',
+                    username,
+                    note=f'Downloading page {pagenum}',
+                    query=query,
+                )
+
+                for uri in traverse_obj(page, ('feed', ..., 'post', 'uri')):
+                    url = f'https://https://blacksky.community/profile/{uri}'
+                    yield self.url_result(url, ie=BlackSkyIE.ie_key())
+
+                cursor = page.get('cursor')
+                if not cursor:
+                    break
+
+        return self.playlist_result(entries(username), username, username)
