@@ -1,7 +1,9 @@
 import hashlib
+import time
 
 from .common import InfoExtractor
 from ..utils import ExtractorError, try_get
+from ..utils.networking import random_user_agent
 
 
 class GofileIE(InfoExtractor):
@@ -60,16 +62,25 @@ class GofileIE(InfoExtractor):
         self._TOKEN = account_data['data']['token']
         self._set_cookie('.gofile.io', 'accountToken', self._TOKEN)
 
+    def gen_wt(self, user_agent, language='en-GB'):
+        t4 = int(time.time() / 14400)
+        hash_salt = 'gf2026x'
+        data = f'{user_agent}::{language}::{self._TOKEN}::{t4}::{hash_salt}'
+        return hashlib.sha256(data.encode()).hexdigest()
+
     def _entries(self, file_id):
         query_params = {}
         if password := self.get_param('videopassword'):
             query_params['password'] = hashlib.sha256(password.encode()).hexdigest()
 
+        user_agent = random_user_agent()
         files = self._download_json(
             f'https://api.gofile.io/contents/{file_id}', file_id, 'Getting filelist',
             query=query_params, headers={
                 'Authorization': f'Bearer {self._TOKEN}',
-                'X-Website-Token': self._STATIC_TOKEN,
+                'X-Website-Token': self.gen_wt(user_agent),
+                'User-Agent': user_agent,
+                'X-BL': 'en-GB',
             })
 
         status = files['status']
