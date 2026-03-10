@@ -1,18 +1,23 @@
+import itertools
+
 from .common import InfoExtractor
 from .kaltura import KalturaIE
 from ..utils import (
     ExtractorError,
     int_or_none,
     parse_iso8601,
+    parse_qs,
     smuggle_url,
+    traverse_obj,
     url_or_none,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import require
 
 
 class YleAreenaIE(InfoExtractor):
     _VALID_URL = r'https?://areena\.yle\.fi/(?P<podcast>podcastit/)?(?P<id>[\d-]+)'
     _GEO_COUNTRIES = ['FI']
+    _APP_KEY = 'wlTs5D9OjIdeS9krPzRQR4I1PYVzoazN'
     _TESTS = [
         {
             'url': 'https://areena.yle.fi/1-4371942',
@@ -99,11 +104,45 @@ class YleAreenaIE(InfoExtractor):
                 'duration': 442,
             },
         },
+        {
+            'url': 'https://areena.yle.fi/1-50456487',
+            'info_dict': {
+                'id': '1-50456487',
+                'title': 'Apina Apunen, asentaja-apina',
+            },
+            'playlist_mincount': 9,
+        },
+        {
+            'url': 'https://areena.yle.fi/1-66393054',
+            'info_dict': {
+                'id': '1-66393054',
+                'title': 'Tuuri',
+            },
+            'playlist_mincount': 11,
+        },
+        {
+            'note': 'Test for series without seasons',
+            'url': 'https://areena.yle.fi/1-73702485',
+            'info_dict': {
+                'id': '1-73702485',
+                'title': 'Menny pahaks',
+            },
+            'playlist_mincount': 45,
+        },
+        {
+            'note': 'Test for series without seasons',
+            'url': 'https://areena.yle.fi/1-71677011',
+            'info_dict': {
+                'id': '1-71677011',
+                'title': 'Lätkän legendat',
+            },
+            'playlist_mincount': 11,
+        },
     ]
 
-    def _real_extract(self, url):
-        video_id, is_podcast = self._match_valid_url(url).group('id', 'podcast')
-        json_ld = self._search_json_ld(self._download_webpage(url, video_id), video_id, default={})
+    def _extract_episode(self, video_id, url, webpage):
+        is_podcast = self._match_valid_url(url).group('podcast')
+        json_ld = self._search_json_ld(webpage, video_id, default={})
         video_data = self._download_json(
             f'https://player.api.yle.fi/v1/preview/{video_id}.json?app_id=player_static_prod&app_key=8930d72170e48303cf5f3867780d549b',
             video_id, headers={
@@ -180,3 +219,51 @@ class YleAreenaIE(InfoExtractor):
             }),
             **info_dict,
         }
+
+    def _extract_series(self, video_id, view):
+        seasons = list(dict.fromkeys(traverse_obj(
+            view, ('tabs', ..., 'content', ..., 'filters', ..., 'options', ..., 'parameters', 'path.season', {str}))))
+
+        query = {
+            'token': traverse_obj(view, (
+                'tabs', ..., 'content', ..., 'source', 'uri',
+                {parse_qs}, 'token', -1, any, {require('token')})),
+            'language': 'fi',
+            'v': '10',
+            'client': 'yle-areena-web',
+            'limit': '50',
+            'app_id': 'areena-web-items',
+            'app_key': self._APP_KEY,
+        }
+
+        def entries():
+            for season_id in seasons or [None]:
+                season_query = {**query, **({'path.season': season_id} if season_id else {})}
+                for offset in itertools.count(0, 50):
+                    data = self._download_json(
+                        'https://areena.api.yle.fi/v1/ui/content/list', video_id,
+                        note=f'Downloading {f"season {season_id} " if season_id else ""}offset {offset}',
+                        query={**season_query, 'offset': offset})
+
+                    uris = traverse_obj(data, ('data', ..., 'pointer', 'uri', {str}))
+                    for uri in uris:
+                        ep_id = uri.rsplit('/', 1)[-1]
+                        yield self.url_result(f'https://areena.yle.fi/{ep_id}', ie=YleAreenaIE, video_id=ep_id)
+
+                    if len(uris) < 50:
+                        break
+
+        return self.playlist_result(
+            entries(), playlist_id=video_id, playlist_title=traverse_obj(view, ('title', {str})))
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+
+        nextjs_data = self._search_nextjs_data(webpage, video_id, default={})
+        view = traverse_obj(nextjs_data, ('props', 'pageProps', 'view'), default={})
+        view_type = traverse_obj(view, ('analytics', 'pageload', 'yle', 'areena_view_type', {str}))
+
+        if view_type == 'series-page':
+            return self._extract_series(video_id, view)
+        return self._extract_episode(video_id, url, webpage)
