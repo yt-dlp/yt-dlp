@@ -104,9 +104,9 @@ class FrontroGroupBaseIE(FrontoBaseIE):
 class TheChosenIE(FrontroVideoBaseIE):
     _CHANNEL_ID = '12884901895'
 
-    _VALID_URL = r'https?://(?:www\.)?watch\.thechosen\.tv/video/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?watch\.thechosen\.tv/watch/(?P<id>[0-9]+)'
     _TESTS = [{
-        'url': 'https://watch.thechosen.tv/video/184683594325',
+        'url': 'https://watch.thechosen.tv/watch/184683594325',
         'md5': '3f878b689588c71b38ec9943c54ff5b0',
         'info_dict': {
             'id': '184683594325',
@@ -124,7 +124,7 @@ class TheChosenIE(FrontroVideoBaseIE):
             'modified_date': str,
         },
     }, {
-        'url': 'https://watch.thechosen.tv/video/184683596189',
+        'url': 'https://watch.thechosen.tv/watch/184683596189',
         'md5': 'd581562f9d29ce82f5b7770415334151',
         'info_dict': {
             'id': '184683596189',
@@ -147,7 +147,7 @@ class TheChosenIE(FrontroVideoBaseIE):
 class TheChosenGroupIE(FrontroGroupBaseIE):
     _CHANNEL_ID = '12884901895'
     _VIDEO_EXTRACTOR = TheChosenIE
-    _VIDEO_URL_TMPL = 'https://watch.thechosen.tv/video/%s'
+    _VIDEO_URL_TMPL = 'https://watch.thechosen.tv/watch/%s'
 
     _VALID_URL = r'https?://(?:www\.)?watch\.thechosen\.tv/group/(?P<id>[0-9]+)'
     _TESTS = [{

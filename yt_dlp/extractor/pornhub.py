@@ -506,6 +506,7 @@ class PornHubIE(PornHubBaseIE):
                 'cast': ({find_elements(attr='data-label', value='pornstar')}, ..., {clean_html}),
             }),
             'subtitles': subtitles,
+            'http_headers': {'Referer': f'https://www.{host}/'},
         }, info)
 
 

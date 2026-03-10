@@ -4,6 +4,7 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import compat_etree_fromstring
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -1017,6 +1018,7 @@ class FacebookAdsIE(InfoExtractor):
             'upload_date': '20240812',
             'like_count': int,
         },
+        'skip': 'Invalid URL',
     }, {
         'url': 'https://www.facebook.com/ads/library/?id=893637265423481',
         'info_dict': {
@@ -1031,6 +1033,33 @@ class FacebookAdsIE(InfoExtractor):
         },
         'playlist_count': 3,
         'skip': 'Invalid URL',
+    }, {
+        'url': 'https://www.facebook.com/ads/library/?id=312304267031140',
+        'info_dict': {
+            'id': '312304267031140',
+            'title': 'Casper Wave Hybrid Mattress',
+            'uploader': 'Casper',
+            'uploader_id': '224110981099062',
+            'uploader_url': 'https://www.facebook.com/Casper/',
+            'timestamp': 1766299837,
+            'upload_date': '20251221',
+            'like_count': int,
+        },
+        'playlist_count': 2,
+    }, {
+        'url': 'https://www.facebook.com/ads/library/?id=874812092000430',
+        'info_dict': {
+            'id': '874812092000430',
+            'title': 'TikTok',
+            'uploader': 'Case \u00e0 Chocs',
+            'uploader_id': '112960472096793',
+            'uploader_url': 'https://www.facebook.com/Caseachocs/',
+            'timestamp': 1768498293,
+            'upload_date': '20260115',
+            'like_count': int,
+            'description': 'md5:f02a255fcf7dce6ed40e9494cf4bc49a',
+        },
+        'playlist_count': 3,
     }, {
         'url': 'https://es-la.facebook.com/ads/library/?id=901230958115569',
         'only_matching': True,
@@ -1060,9 +1089,36 @@ class FacebookAdsIE(InfoExtractor):
             })
         return formats
 
+    def _download_fb_webpage_and_verify(self, url, video_id):
+        # See https://github.com/yt-dlp/yt-dlp/issues/15577
+
+        try:
+            return self._download_webpage(url, video_id)
+        except ExtractorError as e:
+            if (
+                not isinstance(e.cause, HTTPError)
+                or e.cause.status != 403
+                or e.cause.reason != 'Client challenge'
+            ):
+                raise
+            error_page = self._webpage_read_content(e.cause.response, url, video_id)
+
+        self.write_debug('Received a client challenge response')
+
+        challenge_path = self._search_regex(
+            r'fetch\s*\(\s*["\'](/__rd_verify[^"\']+)["\']',
+            error_page, 'challenge path')
+
+        # Successful response will set the necessary cookie
+        self._request_webpage(
+            urljoin(url, challenge_path), video_id, 'Requesting verification cookie',
+            'Unable to get verification cookie', data=b'')
+
+        return self._download_webpage(url, video_id)
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        webpage = self._download_fb_webpage_and_verify(url, video_id)
 
         post_data = traverse_obj(
             re.findall(r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage), (..., {json.loads}))
