@@ -142,11 +142,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _RETURN_TYPE = 'video'  # XXX: How to handle multifeed?
 
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('android_vr', 'web', 'web_safari')
+    _DEFAULT_CLIENTS = ('android_vr', 'web_safari')
     _DEFAULT_JSLESS_CLIENTS = ('android_vr',)
-    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web', 'web_safari')
+    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web_safari')
     # Premium does not require POT (except for subtitles)
-    _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator', 'web')
+    _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator')
+    _WEBPAGE_CLIENTS = ('web', 'web_safari')
+    _DEFAULT_WEBPAGE_CLIENT = 'web_safari'
 
     _GEO_BYPASS = False
 
@@ -2683,13 +2685,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return {'contentCheckOk': True, 'racyCheckOk': True}
 
     @classmethod
-    def _generate_player_context(cls, sts=None, reload_playback_token=None, use_ad_playback_context=False):
+    def _generate_player_context(cls, sts=None, reload_playback_token=None, use_ad_playback_context=False, encrypted_context=None):
         content_playback_context = {
             'html5Preference': 'HTML5_PREF_WANTS',
         }
 
         if sts is not None:
             content_playback_context['signatureTimestamp'] = sts
+        if encrypted_context:
+            content_playback_context['encryptedHostFlags'] = encrypted_context
 
         playback_context = {
             'contentPlaybackContext': content_playback_context,
@@ -2942,11 +2946,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._configuration_arg('use_ad_playback_context', ['false'])[0] != 'false'
             and traverse_obj(INNERTUBE_CLIENTS, (client, 'SUPPORTS_AD_PLAYBACK_CONTEXT', {bool})))
 
+        # web_embedded player requests may need to include encryptedHostFlags in its contentPlaybackContext.
+        # This can be detected with the embeds_enable_encrypted_host_flags_enforcement experiemnt flag,
+        # but there is no harm in including encryptedHostFlags with all web_embedded player requests.
+        encrypted_context = None
+        if _split_innertube_client(client)[2] == 'embedded':
+            encrypted_context = traverse_obj(player_ytcfg, (
+                'WEB_PLAYER_CONTEXT_CONFIGS', 'WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER', 'encryptedHostFlags'))
+
         yt_query.update(
             self._generate_player_context(
                 sts=sts,
                 reload_playback_token=reload_playback_token,
-                use_ad_playback_context=use_ad_playback_context))
+                use_ad_playback_context=use_ad_playback_context,
+                encrypted_context=encrypted_context))
 
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
@@ -4072,7 +4085,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
-        webpage_client = 'web'
+        webpage_client = self._configuration_arg('webpage_client', [self._DEFAULT_WEBPAGE_CLIENT])[0]
+        if webpage_client not in self._WEBPAGE_CLIENTS:
+            self.report_warning(
+                f'Invalid webpage_client "{webpage_client}" requested; '
+                f'falling back to {self._DEFAULT_WEBPAGE_CLIENT}', only_once=True)
+            webpage_client = self._DEFAULT_WEBPAGE_CLIENT
 
         webpage, webpage_ytcfg, initial_data, is_premium_subscriber, player_responses, player_url = self._initial_extract(
             url, smuggled_data, webpage_url, webpage_client, video_id)
