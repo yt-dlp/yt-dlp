@@ -2936,7 +2936,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # This can be detected with the embeds_enable_encrypted_host_flags_enforcement experiemnt flag,
         # but there is no harm in including encryptedHostFlags with all web_embedded player requests.
         encrypted_context = None
-        if client == 'web_embedded':
+        if _split_innertube_client(client)[2] == 'embedded':
             encrypted_context = traverse_obj(player_ytcfg, (
                 'WEB_PLAYER_CONTEXT_CONFIGS', 'WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER', 'encryptedHostFlags'))
 
