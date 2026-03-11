@@ -52,7 +52,7 @@ class CondeNastIE(InfoExtractor):
                 embed(?:js)?|
                 (?:script|inline)/video
             )/(?P<id>[0-9a-f]{{24}})(?:/(?P<player_id>[0-9a-f]{{24}}))?(?:.+?\btarget=(?P<target>[^&]+))?|
-            (?P<type>watch|series|video)/(?P<display_id>[^/?#]+)
+            (?P<type>watch|series|video)/(?:watch/)?(?P<display_id>[^/?#]+)
         )'''.format('|'.join(_SITES.keys()))
     IE_DESC = 'Condé Nast media group: {}'.format(', '.join(sorted(_SITES.values())))
 
@@ -214,11 +214,12 @@ class CondeNastIE(InfoExtractor):
             })
 
         subtitles = {}
-        for t, caption in video_info.get('captions', {}).items():
-            caption_url = caption.get('src')
-            if not (t in ('vtt', 'srt', 'tml') and caption_url):
-                continue
-            subtitles.setdefault('en', []).append({'url': caption_url})
+        if subs := video_info.get('captions'):
+            for t, caption in subs.items():
+                caption_url = caption.get('src')
+                if not (t in ('vtt', 'srt', 'tml') and caption_url):
+                    continue
+                subtitles.setdefault('en', []).append({'url': caption_url})
 
         return {
             'id': video_id,
