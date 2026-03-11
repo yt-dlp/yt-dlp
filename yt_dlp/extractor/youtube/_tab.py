@@ -81,11 +81,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'reelPlayerHeaderSupportedRenderers', 'reelPlayerHeaderRenderer'))
 
         title = self._get_text(renderer, 'title', 'headline') or self._get_text(reel_header_renderer, 'reelTitleText')
-        description = self._get_text(renderer, 'descriptionSnippet')
-        detailed_metadata_snippets = renderer.get('detailedMetadataSnippets')
-
-        if description is None and isinstance(detailed_metadata_snippets, list) and len(detailed_metadata_snippets) > 0:
-            description = self._get_text(detailed_metadata_snippets[0].get('snippetText'))
+        description = self._get_text(renderer, 'descriptionSnippet', ('detailedMetadataSnippets', ..., 'snippetText'))
 
         duration = int_or_none(renderer.get('lengthSeconds'))
         if duration is None:
