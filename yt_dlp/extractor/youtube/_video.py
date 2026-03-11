@@ -140,11 +140,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _RETURN_TYPE = 'video'  # XXX: How to handle multifeed?
 
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('android_vr', 'web', 'web_safari')
+    _DEFAULT_CLIENTS = ('android_vr', 'web_safari')
     _DEFAULT_JSLESS_CLIENTS = ('android_vr',)
-    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web', 'web_safari')
+    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web_safari')
     # Premium does not require POT (except for subtitles)
-    _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator', 'web')
+    _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator')
+    _WEBPAGE_CLIENTS = ('web', 'web_safari')
+    _DEFAULT_WEBPAGE_CLIENT = 'web_safari'
 
     _GEO_BYPASS = False
 
@@ -2936,7 +2938,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # This can be detected with the embeds_enable_encrypted_host_flags_enforcement experiemnt flag,
         # but there is no harm in including encryptedHostFlags with all web_embedded player requests.
         encrypted_context = None
-        if client == 'web_embedded':
+        if _split_innertube_client(client)[2] == 'embedded':
             encrypted_context = traverse_obj(player_ytcfg, (
                 'WEB_PLAYER_CONTEXT_CONFIGS', 'WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER', 'encryptedHostFlags'))
 
@@ -3894,7 +3896,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
-        webpage_client = 'web'
+        webpage_client = self._configuration_arg('webpage_client', [self._DEFAULT_WEBPAGE_CLIENT])[0]
+        if webpage_client not in self._WEBPAGE_CLIENTS:
+            self.report_warning(
+                f'Invalid webpage_client "{webpage_client}" requested; '
+                f'falling back to {self._DEFAULT_WEBPAGE_CLIENT}', only_once=True)
+            webpage_client = self._DEFAULT_WEBPAGE_CLIENT
 
         webpage, webpage_ytcfg, initial_data, is_premium_subscriber, player_responses, player_url = self._initial_extract(
             url, smuggled_data, webpage_url, webpage_client, video_id)
