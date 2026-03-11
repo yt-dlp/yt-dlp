@@ -46,7 +46,7 @@ class CondeNastIE(InfoExtractor):
         'wmagazine': 'W Magazine',
     }
 
-    _VALID_URL = r'''(?x)https?://(?:video|www|player(?:-backend)?)\.(?:{})\.com/
+    _VALID_URL = r'''(?x)https?://(?:video|www|player(?:-backend)?)\.(?:{})\.[a-z]{{2,}}/
         (?:
             (?:
                 embed(?:js)?|
@@ -73,6 +73,7 @@ class CondeNastIE(InfoExtractor):
             'upload_date': '20130314',
             'timestamp': 1363219200,
         },
+        'skip': 'HTTP Error 503: Service Unavailable:',
     }, {
         'url': 'http://video.gq.com/watch/the-closer-with-keith-olbermann-the-only-true-surprise-trump-s-an-idiot?c=series',
         'info_dict': {
@@ -84,17 +85,24 @@ class CondeNastIE(InfoExtractor):
             'timestamp': 1490126427,
             'description': 'How much grimmer would things be if these people were competent?',
         },
+        'skip': 'HTTP Error 503: Service Unavailable:',
     }, {
         # JS embed
         'url': 'http://player.cnevids.com/embedjs/55f9cf8b61646d1acf00000c/5511d76261646d5566020000.js',
         'md5': 'f1a6f9cafb7083bab74a710f65d08999',
         'info_dict': {
             'id': '55f9cf8b61646d1acf00000c',
-            'ext': 'mp4',
             'title': '3D printed TSA Travel Sentry keys really do open TSA locks',
             'uploader': 'arstechnica',
-            'upload_date': '20150916',
             'timestamp': 1442434920,
+            'upload_date': '20150916',
+            'ext': 'mp4',
+            'duration': 180,
+            'thumbnail': 'https://dwgyu36up6iuz.cloudfront.net/heru80fdn/image/upload/c_fill,d_placeholder_arstechnica.png,fl_progressive,g_face,h_450,q_80,w_800/v1442441792/arstechnica_3d-printed-tsa-travel-sentry-keys-really-do-open-tsa-locks.jpg',
+            'categories': ['technology'],
+            'tags': ['ars technica'],
+            'series': 'Tech',
+            'season': 'Gear & Gadgets',
         },
     }, {
         # FIXME: Subtitles
@@ -113,6 +121,23 @@ class CondeNastIE(InfoExtractor):
             'timestamp': 1751341306,
             'upload_date': '20250701',
             'uploader': 'vanityfair',
+        },
+    }, {
+        'url': 'https://www.vogue.fr/video/watch/in-the-bag-que-contient-le-sac-de-rose-des-blackpink',
+        'info_dict': {
+            'id': '646e4d4c54a39462d265c782',
+            'ext': 'mp4',
+            'title': 'Que contient le sac de Rosé des Blackpink ? ',
+            'description': 'md5:a3dc645cb28ad7b22f57273e41d8a585',
+            'uploader': 'voguefrance',
+            'duration': 426,
+            'thumbnail': 'https://dwgyu36up6iuz.cloudfront.net/heru80fdn/image/upload/c_fill,d_placeholder_voguefrance.png,fl_progressive,g_face,h_450,q_80,w_800/v1684950452/voguefrance_in-the-bag-que-contient-le-sac-de-rose-des-blackpink.jpg',
+            'categories': ['Fashion', 'Beauty'],
+            'tags': ['Rosé', 'In the bag', 'Vogue France', 'cne-intl'],
+            'series': 'In the Bag',
+            'season': 'Saison 1',
+            'timestamp': 1684965600,
+            'upload_date': '20230524',
         },
     }, {
         'url': 'https://player.cnevids.com/inline/video/59138decb57ac36b83000005.js?target=js-cne-player',
