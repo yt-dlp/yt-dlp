@@ -558,6 +558,7 @@ class PoTokenAVProfile(BasicAudioVideoProfile):
 
 
 class LiveAVProfile(BasicAudioVideoProfile):
+    # dvr_segments Should be at most total_segments - 1 (as first segment is always "DVR")
     DEFAULT_DVR_SEGMENTS = 0
     DEFAULT_TOTAL_SEGMENTS = 3
     DEFAULT_SEGMENT_TARGET_DURATION_MS = 2000
@@ -569,6 +570,7 @@ class LiveAVProfile(BasicAudioVideoProfile):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.start_time = time.time()
+        assert self.dvr_segments < self.total_segments
 
     @property
     def start_segment_number(self):

@@ -1712,6 +1712,68 @@ class TestLive:
             f'Setting player time to max seekable time ms: {profile.max_seekable_time_ms}ms (-5900ms)')
 
     @mock_time
+    def test_skip_player_time_increment_if_seeking(self, logger, client_info):
+        # if one format is marked as seeking at the end of the response, then do not increment the player time.
+        # To simulate:
+        # 1. Init both formats
+        # 2. Provide first segment of one format
+        # 3. SabrSeek
+        # 4. End response without providing more data
+
+        total_segments = 3
+        segment_target_duration_ms = 2000
+        dvr_segments = 2
+
+        seek_ms = segment_target_duration_ms // 2
+
+        def seeking_format_func(parts, vpabr, url, request_number):
+            if request_number == 1:
+                # Include all parts until the first MEDIA_END
+                parts = parts[:parts.index(next(p for p in parts if p.part_id == UMPPartId.MEDIA_END)) + 1]
+
+                # Add SABR_SEEK after the MEDIA_END
+                sabr_seek = protobug.dumps(SabrSeek(
+                    seek_time_ticks=seek_ms,
+                    timescale=1000,
+                ))
+                parts.append(UMPPart(
+                    part_id=UMPPartId.SABR_SEEK,
+                    size=len(sabr_seek),
+                    data=io.BytesIO(sabr_seek),
+                ))
+            return parts
+
+        profile = LiveAVProfile({
+            'total_segments': total_segments,
+            'segment_target_duration_ms': segment_target_duration_ms,
+            'dvr_segments': dvr_segments,
+            'custom_parts_function': seeking_format_func,
+        })
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=profile,
+            client_info=client_info,
+            logger=logger,
+            url=VALID_LIVE_URL,
+            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+        )
+        audio_selector, video_selector = selectors
+
+        parts = list(sabr_stream.iter_parts())
+
+        assert_media_sequence_in_order(parts, audio_selector, total_segments)
+        assert_media_sequence_in_order(parts, video_selector, total_segments)
+
+        # First request: should start from 0
+        first_request_vpabr = rh.request_history[0].vpabr
+        assert first_request_vpabr.client_abr_state.player_time_ms == 0
+        # Second request: should seek to seek_ms, not to what the first format is set to.
+        second_request_vpabr = rh.request_history[1].vpabr
+        assert second_request_vpabr.client_abr_state.player_time_ms == seek_ms
+
+        logger.debug.assert_any_call('Seeking to 1000ms')
+        logger.debug.assert_any_call('Skipping player time increment; one or more initialized formats are currently seeking')
+
+    @mock_time
     def test_create_stats_str_live(self, logger, client_info):
         # Simple test of the stats string created for live streams
         total_segments = 10
