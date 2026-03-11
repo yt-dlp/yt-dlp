@@ -958,14 +958,21 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'mweb': 'https://m.youtube.com',
             'web': 'https://www.youtube.com',
             'web_music': 'https://music.youtube.com',
+            'web_creator': 'https://studio.youtube.com',
             'web_embedded': f'https://www.youtube.com/embed/{video_id}?html5=1',
             'tv': 'https://www.youtube.com/tv',
         }.get(client)
         if not url:
             return {}
+
+        default_ytcfg = self._get_default_ytcfg(client)
+
+        if default_ytcfg['REQUIRE_AUTH'] and not self.is_authenticated:
+            return {}
+
         webpage = self._download_webpage_with_retries(
             url, video_id, note=f'Downloading {client.replace("_", " ").strip()} client config',
-            headers=traverse_obj(self._get_default_ytcfg(client), {
+            headers=traverse_obj(default_ytcfg, {
                 'User-Agent': ('INNERTUBE_CONTEXT', 'client', 'userAgent', {str}),
                 'Referer': ('INNERTUBE_CONTEXT', 'thirdParty', 'embedUrl', {str}),
             }))
