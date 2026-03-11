@@ -957,6 +957,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         url = {
             'mweb': 'https://m.youtube.com',
             'web': 'https://www.youtube.com',
+            'web_safari': 'https://www.youtube.com',
             'web_music': 'https://music.youtube.com',
             'web_creator': 'https://studio.youtube.com',
             'web_embedded': f'https://www.youtube.com/embed/{video_id}?html5=1',
