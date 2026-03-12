@@ -1,0 +1,9 @@
+fastapi==0.116.1
+httpx==0.28.1
+boto3==1.42.17
+nats-py==2.12.0
+prometheus-client==0.20.0
+requests==2.32.5
+tenacity==9.1.2
+pytest==8.4.1
+pytest-asyncio==0.25.3

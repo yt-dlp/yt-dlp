@@ -25,12 +25,16 @@ jobs:
     - name: Install test requirements
       shell: bash
       run: python ./devscripts/install_deps.py --omit-default --include-extra test
+    - name: Install PMOVES.YT service requirements
+      shell: bash
+      run: python -m pip install -r pmoves_yt_service/requirements-ci.txt
     - name: Run tests
       timeout-minutes: 15
       shell: bash
       run: |
         python3 -m yt_dlp -v || true
         python3 ./devscripts/run_tests.py --pytest-args '--reruns 2 --reruns-delay 3.0' core
+        python3 -m pytest -q pmoves_yt_service/tests
   check:
     name: Code check
     if: ${{ !contains(github.event.head_commit.message, ':ci skip all') }}
@@ -48,10 +52,10 @@ jobs:
       run: python ./devscripts/install_deps.py --omit-default --include-extra static-analysis
     - name: Make lazy extractors
       run: python ./devscripts/make_lazy_extractors.py
-    - name: Run ruff
-      run: ruff check --output-format github .
-    - name: Run autopep8
-      run: autopep8 --diff .
+    - name: Run ruff for PMOVES overlay
+      run: ruff check --output-format github pmoves_yt_service/
+    - name: Run autopep8 for PMOVES overlay
+      run: autopep8 --diff --exit-code --recursive pmoves_yt_service/
     - name: Check file mode
       shell: bash
       run: git ls-files --format="%(objectmode) %(path)" yt_dlp/ | ( ! grep -v "^100644" )

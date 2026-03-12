@@ -1,3 +1,14 @@
+PMOVES.YT is the authoritative PMOVES YouTube ingest runtime and the upstream yt-dlp fork consumed by PMOVES.AI.
+
+PMOVES runtime entrypoints live under `pmoves_yt_service/`.
+
+Start here for PMOVES usage:
+- `docs/RUNTIME.md`
+- `PMOVES.AI_INTEGRATION.md`
+- `CLAUDE.md`
+
+The upstream yt-dlp project README follows below.
+
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 <div align="center">
 

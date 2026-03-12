@@ -4,23 +4,25 @@
 
 ## Architecture Overview
 
-PMOVES.YT is a **YouTube ingestion and processing service** that:
-- Downloads videos via yt-dlp with configurable quality/format
-- Stores media in MinIO S3-compatible object storage
-- Retrieves/generates transcripts (YouTube captions or Whisper)
-- Publishes NATS events for downstream processing
-- Tracks ingestion state in Supabase
+PMOVES.YT now has two responsibilities in one repo:
+- the upstream `yt_dlp/` fork consumed for extraction/runtime packaging
+- the authoritative PMOVES service package in `pmoves_yt_service/`
+
+PMOVES.AI should treat this repo as the source of truth for:
+- video metadata and download handling via yt-dlp
+- transcripts, summaries, chapter generation, and `/yt/emit`
+- yt-dlp docs sync and structured options catalog
+- the image/runtime built for the `pmoves-yt` service in the parent compose stack
 
 ## Key Components
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
-| `app/main.py` | `app/` | FastAPI server, route handlers |
-| `app/yt.py` | `app/` | Core yt-dlp download logic |
-| `app/transcript.py` | `app/` | Transcript retrieval and processing |
-| `app/minio_client.py` | `app/` | MinIO storage operations |
-| `app/nats_publisher.py` | `app/` | NATS event publishing |
-| `app/supabase_client.py` | `app/` | Supabase state tracking |
+| `pmoves_yt_service/yt.py` | `pmoves_yt_service/` | FastAPI server + PMOVES ingest pipeline |
+| `pmoves_yt_service/docs_sync.py` | `pmoves_yt_service/` | yt-dlp docs capture + Supabase sync |
+| `pmoves_yt_service/docs_catalog.py` | `pmoves_yt_service/` | structured option/extractor catalog |
+| `pmoves_yt_service/Dockerfile` | `pmoves_yt_service/` | authoritative PMOVES runtime image |
+| `yt_dlp/` | `yt_dlp/` | upstream forked extractor/runtime code |
 | `bundle/` | `bundle/` | yt-dlp bundled configuration |
 
 ## Security Posture
@@ -31,6 +33,7 @@ PMOVES.YT is a **YouTube ingestion and processing service** that:
 - **GREEN:** Excellent Docker hardening (cap_drop ALL, read_only, tmpfs mounts)
 - **GREEN:** `/healthz` health check endpoint
 - **GREEN:** `/metrics` Prometheus endpoint
+- **GREEN:** `/yt/docs/catalog` returns live option/extractor metadata when the package is present
 
 ## APIs
 
@@ -41,9 +44,10 @@ PMOVES.YT is a **YouTube ingestion and processing service** that:
 | `/healthz` | GET | Health check |
 | `/metrics` | GET | Prometheus metrics |
 | `/yt/ingest` | POST | Ingest a YouTube video |
-| `/yt/status` | GET | Check ingestion status |
-| `/yt/channels` | GET | List monitored channels |
-| `/yt/channels` | POST | Add channel for monitoring |
+| `/yt/emit` | POST | Segment transcript and publish geometry/Hi-RAG updates |
+| `/yt/emit/status/{job_id}` | GET | Check async emit status |
+| `/yt/docs/catalog` | GET | Structured yt-dlp option + extractor metadata |
+| `/yt/docs/sync` | POST | Upsert yt-dlp docs into Supabase |
 
 ### Ingest Request Format
 
@@ -90,9 +94,10 @@ PMOVES.YT is a **YouTube ingestion and processing service** that:
 
 ```bash
 cd PMOVES.YT
-pip install -r requirements.txt
+pip install -r pmoves_yt_service/requirements.txt
+pip install ".[default]"
 
-uvicorn app.main:app --host 127.0.0.1 --port 8077
+uvicorn pmoves_yt_service.yt:app --host 127.0.0.1 --port 8077
 ```
 
 ### Docker
@@ -100,6 +105,7 @@ uvicorn app.main:app --host 127.0.0.1 --port 8077
 ```bash
 # With PMOVES.AI (docked mode)
 # Managed by parent docker-compose with profile: yt
+# Parent repo now builds from this submodule, not from a root shadow copy
 ```
 
 ### Testing
@@ -119,9 +125,10 @@ curl -X POST http://localhost:8077/yt/ingest \
 ### Docked Mode
 
 - **Compose profile:** `yt`
-- **Port:** 8077
-- **Networks:** `pmoves-net`, `data-net`
-- **Depends on:** NATS, MinIO, Supabase (all `service_healthy`)
+- **Port:** `8077`
+- **Build context:** `PMOVES.YT`
+- **Dockerfile:** `pmoves_yt_service/Dockerfile`
+- **Consumer:** root PMOVES.AI compose stack
 
 ### Processing Pipeline
 

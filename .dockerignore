@@ -1,0 +1,7 @@
+.git
+.github
+.pytest_cache
+.venv
+__pycache__
+*.pyc
+2.6.3
