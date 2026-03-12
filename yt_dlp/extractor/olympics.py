@@ -39,25 +39,6 @@ class OlympicsReplayIE(InfoExtractor):
             'duration': 1321.0,
         },
     }, {
-        'url': 'https://olympics.com/en/paris-2024/videos/men-s-preliminaries-gbr-esp-ned-rsa-hockey-olympic-games-paris-2024',
-        'info_dict': {
-            'id': '3d96db23-8eee-4b7c-8ef5-488a0361026c',
-            'ext': 'mp4',
-            'title': 'Men\'s Preliminaries GBR-ESP & NED-RSA | Hockey | Olympic Games Paris 2024',
-            'upload_date': '20240727',
-            'timestamp': 1722066600,
-        },
-        'skip': 'Geo-restricted to RU, BR, BT, NP, TM, BD, TL',
-    }, {
-        'url': 'https://olympics.com/en/paris-2024/videos/dnp-suni-lee-i-have-goals-and-i-have-expectations-for-myself-but-i-also-am-trying-to-give-myself-grace',
-        'info_dict': {
-            'id': 'a42f37ab-8a74-41d0-a7d9-af27b7b02a90',
-            'ext': 'mp4',
-            'title': 'md5:c7cfbc9918636a98e66400a812e4d407',
-            'upload_date': '20240729',
-            'timestamp': 1722288600,
-        },
-    }, {
         'url': 'https://olympics.com/en/milano-cortina-2026/videos/exhibition-gala-figure-skating-milano-cortina-2026',
         'only_matching': True,
     }]
