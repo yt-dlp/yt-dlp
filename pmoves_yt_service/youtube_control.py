@@ -74,6 +74,89 @@ def insert_playlist_item(
     return _check_response(response, 'insert_playlist_item')
 
 
+def create_playlist(
+    *,
+    access_token: str,
+    title: str,
+    description: str | None = None,
+    privacy_status: str = 'private',
+    default_language: str | None = None,
+) -> dict[str, Any]:
+    snippet: dict[str, Any] = {
+        'title': title,
+    }
+    if description:
+        snippet['description'] = description
+    if default_language:
+        snippet['defaultLanguage'] = default_language
+    response = requests.post(
+        f'{YOUTUBE_API_BASE}/playlists',
+        params={'part': 'snippet,status'},
+        headers={'Authorization': f'Bearer {access_token}'},
+        json={
+            'snippet': snippet,
+            'status': {'privacyStatus': privacy_status},
+        },
+        timeout=30,
+    )
+    return _check_response(response, 'create_playlist')
+
+
+def update_playlist(
+    *,
+    access_token: str,
+    playlist_id: str,
+    title: str | None = None,
+    description: str | None = None,
+    privacy_status: str | None = None,
+    default_language: str | None = None,
+) -> dict[str, Any]:
+    snippet: dict[str, Any] = {}
+    status: dict[str, Any] = {}
+    if title is not None:
+        snippet['title'] = title
+    if description is not None:
+        snippet['description'] = description
+    if default_language is not None:
+        snippet['defaultLanguage'] = default_language
+    if privacy_status is not None:
+        status['privacyStatus'] = privacy_status
+    if not snippet and not status:
+        raise YouTubeControlError('update_playlist requires at least one mutable field')
+    payload: dict[str, Any] = {'id': playlist_id}
+    parts: list[str] = []
+    if snippet:
+        payload['snippet'] = snippet
+        parts.append('snippet')
+    if status:
+        payload['status'] = status
+        parts.append('status')
+    response = requests.put(
+        f'{YOUTUBE_API_BASE}/playlists',
+        params={'part': ','.join(parts)},
+        headers={'Authorization': f'Bearer {access_token}'},
+        json=payload,
+        timeout=30,
+    )
+    return _check_response(response, 'update_playlist')
+
+
+def delete_playlist(
+    *,
+    access_token: str,
+    playlist_id: str,
+) -> dict[str, Any]:
+    response = requests.delete(
+        f'{YOUTUBE_API_BASE}/playlists',
+        params={'id': playlist_id},
+        headers={'Authorization': f'Bearer {access_token}'},
+        timeout=30,
+    )
+    if response.status_code >= 400:
+        _check_response(response, 'delete_playlist')
+    return {'id': playlist_id, 'deleted': True}
+
+
 def delete_playlist_item(
     *,
     access_token: str,
@@ -153,3 +236,19 @@ def insert_comment(
         timeout=30,
     )
     return _check_response(response, 'insert_comment')
+
+
+def delete_comment(
+    *,
+    access_token: str,
+    comment_id: str,
+) -> dict[str, Any]:
+    response = requests.delete(
+        f'{YOUTUBE_API_BASE}/comments',
+        params={'id': comment_id},
+        headers={'Authorization': f'Bearer {access_token}'},
+        timeout=30,
+    )
+    if response.status_code >= 400:
+        _check_response(response, 'delete_comment')
+    return {'id': comment_id, 'deleted': True}
