@@ -3070,7 +3070,7 @@ class YoutubeDL:
                     self.to_screen(f'[info] {info_dict["id"]}: {" ".join(", ".join(variadic(m)) for m in msg)}')
 
                 to_screen(f'Downloading {len(formats_to_download)} format(s):',
-                          (f['format_id'] for f in formats_to_download))
+                          (f'{f["format"]} {f["ext"]}' for f in formats_to_download))
                 if requested_ranges != ({}, ):
                     to_screen(f'Downloading {len(requested_ranges)} time ranges:',
                               (f'{c["start_time"]:.1f}-{c["end_time"]:.1f}' for c in requested_ranges))
