@@ -77,35 +77,35 @@ jobs:
       run: |
         flags=()
         if python - <<'PY'
-import os
-import re
-import subprocess
-import sys
+        import os
+        import re
+        import subprocess
+        import sys
 
-patterns = [
-    re.compile(r"^yt_dlp/networking/"),
-    re.compile(r"^yt_dlp/utils/networking\.py$"),
-    re.compile(r"^test/test_http_proxy\.py$"),
-    re.compile(r"^test/test_networking\.py$"),
-    re.compile(r"^test/test_networking_utils\.py$"),
-    re.compile(r"^test/test_socks\.py$"),
-    re.compile(r"^test/test_websockets\.py$"),
-    re.compile(r"^pyproject\.toml$"),
-]
-result = subprocess.run(
-    ["git", "diff", "--name-only", os.environ["source"], os.environ["target"]],
-    capture_output=True,
-    check=False,
-    text=True,
-)
-changed_files = result.stdout.splitlines()
-has_networking_change = any(
-    pattern.search(path)
-    for path in changed_files
-    for pattern in patterns
-)
-sys.exit(0 if has_networking_change else 1)
-PY
+        patterns = [
+            re.compile(r"^yt_dlp/networking/"),
+            re.compile(r"^yt_dlp/utils/networking\.py$"),
+            re.compile(r"^test/test_http_proxy\.py$"),
+            re.compile(r"^test/test_networking\.py$"),
+            re.compile(r"^test/test_networking_utils\.py$"),
+            re.compile(r"^test/test_socks\.py$"),
+            re.compile(r"^test/test_websockets\.py$"),
+            re.compile(r"^pyproject\.toml$"),
+        ]
+        result = subprocess.run(
+            ["git", "diff", "--name-only", os.environ["source"], os.environ["target"]],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+        changed_files = result.stdout.splitlines()
+        has_networking_change = any(
+            pattern.search(path)
+            for path in changed_files
+            for pattern in patterns
+        )
+        sys.exit(0 if has_networking_change else 1)
+        PY
         then
           flags+=(--flaky)
         fi
