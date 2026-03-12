@@ -13,7 +13,7 @@ from ..utils.traversal import traverse_obj
 
 
 class OlympicsReplayIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?olympics\.com/[a-z]{2}/(?:paris-2024/)?(?:replay|videos?|original-series/episode)/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?olympics\.com/[a-z]{2}/(?:paris-2024|milano-cortina-2026/)?(?:replay|videos?|original-series/episode)/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://olympics.com/fr/video/men-s-109kg-group-a-weightlifting-tokyo-2020-replays',
         'info_dict': {
@@ -63,17 +63,20 @@ class OlympicsReplayIE(InfoExtractor):
     def _extract_from_nextjs_data(self, webpage, video_id):
         data = traverse_obj(self._search_nextjs_data(webpage, video_id, default={}), (
             'props', 'pageProps', 'page', 'items',
-            lambda _, v: v['name'] == 'videoPlaylist', 'data', 'currentVideo', {dict}, any))
+            lambda _, v: v['name'] == 'videoPlayer', 'data', 'item', {dict}, any))
         if not data:
             return None
 
-        geo_countries = traverse_obj(data, ('countries', ..., {str}))
-        if traverse_obj(data, ('geoRestrictedVideo', {bool})):
+        geo_countries = traverse_obj(data, ('regionsAllowed', ..., {str}))
+        if traverse_obj(data, ('isGeoRestricted', {bool})):
             self.raise_geo_restricted(countries=geo_countries)
 
-        is_live = traverse_obj(data, ('streamingStatus', {str})) == 'LIVE'
-        m3u8_url = traverse_obj(data, ('videoUrl', {url_or_none})) or data['streamUrl']
-        tokenized_url = self._tokenize_url(m3u8_url, data['jwtToken'], is_live, video_id)
+        is_live = traverse_obj(data, ('__typename', {str.lower})) != 'vod'
+        m3u8_url = traverse_obj(data, ('streamUrl', {url_or_none})) or data['streamUrl']
+        jwt_token = self._search_regex(r'<script[^>]+id\s*=\s*"page-jwt-data"\s*[^>]+>\s*"([^"]+)"\s*<', webpage, 'jwt_token', default=None)
+        if not jwt_token:
+            raise ExtractorError('Unable to find video jwt token')
+        tokenized_url = self._tokenize_url(m3u8_url, jwt_token, is_live, video_id)
 
         try:
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
@@ -88,10 +91,16 @@ class OlympicsReplayIE(InfoExtractor):
             'subtitles': subtitles,
             'is_live': is_live,
             **traverse_obj(data, {
-                'id': ('videoID', {str}),
                 'title': ('title', {str}),
-                'timestamp': ('contentDate', {parse_iso8601}),
+                'description': ('description', {str}),
+                'thumbnail': ('imageUrlTemplate', {url_or_none}),
             }),
+            **traverse_obj(data, ('meta', {
+                'id': ('slug', {str}),
+                'title': ('metaTitle', {str}),
+                'description': ('metaDescription', {str}),
+                'timestamp': ('creationDateTime', {parse_iso8601}),
+            })),
         }
 
     def _tokenize_url(self, url, token, is_live, video_id):
