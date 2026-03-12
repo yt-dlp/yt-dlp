@@ -13,7 +13,7 @@ from ..utils.traversal import traverse_obj
 
 
 class OlympicsReplayIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?olympics\.com/[a-z]{2}/(?:paris-2024|milano-cortina-2026/)?(?:replay|videos?|original-series/episode)/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?olympics\.com/[a-z]{2}/(?:[a-z0-9_-]+/){0,2}?(?:replay|videos?|original-series/episode)/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://olympics.com/fr/video/men-s-109kg-group-a-weightlifting-tokyo-2020-replays',
         'info_dict': {
@@ -57,6 +57,9 @@ class OlympicsReplayIE(InfoExtractor):
             'upload_date': '20240729',
             'timestamp': 1722288600,
         },
+    }, {
+        'url': 'https://olympics.com/en/milano-cortina-2026/videos/exhibition-gala-figure-skating-milano-cortina-2026',
+        'only_matching': True,
     }]
     _GEO_BYPASS = False
 
