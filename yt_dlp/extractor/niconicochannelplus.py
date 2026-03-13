@@ -1,5 +1,12 @@
+import base64
 import functools
+import hashlib
 import json
+import random
+import re
+import string
+import time
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -7,52 +14,313 @@ from ..utils import (
     OnDemandPagedList,
     filter_dict,
     int_or_none,
+    jwt_decode_hs256,
     parse_qs,
     str_or_none,
     traverse_obj,
     unified_timestamp,
     url_or_none,
+    urlencode_postdata,
+    urljoin,
 )
 
 
-class NiconicoChannelPlusBaseIE(InfoExtractor):
-    _WEBPAGE_BASE_URL = 'https://nicochannel.jp'
+class SiteContext:
+    _REFRESH_TIMEOUT_THRES = 30
 
-    def _call_api(self, path, item_id, **kwargs):
-        return self._download_json(
-            f'https://nfc-api.nicochannel.jp/fc/{path}', video_id=item_id, **kwargs)
+    def __init__(self, ie: InfoExtractor, url, video_id=None):
+        self._ie = ie
+        self._site_url = urljoin(url, '/')
+        self._access_token = None
+        self._refresh_token = None
+        self._settings = self._ie._download_json(
+            urljoin(self._site_url, '/site/settings.json'), video_id,
+            headers={'Referer': url}, note='Downloading nicochannel site settings')
+        if 'api_base_url' not in self._settings or 'fanclub_site_id' not in self._settings:
+            raise ExtractorError('Failed to get site settings')
+        if (platform := self._settings.get('platform_id')) not in ['CHPL', 'SHTA', 'JOQR', 'TKFM']:
+            self._ie.report_warning(f'Unknown platform type: {platform}')
+        self._perform_login()
 
-    def _find_fanclub_site_id(self, channel_name):
-        fanclub_list_json = self._call_api(
-            'content_providers/channels', item_id=f'channels/{channel_name}',
-            note='Fetching channel list', errnote='Unable to fetch channel list',
-        )['data']['content_providers']
-        fanclub_id = traverse_obj(fanclub_list_json, (
-            lambda _, v: v['domain'] == f'{self._WEBPAGE_BASE_URL}/{channel_name}', 'id'),
-            get_all=False)
-        if not fanclub_id:
-            raise ExtractorError(f'Channel {channel_name} does not exist', expected=True)
-        return fanclub_id
+    @property
+    def _netrc(self):
+        domain = urllib.parse.urlparse(self._site_url).hostname
+        return 'nicochannel' if domain == 'nicochannel.jp' else f'nicochannel-{domain.replace(".", "-")}'
 
-    def _get_channel_base_info(self, fanclub_site_id):
-        return traverse_obj(self._call_api(
-            f'fanclub_sites/{fanclub_site_id}/page_base_info', item_id=f'fanclub_sites/{fanclub_site_id}',
-            note='Fetching channel base info', errnote='Unable to fetch channel base info', fatal=False,
-        ), ('data', 'fanclub_site', {dict})) or {}
+    @property
+    def _login_hint(self):
+        return (f'Use --username and --password, --netrc-cmd, or --netrc ({self._netrc}) to provide '
+                'account credentials. For third-party login, use --username jwt_token --password <token> '
+                'or --username refresh_token --password <token> to provide auth token')
 
-    def _get_channel_user_info(self, fanclub_site_id):
-        return traverse_obj(self._call_api(
-            f'fanclub_sites/{fanclub_site_id}/user_info', item_id=f'fanclub_sites/{fanclub_site_id}',
-            note='Fetching channel user info', errnote='Unable to fetch channel user info', fatal=False,
-            data=json.dumps('null').encode('ascii'),
-        ), ('data', 'fanclub_site', {dict})) or {}
+    def _parse_jwt_timeout(self, access_token):
+        return jwt_decode_hs256(access_token)['exp'] - time.time()
+
+    @functools.cached_property
+    def _auth_settings(self):
+        auth_data = self._ie._download_json(
+            f'{self._settings["api_base_url"]}/fanclub_sites/{self._settings["fanclub_site_id"]}/login',
+            None, note='Downloading auth settings', headers={
+                'origin': self._site_url.strip('/'), 'referer': self._site_url,
+                'Fc_site_id': self._settings['fanclub_site_id'], 'Fc_use_device': 'null'})
+        return traverse_obj(auth_data, ('data', 'fanclub_site', {
+            'auth0_web_client': ('auth0_web_client_id', {str}),
+            'auth0_domain': ('fanclub_group', 'auth0_domain', {str}),
+        }))
+
+    @property
+    def _jwt_token(self):
+        if self._access_token:
+            if self._parse_jwt_timeout(self._access_token) < self._REFRESH_TIMEOUT_THRES:
+                self._perform_jwt_refresh()
+            if self._parse_jwt_timeout(self._access_token) < 0:
+                self._ie.report_warning('JWT token expired, continuing without login.')
+                self._access_token = None
+        return self._access_token
+
+    def _deprecated_load_args_tokens(self):
+        if refresh := self._ie._configuration_arg('refresh_token', ie_key='niconicochannelplus', casesense=True):
+            self._ie.report_warning('niconicochannelplus:refresh_token is deprecated in favor of using'
+                                    '--username refresh_token --password <token> instead', only_once=True)
+            return 'refresh_token', refresh[0]
+        if jwt := self._ie._configuration_arg('jwt_token', ie_key='niconicochannelplus', casesense=True):
+            self._ie.report_warning('niconicochannelplus:jwt_token is deprecated in favor of using'
+                                    '--username jwt_token --password <token> instead', only_once=True)
+            return 'jwt_token', jwt[0]
+        return None, None
+
+    def _perform_login(self):
+        username, password = self._ie._get_login_info(netrc_machine=self._netrc)
+        if not username:
+            username, password = self._deprecated_load_args_tokens()
+
+        if username == 'jwt_token':
+            try:
+                self._parse_jwt_timeout(password)
+                self._access_token = password
+            except ValueError:
+                self._ie.report_warning('Invalid JWT token, continuing without login')
+        elif username == 'refresh_token':
+            self._refresh_token = password
+            self._perform_jwt_refresh()
+        elif username and password:
+            self._perform_password_login(username, password)
+
+    @property
+    def _auth0_client(self):
+        return base64.b64encode(json.dumps({
+            'name': 'auth0-spa-js',
+            'version': '2.8.0',
+        }, separators=(',', ':')).encode()).decode()
+
+    def _perform_password_login(self, username, password):
+        def _random_string():
+            return ''.join(random.choices(f'{string.digits}{string.ascii_letters}-_~.', k=43))
+
+        code_verifier = _random_string()
+        code_challenge = base64.urlsafe_b64encode(
+            hashlib.sha256(code_verifier.encode()).digest()).decode().rstrip('=')
+
+        preauth_query = {
+            'client_id': self._auth_settings['auth0_web_client'],
+            'scope': 'openid profile email offline_access',
+            'redirect_uri': urljoin(self._site_url, '/login/login-redirect'),
+            'audience': urllib.parse.urlparse(self._settings['api_base_url']).hostname,
+            'ext-group_id': self._settings['fanclub_group_id'],
+            'ext-platform_id': self._settings['platform_id'],
+            'ext-redirect_url': self._site_url,
+            'prompt': 'login',
+            'response_type': 'code',
+            'response_mode': 'query',
+            'state': base64.b64encode(_random_string().encode()).decode(),
+            'nonce': base64.b64encode(_random_string().encode()).decode(),
+            'code_challenge': code_challenge,
+            'code_challenge_method': 'S256',
+            'auth0Client': self._auth0_client,
+        }
+
+        _, handler = self._ie._download_webpage_handle(
+            f'https://{self._auth_settings["auth0_domain"]}/authorize', None, query=preauth_query,
+            note='Performing login preauth', errnote='Failed to login')
+
+        _, handler = self._ie._download_webpage_handle(handler.url, None, data=urlencode_postdata({
+            'state': parse_qs(handler.url)['state'][0],
+            'username': username,
+            'password': password,
+        }), headers={
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Origin': urljoin(handler.url, '/').rstrip('/'),
+            'Referer': handler.url,
+        }, expected_status=404, note='Performing login', errnote='Failed to login')
+
+        data = self._ie._download_json(
+            f'https://{self._auth_settings["auth0_domain"]}/oauth/token', None,
+            data=urlencode_postdata({
+                'client_id': self._auth_settings['auth0_web_client'],
+                'code_verifier': code_verifier,
+                'grant_type': 'authorization_code',
+                'code': parse_qs(handler.url)['code'][0],
+                'redirect_uri': urljoin(self._site_url, '/login/login-redirect'),
+            }), headers={
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Origin': urljoin(handler.url, '/').rstrip('/'),
+                'Referer': handler.url,
+            }, note='Downloading login token', errnote='Failed to login')
+
+        self._access_token = traverse_obj(data, ('access_token', {str}))
+        self._refresh_token = traverse_obj(data, ('refresh_token', {str}))
+
+    def _perform_jwt_refresh(self):
+        if not self._refresh_token:
+            return
+
+        data = self._ie._download_json(
+            f'https://{self._auth_settings["auth0_domain"]}/oauth/token', None,
+            data=urlencode_postdata({
+                'client_id': self._auth_settings['auth0_web_client'],
+                'redirect_uri': urljoin(self._site_url, '/login/login-redirect'),
+                'grant_type': 'refresh_token',
+                'refresh_token': self._refresh_token,
+            }), headers={
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Auth0-Client': self._auth0_client,
+                'Origin': self._site_url.rstrip('/'),
+                'Referer': self._site_url,
+            }, note='Refreshing auth token', errnote='Failed to refresh login state')
+
+        self._access_token = traverse_obj(data, ('access_token', {str}))
+        self._refresh_token = traverse_obj(data, ('refresh_token', {str}))
+
+    @property
+    def settings(self):
+        return self._settings
+
+    def download_api_json(self, path, video_id, headers={}, **kwargs):
+        path = f'/{path}' if path[0] != '/' else path
+        headers = {
+            'Origin': self._site_url.strip('/'),
+            'Referer': self._site_url,
+            'Fc_site_id': self._settings['fanclub_site_id'],
+            'Fc_use_device': 'null',
+            **headers,
+        }
+        if self._jwt_token:
+            headers['Authorization'] = f'Bearer {self._jwt_token}'
+
+        data, handle = self._ie._download_json_handle(
+            f'{self._settings["api_base_url"]}{path}', video_id, headers=headers, expected_status=403, **kwargs)
+        if handle.status == 403:
+            msg = 'You have no access to this video'
+            if not self._jwt_token:
+                msg += f'. {self._login_hint}'
+            raise ExtractorError(msg, expected=True)
+        return data
 
 
-class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
+class NicoChannelBaseIE(InfoExtractor):
+    _NETRC_MACHINE = False
+
+    _SITE_CONTEXTS = {}
+    _CHANNEL_NAMES = {}
+    _CHANNEL_AGE_LIMIT = {}
+    _DOMAIN_IDS = {}
+
+    @classmethod
+    def _check_domain_suitable(cls, url):
+        return urljoin(url, '/') in cls._SITE_CONTEXTS
+
+    @classmethod
+    def _add_domain_suitable(cls, url):
+        cls._SITE_CONTEXTS.setdefault(urljoin(url, '/'), None)
+
+    def _get_context(self, url, video_id=None):
+        base_url = urljoin(url, '/')
+        if not self._SITE_CONTEXTS.get(base_url):
+            self._SITE_CONTEXTS[base_url] = SiteContext(self, url, video_id)
+        return self._SITE_CONTEXTS[base_url]
+
+    def _get_site_settings(self, url, video_id=None):
+        return self._get_context(url, video_id).settings
+
+    def _download_api_json(self, url, path, video_id, **kwargs):
+        return self._get_context(url, video_id).download_api_json(path, video_id, **kwargs)
+
+    def _make_channel_id(self, url):
+        parsed = urllib.parse.urlparse(url)
+        if self._get_site_settings(url)['platform_id'] == 'SHTA':
+            return parsed.hostname.replace('.', '_')
+        elif self._get_site_settings(url)['platform_id'] == 'CHPL':
+            return parsed.path.split('/')[1]
+        else:
+            return f'{parsed.hostname.replace(".", "_")}_{parsed.path.split("/")[1]}'
+
+    def _get_channel_url(self, url):
+        parsed = urllib.parse.urlparse(url)
+        if self._get_site_settings(url)['platform_id'] == 'SHTA':
+            return f'{parsed.scheme}://{parsed.netloc}'
+        else:
+            # parsed.path starts with '/', so index 0 is empty string and use 1 here
+            return f'{parsed.scheme}://{parsed.netloc}/{parsed.path.split("/")[1].lower()}'
+
+    def _get_fanclub_site_id(self, url):
+        settings = self._get_site_settings(url)
+        if settings['platform_id'] == 'SHTA':
+            return str(settings['fanclub_site_id'])
+        else:
+            channel_url = self._get_channel_url(url)
+            if channel_url not in self._DOMAIN_IDS:
+                self._DOMAIN_IDS[channel_url] = str(self._download_api_json(
+                    url, '/content_providers/channel_domain', channel_url,
+                    query={'current_site_domain': channel_url})['data']['content_providers']['id'])
+            return self._DOMAIN_IDS[channel_url]
+
+    def _get_channel_name(self, url):
+        fanclub_site_id = self._get_fanclub_site_id(url)
+        if fanclub_site_id not in self._CHANNEL_NAMES:
+            self._CHANNEL_NAMES[fanclub_site_id] = traverse_obj(self._download_api_json(
+                url, f'/fanclub_sites/{fanclub_site_id}/page_base_info', video_id=str(fanclub_site_id),
+                note='Downloading channel name', fatal=False,
+            ), ('data', 'fanclub_site', 'fanclub_site_name', {str}))
+        return self._CHANNEL_NAMES[fanclub_site_id]
+
+    def _get_age_limit(self, url):
+        fanclub_site_id = self._get_fanclub_site_id(url)
+        if fanclub_site_id not in self._CHANNEL_AGE_LIMIT:
+            self._CHANNEL_AGE_LIMIT[fanclub_site_id] = traverse_obj(self._download_api_json(
+                url, f'/fanclub_sites/{fanclub_site_id}/user_info', video_id=str(fanclub_site_id), data=b'',
+                note='Downloading channel age limit', fatal=False,
+            ), ('data', 'fanclub_site', 'content_provider', 'age_limit', {int}))
+        return self._CHANNEL_AGE_LIMIT[fanclub_site_id]
+
+    def _is_channel_plus_webpage(self, webpage):
+        return 'GTM-KXT7G5G' in webpage or 'NicoGoogleTagManagerDataLayer' in webpage
+
+
+class NiconicoChannelPlusIE(NicoChannelBaseIE):
     IE_NAME = 'NiconicoChannelPlus'
     IE_DESC = 'ニコニコチャンネルプラス'
     _VALID_URL = r'https?://nicochannel\.jp/(?P<channel>[\w.-]+)/(?:video|live)/(?P<code>sm\w+)'
     _TESTS = [{
+        'note': 'CHPL',
+        'url': 'https://nicochannel.jp/renge/video/smjHSEPCxd4ohY4zg8iyGKnX',
+        'info_dict': {
+            'id': 'smjHSEPCxd4ohY4zg8iyGKnX',
+            'title': '【両耳舐め】あまいちゃトロらぶ両耳舐め【本多ぽこちゃんと耳舐めASMR②】',
+            'ext': 'mp4',
+            'channel': '狐月れんげのあまとろASMR＋',
+            'channel_id': 'renge',
+            'channel_url': 'https://nicochannel.jp/renge',
+            'live_status': 'not_live',
+            'thumbnail': 'https://nicochannel.jp/public_html/contents/video_pages/35690/thumbnail_path?time=1722439868',
+            'description': 'お耳が癒されて疲れもヌケる♡\n本多ぽこちゃんとの2024年7月24日の耳舐めコラボアーカイブです。',
+            'timestamp': 1722439866,
+            'duration': 2698,
+            'comment_count': int,
+            'view_count': int,
+            'tags': list,
+            'upload_date': '20240731',
+        },
+    }, {
         'url': 'https://nicochannel.jp/kaorin/video/smsDd8EdFLcVZk9yyAhD6H7H',
         'info_dict': {
             'id': 'smsDd8EdFLcVZk9yyAhD6H7H',
@@ -71,9 +339,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             'tags': [],
             'upload_date': '20220105',
         },
-        'params': {
-            'skip_download': True,
-        },
+        'skip': 'subscriber only',
     }, {
         # age limited video; test purpose channel.
         'url': 'https://nicochannel.jp/testman/video/smDXbcrtyPNxLx9jc4BW69Ve',
@@ -93,49 +359,132 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             'tags': [],
             'upload_date': '20221021',
         },
-        'params': {
-            'skip_download': True,
+        'skip': 'subscriber only',
+    }]
+    _WEBPAGE_TESTS = [{
+        'note': 'SHTA',
+        'url': 'https://tenshi-nano.com/video/smSJwhvbLZmsACSWafZQJyui',
+        'info_dict': {
+            'id': 'smSJwhvbLZmsACSWafZQJyui',
+            'title': 'md5:7e9e180baf8b4e39c8f52cbd0a75dd74',
+            'description': 'md5:e7b416c5631fee682e4d221c5b140b71',
+            'ext': 'mp4',
+            'channel': '天使なのファンクラブ',
+            'channel_id': 'tenshi-nano_com',
+            'channel_url': 'https://tenshi-nano.com',
+            'age_limit': 15,
+            'live_status': 'was_live',
+            'thumbnail': r're:https://tenshi-nano\.com/public_html/.*',
+            'timestamp': 1717260361,
+            'upload_date': '20240601',
+            'release_timestamp': 1717423200,
+            'release_date': '20240603',
+            'duration': 2927,
+            'comment_count': int,
+            'view_count': int,
+            'tags': ['etc.♡無料アーカイブ'],
+        },
+    }, {
+        'note': 'JOQR',
+        'url': 'https://qlover.jp/bokuao/video/smLwXUJUDbXMARwxB56KuVee',
+        'info_dict': {
+            'id': 'smLwXUJUDbXMARwxB56KuVee',
+            'title': '【特番終了後コメント】チーム『僕』',
+            'description': 'md5:ae8267483de8550f4799bb731b6cc99b',
+            'ext': 'mp4',
+            'channel': '僕が見たかった青空の 「青天のヘキレキ！」',
+            'channel_id': 'qlover_jp_bokuao',
+            'channel_url': 'https://qlover.jp/bokuao',
+            'live_status': 'not_live',
+            'thumbnail': r're:https://qlover\.jp/public_html/.*',
+            'timestamp': 1703226426,
+            'upload_date': '20231222',
+            'duration': 67,
+            'comment_count': int,
+            'view_count': int,
+        },
+    }, {
+        'note': 'TKFM',
+        'url': 'https://audee-membership.jp/hanamiya-nina/audio/smJqiUSD8MUb6BcdoYggCRfZ',
+        'info_dict': {
+            'id': 'smJqiUSD8MUb6BcdoYggCRfZ',
+            'title': '4/5（金）から花宮初奈はじめての単独音声番組がスタート！',
+            'description': 'md5:16804599152cf7ed1e02b5b73dbf1e93',
+            'ext': 'm4a',
+            'channel': '花宮初奈「217find!」',
+            'channel_id': 'audee-membership_jp_hanamiya-nina',
+            'channel_url': 'https://audee-membership.jp/hanamiya-nina',
+            'live_status': 'not_live',
+            'thumbnail': r're:https://audee-membership\.jp/public_html/.*',
+            'timestamp': 1711698600,
+            'upload_date': '20240329',
+            'duration': 523,
+            'comment_count': int,
+            'view_count': int,
+            'tags': ['RADIO'],
         },
     }]
 
+    @staticmethod
+    def _match_video_id(url):
+        return re.search(r'/(?:video|audio|live)/(?P<id>sm\w+)', urllib.parse.urlparse(url).path)
+
+    @classmethod
+    def suitable(cls, url):
+        return super().suitable(url) or (
+            '_match_video_id' in cls.__dict__  # lazy extractor check
+            and cls._check_domain_suitable(url) and cls._match_video_id(url)
+        )
+
+    def _extract_from_webpage(self, url, webpage):
+        if self._match_video_id(url) and self._is_channel_plus_webpage(webpage):
+            self._add_domain_suitable(url)
+            yield self.url_result(url, NiconicoChannelPlusIE)
+            raise self.StopExtraction
+
+    def _download_channel_data(self, url, *args, headers={}, **kwargs):
+        headers['fc_site_id'] = self._get_fanclub_site_id(url)
+        return self._download_api_json(url, *args, headers=headers, **kwargs)['data']
+
     def _real_extract(self, url):
-        content_code, channel_id = self._match_valid_url(url).group('code', 'channel')
-        fanclub_site_id = self._find_fanclub_site_id(channel_id)
+        video_id = self._match_video_id(url).group('id')
 
-        data_json = self._call_api(
-            f'video_pages/{content_code}', item_id=content_code, headers={'fc_use_device': 'null'},
-            note='Fetching video page info', errnote='Unable to fetch video page info',
-        )['data']['video_page']
+        video_info = self._download_channel_data(url, f'/video_pages/{video_id}', video_id,
+                                                 note='Downloading video info')['video_page']
 
-        live_status, session_id = self._get_live_status_and_session_id(content_code, data_json)
-
-        release_timestamp_str = data_json.get('live_scheduled_start_at')
-
-        formats = []
-
-        if live_status == 'is_upcoming':
-            if release_timestamp_str:
-                msg = f'This live event will begin at {release_timestamp_str} UTC'
-            else:
-                msg = 'This event has not started yet'
-            self.raise_no_formats(msg, expected=True, video_id=content_code)
-        else:
+        live_status, session_payload, timestamp = self._parse_live_status(video_id, video_info)
+        if video_info.get('video'):
+            session_id = self._download_channel_data(
+                url, f'/video_pages/{video_id}/session_ids', video_id, data=json.dumps(session_payload).encode(),
+                headers={'content-type': 'application/json'}, note='Downloading video session')['session_id']
             formats = self._extract_m3u8_formats(
-                # "authenticated_url" is a format string that contains "{session_id}".
-                m3u8_url=data_json['video_stream']['authenticated_url'].format(session_id=session_id),
-                video_id=content_code)
+                video_info['video_stream']['authenticated_url'].format(session_id=session_id), video_id)
+        elif video_info.get('audio'):
+            audio_url = self._download_channel_data(
+                url, f'/video_pages/{video_id}/content_access', video_id)['resource']
+            format_id = traverse_obj(video_info, ('audio_filename_transcoded_list', lambda _, v: v['url'] == audio_url, 'video_filename_type', 'value', any))
+            if format_id != 'audio_paid':
+                self.report_warning('The audio may be empty, or incomplete and contains only trial parts.')
+            formats = [{
+                'url': audio_url,
+                'ext': 'm4a',
+                'protocol': 'm3u8_native',
+                'format_id': format_id,
+            }]
+        else:
+            raise ExtractorError('Unknown media type', video_id=video_id)
 
         return {
-            'id': content_code,
+            'id': video_id,
             'formats': formats,
             '_format_sort_fields': ('tbr', 'vcodec', 'acodec'),
-            'channel': self._get_channel_base_info(fanclub_site_id).get('fanclub_site_name'),
-            'channel_id': channel_id,
-            'channel_url': f'{self._WEBPAGE_BASE_URL}/{channel_id}',
-            'age_limit': traverse_obj(self._get_channel_user_info(fanclub_site_id), ('content_provider', 'age_limit')),
+            'channel': self._get_channel_name(url),
+            'channel_id': self._make_channel_id(url),
+            'channel_url': self._get_channel_url(url),
+            'age_limit': self._get_age_limit(url),
             'live_status': live_status,
-            'release_timestamp': unified_timestamp(release_timestamp_str),
-            **traverse_obj(data_json, {
+            'release_timestamp': timestamp,
+            **traverse_obj(video_info, {
                 'title': ('title', {str}),
                 'thumbnail': ('thumbnail_url', {url_or_none}),
                 'description': ('description', {str}),
@@ -146,23 +495,22 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
                 'tags': ('video_tags', ..., 'tag', {str}),
             }),
             '__post_extractor': self.extract_comments(
-                content_code=content_code,
-                comment_group_id=traverse_obj(data_json, ('video_comment_setting', 'comment_group_id'))),
+                url=url,
+                comment_group_id=traverse_obj(video_info, ('video_comment_setting', 'comment_group_id'))),
         }
 
-    def _get_comments(self, content_code, comment_group_id):
-        item_id = f'{content_code}/comments'
-
+    def _get_comments(self, url, comment_group_id):
         if not comment_group_id:
             return None
+        video_id = self._parse_video_id(url)
 
-        comment_access_token = self._call_api(
-            f'video_pages/{content_code}/comments_user_token', item_id,
+        comment_access_token = self._download_api_json(
+            url, f'video_pages/{video_id}/comments_user_token', f'{video_id}/comments',
             note='Getting comment token', errnote='Unable to get comment token',
         )['data']['access_token']
 
         comment_list = self._download_json(
-            'https://comm-api.sheeta.com/messages.history', video_id=item_id,
+            'https://comm-api.sheeta.com/messages.history', video_id=f'{video_id}/comments',
             note='Fetching comments', errnote='Unable to fetch comments',
             headers={'Content-Type': 'application/json'},
             query={
@@ -184,9 +532,10 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
                 'author_is_uploader': ('sender_id', {lambda x: x == '-1'}),
             }, get_all=False)
 
-    def _get_live_status_and_session_id(self, content_code, data_json):
-        video_type = data_json.get('type')
-        live_finished_at = data_json.get('live_finished_at')
+    def _parse_live_status(self, video_id, video_info):
+        video_type = video_info.get('type')
+        live_finished_at = video_info.get('live_finished_at')
+        release_timestamp_str = video_info.get('live_scheduled_start_at')
 
         payload = {}
         if video_type == 'vod':
@@ -195,8 +544,13 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             else:
                 live_status = 'not_live'
         elif video_type == 'live':
-            if not data_json.get('live_started_at'):
-                return 'is_upcoming', ''
+            if not video_info.get('live_started_at'):
+                live_status = 'is_upcoming'
+                if release_timestamp_str:
+                    msg = f'This live event will begin at {release_timestamp_str} UTC'
+                else:
+                    msg = 'This event has not started yet'
+                self.raise_no_formats(msg, expected=True, video_id=video_id)
 
             if not live_finished_at:
                 live_status = 'is_live'
@@ -204,50 +558,43 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
                 live_status = 'was_live'
                 payload = {'broadcast_type': 'dvr'}
 
-                video_allow_dvr_flg = traverse_obj(data_json, ('video', 'allow_dvr_flg'))
-                video_convert_to_vod_flg = traverse_obj(data_json, ('video', 'convert_to_vod_flg'))
+                video_allow_dvr_flg = traverse_obj(video_info, ('video', 'allow_dvr_flg'))
+                video_convert_to_vod_flg = traverse_obj(video_info, ('video', 'convert_to_vod_flg'))
 
                 self.write_debug(f'allow_dvr_flg = {video_allow_dvr_flg}, convert_to_vod_flg = {video_convert_to_vod_flg}.')
 
                 if not (video_allow_dvr_flg and video_convert_to_vod_flg):
                     raise ExtractorError(
-                        'Live was ended, there is no video for download.', video_id=content_code, expected=True)
+                        'Live was ended, there is no video for download.', video_id=video_id, expected=True)
         else:
-            raise ExtractorError(f'Unknown type: {video_type}', video_id=content_code, expected=False)
+            raise ExtractorError(f'Unknown type: {video_type}', video_id=video_id, expected=False)
 
-        self.write_debug(f'{content_code}: video_type={video_type}, live_status={live_status}')
+        self.write_debug(f'{video_id}: video_type={video_type}, live_status={live_status}')
 
-        session_id = self._call_api(
-            f'video_pages/{content_code}/session_ids', item_id=f'{content_code}/session',
-            data=json.dumps(payload).encode('ascii'), headers={
-                'Content-Type': 'application/json',
-                'fc_use_device': 'null',
-                'origin': 'https://nicochannel.jp',
-            },
-            note='Getting session id', errnote='Unable to get session id',
-        )['data']['session_id']
-
-        return live_status, session_id
+        return live_status, payload, unified_timestamp(release_timestamp_str)
 
 
-class NiconicoChannelPlusChannelBaseIE(NiconicoChannelPlusBaseIE):
+class NiconicoChannelPlusChannelBaseIE(NicoChannelBaseIE):
     _PAGE_SIZE = 12
 
-    def _fetch_paged_channel_video_list(self, path, query, channel_name, item_id, page):
-        response = self._call_api(
-            path, item_id, query={
+    def _fetch_paged_channel_video_list(self, site_url, path, query, video_id, page):
+        response = self._download_api_json(
+            site_url, path, video_id, query={
                 **query,
                 'page': (page + 1),
                 'per_page': self._PAGE_SIZE,
             },
-            headers={'fc_use_device': 'null'},
             note=f'Getting channel info (page {page + 1})',
             errnote=f'Unable to get channel info (page {page + 1})')
 
-        for content_code in traverse_obj(response, ('data', 'video_pages', 'list', ..., 'content_code')):
+        # ensure that real extractor is instantiated over lazy extractor
+        self._downloader.get_info_extractor(NiconicoChannelPlusIE.ie_key())
+
+        for entry in traverse_obj(response, ('data', 'video_pages', 'list', lambda _, v: v['content_code'])):
             # "video/{content_code}" works for both VOD and live, but "live/{content_code}" doesn't work for VOD
             yield self.url_result(
-                f'{self._WEBPAGE_BASE_URL}/{channel_name}/video/{content_code}', NiconicoChannelPlusIE)
+                f'{self._get_channel_url(site_url)}/video/{entry["content_code"]}', ie=NiconicoChannelPlusIE,
+                video_id=entry['content_code'], video_title=entry.get('title'))
 
 
 class NiconicoChannelPlusChannelVideosIE(NiconicoChannelPlusChannelBaseIE):
@@ -275,7 +622,7 @@ class NiconicoChannelPlusChannelVideosIE(NiconicoChannelPlusChannelBaseIE):
         'url': 'https://nicochannel.jp/testjirou/videos',
         'info_dict': {
             'id': 'testjirou-videos',
-            'title': 'チャンネルプラステスト二郎-videos',
+            'title': 'チャンネルプラステスト"二郎21-videos',
         },
         'playlist_mincount': 12,
     }, {
@@ -335,6 +682,31 @@ class NiconicoChannelPlusChannelVideosIE(NiconicoChannelPlusChannelBaseIE):
         },
         'playlist_mincount': 6,
     }]
+    _WEBPAGE_TESTS = [{
+        'note': 'SHTA',
+        'url': 'https://tenshi-nano.com/videos',
+        'info_dict': {
+            'id': 'tenshi-nano_com-videos',
+            'title': '天使なのファンクラブ-videos',
+            'timestamp': int,
+            'upload_date': str,
+        },
+        'playlist_mincount': 30,
+    }, {
+        'note': 'JOQR',
+        'url': 'https://qlover.jp/naoliving/videos',
+        'info_dict': {
+            'id': 'qlover_jp_naoliving-videos',
+            'title': '東山奈央のラジオ＠リビング-videos',
+            'timestamp': int,
+            'upload_date': str,
+        },
+        'playlist_mincount': 30,
+    }]
+
+    def _extract_from_webpage(self, url, webpage):
+        if re.search(r'/videos/?(?:[\?#]|$)', url) and self._is_channel_plus_webpage(webpage):
+            yield self._real_extract(url)
 
     def _real_extract(self, url):
         """
@@ -353,23 +725,23 @@ class NiconicoChannelPlusChannelVideosIE(NiconicoChannelPlusChannelBaseIE):
                 5 アップロード動画 (uploaded videos)
         """
 
-        channel_id = self._match_id(url)
-        fanclub_site_id = self._find_fanclub_site_id(channel_id)
-        channel_name = self._get_channel_base_info(fanclub_site_id).get('fanclub_site_name')
+        channel_id = self._make_channel_id(url)
         qs = parse_qs(url)
 
         return self.playlist_result(
             OnDemandPagedList(
                 functools.partial(
-                    self._fetch_paged_channel_video_list, f'fanclub_sites/{fanclub_site_id}/video_pages',
+                    self._fetch_paged_channel_video_list,
+                    url,
+                    f'fanclub_sites/{self._get_fanclub_site_id(url)}/video_pages',
                     filter_dict({
                         'tag': traverse_obj(qs, ('tag', 0)),
                         'sort': traverse_obj(qs, ('sort', 0), default='-released_at'),
                         'vod_type': traverse_obj(qs, ('vodType', 0), default='0'),
                     }),
-                    channel_id, f'{channel_id}/videos'),
+                    f'{channel_id}/videos'),
                 self._PAGE_SIZE),
-            playlist_id=f'{channel_id}-videos', playlist_title=f'{channel_name}-videos')
+            playlist_id=f'{channel_id}-videos', playlist_title=f'{self._get_channel_name(url)}-videos')
 
 
 class NiconicoChannelPlusChannelLivesIE(NiconicoChannelPlusChannelBaseIE):
@@ -394,10 +766,25 @@ class NiconicoChannelPlusChannelLivesIE(NiconicoChannelPlusChannelBaseIE):
         'url': 'https://nicochannel.jp/testjirou/lives',
         'info_dict': {
             'id': 'testjirou-lives',
-            'title': 'チャンネルプラステスト二郎-lives',
+            'title': 'チャンネルプラステスト"二郎21-lives',
         },
         'playlist_mincount': 6,
     }]
+    _WEBPAGE_TESTS = [{
+        'note': 'SHTA',
+        'url': 'https://itomiku-fc.jp/lives',
+        'info_dict': {
+            'id': 'itomiku-fc_jp-lives',
+            'title': '伊藤美来 Official Fanclub 「all yours」-lives',
+            'timestamp': int,
+            'upload_date': str,
+        },
+        'playlist_mincount': 10,
+    }]
+
+    def _extract_from_webpage(self, url, webpage):
+        if re.search(r'/lives/?(?:[\?#]|$)', url) and self._is_channel_plus_webpage(webpage):
+            yield self._real_extract(url)
 
     def _real_extract(self, url):
         """
@@ -410,17 +797,15 @@ class NiconicoChannelPlusChannelLivesIE(NiconicoChannelPlusChannelBaseIE):
             We use "4" instead of "3" because some recently ended live streams could not be downloaded.
         """
 
-        channel_id = self._match_id(url)
-        fanclub_site_id = self._find_fanclub_site_id(channel_id)
-        channel_name = self._get_channel_base_info(fanclub_site_id).get('fanclub_site_name')
+        channel_id = self._make_channel_id(url)
 
         return self.playlist_result(
             OnDemandPagedList(
                 functools.partial(
-                    self._fetch_paged_channel_video_list, f'fanclub_sites/{fanclub_site_id}/live_pages',
-                    {
-                        'live_type': 4,
-                    },
-                    channel_id, f'{channel_id}/lives'),
+                    self._fetch_paged_channel_video_list,
+                    url,
+                    f'fanclub_sites/{self._get_fanclub_site_id(url)}/live_pages',
+                    {'live_type': 4},
+                    f'{channel_id}/lives'),
                 self._PAGE_SIZE),
-            playlist_id=f'{channel_id}-lives', playlist_title=f'{channel_name}-lives')
+            playlist_id=f'{channel_id}-lives', playlist_title=f'{self._get_channel_name(url)}-lives')
