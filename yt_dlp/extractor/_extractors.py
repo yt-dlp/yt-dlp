@@ -2571,6 +2571,7 @@ from .zaiko import (
     ZaikoETicketIE,
     ZaikoIE,
 )
+from .zan import ZanIE
 from .zapiks import ZapiksIE
 from .zattoo import (
     BBVTVIE,
