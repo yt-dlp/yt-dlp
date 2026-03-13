@@ -94,13 +94,6 @@ CHALLENGES: list[Challenge] = [
         'NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz':
             'yEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyNPRt=BM8-XO5tm5hlMCSVNAiEAvpeP3CURqZJSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=g',
     }),
-    Challenge('70a17a5c', Variant.tv, JsChallengeType.N, {
-        'IlLiA21ny7gqA2m4p37': '3KuQ3235dojTSjo4',
-    }),
-    Challenge('70a17a5c', Variant.tv, JsChallengeType.SIG, {
-        'NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz':
-            'yEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyNPRt=BM8-XO5tm5hlMCSVNAiEAvpeP3CURqZJSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=g',
-    }),
 ]
 
 requests: list[JsChallengeRequest] = []
