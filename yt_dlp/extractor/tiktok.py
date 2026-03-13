@@ -306,7 +306,7 @@ class TikTokBaseIE(InfoExtractor):
 
             webpage = get_webpage(note='Downloading webpage with challenge cookie')
             # Manually clear challenge cookies that should expire immediately after webpage request
-            for cookie_name in cookie_names:
+            for cookie_name in filter(None, cookie_names):
                 self.cookiejar.clear(domain='.tiktok.com', path='/', name=cookie_name)
             if webpage is False:
                 return video_data, status
