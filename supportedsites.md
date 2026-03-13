@@ -565,7 +565,7 @@ The only reliable way to check if a site is supported is to try it.
  - **history:player**
  - **history:topic**: History.com Topic
  - **HitRecord**
- - **hketv**: 香港教育局教育電視 (HKETV) Educational Television, Hong Kong Educational Bureau
+ - **hketv**: 教育局教育多媒體 EDB Educational Multimedia (EMM)
  - **HollywoodReporter**
  - **HollywoodReporterPlaylist**
  - **Holodex**
