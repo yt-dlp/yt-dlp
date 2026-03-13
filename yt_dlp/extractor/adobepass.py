@@ -1411,7 +1411,9 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
             token_expires = unified_timestamp(re.sub(r'[_ ]GMT', '', xml_text(token, date_ele)))
             return token_expires and token_expires <= int(time.time())
 
-        def post_form(form_page_res, note, data={}, validate_url=False):
+        def post_form(form_page_res, note, data=None, validate_url=False):
+            if data is None:
+                data = {}
             form_page, urlh = form_page_res
             post_url = self._html_search_regex(r'<form[^>]+action=(["\'])(?P<url>.+?)\1', form_page, 'post url', group='url')
             if not re.match(r'https?://', post_url):

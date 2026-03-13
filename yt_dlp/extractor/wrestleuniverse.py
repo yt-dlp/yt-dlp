@@ -110,7 +110,9 @@ class WrestleUniverseBaseIE(InfoExtractor):
             raise ExtractorError('No auth token returned from refresh request')
         self._TOKEN = token
 
-    def _call_api(self, video_id, param='', msg='API', auth=True, data=None, query={}, fatal=True):
+    def _call_api(self, video_id, param='', msg='API', auth=True, data=None, query=None, fatal=True):
+        if query is None:
+            query = {}
         headers = {'CA-CID': ''}
         if data:
             headers['Content-Type'] = 'application/json;charset=utf-8'
@@ -122,7 +124,11 @@ class WrestleUniverseBaseIE(InfoExtractor):
             note=f'Downloading {msg} JSON', errnote=f'Failed to download {msg} JSON',
             data=data, headers=headers, query=query, fatal=fatal)
 
-    def _call_encrypted_api(self, video_id, param='', msg='API', data={}, query={}, fatal=True):
+    def _call_encrypted_api(self, video_id, param='', msg='API', data=None, query=None, fatal=True):
+        if data is None:
+            data = {}
+        if query is None:
+            query = {}
         if not Cryptodome.RSA:
             raise ExtractorError('pycryptodomex not found. Please install', expected=True)
         private_key = Cryptodome.RSA.generate(2048)

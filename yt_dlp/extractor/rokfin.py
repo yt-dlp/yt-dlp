@@ -257,7 +257,11 @@ class RokfinIE(InfoExtractor):
     def _get_auth_token(self):
         return try_get(self._access_mgmt_tokens, lambda x: ' '.join([x['token_type'], x['access_token']]))
 
-    def _download_json_using_access_token(self, url_or_request, video_id, headers={}, query={}):
+    def _download_json_using_access_token(self, url_or_request, video_id, headers=None, query=None):
+        if headers is None:
+            headers = {}
+        if query is None:
+            query = {}
         assert 'authorization' not in headers
         headers = headers.copy()
         auth_token = self._get_auth_token()

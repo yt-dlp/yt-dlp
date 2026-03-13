@@ -32,7 +32,9 @@ def intlist_to_bytes(xs):
     return struct.pack('%dB' % len(xs), *xs)
 
 
-def jwt_encode_hs256(payload_data, key, headers={}):
+def jwt_encode_hs256(payload_data, key, headers=None):
+    if headers is None:
+        headers = {}
     header_data = {
         'alg': 'HS256',
         'typ': 'JWT',

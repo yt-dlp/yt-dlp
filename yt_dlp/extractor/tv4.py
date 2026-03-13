@@ -79,7 +79,9 @@ class TV4IE(InfoExtractor):
         },
     ]
 
-    def _call_api(self, endpoint, video_id, headers=None, query={}):
+    def _call_api(self, endpoint, video_id, headers=None, query=None):
+        if query is None:
+            query = {}
         return self._download_json(
             f'https://playback2.a2d.tv/{endpoint}/{video_id}', video_id,
             f'Downloading {endpoint} API JSON', headers=headers, query={

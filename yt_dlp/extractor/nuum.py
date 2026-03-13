@@ -15,7 +15,9 @@ from ..utils.traversal import traverse_obj
 
 
 class NuumBaseIE(InfoExtractor):
-    def _call_api(self, path, video_id, description, query={}):
+    def _call_api(self, path, video_id, description, query=None):
+        if query is None:
+            query = {}
         response = self._download_json(
             f'https://nuum.ru/api/v2/{path}', video_id, query=query,
             note=f'Downloading {description} metadata',

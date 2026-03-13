@@ -144,7 +144,9 @@ class NexxIE(InfoExtractor):
             '{} said: {}'.format(self.IE_NAME, response['metadata']['errorhint']),
             expected=True)
 
-    def _call_api(self, domain_id, path, video_id, data=None, headers={}):
+    def _call_api(self, domain_id, path, video_id, data=None, headers=None):
+        if headers is None:
+            headers = {}
         headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8'
         result = self._download_json(
             f'https://api.nexx.cloud/v3/{domain_id}/{path}', video_id,

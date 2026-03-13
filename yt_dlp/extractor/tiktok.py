@@ -414,7 +414,9 @@ class TikTokBaseIE(InfoExtractor):
                 'height': None,
             } if ext == 'mp3' or '-music-' in url else {}
 
-        def extract_addr(addr, add_meta={}):
+        def extract_addr(addr, add_meta=None):
+            if add_meta is None:
+                add_meta = {}
             parsed_meta, res = self._parse_url_key(addr.get('url_key', ''))
             is_bytevc2 = parsed_meta.get('vcodec') == 'bytevc2'
             if res:

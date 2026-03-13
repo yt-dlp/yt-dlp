@@ -57,7 +57,9 @@ class DangalPlayBaseIE(InfoExtractor):
             }),
         }
 
-    def _call_api(self, path, display_id, note='Downloading JSON metadata', fatal=True, query={}):
+    def _call_api(self, path, display_id, note='Downloading JSON metadata', fatal=True, query=None):
+        if query is None:
+            query = {}
         return self._download_json(
             f'{self._API_BASE}/{path}', display_id, note, fatal=fatal,
             headers={'Accept': 'application/json'}, query={

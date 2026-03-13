@@ -494,7 +494,9 @@ class BrightcoveLegacyIE(InfoExtractor):
 
 
 class BrightcoveNewBaseIE(AdobePassIE):
-    def _parse_brightcove_metadata(self, json_data, video_id, headers={}):
+    def _parse_brightcove_metadata(self, json_data, video_id, headers=None):
+        if headers is None:
+            headers = {}
         formats, subtitles = [], {}
         sources = json_data.get('sources') or []
         for source in sources:

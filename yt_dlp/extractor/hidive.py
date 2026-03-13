@@ -60,7 +60,9 @@ class HiDiveIE(InfoExtractor):
                 'returnUrl': '/dashboard',
             }))
 
-    def _call_api(self, video_id, title, key, data={}, **kwargs):
+    def _call_api(self, video_id, title, key, data=None, **kwargs):
+        if data is None:
+            data = {}
         data = {
             **data,
             'Title': title,

@@ -1722,7 +1722,9 @@ class YoutubeDL:
                 break
         return wrapper
 
-    def _wait_for_video(self, ie_result={}):
+    def _wait_for_video(self, ie_result=None):
+        if ie_result is None:
+            ie_result = {}
         if (not self.params.get('wait_for_video')
                 or ie_result.get('_type', 'video') != 'video'
                 or ie_result.get('formats') or ie_result.get('url')):
@@ -3736,7 +3738,9 @@ class YoutubeDL:
         """ Alias of sanitize_info for backward compatibility """
         return YoutubeDL.sanitize_info(info_dict, actually_filter)
 
-    def _delete_downloaded_files(self, *files_to_delete, info={}, msg=None):
+    def _delete_downloaded_files(self, *files_to_delete, info=None, msg=None):
+        if info is None:
+            info = {}
         for filename in set(filter(None, files_to_delete)):
             if msg:
                 self.to_screen(msg % filename)

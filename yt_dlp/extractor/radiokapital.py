@@ -6,7 +6,9 @@ from ..utils import clean_html, traverse_obj, unescapeHTML
 
 
 class RadioKapitalBaseIE(InfoExtractor):
-    def _call_api(self, resource, video_id, note='Downloading JSON metadata', qs={}):
+    def _call_api(self, resource, video_id, note='Downloading JSON metadata', qs=None):
+        if qs is None:
+            qs = {}
         return self._download_json(
             f'https://www.radiokapital.pl/wp-json/kapital/v1/{resource}?{urllib.parse.urlencode(qs)}',
             video_id, note=note)

@@ -33,7 +33,9 @@ class BrainPOPBaseIE(InfoExtractor):
         root = re.escape(cls._ORIGIN).replace(r'https:', r'https?:').replace(r'www\.', r'(?:www\.)?')
         return rf'{root}/(?P<slug>[^/]+/[^/]+/(?P<id>[^/?#&]+))'
 
-    def _assemble_formats(self, slug, format_id, display_id, token='', extra_fields={}):
+    def _assemble_formats(self, slug, format_id, display_id, token='', extra_fields=None):
+        if extra_fields is None:
+            extra_fields = {}
         formats = []
         formats = self._extract_m3u8_formats(
             f'{urljoin(self._HLS_URL, slug)}.m3u8?{token}',
@@ -46,7 +48,9 @@ class BrainPOPBaseIE(InfoExtractor):
             f.update(extra_fields)
         return formats
 
-    def _extract_adaptive_formats(self, data, token, display_id, key_format='%s', extra_fields={}):
+    def _extract_adaptive_formats(self, data, token, display_id, key_format='%s', extra_fields=None):
+        if extra_fields is None:
+            extra_fields = {}
         formats = []
         additional_key_formats = {
             '%s': {},

@@ -2151,9 +2151,11 @@ prepend_extension = functools.partial(_change_extension, True)
 replace_extension = functools.partial(_change_extension, False)
 
 
-def check_executable(exe, args=[]):
+def check_executable(exe, args=None):
     """ Checks if the given binary is installed somewhere in PATH, and returns its name.
     args can be a list of arguments for a short output (like -version) """
+    if args is None:
+        args = []
     try:
         Popen.run([exe, *args], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except OSError:
@@ -2186,10 +2188,12 @@ def detect_exe_version(output, version_re=None, unrecognized='present'):
         return unrecognized
 
 
-def get_exe_version(exe, args=['--version'],
+def get_exe_version(exe, args=None,
                     version_re=None, unrecognized=('present', 'broken')):
     """ Returns the version of the specified executable,
     or False if the executable is not present """
+    if args is None:
+        args = []
     unrecognized = variadic(unrecognized)
     assert len(unrecognized) in (1, 2)
     out = _get_exe_version_output(exe, args)
@@ -2677,7 +2681,11 @@ def variadic(x, allowed_types=NO_DEFAULT):
     return x if is_iterable_like(x, blocked_types=allowed_types) else (x, )
 
 
-def try_call(*funcs, expected_type=None, args=[], kwargs={}):
+def try_call(*funcs, expected_type=None, args=None, kwargs=None):
+    if args is None:
+        args = []
+    if kwargs is None:
+        kwargs = {}
     for f in funcs:
         try:
             val = f(*args, **kwargs)
@@ -2757,8 +2765,10 @@ def strip_jsonp(code):
         r'\g<callback_data>', code)
 
 
-def js_to_json(code, vars={}, *, strict=False):
+def js_to_json(code, vars=None, *, strict=False):
     # vars is a dict of var, val pairs to substitute
+    if vars is None:
+        vars = {}
     STRING_QUOTES = '\'"`'
     STRING_RE = '|'.join(rf'{q}(?:\\.|[^\\{q}])*{q}' for q in STRING_QUOTES)
     COMMENT_RE = r'/\*(?:(?!\*/).)*?\*/|//[^\n]*\n'
@@ -3590,7 +3600,9 @@ def cli_valueless_option(params, command_option, param, expected_value=True):
     return [command_option] if params.get(param) == expected_value else []
 
 
-def cli_configuration_args(argdict, keys, default=[], use_compat=True):
+def cli_configuration_args(argdict, keys, default=None, use_compat=True):
+    if default is None:
+        default = []
     if isinstance(argdict, (list, tuple)):  # for backward compatibility
         if use_compat:
             return argdict
@@ -3610,7 +3622,9 @@ def cli_configuration_args(argdict, keys, default=[], use_compat=True):
     return default
 
 
-def _configuration_args(main_key, argdict, exe, keys=None, default=[], use_compat=True):
+def _configuration_args(main_key, argdict, exe, keys=None, default=None, use_compat=True):
+    if default is None:
+        default = []
     main_key, exe = main_key.lower(), exe.lower()
     root_key = exe if main_key == exe else f'{main_key}+{exe}'
     keys = [f'{root_key}{k}' for k in (keys or [''])]
@@ -4960,7 +4974,9 @@ class Config:
             delim='\n')
 
     @staticmethod
-    def read_file(filename, default=[]):
+    def read_file(filename, default=None):
+        if default is None:
+            default = []
         try:
             optionf = open(filename, 'rb')
         except OSError:

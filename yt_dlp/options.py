@@ -254,8 +254,10 @@ def create_parser():
             current + value if append is True else value + current)
 
     def _set_from_options_callback(
-            option, opt_str, value, parser, allowed_values, delim=',', aliases={},
+            option, opt_str, value, parser, allowed_values, delim=',', aliases=None,
             process=lambda x: x.lower().strip()):
+        if aliases is None:
+            aliases = {}
         values = [process(value)] if delim is None else map(process, value.split(delim))
         try:
             requested = orderedSet_from_options(values, collections.ChainMap(aliases, {'all': allowed_values}),

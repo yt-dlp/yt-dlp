@@ -28,7 +28,9 @@ class WykopBaseIE(InfoExtractor):
         self.cache.store('wykop', 'bearer', new_token)
         return new_token
 
-    def _do_call_api(self, path, video_id, note='Downloading JSON metadata', data=None, headers={}):
+    def _do_call_api(self, path, video_id, note='Downloading JSON metadata', data=None, headers=None):
+        if headers is None:
+            headers = {}
         if data:
             data = json.dumps({'data': data}).encode()
             headers['Content-Type'] = 'application/json'

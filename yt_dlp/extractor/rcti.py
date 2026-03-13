@@ -257,7 +257,9 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
     def suitable(cls, url):
         return False if RCTIPlusIE.suitable(url) else super().suitable(url)
 
-    def _entries(self, url, display_id=None, note='Downloading entries JSON', metadata={}):
+    def _entries(self, url, display_id=None, note='Downloading entries JSON', metadata=None):
+        if metadata is None:
+            metadata = {}
         total_pages = 0
         try:
             total_pages = self._call_api(
@@ -291,7 +293,9 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
                     **metadata,
                 }
 
-    def _series_entries(self, series_id, display_id=None, video_type=None, metadata={}):
+    def _series_entries(self, series_id, display_id=None, video_type=None, metadata=None):
+        if metadata is None:
+            metadata = {}
         if not video_type or video_type in 'episodes':
             try:
                 seasons_list = self._call_api(

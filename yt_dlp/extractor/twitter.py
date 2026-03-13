@@ -116,7 +116,9 @@ class TwitterBaseIE(InfoExtractor):
             'x-csrf-token': try_call(lambda: self._get_cookies(self._API_BASE)['ct0'].value),
         })
 
-    def _call_api(self, path, video_id, query={}, graphql=False):
+    def _call_api(self, path, video_id, query=None, graphql=False):
+        if query is None:
+            query = {}
         headers = self._set_base_headers(legacy=not graphql and self._selected_api == 'legacy')
         headers.update({
             'x-twitter-auth-type': 'OAuth2Session',

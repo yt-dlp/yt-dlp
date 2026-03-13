@@ -13,7 +13,9 @@ class NetverseBaseIE(InfoExtractor):
         'season': 'webseason_videos',
     }
 
-    def _call_api(self, slug, endpoint, query={}, season_id='', display_id=None):
+    def _call_api(self, slug, endpoint, query=None, season_id='', display_id=None):
+        if query is None:
+            query = {}
         return self._download_json(
             f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[endpoint]}/{slug}/{season_id}',
             display_id or slug, query=query)

@@ -46,7 +46,9 @@ class NetEaseMusicBaseIE(InfoExtractor):
         encrypted = bytes(aes_ecb_encrypt(data, list(b'e82ckenh8dichen8')))
         return f'params={encrypted.hex().upper()}'.encode()
 
-    def _download_eapi_json(self, path, video_id, query_body, headers={}, **kwargs):
+    def _download_eapi_json(self, path, video_id, query_body, headers=None, **kwargs):
+        if headers is None:
+            headers = {}
         cookies = {
             'osver': 'undefined',
             'deviceId': 'undefined',

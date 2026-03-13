@@ -120,7 +120,9 @@ class Pr0grammIE(InfoExtractor):
 
         return flags
 
-    def _call_api(self, endpoint, video_id, query={}, note='Downloading API json'):
+    def _call_api(self, endpoint, video_id, query=None, note='Downloading API json'):
+        if query is None:
+            query = {}
         data = self._download_json(
             f'https://pr0gramm.com/api/items/{endpoint}',
             video_id, note, query=query, expected_status=403)

@@ -49,7 +49,9 @@ class QQMusicBaseIE(InfoExtractor):
         return self._search_json(r'window\.__INITIAL_DATA__\s*=', webpage,
                                  'init data', mid, transform_source=js_to_json, fatal=fatal)
 
-    def _make_fcu_req(self, req_dict, mid, headers={}, **kwargs):
+    def _make_fcu_req(self, req_dict, mid, headers=None, **kwargs):
+        if headers is None:
+            headers = {}
         return self._download_json(
             'https://u.y.qq.com/cgi-bin/musicu.fcg', mid, data=json.dumps({
                 'comm': {

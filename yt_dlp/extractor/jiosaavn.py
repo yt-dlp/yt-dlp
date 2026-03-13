@@ -67,7 +67,9 @@ class JioSaavnBaseIE(InfoExtractor):
                 'vcodec': 'none',
             }
 
-    def _call_api(self, type_, token, note='API', params={}):
+    def _call_api(self, type_, token, note='API', params=None):
+        if params is None:
+            params = {}
         return self._download_json(
             self._API_URL, token, f'Downloading {note} JSON', f'Unable to download {note} JSON',
             query={

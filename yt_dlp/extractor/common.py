@@ -928,7 +928,7 @@ class InfoExtractor:
                 return False
 
     def _download_webpage_handle(self, url_or_request, video_id, note=None, errnote=None, fatal=True,
-                                 encoding=None, data=None, headers={}, query={}, expected_status=None,
+                                 encoding=None, data=None, headers=None, query=None, expected_status=None,
                                  impersonate=None, require_impersonation=False):
         """
         Return a tuple (page content as string, URL handle).
@@ -968,6 +968,10 @@ class InfoExtractor:
         require_impersonation -- flag to toggle whether the request should raise an error
             if impersonation is not possible (bool, default: False)
         """
+        if headers is None:
+            headers = {}
+        if query is None:
+            query = {}
 
         # Strip hashes from the URL (#1038)
         if isinstance(url_or_request, str):
@@ -1106,8 +1110,12 @@ class InfoExtractor:
             return getattr(ie, parser)(content, *args, **kwargs)
 
         def download_handle(self, url_or_request, video_id, note=note, errnote=errnote, transform_source=None,
-                            fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None,
+                            fatal=True, encoding=None, data=None, headers=None, query=None, expected_status=None,
                             impersonate=None, require_impersonation=False):
+            if headers is None:
+                headers = {}
+            if query is None:
+                query = {}
             res = self._download_webpage_handle(
                 url_or_request, video_id, note=note, errnote=errnote, fatal=fatal, encoding=encoding,
                 data=data, headers=headers, query=query, expected_status=expected_status,
@@ -1118,8 +1126,12 @@ class InfoExtractor:
             return parse(self, content, video_id, transform_source=transform_source, fatal=fatal, errnote=errnote), urlh
 
         def download_content(self, url_or_request, video_id, note=note, errnote=errnote, transform_source=None,
-                             fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None,
+                             fatal=True, encoding=None, data=None, headers=None, query=None, expected_status=None,
                              impersonate=None, require_impersonation=False):
+            if headers is None:
+                headers = {}
+            if query is None:
+                query = {}
             if self.get_param('load_pages'):
                 url_or_request = self._create_request(url_or_request, data, headers, query)
                 filename = _request_dump_filename(
@@ -1951,7 +1963,9 @@ class InfoExtractor:
             'Use yt_dlp.utils.FormatSorter instead')
         return FormatSort
 
-    def _sort_formats(self, formats, field_preference=[]):
+    def _sort_formats(self, formats, field_preference=None):
+        if field_preference is None:
+            field_preference = []
         if not field_preference:
             self._downloader.deprecation_warning(
                 'yt_dlp.InfoExtractor._sort_formats is deprecated and is no longer required')
@@ -1994,7 +2008,9 @@ class InfoExtractor:
 
         formats[:] = unique_formats
 
-    def _is_valid_url(self, url, video_id, item='video', headers={}):
+    def _is_valid_url(self, url, video_id, item='video', headers=None):
+        if headers is None:
+            headers = {}
         url = self._proto_relative_url(url, scheme='http:')
         # For now assume non HTTP(S) URLs always valid
         if not url.startswith(('http://', 'https://')):
@@ -2028,7 +2044,11 @@ class InfoExtractor:
 
     def _extract_f4m_formats(self, manifest_url, video_id, preference=None, quality=None, f4m_id=None,
                              transform_source=lambda s: fix_xml_ampersands(s).strip(),
-                             fatal=True, m3u8_id=None, data=None, headers={}, query={}):
+                             fatal=True, m3u8_id=None, data=None, headers=None, query=None):
+        if headers is None:
+            headers = {}
+        if query is None:
+            query = {}
         if self.get_param('ignore_no_formats_error'):
             fatal = False
 
@@ -2178,9 +2198,13 @@ class InfoExtractor:
     def _extract_m3u8_formats_and_subtitles(
             self, m3u8_url, video_id, ext=None, entry_protocol='m3u8_native',
             preference=None, quality=None, m3u8_id=None, note=None,
-            errnote=None, fatal=True, live=False, data=None, headers={},
-            query={}):
+            errnote=None, fatal=True, live=False, data=None, headers=None,
+            query=None):
 
+        if headers is None:
+            headers = {}
+        if query is None:
+            query = {}
         if self.get_param('ignore_no_formats_error'):
             fatal = False
 
@@ -2225,8 +2249,12 @@ class InfoExtractor:
     def _parse_m3u8_formats_and_subtitles(
             self, m3u8_doc, m3u8_url=None, ext=None, entry_protocol='m3u8_native',
             preference=None, quality=None, m3u8_id=None, live=False, note=None,
-            errnote=None, fatal=True, data=None, headers={}, query={},
+            errnote=None, fatal=True, data=None, headers=None, query=None,
             video_id=None):
+        if headers is None:
+            headers = {}
+        if query is None:
+            query = {}
         formats, subtitles = [], {}
         has_drm = HlsFD._has_drm(m3u8_doc)
 
@@ -2477,8 +2505,12 @@ class InfoExtractor:
         return formats, subtitles
 
     def _extract_m3u8_vod_duration(
-            self, m3u8_vod_url, video_id, note=None, errnote=None, data=None, headers={}, query={}):
+            self, m3u8_vod_url, video_id, note=None, errnote=None, data=None, headers=None, query=None):
 
+        if headers is None:
+            headers = {}
+        if query is None:
+            query = {}
         m3u8_vod = self._download_webpage(
             m3u8_vod_url, video_id,
             note='Downloading m3u8 VOD manifest' if note is None else note,
@@ -2496,8 +2528,12 @@ class InfoExtractor:
             for line in m3u8_vod.splitlines() if line.startswith('#EXTINF:'))) or None
 
     def _extract_mpd_vod_duration(
-            self, mpd_url, video_id, note=None, errnote=None, data=None, headers={}, query={}):
+            self, mpd_url, video_id, note=None, errnote=None, data=None, headers=None, query=None):
 
+        if headers is None:
+            headers = {}
+        if query is None:
+            query = {}
         mpd_doc = self._download_xml(
             mpd_url, video_id,
             note='Downloading MPD VOD manifest' if note is None else note,
@@ -2810,8 +2846,12 @@ class InfoExtractor:
 
     def _extract_mpd_periods(
             self, mpd_url, video_id, mpd_id=None, note=None, errnote=None,
-            fatal=True, data=None, headers={}, query={}):
+            fatal=True, data=None, headers=None, query=None):
 
+        if headers is None:
+            headers = {}
+        if query is None:
+            query = {}
         if self.get_param('ignore_no_formats_error'):
             fatal = False
 
@@ -3214,7 +3254,11 @@ class InfoExtractor:
             self._report_ignoring_subs('ISM')
         return fmts
 
-    def _extract_ism_formats_and_subtitles(self, ism_url, video_id, ism_id=None, note=None, errnote=None, fatal=True, data=None, headers={}, query={}):
+    def _extract_ism_formats_and_subtitles(self, ism_url, video_id, ism_id=None, note=None, errnote=None, fatal=True, data=None, headers=None, query=None):
+        if headers is None:
+            headers = {}
+        if query is None:
+            query = {}
         if self.get_param('ignore_no_formats_error'):
             fatal = False
 
@@ -3482,7 +3526,9 @@ class InfoExtractor:
             self._report_ignoring_subs('akamai')
         return fmts
 
-    def _extract_akamai_formats_and_subtitles(self, manifest_url, video_id, hosts={}):
+    def _extract_akamai_formats_and_subtitles(self, manifest_url, video_id, hosts=None):
+        if hosts is None:
+            hosts = {}
         signed = 'hdnea=' in manifest_url
         if not signed:
             # https://learn.akamai.com/en-us/webhelp/media-services-on-demand/stream-packaging-user-guide/GUID-BE6C0F73-1E06-483B-B0EA-57984B91B7F9.html
@@ -3540,7 +3586,9 @@ class InfoExtractor:
 
         return formats, subtitles
 
-    def _extract_wowza_formats(self, url, video_id, m3u8_entry_protocol='m3u8_native', skip_protocols=[]):
+    def _extract_wowza_formats(self, url, video_id, m3u8_entry_protocol='m3u8_native', skip_protocols=None):
+        if skip_protocols is None:
+            skip_protocols = []
         query = urllib.parse.urlparse(url).query
         url = re.sub(r'/(?:manifest|playlist|jwplayer)\.(?:m3u8|f4m|mpd|smil)', '', url)
         mobj = re.search(
@@ -3764,7 +3812,9 @@ class InfoExtractor:
         return res
 
     def _set_cookie(self, domain, name, value, expire_time=None, port=None,
-                    path='/', secure=False, discard=False, rest={}, **kwargs):
+                    path='/', secure=False, discard=False, rest=None, **kwargs):
+        if rest is None:
+            rest = {}
         cookie = http.cookiejar.Cookie(
             0, name, value, port, port is not None, domain, True,
             domain.startswith('.'), path, True, secure, expire_time,
@@ -4072,7 +4122,9 @@ class InfoExtractor:
     def RetryManager(self, **kwargs):
         return RetryManager(self.get_param('extractor_retries', 3), self._error_or_warning, **kwargs)
 
-    def _extract_generic_embeds(self, url, *args, info_dict={}, note='Extracting generic embeds', **kwargs):
+    def _extract_generic_embeds(self, url, *args, info_dict=None, note='Extracting generic embeds', **kwargs):
+        if info_dict is None:
+            info_dict = {}
         display_id = traverse_obj(info_dict, 'display_id', 'id')
         self.to_screen(f'{format_field(display_id, None, "%s: ")}{note}')
         return self._downloader.get_info_extractor('Generic')._extract_embeds(

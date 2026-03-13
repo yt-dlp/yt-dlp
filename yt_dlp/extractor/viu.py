@@ -20,7 +20,9 @@ from ..utils import (
 
 
 class ViuBaseIE(InfoExtractor):
-    def _call_api(self, path, *args, headers={}, **kwargs):
+    def _call_api(self, path, *args, headers=None, **kwargs):
+        if headers is None:
+            headers = {}
         response = self._download_json(
             f'https://www.viu.com/api/{path}', *args, **kwargs,
             headers={**self.geo_verification_headers(), **headers})['response']

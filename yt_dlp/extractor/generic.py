@@ -983,8 +983,10 @@ class GenericIE(InfoExtractor):
             return self.playlist_result(embeds, **info_dict)
         raise UnsupportedError(url)
 
-    def _extract_embeds(self, url, webpage, *, urlh=None, info_dict={}):
+    def _extract_embeds(self, url, webpage, *, urlh=None, info_dict=None):
         """Returns an iterator of video entries"""
+        if info_dict is None:
+            info_dict = {}
         info_dict = types.MappingProxyType(info_dict)  # Prevents accidental mutation
         video_id = traverse_obj(info_dict, 'display_id', 'id') or self._generic_id(url)
         url, smuggled_data = unsmuggle_url(url, {})

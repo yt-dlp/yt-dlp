@@ -298,7 +298,9 @@ class GameJoltIE(GameJoltBaseIE):
 
 
 class GameJoltPostListBaseIE(GameJoltBaseIE):
-    def _entries(self, endpoint, list_id, note='Downloading post list', errnote='Unable to download post list', initial_items=[]):
+    def _entries(self, endpoint, list_id, note='Downloading post list', errnote='Unable to download post list', initial_items=None):
+        if initial_items is None:
+            initial_items = []
         page_num, scroll_id = 1, None
         items = initial_items or self._call_api(endpoint, list_id, note=note, errnote=errnote)['items']
         while items:
