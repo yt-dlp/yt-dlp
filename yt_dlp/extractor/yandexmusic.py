@@ -116,19 +116,21 @@ class YandexMusicTrackIE(YandexMusicBaseIE):
             f'https://music.yandex.ru/api/v2.1/handlers/track/{track_id}:{album_id}/web-album_track-track-track-main/download/m',
             track_id, 'Downloading track location url JSON', query={'hq': 1}, headers={'X-Retpath-Y': url})
 
+        src_url = self._proto_relative_url(download_data['src'], 'https:')
+
         fd_data = self._download_json(
-            download_data['src'], track_id,
+            src_url, track_id,
             'Downloading track location JSON',
             query={'format': 'json'})
         key = hashlib.md5(('XGRlBW9FXlekgbPrRHuSiA' + fd_data['path'][1:] + fd_data['s']).encode()).hexdigest()
-        f_url = 'http://{}/get-mp3/{}/{}?track-id={} '.format(fd_data['host'], key, fd_data['ts'] + fd_data['path'], track['id'])
+        f_url = f'https://{fd_data["host"]}/get-mp3/{key}/{fd_data["ts"] + fd_data["path"]}?track-id={track["id"]}'
 
         thumbnail = None
         cover_uri = track.get('albums', [{}])[0].get('coverUri')
         if cover_uri:
             thumbnail = cover_uri.replace('%%', 'orig')
             if not thumbnail.startswith('http'):
-                thumbnail = 'http://' + thumbnail
+                thumbnail = 'https://' + thumbnail
 
         track_info = {
             'id': track_id,
