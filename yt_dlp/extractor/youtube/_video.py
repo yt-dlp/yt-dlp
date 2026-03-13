@@ -1877,12 +1877,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'params': {'skip_download': True},
     }]
 
-    @property
-    def _skipped_webpage_data(self):
-        # XXX: player_response as a default is a TEMPORARY workaround for pinning _DEFAULT_PLAYER_JS_VERSION
-        return self._configuration_arg('webpage_skip', default=['player_response'])
-
-    _DEFAULT_PLAYER_JS_VERSION = '20514@9f4cc5e4'
+    _DEFAULT_PLAYER_JS_VERSION = 'actual'
     _DEFAULT_PLAYER_JS_VARIANT = 'tv'
     _PLAYER_JS_VARIANT_MAP = {
         'main': 'player_ias.vflset/en_US/base.js',
@@ -1898,6 +1893,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'house': 'house_brand_player.vflset/en_US/base.js',  # Used by Google Drive
     }
     _INVERSE_PLAYER_JS_VARIANT_MAP = {v: k for k, v in _PLAYER_JS_VARIANT_MAP.items()}
+
+    @functools.cached_property
+    def _player_js_version(self):
+        return self._configuration_arg('player_js_version', [None])[0] or self._DEFAULT_PLAYER_JS_VERSION
+
+    @functools.cached_property
+    def _skipped_webpage_data(self):
+        skipped = set(self._configuration_arg('webpage_skip'))
+        # If forcing a player version, the webpage player response must be skipped
+        if self._player_js_version != 'actual':
+            skipped.add('player_response')
+        return skipped
 
     @classmethod
     def suitable(cls, url):
@@ -2087,15 +2094,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
 
     def _get_player_js_version(self):
-        player_js_version = self._configuration_arg('player_js_version', [''])[0] or self._DEFAULT_PLAYER_JS_VERSION
-        if player_js_version == 'actual':
+        if self._player_js_version == 'actual':
             return None, None
-        if not re.fullmatch(r'[0-9]{5,}@[0-9a-f]{8,}', player_js_version):
+        if not re.fullmatch(r'[0-9]{5,}@[0-9a-f]{8,}', self._player_js_version):
             self.report_warning(
-                f'Invalid player JS version "{player_js_version}" specified. '
+                f'Invalid player JS version "{self._player_js_version}" specified. '
                 f'It should be "actual" or in the format of STS@HASH', only_once=True)
             return None, None
-        return player_js_version.split('@')
+        return self._player_js_version.split('@')
 
     def _construct_player_url(self, *, player_id=None, player_url=None):
         assert player_id or player_url, '_construct_player_url must take one of player_id or player_url'
