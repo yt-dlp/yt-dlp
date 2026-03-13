@@ -78,16 +78,31 @@ class AcFunVideoIE(AcFunVideoBaseIE):
             'thumbnail': r're:^https?://.*\.(jpg|jpeg)',
             'description': 'md5:67583aaf3a0f933bd606bc8a2d3ebb17',
         },
+    }, {
+        # multipart page
+        'url': 'https://www.acfun.cn/v/ac35468952',
+        'info_dict': {
+            'id': '35468952',
+            'title': '【动画剧集】Rocket & Groot Season 1（2022）/火箭浣熊与格鲁特第1季',
+        },
+        'playlist_count': 3,
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        base_video_id, _, part_id = video_id.partition('_')
 
-        webpage = self._download_webpage(url, video_id)
-        json_all = self._search_json(r'window.videoInfo\s*=', webpage, 'videoInfo', video_id)
+        webpage = self._download_webpage(url, base_video_id)
+        json_all = self._search_json(r'window.videoInfo\s*=', webpage, 'videoInfo', base_video_id)
 
         title = json_all.get('title')
         video_list = json_all.get('videoList') or []
+
+        if len(video_list) > 1 and not part_id and self._yes_playlist(base_video_id, base_video_id):
+            return self.playlist_from_matches(
+                video_list, base_video_id, title, ie=AcFunVideoIE,
+                getter=lambda entry: f'https://www.acfun.cn/v/ac{base_video_id}_{entry["id"]}')
+
         video_internal_id = traverse_obj(json_all, ('currentVideoInfo', 'id'))
         if video_internal_id and len(video_list) > 1:
             part_idx, part_video_info = next(
