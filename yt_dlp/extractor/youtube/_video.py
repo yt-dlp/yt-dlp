@@ -1875,7 +1875,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'params': {'skip_download': True},
     }]
 
-    _DEFAULT_PLAYER_JS_VERSION = '20514@9f4cc5e4'
+    _DEFAULT_PLAYER_JS_VERSION = 'actual'
     _DEFAULT_PLAYER_JS_VARIANT = 'tv'
     _PLAYER_JS_VARIANT_MAP = {
         'main': 'player_ias.vflset/en_US/base.js',
