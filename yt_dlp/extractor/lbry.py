@@ -1,4 +1,5 @@
 import functools
+import itertools
 import json
 import re
 import urllib.parse
@@ -134,6 +135,52 @@ class LBRYBaseIE(InfoExtractor):
                 'title': 'title',
                 'description': 'description',
             })))
+
+    def _call_comment_api(self, method, claim_id, page_index, resource):
+        headers = {'Content-Type': 'application/json'}
+        response = self._download_json(
+            'https://comments.odysee.tv/api/v2',
+            claim_id, f'Downloading {resource} JSON metadata',
+            headers=headers,
+            data=json.dumps({
+                'jsonrpc': '2.0',
+                'id': 1,
+                'method': method,
+                'params': {
+                    'page': page_index,
+                    'claim_id': claim_id,
+                    'page_size': self._PAGE_SIZE,
+                    'top_level': False,
+                    'sort_by': 0,  # sort by newest
+                },
+            }).encode())
+        err = response.get('error')
+        if err:
+            raise ExtractorError(
+                f'{self.IE_NAME} said: {err.get("code")} - {err.get("message")}', expected=True)
+        return response['result']
+
+    # TODO: properly show progress to stdout
+    def _get_comments(self, claim_id):
+        for page_index in itertools.count(1):
+            response = self._call_comment_api('comment.List', claim_id, page_index, 'comment')
+            total_pages = response['total_pages']
+            comments = response['items']
+            for comment in comments:
+                # TODO: 'like_count' and 'dislike_count' from reaction API
+                # TODO: 'author_thumbnail' from proxy API
+                yield {
+                    'author': comment['channel_name'],
+                    'author_id': comment['channel_id'],
+                    # TODO: 'author_url' from 'channel_url', needs conversion from 'lbry://' to standard link
+                    'id': comment['comment_id'],
+                    'text': comment['comment'],
+                    'is_pinned': comment['is_pinned'],
+                    'timestamp': comment['timestamp'],
+                    'parent': comment.get('parent_id') or 'root',
+                }
+            if page_index == total_pages:
+                break
 
 
 class LBRYIE(LBRYBaseIE):
@@ -371,6 +418,7 @@ class LBRYIE(LBRYBaseIE):
             'formats': formats,
             'is_live': is_live,
             'http_headers': headers,
+            '__post_extractor': self.extract_comments(claim_id),
         }
 
 
