@@ -33,9 +33,12 @@ class Variant(enum.Enum):
     tce = 'player_ias_tce.vflset/en_US/base.js'
     es5 = 'player_es5.vflset/en_US/base.js'
     es6 = 'player_es6.vflset/en_US/base.js'
+    es6_tcc = 'player_es6_tcc.vflset/en_US/base.js'
+    es6_tce = 'player_es6_tce.vflset/en_US/base.js'
     tv = 'tv-player-ias.vflset/tv-player-ias.js'
     tv_es6 = 'tv-player-es6.vflset/tv-player-es6.js'
     phone = 'player-plasma-ias-phone-en_US.vflset/base.js'
+    house = 'house_brand_player.vflset/en_US/base.js'
 
 
 @dataclasses.dataclass
@@ -50,57 +53,49 @@ class Challenge:
 
 
 CHALLENGES: list[Challenge] = [
-    Challenge('3d3ba064', Variant.tce, JsChallengeType.N, {
-        'ZdZIqFPQK-Ty8wId': 'qmtUsIz04xxiNW',
-        '4GMrWHyKI5cEvhDO': 'N9gmEX7YhKTSmw',
+    # 20518
+    Challenge('edc3ba07', Variant.tv, JsChallengeType.N, {
+        'BQoJvGBkC2nj1ZZLK-': '-m-se9fQVnvEofLx',
     }),
-    Challenge('3d3ba064', Variant.tce, JsChallengeType.SIG, {
-        'gN7a-hudCuAuPH6fByOk1_GNXN0yNMHShjZXS2VOgsEItAJz0tipeavEOmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt':
-            'ttJC2JfQdSswRAIgGBCxZyAfKyi0cjXCb3gqEctUw-NYdNmOEvaepit0zJAtIEsgOV2SXZjhSHMNy0NXNG_1kNyBf6HPuAuCduh-a7O',
+    Challenge('edc3ba07', Variant.tv, JsChallengeType.SIG, {
+        'NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz':
+            'zwg=wgwCHlydB9zg7PMegXoVzaoAXXB8woPSNZqRUC3Pe7vAEiApVSCMlh5mt5OX-8MB=tRPyyEdAM9MPM-kPfjgTxEK0IAhIgRwE0jiz',
     }),
-    Challenge('5ec65609', Variant.tce, JsChallengeType.N, {
-        '0eRGgQWJGfT5rFHFj': '4SvMpDQH-vBJCw',
+    # 20521
+    Challenge('316b61b4', Variant.tv, JsChallengeType.N, {
+        'IlLiA21ny7gqA2m4p37': 'GchRcsUC_WmnhOUVGV',
     }),
-    Challenge('5ec65609', Variant.tce, JsChallengeType.SIG, {
-        'AAJAJfQdSswRQIhAMG5SN7-cAFChdrE7tLA6grH0rTMICA1mmDc0HoXgW3CAiAQQ4=CspfaF_vt82XH5yewvqcuEkvzeTsbRuHssRMyJQ=I':
-            'AJfQdSswRQIhAMG5SN7-cAFChdrE7tLA6grI0rTMICA1mmDc0HoXgW3CAiAQQ4HCspfaF_vt82XH5yewvqcuEkvzeTsbRuHssRMyJQ==',
+    Challenge('316b61b4', Variant.tv, JsChallengeType.SIG, {
+        'NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz':
+            'tJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRN=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwz',
     }),
-    Challenge('6742b2b9', Variant.tce, JsChallengeType.N, {
-        '_HPB-7GFg1VTkn9u': 'qUAsPryAO_ByYg',
-        'K1t_fcB6phzuq2SF': 'Y7PcOt3VE62mog',
+    # 20522
+    Challenge('74edf1a3', Variant.tv, JsChallengeType.N, {
+        'IlLiA21ny7gqA2m4p37': '9nRTxrbM1f0yHg',
+        'eabGFpsUKuWHXGh6FR4': 'izmYqDEY6kl7Sg',
+        'eabGF/ps%UK=uWHXGh6FR4': 'LACmqlhaBpiPlgE-a',
     }),
-    Challenge('6742b2b9', Variant.tce, JsChallengeType.SIG, {
-        'MMGZJMUucirzS_SnrSPYsc85CJNnTUi6GgR5NKn-znQEICACojE8MHS6S7uYq4TGjQX_D4aPk99hNU6wbTvorvVVMgIARwsSdQfJAA':
-            'AJfQdSswRAIgMVVvrovTbw6UNh99kPa4D_XQjGT4qYu7S6SHM8EjoCACIEQnz-nKN5RgG6iUTnNJC58csYPSrnS_SzricuUMJZGM',
+    Challenge('74edf1a3', Variant.tv, JsChallengeType.SIG, {
+        'NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz':
+            'NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hzMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzl',
+        '\x00\x01\x02%\x03\x04\x05\x06\x07\x08\x09\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49':
+            '\x00\x01\x02%\x03\x04\x05\x06\x07\x08\x09\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x40\x41\x42\x49\x44\x45\x46\x47\x48\x43',
     }),
-    Challenge('2b83d2e0', Variant.main, JsChallengeType.N, {
-        '0eRGgQWJGfT5rFHFj': 'euHbygrCMLksxd',
+    # 20523
+    Challenge('901741ab', Variant.tv, JsChallengeType.N, {
+        'BQoJvGBkC2nj1ZZLK-': 'UMPovvBZRh-sjb',
     }),
-    Challenge('2b83d2e0', Variant.main, JsChallengeType.SIG, {
-        'MMGZJMUucirzS_SnrSPYsc85CJNnTUi6GgR5NKn-znQEICACojE8MHS6S7uYq4TGjQX_D4aPk99hNU6wbTvorvVVMgIARwsSdQfJA':
-            '-MGZJMUucirzS_SnrSPYsc85CJNnTUi6GgR5NKnMznQEICACojE8MHS6S7uYq4TGjQX_D4aPk99hNU6wbTvorvVVMgIARwsSdQfJ',
+    Challenge('901741ab', Variant.tv, JsChallengeType.SIG, {
+        'NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz':
+            'wgwCHlydB9Hg7PMegXoVzaoAXXB8woPSNZqRUC3Pe7vAEiApVSCMlhwmt5ON-8MB=5RPyyzdAM9MPM-kPfjgTxEK0IAhIgRwE0jiEJA',
     }),
-    Challenge('638ec5c6', Variant.main, JsChallengeType.N, {
-        'ZdZIqFPQK-Ty8wId': '1qov8-KM-yH',
+    # 20524
+    Challenge('e7573094', Variant.tv, JsChallengeType.N, {
+        'IlLiA21ny7gqA2m4p37': '3KuQ3235dojTSjo4',
     }),
-    Challenge('638ec5c6', Variant.main, JsChallengeType.SIG, {
-        'gN7a-hudCuAuPH6fByOk1_GNXN0yNMHShjZXS2VOgsEItAJz0tipeavEOmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt':
-            'MhudCuAuP-6fByOk1_GNXN7gNHHShjyXS2VOgsEItAJz0tipeav0OmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt',
-    }),
-    # c1c87fb0: tce variant broke sig solving; n and main variant are added only for regression testing
-    Challenge('c1c87fb0', Variant.main, JsChallengeType.N, {
-        'ZdZIqFPQK-Ty8wId': 'jCHBK5GuAFNa2',
-    }),
-    Challenge('c1c87fb0', Variant.main, JsChallengeType.SIG, {
-        'gN7a-hudCuAuPH6fByOk1_GNXN0yNMHShjZXS2VOgsEItAJz0tipeavEOmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt':
-            'ttJC2JfQdSswRAIgGBCxZyAfKyi0cjXCb3DqEctUw-NYdNmOEvaepit0zJAtIEsgOV2SXZjhSHMNy0NXNGa1kOyBf6HPuAuCduh-_',
-    }),
-    Challenge('c1c87fb0', Variant.tce, JsChallengeType.N, {
-        'ZdZIqFPQK-Ty8wId': 'jCHBK5GuAFNa2',
-    }),
-    Challenge('c1c87fb0', Variant.tce, JsChallengeType.SIG, {
-        'gN7a-hudCuAuPH6fByOk1_GNXN0yNMHShjZXS2VOgsEItAJz0tipeavEOmNdYN-wUtcEqD3bCXjc0iyKfAyZxCBGgIARwsSdQfJ2CJtt':
-            'ttJC2JfQdSswRAIgGBCxZyAfKyi0cjXCb3DqEctUw-NYdNmOEvaepit0zJAtIEsgOV2SXZjhSHMNy0NXNGa1kOyBf6HPuAuCduh-_',
+    Challenge('e7573094', Variant.tv, JsChallengeType.SIG, {
+        'NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz':
+            'yEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyNPRt=BM8-XO5tm5hlMCSVNAiEAvpeP3CURqZJSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=g',
     }),
 ]
 

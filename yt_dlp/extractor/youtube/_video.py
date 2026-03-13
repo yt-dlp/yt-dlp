@@ -139,17 +139,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     ]
     _RETURN_TYPE = 'video'  # XXX: How to handle multifeed?
 
-    _PLAYER_INFO_RE = (
-        r'/s/player/(?P<id>[a-zA-Z0-9_-]{8,})/(?:tv-)?player',
-        r'/(?P<id>[a-zA-Z0-9_-]{8,})/player(?:_ias\.vflset(?:/[a-zA-Z]{2,3}_[a-zA-Z]{2,3})?|-plasma-ias-(?:phone|tablet)-[a-z]{2}_[A-Z]{2}\.vflset)/base\.js$',
-        r'\b(?P<id>vfl[a-zA-Z0-9_-]+)\b.*?\.js$',
-    )
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('android_vr', 'web', 'web_safari')
+    _DEFAULT_CLIENTS = ('android_vr', 'web_safari')
     _DEFAULT_JSLESS_CLIENTS = ('android_vr',)
-    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web', 'web_safari')
+    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web_safari')
     # Premium does not require POT (except for subtitles)
-    _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator', 'web')
+    _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator')
+    _WEBPAGE_CLIENTS = ('web', 'web_safari')
+    _DEFAULT_WEBPAGE_CLIENT = 'web_safari'
 
     _GEO_BYPASS = False
 
@@ -1886,12 +1883,26 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'tce': 'player_ias_tce.vflset/en_US/base.js',
         'es5': 'player_es5.vflset/en_US/base.js',
         'es6': 'player_es6.vflset/en_US/base.js',
+        'es6_tcc': 'player_es6_tcc.vflset/en_US/base.js',
+        'es6_tce': 'player_es6_tce.vflset/en_US/base.js',
         'tv': 'tv-player-ias.vflset/tv-player-ias.js',
         'tv_es6': 'tv-player-es6.vflset/tv-player-es6.js',
         'phone': 'player-plasma-ias-phone-en_US.vflset/base.js',
-        'tablet': 'player-plasma-ias-tablet-en_US.vflset/base.js',  # Dead since 19712d96 (2025.11.06)
+        'house': 'house_brand_player.vflset/en_US/base.js',  # Used by Google Drive
     }
     _INVERSE_PLAYER_JS_VARIANT_MAP = {v: k for k, v in _PLAYER_JS_VARIANT_MAP.items()}
+
+    @functools.cached_property
+    def _player_js_version(self):
+        return self._configuration_arg('player_js_version', [None])[0] or self._DEFAULT_PLAYER_JS_VERSION
+
+    @functools.cached_property
+    def _skipped_webpage_data(self):
+        skipped = set(self._configuration_arg('webpage_skip'))
+        # If forcing a player version, the webpage player response must be skipped
+        if self._player_js_version != 'actual':
+            skipped.add('player_response')
+        return skipped
 
     @classmethod
     def suitable(cls, url):
@@ -2080,15 +2091,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
 
     def _get_player_js_version(self):
-        player_js_version = self._configuration_arg('player_js_version', [''])[0] or self._DEFAULT_PLAYER_JS_VERSION
-        if player_js_version == 'actual':
+        if self._player_js_version == 'actual':
             return None, None
-        if not re.fullmatch(r'[0-9]{5,}@[0-9a-f]{8,}', player_js_version):
+        if not re.fullmatch(r'[0-9]{5,}@[0-9a-f]{8,}', self._player_js_version):
             self.report_warning(
-                f'Invalid player JS version "{player_js_version}" specified. '
+                f'Invalid player JS version "{self._player_js_version}" specified. '
                 f'It should be "actual" or in the format of STS@HASH', only_once=True)
             return None, None
-        return player_js_version.split('@')
+        return self._player_js_version.split('@')
 
     def _construct_player_url(self, *, player_id=None, player_url=None):
         assert player_id or player_url, '_construct_player_url must take one of player_id or player_url'
@@ -2179,13 +2189,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     @classmethod
     def _extract_player_info(cls, player_url):
-        for player_re in cls._PLAYER_INFO_RE:
-            id_m = re.search(player_re, player_url)
-            if id_m:
-                break
-        else:
-            raise ExtractorError(f'Cannot identify player {player_url!r}')
-        return id_m.group('id')
+        if m := re.search(r'/s/player/(?P<id>[a-fA-F0-9]{8,})/', player_url):
+            return m.group('id')
+        raise ExtractorError(f'Cannot identify player {player_url!r}')
 
     def _load_player(self, video_id, player_url, fatal=True):
         player_js_key = self._player_js_cache_key(player_url)
@@ -2682,12 +2688,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return {'contentCheckOk': True, 'racyCheckOk': True}
 
     @classmethod
-    def _generate_player_context(cls, sts=None, use_ad_playback_context=False):
+    def _generate_player_context(cls, sts=None, use_ad_playback_context=False, encrypted_context=None):
         context = {
             'html5Preference': 'HTML5_PREF_WANTS',
         }
         if sts is not None:
             context['signatureTimestamp'] = sts
+        if encrypted_context:
+            context['encryptedHostFlags'] = encrypted_context
 
         playback_context = {
             'contentPlaybackContext': context,
@@ -2932,7 +2940,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._configuration_arg('use_ad_playback_context', ['false'])[0] != 'false'
             and traverse_obj(INNERTUBE_CLIENTS, (client, 'SUPPORTS_AD_PLAYBACK_CONTEXT', {bool})))
 
-        yt_query.update(self._generate_player_context(sts, use_ad_playback_context))
+        # web_embedded player requests may need to include encryptedHostFlags in its contentPlaybackContext.
+        # This can be detected with the embeds_enable_encrypted_host_flags_enforcement experiemnt flag,
+        # but there is no harm in including encryptedHostFlags with all web_embedded player requests.
+        encrypted_context = None
+        if _split_innertube_client(client)[2] == 'embedded':
+            encrypted_context = traverse_obj(player_ytcfg, (
+                'WEB_PLAYER_CONTEXT_CONFIGS', 'WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER', 'encryptedHostFlags'))
+
+        yt_query.update(
+            self._generate_player_context(
+                sts=sts,
+                use_ad_playback_context=use_ad_playback_context,
+                encrypted_context=encrypted_context))
 
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
@@ -3051,7 +3071,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 tried_iframe_fallback = True
 
             pr = None
-            if client == webpage_client and 'player_response' not in self._configuration_arg('webpage_skip'):
+            if client == webpage_client and 'player_response' not in self._skipped_webpage_data:
                 pr = initial_pr
 
             visitor_data = visitor_data or self._extract_visitor_data(webpage_ytcfg, initial_pr, player_ytcfg)
@@ -3219,6 +3239,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         ])
         skip_player_js = 'js' in self._configuration_arg('player_skip')
         format_types = self._configuration_arg('formats')
+        skip_bad_formats = 'incomplete' not in format_types
         all_formats = 'duplicate' in format_types
         if self._configuration_arg('include_duplicate_formats'):
             all_formats = True
@@ -3464,7 +3485,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 https_fmts = []
 
                 for fmt_stream in streaming_formats:
-                    if fmt_stream.get('targetDurationSec'):
+                    # Live adaptive https formats are not supported: skip unless extractor-arg given
+                    if fmt_stream.get('targetDurationSec') and skip_bad_formats:
                         continue
 
                     # FORMAT_STREAM_TYPE_OTF(otf=1) requires downloading the init fragment
@@ -3576,7 +3598,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             yield from process_https_formats()
 
             needs_live_processing = self._needs_live_processing(live_status, duration)
-            skip_bad_formats = 'incomplete' not in format_types
 
             skip_manifests = set(self._configuration_arg('skip'))
             if (needs_live_processing == 'is_live'  # These will be filtered out by YoutubeDL anyway
@@ -3833,7 +3854,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _download_initial_data(self, video_id, webpage, webpage_client, webpage_ytcfg):
         initial_data = None
-        if webpage and 'initial_data' not in self._configuration_arg('webpage_skip'):
+        if webpage and 'initial_data' not in self._skipped_webpage_data:
             initial_data = self.extract_yt_initial_data(video_id, webpage, fatal=False)
             if not traverse_obj(initial_data, 'contents'):
                 self.report_warning('Incomplete data received in embedded initial data; re-fetching using API.')
@@ -3881,7 +3902,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
-        webpage_client = 'web'
+        webpage_client = self._configuration_arg('webpage_client', [self._DEFAULT_WEBPAGE_CLIENT])[0]
+        if webpage_client not in self._WEBPAGE_CLIENTS:
+            self.report_warning(
+                f'Invalid webpage_client "{webpage_client}" requested; '
+                f'falling back to {self._DEFAULT_WEBPAGE_CLIENT}', only_once=True)
+            webpage_client = self._DEFAULT_WEBPAGE_CLIENT
 
         webpage, webpage_ytcfg, initial_data, is_premium_subscriber, player_responses, player_url = self._initial_extract(
             url, smuggled_data, webpage_url, webpage_client, video_id)
@@ -4086,16 +4112,33 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         needs_live_processing = self._needs_live_processing(live_status, duration)
 
-        def is_bad_format(fmt):
-            if needs_live_processing and not fmt.get('is_from_start'):
-                return True
-            elif (live_status == 'is_live' and needs_live_processing != 'is_live'
-                    and fmt.get('protocol') == 'http_dash_segments'):
-                return True
+        def adjust_incomplete_format(fmt, note_suffix='(Last 2 hours)', pref_adjustment=-10):
+            fmt['preference'] = (fmt.get('preference') or -1) + pref_adjustment
+            fmt['format_note'] = join_nonempty(fmt.get('format_note'), note_suffix, delim=' ')
 
-        for fmt in filter(is_bad_format, formats):
-            fmt['preference'] = (fmt.get('preference') or -1) - 10
-            fmt['format_note'] = join_nonempty(fmt.get('format_note'), '(Last 2 hours)', delim=' ')
+        # Adjust preference and format note for incomplete live/post-live formats
+        if live_status in ('is_live', 'post_live'):
+            for fmt in formats:
+                protocol = fmt.get('protocol')
+                # Currently, protocol isn't set for adaptive https formats, but this could change
+                is_adaptive = protocol in (None, 'http', 'https')
+                if live_status == 'post_live' and is_adaptive:
+                    # Post-live adaptive formats cause HttpFD to raise "Did not get any data blocks"
+                    # These formats are *only* useful to external applications, so we can hide them
+                    # Set their preference <= -1000 so that FormatSorter flags them as 'hidden'
+                    adjust_incomplete_format(fmt, note_suffix='(ended)', pref_adjustment=-5000)
+                # Is it live with --live-from-start? Or is it post-live and its duration is >2hrs?
+                elif needs_live_processing:
+                    if not fmt.get('is_from_start'):
+                        # Post-live m3u8 formats for >2hr streams
+                        adjust_incomplete_format(fmt)
+                elif live_status == 'is_live':
+                    if protocol == 'http_dash_segments':
+                        # Live DASH formats without --live-from-start
+                        adjust_incomplete_format(fmt)
+                    elif is_adaptive:
+                        # Incomplete live adaptive https formats
+                        adjust_incomplete_format(fmt, note_suffix='(incomplete)', pref_adjustment=-20)
 
         if needs_live_processing:
             self._prepare_live_from_start_formats(

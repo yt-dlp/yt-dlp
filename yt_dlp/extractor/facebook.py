@@ -1041,8 +1041,6 @@ class FacebookAdsIE(InfoExtractor):
             'uploader': 'Casper',
             'uploader_id': '224110981099062',
             'uploader_url': 'https://www.facebook.com/Casper/',
-            'timestamp': 1766299837,
-            'upload_date': '20251221',
             'like_count': int,
         },
         'playlist_count': 2,
@@ -1054,12 +1052,23 @@ class FacebookAdsIE(InfoExtractor):
             'uploader': 'Case \u00e0 Chocs',
             'uploader_id': '112960472096793',
             'uploader_url': 'https://www.facebook.com/Caseachocs/',
-            'timestamp': 1768498293,
-            'upload_date': '20260115',
             'like_count': int,
             'description': 'md5:f02a255fcf7dce6ed40e9494cf4bc49a',
         },
         'playlist_count': 3,
+    }, {
+        'url': 'https://www.facebook.com/ads/library/?id=1704834754236452',
+        'info_dict': {
+            'id': '1704834754236452',
+            'ext': 'mp4',
+            'title': 'Get answers now!',
+            'description': 'Ask the best psychics and get accurate answers on questions that bother you!',
+            'uploader': 'Your Relationship Advisor',
+            'uploader_id': '108939234726306',
+            'uploader_url': 'https://www.facebook.com/100068970634636/',
+            'like_count': int,
+            'thumbnail': r're:https://.+/.+\.jpg',
+        },
     }, {
         'url': 'https://es-la.facebook.com/ads/library/?id=901230958115569',
         'only_matching': True,
@@ -1123,8 +1132,11 @@ class FacebookAdsIE(InfoExtractor):
         post_data = traverse_obj(
             re.findall(r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage), (..., {json.loads}))
         data = get_first(post_data, (
-            'require', ..., ..., ..., '__bbox', 'require', ..., ..., ...,
-            'entryPointRoot', 'otherProps', 'deeplinkAdCard', 'snapshot', {dict}))
+            'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., (
+                ('__bbox', 'result', 'data', 'ad_library_main', 'deeplink_ad_archive_result', 'deeplink_ad_archive'),
+                # old path
+                ('entryPointRoot', 'otherProps', 'deeplinkAdCard'),
+            ), 'snapshot', {dict}))
         if not data:
             raise ExtractorError('Unable to extract ad data')
 
@@ -1140,11 +1152,12 @@ class FacebookAdsIE(InfoExtractor):
             'title': title,
             'description': markup or None,
         }, traverse_obj(data, {
-            'description': ('link_description', {lambda x: x if not x.startswith('{{product.') else None}),
+            'description': (
+                (('body', 'text'), 'link_description'),
+                {lambda x: x if not x.startswith('{{product.') else None}, any),
             'uploader': ('page_name', {str}),
             'uploader_id': ('page_id', {str_or_none}),
             'uploader_url': ('page_profile_uri', {url_or_none}),
-            'timestamp': ('creation_time', {int_or_none}),
             'like_count': ('page_like_count', {int_or_none}),
         }))
 
@@ -1155,7 +1168,8 @@ class FacebookAdsIE(InfoExtractor):
             entries.append({
                 'id': f'{video_id}_{idx}',
                 'title': entry.get('title') or title,
-                'description': traverse_obj(entry, 'body', 'link_description') or info_dict.get('description'),
+                'description': traverse_obj(
+                    entry, 'body', 'link_description', expected_type=str) or info_dict.get('description'),
                 'thumbnail': url_or_none(entry.get('video_preview_image_url')),
                 'formats': self._extract_formats(entry),
             })
