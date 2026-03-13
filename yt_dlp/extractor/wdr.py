@@ -347,35 +347,3 @@ class WDRElefantIE(InfoExtractor):
             raise ExtractorError(
                 f'{display_id} is not a video', expected=True)
         return self.url_result(zmdb_url_element.text, ie=WDRIE.ie_key())
-
-
-class WDRMobileIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-        https?://mobile-ondemand\.wdr\.de/
-        .*?/fsk(?P<age_limit>[0-9]+)
-        /[0-9]+/[0-9]+/
-        (?P<id>[0-9]+)_(?P<title>[0-9]+)'''
-    IE_NAME = 'wdr:mobile'
-    _WORKING = False  # no such domain
-    _TEST = {
-        'url': 'http://mobile-ondemand.wdr.de/CMS2010/mdb/ondemand/weltweit/fsk0/42/421735/421735_4283021.mp4',
-        'info_dict': {
-            'title': '4283021',
-            'id': '421735',
-            'ext': 'mp4',
-            'age_limit': 0,
-        },
-        'skip': 'Problems with loading data.',
-    }
-
-    def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        return {
-            'id': mobj.group('id'),
-            'title': mobj.group('title'),
-            'age_limit': int(mobj.group('age_limit')),
-            'url': url,
-            'http_headers': {
-                'User-Agent': 'mobile',
-            },
-        }
