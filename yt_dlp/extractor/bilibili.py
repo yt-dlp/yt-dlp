@@ -889,7 +889,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'episode_number': 1,
             'title': '1 残酷',
             'duration': 1425.256,
-            'timestamp': 1554566400,
+            'timestamp': 1554566401,
             'upload_date': '20190406',
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
         },
@@ -914,6 +914,9 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'upload_date': '20201016',
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
         },
+    }, {
+        'url': 'https://www.bilibili.com/bangumi/play/ep810041',
+        'expected_exception': 'ExtractorError',  # DRM
     }]
 
     def _real_extract(self, url):
@@ -957,6 +960,8 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
         premium_only = status_code == -10403
 
         video_info = traverse_obj(play_info, ('video_info', {dict})) or {}
+        if traverse_obj(video_info, 'is_drm'):
+            self.report_drm(episode_id)
         formats = self.extract_formats(video_info)
 
         if not formats:
@@ -1141,6 +1146,12 @@ class BilibiliCheeseBaseIE(BilibiliBaseIE):
             query={'avid': aid, 'cid': cid, 'ep_id': ep_id, 'fnval': 16, 'fourk': 1},
             headers=self._HEADERS, note='Downloading playinfo')['data']
 
+        if traverse_obj(play_info, 'is_drm'):
+            self.report_drm(ep_id)
+        if traverse_obj(play_info, 'is_preview'):
+            self.report_warning('Only preview is available. Login and purchase course '
+                                f'to download full episode. {self._login_hint()}', ep_id)
+
         return {
             'id': str_or_none(ep_id),
             'episode_id': str_or_none(ep_id),
@@ -1193,6 +1204,9 @@ class BilibiliCheeseIE(BilibiliCheeseBaseIE):
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
             'view_count': int,
         },
+    }, {
+        'url': 'https://www.bilibili.com/cheese/play/ep1881588',
+        'expected_exception': 'ExtractorError',  # widevine DRM
     }]
 
     def _real_extract(self, url):
