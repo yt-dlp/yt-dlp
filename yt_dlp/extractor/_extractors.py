@@ -536,6 +536,7 @@ from .dw import (
     DWIE,
     DWArticleIE,
 )
+from .easybroadcast import EasyBroadcastLiveIE
 from .ebaumsworld import EbaumsWorldIE
 from .ebay import EbayIE
 from .egghead import (
