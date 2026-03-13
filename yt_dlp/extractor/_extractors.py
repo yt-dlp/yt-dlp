@@ -350,7 +350,10 @@ from .cda import (
 )
 from .cellebrite import CellebriteIE
 from .ceskatelevize import CeskaTelevizeIE
-from .cgtn import CGTNIE
+from .cgtn import (
+    CGTNIE,
+    CGTNRUSSIANIE,
+)
 from .charlierose import CharlieRoseIE
 from .chaturbate import ChaturbateIE
 from .chilloutzone import ChilloutzoneIE
