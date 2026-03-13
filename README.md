@@ -1509,6 +1509,9 @@ $ yt-dlp -P "C:/MyVideos" -o "%(uploader)s/%(title)s.%(ext)s" -o "subtitle:%(upl
 
 # Stream the video being downloaded to stdout
 $ yt-dlp -o - BaW_jenozKc
+
+# Download video and trim its title to 150 characters while keeping the ID (and extension) unchanged
+$ yt-dlp -o "%(title).150s [%(id)s].%(ext)s" "https://www.facebook.com/reel/1184023776297489"
 ```
 
 # FORMAT SELECTION
