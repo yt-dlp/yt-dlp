@@ -171,7 +171,7 @@ var jsc = (function (meriyah, astring) {
   }
   function createSolver(expression) {
     return generateArrowFunction(
-      `\n({sig, n}) => {\n  const url = (${astring.generate(expression)})("https://youtube.com/watch?v=yt-dlp-wins", "s", sig);\n  url.set("n", n);\n  const proto = Object.getPrototypeOf(url);\n  const keys = Object.keys(proto).concat(Object.getOwnPropertyNames(proto));\n  for (const key of keys) {\n    if (!["constructor", "set", "get", "clone"].includes(key)) {\n      url[key]();\n      break;\n    }\n  }\n  const s = url.get("s");\n  return {\n    sig: s ? decodeURIComponent(s) : null,\n    n: url.get("n") ?? null,\n  };\n}\n`,
+      `\n({sig, n}) => {\n  const url = (${astring.generate(expression)})("https://youtube.com/watch?v=yt-dlp-wins", "s", sig ? encodeURIComponent(sig) : undefined);\n  url.set("n", n);\n  const proto = Object.getPrototypeOf(url);\n  const keys = Object.keys(proto).concat(Object.getOwnPropertyNames(proto));\n  for (const key of keys) {\n    if (!["constructor", "set", "get", "clone"].includes(key)) {\n      url[key]();\n      break;\n    }\n  }\n  const s = url.get("s");\n  return {\n    sig: s ? decodeURIComponent(s) : null,\n    n: url.get("n") ?? null,\n  };\n}\n`,
     );
   }
   const setupNodes = meriyah.parse(
@@ -321,7 +321,7 @@ var jsc = (function (meriyah, astring) {
   }
   function multiTry(generators) {
     return generateArrowFunction(
-      `\n(_input) => {\n  const _results = new Set();\n  for (const _generator of ${astring.generate({ type: 'ArrayExpression', elements: generators })}) {\n    try {\n      _results.add(_generator(_input));\n    } catch (e) {\n    }\n  }\n  if (!_results.size) {\n    throw "no solutions";\n  }\n  if (_results.size !== 1) {\n    throw \`invalid solutions: \${[..._results].map(x => JSON.stringify(x)).join(", ")}\`;\n  }\n  return _results.values().next().value;\n}\n`,
+      `\n(_input) => {\n  const _results = new Set();\n  const errors = [];\n  for (const _generator of ${astring.generate({ type: 'ArrayExpression', elements: generators })}) {\n    try {\n      _results.add(_generator(_input));\n    } catch (e) {\n      errors.push(e);\n    }\n  }\n  if (!_results.size) {\n    throw \`no solutions: \${errors.join(", ")}\`;\n  }\n  if (_results.size !== 1) {\n    throw \`invalid solutions: \${[..._results].map(x => JSON.stringify(x)).join(", ")}\`;\n  }\n  return _results.values().next().value;\n}\n`,
     );
   }
   function main(input) {
