@@ -603,6 +603,10 @@ from .fancode import (
     FancodeLiveIE,
     FancodeVodIE,
 )
+from .fansly import (
+    FanslyIE,
+    FanslyLiveIE,
+)
 from .fathom import FathomIE
 from .faulio import (
     FaulioIE,
