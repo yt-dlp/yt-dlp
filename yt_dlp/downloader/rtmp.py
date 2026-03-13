@@ -10,6 +10,7 @@ from ..utils import (
     encodeArgument,
     get_exe_version,
 )
+from ..utils.progress import sleep
 
 
 def rtmpdump_version():
@@ -180,7 +181,7 @@ class RtmpFD(FileDownloader):
         while retval in (RD_INCOMPLETE, RD_FAILED) and not test and not live:
             prevsize = os.path.getsize(tmpfilename)
             self.to_screen(f'[rtmpdump] Downloaded {prevsize} bytes')
-            time.sleep(5.0)  # This seems to be needed
+            sleep(self.ydl, 5.0, 'Retrying download')  # This seems to be needed
             args = [*basic_args, '--resume']
             if retval == RD_FAILED:
                 args += ['--skip', '1']
