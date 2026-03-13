@@ -1,4 +1,7 @@
 from __future__ import annotations
+import io
+import protobug
+from yt_dlp.extractor.youtube._streaming.ump import UMPPart, UMPPartId
 
 from test.test_sabr.test_stream.helpers import (
     DEFAULT_NUM_AUDIO_SEGMENTS,
@@ -7,10 +10,11 @@ from test.test_sabr.test_stream.helpers import (
     AdWaitAVProfile,
     SabrContextSendingPolicyAVProfile,
     mock_time,
-    setup_sabr_stream_av,
+    setup_sabr_stream_av, LiveAVProfile, VALID_LIVE_URL,
 )
 
-from yt_dlp.extractor.youtube._proto.videostreaming import SabrContext
+from yt_dlp.extractor.youtube._proto.videostreaming import SabrContext, Cuepoint, CuepointType, AdCuepointConfig, SabrSeek
+from yt_dlp.extractor.youtube._proto.videostreaming.cuepoint_list import CuepointInfo, CuepointEvent, TrackType, CuepointList
 
 
 @mock_time
@@ -84,3 +88,176 @@ def test_sending_policy(logger, client_info):
     logger.debug.assert_any_call(f'Server requested to disable SABR Context Update for type {context_update_type}')
 
     assert len(sabr_stream.processor.sabr_contexts_to_send) == 0
+
+
+def generate_cuepoint_info(identifier, event, track_type):
+    # Currently we ignore any of the duration info, but could be something to consider at a later date
+    return CuepointInfo(
+        cuepoint=Cuepoint(
+            type=CuepointType.CUEPOINT_TYPE_AD,
+            event=event,
+            identifier=identifier),
+        track_type=track_type,
+    )
+
+
+class TestLiveCuepointAds:
+
+    @mock_time
+    def test_cuepoint_identifier_states(self, logger, client_info):
+        # Should send cuepoint identifiers during the applicable states
+        identifier = 'test_identifier'
+        cuepoints = {
+            1: [
+                generate_cuepoint_info(identifier, CuepointEvent.CUEPOINT_EVENT_PREDICT_START, track_type=TrackType.TRACK_TYPE_AUDIO),
+                generate_cuepoint_info(identifier, CuepointEvent.CUEPOINT_EVENT_PREDICT_START, track_type=TrackType.TRACK_TYPE_VIDEO),
+            ],
+            2: [
+                generate_cuepoint_info(identifier, CuepointEvent.CUEPOINT_EVENT_START, track_type=TrackType.TRACK_TYPE_AUDIO),
+                generate_cuepoint_info(identifier, CuepointEvent.CUEPOINT_EVENT_START, track_type=TrackType.TRACK_TYPE_VIDEO),
+            ],
+            # should continue to send if cuepoint_info not provided
+            4: [
+                generate_cuepoint_info(identifier, CuepointEvent.CUEPOINT_EVENT_CONTINUE, track_type=TrackType.TRACK_TYPE_AUDIO),
+                generate_cuepoint_info(identifier, CuepointEvent.CUEPOINT_EVENT_CONTINUE, track_type=TrackType.TRACK_TYPE_VIDEO),
+            ],
+            5: [
+                generate_cuepoint_info(identifier, CuepointEvent.CUEPOINT_EVENT_INSERTION, track_type=TrackType.TRACK_TYPE_AUDIO),
+                generate_cuepoint_info(identifier, CuepointEvent.CUEPOINT_EVENT_INSERTION, track_type=TrackType.TRACK_TYPE_VIDEO),
+            ],
+            6: [
+                generate_cuepoint_info(identifier, CuepointEvent.CUEPOINT_EVENT_STOP, track_type=TrackType.TRACK_TYPE_AUDIO),
+                generate_cuepoint_info(identifier, CuepointEvent.CUEPOINT_EVENT_STOP, track_type=TrackType.TRACK_TYPE_VIDEO),
+            ],
+        }
+
+        def insert_cuepoints(parts, vpabr, url, request_number):
+            if request_number in cuepoints:
+                for cuepoint_info in cuepoints[request_number]:
+                    payload = protobug.dumps(CuepointList(cuepoint_info=[cuepoint_info]))
+                    parts.append(
+                        UMPPart(
+                            part_id=UMPPartId.CUEPOINT_LIST,
+                            data=io.BytesIO(payload),
+                            size=len(payload),
+                        ),
+                    )
+            return parts
+
+        total_segments = 10
+        segment_target_duration_ms = 2000
+        dvr_segments = 9
+        profile = LiveAVProfile({
+            'total_segments': total_segments,
+            'segment_target_duration_ms': segment_target_duration_ms,
+            'dvr_segments': dvr_segments,
+            'custom_parts_function': insert_cuepoints,
+        })
+
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=profile,
+            client_info=client_info,
+            logger=logger,
+            url=VALID_LIVE_URL,
+            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+        )
+
+        audio_selector, video_selector = selectors
+
+        parts = list(sabr_stream.iter_parts())
+        assert_media_sequence_in_order(parts, audio_selector, total_segments)
+        assert_media_sequence_in_order(parts, video_selector, total_segments)
+
+        # First request should not include cuepoint identifier
+        first_request_vpabr = rh.request_history[0].vpabr
+        assert len(first_request_vpabr.ad_cuepoints) == 0
+
+        # Requests 2-5 should include the cuepoint identifier in the sabr context
+        for request_number in range(2, 6):
+            request_vpabr = rh.request_history[request_number].vpabr
+            assert len(request_vpabr.ad_cuepoints) == 1
+            assert isinstance(request_vpabr.ad_cuepoints[0], AdCuepointConfig)
+            assert request_vpabr.ad_cuepoints[0].cuepoint_id == identifier
+            assert request_vpabr.ad_cuepoints[0].magic_value == 11
+
+        # Request 5 and onwards should not include the cuepoint identifier
+        for request in rh.request_history[6:]:
+            assert len(request.vpabr.ad_cuepoints) == 0
+
+        # Check one of the SABR State logs include acp:1 (ad cue point number0
+        assert any(
+            'acp:1' in call.args[0] for call in logger.debug.call_args_list
+            if 'SABR State' in call.args[0])
+
+    @mock_time
+    def test_clear_cuepoint_on_sabr_seek(self, logger, client_info):
+        # Should clear cuepoint identifier on seek
+
+        total_segments = 10
+        segment_target_duration_ms = 2000
+
+        identifier = 'test_identifier'
+
+        seek_ms = segment_target_duration_ms * 4
+
+        def insert_cuepoints_and_seek(parts, vpabr, url, request_number):
+
+            if request_number == 1:
+                payload = protobug.dumps(CuepointList(
+                    cuepoint_info=[generate_cuepoint_info(identifier, CuepointEvent.CUEPOINT_EVENT_START, track_type=TrackType.TRACK_TYPE_AUDIO)]))
+                parts.append(
+                    UMPPart(
+                        part_id=UMPPartId.CUEPOINT_LIST,
+                        data=io.BytesIO(payload),
+                        size=len(payload),
+                    ),
+                )
+
+            if request_number == 2:
+                sabr_seek = protobug.dumps(SabrSeek(
+                    seek_time_ticks=seek_ms,
+                    timescale=1000,
+                ))
+                parts.append(UMPPart(
+                    part_id=UMPPartId.SABR_SEEK,
+                    size=len(sabr_seek),
+                    data=io.BytesIO(sabr_seek),
+                ))
+            return parts
+
+        profile = LiveAVProfile({
+            'total_segments': total_segments,
+            'segment_target_duration_ms': segment_target_duration_ms,
+            'dvr_segments': 9,
+            'custom_parts_function': insert_cuepoints_and_seek,
+        })
+
+        sabr_stream, rh, _ = setup_sabr_stream_av(
+            sabr_response_processor=profile,
+            client_info=client_info,
+            logger=logger,
+            url=VALID_LIVE_URL,
+            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+        )
+
+        list(sabr_stream.iter_parts())
+
+        # First request should not include cuepoint identifier
+        first_request_vpabr = rh.request_history[0].vpabr
+        assert len(first_request_vpabr.ad_cuepoints) == 0
+
+        # Second request should include the cuepoint identifier in the sabr context
+        second_request_vpabr = rh.request_history[1].vpabr
+        assert len(second_request_vpabr.ad_cuepoints) == 1
+        assert isinstance(second_request_vpabr.ad_cuepoints[0], AdCuepointConfig)
+        assert second_request_vpabr.ad_cuepoints[0].cuepoint_id == identifier
+        assert second_request_vpabr.ad_cuepoints[0].magic_value == 11
+
+        # Third request should be after the seek and should not include the cuepoint identifier
+        third_request_vpabr = rh.request_history[2].vpabr
+        assert len(third_request_vpabr.ad_cuepoints) == 0
+        assert third_request_vpabr.client_abr_state.player_time_ms == seek_ms
+
+        # All following requests should also not include the cuepoint identifier
+        for request in rh.request_history[3:]:
+            assert len(request.vpabr.ad_cuepoints) == 0

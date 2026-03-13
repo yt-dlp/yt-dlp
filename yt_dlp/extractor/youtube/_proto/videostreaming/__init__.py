@@ -14,4 +14,4 @@ from .sabr_seek import SabrSeek  # noqa: F401
 from .stream_protection_status import StreamProtectionStatus  # noqa: F401
 from .streamer_context import SabrContext, StreamerContext  # noqa: F401
 from .time_range import TimeRange  # noqa: F401
-from .video_playback_abr_request import CuepointUstreamerConfig, VideoPlaybackAbrRequest  # noqa: F401
+from .video_playback_abr_request import AdCuepointConfig, VideoPlaybackAbrRequest  # noqa: F401

@@ -944,6 +944,11 @@ class SabrStream:
             items.append(f'{k}{"(n)" if k not in self.processor.sabr_contexts_to_send else ""}')
         return 'cu:[' + ','.join(items) + ']'
 
+    def _stats_acp_part(self):
+        if not self.processor.ad_cuepoints:
+            return ''
+        return f'acp:{len(self.processor.ad_cuepoints)}'
+
     def _stats_host_part(self):
         host = urllib.parse.urlparse(self.url).netloc
         return f'h:{host[:-len(".googlevideo.com")]}'
@@ -980,6 +985,7 @@ class SabrStream:
             self._stats_izf_part(),
             self._stats_cr_part(),
             self._stats_cu_part(),
+            self._stats_acp_part(),
             *self._stats_unkpt_parts(),
         ]
         return ' '.join(filter(None, parts))

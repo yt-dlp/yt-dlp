@@ -23,6 +23,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.processor import (
     ProcessMediaResult,
     ProcessMediaEndResult,
     LiveState,
+    build_vpabr_request,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.models import (
     AudioSelector,
@@ -42,6 +43,14 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     SabrSeek,
     MediaHeader,
     TimeRange,
+)
+from yt_dlp.extractor.youtube._proto.videostreaming.cuepoint_list import (
+    Cuepoint,
+    CuepointEvent,
+    CuepointInfo,
+    CuepointList,
+    CuepointType,
+    TrackType,
 )
 from yt_dlp.extractor.youtube._proto.innertube import NextRequestPolicy, CompressionAlgorithm
 
@@ -120,6 +129,23 @@ def make_media_header(selector=None, video_id=None, sequence_no=None, header_id=
         is_init_segment=False,
         duration_ms=2300,
         start_ms=0,
+    )
+
+
+def make_cuepoint_info(
+    identifier: str = 'test_identifier',
+    event: CuepointEvent = CuepointEvent.CUEPOINT_EVENT_START,
+    track_type: TrackType = TrackType.TRACK_TYPE_AUDIO,
+    *,
+    cuepoint=None,
+):
+    return CuepointInfo(
+        cuepoint=cuepoint if cuepoint is not None else Cuepoint(
+            type=CuepointType.CUEPOINT_TYPE_AD,
+            event=event,
+            identifier=identifier,
+        ),
+        track_type=track_type,
     )
 
 
@@ -1165,6 +1191,62 @@ class TestLiveMetadata:
 
         logger.debug.assert_called_with('Player time 4999 is less than min seekable time 5000, simulating server seek')
 
+    def test_clear_ad_cuepoints_on_seek(self, logger, base_args):
+        # If min_seekable_time_ms is less than player time, there should be a seek and ad cuepoints should be cleared
+        live_metadata = LiveMetadata(
+            head_sequence_number=10,
+            head_sequence_time_ms=10000,
+            min_seekable_time_ticks=50000,
+            min_seekable_timescale=10000,
+        )
+
+        audio_selector = make_selector('audio')
+        video_selector = make_selector('video')
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=audio_selector,
+            video_selection=video_selector,
+            video_id=example_video_id,
+            start_time_ms=4999)
+
+        assert processor.client_abr_state.player_time_ms == 4999
+
+        # Initialize both audio and video formats
+        audio_format_id = audio_selector.format_ids[0]
+        video_format_id = video_selector.format_ids[0]
+
+        audio_format_init_metadata = FormatInitializationMetadata(
+            video_id=example_video_id,
+            format_id=audio_format_id,
+            mime_type='audio/mp4',
+        )
+
+        video_format_init_metadata = FormatInitializationMetadata(
+            video_id=example_video_id,
+            format_id=video_format_id,
+            mime_type='video/mp4',
+        )
+
+        processor.process_format_initialization_metadata(audio_format_init_metadata)
+        processor.process_format_initialization_metadata(video_format_init_metadata)
+        assert len(processor.initialized_formats) == 2
+
+        processor.process_cuepoint_list(CuepointList(cuepoint_info=[make_cuepoint_info(identifier='new_identifier')]))
+
+        assert len(processor.ad_cuepoints) == 1
+
+        # Process live metadata
+        result = processor.process_live_metadata(live_metadata)
+        assert isinstance(result, ProcessLiveMetadataResult)
+        assert len(result.seek_sabr_parts) == 2
+        assert processor.live_state
+        assert processor.client_abr_state.player_time_ms == 5000
+
+        # Ad cue points should be cleared on seek
+        assert len(processor.ad_cuepoints) == 0
+        logger.debug.assert_called_with('Player time 4999 is less than min seekable time 5000, simulating server seek')
+        logger.trace.assert_called_with('Clearing all ad cuepoints due to simulated server seek')
+
 
 class TestSabrContextUpdate:
     def test_initialization(self, base_args):
@@ -1324,6 +1406,144 @@ class TestSabrContextUpdate:
         assert 4 not in processor.sabr_context_updates
 
 
+class TestCuepointList:
+    def test_initialization(self, base_args):
+        processor = SabrProcessor(**base_args)
+        assert processor.ad_cuepoints == {}
+
+    def test_ignores_missing_cuepoint(self, logger, base_args):
+        processor = SabrProcessor(**base_args)
+        cuepoint_info = CuepointInfo(track_type=TrackType.TRACK_TYPE_AUDIO)
+
+        processor.process_cuepoint_list(CuepointList(cuepoint_info=[cuepoint_info]))
+
+        assert processor.ad_cuepoints == {}
+        logger.warning.assert_called_with(f'Received CuepointInfo without cuepoint, ignoring: {cuepoint_info}')
+
+    def test_ignores_missing_identifier(self, logger, base_args):
+        processor = SabrProcessor(**base_args)
+        cuepoint = Cuepoint(type=CuepointType.CUEPOINT_TYPE_AD, event=CuepointEvent.CUEPOINT_EVENT_START)
+
+        processor.process_cuepoint_list(CuepointList(cuepoint_info=[make_cuepoint_info(cuepoint=cuepoint)]))
+
+        assert processor.ad_cuepoints == {}
+        logger.warning.assert_called_with(f'Received Cuepoint without identifier, ignoring: {cuepoint}')
+
+    def test_stop_unknown_identifier_ignored(self, logger, base_args):
+        processor = SabrProcessor(**base_args)
+        cuepoint = Cuepoint(
+            type=CuepointType.CUEPOINT_TYPE_AD,
+            event=CuepointEvent.CUEPOINT_EVENT_STOP,
+            identifier='unknown_identifier',
+        )
+
+        processor.process_cuepoint_list(CuepointList(cuepoint_info=[make_cuepoint_info(cuepoint=cuepoint)]))
+
+        assert processor.ad_cuepoints == {}
+        logger.trace.assert_called_with(
+            f'Received ad cuepoint STOP event for unknown cuepoint identifier, ignoring: {cuepoint}')
+
+    def test_stop_known_identifier_clears_entry(self, logger, base_args):
+        processor = SabrProcessor(**base_args)
+        processor.process_cuepoint_list(CuepointList(cuepoint_info=[make_cuepoint_info(identifier='known_identifier')]))
+        logger.reset_mock()
+
+        processor.process_cuepoint_list(CuepointList(cuepoint_info=[make_cuepoint_info(
+            identifier='known_identifier',
+            event=CuepointEvent.CUEPOINT_EVENT_STOP,
+        )]))
+
+        assert processor.ad_cuepoints == {}
+        logger.trace.assert_called_with('Cleared ad cuepoint known_identifier due to STOP event')
+
+    def test_registers_new_identifier(self, logger, base_args):
+        processor = SabrProcessor(**base_args)
+
+        processor.process_cuepoint_list(CuepointList(cuepoint_info=[make_cuepoint_info(identifier='new_identifier')]))
+
+        assert set(processor.ad_cuepoints) == {'new_identifier'}
+        assert processor.ad_cuepoints['new_identifier'].cuepoint_id == 'new_identifier'
+        assert processor.ad_cuepoints['new_identifier'].magic_value == 11
+        logger.trace.assert_called_with('Registered ad cuepoint new_identifier due to CUEPOINT_EVENT_START event')
+
+    def test_non_stop_existing_identifier_ignored(self, logger, base_args):
+        processor = SabrProcessor(**base_args)
+        cuepoint = Cuepoint(
+            type=CuepointType.CUEPOINT_TYPE_AD,
+            event=CuepointEvent.CUEPOINT_EVENT_CONTINUE,
+            identifier='existing_identifier',
+        )
+        processor.process_cuepoint_list(CuepointList(cuepoint_info=[make_cuepoint_info(identifier='existing_identifier')]))
+        logger.reset_mock()
+
+        processor.process_cuepoint_list(CuepointList(cuepoint_info=[make_cuepoint_info(cuepoint=cuepoint)]))
+
+        assert set(processor.ad_cuepoints) == {'existing_identifier'}
+        assert processor.ad_cuepoints['existing_identifier'].cuepoint_id == 'existing_identifier'
+        assert processor.ad_cuepoints['existing_identifier'].magic_value == 11
+        logger.trace.assert_called_with(
+            f'Received ad cuepoint CUEPOINT_EVENT_CONTINUE event for existing cuepoint identifier, ignoring: {cuepoint}')
+
+    def test_processes_multiple_cuepoints_in_one_list(self, logger, base_args):
+        processor = SabrProcessor(**base_args)
+        missing_cuepoint_info = CuepointInfo(track_type=TrackType.TRACK_TYPE_AUDIO)
+        missing_identifier = Cuepoint(type=CuepointType.CUEPOINT_TYPE_AD, event=CuepointEvent.CUEPOINT_EVENT_START)
+        unknown_stop = Cuepoint(
+            type=CuepointType.CUEPOINT_TYPE_AD,
+            event=CuepointEvent.CUEPOINT_EVENT_STOP,
+            identifier='unknown_identifier',
+        )
+        existing_continue = Cuepoint(
+            type=CuepointType.CUEPOINT_TYPE_AD,
+            event=CuepointEvent.CUEPOINT_EVENT_CONTINUE,
+            identifier='new_identifier',
+        )
+
+        processor.process_cuepoint_list(CuepointList(cuepoint_info=[
+            make_cuepoint_info(identifier='new_identifier'),
+            make_cuepoint_info(cuepoint=existing_continue),
+            make_cuepoint_info(identifier='stopped_identifier'),
+            make_cuepoint_info(
+                identifier='stopped_identifier',
+                event=CuepointEvent.CUEPOINT_EVENT_STOP,
+                track_type=TrackType.TRACK_TYPE_VIDEO,
+            ),
+            make_cuepoint_info(cuepoint=unknown_stop),
+            CuepointInfo(cuepoint=missing_identifier, track_type=TrackType.TRACK_TYPE_AUDIO),
+            missing_cuepoint_info,
+        ]))
+
+        assert set(processor.ad_cuepoints) == {'new_identifier'}
+        assert processor.ad_cuepoints['new_identifier'].cuepoint_id == 'new_identifier'
+        assert processor.ad_cuepoints['new_identifier'].magic_value == 11
+        logger.trace.assert_any_call('Registered ad cuepoint new_identifier due to CUEPOINT_EVENT_START event')
+        logger.trace.assert_any_call(
+            f'Received ad cuepoint CUEPOINT_EVENT_CONTINUE event for existing cuepoint identifier, ignoring: {existing_continue}')
+        logger.trace.assert_any_call('Registered ad cuepoint stopped_identifier due to CUEPOINT_EVENT_START event')
+        logger.trace.assert_any_call('Cleared ad cuepoint stopped_identifier due to STOP event')
+        logger.trace.assert_any_call(
+            f'Received ad cuepoint STOP event for unknown cuepoint identifier, ignoring: {unknown_stop}')
+        logger.warning.assert_any_call(f'Received Cuepoint without identifier, ignoring: {missing_identifier}')
+        logger.warning.assert_any_call(f'Received CuepointInfo without cuepoint, ignoring: {missing_cuepoint_info}')
+
+    def test_enables_multiple_identifiers(self, base_args):
+        processor = SabrProcessor(**base_args)
+
+        processor.process_cuepoint_list(CuepointList(cuepoint_info=[
+            make_cuepoint_info(identifier='first_identifier', event=CuepointEvent.CUEPOINT_EVENT_PREDICT_START),
+            make_cuepoint_info(
+                identifier='second_identifier',
+                event=CuepointEvent.CUEPOINT_EVENT_INSERTION,
+                track_type=TrackType.TRACK_TYPE_VIDEO,
+            ),
+        ]))
+        assert len(processor.ad_cuepoints) == 2
+        assert set(processor.ad_cuepoints) == {'first_identifier', 'second_identifier'}
+        request_vpabr = build_vpabr_request(processor)
+        assert {cuepoint.cuepoint_id for cuepoint in request_vpabr.ad_cuepoints} == {'first_identifier', 'second_identifier'}
+        assert {cuepoint.magic_value for cuepoint in request_vpabr.ad_cuepoints} == {11}
+
+
 class TestSabrSeek:
     def test_invalid_sabr_seek(self, logger, base_args):
         processor = SabrProcessor(**base_args)
@@ -1386,6 +1606,22 @@ class TestSabrSeek:
             assert izf.previous_segment
 
         logger.debug.assert_called_with('Seeking to 5600ms')
+
+    def test_sabr_seek_clears_ad_cuepoints(self, logger, base_args):
+        processor = SabrProcessor(**base_args)
+        processor.process_cuepoint_list(CuepointList(cuepoint_info=[make_cuepoint_info(identifier='test_identifier')]))
+        assert set(processor.ad_cuepoints) == {'test_identifier'}
+
+        sabr_seek = SabrSeek(
+            seek_time_ticks=56000,
+            timescale=10000,
+        )
+
+        processor.process_sabr_seek(sabr_seek)
+
+        assert processor.ad_cuepoints == {}
+        logger.debug.assert_called_with('Seeking to 5600ms')
+        logger.trace.assert_called_with('Clearing all ad cuepoints due to seek')
 
 
 class TestMediaHeader:

@@ -10,9 +10,9 @@ from .streamer_context import StreamerContext
 
 # name unknown
 @protobug.message
-class CuepointUstreamerConfig:
+class AdCuepointConfig:
     cuepoint_id: protobug.String | None = protobug.field(7, default=None)
-    random_required_int: protobug.Int32 | None = protobug.field(8, default=None)
+    magic_value: protobug.Int32 | None = protobug.field(8, default=None)
 
 
 @protobug.message
@@ -29,4 +29,4 @@ class VideoPlaybackAbrRequest:
     streamer_context: StreamerContext = protobug.field(19, default_factory=StreamerContext)
 
     # name unknown
-    cuepoint_ustreamer_config: CuepointUstreamerConfig = protobug.field(24, default=None)
+    ad_cuepoints: list[AdCuepointConfig] = protobug.field(24, default_factory=list)

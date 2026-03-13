@@ -7,11 +7,11 @@ import math
 
 from yt_dlp.extractor.youtube._proto.innertube import ClientInfo, NextRequestPolicy
 from yt_dlp.extractor.youtube._proto.videostreaming import (
+    AdCuepointConfig,
     BufferedRange,
     ClientAbrState,
     CuepointEvent,
     CuepointList,
-    CuepointUstreamerConfig,
     FormatInitializationMetadata,
     LiveMetadata,
     MediaHeader,
@@ -154,8 +154,7 @@ class SabrProcessor:
         self.client_abr_state: ClientAbrState
         self.sabr_contexts_to_send: set[int] = set()
         self.sabr_context_updates: dict[int, SabrContextUpdate] = {}
-        # experimental
-        self._cuepoint_identifier = None
+        self.ad_cuepoints: dict[str, AdCuepointConfig] = {}
         self._initialize_cabr_state()
 
     @property
@@ -554,6 +553,10 @@ class SabrProcessor:
                     format_selector=izf.format_selector,
                 ))
 
+            if self.ad_cuepoints:
+                self.logger.trace('Clearing all ad cuepoints due to simulated server seek')
+                self.ad_cuepoints.clear()
+
         return result
 
     def process_stream_protection_status(self, stream_protection_status: StreamProtectionStatus) -> ProcessStreamProtectionStatusResult:
@@ -691,6 +694,11 @@ class SabrProcessor:
                 format_id=initialized_format.format_id,
                 format_selector=initialized_format.format_selector,
             ))
+
+        if self.ad_cuepoints:
+            self.logger.trace('Clearing all ad cuepoints due to seek')
+            self.ad_cuepoints.clear()
+
         return result
 
     def process_sabr_context_update(self, sabr_ctx_update: SabrContextUpdate):
@@ -729,18 +737,35 @@ class SabrProcessor:
                 self.sabr_context_updates.pop(discard_type, None)
 
     def process_cuepoint_list(self, cuepoint_list: CuepointList):
-        # EXPERIMENTAL
+        # NOTE: it is possible the cuepoints sent in the vpabr request may be bound to
+        #  each format/track in the future.
+        # As of writing, WEB receives two CUEPOINT_LIST parts for each track, both with the same identifier.
+        #  Only one cuepoint identifier is sent in the request with the lowest video format quality itag.
+        # For now, we can get away with just sending the identifier+magic value, ignoring the track type.
         for cuepoint_info in cuepoint_list.cuepoint_info:
             cuepoint = cuepoint_info.cuepoint
             if not cuepoint:
+                self.logger.warning(f'Received CuepointInfo without cuepoint, ignoring: {cuepoint_info}')
                 continue
+
             cuepoint_identifier = cuepoint.identifier
+            if not cuepoint_identifier:
+                self.logger.warning(f'Received Cuepoint without identifier, ignoring: {cuepoint}')
+                continue
+
             if cuepoint.event == CuepointEvent.CUEPOINT_EVENT_STOP:
-                self._cuepoint_identifier = None
-                self.logger.debug(f'Cleared CuepointList cuepoint identifier for track {cuepoint_info.track_type}')
+                if cuepoint_identifier not in self.ad_cuepoints:
+                    self.logger.trace(f'Received ad cuepoint STOP event for unknown cuepoint identifier, ignoring: {cuepoint}')
+                    continue
+                self.ad_cuepoints.pop(cuepoint_identifier, None)
+                self.logger.trace(f'Cleared ad cuepoint {cuepoint_identifier} due to STOP event')
             else:
-                self._cuepoint_identifier = cuepoint_identifier
-                self.logger.debug(f'Set CuepointList cuepoint identifier to {cuepoint_identifier} for track {cuepoint_info.track_type}')
+                if cuepoint_identifier in self.ad_cuepoints:
+                    self.logger.trace(f'Received ad cuepoint {cuepoint.event.name} event for existing cuepoint identifier, ignoring: {cuepoint}')
+                    continue
+                # Not sure what the magic value is for yet, but 11 appears to be accepted (and required)
+                self.ad_cuepoints[cuepoint_identifier] = AdCuepointConfig(cuepoint_id=cuepoint_identifier, magic_value=11)
+                self.logger.trace(f'Registered ad cuepoint {cuepoint_identifier} due to {cuepoint.event.name} event')
 
 
 def build_vpabr_request(processor: SabrProcessor):
@@ -782,8 +807,5 @@ def build_vpabr_request(processor: SabrProcessor):
             ) for initialized_format in processor.initialized_formats.values()
             for cr in initialized_format.consumed_ranges
         ],
-        cuepoint_ustreamer_config=(
-            CuepointUstreamerConfig(cuepoint_id=processor._cuepoint_identifier, random_required_int=11)
-            if processor._cuepoint_identifier else None
-        ),
+        ad_cuepoints=list(processor.ad_cuepoints.values()),
     )
