@@ -1195,6 +1195,7 @@ from .mxplayer import (
     MxplayerIE,
     MxplayerShowIE,
 )
+from .myfreecams import MyFreeCamsIE
 from .myspace import (
     MySpaceAlbumIE,
     MySpaceIE,
