@@ -1408,7 +1408,9 @@ from .odkmedia import OnDemandChinaEpisodeIE
 from .odnoklassniki import OdnoklassnikiIE
 from .oftv import (
     OfTVIE,
+    OfTVNewIE,
     OfTVPlaylistIE,
+    OfTVPlaylistNewIE,
 )
 from .oktoberfesttv import OktoberfestTVIE
 from .olympics import OlympicsReplayIE
