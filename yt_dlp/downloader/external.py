@@ -11,7 +11,11 @@ import uuid
 
 from .fragment import FragmentFD
 from ..networking import Request
-from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
+from ..postprocessor.ffmpeg import (
+    EXT_TO_OUT_FORMATS,
+    FFmpegPostProcessor,
+    FFmpegProgressTracker,
+)
 from ..utils import (
     Popen,
     RetryManager,
@@ -630,26 +634,38 @@ class FFmpegFD(ExternalFD):
 
         args = [encodeArgument(opt) for opt in args]
         args.append(ffpp._ffmpeg_filename_argument(tmpfilename))
+        args += ['-progress', 'pipe:1']
         self._debug_cmd(args)
 
         piped = any(fmt['url'] in ('-', 'pipe:') for fmt in selected_formats)
-        with Popen(args, stdin=subprocess.PIPE, env=env) as proc:
-            if piped:
-                self.on_process_started(proc, proc.stdin)
-            try:
-                retval = proc.wait()
-            except BaseException as e:
-                # subprocces.run would send the SIGKILL signal to ffmpeg and the
-                # mp4 file couldn't be played, but if we ask ffmpeg to quit it
-                # produces a file that is playable (this is mostly useful for live
-                # streams). Note that Windows is not affected and produces playable
-                # files (see https://github.com/ytdl-org/youtube-dl/issues/8300).
-                if isinstance(e, KeyboardInterrupt) and sys.platform != 'win32' and not piped:
-                    proc.communicate_or_kill(b'q')
-                else:
-                    proc.kill(timeout=None)
-                raise
-            return retval
+        ffmpeg_progress_tracker = FFmpegProgressTracker(
+            info_dict, args, self._ffmpeg_hook,
+            env=env, stdin=subprocess.PIPE if piped else None,
+            output_filename=tmpfilename)
+        ffmpeg_progress_tracker.start()
+        proc = ffmpeg_progress_tracker.ffmpeg_proc
+        if piped:
+            self.on_process_started(proc, proc.stdin)
+        try:
+            _, _, return_code = ffmpeg_progress_tracker.run_ffmpeg_subprocess()
+        except BaseException as e:
+            # subprocces.run would send the SIGKILL signal to ffmpeg and the
+            # mp4 file couldn't be played, but if we ask ffmpeg to quit it
+            # produces a file that is playable (this is mostly useful for live
+            # streams). Note that Windows is not affected and produces playable
+            # files (see https://github.com/ytdl-org/youtube-dl/issues/8300).
+            if isinstance(e, KeyboardInterrupt) and sys.platform != 'win32' and not piped:
+                proc.communicate_or_kill('q')
+            else:
+                proc.kill(timeout=None)
+            raise
+        return return_code
+
+    def _ffmpeg_hook(self, status, info_dict):
+        status['downloaded_bytes'] = status.get('outputted', 0)
+        if status.get('status') == 'ffmpeg_running':
+            status['status'] = 'downloading'
+        self._hook_progress(status, info_dict)
 
 
 _BY_NAME = {
