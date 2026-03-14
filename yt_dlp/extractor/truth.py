@@ -10,7 +10,7 @@ from ..utils import (
 
 
 class TruthIE(InfoExtractor):
-    _VALID_URL = r'https?://truthsocial\.com/@[^/]+(?:/posts)?/(?P<id>\d+)'
+    _VALID_URL = r'https?://truthsocial\.com/@[^/?#]+(?:/posts)?/(?P<id>\d+)'
     _TESTS = [
         {
             'url': 'https://truthsocial.com/@realDonaldTrump/posts/108779000807761862',
