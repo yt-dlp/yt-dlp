@@ -1855,4 +1855,6 @@ The only reliable way to check if a site is supported is to try it.
  - **zingmp3:week-chart**
  - **zoom**
  - **Zype**
+ - **Porndead**
+ - **SexDead**
  - **generic**: Generic downloader that works on some sites
