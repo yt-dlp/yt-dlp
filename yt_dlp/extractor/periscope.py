@@ -67,7 +67,7 @@ class PeriscopeBaseIE(InfoExtractor):
 class PeriscopeIE(PeriscopeBaseIE):
     IE_DESC = 'Periscope'
     IE_NAME = 'periscope'
-    _VALID_URL = r'https?://(?:www\.)?(?:periscope|pscp)\.tv/[^/]+/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:periscope|pscp)\.tv/[^/?#]+/(?P<id>[^/?#]+)'
     _EMBED_REGEX = [r'<iframe[^>]+src=([\'"])(?P<url>(?:https?:)?//(?:www\.)?(?:periscope|pscp)\.tv/(?:(?!\1).)+)\1']
     _TESTS = [{
         'url': 'https://www.periscope.tv/LularoeHusbandMike/1mrGmgaXAVqxy',
