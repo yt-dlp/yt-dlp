@@ -479,7 +479,7 @@ def validate_options(opts):
         opts.headers.setdefault('Referer', opts.referer)
 
     if opts.no_sponsorblock:
-        opts.sponsorblock_mark = opts.sponsorblock_remove = set()
+        opts.sponsorblock_mark = opts.sponsorblock_remove = opts.sponsorblock_skip = set()
 
     default_downloader = None
     for proto, path in opts.external_downloader.items():
@@ -565,6 +565,7 @@ def validate_options(opts):
     report_conflict('--remove-chapters', 'remove_chapters', default=[])
     report_conflict('--remux-video', 'remuxvideo')
     report_conflict('--sponsorblock-remove', 'sponsorblock_remove', default=set())
+    report_conflict('--sponsorblock-skip', 'sponsorblock_skip', default=set())
     report_conflict('--xattrs', 'xattrs')
 
     if hasattr(opts, '_deprecated_options'):
@@ -586,8 +587,8 @@ def validate_options(opts):
     if opts.overwrites:  # --force-overwrites implies --no-continue
         opts.continue_dl = False
 
-    if (opts.addmetadata or opts.sponsorblock_mark) and opts.addchapters is None:
-        # Add chapters when adding metadata or marking sponsors
+    if (opts.addmetadata or opts.sponsorblock_mark or opts.sponsorblock_skip) and opts.addchapters is None:
+        # Add chapters when adding metadata, marking or skipping sponsors
         opts.addchapters = True
 
     if opts.extractaudio and not opts.keepvideo and opts.format is None:
@@ -632,7 +633,9 @@ def get_postprocessors(opts):
             'actions': actions,
             'when': when,
         }
-    sponsorblock_query = opts.sponsorblock_mark | opts.sponsorblock_remove
+    # Remove takes precedence over skip for overlapping categories
+    sponsorblock_skip = opts.sponsorblock_skip - opts.sponsorblock_remove
+    sponsorblock_query = opts.sponsorblock_mark | opts.sponsorblock_remove | sponsorblock_skip
     if sponsorblock_query:
         yield {
             'key': 'SponsorBlock',
@@ -702,6 +705,13 @@ def get_postprocessors(opts):
             'add_chapters': opts.addchapters,
             'add_metadata': opts.addmetadata,
             'add_infojson': opts.embed_infojson,
+        }
+    # SponsorBlockSkip must run after FFmpegMetadataPP writes initial chapters
+    if sponsorblock_skip:
+        yield {
+            'key': 'SponsorBlockSkip',
+            'categories': sponsorblock_skip,
+            'chapter_title': opts.sponsorblock_chapter_title,
         }
     if opts.embedthumbnail:
         yield {

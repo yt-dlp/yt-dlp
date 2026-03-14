@@ -3,7 +3,13 @@ import json
 import re
 import urllib.parse
 
+from ._ebml import (
+    CHAPTERS_ID, encode_chapter_atom, encode_edition,
+    encode_master, replace_chapters,
+)
+from .common import PostProcessor
 from .ffmpeg import FFmpegPostProcessor
+from ..utils import PostProcessingError
 
 
 class SponsorBlockPP(FFmpegPostProcessor):
@@ -103,3 +109,90 @@ class SponsorBlockPP(FFmpegPostProcessor):
             if d['videoID'] == video_id:
                 return d['segments']
         return []
+
+
+def _build_chapters_element(chapters, skip_segments, duration, title):
+    skip_ranges = sorted([(s['start_time'], s['end_time']) for s in skip_segments])
+    merged = []
+    for start, end in skip_ranges:
+        if merged and start <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+
+    if not chapters:
+        chapters = [{'start_time': 0, 'end_time': duration, 'title': title}]
+
+    # "without sponsors" edition
+    skip_atoms = b''
+    chap_uid = 1
+    for ch in chapters:
+        ranges = [(ch['start_time'], ch['end_time'])]
+        for skip_start, skip_end in merged:
+            new_ranges = []
+            for r_start, r_end in ranges:
+                if skip_end <= r_start or skip_start >= r_end:
+                    new_ranges.append((r_start, r_end))
+                else:
+                    if r_start < skip_start:
+                        new_ranges.append((r_start, skip_start))
+                    if skip_end < r_end:
+                        new_ranges.append((skip_end, r_end))
+            ranges = new_ranges
+        for r_start, r_end in ranges:
+            if r_end - r_start < 0.001:
+                continue
+            skip_atoms += encode_chapter_atom(
+                chap_uid, int(r_start * 1_000_000_000), int(r_end * 1_000_000_000), ch['title'])
+            chap_uid += 1
+
+    # "full" edition
+    full_atoms = b''
+    chap_uid = 1000
+    for ch in chapters:
+        if ch['end_time'] - ch['start_time'] < 0.001:
+            continue
+        full_atoms += encode_chapter_atom(
+            chap_uid, int(ch['start_time'] * 1_000_000_000),
+            int(ch['end_time'] * 1_000_000_000), ch['title'])
+        chap_uid += 1
+
+    edition1 = encode_edition(1, True, skip_atoms, 'Without Sponsors')
+    edition2 = encode_edition(2, False, full_atoms, 'Full (With Sponsors)')
+
+    return encode_master(CHAPTERS_ID, edition1 + edition2)
+
+
+class SponsorBlockSkipPP(PostProcessor):
+    def __init__(self, downloader, categories=None, chapter_title=None):
+        super().__init__(downloader)
+        self._categories = set(categories or [])
+        self._chapter_title = chapter_title
+
+    @PostProcessor._restrict_to(images=False)
+    def run(self, info):
+        ext = info.get('ext', '')
+        if ext not in ('mkv', 'mka'):
+            raise PostProcessingError(
+                '--sponsorblock-skip requires Matroska output (mkv/mka). '
+                'Use --remux-video mkv or --extract-audio -k to get MKV/MKA output')
+
+        sponsor_chapters = info.get('sponsorblock_chapters') or []
+        skip_segments = [c for c in sponsor_chapters if c.get('category') in self._categories]
+        if not skip_segments:
+            self.to_screen('No SponsorBlock segments found to skip')
+            return [], info
+
+        duration = info.get('duration')
+        if not duration:
+            raise PostProcessingError('Cannot determine video duration for ordered chapter generation')
+
+        chapters = info.get('chapters') or []
+        title = info.get('title', '')
+
+        self.to_screen(f'Writing ordered chapters to skip {len(skip_segments)} sponsor segment(s)')
+
+        chapters_element = _build_chapters_element(chapters, skip_segments, duration, title)
+        replace_chapters(info['filepath'], chapters_element)
+
+        return [], info
