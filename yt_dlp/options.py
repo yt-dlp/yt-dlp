@@ -1882,6 +1882,20 @@ def create_parser():
             'except that "default" refers to "all,-filler" '
             f'and {", ".join(SponsorBlockPP.NON_SKIPPABLE_CATEGORIES.keys())} are not available'))
     sponsorblock.add_option(
+        '--sponsorblock-skip', metavar='CATS',
+        dest='sponsorblock_skip', default=set(), action='callback', type='str',
+        callback=_set_from_options_callback, callback_kwargs={
+            'allowed_values': set(SponsorBlockPP.CATEGORIES.keys()) - set(SponsorBlockPP.NON_SKIPPABLE_CATEGORIES.keys()),
+            'aliases': {'default': ['all', '-filler']},
+        }, help=(
+            'SponsorBlock categories to skip using Matroska ordered chapters, separated by commas. '
+            'The file must be a Matroska container (mkv/mka). '
+            'Creates two editions: a default one that skips the segments and a full one that plays everything. '
+            'If a category is present in both skip and remove, remove takes precedence. '
+            'The syntax and available categories are the same as for --sponsorblock-mark '
+            'except that "default" refers to "all,-filler" '
+            f'and {", ".join(SponsorBlockPP.NON_SKIPPABLE_CATEGORIES.keys())} are not available'))
+    sponsorblock.add_option(
         '--sponsorblock-chapter-title', metavar='TEMPLATE',
         default=DEFAULT_SPONSORBLOCK_CHAPTER_TITLE, dest='sponsorblock_chapter_title',
         help=(
