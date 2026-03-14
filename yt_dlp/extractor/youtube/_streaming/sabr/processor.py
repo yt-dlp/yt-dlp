@@ -739,7 +739,7 @@ class SabrProcessor:
     def process_cuepoint_list(self, cuepoint_list: CuepointList):
         # NOTE: it is possible the cuepoints sent in the vpabr request may be bound to
         #  each format/track in the future.
-        # As of writing, WEB receives two CUEPOINT_LIST parts for each track, both with the same identifier.
+        # As of writing, WEB receives a CUEPOINT_LIST part for each track, both with the same identifier.
         #  Only one cuepoint identifier is sent in the request with the lowest video format quality itag.
         # For now, we can get away with just sending the identifier+magic value, ignoring the track type.
         for cuepoint_info in cuepoint_list.cuepoint_info:
