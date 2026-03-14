@@ -136,23 +136,17 @@ class LBRYBaseIE(InfoExtractor):
                 'description': 'description',
             })))
 
-    def _call_comment_api(self, method, claim_id, page_index, resource):
+    def _call_comment_api(self, method, params, resource):
         headers = {'Content-Type': 'application/json'}
         response = self._download_json(
             'https://comments.odysee.tv/api/v2',
-            claim_id, f'Downloading {resource} JSON metadata',
+            params['claim_id'], f'Downloading {resource} JSON metadata',
             headers=headers,
             data=json.dumps({
                 'jsonrpc': '2.0',
                 'id': 1,
                 'method': method,
-                'params': {
-                    'page': page_index,
-                    'claim_id': claim_id,
-                    'page_size': self._PAGE_SIZE,
-                    'top_level': False,
-                    'sort_by': 0,  # sort by newest
-                },
+                'params': params,
             }).encode())
         err = response.get('error')
         if err:
@@ -163,7 +157,14 @@ class LBRYBaseIE(InfoExtractor):
     # TODO: properly show progress to stdout
     def _get_comments(self, claim_id):
         for page_index in itertools.count(1):
-            response = self._call_comment_api('comment.List', claim_id, page_index, 'comment')
+            params = {
+                'page': page_index,
+                'claim_id': claim_id,
+                'page_size': self._PAGE_SIZE,
+                'top_level': False,
+                'sort_by': 0,   # sort by newest
+            }
+            response = self._call_comment_api('comment.List', params, 'comment')
             total_pages = response['total_pages']
             comments = response['items']
             for comment in comments:
