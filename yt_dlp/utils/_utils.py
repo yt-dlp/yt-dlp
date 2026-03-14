@@ -171,6 +171,12 @@ JSON_LD_RE = r'(?is)<script[^>]+type=(["\']?)application/ld\+json\1[^>]*>\s*(?P<
 
 NUMBER_RE = r'\d+(?:\.\d+)?'
 
+VOID_ELEMENTS = [
+    'area', 'base', 'br', 'col', 'embed',
+    'hr', 'img', 'input', 'link', 'meta',
+    'param', 'source', 'track', 'wbr',
+]
+
 
 @functools.cache
 def preferredencoding():
@@ -314,15 +320,15 @@ def get_element_html_by_id(id, html, **kwargs):
     return get_element_html_by_attribute('id', id, html, **kwargs)
 
 
-def get_element_by_class(class_name, html):
+def get_element_by_class(class_name, html, **kwargs):
     """Return the content of the first tag with the specified class in the passed HTML document"""
-    retval = get_elements_by_class(class_name, html)
+    retval = get_elements_by_class(class_name, html, **kwargs)
     return retval[0] if retval else None
 
 
-def get_element_html_by_class(class_name, html):
+def get_element_html_by_class(class_name, html, **kwargs):
     """Return the html of the first tag with the specified class in the passed HTML document"""
-    retval = get_elements_html_by_class(class_name, html)
+    retval = get_elements_html_by_class(class_name, html, **kwargs)
     return retval[0] if retval else None
 
 
@@ -331,23 +337,37 @@ def get_element_by_attribute(attribute, value, html, **kwargs):
     return retval[0] if retval else None
 
 
-def get_element_html_by_attribute(attribute, value, html, **kargs):
-    retval = get_elements_html_by_attribute(attribute, value, html, **kargs)
+def get_element_html_by_attribute(attribute, value, html, **kwargs):
+    retval = get_elements_html_by_attribute(attribute, value, html, **kwargs)
     return retval[0] if retval else None
 
 
-def get_elements_by_class(class_name, html, **kargs):
+def get_elements_by_class(class_name, html, *, escape_value=True, quoted=True, **kwargs):
     """Return the content of all tags with the specified class in the passed HTML document as a list"""
+    if quoted:
+        if class_name == '':
+            return get_elements_by_attribute(
+                'class', r'\s*', html, escape_value=False, quoted=True, **kwargs)
+        class_name = re.escape(class_name) if escape_value else class_name
+        return get_elements_by_attribute(
+            'class', rf'[^\'"]*(?<=[\'"\s]){class_name}(?=[\'"\s])[^\'"]*',
+            html, escape_value=False, quoted=True, **kwargs)
     return get_elements_by_attribute(
-        'class', rf'[^\'"]*(?<=[\'"\s]){re.escape(class_name)}(?=[\'"\s])[^\'"]*',
-        html, escape_value=False)
+        'class', class_name, html, escape_value=escape_value, quoted=False, **kwargs)
 
 
-def get_elements_html_by_class(class_name, html):
+def get_elements_html_by_class(class_name, html, *, escape_value=True, quoted=True, **kwargs):
     """Return the html of all tags with the specified class in the passed HTML document as a list"""
+    if quoted:
+        if class_name == '':
+            return get_elements_html_by_attribute(
+                'class', r'\s*', html, escape_value=False, quoted=True, **kwargs)
+        class_name = re.escape(class_name) if escape_value else class_name
+        return get_elements_html_by_attribute(
+            'class', rf'[^\'"]*(?<=[\'"\s]){class_name}(?=[\'"\s])[^\'"]*',
+            html, escape_value=False, quoted=True, **kwargs)
     return get_elements_html_by_attribute(
-        'class', rf'[^\'"]*(?<=[\'"\s]){re.escape(class_name)}(?=[\'"\s])[^\'"]*',
-        html, escape_value=False)
+        'class', class_name, html, escape_value=escape_value, quoted=False, **kwargs)
 
 
 def get_elements_by_attribute(*args, **kwargs):
@@ -360,22 +380,30 @@ def get_elements_html_by_attribute(*args, **kwargs):
     return [whole for _, whole in get_elements_text_and_html_by_attribute(*args, **kwargs)]
 
 
-def get_elements_text_and_html_by_attribute(attribute, value, html, *, tag=r'[\w:.-]+', escape_value=True):
+def get_elements_text_and_html_by_attribute(attribute, value, html, *, tag=r'[\w:.-]+', escape_attr=True, escape_value=True, require_value=True, quoted=True):
     """
     Return the text (content) and the html (whole) of the tag with the specified
     attribute in the passed HTML document
     """
-    if not value:
-        return
+    if require_value:
+        if value is None or (value == '' and not quoted):
+            return
 
-    quote = '' if re.match(r'''[\s"'`=<>]''', value) else '?'
+        value = re.escape(value) if escape_value else value
+        if quoted:
+            value_re = rf'(?P<_q>["\'])(?-x:{value})(?P=_q)'
+        else:
+            value_re = rf'(?-x:{value})(?=[\s/>]|$)'
+        value_part = rf'\s*=\s*{value_re}'
+    else:
+        assert value is None, 'value must be None when require_value=False'
+        value_part = r'(?=[\s/>]|$)(?!\s*=)'
 
-    value = re.escape(value) if escape_value else value
-
+    attribute = re.escape(attribute) if escape_attr else attribute
     partial_element_re = rf'''(?x)
-        <(?P<tag>{tag})
+        <(?P<tag>(?i:{tag}))
          (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
-         \s{re.escape(attribute)}\s*=\s*(?P<_q>['"]{quote})(?-x:{value})(?P=_q)
+         \s(?i:(?:{attribute})){value_part}
         '''
 
     for m in re.finditer(partial_element_re, html):
@@ -435,33 +463,34 @@ def get_element_text_and_html_by_tag(tag, html):
     For the first element with the specified tag in the passed HTML document
     return its' content (text) and the whole element (html)
     """
-    def find_or_raise(haystack, needle, exc):
-        try:
-            return haystack.index(needle)
-        except ValueError:
-            raise exc
-    closing_tag = f'</{tag}>'
-    whole_start = find_or_raise(
-        html, f'<{tag}', compat_HTMLParseError(f'opening {tag} tag not found'))
-    content_start = find_or_raise(
-        html[whole_start:], '>', compat_HTMLParseError(f'malformed opening {tag} tag'))
-    content_start += whole_start + 1
+    opening_match = re.search(rf'<{re.escape(tag)}\b', html, flags=re.IGNORECASE)
+    if not opening_match:
+        raise compat_HTMLParseError(f'opening {tag} tag not found')
+    whole_start = opening_match.start()
+    content_start = html.find('>', whole_start)
+    if content_start < 0:
+        raise compat_HTMLParseError(f'malformed opening {tag} tag')
+    content_start += 1
+
+    if tag.lower() in VOID_ELEMENTS:
+        return '', html[whole_start:content_start]
+
     with HTMLBreakOnClosingTagParser() as parser:
         parser.feed(html[whole_start:content_start])
-        if not parser.tagstack or parser.tagstack[0] != tag:
+        if not parser.tagstack or parser.tagstack[0] != tag.lower():
             raise compat_HTMLParseError(f'parser did not match opening {tag} tag')
         offset = content_start
+        closing_re = re.compile(rf'</{re.escape(tag)}\s*>', flags=re.IGNORECASE)
         while offset < len(html):
-            next_closing_tag_start = find_or_raise(
-                html[offset:], closing_tag,
-                compat_HTMLParseError(f'closing {tag} tag not found'))
-            next_closing_tag_end = next_closing_tag_start + len(closing_tag)
+            closing_match = closing_re.search(html, offset)
+            if not closing_match:
+                raise compat_HTMLParseError(f'closing {tag} tag not found')
+            closing_start, closing_end = closing_match.start(), closing_match.end()
             try:
-                parser.feed(html[offset:offset + next_closing_tag_end])
-                offset += next_closing_tag_end
+                parser.feed(html[offset:closing_end])
+                offset = closing_end
             except HTMLBreakOnClosingTagParser.HTMLBreakOnClosingTagException:
-                return html[content_start:offset + next_closing_tag_start], \
-                    html[whole_start:offset + next_closing_tag_end]
+                return html[content_start:closing_start], html[whole_start:closing_end]
         raise compat_HTMLParseError('unexpected end of html')
 
 
