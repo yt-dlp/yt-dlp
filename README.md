@@ -583,6 +583,8 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
     --skip-unavailable-fragments    Skip unavailable fragments for DASH,
                                     hlsnative and ISM downloads (default)
                                     (Alias: --no-abort-on-unavailable-fragments)
+    --allow-empty-fragments         Allow downloading empty 0-byte fragments, 
+                                    useful for broken streams
     --abort-on-unavailable-fragments
                                     Abort download if a fragment is unavailable
                                     (Alias: --no-skip-unavailable-fragments)
