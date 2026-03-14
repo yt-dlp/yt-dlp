@@ -10,6 +10,7 @@ from ..jsinterp import js_number_to_string
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    clean_html,
     dict_get,
     filter_dict,
     float_or_none,
@@ -1446,16 +1447,18 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
 
     _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/(?P<type>broadcasts|events)/(?P<id>\w+)'
     _TESTS = [{
-        # untitled Periscope video
+        # Untitled broadcast
         'url': 'https://twitter.com/i/broadcasts/1yNGaQLWpejGj',
         'info_dict': {
             'id': '1yNGaQLWpejGj',
             'ext': 'mp4',
-            'title': 'Andrea May Sahouri - Periscope Broadcast',
+            'title': 'Andrea May Sahouri - Twitter Broadcast',
             'display_id': '1yNGaQLWpejGj',
             'uploader': 'Andrea May Sahouri',
             'uploader_id': 'andreamsahouri',
             'uploader_url': 'https://twitter.com/andreamsahouri',
+            'release_date': '20200601',
+            'release_timestamp': 1590973647,
             'timestamp': 1590973638,
             'upload_date': '20200601',
             'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
@@ -1473,6 +1476,8 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'uploader': 'SpaceX',
             'uploader_id': 'SpaceX',
             'uploader_url': 'https://twitter.com/SpaceX',
+            'release_date': '20210303',
+            'release_timestamp': 1614812964,
             'timestamp': 1614812942,
             'upload_date': '20210303',
             'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
@@ -1490,6 +1495,8 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'uploader': 'SpaceX',
             'uploader_id': 'SpaceX',
             'uploader_url': 'https://twitter.com/SpaceX',
+            'release_date': '20230420',
+            'release_timestamp': 1681994486,
             'timestamp': 1681993964,
             'upload_date': '20230420',
             'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
@@ -1539,7 +1546,9 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
         info = self._parse_broadcast_data(broadcast, broadcast_id)
         info.update({
             'display_id': display_id,
-            'title': broadcast.get('status') or info.get('title'),
+            'title': traverse_obj(broadcast, (
+                'status', {clean_html}, filter,
+            )) or join_nonempty(info.get('uploader'), 'Twitter Broadcast', delim=' - '),
             'uploader_id': broadcast.get('twitter_username') or info.get('uploader_id'),
             'uploader_url': format_field(
                 broadcast, 'twitter_username', 'https://twitter.com/%s', default=None),
