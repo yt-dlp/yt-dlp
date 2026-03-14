@@ -677,6 +677,9 @@ class SabrProcessor:
         self.next_request_policy = next_request_policy
 
     def process_sabr_seek(self, sabr_seek: SabrSeek) -> ProcessSabrSeekResult:
+        if not self._is_live:
+            raise SabrStreamError(f'Unexpected SABR Seek received for a VOD stream: {sabr_seek}')
+
         seek_to = ticks_to_ms(sabr_seek.seek_time_ticks, sabr_seek.timescale)
         if seek_to is None:
             raise SabrStreamError(f'Server sent a SabrSeek part that is missing required seek data: {sabr_seek}')

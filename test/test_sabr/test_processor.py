@@ -1547,6 +1547,7 @@ class TestCuepointList:
 class TestSabrSeek:
     def test_invalid_sabr_seek(self, logger, base_args):
         processor = SabrProcessor(**base_args)
+        processor.is_live = True
         invalid_seek = SabrSeek(seek_time_ticks=100, timescale=None)
         with pytest.raises(SabrStreamError, match='Server sent a SabrSeek part that is missing required seek data'):
             processor.process_sabr_seek(invalid_seek)
@@ -1562,7 +1563,7 @@ class TestSabrSeek:
             audio_selection=audio_selector,
             video_selection=video_selector,
             video_id=example_video_id)
-
+        processor.is_live = True
         assert processor.client_abr_state.player_time_ms == 0
 
         audio_format_init_metadata = FormatInitializationMetadata(
@@ -1609,6 +1610,7 @@ class TestSabrSeek:
 
     def test_sabr_seek_clears_ad_cuepoints(self, logger, base_args):
         processor = SabrProcessor(**base_args)
+        processor.is_live = True
         processor.process_cuepoint_list(CuepointList(cuepoint_info=[make_cuepoint_info(identifier='test_identifier')]))
         assert set(processor.ad_cuepoints) == {'test_identifier'}
 
@@ -1622,6 +1624,45 @@ class TestSabrSeek:
         assert processor.ad_cuepoints == {}
         logger.debug.assert_called_with('Seeking to 5600ms')
         logger.trace.assert_called_with('Clearing all ad cuepoints due to seek')
+
+    def test_sabr_seek_vod_fails(self, logger, base_args):
+        # Should fail if get a SabrSeek for a VOD stream.
+        # We only expect to receive SabrSeek for live streams,
+        # and receiving one for VOD is unexpected and can cause corrupted download.
+        audio_selector = make_selector('audio')
+        video_selector = make_selector('video')
+        audio_format_id = audio_selector.format_ids[0]
+        video_format_id = video_selector.format_ids[0]
+        processor = SabrProcessor(
+            **base_args,
+            audio_selection=audio_selector,
+            video_selection=video_selector,
+            video_id=example_video_id)
+        processor.is_live = False
+
+        assert processor.client_abr_state.player_time_ms == 0
+
+        audio_format_init_metadata = FormatInitializationMetadata(
+            video_id=example_video_id,
+            format_id=audio_format_id,
+            mime_type='audio/mp4',
+        )
+        video_format_init_metadata = FormatInitializationMetadata(
+            video_id=example_video_id,
+            format_id=video_format_id,
+            mime_type='video/mp4',
+        )
+
+        processor.process_format_initialization_metadata(audio_format_init_metadata)
+        processor.process_format_initialization_metadata(video_format_init_metadata)
+
+        sabr_seek = SabrSeek(
+            seek_time_ticks=56000,
+            timescale=10000,
+        )
+
+        with pytest.raises(SabrStreamError, match='Unexpected SABR Seek received for a VOD stream'):
+            processor.process_sabr_seek(sabr_seek)
 
 
 class TestMediaHeader:
