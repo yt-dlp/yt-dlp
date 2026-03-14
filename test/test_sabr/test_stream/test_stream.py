@@ -16,6 +16,7 @@ from test.test_sabr.test_stream.helpers import (
     DEFAULT_AUDIO_FORMAT,
     VALID_SABR_URL,
     setup_sabr_stream_av,
+    DEFAULT_VIDEO_FORMAT,
 )
 from yt_dlp.extractor.youtube._proto.videostreaming.reload_player_response import ReloadPlaybackParams
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import (
@@ -149,6 +150,19 @@ class TestStream:
         # Should have completed due to all segments being retrieved
         logger.trace.assert_any_call(
             'All enabled formats have reached their last expected segment at player time 10001 ms, assuming end of vod.')
+
+    def test_set_preferred_format_ids(self, logger, client_info):
+        # If format_ids are present in the format selector, then the preferred format ids should be set
+        sabr_stream, rh, _ = setup_sabr_stream_av(
+            client_info=client_info,
+            logger=logger,
+            enable_video=True,
+            enable_audio=True,
+            select_with_format_id=True,
+        )
+        list(sabr_stream.iter_parts())
+        assert rh.request_history[0].vpabr.preferred_audio_format_ids == [DEFAULT_AUDIO_FORMAT]
+        assert rh.request_history[0].vpabr.preferred_video_format_ids == [DEFAULT_VIDEO_FORMAT]
 
     def test_audio_video_end_player_time(self, logger, client_info):
         # Should consider stream as finished if player_time_ms is greater than end_time_ms of each format

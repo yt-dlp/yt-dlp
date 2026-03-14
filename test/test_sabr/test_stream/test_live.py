@@ -13,6 +13,9 @@ from test.test_sabr.test_stream.helpers import (
     VALID_LIVE_URL,
     setup_sabr_stream_av,
     LiveRetryAVProfile,
+    DEFAULT_CAPTION_FORMAT,
+    DEFAULT_AUDIO_FORMAT,
+    DEFAULT_VIDEO_FORMAT,
 )
 from yt_dlp.extractor.youtube._proto.videostreaming.reload_player_response import ReloadPlaybackParams
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import (
@@ -21,7 +24,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.exceptions import (
 )
 from yt_dlp.extractor.youtube._streaming.ump import UMPPartId, UMPPart
 
-from yt_dlp.extractor.youtube._streaming.sabr.models import ConsumedRange
+from yt_dlp.extractor.youtube._streaming.sabr.models import ConsumedRange, AudioSelector, VideoSelector
 from yt_dlp.extractor.youtube._streaming.sabr.part import (
     FormatInitializedSabrPart,
     RefreshPlayerResponseSabrPart,
@@ -34,6 +37,8 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     VideoPlaybackAbrRequest,
     LiveMetadata,
     SabrSeek,
+    BufferedRange,
+    TimeRange,
 )
 from yt_dlp.networking.exceptions import TransportError, HTTPError
 
@@ -356,8 +361,8 @@ class TestLiveStreamStall:
 
         class MissingAudioFormatLiveAVProfile(LiveAVProfile):
             def determine_formats(self, vpabr: VideoPlaybackAbrRequest):
-                audio_format_id, _ = super().determine_formats(vpabr)
-                return audio_format_id, None
+                audio_format_id, _, _ = super().determine_formats(vpabr)
+                return audio_format_id, None, _
 
         def stall_func(parts, vpabr, url, request_number):
             # Stop returning new segments after 8 requests
@@ -1849,6 +1854,109 @@ class TestLive:
         assert second_request_vpabr.client_abr_state.player_time_ms == seek_ms
         logger.debug.assert_any_call(f'Seeking to {seek_ms}ms')
 
+    @mock_time
+    def test_live_captions(self, logger, client_info):
+        # Basic test for live captions to ensure we can download
+        # a live stream with all caption, audio and video formats.
+        total_segments = 3
+        segment_target_duration_ms = 2000
+        dvr_segments = 0
+        profile = LiveAVProfile({
+            'total_segments': total_segments,
+            'segment_target_duration_ms': segment_target_duration_ms,
+            'dvr_segments': dvr_segments,
+        })
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=profile,
+            client_info=client_info,
+            logger=logger,
+            url=VALID_LIVE_URL,
+            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            enable_captions=True,
+            enable_audio=True,
+            enable_video=True,
+            select_with_format_id=True,
+        )
+        audio_selector, video_selector, captions_selector = selectors
+        parts = list(sabr_stream.iter_parts())
+        assert_media_sequence_in_order(parts, audio_selector, total_segments)
+        assert_media_sequence_in_order(parts, video_selector, total_segments)
+        assert_media_sequence_in_order(parts, captions_selector, total_segments)
+
+        assert len(sabr_stream.processor.initialized_formats) == 3
+
+        stats_str = sabr_stream.create_stats_str()
+        assert 'if:[140(3), 248(3), 386(3)]' in stats_str
+        assert ' cr:[140:1-3 (0-5900), 248:1-3 (0-5900), 386:1-3 (0-5900)]' in stats_str
+
+        assert rh.request_history[0].vpabr.client_abr_state.enabled_track_types_bitfield == 7
+
+        second_request_vpabr = rh.request_history[1].vpabr
+        assert len(second_request_vpabr.initialized_format_ids) == 3
+
+        assert rh.request_history[0].vpabr.preferred_caption_format_ids == [DEFAULT_CAPTION_FORMAT]
+
+    @mock_time
+    def test_only_live_captions(self, logger, client_info):
+        # Audio and Video segments should be discarded if only captions are enabled
+        total_segments = 3
+        segment_target_duration_ms = 2000
+        dvr_segments = 0
+        profile = LiveAVProfile({
+            'total_segments': total_segments,
+            'segment_target_duration_ms': segment_target_duration_ms,
+            'dvr_segments': dvr_segments,
+        })
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=profile,
+            client_info=client_info,
+            logger=logger,
+            url=VALID_LIVE_URL,
+            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            enable_captions=True,
+            enable_audio=False,
+            enable_video=False,
+        )
+        _, _, captions_selector = selectors
+        parts = list(sabr_stream.iter_parts())
+        format_init_parts = [part for part in parts if isinstance(part, FormatInitializedSabrPart)]
+        assert len(format_init_parts) == 1
+        assert format_init_parts[0].format_id == DEFAULT_CAPTION_FORMAT
+        assert format_init_parts[0].format_selector == captions_selector
+        assert_media_sequence_in_order(parts, captions_selector, total_segments)
+
+        # Ensure we did not get any audio segments
+        audio_parts = [part for part in parts if hasattr(part, 'format_selector') and isinstance(part.format_selector, AudioSelector)]
+        assert not audio_parts
+
+        # Ensure we did not get any video segments
+        video_parts = [part for part in parts if hasattr(part, 'format_selector') and isinstance(part.format_selector, VideoSelector)]
+        assert not video_parts
+
+        assert rh.request_history[0].vpabr.client_abr_state.enabled_track_types_bitfield == 7
+
+        # Audio format should be marked as completely buffered after first request
+        audio_buffered_range = BufferedRange(
+            format_id=DEFAULT_AUDIO_FORMAT,
+            start_time_ms=0,
+            duration_ms=9007199254740991,
+            start_segment_index=0,
+            end_segment_index=9007199254740991,
+            time_range=TimeRange(start_ticks=0, duration_ticks=9007199254740991, timescale=1000))
+
+        assert audio_buffered_range in rh.request_history[1].vpabr.buffered_ranges
+
+        # Video format should be marked as completely buffered after first request
+        video_buffered_range = BufferedRange(
+            format_id=DEFAULT_VIDEO_FORMAT,
+            start_time_ms=0,
+            duration_ms=9007199254740991,
+            start_segment_index=0,
+            end_segment_index=9007199254740991,
+            time_range=TimeRange(start_ticks=0, duration_ticks=9007199254740991, timescale=1000))
+
+        assert video_buffered_range in rh.request_history[1].vpabr.buffered_ranges
+
 
 class TestLiveEndErrorRetriesExhausted:
     @mock_time
@@ -2452,8 +2560,8 @@ class TestLiveEndErrorRetriesExhausted:
 
         class MissingAudioFormatLiveRetryAVProfile(LiveRetryAVProfile):
             def determine_formats(self, vpabr: VideoPlaybackAbrRequest):
-                audio_format_id, _ = super().determine_formats(vpabr)
-                return audio_format_id, None
+                audio_format_id, _, _ = super().determine_formats(vpabr)
+                return audio_format_id, None, _
 
         profile = MissingAudioFormatLiveRetryAVProfile({
             'total_segments': total_segments,

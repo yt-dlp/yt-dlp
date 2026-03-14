@@ -472,14 +472,17 @@ class TestFormatInitialization:
     def test_initialize_multiple_formats(self, logger, base_args):
         audio_selector = make_selector('audio')
         video_selector = make_selector('video')
+        caption_selector = make_selector('caption')
 
         audio_format_id = audio_selector.format_ids[0]
         video_format_id = video_selector.format_ids[0]
+        caption_format_id = caption_selector.format_ids[0]
 
         processor = SabrProcessor(
             **base_args,
             audio_selection=audio_selector,
             video_selection=video_selector,
+            caption_selection=caption_selector,
             video_id=example_video_id,
         )
 
@@ -503,6 +506,16 @@ class TestFormatInitialization:
             duration_timescale=1000,
         )
 
+        caption_format_init_metadata = FormatInitializationMetadata(
+            video_id=example_video_id,
+            format_id=caption_format_id,
+            end_time_ms=10000,
+            total_segments=10,
+            mime_type='text/mp4',
+            duration_ticks=10000,
+            duration_timescale=1000,
+        )
+
         # Process audio format initialization
         audio_result = processor.process_format_initialization_metadata(audio_format_init_metadata)
         assert audio_result.sabr_part.format_selector is audio_selector
@@ -518,6 +531,14 @@ class TestFormatInitialization:
         assert len(processor.initialized_formats) == 2
         assert str(video_format_id) in processor.initialized_formats
         assert processor.initialized_formats[str(video_format_id)].format_id == video_format_id
+
+        # Process caption format initialization
+        caption_result = processor.process_format_initialization_metadata(caption_format_init_metadata)
+        assert caption_result.sabr_part.format_selector is caption_selector
+        assert caption_result.sabr_part.format_id == caption_format_id
+        assert len(processor.initialized_formats) == 3
+        assert str(caption_format_id) in processor.initialized_formats
+        assert processor.initialized_formats[str(caption_format_id)].format_id == caption_format_id
 
     def test_initialized_format_not_match_selector(self, logger, base_args):
         selector = make_selector('audio', format_ids=[FormatId(140)])

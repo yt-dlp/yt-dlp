@@ -20,7 +20,7 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     StreamProtectionStatus,
     LiveMetadata,
 )
-from yt_dlp.extractor.youtube._streaming.sabr.models import AudioSelector, VideoSelector
+from yt_dlp.extractor.youtube._streaming.sabr.models import AudioSelector, VideoSelector, CaptionSelector
 from yt_dlp.extractor.youtube._streaming.sabr.part import (
     MediaSegmentInitSabrPart,
     MediaSegmentDataSabrPart,
@@ -46,6 +46,7 @@ DEFAULT_INIT_SEGMENT_DATA = b'example-init-segment'
 
 DEFAULT_AUDIO_FORMAT = FormatId(itag=140, lmt=123)
 DEFAULT_VIDEO_FORMAT = FormatId(itag=248, lmt=456)
+DEFAULT_CAPTION_FORMAT = FormatId(itag=386, lmt=123)
 
 
 def extract_rn(url: str) -> int:
@@ -139,7 +140,6 @@ class SabrResponseProcessor:
             vpabr = protobug.loads(data, VideoPlaybackAbrRequest)
         except Exception:
             error_part = protobug.dumps(SabrError(type='sabr.malformed_request'))
-            # TODO: confirm GVS behaviour when VideoPlaybackAbrRequest is malformed
             return None, [UMPPart(data=io.BytesIO(error_part), part_id=UMPPartId.SABR_ERROR, size=len(error_part))], 200
 
         return vpabr, self.get_parts(vpabr, url, request_number), 200
@@ -147,19 +147,20 @@ class SabrResponseProcessor:
     def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str, request_number: int) -> list[UMPPart]:
         raise NotImplementedError
 
-    def determine_formats(self, vpabr: VideoPlaybackAbrRequest) -> tuple[FormatId | None, FormatId | None]:
-        # Check selected_audio_format_ids and selected_video_format_ids
-        # TODO: caption format ids, consider initialized_format_ids
-
+    def determine_formats(self, vpabr: VideoPlaybackAbrRequest) -> tuple[FormatId | None, FormatId | None, FormatId | None]:
         enabled_track_types_bitfield = vpabr.client_abr_state.enabled_track_types_bitfield
 
         audio_format_id = vpabr.preferred_audio_format_ids[0] if vpabr.preferred_audio_format_ids else self.options.get('default_audio_format', DEFAULT_AUDIO_FORMAT)
         video_format_id = None
+        caption_format_id = None
 
         if enabled_track_types_bitfield != 1:
             video_format_id = vpabr.preferred_video_format_ids[0] if vpabr.preferred_video_format_ids else self.options.get('default_video_format', DEFAULT_VIDEO_FORMAT)
 
-        return audio_format_id, video_format_id
+        if enabled_track_types_bitfield == 7:
+            caption_format_id = vpabr.preferred_caption_format_ids[0] if vpabr.preferred_caption_format_ids else self.options.get('default_caption_format', DEFAULT_CAPTION_FORMAT)
+
+        return audio_format_id, video_format_id, caption_format_id
 
     def get_format_initialization_metadata_parts(
         self,
@@ -328,7 +329,7 @@ class SabrResponseProcessor:
 
 class BasicAudioVideoProfile(SabrResponseProcessor):
     def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str, request_number: int) -> list[UMPPart]:
-        audio_format_id, video_format_id = self.determine_formats(vpabr)
+        audio_format_id, video_format_id, _ = self.determine_formats(vpabr)
         parts = self.get_format_initialization_metadata_parts(
             audio_format_id=audio_format_id,
             video_format_id=video_format_id,
@@ -660,7 +661,7 @@ class LiveAVProfile(BasicAudioVideoProfile):
             start_ms += self.segment_duration_ms(segment_number)
         return start_ms
 
-    def generate_live_fim_parts(self, audio_format_id: FormatId | None, video_format_id: FormatId | None) -> list[UMPPart | Exception]:
+    def generate_live_fim_parts(self, audio_format_id: FormatId | None, video_format_id: FormatId | None, caption_format_id: FormatId | None) -> list[UMPPart | Exception]:
         # YouTube sends these on every response for live streams.
         # we will do the same as that makes things easy ;-)
 
@@ -683,6 +684,18 @@ class LiveAVProfile(BasicAudioVideoProfile):
                 video_id=VIDEO_ID,
                 format_id=video_format_id,
                 mime_type='video/mp4',
+            ))
+            parts.append(UMPPart(
+                part_id=UMPPartId.FORMAT_INITIALIZATION_METADATA,
+                size=len(fim),
+                data=io.BytesIO(fim),
+            ))
+
+        if caption_format_id:
+            fim = protobug.dumps(FormatInitializationMetadata(
+                video_id=VIDEO_ID,
+                format_id=caption_format_id,
+                mime_type='text/mp4',
             ))
             parts.append(UMPPart(
                 part_id=UMPPartId.FORMAT_INITIALIZATION_METADATA,
@@ -784,18 +797,18 @@ class LiveAVProfile(BasicAudioVideoProfile):
         return segment_parts
 
     def get_parts(self, vpabr: VideoPlaybackAbrRequest, url: str, request_number: int) -> list[UMPPart | Exception]:
-        audio_format_id, video_format_id = self.determine_formats(vpabr)
+        audio_format_id, video_format_id, caption_format_id = self.determine_formats(vpabr)
 
         parts = []
         # drive walltime by video format if enabled, otherwise audio
         next_segment = self.next_segment(
-            buffered_segments=self.buffered_segments(vpabr, self.total_segments, video_format_id or audio_format_id),
+            buffered_segments=self.buffered_segments(vpabr, self.total_segments, video_format_id or audio_format_id or caption_format_id),
             player_time_ms=vpabr.client_abr_state.player_time_ms,
         )
 
         if not self.options.get('omit_live_metadata', False):
             parts.append(self.generate_live_metadata_part(next_segment))
-        parts.extend(self.generate_live_fim_parts(audio_format_id, video_format_id))
+        parts.extend(self.generate_live_fim_parts(audio_format_id, video_format_id, caption_format_id))
 
         next_header_id = 0
         if audio_format_id is not None:
@@ -816,6 +829,15 @@ class LiveAVProfile(BasicAudioVideoProfile):
                 format_id=video_format_id,
             )
             parts.extend(video_segment_parts)
+
+        if caption_format_id is not None:
+            caption_segment_parts = self.generate_media_segments(
+                buffered_segments=self.buffered_segments(vpabr, self.total_segments, caption_format_id),
+                player_time_ms=vpabr.client_abr_state.player_time_ms,
+                start_header_id=next_header_id,
+                format_id=caption_format_id,
+            )
+            parts.extend(caption_segment_parts)
 
         custom_parts_function = self.options.get('custom_parts_function')
         if custom_parts_function:
@@ -936,7 +958,7 @@ class MockTime:
             raise
 
         # Some debugging / dev utils call real sleep for very small durations, ignore these
-        # TODO: might be better to selectively mock time module in particular modules instead
+        # xxx: might be better to selectively mock time module in particular modules instead
         if seconds > 1:
             self._current_time += seconds
 
@@ -971,11 +993,19 @@ def setup_sabr_stream_av(
     logger=None,
     enable_audio=True,
     enable_video=True,
+    enable_captions=False,
+    select_with_format_id=False,
     **options,
 ):
     rh = SabrRequestHandler(sabr_response_processor=sabr_response_processor or BasicAudioVideoProfile())
-    audio_selector = AudioSelector(display_name='audio') if enable_audio else None
-    video_selector = VideoSelector(display_name='video') if enable_video else None
+
+    audio_format_ids = [DEFAULT_AUDIO_FORMAT] if select_with_format_id else []
+    video_format_ids = [DEFAULT_VIDEO_FORMAT] if select_with_format_id else []
+    caption_format_ids = [DEFAULT_CAPTION_FORMAT] if select_with_format_id else []
+
+    audio_selector = AudioSelector(display_name='audio', format_ids=audio_format_ids) if enable_audio else None
+    video_selector = VideoSelector(display_name='video', format_ids=video_format_ids) if enable_video else None
+    caption_selector = CaptionSelector(display_name='captions', format_ids=caption_format_ids) if enable_captions else None
     sabr_stream = SabrStream(
         urlopen=rh.send,
         server_abr_streaming_url=url,
@@ -984,6 +1014,7 @@ def setup_sabr_stream_av(
         client_info=client_info,
         audio_selection=audio_selector,
         video_selection=video_selector,
+        caption_selection=caption_selector,
         **options,
     )
-    return sabr_stream, rh, (audio_selector, video_selector)
+    return sabr_stream, rh, (audio_selector, video_selector) if not caption_selector else (audio_selector, video_selector, caption_selector)
