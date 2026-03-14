@@ -4309,6 +4309,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if live_status in ('is_live', 'post_live'):
             for fmt in formats:
                 protocol = fmt.get('protocol')
+                if protocol == 'sabr':
+                    continue
                 # Currently, protocol isn't set for adaptive https formats, but this could change
                 is_adaptive = protocol in (None, 'http', 'https')
                 if live_status == 'post_live' and is_adaptive:
@@ -4317,11 +4319,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # Set their preference <= -1000 so that FormatSorter flags them as 'hidden'
                     adjust_incomplete_format(fmt, note_suffix='(ended)', pref_adjustment=-5000)
                 # Is it live with --live-from-start? Or is it post-live and its duration is >2hrs?
-                elif needs_live_processing and protocol != 'sabr':
+                elif needs_live_processing:
                     if not fmt.get('is_from_start'):
                         # Post-live m3u8 formats for >2hr streams
                         adjust_incomplete_format(fmt)
-                elif live_status == 'is_live' and protocol != 'sabr':
+                elif live_status == 'is_live':
                     if protocol == 'http_dash_segments':
                         # Live DASH formats without --live-from-start
                         adjust_incomplete_format(fmt)
