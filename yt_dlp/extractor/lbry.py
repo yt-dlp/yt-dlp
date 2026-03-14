@@ -136,11 +136,17 @@ class LBRYBaseIE(InfoExtractor):
                 'description': 'description',
             })))
 
-    def _call_comment_api(self, method, params, resource):
+    def _comment_api_info_string(self, resource, current_count, total_count, page_index):
+        if 'comment' in resource:
+            return f'Downloading {resource} JSON API page {page_index} ({current_count}/{total_count})'
+        else:
+            return f'Downloading {resource} JSON ({current_count}/{total_count})'
+
+    def _call_comment_api(self, method, params, resource, info_string):
         headers = {'Content-Type': 'application/json'}
         response = self._download_json(
             'https://comments.odysee.tv/api/v2',
-            params['claim_id'], f'Downloading {resource} JSON metadata',
+            params['claim_id'], info_string,
             headers=headers,
             data=json.dumps({
                 'jsonrpc': '2.0',
@@ -154,8 +160,10 @@ class LBRYBaseIE(InfoExtractor):
                 f'{self.IE_NAME} said: {err.get("code")} - {err.get("message")}', expected=True)
         return response['result']
 
-    # TODO: properly show progress to stdout
     def _get_comments(self, claim_id):
+        current_count = 0
+        total_count = '?'
+        self.to_screen('Downloading comments')
         for page_index in itertools.count(1):
             params = {
                 'page': page_index,
@@ -164,8 +172,13 @@ class LBRYBaseIE(InfoExtractor):
                 'top_level': False,
                 'sort_by': 0,   # sort by newest
             }
-            response = self._call_comment_api('comment.List', params, 'comment')
+            info_string = self._comment_api_info_string('comment', current_count, total_count, page_index)
+            response = self._call_comment_api('comment.List', params, 'comment', info_string)
             total_pages = response['total_pages']
+            total_count = response['total_items']
+            if total_count == 0:
+                self.to_screen(f'{claim_id} has no comments')
+                return
             comments = response['items']
             for comment in comments:
                 # TODO: 'like_count' and 'dislike_count' from reaction API
@@ -180,6 +193,7 @@ class LBRYBaseIE(InfoExtractor):
                     'timestamp': comment['timestamp'],
                     'parent': comment.get('parent_id') or 'root',
                 }
+                current_count += 1
             if page_index == total_pages:
                 break
 
