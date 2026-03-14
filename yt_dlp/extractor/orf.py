@@ -562,7 +562,7 @@ class ORFONIE(InfoExtractor):
 
 class ORFONSeriesIE(InfoExtractor):
     IE_NAME = 'orf:on:series'
-    _VALID_URL = r'https?://on\.orf\.at/sendereihe/(?P<id>\d+)'
+    _VALID_URL = r'https?://on\.orf\.at/(?P<type>sendereihe|sammlung)/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://on.orf.at/sendereihe/1203',
         'info_dict': {
@@ -579,14 +579,24 @@ class ORFONSeriesIE(InfoExtractor):
             'description': 'Aktuelle Nachrichten aus aller Welt',
         },
         'playlist_mincount': 22,
+    }, {
+        'url': 'https://on.orf.at/sammlung/13870545/homestories-journalisten-besuchen-orte-der-kindheit',
+        'info_dict': {
+            'id': '13870545',
+            'title': 'Homestories: Journalisten besuchen Orte der Kindheit',
+            'description': 'Im Frühling 2017 entstand die Idee zu den ZIB2-Homestories: '
+                           'Neun Reporterinnen und Reporter erzählen von ihren Heimatorten '
+                           'und zeigen deren Wandel – politisch, wirtschaftlich und gesellschaftlich.',
+        },
+        'playlist_mincount': 10,
     }]
 
     def _real_extract(self, url):
-        series_id = self._match_id(url)
+        series_id, series_type = self._match_valid_url(url).group('id', 'type')
 
         # set page to a high number to include all episodes of the series in the document
         # each page contains 20 episodes, in practice shows almost never have more than 100 episodes
-        series_url = f'https://on.orf.at/sendereihe/{series_id}?page=1000'
+        series_url = f'https://on.orf.at/{series_type}/{series_id}?page=1000'
         webpage = self._download_webpage(series_url, series_id)
 
         video_ids = re.findall(r'<a[^>]+href=["\']/video/(?P<id>\d+)', webpage)
