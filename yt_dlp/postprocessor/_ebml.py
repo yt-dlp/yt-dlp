@@ -33,6 +33,7 @@ _VINT_MASKS = (
     (0x01, 0x00FFFFFFFFFFFFFF, 8),
 )
 
+
 def read_vint(data, pos):
     if pos >= len(data):
         return None, 0
@@ -135,7 +136,6 @@ def find_chapters(data):
             return None
         pos += id_len + size_len + size
     return None
-
 
 
 # RFC 9559 Section 5.1.7.1 - https://www.rfc-editor.org/rfc/rfc9559#name-editionentry-element
