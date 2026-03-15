@@ -20,6 +20,7 @@ cookies
 *.temp
 *.unknown_video
 *.ytdl
+*.state
 .cache/
 
 *.3gp
@@ -108,6 +109,7 @@ test/testdata/sigs/player-*.js
 test/testdata/thumbnails/empty.webp
 test/testdata/thumbnails/foo\ %d\ bar/foo_%d.*
 .ejs-*
+.protobug-*
 
 # Binary
 /youtube-dl
@@ -132,4 +134,5 @@ ytdlp_plugins/
 yt-dlp-plugins
 
 # Packages
+protobug/
 yt_dlp_ejs/
