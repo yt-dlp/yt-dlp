@@ -3,7 +3,6 @@ import time
 
 from .common import InfoExtractor
 from ..utils import ExtractorError, try_get
-from ..utils.networking import random_user_agent
 
 
 class GofileIE(InfoExtractor):
@@ -49,6 +48,8 @@ class GofileIE(InfoExtractor):
         },
     }]
     _TOKEN = None
+    _SALT = 'gf2026x'  # Source https://gofile.io/dist/js/wt.obf.js Current function name 'generateWT'
+    _LOCALE = 'en-GB'
 
     def _real_initialize(self):
         token = self._get_cookies('https://gofile.io/').get('accountToken')
@@ -61,25 +62,21 @@ class GofileIE(InfoExtractor):
         self._TOKEN = account_data['data']['token']
         self._set_cookie('.gofile.io', 'accountToken', self._TOKEN)
 
-    def gen_wt(self, user_agent, language='en-GB'):
-        t4 = int(time.time() / 14400)
-        hash_salt = 'gf2026x'
-        data = f'{user_agent}::{language}::{self._TOKEN}::{t4}::{hash_salt}'
-        return hashlib.sha256(data.encode()).hexdigest()
-
     def _entries(self, file_id):
         query_params = {}
         if password := self.get_param('videopassword'):
             query_params['password'] = hashlib.sha256(password.encode()).hexdigest()
 
-        user_agent = random_user_agent()
+        user_agent = self.get_param('http_headers')['User-Agent']
+        # Source https://gofile.io/dist/js/wt.obf.js Current function name 'generateWT'
+        token_data = f'{user_agent}::{self._LOCALE}::{self._TOKEN}::{int(time.time() / 14400)}::{self._SALT}'
         files = self._download_json(
             f'https://api.gofile.io/contents/{file_id}', file_id, 'Getting filelist',
             query=query_params, headers={
                 'Authorization': f'Bearer {self._TOKEN}',
-                'X-Website-Token': self.gen_wt(user_agent),
+                'X-Website-Token': hashlib.sha256(token_data.encode()).hexdigest(),
                 'User-Agent': user_agent,
-                'X-BL': 'en-GB',
+                'X-BL': self._LOCALE,
             })
 
         status = files['status']
