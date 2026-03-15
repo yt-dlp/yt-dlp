@@ -25,28 +25,29 @@ class CondeNastIE(InfoExtractor):
     # The keys are the supported sites and the values are the name to be shown
     # to the user and in the extractor description.
     _SITES = {
-        'allure': 'Allure',
-        'architecturaldigest': 'Architectural Digest',
-        'arstechnica': 'Ars Technica',
-        'bonappetit': 'Bon Appétit',
-        'brides': 'Brides',
-        'cnevids': 'Condé Nast',
-        'cntraveler': 'Condé Nast Traveler',
-        'details': 'Details',
-        'epicurious': 'Epicurious',
-        'glamour': 'Glamour',
-        'golfdigest': 'Golf Digest',
-        'gq': 'GQ',
-        'newyorker': 'The New Yorker',
-        'self': 'SELF',
-        'teenvogue': 'Teen Vogue',
-        'vanityfair': 'Vanity Fair',
-        'vogue': 'Vogue',
-        'wired': 'WIRED',
-        'wmagazine': 'W Magazine',
+        'allure.com': 'Allure',
+        'architecturaldigest.com': 'Architectural Digest',
+        'arstechnica.com': 'Ars Technica',
+        'bonappetit.com': 'Bon Appétit',
+        'brides.com': 'Brides',
+        'cnevids.com': 'Condé Nast',
+        'cntraveler.com': 'Condé Nast Traveler',
+        'details.com': 'Details',
+        'epicurious.com': 'Epicurious',
+        'glamour.com': 'Glamour',
+        'golfdigest.com': 'Golf Digest',
+        'gq.com': 'GQ',
+        'newyorker.com': 'The New Yorker',
+        'self.com': 'SELF',
+        'teenvogue.com': 'Teen Vogue',
+        'vanityfair.com': 'Vanity Fair',
+        'vogue.com': 'Vogue',
+        'vogue.fr': 'Vogue France',
+        'wired.com': 'WIRED',
+        'wmagazine.com': 'W Magazine',
     }
 
-    _VALID_URL = r'''(?x)https?://(?:video|www|player(?:-backend)?)\.(?:{})\.[a-z]{{2,}}/
+    _VALID_URL = r'''(?x)https?://(?:video|www|player(?:-backend)?)\.(?:{})/
         (?:
             (?:
                 embed(?:js)?|
