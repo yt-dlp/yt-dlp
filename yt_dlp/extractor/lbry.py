@@ -138,9 +138,9 @@ class LBRYBaseIE(InfoExtractor):
 
     def _comment_api_info_string(self, resource, current_count, total_count, page_index=0):
         if 'comment' in resource:
-            return f'Downloading {resource} JSON API page {page_index} ({current_count}/{total_count})'
+            return f'Downloading {resource} API JSON page {page_index} ({current_count}/{total_count})'
         else:
-            return f'Downloading {resource} JSON ({current_count}/{total_count})'
+            return f'Downloading {resource} API JSON ({current_count}/{total_count})'
 
     def _call_comment_api(self, method, params, claim_id, info_string):
         headers = {'Content-Type': 'application/json'}
@@ -176,8 +176,9 @@ class LBRYBaseIE(InfoExtractor):
             info_string = self._comment_api_info_string('comment', current_count, total_count, page_index)
             response = self._call_comment_api('comment.List', params, claim_id, info_string)
 
-            total_pages = response['total_pages']
-            total_count = response['total_items']
+            if total_count == '?':  # populate total counts only on first pass
+                total_pages = response['total_pages']
+                total_count = response['total_items']
             if total_count == 0:
                 self.to_screen(f'{claim_id} has no comments')
                 return
