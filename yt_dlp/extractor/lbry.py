@@ -136,17 +136,17 @@ class LBRYBaseIE(InfoExtractor):
                 'description': 'description',
             })))
 
-    def _comment_api_info_string(self, resource, current_count, total_count, page_index):
+    def _comment_api_info_string(self, resource, current_count, total_count, page_index=0):
         if 'comment' in resource:
             return f'Downloading {resource} JSON API page {page_index} ({current_count}/{total_count})'
         else:
             return f'Downloading {resource} JSON ({current_count}/{total_count})'
 
-    def _call_comment_api(self, method, params, resource, info_string):
+    def _call_comment_api(self, method, params, claim_id, info_string):
         headers = {'Content-Type': 'application/json'}
         response = self._download_json(
             'https://comments.odysee.tv/api/v2',
-            params['claim_id'], info_string,
+            claim_id, info_string,
             headers=headers,
             data=json.dumps({
                 'jsonrpc': '2.0',
@@ -164,6 +164,7 @@ class LBRYBaseIE(InfoExtractor):
         current_count = 0
         total_count = '?'
         self.to_screen('Downloading comments')
+
         for page_index in itertools.count(1):
             params = {
                 'page': page_index,
@@ -173,15 +174,22 @@ class LBRYBaseIE(InfoExtractor):
                 'sort_by': 0,   # sort by newest
             }
             info_string = self._comment_api_info_string('comment', current_count, total_count, page_index)
-            response = self._call_comment_api('comment.List', params, 'comment', info_string)
+            response = self._call_comment_api('comment.List', params, claim_id, info_string)
+
             total_pages = response['total_pages']
             total_count = response['total_items']
             if total_count == 0:
                 self.to_screen(f'{claim_id} has no comments')
                 return
             comments = response['items']
+
+            # get comment reactions
+            comment_ids = ','.join(traverse_obj(comments, (..., 'comment_id')))
+            info_string = self._comment_api_info_string('reaction', current_count, total_count)
+            response = self._call_comment_api('reaction.List', {'comment_ids': comment_ids}, claim_id, info_string)
+            comment_reactions = response.get('others_reactions') or None
+
             for comment in comments:
-                # TODO: 'like_count' and 'dislike_count' from reaction API
                 # TODO: 'author_thumbnail' from proxy API
                 yield {
                     'author': comment['channel_name'],
@@ -189,6 +197,8 @@ class LBRYBaseIE(InfoExtractor):
                     # TODO: 'author_url' from 'channel_url', needs conversion from 'lbry://' to standard link
                     'id': comment['comment_id'],
                     'text': comment['comment'],
+                    'like_count': traverse_obj(comment_reactions, (comment['comment_id'], 'like'), {int}) or 0,
+                    'dislike_count': traverse_obj(comment_reactions, (comment['comment_id'], 'dislike'), {int}) or 0,
                     'is_pinned': comment['is_pinned'],
                     'timestamp': comment['timestamp'],
                     'parent': comment.get('parent_id') or 'root',
