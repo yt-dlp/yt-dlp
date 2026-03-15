@@ -81,7 +81,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'reelPlayerHeaderSupportedRenderers', 'reelPlayerHeaderRenderer'))
 
         title = self._get_text(renderer, 'title', 'headline') or self._get_text(reel_header_renderer, 'reelTitleText')
-        description = self._get_text(renderer, 'descriptionSnippet')
+        description = self._get_text(renderer, 'descriptionSnippet', ('detailedMetadataSnippets', ..., 'snippetText'))
 
         duration = int_or_none(renderer.get('lengthSeconds'))
         if duration is None:
@@ -2148,7 +2148,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                     f'https://music.youtube.com/playlist?list={item_id[2:]}', YoutubeTabIE, item_id[2:])
             elif item_id[:2] == 'MP':  # Resolve albums (/[channel/browse]/MP...) to their equivalent playlist
                 mdata = self._extract_tab_endpoint(
-                    f'https://music.youtube.com/channel/{item_id}', item_id, default_client='web_music')
+                    f'https://music.youtube.com/browse/{item_id}', item_id, default_client='web_music')
                 murl = traverse_obj(mdata, ('microformat', 'microformatDataRenderer', 'urlCanonical'),
                                     get_all=False, expected_type=str)
                 if not murl:

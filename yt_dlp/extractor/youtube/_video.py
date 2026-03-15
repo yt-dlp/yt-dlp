@@ -140,11 +140,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _RETURN_TYPE = 'video'  # XXX: How to handle multifeed?
 
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('android_vr', 'web', 'web_safari')
+    _DEFAULT_CLIENTS = ('android_vr', 'web_safari')
     _DEFAULT_JSLESS_CLIENTS = ('android_vr',)
-    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web', 'web_safari')
+    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web_safari')
     # Premium does not require POT (except for subtitles)
-    _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator', 'web')
+    _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator')
+    _WEBPAGE_CLIENTS = ('web', 'web_safari')
+    _DEFAULT_WEBPAGE_CLIENT = 'web_safari'
 
     _GEO_BYPASS = False
 
@@ -1873,12 +1875,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'params': {'skip_download': True},
     }]
 
-    @property
-    def _skipped_webpage_data(self):
-        # XXX: player_response as a default is a TEMPORARY workaround for pinning _DEFAULT_PLAYER_JS_VERSION
-        return self._configuration_arg('webpage_skip', default=['player_response'])
-
-    _DEFAULT_PLAYER_JS_VERSION = '20514@9f4cc5e4'
+    _DEFAULT_PLAYER_JS_VERSION = 'actual'
     _DEFAULT_PLAYER_JS_VARIANT = 'tv'
     _PLAYER_JS_VARIANT_MAP = {
         'main': 'player_ias.vflset/en_US/base.js',
@@ -1894,6 +1891,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'house': 'house_brand_player.vflset/en_US/base.js',  # Used by Google Drive
     }
     _INVERSE_PLAYER_JS_VARIANT_MAP = {v: k for k, v in _PLAYER_JS_VARIANT_MAP.items()}
+
+    @functools.cached_property
+    def _player_js_version(self):
+        return self._configuration_arg('player_js_version', [None])[0] or self._DEFAULT_PLAYER_JS_VERSION
+
+    @functools.cached_property
+    def _skipped_webpage_data(self):
+        skipped = set(self._configuration_arg('webpage_skip'))
+        # If forcing a player version, the webpage player response must be skipped
+        if self._player_js_version != 'actual':
+            skipped.add('player_response')
+        return skipped
 
     @classmethod
     def suitable(cls, url):
@@ -2082,15 +2091,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
 
     def _get_player_js_version(self):
-        player_js_version = self._configuration_arg('player_js_version', [''])[0] or self._DEFAULT_PLAYER_JS_VERSION
-        if player_js_version == 'actual':
+        if self._player_js_version == 'actual':
             return None, None
-        if not re.fullmatch(r'[0-9]{5,}@[0-9a-f]{8,}', player_js_version):
+        if not re.fullmatch(r'[0-9]{5,}@[0-9a-f]{8,}', self._player_js_version):
             self.report_warning(
-                f'Invalid player JS version "{player_js_version}" specified. '
+                f'Invalid player JS version "{self._player_js_version}" specified. '
                 f'It should be "actual" or in the format of STS@HASH', only_once=True)
             return None, None
-        return player_js_version.split('@')
+        return self._player_js_version.split('@')
 
     def _construct_player_url(self, *, player_id=None, player_url=None):
         assert player_id or player_url, '_construct_player_url must take one of player_id or player_url'
@@ -2680,12 +2688,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return {'contentCheckOk': True, 'racyCheckOk': True}
 
     @classmethod
-    def _generate_player_context(cls, sts=None, use_ad_playback_context=False):
+    def _generate_player_context(cls, sts=None, use_ad_playback_context=False, encrypted_context=None):
         context = {
             'html5Preference': 'HTML5_PREF_WANTS',
         }
         if sts is not None:
             context['signatureTimestamp'] = sts
+        if encrypted_context:
+            context['encryptedHostFlags'] = encrypted_context
 
         playback_context = {
             'contentPlaybackContext': context,
@@ -2930,7 +2940,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._configuration_arg('use_ad_playback_context', ['false'])[0] != 'false'
             and traverse_obj(INNERTUBE_CLIENTS, (client, 'SUPPORTS_AD_PLAYBACK_CONTEXT', {bool})))
 
-        yt_query.update(self._generate_player_context(sts, use_ad_playback_context))
+        # web_embedded player requests may need to include encryptedHostFlags in its contentPlaybackContext.
+        # This can be detected with the embeds_enable_encrypted_host_flags_enforcement experiemnt flag,
+        # but there is no harm in including encryptedHostFlags with all web_embedded player requests.
+        encrypted_context = None
+        if _split_innertube_client(client)[2] == 'embedded':
+            encrypted_context = traverse_obj(player_ytcfg, (
+                'WEB_PLAYER_CONTEXT_CONFIGS', 'WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER', 'encryptedHostFlags'))
+
+        yt_query.update(
+            self._generate_player_context(
+                sts=sts,
+                use_ad_playback_context=use_ad_playback_context,
+                encrypted_context=encrypted_context))
 
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
@@ -3880,7 +3902,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
-        webpage_client = 'web'
+        webpage_client = self._configuration_arg('webpage_client', [self._DEFAULT_WEBPAGE_CLIENT])[0]
+        if webpage_client not in self._WEBPAGE_CLIENTS:
+            self.report_warning(
+                f'Invalid webpage_client "{webpage_client}" requested; '
+                f'falling back to {self._DEFAULT_WEBPAGE_CLIENT}', only_once=True)
+            webpage_client = self._DEFAULT_WEBPAGE_CLIENT
 
         webpage, webpage_ytcfg, initial_data, is_premium_subscriber, player_responses, player_url = self._initial_extract(
             url, smuggled_data, webpage_url, webpage_client, video_id)
