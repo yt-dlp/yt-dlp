@@ -70,8 +70,8 @@ class OlympicsReplayIE(InfoExtractor):
         if not data:
             return None
 
-        geo_countries = traverse_obj(data, ('regionsAllowed', ..., {str}))
-        if traverse_obj(data, ('isGeoRestricted', {bool})):
+        geo_countries = traverse_obj(data, (('regionsAllowed', 'countries'), ..., {str}))
+        if traverse_obj(data, (('isGeoRestricted', 'geoRestrictedVideo'), {bool}, any)):
             self.raise_geo_restricted(countries=geo_countries)
 
         is_live = traverse_obj(data, ('__typename', {str.lower})) != 'vod'
@@ -91,8 +91,8 @@ class OlympicsReplayIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'is_live': is_live,
+            'id': traverse_obj(data, ('videoID', {str}), ('entityId', {str})),
             **traverse_obj(data, {
-                'id': ('entityId', {str}),
                 'title': ('title', {str}),
                 'description': ('description', {str}),
             }),
