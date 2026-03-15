@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import json
+import ssl
 import uuid
 
 from .common import InfoExtractor
@@ -170,8 +171,12 @@ class PlaySuisseIE(InfoExtractor):
         code_challenge = base64.urlsafe_b64encode(
             hashlib.sha256(code_verifier.encode()).digest()).decode().rstrip('=')
 
+        # workaround older ssl version
+        impersonate = ssl.OPENSSL_VERSION_INFO < (3, 1, 0)
+
         request_id = parse_qs(self._request_webpage(
-            f'{self._LOGIN_BASE}/authz-srv/authz', None, 'Requesting session ID', query={
+            f'{self._LOGIN_BASE}/authz-srv/authz', None, 'Requesting session ID', impersonate=impersonate,
+            headers={'Origin': 'https://www.playsuisse.ch'}, query={
                 'client_id': self._CLIENT_ID,
                 'redirect_uri': 'https://www.playsuisse.ch/auth',
                 'scope': 'email profile openid offline_access',
@@ -197,7 +202,8 @@ class PlaySuisseIE(InfoExtractor):
         try:
             login_data = self._download_json(
                 f'{self._LOGIN_BASE}/verification-srv/v2/authenticate/authenticate/password', None,
-                'Submitting password', headers={'content-type': 'application/json'}, data=json.dumps({
+                'Submitting password', impersonate=impersonate,
+                headers={'content-type': 'application/json'}, data=json.dumps({
                     'requestId': request_id,
                     'exchange_id': exchange_id,
                     'type': 'password',
