@@ -9,7 +9,7 @@ from ..utils import (
     update_url,
     url_or_none,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import find_element, require, traverse_obj
 
 
 class OlympicsReplayIE(InfoExtractor):
@@ -40,7 +40,26 @@ class OlympicsReplayIE(InfoExtractor):
         },
     }, {
         'url': 'https://olympics.com/en/milano-cortina-2026/videos/exhibition-gala-figure-skating-milano-cortina-2026',
-        'only_matching': True,
+        'info_dict': {
+            'id': '2c25c917-88ba-41bf-8f24-c4345c362cb5',
+            'ext': 'mp4',
+            'display_id': 'exhibition-gala-figure-skating-milano-cortina-2026',
+            'title': 'Exhibition Gala - Figure Skating | Milano Cortina 2026',
+            'upload_date': '20260221',
+            'timestamp': 1771704000,
+            'description': 'md5:29e06d0baa6a06d9afe014ca16b365f6',
+        },
+    }, {
+        'url': 'https://www.olympics.com/en/milano-cortina-2026/paralympic-games/videos/anna-lena-forster-wins-women-s-downhill-sitting-gold-paralympic-winter-games-milano-cortina-2026',
+        'info_dict': {
+            'id': '6f01acdf-d746-48f2-9d72-9f8a9002263e',
+            'ext': 'mp4',
+            'display_id': 'anna-lena-forster-wins-women-s-downhill-sitting-gold-paralympic-winter-games-milano-cortina-2026',
+            'title': 'Anna-Lena Forster wins Women\u2019s Downhill Sitting gold | Paralympic Winter Games Milano Cortina 2026',
+            'upload_date': '20260307',
+            'timestamp': 1772875980,
+            'description': 'md5:b1b2a75a9a54973c6110e123237a5528',
+        },
     }]
     _GEO_BYPASS = False
 
@@ -56,10 +75,8 @@ class OlympicsReplayIE(InfoExtractor):
             self.raise_geo_restricted(countries=geo_countries)
 
         is_live = traverse_obj(data, ('__typename', {str.lower})) != 'vod'
-        m3u8_url = traverse_obj(data, ('streamUrl', {url_or_none})) or data['streamUrl']
-        jwt_token = self._search_regex(r'<script[^>]+id\s*=\s*"page-jwt-data"\s*[^>]+>\s*"([^"]+)"\s*<', webpage, 'jwt_token', default=None)
-        if not jwt_token:
-            raise ExtractorError('Unable to find video jwt token')
+        m3u8_url = traverse_obj(data, ('videoUrl', {url_or_none})) or data['streamUrl']
+        jwt_token = traverse_obj(webpage, ({find_element(id='page-jwt-data')}, {require('JWT data')}))
         tokenized_url = self._tokenize_url(m3u8_url, jwt_token, is_live, video_id)
 
         try:
@@ -75,13 +92,13 @@ class OlympicsReplayIE(InfoExtractor):
             'subtitles': subtitles,
             'is_live': is_live,
             **traverse_obj(data, {
+                'id': ('entityId', {str}),
                 'title': ('title', {str}),
                 'description': ('description', {str}),
-                'thumbnail': ('imageUrlTemplate', {url_or_none}),
             }),
             **traverse_obj(data, ('meta', {
-                'id': ('slug', {str}),
                 'title': ('metaTitle', {str}),
+                'display_id': ('slug', {str}),
                 'description': ('metaDescription', {str}),
                 'timestamp': ('creationDateTime', {parse_iso8601}),
             })),
