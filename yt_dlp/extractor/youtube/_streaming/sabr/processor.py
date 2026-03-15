@@ -37,6 +37,7 @@ from .models import (
 )
 from .part import (
     FormatInitializedSabrPart,
+    LiveStateSabrPart,
     MediaSeekSabrPart,
     MediaSegmentDataSabrPart,
     MediaSegmentEndSabrPart,
@@ -63,7 +64,12 @@ class ProcessMediaHeaderResult:
 
 
 class ProcessLiveMetadataResult:
-    def __init__(self, seek_sabr_parts: list[MediaSeekSabrPart] | None = None):
+    def __init__(
+        self,
+        live_state_part: LiveStateSabrPart | None = None,
+        seek_sabr_parts: list[MediaSeekSabrPart] | None = None,
+    ):
+        self.live_state_part = live_state_part
         self.seek_sabr_parts = seek_sabr_parts or []
 
 
@@ -536,6 +542,13 @@ class SabrProcessor:
                 izf.last_segment_number = self.live_state.head_sequence_number
 
         result = ProcessLiveMetadataResult()
+
+        if self.live_state.min_seekable_time_ms is not None and self.live_state.max_seekable_time_ms is not None:
+            available_dvr_window_ms = self.live_state.max_seekable_time_ms - self.live_state.min_seekable_time_ms
+            result.live_state_part = LiveStateSabrPart(
+                available_dvr_window_ms=available_dvr_window_ms,
+                full_stream_available=self.live_state.min_seekable_time_ms == 0)
+            self.logger.trace(f'Available DVR window: {available_dvr_window_ms}ms')
 
         # If the current player time is less than the min dvr time, simulate a server seek to the min dvr time.
         # The server SHOULD send us a SABR_SEEK part in this case, but it does not always happen (e.g. ANDROID_VR)

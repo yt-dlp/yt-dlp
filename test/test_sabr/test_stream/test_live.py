@@ -30,6 +30,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.part import (
     RefreshPlayerResponseSabrPart,
     MediaSegmentInitSabrPart,
     MediaSeekSabrPart,
+    LiveStateSabrPart,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.stream import Heartbeat
 from yt_dlp.extractor.youtube._proto.videostreaming import (
@@ -1492,6 +1493,10 @@ class TestLive:
         assert_media_sequence_in_order(parts, audio_selector, total_segments)
         assert_media_sequence_in_order(parts, video_selector, total_segments)
 
+        # Should receive live state parts with full_stream_available=True
+        live_state_parts = [part for part in parts if isinstance(part, LiveStateSabrPart)]
+        assert all(part.full_stream_available is True for part in live_state_parts)
+
         # For each request, compare the live metadata max seekable time
         #  with the requested player time ms - should be less than or equal to the max seekable time
         for request in rh.request_history:
@@ -1660,6 +1665,10 @@ class TestLive:
                                        start_sequence_number=segment_start_number)
         assert_media_sequence_in_order(parts, video_selector, total_segments,
                                        start_sequence_number=segment_start_number)
+
+        # Should receive live state parts with full_stream_available=False
+        live_state_parts = [part for part in parts if isinstance(part, LiveStateSabrPart)]
+        assert all(part.full_stream_available is False for part in live_state_parts)
 
         # First request: should start from 0
         first_request_vpabr = rh.request_history[0].vpabr

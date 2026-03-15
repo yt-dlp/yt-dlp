@@ -442,7 +442,10 @@ class SabrStream:
     def _process_live_metadata(self, part: UMPPart):
         live_metadata = protobug.load(part.data, LiveMetadata)
         self._log_part(part, protobug_obj=live_metadata)
-        yield from self.processor.process_live_metadata(live_metadata).seek_sabr_parts
+        result = self.processor.process_live_metadata(live_metadata)
+        yield from result.seek_sabr_parts
+        if result.live_state_part:
+            yield result.live_state_part
 
     def _process_stream_protection_status(self, part: UMPPart):
         sps = protobug.load(part.data, StreamProtectionStatus)
@@ -709,6 +712,7 @@ class SabrStream:
             and any(t in self.processor.sabr_contexts_to_send for t in self.processor.sabr_context_updates)
         ):
             wait_seconds = math.ceil(self.processor.next_request_policy.backoff_time_ms / 1000)
+            # TODO: consider logging this in the FD
             self.logger.info(f'Sleeping {wait_seconds:.2f} seconds as required by the server')
             self._wait_for(wait_seconds)
 

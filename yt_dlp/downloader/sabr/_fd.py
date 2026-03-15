@@ -1,6 +1,7 @@
 from __future__ import annotations
 import collections
 import itertools
+import math
 
 from yt_dlp.networking.exceptions import TransportError, HTTPError
 from yt_dlp.utils import traverse_obj, int_or_none, DownloadError, join_nonempty, ExtractorError
@@ -15,14 +16,15 @@ from yt_dlp.extractor.youtube._streaming.sabr.part import (
     MediaSegmentInitSabrPart,
     PoTokenStatusSabrPart,
     RefreshPlayerResponseSabrPart,
-    MediaSeekSabrPart,
     FormatInitializedSabrPart,
+    LiveStateSabrPart,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.stream import SabrStream, Heartbeat
 from yt_dlp.extractor.youtube._streaming.sabr.models import ConsumedRange, AudioSelector, VideoSelector, CaptionSelector
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import SabrStreamError
 from yt_dlp.extractor.youtube._proto.innertube import ClientInfo, ClientName
 from yt_dlp.extractor.youtube._proto.videostreaming import FormatId
+from ...extractor.youtube._streaming.sabr.processor import JS_MAX_SAFE_INTEGER
 
 
 class SabrFD(FileDownloader):
@@ -70,8 +72,7 @@ class SabrFD(FileDownloader):
                         },
                     ),
                     'target_duration_sec': sabr_config.get('target_duration_sec'),
-                    # Number.MAX_SAFE_INTEGER
-                    'start_time_ms': ((2**53) - 1) if info_dict.get('live_status') == 'is_live' and not f.get('is_from_start') else 0,
+                    'live_from_start': f.get('is_from_start', False),
                 }
 
             else:
@@ -126,7 +127,7 @@ class SabrFD(FileDownloader):
                     heartbeat_callback=self._create_heartbeat_callback(format_group['extract_heartbeat_fn']),
                     reload_config_fn=format_group['reload_config_fn'],
                     client_info=format_group['client_info'],
-                    start_time_ms=format_group['start_time_ms'],
+                    live_from_start=format_group['live_from_start'],
                     target_duration_sec=format_group.get('target_duration_sec', None),
                     live_status=format_group.get('live_status'),
                     video_id=format_group.get('video_id'),
@@ -208,7 +209,7 @@ class SabrFD(FileDownloader):
         reload_config_fn: callable | None = None,
         heartbeat_callback: callable | None = None,
         client_info: ClientInfo | None = None,
-        start_time_ms: int = 0,
+        live_from_start: bool = False,
         target_duration_sec: int | None = None,
         live_status: str | None = None,
     ):
@@ -217,6 +218,7 @@ class SabrFD(FileDownloader):
         audio_selector = None
         video_selector = None
         caption_selector = None
+        logged_dvr_message = False
 
         if audio_format:
             audio_selector = AudioSelector(
@@ -243,6 +245,8 @@ class SabrFD(FileDownloader):
         # as the formats may not all start at the same time (leading to messy output)
         for writer in writers.values():
             self.report_destination(writer.filename)
+
+        start_time_ms = JS_MAX_SAFE_INTEGER if live_status == 'is_live' and not live_from_start else 0
 
         stream = SabrStream(
             urlopen=self.ydl.urlopen,
@@ -275,6 +279,7 @@ class SabrFD(FileDownloader):
                         self.report_warning(
                             'No fetch PO token function found - this can happen if you use --load-info-json.'
                             ' The download will fail if a valid PO token is required.', only_once=True)
+                        continue
                     if part.status in (
                         part.PoTokenStatus.INVALID,
                         part.PoTokenStatus.PENDING,
@@ -354,16 +359,10 @@ class SabrFD(FileDownloader):
                     except (TransportError, HTTPError, ExtractorError) as e:
                         self.report_warning(f'Failed to refresh SABR streaming URL: {e}')
 
-                elif isinstance(part, MediaSeekSabrPart):
-                    if (
-                        not info_dict.get('is_live')
-                        and live_status not in ('post_live', 'is_live')
-                        and not stream.processor.is_live
-                        and part.reason == MediaSeekSabrPart.Reason.SERVER_SEEK
-                    ):
-                        raise DownloadError('Server tried to seek a video')
-                else:
-                    self.to_screen(f'Unhandled part type: {part.__class__.__name__}')
+                elif isinstance(part, LiveStateSabrPart):
+                    if not logged_dvr_message and not part.full_stream_available:
+                        self._log_dvr_window_availability(part.available_dvr_window_ms, live_from_start)
+                        logged_dvr_message = True
 
             for writer in writers.values():
                 writer.finish()
@@ -384,6 +383,19 @@ class SabrFD(FileDownloader):
             # TODO: for livestreams, since we cannot resume them, should we finish the writers?
             for writer in writers.values():
                 writer.close()
+
+    def _log_dvr_window_availability(self, available_dvr_window_ms, live_from_start):
+        hours = math.ceil(available_dvr_window_ms / (3600 * 1000))
+        if live_from_start:
+            if not hours:
+                self.to_screen(
+                    '[download] Downloading from the live edge; the streamer has disabled DVR for this stream')
+            else:
+                self.to_screen(
+                    f'[download] Downloading the past {hours} hour(s) of the live stream; full stream is not available')
+        else:
+            self.to_screen(
+                '[download] Downloading from the live edge; pass --live-from-start to download from the beginning of the stream')
 
 
 def format_type(f):

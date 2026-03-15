@@ -91,3 +91,9 @@ class MediaSeekSabrPart(SabrPart):
     reason: Reason
     format_id: FormatId
     format_selector: FormatSelector
+
+
+@dataclasses.dataclass
+class LiveStateSabrPart(SabrPart):
+    available_dvr_window_ms: int
+    full_stream_available: bool

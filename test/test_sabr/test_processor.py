@@ -1008,6 +1008,8 @@ class TestLiveMetadata:
         result = processor.process_live_metadata(live_metadata)
         assert isinstance(result, ProcessLiveMetadataResult)
         assert len(result.seek_sabr_parts) == 0
+        # No min/max available to calculate
+        assert result.live_state_part is None
         first_live_state = processor.live_state
         assert isinstance(processor.live_state, LiveState)
         assert processor.live_state.head_sequence_number == live_metadata.head_sequence_number
@@ -1021,6 +1023,8 @@ class TestLiveMetadata:
         assert isinstance(processor.live_state, LiveState)
         assert processor.live_state is not first_live_state
         assert processor.live_state.head_sequence_number == live_metadata.head_sequence_number
+        # No min/max available to calculate
+        assert result.live_state_part is None
 
     def test_live_metadata_no_head_sequence_time_ms(self, base_args):
         processor = SabrProcessor(**base_args)
@@ -1045,9 +1049,9 @@ class TestLiveMetadata:
         live_metadata = LiveMetadata(
             head_sequence_number=10,
             head_sequence_time_ms=5000,
-            min_seekable_time_ticks=10000,
+            min_seekable_time_ticks=1000,
             min_seekable_timescale=100,
-            max_seekable_time_ticks=100000,
+            max_seekable_time_ticks=10000000,
             max_seekable_timescale=10000,
         )
 
@@ -1055,8 +1059,8 @@ class TestLiveMetadata:
         assert isinstance(processor.live_state, LiveState)
         assert processor.live_state.head_sequence_number == live_metadata.head_sequence_number
         assert processor.live_state.head_sequence_time_ms == live_metadata.head_sequence_time_ms
-        assert processor.live_state.min_seekable_time_ms == 100000
-        assert processor.live_state.max_seekable_time_ms == 10000
+        assert processor.live_state.min_seekable_time_ms == 10000
+        assert processor.live_state.max_seekable_time_ms == 1000000
 
     def test_update_izf_total_segments(self, base_args):
 
@@ -1267,6 +1271,89 @@ class TestLiveMetadata:
         assert len(processor.ad_cuepoints) == 0
         logger.debug.assert_called_with('Player time 4999 is less than min seekable time 5000, simulating server seek')
         logger.trace.assert_called_with('Clearing all ad cuepoints due to simulated server seek')
+
+    def test_live_sabr_part_full_stream_available(self, logger, base_args):
+        # If live metadata is received and the entire stream is available, should return a LiveSabrPart with full stream available
+        live_metadata = LiveMetadata(
+            head_sequence_number=10,
+            head_sequence_time_ms=10000,
+            min_seekable_time_ticks=0,
+            min_seekable_timescale=1,
+            max_seekable_time_ticks=10000000,
+            max_seekable_timescale=500,
+        )
+
+        processor = SabrProcessor(
+            **base_args,
+            video_id=example_video_id,
+        )
+
+        result = processor.process_live_metadata(live_metadata)
+        assert isinstance(result, ProcessLiveMetadataResult)
+        assert result.live_state_part is not None
+        assert result.live_state_part.full_stream_available is True
+        assert result.live_state_part.available_dvr_window_ms == 20000000
+        logger.trace.assert_any_call('Available DVR window: 20000000ms')
+
+    def test_live_sabr_part_full_stream_unavailable(self, logger, base_args):
+        # If min_seekable_time_ms is greater than 0, should return a LiveSabrPart with full stream unavailable
+        live_metadata = LiveMetadata(
+            head_sequence_number=10,
+            head_sequence_time_ms=10000,
+            min_seekable_time_ticks=50000,
+            min_seekable_timescale=10000,
+            max_seekable_time_ticks=10000000,
+            max_seekable_timescale=10000,
+        )
+
+        processor = SabrProcessor(
+            **base_args,
+            video_id=example_video_id,
+        )
+        result = processor.process_live_metadata(live_metadata)
+        assert isinstance(result, ProcessLiveMetadataResult)
+        assert result.live_state_part is not None
+        assert result.live_state_part.full_stream_available is False
+        assert result.live_state_part.available_dvr_window_ms == 995000
+        logger.trace.assert_any_call('Available DVR window: 995000ms')
+
+    def test_live_sabr_part_min_seekable_time_ms_none(self, logger, base_args):
+        # If min_seekable_time_ms is None, cannot calculate LiveSabrPart
+        live_metadata = LiveMetadata(
+            head_sequence_number=10,
+            head_sequence_time_ms=10000,
+            min_seekable_time_ticks=None,
+            min_seekable_timescale=None,
+            max_seekable_time_ticks=10000000,
+            max_seekable_timescale=10000,
+        )
+
+        processor = SabrProcessor(
+            **base_args,
+            video_id=example_video_id,
+        )
+        result = processor.process_live_metadata(live_metadata)
+        assert isinstance(result, ProcessLiveMetadataResult)
+        assert result.live_state_part is None
+
+    def test_live_sabr_part_max_seekable_time_ms_none(self, logger, base_args):
+        # If max_seekable_time_ms is None, cannot calculate LiveSabrPart
+        live_metadata = LiveMetadata(
+            head_sequence_number=10,
+            head_sequence_time_ms=10000,
+            min_seekable_time_ticks=50000,
+            min_seekable_timescale=10000,
+            max_seekable_time_ticks=None,
+            max_seekable_timescale=None,
+        )
+
+        processor = SabrProcessor(
+            **base_args,
+            video_id=example_video_id,
+        )
+        result = processor.process_live_metadata(live_metadata)
+        assert isinstance(result, ProcessLiveMetadataResult)
+        assert result.live_state_part is None
 
 
 class TestSabrContextUpdate:
