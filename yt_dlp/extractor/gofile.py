@@ -1,4 +1,5 @@
 import hashlib
+import time
 
 from .common import InfoExtractor
 from ..utils import ExtractorError, try_get
@@ -46,8 +47,9 @@ class GofileIE(InfoExtractor):
             'videopassword': 'password',
         },
     }]
-    _STATIC_TOKEN = '4fd6sg89d7s6'  # From https://gofile.io/dist/js/config.js
     _TOKEN = None
+    _SALT = 'gf2026x'  # Source https://gofile.io/dist/js/wt.obf.js Current function name 'generateWT'
+    _LOCALE = 'en-GB'
 
     def _real_initialize(self):
         token = self._get_cookies('https://gofile.io/').get('accountToken')
@@ -65,11 +67,16 @@ class GofileIE(InfoExtractor):
         if password := self.get_param('videopassword'):
             query_params['password'] = hashlib.sha256(password.encode()).hexdigest()
 
+        user_agent = self.get_param('http_headers')['User-Agent']
+        # Source https://gofile.io/dist/js/wt.obf.js Current function name 'generateWT'
+        token_data = f'{user_agent}::{self._LOCALE}::{self._TOKEN}::{int(time.time() / 14400)}::{self._SALT}'
         files = self._download_json(
             f'https://api.gofile.io/contents/{file_id}', file_id, 'Getting filelist',
             query=query_params, headers={
                 'Authorization': f'Bearer {self._TOKEN}',
-                'X-Website-Token': self._STATIC_TOKEN,
+                'X-Website-Token': hashlib.sha256(token_data.encode()).hexdigest(),
+                'User-Agent': user_agent,
+                'X-BL': self._LOCALE,
             })
 
         status = files['status']
