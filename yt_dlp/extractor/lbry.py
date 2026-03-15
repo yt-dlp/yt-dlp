@@ -160,6 +160,12 @@ class LBRYBaseIE(InfoExtractor):
                 f'{self.IE_NAME} said: {err.get("code")} - {err.get("message")}', expected=True)
         return response['result']
 
+    @staticmethod
+    def lbry_to_url(lbry_uri):
+        url = lbry_uri[7:].strip()
+        url = url.replace('#', ':')
+        return f'https://odysee.com/{url}'
+
     def _get_comments(self, claim_id):
         current_count = 0
         total_count = '?'
@@ -195,7 +201,7 @@ class LBRYBaseIE(InfoExtractor):
                 yield {
                     'author': comment['channel_name'],
                     'author_id': comment['channel_id'],
-                    # TODO: 'author_url' from 'channel_url', needs conversion from 'lbry://' to standard link
+                    'author_url': self.lbry_to_url(comment['channel_url']),
                     'id': comment['comment_id'],
                     'text': comment['comment'],
                     'like_count': traverse_obj(comment_reactions, (comment['comment_id'], 'like'), {int}) or 0,
