@@ -80,4 +80,4 @@ jobs:
         with:
           advanced-security: false
           persona: pedantic
-          version: v1.22.0
+          version: v1.23.1
