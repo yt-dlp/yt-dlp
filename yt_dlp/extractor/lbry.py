@@ -217,7 +217,7 @@ class LBRYBaseIE(InfoExtractor):
                                                                          'value', 'thumbnail', 'url'), {url_or_none})
                         if thumbnail_url is not None:
                             thumbnails[channel_id] = thumbnail_url[0]
-                processed_account_ids.add(x for x in channel_ids)
+                processed_account_ids.update(channel_ids)
 
             for comment in comments:
                 yield {
