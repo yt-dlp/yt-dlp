@@ -1897,6 +1897,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return self._configuration_arg('player_js_version', [None])[0] or self._DEFAULT_PLAYER_JS_VERSION
 
     @functools.cached_property
+    def _webpage_client(self):
+        webpage_client = self._configuration_arg('webpage_client', [self._DEFAULT_WEBPAGE_CLIENT])[0]
+        if webpage_client not in self._WEBPAGE_CLIENTS:
+            self.report_warning(
+                f'Invalid webpage_client "{webpage_client}" requested; '
+                f'falling back to {self._DEFAULT_WEBPAGE_CLIENT}', only_once=True)
+            webpage_client = self._DEFAULT_WEBPAGE_CLIENT
+        return webpage_client
+
+    @functools.cached_property
     def _skipped_webpage_data(self):
         skipped = set(self._configuration_arg('webpage_skip'))
         # If forcing a player version, the webpage player response must be skipped
@@ -1935,7 +1945,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return
 
             _, _, _, _, prs, player_url = self._initial_extract(
-                url, smuggled_data, webpage_url, 'web', video_id)
+                url, smuggled_data, webpage_url, self._webpage_client, video_id)
             video_details = traverse_obj(prs, (..., 'videoDetails'), expected_type=dict)
             microformats = traverse_obj(
                 prs, (..., 'microformat', 'playerMicroformatRenderer'),
@@ -3902,15 +3912,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
-        webpage_client = self._configuration_arg('webpage_client', [self._DEFAULT_WEBPAGE_CLIENT])[0]
-        if webpage_client not in self._WEBPAGE_CLIENTS:
-            self.report_warning(
-                f'Invalid webpage_client "{webpage_client}" requested; '
-                f'falling back to {self._DEFAULT_WEBPAGE_CLIENT}', only_once=True)
-            webpage_client = self._DEFAULT_WEBPAGE_CLIENT
 
         webpage, webpage_ytcfg, initial_data, is_premium_subscriber, player_responses, player_url = self._initial_extract(
-            url, smuggled_data, webpage_url, webpage_client, video_id)
+            url, smuggled_data, webpage_url, self._webpage_client, video_id)
 
         playability_statuses = traverse_obj(
             player_responses, (..., 'playabilityStatus'), expected_type=dict)
