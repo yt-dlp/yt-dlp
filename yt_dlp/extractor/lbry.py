@@ -169,6 +169,8 @@ class LBRYBaseIE(InfoExtractor):
     def _get_comments(self, claim_id):
         current_count = 0
         total_count = '?'
+        thumbnails = {}
+        processed_account_ids = set()
         self.to_screen('Downloading comments')
 
         for page_index in itertools.count(1):
@@ -196,11 +198,32 @@ class LBRYBaseIE(InfoExtractor):
             response = self._call_comment_api('reaction.List', {'comment_ids': comment_ids}, claim_id, info_string)
             comment_reactions = response.get('others_reactions') or None
 
+            # get commenter account/channel info
+            channel_ids = traverse_obj(comments, (..., 'channel_id'), {str})
+            channel_ids = set(channel_ids)
+            channel_ids.difference_update(processed_account_ids)    # remove processed accounts
+            channel_ids = list(channel_ids)                         # remove duplicates
+            if len(channel_ids) > 0:                                # API call and modify thumbnail dict only if new found
+                params = {
+                    'claim_ids': channel_ids,
+                    'page': 1,
+                    'page_size': len(channel_ids),
+                    'no_totals': False,
+                }
+                accounts_response = self._call_api_proxy('claim_search', claim_id, params, 'accounts').get('items')
+                if accounts_response:
+                    for channel_id in channel_ids:
+                        thumbnail_url = traverse_obj(accounts_response, (any, lambda i, x: x.get('claim_id') == channel_id,
+                                                                         'value', 'thumbnail', 'url'), {url_or_none})
+                        if thumbnail_url is not None:
+                            thumbnails[channel_id] = thumbnail_url[0]
+                processed_account_ids.add(x for x in channel_ids)
+
             for comment in comments:
-                # TODO: 'author_thumbnail' from proxy API
                 yield {
                     'author': comment['channel_name'],
                     'author_id': comment['channel_id'],
+                    'author_thumbnail': thumbnails.get(comment['channel_id']),
                     'author_url': self.lbry_to_url(comment['channel_url']),
                     'id': comment['comment_id'],
                     'text': comment['comment'],
