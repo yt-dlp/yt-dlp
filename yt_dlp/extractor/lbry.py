@@ -162,7 +162,7 @@ class LBRYBaseIE(InfoExtractor):
 
     @staticmethod
     def lbry_to_url(lbry_uri):
-        url = lbry_uri[7:].strip()
+        url = lbry_uri.removeprefix('lbry://')
         url = url.replace('#', ':')
         return f'https://odysee.com/{url}'
 
