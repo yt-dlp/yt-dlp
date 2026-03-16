@@ -19,8 +19,8 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Security: Run as non-root user
 RUN groupadd -r pmoves --gid=65532 && \
     useradd -r -g pmoves --uid=65532 --home-dir=/app --shell=/sbin/nologin pmoves && \
-    mkdir -p /app/config && \
-    chown -R pmoves:pmoves /app /opt/pmoves-yt
+    mkdir -p /app/config /data/yt-dlp && \
+    chown -R pmoves:pmoves /app /opt/pmoves-yt /data
 
 USER pmoves:pmoves
 WORKDIR /app

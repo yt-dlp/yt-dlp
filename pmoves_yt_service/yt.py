@@ -152,15 +152,16 @@ except Exception:  # pragma: no cover - fallback when tenacity is unavailable
 try:
     from services.common.events import envelope  # type: ignore
 except Exception:
-    import uuid
-    import datetime
+    # uuid already imported at line 67; datetime class imported at line 72
+    # Do NOT re-import datetime module here — it would shadow the class import
+    # and break datetime.now() calls elsewhere in this file.
 
     def envelope(topic: str, payload: dict, correlation_id: str | None = None, parent_id: str | None = None, source: str = 'pmoves-yt'):
         # Minimal schema-free envelope for environments where shared modules are not available
         env = {
             'id': str(uuid.uuid4()),
             'topic': topic,
-            'ts': datetime.datetime.now(timezone.utc).isoformat() + 'Z',
+            'ts': datetime.now(timezone.utc).isoformat() + 'Z',
             'version': 'v1',
             'source': source,
             'payload': payload,
@@ -1752,7 +1753,11 @@ def _download_with_yt_dlp(
             if info is None:
                 raise DownloadError(f'yt_dlp returned no info for {url}')
             if info.get('requested_downloads'):
-                outpath = info['requested_downloads'][0]['_filename']
+                rd = info['requested_downloads'][0]
+                # Prefer 'filepath' (actual post-processed path) over '_filename'
+                # (template-resolved path) — SoundCloud HLS downloads resolve
+                # extension to '.NA' at template time but produce .opus files.
+                outpath = rd.get('filepath') or rd.get('_filename') or ydl.prepare_filename(info)
             else:
                 outpath = ydl.prepare_filename(info)
             vid = info.get('id') or os.path.splitext(os.path.basename(outpath))[0]
@@ -1860,7 +1865,7 @@ def _download_with_yt_dlp(
                     'fallback_used': False,
                 },
             )
-            return {'ok': True, 'title': title, 'video_id': vid, 's3_url': s3_url, 'thumb': thumb}
+            return {'ok': True, 'title': title, 'video_id': vid, 's3_url': s3_url, 'thumb': thumb, 'platform': platform_key}
     finally:
         if success and vid_dir is not None:
             shutil.rmtree(vid_dir, ignore_errors=True)
@@ -2408,24 +2413,25 @@ def yt_transcript(body: dict[str, Any] = Body(...)):
         raise HTTPException(400, 'video_id required')
     vid = _safe_video_id(vid)
     ns = body.get('namespace') or DEFAULT_NAMESPACE
-    audio_key = f'{base_prefix(vid)}/audio.m4a'
+    platform = body.get('platform')
+    audio_key = f'{base_prefix(vid, platform)}/audio.m4a'
     # Ensure raw.mp4 exists before attempting transcription. This triggers
     # yt-dlp with SABR-aware fallbacks (companion/invidious) when needed.
-    try:
-        yt_url = f'https://www.youtube.com/watch?v={vid}'
-        _ = yt_download({'url': yt_url, 'namespace': ns, 'bucket': bucket})
-    except HTTPException as dl_exc:
-        # If download still fails, continue to ffmpeg-whisper which may be
-        # able to transcribe from an existing raw.mp4 if it was uploaded by
-        # another path; otherwise we'll return its error below.
-        logger.warning(
-            'yt_transcript_prefetch_failed',
-            extra={'event': 'yt_transcript_prefetch_failed', 'video_id': vid, 'error': str(dl_exc.detail) if hasattr(dl_exc, 'detail') else str(dl_exc)},
-        )
+    # Only attempt prefetch for YouTube — other platforms (SoundCloud, etc.)
+    # should already have the file from the ingest step.
+    if not platform or 'youtube' in (platform or '').lower():
+        try:
+            yt_url = f'https://www.youtube.com/watch?v={vid}'
+            _ = yt_download({'url': yt_url, 'namespace': ns, 'bucket': bucket})
+        except HTTPException as dl_exc:
+            logger.warning(
+                'yt_transcript_prefetch_failed',
+                extra={'event': 'yt_transcript_prefetch_failed', 'video_id': vid, 'error': str(dl_exc.detail) if hasattr(dl_exc, 'detail') else str(dl_exc)},
+            )
     # If audio not present, try to extract from raw.mp4 using ffmpeg-whisper
     payload = {
         'bucket': bucket,
-        'key': f'{base_prefix(vid)}/raw.mp4',
+        'key': f'{base_prefix(vid, platform)}/raw.mp4',
         'namespace': ns,
         'out_audio_key': audio_key,
         'language': body.get('language'),
@@ -2546,6 +2552,7 @@ def yt_ingest(body: dict[str, Any] = Body(...)):
             'video_id': dl['video_id'],
             'namespace': ns,
             'bucket': bucket,
+            'platform': dl.get('platform') or body.get('platform'),
             'language': body.get('language'),
             'whisper_model': body.get('whisper_model'),
         }
