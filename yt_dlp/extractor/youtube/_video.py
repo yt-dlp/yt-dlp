@@ -1950,7 +1950,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             """
             for retry in self.RetryManager(fatal=False):
                 with lock:
-                    refetch_manifest(itag, delay)
+                    refetch_manifest(itag, client_name, delay)
 
                 f = next((f for f in formats if f.get('_itag') == itag and f.get('_client') == client_name), None)
                 if not f:
