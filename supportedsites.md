@@ -283,7 +283,7 @@ The only reliable way to check if a site is supported is to try it.
  - **CJSW**
  - **Clipchamp**
  - **Clippit**
- - **ClipRs**: (**Currently broken**)
+ - **ClipRs**
  - **CloserToTruth**: (**Currently broken**)
  - **CloudflareStream**
  - **CloudyCDN**
