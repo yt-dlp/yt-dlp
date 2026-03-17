@@ -148,6 +148,7 @@ class LBRYBaseIE(InfoExtractor):
             'https://comments.odysee.tv/api/v2',
             claim_id, info_string,
             headers=headers,
+            query={'m': method},        # for redundancy
             data=json.dumps({
                 'jsonrpc': '2.0',
                 'id': 1,
