@@ -136,12 +136,6 @@ class LBRYBaseIE(InfoExtractor):
                 'description': 'description',
             })))
 
-    def _comment_api_info_string(self, resource, current_count, total_count, page_index=0):
-        if 'comment' in resource:
-            return f'Downloading {resource} API JSON page {page_index} ({current_count}/{total_count})'
-        else:
-            return f'Downloading {resource} API JSON ({current_count}/{total_count})'
-
     def _call_comment_api(self, method, params, claim_id, info_string):
         headers = {'Content-Type': 'application/json'}
         response = self._download_json(
@@ -169,7 +163,7 @@ class LBRYBaseIE(InfoExtractor):
 
     def _get_comments(self, claim_id):
         current_count = 0
-        total_count = '?'
+        total_count = None
         thumbnails = {}
         processed_account_ids = set()
         self.to_screen('Downloading comments')
@@ -182,10 +176,13 @@ class LBRYBaseIE(InfoExtractor):
                 'top_level': False,
                 'sort_by': 0,   # sort by newest
             }
-            info_string = self._comment_api_info_string('comment', current_count, total_count, page_index)
+            if total_count is None:
+                info_string = f'Downloading comment API JSON page {page_index} ({current_count}/?)'
+            else:
+                info_string = f'Downloading comment API JSON page {page_index} ({current_count}/~{total_count})'
             response = self._call_comment_api('comment.List', params, claim_id, info_string)
 
-            if total_count == '?':  # populate total counts only on first pass
+            if total_count is None:  # populate total counts on first pass
                 total_pages = response['total_pages']
                 total_count = response['total_items']
             if total_count == 0:
@@ -195,7 +192,7 @@ class LBRYBaseIE(InfoExtractor):
 
             # get comment reactions
             comment_ids = ','.join(traverse_obj(comments, (..., 'comment_id')))
-            info_string = self._comment_api_info_string('reaction', current_count, total_count)
+            info_string = 'Downloading reaction API JSON'
             response = self._call_comment_api('reaction.List', {'comment_ids': comment_ids}, claim_id, info_string)
             comment_reactions = response.get('others_reactions') or None
 
@@ -220,6 +217,7 @@ class LBRYBaseIE(InfoExtractor):
                             thumbnails[channel_id] = thumbnail_url[0]
                 processed_account_ids.update(channel_ids)
 
+            comments_in_page = 0
             for comment in comments:
                 yield {
                     'author': comment['channel_name'],
@@ -235,8 +233,13 @@ class LBRYBaseIE(InfoExtractor):
                     'parent': comment.get('parent_id') or 'root',
                 }
                 current_count += 1
+                comments_in_page += 1
             if page_index == total_pages:
                 break
+
+            # reduce total_count if API returned less comments than page size
+            if comments_in_page < self._PAGE_SIZE:
+                total_count -= self._PAGE_SIZE - comments_in_page
 
 
 class LBRYIE(LBRYBaseIE):
