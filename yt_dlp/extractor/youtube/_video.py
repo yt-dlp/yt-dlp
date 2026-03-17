@@ -1929,7 +1929,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         start_time = time.time()
         formats = [f for f in formats if f.get('is_from_start')]
 
-        def refetch_manifest(itag, delay):
+        def refetch_manifest(itag, client_name, delay):
             nonlocal formats, start_time, is_live
             if time.time() <= start_time + delay:
                 return
@@ -1944,7 +1944,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_live = live_status == 'is_live'
             start_time = time.time()
 
-        def mpd_feed(itag, delay):
+        def mpd_feed(itag, client_name, delay):
             """
             @returns (manifest_url, manifest_stream_number, is_live) or None
             """
@@ -1952,7 +1952,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 with lock:
                     refetch_manifest(itag, delay)
 
-                f = next((f for f in formats if f.get('_itag') == itag), None)
+                f = next((f for f in formats if f.get('_itag') == itag and f.get('_client') == client_name), None)
                 if not f:
                     if not is_live:
                         retry.error = f'{video_id}: Video is no longer live'
@@ -1970,7 +1970,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         for f in formats:
             f['is_live'] = is_live
-            gen = functools.partial(self._live_dash_fragments, video_id, f['_itag'],
+            gen = functools.partial(self._live_dash_fragments, video_id, f['_itag'], f['_client'],
                                     live_start_time, mpd_feed, not is_live and f.copy())
             if is_live:
                 f['fragments'] = gen
@@ -1979,7 +1979,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f['fragments'] = LazyList(gen({}))
                 del f['is_from_start']
 
-    def _live_dash_fragments(self, video_id, itag, live_start_time, mpd_feed, manifestless_orig_fmt, ctx):
+    def _live_dash_fragments(self, video_id, itag, client_name, live_start_time, mpd_feed, manifestless_orig_fmt, ctx):
         FETCH_SPAN, MAX_DURATION = 5, 432000
 
         mpd_url, stream_number, is_live = None, None, True
@@ -2003,7 +2003,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             old_mpd_url = mpd_url
             last_error = ctx.pop('last_error', None)
             expire_fast = immediate or (last_error and isinstance(last_error, HTTPError) and last_error.status == 403)
-            mpd_url, stream_number, is_live = (mpd_feed(itag, 5 if expire_fast else 18000)
+            mpd_url, stream_number, is_live = (mpd_feed(itag, client_name, 5 if expire_fast else 18000)
                                                or (mpd_url, stream_number, False))
             if not refresh_sequence:
                 if expire_fast and not is_live:
@@ -3635,8 +3635,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f['format_id'] = f'{itag}-{proto}'
                 elif itag:
                     f['format_id'] = itag
-                # Needed for --live-from-start DASH processing
-                f['_itag'] = itag
 
                 lang_code = f.get('language')
                 if lang_code and lang_code == language_map[ORIGINAL_LANG_VALUE]:
@@ -3739,11 +3737,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         sub[STREAMING_DATA_CLIENT_NAME] = client_name
                     subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
                     for f in formats:
-                        if process_manifest_format(f, 'dash', client_name, f['format_id'], require_po_token and not po_token):
+                        # Save original itag value as format_id because process_manifest_format mutates f
+                        format_id = f['format_id']
+                        if process_manifest_format(f, 'dash', client_name, format_id, require_po_token and not po_token):
                             f['filesize'] = int_or_none(self._search_regex(
                                 r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
                             if needs_live_processing:
                                 f['is_from_start'] = True
+                                f['_itag'] = format_id
+                                f['_client'] = client_name
                             yield f
         yield subtitles
 
