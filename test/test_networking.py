@@ -1100,7 +1100,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
 
 
 @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
-@pytest.mark.handler_flaky('CurlCFFI', os.name == 'nt', reason='segfaults')
+@pytest.mark.handler_flaky('CurlCFFI', reason='segfaults')
 class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
 
     @pytest.mark.parametrize('params,extensions', [
