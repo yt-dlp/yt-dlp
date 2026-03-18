@@ -197,7 +197,7 @@ class LBRYBaseIE(InfoExtractor):
             comment_reactions = response.get('others_reactions') or None
 
             # get commenter account/channel info
-            channel_ids = traverse_obj(comments, (..., 'channel_id'), {str})
+            channel_ids = traverse_obj(comments, (..., 'channel_id', {str}))
             channel_ids = set(channel_ids)
             channel_ids.difference_update(processed_account_ids)    # remove processed accounts
             channel_ids = list(channel_ids)                         # remove duplicates
@@ -212,8 +212,8 @@ class LBRYBaseIE(InfoExtractor):
                 if accounts_response:
                     for channel_id in channel_ids:
                         thumbnail_url = traverse_obj(accounts_response, (any, lambda i, x: x.get('claim_id') == channel_id,
-                                                                         'value', 'thumbnail', 'url'), {url_or_none})
-                        if thumbnail_url is not None:
+                                                                         'value', 'thumbnail', 'url', {url_or_none}))
+                        if thumbnail_url is not None and len(thumbnail_url) == 1:
                             thumbnails[channel_id] = thumbnail_url[0]
                 processed_account_ids.update(channel_ids)
 
@@ -226,8 +226,8 @@ class LBRYBaseIE(InfoExtractor):
                     'author_url': self.lbry_to_url(comment['channel_url']),
                     'id': comment['comment_id'],
                     'text': comment['comment'],
-                    'like_count': traverse_obj(comment_reactions, (comment['comment_id'], 'like'), {int}) or 0,
-                    'dislike_count': traverse_obj(comment_reactions, (comment['comment_id'], 'dislike'), {int}) or 0,
+                    'like_count': traverse_obj(comment_reactions, (comment['comment_id'], 'like', {int})) or 0,
+                    'dislike_count': traverse_obj(comment_reactions, (comment['comment_id'], 'dislike', {int})) or 0,
                     'is_pinned': comment['is_pinned'],
                     'timestamp': comment['timestamp'],
                     'parent': comment.get('parent_id') or 'root',
