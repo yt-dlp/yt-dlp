@@ -415,6 +415,8 @@ class InfoExtractor:
                     'unlisted' or 'public'. Use 'InfoExtractor._availability'
                     to set it
     media_type:     The type of media as classified by the site, e.g. "episode", "clip", "trailer"
+    modified_content_notice: A notice about how the content was made or modified,
+                    e.g. "Altered or synthetic content", "Automatically dubbed"
     _old_archive_ids: A list of old archive ids needed for backward
                    compatibility. Use yt_dlp.utils.make_archive_id to generate ids
     _format_sort_fields: A list of fields to use for sorting formats

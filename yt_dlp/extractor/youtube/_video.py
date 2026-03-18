@@ -4403,6 +4403,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             info['heatmap'] = self._extract_heatmap(initial_data)
 
+            info['modified_content_notice'] = traverse_obj(initial_data, (
+                'engagementPanels', ..., 'engagementPanelSectionListRenderer',
+                'content', 'structuredDescriptionContentRenderer', 'items', ...,
+                'howThisWasMadeSectionViewModel', 'bodyHeader', 'content', {str},
+            ), get_all=False)
+
         contents = traverse_obj(
             initial_data, ('contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents'),
             expected_type=list, default=[])
