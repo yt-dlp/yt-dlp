@@ -119,6 +119,7 @@ class FanslyIE(InfoExtractor):
             thumbnail = None
             m = media['media']
             metadata = json.loads(m.get('metadata'))
+            media_id = media.get('mediaId')
 
             try:
                 formats = [{
@@ -142,12 +143,12 @@ class FanslyIE(InfoExtractor):
                         'Cookie': '; '.join(['CloudFront-' + k + '=' + v for k, v in location.get('metadata').items()]),
                     } if location.get('metadata') else {}
                     if mimetype == 'application/vnd.apple.mpegurl':
-                        f = self._extract_m3u8_formats(location.get('location'), video_id, ext='mp4', headers=headers)
+                        f = self._extract_m3u8_formats(location.get('location'), media_id, ext='mp4', headers=headers)
                         for fmt in f:
                             fmt['http_headers'] = headers
                         formats.extend(f)
                     elif mimetype == 'application/dash+xml':
-                        f = self._extract_mpd_formats(location.get('location'), video_id, headers=headers)
+                        f = self._extract_mpd_formats(location.get('location'), media_id, headers=headers)
                         for fmt in f:
                             fmt['http_headers'] = headers
                         formats.extend(f)
@@ -175,7 +176,7 @@ class FanslyIE(InfoExtractor):
                 availability = 'public'
 
             playlist.append({
-                'id': media.get('mediaId'),
+                'id': media_id,
                 'title': '',
                 'formats': formats,
                 'thumbnail': thumbnail,
