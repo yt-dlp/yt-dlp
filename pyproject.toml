@@ -85,7 +85,7 @@ dev = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.15.0",
+    "ruff==0.15.6",
 ]
 test = [
     "pytest~=8.1",
@@ -151,7 +151,6 @@ pattern = "_pkg_version = '(?P<version>[^']+)'"
 features = ["curl-cffi", "default"]
 dependencies = ["pre-commit"]
 path = ".venv"
-installer = "uv"
 
 [tool.hatch.envs.default.scripts]
 setup = "pre-commit install --config .pre-commit-hatch.yaml"
