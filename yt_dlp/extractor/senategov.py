@@ -230,6 +230,9 @@ class SenateGovIE(InfoExtractor):
         display_id = self._generic_id(url)
         webpage = self._download_webpage(url, display_id)
         url_info = next(SenateISVPIE.extract_from_webpage(self._downloader, url, webpage), None)
+
+        if not url_info:
+            url_info = self._create_isvp_from_webpage(webpage, display_id)
         if not url_info:
             raise UnsupportedError(url)
 
@@ -245,3 +248,35 @@ class SenateGovIE(InfoExtractor):
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
             'age_limit': self._rta_search(webpage),
         }
+
+    #
+    # Values are located in multiple separate script tags
+    # but generally follow basic layout:
+    # let archive_stream = null;
+    # archive_stream = "govtaff061025";
+    # ..
+    # archive_offset = "890";
+    # ..
+    # const comm_code = 'govtaff';
+    # ..
+    def _create_isvp_from_webpage(self, webpage, video_id):
+        # Cribbed from xhamster regex extraction
+        comm = self._search_regex(
+            r"const\s+comm_code\s*=\s*'([^']+)'", webpage, 'committee code', default=None)
+        filename = self._search_regex(
+            r'archive_stream\s*=\s*"([^"]+)"', webpage, 'archive stream', default=None)
+        if not comm or not filename:
+            return None
+
+        poster = self._search_regex(
+            r"const\s+posterframe\s*=\s*'([^']+)'", webpage, 'poster', default=None)
+
+        # SenateISVPIE only uses comm, filename, and poster from the query params
+        qs = urllib.parse.urlencode({
+            'comm': comm,
+            'filename': filename,
+            **({'poster': poster} if poster else {}),
+        })
+        # Passing to real IE similar to StarTrek/Parler/UN
+        return self.url_result(
+            f'https://www.senate.gov/isvp/?{qs}', SenateISVPIE)
