@@ -61,8 +61,6 @@ class SenateISVPIE(InfoExtractor):
         'url': 'http://www.senate.gov/isvp?type=live&comm=banking&filename=banking012715',
         'only_matching': True,
     }]
-    _WEBPAGE_TESTS = []
-
     _COMMITTEES = {
         'ag': ('76440', 'https://ag-f.akamaihd.net', '2036803', 'agriculture'),
         'aging': ('76442', 'https://aging-f.akamaihd.net', '2036801', 'aging'),
@@ -185,6 +183,7 @@ class SenateGovIE(InfoExtractor):
             'ext': 'mp4',
             'title': r're:.+',
             'thumbnail': r're:https?://.+\.(?:jpe?g|png)',
+            'age_limit': 0,
             '_old_archive_ids': ['senategov govtaff061025'],
         },
         'params': {'skip_download': 'm3u8'},
@@ -232,7 +231,7 @@ class SenateGovIE(InfoExtractor):
         url_info = next(SenateISVPIE.extract_from_webpage(self._downloader, url, webpage), None)
 
         if not url_info:
-            url_info = self._create_isvp_from_webpage(webpage, display_id)
+            url_info = self._extract_js_isvp_url(webpage, display_id)
         if not url_info:
             raise UnsupportedError(url)
 
@@ -246,21 +245,10 @@ class SenateGovIE(InfoExtractor):
             'title': re.sub(r'\s+', ' ', title.split('|')[0]).strip(),
             'description': self._og_search_description(webpage, default=None),
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
-            'age_limit': self._rta_search(webpage),
+            'age_limit': self._rta_search(webpage) or 0,
         }
 
-    #
-    # Values are located in multiple separate script tags
-    # but generally follow basic layout:
-    # let archive_stream = null;
-    # archive_stream = "govtaff061025";
-    # ..
-    # archive_offset = "890";
-    # ..
-    # const comm_code = 'govtaff';
-    # ..
-    def _create_isvp_from_webpage(self, webpage, video_id):
-        # Cribbed from xhamster regex extraction
+    def _extract_js_isvp_url(self, webpage, video_id):
         comm = self._search_regex(
             r"const\s+comm_code\s*=\s*'([^']+)'", webpage, 'committee code', default=None)
         filename = self._search_regex(
@@ -271,12 +259,9 @@ class SenateGovIE(InfoExtractor):
         poster = self._search_regex(
             r"const\s+posterframe\s*=\s*'([^']+)'", webpage, 'poster', default=None)
 
-        # SenateISVPIE only uses comm, filename, and poster from the query params
         qs = urllib.parse.urlencode({
             'comm': comm,
             'filename': filename,
             **({'poster': poster} if poster else {}),
         })
-        # Passing to real IE similar to StarTrek/Parler/UN
-        return self.url_result(
-            f'https://www.senate.gov/isvp/?{qs}', SenateISVPIE)
+        return self.url_result(f'https://www.senate.gov/isvp/?{qs}', SenateISVPIE)
