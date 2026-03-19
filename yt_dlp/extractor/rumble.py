@@ -399,7 +399,7 @@ class RumbleIE(InfoExtractor):
             'dislike_count': int,
             'view_count': int,
             'live_status': 'not_live',
-        }
+        },
     }]
 
     _WEBPAGE_TESTS = [{
