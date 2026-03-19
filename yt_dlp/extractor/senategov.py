@@ -61,17 +61,7 @@ class SenateISVPIE(InfoExtractor):
         'url': 'http://www.senate.gov/isvp?type=live&comm=banking&filename=banking012715',
         'only_matching': True,
     }]
-    _WEBPAGE_TESTS = [{
-        # FIXME: Embed detection
-        'url': 'https://www.hsgac.senate.gov/subcommittees/bmfwra/hearings/match-ready-oversight-of-the-federal-governments-border-management-and-personnel-readiness-efforts-for-the-decade-of-sports/',
-        'info_dict': {
-            'id': 'govtaff061025',
-            'ext': 'mp4',
-            'title': 'ISVP',
-            'thumbnail': r're:https?://.+\.(?:jpe?g|png)',
-            '_old_archive_ids': ['senategov govtaff061025'],
-        },
-    }]
+    _WEBPAGE_TESTS = []
 
     _COMMITTEES = {
         'ag': ('76440', 'https://ag-f.akamaihd.net', '2036803', 'agriculture'),
@@ -145,7 +135,7 @@ class SenateGovIE(InfoExtractor):
     _SUBDOMAIN_RE = '|'.join(map(re.escape, (
         'agriculture', 'aging', 'appropriations', 'armed-services', 'banking',
         'budget', 'commerce', 'energy', 'epw', 'finance', 'foreign', 'help',
-        'intelligence', 'inaugural', 'judiciary', 'rules', 'sbc', 'veterans',
+        'hsgac', 'intelligence', 'inaugural', 'judiciary', 'rules', 'sbc', 'veterans',
     )))
     _VALID_URL = rf'https?://(?:www\.)?(?:{_SUBDOMAIN_RE})\.senate\.gov'
     _TESTS = [{
@@ -185,6 +175,17 @@ class SenateGovIE(InfoExtractor):
             'thumbnail': r're:https?://.+\.(?:jpe?g|png)',
             'age_limit': 0,
             '_old_archive_ids': ['senategov banking041521'],
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.hsgac.senate.gov/subcommittees/bmfwra/hearings/match-ready-oversight-of-the-federal-governments-border-management-and-personnel-readiness-efforts-for-the-decade-of-sports/',
+        'info_dict': {
+            'id': 'govtaff061025',
+            'display_id': 'match-ready-oversight-of-the-federal-governments-border-management-and-personnel-readiness-efforts-for-the-decade-of-sports',
+            'ext': 'mp4',
+            'title': r're:.+',
+            'thumbnail': r're:https?://.+\.(?:jpe?g|png)',
+            '_old_archive_ids': ['senategov govtaff061025'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
