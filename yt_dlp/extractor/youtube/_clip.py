@@ -25,7 +25,7 @@ class YoutubeClipIE(YoutubeTabBaseInfoExtractor):
             'like_count': int,
             'playable_in_embed': True,
             'tags': 'count:17',
-            'thumbnail': 'https://i.ytimg.com/vi_webp/ScPX26pdQik/maxresdefault.webp',
+            'thumbnail': r're:https://i\.ytimg\.com/vi(_webp)?/ScPX26pdQik/maxresdefault\.(webp|jpg)',
             'title': 'Mobile Games on Console - Scott The Woz',
             'upload_date': '20210920',
             'uploader': 'Scott The Woz',
@@ -38,6 +38,8 @@ class YoutubeClipIE(YoutubeTabBaseInfoExtractor):
             'comment_count': int,
             'heatmap': 'count:100',
             'media_type': 'clip',
+            'channel_is_verified': True,
+            'timestamp': 1632096013,
         },
     }]
 
