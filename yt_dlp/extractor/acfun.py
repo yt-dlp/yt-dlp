@@ -98,7 +98,7 @@ class AcFunVideoIE(AcFunVideoBaseIE):
         title = json_all.get('title')
         video_list = json_all.get('videoList') or []
 
-        if len(video_list) > 1 and not part_id and self._yes_playlist(base_video_id, base_video_id):
+        if len(video_list) > 1 and self._yes_playlist(base_video_id, part_id):
             return self.playlist_from_matches(
                 video_list, base_video_id, title, ie=AcFunVideoIE,
                 getter=lambda entry: f'https://www.acfun.cn/v/ac{base_video_id}_{entry["id"]}')
