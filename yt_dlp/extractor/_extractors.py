@@ -2491,6 +2491,7 @@ from .ximalaya import (
     XimalayaAlbumIE,
     XimalayaIE,
 )
+from .xfans import XfansIE
 from .xinpianchang import XinpianchangIE
 from .xminus import XMinusIE
 from .xnxx import XNXXIE
