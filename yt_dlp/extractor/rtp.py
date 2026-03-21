@@ -202,7 +202,7 @@ class RTPIE(InfoExtractor):
             # asset_id is a unique identifier for all RTP videos, while episode_id is duplicated
             # across all parts of a multi-part episode. Older versions of this IE returned
             # episode_id as the video id and would only download the first part of multi-part eps.
-            # For download archive compat we should return the episode_id as the old archive ID
+            # For download archive compat, we should return the episode_id as the old archive id
             # *only* when extracting single-part episodes OR the *first* part of a multi-part ep.
             '_old_archive_ids': [make_archive_id(self, episode_id)] if archive_compat else None,
             'formats': formats,
