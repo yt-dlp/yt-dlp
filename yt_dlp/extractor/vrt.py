@@ -638,10 +638,9 @@ class VRTMaxRadioIE(VrtNUIE):
   }
 }'''
 
-    def get_metadata(self, show1l, show, episode_id):
+    def get_metadata(self, graphqlvar, episode_id):
         # Rather fragile, download responds with nothing but "400: Bad Request" if any
         # GraphQL part or header is out of place.  Best to keep them minimal.
-        graphqlvar = f'/vrtnu/luister/radio/{show1l}/{show}/{episode_id}/'
         postdata = json.dumps({
             'query': self._GRAPHQUERY,
             'variables': {'pageId': graphqlvar},
@@ -658,7 +657,8 @@ class VRTMaxRadioIE(VrtNUIE):
 
     def _real_extract(self, url):
         (show1l, show, episode_id) = self._match_valid_url(url).groups()
-        metadata = self.get_metadata(show1l, show, episode_id)['data']['page']
+        graphqlvar = f'/vrtnu/luister/radio/{show1l}/{show}/{episode_id}/'
+        metadata = self.get_metadata(graphqlvar, episode_id)['data']['page']
 
         audio_id = traverse_obj(metadata, ('player', 'modes', 0, 'streamId'))
         media_items = self._call_api(audio_id, 'vrtnu-web@PROD', version='v2')
@@ -678,6 +678,75 @@ class VRTMaxRadioIE(VrtNUIE):
                 'channel': 'brand',
                 'channel_url': ('components', ..., 'actionItems', ..., 'action', all,
                                 lambda _, act: act.get('internalTarget') == 'channelpage', any,
+                                'link', {lambda link: 'https://www.vrt.be' + link}),
+            }),
+        }
+
+class VRTMaxPodcastIE(VRTMaxRadioIE):
+    IE_NAME = 'vrtpodcast'
+    IE_DESC = 'VRT MAX (podcast)'
+    _VALID_URL = r'https?://(?:www\.)?vrt\.be/(?:vrtmax|vrtnu)/podcasts/(?P<kanaal>[^/]+)/(?P<show1l>[^/])/(?P<show>[^/]+)/(?P<nummer>[^/]+)/(?P<episode_id>[^/?#&]+)/?'
+    # _TESTS = [{
+
+    _GRAPHQUERY = '''query EpisodePage($pageId: ID!) {
+  page(id: $pageId) {
+    ... on PodcastEpisodePage {
+      title
+      brand
+      socialSharing {
+        description
+        image {
+          templateUrl
+        }
+      }
+      trackingData {
+        data
+      }
+      player {
+        modes {
+          cimMediaTrackingData {
+            programDuration
+          }
+          streamId
+        }
+      }
+      components {
+        ... on MediaInfo {
+          actionItems {
+            action {
+              ... on LinkAction {
+                internalTarget
+                link
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}'''
+
+    def _real_extract(self, url):
+        (kanaal, show1l, show, nummer, episode_id) = self._match_valid_url(url).groups()
+        graphqlvar = f'/vrtmax/podcasts/{kanaal}/{show1l}/{show}/{nummer}/{episode_id}/'
+        metadata = self.get_metadata(graphqlvar, episode_id)['data']['page']
+
+        audio_id = traverse_obj(metadata, ('player', 'modes', 0, 'streamId'))
+        media_items = self._call_api(audio_id, 'vrtnu-web@PROD', version='v2')
+        formats, _ = self._extract_formats_and_subtitles(media_items, audio_id)
+        return {
+            'id': episode_id,
+            'formats': formats,
+            **traverse_obj(metadata, {
+                'title': 'title',
+                'description': ('socialSharing', 'description'),
+                'thumbnail': ('socialSharing', 'image', 'templateUrl'),
+                'timestamp': ('trackingData', 'data', {json.loads}, '$eppt', {lambda x: x / 1000}),
+                # Duration of original transmission, downloaded file is sometimes shorter:
+                'duration': ('player', 'modes', 0, 'cimMediaTrackingData', 'programDuration'),
+                'channel': 'brand',
+                'channel_url': ('components', ..., 'actionItems', ..., 'action', all,
+                                lambda _, act: act.get('internalTarget') == 'podcastprogrampage', any,
                                 'link', {lambda link: 'https://www.vrt.be' + link}),
             }),
         }
