@@ -210,7 +210,7 @@ class RTPIE(InfoExtractor):
             **traverse_obj(asset_data, {
                 'thumbnail': ('asset_thumbnail', {url_or_none}),
                 'duration': ('asset_duration', {parse_duration}),
-                'webpage_url': ('web', {url_or_none}),
+                'webpage_url': ('web', 'url', {url_or_none}),
             }),
         }
 
