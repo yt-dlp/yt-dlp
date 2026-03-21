@@ -3,6 +3,7 @@ import json
 import re
 import urllib.parse
 
+from .common import PostProcessingError
 from .ffmpeg import FFmpegPostProcessor
 
 
@@ -99,7 +100,11 @@ class SponsorBlockPP(FFmpegPostProcessor):
             'categories': json.dumps(self._categories),
             'actionTypes': json.dumps(['skip', 'poi', 'chapter']),
         })
-        for d in self._download_json(url) or []:
-            if d['videoID'] == video_id:
-                return d['segments']
+        try:
+            for d in self._download_json(url) or []:
+                if d['videoID'] == video_id:
+                    return d['segments']
+        except PostProcessingError as e:
+            self.report_warning(f'Unable to fetch SponsorBlock segments: {e}')
+            return []
         return []
