@@ -11,7 +11,7 @@ from ..utils import (
 
 class UDNEmbedIE(InfoExtractor):
     IE_DESC = '聯合影音'
-    _PROTOCOL_RELATIVE_VALID_URL = r'//video\.udn\.com/(?:embed|play)/news/(?P<id>\d+)'
+    _PROTOCOL_RELATIVE_VALID_URL = r'//video\.udn\.com/(?:(?:embed|play)/)?/news/(?P<id>\d+)' 
     _VALID_URL = r'https?:' + _PROTOCOL_RELATIVE_VALID_URL
     _EMBED_REGEX = [rf'<iframe[^>]+src="(?:https?:)?(?P<url>{_PROTOCOL_RELATIVE_VALID_URL})"']
     _TESTS = [{
@@ -32,7 +32,6 @@ class UDNEmbedIE(InfoExtractor):
         'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
-        # FIXME: Update _VALID_URL
         'url': 'https://video.udn.com/news/1308561',
         'info_dict': {
             'id': '1308561',
