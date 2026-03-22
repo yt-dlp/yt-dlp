@@ -68,6 +68,13 @@ class VKBaseIE(InfoExtractor):
             mask_url = ''.join(mask_url)
         return mask_url
 
+    def _check_vk_auth(self, webpage, video_id):
+        """Check if authentication is required for VK Music content."""
+        if any(x in webpage.lower() for x in ['login', 'authorization required', 'access denied', 'please log in']):
+            self.raise_login_required(
+                'VK Music requires authentication. Use --cookies-from-browser to provide cookies from a logged-in browser session.',
+                method='cookies')
+
     def _download_webpage_handle(self, url_or_request, video_id, *args, fatal=True, **kwargs):
         response = super()._download_webpage_handle(url_or_request, video_id, *args, fatal=fatal, **kwargs)
         if response is False:
@@ -837,7 +844,11 @@ class VKAudioIE(VKBaseIE):
                 break
 
         if not audio_data or not audio_data.get('url'):
-            raise ExtractorError('Unable to extract audio data')
+            # Check if this is an auth issue
+            self._check_vk_auth(webpage, audio_id)
+            raise ExtractorError(
+                'Unable to extract audio data. This content may require authentication. '
+                'Use --cookies-from-browser to provide cookies from a logged-in browser session.')
 
         title = unescapeHTML(audio_data.get('title'))
         artist = unescapeHTML(audio_data.get('artist'))
@@ -882,6 +893,9 @@ class VKAudiosIE(VKBaseIE):
         while True:
             webpage = self._download_webpage(
                 f'https://m.vk.com/audios{owner_id}?offset={offset}', owner_id)
+
+            # Check if authentication is required
+            self._check_vk_auth(webpage, owner_id)
 
             entries = []
             for audio in re.findall(r'data-audio="([^"]+)', webpage):
@@ -957,6 +971,9 @@ class VKMusicPlaylistIE(VKBaseIE):
                 url += f'&access_hash={access_hash}'
 
             webpage = self._download_webpage(url, f'{owner_id}_{playlist_id}')
+
+            # Check if authentication is required
+            self._check_vk_auth(webpage, f'{owner_id}_{playlist_id}')
 
             entries = []
             for audio in re.findall(r'data-audio="([^"]+)', webpage):
@@ -1037,6 +1054,9 @@ class VKMusicAlbumsIE(VKBaseIE):
         owner_id = self._match_id(url)
         webpage = self._download_webpage(
             f'https://m.vk.com/audio?act=audio_playlists{owner_id}', owner_id)
+
+        # Check if authentication is required
+        self._check_vk_auth(webpage, owner_id)
 
         entries = []
         # Look for playlist links in the page
