@@ -1085,8 +1085,8 @@ class TikTokUserBaseIE(TikTokBaseIE):
                 return
 
             # This code path is ideally only reached when one of the following is true:
-            # 1. TikTok profile is private or has favorites closed and webpage detection
-            #    was bypassed due to a tiktokuser:sec_uid or tiktokfavorite:sec_uid URL
+            # 1. TikTok profile is private or has likes closed and webpage detection
+            #    was bypassed due to a tiktokuser:sec_uid or tiktokliked:sec_uid URL
             # 2. TikTok profile is *not* private but all of their videos are private
             if fail_early and not seen_ids:
                 self.raise_login_required(self._FAIL_EARLY_MESSAGE)
@@ -1211,15 +1211,15 @@ class TikTokUserIE(TikTokUserBaseIE):
         return self.playlist_result(self._entries(sec_uid, user_name, fail_early), sec_uid, user_name)
 
 
-class TikTokFavoriteIE(TikTokUserBaseIE):
-    IE_NAME = 'tiktok:favorite'
-    _VALID_URL = r'tiktokfavorite:(?P<username>[\w.-]+)|https?://(?:www\.)?tiktok\.com/@(?P<username2>[\w.-]+)/favorite/?'
+class TikTokLikedIE(TikTokUserBaseIE):
+    IE_NAME = 'tiktok:liked'
+    _VALID_URL = r'tiktokliked:(?P<username>[\w.-]+)|https?://(?:www\.)?tiktok\.com/@(?P<username2>[\w.-]+)/liked/?'
     _FAIL_EARLY_MESSAGE = (
-        'This user\'s account is likely private, has favorites hidden, or all of their favorites are private. '
-        'Open favorites to the public or log into this account'
+        'This user\'s account is likely private, has likes hidden, or all of their likes are private. '
+        'Open likes to the public or log into this account'
     )
     _TESTS = [{
-        'url': 'https://www.tiktok.com/@gandopers/favorite/',
+        'url': 'https://www.tiktok.com/@gandopers/liked/',
         'playlist_mincount': 25,
         'info_dict': {
             'id': 'MS4wLjABAAAAVuPEj9VE4rd0gzbC6dJpamyDDjBGYEq57gT4MuGVG1Q6fNnNQtg3cDmBBx-r8hNy',
@@ -1228,7 +1228,7 @@ class TikTokFavoriteIE(TikTokUserBaseIE):
         'expected_warnings': ['TikTok API keeps sending the same page'],
         'params': {'extractor_retries': 10},
     }, {
-        'url': 'tiktokfavorite:gandopers',
+        'url': 'tiktokliked:gandopers',
         'only_matching': True,
     }]
     _API_BASE_URL = 'https://www.tiktok.com/api/favorite/item_list/'
@@ -1247,14 +1247,14 @@ class TikTokFavoriteIE(TikTokUserBaseIE):
                 fatal=False, impersonate=True) or ''
             detail = traverse_obj(
                 self._get_universal_data(webpage, user_name), ('webapp.user-detail', {dict})) or {}
-            favorite_count = traverse_obj(detail, ('userInfo', ('stats', 'statsV2'), 'diggCount', {int_or_none}, any))
-            if not favorite_count and detail.get('statusCode') == 10222:
+            likes_count = traverse_obj(detail, ('userInfo', ('stats', 'statsV2'), 'diggCount', {int_or_none}, any))
+            if not likes_count and detail.get('statusCode') == 10222:
                 self.raise_login_required(
                     'This user\'s account is private. Log into an account that has access')
-            elif favorite_count == 0:
+            elif likes_count == 0:
                 self.raise_login_required(
-                    'This user\'s favorite videos are private. '
-                    'Open favorites to the public or log into this account',
+                    'This user\'s liked videos are private. '
+                    'Open likes to the public or log into this account',
                 )
             sec_uid = traverse_obj(detail, ('userInfo', 'user', 'secUid', {str}))
             if not sec_uid:
@@ -1263,7 +1263,7 @@ class TikTokFavoriteIE(TikTokUserBaseIE):
         if not sec_uid:
             raise ExtractorError(
                 'Unable to extract secondary user ID. If you are able to get the channel_id '
-                'from a video posted by this user, try using "tiktokfavorite:channel_id" as the '
+                'from a video posted by this user, try using "tiktokliked:channel_id" as the '
                 'input URL (replacing `channel_id` with its actual value)', expected=True)
 
         return self.playlist_result(self._entries(sec_uid, user_name, fail_early), sec_uid, user_name)
