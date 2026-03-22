@@ -35,6 +35,38 @@ from ..utils.traversal import require, traverse_obj
 
 class VKBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'vk'
+    _BASE64_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN0PQRSTUVWXYZO123456789+/='
+
+    def _decode(self, enc):
+        dec = ''
+        e = n = 0
+        for c in enc:
+            r = self._BASE64_CHARS.index(c)
+            cond = n % 4
+            e = 64 * e + r if cond else r
+            n += 1
+            if cond:
+                dec += chr(255 & e >> (-2 * n & 6))
+        return dec
+
+    def _unmask_audio_url(self, mask_url, vk_id):
+        if 'audio_api_unavailable' in mask_url:
+            extra = mask_url.split('?extra=')[1].split('#')
+            _, base = self._decode(extra[1]).split(chr(11))
+            mask_url = list(self._decode(extra[0]))
+            url_len = len(mask_url)
+            indexes = [None] * url_len
+            index = int(base) ^ vk_id
+            for n in range(url_len - 1, -1, -1):
+                index = (url_len * (n + 1) ^ index + n) % url_len
+                indexes[n] = index
+            for n in range(1, url_len):
+                c = mask_url[n]
+                index = indexes[url_len - 1 - n]
+                mask_url[n] = mask_url[index]
+                mask_url[index] = c
+            mask_url = ''.join(mask_url)
+        return mask_url
 
     def _download_webpage_handle(self, url_or_request, video_id, *args, fatal=True, **kwargs):
         response = super()._download_webpage_handle(url_or_request, video_id, *args, fatal=fatal, **kwargs)
@@ -736,39 +768,6 @@ class VKWallPostIE(VKBaseIE):
         'url': 'https://m.vk.com/wall-23538238_35',
         'only_matching': True,
     }]
-    _BASE64_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN0PQRSTUVWXYZO123456789+/='
-    _AUDIO = collections.namedtuple('Audio', ['id', 'owner_id', 'url', 'title', 'performer', 'duration', 'album_id', 'unk', 'author_link', 'lyrics', 'flags', 'context', 'extra', 'hashes', 'cover_url', 'ads'])
-
-    def _decode(self, enc):
-        dec = ''
-        e = n = 0
-        for c in enc:
-            r = self._BASE64_CHARS.index(c)
-            cond = n % 4
-            e = 64 * e + r if cond else r
-            n += 1
-            if cond:
-                dec += chr(255 & e >> (-2 * n & 6))
-        return dec
-
-    def _unmask_url(self, mask_url, vk_id):
-        if 'audio_api_unavailable' in mask_url:
-            extra = mask_url.split('?extra=')[1].split('#')
-            _, base = self._decode(extra[1]).split(chr(11))
-            mask_url = list(self._decode(extra[0]))
-            url_len = len(mask_url)
-            indexes = [None] * url_len
-            index = int(base) ^ vk_id
-            for n in range(url_len - 1, -1, -1):
-                index = (url_len * (n + 1) ^ index + n) % url_len
-                indexes[n] = index
-            for n in range(1, url_len):
-                c = mask_url[n]
-                index = indexes[url_len - 1 - n]
-                mask_url[n] = mask_url[index]
-                mask_url[index] = c
-            mask_url = ''.join(mask_url)
-        return mask_url
 
     def _real_extract(self, url):
         post_id = self._match_id(url)
@@ -797,7 +796,7 @@ class VKWallPostIE(VKBaseIE):
                 'artist': artist,
                 'track': title,
                 'formats': [{
-                    'url': audio['url'],
+                    'url': self._unmask_audio_url(audio['url'], audio['owner_id']),
                     'ext': 'm4a',
                     'vcodec': 'none',
                     'acodec': 'mp3',
@@ -812,6 +811,244 @@ class VKWallPostIE(VKBaseIE):
         return self.playlist_result(
             entries, post_id, join_nonempty(uploader, f'Wall post {post_id}', delim=' - '),
             clean_html(get_element_by_class('wall_post_text', webpage)))
+
+
+class VKAudioIE(VKBaseIE):
+    IE_NAME = 'vk:audio'
+    IE_DESC = 'VK - Single audio track'
+    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/audio(?P<id>-?\d+_\d+_[a-f0-9]+)'
+    _TESTS = [{
+        'url': 'https://m.vk.com/audio-2001280873_122880873_4b0d2b43f0e5ba0f71',
+        'only_matching': True,
+    }, {
+        'url': 'https://vk.com/audio-2001280873_122880873_4b0d2b43f0e5ba0f71',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        audio_id = self._match_id(url)
+        webpage = self._download_webpage(f'https://m.vk.com/audio{audio_id}', audio_id)
+
+        audio_data = None
+        for audio in re.findall(r'data-audio="([^"]+)', webpage):
+            audio_json = self._parse_json(unescapeHTML(audio), audio_id)
+            if audio_json and audio_json.get('id'):
+                audio_data = audio_json
+                break
+
+        if not audio_data or not audio_data.get('url'):
+            raise ExtractorError('Unable to extract audio data')
+
+        title = unescapeHTML(audio_data.get('title'))
+        artist = unescapeHTML(audio_data.get('artist'))
+        owner_id = audio_data.get('owner_id')
+
+        return {
+            'id': f'{audio_data["owner_id"]}_{audio_data["id"]}',
+            'title': join_nonempty(artist, title, delim=' - '),
+            'thumbnails': try_call(lambda: [{'url': u} for u in audio_data['coverUrl'].split(',')]),
+            'duration': int_or_none(audio_data.get('duration')),
+            'artist': artist,
+            'track': title,
+            'formats': [{
+                'url': self._unmask_audio_url(audio_data['url'], owner_id),
+                'ext': 'm4a',
+                'vcodec': 'none',
+                'acodec': 'mp3',
+                'container': 'm4a_dash',
+            }],
+        }
+
+
+class VKAudiosIE(VKBaseIE):
+    IE_NAME = 'vk:audios'
+    IE_DESC = "VK - User's or group's audio collection"
+    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/audios(?P<id>-?\d+)'
+    _TESTS = [{
+        'url': 'https://vk.com/audios-23538238',
+        'info_dict': {
+            'id': '-23538238',
+            'title': 'Audios of -23538238',
+        },
+        'playlist_mincount': 1,
+    }, {
+        'url': 'https://m.vk.com/audios-23538238',
+        'only_matching': True,
+    }]
+    _PAGE_SIZE = 100
+
+    def _entries(self, owner_id):
+        offset = 0
+        while True:
+            webpage = self._download_webpage(
+                f'https://m.vk.com/audios{owner_id}?offset={offset}', owner_id)
+
+            entries = []
+            for audio in re.findall(r'data-audio="([^"]+)', webpage):
+                audio_data = self._parse_json(unescapeHTML(audio), owner_id)
+                if not audio_data or not audio_data.get('url'):
+                    continue
+
+                title = unescapeHTML(audio_data.get('title'))
+                artist = unescapeHTML(audio_data.get('artist'))
+                audio_owner_id = audio_data.get('owner_id')
+
+                entries.append({
+                    'id': f'{audio_data["owner_id"]}_{audio_data["id"]}',
+                    'title': join_nonempty(artist, title, delim=' - '),
+                    'thumbnails': try_call(lambda: [{'url': u} for u in audio_data['coverUrl'].split(',')]),
+                    'duration': int_or_none(audio_data.get('duration')),
+                    'artist': artist,
+                    'track': title,
+                    'formats': [{
+                        'url': self._unmask_audio_url(audio_data['url'], audio_owner_id),
+                        'ext': 'm4a',
+                        'vcodec': 'none',
+                        'acodec': 'mp3',
+                        'container': 'm4a_dash',
+                    }],
+                })
+
+            if not entries:
+                break
+
+            for entry in entries:
+                yield entry
+
+            offset += self._PAGE_SIZE
+
+            # Check if there are more pages
+            if len(entries) < self._PAGE_SIZE:
+                break
+
+    def _real_extract(self, url):
+        owner_id = self._match_id(url)
+        return self.playlist_result(
+            self._entries(owner_id), owner_id, f'Audios of {owner_id}')
+
+
+class VKMusicPlaylistIE(VKBaseIE):
+    IE_NAME = 'vk:music:playlist'
+    IE_DESC = 'VK - Music playlist/album'
+    _VALID_URL = r'''(?x)
+        https?://(?:(?:m|new)\.)?vk\.com/
+        (?:
+            music/playlist/(?P<owner_id>-?\d+)_(?P<playlist_id>\d+)(?:_(?P<access_hash>[a-f0-9]+))?|
+            audio\?.*?z=audio_playlist(?P<legacy_id>-?\d+_\d+)(?:%2F|%2f|/)(?P<legacy_hash>[a-f0-9]+)?
+        )
+    '''
+    _TESTS = [{
+        'url': 'https://vk.com/music/playlist/-23538238_12345',
+        'only_matching': True,
+    }, {
+        'url': 'https://vk.com/audio?z=audio_playlist-23538238_12345%2Fabcdef123',
+        'only_matching': True,
+    }, {
+        'url': 'https://m.vk.com/music/playlist/-23538238_12345',
+        'only_matching': True,
+    }]
+    _PAGE_SIZE = 100
+
+    def _entries(self, owner_id, playlist_id, access_hash=None):
+        offset = 0
+        while True:
+            url = f'https://m.vk.com/music/playlist/{owner_id}_{playlist_id}?offset={offset}'
+            if access_hash:
+                url += f'&access_hash={access_hash}'
+
+            webpage = self._download_webpage(url, f'{owner_id}_{playlist_id}')
+
+            entries = []
+            for audio in re.findall(r'data-audio="([^"]+)', webpage):
+                audio_data = self._parse_json(unescapeHTML(audio), f'{owner_id}_{playlist_id}')
+                if not audio_data or not audio_data.get('url'):
+                    continue
+
+                title = unescapeHTML(audio_data.get('title'))
+                artist = unescapeHTML(audio_data.get('artist'))
+                audio_owner_id = audio_data.get('owner_id')
+
+                entries.append({
+                    'id': f'{audio_data["owner_id"]}_{audio_data["id"]}',
+                    'title': join_nonempty(artist, title, delim=' - '),
+                    'thumbnails': try_call(lambda: [{'url': u} for u in audio_data['coverUrl'].split(',')]),
+                    'duration': int_or_none(audio_data.get('duration')),
+                    'artist': artist,
+                    'track': title,
+                    'formats': [{
+                        'url': self._unmask_audio_url(audio_data['url'], audio_owner_id),
+                        'ext': 'm4a',
+                        'vcodec': 'none',
+                        'acodec': 'mp3',
+                        'container': 'm4a_dash',
+                    }],
+                })
+
+            if not entries:
+                break
+
+            for entry in entries:
+                yield entry
+
+            offset += self._PAGE_SIZE
+
+            if len(entries) < self._PAGE_SIZE:
+                break
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        legacy_id = mobj.group('legacy_id')
+
+        if legacy_id:
+            owner_id, playlist_id = legacy_id.split('_')
+            access_hash = mobj.group('legacy_hash')
+        else:
+            owner_id = mobj.group('owner_id')
+            playlist_id = mobj.group('playlist_id')
+            access_hash = mobj.group('access_hash')
+
+        playlist_id = f'{owner_id}_{playlist_id}'
+
+        # Try to get playlist title from the page
+        webpage = self._download_webpage(
+            f'https://m.vk.com/music/playlist/{playlist_id}', playlist_id, fatal=False)
+        title = None
+        if webpage:
+            title = clean_html(get_element_by_class('AudioPlaylist__title', webpage))
+
+        return self.playlist_result(
+            self._entries(owner_id, playlist_id.split('_')[1], access_hash),
+            playlist_id, title or f'Playlist {playlist_id}')
+
+
+class VKMusicAlbumsIE(VKBaseIE):
+    IE_NAME = 'vk:music:albums'
+    IE_DESC = "VK - User's or group's playlists/albums"
+    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/audio\?act=audio_playlists(?P<id>-?\d+)'
+    _TESTS = [{
+        'url': 'https://vk.com/audio?act=audio_playlists-23538238',
+        'only_matching': True,
+    }, {
+        'url': 'https://m.vk.com/audio?act=audio_playlists-23538238',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        owner_id = self._match_id(url)
+        webpage = self._download_webpage(
+            f'https://m.vk.com/audio?act=audio_playlists{owner_id}', owner_id)
+
+        entries = []
+        # Look for playlist links in the page
+        for playlist_match in re.finditer(
+                r'href="/music/playlist/(?P<playlist_id>-?\d+_\d+)(?:\?|"|#)',
+                webpage):
+            playlist_id = playlist_match.group('playlist_id')
+            entries.append(self.url_result(
+                f'https://vk.com/music/playlist/{playlist_id}',
+                VKMusicPlaylistIE.ie_key(), playlist_id))
+
+        return self.playlist_result(entries, owner_id, f'Playlists of {owner_id}')
 
 
 class VKPlayBaseIE(InfoExtractor):
@@ -961,3 +1198,282 @@ class VKPlayLiveIE(VKPlayBaseIE):
             **self._extract_common_meta(stream_info),
             'formats': formats,
         }
+
+
+class VKAudioIE(VKBaseIE):
+    IE_NAME = 'vk:audio'
+    IE_DESC = 'VK Music - Single audio track'
+    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/audio(?P<id>-?\d+_\d+_[a-f0-9]+)'
+    _TESTS = [{
+        'url': 'https://vk.com/audio147077690_456242502_d1585835ba07303880',
+        'only_matching': True,
+    }, {
+        'url': 'https://m.vk.com/audio268477373_456240878_506fca1eb4b2be42c8',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        audio_id = self._match_id(url)
+        # Extract owner_id and audio_id from the full ID
+        parts = audio_id.split('_')
+        owner_id = parts[0]
+        track_id = parts[1]
+        
+        webpage = self._download_webpage(f'https://m.vk.com/audio{audio_id}', audio_id)
+        
+        # Find audio data in the page
+        audio_data = None
+        for audio in re.findall(r'data-audio="([^"]+)', webpage):
+            try:
+                data = self._parse_json(unescapeHTML(audio), audio_id)
+                if str(data.get('owner_id')) == owner_id and str(data.get('id')) == track_id:
+                    audio_data = data
+                    break
+            except Exception:
+                continue
+        
+        if not audio_data:
+            raise ExtractorError('Could not find audio data in page')
+        
+        title = unescapeHTML(audio_data.get('title', ''))
+        artist = unescapeHTML(audio_data.get('artist', ''))
+        audio_url = audio_data.get('url', '')
+        
+        # Unmask the URL if needed
+        if audio_url and 'audio_api_unavailable' in audio_url:
+            vk_id = int(owner_id)
+            audio_url = self._unmask_audio_url(audio_url, vk_id)
+        
+        return {
+            'id': f'{owner_id}_{track_id}',
+            'title': join_nonempty(artist, title, delim=' - '),
+            'artist': artist,
+            'track': title,
+            'duration': int_or_none(audio_data.get('duration')),
+            'thumbnails': try_call(lambda: [{'url': u} for u in audio_data['coverUrl'].split(',')]),
+            'formats': [{
+                'url': audio_url,
+                'ext': 'm4a',
+                'vcodec': 'none',
+                'acodec': 'mp3',
+                'container': 'm4a_dash',
+            }] if audio_url else [],
+        }
+
+
+class VKAudiosIE(VKBaseIE):
+    IE_NAME = 'vk:audios'
+    IE_DESC = "VK Music - User's or group's audio collection"
+    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/audios(?P<id>-?\d+)'
+    _TESTS = [{
+        'url': 'https://vk.com/audios-173441691',
+        'only_matching': True,
+    }, {
+        'url': 'https://vk.com/audios573558507',
+        'only_matching': True,
+    }]
+
+    def _entries(self, owner_id):
+        offset = 0
+        while True:
+            webpage = self._download_webpage(
+                f'https://m.vk.com/audios{owner_id}', 
+                owner_id,
+                query={'offset': offset}
+            )
+            
+            entries = []
+            for audio in re.findall(r'data-audio="([^"]+)', webpage):
+                try:
+                    data = self._parse_json(unescapeHTML(audio), owner_id)
+                    if not data.get('url'):
+                        continue
+                    
+                    title = unescapeHTML(data.get('title', ''))
+                    artist = unescapeHTML(data.get('artist', ''))
+                    audio_url = data.get('url', '')
+                    track_owner_id = str(data.get('owner_id', ''))
+                    track_id = str(data.get('id', ''))
+                    
+                    # Unmask the URL if needed
+                    if audio_url and 'audio_api_unavailable' in audio_url:
+                        vk_id = int(track_owner_id)
+                        audio_url = self._unmask_audio_url(audio_url, vk_id)
+                    
+                    entries.append({
+                        'id': f'{track_owner_id}_{track_id}',
+                        'title': join_nonempty(artist, title, delim=' - '),
+                        'artist': artist,
+                        'track': title,
+                        'duration': int_or_none(data.get('duration')),
+                        'thumbnails': try_call(lambda: [{'url': u} for u in data['coverUrl'].split(',')]),
+                        'formats': [{
+                            'url': audio_url,
+                            'ext': 'm4a',
+                            'vcodec': 'none',
+                            'acodec': 'mp3',
+                            'container': 'm4a_dash',
+                        }],
+                    })
+                except Exception:
+                    continue
+            
+            if not entries:
+                break
+            
+            for entry in entries:
+                yield entry
+            
+            offset += len(entries)
+            
+            # Check if there are more tracks
+            if len(entries) < 20:  # Typical page size
+                break
+
+    def _real_extract(self, url):
+        owner_id = self._match_id(url)
+        return self.playlist_result(self._entries(owner_id), owner_id)
+
+
+class VKMusicPlaylistIE(VKBaseIE):
+    IE_NAME = 'vk:music:playlist'
+    IE_DESC = 'VK Music - Playlist/Album'
+    _VALID_URL = [
+        r'https?://(?:(?:m|new)\.)?vk\.com/music/playlist/(?P<id>-?\d+_\d+)',
+        r'https?://(?:(?:m|new)\.)?vk\.com/audio\?.*?z=audio_playlist(?P<id>-?\d+_\d+)',
+    ]
+    _TESTS = [{
+        'url': 'https://vk.com/music/playlist/-173441691_44',
+        'only_matching': True,
+    }, {
+        'url': 'https://vk.com/music/playlist/573558507_20',
+        'only_matching': True,
+    }, {
+        'url': 'https://vk.com/audio?z=audio_playlist573558507_20',
+        'only_matching': True,
+    }]
+
+    def _entries(self, owner_id, playlist_id):
+        offset = 0
+        while True:
+            webpage = self._download_webpage(
+                f'https://m.vk.com/audio',
+                f'{owner_id}_{playlist_id}',
+                query={
+                    'act': 'audio_playlist',
+                    'owner_id': owner_id,
+                    'playlist_id': playlist_id,
+                    'offset': offset
+                }
+            )
+            
+            entries = []
+            for audio in re.findall(r'data-audio="([^"]+)', webpage):
+                try:
+                    data = self._parse_json(unescapeHTML(audio), f'{owner_id}_{playlist_id}')
+                    if not data.get('url'):
+                        continue
+                    
+                    title = unescapeHTML(data.get('title', ''))
+                    artist = unescapeHTML(data.get('artist', ''))
+                    audio_url = data.get('url', '')
+                    track_owner_id = str(data.get('owner_id', ''))
+                    track_id = str(data.get('id', ''))
+                    
+                    # Unmask the URL if needed
+                    if audio_url and 'audio_api_unavailable' in audio_url:
+                        vk_id = int(track_owner_id)
+                        audio_url = self._unmask_audio_url(audio_url, vk_id)
+                    
+                    entries.append({
+                        'id': f'{track_owner_id}_{track_id}',
+                        'title': join_nonempty(artist, title, delim=' - '),
+                        'artist': artist,
+                        'track': title,
+                        'duration': int_or_none(data.get('duration')),
+                        'thumbnails': try_call(lambda: [{'url': u} for u in data['coverUrl'].split(',')]),
+                        'formats': [{
+                            'url': audio_url,
+                            'ext': 'm4a',
+                            'vcodec': 'none',
+                            'acodec': 'mp3',
+                            'container': 'm4a_dash',
+                        }],
+                    })
+                except Exception:
+                    continue
+            
+            if not entries:
+                break
+            
+            for entry in entries:
+                yield entry
+            
+            offset += len(entries)
+            
+            if len(entries) < 20:
+                break
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        owner_id, _, pl_id = playlist_id.partition('_')
+        
+        webpage = self._download_webpage(url, playlist_id)
+        
+        # Try to extract playlist title
+        playlist_title = self._html_search_regex(
+            r'class=["\']audioPlaylistSnippet__title["\'][^\u003e]*\u003e([^\u003c]+)',
+            webpage, 'playlist title', default=None)
+        
+        return self.playlist_result(
+            self._entries(owner_id, pl_id), 
+            playlist_id,
+            playlist_title
+        )
+
+
+class VKMusicAlbumsIE(VKBaseIE):
+    IE_NAME = 'vk:music:albums'
+    IE_DESC = "VK Music - User's or group's playlists/albums list"
+    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/audio\?act=audio_playlists(?P<id>-?\d+)'
+    _TESTS = [{
+        'url': 'https://vk.com/audio?act=audio_playlists573558507',
+        'only_matching': True,
+    }, {
+        'url': 'https://vk.com/audio?act=audio_playlists-173441691',
+        'only_matching': True,
+    }]
+
+    def _entries(self, owner_id):
+        offset = 0
+        while True:
+            webpage = self._download_webpage(
+                f'https://m.vk.com/audio?act=audio_playlists{owner_id}',
+                owner_id,
+                query={'offset': offset}
+            )
+            
+            # Find album/playlist links
+            albums = re.findall(
+                r'href=["\'][^"\']*audio_playlist(-?\d+_\d+)["\']',
+                webpage
+            )
+            
+            if not albums:
+                break
+            
+            for album_id in set(albums):
+                yield self.url_result(
+                    f'https://vk.com/music/playlist/{album_id}',
+                    VKMusicPlaylistIE.ie_key(),
+                    album_id
+                )
+            
+            offset += len(set(albums))
+            
+            if len(set(albums)) < 10:
+                break
+
+    def _real_extract(self, url):
+        owner_id = self._match_id(url)
+        return self.playlist_result(self._entries(owner_id), owner_id)

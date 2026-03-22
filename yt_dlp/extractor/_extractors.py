@@ -2365,7 +2365,11 @@ from .viu import (
     ViuPlaylistIE,
 )
 from .vk import (
+    VKAudioIE,
+    VKAudiosIE,
     VKIE,
+    VKMusicAlbumsIE,
+    VKMusicPlaylistIE,
     VKPlayIE,
     VKPlayLiveIE,
     VKUserVideosIE,
