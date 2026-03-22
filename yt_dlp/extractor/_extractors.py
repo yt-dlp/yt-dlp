@@ -259,6 +259,12 @@ from .bokecc import BokeCCIE
 from .bongacams import BongaCamsIE
 from .boosty import BoostyIE
 from .bostonglobe import BostonGlobeIE
+from .boundhub import (
+    BoundHubIE,
+    BoundHubMemberIE,
+    BoundHubMyFavoritesIE,
+    BoundHubPlaylistIE,
+)
 from .box import BoxIE
 from .boxcast import BoxCastVideoIE
 from .bpb import BpbIE
