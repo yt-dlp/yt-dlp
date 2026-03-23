@@ -171,11 +171,11 @@ class MultilinePrinter(MultilinePrinterBase):
                         if self._lines_drawn:
                             moves = self._move_cursor(self.maximum)
                             erasures = CONTROL_SEQUENCES['ERASE_LINE'] + (CONTROL_SEQUENCES['UP'] + CONTROL_SEQUENCES['ERASE_LINE']) * self.maximum
-                            self.write(*moves, erasures, '\n')
+                            self.write(*moves, erasures)
                             self._lastline = 0
                     else:
                         if self._lastlength:
-                            self.write('\r', ' ' * self._lastlength, '\r\n')
+                            self.write('\r', ' ' * self._lastlength, '\r')
                     self._paused = True
 
     def resume(self):
