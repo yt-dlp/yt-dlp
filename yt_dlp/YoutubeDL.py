@@ -809,10 +809,14 @@ class YoutubeDL:
         self._parse_outtmpl()
 
         # Creating format selector here allows us to catch syntax errors before the extraction
-        self.format_selector = (
-            self.params.get('format') if self.params.get('format') in (None, '-')
-            else self.params['format'] if callable(self.params['format'])
-            else self.build_format_selector(self.params['format']))
+        try:
+            self.format_selector = (
+                self.params.get('format') if self.params.get('format') in (None, '-')
+                else self.params['format'] if callable(self.params['format'])
+                else self.build_format_selector(self.params['format']))
+        except SyntaxError as err:
+            self.report_error(err, tb=False)
+            raise DownloadError(str(err)) from err
 
         hooks = {
             'post_hooks': self.add_post_hook,
