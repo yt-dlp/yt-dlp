@@ -5,7 +5,6 @@ from .common import InfoExtractor
 from ..networking import HEADRequest
 from ..utils import (
     determine_ext,
-    js_to_json,
     str_or_none,
 )
 from ..utils.traversal import traverse_obj
@@ -135,7 +134,7 @@ class SubstackIE(InfoExtractor):
 
         webpage_info = self._parse_json(self._search_json(
             r'window\._preloads\s*=\s*JSON\.parse\(', webpage, 'json string',
-            display_id, transform_source=js_to_json, contains_pattern=r'"{(?s:.+)}"'), display_id)
+            display_id, contains_pattern=r'"{(?s:.+)}"'), display_id)
 
         canonical_url = url
         domain = traverse_obj(webpage_info, ('domainInfo', 'customDomain', {str}))
