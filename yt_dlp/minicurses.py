@@ -167,15 +167,15 @@ class MultilinePrinter(MultilinePrinterBase):
             self._pause_count += 1
             if self._pause_count == 1:
                 with self._movelock:
-                    if self._HAVE_FULLCAP and self._lines_drawn:
-                        moves = self._move_cursor(self.maximum)
-                        erasures = CONTROL_SEQUENCES['ERASE_LINE'] + (CONTROL_SEQUENCES['UP'] + CONTROL_SEQUENCES['ERASE_LINE']) * self.maximum
-                        self.write(*moves, erasures, '\n')
-                        self._lastline = 0
+                    if self._HAVE_FULLCAP:
+                        if self._lines_drawn:
+                            moves = self._move_cursor(self.maximum)
+                            erasures = CONTROL_SEQUENCES['ERASE_LINE'] + (CONTROL_SEQUENCES['UP'] + CONTROL_SEQUENCES['ERASE_LINE']) * self.maximum
+                            self.write(*moves, erasures, '\n')
+                            self._lastline = 0
                     else:
                         if self._lastlength:
-                            self.write('\r', ' ' * self._lastlength, '\r')
-                        self.write('\n')
+                            self.write('\r', ' ' * self._lastlength, '\r\n')
                     self._paused = True
 
     def resume(self):
@@ -185,6 +185,19 @@ class MultilinePrinter(MultilinePrinterBase):
             if self._pause_count == 0:
                 self._paused = False
                 self._invalidate()
+                # show progress during errors
+                if any(self._line_buffer):
+                    with self._movelock:
+                        if self._HAVE_FULLCAP:
+                            self._reserve_and_redraw()
+                        else:
+                            for pos, text in enumerate(self._line_buffer):
+                                if text:
+                                    t = self._add_line_number(text, pos)
+                                    self._lastlength = len(t)
+                                    self.write(t, '\n')
+                                    self._lastline = pos
+                            self._needs_reinit = False
 
     def _move_cursor(self, dest):
         current = min(self._lastline, self.maximum)
