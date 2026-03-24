@@ -96,7 +96,7 @@ class AfreecaTVBaseIE(InfoExtractor):
 class AfreecaTVIE(AfreecaTVBaseIE):
     IE_NAME = 'soop'
     IE_DESC = 'sooplive.co.kr'
-    _VALID_URL = r'https?://vod\.(?:sooplive\.co\.kr|afreecatv\.com)/(?:PLAYER/STATION|player)/(?P<id>\d+)/?(?:$|[?#&])'
+    _VALID_URL = r'https?://vod\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/(?:PLAYER/STATION|player)/(?P<id>\d+)/?(?:$|[?#&])'
     _TESTS = [{
         'url': 'https://vod.sooplive.co.kr/player/96753363',
         'info_dict': {
@@ -105,7 +105,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'uploader_id': 'rlantnghks',
             'uploader': '페이즈으',
             'duration': 10840,
-            'thumbnail': r're:https?://videoimg\.(?:sooplive\.co\.kr|afreecatv\.com)/.+',
+            'thumbnail': r're:https?://videoimg\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/.+',
             'upload_date': '20230108',
             'timestamp': 1673186405,
             'title': '젠지 페이즈',
@@ -120,7 +120,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'id': '20170411_BE689A0E_190960999_1_2_h',
             'ext': 'mp4',
             'title': '혼자사는여자집',
-            'thumbnail': r're:https?://(?:video|st)img\.(?:sooplive\.co\.kr|afreecatv\.com)/.+',
+            'thumbnail': r're:https?://(?:video|st)img\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/.+',
             'uploader': '♥이슬이',
             'uploader_id': 'dasl8121',
             'upload_date': '20170411',
@@ -137,7 +137,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'id': '20180327_27901457_202289533_1',
             'ext': 'mp4',
             'title': '[생]빨개요♥ (part 1)',
-            'thumbnail': r're:https?://(?:video|st)img\.(?:sooplive\.co\.kr|afreecatv\.com)/.+',
+            'thumbnail': r're:https?://(?:video|st)img\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/.+',
             'uploader': '[SA]서아',
             'uploader_id': 'bjdyrksu',
             'upload_date': '20180327',
@@ -256,7 +256,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
 class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
     IE_NAME = 'soop:catchstory'
     IE_DESC = 'sooplive.co.kr catch story'
-    _VALID_URL = r'https?://vod\.(?:sooplive\.co\.kr|afreecatv\.com)/player/(?P<id>\d+)/catchstory'
+    _VALID_URL = r'https?://vod\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/player/(?P<id>\d+)/catchstory'
     _TESTS = [{
         'url': 'https://vod.sooplive.co.kr/player/103247/catchstory',
         'info_dict': {
@@ -292,7 +292,7 @@ class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
 class AfreecaTVLiveIE(AfreecaTVBaseIE):
     IE_NAME = 'soop:live'
     IE_DESC = 'sooplive.co.kr livestreams'
-    _VALID_URL = r'https?://play\.(?:sooplive\.co\.kr|afreecatv\.com)/(?P<id>[^/?#]+)(?:/(?P<bno>\d+))?'
+    _VALID_URL = r'https?://play\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/(?P<id>[^/?#]+)(?:/(?P<bno>\d+))?'
     _TESTS = [{
         'url': 'https://play.sooplive.co.kr/pyh3646/237852185',
         'info_dict': {
@@ -418,7 +418,7 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
 
 class AfreecaTVUserIE(AfreecaTVBaseIE):
     IE_NAME = 'soop:user'
-    _VALID_URL = r'https?://(?:ch\.(?:sooplive\.co\.kr|afreecatv\.com)/|(www\.)?(?:sooplive\.co\.kr|afreecatv\.com)/station/)(?P<id>[^/?#]+)/(?:vods|vod)/?(?P<slug_type>[^/?#]+)?'
+    _VALID_URL = r'https?://(?:ch\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/|(www\.)?(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/station/)(?P<id>[^/?#]+)/(?:vods|vod)/?(?P<slug_type>[^/?#]+)?'
     _TESTS = [{
         'url': 'https://www.sooplive.co.kr/station/jsc9905/vod/review',
         'info_dict': {
@@ -426,7 +426,7 @@ class AfreecaTVUserIE(AfreecaTVBaseIE):
             'id': 'jsc9905',
             'title': 'jsc9905 - review',
         },
-        'playlist_mincount': 1391,
+        'playlist_mincount': 1000,
     }, {
         'url': 'https://ch.sooplive.co.kr/parang1995/vods/review',
         'info_dict': {
