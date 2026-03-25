@@ -60,6 +60,9 @@ class SponsorBlockPP(FFmpegPostProcessor):
             # Make POI chapters 1 sec so that we can properly mark them
             if s['category'] in self.POI_CATEGORIES:
                 start_end[1] += 1
+            # Discard segments that start at or beyond the video duration.
+            if duration and start_end[0] >= duration:
+                return False
             # Ignore milliseconds difference at the end.
             # Never allow the segment to exceed the video.
             if duration and duration - start_end[1] <= 1:
