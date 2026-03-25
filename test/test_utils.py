@@ -1525,6 +1525,15 @@ ffmpeg version 2.4.4 Copyright (c) 2000-2014 the FFmpeg ...'''), '2.4.4')
         self.assertFalse(match_str('x>=1100 & x < 1200', {'x': 1200}))
         self.assertTrue(match_str('x > 1:0:0', {'x': 3700}))
 
+        # Float
+        self.assertTrue(match_str('x=1.78', {'x': 1.78}))
+        self.assertFalse(match_str('x=1.78', {'x': 1.79}))
+        self.assertTrue(match_str('x>1.0', {'x': 1.78}))
+        self.assertFalse(match_str('x>2.0', {'x': 1.78}))
+        self.assertTrue(match_str('x>=1.78', {'x': 1.78}))
+        self.assertTrue(match_str('x<2.0', {'x': 1.78}))
+        self.assertFalse(match_str('x<1.0', {'x': 1.78}))
+
         # String
         self.assertFalse(match_str('y=a212', {'y': 'foobar42'}))
         self.assertTrue(match_str('y=foobar42', {'y': 'foobar42'}))

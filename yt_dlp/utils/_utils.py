@@ -3271,7 +3271,7 @@ def _match_one(filter_part, dct, incomplete):
             # and process comparison value as a string (see
             # https://github.com/ytdl-org/youtube-dl/issues/11082)
             try:
-                numeric_comparison = int(comparison_value)
+                numeric_comparison = float(comparison_value)
             except ValueError:
                 numeric_comparison = parse_filesize(comparison_value)
                 if numeric_comparison is None:
