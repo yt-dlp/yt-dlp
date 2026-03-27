@@ -1,3 +1,0 @@
-urllib3>=2.0.2,<3
-yt-dlp-ejs==0.8.0
-pyinstaller>=6.17.0

@@ -147,6 +147,8 @@ def uv_pip_compile(python_platform, python_version, requirements_input_path, *ar
 
 
 def main():
+    INPUT_PATH.mkdir(exist_ok=True)
+
     with contextlib.closing(urllib.request.urlopen(PYINSTALLER_BUILDS_URL)) as resp:
         info = json.load(resp)
 
