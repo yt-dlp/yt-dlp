@@ -231,7 +231,7 @@ jobs:
           [[ "${version}" != "${downgraded_version}" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
         with:
           name: build-bin-${{ github.job }}
           path: |
@@ -267,7 +267,7 @@ jobs:
 
       - name: Set up QEMU
         if: matrix.qemu_platform
-        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130  # v3.7.0
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a  # v4.0.0
         with:
           image: tonistiigi/binfmt:qemu-v10.0.4-56@sha256:30cc9a4d03765acac9be2ed0afc23af1ad018aed2c28ea4be8c2eb9afe03fbd1
           cache-image: false
@@ -294,7 +294,7 @@ jobs:
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
         with:
           name: build-bin-${{ matrix.os }}_${{ matrix.arch }}
           path: |
@@ -384,7 +384,7 @@ jobs:
           [[ "$version" != "$downgraded_version" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
         with:
           name: build-bin-${{ github.job }}
           path: |
@@ -407,23 +407,23 @@ jobs:
           runner: windows-2025
           python_version: '3.10'
           platform_tag: win_amd64
-          pyi_version: '6.18.0'
-          pyi_tag: '2026.01.29.160356'
-          pyi_hash: bb9cd0b0b233e4d031a295211cb8aa7c7f8b3c12ff33f1d57a40849ab4d3cf42
+          pyi_version: '6.19.0'
+          pyi_tag: '2026.03.17.175201'
+          pyi_hash: '1a5f4b844abd02bd758ae6b64c5243fed1a2fa641dbcab2f79480c6a7b957e2d'
         - arch: 'x86'
           runner: windows-2025
           python_version: '3.10'
           platform_tag: win32
-          pyi_version: '6.18.0'
-          pyi_tag: '2026.01.29.160356'
-          pyi_hash: aa8f260e735d94f1e2e1aac42e322f508eb54d0433de803c2998c337f72045e4
+          pyi_version: '6.19.0'
+          pyi_tag: '2026.03.17.175201'
+          pyi_hash: '9b3c791d7e5cc23f5b48dffc3c367dac10a516b86904db48b6096c2b5d1ffb41'
         - arch: 'arm64'
           runner: windows-11-arm
           python_version: '3.13'  # arm64 only has Python >= 3.11 available
           platform_tag: win_arm64
-          pyi_version: '6.18.0'
-          pyi_tag: '2026.01.29.160356'
-          pyi_hash: 4bbca67d0cdfa860d92ac9cc7e4c2586fd393d1e814e3f1375b8c62d5cfb6771
+          pyi_version: '6.19.0'
+          pyi_tag: '2026.03.17.175201'
+          pyi_hash: 'd008e5c8bb2143f7c05c8b5fcc15dab5f079d79425f78af1936c6768f8e87504'
     env:
       CHANNEL: ${{ inputs.channel }}
       ORIGIN: ${{ needs.process.outputs.origin }}
@@ -501,7 +501,7 @@ jobs:
           }
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
         with:
           name: build-bin-${{ github.job }}-${{ matrix.arch }}
           path: |
@@ -521,7 +521,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131  # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         with:
           path: artifact
           pattern: build-bin-*
@@ -590,7 +590,7 @@ jobs:
           done
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
         with:
           name: build-${{ github.job }}
           path: |
