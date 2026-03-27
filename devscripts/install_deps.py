@@ -25,11 +25,8 @@ def parse_args():
         '-e', '--exclude-dependency', metavar='DEPENDENCY', action='append',
         help='exclude a dependency (can be used multiple times)')
     parser.add_argument(
-        '-i', '--include-extra', metavar='EXTRA', action='append',
-        help='include an extra/optional-dependencies list (can be used multiple times)')
-    parser.add_argument(
-        '-g', '--include-group', metavar='GROUP', action='append',
-        help='include a dependency group (can be used multiple times)')
+        '-i', '--include-extra', '--include-group', metavar='EXTRA/GROUP', action='append', dest='includes',
+        help='include an extra/group (can be used multiple times)')
     parser.add_argument(
         '-c', '--cherry-pick', metavar='DEPENDENCY', action='append',
         help=(
@@ -61,8 +58,7 @@ def main():
 
     excludes = uniq(args.exclude_dependency)
     only_includes = uniq(args.cherry_pick)
-    include_extras = uniq(args.include_extra)
-    include_groups = uniq(args.include_group)
+    includes = uniq(args.includes)
 
     def yield_deps_from_extra(extra):
         for dep in extra:
@@ -84,10 +80,10 @@ def main():
         targets.update(dict.fromkeys(project_table['dependencies']))
         targets.update(dict.fromkeys(yield_deps_from_extra(extras['default'])))
 
-    for include in filter(None, map(extras.get, include_extras)):
+    for include in filter(None, map(extras.get, includes)):
         targets.update(dict.fromkeys(yield_deps_from_extra(include)))
 
-    for include in filter(None, map(groups.get, include_groups)):
+    for include in filter(None, map(groups.get, includes)):
         targets.update(dict.fromkeys(yield_deps_from_group(include)))
 
     def target_filter(target):
