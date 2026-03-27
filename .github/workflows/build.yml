@@ -328,31 +328,32 @@ jobs:
           python3 -m venv ~/yt-dlp-build-venv
           source ~/yt-dlp-build-venv/bin/activate
           python3 -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
+          rm -rf build
           # Only directly install wheels for "universal2" and "any" platforms
-          mkdir wheels_to_install
+          mkdir -p build/wheels
           python3 -m pip download \
             --only-binary=:all: \
             --platform=macosx_10_15_universal2 \
             --platform=any \
-            -d wheels_to_install \
+            -d build/wheels \
             --require-hashes \
             -r "bundle/requirements/requirements-macos.txt"
-          python3 -m pip install --force-reinstall --no-deps -U wheels_to_install/*.whl
-          rm -rf wheels_to_install
+          python3 -m pip install --force-reinstall --no-deps -U build/wheels/*.whl
+          rm -rf build/wheels/*
           # We need to fuse our own universal2 wheels for curl_cffi and cffi
-          mkdir curl_cffi_whls curl_cffi_universal2
+          mkdir -p build/universal2
           for platform in "macosx_11_0_arm64" "macosx_11_0_x86_64"; do
             python3 -m pip download \
               --no-deps \
               --only-binary=:all: \
               --platform "${platform}" \
-              -d curl_cffi_whls \
+              -d build/wheels \
                --require-hashes \
               -r "bundle/requirements/requirements-macos-curl_cffi.txt"
           done
           ( # Overwrite x86_64-only libs with fat/universal2 libs or else PyInstaller will do the opposite
             # See https://github.com/yt-dlp/yt-dlp/pull/10069
-            cd curl_cffi_whls
+            cd build/wheels
             mkdir -p curl_cffi/.dylibs
             python_libdir=$(python3 -c 'import sys; from pathlib import Path; print(Path(sys.path[1]).parent)')
             for dylib in lib{ssl,crypto}.3.dylib; do
@@ -362,13 +363,13 @@ jobs:
               done
             done
           )
-          python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/curl_cffi*.whl -w curl_cffi_universal2
-          python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/cffi*.whl -w curl_cffi_universal2
-          for wheel in curl_cffi_universal2/*cffi*.whl; do
+          python3 -m delocate.cmd.delocate_fuse build/wheels/curl_cffi*.whl -w build/universal2
+          python3 -m delocate.cmd.delocate_fuse build/wheels/cffi*.whl -w build/universal2
+          for wheel in build/universal2/*cffi*.whl; do
             mv -n -- "${wheel}" "${wheel/x86_64/universal2}"
           done
-          python3 -m pip install --force-reinstall --no-deps -U curl_cffi_universal2/*cffi*.whl
-          rm -rf curl_cffi_whls curl_cffi_universal2
+          python3 -m pip install --force-reinstall --no-deps -U build/universal2/*cffi*.whl
+          rm -rf build
 
       - name: Prepare
         run: |
