@@ -76,11 +76,6 @@ build = [
     "hatchling>=1.27.0",
     "pip",
 ]
-build-macos = [
-    {include-group = "build"},
-    "setuptools>=71.0.2",
-    "wheel",
-]
 static-analysis = [
     "autopep8~=2.0",
     "ruff~=0.15.0",

@@ -92,12 +92,12 @@ INSTALL_DEPS_TARGETS = {
 }
 
 BUILD_GROUP_TARGETS = {
-    # requirements target suffix: (python platform, python version, group)
-    'pypi-build': ('linux', LINUX_GNU_PYTHON_VERSION, 'build'),
-    'win-x64-build': ('x86_64-pc-windows-msvc', WINDOWS_INTEL_PYTHON_VERSION, 'build'),
-    'win-x86-build': ('i686-pc-windows-msvc', WINDOWS_INTEL_PYTHON_VERSION, 'build'),
-    'win-arm64-build': ('aarch64-pc-windows-msvc', WINDOWS_ARM64_PYTHON_VERSION, 'build'),
-    'macos-build': ('macos', MACOS_PYTHON_VERSION, 'build-macos'),
+    # requirements target suffix: (python platform, python version)
+    'pypi-build': ('linux', LINUX_GNU_PYTHON_VERSION),
+    'win-x64-build': ('x86_64-pc-windows-msvc', WINDOWS_INTEL_PYTHON_VERSION),
+    'win-x86-build': ('i686-pc-windows-msvc', WINDOWS_INTEL_PYTHON_VERSION),
+    'win-arm64-build': ('aarch64-pc-windows-msvc', WINDOWS_ARM64_PYTHON_VERSION),
+    'macos-build': ('macos', MACOS_PYTHON_VERSION),
 }
 
 PYINSTALLER_BUILDS_TARGETS = {
@@ -160,11 +160,11 @@ def main():
             f'--output-file={OUTPUT_PATH / OUTPUT_TMPL.format(target_suffix)}')
 
     for target_suffix, target_info in BUILD_GROUP_TARGETS.items():
-        python_platform, python_version, group = target_info
+        python_platform, python_version = target_info
         requirements_input_path = INPUT_PATH / INPUT_TMPL.format(target_suffix)
         requirements_input_path.write_text(run_process(
             sys.executable, '-m', 'devscripts.install_deps',
-            '--omit-default', '--print', '--include-group', group).stdout)
+            '--omit-default', '--print', '--include-group', 'build').stdout)
         uv_pip_compile(
             python_platform, python_version, requirements_input_path,
             f'--exclude-newer={COOLDOWN_DATE}',
