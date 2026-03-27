@@ -2032,7 +2032,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     return False, last_seq
                 elif old_mpd_url == mpd_url:
                     return True, last_seq
-
             if manifestless_orig_fmt:
                 fmt_info = manifestless_orig_fmt
             else:
@@ -2061,8 +2060,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     no_fragment_score += 2
                     return False, last_seq
             except (AttributeError, IndexError, ValueError):
-                 no_fragment_score += 2
-                 return False, last_seq
+                no_fragment_score += 2
+                return False, last_seq
             return True, _last_seq
 
         self.write_debug(f'[{video_id}] Generating fragments for format {itag}')
