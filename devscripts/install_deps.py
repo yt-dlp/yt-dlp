@@ -25,7 +25,7 @@ def parse_args():
         '-e', '--exclude-dependency', metavar='DEPENDENCY', action='append',
         help='exclude a dependency (can be used multiple times)')
     parser.add_argument(
-        '-i', '--include-extra', '--include-group', metavar='EXTRA/GROUP', action='append', dest='includes',
+        '-i', '--include', '--include-extra', '--include-group', metavar='EXTRA/GROUP', action='append', dest='includes',
         help='include an extra/group (can be used multiple times)')
     parser.add_argument(
         '-c', '--cherry-pick', metavar='DEPENDENCY', action='append',
