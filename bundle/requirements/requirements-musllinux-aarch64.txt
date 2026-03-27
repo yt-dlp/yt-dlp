@@ -111,9 +111,8 @@ certifi==2026.2.25 \
     --hash=sha256:e887ab5cee78ea814d3472169153c2d12cd43b14bd03329a39a9c6e2e80bfba7
     # via
     #   -r bundle/requirements-input/requirements-musllinux-aarch64.in
-    #   curl-cffi
     #   requests
-cffi==2.0.0 ; implementation_name == 'cpython' or platform_python_implementation != 'PyPy' \
+cffi==2.0.0 ; platform_python_implementation != 'PyPy' \
     --hash=sha256:00bdf7acc5f795150faa6957054fbbca2439db2f775ce831222b66f192f03beb \
     --hash=sha256:07b271772c100085dd28b74fa0cd81c8fb1a3ba18b21e03d7c27f3436a10606b \
     --hash=sha256:087067fa8953339c723661eda6b54bc98c5625757ea62e95eb4898ad5e776e9f \
@@ -198,9 +197,7 @@ cffi==2.0.0 ; implementation_name == 'cpython' or platform_python_implementation
     --hash=sha256:fc33c5141b55ed366cfaad382df24fe7dcbc686de5be719b207bb248e3053dc5 \
     --hash=sha256:fc7de24befaeae77ba923797c7c87834c73648a05a4bde34b3b7e5588973a453 \
     --hash=sha256:fe562eb1a64e67dd297ccc4f5addea2501664954f2692b69a76449ec7913ecbf
-    # via
-    #   cryptography
-    #   curl-cffi
+    # via cryptography
 charset-normalizer==3.4.6 \
     --hash=sha256:06a7e86163334edfc5d20fe104db92fcd666e5a5df0977cb5680a506fe26cc8e \
     --hash=sha256:0c173ce3a681f309f31b87125fecec7a5d1347261ea11ebbb856fa6006b23c8c \
@@ -383,20 +380,6 @@ cryptography==46.0.5 \
     --hash=sha256:f145bba11b878005c496e93e257c1e88f154d278d2638e6450d17e0f31e558d2 \
     --hash=sha256:fe346b143ff9685e40192a4960938545c699054ba11d4f9029f94751e3f71d87
     # via secretstorage
-curl-cffi==0.14.0 ; implementation_name == 'cpython' \
-    --hash=sha256:03f21ade2d72978c2bb8670e9b6de5260e2755092b02d94b70b906813662998d \
-    --hash=sha256:060fe2c99c41d3cb7f894de318ddf4b0301b08dca70453d769bd4e74b36b8483 \
-    --hash=sha256:1439fbef3500fb723333c826adf0efb0e2e5065a703fb5eccce637a2250db34a \
-    --hash=sha256:2eed50a969201605c863c4c31269dfc3e0da52916086ac54553cfa353022425c \
-    --hash=sha256:58ebf02de64ee5c95613209ddacb014c2d2f86298d7080c0a1c12ed876ee0690 \
-    --hash=sha256:5945478cd28ad7dfb5c54473bcfb6743ee1d66554d57951fdf8fc0e7d8cf4e45 \
-    --hash=sha256:5ffbc82e59f05008ec08ea432f0e535418823cda44178ee518906a54f27a5f0f \
-    --hash=sha256:6e503f9a103f6ae7acfb3890c843b53ec030785a22ae7682a22cc43afb94123e \
-    --hash=sha256:b158c41a25388690dd0d40b5bc38d1e0f512135f17fdb8029868cbc1993d2e5b \
-    --hash=sha256:c42e8fa3c667db9ccd2e696ee47adcd3cd5b0838d7282f3fc45f6c0ef3cfdfa7 \
-    --hash=sha256:e35e89c6a69872f9749d6d5fda642ed4fc159619329e99d577d0104c9aad5893 \
-    --hash=sha256:e7176f2c2d22b542e3cf261072a81deb018cfa7688930f95dddef215caddb469
-    # via -r bundle/requirements-input/requirements-musllinux-aarch64.in
 idna==3.11 \
     --hash=sha256:771a87f49d9defaf64091e6e6fe9c18d4833f140bd19464795bc32d966ca37ea \
     --hash=sha256:795dafcc9c04ed0c1fb032c2aa73654d8e8c5023a7df64a53f39190ada629902
@@ -415,7 +398,7 @@ packaging==26.0 \
     # via
     #   pyinstaller
     #   pyinstaller-hooks-contrib
-pycparser==3.0 ; (implementation_name != 'PyPy' and platform_python_implementation != 'PyPy') or (implementation_name == 'cpython' and platform_python_implementation == 'PyPy') \
+pycparser==3.0 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy' \
     --hash=sha256:600f49d217304a5902ac3c37e1281c9fe94e4d0489de643a9504c5cdfdfc6b29 \
     --hash=sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992
     # via cffi
