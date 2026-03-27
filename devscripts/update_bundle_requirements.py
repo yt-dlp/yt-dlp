@@ -8,7 +8,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import contextlib
-import datetime
+import datetime as dt
 import itertools
 import json
 import pathlib
@@ -21,7 +21,7 @@ from devscripts.utils import run_process
 REQUIREMENTS_PATH = pathlib.Path(__file__).parent.parent / 'bundle/requirements'
 INPUT_TMPL = 'requirements-{}.in'
 OUTPUT_TMPL = 'requirements-{}.txt'
-COOLDOWN_DATE = (datetime.datetime.today() - datetime.timedelta(days=5)).strftime('%Y-%m-%d')
+COOLDOWN_DATE = (dt.datetime.today() - dt.timedelta(days=5)).strftime('%Y-%m-%d')
 CUSTOM_COMPILE_COMMAND = 'python -m devscripts.update_bundle_requirements'
 
 LINUX_GNU_PYTHON_VERSION = '3.13'
