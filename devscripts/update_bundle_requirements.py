@@ -38,7 +38,7 @@ class Target:
     version: str
     extras: list[str] = dataclasses.field(default_factory=list)
     groups: list[str] = dataclasses.field(default_factory=list)
-    args: list[str] = dataclasses.field(default_factory=list)
+    compile_args: list[str] = dataclasses.field(default_factory=list)
 
 
 INSTALL_DEPS_TARGETS = {
@@ -95,7 +95,7 @@ INSTALL_DEPS_TARGETS = {
         groups=['delocate', 'pyinstaller'],
         # curl-cffi and cffi don't provide universal2 wheels, so only directly install their deps
         # NB: uv's --no-emit-package option is equivalent to pip-compile's --unsafe-package option
-        args=['--no-emit-package', 'curl-cffi', '--no-emit-package', 'cffi'],
+        compile_args=['--no-emit-package', 'curl-cffi', '--no-emit-package', 'cffi'],
     ),
     # We fuse our own universal2 wheels for curl-cffi+cffi, so we need a separate requirements file
     'macos-curl_cffi': Target(
@@ -103,7 +103,7 @@ INSTALL_DEPS_TARGETS = {
         version=MACOS_PYTHON_VERSION,
         extras=['curl-cffi-compat'],
         # Only need curl-cffi+cffi in this requirements file; their deps are installed directly
-        args=['--no-emit-package', 'certifi', '--no-emit-package', 'pycparser'],
+        compile_args=['--no-emit-package', 'certifi', '--no-emit-package', 'pycparser'],
     ),
 }
 
@@ -112,7 +112,7 @@ INSTALL_DEPS_TARGETS = {
 class GroupTarget:
     platform: str
     version: str
-    args: list[str] = dataclasses.field(default_factory=list)
+    install_args: list[str] = dataclasses.field(default_factory=list)
 
 
 BUILD_GROUP_TARGETS = {
@@ -123,22 +123,22 @@ BUILD_GROUP_TARGETS = {
     'win-x64-build': GroupTarget(
         platform='x86_64-pc-windows-msvc',
         version=WINDOWS_INTEL_PYTHON_VERSION,
-        args=['--cherry-pick', 'pip'],
+        install_args=['--cherry-pick', 'pip'],
     ),
     'win-x86-build': GroupTarget(
         platform='i686-pc-windows-msvc',
         version=WINDOWS_INTEL_PYTHON_VERSION,
-        args=['--cherry-pick', 'pip'],
+        install_args=['--cherry-pick', 'pip'],
     ),
     'win-arm64-build': GroupTarget(
         platform='aarch64-pc-windows-msvc',
         version=WINDOWS_ARM64_PYTHON_VERSION,
-        args=['--cherry-pick', 'pip'],
+        install_args=['--cherry-pick', 'pip'],
     ),
     'macos-build': GroupTarget(
         platform='macos',
         version=MACOS_PYTHON_VERSION,
-        args=['--cherry-pick', 'pip'],
+        install_args=['--cherry-pick', 'pip'],
     ),
 }
 
@@ -216,14 +216,14 @@ def main():
             *itertools.chain.from_iterable(itertools.product(['--include-group'], target.groups)),
         ).stdout)
         run_pip_compile(
-            target.platform, target.version, requirements_input_path, *target.args,
+            target.platform, target.version, requirements_input_path, *target.compile_args,
             f'--output-file={REQUIREMENTS_PATH / OUTPUT_TMPL.format(target_suffix)}')
 
     for target_suffix, target in BUILD_GROUP_TARGETS.items():
         requirements_input_path = REQUIREMENTS_PATH / INPUT_TMPL.format(target_suffix)
         requirements_input_path.write_text(run_process(
             sys.executable, '-m', 'devscripts.install_deps',
-            '--omit-default', '--print', '--include-group', 'build', *target.args).stdout)
+            '--omit-default', '--print', '--include-group', 'build', *target.install_args).stdout)
         run_pip_compile(
             target.platform, target.version, requirements_input_path,
             f'--output-file={REQUIREMENTS_PATH / OUTPUT_TMPL.format(target_suffix)}')
