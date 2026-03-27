@@ -33,67 +33,79 @@ WINDOWS_ARM64_PYTHON_VERSION = '3.13'
 MACOS_PYTHON_VERSION = '3.14'
 
 INSTALL_DEPS_TARGETS = {
-    # requirements target suffix: (python platform, python version, [extras], [groups])
+    # requirements target suffix: (python platform, python version, [extras], [groups], [install_deps args])
     'linux-x86_64': (
         'x86_64-manylinux2014',
         LINUX_GNU_PYTHON_VERSION,
         ['default', 'curl-cffi-compat', 'secretstorage'],
-        ['pyinstaller']),
+        ['pyinstaller'],
+        []),
     'linux-aarch64': (
         'aarch64-manylinux2014',
         LINUX_GNU_PYTHON_VERSION,
         ['default', 'curl-cffi-compat', 'secretstorage'],
-        ['pyinstaller']),
+        ['pyinstaller'],
+        []),
     'linux-armv7l': (
         'linux',
         LINUX_GNU_PYTHON_VERSION,
         ['default', 'curl-cffi', 'secretstorage'],
-        ['pyinstaller']),
+        ['pyinstaller'],
+        []),
     'musllinux-x86_64': (
         'x86_64-unknown-linux-musl',
         LINUX_MUSL_PYTHON_VERISON,
         ['default', 'curl-cffi', 'secretstorage'],
-        ['pyinstaller']),
+        ['pyinstaller'],
+        []),
     'musllinux-aarch64': (
         'aarch64-unknown-linux-musl',
         LINUX_MUSL_PYTHON_VERISON,
         ['default', 'secretstorage'],
-        ['pyinstaller']),
+        ['pyinstaller'],
+        []),
     'win-x64': (
         'x86_64-pc-windows-msvc',
         WINDOWS_INTEL_PYTHON_VERSION,
         ['default', 'curl-cffi'],
+        [],
         []),
     'win-x86': (
         'i686-pc-windows-msvc',
         WINDOWS_INTEL_PYTHON_VERSION,
         ['default'],
+        [],
         []),
     'win-arm64': (
         'aarch64-pc-windows-msvc',
         WINDOWS_ARM64_PYTHON_VERSION,
         ['default', 'curl-cffi'],
+        [],
         []),
     'macos': (
         'macos',
         MACOS_PYTHON_VERSION,
         ['default'],
+        [],
         []),
-    'macos-pyinstaller': (
+    'macos-universal': (
         'macos',
         MACOS_PYTHON_VERSION,
-        [],
-        ['pyinstaller']),
+        ['default'],
+        ['pyinstaller'],
+        ['--cherry-pick', 'urllib3', '--cherry-pick', 'yt-dlp-ejs', '--cherry-pick', 'pyinstaller']),
     'macos-curl_cffi': (
         'macos',
         MACOS_PYTHON_VERSION,
         ['curl-cffi-compat'],
+        [],
         []),
     'macos-delocate': (
         'macos',
         MACOS_PYTHON_VERSION,
         [],
-        ['delocate']),
+        ['delocate'],
+        []),
 }
 
 BUILD_GROUP_TARGETS = {
@@ -152,13 +164,14 @@ def main():
             pyinstaller_builds_deps, asset_info['browser_download_url'], asset_info['digest']))
 
     for target_suffix, target_info in INSTALL_DEPS_TARGETS.items():
-        python_platform, python_version, extras, groups = target_info
+        python_platform, python_version, extras, groups, install_deps_args = target_info
         extras = list(itertools.chain.from_iterable(itertools.product(['--include-extra'], extras)))
         groups = list(itertools.chain.from_iterable(itertools.product(['--include-group'], groups)))
         requirements_input_path = INPUT_PATH / INPUT_TMPL.format(target_suffix)
         requirements_input_path.write_text(run_process(
             sys.executable, '-m', 'devscripts.install_deps',
-            '--omit-default', '--print', *extras, *groups).stdout)
+            '--omit-default', '--print', *extras, *groups,
+            *install_deps_args).stdout)
         uv_pip_compile(
             python_platform, python_version, requirements_input_path,
             f'--exclude-newer={COOLDOWN_DATE}',
