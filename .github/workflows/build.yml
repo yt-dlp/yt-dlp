@@ -329,13 +329,16 @@ jobs:
           source ~/yt-dlp-build-venv/bin/activate
           python3 -m pip install -U --require-hashes -r "bundle/requirements/requirements-macos-build.txt"
           # Only directly install wheels for "universal2" and "any" platforms
-          python3 -m pip install \
-            --upgrade \
+          mkdir wheels_to_install
+          python3 -m pip download \
             --only-binary=:all: \
             --platform=universal2 \
             --platform=any \
+            -d wheels_to_install \
             --require-hashes \
             -r "bundle/requirements/requirements-macos.txt"
+          python3 -m pip install --force-reinstall --no-deps -U wheels_to_install/*.whl
+          rm -rf wheels_to_install
           # We need to fuse our own universal2 wheels for curl_cffi and cffi
           mkdir curl_cffi_whls curl_cffi_universal2
           for platform in "macosx_11_0_arm64" "macosx_11_0_x86_64"; do
@@ -365,6 +368,7 @@ jobs:
             mv -n -- "${wheel}" "${wheel/x86_64/universal2}"
           done
           python3 -m pip install --force-reinstall --no-deps -U curl_cffi_universal2/*cffi*.whl
+          rm -rf curl_cffi_whls curl_cffi_universal2
 
       - name: Prepare
         run: |
