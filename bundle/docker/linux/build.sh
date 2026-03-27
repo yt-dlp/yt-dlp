@@ -9,7 +9,8 @@ fi
 # Set up virtual environment
 rm -rf .venv
 py"${PYTHON_VERSION}" -m venv .venv --without-pip
-export PYTHONPATH="$(py"${PYTHON_VERSION}" -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
+PYTHONPATH="$(py"${PYTHON_VERSION}" -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
+export PYTHONPATH
 # shellcheck disable=SC1091
 source .venv/bin/activate
 
