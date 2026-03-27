@@ -6,20 +6,18 @@ if [[ -z "${PYTHON_VERSION:-}" ]]; then
     echo "Defaulting to using Python ${PYTHON_VERSION}"
 fi
 
-INCLUDES=(
-    --include-extra pyinstaller
-    --include-extra secretstorage
-)
-
-if [[ -z "${EXCLUDE_CURL_CFFI:-}" ]]; then
-    INCLUDES+=(--include-extra build-curl-cffi)
-fi
-
-py"${PYTHON_VERSION}" -m venv /yt-dlp-build-venv
+# Set up virtual environment
+rm -rf .venv
+py"${PYTHON_VERSION}" -m venv .venv --without-pip
+sys_pkg_path=$(py"${PYTHON_VERSION}" -c 'import sysconfig; print(sysconfig.get_path("purelib"))')
 # shellcheck disable=SC1091
-source /yt-dlp-build-venv/bin/activate
-# Inside the venv we can use python instead of py3.13 or py3.14 etc
-python -m devscripts.install_deps "${INCLUDES[@]}"
+source .venv/bin/activate
+# In the activated venv we can use python instead of py3.13 or py3.14 etc
+venv_pkg_path=$(python -c 'import sysconfig; print(sysconfig.get_path("purelib"))')
+# Copy up-to-date pip+etc from system site-packages to venv site-packages
+cp -ra "${sys_pkg_path}/"* "${venv_pkg_path}/"
+
+python -m pip install -U --require-hashes -r "bundle/requirements/requirements-${REQUIREMENTS}.txt"
 python -m devscripts.make_lazy_extractors
 python devscripts/update-version.py -c "${CHANNEL}" -r "${ORIGIN}" "${VERSION}"
 
