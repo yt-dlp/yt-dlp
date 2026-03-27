@@ -332,7 +332,7 @@ jobs:
           mkdir wheels_to_install
           python3 -m pip download \
             --only-binary=:all: \
-            --platform=universal2 \
+            --platform=macosx_10_15_universal2 \
             --platform=any \
             -d wheels_to_install \
             --require-hashes \
