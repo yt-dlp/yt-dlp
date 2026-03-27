@@ -31,72 +31,81 @@ WINDOWS_ARM64_PYTHON_VERSION = '3.13'
 MACOS_PYTHON_VERSION = '3.14'
 
 INSTALL_DEPS_TARGETS = {
-    # requirements target suffix: (python platform, python version, [extras], [groups])
+    # requirements target suffix: (python platform, python version, [extras], [groups], [pip-compile args])
     'linux-x86_64': (
         'x86_64-manylinux2014',
         LINUX_GNU_PYTHON_VERSION,
         ['default', 'curl-cffi-compat', 'secretstorage'],
-        ['pyinstaller']),
+        ['pyinstaller'],
+        []),
     'linux-aarch64': (
         'aarch64-manylinux2014',
         LINUX_GNU_PYTHON_VERSION,
         ['default', 'curl-cffi-compat', 'secretstorage'],
-        ['pyinstaller']),
+        ['pyinstaller'],
+        []),
     'linux-armv7l': (
         'linux',
         LINUX_GNU_PYTHON_VERSION,
         ['default', 'curl-cffi', 'secretstorage'],
-        ['pyinstaller']),
+        ['pyinstaller'],
+        []),
     'musllinux-x86_64': (
         'x86_64-unknown-linux-musl',
         LINUX_MUSL_PYTHON_VERISON,
         ['default', 'curl-cffi', 'secretstorage'],
-        ['pyinstaller']),
+        ['pyinstaller'],
+        []),
     'musllinux-aarch64': (
         'aarch64-unknown-linux-musl',
         LINUX_MUSL_PYTHON_VERISON,
         ['default', 'secretstorage'],
-        ['pyinstaller']),
+        ['pyinstaller'],
+        []),
     'win-x64': (
         'x86_64-pc-windows-msvc',
         WINDOWS_INTEL_PYTHON_VERSION,
         ['default', 'curl-cffi'],
+        [],
         []),
     'win-x86': (
         'i686-pc-windows-msvc',
         WINDOWS_INTEL_PYTHON_VERSION,
         ['default'],
+        [],
         []),
     'win-arm64': (
         'aarch64-pc-windows-msvc',
         WINDOWS_ARM64_PYTHON_VERSION,
         ['default', 'curl-cffi'],
+        [],
         []),
     'macos': (
         'macos',
         MACOS_PYTHON_VERSION,
-        ['default'],
-        []),
+        ['default', 'curl-cffi-compat'],
+        # NB: Resolve delocate and PyInstaller together since they share dependencies
+        ['delocate', 'pyinstaller'],
+        # curl-cffi and cffi don't provide universal2 wheels, so only directly install their deps
+        # NB: uv's --no-emit-package option is equivalent to pip-compile's --unsafe-package option
+        ['--no-emit-package', 'curl-cffi', '--no-emit-package', 'cffi']),
+    # We fuse our own universal2 wheels for curl-cffi+cffi, so we need a separate requirements file
     'macos-curl_cffi': (
         'macos',
         MACOS_PYTHON_VERSION,
         ['curl-cffi-compat'],
-        []),
-    # Resolve delocate and PyInstaller together since they share dependencies
-    'macos-pyinstaller': (
-        'macos',
-        MACOS_PYTHON_VERSION,
         [],
-        ['delocate', 'pyinstaller']),
+        # Only need curl-cffi+cffi in this requirements file; their deps are installed directly
+        ['--no-emit-package', 'certifi', '--no-emit-package', 'pycparser']),
 }
 
 BUILD_GROUP_TARGETS = {
-    # requirements target suffix: (python platform, python version)
-    'pypi-build': ('linux', LINUX_GNU_PYTHON_VERSION),
-    'win-x64-build': ('x86_64-pc-windows-msvc', WINDOWS_INTEL_PYTHON_VERSION),
-    'win-x86-build': ('i686-pc-windows-msvc', WINDOWS_INTEL_PYTHON_VERSION),
-    'win-arm64-build': ('aarch64-pc-windows-msvc', WINDOWS_ARM64_PYTHON_VERSION),
-    'macos-build': ('macos', MACOS_PYTHON_VERSION),
+    # requirements target suffix: (python platform, python version, [install_deps args])
+    'pypi-build': ('linux', LINUX_GNU_PYTHON_VERSION, []),
+    'win-x64-build': ('x86_64-pc-windows-msvc', WINDOWS_INTEL_PYTHON_VERSION, ['--cherry-pick', 'pip']),
+    'win-x86-build': ('i686-pc-windows-msvc', WINDOWS_INTEL_PYTHON_VERSION, ['--cherry-pick', 'pip']),
+    'win-arm64-build': ('aarch64-pc-windows-msvc', WINDOWS_ARM64_PYTHON_VERSION, ['--cherry-pick', 'pip']),
+    'macos-build': ('macos', MACOS_PYTHON_VERSION, ['--cherry-pick', 'pip']),
 }
 
 PYINSTALLER_BUILDS_TARGETS = {
@@ -148,7 +157,7 @@ def main():
             pyinstaller_builds_deps, asset_info['browser_download_url'], asset_info['digest']))
 
     for target_suffix, target_info in INSTALL_DEPS_TARGETS.items():
-        python_platform, python_version, extras, groups = target_info
+        python_platform, python_version, extras, groups, pip_compile_args = target_info
         extras = list(itertools.chain.from_iterable(itertools.product(['--include-extra'], extras)))
         groups = list(itertools.chain.from_iterable(itertools.product(['--include-group'], groups)))
         requirements_input_path = REQUIREMENTS_PATH / INPUT_TMPL.format(target_suffix)
@@ -156,15 +165,15 @@ def main():
             sys.executable, '-m', 'devscripts.install_deps',
             '--omit-default', '--print', *extras, *groups).stdout)
         run_pip_compile(
-            python_platform, python_version, requirements_input_path,
+            python_platform, python_version, requirements_input_path, *pip_compile_args,
             f'--output-file={REQUIREMENTS_PATH / OUTPUT_TMPL.format(target_suffix)}')
 
     for target_suffix, target_info in BUILD_GROUP_TARGETS.items():
-        python_platform, python_version = target_info
+        python_platform, python_version, install_deps_args = target_info
         requirements_input_path = REQUIREMENTS_PATH / INPUT_TMPL.format(target_suffix)
         requirements_input_path.write_text(run_process(
             sys.executable, '-m', 'devscripts.install_deps',
-            '--omit-default', '--print', '--include-group', 'build').stdout)
+            '--omit-default', '--print', '--include-group', 'build', *install_deps_args).stdout)
         run_pip_compile(
             python_platform, python_version, requirements_input_path,
             f'--output-file={REQUIREMENTS_PATH / OUTPUT_TMPL.format(target_suffix)}')
