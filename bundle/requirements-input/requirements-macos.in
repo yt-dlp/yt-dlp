@@ -7,4 +7,3 @@ requests>=2.32.2,<3
 urllib3>=2.0.2,<3
 websockets>=13.0
 yt-dlp-ejs==0.8.0
-pyinstaller>=6.17.0
