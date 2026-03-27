@@ -118,6 +118,8 @@ PYINSTALLER_VERSION_RE = re.compile(r'pyinstaller-(?P<version>[0-9]+\.[0-9]+\.[0
 def run_pip_compile(python_platform, python_version, requirements_input_path, *args):
     return run_process(
         'uv', 'pip', 'compile',
+        '--upgrade',
+        f'--exclude-newer={COOLDOWN_DATE}',
         f'--python-platform={python_platform}',
         f'--python-version={python_version}',
         '--generate-hashes',
@@ -154,7 +156,6 @@ def main():
             '--omit-default', '--print', *extras, *groups).stdout)
         run_pip_compile(
             python_platform, python_version, requirements_input_path,
-            f'--exclude-newer={COOLDOWN_DATE}',
             f'--output-file={REQUIREMENTS_PATH / OUTPUT_TMPL.format(target_suffix)}')
 
     for target_suffix, target_info in BUILD_GROUP_TARGETS.items():
@@ -165,7 +166,6 @@ def main():
             '--omit-default', '--print', '--include-group', 'build').stdout)
         run_pip_compile(
             python_platform, python_version, requirements_input_path,
-            f'--exclude-newer={COOLDOWN_DATE}',
             f'--output-file={REQUIREMENTS_PATH / OUTPUT_TMPL.format(target_suffix)}')
 
 
