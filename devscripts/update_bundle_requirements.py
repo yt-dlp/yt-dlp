@@ -134,7 +134,7 @@ PYINSTALLER_BUILDS_TMPL = '''\
 PYINSTALLER_VERSION_RE = re.compile(r'pyinstaller-(?P<version>[0-9]+\.[0-9]+\.[0-9]+)-')
 
 
-def uv_pip_compile(python_platform, python_version, requirements_input_path, *args):
+def run_pip_compile(python_platform, python_version, requirements_input_path, *args):
     return run_process(
         'uv', 'pip', 'compile',
         f'--python-platform={python_platform}',
@@ -158,7 +158,7 @@ def main():
         pyinstaller_version = PYINSTALLER_VERSION_RE.match(asset_info['name']).group('version')
         base_requirements_path = INPUT_PATH / INPUT_TMPL.format(target_suffix)
         base_requirements_path.write_text(f'pyinstaller=={pyinstaller_version}\n')
-        pyinstaller_builds_deps = uv_pip_compile(
+        pyinstaller_builds_deps = run_pip_compile(
             python_platform, python_version, base_requirements_path,
             '--color=never', '--no-emit-package=pyinstaller').stdout
         requirements_path = OUTPUT_PATH / OUTPUT_TMPL.format(target_suffix)
@@ -174,7 +174,7 @@ def main():
             sys.executable, '-m', 'devscripts.install_deps',
             '--omit-default', '--print', *extras, *groups,
             *install_deps_args).stdout)
-        uv_pip_compile(
+        run_pip_compile(
             python_platform, python_version, requirements_input_path,
             f'--exclude-newer={COOLDOWN_DATE}',
             f'--output-file={OUTPUT_PATH / OUTPUT_TMPL.format(target_suffix)}')
@@ -185,7 +185,7 @@ def main():
         requirements_input_path.write_text(run_process(
             sys.executable, '-m', 'devscripts.install_deps',
             '--omit-default', '--print', '--include-group', 'build').stdout)
-        uv_pip_compile(
+        run_pip_compile(
             python_platform, python_version, requirements_input_path,
             f'--exclude-newer={COOLDOWN_DATE}',
             f'--output-file={OUTPUT_PATH / OUTPUT_TMPL.format(target_suffix)}')
