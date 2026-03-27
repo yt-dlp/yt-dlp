@@ -8,6 +8,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import contextlib
+import dataclasses
 import datetime as dt
 import itertools
 import json
@@ -30,89 +31,141 @@ WINDOWS_INTEL_PYTHON_VERSION = '3.10'
 WINDOWS_ARM64_PYTHON_VERSION = '3.13'
 MACOS_PYTHON_VERSION = '3.14'
 
+
+@dataclasses.dataclass
+class Target:
+    platform: str
+    version: str
+    extras: list[str] = dataclasses.field(default_factory=list)
+    groups: list[str] = dataclasses.field(default_factory=list)
+    args: list[str] = dataclasses.field(default_factory=list)
+
+
 INSTALL_DEPS_TARGETS = {
-    # requirements target suffix: (python platform, python version, [extras], [groups], [pip-compile args])
-    'linux-x86_64': (
-        'x86_64-manylinux2014',
-        LINUX_GNU_PYTHON_VERSION,
-        ['default', 'curl-cffi-compat', 'secretstorage'],
-        ['pyinstaller'],
-        []),
-    'linux-aarch64': (
-        'aarch64-manylinux2014',
-        LINUX_GNU_PYTHON_VERSION,
-        ['default', 'curl-cffi-compat', 'secretstorage'],
-        ['pyinstaller'],
-        []),
-    'linux-armv7l': (
-        'linux',
-        LINUX_GNU_PYTHON_VERSION,
-        ['default', 'curl-cffi', 'secretstorage'],
-        ['pyinstaller'],
-        []),
-    'musllinux-x86_64': (
-        'x86_64-unknown-linux-musl',
-        LINUX_MUSL_PYTHON_VERISON,
-        ['default', 'curl-cffi', 'secretstorage'],
-        ['pyinstaller'],
-        []),
-    'musllinux-aarch64': (
-        'aarch64-unknown-linux-musl',
-        LINUX_MUSL_PYTHON_VERISON,
-        ['default', 'secretstorage'],
-        ['pyinstaller'],
-        []),
-    'win-x64': (
-        'x86_64-pc-windows-msvc',
-        WINDOWS_INTEL_PYTHON_VERSION,
-        ['default', 'curl-cffi'],
-        [],
-        []),
-    'win-x86': (
-        'i686-pc-windows-msvc',
-        WINDOWS_INTEL_PYTHON_VERSION,
-        ['default'],
-        [],
-        []),
-    'win-arm64': (
-        'aarch64-pc-windows-msvc',
-        WINDOWS_ARM64_PYTHON_VERSION,
-        ['default', 'curl-cffi'],
-        [],
-        []),
-    'macos': (
-        'macos',
-        MACOS_PYTHON_VERSION,
-        ['default', 'curl-cffi-compat'],
+    'linux-x86_64': Target(
+        platform='x86_64-manylinux2014',
+        version=LINUX_GNU_PYTHON_VERSION,
+        extras=['default', 'curl-cffi-compat', 'secretstorage'],
+        groups=['pyinstaller'],
+    ),
+    'linux-aarch64': Target(
+        platform='aarch64-manylinux2014',
+        version=LINUX_GNU_PYTHON_VERSION,
+        extras=['default', 'curl-cffi-compat', 'secretstorage'],
+        groups=['pyinstaller'],
+    ),
+    'linux-armv7l': Target(
+        platform='linux',
+        version=LINUX_GNU_PYTHON_VERSION,
+        extras=['default', 'curl-cffi', 'secretstorage'],
+        groups=['pyinstaller'],
+    ),
+    'musllinux-x86_64': Target(
+        platform='x86_64-unknown-linux-musl',
+        version=LINUX_MUSL_PYTHON_VERISON,
+        extras=['default', 'curl-cffi', 'secretstorage'],
+        groups=['pyinstaller'],
+    ),
+    'musllinux-aarch64': Target(
+        platform='aarch64-unknown-linux-musl',
+        version=LINUX_MUSL_PYTHON_VERISON,
+        extras=['default', 'secretstorage'],
+        groups=['pyinstaller'],
+    ),
+    'win-x64': Target(
+        platform='x86_64-pc-windows-msvc',
+        version=WINDOWS_INTEL_PYTHON_VERSION,
+        extras=['default', 'curl-cffi'],
+    ),
+    'win-x86': Target(
+        platform='i686-pc-windows-msvc',
+        version=WINDOWS_INTEL_PYTHON_VERSION,
+        extras=['default'],
+    ),
+    'win-arm64': Target(
+        platform='aarch64-pc-windows-msvc',
+        version=WINDOWS_ARM64_PYTHON_VERSION,
+        extras=['default', 'curl-cffi'],
+    ),
+    'macos': Target(
+        platform='macos',
+        version=MACOS_PYTHON_VERSION,
+        extras=['default', 'curl-cffi-compat'],
         # NB: Resolve delocate and PyInstaller together since they share dependencies
-        ['delocate', 'pyinstaller'],
+        groups=['delocate', 'pyinstaller'],
         # curl-cffi and cffi don't provide universal2 wheels, so only directly install their deps
         # NB: uv's --no-emit-package option is equivalent to pip-compile's --unsafe-package option
-        ['--no-emit-package', 'curl-cffi', '--no-emit-package', 'cffi']),
+        args=['--no-emit-package', 'curl-cffi', '--no-emit-package', 'cffi'],
+    ),
     # We fuse our own universal2 wheels for curl-cffi+cffi, so we need a separate requirements file
-    'macos-curl_cffi': (
-        'macos',
-        MACOS_PYTHON_VERSION,
-        ['curl-cffi-compat'],
-        [],
+    'macos-curl_cffi': Target(
+        platform='macos',
+        version=MACOS_PYTHON_VERSION,
+        extras=['curl-cffi-compat'],
         # Only need curl-cffi+cffi in this requirements file; their deps are installed directly
-        ['--no-emit-package', 'certifi', '--no-emit-package', 'pycparser']),
+        args=['--no-emit-package', 'certifi', '--no-emit-package', 'pycparser'],
+    ),
 }
+
+
+@dataclasses.dataclass
+class GroupTarget:
+    platform: str
+    version: str
+    args: list[str] = dataclasses.field(default_factory=list)
+
 
 BUILD_GROUP_TARGETS = {
-    # requirements target suffix: (python platform, python version, [install_deps args])
-    'pypi-build': ('linux', LINUX_GNU_PYTHON_VERSION, []),
-    'win-x64-build': ('x86_64-pc-windows-msvc', WINDOWS_INTEL_PYTHON_VERSION, ['--cherry-pick', 'pip']),
-    'win-x86-build': ('i686-pc-windows-msvc', WINDOWS_INTEL_PYTHON_VERSION, ['--cherry-pick', 'pip']),
-    'win-arm64-build': ('aarch64-pc-windows-msvc', WINDOWS_ARM64_PYTHON_VERSION, ['--cherry-pick', 'pip']),
-    'macos-build': ('macos', MACOS_PYTHON_VERSION, ['--cherry-pick', 'pip']),
+    'pypi-build': GroupTarget(
+        platform='linux',
+        version=LINUX_GNU_PYTHON_VERSION,
+    ),
+    'win-x64-build': GroupTarget(
+        platform='x86_64-pc-windows-msvc',
+        version=WINDOWS_INTEL_PYTHON_VERSION,
+        args=['--cherry-pick', 'pip'],
+    ),
+    'win-x86-build': GroupTarget(
+        platform='i686-pc-windows-msvc',
+        version=WINDOWS_INTEL_PYTHON_VERSION,
+        args=['--cherry-pick', 'pip'],
+    ),
+    'win-arm64-build': GroupTarget(
+        platform='aarch64-pc-windows-msvc',
+        version=WINDOWS_ARM64_PYTHON_VERSION,
+        args=['--cherry-pick', 'pip'],
+    ),
+    'macos-build': GroupTarget(
+        platform='macos',
+        version=MACOS_PYTHON_VERSION,
+        args=['--cherry-pick', 'pip'],
+    ),
 }
 
+
+@dataclasses.dataclass
+class PyinstallerTarget:
+    platform: str
+    version: str
+    asset_tag: str
+
+
 PYINSTALLER_BUILDS_TARGETS = {
-    # requirements target suffix: (python platform, python version, platform tag)
-    'win-x64-pyinstaller': ('x86_64-pc-windows-msvc', WINDOWS_INTEL_PYTHON_VERSION, 'win_amd64'),
-    'win-x86-pyinstaller': ('i686-pc-windows-msvc', WINDOWS_INTEL_PYTHON_VERSION, 'win32'),
-    'win-arm64-pyinstaller': ('aarch64-pc-windows-msvc', WINDOWS_ARM64_PYTHON_VERSION, 'win_arm64'),
+    'win-x64-pyinstaller': PyinstallerTarget(
+        platform='x86_64-pc-windows-msvc',
+        version=WINDOWS_INTEL_PYTHON_VERSION,
+        asset_tag='win_amd64',
+    ),
+    'win-x86-pyinstaller': PyinstallerTarget(
+        platform='i686-pc-windows-msvc',
+        version=WINDOWS_INTEL_PYTHON_VERSION,
+        asset_tag='win32',
+    ),
+    'win-arm64-pyinstaller': PyinstallerTarget(
+        platform='aarch64-pc-windows-msvc',
+        version=WINDOWS_ARM64_PYTHON_VERSION,
+        asset_tag='win_arm64',
+    ),
 }
 
 PYINSTALLER_BUILDS_URL = 'https://api.github.com/repos/yt-dlp/Pyinstaller-Builds/releases/latest'
@@ -143,41 +196,38 @@ def main():
     with contextlib.closing(urllib.request.urlopen(PYINSTALLER_BUILDS_URL)) as resp:
         info = json.load(resp)
 
-    for target_suffix, target_info in PYINSTALLER_BUILDS_TARGETS.items():
-        python_platform, python_version, platform_tag = target_info
-        asset_info = next(asset for asset in info['assets'] if platform_tag in asset['name'])
+    for target_suffix, target in PYINSTALLER_BUILDS_TARGETS.items():
+        asset_info = next(asset for asset in info['assets'] if target.asset_tag in asset['name'])
         pyinstaller_version = PYINSTALLER_VERSION_RE.match(asset_info['name']).group('version')
         base_requirements_path = REQUIREMENTS_PATH / INPUT_TMPL.format(target_suffix)
         base_requirements_path.write_text(f'pyinstaller=={pyinstaller_version}\n')
         pyinstaller_builds_deps = run_pip_compile(
-            python_platform, python_version, base_requirements_path,
+            target.platform, target.version, base_requirements_path,
             '--color=never', '--no-emit-package=pyinstaller').stdout
         requirements_path = REQUIREMENTS_PATH / OUTPUT_TMPL.format(target_suffix)
         requirements_path.write_text(PYINSTALLER_BUILDS_TMPL.format(
             pyinstaller_builds_deps, asset_info['browser_download_url'], asset_info['digest']))
 
-    for target_suffix, target_info in INSTALL_DEPS_TARGETS.items():
-        python_platform, python_version, extras, groups, pip_compile_args = target_info
-        extras = list(itertools.chain.from_iterable(itertools.product(['--include-extra'], extras)))
-        groups = list(itertools.chain.from_iterable(itertools.product(['--include-group'], groups)))
+    for target_suffix, target in INSTALL_DEPS_TARGETS.items():
         requirements_input_path = REQUIREMENTS_PATH / INPUT_TMPL.format(target_suffix)
         requirements_input_path.write_text(run_process(
-            sys.executable, '-m', 'devscripts.install_deps',
-            '--omit-default', '--print', *extras, *groups).stdout)
+            sys.executable, '-m', 'devscripts.install_deps', '--omit-default', '--print',
+            *itertools.chain.from_iterable(itertools.product(['--include-extra'], target.extras)),
+            *itertools.chain.from_iterable(itertools.product(['--include-group'], target.groups)),
+        ).stdout)
         run_pip_compile(
-            python_platform, python_version, requirements_input_path, *pip_compile_args,
+            target.platform, target.version, requirements_input_path, *target.args,
             f'--output-file={REQUIREMENTS_PATH / OUTPUT_TMPL.format(target_suffix)}')
 
-    for target_suffix, target_info in BUILD_GROUP_TARGETS.items():
-        python_platform, python_version, install_deps_args = target_info
+    for target_suffix, target in BUILD_GROUP_TARGETS.items():
         requirements_input_path = REQUIREMENTS_PATH / INPUT_TMPL.format(target_suffix)
         requirements_input_path.write_text(run_process(
             sys.executable, '-m', 'devscripts.install_deps',
-            '--omit-default', '--print', '--include-group', 'build', *install_deps_args).stdout)
+            '--omit-default', '--print', '--include-group', 'build', *target.args).stdout)
         run_pip_compile(
-            python_platform, python_version, requirements_input_path,
+            target.platform, target.version, requirements_input_path,
             f'--output-file={REQUIREMENTS_PATH / OUTPUT_TMPL.format(target_suffix)}')
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    main()
