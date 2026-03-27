@@ -88,7 +88,6 @@ services:
       SKIP_ONEFILE_BUILD:
     volumes:
       - ../..:/yt-dlp
-      - ../../venv:/yt-dlp-build-venv
 
   linux_armv7l_verify:
     build:

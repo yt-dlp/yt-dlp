@@ -277,7 +277,6 @@ jobs:
         env:
           SERVICE: ${{ matrix.os }}_${{ matrix.arch }}
         run: |
-          mkdir -p ./venv
           mkdir -p ./dist
           pushd bundle/docker
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
