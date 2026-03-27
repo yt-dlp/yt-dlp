@@ -76,17 +76,18 @@ INSTALL_DEPS_TARGETS = {
         'macos',
         MACOS_PYTHON_VERSION,
         ['default'],
-        ['pyinstaller']),
+        []),
     'macos-curl_cffi': (
         'macos',
         MACOS_PYTHON_VERSION,
         ['curl-cffi-compat'],
         []),
-    'macos-delocate': (
+    # Resolve delocate and PyInstaller together since they share dependencies
+    'macos-pyinstaller': (
         'macos',
         MACOS_PYTHON_VERSION,
         [],
-        ['delocate']),
+        ['delocate', 'pyinstaller']),
 }
 
 BUILD_GROUP_TARGETS = {

@@ -328,8 +328,7 @@ jobs:
           python3 -m venv ~/yt-dlp-build-venv
           source ~/yt-dlp-build-venv/bin/activate
           python3 -m pip install -U --require-hashes -r "bundle/requirements/requirements-macos-build.txt"
-          # Install delocate before PyInstaller since the latter pins its shared deps to exact versions
-          python3 -m pip install -U --require-hashes -r "bundle/requirements/requirements-macos-delocate.txt"
+          python3 -m pip install -U --require-hashes -r "bundle/requirements/requirements-macos-pyinstaller.txt"
           # We need to ignore non-universal2 wheels otherwise we break our universal2 builds
           python3 -m pip install -U --no-binary=:all: --require-hashes -r "bundle/requirements/requirements-macos.txt"
           # Here we only care about curl_cffi's and cffi's dependencies; we will --force-reinstall those two later
