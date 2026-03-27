@@ -440,9 +440,9 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           python -m venv /yt-dlp-build-venv
           /yt-dlp-build-venv/Scripts/Activate.ps1
-          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-win-${ARCH}-build.txt"
-          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-win-${ARCH}-pyinstaller.txt"
-          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-win-${ARCH}.txt"
+          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-win-${Env:ARCH}-build.txt"
+          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-win-${Env:ARCH}-pyinstaller.txt"
+          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-win-${Env:ARCH}.txt"
 
       - name: Prepare
         shell: pwsh
