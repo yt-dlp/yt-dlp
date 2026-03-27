@@ -60,28 +60,21 @@ default = [
 curl-cffi = [
     "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.15; implementation_name=='cpython'",
 ]
-build-curl-cffi = [
-    "curl-cffi==0.13.0; sys_platform=='darwin' or (sys_platform=='linux' and platform_machine!='armv7l')",
-    "curl-cffi==0.14.0; sys_platform=='win32' or (sys_platform=='linux' and platform_machine=='armv7l')",
+curl-cffi-compat = [
+    "curl-cffi==0.13.0",
 ]
 secretstorage = [
-    "cffi",
     "secretstorage",
 ]
 deno = [
     "deno>=2.6.6",  # v2.6.5 fixes compatibility, v2.6.6 adds integrity check
 ]
+
+[dependency-groups]
 build = [
     "build",
     "hatchling>=1.27.0",
     "pip",
-    "setuptools>=71.0.2",
-    "wheel",
-]
-dev = [
-    "pre-commit",
-    "yt-dlp[static-analysis]",
-    "yt-dlp[test]",
 ]
 static-analysis = [
     "autopep8~=2.0",
@@ -91,8 +84,16 @@ test = [
     "pytest~=8.1",
     "pytest-rerunfailures~=14.0",
 ]
+dev = [
+    "pre-commit",
+    {include-group = "static-analysis"},
+    {include-group = "test"},
+]
 pyinstaller = [
     "pyinstaller>=6.17.0",  # 6.17.0+ needed for compat with setuptools 81+
+]
+delocate = [
+    "delocate==0.11.0",  # API changed in >0.11
 ]
 
 [project.urls]
@@ -148,8 +149,13 @@ path = "yt_dlp/version.py"
 pattern = "_pkg_version = '(?P<version>[^']+)'"
 
 [tool.hatch.envs.default]
-features = ["curl-cffi", "default"]
-dependencies = ["pre-commit"]
+features = [
+    "curl-cffi",
+    "default",
+]
+dependencies = [
+    "pre-commit",
+]
 path = ".venv"
 installer = "uv"
 
@@ -159,7 +165,9 @@ yt-dlp = "python -Werror -Xdev -m yt_dlp {args}"
 
 [tool.hatch.envs.hatch-static-analysis]
 detached = true
-features = ["static-analysis"]
+dependency-groups = [
+    "static-analysis",
+]
 dependencies = []  # override hatch ruff version
 config-path = "pyproject.toml"
 
@@ -170,7 +178,9 @@ lint-check = "ruff check {args:.}"
 lint-fix = "ruff check --fix {args:.}"
 
 [tool.hatch.envs.hatch-test]
-features = ["test"]
+dependency-groups = [
+    "test",
+]
 dependencies = [
     "pytest-randomly~=3.15",
     "pytest-xdist[psutil]~=3.5",
