@@ -1972,7 +1972,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         FETCH_SPAN, MAX_DURATION = 5, 432000
         mpd_url, stream_number, is_live = None, None, True
         download_start_time = ctx.get('start') or time.time()
-        
+
         # None = MAX_DURATION
         # 100 = -100 fragments from live
         CATCHUP_FRAGS = 150
@@ -2031,7 +2031,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             fragments = fmt_info['fragments']
             fragment_base_url = fmt_info.get('fragment_base_url')
-            
+
             try:
                 last_path = fragments[-1]['path']
                 if m := re.search(r'(?:/|^)sq/(\d+)', last_path):
@@ -2087,7 +2087,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 no_fragment_score += 1
                 time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
                 continue
-            
+
             frag_duration = float_or_none(fragments[-1].get('duration') if fragments else None) or 5.0
             FETCH_SPAN = frag_duration + 1.0 if frag_duration < 5 else frag_duration
 
@@ -2117,10 +2117,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                     lag = last_seq - idx
                     if not catching_up_shown and lag > 5:
-                         est_time_sec = int(lag * frag_duration)
-                         est_time = str(dt.timedelta(seconds=est_time_sec))
-                         self.to_screen(f'[{video_id}] Catching up to live: Seq: {idx}/{last_seq} Lag: ~{lag} (~{est_time})', only_once=True)
-                         catching_up_shown = True
+                        est_time_sec = int(lag * frag_duration)
+                        est_time = str(dt.timedelta(seconds=est_time_sec))
+                        self.to_screen(f'[{video_id}] Catching up to live: Seq: {idx}/{last_seq} Lag: ~{lag} (~{est_time})', only_once=True)
+                        catching_up_shown = True
 
                     path = f'sq/{idx}'
                     segment_url = urljoin(fragment_base_url, path)
