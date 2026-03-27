@@ -57,7 +57,7 @@ INSTALL_DEPS_TARGETS = {
     'musllinux-aarch64': (
         'aarch64-unknown-linux-musl',
         LINUX_MUSL_PYTHON_VERISON,
-        ['default', 'curl-cffi', 'secretstorage'],
+        ['default', 'secretstorage'],
         ['pyinstaller']),
     'win-x64': (
         'x86_64-pc-windows-msvc',
