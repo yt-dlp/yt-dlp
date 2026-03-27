@@ -78,6 +78,11 @@ INSTALL_DEPS_TARGETS = {
         'macos',
         MACOS_PYTHON_VERSION,
         ['default'],
+        []),
+    'macos-pyinstaller': (
+        'macos',
+        MACOS_PYTHON_VERSION,
+        [],
         ['pyinstaller']),
     'macos-curl_cffi': (
         'macos',
