@@ -29,7 +29,7 @@ pyinstaller==6.19.0 \
     --hash=sha256:da6d5c6391ccefe73554b9fa29b86001c8e378e0f20c2a4004f836ba537eff63 \
     --hash=sha256:e649ba6bd1b0b89b210ad92adb5fbdc8a42dd2c5ca4f72ef3a0bfec83a424b83 \
     --hash=sha256:ec73aeb8bd9b7f2f1240d328a4542e90b3c6e6fbc106014778431c616592a865
-    # via -r bundle/requirements-input/requirements-macos-universal.in
+    # via -r bundle/requirements/requirements-macos-universal.in
 pyinstaller-hooks-contrib==2026.3 \
     --hash=sha256:5ecd1068ad262afecadf07556279d2be52ca93a88b049fae17f1a2eb2969254a \
     --hash=sha256:800d3a198a49a6cd0de2d7fb795005fdca7a0222ed9cb47c0691abd1c27b9310
@@ -43,8 +43,8 @@ setuptools==82.0.1 \
 urllib3==2.6.3 \
     --hash=sha256:1b62b6884944a57dbe321509ab94fd4d3b307075e0c2eae991ac71ee15ad38ed \
     --hash=sha256:bf272323e553dfb2e87d9bfd225ca7b0f467b919d7bbd355436d3fd37cb0acd4
-    # via -r bundle/requirements-input/requirements-macos-universal.in
+    # via -r bundle/requirements/requirements-macos-universal.in
 yt-dlp-ejs==0.8.0 \
     --hash=sha256:79300e5fca7f937a1eeede11f0456862c1b41107ce1d726871e0207424f4bdb4 \
     --hash=sha256:d5fa1639f63b5c4af8d932495f60689d5370f1a095782c944f7f62a303eb104e
-    # via -r bundle/requirements-input/requirements-macos-universal.in
+    # via -r bundle/requirements/requirements-macos-universal.in

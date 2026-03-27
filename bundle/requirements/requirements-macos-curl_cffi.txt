@@ -101,7 +101,7 @@ curl-cffi==0.13.0 \
     --hash=sha256:b4e0de45ab3b7a835c72bd53640c2347415111b43421b5c7a1a0b18deae2e541 \
     --hash=sha256:d06ed389e45a7ca97b17c275dbedd3d6524560270e675c720e93a2018a766076 \
     --hash=sha256:d438a3b45244e874794bc4081dc1e356d2bb926dcc7021e5a8fef2e2105ef1d8
-    # via -r bundle/requirements-input/requirements-macos-curl_cffi.in
+    # via -r bundle/requirements/requirements-macos-curl_cffi.in
 pycparser==3.0 ; implementation_name != 'PyPy' \
     --hash=sha256:600f49d217304a5902ac3c37e1281c9fe94e4d0489de643a9504c5cdfdfc6b29 \
     --hash=sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992

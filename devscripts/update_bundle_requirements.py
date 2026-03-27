@@ -18,9 +18,7 @@ import urllib.request
 from devscripts.utils import run_process
 
 
-BASE_PATH = pathlib.Path(__file__).parent.parent
-INPUT_PATH = BASE_PATH / 'bundle/requirements-input'
-OUTPUT_PATH = BASE_PATH / 'bundle/requirements'
+REQUIREMENTS_PATH = pathlib.Path(__file__).parent.parent / 'bundle/requirements'
 INPUT_TMPL = 'requirements-{}.in'
 OUTPUT_TMPL = 'requirements-{}.txt'
 COOLDOWN_DATE = (datetime.datetime.today() - datetime.timedelta(days=5)).strftime('%Y-%m-%d')
@@ -147,8 +145,6 @@ def run_pip_compile(python_platform, python_version, requirements_input_path, *a
 
 
 def main():
-    INPUT_PATH.mkdir(exist_ok=True)
-
     with contextlib.closing(urllib.request.urlopen(PYINSTALLER_BUILDS_URL)) as resp:
         info = json.load(resp)
 
@@ -156,12 +152,12 @@ def main():
         python_platform, python_version, platform_tag = target_info
         asset_info = next(asset for asset in info['assets'] if platform_tag in asset['name'])
         pyinstaller_version = PYINSTALLER_VERSION_RE.match(asset_info['name']).group('version')
-        base_requirements_path = INPUT_PATH / INPUT_TMPL.format(target_suffix)
+        base_requirements_path = REQUIREMENTS_PATH / INPUT_TMPL.format(target_suffix)
         base_requirements_path.write_text(f'pyinstaller=={pyinstaller_version}\n')
         pyinstaller_builds_deps = run_pip_compile(
             python_platform, python_version, base_requirements_path,
             '--color=never', '--no-emit-package=pyinstaller').stdout
-        requirements_path = OUTPUT_PATH / OUTPUT_TMPL.format(target_suffix)
+        requirements_path = REQUIREMENTS_PATH / OUTPUT_TMPL.format(target_suffix)
         requirements_path.write_text(PYINSTALLER_BUILDS_TMPL.format(
             pyinstaller_builds_deps, asset_info['browser_download_url'], asset_info['digest']))
 
@@ -169,7 +165,7 @@ def main():
         python_platform, python_version, extras, groups, install_deps_args = target_info
         extras = list(itertools.chain.from_iterable(itertools.product(['--include-extra'], extras)))
         groups = list(itertools.chain.from_iterable(itertools.product(['--include-group'], groups)))
-        requirements_input_path = INPUT_PATH / INPUT_TMPL.format(target_suffix)
+        requirements_input_path = REQUIREMENTS_PATH / INPUT_TMPL.format(target_suffix)
         requirements_input_path.write_text(run_process(
             sys.executable, '-m', 'devscripts.install_deps',
             '--omit-default', '--print', *extras, *groups,
@@ -177,18 +173,18 @@ def main():
         run_pip_compile(
             python_platform, python_version, requirements_input_path,
             f'--exclude-newer={COOLDOWN_DATE}',
-            f'--output-file={OUTPUT_PATH / OUTPUT_TMPL.format(target_suffix)}')
+            f'--output-file={REQUIREMENTS_PATH / OUTPUT_TMPL.format(target_suffix)}')
 
     for target_suffix, target_info in BUILD_GROUP_TARGETS.items():
         python_platform, python_version = target_info
-        requirements_input_path = INPUT_PATH / INPUT_TMPL.format(target_suffix)
+        requirements_input_path = REQUIREMENTS_PATH / INPUT_TMPL.format(target_suffix)
         requirements_input_path.write_text(run_process(
             sys.executable, '-m', 'devscripts.install_deps',
             '--omit-default', '--print', '--include-group', 'build').stdout)
         run_pip_compile(
             python_platform, python_version, requirements_input_path,
             f'--exclude-newer={COOLDOWN_DATE}',
-            f'--output-file={OUTPUT_PATH / OUTPUT_TMPL.format(target_suffix)}')
+            f'--output-file={REQUIREMENTS_PATH / OUTPUT_TMPL.format(target_suffix)}')
 
 
 if __name__ == '__main__':

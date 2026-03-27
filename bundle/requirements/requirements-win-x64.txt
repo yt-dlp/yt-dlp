@@ -101,12 +101,12 @@ brotli==1.2.0 ; implementation_name == 'cpython' \
     --hash=sha256:f8d635cafbbb0c61327f942df2e3f474dde1cff16c3cd0580564774eaba1ee13 \
     --hash=sha256:fc1530af5c3c275b8524f2e24841cbe2599d74462455e9bae5109e9ff42e9361 \
     --hash=sha256:ff09cd8c5eec3b9d02d2408db41be150d8891c5566addce57513bf546e3d6c6d
-    # via -r bundle/requirements-input/requirements-win-x64.in
+    # via -r bundle/requirements/requirements-win-x64.in
 certifi==2026.2.25 \
     --hash=sha256:027692e4402ad994f1c42e52a4997a9763c646b73e4096e4d5d6db8af1d6f0fa \
     --hash=sha256:e887ab5cee78ea814d3472169153c2d12cd43b14bd03329a39a9c6e2e80bfba7
     # via
-    #   -r bundle/requirements-input/requirements-win-x64.in
+    #   -r bundle/requirements/requirements-win-x64.in
     #   curl-cffi
     #   requests
 cffi==2.0.0 ; implementation_name == 'cpython' \
@@ -339,7 +339,7 @@ curl-cffi==0.14.0 ; implementation_name == 'cpython' \
     --hash=sha256:c42e8fa3c667db9ccd2e696ee47adcd3cd5b0838d7282f3fc45f6c0ef3cfdfa7 \
     --hash=sha256:e35e89c6a69872f9749d6d5fda642ed4fc159619329e99d577d0104c9aad5893 \
     --hash=sha256:e7176f2c2d22b542e3cf261072a81deb018cfa7688930f95dddef215caddb469
-    # via -r bundle/requirements-input/requirements-win-x64.in
+    # via -r bundle/requirements/requirements-win-x64.in
 idna==3.11 \
     --hash=sha256:771a87f49d9defaf64091e6e6fe9c18d4833f140bd19464795bc32d966ca37ea \
     --hash=sha256:795dafcc9c04ed0c1fb032c2aa73654d8e8c5023a7df64a53f39190ada629902
@@ -347,7 +347,7 @@ idna==3.11 \
 mutagen==1.47.0 \
     --hash=sha256:719fadef0a978c31b4cf3c956261b3c58b6948b32023078a2117b1de09f0fc99 \
     --hash=sha256:edd96f50c5907a9539d8e5bba7245f62c9f520aef333d13392a79a4f70aca719
-    # via -r bundle/requirements-input/requirements-win-x64.in
+    # via -r bundle/requirements/requirements-win-x64.in
 pycparser==3.0 ; implementation_name == 'cpython' \
     --hash=sha256:600f49d217304a5902ac3c37e1281c9fe94e4d0489de643a9504c5cdfdfc6b29 \
     --hash=sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992
@@ -394,16 +394,16 @@ pycryptodomex==3.23.0 \
     --hash=sha256:f489c4765093fb60e2edafdf223397bc716491b2b69fe74367b70d6999257a5c \
     --hash=sha256:fdfac7cda115bca3a5abb2f9e43bc2fb66c2b65ab074913643803ca7083a79ea \
     --hash=sha256:febec69c0291efd056c65691b6d9a339f8b4bc43c6635b8699471248fe897fea
-    # via -r bundle/requirements-input/requirements-win-x64.in
+    # via -r bundle/requirements/requirements-win-x64.in
 requests==2.32.5 \
     --hash=sha256:2462f94637a34fd532264295e186976db0f5d453d1cdd31473c85a6a161affb6 \
     --hash=sha256:dbba0bac56e100853db0ea71b82b4dfd5fe2bf6d3754a8893c3af500cec7d7cf
-    # via -r bundle/requirements-input/requirements-win-x64.in
+    # via -r bundle/requirements/requirements-win-x64.in
 urllib3==2.6.3 \
     --hash=sha256:1b62b6884944a57dbe321509ab94fd4d3b307075e0c2eae991ac71ee15ad38ed \
     --hash=sha256:bf272323e553dfb2e87d9bfd225ca7b0f467b919d7bbd355436d3fd37cb0acd4
     # via
-    #   -r bundle/requirements-input/requirements-win-x64.in
+    #   -r bundle/requirements/requirements-win-x64.in
     #   requests
 websockets==16.0 \
     --hash=sha256:0298d07ee155e2e9fda5be8a9042200dd2e3bb0b8a38482156576f863a9d457c \
@@ -467,8 +467,8 @@ websockets==16.0 \
     --hash=sha256:eaded469f5e5b7294e2bdca0ab06becb6756ea86894a47806456089298813c89 \
     --hash=sha256:f4a32d1bd841d4bcbffdcb3d2ce50c09c3909fbead375ab28d0181af89fd04da \
     --hash=sha256:fd3cb4adb94a2a6e2b7c0d8d05cb94e6f1c81a0cf9dc2694fb65c7e8d94c42e4
-    # via -r bundle/requirements-input/requirements-win-x64.in
+    # via -r bundle/requirements/requirements-win-x64.in
 yt-dlp-ejs==0.8.0 \
     --hash=sha256:79300e5fca7f937a1eeede11f0456862c1b41107ce1d726871e0207424f4bdb4 \
     --hash=sha256:d5fa1639f63b5c4af8d932495f60689d5370f1a095782c944f7f62a303eb104e
-    # via -r bundle/requirements-input/requirements-win-x64.in
+    # via -r bundle/requirements/requirements-win-x64.in

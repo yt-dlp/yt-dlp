@@ -7,7 +7,7 @@ altgraph==0.17.5 \
 delocate==0.11.0 \
     --hash=sha256:55558ddfb3e685ee6b5cacfef05f0e5a07d3ec92b04db30fc1aab608364f4fd5 \
     --hash=sha256:63b0b66467c11fa096aa3179b84d9cef1ab6dc6b0bee78bd7d5dd15814776515
-    # via -r bundle/requirements-input/requirements-macos-delocate.in
+    # via -r bundle/requirements/requirements-macos-delocate.in
 macholib==1.16.4 \
     --hash=sha256:da1a3fa8266e30f0ce7e97c6a54eefaae8edd1e5f86f3eb8b95457cae90265ea \
     --hash=sha256:f408c93ab2e995cd2c46e34fe328b130404be143469e41bc366c807448979362
