@@ -1468,6 +1468,12 @@ class DouyinIE(TikTokBaseIE):
             'save_count': int,
             'thumbnail': r're:https?://.+\.jpe?g',
         },
+    }, {
+        'url': 'https://www.douyin.com/jingxuan?modal_id=7615828879340552036',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.douyin.com/follow/search/asd?aid=c2a3668d-0594-4f50-acf6-7c265fb80ee2&modal_id=7422307345595731236&type=general',
+        'only_matching': True,
     }]
     _UPLOADER_URL_FORMAT = 'https://www.douyin.com/user/%s'
     _WEBPAGE_HOST = 'https://www.douyin.com/'
@@ -1590,15 +1596,16 @@ class DouyinIE(TikTokBaseIE):
             return self._parse_aweme_video_app(detail)
 
         # Fallback: parse RENDER_DATA embedded in the video page HTML.
-        # Use the original URL (e.g. /jingxuan?modal_id=...) which has videoDetail in RENDER_DATA;
-        # the /video/<id> page may not include it when the SPA loads data dynamically.
-        # Also try /video/<id> as a backup.
+        # Strategy:
+        #   1. Try the original URL if it's known to use SSR (e.g. /jingxuan?modal_id=...).
+        #      Some URL types embed videoDetail server-side; search/follow pages do not.
+        #   2. Always try /jingxuan?modal_id=<id> as a reliable SSR fallback.
+        #      The jingxuan feed page uses server-side rendering for any modal_id,
+        #      returning full RENDER_DATA with videoDetail regardless of the video source.
         self.report_warning(
             'Web API returned empty response; falling back to webpage extraction')
 
-        video_url = f'https://www.douyin.com/video/{video_id}'
-        urls_to_try = [url] if url != video_url else []
-        urls_to_try.append(video_url)
+        jingxuan_url = f'https://www.douyin.com/jingxuan?modal_id={video_id}'
 
         request_headers = {
             'Referer': 'https://www.douyin.com/',
@@ -1607,14 +1614,25 @@ class DouyinIE(TikTokBaseIE):
             'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
         }
 
+        # Build list of URLs to attempt.
+        # Include the original URL if it differs from jingxuan (it may already be SSR),
+        # then always fall back to jingxuan which reliably embeds videoDetail via SSR.
+        urls_to_try = []
+        if url != jingxuan_url:
+            urls_to_try.append(url)
+        urls_to_try.append(jingxuan_url)
+
         for try_url in urls_to_try:
             webpage = self._douyin_download_webpage(try_url, video_id, request_headers)
+
+            if not webpage:
+                continue
 
             render_data_str = self._search_regex(
                 r'<script[^>]+id="RENDER_DATA"[^>]*>([^<]+)</script>',
                 webpage, 'render data', default=None)
             self.write_debug(
-                f'Webpage length: {len(webpage)}, RENDER_DATA found: {render_data_str is not None}')
+                f'[{try_url}] Webpage length: {len(webpage)}, RENDER_DATA found: {render_data_str is not None}')
             if render_data_str:
                 try:
                     render_data = self._parse_json(
@@ -1632,6 +1650,34 @@ class DouyinIE(TikTokBaseIE):
             'Try providing Douyin cookies with --cookies-from-browser or --cookies',
             expected=True)
 
+    def _douyin_fetch_via_requests(self, url, video_id, headers):
+        """Fetch a Douyin URL using the requests library directly.
+
+        The requests library sends all cookies from the cookiejar regardless
+        of domain-matching rules, which is necessary for Douyin's auth cookies
+        (sessionid, s_v_web_id, ttwid, etc.) to be forwarded correctly.
+
+        Returns the response text, or None if requests is unavailable / failed.
+        """
+        try:
+            import requests as _requests
+        except ImportError:
+            self.write_debug('requests library not available; cannot fetch via requests')
+            return None
+
+        try:
+            session = _requests.Session()
+            for cookie in self.cookiejar:
+                session.cookies.set(
+                    cookie.name, cookie.value,
+                    domain=cookie.domain, path=cookie.path)
+            self.write_debug(f'Fetching {url} via requests library')
+            resp = session.get(url, headers=headers, timeout=30)
+            return resp.text
+        except Exception as e:
+            self.write_debug(f'requests fetch failed for {url}: {e}')
+            return None
+
     def _douyin_download_webpage(self, url, video_id, headers):
         """Download a Douyin webpage with proper cookie handling.
 
@@ -1646,7 +1692,7 @@ class DouyinIE(TikTokBaseIE):
             f'{k}={v.value}' for k, v in douyin_cookies.items() if v.value)
 
         webpage = self._download_webpage(
-            url, video_id, f'Downloading video webpage',
+            url, video_id, 'Downloading video webpage',
             headers={**headers, **({'Cookie': cookie_header} if cookie_header else {})})
 
         if 'RENDER_DATA' in webpage:
@@ -1655,20 +1701,9 @@ class DouyinIE(TikTokBaseIE):
         # Fallback: use requests library which applies cookies more broadly,
         # bypassing yt-dlp urllib's strict cookie domain matching.
         # This is needed when cookies come from --cookies-from-browser.
-        try:
-            import requests as _requests
-            session = _requests.Session()
-            for cookie in self.cookiejar:
-                session.cookies.set(
-                    cookie.name, cookie.value,
-                    domain=cookie.domain, path=cookie.path)
-            self.write_debug('Retrying webpage download via requests library')
-            resp = session.get(url, headers=headers, timeout=30)
-            return resp.text
-        except ImportError:
-            self.write_debug('requests library not available; skipping fallback')
-        except Exception as e:
-            self.write_debug(f'requests fallback failed: {e}')
+        result = self._douyin_fetch_via_requests(url, video_id, headers)
+        if result is not None:
+            return result
 
         return webpage
 
