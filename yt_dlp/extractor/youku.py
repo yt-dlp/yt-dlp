@@ -134,9 +134,12 @@ class YoukuIE(InfoExtractor):
         cna = urlh.headers['etag'][1:-1]
 
         # request basic data
+        # ccode identifies the client platform; '0591' is a working web client code.
+        # The previously used '0564' now returns -3007 (login required) for
+        # members-only content even when valid login cookies are supplied.
         basic_data_params = {
             'vid': video_id,
-            'ccode': '0564',
+            'ccode': '0591',
             'client_ip': '192.168.1.1',
             'utid': cna,
             'client_ts': time.time() / 1000,
