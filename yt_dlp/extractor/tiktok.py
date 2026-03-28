@@ -1589,35 +1589,26 @@ class DouyinIE(TikTokBaseIE):
         if detail:
             return self._parse_aweme_video_app(detail)
 
-        # Fallback: parse RENDER_DATA embedded in the video page HTML
+        # Fallback: parse RENDER_DATA embedded in the video page HTML.
         # Use the original URL (e.g. /jingxuan?modal_id=...) which has videoDetail in RENDER_DATA;
         # the /video/<id> page may not include it when the SPA loads data dynamically.
         # Also try /video/<id> as a backup.
         self.report_warning(
             'Web API returned empty response; falling back to webpage extraction')
 
-        # Manually build Cookie header from cookiejar to ensure all cookies are sent
-        # (yt-dlp's urllib handler may not send all cookies due to domain/path matching quirks)
-        douyin_cookies = self._get_cookies('https://www.douyin.com/')
-        cookie_header = '; '.join(
-            f'{k}={v.value}' for k, v in douyin_cookies.items() if v.value)
+        video_url = f'https://www.douyin.com/video/{video_id}'
+        urls_to_try = [url] if url != video_url else []
+        urls_to_try.append(video_url)
+
         request_headers = {
             'Referer': 'https://www.douyin.com/',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-            **({'Cookie': cookie_header} if cookie_header else {}),
         }
 
-        video_url = f'https://www.douyin.com/video/{video_id}'
-        # Try the original URL first (modal URLs like /jingxuan?modal_id= embed videoDetail)
-        urls_to_try = [url] if url != video_url else []
-        urls_to_try.append(video_url)
-
         for try_url in urls_to_try:
-            webpage = self._download_webpage(
-                try_url, video_id, f'Downloading video webpage ({try_url})',
-                headers=request_headers)
+            webpage = self._douyin_download_webpage(try_url, video_id, request_headers)
 
             render_data_str = self._search_regex(
                 r'<script[^>]+id="RENDER_DATA"[^>]*>([^<]+)</script>',
@@ -1630,8 +1621,7 @@ class DouyinIE(TikTokBaseIE):
                         urllib.parse.unquote(render_data_str), video_id)
                     video_detail = traverse_obj(render_data, ('app', 'videoDetail', {dict}))
                     self.write_debug(
-                        f'render_data top keys: {list(render_data.keys()) if render_data else None}, '
-                        f'videoDetail: {video_detail is not None}')
+                        f'videoDetail present: {video_detail is not None}')
                     if video_detail:
                         return self._parse_douyin_videodetail(video_detail, video_id, try_url)
                 except Exception as e:
@@ -1641,6 +1631,46 @@ class DouyinIE(TikTokBaseIE):
             'Unable to extract video info. '
             'Try providing Douyin cookies with --cookies-from-browser or --cookies',
             expected=True)
+
+    def _douyin_download_webpage(self, url, video_id, headers):
+        """Download a Douyin webpage with proper cookie handling.
+
+        yt-dlp's urllib handler may drop certain cookies (e.g. __ac_nonce) due
+        to strict domain/path matching. We use requests as a fallback so that
+        all cookies from the cookiejar are forwarded correctly.
+        """
+        # First try yt-dlp's own handler with manually-built Cookie header
+        # (covers the --cookies file case where __ac_nonce is present)
+        douyin_cookies = self._get_cookies('https://www.douyin.com/')
+        cookie_header = '; '.join(
+            f'{k}={v.value}' for k, v in douyin_cookies.items() if v.value)
+
+        webpage = self._download_webpage(
+            url, video_id, f'Downloading video webpage',
+            headers={**headers, **({'Cookie': cookie_header} if cookie_header else {})})
+
+        if 'RENDER_DATA' in webpage:
+            return webpage
+
+        # Fallback: use requests library which applies cookies more broadly,
+        # bypassing yt-dlp urllib's strict cookie domain matching.
+        # This is needed when cookies come from --cookies-from-browser.
+        try:
+            import requests as _requests
+            session = _requests.Session()
+            for cookie in self.cookiejar:
+                session.cookies.set(
+                    cookie.name, cookie.value,
+                    domain=cookie.domain, path=cookie.path)
+            self.write_debug('Retrying webpage download via requests library')
+            resp = session.get(url, headers=headers, timeout=30)
+            return resp.text
+        except ImportError:
+            self.write_debug('requests library not available; skipping fallback')
+        except Exception as e:
+            self.write_debug(f'requests fallback failed: {e}')
+
+        return webpage
 
 
 class TikTokVMIE(InfoExtractor):
