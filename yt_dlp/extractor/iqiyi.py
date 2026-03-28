@@ -152,60 +152,116 @@ class IqiyiIE(InfoExtractor):
 
         return self.playlist_result(entries, album_id, album_title)
 
+    def _get_accelerator_data(self, url, video_page_id):
+        """Fetch video metadata from iqiyi's lwplay accelerator API (used by the SPA player)."""
+        # Extract app version from the page's player script tag, fall back to a known-good version
+        webpage = self._download_webpage(url, video_page_id, note='Downloading video page')
+        app_ver = self._search_regex(
+            r'lwaver=([\d.]+)', webpage, 'app version', default='17.034.24945')
+        accelerator_url = f'https://www.iqiyi.com/prelw/player/lw/lwplay/accelerator.js?apiVer=3&lwaver={app_ver}&appver={app_ver}'
+        js = self._download_webpage(
+            accelerator_url, video_page_id,
+            note='Downloading accelerator data',
+            headers={'Referer': url})
+        prophet_json = self._search_regex(
+            r'QiyiPlayerProphetData\s*=\s*(\{.+\});\s*\n', js, 'prophet data')
+        return self._parse_json(prophet_json, video_page_id), webpage
+
     def _real_extract(self, url):
-        webpage = self._download_webpage(
-            url, 'temp_id', note='download video page')
+        video_page_id = self._search_regex(
+            r'/([a-z0-9]+)\.html', url, 'video page id', default='temp_id')
 
-        # There's no simple way to determine whether an URL is a playlist or not
-        # Sometimes there are playlist links in individual videos, so treat it
-        # as a single video first
-        tvid = self._search_regex(
-            r'data-(?:player|shareplattrigger)-tvid\s*=\s*[\'"](\d+)', webpage, 'tvid', default=None)
-        if tvid is None:
-            playlist_result = self._extract_playlist(webpage)
-            if playlist_result:
-                return playlist_result
-            raise ExtractorError('Can\'t find any video')
+        # Try the modern accelerator API first (iqiyi.com is now a full SPA —
+        # the old data-player-tvid attributes no longer appear in the static HTML)
+        prophet_data, webpage = self._get_accelerator_data(url, video_page_id)
 
-        video_id = self._search_regex(
-            r'data-(?:player|shareplattrigger)-videoid\s*=\s*[\'"]([a-f\d]+)', webpage, 'video_id')
+        video_info = traverse_obj(prophet_data, 'videoInfo', expected_type=dict) or {}
+        tvid = str_or_none(traverse_obj(prophet_data, 'tvId') or traverse_obj(prophet_data, 'tvid'))
+        title = traverse_obj(video_info, 'title')
+
+        if not tvid:
+            # Fall back to the legacy HTML attribute approach
+            tvid = self._search_regex(
+                r'data-(?:player|shareplattrigger)-tvid\s*=\s*[\'"](\d+)', webpage, 'tvid', default=None)
+            if tvid is None:
+                playlist_result = self._extract_playlist(webpage)
+                if playlist_result:
+                    return playlist_result
+                raise ExtractorError('Can\'t find any video')
+
+        # Try to get the video hash id (vid) for the legacy stream API
+        video_id = (traverse_obj(video_info, 'vid')
+                    or self._search_regex(
+                        r'data-(?:player|shareplattrigger)-videoid\s*=\s*[\'"]([a-f\d]+)',
+                        webpage, 'video_id', default=None)
+                    or video_page_id)
 
         formats = []
-        for _ in range(5):
-            raw_data = self.get_raw_data(tvid, video_id)
 
-            if raw_data['code'] != 'A00000':
-                if raw_data['code'] == 'A00111':
-                    self.raise_geo_restricted()
-                raise ExtractorError('Unable to load data. Error code: ' + raw_data['code'])
-
-            data = raw_data['data']
-
-            for stream in data['vidl']:
-                if 'm3utx' not in stream:
-                    continue
-                vd = str(stream['vd'])
+        # Primary: use the direct stream URL from the accelerator data
+        direct_url = traverse_obj(prophet_data, ('a', 'd', 'l'))
+        if direct_url:
+            ext = 'mp4'
+            if '.f4v' in direct_url:
+                ext = 'flv'
+            elif '.m3u8' in direct_url:
+                formats.extend(self._extract_m3u8_formats(direct_url, video_id, 'mp4', fatal=False))
+                direct_url = None  # already handled
+            if direct_url:
                 formats.append({
-                    'url': stream['m3utx'],
-                    'format_id': vd,
-                    'ext': 'mp4',
-                    'quality': self._FORMATS_MAP.get(vd, -1),
-                    'protocol': 'm3u8_native',
+                    'url': direct_url,
+                    'ext': ext,
+                    'format_id': 'direct',
+                    'quality': 1,
                 })
 
-            if formats:
-                break
+        # Secondary: legacy tmts stream API (requires valid tvid + vid hash)
+        if not formats and video_id != video_page_id:
+            for _ in range(5):
+                raw_data = self.get_raw_data(tvid, video_id)
 
-            self._sleep(5, video_id)
+                if raw_data['code'] != 'A00000':
+                    if raw_data['code'] == 'A00111':
+                        self.raise_geo_restricted()
+                    raise ExtractorError('Unable to load data. Error code: ' + raw_data['code'])
 
-        title = (get_element_by_id('widget-videotitle', webpage)
-                 or clean_html(get_element_by_attribute('class', 'mod-play-tit', webpage))
-                 or self._html_search_regex(r'<span[^>]+data-videochanged-title="word"[^>]*>([^<]+)</span>', webpage, 'title'))
+                data = raw_data['data']
+
+                for stream in data['vidl']:
+                    if 'm3utx' not in stream:
+                        continue
+                    vd = str(stream['vd'])
+                    formats.append({
+                        'url': stream['m3utx'],
+                        'format_id': vd,
+                        'ext': 'mp4',
+                        'quality': self._FORMATS_MAP.get(vd, -1),
+                        'protocol': 'm3u8_native',
+                    })
+
+                if formats:
+                    break
+
+                self._sleep(5, video_id)
+
+        if not title:
+            title = (get_element_by_id('widget-videotitle', webpage)
+                     or clean_html(get_element_by_attribute('class', 'mod-play-tit', webpage))
+                     or self._html_search_regex(
+                         r'<span[^>]+data-videochanged-title="word"[^>]*>([^<]+)</span>',
+                         webpage, 'title', default=None)
+                     or self._og_search_title(webpage, default=video_id))
+
+        duration = traverse_obj(
+            prophet_data, ('a', 'data', 'showResponse', 'videoInfo', 'videoDuration'),
+            expected_type=int_or_none)
 
         return {
             'id': video_id,
             'title': title,
             'formats': formats,
+            'duration': duration,
+            'thumbnail': traverse_obj(video_info, 'imageUrl'),
         }
 
 
