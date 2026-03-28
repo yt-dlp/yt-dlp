@@ -22,8 +22,11 @@ from devscripts.utils import run_process
 REQUIREMENTS_PATH = pathlib.Path(__file__).parent.parent / 'bundle/requirements'
 INPUT_TMPL = 'requirements-{}.in'
 OUTPUT_TMPL = 'requirements-{}.txt'
-COOLDOWN_DATE = (dt.datetime.today() - dt.timedelta(days=5)).strftime('%Y-%m-%d')
 CUSTOM_COMPILE_COMMAND = 'python -m devscripts.update_bundle_requirements'
+COOLDOWN_DATE = (dt.datetime.today() - dt.timedelta(days=5)).strftime('%Y-%m-%d')
+FUTURE_DATE = (dt.datetime.today() + dt.timedelta(days=1)).strftime('%Y-%m-%d')
+
+COOLDOWN_EXCEPTIONS = ('protobug', 'yt-dlp-ejs')
 
 LINUX_GNU_PYTHON_VERSION = '3.13'
 LINUX_MUSL_PYTHON_VERISON = '3.14'
@@ -154,6 +157,7 @@ def run_pip_compile(python_platform: str, python_version: str, requirements_inpu
         'uv', 'pip', 'compile',
         '--upgrade',
         f'--exclude-newer={COOLDOWN_DATE}',
+        *(f'--exclude-newer-package={package}={FUTURE_DATE}' for package in COOLDOWN_EXCEPTIONS),
         f'--python-platform={python_platform}',
         f'--python-version={python_version}',
         '--generate-hashes',
