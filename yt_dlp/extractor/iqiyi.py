@@ -167,12 +167,26 @@ class IqiyiIE(InfoExtractor):
             r'QiyiPlayerProphetData\s*=\s*(\{.+\});\s*\n', js, 'prophet data')
         return self._parse_json(prophet_json, video_page_id), webpage
 
+    def _extract_video_id_from_ims(self, ims, video_page_id):
+        """Extract the video hash (vid) from the base64-encoded protobuf ims field."""
+        import base64
+        try:
+            # ims uses URL-safe base64; fix padding
+            decoded = base64.b64decode(ims.replace('-', '+').replace('_', '/') + '==')
+            # The 32-char lowercase hex video hash appears as plain ASCII bytes in the protobuf
+            m = re.search(rb'[0-9a-f]{32}', decoded)
+            if m:
+                return m.group(0).decode()
+        except Exception:
+            pass
+        return None
+
     def _real_extract(self, url):
         video_page_id = self._search_regex(
             r'/([a-z0-9]+)\.html', url, 'video page id', default='temp_id')
 
-        # Try the modern accelerator API first (iqiyi.com is now a full SPA —
-        # the old data-player-tvid attributes no longer appear in the static HTML)
+        # iqiyi.com is a full SPA — the old data-player-tvid attributes no longer appear
+        # in the static HTML. Use the lwplay accelerator API instead.
         prophet_data, webpage = self._get_accelerator_data(url, video_page_id)
 
         video_info = traverse_obj(prophet_data, 'videoInfo', expected_type=dict) or {}
@@ -189,60 +203,42 @@ class IqiyiIE(InfoExtractor):
                     return playlist_result
                 raise ExtractorError('Can\'t find any video')
 
-        # Try to get the video hash id (vid) for the legacy stream API
-        video_id = (traverse_obj(video_info, 'vid')
+        # The 'ims' field in showResponse is a protobuf blob that encodes the real
+        # video hash (vid). a.d.l is the pre-roll ad URL — do NOT use it as the video.
+        ims = traverse_obj(prophet_data, ('a', 'data', 'showResponse', 'ims'))
+        video_id = (self._extract_video_id_from_ims(ims, video_page_id) if ims else None
                     or self._search_regex(
                         r'data-(?:player|shareplattrigger)-videoid\s*=\s*[\'"]([a-f\d]+)',
                         webpage, 'video_id', default=None)
                     or video_page_id)
 
         formats = []
+        for _ in range(5):
+            raw_data = self.get_raw_data(tvid, video_id)
 
-        # Primary: use the direct stream URL from the accelerator data
-        direct_url = traverse_obj(prophet_data, ('a', 'd', 'l'))
-        if direct_url:
-            ext = 'mp4'
-            if '.f4v' in direct_url:
-                ext = 'flv'
-            elif '.m3u8' in direct_url:
-                formats.extend(self._extract_m3u8_formats(direct_url, video_id, 'mp4', fatal=False))
-                direct_url = None  # already handled
-            if direct_url:
+            if raw_data['code'] != 'A00000':
+                if raw_data['code'] == 'A00111':
+                    self.raise_geo_restricted()
+                raise ExtractorError('Unable to load data. Error code: ' + raw_data['code'])
+
+            data = raw_data['data']
+
+            for stream in data['vidl']:
+                if 'm3utx' not in stream:
+                    continue
+                vd = str(stream['vd'])
                 formats.append({
-                    'url': direct_url,
-                    'ext': ext,
-                    'format_id': 'direct',
-                    'quality': 1,
+                    'url': stream['m3utx'],
+                    'format_id': vd,
+                    'ext': 'mp4',
+                    'quality': self._FORMATS_MAP.get(vd, -1),
+                    'protocol': 'm3u8_native',
                 })
 
-        # Secondary: legacy tmts stream API (requires valid tvid + vid hash)
-        if not formats and video_id != video_page_id:
-            for _ in range(5):
-                raw_data = self.get_raw_data(tvid, video_id)
+            if formats:
+                break
 
-                if raw_data['code'] != 'A00000':
-                    if raw_data['code'] == 'A00111':
-                        self.raise_geo_restricted()
-                    raise ExtractorError('Unable to load data. Error code: ' + raw_data['code'])
-
-                data = raw_data['data']
-
-                for stream in data['vidl']:
-                    if 'm3utx' not in stream:
-                        continue
-                    vd = str(stream['vd'])
-                    formats.append({
-                        'url': stream['m3utx'],
-                        'format_id': vd,
-                        'ext': 'mp4',
-                        'quality': self._FORMATS_MAP.get(vd, -1),
-                        'protocol': 'm3u8_native',
-                    })
-
-                if formats:
-                    break
-
-                self._sleep(5, video_id)
+            self._sleep(5, video_id)
 
         if not title:
             title = (get_element_by_id('widget-videotitle', webpage)
