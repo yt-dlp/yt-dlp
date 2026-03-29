@@ -41,9 +41,14 @@ REQUIREMENTS_PATH = BASE_PATH / 'bundle/requirements'
 def requirements_needs_update(
     lines: collections.abc.Iterable[str],
     package: str,
+    version: str,
 ):
     identifier = f'{package}=='
-    return any(line.startswith(identifier) for line in lines)
+    for line in lines:
+        if line.startswith(identifier):
+            return not line.removeprefix(identifier).startswith(version)
+
+    return False
 
 
 def requirements_update(
@@ -222,7 +227,7 @@ def main():
 
     for req in REQUIREMENTS_PATH.glob('requirements-*.txt'):
         lines = req.read_text().splitlines(True)
-        if requirements_needs_update(lines, PACKAGE_NAME):
+        if requirements_needs_update(lines, PACKAGE_NAME, version):
             with req.open(mode='w') as f:
                 f.writelines(requirements_update(lines, PACKAGE_NAME, version, requirements_hashes))
 
