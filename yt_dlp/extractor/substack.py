@@ -12,8 +12,20 @@ from ..utils.traversal import traverse_obj
 
 
 class SubstackIE(InfoExtractor):
-    _VALID_URL = r'https?://[\w-]+\.substack\.com/p/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://([\w-]+\.)?substack\.com(?P<uploader>/@\w+)?/(p|note)/(?P<id>[\w-]+)'
     _TESTS = [{
+        'url': 'https://substack.com/@globalgeopolitic/note/c-234377485',
+        'md5': 'f33a61d6c6ee1190954cbe1c38ea7ed3',
+        'info_dict': {
+            'id': '234377485',
+            'ext': 'mp4',
+            'title': 'Decoding power and defying narratives, an independent geopolitical analysis exposing hidden agendas and challenging mainstream views. Think critically, freely, and beyond the headlines.',
+            'description': 'md5:baa260ccbca4ffd1eb2acf4a3e15f57a',
+            'thumbnail': 'md5:94d144e7621d05401eccc6f4fdad6b4f',
+            'uploader': 'Global GeoPolitics',
+            'uploader_id': '247935545',
+        },
+    }, {
         'url': 'https://haleynahman.substack.com/p/i-made-a-vlog?s=r',
         'md5': 'f27e4fc6252001d48d479f45e65cdfd5',
         'info_dict': {
@@ -92,6 +104,10 @@ class SubstackIE(InfoExtractor):
         if not re.search(r'<script[^>]+src=["\']https://substackcdn.com/[^"\']+\.js', webpage):
             return
 
+        if re.search(r'https?://([\w-]+\.)?substack\.com/@\w+/(p|note)/[\w-]+', url):
+          yield url
+          return
+
         mobj = re.search(r'{[^}]*\\?["\']subdomain\\?["\']\s*:\s*\\?["\'](?P<subdomain>[^\\"\']+)', webpage)
         if mobj:
             parsed = urllib.parse.urlparse(url)
@@ -128,10 +144,24 @@ class SubstackIE(InfoExtractor):
         if domain:
             canonical_url = urllib.parse.urlparse(url)._replace(netloc=domain).geturl()
 
-        post_type = webpage_info['post']['type']
+        post = None
+        post_type = None
+        if 'feedData' in webpage_info and not 'post' in webpage_info:
+          post_type = 'feed'
+        else:
+          post_type = webpage_info['post']['type']
+        if not post_type == 'feed':
+          post = webpage_info['post']
+
+        title = None
+        uploader = None
+        uploader_id = None
+        description = None
+        thumbnail = None
         formats, subtitles = [], {}
+
         if post_type == 'podcast':
-            fmt = {'url': webpage_info['post']['podcast_url']}
+            fmt = {'url': post['podcast_url']}
             if not determine_ext(fmt['url'], default_ext=None):
                 # The redirected format URL expires but the original URL doesn't,
                 # so we only want to extract the extension from this request
@@ -141,18 +171,55 @@ class SubstackIE(InfoExtractor):
                     'Podcast URL is invalid').url)
             formats.append(fmt)
         elif post_type == 'video':
-            formats, subtitles = self._extract_video_formats(webpage_info['post']['videoUpload']['id'], canonical_url)
+            if 'videoUpload' in post:
+                formats, subtitles = self._extract_video_formats(str(post['videoUpload']['id']), canonical_url)
+            else:
+                formats, subtitles = self._extract_video_formats(str(post['mediaUpload']['id']), canonical_url)
+        elif post_type == 'feed':
+            post = webpage_info['feedData']['feedItem']
+            if 'post' in post and not post['post'] is None:
+                post = post['post']
+            else:
+                post = post['comment']
+                if 'bio' in post:
+                    title = traverse_obj(post, ('bio',))
+                if 'name' in post:
+                    uploader = traverse_obj(post, ('name',))
+                if 'user_id' in post:
+                    uploader_id = str(traverse_obj(post, ('user_id',)))
+                if 'body' in post:
+                    description = traverse_obj(post, ('body',))
+                if 'photo_url' in post:
+                    thumbnail = traverse_obj(post, ('photo_url',))
+                post['attachments'][0]['id'] = str(post['id'])
+                post = post['attachments'][0]
+            if 'videoUpload' in post:
+                formats, subtitles = self._extract_video_formats(str(post['videoUpload']['id']), canonical_url)
+            else:
+                formats, subtitles = self._extract_video_formats(str(post['mediaUpload']['id']), canonical_url)
         else:
             self.raise_no_formats(f'Page type "{post_type}" is not supported')
+            return {}
+
+        if title is None:
+            title = traverse_obj(post, ('title',))
+        if uploader is None:
+            uploader = traverse_obj(post, ('name',))
+        if uploader_id is None:
+            uploader_id = str_or_none(traverse_obj(post, ('publication_id',)))
+        if description is None:
+            description = traverse_obj(post, ('description',))
+        if thumbnail is None:
+            thumbnail = traverse_obj(post, ('cover_image',))
 
         return {
-            'id': str(webpage_info['post']['id']),
+            'id': str(traverse_obj(post, ('id',))),
             'formats': formats,
             'subtitles': subtitles,
-            'title': traverse_obj(webpage_info, ('post', 'title')),
-            'description': traverse_obj(webpage_info, ('post', 'description')),
-            'thumbnail': traverse_obj(webpage_info, ('post', 'cover_image')),
-            'uploader': traverse_obj(webpage_info, ('pub', 'name')),
-            'uploader_id': str_or_none(traverse_obj(webpage_info, ('post', 'publication_id'))),
+            'title': title,
+            'description': description,
+            'thumbnail': thumbnail,
+            'uploader': uploader,
+            'uploader_id': uploader_id,
             'webpage_url': canonical_url,
         }
