@@ -148,7 +148,7 @@ def main():
             current_version, _, _ = line.removeprefix(PREFIX).partition('"')
 
     if not current_version:
-        print('yt-dlp-ejs dependency line could not be found')
+        print(f'{PACKAGE_NAME} dependency line could not be found')
         return
 
     makefile_info = makefile_variables(keys_only=True)
@@ -165,10 +165,10 @@ def main():
 
     version = info['tag_name']
     if version == current_version:
-        print(f'yt-dlp-ejs is up to date! ({version})')
+        print(f'{PACKAGE_NAME} is up to date! ({version})')
         return
 
-    print(f'Updating yt-dlp-ejs from {current_version} to {version}')
+    print(f'Updating {PACKAGE_NAME} from {current_version} to {version}')
     hashes = []
     requirements_hashes = []
     wheel_info = {}
