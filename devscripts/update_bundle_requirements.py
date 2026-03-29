@@ -23,8 +23,8 @@ REQUIREMENTS_PATH = pathlib.Path(__file__).parent.parent / 'bundle/requirements'
 INPUT_TMPL = 'requirements-{}.in'
 OUTPUT_TMPL = 'requirements-{}.txt'
 CUSTOM_COMPILE_COMMAND = 'python -m devscripts.update_bundle_requirements'
-COOLDOWN_DATE = (dt.datetime.today() - dt.timedelta(days=7)).strftime('%Y-%m-%d')
-FUTURE_DATE = (dt.datetime.today() + dt.timedelta(days=1)).strftime('%Y-%m-%d')
+COOLDOWN_DATE = (dt.date.today() - dt.timedelta(days=7)).isoformat()
+FUTURE_DATE = (dt.date.today() + dt.timedelta(days=1)).isoformat()
 
 COOLDOWN_EXCEPTIONS = ('protobug', 'yt-dlp-ejs')
 
