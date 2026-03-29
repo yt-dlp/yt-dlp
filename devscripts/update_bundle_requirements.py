@@ -155,6 +155,10 @@ def write_requirements_input(filepath: pathlib.Path, *args: str) -> None:
 def run_pip_compile(python_platform: str, python_version: str, requirements_input_path: pathlib.Path, *args: str) -> str:
     return run_process(
         'uv', 'pip', 'compile',
+        '--no-config',
+        '--quiet',
+        '--no-progress',
+        '--color=never',
         '--upgrade',
         f'--exclude-newer={COOLDOWN_DATE}',
         *(f'--exclude-newer-package={package}={FUTURE_DATE}' for package in COOLDOWN_EXCEPTIONS),
@@ -164,6 +168,7 @@ def run_pip_compile(python_platform: str, python_version: str, requirements_inpu
         '--no-strip-markers',
         f'--custom-compile-command={CUSTOM_COMPILE_COMMAND}',
         str(requirements_input_path),
+        '--format=requirements.txt',
         *args)
 
 
@@ -178,7 +183,7 @@ def main():
         base_requirements_path.write_text(f'pyinstaller=={pyinstaller_version}\n')
         pyinstaller_builds_deps = run_pip_compile(
             target.platform, target.version, base_requirements_path,
-            '--color=never', '--no-emit-package=pyinstaller').stdout
+            '--no-emit-package=pyinstaller').stdout
         requirements_path = REQUIREMENTS_PATH / OUTPUT_TMPL.format(target_suffix)
         requirements_path.write_text(PYINSTALLER_BUILDS_TMPL.format(
             pyinstaller_builds_deps, asset_info['browser_download_url'], asset_info['digest']))
