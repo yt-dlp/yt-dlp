@@ -1008,7 +1008,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         https?://
             (?!consent\.)(?:\w+\.)?
             (?:
-                youtube(?:kids)?\.com|
+                youtube(?:kids|education)?\.com|
                 {invidious}
             )/
             (?:
@@ -2298,7 +2298,7 @@ class YoutubePlaylistIE(YoutubeBaseInfoExtractor):
                         (?:\w+\.)?
                         (?:
                             (?:
-                                youtube(?:kids)?\.com|
+                                youtube(?:kids|education)?\.com|
                                 {invidious}
                             )
                             /.*?\?.*?\blist=

@@ -86,7 +86,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _VALID_URL = r'''(?x)^
                      (
                          (?:https?://|//)                                    # http(s):// or protocol-independent URL
-                         (?:(?:(?:(?:\w+\.)?[yY][oO][uU][tT][uU][bB][eE](?:-nocookie|kids)?\.com|
+                         (?:(?:(?:(?:\w+\.)?[yY][oO][uU][tT][uU][bB][eE](?:-nocookie|kids|education)?\.com|
                             (?:www\.)?deturl\.com/www\.youtube\.com|
                             (?:www\.)?pwnyoutube\.com|
                             (?:www\.)?hooktube\.com|
@@ -129,7 +129,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 new\s+SWFObject\(
             )
             (["\'])
-                (?P<url>(?:https?:)?//(?:www\.)?youtube(?:-nocookie)?\.com/
+                (?P<url>(?:https?:)?//(?:www\.)?youtube(?:-nocookie|kids|education)?\.com/
                 (?:embed|v|p)/[0-9A-Za-z_-]{11}.*?)
             \1''',
         # https://wordpress.org/plugins/lazy-load-for-videos/
@@ -880,6 +880,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'view_count': int,
         },
         'params': {'skip_download': True},
+    }, {
+        'url': 'https://www.youtubeeducation.com/watch?v=n_lqtqsXzkM',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.youtubeeducation.com/embed/n_lqtqsXzkM',
+        'only_matching': True,
     }, {
         'url': 'https://www.youtubekids.com/watch?v=3b8nCWDgZ6Q',
         'only_matching': True,
