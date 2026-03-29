@@ -105,8 +105,8 @@ class SubstackIE(InfoExtractor):
             return
 
         if re.search(r'https?://([\w-]+\.)?substack\.com/@\w+/(p|note)/[\w-]+', url):
-          yield url
-          return
+            yield url
+            return
 
         mobj = re.search(r'{[^}]*\\?["\']subdomain\\?["\']\s*:\s*\\?["\'](?P<subdomain>[^\\"\']+)', webpage)
         if mobj:
@@ -147,11 +147,11 @@ class SubstackIE(InfoExtractor):
         post = None
         post_type = None
         if 'feedData' in webpage_info and 'post' not in webpage_info:
-          post_type = 'feed'
+            post_type = 'feed'
         else:
-          post_type = webpage_info['post']['type']
+            post_type = webpage_info['post']['type']
         if post_type != 'feed':
-          post = webpage_info['post']
+            post = webpage_info['post']
 
         title = None
         uploader = None
