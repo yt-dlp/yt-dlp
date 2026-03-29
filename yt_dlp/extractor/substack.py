@@ -146,11 +146,11 @@ class SubstackIE(InfoExtractor):
 
         post = None
         post_type = None
-        if 'feedData' in webpage_info and not 'post' in webpage_info:
+        if 'feedData' in webpage_info and 'post' not in webpage_info:
           post_type = 'feed'
         else:
           post_type = webpage_info['post']['type']
-        if not post_type == 'feed':
+        if post_type != 'feed':
           post = webpage_info['post']
 
         title = None
@@ -177,7 +177,7 @@ class SubstackIE(InfoExtractor):
                 formats, subtitles = self._extract_video_formats(str(post['mediaUpload']['id']), canonical_url)
         elif post_type == 'feed':
             post = webpage_info['feedData']['feedItem']
-            if 'post' in post and not post['post'] is None:
+            if 'post' in post and post['post'] is not None:
                 post = post['post']
             else:
                 post = post['comment']
