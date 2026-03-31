@@ -87,6 +87,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                      (
                          (?:https?://|//)                                    # http(s):// or protocol-independent URL
                          (?:(?:(?:(?:\w+\.)?[yY][oO][uU][tT][uU][bB][eE](?:-nocookie|kids)?\.com|
+                             (?:www\.)?youtubeeducation\.com|
                             (?:www\.)?deturl\.com/www\.youtube\.com|
                             (?:www\.)?pwnyoutube\.com|
                             (?:www\.)?hooktube\.com|
