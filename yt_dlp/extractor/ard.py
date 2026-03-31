@@ -605,6 +605,88 @@ class ARDMediathekCollectionIE(InfoExtractor):
             title=page_data.get('title'), description=page_data.get('synopsis'))
 
 
+class ARDMediathekProgrammeIE(InfoExtractor):
+    IE_NAME = 'ARDMediathek:programme'
+    _VALID_URL = r'''(?x)https?://
+        (?:(?:beta|www)\.)?ardmediathek\.de/
+        (?P<broadcaster>[^/?#]+)/
+        (?P<slug>[^/?#]+)
+        /?(?:[?#]|$)'''
+    _GEO_COUNTRIES = ['DE']
+
+    _TESTS = [{
+        'url': 'https://www.ardmediathek.de/mdr/elefanttigerundco',
+        'info_dict': {
+            'id': 'mdr-elefanttigerundco',
+            'title': 'Elefant, Tiger & Co.',
+        },
+        'playlist_mincount': 10,
+    }, {
+        'url': 'https://www.ardmediathek.de/ard/tatort',
+        'info_dict': {
+            'id': 'ard-tatort',
+            'title': 'Tatort',
+        },
+        'playlist_mincount': 10,
+    }]
+
+    @classmethod
+    def suitable(cls, url):
+        return (
+            not ARDBetaMediathekIE.suitable(url)
+            and not ARDMediathekCollectionIE.suitable(url)
+            and super().suitable(url))
+
+    def _real_extract(self, url):
+        broadcaster, slug = self._match_valid_url(url).group('broadcaster', 'slug')
+        playlist_id = f'{broadcaster}-{slug}'
+
+        page_data = self._download_json(
+            f'https://api.ardmediathek.de/page-gateway/pages/{broadcaster}/editorial/{slug}',
+            playlist_id, 'Downloading programme page')
+
+        def entries():
+            seen = set()
+            for widget in traverse_obj(page_data, ('widgets', ..., {dict})):
+                widget_id = widget.get('id')
+                widget_url = traverse_obj(widget, ('links', 'self', 'href', {url_or_none}))
+                total = traverse_obj(widget, ('pagination', 'totalElements', {int_or_none})) or 0
+                page_size = traverse_obj(widget, ('pagination', 'pageSize', {int_or_none})) or 100
+
+                for page_num in range(max(total // page_size + (1 if total % page_size else 0), 1)):
+                    if page_num == 0:
+                        page = widget
+                    elif widget_url:
+                        page = self._download_json(
+                            widget_url, playlist_id,
+                            f'Downloading widget {widget_id} page {page_num}',
+                            query={'pageNumber': page_num, 'pageSize': page_size},
+                            fatal=False) or {}
+                    else:
+                        break
+
+                    for item in traverse_obj(page, ('teasers', ..., {dict})):
+                        item_id = traverse_obj(item, ('links', 'target', ('urlId', 'id')), 'id', get_all=False)
+                        if not item_id or item_id in seen:
+                            continue
+                        seen.add(item_id)
+                        item_mode = 'sammlung' if item.get('type') == 'compilation' else 'video'
+                        yield self.url_result(
+                            f'https://www.ardmediathek.de/{item_mode}/{item_id}',
+                            ie=(ARDMediathekCollectionIE if item_mode == 'sammlung' else ARDBetaMediathekIE),
+                            **traverse_obj(item, {
+                                'id': ('id', {str}),
+                                'title': ('longTitle', {str}),
+                                'duration': ('duration', {int_or_none}),
+                                'timestamp': ('broadcastedOn', {parse_iso8601}),
+                            }))
+
+        return self.playlist_result(
+            entries(), playlist_id,
+            title=page_data.get('title'),
+            description=traverse_obj(page_data, ('description', {str})))
+
+
 class ARDAudiothekBaseIE(InfoExtractor):
     def _graphql_query(self, urn, query):
         return self._download_json(
