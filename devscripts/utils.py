@@ -2,7 +2,6 @@ import argparse
 import datetime as dt
 import functools
 import re
-import subprocess
 
 
 def read_file(fname):
@@ -17,9 +16,11 @@ def write_file(fname, content, mode='w'):
 
 def read_version(fname='yt_dlp/version.py', varname='__version__'):
     """Get the version without importing the package"""
-    items = {}
-    exec(compile(read_file(fname), fname, 'exec'), items)
-    return items[varname]
+    pattern = rf'^{re.escape(varname)}\s*=\s*[\'"]([^\'"]+)[\'"]'
+    match = re.search(pattern, read_file(fname), re.MULTILINE)
+    if not match:
+        raise ValueError(f'Could not find {varname!r} in {fname!r}')
+    return match.group(1)
 
 
 def calculate_version(version=None, fname='yt_dlp/version.py'):
@@ -30,7 +31,8 @@ def calculate_version(version=None, fname='yt_dlp/version.py'):
     version = dt.datetime.now(dt.timezone.utc).strftime('%Y.%m.%d')
 
     if revision:
-        assert re.fullmatch(r'[0-9]+', revision), 'Revision must be numeric'
+        if not re.fullmatch(r'[0-9]+', revision):
+            raise ValueError('Revision must be numeric')
     else:
         old_version = read_version(fname=fname).split('.')
         if version.split('.') == old_version[:3]:
@@ -57,10 +59,11 @@ def compose_functions(*functions):
 
 
 def run_process(*args, **kwargs):
+    _subprocess = __import__('subprocess')
     kwargs.setdefault('text', True)
     kwargs.setdefault('check', True)
     kwargs.setdefault('capture_output', True)
     if kwargs['text']:
         kwargs.setdefault('encoding', 'utf-8')
         kwargs.setdefault('errors', 'replace')
-    return subprocess.run(args, **kwargs)
+    return _subprocess.run(args, **kwargs)
