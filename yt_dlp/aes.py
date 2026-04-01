@@ -31,7 +31,12 @@ BLOCK_SIZE_BYTES = 16
 
 
 def unpad_pkcs7(data):
-    return data[:-compat_ord(data[-1])]
+    if not data:
+        raise ValueError('PKCS#7 padding: empty data')
+    pad_size = compat_ord(data[-1])
+    if pad_size < 1 or pad_size > BLOCK_SIZE_BYTES:
+        raise ValueError(f'PKCS#7 padding: invalid pad byte {pad_size}')
+    return data[:-pad_size]
 
 
 def pkcs7_padding(data):
