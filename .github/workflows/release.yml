@@ -232,6 +232,7 @@ jobs:
     needs: [prepare, build]
     permissions:
       contents: write  # Needed by gh to publish release to Github
+      packages: write  # Needed to publish the container package to GHCR
     runs-on: ubuntu-latest
     env:
       TARGET_REPO: ${{ needs.prepare.outputs.target_repo }}
@@ -328,3 +329,58 @@ jobs:
             gh_options+=(--prerelease)
           fi
           gh release create "${gh_options[@]}" "${TARGET_TAG}" artifact/*
+
+      - name: Resolve package tags
+        id: package
+        shell: bash
+        env:
+          PRERELEASE: ${{ inputs.prerelease && '1' || '0' }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          image="ghcr.io/${REPOSITORY,,}"
+          revision="$(git rev-parse HEAD)"
+
+          {
+            echo "revision=${revision}"
+            echo 'tags<<EOF'
+            printf '%s\n' "${image}:${TARGET_TAG}"
+            if (( ! PRERELEASE )) && [[ "${TARGET_TAG}" != 'latest' ]]; then
+              printf '%s\n' "${image}:latest"
+            fi
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Update release version metadata
+        run: |
+          python devscripts/update-version.py -c "${CHANNEL}" -r "${TARGET_REPO}" "${VERSION}"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130  # v3.7.0
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f  # v3.12.0
+
+      - name: Log in to GHCR
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef  # v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push package
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83  # v6.18.0
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.package.outputs.tags }}
+          labels: |
+            org.opencontainers.image.title=yt-dlp
+            org.opencontainers.image.description=A feature-rich command-line audio/video downloader
+            org.opencontainers.image.licenses=Unlicense
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ steps.package.outputs.revision }}
+            org.opencontainers.image.version=${{ env.VERSION }}

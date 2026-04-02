@@ -6,6 +6,8 @@ on:
     paths:
       - "yt_dlp/**.py"
       - "!yt_dlp/version.py"
+      - ".dockerignore"
+      - "Dockerfile"
       - "bundle/**"
       - "pyproject.toml"
       - "Makefile"
@@ -24,6 +26,7 @@ jobs:
     permissions:
       contents: write  # May be needed to publish release
       id-token: write  # Needed for trusted publishing
+      packages: write  # Needed for GHCR publishing in release.yml
     uses: ./.github/workflows/release.yml
     with:
       prerelease: true

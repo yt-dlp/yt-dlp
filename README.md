@@ -24,6 +24,7 @@ yt-dlp is a feature-rich command-line audio/video downloader with support for [t
 * [INSTALLATION](#installation)
     * [Detailed instructions](https://github.com/yt-dlp/yt-dlp/wiki/Installation)
     * [Release Files](#release-files)
+    * [Container Package](#container-package)
     * [Update](#update)
     * [Dependencies](#dependencies)
     * [Compile](#compile)
@@ -82,12 +83,13 @@ yt-dlp is a feature-rich command-line audio/video downloader with support for [t
 [![Unix](https://img.shields.io/badge/-Linux/BSD-red.svg?style=for-the-badge&logo=linux)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)
 [![MacOS](https://img.shields.io/badge/-MacOS-lightblue.svg?style=for-the-badge&logo=apple)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos)
 [![PyPI](https://img.shields.io/badge/-PyPI-blue.svg?logo=pypi&labelColor=555555&style=for-the-badge)](https://pypi.org/project/yt-dlp)
+[![GHCR](https://img.shields.io/badge/-GHCR-181717.svg?logo=github&labelColor=555555&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/pkgs/container/yt-dlp)
 [![Source Tarball](https://img.shields.io/badge/-Source_tar-green.svg?style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
 [![Other variants](https://img.shields.io/badge/-Other-grey.svg?style=for-the-badge)](#release-files)
 [![All versions](https://img.shields.io/badge/-All_Versions-lightgrey.svg?style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/releases)
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
-You can install yt-dlp using [the binaries](#release-files), [pip](https://pypi.org/project/yt-dlp) or one using a third-party package manager. See [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation) for detailed instructions
+You can install yt-dlp using [the binaries](#release-files), the [GHCR package](#container-package), [pip](https://pypi.org/project/yt-dlp) or a third-party package manager. See [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation) for detailed instructions
 
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
@@ -155,6 +157,25 @@ The git repository, the source tarball (`yt-dlp.tar.gz`), the PyPI source distri
 
 **Note**: The manpages, shell completion (autocomplete) files etc. are available inside the [source tarball](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
 
+<!-- MANPAGE: BEGIN EXCLUDED SECTION -->
+## CONTAINER PACKAGE
+
+A multi-platform container image is published to [GitHub Container Registry](https://github.com/yt-dlp/yt-dlp/pkgs/container/yt-dlp) for this repository's releases.
+
+Tag|Description
+:---|:---
+`ghcr.io/yt-dlp/yt-dlp:latest`|Latest stable release
+`ghcr.io/yt-dlp/yt-dlp:nightly`|Latest nightly pre-release
+`ghcr.io/yt-dlp/yt-dlp:master`|Latest master pre-release
+`ghcr.io/yt-dlp/yt-dlp:<version>`|Specific release version
+
+The image uses `yt-dlp` as its entrypoint, includes `ffmpeg`, and defaults to the `/work` working directory.
+
+```bash
+docker run --rm -v "$PWD:/work" ghcr.io/yt-dlp/yt-dlp:latest --version
+docker run --rm -v "$PWD:/work" ghcr.io/yt-dlp/yt-dlp:nightly --version
+```
+<!-- MANPAGE: END EXCLUDED SECTION -->
 
 ## UPDATE
 You can use `yt-dlp -U` to update if you are using the [release binaries](#release-files)
@@ -167,9 +188,9 @@ For other third-party package managers, see [the wiki](https://github.com/yt-dlp
 
 There are currently three release channels for binaries: `stable`, `nightly` and `master`.
 
-* `stable` is the default channel, and many of its changes have been tested by users of the `nightly` and `master` channels.
-* The `nightly` channel has releases scheduled to build every day around midnight UTC, for a snapshot of the project's new patches and changes. This is the **recommended channel for regular users** of yt-dlp. The `nightly` releases are available from [yt-dlp/yt-dlp-nightly-builds](https://github.com/yt-dlp/yt-dlp-nightly-builds/releases) or as development releases of the `yt-dlp` PyPI package (which can be installed with pip's `--pre` flag).
-* The `master` channel features releases that are built after each push to the master branch, and these will have the very latest fixes and additions, but may also be more prone to regressions. They are available from [yt-dlp/yt-dlp-master-builds](https://github.com/yt-dlp/yt-dlp-master-builds/releases).
+* `stable` is the default channel, and many of its changes have been tested by users of the `nightly` and `master` channels. It is also available as the GHCR tag `latest`.
+* The `nightly` channel has releases scheduled to build every day around midnight UTC, for a snapshot of the project's new patches and changes. This is the **recommended channel for regular users** of yt-dlp. The `nightly` releases are available from [yt-dlp/yt-dlp-nightly-builds](https://github.com/yt-dlp/yt-dlp-nightly-builds/releases), as development releases of the `yt-dlp` PyPI package (which can be installed with pip's `--pre` flag) or as the GHCR tag `nightly`.
+* The `master` channel features releases that are built after each push to the master branch, and these will have the very latest fixes and additions, but may also be more prone to regressions. They are available from [yt-dlp/yt-dlp-master-builds](https://github.com/yt-dlp/yt-dlp-master-builds/releases) and as the GHCR tag `master`.
 
 When using `--update`/`-U`, a release binary will only update to its current channel.
 `--update-to CHANNEL` can be used to switch to a different channel when a newer version is available. `--update-to [CHANNEL@]TAG` can also be used to upgrade or downgrade to specific tags from a channel.
