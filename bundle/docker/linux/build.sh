@@ -6,43 +6,30 @@ if [[ -z "${PYTHON_VERSION:-}" ]]; then
     echo "Defaulting to using Python ${PYTHON_VERSION}"
 fi
 
-function runpy {
-    "/opt/shared-cpython-${PYTHON_VERSION}/bin/python${PYTHON_VERSION}" "$@"
-}
-
-function venvpy {
-    "python${PYTHON_VERSION}" "$@"
-}
-
-INCLUDES=(
-    --include-extra pyinstaller
-    --include-extra secretstorage
-)
-
-if [[ -z "${EXCLUDE_CURL_CFFI:-}" ]]; then
-    INCLUDES+=(--include-extra curl-cffi)
-fi
-
-runpy -m venv /yt-dlp-build-venv
+# Set up virtual environment
+rm -rf .venv
+py"${PYTHON_VERSION}" -m venv .venv --without-pip
+PYTHONPATH="$(py"${PYTHON_VERSION}" -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
+export PYTHONPATH
 # shellcheck disable=SC1091
-source /yt-dlp-build-venv/bin/activate
-# Inside the venv we use venvpy instead of runpy
-venvpy -m ensurepip --upgrade --default-pip
-venvpy -m devscripts.install_deps --omit-default --include-extra build
-venvpy -m devscripts.install_deps "${INCLUDES[@]}"
-venvpy -m devscripts.make_lazy_extractors
-venvpy devscripts/update-version.py -c "${CHANNEL}" -r "${ORIGIN}" "${VERSION}"
+source .venv/bin/activate
+
+python -m pip install -U --require-hashes -r "bundle/requirements/requirements-${REQUIREMENTS}.txt"
+python -m devscripts.make_lazy_extractors
+python devscripts/update-version.py -c "${CHANNEL}" -r "${ORIGIN}" "${VERSION}"
 
 if [[ -z "${SKIP_ONEDIR_BUILD:-}" ]]; then
     mkdir -p /build
-    venvpy -m bundle.pyinstaller --onedir --distpath=/build
+    python -m bundle.pyinstaller --onedir --distpath=/build
     pushd "/build/${EXE_NAME}"
     chmod +x "${EXE_NAME}"
-    venvpy -m zipfile -c "/yt-dlp/dist/${EXE_NAME}.zip" ./
+    python -m zipfile -c "/yt-dlp/dist/${EXE_NAME}.zip" ./
     popd
 fi
 
 if [[ -z "${SKIP_ONEFILE_BUILD:-}" ]]; then
-    venvpy -m bundle.pyinstaller
+    python -m bundle.pyinstaller
     chmod +x "./dist/${EXE_NAME}"
 fi
+
+deactivate

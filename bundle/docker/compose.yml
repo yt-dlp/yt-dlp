@@ -9,6 +9,7 @@ services:
       args:
         BUILDIMAGE: ghcr.io/yt-dlp/manylinux2014_x86_64-shared:latest
     environment:
+      REQUIREMENTS: linux-x86_64
       EXE_NAME: ${EXE_NAME:?}
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
@@ -44,6 +45,7 @@ services:
       args:
         BUILDIMAGE: ghcr.io/yt-dlp/manylinux2014_aarch64-shared:latest
     environment:
+      REQUIREMENTS: linux-aarch64
       EXE_NAME: ${EXE_NAME:?}
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
@@ -79,6 +81,7 @@ services:
       args:
         BUILDIMAGE: ghcr.io/yt-dlp/manylinux_2_31_armv7l-shared:latest
     environment:
+      REQUIREMENTS: linux-armv7l
       EXE_NAME: ${EXE_NAME:?}
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
@@ -88,7 +91,6 @@ services:
       SKIP_ONEFILE_BUILD:
     volumes:
       - ../..:/yt-dlp
-      - ../../venv:/yt-dlp-build-venv
 
   linux_armv7l_verify:
     build:
@@ -115,6 +117,7 @@ services:
       args:
         BUILDIMAGE: ghcr.io/yt-dlp/musllinux_1_2_x86_64-shared:latest
     environment:
+      REQUIREMENTS: musllinux-x86_64
       EXE_NAME: ${EXE_NAME:?}
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
@@ -150,6 +153,7 @@ services:
       args:
         BUILDIMAGE: ghcr.io/yt-dlp/musllinux_1_2_aarch64-shared:latest
     environment:
+      REQUIREMENTS: musllinux-aarch64
       EXE_NAME: ${EXE_NAME:?}
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
@@ -157,7 +161,6 @@ services:
       PYTHON_VERSION:
       SKIP_ONEDIR_BUILD:
       SKIP_ONEFILE_BUILD:
-      EXCLUDE_CURL_CFFI: "1"
     volumes:
       - ../..:/yt-dlp
 

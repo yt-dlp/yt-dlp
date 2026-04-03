@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import collections.abc
 import contextlib
 import io
 import json
@@ -18,7 +19,9 @@ HASHES = {{
 {hash_mapping}
 }}
 '''
-PREFIX = '    "yt-dlp-ejs=='
+PACKAGE_NAME = 'yt-dlp-ejs'
+PREFIX = f'    "{PACKAGE_NAME}=='
+PYPI_ARTIFACT_NAME = PACKAGE_NAME.replace('-', '_')
 BASE_PATH = pathlib.Path(__file__).parent.parent
 PYPROJECT_PATH = BASE_PATH / 'pyproject.toml'
 PACKAGE_PATH = BASE_PATH / 'yt_dlp/extractor/youtube/jsc/_builtin/vendor'
@@ -32,6 +35,58 @@ ASSETS = {
     'yt.solver.core.js': True,
 }
 MAKEFILE_PATH = BASE_PATH / 'Makefile'
+REQUIREMENTS_PATH = BASE_PATH / 'bundle/requirements'
+
+
+def requirements_needs_update(
+    lines: collections.abc.Iterable[str],
+    package: str,
+    version: str,
+):
+    identifier = f'{package}=='
+    for line in lines:
+        if line.startswith(identifier):
+            return not line.removeprefix(identifier).startswith(version)
+
+    return False
+
+
+def requirements_update(
+    lines: collections.abc.Iterable[str],
+    package: str,
+    new_version: str,
+    new_hashes: list[str],
+):
+    first_comment = True
+    current = []
+    for line in lines:
+        if not line.endswith('\n'):
+            line += '\n'
+
+        if first_comment:
+            comment_line = line.strip()
+            if comment_line.startswith('#'):
+                yield line
+                continue
+
+            first_comment = False
+            yield '# It was later updated using devscripts/update_ejs.py\n'
+
+        current.append(line)
+        if line.endswith('\\\n'):
+            # continue logical line
+            continue
+
+        if not current[0].startswith(f'{package}=='):
+            yield from current
+
+        else:
+            yield f'{package}=={new_version} \\\n'
+            for digest in new_hashes[:-1]:
+                yield f'    --hash={digest} \\\n'
+            yield f'    --hash={new_hashes[-1]}\n'
+
+        current.clear()
 
 
 def request(url: str):
@@ -93,7 +148,7 @@ def main():
             current_version, _, _ = line.removeprefix(PREFIX).partition('"')
 
     if not current_version:
-        print('yt-dlp-ejs dependency line could not be found')
+        print(f'{PACKAGE_NAME} dependency line could not be found')
         return
 
     makefile_info = makefile_variables(keys_only=True)
@@ -110,27 +165,36 @@ def main():
 
     version = info['tag_name']
     if version == current_version:
-        print(f'yt-dlp-ejs is up to date! ({version})')
+        print(f'{PACKAGE_NAME} is up to date! ({version})')
         return
 
-    print(f'Updating yt-dlp-ejs from {current_version} to {version}')
+    print(f'Updating {PACKAGE_NAME} from {current_version} to {version}')
     hashes = []
+    requirements_hashes = []
     wheel_info = {}
     for asset in info['assets']:
         name = asset['name']
-        is_wheel = name.startswith('yt_dlp_ejs-') and name.endswith('.whl')
+        digest = asset['digest']
+
+        # Is it the source distribution? If so, we only need its hash for the requirements files
+        if name == f'{PYPI_ARTIFACT_NAME}-{version}.tar.gz':
+            requirements_hashes.append(digest)
+            continue
+
+        is_wheel = name.startswith(f'{PYPI_ARTIFACT_NAME}-') and name.endswith('.whl')
         if not is_wheel and name not in ASSETS:
             continue
+
         with request(asset['browser_download_url']) as resp:
             data = resp.read()
 
         # verify digest from github
-        digest = asset['digest']
         algo, _, expected = digest.partition(':')
         hexdigest = hashlib.new(algo, data).hexdigest()
         assert hexdigest == expected, f'downloaded attest mismatch ({hexdigest!r} != {expected!r})'
 
         if is_wheel:
+            requirements_hashes.append(digest)
             wheel_info = makefile_variables(version, name, digest, data)
             continue
 
@@ -160,6 +224,12 @@ def main():
     for key in wheel_info:
         makefile = makefile.replace(f'{key} = {makefile_info[key]}', f'{key} = {wheel_info[key]}')
     MAKEFILE_PATH.write_text(makefile)
+
+    for req in REQUIREMENTS_PATH.glob('requirements-*.txt'):
+        lines = req.read_text().splitlines(True)
+        if requirements_needs_update(lines, PACKAGE_NAME, version):
+            with req.open(mode='w') as f:
+                f.writelines(requirements_update(lines, PACKAGE_NAME, version, requirements_hashes))
 
 
 if __name__ == '__main__':

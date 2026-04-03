@@ -924,6 +924,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(month_by_name(None), None)
         self.assertEqual(month_by_name('December', 'en'), 12)
         self.assertEqual(month_by_name('décembre', 'fr'), 12)
+        self.assertEqual(month_by_name('desember', 'is'), 12)
         self.assertEqual(month_by_name('December'), 12)
         self.assertEqual(month_by_name('décembre'), None)
         self.assertEqual(month_by_name('Unknown', 'unknown'), None)
