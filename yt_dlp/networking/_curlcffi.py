@@ -25,7 +25,7 @@ from .exceptions import (
 )
 from .impersonate import ImpersonateRequestHandler, ImpersonateTarget
 from ..dependencies import curl_cffi, certifi
-from ..utils import int_or_none
+from ..utils import int_or_none, version_tuple
 
 if curl_cffi is None:
     raise ImportError('curl_cffi is not installed')
@@ -218,7 +218,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
             # prioritize tor < edge < firefox < safari < chrome
             ('tor', 'edge', 'firefox', 'safari', 'chrome').index(x[1].client),
             # prioritize newest version
-            float(x[1].version) if x[1].version else 0,
+            version_tuple(x[1].version or '0'),
             # group by os name
             x[1].os,
         ), reverse=True)).items()
