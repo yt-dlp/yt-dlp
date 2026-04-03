@@ -94,7 +94,11 @@ class TubiTvIE(InfoExtractor):
             if resource_type == 'dash':
                 formats.extend(self._extract_mpd_formats(manifest_url, video_id, mpd_id=resource_type, fatal=False))
             elif resource_type in ('hlsv3', 'hlsv6'):
-                formats.extend(self._extract_m3u8_formats(manifest_url, video_id, 'mp4', m3u8_id=resource_type, fatal=False))
+                fmts = self._extract_m3u8_formats(manifest_url, video_id, 'mp4', m3u8_id=resource_type, fatal=False)
+                for fmt in fmts:
+                    if 'Audio Description' in fmt.get('format_note', ''):
+                        fmt['language_preference'] = -10
+                formats.extend(fmts)
             elif resource_type in self._UNPLAYABLE_FORMATS:
                 drm_formats = True
             else:
