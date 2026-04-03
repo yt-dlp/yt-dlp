@@ -21,7 +21,7 @@ class TubiTvIE(InfoExtractor):
             'description': 'md5:bb2f2dd337f0dc58c06cb509943f54c8',
             'uploader_id': 'abc2558d54505d4f0f32be94f2e7108c',
             'release_year': 1935,
-            'thumbnail': r're:^https?://.+\.(jpe?g|png)$',
+            'thumbnail': r're:^https?://canvas-lb\.tubitv\.com/.+',
             'duration': 5187,
         },
         'params': {'skip_download': 'm3u8'},
@@ -38,7 +38,7 @@ class TubiTvIE(InfoExtractor):
             'season_number': 1,
             'uploader_id': '2a9273e728c510d22aa5c57d0646810b',
             'release_year': 2011,
-            'thumbnail': r're:^https?://.+\.(jpe?g|png)$',
+            'thumbnail': r're:^https?://canvas-lb\.tubitv\.com/.+',
             'duration': 1376,
         },
         'params': {'skip_download': 'm3u8'},
@@ -147,20 +147,20 @@ class TubiTvShowIE(InfoExtractor):
             'id': 'the-joy-of-painting-with-bob-ross',
         },
     }, {
-        'url': 'https://tubitv.com/series/2311/the-saddle-club/season-1',
+        'url': 'https://tubitv.com/series/300000435/the-saddle-club/season-1',
         'playlist_count': 26,
         'info_dict': {
             'id': 'the-saddle-club-season-1',
         },
     }, {
-        'url': 'https://tubitv.com/series/2311/the-saddle-club/season-3',
-        'playlist_count': 19,
+        'url': 'https://tubitv.com/series/300000435/the-saddle-club/season-2',
+        'playlist_count': 26,
         'info_dict': {
-            'id': 'the-saddle-club-season-3',
+            'id': 'the-saddle-club-season-2',
         },
     }, {
-        'url': 'https://tubitv.com/series/2311/the-saddle-club/',
-        'playlist_mincount': 71,
+        'url': 'https://tubitv.com/series/300000435/the-saddle-club',
+        'playlist_mincount': 52,
         'info_dict': {
             'id': 'the-saddle-club',
         },
