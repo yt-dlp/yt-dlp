@@ -78,7 +78,9 @@ class TubiTvIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
-        webpage = self._download_webpage(f'https://tubitv.com/{video_type}/{video_id}/', video_id)
+        webpage = self._download_webpage(
+            f'https://tubitv.com/{video_type}/{video_id}/', video_id,
+            headers=self.geo_verification_headers())
         video_data = self._search_json(
             r'window\.__data\s*=', webpage, 'data', video_id,
             transform_source=js_to_json)['video']['byId'][video_id]
@@ -161,7 +163,7 @@ class TubiTvShowIE(InfoExtractor):
     }]
 
     def _entries(self, show_url, playlist_id, selected_season):
-        webpage = self._download_webpage(show_url, playlist_id)
+        webpage = self._download_webpage(show_url, playlist_id, headers=self.geo_verification_headers())
 
         data = self._search_json(
             r'window\.__REACT_QUERY_STATE__\s*=', webpage, 'data', playlist_id,
