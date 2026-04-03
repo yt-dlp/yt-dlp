@@ -33,9 +33,9 @@ if curl_cffi is None:
 
 curl_cffi_version = tuple(map(int, re.split(r'[^\d]+', curl_cffi.__version__)[:3]))
 
-if curl_cffi_version != (0, 5, 10) and not (0, 10) <= curl_cffi_version < (0, 15):
+if curl_cffi_version != (0, 5, 10) and not (0, 10) <= curl_cffi_version < (0, 16):
     curl_cffi._yt_dlp__version = f'{curl_cffi.__version__} (unsupported)'
-    raise ImportError('Only curl_cffi versions 0.5.10 and 0.10.x through 0.14.x are supported')
+    raise ImportError('Only curl_cffi versions 0.5.10 and 0.10.x through 0.15.x are supported')
 
 import curl_cffi.requests
 from curl_cffi.const import CurlECode, CurlOpt
@@ -161,6 +161,18 @@ BROWSER_TARGETS: dict[tuple[int, ...], dict[str, ImpersonateTarget]] = {
     (0, 12): {
         'safari260': ImpersonateTarget('safari', '26.0', 'macos', '26'),
         'safari260_ios': ImpersonateTarget('safari', '26.0', 'ios', '26.0'),
+    },
+    (0, 14): {
+        'chrome142': ImpersonateTarget('chrome', '142', 'macos', '26'),
+        'safari2601': ImpersonateTarget('safari', '26.0.1', 'macos', '26'),
+    },
+    (0, 15): {
+        'chrome145': ImpersonateTarget('chrome', '145', 'macos', '26'),
+        'chrome146': ImpersonateTarget('chrome', '146', 'macos', '26'),
+        # firefox144 was added in 0.14.0, but its UA had a typo in 0.14.0
+        # Ref: https://github.com/lexiforest/curl-impersonate/issues/234
+        'firefox144': ImpersonateTarget('firefox', '144', 'macos', '26'),
+        'firefox147': ImpersonateTarget('firefox', '147', 'macos', '26'),
     },
 }
 
