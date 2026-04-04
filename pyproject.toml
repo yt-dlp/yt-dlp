@@ -90,7 +90,7 @@ pyinstaller = [
     "pyinstaller>=6.17.0",  # 6.17.0+ needed for compat with setuptools 81+
 ]
 delocate = [
-    "delocate==0.11.0",  # API changed in >0.11
+    "delocate",
 ]
 
 [project.urls]

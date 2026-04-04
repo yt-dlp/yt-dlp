@@ -363,12 +363,9 @@ jobs:
             done
           done
           popd
-          python3 -m delocate.cmd.delocate_fuse build/wheels/curl_cffi*.whl -w build/universal2
-          python3 -m delocate.cmd.delocate_fuse build/wheels/cffi*.whl -w build/universal2
-          for wheel in build/universal2/*cffi*.whl; do
-            mv -n -- "${wheel}" "${wheel/x86_64/universal2}"
-          done
-          python3 -m pip install --force-reinstall --no-deps -U build/universal2/*cffi*.whl
+          python3 -m delocate.cmd.delocate_merge build/wheels/curl_cffi-*.whl -w build/universal2
+          python3 -m delocate.cmd.delocate_merge build/wheels/cffi-*.whl -w build/universal2
+          python3 -m pip install --force-reinstall --no-deps -U build/universal2/{curl_,}cffi-*.whl
           rm -rf build
 
       - name: Prepare
