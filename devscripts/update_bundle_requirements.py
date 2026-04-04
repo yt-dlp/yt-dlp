@@ -107,6 +107,7 @@ INSTALL_DEPS_TARGETS = {
         extras=['curl-cffi'],
         # Only need curl-cffi+cffi in this requirements file; their deps are installed directly
         compile_args=[
+            # XXX: Try to keep this in sync with curl-cffi's and cffi's transitive dependencies
             f'--no-emit-package={package}' for package in (
                 'certifi',
                 'markdown-it-py',
