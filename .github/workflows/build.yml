@@ -401,6 +401,32 @@ jobs:
             dist/yt-dlp_macos.zip
           compression-level: 0
 
+  macos_verify:
+    name: Verify macos x86_64
+    needs: [macos]
+    if: inputs.macos && vars.UPDATE_TO_VERIFICATION
+    permissions:
+      contents: read
+    runs-on: macos-15-intel
+    env:
+      UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          path: dist
+          pattern: build-bin-macos
+
+      - name: Verify --update-to on x86_64 architecture
+        run: |
+          chmod +x ./dist/yt-dlp_macos
+          cp ./dist/yt-dlp_macos ./dist/yt-dlp_macos_downgraded
+          version="$(./dist/yt-dlp_macos --version)"
+          ./dist/yt-dlp_macos_downgraded -v --update-to "${UPDATE_TO}"
+          downgraded_version="$(./dist/yt-dlp_macos_downgraded --version)"
+          [[ "$version" != "$downgraded_version" ]]
+
   windows:
     name: windows (${{ matrix.arch }})
     needs: [process]
@@ -500,6 +526,7 @@ jobs:
       - unix
       - linux
       - macos
+      - macos_verify
       - windows
     if: always() && !failure() && !cancelled()
     runs-on: ubuntu-latest
