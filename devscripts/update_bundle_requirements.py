@@ -106,7 +106,14 @@ INSTALL_DEPS_TARGETS = {
         version=MACOS_PYTHON_VERSION,
         extras=['curl-cffi'],
         # Only need curl-cffi+cffi in this requirements file; their deps are installed directly
-        compile_args=['--no-emit-package', 'certifi', '--no-emit-package', 'pycparser'],
+        compile_args=[
+            '--no-emit-package', 'certifi',
+            '--no-emit-package', 'markdown-it-py',
+            '--no-emit-package', 'mdurl',
+            '--no-emit-package', 'pycparser',
+            '--no-emit-package', 'pygments',
+            '--no-emit-package', 'rich',
+        ],
     ),
 }
 
