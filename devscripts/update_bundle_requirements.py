@@ -48,13 +48,13 @@ INSTALL_DEPS_TARGETS = {
     'linux-x86_64': Target(
         platform='x86_64-manylinux2014',
         version=LINUX_GNU_PYTHON_VERSION,
-        extras=['default', 'curl-cffi-compat', 'secretstorage'],
+        extras=['default', 'curl-cffi', 'secretstorage'],
         groups=['pyinstaller'],
     ),
     'linux-aarch64': Target(
         platform='aarch64-manylinux2014',
         version=LINUX_GNU_PYTHON_VERSION,
-        extras=['default', 'curl-cffi-compat', 'secretstorage'],
+        extras=['default', 'curl-cffi', 'secretstorage'],
         groups=['pyinstaller'],
     ),
     'linux-armv7l': Target(
@@ -73,7 +73,7 @@ INSTALL_DEPS_TARGETS = {
         platform='aarch64-unknown-linux-musl',
         version=LINUX_MUSL_PYTHON_VERISON,
         extras=['default', 'secretstorage'],
-        groups=['pyinstaller'],
+        groups=['pyinstaller', 'curl-cffi'],
     ),
     'win-x64': Target(
         platform='x86_64-pc-windows-msvc',
@@ -93,7 +93,7 @@ INSTALL_DEPS_TARGETS = {
     'macos': Target(
         platform='macos',
         version=MACOS_PYTHON_VERSION,
-        extras=['default', 'curl-cffi-compat'],
+        extras=['default', 'curl-cffi'],
         # NB: Resolve delocate and PyInstaller together since they share dependencies
         groups=['delocate', 'pyinstaller'],
         # curl-cffi and cffi don't provide universal2 wheels, so only directly install their deps
@@ -104,9 +104,19 @@ INSTALL_DEPS_TARGETS = {
     'macos-curl_cffi': Target(
         platform='macos',
         version=MACOS_PYTHON_VERSION,
-        extras=['curl-cffi-compat'],
+        extras=['curl-cffi'],
         # Only need curl-cffi+cffi in this requirements file; their deps are installed directly
-        compile_args=['--no-emit-package', 'certifi', '--no-emit-package', 'pycparser'],
+        compile_args=[
+            # XXX: Try to keep this in sync with curl-cffi's and cffi's transitive dependencies
+            f'--no-emit-package={package}' for package in (
+                'certifi',
+                'markdown-it-py',
+                'mdurl',
+                'pycparser',
+                'pygments',
+                'rich',
+            )
+        ],
     ),
 }
 

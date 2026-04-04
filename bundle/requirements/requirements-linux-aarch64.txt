@@ -4,7 +4,7 @@ altgraph==0.17.5 \
     --hash=sha256:c87b395dd12fabde9c99573a9749d67da8d29ef9de0125c7f536699b4a9bc9e7 \
     --hash=sha256:f3a22400bce1b0c701683820ac4f3b159cd301acab067c51c653e06961600597
     # via pyinstaller
-brotli==1.2.0 ; implementation_name == 'cpython' \
+brotli==1.2.0 ; implementation_name == 'cpython' and sys_platform != 'ios' \
     --hash=sha256:022426c9e99fd65d9475dce5c195526f04bb8be8907607e27e747893f6ee3e24 \
     --hash=sha256:072e7624b1fc4d601036ab3f4f27942ef772887e876beff0301d261210bca97f \
     --hash=sha256:09ac247501d1909e9ee47d309be760c89c990defbb2e0240845c892ea5ff0de4 \
@@ -113,7 +113,7 @@ certifi==2026.2.25 \
     #   -r bundle/requirements/requirements-linux-aarch64.in
     #   curl-cffi
     #   requests
-cffi==2.0.0 \
+cffi==2.0.0 ; implementation_name == 'cpython' or platform_python_implementation != 'PyPy' \
     --hash=sha256:00bdf7acc5f795150faa6957054fbbca2439db2f775ce831222b66f192f03beb \
     --hash=sha256:07b271772c100085dd28b74fa0cd81c8fb1a3ba18b21e03d7c27f3436a10606b \
     --hash=sha256:087067fa8953339c723661eda6b54bc98c5625757ea62e95eb4898ad5e776e9f \
@@ -383,17 +383,28 @@ cryptography==46.0.6 \
     --hash=sha256:ed3775295fb91f70b4027aeba878d79b3e55c0b3e97eaa4de71f8f23a9f2eb77 \
     --hash=sha256:ed418c37d095aeddf5336898a132fba01091f0ac5844e3e8018506f014b6d2c4
     # via secretstorage
-curl-cffi==0.13.0 \
-    --hash=sha256:28911b526e8cd4aa0e5e38401bfe6887e8093907272f1f67ca22e6beb2933a51 \
-    --hash=sha256:434cadbe8df2f08b2fc2c16dff2779fb40b984af99c06aa700af898e185bb9db \
-    --hash=sha256:59afa877a9ae09efa04646a7d068eeea48915a95d9add0a29854e7781679fcd7 \
-    --hash=sha256:62ecd90a382bd5023750e3606e0aa7cb1a3a8ba41c14270b8e5e149ebf72c5ca \
-    --hash=sha256:66a6b75ce971de9af64f1b6812e275f60b88880577bac47ef1fa19694fa21cd3 \
-    --hash=sha256:6d433ffcb455ab01dd0d7bde47109083aa38b59863aa183d29c668ae4c96bf8e \
-    --hash=sha256:8eb4083371bbb94e9470d782de235fb5268bf43520de020c9e5e6be8f395443f \
-    --hash=sha256:b4e0de45ab3b7a835c72bd53640c2347415111b43421b5c7a1a0b18deae2e541 \
-    --hash=sha256:d06ed389e45a7ca97b17c275dbedd3d6524560270e675c720e93a2018a766076 \
-    --hash=sha256:d438a3b45244e874794bc4081dc1e356d2bb926dcc7021e5a8fef2e2105ef1d8
+curl-cffi==0.15.0 ; implementation_name == 'cpython' \
+    --hash=sha256:08c799b89740b9bc49c09fbc3d5907f13ac1f845ca52620507ef9466d4639dd5 \
+    --hash=sha256:0b6c0543b993996670e9e4b78e305a2d60809d5681903ffb5568e21a387434d3 \
+    --hash=sha256:1977e1e12cfb5c11352cbb74acef1bed24eb7d226dab61ca57c168c21acd4d61 \
+    --hash=sha256:2b6c847d86283b07ae69bb72c82eb8a59242277142aa35b89850f89e792a02fc \
+    --hash=sha256:408d6f14e346841cd889c2e0962832bb235ba3b6749ebf609f347f747da5e60f \
+    --hash=sha256:41f80170ba844009273b2660da1964ec31e99e5719d16b3422ada87177e32e13 \
+    --hash=sha256:4682dc38d4336e0eb0b185374db90a760efde63cbea994b4e63f3521d44c4c92 \
+    --hash=sha256:582e570aa2586b96ed47cf4a17586b9a3c462cbe43f780487c3dc245c6ef1527 \
+    --hash=sha256:5a0c1896a0d5a5ac1eb89cd24b008d2b718dd1df6fd2f75451b59ca66e49e572 \
+    --hash=sha256:7b7a92767a888ee90147e18964b396d8435ff42737030d6fb00824ffd6094805 \
+    --hash=sha256:7e63539d0d839d0a8c5eacf86229bc68c57803547f35e0db7ee0986328b478c3 \
+    --hash=sha256:829cc357061ecb99cc2d406301f609a039e05665322f5c025ec67c38b0dc49ce \
+    --hash=sha256:838e48212447d9c81364b04707a5c861daf08f8320f9ecb3406a8919d1d5c3b3 \
+    --hash=sha256:967ad7355bd8e9586f8c2d02eaa99953747549e7ea4a9b25cd53353e6b67fe6d \
+    --hash=sha256:9e5e69eee735f659287e2c84444319d68a1fa68dd37abf228943a4074864283a \
+    --hash=sha256:a25620d9bf989c9c029a7d1642999c4c265abb0bad811deb2f77b0b5b2b12e5b \
+    --hash=sha256:a6d57f8389273a3a1f94370473c74897467bcc36af0a17336989780c507fa43d \
+    --hash=sha256:aa1323950224db24f4c510d010b3affa02196ca853fb424191fa917a513d3f4b \
+    --hash=sha256:b624c7ce087bfda967a013ed0a64702a525444e5b6e97d23534d567ccc6525aa \
+    --hash=sha256:bda66404010e9ed743b1b83c20c86f24fe21a9a6873e17479d6e67e29d8ded28 \
+    --hash=sha256:ea0c67652bf6893d34ee0f82c944f37e488f6147e9421bef1771cc6545b02ded
     # via -r bundle/requirements/requirements-linux-aarch64.in
 idna==3.11 \
     --hash=sha256:771a87f49d9defaf64091e6e6fe9c18d4833f140bd19464795bc32d966ca37ea \
@@ -403,6 +414,14 @@ jeepney==0.9.0 \
     --hash=sha256:97e5714520c16fc0a45695e5365a2e11b81ea79bba796e26f9f1d178cb182683 \
     --hash=sha256:cf0e9e845622b81e4a28df94c40345400256ec608d0e55bb8a3feaa9163f5732
     # via secretstorage
+markdown-it-py==4.0.0 ; implementation_name == 'cpython' \
+    --hash=sha256:87327c59b172c5011896038353a81343b6754500a08cd7a4973bb48c6d578147 \
+    --hash=sha256:cb0a2b4aa34f932c007117b194e945bd74e0ec24133ceb5bac59009cda1cb9f3
+    # via rich
+mdurl==0.1.2 ; implementation_name == 'cpython' \
+    --hash=sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8 \
+    --hash=sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba
+    # via markdown-it-py
 mutagen==1.47.0 \
     --hash=sha256:719fadef0a978c31b4cf3c956261b3c58b6948b32023078a2117b1de09f0fc99 \
     --hash=sha256:edd96f50c5907a9539d8e5bba7245f62c9f520aef333d13392a79a4f70aca719
@@ -413,7 +432,7 @@ packaging==26.0 \
     # via
     #   pyinstaller
     #   pyinstaller-hooks-contrib
-pycparser==3.0 ; implementation_name != 'PyPy' \
+pycparser==3.0 ; (implementation_name != 'PyPy' and platform_python_implementation != 'PyPy') or (implementation_name == 'cpython' and platform_python_implementation == 'PyPy') \
     --hash=sha256:600f49d217304a5902ac3c37e1281c9fe94e4d0489de643a9504c5cdfdfc6b29 \
     --hash=sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992
     # via cffi
@@ -460,6 +479,10 @@ pycryptodomex==3.23.0 \
     --hash=sha256:fdfac7cda115bca3a5abb2f9e43bc2fb66c2b65ab074913643803ca7083a79ea \
     --hash=sha256:febec69c0291efd056c65691b6d9a339f8b4bc43c6635b8699471248fe897fea
     # via -r bundle/requirements/requirements-linux-aarch64.in
+pygments==2.19.2 ; implementation_name == 'cpython' \
+    --hash=sha256:636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887 \
+    --hash=sha256:86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b
+    # via rich
 pyinstaller==6.19.0 \
     --hash=sha256:1ec54ef967996ca61dacba676227e2b23219878ccce5ee9d6f3aada7b8ed8abf \
     --hash=sha256:3c5c251054fe4cfaa04c34a363dcfbf811545438cb7198304cd444756bc2edd2 \
@@ -482,6 +505,10 @@ requests==2.33.0 \
     --hash=sha256:3324635456fa185245e24865e810cecec7b4caf933d7eb133dcde67d48cee69b \
     --hash=sha256:c7ebc5e8b0f21837386ad0e1c8fe8b829fa5f544d8df3b2253bff14ef29d7652
     # via -r bundle/requirements/requirements-linux-aarch64.in
+rich==14.3.3 ; implementation_name == 'cpython' \
+    --hash=sha256:793431c1f8619afa7d3b52b2cdec859562b950ea0d4b6b505397612db8d5362d \
+    --hash=sha256:b8daa0b9e4eef54dd8cf7c86c03713f53241884e814f4e2f5fb342fe520f639b
+    # via curl-cffi
 secretstorage==3.5.0 \
     --hash=sha256:0ce65888c0725fcb2c5bc0fdb8e5438eece02c523557ea40ce0703c266248137 \
     --hash=sha256:f04b8e4689cbce351744d5537bf6b1329c6fc68f91fa666f60a380edddcd11be

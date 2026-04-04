@@ -6,7 +6,7 @@ altgraph==0.17.5 \
     # via
     #   macholib
     #   pyinstaller
-brotli==1.2.0 ; implementation_name == 'cpython' \
+brotli==1.2.0 ; implementation_name == 'cpython' and sys_platform != 'ios' \
     --hash=sha256:022426c9e99fd65d9475dce5c195526f04bb8be8907607e27e747893f6ee3e24 \
     --hash=sha256:072e7624b1fc4d601036ab3f4f27942ef772887e876beff0301d261210bca97f \
     --hash=sha256:09ac247501d1909e9ee47d309be760c89c990defbb2e0240845c892ea5ff0de4 \
@@ -246,9 +246,9 @@ charset-normalizer==3.4.6 \
     --hash=sha256:f98059e4fcd3e3e4e2d632b7cf81c2faae96c43c60b569e9c621468082f1d104 \
     --hash=sha256:fcce033e4021347d80ed9c66dcf1e7b1546319834b74445f561d2e2221de5659
     # via requests
-delocate==0.11.0 \
-    --hash=sha256:55558ddfb3e685ee6b5cacfef05f0e5a07d3ec92b04db30fc1aab608364f4fd5 \
-    --hash=sha256:63b0b66467c11fa096aa3179b84d9cef1ab6dc6b0bee78bd7d5dd15814776515
+delocate==0.13.0 \
+    --hash=sha256:11f7596f88984c33f76b27fe2eea7637d1ce369a9e0b6737bbc706b6426e862c \
+    --hash=sha256:a93e67a9f56ee01a3f7096a042231d4ac37fecac873cd5ea34ea2b4f43a8fa13
     # via -r bundle/requirements/requirements-macos.in
 idna==3.11 \
     --hash=sha256:771a87f49d9defaf64091e6e6fe9c18d4833f140bd19464795bc32d966ca37ea \
@@ -260,6 +260,14 @@ macholib==1.16.4 \
     # via
     #   delocate
     #   pyinstaller
+markdown-it-py==4.0.0 ; implementation_name == 'cpython' \
+    --hash=sha256:87327c59b172c5011896038353a81343b6754500a08cd7a4973bb48c6d578147 \
+    --hash=sha256:cb0a2b4aa34f932c007117b194e945bd74e0ec24133ceb5bac59009cda1cb9f3
+    # via rich
+mdurl==0.1.2 ; implementation_name == 'cpython' \
+    --hash=sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8 \
+    --hash=sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba
+    # via markdown-it-py
 mutagen==1.47.0 \
     --hash=sha256:719fadef0a978c31b4cf3c956261b3c58b6948b32023078a2117b1de09f0fc99 \
     --hash=sha256:edd96f50c5907a9539d8e5bba7245f62c9f520aef333d13392a79a4f70aca719
@@ -271,7 +279,7 @@ packaging==26.0 \
     #   delocate
     #   pyinstaller
     #   pyinstaller-hooks-contrib
-pycparser==3.0 ; implementation_name != 'PyPy' \
+pycparser==3.0 ; implementation_name == 'cpython' \
     --hash=sha256:600f49d217304a5902ac3c37e1281c9fe94e4d0489de643a9504c5cdfdfc6b29 \
     --hash=sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992
     # via cffi
@@ -318,6 +326,10 @@ pycryptodomex==3.23.0 \
     --hash=sha256:fdfac7cda115bca3a5abb2f9e43bc2fb66c2b65ab074913643803ca7083a79ea \
     --hash=sha256:febec69c0291efd056c65691b6d9a339f8b4bc43c6635b8699471248fe897fea
     # via -r bundle/requirements/requirements-macos.in
+pygments==2.19.2 ; implementation_name == 'cpython' \
+    --hash=sha256:636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887 \
+    --hash=sha256:86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b
+    # via rich
 pyinstaller==6.19.0 \
     --hash=sha256:1ec54ef967996ca61dacba676227e2b23219878ccce5ee9d6f3aada7b8ed8abf \
     --hash=sha256:3c5c251054fe4cfaa04c34a363dcfbf811545438cb7198304cd444756bc2edd2 \
@@ -340,6 +352,10 @@ requests==2.33.0 \
     --hash=sha256:3324635456fa185245e24865e810cecec7b4caf933d7eb133dcde67d48cee69b \
     --hash=sha256:c7ebc5e8b0f21837386ad0e1c8fe8b829fa5f544d8df3b2253bff14ef29d7652
     # via -r bundle/requirements/requirements-macos.in
+rich==14.3.3 ; implementation_name == 'cpython' \
+    --hash=sha256:793431c1f8619afa7d3b52b2cdec859562b950ea0d4b6b505397612db8d5362d \
+    --hash=sha256:b8daa0b9e4eef54dd8cf7c86c03713f53241884e814f4e2f5fb342fe520f639b
+    # via curl-cffi
 setuptools==82.0.1 \
     --hash=sha256:7d872682c5d01cfde07da7bccc7b65469d3dca203318515ada1de5eda35efbf9 \
     --hash=sha256:a59e362652f08dcd477c78bb6e7bd9d80a7995bc73ce773050228a348ce2e5bb
