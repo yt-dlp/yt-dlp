@@ -16,6 +16,28 @@ class RedzidzirdilatvijuIE(InfoExtractor):
     }, {
         'url': 'https://redzidzirdilatviju.lv/lv/search/movie/175277',
         'only_matching': True,
+    }, {
+        'url': 'https://redzidzirdilatviju.lv/en/search/movie/160825',
+        'info_dict': {
+            'id': '160825',
+            'ext': 'mp4',
+            'title': 'Mītavas zemkopības skolas audzēkņi pastaigā un vingrošanas svētkos',
+        },
+        'skip': 'Test video may not be available',
+    }, {
+        'url': 'https://redzidzirdilatviju.lv/lv/search/movie/160825',
+        'only_matching': True,
+    }, {
+        'url': 'https://redzidzirdilatviju.lv/en/search/movie/161042',
+        'info_dict': {
+            'id': '161042',
+            'ext': 'mp4',
+            'title': 'Kinomaterialāli Nr. 5',
+        },
+        'skip': 'Test video may not be available',
+    }, {
+        'url': 'https://redzidzirdilatviju.lv/lv/search/movie/161042',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -45,22 +67,6 @@ class RedzidzirdilatvijuIE(InfoExtractor):
                     video_filename += '.mp4'
                 title = doc.get('ts_movie$field_title') or doc.get('tm_movie$field_title')
 
-        # Fallback to old formula if API didn't provide filename
-        if not video_filename:
-            movie_id_num = int(video_id)
-            record_no = movie_id_num - 170304
-            if record_no > 0:
-                video_filename = f'P{record_no}.mp4'
-
-        if not video_filename:
-            raise ExtractorError('No video filename available', expected=True)
-
-        # Fallback title from webpage if needed
-        if not title:
-            webpage = self._download_webpage(url, video_id)
-            title = self._html_search_regex(
-                r'<h[2-3][^>]*>([^<]+)</h[2-3]>', webpage, 'title',
-                default=f'Movie {video_id}')
 
         # Build m3u8 URL
         m3u8_url = f'https://filmas.arhivi.lv:30443/s/{video_filename}/playlist.m3u8'
