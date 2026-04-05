@@ -30,10 +30,11 @@ class QuickJSJCP(EJSBaseJCP, BuiltinIEContentProvider):
         'and will solve the JS challenges very slowly. Consider upgrading.')
 
     def _run_js_runtime(self, stdin: str, /) -> str:
-        if self.runtime_info.version_tuple < self._QJS_MIN_RECOMMENDED[self.runtime_info.name]:
+        min_recommended_version = self._QJS_MIN_RECOMMENDED[self.runtime_info.name]
+        if self.runtime_info.version_tuple < min_recommended_version:
             self.logger.warning(self._QJS_WARNING_TMPL.format(
                 name=self.runtime_info.name,
-                version='.'.join(map(str, self.runtime_info.version_tuple))))
+                version='.'.join(map(str, min_recommended_version))))
 
         # QuickJS does not support reading from stdin, so we have to use a temp file
         temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False, encoding='utf-8')
