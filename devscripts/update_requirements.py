@@ -29,12 +29,11 @@ PYPROJECT_PATH = BASE_PATH / 'pyproject.toml'
 MAKEFILE_PATH = BASE_PATH / 'Makefile'
 LOCKFILE_PATH = BASE_PATH / 'uv.lock'
 REQUIREMENTS_PATH = BASE_PATH / 'bundle/requirements'
-OUTPUT_TMPL = 'requirements-{}.txt'
+REQS_OUTPUT_TMPL = 'requirements-{}.txt'
 CUSTOM_COMPILE_COMMAND = 'python -m devscripts.update_requirements'
 
 EXTRAS_TABLE = 'project.optional-dependencies'
 GROUPS_TABLE = 'dependency-groups'
-UV_TABLE = 'tool.uv'
 
 PINNED_EXTRAS = {
     'pin': 'default',
@@ -298,9 +297,7 @@ def ejs_makefile_variables(
     }
 
 
-def update_ejs():
-    """Returns 0 if update succeeds, 1 if update fails, 2 if update is unnecessary"""
-
+def update_ejs(verify: bool = False):
     PACKAGE_NAME = 'yt-dlp-ejs'
     PREFIX = f'    "{PACKAGE_NAME}=='
     LIBRARY_NAME = PACKAGE_NAME.replace('-', '_')
@@ -316,7 +313,7 @@ def update_ejs():
 
     if not current_version:
         print(f'{PACKAGE_NAME} dependency line could not be found')
-        return 1
+        return
 
     makefile_info = ejs_makefile_variables(keys_only=True)
     prefixes = tuple(f'{key} = ' for key in makefile_info)
@@ -331,7 +328,7 @@ def update_ejs():
     version = info['tag_name']
     if version == current_version:
         print(f'{PACKAGE_NAME} is up to date! ({version})')
-        return 2
+        return
 
     print(f'Updating {PACKAGE_NAME} from {current_version} to {version}')
     hashes = []
@@ -383,7 +380,7 @@ def update_ejs():
         makefile = makefile.replace(f'{key} = {makefile_info[key]}', f'{key} = {wheel_info[key]}')
     MAKEFILE_PATH.write_text(makefile)
 
-    return 0
+    update_requirements(upgrade_only=PACKAGE_NAME, verify=verify)
 
 
 def update_requirements(upgrade_only: str | None = None, verify: bool = False):
@@ -402,9 +399,11 @@ def update_requirements(upgrade_only: str | None = None, verify: bool = False):
     modify_and_write_pyproject(pyproject_text, table_name=EXTRAS_TABLE, table=extras)
 
     # If verifying, set UV_EXCLUDE_NEWER env var with the last timestamp recorded in uv.lock
-    env = {}
+    env = None
     if verify:
-        env['UV_EXCLUDE_NEWER'] = parse_toml(LOCKFILE_PATH.read_text())['options']['exclude-newer']
+        env = {
+            'UV_EXCLUDE_NEWER': parse_toml(LOCKFILE_PATH.read_text())['options']['exclude-newer'],
+        }
 
     # Generate/upgrade lockfile
     run_process('uv', 'lock', upgrade_arg, env=env)
@@ -421,7 +420,7 @@ def update_requirements(upgrade_only: str | None = None, verify: bool = False):
                 upgrade_arg,
                 input_line=f'pyinstaller=={pyinstaller_version}',
                 env=env)
-            requirements_path = REQUIREMENTS_PATH / OUTPUT_TMPL.format(target_suffix)
+            requirements_path = REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(target_suffix)
             requirements_path.write_text(PYINSTALLER_BUILDS_TMPL.format(
                 pyinstaller_builds_deps, asset_info['browser_download_url'], asset_info['digest']))
 
@@ -431,16 +430,16 @@ def update_requirements(upgrade_only: str | None = None, verify: bool = False):
             groups=target.groups,
             prune_packages=target.prune_packages,
             omit_packages=target.omit_packages,
-            output_file=REQUIREMENTS_PATH / OUTPUT_TMPL.format(target_suffix))
+            output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(target_suffix))
 
     run_uv_export(
         groups=['build'],
-        output_file=REQUIREMENTS_PATH / OUTPUT_TMPL.format('pypi-build'))
+        output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format('pypi-build'))
 
     run_pip_compile(
         upgrade_arg,
         input_line='pip',
-        output_file=REQUIREMENTS_PATH / OUTPUT_TMPL.format('pip'),
+        output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format('pip'),
         env=env)
 
     # Generate pinned extras
@@ -483,16 +482,10 @@ def parse_args():
 def main():
     args = parse_args()
 
-    if args.upgrade_only == 'ejs':
-        upgrade_only = 'yt-dlp-ejs'
+    if args.upgrade_only in ('ejs', 'yt-dlp-ejs'):
+        update_ejs(verify=args.verify)
     else:
-        upgrade_only = args.upgrade_only
-
-    if upgrade_only == 'yt-dlp-ejs':
-        if error_code := update_ejs():
-            return error_code
-
-    update_requirements(upgrade_only=upgrade_only, verify=args.verify)
+        update_requirements(upgrade_only=args.upgrade_only, verify=args.verify)
 
 
 if __name__ == '__main__':
