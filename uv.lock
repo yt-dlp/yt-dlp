@@ -12,7 +12,6 @@ exclude-newer-span = "P7D"
 
 [options.exclude-newer-package]
 protobug = false
-curl-cffi = false
 yt-dlp-ejs = false
 
 [[package]]
