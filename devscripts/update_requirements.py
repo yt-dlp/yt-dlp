@@ -262,39 +262,45 @@ def run_pip_compile(
     ).stdout
 
 
-def ejs_makefile_variables(
-        version: str | None = None,
-        name: str | None = None,
-        digest: str | None = None,
-        data: bytes | None = None,
-        keys_only: bool = False,
+def makefile_variables(
+    prefix: str,
+    filetypes: list[str] | None = None,
+    *,
+    version: str | None = None,
+    name: str | None = None,
+    digest: str | None = None,
+    data: bytes | None = None,
+    keys_only: bool = False,
 ) -> dict[str, str | None]:
-    if keys_only:
-        return dict.fromkeys([
-            'EJS_VERSION',
-            'EJS_WHEEL_NAME',
-            'EJS_WHEEL_HASH',
-            'EJS_PY_FOLDERS',
-            'EJS_PY_FILES',
-            'EJS_JS_FOLDERS',
-            'EJS_JS_FILES',
-        ])
 
-    assert all(arg is not None for arg in (version, name, digest, data))
-
-    with io.BytesIO(data) as buf, zipfile.ZipFile(buf) as zipf:
-        py_files, py_folders = zipf_files_and_folders(zipf, '*.py')
-        js_files, js_folders = zipf_files_and_folders(zipf, '*.js')
-
-    return {
-        'EJS_VERSION': version,
-        'EJS_WHEEL_NAME': name,
-        'EJS_WHEEL_HASH': digest,
-        'EJS_PY_FOLDERS': ' '.join(py_folders),
-        'EJS_PY_FILES': ' '.join(py_files),
-        'EJS_JS_FOLDERS': ' '.join(js_folders),
-        'EJS_JS_FILES': ' '.join(js_files),
+    variables = {
+        f'{prefix}_VERSION': version,
+        f'{prefix}_WHEEL_NAME': name,
+        f'{prefix}_WHEEL_HASH': digest,
     }
+    for ft in filetypes or []:
+        variables.update({
+            f'{prefix}_{ft.upper()}_FILES': None,
+            f'{prefix}_{ft.upper()}_FOLDERS': None,
+        })
+
+    if keys_only:
+        return variables
+
+    assert all(arg is not None for arg in (version, name, digest, not filetypes or data))
+
+    if filetypes:
+        with io.BytesIO(data) as buf, zipfile.ZipFile(buf) as zipf:
+            for ft in filetypes:
+                files, folders = zipf_files_and_folders(zipf, f'*.{ft.lower()}')
+                variables[f'{prefix}_{ft.upper()}_FOLDERS'] = ' '.join(folders)
+                variables[f'{prefix}_{ft.upper()}_FILES'] = ' '.join(files)
+
+    return variables
+
+
+def ejs_makefile_variables(**kwargs) -> dict[str, str | None]:
+    return makefile_variables('EJS', filetypes=['PY', 'JS'], **kwargs)
 
 
 def update_ejs(verify: bool = False):
@@ -350,7 +356,7 @@ def update_ejs(verify: bool = False):
         assert hexdigest == expected, f'downloaded attest mismatch ({hexdigest!r} != {expected!r})'
 
         if is_wheel:
-            wheel_info = ejs_makefile_variables(version, name, digest, data)
+            wheel_info = ejs_makefile_variables(version=version, name=name, digest=digest, data=data)
             continue
 
         # calculate sha3-512 digest
