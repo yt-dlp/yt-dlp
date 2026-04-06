@@ -180,11 +180,12 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
-          python-version: "3.13"  # Keep this in sync with devscripts/update_bundle_requirements.py
+          python-version: "3.13"
 
       - name: Install Requirements
         run: |
           sudo apt -y install pandoc man
+          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
           python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pypi-build.txt"
 
       - name: Prepare
