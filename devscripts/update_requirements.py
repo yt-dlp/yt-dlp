@@ -407,9 +407,8 @@ def update_requirements(upgrade_only: str | None = None, verify: bool = False):
     # If verifying, set UV_EXCLUDE_NEWER env var with the last timestamp recorded in uv.lock
     env = None
     if verify:
-        env = {
-            'UV_EXCLUDE_NEWER': parse_toml(LOCKFILE_PATH.read_text())['options']['exclude-newer'],
-        }
+        env = os.environ.copy()
+        env['UV_EXCLUDE_NEWER'] = parse_toml(LOCKFILE_PATH.read_text())['options']['exclude-newer']
 
     # Generate/upgrade lockfile
     run_process('uv', 'lock', upgrade_arg, env=env)
