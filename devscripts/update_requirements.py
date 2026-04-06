@@ -280,8 +280,8 @@ def makefile_variables(
     }
     for ft in filetypes or []:
         variables.update({
-            f'{prefix}_{ft.upper()}_FILES': None,
             f'{prefix}_{ft.upper()}_FOLDERS': None,
+            f'{prefix}_{ft.upper()}_FILES': None,
         })
 
     if keys_only:
