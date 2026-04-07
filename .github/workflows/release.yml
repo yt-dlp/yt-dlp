@@ -240,7 +240,8 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           fetch-depth: 0
-          persist-credentials: false
+          persist-credentials: true  # Needed to git-push the release tag
+          ssh-key: ${{ secrets.RELEASE_KEY }}
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         with:
           path: artifact
@@ -308,6 +309,13 @@ jobs:
           git tag --delete "${TARGET_TAG}" || true
           sleep 5  # Enough time to cover deletion race condition
 
+      - name: Push tag
+        if: env.TARGET_REPO == github.repository
+        run: |
+          git tag "${TARGET_TAG}" "${HEAD_SHA}"
+          git push origin "${TARGET_TAG}"
+          sleep 5  # Enough time to cover git-push vs gh-release-create race condition
+
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -319,7 +327,7 @@ jobs:
         run: |
           gh_options=(
             --notes-file "${NOTES_FILE}"
-            --target "${HEAD_SHA}"
+            --verify-tag
             --title "${TITLE_PREFIX}${TITLE}${VERSION}"
           )
           if ((PRERELEASE)); then
