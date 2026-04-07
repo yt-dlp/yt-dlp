@@ -175,38 +175,6 @@ def modify_and_write_pyproject(
         f.writelines(replace_table_in_pyproject(pyproject_text, table_name, table))
 
 
-@dataclasses.dataclass
-class Dependency:
-    name: str
-    direct_reference: str | None
-    version: str | None
-    markers: str | None
-
-
-def parse_dependency(line: str, comp_op: str = '==') -> Dependency:
-    line = line.rstrip().removesuffix('\\')
-    before, sep, after = map(str.strip, line.partition('@'))
-    name, _, version_and_markers = map(str.strip, before.partition(comp_op))
-    assertion_msg = f'unable to parse Dependency from line:\n    {line}'
-    assert name, assertion_msg
-
-    if sep:
-        # Direct reference
-        version = version_and_markers
-        direct_reference, _, markers = map(str.strip, after.partition(';'))
-        assert direct_reference, assertion_msg
-    else:
-        # No direct reference
-        direct_reference = None
-        version, _, markers = map(str.strip, version_and_markers.partition(';'))
-
-    return Dependency(
-        name=name,
-        direct_reference=direct_reference,
-        version=version or None,
-        markers=markers or None)
-
-
 def run_uv_export(
     *,
     extras: list[str] | None = None,
@@ -412,7 +380,6 @@ def update_requirements(upgrade_only: str | None = None, verify: bool = False):
 
     # Generate/upgrade lockfile
     run_process('uv', 'lock', upgrade_arg, env=env)
-    lockfile = parse_toml(LOCKFILE_PATH.read_text())
 
     # Generate bundle requirements
     if not upgrade_only or upgrade_only.lower() == 'pyinstaller':
@@ -449,24 +416,7 @@ def update_requirements(upgrade_only: str | None = None, verify: bool = False):
 
     # Generate pinned extras
     for pinned_name, extra_name in PINNED_EXTRAS.items():
-        pinned_extra = extras[pinned_name] = []
-        exported_extra = run_uv_export(extras=[extra_name], bare=True)
-        for line in exported_extra.splitlines():
-            dep = parse_dependency(line)
-            wheels = next((
-                pkg.get('wheels') for pkg in lockfile['package']
-                if pkg['name'] == dep.name and pkg['version'] == dep.version), None)
-            assert wheels, f'no wheels found for {dep.name} in lockfile'
-            # If multiple wheels are found, we'll *assume* it's because they're platform-specific.
-            # Platform tags can't be used in markers, so the best we can do is pin to exact version
-            if len(wheels) > 1:
-                pinned_extra.append(line)
-                continue
-            # If there's only a 'none-any' wheel, then use a direct reference to PyPI URL with hash
-            wheel_url = wheels[0]['url']
-            algo, _, digest = wheels[0]['hash'].partition(':')
-            pinned_line = f'{dep.name} @ {wheel_url}#{algo}={digest}'
-            pinned_extra.append(' ; '.join(filter(None, (pinned_line, dep.markers))))
+        extras[pinned_name] = run_uv_export(extras=[extra_name], bare=True).splitlines()
 
     # Write the finalized pyproject.toml
     modify_and_write_pyproject(pyproject_text, table_name=EXTRAS_TABLE, table=extras)
