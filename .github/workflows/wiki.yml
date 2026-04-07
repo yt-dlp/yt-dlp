@@ -27,6 +27,6 @@ jobs:
 
       - name: Push to wiki
         run: |
-          git remote add upstream git@github.com:yt-dlp/yt-dlp.wiki
+          git remote add upstream https://github.com/yt-dlp/yt-dlp.wiki.git
           git fetch upstream
           git push --force upstream master
