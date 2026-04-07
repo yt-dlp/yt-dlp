@@ -27,6 +27,8 @@ on:
         required: false
       GPG_SIGNING_KEY:
         required: false
+      RELEASE_KEY:
+        required: false
   workflow_dispatch:
     inputs:
       source:
@@ -67,7 +69,7 @@ jobs:
   prepare:
     name: Prepare
     permissions:
-      contents: write  # Needed to git-push the release commit
+      contents: read  # Push via SSH; HTTPS write token is not needed
     runs-on: ubuntu-latest
     outputs:
       channel: ${{ steps.setup_variables.outputs.channel }}
@@ -83,6 +85,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: true  # Needed to git-push the release commit
+          ssh-key: ${{ secrets.RELEASE_KEY }}
 
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
@@ -101,7 +104,6 @@ jobs:
           INPUTS: ${{ toJSON(inputs) }}
           PROCESSED: ${{ toJSON(steps.process_inputs.outputs) }}
           REPOSITORY: ${{ github.repository }}
-          PUSH_VERSION_COMMIT: ${{ vars.PUSH_VERSION_COMMIT }}
           PYPI_PROJECT: ${{ vars.PYPI_PROJECT }}
           SOURCE_PYPI_PROJECT: ${{ vars[format('{0}_pypi_project', steps.process_inputs.outputs.source_repo)] }}
           SOURCE_PYPI_SUFFIX: ${{ vars[format('{0}_pypi_suffix', steps.process_inputs.outputs.source_repo)] }}
@@ -110,6 +112,7 @@ jobs:
           SOURCE_ARCHIVE_REPO: ${{ vars[format('{0}_archive_repo', steps.process_inputs.outputs.source_repo)] }}
           TARGET_ARCHIVE_REPO: ${{ vars[format('{0}_archive_repo', steps.process_inputs.outputs.target_repo)] }}
           HAS_ARCHIVE_REPO_TOKEN: ${{ !!secrets.ARCHIVE_REPO_TOKEN }}
+          HAS_RELEASE_KEY: ${{ !!secrets.RELEASE_KEY }}
         run: |
           python -m devscripts.setup_variables
 
@@ -124,31 +127,25 @@ jobs:
           python devscripts/update_changelog.py -vv
           make doc
 
-      - name: Push to release
-        id: push_release
+      - name: Push release commit
         env:
           VERSION: ${{ steps.setup_variables.outputs.version }}
           GITHUB_EVENT_SENDER_LOGIN: ${{ github.event.sender.login }}
           GITHUB_EVENT_REF: ${{ github.event.ref }}
-        if: steps.setup_variables.outputs.target_repo == github.repository && !inputs.prerelease
+          RELEASE_KEY: ${{ secrets.RELEASE_KEY }}
+        if: steps.setup_variables.outputs.target_repo == github.repository && env.RELEASE_KEY && !inputs.prerelease
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -u
           git commit -m "Release ${VERSION}" \
             -m "Created by: ${GITHUB_EVENT_SENDER_LOGIN}" -m ":ci skip all"
-          git push origin --force "${GITHUB_EVENT_REF}:release"
+          git push origin "${GITHUB_EVENT_REF}"
 
       - name: Get target commitish
         id: get_target
         run: |
           echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: Update master
-        env:
-          GITHUB_EVENT_REF: ${{ github.event.ref }}
-        if: vars.PUSH_VERSION_COMMIT && !inputs.prerelease && steps.setup_variables.outputs.target_repo == github.repository
-        run: git push origin "${GITHUB_EVENT_REF}"
 
   build:
     name: Build
@@ -243,7 +240,8 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           fetch-depth: 0
-          persist-credentials: false
+          persist-credentials: true  # Needed to git-push the release tag
+          ssh-key: ${{ secrets.RELEASE_KEY }}
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         with:
           path: artifact
@@ -311,6 +309,13 @@ jobs:
           git tag --delete "${TARGET_TAG}" || true
           sleep 5  # Enough time to cover deletion race condition
 
+      - name: Push tag
+        if: env.TARGET_REPO == github.repository
+        run: |
+          git tag "${TARGET_TAG}" "${HEAD_SHA}"
+          git push origin "${TARGET_TAG}"
+          sleep 5  # Enough time to cover git-push vs gh-release-create race condition
+
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -322,7 +327,7 @@ jobs:
         run: |
           gh_options=(
             --notes-file "${NOTES_FILE}"
-            --target "${HEAD_SHA}"
+            --verify-tag
             --title "${TITLE_PREFIX}${TITLE}${VERSION}"
           )
           if ((PRERELEASE)); then
