@@ -129,14 +129,14 @@ LATEST_URL_TMPL = 'https://api.github.com/repos/{owner}/{repo}/releases/latest'
 
 def generate_table_lines(
     table_name: str,
-    table: dict[str, str | list[str | dict[str, str]]],
+    table: dict[str, str | bool | int | float | list[str | dict[str, str]]],
 ) -> collections.abc.Iterator[str]:
     yield f'[{table_name}]\n'
     for name, value in table.items():
-        assert isinstance(value, (str, list)), 'only string & array table values are supported'
+        assert isinstance(value, (bool, int, float, str, list)), 'unsupported type in table values'
 
-        if isinstance(value, str):
-            yield f'{name} = "{value}"\n'
+        if not isinstance(value, list):
+            yield f'{name} = {json.dumps(value)}\n'
             continue
 
         yield f'{name} = ['
@@ -145,7 +145,7 @@ def generate_table_lines(
         for element in value:
             yield '    '
             if isinstance(element, dict):
-                yield '{ ' + ', '.join(f'{k} = "{v}"' for k, v in element.items()) + ' }'
+                yield '{ ' + ', '.join(f'{k} = {json.dumps(v)}' for k, v in element.items()) + ' }'
             else:
                 yield f'"{element}"'
             yield ',\n'
@@ -156,7 +156,7 @@ def generate_table_lines(
 def replace_table_in_pyproject(
     pyproject_text: str,
     table_name: str,
-    table: dict[str, str | list[str | dict[str, str]]],
+    table: dict[str, str | bool | int | float | list[str | dict[str, str]]],
 ) -> collections.abc.Iterator[str]:
     INSIDE = 1
     BEYOND = 2
@@ -177,7 +177,7 @@ def replace_table_in_pyproject(
 def modify_and_write_pyproject(
     pyproject_text: str,
     table_name: str,
-    table: dict[str, str | list[str | dict[str, str]]],
+    table: dict[str, str | bool | int | float | list[str | dict[str, str]]],
 ) -> None:
     with PYPROJECT_PATH.open(mode='w') as f:
         f.writelines(replace_table_in_pyproject(pyproject_text, table_name, table))
