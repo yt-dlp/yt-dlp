@@ -351,24 +351,9 @@ jobs:
                --require-hashes \
               -r "bundle/requirements/requirements-macos-curl_cffi.txt"
           done
-          # Overwrite x86_64-only libs with fat/universal2 libs or else PyInstaller will do the opposite
-          # See https://github.com/yt-dlp/yt-dlp/pull/10069
-          pushd build/wheels
-          mkdir -p curl_cffi/.dylibs
-          python_libdir=$(python3 -c 'import sys; from pathlib import Path; print(Path(sys.path[1]).parent)')
-          for dylib in lib{ssl,crypto}.3.dylib; do
-            cp "${python_libdir}/${dylib}" "curl_cffi/.dylibs/${dylib}"
-            for wheel in curl_cffi*macos*x86_64.whl; do
-              zip "${wheel}" "curl_cffi/.dylibs/${dylib}"
-            done
-          done
-          popd
-          python3 -m delocate.cmd.delocate_fuse build/wheels/curl_cffi*.whl -w build/universal2
-          python3 -m delocate.cmd.delocate_fuse build/wheels/cffi*.whl -w build/universal2
-          for wheel in build/universal2/*cffi*.whl; do
-            mv -n -- "${wheel}" "${wheel/x86_64/universal2}"
-          done
-          python3 -m pip install --force-reinstall --no-deps -U build/universal2/*cffi*.whl
+          python3 -m delocate.cmd.delocate_merge build/wheels/curl_cffi-*.whl -w build/universal2
+          python3 -m delocate.cmd.delocate_merge build/wheels/cffi-*.whl -w build/universal2
+          python3 -m pip install --force-reinstall --no-deps -U build/universal2/{curl_,}cffi-*.whl
           rm -rf build
 
       - name: Prepare
@@ -400,6 +385,32 @@ jobs:
             dist/yt-dlp_macos
             dist/yt-dlp_macos.zip
           compression-level: 0
+
+  macos_verify:
+    name: Verify macos x86_64
+    needs: [macos]
+    if: inputs.macos && vars.UPDATE_TO_VERIFICATION
+    permissions:
+      contents: read
+    runs-on: macos-15-intel
+    env:
+      UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          path: dist
+          pattern: build-bin-macos
+
+      - name: Verify --update-to on x86_64 architecture
+        run: |
+          chmod +x ./dist/yt-dlp_macos
+          cp ./dist/yt-dlp_macos ./dist/yt-dlp_macos_downgraded
+          version="$(./dist/yt-dlp_macos --version)"
+          ./dist/yt-dlp_macos_downgraded -v --update-to "${UPDATE_TO}"
+          downgraded_version="$(./dist/yt-dlp_macos_downgraded --version)"
+          [[ "$version" != "$downgraded_version" ]]
 
   windows:
     name: windows (${{ matrix.arch }})
@@ -500,6 +511,7 @@ jobs:
       - unix
       - linux
       - macos
+      - macos_verify
       - windows
     if: always() && !failure() && !cancelled()
     runs-on: ubuntu-latest
