@@ -1472,7 +1472,7 @@ The only reliable way to check if a site is supported is to try it.
  - **theatercomplextown:ppv**: [*theatercomplextown*](## "netrc machine")
  - **theatercomplextown:vod**: [*theatercomplextown*](## "netrc machine")
  - **TheChosen**
- - **TheChosenGroup**
+ - **TheChosenGroup**: (**Currently broken**)
  - **TheGuardianPodcast**
  - **TheGuardianPodcastPlaylist**
  - **TheHighWire**
