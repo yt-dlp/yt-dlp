@@ -596,6 +596,7 @@ def generate_report(
 
         if markdown:
             if all(package not in cache for cache in (WELLKNOWN_PACKAGES, _gh_name_cache, _gh_change_cache)):
+                print(f'Fetching package info from PyPI API: {package}', file=sys.stderr)
                 project_urls = call_pypi_api(package)['info']['project_urls']
                 for url in project_urls.values():
                     mobj = re.match(
@@ -619,6 +620,7 @@ def generate_report(
             github_info = WELLKNOWN_PACKAGES.get(package) or _gh_name_cache.get(package)
             if github_info:
                 if package not in _gh_tag_cache:
+                    print(f'Fetching tags list from Github API: {package}', file=sys.stderr)
                     _gh_tag_cache[package] = call_github_api(REPO_TAGS_URL_TMPL.format(**github_info))
 
                 tags = _gh_tag_cache[package]
@@ -627,6 +629,7 @@ def generate_report(
                 new_tag = next((tag['name'] for tag in tags if new in tag_versions(tag['name'])), None)
                 if not new_tag:
                     if package not in _gh_latest_cache:
+                        print(f'Fetching latest release info from Github API: {package}', file=sys.stderr)
                         _gh_latest_cache[package] = call_github_api(LATEST_URL_TMPL.format(**github_info))
                     new_tag = _gh_latest_cache[package]['tag_name']
 
@@ -681,7 +684,7 @@ def parse_args():
         help='only verify the update(s) using the previously recorded cooldown timestamp')
     parser.add_argument(
         '--no-markdown-reports', action='store_true',
-        help='do not generate markdown pull request descriptions; avoids unnecessary PyPI and GitHub API calls')
+        help='do not generate markdown PR descriptions; avoids optional PyPI/GitHub API calls')
     return parser.parse_args()
 
 
