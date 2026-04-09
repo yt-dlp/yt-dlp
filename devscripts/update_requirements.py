@@ -581,7 +581,7 @@ _gh_latest_cache = {}
 def generate_report(
     updates_map: dict[str, tuple[str, str]],
     *,
-    markdown: bool = True,
+    markdown: bool = False,
 ) -> collections.abc.Iterator[str]:
     for package, versions in sorted(updates_map.items()):
         old, new = versions
@@ -665,6 +665,9 @@ def parse_args():
     parser.add_argument(
         '--verify', action='store_true',
         help='only verify the update(s) using the previously recorded cooldown timestamp')
+    parser.add_argument(
+        '--no-markdown-reports', action='store_true',
+        help='do not generate markdown pull request descriptions; avoids unnecessary PyPI and GitHub API calls')
     return parser.parse_args()
 
 
@@ -687,7 +690,8 @@ def main():
         print(json.dumps(updates_map, indent=4))
         return 1
     else:
-        print(make_pull_request_description(updates_map))
+        if not args.no_markdown_reports:
+            print(make_pull_request_description(updates_map))
         print(make_commit_message(updates_map))
         return 0
 
