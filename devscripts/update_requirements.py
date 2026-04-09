@@ -123,8 +123,8 @@ PYINSTALLER_BUILDS_TMPL = '''\
     --hash={}
 '''
 
-REPO_TAGS_URL_TMPL = 'https://api.github.com/repos/{owner}/{repo}/tags'
-LATEST_URL_TMPL = 'https://api.github.com/repos/{owner}/{repo}/releases/latest'
+GH_API_TAGLIST_URL_TMPL = 'https://api.github.com/repos/{owner}/{repo}/tags'
+GH_API_RELEASE_URL_TMPL = 'https://api.github.com/repos/{owner}/{repo}/releases/latest'
 
 
 def generate_table_lines(
@@ -284,7 +284,7 @@ def update_ejs(verify: bool = False) -> dict[str, tuple[str, str]] | None:
     PREFIX = f'    "{PACKAGE_NAME}=='
     LIBRARY_NAME = PACKAGE_NAME.replace('-', '_')
     PACKAGE_PATH = BASE_PATH / 'yt_dlp/extractor/youtube/jsc/_builtin/vendor'
-    RELEASE_URL = 'https://api.github.com/repos/yt-dlp/ejs/releases/latest'
+    RELEASE_URL = GH_API_RELEASE_URL_TMPL.tmpl(owner='yt-dlp', repo='ejs')
 
     current_version = None
     with PYPROJECT_PATH.open() as file:
@@ -493,7 +493,7 @@ def update_requirements(upgrade_only: str | None = None, verify: bool = False) -
 
     # Generate bundle requirements
     if not upgrade_only or upgrade_only.lower() == 'pyinstaller':
-        info = call_github_api(LATEST_URL_TMPL.format(owner='yt-dlp', repo='Pyinstaller-Builds'))
+        info = call_github_api(GH_API_RELEASE_URL_TMPL.format(owner='yt-dlp', repo='Pyinstaller-Builds'))
         for target_suffix, asset_tag in PYINSTALLER_BUILDS_TARGETS.items():
             asset_info = next(asset for asset in info['assets'] if asset_tag in asset['name'])
             pyinstaller_version = parse_version_from_dist(
@@ -621,7 +621,7 @@ def generate_report(
             if github_info:
                 if package not in _gh_tag_cache:
                     print(f'Fetching tags list from Github API: {package}', file=sys.stderr)
-                    _gh_tag_cache[package] = call_github_api(REPO_TAGS_URL_TMPL.format(**github_info))
+                    _gh_tag_cache[package] = call_github_api(GH_API_TAGLIST_URL_TMPL.format(**github_info))
 
                 tags = _gh_tag_cache[package]
 
@@ -630,7 +630,7 @@ def generate_report(
                 if not new_tag:
                     if package not in _gh_latest_cache:
                         print(f'Fetching latest release info from Github API: {package}', file=sys.stderr)
-                        _gh_latest_cache[package] = call_github_api(LATEST_URL_TMPL.format(**github_info))
+                        _gh_latest_cache[package] = call_github_api(GH_API_RELEASE_URL_TMPL.format(**github_info))
                     new_tag = _gh_latest_cache[package]['tag_name']
 
                 project_url = 'https://github.com/{owner}/{repo}'.format(**github_info)
