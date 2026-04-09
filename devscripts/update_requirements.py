@@ -573,29 +573,26 @@ def tag_versions(tag: str) -> set[str, ...]:
     return all_matches
 
 
-_gh_name_cache = {}
-_gh_change_cache = {}
-_gh_tag_cache = {}
-_gh_latest_cache = {}
-
-
 def generate_report(
     updates_map: dict[str, tuple[str, str]],
     *,
     markdown: bool = False,
 ) -> collections.abc.Iterator[str]:
+
     for package, versions in sorted(updates_map.items()):
         old, new = versions
         old_tag, new_tag = None, None
         github_info = None
+        changelog_url = None
         md_package = f'[**`{package}`**](https://pypi.org/project/{package})' if markdown else package
         md_new = f'**{new}**' if markdown else new
         md_old = old
         md_compare = None
-        changelog_url = None
 
         if markdown:
-            if all(package not in cache for cache in (WELLKNOWN_PACKAGES, _gh_name_cache, _gh_change_cache)):
+            if package in WELLKNOWN_PACKAGES:
+                github_info = WELLKNOWN_PACKAGES[package]
+            else:
                 print(f'Fetching package info from PyPI API: {package}', file=sys.stderr)
                 project_urls = call_pypi_api(package)['info']['project_urls']
                 for url in project_urls.values():
@@ -603,35 +600,19 @@ def generate_report(
                         r'https://github\.com/(?P<owner>[0-9a-zA-Z_-]+)/(?P<repo>[0-9a-zA-Z_-]+)', url)
                     if not mobj:
                         continue
-                    _gh_name_cache[package] = mobj.groupdict()
+                    github_info = mobj.groupdict()
                     break
-                # If we couldn't get a GH URL, then still cache the key so we don't retry the API
-                else:
-                    _gh_name_cache[package] = None
 
                 for key, url in project_urls.items():
                     if key.lower() in ('changelog', 'changes', 'release notes'):
-                        _gh_change_cache[package] = url
+                        changelog_url = url
                         break
-                else:
-                    _gh_change_cache[package] = None
 
-            changelog_url = _gh_change_cache.get(package)
-            github_info = WELLKNOWN_PACKAGES.get(package) or _gh_name_cache.get(package)
             if github_info:
-                if package not in _gh_tag_cache:
-                    print(f'Fetching tags list from Github API: {package}', file=sys.stderr)
-                    _gh_tag_cache[package] = call_github_api(GH_API_TAGLIST_URL_TMPL.format(**github_info))
-
-                tags = _gh_tag_cache[package]
-
+                print(f'Fetching tags list from Github API: {package}', file=sys.stderr)
+                tags = call_github_api(GH_API_TAGLIST_URL_TMPL.format(**github_info))
                 old_tag = next((tag['name'] for tag in tags if old in tag_versions(tag['name'])), None)
                 new_tag = next((tag['name'] for tag in tags if new in tag_versions(tag['name'])), None)
-                if not new_tag:
-                    if package not in _gh_latest_cache:
-                        print(f'Fetching latest release info from Github API: {package}', file=sys.stderr)
-                        _gh_latest_cache[package] = call_github_api(GH_API_RELEASE_URL_TMPL.format(**github_info))
-                    new_tag = _gh_latest_cache[package]['tag_name']
 
                 project_url = 'https://github.com/{owner}/{repo}'.format(**github_info)
                 if new_tag:
