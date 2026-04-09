@@ -284,7 +284,7 @@ def update_ejs(verify: bool = False) -> dict[str, tuple[str, str]] | None:
     PREFIX = f'    "{PACKAGE_NAME}=='
     LIBRARY_NAME = PACKAGE_NAME.replace('-', '_')
     PACKAGE_PATH = BASE_PATH / 'yt_dlp/extractor/youtube/jsc/_builtin/vendor'
-    RELEASE_URL = GH_API_RELEASE_URL_TMPL.tmpl(owner='yt-dlp', repo='ejs')
+    RELEASE_URL = GH_API_RELEASE_URL_TMPL.format(owner='yt-dlp', repo='ejs')
 
     current_version = None
     with PYPROJECT_PATH.open() as file:
