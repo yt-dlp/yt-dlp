@@ -8,6 +8,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import collections.abc
+import contextlib
 import dataclasses
 import hashlib
 import io
@@ -42,6 +43,12 @@ PINNED_EXTRAS = {
     'pin-curl-cffi': 'curl-cffi',
     'pin-secretstorage': 'secretstorage',
     'pin-deno': 'deno',
+}
+
+WELLKNOWN_PACKAGES = {
+    'deno': {'owner': 'denoland', 'repo': 'deno'},
+    'protobug': {'owner': 'yt-dlp', 'repo': 'protobug'},
+    'yt-dlp-ejs': {'owner': 'yt-dlp', 'repo': 'ejs'},
 }
 
 EJS_ASSETS = {
@@ -111,12 +118,13 @@ PYINSTALLER_BUILDS_TARGETS = {
     'win-arm64-pyinstaller': 'win_arm64',
 }
 
-PYINSTALLER_BUILDS_URL = 'https://api.github.com/repos/yt-dlp/Pyinstaller-Builds/releases/latest'
-
 PYINSTALLER_BUILDS_TMPL = '''\
 {}pyinstaller @ {} \\
     --hash={}
 '''
+
+REPO_TAGS_URL_TMPL = 'https://api.github.com/repos/{owner}/{repo}/tags'
+LATEST_URL_TMPL = 'https://api.github.com/repos/{owner}/{repo}/releases/latest'
 
 
 def generate_table_lines(
@@ -485,7 +493,7 @@ def update_requirements(upgrade_only: str | None = None, verify: bool = False) -
 
     # Generate bundle requirements
     if not upgrade_only or upgrade_only.lower() == 'pyinstaller':
-        info = call_github_api(PYINSTALLER_BUILDS_URL)
+        info = call_github_api(LATEST_URL_TMPL.format(owner='yt-dlp', repo='Pyinstaller-Builds'))
         for target_suffix, asset_tag in PYINSTALLER_BUILDS_TARGETS.items():
             asset_info = next(asset for asset in info['assets'] if asset_tag in asset['name'])
             pyinstaller_version = parse_version_from_dist(
@@ -544,19 +552,109 @@ def update_requirements(upgrade_only: str | None = None, verify: bool = False) -
     return updates_map
 
 
-def generate_report(updates_map: dict[str, tuple[str, str]]) -> collections.abc.Iterator[str]:
-    for package, versions in updates_map.items():
+def call_pypi_api(project: str) -> dict:
+    headers = {
+        'Accept': 'application/json',
+        'User-Agent': 'yt-dlp',
+    }
+    with request(f'https://pypi.org/pypi/{project}/json', headers=headers) as resp:
+        return json.load(resp)
+
+
+def tag_versions(tag: str) -> set[str, ...]:
+    all_matches = {tag}
+
+    version = tag.removeprefix('v')
+    all_matches.add(version)
+
+    with contextlib.suppress(ValueError):
+        all_matches.add('.'.join(map(str, map(int, version.split('.')))))
+
+    return all_matches
+
+
+_gh_name_cache = {}
+_gh_tag_cache = {}
+_gh_latest_cache = {}
+
+
+def generate_report(
+    updates_map: dict[str, tuple[str, str]],
+    *,
+    markdown: bool = True,
+) -> collections.abc.Iterator[str]:
+    for package, versions in sorted(updates_map.items()):
         old, new = versions
+        old_tag, new_tag = None, None
+        github_info = None
+        md_package = f'**`{package}`**' if markdown else package
+        md_new = f'**{new}**' if markdown else new
+        md_old = old
+        md_compare = None
+
+        if markdown:
+            if package not in WELLKNOWN_PACKAGES and package not in _gh_name_cache:
+                project_urls = call_pypi_api(package)['info']['project_urls']
+                for project_url in project_urls.values():
+                    mobj = re.match(
+                        r'https://github\.com/(?P<owner>[0-9a-zA-Z_-]+)/(?P<repo>[0-9a-zA-Z_-]+)',
+                        project_url)
+                    if not mobj:
+                        continue
+                    _gh_name_cache[package] = mobj.groupdict()
+                    break
+
+            github_info = WELLKNOWN_PACKAGES.get(package) or _gh_name_cache.get(package)
+            if github_info:
+                if package not in _gh_tag_cache:
+                    _gh_tag_cache[package] = call_github_api(REPO_TAGS_URL_TMPL.format(**github_info))
+
+                tags = _gh_tag_cache[package]
+
+                old_tag = next((tag['name'] for tag in tags if old in tag_versions(tag['name'])), None)
+                new_tag = next((tag['name'] for tag in tags if new in tag_versions(tag['name'])), None)
+                if not new_tag:
+                    if package not in _gh_latest_cache:
+                        _gh_latest_cache[package] = call_github_api(LATEST_URL_TMPL.format(**github_info))
+                    new_tag = _gh_latest_cache[package]['tag_name']
+
+                project_url = 'https://github.com/{owner}/{repo}'.format(**github_info)
+                md_package = f'[**`{package}`**]({project_url})'
+                if new_tag:
+                    md_new = f'[**{new}**]({project_url}/releases/tag/{new_tag})'
+                if old_tag:
+                    md_old = f'[{old}]({project_url}/releases/tag/{old_tag})'
+                if new_tag and old_tag:
+                    md_compare = f'[`{old_tag}...{new_tag}`]({project_url}/compare/{old_tag}...{new_tag})'
+
+        yield '* '
         if old is None:
-            yield f'* Add {package} {new}\n'
+            yield f'Add {md_package} {md_new}'
         elif new is None:
-            yield f'* Remove {package} {old}\n'
+            yield f'Remove {md_package} {md_old}'
         else:
-            yield f'* Bump {package} {old} → {new}\n'
+            yield f'Bump {md_package} {md_old} {"**→**" if markdown else "→"} {md_new}'
+        if md_compare:
+            yield f' ({md_compare})'
+        yield '\n'
 
 
-def make_report(updates_map: dict[str, tuple[str, str]]) -> str:
-    return ''.join(generate_report(updates_map))
+def make_title(updates_map: dict[str, tuple[str, str]]) -> str:
+    count = len(updates_map)
+    return f'[build] Update {count} dependenc{"ies" if count > 1 else "y"}'
+
+
+def make_pull_request_description(updates_map: dict[str, tuple[str, str]]) -> str:
+    return '\n'.join((
+        '<!-- BEGIN update_requirements generated section -->\n',
+        ''.join(generate_report(updates_map, markdown=True)),
+        '<!-- END update_requirements generated section -->\n\n'))
+
+
+def make_commit_message(updates_map: dict[str, tuple[str, str]]) -> str:
+    return '\n\n'.join((
+        make_title(updates_map),
+        ''.join(generate_report(updates_map, markdown=False))))
 
 
 def parse_args():
@@ -590,7 +688,8 @@ def main():
         print(json.dumps(updates_map, indent=4))
         return 1
     else:
-        print(make_report(updates_map))
+        print(make_pull_request_description(updates_map))
+        print(make_commit_message(updates_map))
         return 0
 
 
