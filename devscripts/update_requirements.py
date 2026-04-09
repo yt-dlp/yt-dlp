@@ -574,6 +574,7 @@ def tag_versions(tag: str) -> set[str, ...]:
 
 
 _gh_name_cache = {}
+_gh_change_cache = {}
 _gh_tag_cache = {}
 _gh_latest_cache = {}
 
@@ -591,19 +592,30 @@ def generate_report(
         md_new = f'**{new}**' if markdown else new
         md_old = old
         md_compare = None
+        changelog_url = None
 
         if markdown:
-            if package not in WELLKNOWN_PACKAGES and package not in _gh_name_cache:
+            if all(package not in cache for cache in (WELLKNOWN_PACKAGES, _gh_name_cache, _gh_change_cache)):
                 project_urls = call_pypi_api(package)['info']['project_urls']
-                for project_url in project_urls.values():
+                for url in project_urls.values():
                     mobj = re.match(
-                        r'https://github\.com/(?P<owner>[0-9a-zA-Z_-]+)/(?P<repo>[0-9a-zA-Z_-]+)',
-                        project_url)
+                        r'https://github\.com/(?P<owner>[0-9a-zA-Z_-]+)/(?P<repo>[0-9a-zA-Z_-]+)', url)
                     if not mobj:
                         continue
                     _gh_name_cache[package] = mobj.groupdict()
                     break
+                # If we couldn't get a GH URL, then still add the key so we don't try the API again
+                else:
+                    _gh_name_cache[package] = None
 
+                for key, url in project_urls.items():
+                    if key.lower().startswith('change'):
+                        _gh_change_cache[package] = url
+                        break
+                else:
+                    _gh_change_cache[package] = None
+
+            changelog_url = _gh_change_cache.get(package)
             github_info = WELLKNOWN_PACKAGES.get(package) or _gh_name_cache.get(package)
             if github_info:
                 if package not in _gh_tag_cache:
@@ -624,7 +636,7 @@ def generate_report(
                 if old_tag:
                     md_old = f'[{old}]({project_url}/releases/tag/{old_tag})'
                 if new_tag and old_tag:
-                    md_compare = f'[`{old_tag}...{new_tag}`]({project_url}/compare/{old_tag}...{new_tag})'
+                    md_compare = f'[[`{old_tag}...{new_tag}`]({project_url}/compare/{old_tag}...{new_tag})]'
 
         yield '* '
         if old is None:
@@ -634,7 +646,9 @@ def generate_report(
         else:
             yield f'Bump {md_package} {md_old} {"**→**" if markdown else "→"} {md_new}'
         if md_compare:
-            yield f' ({md_compare})'
+            yield f' {md_compare}'
+        if changelog_url:
+            yield f' [[changelog]({changelog_url})]'
         yield '\n'
 
 
