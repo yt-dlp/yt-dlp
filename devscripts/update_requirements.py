@@ -604,7 +604,7 @@ def generate_report(
                     break
 
                 for key, url in project_urls.items():
-                    if key.lower() in ('changelog', 'changes', 'release notes'):
+                    if key.lower() in ('changelog', 'changes', 'history', 'release history', 'release notes'):
                         changelog_url = url
                         break
 
