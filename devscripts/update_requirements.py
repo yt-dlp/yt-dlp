@@ -15,6 +15,7 @@ import io
 import json
 import pathlib
 import re
+import typing
 import urllib.parse
 import zipfile
 
@@ -279,7 +280,7 @@ def ejs_makefile_variables(**kwargs) -> dict[str, str | None]:
     return makefile_variables('EJS', filetypes=['PY', 'JS'], **kwargs)
 
 
-def update_ejs(verify: bool = False) -> dict[str, tuple[str, str]] | None:
+def update_ejs(verify: bool = False) -> dict[str, tuple[str | None, str | None]] | None:
     PACKAGE_NAME = 'yt-dlp-ejs'
     PREFIX = f'    "{PACKAGE_NAME}=='
     LIBRARY_NAME = PACKAGE_NAME.replace('-', '_')
@@ -433,17 +434,16 @@ def parse_dependency(line: str, *, require_version: bool = False) -> Dependency:
         markers=markers or None)
 
 
-def evaluate_requirements_txt(old: str, new: str) -> dict[str, tuple[str, str]]:
+def package_diff_dict(
+    old_dict: dict[str, str],
+    new_dict: dict[str, str],
+) -> dict[str, tuple[str | None, str | None]]:
+    """
+    @param old_dict: Dictionary w/ package names as keys and old package versions as values
+    @param new_dict: Dictionary w/ package names as keys and new package versions as values
+    @returns         Dictionary w/ package names as keys and tuples of (old_ver, new_ver) as values
+    """
     ret_dict = {}
-    old_dict = {}
-    new_dict = {}
-
-    for txt, dct in [(old, old_dict), (new, new_dict)]:
-        for line in txt.splitlines():
-            if not line.strip() or line.startswith(('#', ' ')):
-                continue
-            dep = parse_dependency(line, require_version=True)
-            dct.update({dep.name: dep.exact_version})
 
     for name, new_version in new_dict.items():
         if name not in old_dict:
@@ -461,9 +461,32 @@ def evaluate_requirements_txt(old: str, new: str) -> dict[str, tuple[str, str]]:
     return ret_dict
 
 
-def update_requirements(upgrade_only: str | None = None, verify: bool = False) -> dict[str, tuple[str, str]]:
-    updates_map = {}
+def evaluate_requirements_txt(old_txt: str, new_txt: str) -> dict[str, tuple[str | None, str | None]]:
+    old_dict = {}
+    new_dict = {}
 
+    for txt, dct in [(old_txt, old_dict), (new_txt, new_dict)]:
+        for line in txt.splitlines():
+            if not line.strip() or line.startswith(('#', ' ')):
+                continue
+            dep = parse_dependency(line, require_version=True)
+            dct.update({dep.name: dep.exact_version})
+
+    return package_diff_dict(old_dict, new_dict)
+
+
+def get_lock_packages(lock: dict[str, typing.Any]) -> dict[str, str]:
+    return {
+        package['name']: package['version']
+        for package in lock['package']
+        if package.get('version')
+    }
+
+
+def update_requirements(
+    upgrade_only: str | None = None,
+    verify: bool = False,
+) -> dict[str, tuple[str | None, str | None]]:
     # Are we upgrading all packages or only one (e.g. 'yt-dlp-ejs' or 'protobug')?
     upgrade_arg = f'--upgrade-package={upgrade_only}' if upgrade_only else '--upgrade'
 
@@ -471,27 +494,29 @@ def update_requirements(upgrade_only: str | None = None, verify: bool = False) -
     pyproject_toml = parse_toml(pyproject_text)
     extras = pyproject_toml['project']['optional-dependencies']
 
-    # Save old pins for reporting
-    old_pinned_extras = {}
-
     # Remove pinned extras so they don't muck up the lockfile during generation/upgrade
     for pinned_extra_name in PINNED_EXTRAS:
-        if old_pinned_extra := extras.pop(pinned_extra_name, None):
-            old_pinned_extras[pinned_extra_name] = old_pinned_extra
+        extras.pop(pinned_extra_name, None)
 
     # Write an intermediate pyproject.toml to use for generating lockfile and bundle requirements
     modify_and_write_pyproject(pyproject_text, table_name=EXTRAS_TABLE, table=extras)
 
     # If verifying, set UV_EXCLUDE_NEWER env var with the last timestamp recorded in uv.lock
+    old_lock = parse_toml(LOCKFILE_PATH.read_text())
     env = None
     if verify or upgrade_only in pyproject_toml['tool']['uv']['exclude-newer-package']:
         env = os.environ.copy()
-        env['UV_EXCLUDE_NEWER'] = parse_toml(LOCKFILE_PATH.read_text())['options']['exclude-newer']
+        env['UV_EXCLUDE_NEWER'] = old_lock['options']['exclude-newer']
 
     # Generate/upgrade lockfile
     run_process('uv', 'lock', upgrade_arg, env=env)
 
-    # Generate bundle requirements
+    # Record diff in uv.lock packages
+    old_packages = get_lock_packages(old_lock)
+    new_packages = get_lock_packages(parse_toml(LOCKFILE_PATH.read_text()))
+    all_updates = package_diff_dict(old_packages, new_packages)
+
+    # Update Windows PyInstaller requirements; needs to compare before & after .txt's for reporting
     if not upgrade_only or upgrade_only.lower() == 'pyinstaller':
         info = call_github_api(GH_API_RELEASE_URL_TMPL.format(owner='yt-dlp', repo='Pyinstaller-Builds'))
         for target_suffix, asset_tag in PYINSTALLER_BUILDS_TARGETS.items():
@@ -512,8 +537,9 @@ def update_requirements(upgrade_only: str | None = None, verify: bool = False) -
             new_requirements_txt = PYINSTALLER_BUILDS_TMPL.format(
                 pyinstaller_builds_deps, asset_info['browser_download_url'], asset_info['digest'])
             requirements_path.write_text(new_requirements_txt)
-            updates_map.update(evaluate_requirements_txt(old_requirements_txt, new_requirements_txt))
+            all_updates.update(evaluate_requirements_txt(old_requirements_txt, new_requirements_txt))
 
+    # Export bundle requirements; any updates to these are already recorded w/ uv.lock package diff
     for target_suffix, target in BUNDLE_TARGETS.items():
         run_uv_export(
             extras=target.extras,
@@ -522,34 +548,30 @@ def update_requirements(upgrade_only: str | None = None, verify: bool = False) -
             omit_packages=target.omit_packages,
             output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(target_suffix))
 
-    for suffix, func, args, kwargs in [
-        ('pypi-build', run_uv_export, [], {'groups': ['build']}),
-        ('pip', run_pip_compile, [upgrade_arg], {'input_line': 'pip', 'env': env}),
-    ]:
-        requirements_path = REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(suffix)
+    # Compile requirements for single packages; need to compare before & after .txt's for reporting
+    for package in ('pip',):
+        requirements_path = REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(package)
         if requirements_path.is_file():
             old_requirements_txt = requirements_path.read_text()
         else:
             old_requirements_txt = ''
 
-        func(*args, output_file=requirements_path, **kwargs)
+        run_pip_compile(upgrade_arg, input_line=package, env=env)
         new_requirements_txt = requirements_path.read_text()
-        updates_map.update(evaluate_requirements_txt(old_requirements_txt, new_requirements_txt))
+        all_updates.update(evaluate_requirements_txt(old_requirements_txt, new_requirements_txt))
 
+    # Export group requirements; any updates to these are already recorded w/ uv.lock package diff
+    for suffix, group in [('pypi-build', 'build')]:
+        run_uv_export(output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(suffix), groups=[group])
+
+    # Generate new pinned extras; any updates to these are already recorded w/ uv.lock package diff
     for pinned_name, extra_name in PINNED_EXTRAS.items():
-        # Generate pinned extras
-        new_pinned_requirements = run_uv_export(extras=[extra_name], bare=True)
-        extras[pinned_name] = new_pinned_requirements.splitlines()
-        # Compare with old pinned extras for reporting
-        if pinned_name not in old_pinned_extras:
-            continue
-        old_pinned_requirements = '\n'.join(old_pinned_extras[pinned_name])
-        updates_map.update(evaluate_requirements_txt(old_pinned_requirements, new_pinned_requirements))
+        extras[pinned_name] = run_uv_export(extras=[extra_name], bare=True).splitlines()
 
     # Write the finalized pyproject.toml
     modify_and_write_pyproject(pyproject_text, table_name=EXTRAS_TABLE, table=extras)
 
-    return updates_map
+    return all_updates
 
 
 def call_pypi_api(project: str) -> dict:
@@ -574,12 +596,12 @@ def tag_versions(tag: str) -> set[str, ...]:
 
 
 def generate_report(
-    updates_map: dict[str, tuple[str, str]],
+    all_updates: dict[str, tuple[str | None, str | None]],
     *,
     markdown: bool = False,
 ) -> collections.abc.Iterator[str]:
 
-    for package, versions in sorted(updates_map.items()):
+    for package, versions in sorted(all_updates.items()):
         old, new = versions
         old_tag, new_tag = None, None
         github_info = None
@@ -636,22 +658,22 @@ def generate_report(
         yield '\n'
 
 
-def make_title(updates_map: dict[str, tuple[str, str]]) -> str:
-    count = len(updates_map)
+def make_title(all_updates: dict[str, tuple[str | None, str | None]]) -> str:
+    count = len(all_updates)
     return f'[build] Update {count} dependenc{"ies" if count > 1 else "y"}'
 
 
-def make_pull_request_description(updates_map: dict[str, tuple[str, str]]) -> str:
+def make_pull_request_description(all_updates: dict[str, tuple[str | None, str | None]]) -> str:
     return '\n'.join((
         '<!-- BEGIN update_requirements generated section -->\n',
-        ''.join(generate_report(updates_map, markdown=True)),
+        ''.join(generate_report(all_updates, markdown=True)),
         '<!-- END update_requirements generated section -->\n\n'))
 
 
-def make_commit_message(updates_map: dict[str, tuple[str, str]]) -> str:
+def make_commit_message(all_updates: dict[str, tuple[str | None, str | None]]) -> str:
     return '\n\n'.join((
-        make_title(updates_map),
-        ''.join(generate_report(updates_map, markdown=False))))
+        make_title(all_updates),
+        ''.join(generate_report(all_updates, markdown=False))))
 
 
 def parse_args():
@@ -673,24 +695,24 @@ def main():
     args = parse_args()
 
     if args.upgrade_only in ('ejs', 'yt-dlp-ejs'):
-        updates_map = update_ejs(verify=args.verify)
+        all_updates = update_ejs(verify=args.verify)
     else:
-        updates_map = update_requirements(upgrade_only=args.upgrade_only, verify=args.verify)
+        all_updates = update_requirements(upgrade_only=args.upgrade_only, verify=args.verify)
 
-    if updates_map is None:
+    if all_updates is None:
         return 1
-    elif not updates_map:
+    elif not all_updates:
         print('All requirements are up-to-date', file=sys.stderr)
         return 0
 
     if args.verify:
         print('Verification failed! Updates were made:', file=sys.stderr)
-        print(json.dumps(updates_map, indent=4))
+        print(json.dumps(all_updates, indent=4))
         return 1
     else:
         if not args.no_markdown_reports:
-            print(make_pull_request_description(updates_map))
-        print(make_commit_message(updates_map))
+            print(make_pull_request_description(all_updates))
+        print(make_commit_message(all_updates))
         return 0
 
 
