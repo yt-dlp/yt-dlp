@@ -604,12 +604,12 @@ def generate_report(
                         continue
                     _gh_name_cache[package] = mobj.groupdict()
                     break
-                # If we couldn't get a GH URL, then still add the key so we don't try the API again
+                # If we couldn't get a GH URL, then still cache the key so we don't retry the API
                 else:
                     _gh_name_cache[package] = None
 
                 for key, url in project_urls.items():
-                    if key.lower().startswith('change'):
+                    if key.lower() in ('changelog', 'changes', 'release notes'):
                         _gh_change_cache[package] = url
                         break
                 else:
