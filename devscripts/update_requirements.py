@@ -516,7 +516,7 @@ def update_requirements(
     new_packages = get_lock_packages(parse_toml(LOCKFILE_PATH.read_text()))
     all_updates = package_diff_dict(old_packages, new_packages)
 
-    # Update Windows PyInstaller requirements; needs to compare before & after .txt's for reporting
+    # Update Windows PyInstaller requirements; need to compare before & after .txt's for reporting
     if not upgrade_only or upgrade_only.lower() == 'pyinstaller':
         info = call_github_api(GH_API_RELEASE_URL_TMPL.format(owner='yt-dlp', repo='Pyinstaller-Builds'))
         for target_suffix, asset_tag in PYINSTALLER_BUILDS_TARGETS.items():
