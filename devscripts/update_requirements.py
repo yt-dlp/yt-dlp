@@ -484,7 +484,7 @@ def update_requirements(upgrade_only: str | None = None, verify: bool = False) -
 
     # If verifying, set UV_EXCLUDE_NEWER env var with the last timestamp recorded in uv.lock
     env = None
-    if verify:
+    if verify or upgrade_only in pyproject_toml['tool']['uv']['exclude-newer-package']:
         env = os.environ.copy()
         env['UV_EXCLUDE_NEWER'] = parse_toml(LOCKFILE_PATH.read_text())['options']['exclude-newer']
 
