@@ -12,6 +12,7 @@ import contextlib
 import dataclasses
 import hashlib
 import io
+import itertools
 import json
 import pathlib
 import re
@@ -124,7 +125,6 @@ PYINSTALLER_BUILDS_TMPL = '''\
     --hash={}
 '''
 
-GH_API_TAGLIST_URL_TMPL = 'https://api.github.com/repos/{owner}/{repo}/tags'
 GH_API_RELEASE_URL_TMPL = 'https://api.github.com/repos/{owner}/{repo}/releases/latest'
 
 
@@ -595,6 +595,50 @@ def tag_versions(tag: str) -> set[str, ...]:
     return all_matches
 
 
+def fetch_github_tag_info(
+    owner: str,
+    repo: str,
+    fetch_tags: list[str, ...] | None = None,
+    fetch_shas: list[str, ...] | None = None,
+    fetch_all: bool = False,
+) -> list[dict[str, typing.Any]]:
+    needed_tags = set(fetch_tags or [])
+    needed_shas = set(fetch_shas or [])
+    results = []
+
+    for page in itertools.count(1):
+        print(f'Fetching tags list page {page} from Github API: {owner}/{repo}', file=sys.stderr)
+        tags = call_github_api(
+            f'/repos/{owner}/{repo}/tags',
+            query={'per_page': '100', 'page': page})
+
+        if not tags:
+            break
+
+        if fetch_all:
+            results.extend(tags)
+            continue
+
+        if not (fetch_tags or fetch_shas):
+            return tags
+
+        for tag in tags:
+            if tag['commit']['sha'] in needed_shas:
+                needed_shas.remove(tag['commit']['sha'])
+                results.append(tag)
+                continue
+            for version in tag_versions(tag['name']):
+                if version in needed_tags:
+                    needed_tags.remove(version)
+                    results.append(tag)
+                    break  # from inner loop
+
+        if not (needed_tags or needed_shas):
+            break
+
+    return results
+
+
 def generate_report(
     all_updates: dict[str, tuple[str | None, str | None]],
     *,
@@ -631,11 +675,9 @@ def generate_report(
                         break
 
             if github_info:
-                print(f'Fetching tags list from Github API: {package}', file=sys.stderr)
-                tags = call_github_api(GH_API_TAGLIST_URL_TMPL.format(**github_info))
+                tags = fetch_github_tag_info(**github_info, fetch_tags=[old, new])
                 old_tag = next((tag['name'] for tag in tags if old in tag_versions(tag['name'])), None)
                 new_tag = next((tag['name'] for tag in tags if new in tag_versions(tag['name'])), None)
-
                 project_url = 'https://github.com/{owner}/{repo}'.format(**github_info)
                 if new_tag:
                     md_new = f'[**{new}**]({project_url}/releases/tag/{new_tag})'
