@@ -587,7 +587,7 @@ def generate_report(
         old, new = versions
         old_tag, new_tag = None, None
         github_info = None
-        md_package = f'**`{package}`**' if markdown else package
+        md_package = f'[**`{package}`**](https://pypi.org/project/{package})' if markdown else package
         md_new = f'**{new}**' if markdown else new
         md_old = old
         md_compare = None
@@ -619,7 +619,6 @@ def generate_report(
                     new_tag = _gh_latest_cache[package]['tag_name']
 
                 project_url = 'https://github.com/{owner}/{repo}'.format(**github_info)
-                md_package = f'[**`{package}`**]({project_url})'
                 if new_tag:
                     md_new = f'[**{new}**]({project_url}/releases/tag/{new_tag})'
                 if old_tag:
