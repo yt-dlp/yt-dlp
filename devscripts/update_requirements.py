@@ -11,8 +11,10 @@ import collections.abc
 import dataclasses
 import hashlib
 import io
+import json
 import pathlib
 import re
+import urllib.parse
 import zipfile
 
 from devscripts.tomlparse import parse_toml
@@ -115,8 +117,6 @@ PYINSTALLER_BUILDS_TMPL = '''\
 {}pyinstaller @ {} \\
     --hash={}
 '''
-
-PYINSTALLER_VERSION_RE = re.compile(r'pyinstaller-(?P<version>[0-9]+\.[0-9]+\.[0-9]+)-')
 
 
 def generate_table_lines(
@@ -271,7 +271,7 @@ def ejs_makefile_variables(**kwargs) -> dict[str, str | None]:
     return makefile_variables('EJS', filetypes=['PY', 'JS'], **kwargs)
 
 
-def update_ejs(verify: bool = False):
+def update_ejs(verify: bool = False) -> dict[str, tuple[str, str]] | None:
     PACKAGE_NAME = 'yt-dlp-ejs'
     PREFIX = f'    "{PACKAGE_NAME}=='
     LIBRARY_NAME = PACKAGE_NAME.replace('-', '_')
@@ -286,7 +286,7 @@ def update_ejs(verify: bool = False):
             current_version, _, _ = line.removeprefix(PREFIX).partition('"')
 
     if not current_version:
-        print(f'{PACKAGE_NAME} dependency line could not be found')
+        print(f'{PACKAGE_NAME} dependency line could not be found', file=sys.stderr)
         return
 
     makefile_info = ejs_makefile_variables(keys_only=True)
@@ -301,10 +301,10 @@ def update_ejs(verify: bool = False):
     info = call_github_api(RELEASE_URL)
     version = info['tag_name']
     if version == current_version:
-        print(f'{PACKAGE_NAME} is up to date! ({version})')
+        print(f'{PACKAGE_NAME} is up to date! ({version})', file=sys.stderr)
         return
 
-    print(f'Updating {PACKAGE_NAME} from {current_version} to {version}')
+    print(f'Updating {PACKAGE_NAME} from {current_version} to {version}', file=sys.stderr)
     hashes = []
     wheel_info = {}
     for asset in info['assets']:
@@ -354,10 +354,108 @@ def update_ejs(verify: bool = False):
         makefile = makefile.replace(f'{key} = {makefile_info[key]}', f'{key} = {wheel_info[key]}')
     MAKEFILE_PATH.write_text(makefile)
 
-    update_requirements(upgrade_only=PACKAGE_NAME, verify=verify)
+    return update_requirements(upgrade_only=PACKAGE_NAME, verify=verify)
 
 
-def update_requirements(upgrade_only: str | None = None, verify: bool = False):
+@dataclasses.dataclass
+class Dependency:
+    name: str
+    exact_version: str | None
+    direct_reference: str | None
+    specifier: str | None
+    markers: str | None
+
+
+def parse_version_from_dist(filename: str, name: str, *, require: bool = False) -> str | None:
+    # Ref: https://packaging.python.org/en/latest/specifications/binary-distribution-format/#escaping-and-unicode
+    normalized_name = re.sub(r'[-_.]+', '-', name).lower().replace('-', '_')
+
+    # Ref: https://packaging.python.org/en/latest/specifications/version-specifiers/#version-specifiers
+    if mobj := re.match(rf'{normalized_name}-(?P<version>[^-]+)-', filename):
+        return mobj.group('version')
+
+    if require:
+        raise ValueError(f'unable to parse Dependency.exact_version from filename: {filename}')
+
+    return None
+
+
+def parse_dependency(line: str, *, require_version: bool = False) -> Dependency:
+    # Ref: https://packaging.python.org/en/latest/specifications/name-normalization/
+    NAME_RE = re.compile(r'^(?P<name>[A-Z0-9](?:[A-Z0-9._-]*[A-Z0-9])?)', re.IGNORECASE)
+
+    line = line.rstrip().removesuffix('\\')
+    mobj = NAME_RE.match(line)
+    if not mobj:
+        raise ValueError(f'unable to parse Dependency.name from line:\n    {line}')
+
+    name = mobj.group('name')
+    rest = line[len(name):].lstrip()
+    specifier_or_direct_reference, _, markers = map(str.strip, rest.partition(';'))
+
+    direct_reference = None
+    exact_version = None
+    specifier = None
+
+    if specifier_or_direct_reference.startswith('@'):
+        direct_reference = specifier_or_direct_reference[1:].lstrip()
+
+    elif specifier_or_direct_reference:
+        specifier, _, direct_reference = map(str.strip, specifier_or_direct_reference.partition('@'))
+        if specifier and ',' not in specifier and specifier.startswith('=='):
+            exact_version = specifier[2:]
+
+    # sdist naming scheme: {name}-{version}.tar.gz
+    # ref: https://packaging.python.org/en/latest/specifications/source-distribution-format/
+    # wheel naming scheme: {distribution}-{version}(-{build tag})?-{python tag}-{abi tag}-{platform tag}.whl
+    # Ref: https://packaging.python.org/en/latest/specifications/binary-distribution-format/
+    if direct_reference and not exact_version:
+        url_path = urllib.parse.urlparse(direct_reference).path
+        if url_path.endswith(('.tar.gz', '.whl')):
+            exact_version = parse_version_from_dist(url_path.rpartition('/')[2], name)
+
+    if require_version and not exact_version:
+        raise ValueError(f'unable to parse Dependency.exact_version from line:\n    {line}')
+
+    return Dependency(
+        name=name,
+        exact_version=exact_version,
+        direct_reference=direct_reference or None,
+        specifier=specifier or None,
+        markers=markers or None)
+
+
+def evaluate_requirements_txt(old: str, new: str) -> dict[str, tuple[str, str]]:
+    ret_dict = {}
+    old_dict = {}
+    new_dict = {}
+
+    for txt, dct in [(old, old_dict), (new, new_dict)]:
+        for line in txt.splitlines():
+            if not line.strip() or line.startswith(('#', ' ')):
+                continue
+            dep = parse_dependency(line, require_version=True)
+            dct.update({dep.name: dep.exact_version})
+
+    for name, new_version in new_dict.items():
+        if name not in old_dict:
+            ret_dict[name] = (None, new_version)
+            continue
+
+        old_version = old_dict[name]
+        if new_version != old_version:
+            ret_dict[name] = (old_version, new_version)
+
+    for name, old_version in old_dict.items():
+        if name not in new_dict:
+            ret_dict[name] = (old_version, None)
+
+    return ret_dict
+
+
+def update_requirements(upgrade_only: str | None = None, verify: bool = False) -> dict[str, tuple[str, str]]:
+    updates_map = {}
+
     # Are we upgrading all packages or only one (e.g. 'yt-dlp-ejs' or 'protobug')?
     upgrade_arg = f'--upgrade-package={upgrade_only}' if upgrade_only else '--upgrade'
 
@@ -365,9 +463,13 @@ def update_requirements(upgrade_only: str | None = None, verify: bool = False):
     pyproject_toml = parse_toml(pyproject_text)
     extras = pyproject_toml['project']['optional-dependencies']
 
+    # Save old pins for reporting
+    old_pinned_extras = {}
+
     # Remove pinned extras so they don't muck up the lockfile during generation/upgrade
     for pinned_extra_name in PINNED_EXTRAS:
-        extras.pop(pinned_extra_name, None)
+        if old_pinned_extra := extras.pop(pinned_extra_name, None):
+            old_pinned_extras[pinned_extra_name] = old_pinned_extra
 
     # Write an intermediate pyproject.toml to use for generating lockfile and bundle requirements
     modify_and_write_pyproject(pyproject_text, table_name=EXTRAS_TABLE, table=extras)
@@ -386,15 +488,23 @@ def update_requirements(upgrade_only: str | None = None, verify: bool = False):
         info = call_github_api(PYINSTALLER_BUILDS_URL)
         for target_suffix, asset_tag in PYINSTALLER_BUILDS_TARGETS.items():
             asset_info = next(asset for asset in info['assets'] if asset_tag in asset['name'])
-            pyinstaller_version = PYINSTALLER_VERSION_RE.match(asset_info['name']).group('version')
+            pyinstaller_version = parse_version_from_dist(
+                asset_info['name'], 'pyinstaller', require=True)
             pyinstaller_builds_deps = run_pip_compile(
                 '--no-emit-package=pyinstaller',
                 upgrade_arg,
                 input_line=f'pyinstaller=={pyinstaller_version}',
                 env=env)
             requirements_path = REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(target_suffix)
-            requirements_path.write_text(PYINSTALLER_BUILDS_TMPL.format(
-                pyinstaller_builds_deps, asset_info['browser_download_url'], asset_info['digest']))
+            if requirements_path.is_file():
+                old_requirements_txt = requirements_path.read_text()
+            else:
+                old_requirements_txt = ''
+
+            new_requirements_txt = PYINSTALLER_BUILDS_TMPL.format(
+                pyinstaller_builds_deps, asset_info['browser_download_url'], asset_info['digest'])
+            requirements_path.write_text(new_requirements_txt)
+            updates_map.update(evaluate_requirements_txt(old_requirements_txt, new_requirements_txt))
 
     for target_suffix, target in BUNDLE_TARGETS.items():
         run_uv_export(
@@ -404,22 +514,49 @@ def update_requirements(upgrade_only: str | None = None, verify: bool = False):
             omit_packages=target.omit_packages,
             output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(target_suffix))
 
-    run_uv_export(
-        groups=['build'],
-        output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format('pypi-build'))
+    for suffix, func, args, kwargs in [
+        ('pypi-build', run_uv_export, [], {'groups': ['build']}),
+        ('pip', run_pip_compile, [upgrade_arg], {'input_line': 'pip', 'env': env}),
+    ]:
+        requirements_path = REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(suffix)
+        if requirements_path.is_file():
+            old_requirements_txt = requirements_path.read_text()
+        else:
+            old_requirements_txt = ''
 
-    run_pip_compile(
-        upgrade_arg,
-        input_line='pip',
-        output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format('pip'),
-        env=env)
+        func(*args, output_file=requirements_path, **kwargs)
+        new_requirements_txt = requirements_path.read_text()
+        updates_map.update(evaluate_requirements_txt(old_requirements_txt, new_requirements_txt))
 
-    # Generate pinned extras
     for pinned_name, extra_name in PINNED_EXTRAS.items():
-        extras[pinned_name] = run_uv_export(extras=[extra_name], bare=True).splitlines()
+        # Generate pinned extras
+        new_pinned_requirements = run_uv_export(extras=[extra_name], bare=True)
+        extras[pinned_name] = new_pinned_requirements.splitlines()
+        # Compare with old pinned extras for reporting
+        if pinned_name not in old_pinned_extras:
+            continue
+        old_pinned_requirements = '\n'.join(old_pinned_extras[pinned_name])
+        updates_map.update(evaluate_requirements_txt(old_pinned_requirements, new_pinned_requirements))
 
     # Write the finalized pyproject.toml
     modify_and_write_pyproject(pyproject_text, table_name=EXTRAS_TABLE, table=extras)
+
+    return updates_map
+
+
+def generate_report(updates_map: dict[str, tuple[str, str]]) -> collections.abc.Iterator[str]:
+    for package, versions in updates_map.items():
+        old, new = versions
+        if old is None:
+            yield f'* Add {package} {new}\n'
+        elif new is None:
+            yield f'* Remove {package} {old}\n'
+        else:
+            yield f'* Bump {package} {old} → {new}\n'
+
+
+def make_report(updates_map: dict[str, tuple[str, str]]) -> str:
+    return ''.join(generate_report(updates_map))
 
 
 def parse_args():
@@ -438,10 +575,24 @@ def main():
     args = parse_args()
 
     if args.upgrade_only in ('ejs', 'yt-dlp-ejs'):
-        update_ejs(verify=args.verify)
+        updates_map = update_ejs(verify=args.verify)
     else:
-        update_requirements(upgrade_only=args.upgrade_only, verify=args.verify)
+        updates_map = update_requirements(upgrade_only=args.upgrade_only, verify=args.verify)
+
+    if updates_map is None:
+        return 1
+    elif not updates_map:
+        print('All requirements are up-to-date', file=sys.stderr)
+        return 0
+
+    if args.verify:
+        print('Verification failed! Updates were made:', file=sys.stderr)
+        print(json.dumps(updates_map, indent=4))
+        return 1
+    else:
+        print(make_report(updates_map))
+        return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
