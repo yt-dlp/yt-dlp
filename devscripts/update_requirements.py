@@ -556,7 +556,11 @@ def update_requirements(
         else:
             old_requirements_txt = ''
 
-        run_pip_compile(upgrade_arg, input_line=package, env=env)
+        run_pip_compile(
+            upgrade_arg,
+            input_line=package,
+            output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(package),
+            env=env)
         new_requirements_txt = requirements_path.read_text()
         all_updates.update(evaluate_requirements_txt(old_requirements_txt, new_requirements_txt))
 
