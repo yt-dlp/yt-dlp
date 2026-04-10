@@ -599,10 +599,10 @@ def update_requirements(
             output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(target_suffix))
 
     # Export group requirements; any updates to these are already recorded w/ uv.lock package diff
-    for suffix, group in [('pypi-build', 'build')]:
+    for group in ('build',):
         run_uv_export(
             groups=[group],
-            output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(suffix))
+            output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(group))
 
     # Compile requirements for single packages; need to compare before & after .txt's for reporting
     for package in ('pip',):
