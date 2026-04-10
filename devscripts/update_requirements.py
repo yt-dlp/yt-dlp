@@ -583,28 +583,15 @@ def call_pypi_api(project: str) -> dict:
         return json.load(resp)
 
 
-def tag_versions(tag: str) -> set[str, ...]:
-    all_matches = {tag}
-
-    version = tag.removeprefix('v')
-    all_matches.add(version)
-
-    with contextlib.suppress(ValueError):
-        all_matches.add('.'.join(map(str, map(int, version.split('.')))))
-
-    return all_matches
-
-
-def fetch_github_tag_info(
+def fetch_github_tags(
     owner: str,
     repo: str,
+    *,
     fetch_tags: list[str, ...] | None = None,
-    fetch_shas: list[str, ...] | None = None,
-    fetch_all: bool = False,
-) -> list[dict[str, typing.Any]]:
+) -> dict[str, dict[str, typing.Any]]:
+
     needed_tags = set(fetch_tags or [])
-    needed_shas = set(fetch_shas or [])
-    results = []
+    results = {}
 
     for page in itertools.count(1):
         print(f'Fetching tags list page {page} from Github API: {owner}/{repo}', file=sys.stderr)
@@ -615,25 +602,28 @@ def fetch_github_tag_info(
         if not tags:
             break
 
-        if fetch_all:
-            results.extend(tags)
+        if not fetch_tags:
+            # Fetch all tags
+            results.update({tag['name']: tag for tag in tags})
             continue
 
-        if not (fetch_tags or fetch_shas):
-            return tags
-
         for tag in tags:
-            if tag['commit']['sha'] in needed_shas:
-                needed_shas.remove(tag['commit']['sha'])
-                results.append(tag)
-                continue
-            for version in tag_versions(tag['name']):
-                if version in needed_tags:
-                    needed_tags.remove(version)
-                    results.append(tag)
+            clean_tag = tag['name'].removeprefix('v')
+            possible_matches = {tag['name'], clean_tag}
+            # Normalize calver tags like 2024.01.01 to 2024.1.1
+            with contextlib.suppress(ValueError):
+                possible_matches.add('.'.join(map(str, map(int, clean_tag.split('.')))))
+
+            for name in possible_matches:
+                if name in needed_tags:
+                    needed_tags.remove(name)
+                    results[name] = tag
                     break  # from inner loop
 
-        if not (needed_tags or needed_shas):
+            if not needed_tags:
+                break
+
+        if not needed_tags:
             break
 
     return results
@@ -644,6 +634,7 @@ def generate_report(
     *,
     markdown: bool = False,
 ) -> collections.abc.Iterator[str]:
+    GITHUB_RE = re.compile(r'https://github\.com/(?P<owner>[0-9a-zA-Z_-]+)/(?P<repo>[0-9a-zA-Z_-]+)')
 
     for package, versions in sorted(all_updates.items()):
         old, new = versions
@@ -661,30 +652,25 @@ def generate_report(
             else:
                 print(f'Fetching package info from PyPI API: {package}', file=sys.stderr)
                 project_urls = call_pypi_api(package)['info']['project_urls']
-                for url in project_urls.values():
-                    mobj = re.match(
-                        r'https://github\.com/(?P<owner>[0-9a-zA-Z_-]+)/(?P<repo>[0-9a-zA-Z_-]+)', url)
-                    if not mobj:
-                        continue
-                    github_info = mobj.groupdict()
-                    break
-
-                for key, url in project_urls.items():
-                    if key.lower() in ('changelog', 'changes', 'history', 'release history', 'release notes'):
-                        changelog_url = url
-                        break
+                github_info = next((
+                    mobj.groupdict() for url in project_urls.values()
+                    if (mobj := GITHUB_RE.match(url))), None)
+                changelog_url = next((
+                    url for key, url in project_urls.items()
+                    if key.lower().startswith(('change', 'history', 'release '))), None)
 
             if github_info:
-                tags = fetch_github_tag_info(**github_info, fetch_tags=[old, new])
-                old_tag = next((tag['name'] for tag in tags if old in tag_versions(tag['name'])), None)
-                new_tag = next((tag['name'] for tag in tags if new in tag_versions(tag['name'])), None)
-                project_url = 'https://github.com/{owner}/{repo}'.format(**github_info)
+                tags_info = fetch_github_tags(
+                    github_info['owner'], github_info['repo'], fetch_tags=[old, new])
+                old_tag = tags_info.get(old) and tags_info[old]['name']
+                new_tag = tags_info.get(new) and tags_info[new]['name']
+                github_url = 'https://github.com/{owner}/{repo}'.format(**github_info)
                 if new_tag:
-                    md_new = f'[**{new}**]({project_url}/releases/tag/{new_tag})'
+                    md_new = f'[**{new}**]({github_url}/releases/tag/{new_tag})'
                 if old_tag:
-                    md_old = f'[{old}]({project_url}/releases/tag/{old_tag})'
+                    md_old = f'[{old}]({github_url}/releases/tag/{old_tag})'
                 if new_tag and old_tag:
-                    md_compare = f'[[`{old_tag}...{new_tag}`]({project_url}/compare/{old_tag}...{new_tag})]'
+                    md_compare = f'[[`{old_tag}...{new_tag}`]({github_url}/compare/{old_tag}...{new_tag})]'
 
         yield '* '
         if old is None:
