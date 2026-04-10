@@ -353,8 +353,7 @@ def update_ejs(verify: bool = False) -> dict[str, tuple[str | None, str | None]]
             current_version, _, _ = line.removeprefix(PREFIX).partition('"')
 
     if not current_version:
-        print(f'{PACKAGE_NAME} dependency line could not be found', file=sys.stderr)
-        return
+        raise ValueError(f'{PACKAGE_NAME} dependency line could not be found')
 
     makefile_info = ejs_makefile_variables(keys_only=True)
     prefixes = tuple(f'{key} = ' for key in makefile_info)
