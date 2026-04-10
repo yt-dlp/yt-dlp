@@ -145,7 +145,7 @@ def fetch_github_tags(
     owner: str,
     repo: str,
     *,
-    fetch_tags: list[str, ...] | None = None,
+    fetch_tags: list[str] | None = None,
 ) -> dict[str, dict[str, typing.Any]]:
 
     needed_tags = set(fetch_tags or [])
@@ -731,7 +731,7 @@ def make_commit_body(all_updates: dict[str, tuple[str | None, str | None]]) -> s
     return '\n'.join(make_commit_line(package, old, new) for package, (old, new) in all_updates.items())
 
 
-def make_commit_line(package: str, old: str | None, new: str | None):
+def make_commit_line(package: str, old: str | None, new: str | None) -> str:
     if old is None:
         return f'* Add {package} {new}'
 
