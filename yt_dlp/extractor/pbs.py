@@ -453,6 +453,23 @@ class PBSIE(InfoExtractor):
             'url': 'https://player.pbs.org/portalplayer/3004638221/?uid=',
             'only_matching': True,
         },
+        {
+            # Next.js v13+, see https://github.com/yt-dlp/yt-dlp/issues/13299
+            'url': 'https://www.pbs.org/video/caregiving',
+            'info_dict': {
+                'id': '3101776876',
+                'ext': 'mp4',
+                'title': 'Caregiving - Caregiving',
+                'description': 'A documentary revealing America’s caregiving crisis through intimate stories and expert insight.',
+                'display_id': 'caregiving',
+                'duration': 6783,
+                'thumbnail': 'https://image.pbs.org/video-assets/BSrSkcc-asset-mezzanine-16x9-nlcxQts.jpg',
+                'chapters': [],
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
     ]
     _ERRORS = {
         101: 'We\'re sorry, but this video is not yet available.',
@@ -506,6 +523,7 @@ class PBSIE(InfoExtractor):
                 r"(?s)window\.PBS\.playerConfig\s*=\s*{.*?id\s*:\s*'([0-9]+)',",
                 r'<div[^>]+\bdata-cove-id=["\'](\d+)"',  # http://www.pbs.org/wgbh/roadshow/watch/episode/2105-indianapolis-hour-2/
                 r'<iframe[^>]+\bsrc=["\'](?:https?:)?//video\.pbs\.org/widget/partnerplayer/(\d+)',  # https://www.pbs.org/wgbh/masterpiece/episodes/victoria-s2-e1/
+                r'\\"videoTPMediaId\\":\\\"(\d+)\\"',  # Next.js v13, e.g. https://www.pbs.org/video/caregiving
                 r'\bhttps?://player\.pbs\.org/[\w-]+player/(\d+)',      # last pattern to avoid false positives
             ]
 

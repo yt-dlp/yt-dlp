@@ -279,7 +279,7 @@ class ArchiveOrgIE(InfoExtractor):
                     'url': 'https://archive.org/' + track['file'].lstrip('/'),
                 }
 
-        metadata = self._download_json('http://archive.org/metadata/' + identifier, identifier)
+        metadata = self._download_json(f'https://archive.org/metadata/{identifier}', identifier)
         m = metadata['metadata']
         identifier = m['identifier']
 
