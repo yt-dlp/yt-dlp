@@ -28,7 +28,7 @@ class TelewebionIE(InfoExtractor):
     _WORKING = True
     _VALID_URL = r'https?://(?:www\.)?telewebion\.ir/(?:embed/)?episode/(?P<id>(?:0x[a-fA-F\d]+|\d+))/?(?:[#?].*)?'
     _TESTS = [{
-        'url': 'http://www.telewebion.ir/episode/0x1b3139c/',
+        'url': 'https://telewebion.ir/episode/0x1b3139c/',
         'info_dict': {
             'id': '0x1b3139c',
             'ext': 'mp4',
@@ -49,24 +49,23 @@ class TelewebionIE(InfoExtractor):
         },
         'skip_download': 'm3u8',
     }, {
-        'url': 'https://telewebion.ir/episode/162175536',
+        'url': 'https://telewebion.ir/episode/0x16b884ff',
         'info_dict': {
-            'id': '0x9aa9a30',
-            'ext': 'mp4',
-            'title': 'کارما یعنی این !',
-            'series': 'پاورقی',
-            'series_id': '0x29a7426',
-            'channel': 'شبکه 2',
-            'channel_id': '0x1b1a719',
-            'channel_url': 'https://telewebion.ir/live/tv2',
-            'timestamp': 1699979968,
-            'upload_date': '20231114',
-            'release_timestamp': 1699991638,
-            'release_date': '20231114',
-            'duration': 78,
+            'id': '0x16b884ff',
+            'title': '16 بهمن 1404',
+            'channel': 'آموزش',
+            'channel_id': '0x1b1a739',
+            'channel_url': 'https://telewebion.ir/live/amouzesh',
             'view_count': int,
-            'tags': ['کلیپ های منتخب', ' کلیپ طنز ', ' کلیپ سیاست ', 'پاورقی', 'ویژه فلسطین'],
-            'thumbnail': 'https://static.telewebion.ir/episodeImages/871e9455-7567-49a5-9648-34c22c197f5f/default',
+            'duration': 304,
+            'thumbnail': 'https://static.telewebion.ir/episodeImages/f56fb114-33fe-4b66-bb42-ccebf0c2ec89/default',
+            'series': 'دعای 19 صحیفه سجادیه (دعای باران)',
+            'series_id': '0x16150e8e',
+            'timestamp': 1770284795,
+            'upload_date': '20260205',
+            'release_timestamp': 1770293173,
+            'release_date': '20260205',
+            'ext': 'mp4',
         },
         'skip_download': 'm3u8',
     }, {
@@ -74,10 +73,18 @@ class TelewebionIE(InfoExtractor):
         'info_dict': {
             'id': '0x16b8e258',
             'ext': 'mp4',
-            'title': '۲۱ بهمن ۱۴۰۴ - دعای 19 صحیفه سجادیه (دعای باران) | پخش زنده شبکه آموزش - ۲۱ بهمن ماه ۱۴۰۴',
+            'title': '۲۱ بهمن ۱۴۰۴',
+            'channel': 'آموزش',
+            'channel_id': '0x1b1a739',
+            'channel_url': 'https://telewebion.ir/live/amouzesh',
             'thumbnail': 'https://static.telewebion.ir/episodeImages/d591669c-f8a4-4fc9-b6a7-0c01a481cd34/default',
             'duration': 310,
+            'series': 'دعای 19 صحیفه سجادیه (دعای باران)',
+            'series_id': '0x16150e8e',
             'timestamp': 1770733607,
+            'upload_date': '20260210',
+            'release_timestamp': 1770745625,
+            'release_date': '20260210',
             'view_count': int,
         },
         'skip_download': 'm3u8',
@@ -108,7 +115,10 @@ class TelewebionIE(InfoExtractor):
         return result['data']
 
     def _extract_webpage_info(self, url, video_id):
-        webpage = self._download_webpage(url, video_id, fatal=False)
+        try:
+            webpage = self._download_webpage(url, video_id, fatal=False)
+        except ExtractorError:
+            return {}
         if not webpage:
             return {}
 
@@ -133,8 +143,11 @@ class TelewebionIE(InfoExtractor):
         for m3u8_url in urls:
             if not m3u8_url:
                 continue
-            extracted = self._extract_m3u8_formats(
-                m3u8_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+            try:
+                extracted = self._extract_m3u8_formats(
+                    m3u8_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+            except ExtractorError:
+                continue
             if extracted:
                 return extracted
             formats.extend(extracted)
