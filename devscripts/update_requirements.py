@@ -645,76 +645,114 @@ def update_requirements(
 
 def generate_report(
     all_updates: dict[str, tuple[str | None, str | None]],
-    *,
-    markdown: bool = False,
 ) -> collections.abc.Iterator[str]:
     GITHUB_RE = re.compile(r'https://github\.com/(?P<owner>[0-9a-zA-Z_-]+)/(?P<repo>[0-9a-zA-Z_-]+)')
 
-    for package, versions in sorted(all_updates.items()):
-        old, new = versions
-        old_tag, new_tag = None, None
-        github_info = None
-        changelog_url = None
-        md_package = f'[**`{package}`**](https://pypi.org/project/{package})' if markdown else package
-        md_new = f'**{new}**' if markdown else new
-        md_old = old
-        md_compare = None
+    yield 'package | old | new | diff | changelog'
+    yield '--------|-----|-----|------|----------'
+    for package, (old, new) in sorted(all_updates.items()):
+        if package in WELLKNOWN_PACKAGES:
+            github_info = WELLKNOWN_PACKAGES[package]
+            changelog = ''
 
-        if markdown:
-            if package in WELLKNOWN_PACKAGES:
-                github_info = WELLKNOWN_PACKAGES[package]
-            else:
-                project_urls = call_pypi_api(package)['info']['project_urls']
-                github_info = next((
-                    mobj.groupdict() for url in project_urls.values()
-                    if (mobj := GITHUB_RE.match(url))), None)
-                changelog_url = next((
-                    url for key, url in project_urls.items()
-                    if key.lower().startswith(('change', 'history', 'release '))), None)
-
-            if github_info:
-                tags_info = fetch_github_tags(
-                    github_info['owner'], github_info['repo'], fetch_tags=[old, new])
-                old_tag = tags_info.get(old) and tags_info[old]['name']
-                new_tag = tags_info.get(new) and tags_info[new]['name']
-                github_url = 'https://github.com/{owner}/{repo}'.format(**github_info)
-                if new_tag:
-                    md_new = f'[**{new}**]({github_url}/releases/tag/{new_tag})'
-                if old_tag:
-                    md_old = f'[{old}]({github_url}/releases/tag/{old_tag})'
-                if new_tag and old_tag:
-                    md_compare = f'[[`{old_tag}...{new_tag}`]({github_url}/compare/{old_tag}...{new_tag})]'
-
-        yield '* '
-        if old is None:
-            yield f'Add {md_package} {md_new}'
-        elif new is None:
-            yield f'Remove {md_package} {md_old}'
         else:
-            yield f'Bump {md_package} {md_old} {"**→**" if markdown else "→"} {md_new}'
-        if md_compare:
-            yield f' {md_compare}'
-        if changelog_url:
-            yield f' [[changelog]({changelog_url})]'
-        yield '\n'
+            project_urls = call_pypi_api(package)['info']['project_urls']
+            github_info = next((
+                mobj.groupdict() for url in project_urls.values()
+                if (mobj := GITHUB_RE.match(url))), None)
+            changelog = next((
+                url for key, url in project_urls.items()
+                if key.lower().startswith(('change', 'history', 'release '))), '')
+            if changelog:
+                name = urllib.parse.urlparse(changelog).path.rstrip('/').rpartition('/')[2] or 'changelog'
+                changelog = f'[{name}](<{changelog}>)'
 
+        md_old = old = old or ''
+        md_new = new = new or ''
+        if old and new:
+            # bolden and italicize the differing parts
+            old_parts = old.split('.')
+            new_parts = new.split('.')
 
-def make_title(all_updates: dict[str, tuple[str | None, str | None]]) -> str:
-    count = len(all_updates)
-    return f'[build] Update {count} dependenc{"ies" if count > 1 else "y"}'
+            offset = None
+            for index, (old_part, new_part) in enumerate(zip(old_parts, new_parts, strict=False)):
+                if old_part != new_part:
+                    offset = index
+                    break
+
+            if offset is not None:
+                md_old = '.'.join(old_parts[:offset]) + '.***' + '.'.join(old_parts[offset:]) + '***'
+                md_new = '.'.join(new_parts[:offset]) + '.***' + '.'.join(new_parts[offset:]) + '***'
+
+        compare = ''
+        if github_info:
+            tags_info = fetch_github_tags(
+                github_info['owner'], github_info['repo'], fetch_tags=[old, new])
+            old_tag = tags_info.get(old) and tags_info[old]['name']
+            new_tag = tags_info.get(new) and tags_info[new]['name']
+            github_url = 'https://github.com/{owner}/{repo}'.format(**github_info)
+            if new_tag:
+                md_new = f'[{md_new}]({github_url}/releases/tag/{new_tag})'
+            if old_tag:
+                md_old = f'[{md_old}]({github_url}/releases/tag/{old_tag})'
+            if new_tag and old_tag:
+                compare = f'[`{old_tag}...{new_tag}`]({github_url}/compare/{old_tag}...{new_tag})'
+
+        yield ' | '.join((
+            f'[`{package}`](https://pypi.org/project/{package})',
+            md_old,
+            md_new,
+            compare,
+            changelog,
+        ))
 
 
 def make_pull_request_description(all_updates: dict[str, tuple[str | None, str | None]]) -> str:
     return '\n'.join((
         '<!-- BEGIN update_requirements generated section -->\n',
-        ''.join(generate_report(all_updates, markdown=True)),
-        '<!-- END update_requirements generated section -->\n\n'))
+        *generate_report(all_updates),
+        '\n<!-- END update_requirements generated section -->\n\n',
+    ))
 
 
 def make_commit_message(all_updates: dict[str, tuple[str | None, str | None]]) -> str:
     return '\n\n'.join((
-        make_title(all_updates),
-        ''.join(generate_report(all_updates, markdown=False))))
+        make_commit_title(all_updates),
+        make_commit_body(all_updates),
+    ))
+
+
+def make_commit_title(all_updates: dict[str, tuple[str | None, str | None]]) -> str:
+    count = len(all_updates)
+    return f'[build] Update {count} dependenc{"ies" if count > 1 else "y"}'
+
+
+def make_commit_body(all_updates: dict[str, tuple[str | None, str | None]]) -> str:
+    return '\n'.join(make_commit_line(package, old, new) for package, (old, new) in all_updates.items())
+
+
+def make_commit_line(package: str, old: str | None, new: str | None):
+    if old is None:
+        return f'* Add {package} {new}'
+
+    if new is None:
+        return f'* Remove {package} {old}'
+
+    return f'* Bump {package} {old} => {new}'
+
+
+def table_a_raza(header: tuple[str, ...], rows: list[tuple[str, ...]]) -> collections.abc.Generator[str]:
+    widths = [len(col) for col in header]
+
+    for row in rows:
+        for index, (width, col) in enumerate(zip(widths, row, strict=True)):
+            if len(col) > width:
+                widths[index] = len(col)
+
+    yield ' | '.join(col.ljust(width) for width, col in zip(widths, header, strict=True))
+    yield '-|-'.join(''.ljust(width, '-') for width in widths)
+    for row in rows:
+        yield ' | '.join(col.ljust(width) for width, col in zip(widths, row, strict=True))
 
 
 def parse_args():
@@ -748,8 +786,13 @@ def main():
 
     if args.verify:
         print('Verification failed! Updates were made:', file=sys.stderr)
-        print(json.dumps(all_updates, indent=4))
+        for row in table_a_raza(('package', 'old', 'new'), [
+            (package, old or '', new or '')
+            for package, (old, new) in all_updates.items()
+        ]):
+            print(row)
         return 1
+
     else:
         if not args.no_markdown_reports:
             print(make_pull_request_description(all_updates))
