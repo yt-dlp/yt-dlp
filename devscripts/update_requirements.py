@@ -549,8 +549,11 @@ def update_requirements(
     # Write an intermediate pyproject.toml to use for generating lockfile and bundle requirements
     modify_and_write_pyproject(pyproject_text, table_name=EXTRAS_TABLE, table=extras)
 
+    old_lock = None
+    if LOCKFILE_PATH.is_file():
+        old_lock = parse_toml(LOCKFILE_PATH.read_text())
+
     # If verifying, set UV_EXCLUDE_NEWER env var with the last timestamp recorded in uv.lock
-    old_lock = parse_toml(LOCKFILE_PATH.read_text())
     env = None
     if verify or upgrade_only in pyproject_toml['tool']['uv']['exclude-newer-package']:
         env = os.environ.copy()
@@ -562,7 +565,7 @@ def update_requirements(
     run_process('uv', 'lock', upgrade_arg, env=env)
 
     # Record diff in uv.lock packages
-    old_packages = get_lock_packages(old_lock)
+    old_packages = get_lock_packages(old_lock) if old_lock else {}
     new_packages = get_lock_packages(parse_toml(LOCKFILE_PATH.read_text()))
     all_updates = package_diff_dict(old_packages, new_packages)
 
