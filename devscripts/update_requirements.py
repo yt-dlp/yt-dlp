@@ -127,6 +127,7 @@ PYINSTALLER_BUILDS_TMPL = '''\
 
 
 def call_pypi_api(project: str) -> dict[str, dict[str, typing.Any]]:
+    print(f'Fetching package info from PyPI API: {project}', file=sys.stderr)
     headers = {
         'Accept': 'application/json',
         'User-Agent': 'yt-dlp',
@@ -136,6 +137,7 @@ def call_pypi_api(project: str) -> dict[str, dict[str, typing.Any]]:
 
 
 def fetch_latest_github_release(owner: str, repo: str) -> dict[str, dict[str, typing.Any]]:
+    print(f'Fetching latest release from Github API: {owner}/{repo}', file=sys.stderr)
     return call_github_api(f'/repos/{owner}/{repo}/releases/latest')
 
 
@@ -553,8 +555,10 @@ def update_requirements(
     if verify or upgrade_only in pyproject_toml['tool']['uv']['exclude-newer-package']:
         env = os.environ.copy()
         env['UV_EXCLUDE_NEWER'] = old_lock['options']['exclude-newer']
+        print(f'Setting UV_EXCLUDE_NEWER={env["UV_EXCLUDE_NEWER"]}', file=sys.stderr)
 
     # Generate/upgrade lockfile
+    print(f'Running: uv lock {upgrade_arg}', file=sys.stderr)
     run_process('uv', 'lock', upgrade_arg, env=env)
 
     # Record diff in uv.lock packages
@@ -648,7 +652,6 @@ def generate_report(
             if package in WELLKNOWN_PACKAGES:
                 github_info = WELLKNOWN_PACKAGES[package]
             else:
-                print(f'Fetching package info from PyPI API: {package}', file=sys.stderr)
                 project_urls = call_pypi_api(package)['info']['project_urls']
                 github_info = next((
                     mobj.groupdict() for url in project_urls.values()
