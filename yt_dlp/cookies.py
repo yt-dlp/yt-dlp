@@ -237,7 +237,7 @@ def _firefox_based_browser_settings(browser_name):
         config = _config_home()
         browser_dirs = {
             'firefox': [
-               # New installations of FF147+ respect the XDG base directory specification
+                # New installations of FF147+ respect the XDG base directory specification
                 # Ref: https://bugzilla.mozilla.org/show_bug.cgi?id=259356
                 os.path.join(config, 'mozilla/firefox'),
                 # Existing FF version<=146 installations
