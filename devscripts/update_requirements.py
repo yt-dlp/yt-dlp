@@ -125,7 +125,64 @@ PYINSTALLER_BUILDS_TMPL = '''\
     --hash={}
 '''
 
-GH_API_RELEASE_URL_TMPL = 'https://api.github.com/repos/{owner}/{repo}/releases/latest'
+
+def call_pypi_api(project: str) -> dict[str, dict[str, typing.Any]]:
+    headers = {
+        'Accept': 'application/json',
+        'User-Agent': 'yt-dlp',
+    }
+    with request(f'https://pypi.org/pypi/{project}/json', headers=headers) as resp:
+        return json.load(resp)
+
+
+def fetch_latest_github_release(owner: str, repo: str) -> dict[str, dict[str, typing.Any]]:
+    return call_github_api(f'/repos/{owner}/{repo}/releases/latest')
+
+
+def fetch_github_tags(
+    owner: str,
+    repo: str,
+    *,
+    fetch_tags: list[str, ...] | None = None,
+) -> dict[str, dict[str, typing.Any]]:
+
+    needed_tags = set(fetch_tags or [])
+    results = {}
+
+    for page in itertools.count(1):
+        print(f'Fetching tags list page {page} from Github API: {owner}/{repo}', file=sys.stderr)
+        tags = call_github_api(
+            f'/repos/{owner}/{repo}/tags',
+            query={'per_page': '100', 'page': page})
+
+        if not tags:
+            break
+
+        if not fetch_tags:
+            # Fetch all tags
+            results.update({tag['name']: tag for tag in tags})
+            continue
+
+        for tag in tags:
+            clean_tag = tag['name'].removeprefix('v')
+            possible_matches = {tag['name'], clean_tag}
+            # Normalize calver tags like 2024.01.01 to 2024.1.1
+            with contextlib.suppress(ValueError):
+                possible_matches.add('.'.join(map(str, map(int, clean_tag.split('.')))))
+
+            for name in possible_matches:
+                if name in needed_tags:
+                    needed_tags.remove(name)
+                    results[name] = tag
+                    break  # from inner loop
+
+            if not needed_tags:
+                break
+
+        if not needed_tags:
+            break
+
+    return results
 
 
 def generate_table_lines(
@@ -285,7 +342,6 @@ def update_ejs(verify: bool = False) -> dict[str, tuple[str | None, str | None]]
     PREFIX = f'    "{PACKAGE_NAME}=='
     LIBRARY_NAME = PACKAGE_NAME.replace('-', '_')
     PACKAGE_PATH = BASE_PATH / 'yt_dlp/extractor/youtube/jsc/_builtin/vendor'
-    RELEASE_URL = GH_API_RELEASE_URL_TMPL.format(owner='yt-dlp', repo='ejs')
 
     current_version = None
     with PYPROJECT_PATH.open() as file:
@@ -307,7 +363,7 @@ def update_ejs(verify: bool = False) -> dict[str, tuple[str | None, str | None]]
             key, _, val = line.partition(' = ')
             makefile_info[key] = val.rstrip()
 
-    info = call_github_api(RELEASE_URL)
+    info = fetch_latest_github_release('yt-dlp', 'ejs')
     version = info['tag_name']
     if version == current_version:
         print(f'{PACKAGE_NAME} is up to date! ({version})', file=sys.stderr)
@@ -384,7 +440,7 @@ def parse_version_from_dist(filename: str, name: str, *, require: bool = False) 
         return mobj.group('version')
 
     if require:
-        raise ValueError(f'unable to parse Dependency.exact_version from filename: {filename}')
+        raise ValueError(f'unable to parse version from distribution filename: {filename}')
 
     return None
 
@@ -401,27 +457,17 @@ def parse_dependency(line: str, *, require_version: bool = False) -> Dependency:
     name = mobj.group('name')
     rest = line[len(name):].lstrip()
     specifier_or_direct_reference, _, markers = map(str.strip, rest.partition(';'))
+    specifier, _, direct_reference = map(str.strip, specifier_or_direct_reference.partition('@'))
 
-    direct_reference = None
     exact_version = None
-    specifier = None
+    if ',' not in specifier and specifier.startswith('=='):
+        exact_version = specifier[2:]
 
-    if specifier_or_direct_reference.startswith('@'):
-        direct_reference = specifier_or_direct_reference[1:].lstrip()
-
-    elif specifier_or_direct_reference:
-        specifier, _, direct_reference = map(str.strip, specifier_or_direct_reference.partition('@'))
-        if specifier and ',' not in specifier and specifier.startswith('=='):
-            exact_version = specifier[2:]
-
-    # sdist naming scheme: {name}-{version}.tar.gz
-    # ref: https://packaging.python.org/en/latest/specifications/source-distribution-format/
-    # wheel naming scheme: {distribution}-{version}(-{build tag})?-{python tag}-{abi tag}-{platform tag}.whl
     # Ref: https://packaging.python.org/en/latest/specifications/binary-distribution-format/
     if direct_reference and not exact_version:
-        url_path = urllib.parse.urlparse(direct_reference).path
-        if url_path.endswith(('.tar.gz', '.whl')):
-            exact_version = parse_version_from_dist(url_path.rpartition('/')[2], name)
+        filename = urllib.parse.urlparse(direct_reference).path.rpartition('/')[2]
+        if filename.endswith(('.tar.gz', '.whl')):
+            exact_version = parse_version_from_dist(filename, name)
 
     if require_version and not exact_version:
         raise ValueError(f'unable to parse Dependency.exact_version from line:\n    {line}')
@@ -461,6 +507,14 @@ def package_diff_dict(
     return ret_dict
 
 
+def get_lock_packages(lock: dict[str, typing.Any]) -> dict[str, str]:
+    return {
+        package['name']: package['version']
+        for package in lock['package']
+        if package.get('version')
+    }
+
+
 def evaluate_requirements_txt(old_txt: str, new_txt: str) -> dict[str, tuple[str | None, str | None]]:
     old_dict = {}
     new_dict = {}
@@ -473,14 +527,6 @@ def evaluate_requirements_txt(old_txt: str, new_txt: str) -> dict[str, tuple[str
             dct.update({dep.name: dep.exact_version})
 
     return package_diff_dict(old_dict, new_dict)
-
-
-def get_lock_packages(lock: dict[str, typing.Any]) -> dict[str, str]:
-    return {
-        package['name']: package['version']
-        for package in lock['package']
-        if package.get('version')
-    }
 
 
 def update_requirements(
@@ -518,7 +564,7 @@ def update_requirements(
 
     # Update Windows PyInstaller requirements; need to compare before & after .txt's for reporting
     if not upgrade_only or upgrade_only.lower() == 'pyinstaller':
-        info = call_github_api(GH_API_RELEASE_URL_TMPL.format(owner='yt-dlp', repo='Pyinstaller-Builds'))
+        info = fetch_latest_github_release('yt-dlp', 'Pyinstaller-Builds')
         for target_suffix, asset_tag in PYINSTALLER_BUILDS_TARGETS.items():
             asset_info = next(asset for asset in info['assets'] if asset_tag in asset['name'])
             pyinstaller_version = parse_version_from_dist(
@@ -548,6 +594,12 @@ def update_requirements(
             omit_packages=target.omit_packages,
             output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(target_suffix))
 
+    # Export group requirements; any updates to these are already recorded w/ uv.lock package diff
+    for suffix, group in [('pypi-build', 'build')]:
+        run_uv_export(
+            groups=[group],
+            output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(suffix))
+
     # Compile requirements for single packages; need to compare before & after .txt's for reporting
     for package in ('pip',):
         requirements_path = REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(package)
@@ -561,12 +613,9 @@ def update_requirements(
             input_line=package,
             output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(package),
             env=env)
+
         new_requirements_txt = requirements_path.read_text()
         all_updates.update(evaluate_requirements_txt(old_requirements_txt, new_requirements_txt))
-
-    # Export group requirements; any updates to these are already recorded w/ uv.lock package diff
-    for suffix, group in [('pypi-build', 'build')]:
-        run_uv_export(output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(suffix), groups=[group])
 
     # Generate new pinned extras; any updates to these are already recorded w/ uv.lock package diff
     for pinned_name, extra_name in PINNED_EXTRAS.items():
@@ -576,61 +625,6 @@ def update_requirements(
     modify_and_write_pyproject(pyproject_text, table_name=EXTRAS_TABLE, table=extras)
 
     return all_updates
-
-
-def call_pypi_api(project: str) -> dict:
-    headers = {
-        'Accept': 'application/json',
-        'User-Agent': 'yt-dlp',
-    }
-    with request(f'https://pypi.org/pypi/{project}/json', headers=headers) as resp:
-        return json.load(resp)
-
-
-def fetch_github_tags(
-    owner: str,
-    repo: str,
-    *,
-    fetch_tags: list[str, ...] | None = None,
-) -> dict[str, dict[str, typing.Any]]:
-
-    needed_tags = set(fetch_tags or [])
-    results = {}
-
-    for page in itertools.count(1):
-        print(f'Fetching tags list page {page} from Github API: {owner}/{repo}', file=sys.stderr)
-        tags = call_github_api(
-            f'/repos/{owner}/{repo}/tags',
-            query={'per_page': '100', 'page': page})
-
-        if not tags:
-            break
-
-        if not fetch_tags:
-            # Fetch all tags
-            results.update({tag['name']: tag for tag in tags})
-            continue
-
-        for tag in tags:
-            clean_tag = tag['name'].removeprefix('v')
-            possible_matches = {tag['name'], clean_tag}
-            # Normalize calver tags like 2024.01.01 to 2024.1.1
-            with contextlib.suppress(ValueError):
-                possible_matches.add('.'.join(map(str, map(int, clean_tag.split('.')))))
-
-            for name in possible_matches:
-                if name in needed_tags:
-                    needed_tags.remove(name)
-                    results[name] = tag
-                    break  # from inner loop
-
-            if not needed_tags:
-                break
-
-        if not needed_tags:
-            break
-
-    return results
 
 
 def generate_report(
