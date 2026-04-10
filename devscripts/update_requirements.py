@@ -191,9 +191,14 @@ def generate_table_lines(
     table_name: str,
     table: dict[str, str | bool | int | float | list[str | dict[str, str]]],
 ) -> collections.abc.Iterator[str]:
+    SUPPORTED_TYPES = (str, bool, int, float, list)
+
     yield f'[{table_name}]\n'
     for name, value in table.items():
-        assert isinstance(value, (bool, int, float, str, list)), 'unsupported type in table values'
+        if not isinstance(value, SUPPORTED_TYPES):
+            raise TypeError(
+                f'expected {"/".join(t.__name__ for t in SUPPORTED_TYPES)} value, '
+                f'got {type(value).__name__}')
 
         if not isinstance(value, list):
             yield f'{name} = {json.dumps(value)}\n'
@@ -323,7 +328,10 @@ def makefile_variables(
     if keys_only:
         return variables
 
-    assert all(arg is not None for arg in (version, name, digest, not filetypes or data))
+    if not all(arg is not None for arg in (version, name, digest, not filetypes or data)):
+        raise ValueError(
+            'makefile_variables requires version, name, digest, '
+            f'{"and data, " if filetypes else ""}OR keys_only=True')
 
     if filetypes:
         with io.BytesIO(data) as buf, zipfile.ZipFile(buf) as zipf:
@@ -387,7 +395,8 @@ def update_ejs(verify: bool = False) -> dict[str, tuple[str | None, str | None]]
         # verify digest from github
         algo, _, expected = digest.partition(':')
         hexdigest = hashlib.new(algo, data).hexdigest()
-        assert hexdigest == expected, f'downloaded attest mismatch ({hexdigest!r} != {expected!r})'
+        if hexdigest != expected:
+            raise ValueError(f'downloaded attest mismatch ({hexdigest!r} != {expected!r})')
 
         if is_wheel:
             wheel_info = ejs_makefile_variables(version=version, name=name, digest=digest, data=data)
@@ -401,10 +410,11 @@ def update_ejs(verify: bool = False) -> dict[str, tuple[str | None, str | None]]
             (PACKAGE_PATH / name).write_bytes(data)
 
     hash_mapping = '\n'.join(hashes)
-    for asset_name in EJS_ASSETS:
-        assert asset_name in hash_mapping, f'{asset_name} not found in release'
+    if missing_assets := [asset_name for asset_name in EJS_ASSETS if asset_name not in hash_mapping]:
+        raise ValueError(f'asset(s) not found in release: {", ".join(missing_assets)}')
 
-    assert all(wheel_info.get(key) for key in makefile_info), 'wheel info not found in release'
+    if missing_fields := [key for key in makefile_info if not wheel_info.get(key)]:
+        raise ValueError(f'wheel info not found in release: {", ".join(missing_fields)}')
 
     (PACKAGE_PATH / '_info.py').write_text(EJS_TEMPLATE.format(
         version=version,
