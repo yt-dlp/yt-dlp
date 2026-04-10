@@ -699,7 +699,7 @@ def generate_report(
                 compare = f'[`{old_tag}...{new_tag}`]({github_url}/compare/{old_tag}...{new_tag})'
 
         yield ' | '.join((
-            f'[`{package}`](https://pypi.org/project/{package})',
+            f'[**`{package}`**](https://pypi.org/project/{package})',
             md_old,
             md_new,
             compare,
