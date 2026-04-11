@@ -260,8 +260,9 @@ class ViMPPlaylistIE(InfoExtractor):
     IE_NAME = 'VIMP:Playlist'
     _VALID_URL = r'''(?x)(?P<host>https?://(?:{}))/(?:
         (?P<mode1>album)/view/aid/(?P<album_id>[0-9]+)|
-        (?P<mode2>category|channel)/(?P<name>[\w-]+)/(?P<channel_id>[0-9]+)|
-        (?P<mode3>tag)/(?P<tag_id>[0-9]+)
+        (?P<mode2>category|channel)/(?P<c_name>[\w-]+)/(?P<channel_id>[0-9]+)|
+        (?P<mode3>tag)/(?P<tag_id>[0-9]+)|
+        (?P<mode4>user)/view/user/(?P<u_name>[\w-]+)/uid/(?P<user_id>[0-9]+)
     )'''.format('|'.join(map(re.escape, VideocampusSachsenIE._INSTANCES)))
 
     _TESTS = [{
@@ -275,14 +276,14 @@ class ViMPPlaylistIE(InfoExtractor):
         'url': 'https://www.hsbi.de/medienportal/album/view/aid/208',
         'info_dict': {
             'id': 'album-208',
-            'title': 'KG Praktikum ABT/MEC - Playlists - HSBI-Medienportal',
+            'title': 'KG Praktikum ABT/MEC - Albums - HSBI-Medienportal',
         },
         'playlist_mincount': 4,
     }, {
         'url': 'https://videocampus.sachsen.de/category/online-tutorials-onyx/91',
         'info_dict': {
             'id': 'category-91',
-            'title': 'Online-Seminare ONYX - BPS - Bildungseinrichtungen - VCS',
+            'title': 'Online tutorials ONYX - BPS - Educational organisations - VCS',
         },
         'playlist_mincount': 7,
     }, {
@@ -292,6 +293,13 @@ class ViMPPlaylistIE(InfoExtractor):
             'title': 'advanced mobile and v2x communication - Tags - VCS',
         },
         'playlist_mincount': 6,
+    }, {
+        'url': 'https://ursulablicklevideoarchiv.com/user/view/user/Malnig2C-Felix/uid/1184',
+        'info_dict': {
+            'id': 'user-1184',
+            'title': 'Malnig, Felix - Profil - Belvedere',
+        },
+        'playlist_mincount': 3,
     }]
     _PAGE_SIZE = 10
 
@@ -305,20 +313,21 @@ class ViMPPlaylistIE(InfoExtractor):
             yield self.url_result(host + url, VideocampusSachsenIE)
 
     def _real_extract(self, url):
-        host, album_id, name, channel_id, tag_id, mode1, mode2, mode3 = self._match_valid_url(url).group(
-            'host', 'album_id', 'name', 'channel_id', 'tag_id', 'mode1', 'mode2', 'mode3')
+        host, album_id, c_name, channel_id, tag_id, u_name, user_id, mode1, mode2, mode3, mode4 = self._match_valid_url(url).group(
+            'host', 'album_id', 'c_name', 'channel_id', 'tag_id', 'u_name', 'user_id', 'mode1', 'mode2', 'mode3', 'mode4')
 
-        mode = mode1 or mode2 or mode3
-        playlist_id = album_id or channel_id or tag_id
+        mode = mode1 or mode2 or mode3 or mode4
+        playlist_id = album_id or channel_id or tag_id or user_id
 
         webpage = self._download_webpage(url, playlist_id, fatal=False) or ''
         title = (self._html_search_meta('title', webpage, fatal=False)
                  or self._html_extract_title(webpage))
 
         url_part = (f'aid/{album_id}' if album_id
-                    else f'category/{name}/category_id/{channel_id}' if mode == 'category'
-                    else f'title/{name}/channel/{channel_id}' if mode == 'channel'
-                    else f'tag/{tag_id}')
+                    else f'category/{c_name}/category_id/{channel_id}' if mode == 'category'
+                    else f'title/{c_name}/channel/{channel_id}' if mode == 'channel'
+                    else f'tag/{tag_id}' if mode == 'tag'
+                    else f'user/{u_name}/uid/{user_id}')
 
         data = {
             'vars[mode]': mode,
