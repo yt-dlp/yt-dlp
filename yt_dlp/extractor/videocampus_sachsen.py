@@ -96,6 +96,7 @@ class VideocampusSachsenIE(InfoExtractor):
         'www.salzi.tv',
         'www.signtube.co.uk',
         'www.twb-power.com',
+        'www.ursulablicklevideoarchiv.com',
         'www.videos.hfm.saarland.de',
         'www.wenglor-media.com',
         'www2.univ-sba.dz',
