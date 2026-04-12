@@ -26,8 +26,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  ACTIONLINT_VERSION: "1.7.9"
-  ACTIONLINT_SHA256SUM: 233b280d05e100837f4af1433c7b40a5dcb306e3aa68fb4f17f8a7f45a7df7b4
+  ACTIONLINT_VERSION: "1.7.11"
+  ACTIONLINT_SHA256SUM: 900919a84f2229bac68ca9cd4103ea297abc35e9689ebb842c6e34a3d1b01b0a
   ACTIONLINT_REPO: https://github.com/rhysd/actionlint
 
 jobs:
@@ -42,13 +42,13 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
-          python-version: "3.10"  # Keep this in sync with release.yml's prepare job
+          python-version: "3.13"  # Keep this in sync with release.yml's prepare job
       - name: Install requirements
         env:
           ACTIONLINT_TARBALL: ${{ format('actionlint_{0}_linux_amd64.tar.gz', env.ACTIONLINT_VERSION) }}
         shell: bash
         run: |
-          python -m devscripts.install_deps --omit-default --include-extra test
+          python -m devscripts.install_deps --omit-default --include-group test
           sudo apt -y install shellcheck
           python -m pip install -U pyflakes
           curl -LO "${ACTIONLINT_REPO}/releases/download/v${ACTIONLINT_VERSION}/${ACTIONLINT_TARBALL}"
@@ -76,8 +76,8 @@ jobs:
         with:
           persist-credentials: false
       - name: Run zizmor
-        uses: zizmorcore/zizmor-action@135698455da5c3b3e55f73f4419e481ab68cdd95  # v0.4.1
+        uses: zizmorcore/zizmor-action@71321a20a9ded102f6e9ce5718a2fcec2c4f70d8  # v0.5.2
         with:
           advanced-security: false
           persona: pedantic
-          version: v1.22.0
+          version: v1.23.1
