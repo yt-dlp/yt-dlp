@@ -451,6 +451,7 @@ from .dangalplay import (
     DangalPlayIE,
     DangalPlaySeasonIE,
 )
+from .darkibox import DarkiboxIE
 from .daum import (
     DaumClipIE,
     DaumIE,
