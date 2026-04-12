@@ -3157,25 +3157,41 @@ class YoutubeDL:
         formats_query = self.params.get('subtitlesformat', 'best')
         formats_preference = formats_query.split('/') if formats_query else []
         subs = {}
+        reserved_langs = set(available_subs)
+
+        def _next_sub_lang(base_lang):
+            idx = 1
+            while True:
+                candidate = f'{base_lang}-{idx}'
+                if candidate not in reserved_langs and candidate not in subs:
+                    return candidate
+                idx += 1
         for lang in requested_langs:
             formats = available_subs.get(lang)
             if formats is None:
                 self.report_warning(f'{lang} subtitles not available for {video_id}')
                 continue
+            selected_formats = None
             for ext in formats_preference:
                 if ext == 'best':
-                    f = formats[-1]
+                    selected_formats = [f for f in formats if f['ext'] == formats[-1]['ext']] or [formats[-1]]
                     break
                 matches = list(filter(lambda f: f['ext'] == ext, formats))
                 if matches:
-                    f = matches[-1]
+                    selected_formats = matches
                     break
             else:
-                f = formats[-1]
+                selected_formats = [f for f in formats if f['ext'] == formats[-1]['ext']] or [formats[-1]]
+                f = selected_formats[-1]
                 self.report_warning(
                     'No subtitle format found matching "{}" for language {}, '
                     'using {}. Use --list-subs for a list of available subtitles'.format(formats_query, lang, f['ext']))
-            subs[lang] = f
+
+            first_sub_lang = True
+            for f in selected_formats:
+                sub_lang = lang if first_sub_lang else _next_sub_lang(lang)
+                first_sub_lang = False
+                subs[sub_lang] = f
         return subs
 
     def _forceprint(self, key, info_dict):
