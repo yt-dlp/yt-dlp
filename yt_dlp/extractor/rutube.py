@@ -2,6 +2,7 @@ import itertools
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     UnsupportedError,
     bool_or_none,
     determine_ext,
@@ -73,9 +74,11 @@ class RutubeBaseIE(InfoExtractor):
             headers=self.geo_verification_headers(), query=query)
 
     def _extract_formats_and_subtitles(self, options, video_id):
+        if error := options.get('detail'):
+            raise ExtractorError(error, expected=True)
         formats = []
         subtitles = {}
-        for format_id, format_url in options['video_balancer'].items():
+        for format_id, format_url in (options.get('video_balancer') or {}).items():
             ext = determine_ext(format_url)
             if ext == 'm3u8':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
