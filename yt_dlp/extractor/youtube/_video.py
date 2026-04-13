@@ -28,6 +28,7 @@ from .jsc._director import initialize_jsc_director
 from .jsc.provider import JsChallengeRequest, JsChallengeType, NChallengeInput, SigChallengeInput
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
+from ...networking import HEADRequest
 from ...networking.exceptions import HTTPError
 from ...utils import (
     NO_DEFAULT,
@@ -1937,7 +1938,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _prepare_live_from_start_formats(self, formats, video_id, live_start_time, url, webpage_url, smuggled_data, is_live):
         lock = threading.Lock()
         start_time = time.time()
-        formats = [f for f in formats if f.get('is_from_start')]
+        # Skip formats that already have sq-based fragment generators attached
+        # (handled directly in process_https_formats for https adaptive live formats).
+        formats = [f for f in formats if f.get('is_from_start') and not f.get('_sq_fragments')]
 
         def refetch_manifest(itag, client_name, delay):
             nonlocal formats, start_time, is_live
@@ -2096,6 +2099,75 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if manifestless_orig_fmt:
                 # Stop at the first iteration if running for post-live manifestless;
                 # fragment count no longer increase since it starts
+                break
+
+            time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
+
+    def _live_https_sq_fragments(self, video_id, base_url, ctx):
+        """
+        Generate fragments for a YouTube live stream by walking &sq=N on the
+        resolved googlevideo URL.
+
+        Unlike _live_dash_fragments, this path does not use a DASH MPD manifest.
+        It works for formats flagged as `(incomplete)` in the player response
+        (e.g. the `web` client's 2160p/1440p live formats, which are served as
+        single HTTPS URLs with `live=1&hang=1&noclen=1` query parameters).
+
+        The trick: appending `&sq=N` to the URL addresses the Nth historical
+        segment of the live broadcast, going back to sq=0 (stream start). The
+        `sq` parameter is intentionally absent from the URL's signed-params
+        list (`sparams=`) so adding it does not invalidate the signature. The
+        current live edge sequence number is returned in the `X-Head-Seqnum`
+        response header on every successful segment fetch, so we never need
+        to binary-search or refresh a manifest.
+        """
+        FETCH_SPAN = 5
+        known_idx, no_fragment_score = 0, 0
+        last_seq = None
+
+        self.write_debug(f'[{video_id}] Generating sq-based fragments from {base_url[:80]}...')
+
+        while True:
+            fetch_time = time.time()
+            if no_fragment_score > 30:
+                return
+
+            # Probe current live edge via X-Head-Seqnum header. Use sq=known_idx
+            # since we need to fetch a segment anyway; its response header tells
+            # us the current live edge.
+            probe_url = update_url_query(base_url, {'sq': str(known_idx)})
+            try:
+                urlh = self._request_webpage(
+                    HEADRequest(probe_url), video_id,
+                    note=False, errnote=False, fatal=False)
+            except ExtractorError:
+                urlh = None
+            last_seq = try_get(urlh, lambda x: int_or_none(x.headers['X-Head-Seqnum']))
+            if last_seq is None:
+                no_fragment_score += 2
+                time.sleep(FETCH_SPAN)
+                continue
+
+            if known_idx > last_seq:
+                no_fragment_score += 2
+                time.sleep(FETCH_SPAN)
+                continue
+
+            for idx in range(known_idx, last_seq + 1):
+                yield {
+                    'url': update_url_query(base_url, {'sq': str(idx)}),
+                    'fragment_count': last_seq + 1,
+                }
+
+            if known_idx == last_seq + 1:
+                no_fragment_score += 5
+            else:
+                no_fragment_score = 0
+            known_idx = last_seq + 1
+
+            # If the stream is no longer live, stop polling
+            is_live = ctx.get('is_live', True) if ctx else True
+            if not is_live:
                 break
 
             time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
@@ -3490,13 +3562,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                 return dct
 
+            needs_live_processing = self._needs_live_processing(live_status, duration)
+
             def process_https_formats():
                 proto = 'https'
                 https_fmts = []
+                # Collect live adaptive https formats that can be sq-fragmented for
+                # --live-from-start. These are the formats marked '(incomplete)' —
+                # they live in adaptiveFormats with targetDurationSec set, but their
+                # URL supports &sq=N addressing for full historical backfill.
+                sq_live_fmts = []
 
                 for fmt_stream in streaming_formats:
-                    # Live adaptive https formats are not supported: skip unless extractor-arg given
-                    if fmt_stream.get('targetDurationSec') and skip_bad_formats:
+                    is_live_adaptive = bool(fmt_stream.get('targetDurationSec'))
+                    # Live adaptive https formats are not supported as one-shot downloads;
+                    # skip unless extractor-arg given, OR the user requested --live-from-start
+                    # (in which case we will sq-fragment them below).
+                    if is_live_adaptive and skip_bad_formats and not needs_live_processing:
                         continue
 
                     # FORMAT_STREAM_TYPE_OTF(otf=1) requires downloading the init fragment
@@ -3591,6 +3673,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if live_status not in ('is_live', 'post_live'):
                         fmt['available_at'] = available_at
 
+                    # When live-from-start is requested, capture live adaptive https
+                    # formats for sq-based fragmentation in addition to (or instead of)
+                    # the one-shot incomplete variant.
+                    if is_live_adaptive and needs_live_processing == 'is_live':
+                        sq_live_fmts.append(fmt)
+                        # If we're only here because needs_live_processing unlocked this
+                        # format, don't also yield it as an unplayable one-shot incomplete.
+                        if skip_bad_formats:
+                            continue
+
                     https_fmts.append(fmt)
 
                 for fmt in https_fmts:
@@ -3605,9 +3697,24 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         fmt['downloader_options'] = {'http_chunk_size': CHUNK_SIZE}
                         yield fmt
 
-            yield from process_https_formats()
+                # Emit sq-fragmented from-start variants for live adaptive https formats.
+                # These use the new _live_https_sq_fragments generator which walks &sq=N
+                # on the already-resolved URL (signed params don't include sq, so this
+                # preserves the signature). Only emitted when --live-from-start is active.
+                for fmt in sq_live_fmts:
+                    base_url = fmt['url']
+                    gen = functools.partial(self._live_https_sq_fragments, video_id, base_url)
+                    yield {
+                        **fmt,
+                        'format_note': join_nonempty(fmt.get('format_note'), '(from start)', delim=' '),
+                        'protocol': 'http_dash_segments_generator',
+                        'fragments': gen,
+                        'is_from_start': True,
+                        'is_live': True,
+                        '_sq_fragments': True,  # marker so _prepare_live_from_start_formats leaves it alone
+                    }
 
-            needs_live_processing = self._needs_live_processing(live_status, duration)
+            yield from process_https_formats()
 
             skip_manifests = set(self._configuration_arg('skip'))
             if (needs_live_processing == 'is_live'  # These will be filtered out by YoutubeDL anyway
