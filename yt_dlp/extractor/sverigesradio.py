@@ -1,6 +1,4 @@
-from yt_dlp.networking.common import HEADRequest
-
-from .common import InfoExtractor
+from .common import HEADRequest, InfoExtractor
 from ..utils import (
     extract_attributes,
     get_element_by_id,
@@ -60,8 +58,7 @@ class SverigesRadioBaseIE(InfoExtractor):
             if not audio_url or audio_url in urls:
                 continue
             urls.append(audio_url)
-            header_request = HEADRequest(audio_url)
-            content_type = self._request_webpage(header_request, audio_id).headers.get_content_type()
+            content_type = self._request_webpage(HEADRequest(audio_url), audio_id).headers.get_content_type()
             ext = mimetype2ext(content_type)
             coding_format = audio_url_data.get('codingFormat')
             abr = int_or_none(self._search_regex(
