@@ -47,7 +47,7 @@ class TelewebionIE(InfoExtractor):
             'tags': ['ورزشی', 'لیگ اروپا', 'اروپا'],
             'thumbnail': 'https://static.telewebion.ir/episodeImages/YjFhM2MxMDBkMDNiZTU0MjE5YjQ3ZDY0Mjk1ZDE0ZmUwZWU3OTE3OWRmMDAyODNhNzNkNjdmMWMzMWIyM2NmMA/default',
         },
-        'skip_download': 'm3u8',
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://telewebion.ir/episode/0x16b884ff',
         'info_dict': {
@@ -67,7 +67,7 @@ class TelewebionIE(InfoExtractor):
             'release_date': '20260205',
             'ext': 'mp4',
         },
-        'skip_download': 'm3u8',
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://telewebion.ir/episode/0x16b8e258',
         'info_dict': {
@@ -87,7 +87,7 @@ class TelewebionIE(InfoExtractor):
             'release_date': '20260210',
             'view_count': int,
         },
-        'skip_download': 'm3u8',
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _call_graphql_api(
@@ -115,10 +115,7 @@ class TelewebionIE(InfoExtractor):
         return result['data']
 
     def _extract_webpage_info(self, url, video_id):
-        try:
-            webpage = self._download_webpage(url, video_id, fatal=False)
-        except ExtractorError:
-            return {}
+        webpage = self._download_webpage(url, video_id, fatal=False, errnote=False)
         if not webpage:
             return {}
 
@@ -143,14 +140,10 @@ class TelewebionIE(InfoExtractor):
         for m3u8_url in urls:
             if not m3u8_url:
                 continue
-            try:
-                extracted = self._extract_m3u8_formats(
-                    m3u8_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
-            except ExtractorError:
-                continue
+            extracted = self._extract_m3u8_formats(
+                m3u8_url, video_id, 'mp4', m3u8_id='hls', fatal=False, errnote=False)
             if extracted:
                 return extracted
-            formats.extend(extracted)
         return formats
 
     def _real_extract(self, url):
