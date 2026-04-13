@@ -1,10 +1,12 @@
+from yt_dlp.networking.common import HEADRequest
+
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     extract_attributes,
     get_element_by_id,
     get_element_html_by_class,
     int_or_none,
+    mimetype2ext,
     str_or_none,
     traverse_obj,
     url_or_none,
@@ -30,7 +32,8 @@ class SverigesRadioBaseIE(InfoExtractor):
         if not audio_id:
             webpage = self._download_webpage(url, display_id)
             audio_id = (
-                traverse_obj(
+                self._html_search_meta('al:android:url', webpage, default='').rpartition('/')[-1]
+                or traverse_obj(
                     get_element_html_by_class('audio-button', webpage),
                     ({extract_attributes}, ('data-audio-id', 'data-publication-id')), get_all=False)
                 or self._parse_json(get_element_by_id('gtm-metadata', webpage), display_id)['pageId'])
@@ -57,7 +60,9 @@ class SverigesRadioBaseIE(InfoExtractor):
             if not audio_url or audio_url in urls:
                 continue
             urls.append(audio_url)
-            ext = determine_ext(audio_url)
+            header_request = HEADRequest(audio_url)
+            content_type = self._request_webpage(header_request, audio_id).headers.get_content_type()
+            ext = mimetype2ext(content_type)
             coding_format = audio_url_data.get('codingFormat')
             abr = int_or_none(self._search_regex(
                 r'_a(\d+)\.m4a', audio_url, 'audio bitrate',
@@ -94,7 +99,7 @@ class SverigesRadioPublicationIE(SverigesRadioBaseIE):
             'id': '7038546',
             'ext': 'm4a',
             'duration': 132,
-            'series': 'Nyheter (Ekot)',
+            'series': 'Ekot',
             'title': 'Esa Teittinen: Sanningen har inte kommit fram',
             'description': 'md5:daf7ce66a8f0a53d5465a5984d3839df',
             'thumbnail': r're:^https?://.*\.jpg',
