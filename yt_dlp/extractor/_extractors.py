@@ -358,6 +358,7 @@ from .chzzk import (
     CHZZKLiveIE,
     CHZZKVideoIE,
 )
+from .cime import CiMeIE
 from .cinemax import CinemaxIE
 from .cinetecamilano import CinetecaMilanoIE
 from .cineverse import (
