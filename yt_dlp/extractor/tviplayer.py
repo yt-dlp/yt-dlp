@@ -53,10 +53,13 @@ class TVIPlayerIE(InfoExtractor):
         },
     }]
 
+    _wms_auth_sign_token = None
+
     def _real_initialize(self):
-        self.wms_auth_sign_token = self._download_webpage(
-            'https://services.iol.pt/matrix?userId=', 'wmsAuthSign',
-            note='Trying to get wmsAuthSign token')
+        if TVIPlayerIE._wms_auth_sign_token is None:
+            TVIPlayerIE._wms_auth_sign_token = self._download_webpage(
+                'https://services.iol.pt/matrix?userId=', 'wmsAuthSign',
+                note='Downloading wmsAuthSign token')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
