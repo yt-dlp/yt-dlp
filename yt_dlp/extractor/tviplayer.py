@@ -3,7 +3,7 @@ from ..utils import traverse_obj
 
 
 class TVIPlayerIE(InfoExtractor):
-    _VALID_URL = r'https?://tviplayer\.iol\.pt(/programa/[\w-]+/[a-f0-9]+)?/\w+/(?P<id>\w+)'
+    _VALID_URL = r'https?://tviplayer\.iol\.pt(?:/programa/[\w-]+/[a-f0-9]+)?/\w+/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://tviplayer.iol.pt/programa/jornal-das-8/53c6b3903004dc006243d0cf/video/61c8e8b90cf2c7ea0f0f71a9',
         'info_dict': {
