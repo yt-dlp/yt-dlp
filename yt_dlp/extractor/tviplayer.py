@@ -1,5 +1,14 @@
+import re
+import urllib.parse
+
 from .common import InfoExtractor
-from ..utils import traverse_obj
+from ..utils import (
+    filter_dict,
+    int_or_none,
+    js_to_json,
+    url_or_none,
+)
+from ..utils.traversal import traverse_obj
 
 
 class TVIPlayerIE(InfoExtractor):
@@ -61,22 +70,81 @@ class TVIPlayerIE(InfoExtractor):
                 'https://services.iol.pt/matrix?userId=', 'wmsAuthSign',
                 note='Downloading wmsAuthSign token')
 
+    @staticmethod
+    def _construct_video_url(video_id, suffix_len=4):
+        """Construct a streaming URL from a hex video ID.
+
+        The streaming server path uses trailing hex characters of the
+        video ID as individual path segments, e.g. for *suffix_len=4* and
+        video ID ``69dd70230cf27f6588a68e86`` the path becomes ``/8/e/8/6/``.
+        """
+        hex_suffix = video_id[-suffix_len:]
+        path = '/'.join(hex_suffix)
+        return f'https://streaming-vod1.iol.pt/vod/{path}/smil:{video_id}-L.smil/playlist.m3u8'
+
+    def _extract_from_constructed_url(self, video_id):
+        """Try constructing streaming URLs with varying path lengths (4 first, then 1-10)."""
+        tried = set()
+        for suffix_len in [4, *range(1, 11)]:
+            if suffix_len in tried:
+                continue
+            tried.add(suffix_len)
+            video_url = self._construct_video_url(video_id, suffix_len)
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                video_url, video_id, 'mp4', fatal=False,
+                query=filter_dict({'wmsAuthSign': TVIPlayerIE._wms_auth_sign_token}))
+            if formats:
+                return formats, subtitles
+        return [], {}
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
         json_data = self._search_json(
-            r'<script>\s*jsonData\s*=', webpage, 'json_data', video_id)
+            r'(?<!-)\bvideo\s*:\s*\[', webpage, 'json_data', video_id,
+            transform_source=js_to_json, fatal=False, default=None)
 
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            f'{json_data["videoUrl"]}?wmsAuthSign={self.wms_auth_sign_token}',
-            video_id, ext='mp4')
+        if json_data is None:
+            json_data = self._search_json(
+                r'<script>\s*jsonData\s*=', webpage, 'json_data', video_id,
+                fatal=False, default={})
+
+        video_url = traverse_obj(json_data, ('videoUrl', {url_or_none}))
+
+        if video_url:
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                video_url, video_id, 'mp4',
+                query=filter_dict({'wmsAuthSign': TVIPlayerIE._wms_auth_sign_token}))
+        elif re.fullmatch(r'[a-f0-9]{24}', video_id):
+            formats, subtitles = self._extract_from_constructed_url(video_id)
+        else:
+            formats, subtitles = [], {}
+
+        if not formats:
+            self.raise_no_formats('No playable formats found', video_id=video_id)
+
+        info = self._search_json_ld(webpage, video_id, default={})
+        info.pop('url', None)
+
         return {
+            **info,
             'id': video_id,
-            'title': json_data.get('title') or self._og_search_title(webpage),
-            'thumbnail': json_data.get('cover') or self._og_search_thumbnail(webpage),
-            'duration': json_data.get('duration'),
+            **traverse_obj(json_data, {
+                'duration': ('duration', {int_or_none}),
+                'series': ('programTitle', {str}),
+                'season_number': ('program', 'seasonNum', {int_or_none}),
+                'season_id': ('program', 'season', {str}),
+                'episode_number': ('episodeNum', {int_or_none}),
+                'timestamp': ('pubDate', {int_or_none(scale=1000)}),
+                'description': ('description', {str}, {urllib.parse.unquote}),
+            }),
+            'title': (traverse_obj(json_data, ('title', {str}))
+                      or info.get('title')
+                      or self._og_search_title(webpage, default=None)),
+            'thumbnail': (traverse_obj(json_data, (('cover', 'thumbnail'), {url_or_none}, any))
+                          or info.get('thumbnail')
+                          or self._og_search_thumbnail(webpage, default=None)),
             'formats': formats,
             'subtitles': subtitles,
-            'season_number': traverse_obj(json_data, ('program', 'seasonNum')),
         }
