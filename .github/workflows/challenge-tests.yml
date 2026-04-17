@@ -50,13 +50,13 @@ jobs:
       with:
         deno-version: '2.0.0'  # minimum supported version
     - name: Install Bun
-      uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3  # v2.1.2
+      uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6  # v2.2.0
       with:
         # minimum supported version is 1.0.31 but earliest available Windows version is 1.1.0
         bun-version: ${{ (matrix.os == 'windows-latest' && '1.1.0') || '1.0.31' }}
         no-cache: true
     - name: Install Node
-      uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238  # v6.2.0
+      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f  # v6.3.0
       with:
         node-version: '20.0'  # minimum supported version
     - name: Install QuickJS (Linux)
@@ -77,7 +77,7 @@ jobs:
     - name: Install test requirements
       shell: bash
       run: |
-        python ./devscripts/install_deps.py --print --omit-default --include-extra test > requirements.txt
+        python ./devscripts/install_deps.py --print --omit-default --include-group test > requirements.txt
         python ./devscripts/install_deps.py --print -c certifi -c requests -c urllib3 -c yt-dlp-ejs >> requirements.txt
         python -m pip install -U -r requirements.txt
     - name: Run tests
