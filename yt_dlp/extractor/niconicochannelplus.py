@@ -2,6 +2,7 @@ import functools
 import json
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -16,11 +17,17 @@ from ..utils import (
 
 
 class NiconicoChannelPlusBaseIE(InfoExtractor):
+    _API_BASE_URL = 'https://api.nicochannel.jp/fc/'
     _WEBPAGE_BASE_URL = 'https://nicochannel.jp'
 
-    def _call_api(self, path, item_id, **kwargs):
+    def _call_api(self, path, item_id, *, fanclub_site_id=None, **kwargs):
+        if fanclub_site_id is not None:
+            kwargs['headers'] = {
+                **(kwargs.get('headers') or {}),
+                'fc_site_id': str(fanclub_site_id),
+            }
         return self._download_json(
-            f'https://nfc-api.nicochannel.jp/fc/{path}', video_id=item_id, **kwargs)
+            f'{self._API_BASE_URL}{path}', video_id=item_id, **kwargs)
 
     def _find_fanclub_site_id(self, channel_name):
         fanclub_list_json = self._call_api(
@@ -103,11 +110,13 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
         fanclub_site_id = self._find_fanclub_site_id(channel_id)
 
         data_json = self._call_api(
-            f'video_pages/{content_code}', item_id=content_code, headers={'fc_use_device': 'null'},
+            f'video_pages/{content_code}', item_id=content_code,
+            fanclub_site_id=fanclub_site_id, headers={'fc_use_device': 'null'},
             note='Fetching video page info', errnote='Unable to fetch video page info',
         )['data']['video_page']
 
-        live_status, session_id = self._get_live_status_and_session_id(content_code, data_json)
+        live_status, session_id = self._get_live_status_and_session_id(
+            content_code, data_json, fanclub_site_id=fanclub_site_id)
 
         release_timestamp_str = data_json.get('live_scheduled_start_at')
 
@@ -147,10 +156,11 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             }),
             '__post_extractor': self.extract_comments(
                 content_code=content_code,
-                comment_group_id=traverse_obj(data_json, ('video_comment_setting', 'comment_group_id'))),
+                comment_group_id=traverse_obj(data_json, ('video_comment_setting', 'comment_group_id')),
+                fanclub_site_id=fanclub_site_id),
         }
 
-    def _get_comments(self, content_code, comment_group_id):
+    def _get_comments(self, content_code, comment_group_id, fanclub_site_id):
         item_id = f'{content_code}/comments'
 
         if not comment_group_id:
@@ -158,6 +168,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
 
         comment_access_token = self._call_api(
             f'video_pages/{content_code}/comments_user_token', item_id,
+            fanclub_site_id=fanclub_site_id,
             note='Getting comment token', errnote='Unable to get comment token',
         )['data']['access_token']
 
@@ -184,7 +195,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
                 'author_is_uploader': ('sender_id', {lambda x: x == '-1'}),
             }, get_all=False)
 
-    def _get_live_status_and_session_id(self, content_code, data_json):
+    def _get_live_status_and_session_id(self, content_code, data_json, *, fanclub_site_id):
         video_type = data_json.get('type')
         live_finished_at = data_json.get('live_finished_at')
 
@@ -217,15 +228,24 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
 
         self.write_debug(f'{content_code}: video_type={video_type}, live_status={live_status}')
 
-        session_id = self._call_api(
-            f'video_pages/{content_code}/session_ids', item_id=f'{content_code}/session',
-            data=json.dumps(payload).encode('ascii'), headers={
-                'Content-Type': 'application/json',
-                'fc_use_device': 'null',
-                'origin': 'https://nicochannel.jp',
-            },
-            note='Getting session id', errnote='Unable to get session id',
-        )['data']['session_id']
+        try:
+            session_id = self._call_api(
+                f'video_pages/{content_code}/session_ids', item_id=f'{content_code}/session',
+                fanclub_site_id=fanclub_site_id,
+                data=json.dumps(payload).encode('ascii'), headers={
+                    'Content-Type': 'application/json',
+                    'fc_use_device': 'null',
+                    'origin': 'https://nicochannel.jp',
+                },
+                note='Getting session id', errnote='Unable to get session id',
+            )['data']['session_id']
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status in (401, 403):
+                raise ExtractorError(
+                    'This video requires a paid channel membership. '
+                    'Provide credentials via --cookies or --cookies-from-browser.',
+                    expected=True, video_id=content_code) from e
+            raise
 
         return live_status, session_id
 
@@ -233,9 +253,11 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
 class NiconicoChannelPlusChannelBaseIE(NiconicoChannelPlusBaseIE):
     _PAGE_SIZE = 12
 
-    def _fetch_paged_channel_video_list(self, path, query, channel_name, item_id, page):
+    def _fetch_paged_channel_video_list(self, path, query, channel_name, fanclub_site_id, item_id, page):
         response = self._call_api(
-            path, item_id, query={
+            path, item_id,
+            fanclub_site_id=fanclub_site_id,
+            query={
                 **query,
                 'page': (page + 1),
                 'per_page': self._PAGE_SIZE,
@@ -367,7 +389,7 @@ class NiconicoChannelPlusChannelVideosIE(NiconicoChannelPlusChannelBaseIE):
                         'sort': traverse_obj(qs, ('sort', 0), default='-released_at'),
                         'vod_type': traverse_obj(qs, ('vodType', 0), default='0'),
                     }),
-                    channel_id, f'{channel_id}/videos'),
+                    channel_id, fanclub_site_id, f'{channel_id}/videos'),
                 self._PAGE_SIZE),
             playlist_id=f'{channel_id}-videos', playlist_title=f'{channel_name}-videos')
 
@@ -421,6 +443,6 @@ class NiconicoChannelPlusChannelLivesIE(NiconicoChannelPlusChannelBaseIE):
                     {
                         'live_type': 4,
                     },
-                    channel_id, f'{channel_id}/lives'),
+                    channel_id, fanclub_site_id, f'{channel_id}/lives'),
                 self._PAGE_SIZE),
             playlist_id=f'{channel_id}-lives', playlist_title=f'{channel_name}-lives')
