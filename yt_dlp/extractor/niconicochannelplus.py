@@ -60,45 +60,45 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
     IE_DESC = 'ニコニコチャンネルプラス'
     _VALID_URL = r'https?://nicochannel\.jp/(?P<channel>[\w.-]+)/(?:video|live)/(?P<code>sm\w+)'
     _TESTS = [{
-        'url': 'https://nicochannel.jp/kaorin/video/smsDd8EdFLcVZk9yyAhD6H7H',
+        'url': 'https://nicochannel.jp/testtarou/video/smtJmmMAPZnef6EvgDZiazu7',
         'info_dict': {
-            'id': 'smsDd8EdFLcVZk9yyAhD6H7H',
-            'title': '前田佳織里はニコ生がしたい！',
+            'id': 'smtJmmMAPZnef6EvgDZiazu7',
+            'title': '動画の差し替え検証',
             'ext': 'mp4',
-            'channel': '前田佳織里の世界攻略計画',
-            'channel_id': 'kaorin',
-            'channel_url': 'https://nicochannel.jp/kaorin',
+            'channel': 'チャンネルプラステスト太郎',
+            'channel_id': 'testtarou',
+            'channel_url': 'https://nicochannel.jp/testtarou',
             'live_status': 'not_live',
-            'thumbnail': 'https://nicochannel.jp/public_html/contents/video_pages/74/thumbnail_path',
-            'description': '２０２１年１１月に放送された\n「前田佳織里はニコ生がしたい！」アーカイブになります。',
-            'timestamp': 1641360276,
-            'duration': 4097,
+            'thumbnail': r're:https?://.+/thumbnail_path',
+            'description': '動画の差し替え検証',
+            'timestamp': 1655344473,
+            'duration': 57,
             'comment_count': int,
             'view_count': int,
-            'tags': [],
-            'upload_date': '20220105',
+            'upload_date': '20220616',
         },
         'params': {
             'skip_download': True,
         },
     }, {
         # age limited video; test purpose channel.
-        'url': 'https://nicochannel.jp/testman/video/smDXbcrtyPNxLx9jc4BW69Ve',
+        'url': 'https://nicochannel.jp/testman/video/sm29oNxhbqmM46U3wsLnz3Bs',
         'info_dict': {
-            'id': 'smDXbcrtyPNxLx9jc4BW69Ve',
-            'title': 'test oshiro',
+            'id': 'sm29oNxhbqmM46U3wsLnz3Bs',
+            'title': 'DW_rhiyoshi_メッセージサーバリリース後確認②',
             'ext': 'mp4',
             'channel': '本番チャンネルプラステストマン',
             'channel_id': 'testman',
             'channel_url': 'https://nicochannel.jp/testman',
             'age_limit': 18,
             'live_status': 'was_live',
-            'timestamp': 1666344616,
-            'duration': 86465,
+            'timestamp': 1776237057,
+            'release_timestamp': 1776237057,
+            'release_date': '20260415',
+            'duration': 125,
             'comment_count': int,
             'view_count': int,
-            'tags': [],
-            'upload_date': '20221021',
+            'upload_date': '20260415',
         },
         'params': {
             'skip_download': True,
@@ -297,7 +297,7 @@ class NiconicoChannelPlusChannelVideosIE(NiconicoChannelPlusChannelBaseIE):
         'url': 'https://nicochannel.jp/testjirou/videos',
         'info_dict': {
             'id': 'testjirou-videos',
-            'title': 'チャンネルプラステスト二郎-videos',
+            'title': 'チャンネルプラステスト"二郎21-videos',
         },
         'playlist_mincount': 12,
     }, {
@@ -416,7 +416,7 @@ class NiconicoChannelPlusChannelLivesIE(NiconicoChannelPlusChannelBaseIE):
         'url': 'https://nicochannel.jp/testjirou/lives',
         'info_dict': {
             'id': 'testjirou-lives',
-            'title': 'チャンネルプラステスト二郎-lives',
+            'title': 'チャンネルプラステスト"二郎21-lives',
         },
         'playlist_mincount': 6,
     }]
