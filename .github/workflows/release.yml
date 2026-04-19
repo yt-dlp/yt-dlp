@@ -183,7 +183,7 @@ jobs:
         run: |
           sudo apt -y install pandoc man
           python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
-          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pypi-build.txt"
+          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-build.txt"
 
       - name: Prepare
         env:
