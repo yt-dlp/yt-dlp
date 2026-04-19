@@ -96,36 +96,36 @@ class AfreecaTVBaseIE(InfoExtractor):
 class AfreecaTVIE(AfreecaTVBaseIE):
     IE_NAME = 'soop'
     IE_DESC = 'sooplive.com'
-    _VALID_URL = r'https?://vod\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/(?:PLAYER/STATION|player)/(?P<id>\d+)/?(?:$|[?#&])'
+    _VALID_URL = r'https?://vod\.sooplive\.com/(?:PLAYER/STATION|player)/(?P<id>\d+)/?(?:$|[?#&])'
     _TESTS = [{
-        'url': 'https://vod.sooplive.com/player/96753363',
+        'url': 'https://vod.sooplive.com/player/192805325',
         'info_dict': {
-            'id': '20230108_9FF5BEE1_244432674_1',
+            'id': '20260414_1B44E53B_293230967_1',
             'ext': 'mp4',
             'uploader_id': 'rlantnghks',
             'uploader': '페이즈으',
-            'duration': 10840,
-            'thumbnail': r're:https?://videoimg\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/.+',
-            'upload_date': '20230108',
-            'timestamp': 1673186405,
-            'title': '젠지 페이즈',
+            'duration': 10869,
+            'thumbnail': r're:https?://videoimg\.sooplive\.com/.+',
+            'upload_date': '20260414',
+            'timestamp': 1776174982,
+            'title': 'T1 Peyz [CC]',
         },
         'params': {
             'skip_download': True,
         },
     }, {
         # non standard key
-        'url': 'http://vod.sooplive.co.kr/PLAYER/STATION/20515605',
+        'url': 'http://vod.sooplive.com/PLAYER/STATION/192805325',
         'info_dict': {
-            'id': 'BE689A0E_190960999_1_2_A',
+            'id': '20260414_1B44E53B_293230967_1',
             'ext': 'mp4',
-            'title': '혼자사는여자집',
-            'thumbnail': r're:https?://(?:video|st)img\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/.+',
-            'uploader': '♥이슬이',
-            'uploader_id': 'dasl8121',
-            'upload_date': '20170411',
-            'timestamp': 1491897465,
-            'duration': 213,
+            'title': 'T1 Peyz [CC]',
+            'thumbnail': r're:https?://(?:video|st)img\.sooplive\.com/.+',
+            'uploader': '페이즈으',
+            'uploader_id': 'rlantnghks',
+            'upload_date': '20260414',
+            'timestamp': 1776174982,
+            'duration': 10869,
         },
         'params': {
             'skip_download': True,
@@ -137,7 +137,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'id': '20260403_A4534670_292914441_1',
             'ext': 'mp4',
             'title': '하이',
-            'thumbnail': r're:https?://(?:video|st)img\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/.+',
+            'thumbnail': r're:https?://(?:video|st)img\.sooplive\.com/.+',
             'uploader': '세림잉',
             'uploader_id': 'serimm',
             'upload_date': '20260402',
@@ -256,7 +256,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
 class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
     IE_NAME = 'soop:catchstory'
     IE_DESC = 'sooplive.com catch story'
-    _VALID_URL = r'https?://vod\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/player/(?P<id>\d+)/catchstory'
+    _VALID_URL = r'https?://vod\.sooplive\.com/player/(?P<id>\d+)/catchstory'
     _TESTS = [{
         'url': 'https://vod.sooplive.com/player/103247/catchstory',
         'info_dict': {
@@ -292,7 +292,7 @@ class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
 class AfreecaTVLiveIE(AfreecaTVBaseIE):
     IE_NAME = 'soop:live'
     IE_DESC = 'sooplive.com livestreams'
-    _VALID_URL = r'https?://play\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/(?P<id>[^/?#]+)(?:/(?P<bno>\d+))?'
+    _VALID_URL = r'https?://play\.sooplive\.com/(?P<id>[^/?#]+)(?:/(?P<bno>\d+))?'
     _TESTS = [{
         'url': 'https://play.sooplive.com/pyh3646/237852185',
         'info_dict': {
@@ -418,7 +418,7 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
 
 class AfreecaTVUserIE(AfreecaTVBaseIE):
     IE_NAME = 'soop:user'
-    _VALID_URL = r'https?://(?:ch\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/|(?:www\.)?(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/station/)(?P<id>[^/?#]+)/(?:vods|vod)/?(?P<slug_type>[^/?#]+)?'
+    _VALID_URL = r'https?://(?:www\.)?sooplive\.com/station/(?P<id>[^/?#]+)/vod/?(?P<slug_type>[^/?#]+)?'
     _TESTS = [{
         'url': 'https://www.sooplive.com/station/devil0108/vod/review',
         'info_dict': {
