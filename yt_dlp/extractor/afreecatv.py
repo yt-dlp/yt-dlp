@@ -115,7 +115,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
         },
     }, {
         # non standard key
-        'url': 'http://vod.sooplive.com/PLAYER/STATION/20515605',
+        'url': 'https://vod.sooplive.com/PLAYER/STATION/20515605',
         'info_dict': {
             'id': 'BE689A0E_190960999_1_2_A',
             'ext': 'mp4',
@@ -464,7 +464,8 @@ class AfreecaTVUserIE(AfreecaTVBaseIE):
                                    note=f'Downloading {user_type} video page {page}')
         for item in info['data']:
             yield self.url_result(
-                f'https://vod.sooplive.com/player/{item["title_no"]}/', AfreecaTVIE, item['title_no'], item.get('title_name'))
+                f'https://vod.sooplive.com/player/{item["title_no"]}/',
+                AfreecaTVIE, item['title_no'], item.get('title_name'))
 
     def _real_extract(self, url):
         user_id, user_type = self._match_valid_url(url).group('id', 'slug_type')
