@@ -139,17 +139,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     ]
     _RETURN_TYPE = 'video'  # XXX: How to handle multifeed?
 
-    _PLAYER_INFO_RE = (
-        r'/s/player/(?P<id>[a-zA-Z0-9_-]{8,})/(?:tv-)?player',
-        r'/(?P<id>[a-zA-Z0-9_-]{8,})/player(?:_ias\.vflset(?:/[a-zA-Z]{2,3}_[a-zA-Z]{2,3})?|-plasma-ias-(?:phone|tablet)-[a-z]{2}_[A-Z]{2}\.vflset)/base\.js$',
-        r'\b(?P<id>vfl[a-zA-Z0-9_-]+)\b.*?\.js$',
-    )
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('tv', 'android_sdkless', 'web')
-    _DEFAULT_JSLESS_CLIENTS = ('android_sdkless', 'web_safari', 'web')
-    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web_safari', 'web')
+    _DEFAULT_CLIENTS = ('android_vr', 'web_safari')
+    _DEFAULT_JSLESS_CLIENTS = ('android_vr',)
+    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web_safari')
     # Premium does not require POT (except for subtitles)
-    _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator', 'web')
+    _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator')
+    _WEBPAGE_CLIENTS = ('web', 'web_safari')
+    _DEFAULT_WEBPAGE_CLIENT = 'web_safari'
 
     _GEO_BYPASS = False
 
@@ -1443,7 +1440,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'view_count': int,
         },
         'params': {
-            'extractor_args': {'youtube': {'player_client': ['tv_embedded']}},
             'format': '251-drc',
             'skip_download': True,
         },
@@ -1690,7 +1686,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'playable_in_embed': True,
             'availability': 'public',
             'live_status': 'not_live',
-            'comment_count': 15,  # XXX: minimum
+            'comment_count': 15,  # XXX: minimum, but investigate if this changes
+            'comments': 'count:15',
         },
         'params': {
             'skip_download': True,
@@ -1723,7 +1720,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'playable_in_embed': True,
             'availability': 'unlisted',
             'live_status': 'not_live',
-            'comment_count': 9,  # XXX: minimum
+            'comment_count': 9,  # XXX: minimum, but investigate if this changes
+            'comments': 'count:9',
+        },
+        'params': {
+            'skip_download': True,
+            'getcomments': True,
         },
     }]
     _WEBPAGE_TESTS = [{
@@ -1881,12 +1883,36 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'tce': 'player_ias_tce.vflset/en_US/base.js',
         'es5': 'player_es5.vflset/en_US/base.js',
         'es6': 'player_es6.vflset/en_US/base.js',
+        'es6_tcc': 'player_es6_tcc.vflset/en_US/base.js',
+        'es6_tce': 'player_es6_tce.vflset/en_US/base.js',
         'tv': 'tv-player-ias.vflset/tv-player-ias.js',
         'tv_es6': 'tv-player-es6.vflset/tv-player-es6.js',
         'phone': 'player-plasma-ias-phone-en_US.vflset/base.js',
-        'tablet': 'player-plasma-ias-tablet-en_US.vflset/base.js',
+        'house': 'house_brand_player.vflset/en_US/base.js',  # Used by Google Drive
     }
     _INVERSE_PLAYER_JS_VARIANT_MAP = {v: k for k, v in _PLAYER_JS_VARIANT_MAP.items()}
+
+    @functools.cached_property
+    def _player_js_version(self):
+        return self._configuration_arg('player_js_version', [None])[0] or self._DEFAULT_PLAYER_JS_VERSION
+
+    @functools.cached_property
+    def _webpage_client(self):
+        webpage_client = self._configuration_arg('webpage_client', [self._DEFAULT_WEBPAGE_CLIENT])[0]
+        if webpage_client not in self._WEBPAGE_CLIENTS:
+            self.report_warning(
+                f'Invalid webpage_client "{webpage_client}" requested; '
+                f'falling back to {self._DEFAULT_WEBPAGE_CLIENT}', only_once=True)
+            webpage_client = self._DEFAULT_WEBPAGE_CLIENT
+        return webpage_client
+
+    @functools.cached_property
+    def _skipped_webpage_data(self):
+        skipped = set(self._configuration_arg('webpage_skip'))
+        # If forcing a player version, the webpage player response must be skipped
+        if self._player_js_version != 'actual':
+            skipped.add('player_response')
+        return skipped
 
     @classmethod
     def suitable(cls, url):
@@ -1913,13 +1939,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         start_time = time.time()
         formats = [f for f in formats if f.get('is_from_start')]
 
-        def refetch_manifest(format_id, delay):
+        def refetch_manifest(itag, client_name, delay):
             nonlocal formats, start_time, is_live
             if time.time() <= start_time + delay:
                 return
 
             _, _, _, _, prs, player_url = self._initial_extract(
-                url, smuggled_data, webpage_url, 'web', video_id)
+                url, smuggled_data, webpage_url, self._webpage_client, video_id)
             video_details = traverse_obj(prs, (..., 'videoDetails'), expected_type=dict)
             microformats = traverse_obj(
                 prs, (..., 'microformat', 'playerMicroformatRenderer'),
@@ -1928,20 +1954,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_live = live_status == 'is_live'
             start_time = time.time()
 
-        def mpd_feed(format_id, delay):
+        def mpd_feed(itag, client_name, delay):
             """
             @returns (manifest_url, manifest_stream_number, is_live) or None
             """
             for retry in self.RetryManager(fatal=False):
                 with lock:
-                    refetch_manifest(format_id, delay)
+                    refetch_manifest(itag, client_name, delay)
 
-                f = next((f for f in formats if f['format_id'] == format_id), None)
+                f = next((f for f in formats if f.get('_itag') == itag and f.get('_client') == client_name), None)
                 if not f:
                     if not is_live:
                         retry.error = f'{video_id}: Video is no longer live'
                     else:
-                        retry.error = f'Cannot find refreshed manifest for format {format_id}{bug_reports_message()}'
+                        retry.error = f'Cannot find refreshed manifest for format {itag}{bug_reports_message()}'
                     continue
 
                 # Formats from ended premieres will be missing a manifest_url
@@ -1954,7 +1980,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         for f in formats:
             f['is_live'] = is_live
-            gen = functools.partial(self._live_dash_fragments, video_id, f['format_id'],
+            gen = functools.partial(self._live_dash_fragments, video_id, f['_itag'], f['_client'],
                                     live_start_time, mpd_feed, not is_live and f.copy())
             if is_live:
                 f['fragments'] = gen
@@ -1963,7 +1989,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f['fragments'] = LazyList(gen({}))
                 del f['is_from_start']
 
-    def _live_dash_fragments(self, video_id, format_id, live_start_time, mpd_feed, manifestless_orig_fmt, ctx):
+    def _live_dash_fragments(self, video_id, itag, client_name, live_start_time, mpd_feed, manifestless_orig_fmt, ctx):
         FETCH_SPAN, MAX_DURATION = 5, 432000
 
         mpd_url, stream_number, is_live = None, None, True
@@ -1987,7 +2013,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             old_mpd_url = mpd_url
             last_error = ctx.pop('last_error', None)
             expire_fast = immediate or (last_error and isinstance(last_error, HTTPError) and last_error.status == 403)
-            mpd_url, stream_number, is_live = (mpd_feed(format_id, 5 if expire_fast else 18000)
+            mpd_url, stream_number, is_live = (mpd_feed(itag, client_name, 5 if expire_fast else 18000)
                                                or (mpd_url, stream_number, False))
             if not refresh_sequence:
                 if expire_fast and not is_live:
@@ -2013,7 +2039,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             _last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
             return True, _last_seq
 
-        self.write_debug(f'[{video_id}] Generating fragments for format {format_id}')
+        self.write_debug(f'[{video_id}] Generating fragments for format {itag}')
         while is_live:
             fetch_time = time.time()
             if no_fragment_score > 30:
@@ -2075,15 +2101,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
 
     def _get_player_js_version(self):
-        player_js_version = self._configuration_arg('player_js_version', [''])[0] or self._DEFAULT_PLAYER_JS_VERSION
-        if player_js_version == 'actual':
+        if self._player_js_version == 'actual':
             return None, None
-        if not re.fullmatch(r'[0-9]{5,}@[0-9a-f]{8,}', player_js_version):
+        if not re.fullmatch(r'[0-9]{5,}@[0-9a-f]{8,}', self._player_js_version):
             self.report_warning(
-                f'Invalid player JS version "{player_js_version}" specified. '
+                f'Invalid player JS version "{self._player_js_version}" specified. '
                 f'It should be "actual" or in the format of STS@HASH', only_once=True)
             return None, None
-        return player_js_version.split('@')
+        return self._player_js_version.split('@')
 
     def _construct_player_url(self, *, player_id=None, player_url=None):
         assert player_id or player_url, '_construct_player_url must take one of player_id or player_url'
@@ -2174,13 +2199,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     @classmethod
     def _extract_player_info(cls, player_url):
-        for player_re in cls._PLAYER_INFO_RE:
-            id_m = re.search(player_re, player_url)
-            if id_m:
-                break
-        else:
-            raise ExtractorError(f'Cannot identify player {player_url!r}')
-        return id_m.group('id')
+        if m := re.search(r'/s/player/(?P<id>[a-fA-F0-9]{8,})/', player_url):
+            return m.group('id')
+        raise ExtractorError(f'Cannot identify player {player_url!r}')
 
     def _load_player(self, video_id, player_url, fatal=True):
         player_js_key = self._player_js_cache_key(player_url)
@@ -2677,12 +2698,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return {'contentCheckOk': True, 'racyCheckOk': True}
 
     @classmethod
-    def _generate_player_context(cls, sts=None, use_ad_playback_context=False):
+    def _generate_player_context(cls, sts=None, use_ad_playback_context=False, encrypted_context=None):
         context = {
             'html5Preference': 'HTML5_PREF_WANTS',
         }
         if sts is not None:
             context['signatureTimestamp'] = sts
+        if encrypted_context:
+            context['encryptedHostFlags'] = encrypted_context
 
         playback_context = {
             'contentPlaybackContext': context,
@@ -2763,7 +2786,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'serializedExperimentFlags', {urllib.parse.parse_qs}))
         if 'true' in traverse_obj(experiments, (..., 'html5_generate_content_po_token', -1)):
             self.write_debug(
-                f'{video_id}: Detected experiment to bind GVS PO Token to video id.', only_once=True)
+                f'{video_id}: Detected experiment to bind GVS PO Token '
+                f'to video ID for {client} client', only_once=True)
             gvs_bind_to_video_id = True
 
         # GVS WebPO Token is bound to visitor_data / Visitor ID when logged out.
@@ -2926,7 +2950,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._configuration_arg('use_ad_playback_context', ['false'])[0] != 'false'
             and traverse_obj(INNERTUBE_CLIENTS, (client, 'SUPPORTS_AD_PLAYBACK_CONTEXT', {bool})))
 
-        yt_query.update(self._generate_player_context(sts, use_ad_playback_context))
+        # web_embedded player requests may need to include encryptedHostFlags in its contentPlaybackContext.
+        # This can be detected with the embeds_enable_encrypted_host_flags_enforcement experiemnt flag,
+        # but there is no harm in including encryptedHostFlags with all web_embedded player requests.
+        encrypted_context = None
+        if _split_innertube_client(client)[2] == 'embedded':
+            encrypted_context = traverse_obj(player_ytcfg, (
+                'WEB_PLAYER_CONTEXT_CONFIGS', 'WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER', 'encryptedHostFlags'))
+
+        yt_query.update(
+            self._generate_player_context(
+                sts=sts,
+                use_ad_playback_context=use_ad_playback_context,
+                encrypted_context=encrypted_context))
 
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
@@ -3045,7 +3081,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 tried_iframe_fallback = True
 
             pr = None
-            if client == webpage_client and 'player_response' not in self._configuration_arg('webpage_skip'):
+            if client == webpage_client and 'player_response' not in self._skipped_webpage_data:
                 pr = initial_pr
 
             visitor_data = visitor_data or self._extract_visitor_data(webpage_ytcfg, initial_pr, player_ytcfg)
@@ -3111,6 +3147,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 else:
                     prs.append(pr)
 
+            if (
+                # Is this a "made for kids" video that can't be downloaded with android_vr?
+                client == 'android_vr' and self._is_unplayable(pr)
+                and webpage and 'made for kids' in webpage
+                # ...and is a JS runtime is available?
+                and any(p.is_available() for p in self._jsc_director.providers.values())
+            ):
+                append_client('web_embedded')
+
             # web_embedded can work around age-gate and age-verification for some embeddable videos
             if self._is_agegated(pr) and variant != 'web_embedded':
                 append_client(f'web_embedded.{base_client}')
@@ -3127,9 +3172,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self.to_screen(
                     f'{video_id}: This video is age-restricted and YouTube is requiring '
                     'account age-verification; some formats may be missing', only_once=True)
-                # tv_embedded can work around the age-verification requirement for embeddable videos
                 # web_creator may work around age-verification for all videos but requires PO token
-                append_client('tv_embedded', 'web_creator')
+                append_client('web_creator')
 
             status = traverse_obj(pr, ('playabilityStatus', 'status', {str}))
             if status not in ('OK', 'LIVE_STREAM_OFFLINE', 'AGE_CHECK_REQUIRED', 'AGE_VERIFICATION_REQUIRED'):
@@ -3205,6 +3249,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         ])
         skip_player_js = 'js' in self._configuration_arg('player_skip')
         format_types = self._configuration_arg('formats')
+        skip_bad_formats = 'incomplete' not in format_types
         all_formats = 'duplicate' in format_types
         if self._configuration_arg('include_duplicate_formats'):
             all_formats = True
@@ -3450,7 +3495,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 https_fmts = []
 
                 for fmt_stream in streaming_formats:
-                    if fmt_stream.get('targetDurationSec'):
+                    # Live adaptive https formats are not supported: skip unless extractor-arg given
+                    if fmt_stream.get('targetDurationSec') and skip_bad_formats:
                         continue
 
                     # FORMAT_STREAM_TYPE_OTF(otf=1) requires downloading the init fragment
@@ -3487,16 +3533,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         fmt_url = traverse_obj(sc, ('url', 0, {url_or_none}))
                         encrypted_sig = traverse_obj(sc, ('s', 0))
                         if not all((sc, fmt_url, skip_player_js or player_url, encrypted_sig)):
-                            msg = f'Some {client_name} client https formats have been skipped as they are missing a URL. '
+                            msg_tmpl = (
+                                '{}Some {} client https formats have been skipped as they are missing a URL. '
+                                '{}. See  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details')
                             if client_name in ('web', 'web_safari'):
-                                msg += 'YouTube is forcing SABR streaming for this client. '
+                                self.write_debug(msg_tmpl.format(
+                                    f'{video_id}: ', client_name,
+                                    'YouTube is forcing SABR streaming for this client'), only_once=True)
                             else:
-                                msg += (
+                                msg = (
                                     f'YouTube may have enabled the SABR-only streaming experiment for '
-                                    f'{"your account" if self.is_authenticated else "the current session"}. '
-                                )
-                            msg += 'See  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details'
-                            self.report_warning(msg, video_id, only_once=True)
+                                    f'{"your account" if self.is_authenticated else "the current session"}')
+                                self.report_warning(msg_tmpl.format('', client_name, msg), video_id, only_once=True)
                             continue
 
                     fmt = process_format_stream(
@@ -3560,7 +3608,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             yield from process_https_formats()
 
             needs_live_processing = self._needs_live_processing(live_status, duration)
-            skip_bad_formats = 'incomplete' not in format_types
 
             skip_manifests = set(self._configuration_arg('skip'))
             if (needs_live_processing == 'is_live'  # These will be filtered out by YoutubeDL anyway
@@ -3700,11 +3747,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         sub[STREAMING_DATA_CLIENT_NAME] = client_name
                     subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
                     for f in formats:
-                        if process_manifest_format(f, 'dash', client_name, f['format_id'], require_po_token and not po_token):
+                        # Save original itag value as format_id because process_manifest_format mutates f
+                        format_id = f['format_id']
+                        if process_manifest_format(f, 'dash', client_name, format_id, require_po_token and not po_token):
                             f['filesize'] = int_or_none(self._search_regex(
                                 r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
                             if needs_live_processing:
                                 f['is_from_start'] = True
+                                f['_itag'] = format_id
+                                f['_client'] = client_name
                             yield f
         yield subtitles
 
@@ -3817,7 +3868,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _download_initial_data(self, video_id, webpage, webpage_client, webpage_ytcfg):
         initial_data = None
-        if webpage and 'initial_data' not in self._configuration_arg('webpage_skip'):
+        if webpage and 'initial_data' not in self._skipped_webpage_data:
             initial_data = self.extract_yt_initial_data(video_id, webpage, fatal=False)
             if not traverse_obj(initial_data, 'contents'):
                 self.report_warning('Incomplete data received in embedded initial data; re-fetching using API.')
@@ -3865,10 +3916,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
-        webpage_client = 'web'
 
         webpage, webpage_ytcfg, initial_data, is_premium_subscriber, player_responses, player_url = self._initial_extract(
-            url, smuggled_data, webpage_url, webpage_client, video_id)
+            url, smuggled_data, webpage_url, self._webpage_client, video_id)
 
         playability_statuses = traverse_obj(
             player_responses, (..., 'playabilityStatus'), expected_type=dict)
@@ -4070,16 +4120,33 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         needs_live_processing = self._needs_live_processing(live_status, duration)
 
-        def is_bad_format(fmt):
-            if needs_live_processing and not fmt.get('is_from_start'):
-                return True
-            elif (live_status == 'is_live' and needs_live_processing != 'is_live'
-                    and fmt.get('protocol') == 'http_dash_segments'):
-                return True
+        def adjust_incomplete_format(fmt, note_suffix='(Last 2 hours)', pref_adjustment=-10):
+            fmt['preference'] = (fmt.get('preference') or -1) + pref_adjustment
+            fmt['format_note'] = join_nonempty(fmt.get('format_note'), note_suffix, delim=' ')
 
-        for fmt in filter(is_bad_format, formats):
-            fmt['preference'] = (fmt.get('preference') or -1) - 10
-            fmt['format_note'] = join_nonempty(fmt.get('format_note'), '(Last 2 hours)', delim=' ')
+        # Adjust preference and format note for incomplete live/post-live formats
+        if live_status in ('is_live', 'post_live'):
+            for fmt in formats:
+                protocol = fmt.get('protocol')
+                # Currently, protocol isn't set for adaptive https formats, but this could change
+                is_adaptive = protocol in (None, 'http', 'https')
+                if live_status == 'post_live' and is_adaptive:
+                    # Post-live adaptive formats cause HttpFD to raise "Did not get any data blocks"
+                    # These formats are *only* useful to external applications, so we can hide them
+                    # Set their preference <= -1000 so that FormatSorter flags them as 'hidden'
+                    adjust_incomplete_format(fmt, note_suffix='(ended)', pref_adjustment=-5000)
+                # Is it live with --live-from-start? Or is it post-live and its duration is >2hrs?
+                elif needs_live_processing:
+                    if not fmt.get('is_from_start'):
+                        # Post-live m3u8 formats for >2hr streams
+                        adjust_incomplete_format(fmt)
+                elif live_status == 'is_live':
+                    if protocol == 'http_dash_segments':
+                        # Live DASH formats without --live-from-start
+                        adjust_incomplete_format(fmt)
+                    elif is_adaptive:
+                        # Incomplete live adaptive https formats
+                        adjust_incomplete_format(fmt, note_suffix='(incomplete)', pref_adjustment=-20)
 
         if needs_live_processing:
             self._prepare_live_from_start_formats(

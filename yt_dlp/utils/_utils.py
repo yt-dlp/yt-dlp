@@ -75,6 +75,9 @@ MONTH_NAMES = {
     'fr': [
         'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
         'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'],
+    'is': [
+        'janúar', 'febrúar', 'mars', 'apríl', 'maí', 'júní',
+        'júlí', 'ágúst', 'september', 'október', 'nóvember', 'desember'],
     # these follow the genitive grammatical case (dopełniacz)
     # some websites might be using nominative, which will require another month list
     # https://en.wikibooks.org/wiki/Polish/Noun_cases
