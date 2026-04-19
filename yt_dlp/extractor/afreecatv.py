@@ -315,17 +315,20 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
 
     _LIVE_API_URL = 'https://live.sooplive.com/afreeca/player_live_api.php'
     _WORKING_CDNS = [
-        'gcp_cdn',  # live-global-cdn-v02.sooplive.co.kr
-        'gs_cdn_pc_app',  # pc-app.stream.sooplive.co.kr
-        'gs_cdn_mobile_web',  # mobile-web.stream.sooplive.co.kr
-        'gs_cdn_pc_web',  # pc-web.stream.sooplive.co.kr
+        'gcp_cdn',  # live-global-cdn-v02.sooplive.com
+        'gs_cdn_mobile_web',  # mobile-web.stream.sooplive.com
+        'gs_cdn_pc_web',  # pc-web.stream.sooplive.com
+        'lg_cdn_pc_web',  # live-pcweb-kr-cdn-z02.sooplive.com
+        'lg_cdn_mobile_web',  # live-mobileweb-kr-cdn-z02.sooplive.com
+        'azure_cdn',  # live-global-cdn-v02.sooplive.com
+        'aws_cf',  # live-global-cdn-v02.sooplive.com
     ]
     _BAD_CDNS = [
-        'gs_cdn',  # chromecast.afreeca.gscdn.com (cannot resolve)
-        'gs_cdn_chromecast',  # chromecast.stream.sooplive.co.kr (HTTP Error 400)
-        'azure_cdn',  # live-global-cdn-v01.sooplive.co.kr (cannot resolve)
-        'aws_cf',  # live-global-cdn-v03.sooplive.co.kr (cannot resolve)
-        'kt_cdn',  # kt.stream.sooplive.co.kr (HTTP Error 400)
+        'gs_cdn',  # chromecast.stream.sooplive.com (cannot resolve)
+        'gs_cdn_chromecast',  # chromecast.stream.sooplive.com (HTTP Error 400)
+        'lg_cdn_chromecast',  # live-chromecast-kr-cdn-z02.sooplive.com (HTTP Error 403)
+        'gs_cdn_pc_app',  # pc-app.stream.sooplive.co.kr (HTTP Error 400) Might not exist anymore
+        'kt_cdn',  # kt.stream.sooplive.co.kr (HTTP Error 400) Might not exist anymore
     ]
 
     def _extract_formats(self, channel_info, broadcast_no, aid):
