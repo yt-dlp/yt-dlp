@@ -115,17 +115,17 @@ class AfreecaTVIE(AfreecaTVBaseIE):
         },
     }, {
         # non standard key
-        'url': 'http://vod.sooplive.com/PLAYER/STATION/192805325',
+        'url': 'http://vod.sooplive.co.kr/PLAYER/STATION/20515605',
         'info_dict': {
-            'id': '20260414_1B44E53B_293230967_1',
+            'id': 'BE689A0E_190960999_1_2_A',
             'ext': 'mp4',
-            'title': 'T1 Peyz [CC]',
-            'thumbnail': r're:https?://(?:video|st)img\.sooplive\.com/.+',
-            'uploader': '페이즈으',
-            'uploader_id': 'rlantnghks',
-            'upload_date': '20260414',
-            'timestamp': 1776174982,
-            'duration': 10869,
+            'title': '혼자사는여자집',
+            'thumbnail': r're:https?://(?:video|st)img\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/.+',
+            'uploader': '♥이슬이',
+            'uploader_id': 'dasl8121',
+            'upload_date': '20170411',
+            'timestamp': 1491897465,
+            'duration': 213,
         },
         'params': {
             'skip_download': True,
@@ -461,7 +461,7 @@ class AfreecaTVUserIE(AfreecaTVBaseIE):
                                    note=f'Downloading {user_type} video page {page}')
         for item in info['data']:
             yield self.url_result(
-                f'https://vod.sooplive.com/player/{item["title_no"]}/', AfreecaTVIE, item['title_no'], item['title_name'])
+                f'https://vod.sooplive.com/player/{item["title_no"]}/', AfreecaTVIE, item['title_no'], item.get('title_name'))
 
     def _real_extract(self, url):
         user_id, user_type = self._match_valid_url(url).group('id', 'slug_type')
