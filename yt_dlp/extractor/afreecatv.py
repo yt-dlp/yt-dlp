@@ -115,7 +115,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
         },
     }, {
         # non standard key
-        'url': 'http://vod.sooplive.co.kr/PLAYER/STATION/20515605',
+        'url': 'http://vod.sooplive.com/PLAYER/STATION/20515605',
         'info_dict': {
             'id': 'BE689A0E_190960999_1_2_A',
             'ext': 'mp4',
