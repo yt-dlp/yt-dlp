@@ -92,7 +92,6 @@ updates_key.pem
 *.class
 *.isorted
 *.stackdump
-uv.lock
 
 # Generated
 AUTHORS
@@ -104,7 +103,6 @@ README.txt
 *.tar.gz
 *.zsh
 *.spec
-bundle/requirements/*.in
 test/testdata/sigs/player-*.js
 test/testdata/thumbnails/empty.webp
 test/testdata/thumbnails/foo\ %d\ bar/foo_%d.*
