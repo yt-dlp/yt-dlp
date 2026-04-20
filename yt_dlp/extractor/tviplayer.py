@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import traverse_obj
+from ..utils import js_to_json, traverse_obj
 
 
 class TVIPlayerIE(InfoExtractor):
@@ -62,7 +62,8 @@ class TVIPlayerIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         json_data = self._search_json(
-            r'<script>\s*jsonData\s*=', webpage, 'json_data', video_id)
+            r'(?<!-)\bvideo\s*:\s*\[', webpage, 'json_data', video_id,
+            transform_source=js_to_json)
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             f'{json_data["videoUrl"]}?wmsAuthSign={self.wms_auth_sign_token}',
