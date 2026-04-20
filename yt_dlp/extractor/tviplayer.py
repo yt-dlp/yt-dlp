@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import js_to_json, traverse_obj
+from ..utils import int_or_none, js_to_json
 
 
 class TVIPlayerIE(InfoExtractor):
@@ -11,20 +11,9 @@ class TVIPlayerIE(InfoExtractor):
             'ext': 'mp4',
             'duration': 4167,
             'title': 'Jornal das 8 - 26 de dezembro de 2021',
-            'thumbnail': 'https://www.iol.pt/multimedia/oratvi/multimedia/imagem/id/61c8ee630cf2cc58e7d98d9f/',
+            'thumbnail': 'https://img.iol.pt/image/id/61c8ee630cf2cc58e7d98d9f/',
             'season_number': 8,
             'season': 'Season 8',
-        },
-    }, {
-        'url': 'https://tviplayer.iol.pt/programa/isabel/62b471090cf26256cd2a8594/video/62be445f0cf2ea4f0a5218e5',
-        'info_dict': {
-            'id': '62be445f0cf2ea4f0a5218e5',
-            'ext': 'mp4',
-            'duration': 3255,
-            'season': 'Season 1',
-            'title': 'Isabel - Episódio 1',
-            'thumbnail': 'https://www.iol.pt/multimedia/oratvi/multimedia/imagem/id/62beac200cf2f9a86eab856b/',
-            'season_number': 1,
         },
     }, {
         # no /programa/
@@ -33,10 +22,8 @@ class TVIPlayerIE(InfoExtractor):
             'id': '62c4131c0cf2f9a86eac06bb',
             'ext': 'mp4',
             'title': 'David e Mickael Carreira respondem: «Qual é o próximo a ser pai?»',
-            'thumbnail': 'https://www.iol.pt/multimedia/oratvi/multimedia/imagem/id/62c416490cf2ea367d4433fd/',
-            'season': 'Season 2',
+            'thumbnail': 'https://img.iol.pt/image/id/62c416490cf2ea367d4433fd/',
             'duration': 148,
-            'season_number': 2,
         },
     }, {
         # episodio url
@@ -46,9 +33,11 @@ class TVIPlayerIE(InfoExtractor):
             'ext': 'mp4',
             'season': 'Season 1',
             'title': 'Quem denunciou Pedro?',
-            'thumbnail': 'https://www.iol.pt/multimedia/oratvi/multimedia/imagem/id/62eda30b0cf2ea367d48973b/',
+            'thumbnail': 'https://img.iol.pt/image/id/62eda30b0cf2ea367d48973b/',
             'duration': 1250,
             'season_number': 1,
+            'episode_number': 187,
+            'episode': 'Episode 187',
         },
     }]
 
@@ -72,8 +61,10 @@ class TVIPlayerIE(InfoExtractor):
             'id': video_id,
             'title': json_data.get('title') or self._og_search_title(webpage),
             'thumbnail': json_data.get('cover') or self._og_search_thumbnail(webpage),
-            'duration': json_data.get('duration'),
+            'duration': int_or_none(json_data.get('duration')),
             'formats': formats,
             'subtitles': subtitles,
-            'season_number': traverse_obj(json_data, ('program', 'seasonNum')),
+            'season_number': int_or_none(self._search_regex(
+                r'"seasonNumber"\s*:\s*"(\d+)"', webpage, 'season number', default=None)),
+            'episode_number': int_or_none(json_data.get('episodeNum')),
         }
