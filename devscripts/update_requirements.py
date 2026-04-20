@@ -645,6 +645,10 @@ def update_requirements(
     # Write the finalized pyproject.toml
     modify_and_write_pyproject(pyproject_text, table_name=EXTRAS_TABLE, table=extras)
 
+    # Generate/upgrade final lockfile that includes pinned extras
+    print(f'Running: uv lock {upgrade_arg}', file=sys.stderr)
+    run_process('uv', 'lock', upgrade_arg, env=env)
+
     return all_updates
 
 
