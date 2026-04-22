@@ -8,11 +8,16 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import collections.abc
+import contextlib
 import dataclasses
 import hashlib
 import io
+import itertools
+import json
 import pathlib
 import re
+import typing
+import urllib.parse
 import zipfile
 
 from devscripts.tomlparse import parse_toml
@@ -40,6 +45,12 @@ PINNED_EXTRAS = {
     'pin-curl-cffi': 'curl-cffi',
     'pin-secretstorage': 'secretstorage',
     'pin-deno': 'deno',
+}
+
+WELLKNOWN_PACKAGES = {
+    'deno': {'owner': 'denoland', 'repo': 'deno'},
+    'protobug': {'owner': 'yt-dlp', 'repo': 'protobug'},
+    'yt-dlp-ejs': {'owner': 'yt-dlp', 'repo': 'ejs'},
 }
 
 EJS_ASSETS = {
@@ -109,26 +120,88 @@ PYINSTALLER_BUILDS_TARGETS = {
     'win-arm64-pyinstaller': 'win_arm64',
 }
 
-PYINSTALLER_BUILDS_URL = 'https://api.github.com/repos/yt-dlp/Pyinstaller-Builds/releases/latest'
-
 PYINSTALLER_BUILDS_TMPL = '''\
 {}pyinstaller @ {} \\
     --hash={}
 '''
 
-PYINSTALLER_VERSION_RE = re.compile(r'pyinstaller-(?P<version>[0-9]+\.[0-9]+\.[0-9]+)-')
+
+def call_pypi_api(project: str) -> dict[str, dict[str, typing.Any]]:
+    print(f'Fetching package info from PyPI API: {project}', file=sys.stderr)
+    headers = {
+        'Accept': 'application/json',
+        'User-Agent': 'yt-dlp',
+    }
+    with request(f'https://pypi.org/pypi/{project}/json', headers=headers) as resp:
+        return json.load(resp)
+
+
+def fetch_latest_github_release(owner: str, repo: str) -> dict[str, dict[str, typing.Any]]:
+    print(f'Fetching latest release from Github API: {owner}/{repo}', file=sys.stderr)
+    return call_github_api(f'/repos/{owner}/{repo}/releases/latest')
+
+
+def fetch_github_tags(
+    owner: str,
+    repo: str,
+    *,
+    fetch_tags: list[str] | None = None,
+) -> dict[str, dict[str, typing.Any]]:
+
+    needed_tags = set(fetch_tags or [])
+    results = {}
+
+    for page in itertools.count(1):
+        print(f'Fetching tags list page {page} from Github API: {owner}/{repo}', file=sys.stderr)
+        tags = call_github_api(
+            f'/repos/{owner}/{repo}/tags',
+            query={'per_page': '100', 'page': page})
+
+        if not tags:
+            break
+
+        if not fetch_tags:
+            # Fetch all tags
+            results.update({tag['name']: tag for tag in tags})
+            continue
+
+        for tag in tags:
+            clean_tag = tag['name'].removeprefix('v')
+            possible_matches = {tag['name'], clean_tag}
+            # Normalize calver tags like 2024.01.01 to 2024.1.1
+            with contextlib.suppress(ValueError):
+                possible_matches.add('.'.join(map(str, map(int, clean_tag.split('.')))))
+
+            for name in possible_matches:
+                if name in needed_tags:
+                    needed_tags.remove(name)
+                    results[name] = tag
+                    break  # from inner loop
+
+            if not needed_tags:
+                break
+
+        if not needed_tags:
+            break
+
+    return results
 
 
 def generate_table_lines(
     table_name: str,
-    table: dict[str, str | list[str | dict[str, str]]],
+    table: dict[str, str | bool | int | float | list[str | dict[str, str]]],
 ) -> collections.abc.Iterator[str]:
+    SUPPORTED_TYPES = (str, bool, int, float, list)
+
     yield f'[{table_name}]\n'
     for name, value in table.items():
-        assert isinstance(value, (str, list)), 'only string & array table values are supported'
+        if not isinstance(value, SUPPORTED_TYPES):
+            raise TypeError(
+                f'expected {"/".join(t.__name__ for t in SUPPORTED_TYPES)} value, '
+                f'got {type(value).__name__}')
 
-        if isinstance(value, str):
-            yield f'{name} = "{value}"\n'
+        if not isinstance(value, list):
+            yield f'{name} = {json.dumps(value)}\n'
             continue
 
         yield f'{name} = ['
@@ -137,7 +210,7 @@ def generate_table_lines(
         for element in value:
             yield '    '
             if isinstance(element, dict):
-                yield '{ ' + ', '.join(f'{k} = "{v}"' for k, v in element.items()) + ' }'
+                yield '{ ' + ', '.join(f'{k} = {json.dumps(v)}' for k, v in element.items()) + ' }'
             else:
                 yield f'"{element}"'
             yield ',\n'
@@ -148,7 +221,7 @@ def generate_table_lines(
 def replace_table_in_pyproject(
     pyproject_text: str,
     table_name: str,
-    table: dict[str, str | list[str | dict[str, str]]],
+    table: dict[str, str | bool | int | float | list[str | dict[str, str]]],
 ) -> collections.abc.Iterator[str]:
     INSIDE = 1
     BEYOND = 2
@@ -169,7 +242,7 @@ def replace_table_in_pyproject(
 def modify_and_write_pyproject(
     pyproject_text: str,
     table_name: str,
-    table: dict[str, str | list[str | dict[str, str]]],
+    table: dict[str, str | bool | int | float | list[str | dict[str, str]]],
 ) -> None:
     with PYPROJECT_PATH.open(mode='w') as f:
         f.writelines(replace_table_in_pyproject(pyproject_text, table_name, table))
@@ -255,7 +328,10 @@ def makefile_variables(
     if keys_only:
         return variables
 
-    assert all(arg is not None for arg in (version, name, digest, not filetypes or data))
+    if not all(arg is not None for arg in (version, name, digest, not filetypes or data)):
+        raise ValueError(
+            'makefile_variables requires version, name, digest, '
+            f'{"and data, " if filetypes else ""}OR keys_only=True')
 
     if filetypes:
         with io.BytesIO(data) as buf, zipfile.ZipFile(buf) as zipf:
@@ -271,12 +347,11 @@ def ejs_makefile_variables(**kwargs) -> dict[str, str | None]:
     return makefile_variables('EJS', filetypes=['PY', 'JS'], **kwargs)
 
 
-def update_ejs(verify: bool = False):
+def update_ejs(verify: bool = False) -> dict[str, tuple[str | None, str | None]] | None:
     PACKAGE_NAME = 'yt-dlp-ejs'
     PREFIX = f'    "{PACKAGE_NAME}=='
     LIBRARY_NAME = PACKAGE_NAME.replace('-', '_')
     PACKAGE_PATH = BASE_PATH / 'yt_dlp/extractor/youtube/jsc/_builtin/vendor'
-    RELEASE_URL = 'https://api.github.com/repos/yt-dlp/ejs/releases/latest'
 
     current_version = None
     with PYPROJECT_PATH.open() as file:
@@ -286,8 +361,7 @@ def update_ejs(verify: bool = False):
             current_version, _, _ = line.removeprefix(PREFIX).partition('"')
 
     if not current_version:
-        print(f'{PACKAGE_NAME} dependency line could not be found')
-        return
+        raise ValueError(f'{PACKAGE_NAME} dependency line could not be found')
 
     makefile_info = ejs_makefile_variables(keys_only=True)
     prefixes = tuple(f'{key} = ' for key in makefile_info)
@@ -298,13 +372,13 @@ def update_ejs(verify: bool = False):
             key, _, val = line.partition(' = ')
             makefile_info[key] = val.rstrip()
 
-    info = call_github_api(RELEASE_URL)
+    info = fetch_latest_github_release('yt-dlp', 'ejs')
     version = info['tag_name']
     if version == current_version:
-        print(f'{PACKAGE_NAME} is up to date! ({version})')
+        print(f'{PACKAGE_NAME} is up to date! ({version})', file=sys.stderr)
         return
 
-    print(f'Updating {PACKAGE_NAME} from {current_version} to {version}')
+    print(f'Updating {PACKAGE_NAME} from {current_version} to {version}', file=sys.stderr)
     hashes = []
     wheel_info = {}
     for asset in info['assets']:
@@ -321,7 +395,8 @@ def update_ejs(verify: bool = False):
         # verify digest from github
         algo, _, expected = digest.partition(':')
         hexdigest = hashlib.new(algo, data).hexdigest()
-        assert hexdigest == expected, f'downloaded attest mismatch ({hexdigest!r} != {expected!r})'
+        if hexdigest != expected:
+            raise ValueError(f'downloaded attest mismatch ({hexdigest!r} != {expected!r})')
 
         if is_wheel:
             wheel_info = ejs_makefile_variables(version=version, name=name, digest=digest, data=data)
@@ -335,10 +410,11 @@ def update_ejs(verify: bool = False):
             (PACKAGE_PATH / name).write_bytes(data)
 
     hash_mapping = '\n'.join(hashes)
-    for asset_name in EJS_ASSETS:
-        assert asset_name in hash_mapping, f'{asset_name} not found in release'
+    if missing_assets := [asset_name for asset_name in EJS_ASSETS if asset_name not in hash_mapping]:
+        raise ValueError(f'asset(s) not found in release: {", ".join(missing_assets)}')
 
-    assert all(wheel_info.get(key) for key in makefile_info), 'wheel info not found in release'
+    if missing_fields := [key for key in makefile_info if not wheel_info.get(key)]:
+        raise ValueError(f'wheel info not found in release: {", ".join(missing_fields)}')
 
     (PACKAGE_PATH / '_info.py').write_text(EJS_TEMPLATE.format(
         version=version,
@@ -354,10 +430,120 @@ def update_ejs(verify: bool = False):
         makefile = makefile.replace(f'{key} = {makefile_info[key]}', f'{key} = {wheel_info[key]}')
     MAKEFILE_PATH.write_text(makefile)
 
-    update_requirements(upgrade_only=PACKAGE_NAME, verify=verify)
+    return update_requirements(upgrade_only=PACKAGE_NAME, verify=verify)
 
 
-def update_requirements(upgrade_only: str | None = None, verify: bool = False):
+@dataclasses.dataclass
+class Dependency:
+    name: str
+    exact_version: str | None
+    direct_reference: str | None
+    specifier: str | None
+    markers: str | None
+
+
+def parse_version_from_dist(filename: str, name: str, *, require: bool = False) -> str | None:
+    # Ref: https://packaging.python.org/en/latest/specifications/binary-distribution-format/#escaping-and-unicode
+    normalized_name = re.sub(r'[-_.]+', '-', name).lower().replace('-', '_')
+
+    # Ref: https://packaging.python.org/en/latest/specifications/version-specifiers/#version-specifiers
+    if mobj := re.match(rf'{normalized_name}-(?P<version>[^-]+)-', filename):
+        return mobj.group('version')
+
+    if require:
+        raise ValueError(f'unable to parse version from distribution filename: {filename}')
+
+    return None
+
+
+def parse_dependency(line: str, *, require_version: bool = False) -> Dependency:
+    # Ref: https://packaging.python.org/en/latest/specifications/name-normalization/
+    NAME_RE = re.compile(r'^(?P<name>[A-Z0-9](?:[A-Z0-9._-]*[A-Z0-9])?)', re.IGNORECASE)
+
+    line = line.rstrip().removesuffix('\\')
+    mobj = NAME_RE.match(line)
+    if not mobj:
+        raise ValueError(f'unable to parse Dependency.name from line:\n    {line}')
+
+    name = mobj.group('name')
+    rest = line[len(name):].lstrip()
+    specifier_or_direct_reference, _, markers = map(str.strip, rest.partition(';'))
+    specifier, _, direct_reference = map(str.strip, specifier_or_direct_reference.partition('@'))
+
+    exact_version = None
+    if ',' not in specifier and specifier.startswith('=='):
+        exact_version = specifier[2:]
+
+    # Ref: https://packaging.python.org/en/latest/specifications/binary-distribution-format/
+    if direct_reference and not exact_version:
+        filename = urllib.parse.urlparse(direct_reference).path.rpartition('/')[2]
+        if filename.endswith(('.tar.gz', '.whl')):
+            exact_version = parse_version_from_dist(filename, name)
+
+    if require_version and not exact_version:
+        raise ValueError(f'unable to parse Dependency.exact_version from line:\n    {line}')
+
+    return Dependency(
+        name=name,
+        exact_version=exact_version,
+        direct_reference=direct_reference or None,
+        specifier=specifier or None,
+        markers=markers or None)
+
+
+def package_diff_dict(
+    old_dict: dict[str, str],
+    new_dict: dict[str, str],
+) -> dict[str, tuple[str | None, str | None]]:
+    """
+    @param old_dict: Dictionary w/ package names as keys and old package versions as values
+    @param new_dict: Dictionary w/ package names as keys and new package versions as values
+    @returns         Dictionary w/ package names as keys and tuples of (old_ver, new_ver) as values
+    """
+    ret_dict = {}
+
+    for name, new_version in new_dict.items():
+        if name not in old_dict:
+            ret_dict[name] = (None, new_version)
+            continue
+
+        old_version = old_dict[name]
+        if new_version != old_version:
+            ret_dict[name] = (old_version, new_version)
+
+    for name, old_version in old_dict.items():
+        if name not in new_dict:
+            ret_dict[name] = (old_version, None)
+
+    return ret_dict
+
+
+def get_lock_packages(lock: dict[str, typing.Any]) -> dict[str, str]:
+    return {
+        package['name']: package['version']
+        for package in lock['package']
+        if package.get('version')
+    }
+
+
+def evaluate_requirements_txt(old_txt: str, new_txt: str) -> dict[str, tuple[str | None, str | None]]:
+    old_dict = {}
+    new_dict = {}
+
+    for txt, dct in [(old_txt, old_dict), (new_txt, new_dict)]:
+        for line in txt.splitlines():
+            if not line.strip() or line.startswith(('#', ' ')):
+                continue
+            dep = parse_dependency(line, require_version=True)
+            dct.update({dep.name: dep.exact_version})
+
+    return package_diff_dict(old_dict, new_dict)
+
+
+def update_requirements(
+    upgrade_only: str | None = None,
+    verify: bool = False,
+) -> dict[str, tuple[str | None, str | None]]:
     # Are we upgrading all packages or only one (e.g. 'yt-dlp-ejs' or 'protobug')?
     upgrade_arg = f'--upgrade-package={upgrade_only}' if upgrade_only else '--upgrade'
 
@@ -372,30 +558,50 @@ def update_requirements(upgrade_only: str | None = None, verify: bool = False):
     # Write an intermediate pyproject.toml to use for generating lockfile and bundle requirements
     modify_and_write_pyproject(pyproject_text, table_name=EXTRAS_TABLE, table=extras)
 
+    old_lock = None
+    if LOCKFILE_PATH.is_file():
+        old_lock = parse_toml(LOCKFILE_PATH.read_text())
+
     # If verifying, set UV_EXCLUDE_NEWER env var with the last timestamp recorded in uv.lock
     env = None
-    if verify:
+    if verify or upgrade_only in pyproject_toml['tool']['uv']['exclude-newer-package']:
         env = os.environ.copy()
-        env['UV_EXCLUDE_NEWER'] = parse_toml(LOCKFILE_PATH.read_text())['options']['exclude-newer']
+        env['UV_EXCLUDE_NEWER'] = old_lock['options']['exclude-newer']
+        print(f'Setting UV_EXCLUDE_NEWER={env["UV_EXCLUDE_NEWER"]}', file=sys.stderr)
 
     # Generate/upgrade lockfile
+    print(f'Running: uv lock {upgrade_arg}', file=sys.stderr)
     run_process('uv', 'lock', upgrade_arg, env=env)
 
-    # Generate bundle requirements
+    # Record diff in uv.lock packages
+    old_packages = get_lock_packages(old_lock) if old_lock else {}
+    new_packages = get_lock_packages(parse_toml(LOCKFILE_PATH.read_text()))
+    all_updates = package_diff_dict(old_packages, new_packages)
+
+    # Update Windows PyInstaller requirements; need to compare before & after .txt's for reporting
     if not upgrade_only or upgrade_only.lower() == 'pyinstaller':
-        info = call_github_api(PYINSTALLER_BUILDS_URL)
+        info = fetch_latest_github_release('yt-dlp', 'Pyinstaller-Builds')
         for target_suffix, asset_tag in PYINSTALLER_BUILDS_TARGETS.items():
             asset_info = next(asset for asset in info['assets'] if asset_tag in asset['name'])
-            pyinstaller_version = PYINSTALLER_VERSION_RE.match(asset_info['name']).group('version')
+            pyinstaller_version = parse_version_from_dist(
+                asset_info['name'], 'pyinstaller', require=True)
             pyinstaller_builds_deps = run_pip_compile(
                 '--no-emit-package=pyinstaller',
                 upgrade_arg,
                 input_line=f'pyinstaller=={pyinstaller_version}',
                 env=env)
             requirements_path = REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(target_suffix)
-            requirements_path.write_text(PYINSTALLER_BUILDS_TMPL.format(
-                pyinstaller_builds_deps, asset_info['browser_download_url'], asset_info['digest']))
+            if requirements_path.is_file():
+                old_requirements_txt = requirements_path.read_text()
+            else:
+                old_requirements_txt = ''
 
+            new_requirements_txt = PYINSTALLER_BUILDS_TMPL.format(
+                pyinstaller_builds_deps, asset_info['browser_download_url'], asset_info['digest'])
+            requirements_path.write_text(new_requirements_txt)
+            all_updates.update(evaluate_requirements_txt(old_requirements_txt, new_requirements_txt))
+
+    # Export bundle requirements; any updates to these are already recorded w/ uv.lock package diff
     for target_suffix, target in BUNDLE_TARGETS.items():
         run_uv_export(
             extras=target.extras,
@@ -404,22 +610,149 @@ def update_requirements(upgrade_only: str | None = None, verify: bool = False):
             omit_packages=target.omit_packages,
             output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(target_suffix))
 
-    run_uv_export(
-        groups=['build'],
-        output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format('pypi-build'))
+    # Export group requirements; any updates to these are already recorded w/ uv.lock package diff
+    for group in ('build',):
+        run_uv_export(
+            groups=[group],
+            output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(group))
 
-    run_pip_compile(
-        upgrade_arg,
-        input_line='pip',
-        output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format('pip'),
-        env=env)
+    # Compile requirements for single packages; need to compare before & after .txt's for reporting
+    for package in ('pip',):
+        requirements_path = REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(package)
+        if requirements_path.is_file():
+            old_requirements_txt = requirements_path.read_text()
+        else:
+            old_requirements_txt = ''
 
-    # Generate pinned extras
+        run_pip_compile(
+            upgrade_arg,
+            input_line=package,
+            output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(package),
+            env=env)
+
+        new_requirements_txt = requirements_path.read_text()
+        all_updates.update(evaluate_requirements_txt(old_requirements_txt, new_requirements_txt))
+
+    # Generate new pinned extras; any updates to these are already recorded w/ uv.lock package diff
     for pinned_name, extra_name in PINNED_EXTRAS.items():
         extras[pinned_name] = run_uv_export(extras=[extra_name], bare=True).splitlines()
 
     # Write the finalized pyproject.toml
     modify_and_write_pyproject(pyproject_text, table_name=EXTRAS_TABLE, table=extras)
+
+    return all_updates
+
+
+def generate_report(
+    all_updates: dict[str, tuple[str | None, str | None]],
+) -> collections.abc.Iterator[str]:
+    GITHUB_RE = re.compile(r'https://github\.com/(?P<owner>[0-9a-zA-Z_-]+)/(?P<repo>[0-9a-zA-Z_-]+)')
+
+    yield 'package | old | new | diff | changelog'
+    yield '--------|-----|-----|------|----------'
+    for package, (old, new) in sorted(all_updates.items()):
+        if package in WELLKNOWN_PACKAGES:
+            github_info = WELLKNOWN_PACKAGES[package]
+            changelog = ''
+
+        else:
+            project_urls = call_pypi_api(package)['info']['project_urls']
+            github_info = next((
+                mobj.groupdict() for url in project_urls.values()
+                if (mobj := GITHUB_RE.match(url))), None)
+            changelog = next((
+                url for key, url in project_urls.items()
+                if key.lower().startswith(('change', 'history', 'release '))), '')
+            if changelog:
+                name = urllib.parse.urlparse(changelog).path.rstrip('/').rpartition('/')[2] or 'changelog'
+                changelog = f'[{name}](<{changelog}>)'
+
+        md_old = old = old or ''
+        md_new = new = new or ''
+        if old and new:
+            # bolden and italicize the differing parts
+            old_parts = old.split('.')
+            new_parts = new.split('.')
+
+            offset = None
+            for index, (old_part, new_part) in enumerate(zip(old_parts, new_parts, strict=False)):
+                if old_part != new_part:
+                    offset = index
+                    break
+
+            if offset is not None:
+                md_old = '.'.join(old_parts[:offset]) + '.***' + '.'.join(old_parts[offset:]) + '***'
+                md_new = '.'.join(new_parts[:offset]) + '.***' + '.'.join(new_parts[offset:]) + '***'
+
+        compare = ''
+        if github_info:
+            tags_info = fetch_github_tags(
+                github_info['owner'], github_info['repo'], fetch_tags=[old, new])
+            old_tag = tags_info.get(old) and tags_info[old]['name']
+            new_tag = tags_info.get(new) and tags_info[new]['name']
+            github_url = 'https://github.com/{owner}/{repo}'.format(**github_info)
+            if new_tag:
+                md_new = f'[{md_new}]({github_url}/releases/tag/{new_tag})'
+            if old_tag:
+                md_old = f'[{md_old}]({github_url}/releases/tag/{old_tag})'
+            if new_tag and old_tag:
+                compare = f'[`{old_tag}...{new_tag}`]({github_url}/compare/{old_tag}...{new_tag})'
+
+        yield ' | '.join((
+            f'[**`{package}`**](https://pypi.org/project/{package})',
+            md_old,
+            md_new,
+            compare,
+            changelog,
+        ))
+
+
+def make_pull_request_description(all_updates: dict[str, tuple[str | None, str | None]]) -> str:
+    return '\n'.join((
+        '<!-- BEGIN update_requirements generated section -->\n',
+        *generate_report(all_updates),
+        '\n<!-- END update_requirements generated section -->\n\n',
+    ))
+
+
+def make_commit_message(all_updates: dict[str, tuple[str | None, str | None]]) -> str:
+    return '\n\n'.join((
+        make_commit_title(all_updates),
+        make_commit_body(all_updates),
+    ))
+
+
+def make_commit_title(all_updates: dict[str, tuple[str | None, str | None]]) -> str:
+    count = len(all_updates)
+    return f'[build] Update {count} dependenc{"ies" if count > 1 else "y"}'
+
+
+def make_commit_body(all_updates: dict[str, tuple[str | None, str | None]]) -> str:
+    return '\n'.join(make_commit_line(package, old, new) for package, (old, new) in all_updates.items())
+
+
+def make_commit_line(package: str, old: str | None, new: str | None) -> str:
+    if old is None:
+        return f'* Add {package} {new}'
+
+    if new is None:
+        return f'* Remove {package} {old}'
+
+    return f'* Bump {package} {old} => {new}'
+
+
+def table_a_raza(header: tuple[str, ...], rows: list[tuple[str, ...]]) -> collections.abc.Generator[str]:
+    widths = [len(col) for col in header]
+
+    for row in rows:
+        for index, (width, col) in enumerate(zip(widths, row, strict=True)):
+            if len(col) > width:
+                widths[index] = len(col)
+
+    yield ' | '.join(col.ljust(width) for width, col in zip(widths, header, strict=True))
+    yield '-|-'.join(''.ljust(width, '-') for width in widths)
+    for row in rows:
+        yield ' | '.join(col.ljust(width) for width, col in zip(widths, row, strict=True))
 
 
 def parse_args():
@@ -431,6 +764,9 @@ def parse_args():
     parser.add_argument(
         '--verify', action='store_true',
         help='only verify the update(s) using the previously recorded cooldown timestamp')
+    parser.add_argument(
+        '--no-markdown-reports', action='store_true',
+        help='do not generate markdown PR descriptions; avoids optional PyPI/GitHub API calls')
     return parser.parse_args()
 
 
@@ -438,10 +774,31 @@ def main():
     args = parse_args()
 
     if args.upgrade_only in ('ejs', 'yt-dlp-ejs'):
-        update_ejs(verify=args.verify)
+        all_updates = update_ejs(verify=args.verify)
     else:
-        update_requirements(upgrade_only=args.upgrade_only, verify=args.verify)
+        all_updates = update_requirements(upgrade_only=args.upgrade_only, verify=args.verify)
+
+    if all_updates is None:
+        return 1
+    elif not all_updates:
+        print('All requirements are up-to-date', file=sys.stderr)
+        return 0
+
+    if args.verify:
+        print('Verification failed! Updates were made:', file=sys.stderr)
+        for row in table_a_raza(('package', 'old', 'new'), [
+            (package, old or '', new or '')
+            for package, (old, new) in all_updates.items()
+        ]):
+            print(row)
+        return 1
+
+    else:
+        if not args.no_markdown_reports:
+            print(make_pull_request_description(all_updates))
+        print(make_commit_message(all_updates))
+        return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
