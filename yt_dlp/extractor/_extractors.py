@@ -2303,7 +2303,10 @@ from .vice import (
     ViceShowIE,
 )
 from .viddler import ViddlerIE
-from .videa import VideaIE
+from .videa import (
+    VideaIE,
+    VideaUserIE,
+)
 from .videocampus_sachsen import (
     VideocampusSachsenIE,
     ViMPPlaylistIE,
