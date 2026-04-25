@@ -77,7 +77,7 @@ jobs:
     - name: Install test requirements
       shell: bash
       run: |
-        python ./devscripts/install_deps.py --print --omit-default --include-extra test > requirements.txt
+        python ./devscripts/install_deps.py --print --omit-default --include-group test > requirements.txt
         python ./devscripts/install_deps.py --print -c certifi -c requests -c urllib3 -c yt-dlp-ejs >> requirements.txt
         python -m pip install -U -r requirements.txt
     - name: Run tests

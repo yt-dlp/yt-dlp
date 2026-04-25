@@ -42,13 +42,13 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
-          python-version: "3.10"  # Keep this in sync with release.yml's prepare job
+          python-version: "3.13"  # Keep this in sync with release.yml's prepare job
       - name: Install requirements
         env:
           ACTIONLINT_TARBALL: ${{ format('actionlint_{0}_linux_amd64.tar.gz', env.ACTIONLINT_VERSION) }}
         shell: bash
         run: |
-          python -m devscripts.install_deps --omit-default --include-extra test
+          python -m devscripts.install_deps --omit-default --include-group test
           sudo apt -y install shellcheck
           python -m pip install -U pyflakes
           curl -LO "${ACTIONLINT_REPO}/releases/download/v${ACTIONLINT_VERSION}/${ACTIONLINT_TARBALL}"

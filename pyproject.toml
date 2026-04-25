@@ -47,8 +47,8 @@ dependencies = []
 
 [project.optional-dependencies]
 default = [
-    "brotli; implementation_name=='cpython'",
-    "brotlicffi; implementation_name!='cpython'",
+    "brotli ; implementation_name == 'cpython' and sys_platform != 'ios'",
+    "brotlicffi ; implementation_name != 'cpython'",
     "certifi",
     "mutagen",
     "pycryptodomex",
@@ -58,30 +58,55 @@ default = [
     "yt-dlp-ejs==0.8.0",
 ]
 curl-cffi = [
-    "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.15; implementation_name=='cpython'",
-]
-build-curl-cffi = [
-    "curl-cffi==0.13.0; sys_platform=='darwin' or (sys_platform=='linux' and platform_machine!='armv7l')",
-    "curl-cffi==0.14.0; sys_platform=='win32' or (sys_platform=='linux' and platform_machine=='armv7l')",
+    "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.16 ; implementation_name == 'cpython'",
 ]
 secretstorage = [
-    "cffi",
     "secretstorage",
 ]
 deno = [
-    "deno>=2.6.6",  # v2.6.5 fixes compatibility, v2.6.6 adds integrity check
+    "deno>=2.6.6",
 ]
+pin = [
+    "brotli==1.2.0 ; implementation_name == 'cpython' and sys_platform != 'ios'",
+    "brotlicffi==1.2.0.1 ; implementation_name != 'cpython'",
+    "certifi==2026.2.25",
+    "cffi==2.0.0 ; implementation_name != 'cpython'",
+    "charset-normalizer==3.4.6",
+    "idna==3.11",
+    "mutagen==1.47.0",
+    "pycparser==3.0 ; implementation_name != 'PyPy' and implementation_name != 'cpython'",
+    "pycryptodomex==3.23.0",
+    "requests==2.33.0",
+    "urllib3==2.6.3",
+    "websockets==16.0",
+    "yt-dlp-ejs==0.8.0",
+]
+pin-curl-cffi = [
+    "certifi==2026.2.25 ; implementation_name == 'cpython'",
+    "cffi==2.0.0 ; implementation_name == 'cpython'",
+    "curl-cffi==0.15.0 ; implementation_name == 'cpython'",
+    "markdown-it-py==4.0.0 ; implementation_name == 'cpython'",
+    "mdurl==0.1.2 ; implementation_name == 'cpython'",
+    "pycparser==3.0 ; implementation_name == 'cpython'",
+    "pygments==2.19.2 ; implementation_name == 'cpython'",
+    "rich==14.3.3 ; implementation_name == 'cpython'",
+]
+pin-secretstorage = [
+    "cffi==2.0.0 ; platform_python_implementation != 'PyPy'",
+    "cryptography==46.0.6",
+    "jeepney==0.9.0",
+    "pycparser==3.0 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'",
+    "secretstorage==3.5.0",
+    "typing-extensions==4.15.0 ; python_full_version < '3.11'",
+]
+pin-deno = [
+    "deno==2.7.8",
+]
+
+[dependency-groups]
 build = [
     "build",
     "hatchling>=1.27.0",
-    "pip",
-    "setuptools>=71.0.2",
-    "wheel",
-]
-dev = [
-    "pre-commit",
-    "yt-dlp[static-analysis]",
-    "yt-dlp[test]",
 ]
 static-analysis = [
     "autopep8~=2.0",
@@ -91,8 +116,16 @@ test = [
     "pytest~=8.1",
     "pytest-rerunfailures~=14.0",
 ]
+dev = [
+    "pre-commit",
+    {include-group = "static-analysis"},
+    {include-group = "test"},
+]
 pyinstaller = [
-    "pyinstaller>=6.17.0",  # 6.17.0+ needed for compat with setuptools 81+
+    "pyinstaller>=6.17.0",
+]
+delocate = [
+    "delocate>=0.13.0 ; sys_platform == 'darwin'",
 ]
 
 [project.urls]
@@ -147,9 +180,17 @@ exclude = [
 path = "yt_dlp/version.py"
 pattern = "_pkg_version = '(?P<version>[^']+)'"
 
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [tool.hatch.envs.default]
-features = ["curl-cffi", "default"]
-dependencies = ["pre-commit"]
+features = [
+    "curl-cffi",
+    "default",
+]
+dependencies = [
+    "pre-commit",
+]
 path = ".venv"
 installer = "uv"
 
@@ -157,9 +198,16 @@ installer = "uv"
 setup = "pre-commit install --config .pre-commit-hatch.yaml"
 yt-dlp = "python -Werror -Xdev -m yt_dlp {args}"
 
+[tool.hatch.envs.hatch-uv]
+dependencies = [
+    "uv>=0.10",
+]
+
 [tool.hatch.envs.hatch-static-analysis]
 detached = true
-features = ["static-analysis"]
+dependency-groups = [
+    "static-analysis",
+]
 dependencies = []  # override hatch ruff version
 config-path = "pyproject.toml"
 
@@ -170,7 +218,13 @@ lint-check = "ruff check {args:.}"
 lint-fix = "ruff check --fix {args:.}"
 
 [tool.hatch.envs.hatch-test]
-features = ["test"]
+features = [
+    "curl-cffi",
+    "default",
+]
+dependency-groups = [
+    "test",
+]
 dependencies = [
     "pytest-randomly~=3.15",
     "pytest-xdist[psutil]~=3.5",
@@ -189,6 +243,13 @@ python = [
     "3.14",
     "pypy3.11",
 ]
+
+[tool.uv]
+exclude-newer = "7 days"
+
+[tool.uv.exclude-newer-package]
+protobug = false
+yt-dlp-ejs = false
 
 [tool.ruff]
 line-length = 120

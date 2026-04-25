@@ -277,7 +277,6 @@ jobs:
         env:
           SERVICE: ${{ matrix.os }}_${{ matrix.arch }}
         run: |
-          mkdir -p ./venv
           mkdir -p ./dist
           pushd bundle/docker
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
@@ -328,39 +327,34 @@ jobs:
           brew uninstall --ignore-dependencies python3
           python3 -m venv ~/yt-dlp-build-venv
           source ~/yt-dlp-build-venv/bin/activate
-          python3 devscripts/install_deps.py --omit-default --include-extra build
-          python3 devscripts/install_deps.py --print --include-extra pyinstaller > requirements.txt
-          # We need to ignore wheels otherwise we break universal2 builds
-          python3 -m pip install -U --no-binary :all: -r requirements.txt
-          # We need to fuse our own universal2 wheels for curl_cffi
-          python3 -m pip install -U 'delocate==0.11.0'
-          mkdir curl_cffi_whls curl_cffi_universal2
-          python3 devscripts/install_deps.py --print --omit-default --include-extra build-curl-cffi > requirements.txt
+          python3 -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
+          rm -rf build
+          # Only directly install wheels for "macosx_10_15_universal2" and "any" platforms
+          mkdir -p build/wheels
+          python3 -m pip download \
+            --only-binary=:all: \
+            --platform=macosx_10_15_universal2 \
+            --platform=any \
+            -d build/wheels \
+            --require-hashes \
+            -r "bundle/requirements/requirements-macos.txt"
+          python3 -m pip install --force-reinstall --no-deps -U build/wheels/*.whl
+          rm -rf build/wheels/*
+          # We need to fuse our own universal2 wheels for curl_cffi and cffi
+          mkdir -p build/universal2
           for platform in "macosx_11_0_arm64" "macosx_11_0_x86_64"; do
             python3 -m pip download \
+              --no-deps \
               --only-binary=:all: \
               --platform "${platform}" \
-              -d curl_cffi_whls \
-              -r requirements.txt
+              -d build/wheels \
+               --require-hashes \
+              -r "bundle/requirements/requirements-macos-curl_cffi.txt"
           done
-          ( # Overwrite x86_64-only libs with fat/universal2 libs or else Pyinstaller will do the opposite
-            # See https://github.com/yt-dlp/yt-dlp/pull/10069
-            cd curl_cffi_whls
-            mkdir -p curl_cffi/.dylibs
-            python_libdir=$(python3 -c 'import sys; from pathlib import Path; print(Path(sys.path[1]).parent)')
-            for dylib in lib{ssl,crypto}.3.dylib; do
-              cp "${python_libdir}/${dylib}" "curl_cffi/.dylibs/${dylib}"
-              for wheel in curl_cffi*macos*x86_64.whl; do
-                zip "${wheel}" "curl_cffi/.dylibs/${dylib}"
-              done
-            done
-          )
-          python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/curl_cffi*.whl -w curl_cffi_universal2
-          python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/cffi*.whl -w curl_cffi_universal2
-          for wheel in curl_cffi_universal2/*cffi*.whl; do
-            mv -n -- "${wheel}" "${wheel/x86_64/universal2}"
-          done
-          python3 -m pip install --force-reinstall -U curl_cffi_universal2/*cffi*.whl
+          python3 -m delocate.cmd.delocate_merge build/wheels/curl_cffi-*.whl -w build/universal2
+          python3 -m delocate.cmd.delocate_merge build/wheels/cffi-*.whl -w build/universal2
+          python3 -m pip install --force-reinstall --no-deps -U build/universal2/{curl_,}cffi-*.whl
+          rm -rf build
 
       - name: Prepare
         run: |
@@ -392,6 +386,32 @@ jobs:
             dist/yt-dlp_macos.zip
           compression-level: 0
 
+  macos_verify:
+    name: Verify macos x86_64
+    needs: [macos]
+    if: inputs.macos && vars.UPDATE_TO_VERIFICATION
+    permissions:
+      contents: read
+    runs-on: macos-15-intel
+    env:
+      UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          path: dist
+          pattern: build-bin-macos
+
+      - name: Verify --update-to on x86_64 architecture
+        run: |
+          chmod +x ./dist/yt-dlp_macos
+          cp ./dist/yt-dlp_macos ./dist/yt-dlp_macos_downgraded
+          version="$(./dist/yt-dlp_macos --version)"
+          ./dist/yt-dlp_macos_downgraded -v --update-to "${UPDATE_TO}"
+          downgraded_version="$(./dist/yt-dlp_macos_downgraded --version)"
+          [[ "$version" != "$downgraded_version" ]]
+
   windows:
     name: windows (${{ matrix.arch }})
     needs: [process]
@@ -406,33 +426,18 @@ jobs:
         - arch: 'x64'
           runner: windows-2025
           python_version: '3.10'
-          platform_tag: win_amd64
-          pyi_version: '6.19.0'
-          pyi_tag: '2026.03.17.175201'
-          pyi_hash: '1a5f4b844abd02bd758ae6b64c5243fed1a2fa641dbcab2f79480c6a7b957e2d'
         - arch: 'x86'
           runner: windows-2025
           python_version: '3.10'
-          platform_tag: win32
-          pyi_version: '6.19.0'
-          pyi_tag: '2026.03.17.175201'
-          pyi_hash: '9b3c791d7e5cc23f5b48dffc3c367dac10a516b86904db48b6096c2b5d1ffb41'
         - arch: 'arm64'
           runner: windows-11-arm
           python_version: '3.13'  # arm64 only has Python >= 3.11 available
-          platform_tag: win_arm64
-          pyi_version: '6.19.0'
-          pyi_tag: '2026.03.17.175201'
-          pyi_hash: 'd008e5c8bb2143f7c05c8b5fcc15dab5f079d79425f78af1936c6768f8e87504'
     env:
       CHANNEL: ${{ inputs.channel }}
       ORIGIN: ${{ needs.process.outputs.origin }}
       VERSION: ${{ needs.process.outputs.version }}
       SUFFIX: ${{ (matrix.arch != 'x64' && format('_{0}', matrix.arch)) || '' }}
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
-      BASE_CACHE_KEY: cache-reqs-${{ github.job }}_${{ matrix.arch }}-${{ matrix.python_version }}
-      PYI_REPO: https://github.com/yt-dlp/Pyinstaller-Builds
-      PYI_WHEEL: pyinstaller-${{ matrix.pyi_version }}-py3-none-${{ matrix.platform_tag }}.whl
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
@@ -447,25 +452,15 @@ jobs:
       - name: Install Requirements
         env:
           ARCH: ${{ matrix.arch }}
-          PYI_URL: ${{ env.PYI_REPO }}/releases/download/${{ matrix.pyi_tag }}/${{ env.PYI_WHEEL }}
-          PYI_HASH: ${{ matrix.pyi_hash }}
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
           $PSNativeCommandUseErrorActionPreference = $true
           python -m venv /yt-dlp-build-venv
           /yt-dlp-build-venv/Scripts/Activate.ps1
-          python -m pip install -U pip
-          # Install custom PyInstaller build and verify hash
-          mkdir /pyi-wheels
-          python -m pip download -d /pyi-wheels --no-deps --require-hashes "pyinstaller@${Env:PYI_URL}#sha256=${Env:PYI_HASH}"
-          python -m pip install --force-reinstall -U "/pyi-wheels/${Env:PYI_WHEEL}"
-          python devscripts/install_deps.py --omit-default --include-extra build
-          if ("${Env:ARCH}" -eq "x86") {
-            python devscripts/install_deps.py
-          } else {
-            python devscripts/install_deps.py --include-extra build-curl-cffi
-          }
+          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
+          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-win-${Env:ARCH}-pyinstaller.txt"
+          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-win-${Env:ARCH}.txt"
 
       - name: Prepare
         shell: pwsh
@@ -516,6 +511,7 @@ jobs:
       - unix
       - linux
       - macos
+      - macos_verify
       - windows
     if: always() && !failure() && !cancelled()
     runs-on: ubuntu-latest
