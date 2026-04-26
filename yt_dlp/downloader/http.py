@@ -251,6 +251,19 @@ class HttpFD(FileDownloader):
                     data_block = ctx.data.read(block_size if not is_test else min(block_size, data_len - byte_counter))
                 except TransportError as err:
                     retry(err)
+                except OSError as err:
+                    # Some live streams may abruptly close the connection (e.g. TLS shutdown)
+                    # when the stream ends. If we already received data, treat this as EOF.
+                    if (
+                        info_dict.get('is_live')
+                        and byte_counter > 0
+                        and ctx.data.headers.get('Content-length') is None
+                    ):
+                        self.report_warning(
+                            f'Connection closed unexpectedly (treated as EOF): {err}')
+                        break
+
+                    retry(err)
 
                 byte_counter += len(data_block)
 
