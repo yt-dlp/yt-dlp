@@ -439,31 +439,27 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
-        audio_data = self._download_json(
+        show_data = self._download_json(
             'https://bandcamp.com/api/bcradio_api/1/get_show',
             show_id, 'Downloading radio show JSON',
             data=json.dumps({'id': show_id}).encode(),
-            headers={'Content-Type': 'application/json'})['radioShowAudio']
+            headers={'Content-Type': 'application/json'})
+        audio_data = show_data['compiledTrack']
 
         stream_url = audio_data['streamUrl']
         format_id = traverse_obj(stream_url, ({parse_qs}, 'enc', -1))
         encoding, _, bitrate_str = (format_id or '').partition('-')
 
-        webpage = self._download_webpage(url, show_id, fatal=False)
-        metadata = traverse_obj(
-            self._extract_data_attr(webpage, show_id, 'blob', fatal=False),
-            ('appData', 'shows', lambda _, v: str(v['showId']) == show_id, any)) or {}
-
-        series_title = audio_data.get('title') or metadata.get('title')
-        release_timestamp = unified_timestamp(audio_data.get('date')) or unified_timestamp(metadata.get('date'))
+        series_title = show_data.get('title')
+        release_timestamp = unified_timestamp(show_data.get('date'))
 
         return {
             'id': show_id,
             'episode_id': show_id,
             'title': join_nonempty(series_title, strftime_or_none(release_timestamp, '%Y-%m-%d'), delim=', '),
             'series': series_title,
-            'thumbnail': format_field(metadata, 'imageId', 'https://f4.bcbits.com/img/%s_0.jpg', default=None),
-            'description': metadata.get('desc') or metadata.get('short_desc'),
+            'thumbnail': format_field(show_data, 'imageId', 'https://f4.bcbits.com/img/%s_0.jpg', default=None),
+            'description': show_data.get('description'),
             'duration': float_or_none(audio_data.get('duration')),
             'release_timestamp': release_timestamp,
             'formats': [{
