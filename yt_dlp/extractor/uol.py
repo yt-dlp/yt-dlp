@@ -1,8 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_urlencode,
-)
 from ..utils import (
     clean_html,
     int_or_none,
@@ -26,7 +24,7 @@ class UOLIE(InfoExtractor):
             'description': 'md5:3f8c11a0c0556d66daf7e5b45ef823b2',
             'timestamp': 1470421860,
             'upload_date': '20160805',
-        }
+        },
     }, {
         'url': 'http://tvuol.uol.com.br/video/incendio-destroi-uma-das-maiores-casas-noturnas-de-londres-04024E9A3268D4C95326',
         'md5': '2850a0e8dfa0a7307e04a96c5bdc5bc2',
@@ -37,7 +35,7 @@ class UOLIE(InfoExtractor):
             'description': 'Em Londres, um incêndio destruiu uma das maiores boates da cidade. Não há informações sobre vítimas.',
             'timestamp': 1470674520,
             'upload_date': '20160808',
-        }
+        },
     }, {
         'url': 'http://mais.uol.com.br/static/uolplayer/index.html?mediaId=15951931',
         'only_matching': True,
@@ -68,12 +66,12 @@ class UOLIE(InfoExtractor):
             # https://api.mais.uol.com.br/apiuol/v4/player/data/[MEDIA_ID]
             'https://api.mais.uol.com.br/apiuol/v3/media/detail/' + video_id,
             video_id)['item']
-        media_id = compat_str(video_data['mediaId'])
+        media_id = str(video_data['mediaId'])
         title = video_data['title']
         ver = video_data.get('revision', 2)
 
         uol_formats = self._download_json(
-            'https://croupier.mais.uol.com.br/v3/formats/%s/jsonp' % media_id,
+            f'https://croupier.mais.uol.com.br/v3/formats/{media_id}/jsonp',
             media_id)
         quality = qualities(['mobile', 'WEBM', '360p', '720p', '1080p'])
         formats = []
@@ -96,7 +94,7 @@ class UOLIE(InfoExtractor):
                 m3u8_formats = self._extract_m3u8_formats(
                     f_url, media_id, 'mp4', 'm3u8_native',
                     m3u8_id='hls', fatal=False)
-                encoded_query = compat_urllib_parse_urlencode(query)
+                encoded_query = urllib.parse.urlencode(query)
                 for m3u8_f in m3u8_formats:
                     m3u8_f['extra_param_to_segment_url'] = encoded_query
                     m3u8_f['url'] = update_url_query(m3u8_f['url'], query)

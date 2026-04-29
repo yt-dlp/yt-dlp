@@ -27,9 +27,9 @@ class TestOverwrites(unittest.TestCase):
             [
                 sys.executable, 'yt_dlp/__main__.py',
                 '-o', 'test.webm',
-                'https://www.youtube.com/watch?v=jNQXAC9IVRw'
+                'https://www.youtube.com/watch?v=jNQXAC9IVRw',
             ], cwd=root_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        sout, serr = outp.communicate()
+        sout, _ = outp.communicate()
         self.assertTrue(b'has already been downloaded' in sout)
         # if the file has no content, it has not been redownloaded
         self.assertTrue(os.path.getsize(download_file) < 1)
@@ -39,9 +39,9 @@ class TestOverwrites(unittest.TestCase):
             [
                 sys.executable, 'yt_dlp/__main__.py', '--yes-overwrites',
                 '-o', 'test.webm',
-                'https://www.youtube.com/watch?v=jNQXAC9IVRw'
+                'https://www.youtube.com/watch?v=jNQXAC9IVRw',
             ], cwd=root_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        sout, serr = outp.communicate()
+        sout, _ = outp.communicate()
         self.assertTrue(b'has already been downloaded' not in sout)
         # if the file has no content, it has not been redownloaded
         self.assertTrue(os.path.getsize(download_file) > 1)

@@ -25,7 +25,7 @@ class DrTuberIE(InfoExtractor):
             'categories': ['Babe', 'Blonde', 'Erotic', 'Outdoor', 'Softcore', 'Solo'],
             'thumbnail': r're:https?://.*\.jpg$',
             'age_limit': 18,
-        }
+        },
     }, {
         'url': 'http://www.drtuber.com/embed/489939',
         'only_matching': True,
@@ -40,7 +40,7 @@ class DrTuberIE(InfoExtractor):
         display_id = mobj.group('display_id') or video_id
 
         webpage = self._download_webpage(
-            'http://www.drtuber.com/video/%s' % video_id, display_id)
+            f'http://www.drtuber.com/video/{video_id}', display_id)
 
         video_data = self._download_json(
             'http://www.drtuber.com/player_config_json/', video_id, query={
@@ -56,7 +56,7 @@ class DrTuberIE(InfoExtractor):
                 formats.append({
                     'format_id': format_id,
                     'quality': 2 if format_id == 'hq' else 1,
-                    'url': video_url
+                    'url': video_url,
                 })
 
         duration = int_or_none(video_data.get('duration')) or parse_duration(
@@ -76,8 +76,8 @@ class DrTuberIE(InfoExtractor):
 
         def extract_count(id_, name, default=NO_DEFAULT):
             return str_to_int(self._html_search_regex(
-                r'<span[^>]+(?:class|id)="%s"[^>]*>([\d,\.]+)</span>' % id_,
-                webpage, '%s count' % name, default=default, fatal=False))
+                rf'<span[^>]+(?:class|id)="{id_}"[^>]*>([\d,\.]+)</span>',
+                webpage, f'{name} count', default=default, fatal=False))
 
         like_count = extract_count('rate_likes', 'like')
         dislike_count = extract_count('rate_dislikes', 'dislike', default=None)

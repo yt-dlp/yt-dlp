@@ -12,17 +12,18 @@ class S4CIE(InfoExtractor):
             'title': 'Y Swn',
             'description': 'md5:f7681a30e4955b250b3224aa9fe70cf0',
             'duration': 5340,
-            'thumbnail': 'https://www.s4c.cymru/amg/1920x1080/Y_Swn_2023S4C_099_ii.jpg'
+            'thumbnail': 'https://www.s4c.cymru/amg/1920x1080/Y_Swn_2023S4C_099_ii.jpg',
         },
     }, {
-        'url': 'https://www.s4c.cymru/clic/programme/856636948',
+        # Geo restricted to the UK
+        'url': 'https://www.s4c.cymru/clic/programme/886303048',
         'info_dict': {
-            'id': '856636948',
+            'id': '886303048',
             'ext': 'mp4',
-            'title': 'Am Dro',
+            'title': 'Pennod 1',
+            'description': 'md5:7e3f364b70f61fcdaa8b4cb4a3eb3e7a',
             'duration': 2880,
-            'description': 'md5:100d8686fc9a632a0cb2db52a3433ffe',
-            'thumbnail': 'https://www.s4c.cymru/amg/1920x1080/Am_Dro_2022-23S4C_P6_4005.jpg'
+            'thumbnail': 'https://www.s4c.cymru/amg/1920x1080/Stad_2025S4C_P1_210053.jpg',
         },
     }]
 
@@ -51,7 +52,7 @@ class S4CIE(InfoExtractor):
             'https://player-api.s4c-cdn.co.uk/streaming-urls/prod', video_id, query={
                 'mode': 'od',
                 'application': 'clic',
-                'region': 'WW',
+                'region': 'UK' if player_config.get('application') == 's4chttpl' else 'WW',
                 'extra': 'false',
                 'thirdParty': 'false',
                 'filename': player_config['filename'],
@@ -94,7 +95,7 @@ class S4CSeriesIE(InfoExtractor):
             'https://www.s4c.cymru/df/series_details', series_id, query={
                 'lang': 'e',
                 'series_id': series_id,
-                'show_prog_in_series': 'Y'
+                'show_prog_in_series': 'Y',
             }, note='Downloading series details JSON')
 
         return self.playlist_result(

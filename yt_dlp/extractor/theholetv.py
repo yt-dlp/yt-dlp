@@ -12,8 +12,8 @@ class TheHoleTvIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Сергей Орлов — Громкий вопрос',
             'thumbnail': 'https://assets-cdn.the-hole.tv/images/t8gan4n6zn627e7wni11b2uemqts',
-            'description': 'md5:45741a9202331f995d9fb76996759379'
-        }
+            'description': 'md5:45741a9202331f995d9fb76996759379',
+        },
     }]
 
     def _real_extract(self, url):
@@ -31,5 +31,5 @@ class TheHoleTvIE(InfoExtractor):
             'description': self._og_search_description(webpage),
             'thumbnail': player_attrs.get('data-player-poster-value'),
             'formats': formats,
-            'subtitles': subtitles
+            'subtitles': subtitles,
         }

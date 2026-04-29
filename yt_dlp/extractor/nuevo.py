@@ -28,5 +28,5 @@ class NuevoBaseIE(InfoExtractor):
             'title': title,
             'thumbnail': thumbnail,
             'duration': duration,
-            'formats': formats
+            'formats': formats,
         }

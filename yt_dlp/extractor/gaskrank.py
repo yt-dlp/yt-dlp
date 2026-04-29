@@ -22,7 +22,7 @@ class GaskrankIE(InfoExtractor):
             'display_id': 'strike-einparken-durch-anfaenger-crash-mit-groesserem-flurschaden',
             'uploader_id': 'Bikefun',
             'upload_date': '20170110',
-        }
+        },
     }, {
         'url': 'http://www.gaskrank.tv/tv/racing/isle-of-man-tt-2011-michael-du-15920.htm',
         'md5': 'c33ee32c711bc6c8224bfcbe62b23095',
@@ -36,7 +36,7 @@ class GaskrankIE(InfoExtractor):
             'uploader_id': 'IOM',
             'upload_date': '20170523',
             'uploader_url': 'www.iomtt.com',
-        }
+        },
     }]
 
     def _real_extract(self, url):

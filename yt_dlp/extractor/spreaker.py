@@ -1,41 +1,43 @@
 import itertools
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
+    filter_dict,
     float_or_none,
     int_or_none,
+    parse_qs,
     str_or_none,
     try_get,
     unified_timestamp,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 def _extract_episode(data, episode_id=None):
     title = data['title']
     download_url = data['download_url']
 
-    series = try_get(data, lambda x: x['show']['title'], compat_str)
-    uploader = try_get(data, lambda x: x['author']['fullname'], compat_str)
+    series = try_get(data, lambda x: x['show']['title'], str)
+    uploader = try_get(data, lambda x: x['author']['fullname'], str)
 
     thumbnails = []
     for image in ('image_original', 'image_medium', 'image'):
-        image_url = url_or_none(data.get('%s_url' % image))
+        image_url = url_or_none(data.get(f'{image}_url'))
         if image_url:
             thumbnails.append({'url': image_url})
 
     def stats(key):
         return int_or_none(try_get(
             data,
-            (lambda x: x['%ss_count' % key],
-             lambda x: x['stats']['%ss' % key])))
+            (lambda x: x[f'{key}s_count'],
+             lambda x: x['stats'][f'{key}s'])))
 
     def duration(key):
         return float_or_none(data.get(key), scale=1000)
 
     return {
-        'id': compat_str(episode_id or data['episode_id']),
+        'id': str(episode_id or data['episode_id']),
         'url': download_url,
         'display_id': data.get('permalink'),
         'title': title,
@@ -59,15 +61,10 @@ def _extract_episode(data, episode_id=None):
 
 
 class SpreakerIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-                    https?://
-                        api\.spreaker\.com/
-                        (?:
-                            (?:download/)?episode|
-                            v2/episodes
-                        )/
-                        (?P<id>\d+)
-                    '''
+    _VALID_URL = [
+        r'https?://api\.spreaker\.com/(?:(?:download/)?episode|v2/episodes)/(?P<id>\d+)',
+        r'https?://(?:www\.)?spreaker\.com/episode/[^#?/]*?(?P<id>\d+)/?(?:[?#]|$)',
+    ]
     _TESTS = [{
         'url': 'https://api.spreaker.com/episode/12534508',
         'info_dict': {
@@ -84,7 +81,9 @@ class SpreakerIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'comment_count': int,
-            'series': 'Success With Music (SWM)',
+            'series': 'Success With Music | SWM',
+            'thumbnail': 'https://d3wo5wojvuv7l.cloudfront.net/t_square_limited_160/images.spreaker.com/original/777ce4f96b71b0e1b7c09a5e625210e3.jpg',
+            'creators': ['SWM'],
         },
     }, {
         'url': 'https://api.spreaker.com/download/episode/12534508/swm_ep15_how_to_market_your_music_part_2.mp3',
@@ -92,52 +91,75 @@ class SpreakerIE(InfoExtractor):
     }, {
         'url': 'https://api.spreaker.com/v2/episodes/12534508?export=episode_segments',
         'only_matching': True,
+    }, {
+        'note': 'episode',
+        'url': 'https://www.spreaker.com/episode/grunge-music-origins-the-raw-sound-that-defined-a-generation--60269615',
+        'info_dict': {
+            'id': '60269615',
+            'display_id': 'grunge-music-origins-the-raw-sound-that-',
+            'ext': 'mp3',
+            'title': 'Grunge Music Origins - The Raw Sound that Defined a Generation',
+            'description': str,
+            'timestamp': 1717468905,
+            'upload_date': '20240604',
+            'uploader': 'Katie Brown 2',
+            'uploader_id': '17733249',
+            'duration': 818.83,
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'series': '90s Grunge',
+            'thumbnail': 'https://d3wo5wojvuv7l.cloudfront.net/t_square_limited_160/images.spreaker.com/original/bb0d4178f7cf57cc8786dedbd9c5d969.jpg',
+            'creators': ['Katie Brown 2'],
+        },
+    }, {
+        'url': 'https://www.spreaker.com/episode/60269615',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         episode_id = self._match_id(url)
         data = self._download_json(
-            'https://api.spreaker.com/v2/episodes/%s' % episode_id,
-            episode_id)['response']['episode']
+            f'https://api.spreaker.com/v2/episodes/{episode_id}', episode_id,
+            query=traverse_obj(parse_qs(url), {'key': ('key', 0)}))['response']['episode']
         return _extract_episode(data, episode_id)
 
 
-class SpreakerPageIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/user/[^/]+/(?P<id>[^/?#&]+)'
-    _TESTS = [{
-        'url': 'https://www.spreaker.com/user/9780658/swm-ep15-how-to-market-your-music-part-2',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
-        episode_id = self._search_regex(
-            (r'data-episode_id=["\'](?P<id>\d+)',
-             r'episode_id\s*:\s*(?P<id>\d+)'), webpage, 'episode id')
-        return self.url_result(
-            'https://api.spreaker.com/episode/%s' % episode_id,
-            ie=SpreakerIE.ie_key(), video_id=episode_id)
-
-
 class SpreakerShowIE(InfoExtractor):
-    _VALID_URL = r'https?://api\.spreaker\.com/show/(?P<id>\d+)'
+    _VALID_URL = [
+        r'https?://api\.spreaker\.com/show/(?P<id>\d+)',
+        r'https?://(?:www\.)?spreaker\.com/podcast/[\w-]+--(?P<id>[\d]+)',
+        r'https?://(?:www\.)?spreaker\.com/show/(?P<id>\d+)/episodes/feed',
+    ]
     _TESTS = [{
         'url': 'https://api.spreaker.com/show/4652058',
         'info_dict': {
             'id': '4652058',
         },
         'playlist_mincount': 118,
+    }, {
+        'url': 'https://www.spreaker.com/podcast/health-wealth--5918323',
+        'info_dict': {
+            'id': '5918323',
+        },
+        'playlist_mincount': 60,
+    }, {
+        'url': 'https://www.spreaker.com/show/5887186/episodes/feed',
+        'info_dict': {
+            'id': '5887186',
+        },
+        'playlist_mincount': 290,
     }]
 
-    def _entries(self, show_id):
+    def _entries(self, show_id, key=None):
         for page_num in itertools.count(1):
             episodes = self._download_json(
-                'https://api.spreaker.com/show/%s/episodes' % show_id,
-                show_id, note='Downloading JSON page %d' % page_num, query={
+                f'https://api.spreaker.com/show/{show_id}/episodes',
+                show_id, note=f'Downloading JSON page {page_num}', query=filter_dict({
                     'page': page_num,
                     'max_per_page': 100,
-                })
+                    'key': key,
+                }))
             pager = try_get(episodes, lambda x: x['response']['pager'], dict)
             if not pager:
                 break
@@ -153,21 +175,5 @@ class SpreakerShowIE(InfoExtractor):
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
-        return self.playlist_result(self._entries(show_id), playlist_id=show_id)
-
-
-class SpreakerShowPageIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?spreaker\.com/show/(?P<id>[^/?#&]+)'
-    _TESTS = [{
-        'url': 'https://www.spreaker.com/show/success-with-music',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
-        show_id = self._search_regex(
-            r'show_id\s*:\s*(?P<id>\d+)', webpage, 'show id')
-        return self.url_result(
-            'https://api.spreaker.com/show/%s' % show_id,
-            ie=SpreakerShowIE.ie_key(), video_id=show_id)
+        key = traverse_obj(parse_qs(url), ('key', 0))
+        return self.playlist_result(self._entries(show_id, key), playlist_id=show_id)

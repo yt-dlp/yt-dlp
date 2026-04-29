@@ -57,7 +57,7 @@ class HiDiveIE(InfoExtractor):
                 'profileId': profile_id,
                 'hash': self._search_regex(
                     r'\<button [^>]+?data-hash="(\w+)"', login_webpage, 'profile id hash'),
-                'returnUrl': '/dashboard'
+                'returnUrl': '/dashboard',
             }))
 
     def _call_api(self, video_id, title, key, data={}, **kwargs):
@@ -80,7 +80,7 @@ class HiDiveIE(InfoExtractor):
             self.raise_geo_restricted()
         if restriction and restriction != 'None':
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, restriction), expected=True)
+                f'{self.IE_NAME} said: {restriction}', expected=True)
 
         formats, parsed_urls = [], {None}
         for rendition_id, rendition in settings['renditions'].items():
@@ -115,5 +115,5 @@ class HiDiveIE(InfoExtractor):
                 self._search_regex(r's(\d+)', key, 'season number', default=None)),
             'episode_number': int_or_none(
                 self._search_regex(r'e(\d+)', key, 'episode number', default=None)),
-            'http_headers': {'Referer': url}
+            'http_headers': {'Referer': url},
         }

@@ -15,13 +15,13 @@ class TOnlineIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Drittes Remis! Zidane: "Es muss etwas passieren"',
             'description': 'Es läuft nicht rund bei Real Madrid. Das 1:1 gegen den SD Eibar war das dritte Unentschieden in Folge in der Liga.',
-        }
+        },
     }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_data = self._download_json(
-            'http://www.t-online.de/tv/id_%s/tid_json_video' % video_id, video_id)
+            f'http://www.t-online.de/tv/id_{video_id}/tid_json_video', video_id)
         title = video_data['subtitle']
 
         formats = []

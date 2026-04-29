@@ -13,7 +13,7 @@ class OutsideTVIE(InfoExtractor):
             'description': 'md5:41a12e94f3db3ca253b04bb1e8d8f4cd',
             'upload_date': '20181225',
             'timestamp': 1545742800,
-        }
+        },
     }, {
         'url': 'http://www.outsidetv.com/home/play/ZjQYboH6/1/10/Hdg0jukV/4',
         'only_matching': True,

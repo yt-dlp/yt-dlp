@@ -22,7 +22,7 @@ class HuajiaoIE(InfoExtractor):
             'upload_date': '20161007',
             'uploader': 'Penny_余姿昀',
             'uploader_id': '75206005',
-        }
+        },
     }
 
     def _real_extract(self, url):

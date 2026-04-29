@@ -17,7 +17,7 @@ class RadioDeIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -37,7 +37,7 @@ class RadioDeIE(InfoExtractor):
             'ext': stream['streamContentFormat'].lower(),
             'acodec': stream['streamContentFormat'],
             'abr': stream['bitRate'],
-            'asr': stream['sampleRate']
+            'asr': stream['sampleRate'],
         } for stream in broadcast['streamUrls']]
 
         return {

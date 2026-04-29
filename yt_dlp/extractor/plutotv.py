@@ -1,11 +1,8 @@
 import re
+import urllib.parse
 import uuid
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -31,14 +28,14 @@ class PlutoTVIE(InfoExtractor):
     _INFO_QUERY_PARAMS = {
         'appName': 'web',
         'appVersion': 'na',
-        'clientID': compat_str(uuid.uuid1()),
+        'clientID': str(uuid.uuid1()),
         'clientModelNumber': 'na',
         'serverSideAds': 'false',
         'deviceMake': 'unknown',
         'deviceModel': 'web',
         'deviceType': 'web',
         'deviceVersion': 'unknown',
-        'sid': compat_str(uuid.uuid1()),
+        'sid': str(uuid.uuid1()),
     }
     _TESTS = [
         {
@@ -54,21 +51,21 @@ class PlutoTVIE(InfoExtractor):
                 'season_number': 2,
                 'episode_number': 3,
                 'duration': 3600,
-            }
+            },
         }, {
             'url': 'https://pluto.tv/on-demand/series/i-love-money/season/1/',
             'playlist_count': 11,
             'info_dict': {
                 'id': '5de6c582e9379ae4912dedbd',
                 'title': 'I Love Money - Season 1',
-            }
+            },
         }, {
             'url': 'https://pluto.tv/on-demand/series/i-love-money/',
             'playlist_count': 26,
             'info_dict': {
                 'id': '5de6c582e9379ae4912dedbd',
                 'title': 'I Love Money',
-            }
+            },
         }, {
             'url': 'https://pluto.tv/on-demand/movies/arrival-2015-1-1',
             'md5': '3cead001d317a018bf856a896dee1762',
@@ -78,7 +75,7 @@ class PlutoTVIE(InfoExtractor):
                 'title': 'Arrival',
                 'description': 'When mysterious spacecraft touch down across the globe, an elite team - led by expert translator Louise Banks (Academy Award® nominee Amy Adams) – races against time to decipher their intent.',
                 'duration': 9000,
-            }
+            },
         }, {
             'url': 'https://pluto.tv/en/on-demand/series/manhunters-fugitive-task-force/seasons/1/episode/third-times-the-charm-1-1',
             'only_matching': True,
@@ -95,8 +92,8 @@ class PlutoTVIE(InfoExtractor):
                 'title': 'Attack of the Killer Tomatoes',
                 'description': 'A group of scientists band together to save the world from mutated tomatoes that KILL! (1978)',
                 'duration': 5700,
-            }
-        }
+            },
+        },
     ]
 
     def _to_ad_free_formats(self, video_id, formats, subtitles):
@@ -112,14 +109,14 @@ class PlutoTVIE(InfoExtractor):
                 re.MULTILINE)
             if first_segment_url:
                 m3u8_urls.add(
-                    compat_urlparse.urljoin(first_segment_url.group(1), '0-end/master.m3u8'))
+                    urllib.parse.urljoin(first_segment_url.group(1), '0-end/master.m3u8'))
                 continue
             first_segment_url = re.search(
                 r'^(https?://.*/).+\-0+[0-1]0\.ts$', res,
                 re.MULTILINE)
             if first_segment_url:
                 m3u8_urls.add(
-                    compat_urlparse.urljoin(first_segment_url.group(1), 'master.m3u8'))
+                    urllib.parse.urljoin(first_segment_url.group(1), 'master.m3u8'))
                 continue
 
         for m3u8_url in m3u8_urls:

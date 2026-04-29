@@ -27,7 +27,7 @@ class PinkbikeIE(InfoExtractor):
             'location': 'Victoria, British Columbia, Canada',
             'view_count': int,
             'comment_count': int,
-        }
+        },
     }, {
         'url': 'http://es.pinkbike.org/i/kvid/kvid-y5.swf?id=406629',
         'only_matching': True,
@@ -37,7 +37,7 @@ class PinkbikeIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'http://www.pinkbike.com/video/%s' % video_id, video_id)
+            f'http://www.pinkbike.com/video/{video_id}', video_id)
 
         formats = []
         for _, format_id, src in re.findall(
@@ -72,7 +72,7 @@ class PinkbikeIE(InfoExtractor):
 
         def extract_count(webpage, label):
             return str_to_int(self._search_regex(
-                r'<span[^>]+class="stat-num"[^>]*>([\d,.]+)</span>\s*<span[^>]+class="stat-label"[^>]*>%s' % label,
+                rf'<span[^>]+class="stat-num"[^>]*>([\d,.]+)</span>\s*<span[^>]+class="stat-label"[^>]*>{label}',
                 webpage, label, fatal=False))
 
         view_count = extract_count(webpage, 'Views')
@@ -89,5 +89,5 @@ class PinkbikeIE(InfoExtractor):
             'location': location,
             'view_count': view_count,
             'comment_count': comment_count,
-            'formats': formats
+            'formats': formats,
         }

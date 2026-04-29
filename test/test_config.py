@@ -71,7 +71,7 @@ def _generate_expected_groups():
             Path('/etc/yt-dlp.conf'),
             Path('/etc/yt-dlp/config'),
             Path('/etc/yt-dlp/config.txt'),
-        ]
+        ],
     }
 
 

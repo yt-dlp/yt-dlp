@@ -36,7 +36,7 @@ class BYUtvIE(InfoExtractor):
             'duration': 11645,
         },
         'params': {
-            'skip_download': True
+            'skip_download': True,
         },
     }, {
         'url': 'http://www.byutv.org/watch/6587b9a3-89d2-42a6-a7f7-fd2f81840a7d',

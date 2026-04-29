@@ -21,7 +21,7 @@ class RadioZetPodcastIE(InfoExtractor):
             'duration': 83,
             'series': 'Nie Ma Za Co',
             'creator': 'Katarzyna Pakosińska',
-        }
+        },
     }
 
     def _call_api(self, podcast_id, display_id):

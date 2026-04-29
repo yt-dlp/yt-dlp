@@ -13,7 +13,7 @@ class RequestError(YoutubeDLError):
         self,
         msg: str | None = None,
         cause: Exception | str | None = None,
-        handler: RequestHandler = None
+        handler: RequestHandler = None,
     ):
         self.handler = handler
         self.cause = cause

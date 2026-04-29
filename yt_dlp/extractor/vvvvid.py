@@ -12,7 +12,7 @@ from ..utils import (
 
 class VVVVIDIE(InfoExtractor):
     _VALID_URL_BASE = r'https?://(?:www\.)?vvvvid\.it/(?:#!)?(?:show|anime|film|series)/'
-    _VALID_URL = r'%s(?P<show_id>\d+)/[^/]+/(?P<season_id>\d+)/(?P<id>[0-9]+)' % _VALID_URL_BASE
+    _VALID_URL = rf'{_VALID_URL_BASE}(?P<show_id>\d+)/[^/]+/(?P<season_id>\d+)/(?P<id>[0-9]+)'
     _TESTS = [{
         # video_type == 'video/vvvvid'
         'url': 'https://www.vvvvid.it/show/498/the-power-of-computing/518/505692/playstation-vr-cambiera-il-nostro-modo-di-giocare',
@@ -109,7 +109,7 @@ class VVVVIDIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.vvvvid.it/show/434/perche-dovrei-guardarlo-di-dario-moccia/437/489048',
-        'only_matching': True
+        'only_matching': True,
     }]
     _conn_id = None
 
@@ -132,12 +132,12 @@ class VVVVIDIE(InfoExtractor):
         if query:
             q.update(query)
         response = self._download_json(
-            'https://www.vvvvid.it/vvvvid/ondemand/%s/%s' % (show_id, path),
+            f'https://www.vvvvid.it/vvvvid/ondemand/{show_id}/{path}',
             video_id, headers=self._headers, query=q, fatal=fatal)
         if not (response or fatal):
             return
         if response.get('result') == 'error':
-            raise ExtractorError('%s said: %s' % (
+            raise ExtractorError('{} said: {}'.format(
                 self.IE_NAME, response['message']), expected=True)
         return response['data']
 
@@ -151,18 +151,18 @@ class VVVVIDIE(InfoExtractor):
         show_id, season_id, video_id = self._match_valid_url(url).groups()
 
         response = self._download_info(
-            show_id, 'season/%s' % season_id,
+            show_id, f'season/{season_id}',
             video_id, query={'video_id': video_id})
 
         vid = int(video_id)
-        video_data = list(filter(
-            lambda episode: episode.get('video_id') == vid, response))[0]
+        video_data = next(filter(
+            lambda episode: episode.get('video_id') == vid, response))
         title = video_data['title']
         formats = []
 
         # vvvvid embed_info decryption algorithm is reverse engineered from function $ds(h) at vvvvid.js
         def ds(h):
-            g = "MNOPIJKL89+/4567UVWXQRSTEFGHABCDcdefYZabstuvopqr0123wxyzklmnghij"
+            g = 'MNOPIJKL89+/4567UVWXQRSTEFGHABCDcdefYZabstuvopqr0123wxyzklmnghij'
 
             def f(m):
                 l = []
@@ -260,7 +260,7 @@ class VVVVIDIE(InfoExtractor):
                     embed_code, video_id, 'mp4', m3u8_id='hls', fatal=False))
             else:
                 formats.extend(self._extract_wowza_formats(
-                    'http://sb.top-ix.org/videomg/_definst_/mp4:%s/playlist.m3u8' % embed_code, video_id, skip_protocols=['f4m']))
+                    f'http://sb.top-ix.org/videomg/_definst_/mp4:{embed_code}/playlist.m3u8', video_id, skip_protocols=['f4m']))
             metadata_from_url(embed_code)
 
         if not is_youtube:
@@ -283,7 +283,7 @@ class VVVVIDIE(InfoExtractor):
 
 
 class VVVVIDShowIE(VVVVIDIE):  # XXX: Do not subclass from concrete IE
-    _VALID_URL = r'(?P<base_url>%s(?P<id>\d+)(?:/(?P<show_title>[^/?&#]+))?)/?(?:[?#&]|$)' % VVVVIDIE._VALID_URL_BASE
+    _VALID_URL = rf'(?P<base_url>{VVVVIDIE._VALID_URL_BASE}(?P<id>\d+)(?:/(?P<show_title>[^/?&#]+))?)/?(?:[?#&]|$)'
     _TESTS = [{
         'url': 'https://www.vvvvid.it/show/156/psyco-pass',
         'info_dict': {
@@ -307,7 +307,7 @@ class VVVVIDShowIE(VVVVIDIE):  # XXX: Do not subclass from concrete IE
             show_id, 'info/', show_title, fatal=False)
 
         if not show_title:
-            base_url += "/title"
+            base_url += '/title'
 
         entries = []
         for season in (seasons or []):

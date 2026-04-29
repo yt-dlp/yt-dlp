@@ -45,7 +45,7 @@ class RokfinIE(InfoExtractor):
             'dislike_count': int,
             'like_count': int,
             'duration': 213,
-        }
+        },
     }, {
         'url': 'https://rokfin.com/post/223/Julian-Assange-Arrested-Streaming-In-Real-Time',
         'info_dict': {
@@ -63,7 +63,7 @@ class RokfinIE(InfoExtractor):
             'dislike_count': int,
             'like_count': int,
             'tags': ['FreeThinkingMedia^', 'RealProgressives^'],
-        }
+        },
     }, {
         'url': 'https://www.rokfin.com/stream/10543/Its-A-Crazy-Mess-Regional-Director-Blows-Whistle-On-Pfizers-Vaccine-Trial-Data',
         'info_dict': {
@@ -86,7 +86,7 @@ class RokfinIE(InfoExtractor):
             'dislike_count': int,
             'like_count': int,
             'tags': ['FreeThinkingMedia^'],
-        }
+        },
     }, {
         'url': 'https://rokfin.com/post/126703/Brave-New-World--Aldous-Huxley-DEEPDIVE--Chpts-13--Quite-Frankly--Jay-Dyer',
         'info_dict': {
@@ -106,7 +106,7 @@ class RokfinIE(InfoExtractor):
             'tags': ['FreeThinkingMedia^', 'OpenMind^'],
             'description': 'md5:cb04e32e68326c9b2b251b297bacff35',
             'duration': 3100,
-        }
+        },
     }, {
         'url': 'https://rokfin.com/stream/31332/The-Grayzone-live-on-Nordstream-blame-game',
         'info_dict': {
@@ -126,7 +126,7 @@ class RokfinIE(InfoExtractor):
             'release_date': '20230310',
             'upload_date': '20230310',
             'tags': ['FreeThinkingMedia^'],
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -203,7 +203,7 @@ class RokfinIE(InfoExtractor):
                     'parent': 'root',
                     'like_count': int_or_none(comment.get('numLikes')),
                     'dislike_count': int_or_none(comment.get('numDislikes')),
-                    'timestamp': unified_timestamp(comment.get('postedAt'))
+                    'timestamp': unified_timestamp(comment.get('postedAt')),
                 }
 
             pages_total = int_or_none(raw_comments.get('totalPages')) or None
@@ -246,7 +246,7 @@ class RokfinIE(InfoExtractor):
                 'code': urllib.parse.parse_qs(urllib.parse.urldefrag(urlh.url).fragment).get('code')[0],
                 'client_id': 'web',
                 'grant_type': 'authorization_code',
-                'redirect_uri': 'https://rokfin.com/silent-check-sso.html'
+                'redirect_uri': 'https://rokfin.com/silent-check-sso.html',
             }))
 
     def _authentication_active(self):
@@ -276,7 +276,7 @@ class RokfinIE(InfoExtractor):
             data=urlencode_postdata({
                 'grant_type': 'refresh_token',
                 'refresh_token': refresh_token,
-                'client_id': 'web'
+                'client_id': 'web',
             }))
         headers['authorization'] = self._get_auth_token()
         if headers['authorization'] is None:
@@ -399,7 +399,7 @@ class RokfinSearchIE(SearchInfoExtractor):
         'info_dict': {
             'id': '"zelenko"',
             'title': '"zelenko"',
-        }
+        },
     }]
     _db_url = None
     _db_access_key = None

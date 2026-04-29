@@ -16,7 +16,7 @@ class BlerpIE(InfoExtractor):
             'uploader_id': '5fb81e51aa66ae000c395478',
             'ext': 'mp3',
             'tags': ['samsung', 'galaxy', 's8', 'over the horizon', '2016', 'ringtone'],
-        }
+        },
     }, {
         'url': 'https://blerp.com/soundbites/5bc94ef4796001000498429f',
         'info_dict': {
@@ -25,11 +25,11 @@ class BlerpIE(InfoExtractor):
             'uploader': '179617322678353920',
             'uploader_id': '5ba99cf71386730004552c42',
             'ext': 'mp3',
-            'tags': ['YEE', 'YEET', 'wo ha haah catchy tune yee', 'yee']
-        }
+            'tags': ['YEE', 'YEET', 'wo ha haah catchy tune yee', 'yee'],
+        },
     }]
 
-    _GRAPHQL_OPERATIONNAME = "webBitePageGetBite"
+    _GRAPHQL_OPERATIONNAME = 'webBitePageGetBite'
     _GRAPHQL_QUERY = (
         '''query webBitePageGetBite($_id: MongoID!) {
             web {
@@ -141,27 +141,26 @@ class BlerpIE(InfoExtractor):
             'operationName': self._GRAPHQL_OPERATIONNAME,
             'query': self._GRAPHQL_QUERY,
             'variables': {
-                '_id': audio_id
-            }
+                '_id': audio_id,
+            },
         }
 
         headers = {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
         }
 
-        json_result = self._download_json('https://api.blerp.com/graphql',
-                                          audio_id, data=json.dumps(data).encode('utf-8'), headers=headers)
+        json_result = self._download_json(
+            'https://api.blerp.com/graphql', audio_id,
+            data=json.dumps(data).encode(), headers=headers)
 
         bite_json = json_result['data']['web']['biteById']
 
-        info_dict = {
+        return {
             'id': bite_json['_id'],
             'url': bite_json['audio']['mp3']['url'],
             'title': bite_json['title'],
             'uploader': traverse_obj(bite_json, ('ownerObject', 'username'), expected_type=strip_or_none),
             'uploader_id': traverse_obj(bite_json, ('ownerObject', '_id'), expected_type=strip_or_none),
             'ext': 'mp3',
-            'tags': list(filter(None, map(strip_or_none, (traverse_obj(bite_json, 'userKeywords', expected_type=list) or []))) or None)
+            'tags': list(filter(None, map(strip_or_none, (traverse_obj(bite_json, 'userKeywords', expected_type=list) or []))) or None),
         }
-
-        return info_dict

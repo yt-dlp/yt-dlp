@@ -1,9 +1,7 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_urlparse,
-)
 from ..utils import (
     ExtractorError,
     parse_duration,
@@ -21,7 +19,7 @@ class VuClipIE(InfoExtractor):
             'ext': '3gp',
             'title': 'Top 10 TV Convicts',
             'duration': 733,
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -31,7 +29,7 @@ class VuClipIE(InfoExtractor):
         ad_m = re.search(
             r'''value="No.*?" onClick="location.href='([^"']+)'"''', webpage)
         if ad_m:
-            urlr = compat_urllib_parse_urlparse(url)
+            urlr = urllib.parse.urlparse(url)
             adfree_url = urlr.scheme + '://' + urlr.netloc + ad_m.group(1)
             webpage = self._download_webpage(
                 adfree_url, video_id, note='Download post-ad page')
@@ -41,7 +39,7 @@ class VuClipIE(InfoExtractor):
             default=None)
         if error_msg:
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, error_msg), expected=True)
+                f'{self.IE_NAME} said: {error_msg}', expected=True)
 
         # These clowns alternate between two page types
         video_url = self._search_regex(

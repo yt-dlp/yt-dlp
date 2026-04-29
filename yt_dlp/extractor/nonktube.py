@@ -14,7 +14,7 @@ class NonkTubeIE(NuevoBaseIE):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://www.nonktube.com/embed/118636',
         'only_matching': True,

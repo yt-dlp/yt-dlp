@@ -23,7 +23,7 @@ class ZetlandDKArticleIE(InfoExtractor):
             'description': 'md5:9619d426772c133f5abb26db27f26a01',
             'timestamp': 1705377592,
             'series_id': '62d54630-e87b-4ab1-a255-8de58dbe1b14',
-        }
+        },
 
     }]
 
@@ -44,7 +44,7 @@ class ZetlandDKArticleIE(InfoExtractor):
         return merge_dicts({
             'id': display_id,
             'formats': formats,
-            'uploader_id': uploader_id
+            'uploader_id': uploader_id,
         }, traverse_obj(story_data, {
             'title': ((('story_content', 'content', 'title'), 'title'), {str}),
             'uploader': ('sharer', 'name'),

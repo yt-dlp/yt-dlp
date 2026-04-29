@@ -14,7 +14,7 @@ class HypemIE(InfoExtractor):
             'uploader': 'BODYWORK',
             'timestamp': 1371810457,
             'upload_date': '20130621',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -30,9 +30,9 @@ class HypemIE(InfoExtractor):
         title = track['song']
 
         final_url = self._download_json(
-            'http://hypem.com/serve/source/%s/%s' % (track_id, track['key']),
+            'http://hypem.com/serve/source/{}/{}'.format(track_id, track['key']),
             track_id, 'Downloading metadata', headers={
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             })['url']
 
         return {

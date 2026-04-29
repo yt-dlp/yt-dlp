@@ -43,14 +43,14 @@ class ACastIE(ACastBaseIE):
     _VALID_URL = r'''(?x:
                     https?://
                         (?:
-                            (?:(?:embed|www)\.)?acast\.com/|
+                            (?:(?:embed|www|shows)\.)?acast\.com/|
                             play\.acast\.com/s/
                         )
-                        (?P<channel>[^/]+)/(?P<id>[^/#?"]+)
+                        (?P<channel>[^/?#]+)/(?:episodes/)?(?P<id>[^/#?"]+)
                     )'''
     _EMBED_REGEX = [rf'(?x)<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
     _TESTS = [{
-        'url': 'https://www.acast.com/sparpodcast/2.raggarmordet-rosterurdetforflutna',
+        'url': 'https://shows.acast.com/sparpodcast/episodes/2.raggarmordet-rosterurdetforflutna',
         'info_dict': {
             'id': '2a92b283-1a75-4ad8-8396-499c641de0d9',
             'ext': 'mp3',
@@ -59,7 +59,7 @@ class ACastIE(ACastBaseIE):
             'timestamp': 1477346700,
             'upload_date': '20161024',
             'duration': 2766,
-            'creator': 'Third Ear Studio',
+            'creators': ['Third Ear Studio'],
             'series': 'Spår',
             'episode': '2. Raggarmordet - Röster ur det förflutna',
             'thumbnail': 'https://assets.pippa.io/shows/616ebe1886d7b1398620b943/616ebe33c7e6e70013cae7da.jpg',
@@ -67,12 +67,15 @@ class ACastIE(ACastBaseIE):
             'display_id': '2.raggarmordet-rosterurdetforflutna',
             'season_number': 4,
             'season': 'Season 4',
-        }
+        },
     }, {
         'url': 'http://embed.acast.com/adambuxton/ep.12-adam-joeschristmaspodcast2015',
         'only_matching': True,
     }, {
         'url': 'https://play.acast.com/s/rattegangspodden/s04e09styckmordetihelenelund-del2-2',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.acast.com/sparpodcast/2.raggarmordet-rosterurdetforflutna',
         'only_matching': True,
     }, {
         'url': 'https://play.acast.com/s/sparpodcast/2a92b283-1a75-4ad8-8396-499c641de0d9',
@@ -93,13 +96,13 @@ class ACastIE(ACastBaseIE):
             'series': 'Democracy Sausage with Mark Kenny',
             'timestamp': 1684826362,
             'description': 'md5:feabe1fc5004c78ee59c84a46bf4ba16',
-        }
+        },
     }]
 
     def _real_extract(self, url):
         channel, display_id = self._match_valid_url(url).groups()
         episode = self._call_api(
-            '%s/episodes/%s' % (channel, display_id),
+            f'{channel}/episodes/{display_id}',
             display_id, {'showInfo': 'true'})
         return self._extract_episode(
             episode, self._extract_show_info(episode.get('show') or {}))
@@ -110,7 +113,7 @@ class ACastChannelIE(ACastBaseIE):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
-                            (?:www\.)?acast\.com/|
+                            (?:(?:www|shows)\.)?acast\.com/|
                             play\.acast\.com/s/
                         )
                         (?P<id>[^/#?]+)
@@ -120,17 +123,20 @@ class ACastChannelIE(ACastBaseIE):
         'info_dict': {
             'id': '4efc5294-5385-4847-98bd-519799ce5786',
             'title': 'Today in Focus',
-            'description': 'md5:c09ce28c91002ce4ffce71d6504abaae',
+            'description': 'md5:feca253de9947634605080cd9eeea2bf',
         },
         'playlist_mincount': 200,
     }, {
         'url': 'http://play.acast.com/s/ft-banking-weekly',
         'only_matching': True,
+    }, {
+        'url': 'https://shows.acast.com/sparpodcast',
+        'only_matching': True,
     }]
 
     @classmethod
     def suitable(cls, url):
-        return False if ACastIE.suitable(url) else super(ACastChannelIE, cls).suitable(url)
+        return False if ACastIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         show_slug = self._match_id(url)

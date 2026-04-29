@@ -35,7 +35,7 @@ class IHeartRadioIE(IHeartRadioBaseIE):
             'description': 'md5:96cc7297b3a5a9ebae28643801c96fae',
             'timestamp': 1597741200,
             'upload_date': '20200818',
-        }
+        },
     }
 
     def _real_extract(self, url):

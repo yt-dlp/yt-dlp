@@ -1,7 +1,4 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -11,14 +8,14 @@ from ..utils import (
 
 
 class StarTVIE(InfoExtractor):
-    _VALID_URL = r"""(?x)
+    _VALID_URL = r'''(?x)
         https?://(?:www\.)?startv\.com\.tr/
         (?:
             (?:dizi|program)/(?:[^/?#&]+)/(?:bolumler|fragmanlar|ekstralar)|
             video/arsiv/(?:dizi|program)/(?:[^/?#&]+)
         )/
         (?P<id>[^/?#&]+)
-    """
+    '''
     IE_NAME = 'startv'
     _TESTS = [
         {
@@ -32,41 +29,41 @@ class StarTVIE(InfoExtractor):
                 'description': 'md5:3a8049f05a75c2e8747116a673275de4',
                 'thumbnail': r're:^https?://.*\.jpg(?:\?.*?)?$',
                 'timestamp': 1569281400,
-                'upload_date': '20190923'
+                'upload_date': '20190923',
             },
         },
         {
             'url': 'https://www.startv.com.tr/video/arsiv/dizi/avlu/44-bolum',
-            'only_matching': True
+            'only_matching': True,
         },
         {
             'url': 'https://www.startv.com.tr/dizi/cocuk/fragmanlar/5-bolum-fragmani',
-            'only_matching': True
+            'only_matching': True,
         },
         {
             'url': 'https://www.startv.com.tr/dizi/cocuk/ekstralar/5-bolumun-nefes-kesen-final-sahnesi',
-            'only_matching': True
+            'only_matching': True,
         },
         {
             'url': 'https://www.startv.com.tr/program/burcu-ile-haftasonu/bolumler/1-bolum',
-            'only_matching': True
+            'only_matching': True,
         },
         {
             'url': 'https://www.startv.com.tr/program/burcu-ile-haftasonu/fragmanlar/2-fragman',
-            'only_matching': True
+            'only_matching': True,
         },
         {
             'url': 'https://www.startv.com.tr/video/arsiv/program/buyukrisk/14-bolumde-hangi-unlu-ne-sordu-',
-            'only_matching': True
+            'only_matching': True,
         },
         {
             'url': 'https://www.startv.com.tr/video/arsiv/program/buyukrisk/buyuk-risk-334-bolum',
-            'only_matching': True
+            'only_matching': True,
         },
         {
             'url': 'https://www.startv.com.tr/video/arsiv/program/dada/dada-58-bolum',
-            'only_matching': True
-        }
+            'only_matching': True,
+        },
     ]
 
     def _real_extract(self, url):
@@ -80,7 +77,7 @@ class StarTVIE(InfoExtractor):
         if not info:
             raise ExtractorError('Failed to extract API data')
 
-        video_id = compat_str(info.get('id'))
+        video_id = str(info.get('id'))
         title = info.get('title') or self._og_search_title(webpage)
         description = clean_html(info.get('description')) or self._og_search_description(webpage, default=None)
         thumbnail = self._proto_relative_url(
@@ -96,5 +93,5 @@ class StarTVIE(InfoExtractor):
             'description': description,
             'thumbnail': thumbnail,
             'timestamp': int_or_none(info.get('release_date')),
-            'formats': formats
+            'formats': formats,
         }

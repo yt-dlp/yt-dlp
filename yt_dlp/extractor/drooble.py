@@ -24,7 +24,7 @@ class DroobleIE(InfoExtractor):
             'timestamp': 1596241390,
             'uploader_id': '95894',
             'uploader': 'Bluebeat Shelter',
-        }
+        },
     }, {
         'url': 'https://drooble.com/karl340758/videos/2859183',
         'info_dict': {
@@ -35,7 +35,7 @@ class DroobleIE(InfoExtractor):
             'description': 'md5:ffc0bd8ba383db5341a86a6cd7d9bcca',
             'upload_date': '20200731',
             'uploader': 'Bluebeat Shelter',
-        }
+        },
     }, {
         'url': 'https://drooble.com/karl340758/music/albums/2858031',
         'info_dict': {
@@ -88,7 +88,7 @@ class DroobleIE(InfoExtractor):
                 entites.append({
                     '_type': 'url',
                     'url': url,
-                    'ie_key': 'Youtube'
+                    'ie_key': 'Youtube',
                 })
                 continue
             is_audio = (media.get('type') or '').lower() == 'audio'

@@ -31,7 +31,7 @@ class VideofyMeIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        config = self._download_json('http://vf-player-info-loader.herokuapp.com/%s.json' % video_id, video_id)['videoinfo']
+        config = self._download_json(f'http://vf-player-info-loader.herokuapp.com/{video_id}.json', video_id)['videoinfo']
 
         video = config.get('video')
         blog = config.get('blog', {})

@@ -12,7 +12,7 @@ class StretchInternetIE(InfoExtractor):
             # 'timestamp': 1575668361,
             # 'upload_date': '20191206',
             'uploader_id': '99997',
-        }
+        },
     }
 
     def _real_extract(self, url):

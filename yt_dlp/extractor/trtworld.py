@@ -16,7 +16,7 @@ class TrtWorldIE(InfoExtractor):
             'release_date': '20231202',
             'thumbnail': 'https://cdn-i.pr.trt.com.tr/trtworld/17647563_0-0-1920-1080.jpeg',
             'description': 'md5:0a975c04257fb529c8f99c7b76a2cf12',
-        }
+        },
     }, {
         'url': 'https://www.trtworld.com/video/one-offs/frames-from-anatolia-recreating-a-james-bond-scene-in-istanbuls-grand-bazaar-14541780',
         'info_dict': {
@@ -27,7 +27,7 @@ class TrtWorldIE(InfoExtractor):
             'release_date': '20230819',
             'thumbnail': 'https://cdn-i.pr.trt.com.tr/trtworld/16939810_0-0-1920-1080.jpeg',
             'description': 'md5:4050e21570cc3c40b6c9badae800a94f',
-        }
+        },
     }, {
         'url': 'https://www.trtworld.com/video/the-newsmakers/can-sudan-find-peace-amidst-failed-transition-to-democracy-12904760',
         'info_dict': {
@@ -36,8 +36,8 @@ class TrtWorldIE(InfoExtractor):
             'title': 'Can Sudan find peace amidst failed transition to democracy?',
             'release_timestamp': 1681972747,
             'release_date': '20230420',
-            'thumbnail': 'http://cdni0.trtworld.com/w768/q70/154214_NMYOUTUBETEMPLATE1_1681833018736.jpg'
-        }
+            'thumbnail': 'http://cdni0.trtworld.com/w768/q70/154214_NMYOUTUBETEMPLATE1_1681833018736.jpg',
+        },
     }, {
         'url': 'https://www.trtworld.com/video/africa-matters/locals-learning-to-cope-with-rising-tides-of-kenyas-great-lakes-16059545',
         'info_dict': {
@@ -66,7 +66,7 @@ class TrtWorldIE(InfoExtractor):
             'tags': [],
             'live_status': 'not_live',
             'like_count': int,
-        }
+        },
     }]
 
     def _real_extract(self, url):

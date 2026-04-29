@@ -2,7 +2,6 @@ import hashlib
 import itertools
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -35,19 +34,19 @@ class YandexMusicBaseIE(InfoExtractor):
             expected=True)
 
     def _download_webpage_handle(self, *args, **kwargs):
-        webpage = super(YandexMusicBaseIE, self)._download_webpage_handle(*args, **kwargs)
+        webpage = super()._download_webpage_handle(*args, **kwargs)
         if 'Нам очень жаль, но&nbsp;запросы, поступившие с&nbsp;вашего IP-адреса, похожи на&nbsp;автоматические.' in webpage:
             self._raise_captcha()
         return webpage
 
     def _download_json(self, *args, **kwargs):
-        response = super(YandexMusicBaseIE, self)._download_json(*args, **kwargs)
+        response = super()._download_json(*args, **kwargs)
         self._handle_error(response)
         return response
 
     def _call_api(self, ep, tld, url, item_id, note, query):
         return self._download_json(
-            'https://music.yandex.%s/handlers/%s.jsx' % (tld, ep),
+            f'https://music.yandex.{tld}/handlers/{ep}.jsx',
             item_id, note,
             fatal=False,
             headers={
@@ -61,7 +60,7 @@ class YandexMusicBaseIE(InfoExtractor):
 class YandexMusicTrackIE(YandexMusicBaseIE):
     IE_NAME = 'yandexmusic:track'
     IE_DESC = 'Яндекс.Музыка - Трек'
-    _VALID_URL = r'%s/album/(?P<album_id>\d+)/track/(?P<id>\d+)' % YandexMusicBaseIE._VALID_URL_BASE
+    _VALID_URL = rf'{YandexMusicBaseIE._VALID_URL_BASE}/album/(?P<album_id>\d+)/track/(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'http://music.yandex.ru/album/540508/track/4878838',
@@ -110,19 +109,19 @@ class YandexMusicTrackIE(YandexMusicBaseIE):
 
         track = self._call_api(
             'track', tld, url, track_id, 'Downloading track JSON',
-            {'track': '%s:%s' % (track_id, album_id)})['track']
+            {'track': f'{track_id}:{album_id}'})['track']
         track_title = track['title']
 
         download_data = self._download_json(
-            'https://music.yandex.ru/api/v2.1/handlers/track/%s:%s/web-album_track-track-track-main/download/m' % (track_id, album_id),
+            f'https://music.yandex.ru/api/v2.1/handlers/track/{track_id}:{album_id}/web-album_track-track-track-main/download/m',
             track_id, 'Downloading track location url JSON', query={'hq': 1}, headers={'X-Retpath-Y': url})
 
         fd_data = self._download_json(
             download_data['src'], track_id,
             'Downloading track location JSON',
             query={'format': 'json'})
-        key = hashlib.md5(('XGRlBW9FXlekgbPrRHuSiA' + fd_data['path'][1:] + fd_data['s']).encode('utf-8')).hexdigest()
-        f_url = 'http://%s/get-mp3/%s/%s?track-id=%s ' % (fd_data['host'], key, fd_data['ts'] + fd_data['path'], track['id'])
+        key = hashlib.md5(('XGRlBW9FXlekgbPrRHuSiA' + fd_data['path'][1:] + fd_data['s']).encode()).hexdigest()
+        f_url = 'http://{}/get-mp3/{}/{}?track-id={} '.format(fd_data['host'], key, fd_data['ts'] + fd_data['path'], track['id'])
 
         thumbnail = None
         cover_uri = track.get('albums', [{}])[0].get('coverUri')
@@ -151,7 +150,7 @@ class YandexMusicTrackIE(YandexMusicBaseIE):
             for element in decomposed:
                 if isinstance(element, dict) and element.get('name'):
                     parts.append(element['name'])
-                elif isinstance(element, compat_str):
+                elif isinstance(element, str):
                     parts.append(element)
             return ''.join(parts)
 
@@ -183,7 +182,7 @@ class YandexMusicTrackIE(YandexMusicBaseIE):
         if track_artist:
             track_info.update({
                 'artist': track_artist,
-                'title': '%s - %s' % (track_artist, track_title),
+                'title': f'{track_artist} - {track_title}',
             })
         else:
             track_info['title'] = track_title
@@ -194,14 +193,14 @@ class YandexMusicTrackIE(YandexMusicBaseIE):
 class YandexMusicPlaylistBaseIE(YandexMusicBaseIE):
     def _extract_tracks(self, source, item_id, url, tld):
         tracks = source['tracks']
-        track_ids = [compat_str(track_id) for track_id in source['trackIds']]
+        track_ids = [str(track_id) for track_id in source['trackIds']]
 
         # tracks dictionary shipped with playlist.jsx API is limited to 150 tracks,
         # missing tracks should be retrieved manually.
         if len(tracks) < len(track_ids):
-            present_track_ids = set([
-                compat_str(track['id'])
-                for track in tracks if track.get('id')])
+            present_track_ids = {
+                str(track['id'])
+                for track in tracks if track.get('id')}
             missing_track_ids = [
                 track_id for track_id in track_ids
                 if track_id not in present_track_ids]
@@ -215,10 +214,10 @@ class YandexMusicPlaylistBaseIE(YandexMusicBaseIE):
                 assert missing_track_ids_req
                 missing_tracks = self._call_api(
                     'track-entries', tld, url, item_id,
-                    'Downloading missing tracks JSON chunk %d' % (chunk_num + 1), {
+                    f'Downloading missing tracks JSON chunk {chunk_num + 1}', {
                         'entries': ','.join(missing_track_ids_req),
                         'lang': tld,
-                        'external-domain': 'music.yandex.%s' % tld,
+                        'external-domain': f'music.yandex.{tld}',
                         'overembed': 'false',
                         'strict': 'true',
                     })
@@ -245,7 +244,7 @@ class YandexMusicPlaylistBaseIE(YandexMusicBaseIE):
             if not album_id:
                 continue
             entries.append(self.url_result(
-                'http://music.yandex.ru/album/%s/track/%s' % (album_id, track_id),
+                f'http://music.yandex.ru/album/{album_id}/track/{track_id}',
                 ie=YandexMusicTrackIE.ie_key(), video_id=track_id))
         return entries
 
@@ -253,7 +252,7 @@ class YandexMusicPlaylistBaseIE(YandexMusicBaseIE):
 class YandexMusicAlbumIE(YandexMusicPlaylistBaseIE):
     IE_NAME = 'yandexmusic:album'
     IE_DESC = 'Яндекс.Музыка - Альбом'
-    _VALID_URL = r'%s/album/(?P<id>\d+)' % YandexMusicBaseIE._VALID_URL_BASE
+    _VALID_URL = rf'{YandexMusicBaseIE._VALID_URL_BASE}/album/(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'http://music.yandex.ru/album/540508',
@@ -283,7 +282,7 @@ class YandexMusicAlbumIE(YandexMusicPlaylistBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return False if YandexMusicTrackIE.suitable(url) else super(YandexMusicAlbumIE, cls).suitable(url)
+        return False if YandexMusicTrackIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -297,20 +296,20 @@ class YandexMusicAlbumIE(YandexMusicPlaylistBaseIE):
         entries = self._build_playlist([track for volume in album['volumes'] for track in volume])
 
         title = album['title']
-        artist = try_get(album, lambda x: x['artists'][0]['name'], compat_str)
+        artist = try_get(album, lambda x: x['artists'][0]['name'], str)
         if artist:
-            title = '%s - %s' % (artist, title)
+            title = f'{artist} - {title}'
         year = album.get('year')
         if year:
-            title += ' (%s)' % year
+            title += f' ({year})'
 
-        return self.playlist_result(entries, compat_str(album['id']), title)
+        return self.playlist_result(entries, str(album['id']), title)
 
 
 class YandexMusicPlaylistIE(YandexMusicPlaylistBaseIE):
     IE_NAME = 'yandexmusic:playlist'
     IE_DESC = 'Яндекс.Музыка - Плейлист'
-    _VALID_URL = r'%s/users/(?P<user>[^/]+)/playlists/(?P<id>\d+)' % YandexMusicBaseIE._VALID_URL_BASE
+    _VALID_URL = rf'{YandexMusicBaseIE._VALID_URL_BASE}/users/(?P<user>[^/]+)/playlists/(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'http://music.yandex.ru/users/music.partners/playlists/1245',
@@ -348,7 +347,7 @@ class YandexMusicPlaylistIE(YandexMusicPlaylistBaseIE):
                 'kinds': playlist_id,
                 'light': 'true',
                 'lang': tld,
-                'external-domain': 'music.yandex.%s' % tld,
+                'external-domain': f'music.yandex.{tld}',
                 'overembed': 'false',
             })['playlist']
 
@@ -356,7 +355,7 @@ class YandexMusicPlaylistIE(YandexMusicPlaylistBaseIE):
 
         return self.playlist_result(
             self._build_playlist(tracks),
-            compat_str(playlist_id),
+            str(playlist_id),
             playlist.get('title'), playlist.get('description'))
 
 
@@ -364,14 +363,14 @@ class YandexMusicArtistBaseIE(YandexMusicPlaylistBaseIE):
     def _call_artist(self, tld, url, artist_id):
         return self._call_api(
             'artist', tld, url, artist_id,
-            'Downloading artist %s JSON' % self._ARTIST_WHAT, {
+            f'Downloading artist {self._ARTIST_WHAT} JSON', {
                 'artist': artist_id,
                 'what': self._ARTIST_WHAT,
                 'sort': self._ARTIST_SORT or '',
                 'dir': '',
                 'period': '',
                 'lang': tld,
-                'external-domain': 'music.yandex.%s' % tld,
+                'external-domain': f'music.yandex.{tld}',
                 'overembed': 'false',
             })
 
@@ -381,7 +380,7 @@ class YandexMusicArtistBaseIE(YandexMusicPlaylistBaseIE):
         artist_id = mobj.group('id')
         data = self._call_artist(tld, url, artist_id)
         tracks = self._extract_tracks(data, artist_id, url, tld)
-        title = try_get(data, lambda x: x['artist']['name'], compat_str)
+        title = try_get(data, lambda x: x['artist']['name'], str)
         return self.playlist_result(
             self._build_playlist(tracks), artist_id, title)
 
@@ -389,7 +388,7 @@ class YandexMusicArtistBaseIE(YandexMusicPlaylistBaseIE):
 class YandexMusicArtistTracksIE(YandexMusicArtistBaseIE):
     IE_NAME = 'yandexmusic:artist:tracks'
     IE_DESC = 'Яндекс.Музыка - Артист - Треки'
-    _VALID_URL = r'%s/artist/(?P<id>\d+)/tracks' % YandexMusicBaseIE._VALID_URL_BASE
+    _VALID_URL = rf'{YandexMusicBaseIE._VALID_URL_BASE}/artist/(?P<id>\d+)/tracks'
 
     _TESTS = [{
         'url': 'https://music.yandex.ru/artist/617526/tracks',
@@ -410,8 +409,8 @@ class YandexMusicArtistTracksIE(YandexMusicArtistBaseIE):
         artist_id = mobj.group('id')
         data = self._call_artist(tld, url, artist_id)
         tracks = self._extract_tracks(data, artist_id, url, tld)
-        artist = try_get(data, lambda x: x['artist']['name'], compat_str)
-        title = '%s - %s' % (artist or artist_id, 'Треки')
+        artist = try_get(data, lambda x: x['artist']['name'], str)
+        title = '{} - {}'.format(artist or artist_id, 'Треки')
         return self.playlist_result(
             self._build_playlist(tracks), artist_id, title)
 
@@ -419,7 +418,7 @@ class YandexMusicArtistTracksIE(YandexMusicArtistBaseIE):
 class YandexMusicArtistAlbumsIE(YandexMusicArtistBaseIE):
     IE_NAME = 'yandexmusic:artist:albums'
     IE_DESC = 'Яндекс.Музыка - Артист - Альбомы'
-    _VALID_URL = r'%s/artist/(?P<id>\d+)/albums' % YandexMusicBaseIE._VALID_URL_BASE
+    _VALID_URL = rf'{YandexMusicBaseIE._VALID_URL_BASE}/artist/(?P<id>\d+)/albums'
 
     _TESTS = [{
         'url': 'https://music.yandex.ru/artist/617526/albums',
@@ -447,8 +446,8 @@ class YandexMusicArtistAlbumsIE(YandexMusicArtistBaseIE):
             if not album_id:
                 continue
             entries.append(self.url_result(
-                'http://music.yandex.ru/album/%s' % album_id,
+                f'http://music.yandex.ru/album/{album_id}',
                 ie=YandexMusicAlbumIE.ie_key(), video_id=album_id))
-        artist = try_get(data, lambda x: x['artist']['name'], compat_str)
-        title = '%s - %s' % (artist or artist_id, 'Альбомы')
+        artist = try_get(data, lambda x: x['artist']['name'], str)
+        title = '{} - {}'.format(artist or artist_id, 'Альбомы')
         return self.playlist_result(entries, artist_id, title)

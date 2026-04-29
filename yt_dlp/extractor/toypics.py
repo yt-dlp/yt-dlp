@@ -16,7 +16,7 @@ class ToypicsIE(InfoExtractor):
             'title': "Chance-Bulge'd, 2",
             'age_limit': 18,
             'uploader': 'kidsune',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -70,10 +70,10 @@ class ToypicsUserIE(InfoExtractor):
         urls = []
         page_count = (video_count + PAGE_SIZE + 1) // PAGE_SIZE
         for n in range(1, page_count + 1):
-            lpage_url = url + '/public/%d' % n
+            lpage_url = url + f'/public/{n}'
             lpage = self._download_webpage(
                 lpage_url, username,
-                note='Downloading page %d/%d' % (n, page_count))
+                note=f'Downloading page {n}/{page_count}')
             urls.extend(
                 re.findall(
                     r'<div[^>]+class=["\']preview[^>]+>\s*<a[^>]+href="(https?://videos\.toypics\.net/view/[^"]+)"',
@@ -86,5 +86,5 @@ class ToypicsUserIE(InfoExtractor):
                 '_type': 'url',
                 'url': eurl,
                 'ie_key': 'Toypics',
-            } for eurl in urls]
+            } for eurl in urls],
         }

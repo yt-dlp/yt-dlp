@@ -95,7 +95,7 @@ class Socks5ProxyHandler(StreamRequestHandler, SocksProxyHandler):
             return
 
         elif Socks5Auth.AUTH_USER_PASS in methods:
-            self.connection.sendall(struct.pack("!BB", SOCKS5_VERSION, Socks5Auth.AUTH_USER_PASS))
+            self.connection.sendall(struct.pack('!BB', SOCKS5_VERSION, Socks5Auth.AUTH_USER_PASS))
 
             _, user_len = struct.unpack('!BB', self.connection.recv(2))
             username = self.connection.recv(user_len).decode()
@@ -174,7 +174,7 @@ class Socks4ProxyHandler(StreamRequestHandler, SocksProxyHandler):
         if 0x0 < dest_ip <= 0xFF:
             use_remote_dns = True
         else:
-            socks_info['ipv4_address'] = socket.inet_ntoa(struct.pack("!I", dest_ip))
+            socks_info['ipv4_address'] = socket.inet_ntoa(struct.pack('!I', dest_ip))
 
         user_id = self._read_until_null().decode()
         if user_id != (self.socks_kwargs.get('user_id') or ''):
@@ -216,7 +216,9 @@ class SocksWebSocketTestRequestHandler(SocksTestRequestHandler):
         protocol = websockets.ServerProtocol()
         connection = websockets.sync.server.ServerConnection(socket=self.request, protocol=protocol, close_timeout=0)
         connection.handshake()
-        connection.send(json.dumps(self.socks_info))
+        for message in connection:
+            if message == 'socks_info':
+                connection.send(json.dumps(self.socks_info))
         connection.close()
 
 
@@ -291,8 +293,9 @@ def ctx(request):
         ('Urllib', 'http'),
         ('Requests', 'http'),
         ('Websockets', 'ws'),
-        ('CurlCFFI', 'http')
+        ('CurlCFFI', 'http'),
     ], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', reason='segfaults')
 class TestSocks4Proxy:
     def test_socks4_no_auth(self, handler, ctx):
         with handler() as rh:
@@ -366,8 +369,9 @@ class TestSocks4Proxy:
         ('Urllib', 'http'),
         ('Requests', 'http'),
         ('Websockets', 'ws'),
-        ('CurlCFFI', 'http')
+        ('CurlCFFI', 'http'),
     ], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', reason='segfaults')
 class TestSocks5Proxy:
 
     def test_socks5_no_auth(self, handler, ctx):

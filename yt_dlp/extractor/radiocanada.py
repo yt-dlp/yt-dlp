@@ -24,7 +24,7 @@ class RadioCanadaIE(InfoExtractor):
             'params': {
                 # m3u8 download
                 'skip_download': True,
-            }
+            },
         },
         {
             # empty Title
@@ -50,7 +50,7 @@ class RadioCanadaIE(InfoExtractor):
                 'series': 'District 31',
             },
             'only_matching': True,
-        }
+        },
     ]
     _GEO_COUNTRIES = ['CA']
     _access_token = None
@@ -111,7 +111,7 @@ class RadioCanadaIE(InfoExtractor):
             if error == 'Le contenu sélectionné est disponible seulement en premium':
                 self.raise_login_required(error)
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, error), expected=True)
+                f'{self.IE_NAME} said: {error}', expected=True)
         formats = self._extract_m3u8_formats(v_url, video_id, 'mp4')
 
         subtitles = {}
@@ -162,4 +162,4 @@ class RadioCanadaAudioVideoIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        return self.url_result('radiocanada:medianet:%s' % self._match_id(url))
+        return self.url_result(f'radiocanada:medianet:{self._match_id(url)}')

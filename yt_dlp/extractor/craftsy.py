@@ -56,7 +56,7 @@ class CraftsyIE(InfoExtractor):
             if not lessons and not has_access:
                 self.report_warning(
                     'Only extracting preview. For the full class, pass cookies '
-                    + f'from an account that has access. {self._login_hint()}')
+                    f'from an account that has access. {self._login_hint()}')
             lessons.append({'video_id': preview_id})
 
         if not lessons and not has_access:

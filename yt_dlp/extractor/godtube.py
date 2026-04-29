@@ -30,7 +30,7 @@ class GodTubeIE(InfoExtractor):
         video_id = mobj.group('id')
 
         config = self._download_xml(
-            'http://www.godtube.com/resource/mediaplayer/%s.xml' % video_id.lower(),
+            f'http://www.godtube.com/resource/mediaplayer/{video_id.lower()}.xml',
             video_id, 'Downloading player config XML')
 
         video_url = config.find('file').text
@@ -40,7 +40,7 @@ class GodTubeIE(InfoExtractor):
         thumbnail = config.find('image').text
 
         media = self._download_xml(
-            'http://www.godtube.com/media/xml/?v=%s' % video_id, video_id, 'Downloading media XML')
+            f'http://www.godtube.com/media/xml/?v={video_id}', video_id, 'Downloading media XML')
 
         title = media.find('title').text
 

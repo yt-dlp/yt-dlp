@@ -16,8 +16,8 @@ class AeonCoIE(InfoExtractor):
             'uploader': 'Semiconductor',
             'uploader_id': 'semiconductor',
             'uploader_url': 'https://vimeo.com/semiconductor',
-            'duration': 348
-        }
+            'duration': 348,
+        },
     }, {
         'url': 'https://aeon.co/videos/dazzling-timelapse-shows-how-microbes-spoil-our-food-and-sometimes-enrich-it',
         'md5': '03582d795382e49f2fd0b427b55de409',
@@ -29,8 +29,8 @@ class AeonCoIE(InfoExtractor):
             'uploader': 'Aeon Video',
             'uploader_id': 'aeonvideo',
             'uploader_url': 'https://vimeo.com/aeonvideo',
-            'duration': 1344
-        }
+            'duration': 1344,
+        },
     }, {
         'url': 'https://aeon.co/videos/chew-over-the-prisoners-dilemma-and-see-if-you-can-find-the-rational-path-out',
         'md5': '1cfda0bf3ae24df17d00f2c0cb6cc21b',

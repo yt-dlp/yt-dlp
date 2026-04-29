@@ -40,9 +40,9 @@ class MetacriticIE(InfoExtractor):
 
         clip = next(c for c in info.findall('playList/clip') if c.find('id').text == video_id)
         formats = []
-        for videoFile in clip.findall('httpURI/videoFile'):
-            rate_str = videoFile.find('rate').text
-            video_url = videoFile.find('filePath').text
+        for video_file in clip.findall('httpURI/videoFile'):
+            rate_str = video_file.find('rate').text
+            video_url = video_file.find('filePath').text
             formats.append({
                 'url': video_url,
                 'ext': 'mp4',

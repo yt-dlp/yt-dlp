@@ -1,9 +1,7 @@
+import base64
+import urllib.parse
+
 from .bokecc import BokeCCBaseIE
-from ..compat import (
-    compat_b64decode,
-    compat_urllib_parse_unquote,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -59,7 +57,7 @@ class InfoQIE(BokeCCBaseIE):
         encoded_id = self._search_regex(
             r"jsclassref\s*=\s*'([^']*)'", webpage, 'encoded id', default=None)
 
-        real_id = compat_urllib_parse_unquote(compat_b64decode(encoded_id).decode('utf-8'))
+        real_id = urllib.parse.unquote(base64.b64decode(encoded_id).decode('utf-8'))
         playpath = 'mp4:' + real_id
 
         return [{
@@ -98,7 +96,7 @@ class InfoQIE(BokeCCBaseIE):
 
         # base URL is found in the Location header in the response returned by
         # GET https://www.infoq.com/mp3download.action?filename=... when logged in.
-        http_audio_url = compat_urlparse.urljoin('http://ress.infoq.com/downloads/mp3downloads/', http_audio_url)
+        http_audio_url = urllib.parse.urljoin('http://ress.infoq.com/downloads/mp3downloads/', http_audio_url)
         http_audio_url = update_url_query(http_audio_url, self._extract_cf_auth(webpage))
 
         # audio file seem to be missing some times even if there is a download link

@@ -20,11 +20,11 @@ class MuenchenTVIE(InfoExtractor):
             'ext': 'mp4',
             'title': 're:^münchen.tv-Livestream [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'is_live': True,
-            'thumbnail': r're:^https?://.*\.jpg$'
+            'thumbnail': r're:^https?://.*\.jpg$',
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -47,12 +47,12 @@ class MuenchenTVIE(InfoExtractor):
             ext = determine_ext(s['file'], None)
             label_str = s.get('label')
             if label_str is None:
-                label_str = '_%d' % format_num
+                label_str = f'_{format_num}'
 
             if ext is None:
                 format_id = label_str
             else:
-                format_id = '%s-%s' % (ext, label_str)
+                format_id = f'{ext}-{label_str}'
 
             formats.append({
                 'url': s['file'],

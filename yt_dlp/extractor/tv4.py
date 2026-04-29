@@ -76,7 +76,7 @@ class TV4IE(InfoExtractor):
         {
             'url': 'https://www.tv4play.se/program/nyheterna/avsnitt/13315940',
             'only_matching': True,
-        }
+        },
     ]
 
     def _call_api(self, endpoint, video_id, headers=None, query={}):

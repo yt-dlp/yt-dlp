@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -20,7 +19,7 @@ class TheInterceptIE(InfoExtractor):
             'timestamp': 1450429239,
             'upload_date': '20151218',
             'comment_count': int,
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -35,8 +34,8 @@ class TheInterceptIE(InfoExtractor):
             if post['slug'] == display_id:
                 return {
                     '_type': 'url_transparent',
-                    'url': 'jwplatform:%s' % post['fov_videoid'],
-                    'id': compat_str(post['ID']),
+                    'url': 'jwplatform:{}'.format(post['fov_videoid']),
+                    'id': str(post['ID']),
                     'display_id': display_id,
                     'title': post['title'],
                     'description': post.get('excerpt'),

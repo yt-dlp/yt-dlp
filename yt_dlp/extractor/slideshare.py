@@ -1,9 +1,7 @@
 import json
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     get_element_by_id,
@@ -32,12 +30,12 @@ class SlideshareIE(InfoExtractor):
             webpage, 'slideshare object')
         info = json.loads(slideshare_obj)
         if info['slideshow']['type'] != 'video':
-            raise ExtractorError('Webpage type is "%s": only video extraction is supported for Slideshare' % info['slideshow']['type'], expected=True)
+            raise ExtractorError('Webpage type is "{}": only video extraction is supported for Slideshare'.format(info['slideshow']['type']), expected=True)
 
         doc = info['doc']
         bucket = info['jsplayer']['video_bucket']
         ext = info['jsplayer']['video_extension']
-        video_url = compat_urlparse.urljoin(bucket, doc + '-SD.' + ext)
+        video_url = urllib.parse.urljoin(bucket, doc + '-SD.' + ext)
         description = get_element_by_id('slideshow-description-paragraph', webpage) or self._html_search_regex(
             r'(?s)<p[^>]+itemprop="description"[^>]*>(.+?)</p>', webpage,
             'description', fatal=False)

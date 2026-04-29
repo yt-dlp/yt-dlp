@@ -34,7 +34,7 @@ class NovaPlayIE(InfoExtractor):
                 'thumbnail': 'https://nbg-img.fite.tv/img/606609_460x260.jpg',
                 'description': '29 сек',
             },
-        }
+        },
     ]
 
     _access_token = None
@@ -50,7 +50,7 @@ class NovaPlayIE(InfoExtractor):
             video_id, headers={
                 'x-flipps-user-agent': 'Flipps/75/9.7',
                 'x-flipps-version': '2022-05-17',
-                'Authorization': f'Bearer {self._access_token}'
+                'Authorization': f'Bearer {self._access_token}',
             })[0]['links']['play']['href']
         formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls')
 

@@ -14,7 +14,7 @@ class QingTingIE(InfoExtractor):
             'channel': '睡前消息',
             'uploader': '马督工',
             'ext': 'm4a',
-        }
+        },
     }, {
         'url': 'https://m.qtfm.cn/vchannels/378005/programs/23023573/',
         'md5': '2703120b6abe63b5fa90b975a58f4c0e',
@@ -25,7 +25,7 @@ class QingTingIE(InfoExtractor):
             'channel': '睡前消息',
             'uploader': '马督工',
             'ext': 'm4a',
-        }
+        },
     }]
 
     def _real_extract(self, url):

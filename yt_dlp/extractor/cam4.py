@@ -12,12 +12,12 @@ class CAM4IE(InfoExtractor):
             'age_limit': 18,
             'live_status': 'is_live',
             'thumbnail': 'https://snapshots.xcdnpro.com/thumbnails/foxynesss',
-        }
+        },
     }
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
-        m3u8_playlist = self._download_json('https://www.cam4.com/rest/v1.0/profile/{}/streamInfo'.format(channel_id), channel_id).get('cdnURL')
+        m3u8_playlist = self._download_json(f'https://www.cam4.com/rest/v1.0/profile/{channel_id}/streamInfo', channel_id).get('cdnURL')
 
         formats = self._extract_m3u8_formats(m3u8_playlist, channel_id, 'mp4', m3u8_id='hls', live=True)
 

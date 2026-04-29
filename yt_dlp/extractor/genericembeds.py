@@ -15,8 +15,8 @@ class HTML5MediaEmbedIE(InfoExtractor):
                 'title': 'HTML5 Media',
                 'description': 'md5:933b2d02ceffe7a7a0f3c8326d91cc2a',
             },
-            'playlist_count': 2
-        }
+            'playlist_count': 2,
+        },
     ]
 
     def _extract_from_webpage(self, url, webpage):
@@ -50,7 +50,7 @@ class QuotedHTMLIE(InfoExtractor):
             'description': 'md5:6816e1e5a65304bd7898e4c7eb1b26f7',
             'age_limit': 0,
         },
-        'playlist_count': 2
+        'playlist_count': 2,
     }, {
         # Generic iframe embed of TV24UAPlayerIE within data-html
         'url': 'https://24tv.ua/harkivyani-zgaduyut-misto-do-viyni-shhemlive-video_n1887584',
@@ -60,7 +60,7 @@ class QuotedHTMLIE(InfoExtractor):
             'title': 'Харків\'яни згадують місто до війни: щемливе відео',
             'thumbnail': r're:^https?://.*\.jpe?g',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         # YouTube embeds on Squarespace (data-html): https://github.com/ytdl-org/youtube-dl/issues/21294
         'url': 'https://www.harvardballetcompany.org/past-productions',
@@ -70,7 +70,7 @@ class QuotedHTMLIE(InfoExtractor):
             'age_limit': 0,
             'description': 'Past Productions',
         },
-        'playlist_mincount': 26
+        'playlist_mincount': 26,
     }, {
         # Squarespace video embed, 2019-08-28, data-html
         'url': 'http://ootboxford.com',

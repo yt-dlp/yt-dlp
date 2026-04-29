@@ -1,5 +1,6 @@
+import base64
+
 from .common import InfoExtractor
-from ..compat import compat_b64decode
 from ..utils import int_or_none
 
 
@@ -49,7 +50,7 @@ class PopcorntimesIE(InfoExtractor):
                     c_ord -= 26
             loc_b64 += chr(c_ord)
 
-        video_url = compat_b64decode(loc_b64).decode('utf-8')
+        video_url = base64.b64decode(loc_b64).decode('utf-8')
 
         description = self._html_search_regex(
             r'(?s)<div[^>]+class=["\']pt-movie-desc[^>]+>(.+?)</div>', webpage,

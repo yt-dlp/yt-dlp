@@ -5,7 +5,6 @@ import urllib.parse
 
 from .adobepass import AdobePassIE
 from .common import InfoExtractor
-from .once import OnceIE
 from ..utils import (
     determine_ext,
     dict_get,
@@ -16,7 +15,7 @@ from ..utils import (
 )
 
 
-class ESPNIE(OnceIE):
+class ESPNIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
@@ -100,13 +99,13 @@ class ESPNIE(OnceIE):
     }, {
         'url': 'http://www.espn.com/watch/player?bucketId=257&id=19505875',
         'only_matching': True,
-    }, ]
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         clip = self._download_json(
-            'http://api-app.espn.com/v1/video/clips/%s' % video_id,
+            f'http://api-app.espn.com/v1/video/clips/{video_id}',
             video_id)['videos'][0]
 
         title = clip['headline']
@@ -115,25 +114,23 @@ class ESPNIE(OnceIE):
         formats = []
 
         def traverse_source(source, base_source_id=None):
-            for source_id, source in source.items():
-                if source_id == 'alert':
+            for src_id, src_item in source.items():
+                if src_id == 'alert':
                     continue
-                elif isinstance(source, str):
-                    extract_source(source, base_source_id)
-                elif isinstance(source, dict):
+                elif isinstance(src_item, str):
+                    extract_source(src_item, base_source_id)
+                elif isinstance(src_item, dict):
                     traverse_source(
-                        source,
-                        '%s-%s' % (base_source_id, source_id)
-                        if base_source_id else source_id)
+                        src_item,
+                        f'{base_source_id}-{src_id}'
+                        if base_source_id else src_id)
 
         def extract_source(source_url, source_id=None):
             if source_url in format_urls:
                 return
             format_urls.add(source_url)
             ext = determine_ext(source_url)
-            if OnceIE.suitable(source_url):
-                formats.extend(self._extract_once_formats(source_url))
-            elif ext == 'smil':
+            if ext == 'smil':
                 formats.extend(self._extract_smil_formats(
                     source_url, video_id, fatal=False))
             elif ext == 'f4m':
@@ -209,7 +206,7 @@ class ESPNArticleIE(InfoExtractor):
             webpage, 'video id', group='id')
 
         return self.url_result(
-            'http://espn.go.com/video/clip?id=%s' % video_id, ESPNIE.ie_key())
+            f'http://espn.go.com/video/clip?id={video_id}', ESPNIE.ie_key())
 
 
 class FiveThirtyEightIE(InfoExtractor):
@@ -251,7 +248,7 @@ class ESPNCricInfoIE(InfoExtractor):
             'upload_date': '20211113',
             'duration': 96,
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://www.espncricinfo.com/cricket-videos/daryl-mitchell-mitchell-santner-is-one-of-the-best-white-ball-spinners-india-vs-new-zealand-1356225',
         'info_dict': {
@@ -266,12 +263,13 @@ class ESPNCricInfoIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        data_json = self._download_json(f'https://hs-consumer-api.espncricinfo.com/v1/pages/video/video-details?videoId={id}', id)['video']
+        video_id = self._match_id(url)
+        data_json = self._download_json(
+            f'https://hs-consumer-api.espncricinfo.com/v1/pages/video/video-details?videoId={video_id}', video_id)['video']
         formats, subtitles = [], {}
         for item in data_json.get('playbacks') or []:
             if item.get('type') == 'HLS' and item.get('url'):
-                m3u8_frmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(item['url'], id)
+                m3u8_frmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(item['url'], video_id)
                 formats.extend(m3u8_frmts)
                 subtitles = self._merge_subtitles(subtitles, m3u8_subs)
             elif item.get('type') == 'AUDIO' and item.get('url'):
@@ -280,7 +278,7 @@ class ESPNCricInfoIE(InfoExtractor):
                     'vcodec': 'none',
                 })
         return {
-            'id': id,
+            'id': video_id,
             'title': data_json.get('title'),
             'description': data_json.get('summary'),
             'upload_date': unified_strdate(dict_get(data_json, ('publishedAt', 'recordedAt'))),
@@ -293,37 +291,37 @@ class ESPNCricInfoIE(InfoExtractor):
 class WatchESPNIE(AdobePassIE):
     _VALID_URL = r'https?://(?:www\.)?espn\.com/(?:watch|espnplus)/player/_/id/(?P<id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})'
     _TESTS = [{
-        'url': 'https://www.espn.com/watch/player/_/id/dbbc6b1d-c084-4b47-9878-5f13c56ce309',
+        'url': 'https://www.espn.com/watch/player/_/id/11ce417a-6ac9-42b6-8a15-46aeb9ad5710',
         'info_dict': {
-            'id': 'dbbc6b1d-c084-4b47-9878-5f13c56ce309',
+            'id': '11ce417a-6ac9-42b6-8a15-46aeb9ad5710',
             'ext': 'mp4',
-            'title': 'Huddersfield vs. Burnley',
-            'duration': 7500,
-            'thumbnail': 'https://artwork.api.espn.com/artwork/collections/media/dbbc6b1d-c084-4b47-9878-5f13c56ce309/default?width=640&apikey=1ngjw23osgcis1i1vbj96lmfqs',
+            'title': 'Abilene Chrstn vs. Texas Tech',
+            'duration': 14166,
+            'thumbnail': 'https://s.secure.espncdn.com/stitcher/artwork/collections/media/11ce417a-6ac9-42b6-8a15-46aeb9ad5710/16x9.jpg?timestamp=202407252343&showBadge=true&cb=12&package=ESPN_PLUS',
         },
         'params': {
             'skip_download': True,
         },
     }, {
-        'url': 'https://www.espn.com/watch/player/_/id/a049a56e-a7ce-477e-aef3-c7e48ef8221c',
+        'url': 'https://www.espn.com/watch/player/_/id/90a2c85d-75e0-4b1e-a878-8e428a3cb2f3',
         'info_dict': {
-            'id': 'a049a56e-a7ce-477e-aef3-c7e48ef8221c',
+            'id': '90a2c85d-75e0-4b1e-a878-8e428a3cb2f3',
             'ext': 'mp4',
-            'title': 'Dynamo Dresden vs. VfB Stuttgart (Round #1) (German Cup)',
-            'duration': 8335,
-            'thumbnail': 'https://s.secure.espncdn.com/stitcher/artwork/collections/media/bd1f3d12-0654-47d9-852e-71b85ea695c7/16x9.jpg?timestamp=202201112217&showBadge=true&cb=12&package=ESPN_PLUS',
+            'title': 'UC Davis vs. California',
+            'duration': 9547,
+            'thumbnail': 'https://artwork.api.espn.com/artwork/collections/media/90a2c85d-75e0-4b1e-a878-8e428a3cb2f3/default?width=640&apikey=1ngjw23osgcis1i1vbj96lmfqs',
         },
         'params': {
             'skip_download': True,
         },
     }, {
-        'url': 'https://www.espn.com/espnplus/player/_/id/317f5fd1-c78a-4ebe-824a-129e0d348421',
+        'url': 'https://www.espn.com/watch/player/_/id/c4313bbe-95b5-4bb8-b251-ac143ea0fc54',
         'info_dict': {
-            'id': '317f5fd1-c78a-4ebe-824a-129e0d348421',
+            'id': 'c4313bbe-95b5-4bb8-b251-ac143ea0fc54',
             'ext': 'mp4',
-            'title': 'The Wheel - Episode 10',
-            'duration': 3352,
-            'thumbnail': 'https://s.secure.espncdn.com/stitcher/artwork/collections/media/317f5fd1-c78a-4ebe-824a-129e0d348421/16x9.jpg?timestamp=202205031523&showBadge=true&cb=12&package=ESPN_PLUS',
+            'title': 'The College Football Show',
+            'duration': 3639,
+            'thumbnail': 'https://artwork.api.espn.com/artwork/collections/media/c4313bbe-95b5-4bb8-b251-ac143ea0fc54/default?width=640&apikey=1ngjw23osgcis1i1vbj96lmfqs',
         },
         'params': {
             'skip_download': True,
@@ -331,6 +329,7 @@ class WatchESPNIE(AdobePassIE):
     }]
 
     _API_KEY = 'ZXNwbiZicm93c2VyJjEuMC4w.ptUt7QxsteaRruuPmGZFaJByOoqKvDP2a5YkInHrc7c'
+    _SOFTWARE_STATEMENT = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIyZGJmZWM4My03OWE1LTQyNzEtYTVmZC04NTZjYTMxMjRjNjMiLCJuYmYiOjE1NDAyMTI3NjEsImlzcyI6ImF1dGguYWRvYmUuY29tIiwiaWF0IjoxNTQwMjEyNzYxfQ.yaK3r4AI2uLVvsyN1GLzqzgzRlxMPtasSaiYYBV0wIstqih5tvjTmeoLmi8Xy9Kp_U7Md-bOffwiyK3srHkpUkhhwXLH2x6RPjmS1tPmhaG7-3LBcHTf2ySPvXhVf7cN4ngldawK4tdtLtsw6rF_JoZE2yaC6XbS2F51nXSFEDDnOQWIHEQRG3aYAj-38P2CLGf7g-Yfhbp5cKXeksHHQ90u3eOO4WH0EAjc9oO47h33U8KMEXxJbvjV5J8Va2G2fQSgLDZ013NBI3kQnE313qgqQh2feQILkyCENpB7g-TVBreAjOaH1fU471htSoGGYepcAXv-UDtpgitDiLy7CQ'
 
     def _call_bamgrid_api(self, path, video_id, payload=None, headers={}):
         if 'Authorization' not in headers:
@@ -352,6 +351,13 @@ class WatchESPNIE(AdobePassIE):
             if not cookie:
                 self.raise_login_required(method='cookies')
 
+            jwt = self._search_regex(r'=([^|]+)\|', cookie.value, 'cookie jwt')
+            id_token = self._download_json(
+                'https://registerdisney.go.com/jgc/v6/client/ESPN-ONESITE.WEB-PROD/guest/refresh-auth',
+                None, 'Refreshing token', headers={'Content-Type': 'application/json'}, data=json.dumps({
+                    'refreshToken': json.loads(base64.urlsafe_b64decode(f'{jwt}==='))['refresh_token'],
+                }).encode())['data']['token']['id_token']
+
             assertion = self._call_bamgrid_api(
                 'devices', video_id,
                 headers={'Content-Type': 'application/json; charset=UTF-8'},
@@ -366,28 +372,28 @@ class WatchESPNIE(AdobePassIE):
                     'subject_token': assertion,
                     'subject_token_type': 'urn:bamtech:params:oauth:token-type:device',
                     'platform': 'android',
-                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange'
+                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange',
                 })['access_token']
 
             assertion = self._call_bamgrid_api(
-                'accounts/grant', video_id, payload={'id_token': cookie.value.split('|')[1]},
+                'accounts/grant', video_id, payload={'id_token': id_token},
                 headers={
                     'Authorization': token,
-                    'Content-Type': 'application/json; charset=UTF-8'
+                    'Content-Type': 'application/json; charset=UTF-8',
                 })['assertion']
             token = self._call_bamgrid_api(
                 'token', video_id, payload={
                     'subject_token': assertion,
                     'subject_token_type': 'urn:bamtech:params:oauth:token-type:account',
                     'platform': 'android',
-                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange'
+                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange',
                 })['access_token']
 
             playback = self._download_json(
                 video_data['videoHref'].format(scenario='browser~ssai'), video_id,
                 headers={
                     'Accept': 'application/vnd.media-service+json; version=5',
-                    'Authorization': token
+                    'Authorization': token,
                 })
             m3u8_url, headers = playback['stream']['complete'][0]['url'], {'authorization': token}
 
@@ -400,8 +406,8 @@ class WatchESPNIE(AdobePassIE):
 
         # TV Provider required
         else:
-            resource = self._get_mvpd_resource('ESPN', video_data['name'], video_id, None)
-            auth = self._extract_mvpd_auth(url, video_id, 'ESPN', resource).encode()
+            resource = self._get_mvpd_resource('espn1', video_data['name'], video_id, None)
+            auth = self._extract_mvpd_auth(url, video_id, 'ESPN', resource, self._SOFTWARE_STATEMENT).encode()
 
             asset = self._download_json(
                 f'https://watch.auth.api.espn.com/video/auth/media/{video_id}/asset?apikey=uiqlbgzdwuru14v627vdusswb',

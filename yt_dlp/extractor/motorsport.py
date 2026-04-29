@@ -1,7 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_urlparse,
-)
 
 
 class MotorsportIE(InfoExtractor):
@@ -19,7 +18,7 @@ class MotorsportIE(InfoExtractor):
             'uploader': 'mcomstaff',
             'uploader_id': 'UC334JIYKkVnyFoNCclfZtHQ',
             'upload_date': '20140903',
-            'thumbnail': r're:^https?://.+\.jpg$'
+            'thumbnail': r're:^https?://.+\.jpg$',
         },
         'add_ie': ['Youtube'],
         'params': {
@@ -40,7 +39,7 @@ class MotorsportIE(InfoExtractor):
             return self.url_result(iframe_path)
 
         iframe = self._download_webpage(
-            compat_urlparse.urljoin(url, iframe_path), display_id,
+            urllib.parse.urljoin(url, iframe_path), display_id,
             'Downloading iframe')
         youtube_id = self._search_regex(
             r'www.youtube.com/embed/(.{11})', iframe, 'youtube id')
@@ -48,5 +47,5 @@ class MotorsportIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'display_id': display_id,
-            'url': 'https://youtube.com/watch?v=%s' % youtube_id,
+            'url': f'https://youtube.com/watch?v={youtube_id}',
         }

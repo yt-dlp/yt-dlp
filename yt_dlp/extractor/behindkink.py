@@ -16,7 +16,7 @@ class BehindKinkIE(InfoExtractor):
             'upload_date': '20141205',
             'thumbnail': 'http://www.behindkink.com/wp-content/uploads/2014/12/blaze-1.jpg',
             'age_limit': 18,
-        }
+        },
     }
 
     def _real_extract(self, url):

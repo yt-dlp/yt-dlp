@@ -45,7 +45,7 @@ class LentaIE(InfoExtractor):
             default=None)
         if video_id:
             return self.url_result(
-                'eagleplatform:lentaru.media.eagleplatform.com:%s' % video_id,
+                f'eagleplatform:lentaru.media.eagleplatform.com:{video_id}',
                 ie='EaglePlatform', video_id=video_id)
 
         return self.url_result(url, ie='Generic')

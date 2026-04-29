@@ -1,5 +1,6 @@
+import base64
+
 from .common import InfoExtractor
-from ..compat import compat_b64decode
 from ..networking import HEADRequest, Request
 from ..utils import ExtractorError, urlencode_postdata
 
@@ -13,8 +14,8 @@ class HotNewHipHopIE(InfoExtractor):
         'info_dict': {
             'id': '1435540',
             'ext': 'mp3',
-            'title': 'Freddie Gibbs - Lay It Down'
-        }
+            'title': 'Freddie Gibbs - Lay It Down',
+        },
     }
 
     def _real_extract(self, url):
@@ -42,7 +43,7 @@ class HotNewHipHopIE(InfoExtractor):
         if 'mediaKey' not in mkd:
             raise ExtractorError('Did not get a media key')
 
-        redirect_url = compat_b64decode(video_url_base64).decode('utf-8')
+        redirect_url = base64.b64decode(video_url_base64).decode('utf-8')
         redirect_req = HEADRequest(redirect_url)
         req = self._request_webpage(
             redirect_req, video_id,

@@ -17,7 +17,7 @@ class ProjectVeritasIE(InfoExtractor):
             'title': 'Exclusive: Inside The New York and New Jersey Hospitals Battling Coronavirus',
             'upload_date': '20200327',
             'thumbnail': 'md5:6076477fe50b03eb8708be9415e18e1c',
-        }
+        },
     }, {
         'url': 'https://www.projectveritas.com/video/ilhan-omar-connected-ballot-harvester-in-cash-for-ballots-scheme-car-is-full/',
         'info_dict': {
@@ -26,13 +26,13 @@ class ProjectVeritasIE(InfoExtractor):
             'title': 'Ilhan Omar connected Ballot Harvester in cash-for-ballots scheme: "Car is full" of absentee ballots',
             'upload_date': '20200927',
             'thumbnail': 'md5:194b8edf0e2ba64f25500ff4378369a4',
-        }
+        },
     }]
 
     def _real_extract(self, url):
-        id, type = self._match_valid_url(url).group('id', 'type')
-        api_url = f'https://www.projectveritas.com/page-data/{type}/{id}/page-data.json'
-        data_json = self._download_json(api_url, id)['result']['data']
+        video_id, video_type = self._match_valid_url(url).group('id', 'type')
+        api_url = f'https://www.projectveritas.com/page-data/{video_type}/{video_id}/page-data.json'
+        data_json = self._download_json(api_url, video_id)['result']['data']
         main_data = traverse_obj(data_json, 'video', 'post')
         video_id = main_data['id']
         thumbnail = traverse_obj(main_data, ('image', 'ogImage', 'src'))

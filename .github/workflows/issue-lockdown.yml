@@ -1,0 +1,22 @@
+name: Issue Lockdown
+on:
+  issues:
+    types: [opened]
+
+permissions: {}
+
+jobs:
+  lockdown:
+    name: Issue Lockdown
+    if: vars.ISSUE_LOCKDOWN
+    permissions:
+      issues: write  # Needed to lock issues
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Lock new issue"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          gh issue lock "${ISSUE_NUMBER}" -R "${REPOSITORY}"

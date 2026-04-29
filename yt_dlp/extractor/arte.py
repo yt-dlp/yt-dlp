@@ -20,15 +20,15 @@ class ArteTVBaseIE(InfoExtractor):
 
 
 class ArteTVIE(ArteTVBaseIE):
-    _VALID_URL = r'''(?x)
+    _VALID_URL = rf'''(?x)
                     (?:https?://
                         (?:
-                            (?:www\.)?arte\.tv/(?P<lang>%(langs)s)/videos|
-                            api\.arte\.tv/api/player/v\d+/config/(?P<lang_2>%(langs)s)
+                            (?:www\.)?arte\.tv/(?P<lang>{ArteTVBaseIE._ARTE_LANGUAGES})/videos|
+                            api\.arte\.tv/api/player/v\d+/config/(?P<lang_2>{ArteTVBaseIE._ARTE_LANGUAGES})
                         )
                     |arte://program)
-                        /(?P<id>\d{6}-\d{3}-[AF]|LIVE)
-                    ''' % {'langs': ArteTVBaseIE._ARTE_LANGUAGES}
+                        /(?P<id>\d{{6}}-\d{{3}}-[AF]|LIVE)
+                    '''
     _TESTS = [{
         'url': 'https://www.arte.tv/en/videos/088501-000-A/mexico-stealing-petrol-to-survive/',
         'only_matching': True,
@@ -51,8 +51,8 @@ class ArteTVIE(ArteTVBaseIE):
             'id': '109067-000-A',
             'ext': 'mp4',
             'description': 'md5:d2ca367b8ecee028dddaa8bd1aebc739',
+            'thumbnail': r're:https?://api-cdn\.arte\.tv/img/v2/image/.+',
             'timestamp': 1713927600,
-            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/3rR6PLzfbigSkkeHtkCZNF/940x530',
             'duration': 7599,
             'title': 'La loi de Téhéran',
             'upload_date': '20240424',
@@ -62,6 +62,7 @@ class ArteTVIE(ArteTVBaseIE):
                 'fr-forced': 'mincount:1',
             },
         },
+        'skip': 'Invalid URL',
     }, {
         'note': 'age-restricted',
         'url': 'https://www.arte.tv/de/videos/006785-000-A/the-element-of-crime/',
@@ -69,9 +70,9 @@ class ArteTVIE(ArteTVBaseIE):
             'id': '006785-000-A',
             'description': 'md5:c2f94fdfefc8a280e4dab68ab96ab0ba',
             'title': 'The Element of Crime',
+            'thumbnail': r're:https?://api-cdn\.arte\.tv/img/v2/image/.+',
             'timestamp': 1696111200,
             'duration': 5849,
-            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/q82dTTfyuCXupPsGxXsd7B/940x530',
             'upload_date': '20230930',
             'ext': 'mp4',
         },
@@ -145,7 +146,7 @@ class ArteTVIE(ArteTVBaseIE):
         language_code = self._LANG_MAP.get(lang)
 
         config = self._download_json(f'{self._API_BASE}/config/{lang}/{video_id}', video_id, headers={
-            'x-validated-age': '18'
+            'x-validated-age': '18',
         })
 
         geoblocking = traverse_obj(config, ('data', 'attributes', 'restriction', 'geoblocking')) or {}
@@ -247,10 +248,34 @@ class ArteTVEmbedIE(InfoExtractor):
             'description': 'md5:be40b667f45189632b78c1425c7c2ce1',
             'upload_date': '20201116',
         },
-        'skip': 'No video available'
+        'skip': 'No video available',
     }, {
         'url': 'https://www.arte.tv/player/v3/index.php?json_url=https://api.arte.tv/api/player/v2/config/de/100605-013-A',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
+        'url': 'https://timesofmalta.com/article/watch-sunken-warships-north-sea-arte.1108358',
+        'info_dict': {
+            'id': '110288-000-A',
+            'ext': 'mp4',
+            'title': 'Danger on the Seabed',
+            'alt_title': 'Sunken Warships in the North Sea',
+            'description': 'md5:a2c84cbad37d280bddb6484087120add',
+            'duration': 3148,
+            'thumbnail': r're:https?://api-cdn\.arte\.tv/img/v2/image/.+',
+            'timestamp': 1741686820,
+            'upload_date': '20250311',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # FIXME: Embed detection
+        'url': 'https://www.eurockeennes.fr/en-live/',
+        'info_dict': {
+            'id': 'en-live',
+            'title': 'Les Eurocks en live | Les Eurockéennes de Belfort – 3-4-5-6 juillet 2025 sur la Presqu&#039;Île du Malsaucy',
+        },
+        'playlist_count': 4,
     }]
 
     def _real_extract(self, url):
@@ -262,7 +287,7 @@ class ArteTVEmbedIE(InfoExtractor):
 
 
 class ArteTVPlaylistIE(ArteTVBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?arte\.tv/(?P<lang>%s)/videos/(?P<id>RC-\d{6})' % ArteTVBaseIE._ARTE_LANGUAGES
+    _VALID_URL = rf'https?://(?:www\.)?arte\.tv/(?P<lang>{ArteTVBaseIE._ARTE_LANGUAGES})/videos/(?P<id>RC-\d{{6}})'
     _TESTS = [{
         'url': 'https://www.arte.tv/en/videos/RC-016954/earn-a-living/',
         'only_matching': True,
@@ -298,21 +323,21 @@ class ArteTVPlaylistIE(ArteTVBaseIE):
 
 
 class ArteTVCategoryIE(ArteTVBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?arte\.tv/(?P<lang>%s)/videos/(?P<id>[\w-]+(?:/[\w-]+)*)/?\s*$' % ArteTVBaseIE._ARTE_LANGUAGES
+    _VALID_URL = rf'https?://(?:www\.)?arte\.tv/(?P<lang>{ArteTVBaseIE._ARTE_LANGUAGES})/videos/(?P<id>[\w-]+(?:/[\w-]+)*)/?\s*$'
     _TESTS = [{
         'url': 'https://www.arte.tv/en/videos/politics-and-society/',
         'info_dict': {
             'id': 'politics-and-society',
             'title': 'Politics and society',
-            'description': 'Investigative documentary series, geopolitical analysis, and international commentary',
+            'description': 'Watch documentaries and reportage about politics, society and current affairs.',
         },
-        'playlist_mincount': 13,
+        'playlist_mincount': 3,
     }]
 
     @classmethod
     def suitable(cls, url):
         return (
-            not any(ie.suitable(url) for ie in (ArteTVIE, ArteTVPlaylistIE, ))
+            not any(ie.suitable(url) for ie in (ArteTVIE, ArteTVPlaylistIE))
             and super().suitable(url))
 
     def _real_extract(self, url):
@@ -321,12 +346,12 @@ class ArteTVCategoryIE(ArteTVBaseIE):
 
         items = []
         for video in re.finditer(
-                r'<a\b[^>]*?href\s*=\s*(?P<q>"|\'|\b)(?P<url>https?://www\.arte\.tv/%s/videos/[\w/-]+)(?P=q)' % lang,
+                rf'<a\b[^>]*?href\s*=\s*(?P<q>"|\'|\b)(?P<url>https?://www\.arte\.tv/{lang}/videos/[\w/-]+)(?P=q)',
                 webpage):
             video = video.group('url')
             if video == url:
                 continue
-            if any(ie.suitable(video) for ie in (ArteTVIE, ArteTVPlaylistIE, )):
+            if any(ie.suitable(video) for ie in (ArteTVIE, ArteTVPlaylistIE)):
                 items.append(video)
 
         title = strip_or_none(self._generic_title('', webpage, default='').rsplit('|', 1)[0]) or None

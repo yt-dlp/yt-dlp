@@ -14,7 +14,7 @@ class InaIE(InfoExtractor):
             'description': 'md5:19f61e2b4844ed4bb2e3df9ab9f527ff',
             'upload_date': '20070712',
             'thumbnail': 'https://cdn-hub.ina.fr/notice/690x517/3c4/I12055569.jpeg',
-        }
+        },
     }, {
         'url': 'https://www.ina.fr/video/S806544_001/don-d-organes-des-avancees-mais-d-importants-besoins-video.html',
         'only_matching': True,

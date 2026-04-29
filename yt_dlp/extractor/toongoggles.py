@@ -18,7 +18,7 @@ class ToonGogglesIE(InfoExtractor):
             'description': 'Bernard decides to play football in order to be better than Lloyd and tries to beat him no matter how, he even cheats.',
             'upload_date': '20160718',
             'timestamp': 1468879330,
-        }
+        },
     }, {
         'url': 'http://www.toongoggles.com/shows/227759/om-nom-stories-around-the-world',
         'info_dict': {

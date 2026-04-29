@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     float_or_none,
     int_or_none,
@@ -21,7 +20,7 @@ class STVPlayerIE(InfoExtractor):
             'ext': 'mp4',
             'upload_date': '20170301',
             'title': '60 seconds on set with Laura Norton',
-            'description': "How many questions can Laura - a.k.a Kerry Wyatt - answer in 60 seconds? Let\'s find out!",
+            'description': "How many questions can Laura - a.k.a Kerry Wyatt - answer in 60 seconds? Let's find out!",
             'timestamp': 1488388054,
             'uploader_id': '1486976045',
         },
@@ -47,13 +46,13 @@ class STVPlayerIE(InfoExtractor):
 
         api_path, resp = None, {}
         for k, v in player_api_cache.items():
-            if k.startswith('/episodes/') or k.startswith('/shortform/'):
+            if k.startswith(('/episodes/', '/shortform/')):
                 api_path, resp = k, v
                 break
         else:
             episode_id = str_or_none(try_get(
                 props, lambda x: x['pageProps']['episodeId']))
-            api_path = '/%s/%s' % (self._PTYPE_MAP[ptype], episode_id or video_id)
+            api_path = f'/{self._PTYPE_MAP[ptype]}/{episode_id or video_id}'
 
         result = resp.get('results')
         if not result:
@@ -62,7 +61,7 @@ class STVPlayerIE(InfoExtractor):
             result = resp['results']
 
         video = result['video']
-        video_id = compat_str(video['id'])
+        video_id = str(video['id'])
 
         subtitles = {}
         _subtitles = result.get('_subtitles') or {}

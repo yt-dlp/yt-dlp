@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import ExtractorError, mimetype2ext, parse_iso8601, try_get
 
 
@@ -19,12 +18,12 @@ class FancodeVodIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Match Preview: PBKS vs MI',
             'thumbnail': r're:^https?://.*\.jpg$',
-            "timestamp": 1619081590,
+            'timestamp': 1619081590,
             'view_count': int,
             'like_count': int,
             'upload_date': '20210422',
-            'uploader_id': '6008340455001'
-        }
+            'uploader_id': '6008340455001',
+        },
     }, {
         'url': 'https://fancode.com/video/15043',
         'only_matching': True,
@@ -53,14 +52,14 @@ class FancodeVodIE(InfoExtractor):
                 "refreshToken":"%s"
             },
             "operationName":"RefreshToken"
-        }''' % password
+        }''' % password  # noqa: UP031
 
-        token_json = self.download_gql('refresh token', data, "Getting the Access token")
+        token_json = self.download_gql('refresh token', data, 'Getting the Access token')
         self._ACCESS_TOKEN = try_get(token_json, lambda x: x['data']['refreshToken']['accessToken'])
         if self._ACCESS_TOKEN is None:
             self.report_warning('Failed to get Access token')
         else:
-            self.headers.update({'Authorization': 'Bearer %s' % self._ACCESS_TOKEN})
+            self.headers.update({'Authorization': f'Bearer {self._ACCESS_TOKEN}'})
 
     def _check_login_required(self, is_available, is_premium):
         msg = None
@@ -92,12 +91,12 @@ class FancodeVodIE(InfoExtractor):
                 }
             },
             "operationName":"Video"
-        }''' % video_id
+        }''' % video_id  # noqa: UP031
 
         metadata_json = self.download_gql(video_id, data, note='Downloading metadata')
 
         media = try_get(metadata_json, lambda x: x['data']['media'], dict) or {}
-        brightcove_video_id = try_get(media, lambda x: x['mediaSource']['brightcove'], compat_str)
+        brightcove_video_id = try_get(media, lambda x: x['mediaSource']['brightcove'], str)
 
         if brightcove_video_id is None:
             raise ExtractorError('Unable to extract brightcove Video ID')
@@ -132,11 +131,11 @@ class FancodeLiveIE(FancodeVodIE):  # XXX: Do not subclass from concrete IE
             'id': '35328',
             'ext': 'mp4',
             'title': 'BUB vs BLB',
-            "timestamp": 1624863600,
+            'timestamp': 1624863600,
             'is_live': True,
             'upload_date': '20210628',
         },
-        'skip': 'Ended'
+        'skip': 'Ended',
     }, {
         'url': 'https://fancode.com/match/35328/',
         'only_matching': True,
@@ -147,7 +146,7 @@ class FancodeLiveIE(FancodeVodIE):  # XXX: Do not subclass from concrete IE
 
     def _real_extract(self, url):
 
-        id = self._match_id(url)
+        video_id = self._match_id(url)
         data = '''{
             "query":"query MatchResponse($id: Int\\u0021, $isLoggedIn: Boolean\\u0021) { match: matchWithScores(id: $id) { id matchDesc mediaId videoStreamId videoStreamUrl { ...VideoSource } liveStreams { videoStreamId videoStreamUrl { ...VideoSource } contentId } name startTime streamingStatus isPremium isUserEntitled @include(if: $isLoggedIn) status metaTags bgImage { src } sport { name slug } tour { id name } squads { name shortName } liveStreams { contentId } mediaId }}fragment VideoSource on VideoSource { title description posterUrl url deliveryType playerType}",
             "variables":{
@@ -155,21 +154,21 @@ class FancodeLiveIE(FancodeVodIE):  # XXX: Do not subclass from concrete IE
                 "isLoggedIn":true
             },
             "operationName":"MatchResponse"
-        }''' % id
+        }''' % video_id  # noqa: UP031
 
-        info_json = self.download_gql(id, data, "Info json")
+        info_json = self.download_gql(video_id, data, 'Info json')
 
         match_info = try_get(info_json, lambda x: x['data']['match'])
 
-        if match_info.get('streamingStatus') != "STARTED":
+        if match_info.get('streamingStatus') != 'STARTED':
             raise ExtractorError('The stream can\'t be accessed', expected=True)
         self._check_login_required(match_info.get('isUserEntitled'), True)  # all live streams are premium only
 
         return {
-            'id': id,
+            'id': video_id,
             'title': match_info.get('name'),
-            'formats': self._extract_akamai_formats(try_get(match_info, lambda x: x['videoStreamUrl']['url']), id),
+            'formats': self._extract_akamai_formats(try_get(match_info, lambda x: x['videoStreamUrl']['url']), video_id),
             'ext': mimetype2ext(try_get(match_info, lambda x: x['videoStreamUrl']['deliveryType'])),
             'is_live': True,
-            'release_timestamp': parse_iso8601(match_info.get('startTime'))
+            'release_timestamp': parse_iso8601(match_info.get('startTime')),
         }

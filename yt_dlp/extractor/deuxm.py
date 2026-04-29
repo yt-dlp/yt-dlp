@@ -12,8 +12,8 @@ class DeuxMIE(InfoExtractor):
             'id': '6351d439b15e1a613b3debe8',
             'ext': 'mp4',
             'title': 'Grand Angle : Jeudi 20 Octobre 2022',
-            'thumbnail': r're:^https?://2msoread-ww.amagi.tv/mediasfiles/videos/images/.*\.png$'
-        }
+            'thumbnail': r're:^https?://2msoread-ww.amagi.tv/mediasfiles/videos/images/.*\.png$',
+        },
     }, {
         'url': 'https://2m.ma/fr/replay/single/635c0aeab4eec832622356da',
         'md5': 'ad6af2f5e4d5b2ad2194a84b6e890b4c',
@@ -21,8 +21,8 @@ class DeuxMIE(InfoExtractor):
             'id': '635c0aeab4eec832622356da',
             'ext': 'mp4',
             'title': 'Journal  Amazigh : Vendredi 28 Octobre 2022',
-            'thumbnail': r're:^https?://2msoread-ww.amagi.tv/mediasfiles/videos/images/.*\.png$'
-        }
+            'thumbnail': r're:^https?://2msoread-ww.amagi.tv/mediasfiles/videos/images/.*\.png$',
+        },
     }]
 
     def _real_extract(self, url):
@@ -49,8 +49,8 @@ class DeuxMNewsIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Kan Ya Mkan d\u00e9poussi\u00e8re l\u2019histoire du phare du Cap Beddouza',
             'description': 'md5:99dcf29b82f1d7f2a4acafed1d487527',
-            'thumbnail': r're:^https?://2msoread-ww.amagi.tv/mediasfiles/videos/images/.*\.png$'
-        }
+            'thumbnail': r're:^https?://2msoread-ww.amagi.tv/mediasfiles/videos/images/.*\.png$',
+        },
     }, {
         'url': 'https://2m.ma/fr/news/Interview-Casablanca-hors-des-sentiers-battus-avec-Abderrahim-KASSOU-Replay--20221017',
         'md5': '7aca29f02230945ef635eb8290283c0c',
@@ -59,8 +59,8 @@ class DeuxMNewsIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Interview: Casablanca hors des sentiers battus avec Abderrahim KASSOU (Replay) ',
             'description': 'md5:3b8e78111de9fcc6ef7f7dd6cff2430c',
-            'thumbnail': r're:^https?://2msoread-ww.amagi.tv/mediasfiles/videos/images/.*\.png$'
-        }
+            'thumbnail': r're:^https?://2msoread-ww.amagi.tv/mediasfiles/videos/images/.*\.png$',
+        },
     }]
 
     def _real_extract(self, url):

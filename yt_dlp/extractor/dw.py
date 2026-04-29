@@ -1,5 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..utils import (
     int_or_none,
     unified_strdate,
@@ -22,7 +23,7 @@ class DWIE(InfoExtractor):
             'title': 'Intelligent light',
             'description': 'md5:90e00d5881719f2a6a5827cb74985af1',
             'upload_date': '20160605',
-        }
+        },
     }, {
         # audio
         'url': 'http://www.dw.com/en/worldlink-my-business/av-19111941',
@@ -33,7 +34,7 @@ class DWIE(InfoExtractor):
             'title': 'WorldLink: My business',
             'description': 'md5:bc9ca6e4e063361e21c920c53af12405',
             'upload_date': '20160311',
-        }
+        },
     }, {
         # DW documentaries, only last for one or two weeks
         'url': 'http://www.dw.com/en/documentaries-welcome-to-the-90s-2016-05-21/e-19220158-9798',
@@ -60,7 +61,7 @@ class DWIE(InfoExtractor):
             formats = [{'url': hidden_inputs['file_name']}]
         else:
             formats = self._extract_smil_formats(
-                'http://www.dw.com/smil/v-%s' % media_id, media_id,
+                f'http://www.dw.com/smil/v-{media_id}', media_id,
                 transform_source=lambda s: s.replace(
                     'rtmp://tv-od.dw.de/flash/',
                     'http://tv-download.dw.de/dwtv_video/flv/'))
@@ -97,7 +98,7 @@ class DWArticleIE(InfoExtractor):
             'title': 'The harsh life of refugees in Idomeni',
             'description': 'md5:196015cc7e48ebf474db9399420043c7',
             'upload_date': '20160310',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -105,6 +106,6 @@ class DWArticleIE(InfoExtractor):
         webpage = self._download_webpage(url, article_id)
         hidden_inputs = self._hidden_inputs(webpage)
         media_id = hidden_inputs['media_id']
-        media_path = self._search_regex(r'href="([^"]+av-%s)"\s+class="overlayLink"' % media_id, webpage, 'media url')
-        media_url = compat_urlparse.urljoin(url, media_path)
+        media_path = self._search_regex(rf'href="([^"]+av-{media_id})"\s+class="overlayLink"', webpage, 'media url')
+        media_url = urllib.parse.urljoin(url, media_path)
         return self.url_result(media_url, 'DW', media_id)

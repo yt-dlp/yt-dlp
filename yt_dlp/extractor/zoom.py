@@ -4,13 +4,15 @@ from ..utils import (
     int_or_none,
     js_to_json,
     parse_filesize,
+    parse_qs,
     parse_resolution,
     str_or_none,
-    traverse_obj,
+    update_url_query,
     url_basename,
     urlencode_postdata,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class ZoomIE(InfoExtractor):
@@ -87,6 +89,7 @@ class ZoomIE(InfoExtractor):
     def _real_extract(self, url):
         base_url, url_type, video_id = self._match_valid_url(url).group('base_url', 'type', 'id')
         query = {}
+        start_params = traverse_obj(url, {'startTime': ({parse_qs}, 'startTime', -1)})
 
         if url_type == 'share':
             webpage = self._get_real_webpage(url, base_url, video_id, 'share')
@@ -94,7 +97,7 @@ class ZoomIE(InfoExtractor):
             redirect_path = self._download_json(
                 f'{base_url}nws/recording/1.0/play/share-info/{meeting_id}',
                 video_id, note='Downloading share info JSON')['result']['redirectUrl']
-            url = urljoin(base_url, redirect_path)
+            url = update_url_query(urljoin(base_url, redirect_path), start_params)
             query['continueMode'] = 'true'
 
         webpage = self._get_real_webpage(url, base_url, video_id, 'play')
@@ -103,15 +106,16 @@ class ZoomIE(InfoExtractor):
             # When things go wrong, file_id can be empty string
             raise ExtractorError('Unable to extract file ID')
 
+        query.update(start_params)
         data = self._download_json(
             f'{base_url}nws/recording/1.0/play/info/{file_id}', video_id, query=query,
             note='Downloading play info JSON')['result']
 
         subtitles = {}
         for _type in ('transcript', 'cc', 'chapter'):
-            if data.get('%sUrl' % _type):
+            if data.get(f'{_type}Url'):
                 subtitles[_type] = [{
-                    'url': urljoin(base_url, data['%sUrl' % _type]),
+                    'url': urljoin(base_url, data[f'{_type}Url']),
                     'ext': 'vtt',
                 }]
 
@@ -126,7 +130,7 @@ class ZoomIE(InfoExtractor):
                 'format_id': 'view',
                 'ext': 'mp4',
                 'filesize_approx': parse_filesize(str_or_none(traverse_obj(data, ('recording', 'fileSizeInMB')))),
-                'preference': 0
+                'preference': 0,
             })
 
         if data.get('shareMp4Url'):
@@ -137,7 +141,7 @@ class ZoomIE(InfoExtractor):
                 'height': int_or_none(traverse_obj(data, ('shareResolvtions', 1))),
                 'format_id': 'share',
                 'ext': 'mp4',
-                'preference': -1
+                'preference': -1,
             })
 
         view_with_share_url = data.get('viewMp4WithshareUrl')
@@ -149,7 +153,7 @@ class ZoomIE(InfoExtractor):
                 'url': view_with_share_url,
                 'format_id': 'view_with_share',
                 'ext': 'mp4',
-                'preference': 1
+                'preference': 1,
             })
 
         return {

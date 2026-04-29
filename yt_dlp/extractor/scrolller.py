@@ -14,7 +14,7 @@ class ScrolllerIE(InfoExtractor):
             'thumbnail': 'https://zepto.scrolller.com/a-helping-hand-3ty9q8x094-540x960.jpg',
             'title': 'A helping hand',
             'age_limit': 0,
-        }
+        },
     }, {
         'url': 'https://scrolller.com/tigers-chasing-a-drone-c5d1f2so6j',
         'info_dict': {
@@ -23,7 +23,7 @@ class ScrolllerIE(InfoExtractor):
             'thumbnail': 'https://zepto.scrolller.com/tigers-chasing-a-drone-az9pkpguwe-540x303.jpg',
             'title': 'Tigers chasing a drone',
             'age_limit': 0,
-        }
+        },
     }, {
         'url': 'https://scrolller.com/baby-rhino-smells-something-9chhugsv9p',
         'info_dict': {
@@ -32,7 +32,7 @@ class ScrolllerIE(InfoExtractor):
             'thumbnail': 'https://atto.scrolller.com/hmm-whats-that-smell-bh54mf2c52-300x224.jpg',
             'title': 'Baby rhino smells something',
             'age_limit': 0,
-        }
+        },
     }, {
         'url': 'https://scrolller.com/its-all-fun-and-games-cco8jjmoh7',
         'info_dict': {
@@ -41,7 +41,7 @@ class ScrolllerIE(InfoExtractor):
             'thumbnail': 'https://atto.scrolller.com/its-all-fun-and-games-3amk9vg7m3-540x649.jpg',
             'title': 'It\'s all fun and games...',
             'age_limit': 0,
-        }
+        },
     }, {
         'url': 'https://scrolller.com/may-the-force-be-with-you-octokuro-yeytg1fs7a',
         'info_dict': {
@@ -50,7 +50,7 @@ class ScrolllerIE(InfoExtractor):
             'thumbnail': 'https://thumbs2.redgifs.com/DarkStarchyNautilus-poster.jpg',
             'title': 'May the force be with you (Octokuro)',
             'age_limit': 18,
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -68,7 +68,7 @@ class ScrolllerIE(InfoExtractor):
                         height
                     }
                 }
-            }''' % video_id
+            }''' % video_id,  # noqa: UP031
         }
 
         video_data = self._download_json(
@@ -98,5 +98,5 @@ class ScrolllerIE(InfoExtractor):
             'title': video_data.get('title'),
             'thumbnails': thumbnails,
             'formats': formats,
-            'age_limit': 18 if video_data.get('isNsfw') else 0
+            'age_limit': 18 if video_data.get('isNsfw') else 0,
         }

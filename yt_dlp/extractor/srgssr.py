@@ -48,7 +48,7 @@ class SRGSSRIE(InfoExtractor):
     def _get_tokenized_src(self, url, video_id, format_id):
         token = self._download_json(
             'http://tp.srgssr.ch/akahd/token?acl=*',
-            video_id, 'Downloading %s token' % format_id, fatal=False) or {}
+            video_id, f'Downloading {format_id} token', fatal=False) or {}
         auth_params = try_get(token, lambda x: x['token']['authparams'])
         if auth_params:
             url += ('?' if '?' not in url else '&') + auth_params
@@ -57,8 +57,7 @@ class SRGSSRIE(InfoExtractor):
     def _get_media_data(self, bu, media_type, media_id):
         query = {'onlyChapters': True} if media_type == 'video' else {}
         full_media_data = self._download_json(
-            'https://il.srgssr.ch/integrationlayer/2.0/%s/mediaComposition/%s/%s.json'
-            % (bu, media_type, media_id),
+            f'https://il.srgssr.ch/integrationlayer/2.0/{bu}/mediaComposition/{media_type}/{media_id}.json',
             media_id, query=query)['chapterList']
         try:
             media_data = next(
@@ -73,7 +72,7 @@ class SRGSSRIE(InfoExtractor):
                 self.raise_geo_restricted(
                     msg=message, countries=self._GEO_COUNTRIES)
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, message), expected=True)
+                f'{self.IE_NAME} said: {message}', expected=True)
 
         return media_data
 
@@ -119,7 +118,7 @@ class SRGSSRIE(InfoExtractor):
         # whole episode.
         if int_or_none(media_data.get('position')) == 0:
             for p in ('S', 'H'):
-                podcast_url = media_data.get('podcast%sdUrl' % p)
+                podcast_url = media_data.get(f'podcast{p}dUrl')
                 if not podcast_url:
                     continue
                 quality = p + 'D'
@@ -207,7 +206,7 @@ class SRGSSRPlayIE(InfoExtractor):
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'http://play.swissinfo.ch/play/tv/business/video/why-people-were-against-tax-reforms?id=42960270',
         'info_dict': {
@@ -223,7 +222,7 @@ class SRGSSRPlayIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://www.srf.ch/play/tv/popupvideoplayer?id=c4dba0ca-e75b-43b2-a34f-f708a4932e01',
         'only_matching': True,
@@ -244,4 +243,4 @@ class SRGSSRPlayIE(InfoExtractor):
         bu = mobj.group('bu')
         media_type = mobj.group('type') or mobj.group('type_2')
         media_id = mobj.group('id')
-        return self.url_result('srgssr:%s:%s:%s' % (bu[:3], media_type, media_id), 'SRGSSR')
+        return self.url_result(f'srgssr:{bu[:3]}:{media_type}:{media_id}', 'SRGSSR')

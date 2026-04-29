@@ -25,8 +25,8 @@ class Liputan6IE(InfoExtractor):
             'tags': ['perawat indonesia', 'rumah sakit', 'Medan', 'viral hari ini', 'viral', 'enamplus'],
             'channel': 'Default Channel',
             'dislike_count': int,
-            'upload_date': '20220707'
-        }
+            'upload_date': '20220707',
+        },
     }, {
         'url': 'https://www.liputan6.com/tv/read/5007719/video-program-minyakita-minyak-goreng-kemasan-sederhana-seharga-rp-14-ribu',
         'info_dict': {
@@ -49,7 +49,7 @@ class Liputan6IE(InfoExtractor):
             'thumbnail': 'https://thumbor.prod.vidiocdn.com/AAIOjz-64hKojjdw5hr0oNNEeJg=/640x360/filters:quality(70)/vidio-web-prod-video/uploads/video/image/7082543/program-minyakita-minyak-goreng-kemasan-sederhana-seharga-rp14-ribu-_-liputan-6-7d9fbb.jpg',
             'channel': 'Liputan 6 Pagi',
             'view_count': int,
-        }
+        },
     }]
 
     def _real_extract(self, url):

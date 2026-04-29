@@ -13,7 +13,7 @@ class BreitBartIE(InfoExtractor):
             'description': 'md5:bac35eb0256d1cb17f517f54c79404d5',
             'thumbnail': 'https://cdn.jwplayer.com/thumbs/5cOz1yup-1920.jpg',
             'age_limit': 0,
-        }
+        },
     }, {
         'url': 'https://www.breitbart.com/videos/v/eaiZjVOn/',
         'only_matching': True,
@@ -30,5 +30,5 @@ class BreitBartIE(InfoExtractor):
             'description': self._og_search_description(webpage),
             'thumbnail': self._og_search_thumbnail(webpage),
             'age_limit': self._rta_search(webpage),
-            'formats': formats
+            'formats': formats,
         }

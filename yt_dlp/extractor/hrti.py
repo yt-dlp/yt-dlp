@@ -28,21 +28,21 @@ class HRTiBaseIE(InfoExtractor):
 
     def _initialize_pre_login(self):
         init_data = {
-            'application_publication_id': self._APP_PUBLICATION_ID
+            'application_publication_id': self._APP_PUBLICATION_ID,
         }
 
         uuid = self._download_json(
             self._API_URL, None, note='Downloading uuid',
             errnote='Unable to download uuid',
-            data=json.dumps(init_data).encode('utf-8'))['uuid']
+            data=json.dumps(init_data).encode())['uuid']
 
         app_data = {
             'uuid': uuid,
             'application_publication_id': self._APP_PUBLICATION_ID,
-            'application_version': self._APP_VERSION
+            'application_version': self._APP_VERSION,
         }
 
-        req = Request(self._API_URL, data=json.dumps(app_data).encode('utf-8'))
+        req = Request(self._API_URL, data=json.dumps(app_data).encode())
         req.get_method = lambda: 'PUT'
 
         resources = self._download_json(
@@ -71,17 +71,17 @@ class HRTiBaseIE(InfoExtractor):
         try:
             auth_info = self._download_json(
                 self._login_url, None, note='Logging in', errnote='Unable to log in',
-                data=json.dumps(auth_data).encode('utf-8'))
+                data=json.dumps(auth_data).encode())
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 406:
-                auth_info = self._parse_json(e.cause.response.read().encode('utf-8'), None)
+                auth_info = self._parse_json(e.cause.response.read().encode(), None)
             else:
                 raise
 
         error_message = auth_info.get('error', {}).get('message')
         if error_message:
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, error_message),
+                f'{self.IE_NAME} said: {error_message}',
                 expected=True)
 
         self._token = auth_info['secure_streaming_token']
@@ -133,7 +133,7 @@ class HRTiIE(HRTiBaseIE):
         display_id = mobj.group('display_id') or video_id
 
         video = self._download_json(
-            '%s/video_id/%s/format/json' % (self._search_url, video_id),
+            f'{self._search_url}/video_id/{video_id}/format/json',
             display_id, 'Downloading video metadata JSON')['video'][0]
 
         title_info = video['title']
@@ -188,13 +188,13 @@ class HRTiPlaylistIE(HRTiBaseIE):
         display_id = mobj.group('display_id') or category_id
 
         response = self._download_json(
-            '%s/category_id/%s/format/json' % (self._search_url, category_id),
+            f'{self._search_url}/category_id/{category_id}/format/json',
             display_id, 'Downloading video metadata JSON')
 
         video_ids = try_get(
             response, lambda x: x['video_listings'][0]['alternatives'][0]['list'],
             list) or [video['id'] for video in response.get('videos', []) if video.get('id')]
 
-        entries = [self.url_result('hrti:%s' % video_id) for video_id in video_ids]
+        entries = [self.url_result(f'hrti:{video_id}') for video_id in video_ids]
 
         return self.playlist_result(entries, category_id, display_id)

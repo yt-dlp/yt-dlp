@@ -94,7 +94,7 @@ class Mx3IE(Mx3BaseIE):
             'title': "S'envoler",
             'release_year': 2021,
             'tags': [],
-        }
+        },
     }, {
         'url': 'https://mx3.ch/t/1LIY',
         'md5': '48293cb908342547827f963a5a2e9118',
@@ -110,7 +110,7 @@ class Mx3IE(Mx3BaseIE):
             'release_year': 2023,
             'tags': ['the broots', 'cassata records', 'larytta'],
             'description': '"Begging for Help" Larytta Remix Official Video\nRealized By Kali Donkilie in 2023',
-        }
+        },
     }, {
         'url': 'https://mx3.ch/t/1C6E',
         'md5': '1afcd578493ddb8e5008e94bb6d97e25',
@@ -125,7 +125,7 @@ class Mx3IE(Mx3BaseIE):
             'title': 'Wide Awake',
             'release_year': 2021,
             'tags': ['alien bubblegum', 'bubblegum', 'alien', 'pop punk', 'poppunk'],
-        }
+        },
     }]
 
 
@@ -146,7 +146,7 @@ class Mx3NeoIE(Mx3BaseIE):
             'thumbnail': 'https://neo.mx3.ch/pictures/neo/file/0000/0241/square_xlarge/kammerorchester-basel-group-photo-2_c_-lukasz-rajchert.jpg?1560341252',
             'release_year': 2023,
             'tags': [],
-        }
+        },
     }]
 
 
@@ -167,5 +167,5 @@ class Mx3VolksmusikIE(Mx3BaseIE):
             'thumbnail': 'https://volksmusik.mx3.ch/pictures/vxm/file/0000/3815/square_xlarge/grischart1.jpg?1450530120',
             'release_year': 2012,
             'tags': [],
-        }
+        },
     }]

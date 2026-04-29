@@ -20,7 +20,7 @@ class PornotubeIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'timestamp': 1417582800,
             'age_limit': 18,
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -29,25 +29,24 @@ class PornotubeIE(InfoExtractor):
         token = self._download_json(
             'https://api.aebn.net/auth/v2/origins/authenticate',
             video_id, note='Downloading token',
-            data=json.dumps({'credentials': 'Clip Application'}).encode('utf-8'),
+            data=json.dumps({'credentials': 'Clip Application'}).encode(),
             headers={
                 'Content-Type': 'application/json',
                 'Origin': 'http://www.pornotube.com',
             })['tokenKey']
 
         video_url = self._download_json(
-            'https://api.aebn.net/delivery/v1/clips/%s/MP4' % video_id,
+            f'https://api.aebn.net/delivery/v1/clips/{video_id}/MP4',
             video_id, note='Downloading delivery information',
             headers={'Authorization': token})['mediaUrl']
 
         FIELDS = (
             'title', 'description', 'startSecond', 'endSecond', 'publishDate',
-            'studios{name}', 'categories{name}', 'movieId', 'primaryImageNumber'
+            'studios{name}', 'categories{name}', 'movieId', 'primaryImageNumber',
         )
 
         info = self._download_json(
-            'https://api.aebn.net/content/v2/clips/%s?fields=%s'
-            % (video_id, ','.join(FIELDS)), video_id,
+            'https://api.aebn.net/content/v2/clips/{}?fields={}'.format(video_id, ','.join(FIELDS)), video_id,
             note='Downloading metadata',
             headers={'Authorization': token})
 

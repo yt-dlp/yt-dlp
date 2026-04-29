@@ -31,7 +31,7 @@ class CBSBaseIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
         return subtitles
 
     def _extract_common_video_info(self, content_id, asset_types, mpx_acc, extra_info):
-        tp_path = 'dJ5BDC/media/guid/%d/%s' % (mpx_acc, content_id)
+        tp_path = f'dJ5BDC/media/guid/{mpx_acc}/{content_id}'
         tp_release_url = f'https://link.theplatform.com/s/{tp_path}'
         info = self._extract_theplatform_metadata(tp_path, content_id)
 
@@ -41,7 +41,7 @@ class CBSBaseIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
             try:
                 tp_formats, tp_subtitles = self._extract_theplatform_smil(
                     update_url_query(tp_release_url, query), content_id,
-                    'Downloading %s SMIL data' % asset_type)
+                    f'Downloading {asset_type} SMIL data')
             except ExtractorError as e:
                 last_e = e
                 if asset_type != 'fallback':
@@ -50,7 +50,7 @@ class CBSBaseIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
                 try:
                     tp_formats, tp_subtitles = self._extract_theplatform_smil(
                         update_url_query(tp_release_url, query), content_id,
-                        'Downloading %s SMIL data, trying again with another format' % asset_type)
+                        f'Downloading {asset_type} SMIL data, trying again with another format')
                 except ExtractorError as e:
                     last_e = e
                     continue

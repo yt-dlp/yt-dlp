@@ -25,7 +25,7 @@ class AmaraIE(InfoExtractor):
             'uploader': 'PBS NewsHour',
             'uploader_id': 'PBSNewsHour',
             'timestamp': 1549639570,
-        }
+        },
     }, {
         # Vimeo
         'url': 'https://amara.org/en/videos/kYkK1VUTWW5I/info/vimeo-at-ces-2011',
@@ -40,8 +40,8 @@ class AmaraIE(InfoExtractor):
             'timestamp': 1294763658,
             'upload_date': '20110111',
             'uploader': 'Sam Morrill',
-            'uploader_id': 'sammorrill'
-        }
+            'uploader_id': 'sammorrill',
+        },
     }, {
         # Direct Link
         'url': 'https://amara.org/en/videos/s8KL7I3jLmh6/info/the-danger-of-a-single-story/',
@@ -55,13 +55,13 @@ class AmaraIE(InfoExtractor):
             'subtitles': dict,
             'upload_date': '20091007',
             'timestamp': 1254942511,
-        }
+        },
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         meta = self._download_json(
-            'https://amara.org/api/videos/%s/' % video_id,
+            f'https://amara.org/api/videos/{video_id}/',
             video_id, query={'format': 'json'})
         title = meta['title']
         video_url = meta['all_urls'][0]

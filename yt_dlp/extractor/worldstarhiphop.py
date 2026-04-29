@@ -9,8 +9,8 @@ class WorldStarHipHopIE(InfoExtractor):
         'info_dict': {
             'id': 'wshh6a7q1ny0G34ZwuIO',
             'ext': 'mp4',
-            'title': 'KO Of The Week: MMA Fighter Gets Knocked Out By Swift Head Kick!'
-        }
+            'title': 'KO Of The Week: MMA Fighter Gets Knocked Out By Swift Head Kick!',
+        },
     }, {
         'url': 'http://m.worldstarhiphop.com/android/video.php?v=wshh6a7q1ny0G34ZwuIO',
         'only_matching': True,

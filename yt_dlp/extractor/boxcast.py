@@ -21,7 +21,7 @@ class BoxCastVideoIE(InfoExtractor):
             'release_date': '20221210',
             'uploader_id': 're8w0v8hohhvpqtbskpe',
             'uploader': 'Children\'s Health Defense',
-        }
+        },
     }, {
         'url': 'https://boxcast.tv/video-portal/vctwevwntun3o0ikq7af/rvyblnn0fxbfjx5nwxhl/otbpltj2kzkveo2qz3ad',
         'info_dict': {
@@ -30,8 +30,8 @@ class BoxCastVideoIE(InfoExtractor):
             'uploader_id': 'vctwevwntun3o0ikq7af',
             'uploader': 'Legacy Christian Church',
             'title': 'The Quest | 1: Beginner\'s Bay | Jamie Schools',
-            'thumbnail': r're:https?://uploads.boxcast.com/(?:[\w-]+/){3}.+\.jpg'
-        }
+            'thumbnail': r're:https?://uploads.boxcast.com/(?:[\w-]+/){3}.+\.jpg',
+        },
     }, {
         'url': 'https://boxcast.tv/channel/z03fqwaeaby5lnaawox2?b=ssihlw5gvfij2by8tkev',
         'info_dict': {
@@ -44,7 +44,7 @@ class BoxCastVideoIE(InfoExtractor):
             'uploader': 'Lighthouse Ministries International  - Beltsville, Maryland',
             'description': 'md5:ac23e3d01b0b0be592e8f7fe0ec3a340',
             'title': 'New Year\'s Eve CROSSOVER Service at LHMI | December 31, 2022',
-        }
+        },
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://childrenshealthdefense.eu/live-stream/',
@@ -57,7 +57,7 @@ class BoxCastVideoIE(InfoExtractor):
             'release_date': '20221210',
             'uploader_id': 're8w0v8hohhvpqtbskpe',
             'uploader': 'Children\'s Health Defense',
-        }
+        },
     }]
 
     def _real_extract(self, url):

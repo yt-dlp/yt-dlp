@@ -105,7 +105,7 @@ class HeiseIE(InfoExtractor):
             'description': 'md5:fa164d8c8707dff124a9626d39205f5d',
             'timestamp': 1414825200,
             'upload_date': '20141101',
-        }
+        },
     }, {
         'url': 'http://www.heise.de/ct/artikel/c-t-uplink-3-3-Owncloud-Tastaturen-Peilsender-Smartphone-2403911.html',
         'only_matching': True,
@@ -156,7 +156,7 @@ class HeiseIE(InfoExtractor):
             r'entry-id=(["\'])(?P<id>(?:(?!\1).)+)\1', webpage, 'kaltura id',
             default=None, group='id')
         if kaltura_id:
-            return _make_kaltura_result('kaltura:2238431:%s' % kaltura_id)
+            return _make_kaltura_result(f'kaltura:2238431:{kaltura_id}')
 
         yt_urls = tuple(YoutubeIE._extract_embed_urls(url, webpage))
         if yt_urls:
@@ -191,7 +191,7 @@ class HeiseIE(InfoExtractor):
             formats.append({
                 'url': video_url,
                 'format_note': label,
-                'format_id': '%s_%s' % (ext, label),
+                'format_id': f'{ext}_{label}',
                 'height': height,
             })
 

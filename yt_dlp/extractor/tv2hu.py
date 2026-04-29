@@ -1,4 +1,3 @@
-# encoding: utf-8
 from .common import InfoExtractor
 from ..utils import (
     UnsupportedError,
@@ -44,14 +43,14 @@ class TV2HuIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        json_data = self._download_json(f'https://tv2play.hu/api/search/{id}', id)
+        video_id = self._match_id(url)
+        json_data = self._download_json(f'https://tv2play.hu/api/search/{video_id}', video_id)
 
         if json_data['contentType'] == 'showpage':
             ribbon_ids = traverse_obj(json_data, ('pages', ..., 'tabs', ..., 'ribbonIds'), get_all=False, expected_type=list)
             entries = [self.url_result(f'https://tv2play.hu/szalag/{ribbon_id}',
                                        ie=TV2HuSeriesIE.ie_key(), video_id=ribbon_id) for ribbon_id in ribbon_ids]
-            return self.playlist_result(entries, playlist_id=id)
+            return self.playlist_result(entries, playlist_id=video_id)
         elif json_data['contentType'] != 'video':
             raise UnsupportedError(url)
 
@@ -88,17 +87,17 @@ class TV2HuSeriesIE(InfoExtractor):
         'playlist_mincount': 284,
         'info_dict': {
             'id': '59',
-        }
+        },
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        json_data = self._download_json(f'https://tv2play.hu/api/ribbons/{id}/0?size=100000', id)
+        playlist_id = self._match_id(url)
+        json_data = self._download_json(f'https://tv2play.hu/api/ribbons/{playlist_id}/0?size=100000', playlist_id)
         entries = []
         for card in json_data.get('cards', []):
             video_id = card.get('slug')
             if video_id:
-                entries.append(self.url_result(f'https://tv2play.hu/{video_id}',
-                                               ie=TV2HuIE.ie_key(), video_id=video_id))
+                entries.append(self.url_result(
+                    f'https://tv2play.hu/{video_id}', TV2HuIE, video_id))
 
-        return self.playlist_result(entries, playlist_id=id)
+        return self.playlist_result(entries, playlist_id=playlist_id)

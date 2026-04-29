@@ -19,6 +19,7 @@ class PlaywireIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.png$',
             'duration': 145.94,
         },
+        'skip': 'Invalid URL',
     }, {
         # m3u8 in f4m
         'url': 'http://config.playwire.com/21772/videos/v2/4840492/zeus.json',
@@ -27,10 +28,7 @@ class PlaywireIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'ITV EL SHOW FULL',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
+        'skip': 'Invalid URL',
     }, {
         # Multiple resolutions while bitrates missing
         'url': 'http://cdn.playwire.com/11625/embed/85228.html',
@@ -42,13 +40,22 @@ class PlaywireIE(InfoExtractor):
         'url': 'http://cdn.playwire.com/v2/12342/config/1532636.json',
         'only_matching': True,
     }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.cinemablend.com/new/First-Joe-Dirt-2-Trailer-Teaser-Stupid-Greatness-70874.html',
+        'info_dict': {
+            'id': '3519514',
+            'ext': 'mp4',
+            'title': 'Joe Dirt 2 Beautiful Loser Teaser Trailer',
+        },
+        'skip': 'Site no longer embeds Playwire',
+    }]
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         publisher_id, video_id = mobj.group('publisher_id'), mobj.group('id')
 
         player = self._download_json(
-            'http://config.playwire.com/%s/videos/v2/%s/zeus.json' % (publisher_id, video_id),
+            f'http://config.playwire.com/{publisher_id}/videos/v2/{video_id}/zeus.json',
             video_id)
 
         title = player['settings']['title']

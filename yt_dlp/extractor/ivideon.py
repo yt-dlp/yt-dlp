@@ -1,8 +1,6 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_urlencode,
-    compat_urlparse,
-)
 from ..utils import qualities
 
 
@@ -21,7 +19,7 @@ class IvideonIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://www.ivideon.com/tv/camera/100-c4ee4cb9ede885cf62dfbe93d7b53783/589824/?lang=ru',
         'only_matching': True,
@@ -36,8 +34,8 @@ class IvideonIE(InfoExtractor):
         mobj = self._match_valid_url(url)
         server_id, camera_id = mobj.group('id'), mobj.group('camera_id')
         camera_name, description = None, None
-        camera_url = compat_urlparse.urljoin(
-            url, '/tv/camera/%s/%s/' % (server_id, camera_id))
+        camera_url = urllib.parse.urljoin(
+            url, f'/tv/camera/{server_id}/{camera_id}/')
 
         webpage = self._download_webpage(camera_url, server_id, fatal=False)
         if webpage:
@@ -57,12 +55,12 @@ class IvideonIE(InfoExtractor):
         quality = qualities(self._QUALITIES)
 
         formats = [{
-            'url': 'https://streaming.ivideon.com/flv/live?%s' % compat_urllib_parse_urlencode({
+            'url': 'https://streaming.ivideon.com/flv/live?{}'.format(urllib.parse.urlencode({
                 'server': server_id,
                 'camera': camera_id,
                 'sessionId': 'demo',
                 'q': quality(format_id),
-            }),
+            })),
             'format_id': format_id,
             'ext': 'flv',
             'quality': quality(format_id),

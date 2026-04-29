@@ -20,8 +20,8 @@ class IVXPlayerIE(InfoExtractor):
             'upload_date': '20221204',
             'title': 'Film Indonesia di Disney Content Showcase Asia Pacific 2022',
             'timestamp': 1670151746,
-            'thumbnail': 'https://ivx-image.ivideosmart.com/serve/image/video/2366065?width=300'
-        }
+            'thumbnail': 'https://ivx-image.ivideosmart.com/serve/image/video/2366065?width=300',
+        },
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://www.cantika.com/video/31737/film-indonesia-di-disney-content-showcase-asia-pacific-2022',
@@ -32,8 +32,8 @@ class IVXPlayerIE(InfoExtractor):
             'title': 'Serial Indonesia di Disney Content Showcase Asia Pacific 2022',
             'timestamp': 1670639416,
             'upload_date': '20221210',
-            'thumbnail': 'https://ivx-image.ivideosmart.com/serve/image/video/2374200?width=300'
-        }
+            'thumbnail': 'https://ivx-image.ivideosmart.com/serve/image/video/2374200?width=300',
+        },
     }, {
         'url': 'https://www.gooto.com/video/11437/wuling-suv-ramai-dikunjungi-di-giias-2018',
         'info_dict': {
@@ -44,8 +44,8 @@ class IVXPlayerIE(InfoExtractor):
             'description': 'md5:6d901483d0aacc664aecb4489719aafa',
             'duration': 75,
             'timestamp': 1534011263,
-            'thumbnail': 'https://ivx-image.ivideosmart.com/serve/image/video/892109?width=300'
-        }
+            'thumbnail': 'https://ivx-image.ivideosmart.com/serve/image/video/892109?width=300',
+        },
     }]
 
     @classmethod
@@ -56,7 +56,7 @@ class IVXPlayerIE(InfoExtractor):
             webpage)
         if mobj:
             yield f'ivxplayer:{mobj.group("video_id")}:{mobj.group("player_key")}'
-            raise cls.StopExtraction()
+            raise cls.StopExtraction
 
     def _real_extract(self, url):
         video_id, player_key = self._match_valid_url(url).group('video_id', 'player_key')
@@ -74,7 +74,7 @@ class IVXPlayerIE(InfoExtractor):
             'timestamp': parse_iso8601(traverse_obj(json_data, ('ivx', 'published_at'))),
             'formats': formats,
             'subtitles': subtitles,
-            'thumbnail': traverse_obj(json_data, ('ivx', 'thumbnail_url'))
+            'thumbnail': traverse_obj(json_data, ('ivx', 'thumbnail_url')),
         }
 
 
@@ -93,7 +93,7 @@ class TempoIE(InfoExtractor):
             'timestamp': 1658907970,
             'upload_date': '20220727',
             'tags': ['Anies Baswedan', ' PTUN', ' PTUN | Pengadilan Tata Usaha Negara', ' PTUN Batalkan UMP DKI', ' UMP DKI'],
-        }
+        },
     }]
 
     def _real_extract(self, url):

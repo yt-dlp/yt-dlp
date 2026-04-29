@@ -18,13 +18,13 @@ class EyedoTVIE(InfoExtractor):
             'description': 'md5:4abe07293b2f73efc6e1c37028d58c98',
             'uploader': 'Afnic Live',
             'uploader_id': '8023',
-        }
+        },
     }
     _ROOT_URL = 'http://live.eyedo.net:1935/'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_data = self._download_xml('http://eyedo.tv/api/live/GetLive/%s' % video_id, video_id)
+        video_data = self._download_xml(f'http://eyedo.tv/api/live/GetLive/{video_id}', video_id)
 
         def _add_ns(path):
             return self._xpath_ns(path, 'http://schemas.datacontract.org/2004/07/EyeDo.Core.Implementation.Web.ViewModels.Api')
@@ -33,7 +33,7 @@ class EyedoTVIE(InfoExtractor):
         state_live_code = xpath_text(video_data, _add_ns('StateLiveCode'), 'title', True)
         if state_live_code == 'avenir':
             raise ExtractorError(
-                '%s said: We\'re sorry, but this video is not yet available.' % self.IE_NAME,
+                f'{self.IE_NAME} said: We\'re sorry, but this video is not yet available.',
                 expected=True)
 
         is_live = state_live_code == 'live'
@@ -41,11 +41,11 @@ class EyedoTVIE(InfoExtractor):
         # http://eyedo.tv/Content/Html5/Scripts/html5view.js
         if is_live:
             if xpath_text(video_data, 'Cdn') == 'true':
-                m3u8_url = 'http://rrr.sz.xlcdn.com/?account=eyedo&file=A%s&type=live&service=wowza&protocol=http&output=playlist.m3u8' % video_id
+                m3u8_url = f'http://rrr.sz.xlcdn.com/?account=eyedo&file=A{video_id}&type=live&service=wowza&protocol=http&output=playlist.m3u8'
             else:
-                m3u8_url = self._ROOT_URL + 'w/%s/eyedo_720p/playlist.m3u8' % video_id
+                m3u8_url = self._ROOT_URL + f'w/{video_id}/eyedo_720p/playlist.m3u8'
         else:
-            m3u8_url = self._ROOT_URL + 'replay-w/%s/mp4:%s.mp4/playlist.m3u8' % (video_id, video_id)
+            m3u8_url = self._ROOT_URL + f'replay-w/{video_id}/mp4:{video_id}.mp4/playlist.m3u8'
 
         return {
             'id': video_id,

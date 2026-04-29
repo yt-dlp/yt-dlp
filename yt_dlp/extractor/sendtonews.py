@@ -19,7 +19,7 @@ class SendtoNewsIE(InfoExtractor):
         # From http://cleveland.cbslocal.com/2016/05/16/indians-score-season-high-15-runs-in-blowout-win-over-reds-rapid-reaction/
         'url': 'http://embed.sendtonews.com/player2/embedplayer.php?SC=GxfCe0Zo7D-175909-5588&type=single&autoplay=on&sound=YES',
         'info_dict': {
-            'id': 'GxfCe0Zo7D-175909-5588'
+            'id': 'GxfCe0Zo7D-175909-5588',
         },
         'playlist_count': 8,
         # test the first video only to prevent lengthy tests
@@ -75,7 +75,7 @@ class SendtoNewsIE(InfoExtractor):
                 if not tbr:
                     continue
                 f.update({
-                    'format_id': '%s-%d' % (determine_protocol(f), tbr),
+                    'format_id': f'{determine_protocol(f)}-{tbr}',
                     'tbr': tbr,
                 })
 
@@ -98,7 +98,7 @@ class SendtoNewsIE(InfoExtractor):
                 'timestamp': parse_iso8601(video.get('S_sysDate'), delimiter=' '),
                 # 'tbr' was explicitly set to be preferred over 'height' originally,
                 # So this is being kept unless someone can confirm this is unnecessary
-                '_format_sort_fields': ('tbr', 'res')
+                '_format_sort_fields': ('tbr', 'res'),
             })
             entries.append(info_dict)
 

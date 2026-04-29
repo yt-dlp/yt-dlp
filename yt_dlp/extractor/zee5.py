@@ -3,7 +3,6 @@ import time
 import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -38,7 +37,7 @@ class Zee5IE(InfoExtractor):
             'display_id': 'adavari-matalaku-ardhale-verule',
             'title': 'Adavari Matalaku Ardhale Verule',
             'duration': 9360,
-            'description': compat_str,
+            'description': str,
             'alt_title': 'Adavari Matalaku Ardhale Verule',
             'uploader': 'Zee Entertainment Enterprises Ltd',
             'release_date': '20070427',
@@ -47,7 +46,7 @@ class Zee5IE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'episode_number': 0,
             'episode': 'Episode 0',
-            'tags': list
+            'tags': list,
         },
         'params': {
             'format': 'bv',
@@ -60,7 +59,7 @@ class Zee5IE(InfoExtractor):
             'display_id': 'yoga-se-hoga-bandbudh-aur-budbak',
             'title': 'Yoga Se Hoga-Bandbudh aur Budbak',
             'duration': 659,
-            'description': compat_str,
+            'description': str,
             'alt_title': 'Yoga Se Hoga-Bandbudh aur Budbak',
             'uploader': 'Zee Entertainment Enterprises Ltd',
             'release_date': '20150101',
@@ -79,22 +78,22 @@ class Zee5IE(InfoExtractor):
         },
     }, {
         'url': 'https://www.zee5.com/hi/tv-shows/details/kundali-bhagya/0-6-366/kundali-bhagya-march-08-2021/0-1-manual_7g9jv1os7730?country=IN',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.zee5.com/global/hi/tv-shows/details/kundali-bhagya/0-6-366/kundali-bhagya-march-08-2021/0-1-manual_7g9jv1os7730',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.zee5.com/web-series/details/mithya/0-6-4z587408/maine-dekhi-hai-uski-mrityu/0-1-6z587412',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.zee5.com/kids/kids-movies/maya-bommalu/0-0-movie_1040370005',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.zee5.com/news/details/jana-sena-chief-pawan-kalyan-shows-slippers-to-ysrcp-leaders/0-0-newsauto_6ettj4242oo0',
-        'only_matching': True
+        'only_matching': True,
     }, {
         'url': 'https://www.zee5.com/music-videos/details/adhento-gaani-vunnapaatuga-jersey-nani-shraddha-srinath/0-0-56973',
-        'only_matching': True
+        'only_matching': True,
     }]
     _DEVICE_ID = str(uuid.uuid4())
     _USER_TOKEN = None
@@ -136,10 +135,10 @@ class Zee5IE(InfoExtractor):
             'https://launchapi.zee5.com/launch?platform_name=web_app',
             video_id, note='Downloading access token')['platform_token']
         data = {
-            'x-access-token': access_token_request['token']
+            'x-access-token': access_token_request['token'],
         }
         if self._USER_TOKEN:
-            data['Authorization'] = 'bearer %s' % self._USER_TOKEN
+            data['Authorization'] = f'bearer {self._USER_TOKEN}'
         else:
             data['X-Z5-Guest-Token'] = self._DEVICE_ID
 
@@ -150,7 +149,7 @@ class Zee5IE(InfoExtractor):
                 'platform_name': 'desktop_web',
                 'country': self._USER_COUNTRY or self.get_param('geo_bypass_country') or 'IN',
                 'check_parental_control': False,
-            }, headers={'content-type': 'application/json'}, data=json.dumps(data).encode('utf-8'))
+            }, headers={'content-type': 'application/json'}, data=json.dumps(data).encode())
         asset_data = json_data['assetDetails']
         show_data = json_data.get('showDetails', {})
         if 'premium' in asset_data['business_type']:
@@ -186,7 +185,7 @@ class Zee5IE(InfoExtractor):
             'season': try_get(show_data, lambda x: x['seasons']['title'], str),
             'season_number': int_or_none(try_get(show_data, lambda x: x['seasons'][0]['orderid'])),
             'episode_number': int_or_none(try_get(asset_data, lambda x: x['orderid'])),
-            'tags': try_get(asset_data, lambda x: x['tags'], list)
+            'tags': try_get(asset_data, lambda x: x['tags'], list),
         }
 
 
@@ -251,17 +250,17 @@ class Zee5SeriesIE(InfoExtractor):
         page_num = 0
         show_json = self._download_json(show_url, video_id=show_id, headers=headers)
         for season in show_json.get('seasons') or []:
-            season_id = try_get(season, lambda x: x['id'], compat_str)
+            season_id = try_get(season, lambda x: x['id'], str)
             next_url = f'https://gwapi.zee5.com/content/tvshow/?season_id={season_id}&type=episode&translation=en&country=IN&on_air=false&asset_subtype=tvshow&page=1&limit=100'
             while next_url:
                 page_num += 1
                 episodes_json = self._download_json(
                     next_url, video_id=show_id, headers=headers,
-                    note='Downloading JSON metadata page %d' % page_num)
+                    note=f'Downloading JSON metadata page {page_num}')
                 for episode in try_get(episodes_json, lambda x: x['episode'], list) or []:
                     video_id = episode.get('id')
                     yield self.url_result(
-                        'zee5:%s' % video_id,
+                        f'zee5:{video_id}',
                         ie=Zee5IE.ie_key(), video_id=video_id)
                 next_url = url_or_none(episodes_json.get('next_episode_api'))
 

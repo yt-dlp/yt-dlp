@@ -15,7 +15,7 @@ class TV24UAVideoIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'У Харкові ворожа ракета прилетіла в будинок, де слухали пісні про "офіцерів-росіян"',
             'thumbnail': r're:^https?://.*\.jpe?g',
-        }
+        },
     }, {
         'url': 'https://24tv.ua/news/showPlayer.do?videoUrl=2022/07/2074790&objectId=2074790&w=640&h=360',
         'only_matching': True,
@@ -32,7 +32,7 @@ class TV24UAVideoIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Росіяни руйнують Бородянку на Київщині та стріляють з літаків по мешканцях: шокуючі фото',
                 'thumbnail': r're:^https?://.*\.jpe?g',
-            }
+            },
         },
         {
             'url': 'https://24tv.ua/vipalyuyut-nashi-mista-sela-dsns-pokazali-motoroshni-naslidki_n1883966',
@@ -43,7 +43,7 @@ class TV24UAVideoIE(InfoExtractor):
                 'thumbnail': r're:^https?://.*\.jpe?g',
             },
             'params': {'allowed_extractors': ['Generic', '24tv.ua']},
-        }
+        },
     ]
 
     def _real_extract(self, url):

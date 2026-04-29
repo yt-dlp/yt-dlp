@@ -1,23 +1,28 @@
+import json
 import random
 import re
 import time
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
-    KNOWN_EXTENSIONS,
     ExtractorError,
+    clean_html,
+    extract_attributes,
     float_or_none,
+    format_field,
     int_or_none,
+    join_nonempty,
     parse_filesize,
+    parse_qs,
     str_or_none,
+    strftime_or_none,
     try_get,
-    unified_strdate,
     unified_timestamp,
     update_url_query,
     url_or_none,
     urljoin,
 )
+from ..utils.traversal import find_element, find_elements, traverse_obj
 
 
 class BandcampIE(InfoExtractor):
@@ -33,26 +38,25 @@ class BandcampIE(InfoExtractor):
             'duration': 9.8485,
             'uploader': 'youtube-dl "\'/\\ä↭',
             'upload_date': '20121129',
+            'thumbnail': r're:https?://f4\.bcbits\.com/img/.+\.jpg',
             'timestamp': 1354224127,
             'track': 'youtube-dl "\'/\\ä↭ - youtube-dl test song "\'/\\ä↭',
-            'album_artist': 'youtube-dl "\'/\\ä↭',
             'track_id': '1812978515',
-            'artist': 'youtube-dl "\'/\\ä↭',
             'uploader_url': 'https://youtube-dl.bandcamp.com',
             'uploader_id': 'youtube-dl',
-            'thumbnail': 'https://f4.bcbits.com/img/a3216802731_5.jpg',
+            'artists': ['youtube-dl "\'/\\ä↭'],
+            'album_artists': ['youtube-dl "\'/\\ä↭'],
         },
-        '_skip': 'There is a limit of 200 free downloads / month for the test song'
+        'skip': 'There is a limit of 200 free downloads / month for the test song',
     }, {
         # free download
         'url': 'http://benprunty.bandcamp.com/track/lanius-battle',
         'info_dict': {
             'id': '2650410135',
             'ext': 'm4a',
-            'acodec': r're:[fa]lac',
             'title': 'Ben Prunty - Lanius (Battle)',
-            'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'Ben Prunty',
+            'thumbnail': r're:https?://f4\.bcbits\.com/img/.+\.jpg',
             'timestamp': 1396508491,
             'upload_date': '20140403',
             'release_timestamp': 1396483200,
@@ -61,11 +65,12 @@ class BandcampIE(InfoExtractor):
             'track': 'Lanius (Battle)',
             'track_number': 1,
             'track_id': '2650410135',
-            'artist': 'Ben Prunty',
-            'album_artist': 'Ben Prunty',
             'album': 'FTL: Advanced Edition Soundtrack',
             'uploader_url': 'https://benprunty.bandcamp.com',
             'uploader_id': 'benprunty',
+            'tags': ['soundtrack', 'chiptunes', 'cinematic', 'electronic', 'video game music', 'California'],
+            'artists': ['Ben Prunty'],
+            'album_artists': ['Ben Prunty'],
         },
     }, {
         # no free download, mp3 128
@@ -75,8 +80,8 @@ class BandcampIE(InfoExtractor):
             'id': '2584466013',
             'ext': 'mp3',
             'title': 'Mastodon - Hail to Fire',
-            'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'Mastodon',
+            'thumbnail': r're:https?://f4\.bcbits\.com/img/.+\.jpg',
             'timestamp': 1322005399,
             'upload_date': '20111122',
             'release_timestamp': 1076112000,
@@ -85,11 +90,12 @@ class BandcampIE(InfoExtractor):
             'track': 'Hail to Fire',
             'track_number': 5,
             'track_id': '2584466013',
-            'artist': 'Mastodon',
-            'album_artist': 'Mastodon',
             'album': 'Call of the Mastodon',
             'uploader_url': 'https://relapsealumni.bandcamp.com',
             'uploader_id': 'relapsealumni',
+            'tags': ['Philadelphia'],
+            'artists': ['Mastodon'],
+            'album_artists': ['Mastodon'],
         },
     }, {
         # track from compilation album (artist/album_artist difference)
@@ -99,8 +105,8 @@ class BandcampIE(InfoExtractor):
             'id': '1978174799',
             'ext': 'mp3',
             'title': 'submerse - submerse - Safehouse',
-            'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'submerse',
+            'thumbnail': r're:https?://f4\.bcbits\.com/img/.+\.jpg',
             'timestamp': 1480779297,
             'upload_date': '20161203',
             'release_timestamp': 1481068800,
@@ -109,17 +115,42 @@ class BandcampIE(InfoExtractor):
             'track': 'submerse - Safehouse',
             'track_number': 3,
             'track_id': '1978174799',
-            'artist': 'submerse',
-            'album_artist': 'Diskotopia',
             'album': 'DSK F/W 2016-2017 Free Compilation',
             'uploader_url': 'https://diskotopia.bandcamp.com',
             'uploader_id': 'diskotopia',
+            'tags': ['Japan'],
+            'artists': ['submerse'],
+            'album_artists': ['Diskotopia'],
+        },
+    }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
+        'url': 'https://www.punknews.org/article/85809/stay-inside-super-sonic',
+        'info_dict': {
+            'id': '2475540375',
+            'ext': 'mp3',
+            'title': 'Stay Inside - Super Sonic',
+            'album': 'Lunger',
+            'album_artists': ['Stay Inside'],
+            'artists': ['Stay Inside'],
+            'duration': 166.157,
+            'release_date': '20251003',
+            'release_timestamp': 1759449600.0,
+            'thumbnail': r're:https?://f4\.bcbits\.com/img/.+\.jpg',
+            'timestamp': 1749473029.0,
+            'track': 'Super Sonic',
+            'track_id': '2475540375',
+            'track_number': 3,
+            'upload_date': '20250609',
+            'uploader': 'Stay Inside',
+            'uploader_id': 'stayinside',
+            'uploader_url': 'https://stayinside.bandcamp.com',
         },
     }]
 
     def _extract_data_attr(self, webpage, video_id, attr='tralbum', fatal=True):
         return self._parse_json(self._html_search_regex(
-            r'data-%s=(["\'])({.+?})\1' % attr, webpage,
+            rf'data-{attr}=(["\'])({{.+?}})\1', webpage,
             attr + ' data', group=2), video_id, fatal=fatal)
 
     def _real_extract(self, url):
@@ -167,7 +198,7 @@ class BandcampIE(InfoExtractor):
 
         download_link = tralbum.get('freeDownloadPage')
         if download_link:
-            track_id = compat_str(tralbum['id'])
+            track_id = str(tralbum['id'])
 
             download_webpage = self._download_webpage(
                 download_link, track_id, 'Downloading free downloads page')
@@ -192,7 +223,7 @@ class BandcampIE(InfoExtractor):
                     if isinstance(download_formats_list, list):
                         for f in blob['download_formats']:
                             name, ext = f.get('name'), f.get('file_extension')
-                            if all(isinstance(x, compat_str) for x in (name, ext)):
+                            if all(isinstance(x, str) for x in (name, ext)):
                                 download_formats[name] = ext.strip('.')
 
                     for format_id, f in downloads.items():
@@ -207,7 +238,7 @@ class BandcampIE(InfoExtractor):
                             })
                         format_id = f.get('encoding_name') or format_id
                         stat = self._download_json(
-                            stat_url, track_id, 'Downloading %s JSON' % format_id,
+                            stat_url, track_id, f'Downloading {format_id} JSON',
                             transform_source=lambda s: s[s.index('{'):s.rindex('}') + 1],
                             fatal=False)
                         if not stat:
@@ -225,7 +256,7 @@ class BandcampIE(InfoExtractor):
                             'acodec': format_id.split('-')[0],
                         })
 
-        title = '%s - %s' % (artist, track) if artist else track
+        title = f'{artist} - {track}' if artist else track
 
         if not duration:
             duration = float_or_none(self._html_search_meta(
@@ -248,6 +279,7 @@ class BandcampIE(InfoExtractor):
             'album': embed.get('album_title'),
             'album_artist': album_artist,
             'formats': formats,
+            'tags': traverse_obj(webpage, ({find_elements(cls='tag')}, ..., {clean_html})),
         }
 
 
@@ -264,10 +296,22 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                     'id': '1353101989',
                     'ext': 'mp3',
                     'title': 'Blazo - Intro',
+                    'thumbnail': r're:https?://f4\.bcbits\.com/img/.+\.jpg',
                     'timestamp': 1311756226,
                     'upload_date': '20110727',
                     'uploader': 'Blazo',
-                }
+                    'album_artists': ['Blazo'],
+                    'uploader_url': 'https://blazo.bandcamp.com',
+                    'release_date': '20110727',
+                    'release_timestamp': 1311724800.0,
+                    'track': 'Intro',
+                    'uploader_id': 'blazo',
+                    'track_number': 1,
+                    'album': 'Jazz Format Mixtape vol.1',
+                    'artists': ['Blazo'],
+                    'duration': 19.335,
+                    'track_id': '1353101989',
+                },
             },
             {
                 'md5': '1a2c32e2691474643e912cc6cd4bffaa',
@@ -275,21 +319,34 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                     'id': '38097443',
                     'ext': 'mp3',
                     'title': 'Blazo - Kero One - Keep It Alive (Blazo remix)',
+                    'thumbnail': r're:https?://f4\.bcbits\.com/img/.+\.jpg',
                     'timestamp': 1311757238,
                     'upload_date': '20110727',
                     'uploader': 'Blazo',
-                }
+                    'track': 'Kero One - Keep It Alive (Blazo remix)',
+                    'release_date': '20110727',
+                    'track_id': '38097443',
+                    'track_number': 2,
+                    'duration': 181.467,
+                    'uploader_url': 'https://blazo.bandcamp.com',
+                    'album': 'Jazz Format Mixtape vol.1',
+                    'uploader_id': 'blazo',
+                    'album_artists': ['Blazo'],
+                    'artists': ['Blazo'],
+                    'release_timestamp': 1311724800.0,
+                },
             },
         ],
         'info_dict': {
             'title': 'Jazz Format Mixtape vol.1',
             'id': 'jazz-format-mixtape-vol-1',
             'uploader_id': 'blazo',
+            'description': 'md5:38052a93217f3ffdc033cd5dbbce2989',
         },
         'params': {
-            'playlistend': 2
+            'playlistend': 2,
         },
-        'skip': 'Bandcamp imposes download limits.'
+        'skip': 'Bandcamp imposes download limits.',
     }, {
         'url': 'http://nightbringer.bandcamp.com/album/hierophany-of-the-open-grave',
         'info_dict': {
@@ -324,7 +381,7 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     def suitable(cls, url):
         return (False
                 if BandcampWeeklyIE.suitable(url) or BandcampIE.suitable(url)
-                else super(BandcampAlbumIE, cls).suitable(url))
+                else super().suitable(url))
 
     def _real_extract(self, url):
         uploader_id, album_id = self._match_valid_url(url).groups()
@@ -356,70 +413,63 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
 
 class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'Bandcamp:weekly'
-    _VALID_URL = r'https?://(?:www\.)?bandcamp\.com/?\?(?:.*?&)?show=(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?bandcamp\.com/radio/?\?(?:[^#]+&)?show=(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://bandcamp.com/?show=224',
-        'md5': 'b00df799c733cf7e0c567ed187dea0fd',
+        'url': 'https://bandcamp.com/radio?show=224',
+        'md5': '61acc9a002bed93986b91168aa3ab433',
         'info_dict': {
             'id': '224',
-            'ext': 'opus',
-            'title': 'BC Weekly April 4th 2017 - Magic Moments',
+            'ext': 'mp3',
+            'title': 'Bandcamp Weekly, 2017-04-04',
             'description': 'md5:5d48150916e8e02d030623a48512c874',
-            'duration': 5829.77,
-            'release_date': '20170404',
+            'thumbnail': 'https://f4.bcbits.com/img/9982549_0.jpg',
             'series': 'Bandcamp Weekly',
-            'episode': 'Magic Moments',
             'episode_id': '224',
+            'release_timestamp': 1491264000,
+            'release_date': '20170404',
+            'duration': 5829.77,
         },
         'params': {
-            'format': 'opus-lo',
+            'format': 'mp3-128',
         },
     }, {
-        'url': 'https://bandcamp.com/?blah/blah@&show=228',
-        'only_matching': True
+        'url': 'https://bandcamp.com/radio/?foo=bar&show=224',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
-        webpage = self._download_webpage(url, show_id)
+        show_data = self._download_json(
+            'https://bandcamp.com/api/bcradio_api/1/get_show',
+            show_id, 'Downloading radio show JSON',
+            data=json.dumps({'id': show_id}).encode(),
+            headers={'Content-Type': 'application/json'})
+        audio_data = show_data['compiledTrack']
 
-        blob = self._extract_data_attr(webpage, show_id, 'blob')
+        stream_url = audio_data['streamUrl']
+        format_id = traverse_obj(stream_url, ({parse_qs}, 'enc', -1))
+        encoding, _, bitrate_str = (format_id or '').partition('-')
 
-        show = blob['bcw_data'][show_id]
-
-        formats = []
-        for format_id, format_url in show['audio_stream'].items():
-            if not url_or_none(format_url):
-                continue
-            for known_ext in KNOWN_EXTENSIONS:
-                if known_ext in format_id:
-                    ext = known_ext
-                    break
-            else:
-                ext = None
-            formats.append({
-                'format_id': format_id,
-                'url': format_url,
-                'ext': ext,
-                'vcodec': 'none',
-            })
-
-        title = show.get('audio_title') or 'Bandcamp Weekly'
-        subtitle = show.get('subtitle')
-        if subtitle:
-            title += ' - %s' % subtitle
+        series_title = show_data.get('title')
+        release_timestamp = unified_timestamp(show_data.get('date'))
 
         return {
             'id': show_id,
-            'title': title,
-            'description': show.get('desc') or show.get('short_desc'),
-            'duration': float_or_none(show.get('audio_duration')),
-            'is_live': False,
-            'release_date': unified_strdate(show.get('published_date')),
-            'series': 'Bandcamp Weekly',
-            'episode': show.get('subtitle'),
             'episode_id': show_id,
-            'formats': formats
+            'title': join_nonempty(series_title, strftime_or_none(release_timestamp, '%Y-%m-%d'), delim=', '),
+            'series': series_title,
+            'thumbnail': format_field(show_data, 'imageId', 'https://f4.bcbits.com/img/%s_0.jpg', default=None),
+            'description': show_data.get('description'),
+            'duration': float_or_none(audio_data.get('duration')),
+            'release_timestamp': release_timestamp,
+            'formats': [{
+                'url': stream_url,
+                'format_id': format_id,
+                'ext': encoding or 'mp3',
+                'acodec': encoding or None,
+                'vcodec': 'none',
+                'abr': int_or_none(bitrate_str),
+            }],
         }
 
 
@@ -440,7 +490,7 @@ class BandcampUserIE(InfoExtractor):
         'url': 'http://dotscale.bandcamp.com',
         'info_dict': {
             'id': 'dotscale',
-            'title': 'Discography of dotscale'
+            'title': 'Discography of dotscale',
         },
         'playlist_count': 1,
     }, {
@@ -460,7 +510,7 @@ class BandcampUserIE(InfoExtractor):
         },
     }, {
         'url': 'https://coldworldofficial.bandcamp.com/music',
-        'playlist_mincount': 10,
+        'playlist_mincount': 7,
         'info_dict': {
             'id': 'coldworldofficial',
             'title': 'Discography of coldworldofficial',
@@ -474,12 +524,19 @@ class BandcampUserIE(InfoExtractor):
         },
     }]
 
+    def _yield_items(self, webpage):
+        yield from (
+            re.findall(r'<li data-item-id=["\'][^>]+>\s*<a href=["\'](?![^"\'/]*?/merch)([^"\']+)', webpage)
+            or re.findall(r'<div[^>]+trackTitle["\'][^"\']+["\']([^"\']+)', webpage))
+
+        yield from traverse_obj(webpage, (
+            {find_element(id='music-grid', html=True)}, {extract_attributes},
+            'data-client-items', {json.loads}, ..., 'page_url', {str}))
+
     def _real_extract(self, url):
         uploader = self._match_id(url)
         webpage = self._download_webpage(url, uploader)
 
-        discography_data = (re.findall(r'<li data-item-id=["\'][^>]+>\s*<a href=["\'](?![^"\'/]*?/merch)([^"\']+)', webpage)
-                            or re.findall(r'<div[^>]+trackTitle["\'][^"\']+["\']([^"\']+)', webpage))
-
         return self.playlist_from_matches(
-            discography_data, uploader, f'Discography of {uploader}', getter=lambda x: urljoin(url, x))
+            self._yield_items(webpage), uploader, f'Discography of {uploader}',
+            getter=urljoin(url))

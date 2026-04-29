@@ -15,7 +15,7 @@ class MediaiteIE(InfoExtractor):
             'timestamp': 1631630185,
             'upload_date': '20210914',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://www.mediaite.com/tv/joe-scarborough-goes-off-on-tax-breaks-for-super-wealthy-largest-income-redistribution-scam-in-american-history/',
         'info_dict': {
@@ -28,7 +28,7 @@ class MediaiteIE(InfoExtractor):
             'timestamp': 1631618057,
             'upload_date': '20210914',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://www.mediaite.com/politics/watch-rudy-giuliani-impersonates-queen-elizabeth-calls-mark-milley-an-asshle-in-bizarre-9-11-speech/',
         'info_dict': {
@@ -41,7 +41,7 @@ class MediaiteIE(InfoExtractor):
             'timestamp': 1631536476,
             'upload_date': '20210913',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://www.mediaite.com/podcasts/clarissa-ward-says-she-decided-to-become-a-journalist-on-9-11/',
         'info_dict': {
@@ -54,7 +54,7 @@ class MediaiteIE(InfoExtractor):
             'timestamp': 1631311188,
             'upload_date': '20210910',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://www.mediaite.com/opinion/mainstream-media-ignores-rose-mcgowans-bombshell-allegation-that-newsoms-wife-tried-to-silence-her-on-weinstein/',
         'info_dict': {
@@ -67,7 +67,7 @@ class MediaiteIE(InfoExtractor):
             'timestamp': 1631553328,
             'upload_date': '20210913',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://www.mediaite.com/news/watch-cnbcs-jim-cramer-says-nobody-wants-to-die-getting-infected-by-unvaccinated-coworker-even-for-22-an-hour/',
         'info_dict': {
@@ -80,7 +80,7 @@ class MediaiteIE(InfoExtractor):
             'timestamp': 1633014214,
             'upload_date': '20210930',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://www.mediaite.com/politics/i-cant-read-it-fast-enough-while-defending-trump-larry-kudlow-overwhelmed-by-volume-of-ex-presidents-legal-troubles/',
         'info_dict': {
@@ -93,7 +93,7 @@ class MediaiteIE(InfoExtractor):
             'timestamp': 1691015535,
             'upload_date': '20230802',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):

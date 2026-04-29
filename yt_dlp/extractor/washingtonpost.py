@@ -82,7 +82,7 @@ class WashingtonPostArticleIE(InfoExtractor):
                 'upload_date': '20141230',
                 'timestamp': 1419972442,
                 'title': 'Why black boxes don’t transmit data in real time',
-            }
+            },
         }],
         'skip': 'Doesnt have a video anymore',
     }, {
@@ -92,7 +92,7 @@ class WashingtonPostArticleIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if WashingtonPostIE.suitable(url) else super(WashingtonPostArticleIE, cls).suitable(url)
+        return False if WashingtonPostIE.suitable(url) else super().suitable(url)
 
     def _real_extract(self, url):
         page_id = self._match_id(url)
@@ -112,7 +112,7 @@ class WashingtonPostArticleIE(InfoExtractor):
                 if content_element.get('type') == 'video':
                     uuids.append(content_element.get('_id'))
 
-        entries = [self.url_result('washingtonpost:%s' % uuid, 'WashingtonPost', uuid) for uuid in uuids]
+        entries = [self.url_result(f'washingtonpost:{uuid}', 'WashingtonPost', uuid) for uuid in uuids]
 
         return {
             '_type': 'playlist',

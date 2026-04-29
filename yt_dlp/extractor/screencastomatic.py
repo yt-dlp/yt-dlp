@@ -23,7 +23,7 @@ class ScreencastOMaticIE(InfoExtractor):
             'description': 'as the title says! also: some general info re 1) VCE philosophy and 2) distance learning.',
             'duration': 369,
             'upload_date': '20141216',
-        }
+        },
     }, {
         'url': 'http://screencast-o-matic.com/player/c2lD3BeOPl',
         'only_matching': True,

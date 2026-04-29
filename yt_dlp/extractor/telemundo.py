@@ -19,7 +19,7 @@ class TelemundoIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         'url': 'https://www.telemundo.com/shows/al-rojo-vivo/empleo/video/personajes-de-times-square-piden-que-la-ciudad-de-nueva-york-los-deje-volver-trabajar-tmvo9816272',
         'only_matching': True,
@@ -46,5 +46,5 @@ class TelemundoIE(InfoExtractor):
             'formats': formats,
             'timestamp': date,
             'uploader': 'Telemundo',
-            'uploader_id': self._search_regex(r'https?:\/\/(?:[^/]+\/){3}video\/(?P<id>[^\/]+)', m3u8_url, 'Akamai account', fatal=False)
+            'uploader_id': self._search_regex(r'https?:\/\/(?:[^/]+\/){3}video\/(?P<id>[^\/]+)', m3u8_url, 'Akamai account', fatal=False),
         }

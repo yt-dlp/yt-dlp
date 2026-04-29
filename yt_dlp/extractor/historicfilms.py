@@ -33,7 +33,7 @@ class HistoricFilmsIE(InfoExtractor):
         duration = parse_duration(self._html_search_meta(
             'duration', webpage, 'duration'))
 
-        video_url = 'http://www.historicfilms.com/video/%s_%s_web.mov' % (tape_id, video_id)
+        video_url = f'http://www.historicfilms.com/video/{tape_id}_{video_id}_web.mov'
 
         return {
             'id': video_id,

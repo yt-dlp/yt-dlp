@@ -24,7 +24,7 @@ class MzaaloIE(InfoExtractor):
             'categories': ['Drama'],
             'age_limit': 13,
         },
-        'params': {'skip_download': 'm3u8'}
+        'params': {'skip_download': 'm3u8'},
     }, {
         # Shows
         'url': 'https://www.mzaalo.com/play/original/93d42b2b-f373-4c2d-bca4-997412cb069d/Modi-Season-2-CM-TO-PM/Episode-1:Decision,-Not-Promises',
@@ -40,7 +40,7 @@ class MzaaloIE(InfoExtractor):
             'categories': ['Drama'],
             'age_limit': 13,
         },
-        'params': {'skip_download': 'm3u8'}
+        'params': {'skip_download': 'm3u8'},
     }, {
         # Streams/Clips
         'url': 'https://www.mzaalo.com/play/clip/83cdbcb5-400a-42f1-a1d2-459053cfbda5/Manto-Ki-Kahaaniya',
@@ -54,7 +54,7 @@ class MzaaloIE(InfoExtractor):
             'duration': 1937.0,
             'language': 'hin',
         },
-        'params': {'skip_download': 'm3u8'}
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://mzaalo.com/watch/MOVIE/389c892d-0b65-4019-bf73-d4edcb1c014f/Chalo-Dilli',
         'only_matching': True,

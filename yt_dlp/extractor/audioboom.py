@@ -15,7 +15,7 @@ class AudioBoomIE(InfoExtractor):
             'duration': 4000.99,
             'uploader': 'Sue Perkins: An hour or so with...',
             'uploader_url': r're:https?://(?:www\.)?audioboom\.com/channel/perkins',
-        }
+        },
     }, {  # Direct mp3-file link
         'url': 'https://audioboom.com/posts/8128496.mp3',
         'md5': 'e329edf304d450def95c7f86a9165ee1',
@@ -27,7 +27,7 @@ class AudioBoomIE(InfoExtractor):
             'duration': 1689.7,
             'uploader': 'Lost Dot Podcast: The Trans Pyrenees and Transcontinental Race',
             'uploader_url': r're:https?://(?:www\.)?audioboom\.com/channels/5003904',
-        }
+        },
     }, {
         'url': 'https://audioboom.com/posts/4279833-3-09-2016-czaban-hour-3?t=0',
         'only_matching': True,

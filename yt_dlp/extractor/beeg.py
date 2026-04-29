@@ -23,7 +23,7 @@ class BeegIE(InfoExtractor):
             'upload_date': '20220131',
             'timestamp': 1643656455,
             'display_id': '2540839',
-        }
+        },
     }, {
         'url': 'https://beeg.com/-0599050563103750?t=4-861',
         'md5': 'bd8b5ea75134f7f07fad63008db2060e',
@@ -38,7 +38,7 @@ class BeegIE(InfoExtractor):
             'timestamp': 1643623200,
             'display_id': '2569965',
             'upload_date': '20220131',
-        }
+        },
     }, {
         # api/v6 v2
         'url': 'https://beeg.com/1941093077?t=911-1391',
@@ -55,8 +55,8 @@ class BeegIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         video = self._download_json(
-            'https://store.externulls.com/facts/file/%s' % video_id,
-            video_id, 'Downloading JSON for %s' % video_id)
+            f'https://store.externulls.com/facts/file/{video_id}',
+            video_id, f'Downloading JSON for {video_id}')
 
         fc_facts = video.get('fc_facts')
         first_fact = {}

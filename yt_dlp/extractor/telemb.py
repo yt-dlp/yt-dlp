@@ -18,7 +18,7 @@ class TeleMBIE(InfoExtractor):
                 'title': 'Mons - Cook with Danielle : des cours de cuisine en anglais ! - Les reportages',
                 'description': 'md5:bc5225f47b17c309761c856ad4776265',
                 'thumbnail': r're:^http://.*\.(?:jpg|png)$',
-            }
+            },
         },
         {
             # non-ASCII characters in download URL
@@ -31,7 +31,7 @@ class TeleMBIE(InfoExtractor):
                 'title': 'Havré - Incendie mortel - Les reportages',
                 'description': 'md5:5e54cb449acb029c2b7734e2d946bd4a',
                 'thumbnail': r're:^http://.*\.(?:jpg|png)$',
-            }
+            },
         },
     ]
 
@@ -46,7 +46,7 @@ class TeleMBIE(InfoExtractor):
         for video_url in re.findall(r'file\s*:\s*"([^"]+)"', webpage):
             fmt = {
                 'url': video_url,
-                'format_id': video_url.split(':')[0]
+                'format_id': video_url.split(':')[0],
             }
             rtmp = re.search(r'^(?P<url>rtmp://[^/]+/(?P<app>.+))/(?P<playpath>mp4:.+)$', video_url)
             if rtmp:

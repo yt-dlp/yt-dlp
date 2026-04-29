@@ -22,7 +22,7 @@ class GiantBombIE(InfoExtractor):
             'description': 'md5:0aa3aaf2772a41b91d44c63f30dfad24',
             'duration': 2399,
             'thumbnail': r're:^https?://.*\.jpg$',
-        }
+        },
     }, {
         'url': 'https://www.giantbomb.com/shows/ben-stranding/2970-20212',
         'only_matching': True,

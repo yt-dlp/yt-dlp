@@ -14,7 +14,7 @@ from ..utils import (
 class VideoPressIE(InfoExtractor):
     _ID_REGEX = r'[\da-zA-Z]{8}'
     _PATH_REGEX = r'video(?:\.word)?press\.com/embed/'
-    _VALID_URL = r'https?://%s(?P<id>%s)' % (_PATH_REGEX, _ID_REGEX)
+    _VALID_URL = rf'https?://{_PATH_REGEX}(?P<id>{_ID_REGEX})'
     _EMBED_REGEX = [rf'<iframe[^>]+src=["\'](?P<url>(?:https?://)?{_PATH_REGEX}{_ID_REGEX})']
     _TESTS = [{
         'url': 'https://videopress.com/embed/kUJmAcSf',
@@ -23,8 +23,9 @@ class VideoPressIE(InfoExtractor):
             'id': 'kUJmAcSf',
             'ext': 'mp4',
             'title': 'VideoPress Demo',
-            'thumbnail': r're:^https?://.*\.jpg',
-            'duration': 634.6,
+            'description': '',
+            'duration': 635.0,
+            'thumbnail': r're:https?://videos\.files\.wordpress\.com/.+\.jpg',
             'timestamp': 1434983935,
             'upload_date': '20150622',
             'age_limit': 0,
@@ -37,6 +38,20 @@ class VideoPressIE(InfoExtractor):
         'url': 'https://video.wordpress.com/embed/kUJmAcSf',
         'only_matching': True,
     }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://wordpress.com/support/videopress/',
+        'info_dict': {
+            'id': 'BZHMfMfN',
+            'ext': 'mp4',
+            'title': 'videopress example',
+            'age_limit': 0,
+            'description': '',
+            'duration': 19.796,
+            'thumbnail': r're:https?://videos\.files\.wordpress\.com/.+\.jpg',
+            'timestamp': 1748969554,
+            'upload_date': '20250603',
+        },
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -44,7 +59,7 @@ class VideoPressIE(InfoExtractor):
         query = random_birthday('birth_year', 'birth_month', 'birth_day')
         query['fields'] = 'description,duration,file_url_base,files,height,original,poster,rating,title,upload_date,width'
         video = self._download_json(
-            'https://public-api.wordpress.com/rest/v1.1/videos/%s' % video_id,
+            f'https://public-api.wordpress.com/rest/v1.1/videos/{video_id}',
             video_id, query=query)
 
         title = video['title']
@@ -63,7 +78,7 @@ class VideoPressIE(InfoExtractor):
                 if ext in ('mp4', 'ogg'):
                     formats.append({
                         'url': urljoin(base_url, path),
-                        'format_id': '%s-%s' % (format_id, ext),
+                        'format_id': f'{format_id}-{ext}',
                         'ext': determine_ext(path, ext),
                         'quality': quality(format_id),
                     })

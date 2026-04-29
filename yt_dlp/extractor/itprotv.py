@@ -12,7 +12,7 @@ from ..utils import (
 class ITProTVBaseIE(InfoExtractor):
     _ENDPOINTS = {
         'course': 'course?url={}&brand=00002560-0000-3fa9-0000-1d61000035f3',
-        'episode': 'brand/00002560-0000-3fa9-0000-1d61000035f3/episode?url={}'
+        'episode': 'brand/00002560-0000-3fa9-0000-1d61000035f3/episode?url={}',
     }
 
     def _call_api(self, ep, item_id, webpage):
@@ -46,7 +46,7 @@ class ITProTVIE(ITProTVBaseIE):
             'availability': 'needs_auth',
             'chapter': 'ITProTV 101',
             'chapter_number': 1,
-            'chapter_id': '5dbb3de426b46c0010b5d1b6'
+            'chapter_id': '5dbb3de426b46c0010b5d1b6',
         },
     },
         {
@@ -64,7 +64,7 @@ class ITProTVIE(ITProTVBaseIE):
             'availability': 'needs_auth',
             'chapter': 'Job Development',
             'chapter_number': 2,
-            'chapter_id': '5f7c78d424330c000edf04d9'
+            'chapter_id': '5f7c78d424330c000edf04d9',
         },
     }]
 
@@ -95,7 +95,7 @@ class ITProTVIE(ITProTVBaseIE):
             'chapter_number': chapter_number,
             'chapter_id': str_or_none(chapter.get('id')),
             'subtitles': {
-                'en': [{'ext': 'vtt', 'data': episode['enCaptionData']}]
+                'en': [{'ext': 'vtt', 'data': episode['enCaptionData']}],
             } if episode.get('enCaptionData') else None,
         }
 
@@ -110,16 +110,16 @@ class ITProTVCourseIE(ITProTVBaseIE):
                 'description': 'md5:b175c2c3061ce35a4dd33865b2c1da4e',
                 'title': 'ITProTV 101',
             },
-            'playlist_count': 6
+            'playlist_count': 6,
         },
         {
             'url': 'https://app.itpro.tv/course/beyond-tech',
             'info_dict': {
                 'id': 'beyond-tech',
                 'description': 'md5:44cd99855e7f81a15ce1269bd0621fed',
-                'title': 'Beyond Tech'
+                'title': 'Beyond Tech',
             },
-            'playlist_count': 15
+            'playlist_count': 15,
         },
     ]
 

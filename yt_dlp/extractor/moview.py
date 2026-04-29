@@ -16,7 +16,7 @@ class MoviewPlayIE(JixieBaseIE):
                 'title': 'Candy Monster',
                 'description': 'Mengapa Candy Monster ingin mengambil permen Chloe?',
                 'thumbnail': 'https://video.jixie.media/1034/146182/146182_1280x720.jpg',
-            }
+            },
         }, {
             # non-drm hls
             'url': 'https://www.moview.id/play/75/Paris-Van-Java-Episode-16',
@@ -29,8 +29,8 @@ class MoviewPlayIE(JixieBaseIE):
                 'thumbnail': 'https://video.jixie.media/1003/28210/28210_1280x720.jpg',
                 'description': 'md5:2a5e18d98eef9b39d7895029cac96c63',
                 'title': 'Paris Van Java Episode 16',
-            }
-        }
+            },
+        },
     ]
 
     def _real_extract(self, url):

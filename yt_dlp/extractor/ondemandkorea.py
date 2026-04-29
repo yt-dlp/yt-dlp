@@ -115,7 +115,7 @@ class OnDemandKoreaIE(InfoExtractor):
             **traverse_obj(data, {
                 'thumbnail': ('episode', 'images', 'thumbnail', {url_or_none}),
                 'release_date': ('episode', 'release_date', {lambda x: x.replace('-', '')}, {unified_strdate}),
-                'duration': ('duration', {functools.partial(float_or_none, scale=1000)}),
+                'duration': ('duration', {float_or_none(scale=1000)}),
                 'age_limit': ('age_rating', 'name', {lambda x: x.replace('R', '')}, {parse_age_limit}),
                 'series': ('episode', {if_series(key='program')}, 'title'),
                 'series_id': ('episode', {if_series(key='program')}, 'id', {str_or_none}),

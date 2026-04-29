@@ -83,7 +83,7 @@ class RoosterTeethBaseIE(InfoExtractor):
             'availability': self._availability(
                 needs_premium=sub_only, needs_subscription=sub_only, needs_auth=sub_only,
                 is_private=False, is_unlisted=False),
-            'tags': attributes.get('genres')
+            'tags': attributes.get('genres'),
         }
 
 
@@ -254,7 +254,7 @@ class RoosterTeethIE(RoosterTeethBaseIE):
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 if self._parse_json(e.cause.response.read().decode(), display_id).get('access') is False:
                     self.raise_login_required(
-                        '%s is only available for FIRST members' % display_id)
+                        f'{display_id} is only available for FIRST members')
             raise
 
         # XXX: additional ad-free URL at video_data['links']['download'] but often gives 403 errors
@@ -281,7 +281,7 @@ class RoosterTeethIE(RoosterTeethBaseIE):
             'display_id': display_id,
             'formats': formats,
             'subtitles': subtitles,
-            **self._extract_video_info(episode)
+            **self._extract_video_info(episode),
         }
 
 

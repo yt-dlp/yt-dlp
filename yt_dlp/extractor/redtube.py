@@ -53,14 +53,14 @@ class RedTubeIE(InfoExtractor):
         for patterns, message in ERRORS:
             if any(p in webpage for p in patterns):
                 raise ExtractorError(
-                    'Video %s %s' % (video_id, message), expected=True)
+                    f'Video {video_id} {message}', expected=True)
 
         info = self._search_json_ld(webpage, video_id, default={})
 
         if not info.get('title'):
             info['title'] = self._html_search_regex(
                 (r'<h(\d)[^>]+class="(?:video_title_text|videoTitle|video_title)[^"]*">(?P<title>(?:(?!\1).)+)</h\1>',
-                 r'(?:videoTitle|title)\s*:\s*(["\'])(?P<title>(?:(?!\1).)+)\1',),
+                 r'(?:videoTitle|title)\s*:\s*(["\'])(?P<title>(?:(?!\1).)+)\1'),
                 webpage, 'title', group='title',
                 default=None) or self._og_search_title(webpage)
 
