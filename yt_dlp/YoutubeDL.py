@@ -1277,6 +1277,9 @@ class YoutubeDL:
             'playlist_index': number_of_digits(info_dict.get('__last_playlist_index') or 0),
             'playlist_autonumber': number_of_digits(info_dict.get('n_entries') or 0),
             'autonumber': self.params.get('autonumber_size') or 5,
+            'chapter_number': number_of_digits(info_dict.get('chapters_count') or 0),
+            'episode_number': number_of_digits(info_dict.get('n_entries') or 0),
+            'relative_episode_number': number_of_digits(info_dict.get('chapter_episodes_count') or 0)
         }
 
         TMPL_DICT = {}
