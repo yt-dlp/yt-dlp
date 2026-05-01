@@ -43,7 +43,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dynamic = ["version"]
-dependencies = []
+dependencies = [
+    "beautifulsoup4",
+    "lxml"
+]
 
 [project.optional-dependencies]
 default = [
