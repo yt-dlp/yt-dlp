@@ -1,41 +1,100 @@
 import json
+from html.parser import HTMLParser
 
 from .common import InfoExtractor
-from .vimeo import VimeoIE
+from .mux import MuxIE
 from ..utils import (
     clean_html,
-    extract_attributes,
-    get_element_html_by_id,
     int_or_none,
     parse_duration,
     str_or_none,
     unified_strdate,
     url_or_none,
-    urljoin,
+    urljoin
 )
+
 from ..utils.traversal import traverse_obj
+
+
+class LaracastsParser(HTMLParser):
+
+    def __init__(self, *, convert_charrefs=True):
+        super().__init__(convert_charrefs=convert_charrefs)
+        self.is_data_page_script = False
+        self.json_content = ''
+
+    def handle_starttag(self, tag, attrs):
+        attributes = dict(attrs)
+        if (tag.lower() == 'script' and attributes.get('type', '') == 'application/json' and
+                attributes.get('data-page', '') == 'app'):
+
+            self.is_data_page_script = True
+
+    def handle_data(self, data):
+        if self.is_data_page_script:
+            self.json_content += data
+
+    def handle_endtag(self, tag):
+        if tag.lower() == 'script':
+            self.is_data_page_script = False
+
+class LaracastsChapterInfo:
+
+    def __init__(self, props):
+        chapters = props['series']['chapters']
+        self.__chapters_count = len(chapters)
+        self.__chapter_names = [chapter['heading'] for chapter in chapters]
+        self.__chapter_episodes_counts = [int(chapter['count']) for chapter in chapters]
+
+    def __get_relative_episode_number(self, episode_number):
+        relative_episode_number = episode_number
+        increment = 0
+        for v in self.__chapter_episodes_counts:
+            if v >= episode_number:
+                break
+            if increment + v >= episode_number:
+                relative_episode_number = episode_number - increment
+                break
+            increment += v
+        return relative_episode_number
+
+    def add_to_episode(self, episode):
+        chapter_index = int(episode['chapter']) - 1
+        episode['chapterName'] = self.__chapter_names[chapter_index]
+        episode['chapterEpisodesCount'] = self.__chapter_episodes_counts[chapter_index]
+        episode['relativeEpisodeNumber'] = self.__get_relative_episode_number(episode['position'])
+        episode['chaptersCount'] = self.__chapters_count
+        return episode
 
 
 class LaracastsBaseIE(InfoExtractor):
     def _get_prop_data(self, url, display_id):
         webpage = self._download_webpage(url, display_id)
+
+        parser = LaracastsParser()
+        parser.feed(webpage)
+        parser.close()
+
         return traverse_obj(
-            get_element_html_by_id('app', webpage),
-            ({extract_attributes}, 'data-page', {json.loads}, 'props'))
+            parser.json_content,
+            ({json.loads}, 'props'))
 
     def _parse_episode(self, episode):
-        if not traverse_obj(episode, 'vimeoId'):
+        if not traverse_obj(episode, 'muxPlaybackId'):
             self.raise_login_required('This video is only available for subscribers.')
         return self.url_result(
-            VimeoIE._smuggle_referrer(
-                f'https://player.vimeo.com/video/{episode["vimeoId"]}', 'https://laracasts.com/'),
-            VimeoIE, url_transparent=True,
+            f'https://player.mux.com/{episode["muxPlaybackId"]}?playback-token={episode['muxTokens']['playback']}',
+            MuxIE, url_transparent=True,
             **traverse_obj(episode, {
                 'id': ('id', {int}, {str_or_none}),
                 'webpage_url': ('path', {urljoin('https://laracasts.com')}),
                 'title': ('title', {clean_html}),
-                'season_number': ('chapter', {int_or_none}),
+                'chapter_number': ('chapter', {int_or_none}),
+                'chapter_name': ('chapterName', {str_or_none}),
+                'chapters_count': ('chaptersCount', {int_or_none}),
+                'chapter_episodes_count': ('chapterEpisodesCount', {int_or_none}),
                 'episode_number': ('position', {int_or_none}),
+                'relative_episode_number': ('relativeEpisodeNumber', {int_or_none}),
                 'description': ('body', {clean_html}),
                 'thumbnail': ('largeThumbnail', {url_or_none}),
                 'duration': ('length', {int_or_none}),
@@ -70,7 +129,12 @@ class LaracastsIE(LaracastsBaseIE):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        return self._parse_episode(self._get_prop_data(url, display_id)['lesson'])
+
+        props = self._get_prop_data(url, display_id)
+
+        chapter_info = LaracastsChapterInfo(props)
+
+        return self._parse_episode(chapter_info.add_to_episode(props['lesson']))
 
 
 class LaracastsPlaylistIE(LaracastsBaseIE):
@@ -94,7 +158,11 @@ class LaracastsPlaylistIE(LaracastsBaseIE):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        series = self._get_prop_data(url, display_id)['series']
+        props = self._get_prop_data(url, display_id)
+
+        series = props['series']
+
+        chapter_info = LaracastsChapterInfo(props)
 
         metadata = {
             'display_id': display_id,
@@ -111,4 +179,5 @@ class LaracastsPlaylistIE(LaracastsBaseIE):
         }
 
         return self.playlist_result(traverse_obj(
-            series, ('chapters', ..., 'episodes', lambda _, v: v['vimeoId'], {self._parse_episode})), **metadata)
+            series, ('chapters', ..., 'episodes', lambda _, v: chapter_info.add_to_episode(v), {self._parse_episode})),
+            **metadata)
