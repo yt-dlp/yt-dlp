@@ -277,11 +277,9 @@ class TikTokBaseIE(InfoExtractor):
 
         return wci_cookie_name, rci_cookie_name
 
-    def _extract_web_data_and_status(self, url, video_id, fatal=True):
-        video_data, status = {}, -1
-
-        def get_webpage(note='Downloading webpage'):
-            res = self._download_webpage_handle(url, video_id, note, fatal=fatal, impersonate=True)
+    def _extract_universal_data(self, url, display_id=None, fatal=True):
+        def get_webpage(note):
+            res = self._download_webpage_handle(url, display_id, note, fatal=fatal, impersonate=True)
             if res is False:
                 return False
 
@@ -290,38 +288,46 @@ class TikTokBaseIE(InfoExtractor):
                 message = 'TikTok is requiring login for access to this content'
                 if fatal:
                     self.raise_login_required(message)
-                self.report_warning(f'{message}. {self._login_hint()}', video_id=video_id)
+                self.report_warning(f'{message}. {self._login_hint()}', video_id=display_id)
                 return False
 
             return webpage
 
-        webpage = get_webpage()
+        webpage = get_webpage(note='Downloading webpage')
         if webpage is False:
-            return video_data, status
+            return None
 
-        universal_data = self._get_universal_data(webpage, video_id)
+        universal_data = self._get_universal_data(webpage, display_id)
         if not universal_data:
             try:
                 cookie_names = self._solve_challenge_and_set_cookies(webpage)
             except ExtractorError as e:
                 if fatal:
                     raise
-                self.report_warning(e.orig_msg, video_id=video_id)
-                return video_data, status
+                self.report_warning(e.orig_msg, video_id=display_id)
+                return None
 
             webpage = get_webpage(note='Downloading webpage with challenge cookie')
             # Manually clear challenge cookies that should expire immediately after webpage request
             for cookie_name in filter(None, cookie_names):
                 self.cookiejar.clear(domain='.tiktok.com', path='/', name=cookie_name)
             if webpage is False:
-                return video_data, status
-            universal_data = self._get_universal_data(webpage, video_id)
+                return None
+            universal_data = self._get_universal_data(webpage, display_id)
 
         if not universal_data:
             message = 'Unable to extract universal data for rehydration'
             if fatal:
                 raise ExtractorError(message)
-            self.report_warning(message, video_id=video_id)
+            self.report_warning(message, video_id=display_id)
+            return None
+        return universal_data
+
+    def _extract_web_data_and_status(self, url, video_id, fatal=True):
+        video_data, status = {}, -1
+
+        universal_data = self._extract_universal_data(url, video_id, fatal)
+        if not universal_data:
             return video_data, status
 
         status = traverse_obj(universal_data, ('webapp.video-detail', 'statusCode', {int})) or 0
@@ -1241,12 +1247,9 @@ class TikTokLikedIE(TikTokUserBaseIE):
             fail_early = True
         else:
             fail_early = False
-            webpage = self._download_webpage(
-                self._UPLOADER_URL_FORMAT % user_name, user_name,
-                'Downloading user webpage', 'Unable to download user webpage',
-                fatal=False, impersonate=True) or ''
-            detail = traverse_obj(
-                self._get_universal_data(webpage, user_name), ('webapp.user-detail', {dict})) or {}
+            universal_data = self._extract_universal_data(
+                self._UPLOADER_URL_FORMAT % user_name, user_name, fatal=False) or {}
+            detail = traverse_obj(universal_data, ('webapp.user-detail', {dict})) or {}
             likes_count = traverse_obj(detail, ('userInfo', ('stats', 'statsV2'), 'diggCount', {int_or_none}, any))
             if not likes_count and detail.get('statusCode') == 10222:
                 self.raise_login_required(
@@ -1284,20 +1287,16 @@ class TikTokSavedIE(TikTokUserBaseIE):
     _API_BASE_URL = 'https://www.tiktok.com/api/user/collect/item_list/'
 
     def _real_extract(self, url):
-        webpage = self._download_webpage(
-            self._UPLOADER_URL_FORMAT % '', None,
-            'Downloading user webpage', 'Unable to download user webpage',
-            fatal=False, impersonate=True) or ''
+        universal_data = self._extract_universal_data(self._WEBPAGE_HOST, fatal=False) or {}
 
-        context = self._get_universal_data(webpage, None).get('webapp.app-context')
-        user_name = traverse_obj(context, ('user', 'uniqueId', {str}))
-        sec_uid = traverse_obj(context, ('user', 'secUid', {str}))
+        user_name = traverse_obj(universal_data, ('webapp.app-context', 'user', 'uniqueId', {str}))
+        sec_uid = traverse_obj(universal_data, ('webapp.app-context', 'user', 'secUid', {str}))
 
         if not (user_name or sec_uid):
             self.raise_login_required(
                 'You are not logged in. Log into an account that has access')
 
-        return self.playlist_result(self._entries(sec_uid, user_name, True), sec_uid, user_name)
+        return self.playlist_result(self._entries(sec_uid, user_name, fail_early=True), sec_uid, user_name)
 
 
 class TikTokBaseListIE(TikTokBaseIE):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
