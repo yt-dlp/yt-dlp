@@ -22,11 +22,11 @@ from ..utils.traversal import require, traverse_obj
 
 def _cloudfront_auth_request(m3u8_url, strm_id, video_id, referer_url):
     return Request(
-        'https://live.sooplive.co.kr/api/private_auth.php',
+        'https://live.sooplive.com/api/private_auth.php',
         method='POST',
         headers={
             'Referer': referer_url,
-            'Origin': 'https://vod.sooplive.co.kr',
+            'Origin': 'https://vod.sooplive.com',
         },
         data=urlencode_postdata({
             'type': 'vod',
@@ -51,17 +51,17 @@ class AfreecaTVBaseIE(InfoExtractor):
         }
 
         response = self._download_json(
-            'https://login.sooplive.co.kr/app/LoginAction.php', None,
+            'https://login.sooplive.com/app/LoginAction.php', None,
             'Logging in', data=urlencode_postdata(login_form))
 
         _ERRORS = {
             -4: 'Your account has been suspended due to a violation of our terms and policies.',
-            -5: 'https://member.sooplive.co.kr/app/user_delete_progress.php',
-            -6: 'https://login.sooplive.co.kr/membership/changeMember.php',
+            -5: 'https://member.sooplive.com/app/user_delete_progress.php',
+            -6: 'https://login.sooplive.com/membership/changeMember.php',
             -8: "Hello! Soop here.\nThe username you have entered belongs to \n an account that requires a legal guardian's consent. \nIf you wish to use our services without restriction, \nplease make sure to go through the necessary verification process.",
-            -9: 'https://member.sooplive.co.kr/app/pop_login_block.php',
-            -11: 'https://login.sooplive.co.kr/afreeca/second_login.php',
-            -12: 'https://member.sooplive.co.kr/app/user_security.php',
+            -9: 'https://member.sooplive.com/app/pop_login_block.php',
+            -11: 'https://login.sooplive.com/afreeca/second_login.php',
+            -12: 'https://member.sooplive.com/app/user_security.php',
             0: 'The username does not exist or you have entered the wrong password.',
             -1: 'The username does not exist or you have entered the wrong password.',
             -3: 'You have entered your username/password incorrectly.',
@@ -79,7 +79,7 @@ class AfreecaTVBaseIE(InfoExtractor):
 
     def _call_api(self, endpoint, display_id, data=None, headers=None, query=None):
         return self._download_json(Request(
-            f'https://api.m.sooplive.co.kr/{endpoint}',
+            f'https://api.m.sooplive.com/{endpoint}',
             data=data, headers=headers, query=query,
             extensions={'legacy_ssl': True}), display_id,
             'Downloading API JSON', 'Unable to download API JSON')
@@ -95,36 +95,36 @@ class AfreecaTVBaseIE(InfoExtractor):
 
 class AfreecaTVIE(AfreecaTVBaseIE):
     IE_NAME = 'soop'
-    IE_DESC = 'sooplive.co.kr'
-    _VALID_URL = r'https?://vod\.(?:sooplive\.co\.kr|afreecatv\.com)/(?:PLAYER/STATION|player)/(?P<id>\d+)/?(?:$|[?#&])'
+    IE_DESC = 'sooplive.com'
+    _VALID_URL = r'https?://vod\.sooplive\.com/(?:PLAYER/STATION|player)/(?P<id>\d+)/?(?:$|[?#&])'
     _TESTS = [{
-        'url': 'https://vod.sooplive.co.kr/player/96753363',
+        'url': 'https://vod.sooplive.com/player/192805325',
         'info_dict': {
-            'id': '20230108_9FF5BEE1_244432674_1',
+            'id': '20260414_1B44E53B_293230967_1',
             'ext': 'mp4',
             'uploader_id': 'rlantnghks',
             'uploader': '페이즈으',
-            'duration': 10840,
-            'thumbnail': r're:https?://videoimg\.(?:sooplive\.co\.kr|afreecatv\.com)/.+',
-            'upload_date': '20230108',
-            'timestamp': 1673186405,
-            'title': '젠지 페이즈',
+            'duration': 10869,
+            'thumbnail': r're:https?://videoimg\.sooplive\.com/.+',
+            'upload_date': '20260414',
+            'timestamp': 1776174982,
+            'title': 'T1 Peyz [CC]',
         },
         'params': {
             'skip_download': True,
         },
     }, {
         # non standard key
-        'url': 'http://vod.sooplive.co.kr/PLAYER/STATION/20515605',
+        'url': 'https://vod.sooplive.com/PLAYER/STATION/20515605',
         'info_dict': {
-            'id': '20170411_BE689A0E_190960999_1_2_h',
+            'id': 'BE689A0E_190960999_1_2_A',
             'ext': 'mp4',
             'title': '혼자사는여자집',
-            'thumbnail': r're:https?://(?:video|st)img\.(?:sooplive\.co\.kr|afreecatv\.com)/.+',
+            'thumbnail': r're:https?://(?:video|st)img\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/.+',
             'uploader': '♥이슬이',
             'uploader_id': 'dasl8121',
             'upload_date': '20170411',
-            'timestamp': 1491929865,
+            'timestamp': 1491897465,
             'duration': 213,
         },
         'params': {
@@ -132,32 +132,32 @@ class AfreecaTVIE(AfreecaTVBaseIE):
         },
     }, {
         # adult content
-        'url': 'https://vod.sooplive.co.kr/player/97267690',
+        'url': 'https://vod.sooplive.com/player/191612613',
         'info_dict': {
-            'id': '20180327_27901457_202289533_1',
+            'id': '20260403_A4534670_292914441_1',
             'ext': 'mp4',
-            'title': '[생]빨개요♥ (part 1)',
-            'thumbnail': r're:https?://(?:video|st)img\.(?:sooplive\.co\.kr|afreecatv\.com)/.+',
-            'uploader': '[SA]서아',
-            'uploader_id': 'bjdyrksu',
-            'upload_date': '20180327',
-            'duration': 3601,
+            'title': '하이',
+            'thumbnail': r're:https?://(?:video|st)img\.sooplive\.com/.+',
+            'uploader': '세림잉',
+            'uploader_id': 'serimm',
+            'upload_date': '20260402',
+            'duration': 7015,
         },
         'params': {
             'skip_download': True,
         },
-        'skip': 'The VOD does not exist',
+        'skip': 'Needs login to view',
     }, {
         # adult content
-        'url': 'https://vod.sooplive.co.kr/player/70395877',
+        'url': 'https://vod.sooplive.com/player/70395877',
         'only_matching': True,
     }, {
         # subscribers only
-        'url': 'https://vod.sooplive.co.kr/player/104647403',
+        'url': 'https://vod.sooplive.com/player/104647403',
         'only_matching': True,
     }, {
         # private
-        'url': 'https://vod.sooplive.co.kr/player/81669846',
+        'url': 'https://vod.sooplive.com/player/81669846',
         'only_matching': True,
     }]
 
@@ -255,10 +255,10 @@ class AfreecaTVIE(AfreecaTVBaseIE):
 
 class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
     IE_NAME = 'soop:catchstory'
-    IE_DESC = 'sooplive.co.kr catch story'
-    _VALID_URL = r'https?://vod\.(?:sooplive\.co\.kr|afreecatv\.com)/player/(?P<id>\d+)/catchstory'
+    IE_DESC = 'sooplive.com catch story'
+    _VALID_URL = r'https?://vod\.sooplive\.com/player/(?P<id>\d+)/catchstory'
     _TESTS = [{
-        'url': 'https://vod.sooplive.co.kr/player/103247/catchstory',
+        'url': 'https://vod.sooplive.com/player/103247/catchstory',
         'info_dict': {
             'id': '103247',
         },
@@ -291,10 +291,10 @@ class AfreecaTVCatchStoryIE(AfreecaTVBaseIE):
 
 class AfreecaTVLiveIE(AfreecaTVBaseIE):
     IE_NAME = 'soop:live'
-    IE_DESC = 'sooplive.co.kr livestreams'
-    _VALID_URL = r'https?://play\.(?:sooplive\.co\.kr|afreecatv\.com)/(?P<id>[^/?#]+)(?:/(?P<bno>\d+))?'
+    IE_DESC = 'sooplive.com livestreams'
+    _VALID_URL = r'https?://play\.sooplive\.com/(?P<id>[^/?#]+)(?:/(?P<bno>\d+))?'
     _TESTS = [{
-        'url': 'https://play.sooplive.co.kr/pyh3646/237852185',
+        'url': 'https://play.sooplive.com/pyh3646/237852185',
         'info_dict': {
             'id': '237852185',
             'ext': 'mp4',
@@ -306,30 +306,33 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
         },
         'skip': 'Livestream has ended',
     }, {
-        'url': 'https://play.sooplive.co.kr/pyh3646/237852185',
+        'url': 'https://play.sooplive.com/pyh3646/237852185',
         'only_matching': True,
     }, {
-        'url': 'https://play.sooplive.co.kr/pyh3646',
+        'url': 'https://play.sooplive.com/pyh3646',
         'only_matching': True,
     }]
 
-    _LIVE_API_URL = 'https://live.sooplive.co.kr/afreeca/player_live_api.php'
+    _LIVE_API_URL = 'https://live.sooplive.com/afreeca/player_live_api.php'
     _WORKING_CDNS = [
-        'gcp_cdn',  # live-global-cdn-v02.sooplive.co.kr
-        'gs_cdn_pc_app',  # pc-app.stream.sooplive.co.kr
-        'gs_cdn_mobile_web',  # mobile-web.stream.sooplive.co.kr
-        'gs_cdn_pc_web',  # pc-web.stream.sooplive.co.kr
+        'gcp_cdn',  # live-global-cdn-v02.sooplive.com
+        'gs_cdn_mobile_web',  # mobile-web.stream.sooplive.com
+        'gs_cdn_pc_web',  # pc-web.stream.sooplive.com
+        'lg_cdn_pc_web',  # live-pcweb-kr-cdn-z02.sooplive.com
+        'lg_cdn_mobile_web',  # live-mobileweb-kr-cdn-z02.sooplive.com
+        'azure_cdn',  # live-global-cdn-v02.sooplive.com
+        'aws_cf',  # live-global-cdn-v02.sooplive.com
     ]
     _BAD_CDNS = [
-        'gs_cdn',  # chromecast.afreeca.gscdn.com (cannot resolve)
-        'gs_cdn_chromecast',  # chromecast.stream.sooplive.co.kr (HTTP Error 400)
-        'azure_cdn',  # live-global-cdn-v01.sooplive.co.kr (cannot resolve)
-        'aws_cf',  # live-global-cdn-v03.sooplive.co.kr (cannot resolve)
-        'kt_cdn',  # kt.stream.sooplive.co.kr (HTTP Error 400)
+        'gs_cdn',  # chromecast.stream.sooplive.com (cannot resolve)
+        'gs_cdn_chromecast',  # chromecast.stream.sooplive.com (HTTP Error 400)
+        'lg_cdn_chromecast',  # live-chromecast-kr-cdn-z02.sooplive.com (HTTP Error 403)
+        'gs_cdn_pc_app',  # pc-app.stream.sooplive.co.kr (HTTP Error 400) Might not exist anymore
+        'kt_cdn',  # kt.stream.sooplive.co.kr (HTTP Error 400) Might not exist anymore
     ]
 
     def _extract_formats(self, channel_info, broadcast_no, aid):
-        stream_base_url = channel_info.get('RMD') or 'https://livestream-manager.sooplive.co.kr'
+        stream_base_url = channel_info.get('RMD') or 'https://livestream-manager.sooplive.com'
 
         # If user has not passed CDN IDs, try API-provided CDN ID followed by other working CDN IDs
         default_cdn_ids = orderedSet([
@@ -349,7 +352,7 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
             try:
                 return self._extract_m3u8_formats(
                     m3u8_url, broadcast_no, 'mp4', m3u8_id='hls', query={'aid': aid},
-                    headers={'Referer': 'https://play.sooplive.co.kr/'})
+                    headers={'Referer': 'https://play.sooplive.com/'})
             except ExtractorError as e:
                 if attempt == len(cdn_ids):
                     raise
@@ -400,7 +403,7 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
         formats = self._extract_formats(channel_info, broadcast_no, aid)
 
         station_info = traverse_obj(self._download_json(
-            'https://st.sooplive.co.kr/api/get_station_status.php', broadcast_no,
+            'https://st.sooplive.com/api/get_station_status.php', broadcast_no,
             'Downloading channel metadata', 'Unable to download channel metadata',
             query={'szBjId': broadcaster_id}, fatal=False), {dict}) or {}
 
@@ -418,50 +421,51 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
 
 class AfreecaTVUserIE(AfreecaTVBaseIE):
     IE_NAME = 'soop:user'
-    _VALID_URL = r'https?://ch\.(?:sooplive\.co\.kr|afreecatv\.com)/(?P<id>[^/?#]+)/vods/?(?P<slug_type>[^/?#]+)?'
+    _VALID_URL = r'https?://(?:www\.)?sooplive\.com/station/(?P<id>[^/?#]+)/vod/?(?P<slug_type>[^/?#]+)?'
     _TESTS = [{
-        'url': 'https://ch.sooplive.co.kr/ryuryu24/vods/review',
+        'url': 'https://www.sooplive.com/station/devil0108/vod/review',
         'info_dict': {
             '_type': 'playlist',
-            'id': 'ryuryu24',
-            'title': 'ryuryu24 - review',
+            'id': 'devil0108',
+            'title': 'devil0108 - review',
         },
-        'playlist_count': 218,
+        'playlist_mincount': 300,
     }, {
-        'url': 'https://ch.sooplive.co.kr/parang1995/vods/highlight',
+        'url': 'https://www.sooplive.com/station/devil0108/vod',
+        'info_dict': {
+            '_type': 'playlist',
+            'id': 'devil0108',
+            'title': 'devil0108 - all',
+        },
+        'playlist_mincount': 300,
+    }, {
+        'url': 'https://www.sooplive.com/station/parang1995/vod/clip',
         'info_dict': {
             '_type': 'playlist',
             'id': 'parang1995',
-            'title': 'parang1995 - highlight',
+            'title': 'parang1995 - clip',
         },
-        'playlist_count': 997,
+        'playlist_mincount': 300,
     }, {
-        'url': 'https://ch.sooplive.co.kr/ryuryu24/vods',
+        'url': 'https://www.sooplive.com/station/phonics1/vod/normal',
         'info_dict': {
             '_type': 'playlist',
-            'id': 'ryuryu24',
-            'title': 'ryuryu24 - all',
+            'id': 'phonics1',
+            'title': 'phonics1 - normal',
         },
-        'playlist_count': 221,
-    }, {
-        'url': 'https://ch.sooplive.co.kr/ryuryu24/vods/balloonclip',
-        'info_dict': {
-            '_type': 'playlist',
-            'id': 'ryuryu24',
-            'title': 'ryuryu24 - balloonclip',
-        },
-        'playlist_count': 0,
+        'playlist_mincount': 300,
     }]
     _PER_PAGE = 60
 
     def _fetch_page(self, user_id, user_type, page):
         page += 1
-        info = self._download_json(f'https://chapi.sooplive.co.kr/api/{user_id}/vods/{user_type}', user_id,
+        info = self._download_json(f'https://chapi.sooplive.com/api/{user_id}/vods/{user_type}', user_id,
                                    query={'page': page, 'per_page': self._PER_PAGE, 'orderby': 'reg_date'},
                                    note=f'Downloading {user_type} video page {page}')
         for item in info['data']:
             yield self.url_result(
-                f'https://vod.sooplive.co.kr/player/{item["title_no"]}/', AfreecaTVIE, item['title_no'])
+                f'https://vod.sooplive.com/player/{item["title_no"]}/',
+                AfreecaTVIE, item['title_no'], item.get('title_name'))
 
     def _real_extract(self, url):
         user_id, user_type = self._match_valid_url(url).group('id', 'slug_type')
