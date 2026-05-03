@@ -2,6 +2,7 @@ name: Core Tests
 on:
   push:
     paths:
+      - pyproject.toml
       - .github/**
       - devscripts/**
       - test/**
@@ -13,6 +14,7 @@ on:
       - yt_dlp/extractor/extractors.py
   pull_request:
     paths:
+      - pyproject.toml
       - .github/**
       - devscripts/**
       - test/**
