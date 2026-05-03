@@ -46,6 +46,8 @@ class QQMusicBaseIE(InfoExtractor):
 
     def _download_init_data(self, url, mid, fatal=True):
         webpage = self._download_webpage(url, mid, fatal=fatal)
+        if not webpage or 'window.__INITIAL_DATA__' not in webpage:
+            return None
         return self._search_json(r'window\.__INITIAL_DATA__\s*=', webpage,
                                  'init data', mid, transform_source=js_to_json, fatal=fatal)
 
@@ -65,7 +67,7 @@ class QQMusicBaseIE(InfoExtractor):
 class QQMusicIE(QQMusicBaseIE):
     IE_NAME = 'qqmusic'
     IE_DESC = 'QQ音乐'
-    _VALID_URL = r'https?://y\.qq\.com/n/ryqq/songDetail/(?P<id>[0-9A-Za-z]+)'
+    _VALID_URL = r'https?://y\.qq\.com/n/ryqq(?:_v2)?/songDetail/(?P<id>[0-9A-Za-z]+)'
     _TESTS = [{
         'url': 'https://y.qq.com/n/ryqq/songDetail/004Ti8rT003TaZ',
         'md5': 'd7adc5c438d12e2cb648cca81593fd47',
@@ -130,6 +132,20 @@ class QQMusicIE(QQMusicBaseIE):
         },
         'params': {'skip_download': True},
         'skip': 'no longer available',
+    }, {
+        'url': 'https://y.qq.com/n/ryqq_v2/songDetail/404569823',
+        'info_dict': {
+            'id': '000A1nKi0wDqIg',
+            'ext': 'mp3',
+            'title': 'FeelingGood (Live)',
+            'album': 'Feeling Good (Live)',
+            'release_date': '20230407',
+            'duration': 287,
+            'creators': ['李健'],
+            'thumbnail': r're:^https?://.*\.jpg(?:$|[#?])',
+        },
+        'params': {'skip_download': True},
+        'skip': 'login required',
     }]
 
     _FORMATS = {
@@ -142,18 +158,23 @@ class QQMusicIE(QQMusicBaseIE):
     }
 
     def _real_extract(self, url):
-        mid = self._match_id(url)
+        song_id = self._match_id(url)
 
-        init_data = self._download_init_data(url, mid, fatal=False)
+        init_data = self._download_init_data(url, song_id, fatal=False)
+        song_detail_param = (
+            {'song_id': int(song_id)}
+            if song_id.isdecimal()
+            else {'song_mid': song_id})
         info_data = self._make_fcu_req({'info': {
             'module': 'music.pf_song_detail_svr',
             'method': 'get_song_detail_yqq',
             'param': {
-                'song_mid': mid,
+                **song_detail_param,
                 'song_type': 0,
             },
-        }}, mid, note='Downloading song info')['info']['data']['track_info']
+        }}, song_id, note='Downloading song info')['info']['data']['track_info']
 
+        mid = info_data['mid']
         media_mid = info_data['file']['media_mid']
 
         data = self._make_fcu_req({
@@ -295,7 +316,7 @@ class QQMusicSingerIE(QQMusicBaseIE):
             })))
 
 
-class QQPlaylistBaseIE(InfoExtractor):
+class QQPlaylistBaseIE(QQMusicBaseIE):
     def _extract_entries(self, info_json, path):
         for song in traverse_obj(info_json, path):
             song_mid = song.get('songmid')
@@ -305,11 +326,20 @@ class QQPlaylistBaseIE(InfoExtractor):
                 f'https://y.qq.com/n/ryqq/songDetail/{song_mid}',
                 QQMusicIE, song_mid, song.get('songname'))
 
+    def _extract_song_info_entries(self, info_json, path):
+        for song in traverse_obj(info_json, path):
+            song_mid = song.get('mid')
+            if not song_mid:
+                continue
+            yield self.url_result(
+                f'https://y.qq.com/n/ryqq/songDetail/{song_mid}',
+                QQMusicIE, song_mid, song.get('title') or song.get('name'))
+
 
 class QQMusicAlbumIE(QQPlaylistBaseIE):
     IE_NAME = 'qqmusic:album'
     IE_DESC = 'QQ音乐 - 专辑'
-    _VALID_URL = r'https?://y\.qq\.com/n/ryqq/albumDetail/(?P<id>[0-9A-Za-z]+)'
+    _VALID_URL = r'https?://y\.qq\.com/n/ryqq(?:_v2)?/albumDetail/(?P<id>[0-9A-Za-z]+)'
 
     _TESTS = [{
         'url': 'https://y.qq.com/n/ryqq/albumDetail/000gXCTb2AhRR1',
@@ -327,10 +357,41 @@ class QQMusicAlbumIE(QQPlaylistBaseIE):
             'description': 'md5:a48823755615508a95080e81b51ba729',
         },
         'playlist_count': 8,
+    }, {
+        'url': 'https://y.qq.com/n/ryqq_v2/albumDetail/26900548',
+        'info_dict': {
+            'id': '002PJlxE21UxCH',
+            'title': '溺爱',
+            'description': '精致的老歌，总敲打着午夜寂寥的心......李健重新演绎10首经典老歌 ; 清澈美丽，令人沉醉。温柔缱绻，坚决勇敢。',
+        },
+        'playlist_count': 10,
     }]
 
     def _real_extract(self, url):
         mid = self._match_id(url)
+        if mid.isdecimal():
+            album_data = self._make_fcu_req({
+                'detail': {
+                    'module': 'music.musichallAlbum.AlbumInfoServer',
+                    'method': 'GetAlbumDetail',
+                    'param': {'albumId': int(mid)},
+                },
+                'song_list': {
+                    'module': 'music.musichallAlbum.AlbumSongList',
+                    'method': 'GetAlbumSongList',
+                    'param': {'albumId': int(mid), 'begin': 0, 'num': 100, 'order': 2},
+                },
+            }, mid, note='Download album page')
+
+            album_json = album_data['detail']['data']['basicInfo']
+            album_mid = album_json['albumMid']
+            entries = self._extract_song_info_entries(
+                album_data, ('song_list', 'data', 'songList', ..., 'songInfo'))
+
+            return self.playlist_result(entries, album_mid, **traverse_obj(album_json, {
+                'title': ('albumName', {str}),
+                'description': ('desc', {str.strip}),
+            }))
 
         album_json = self._download_json(
             'http://i.y.qq.com/v8/fcg-bin/fcg_v8_album_info_cp.fcg',
