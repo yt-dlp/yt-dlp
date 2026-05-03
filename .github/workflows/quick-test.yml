@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   tests:
-    name: Core test (quick)
+    name: Core test
     if: ${{ !contains(github.event.head_commit.message, ':ci skip all') }}
     permissions:
       contents: read
@@ -35,6 +35,7 @@ jobs:
       run: |
         python3 -m yt_dlp -v || true
         python3 ./devscripts/run_tests.py --pytest-args '--reruns 2 --reruns-delay 3.0' core
+
   check:
     name: Code check
     if: ${{ !contains(github.event.head_commit.message, ':ci skip all') }}
