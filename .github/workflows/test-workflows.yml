@@ -2,6 +2,7 @@ name: Test and lint workflows
 on:
   push:
     branches: ['master']
+  # This workflow contains required checks and needs to run for EVERY pull_request
   pull_request:
     branches: ['**']
 
@@ -19,6 +20,7 @@ env:
 
 jobs:
   check:
+    # Required check; do not change name
     name: Check workflows
     permissions:
       contents: read
@@ -60,6 +62,7 @@ jobs:
           pytest -Werror --tb=short --color=yes devscripts/setup_variables_tests.py
 
   zizmor:
+    # Required check; do not change name
     name: Run zizmor
     permissions:
       contents: read

@@ -19,7 +19,7 @@ permissions: {}
 
 jobs:
   release:
-    name: Publish Github release
+    name: Publish GitHub release
     if: vars.BUILD_MASTER
     permissions:
       contents: write  # May be needed to publish release

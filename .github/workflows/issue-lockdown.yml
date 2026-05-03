@@ -10,7 +10,7 @@ env:
 
 jobs:
   lockdown:
-    name: Issue Lockdown
+    name: Issue lockdown
     if: vars.ISSUE_LOCKDOWN
     permissions:
       issues: write  # Needed to lock issues

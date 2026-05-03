@@ -70,7 +70,7 @@ jobs:
         run: echo "${HEAD}" | tee .nightly_commit_hash
 
   release:
-    name: Publish Github release
+    name: Publish GitHub release
     needs: [check_nightly]
     if: needs.check_nightly.outputs.commit
     permissions:

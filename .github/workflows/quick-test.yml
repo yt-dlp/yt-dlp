@@ -2,6 +2,7 @@ name: Quick Test
 on:
   push:
     branches: ['master']
+  # This workflow contains required checks and needs to run for EVERY pull_request
   pull_request:
     branches: ['**']
 
@@ -13,6 +14,7 @@ concurrency:
 
 jobs:
   tests:
+    # Required check; do not change name
     name: Core test
     if: ${{ !contains(github.event.head_commit.message, ':ci skip all') }}
     permissions:
@@ -37,6 +39,7 @@ jobs:
         python3 ./devscripts/run_tests.py --pytest-args '--reruns 2 --reruns-delay 3.0' core
 
   check:
+    # Required check; do not change name
     name: Code check
     if: ${{ !contains(github.event.head_commit.message, ':ci skip all') }}
     permissions:
