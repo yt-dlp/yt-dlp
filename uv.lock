@@ -1166,6 +1166,42 @@ default = [
 deno = [
     { name = "deno" },
 ]
+pin = [
+    { name = "brotli", marker = "implementation_name == 'cpython' and sys_platform != 'ios'" },
+    { name = "brotlicffi", marker = "implementation_name != 'cpython'" },
+    { name = "certifi" },
+    { name = "cffi", marker = "implementation_name != 'cpython'" },
+    { name = "charset-normalizer" },
+    { name = "idna" },
+    { name = "mutagen" },
+    { name = "pycparser", marker = "implementation_name != 'PyPy' and implementation_name != 'cpython'" },
+    { name = "pycryptodomex" },
+    { name = "requests" },
+    { name = "urllib3" },
+    { name = "websockets" },
+    { name = "yt-dlp-ejs" },
+]
+pin-curl-cffi = [
+    { name = "certifi", marker = "implementation_name == 'cpython'" },
+    { name = "cffi", marker = "implementation_name == 'cpython'" },
+    { name = "curl-cffi", marker = "implementation_name == 'cpython'" },
+    { name = "markdown-it-py", marker = "implementation_name == 'cpython'" },
+    { name = "mdurl", marker = "implementation_name == 'cpython'" },
+    { name = "pycparser", marker = "implementation_name == 'cpython'" },
+    { name = "pygments", marker = "implementation_name == 'cpython'" },
+    { name = "rich", marker = "implementation_name == 'cpython'" },
+]
+pin-deno = [
+    { name = "deno" },
+]
+pin-secretstorage = [
+    { name = "cffi", marker = "platform_python_implementation != 'PyPy'" },
+    { name = "cryptography" },
+    { name = "jeepney" },
+    { name = "pycparser", marker = "implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'" },
+    { name = "secretstorage" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+]
 secretstorage = [
     { name = "secretstorage" },
 ]
@@ -1200,19 +1236,47 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "brotli", marker = "implementation_name == 'cpython' and sys_platform != 'ios' and extra == 'default'" },
+    { name = "brotli", marker = "implementation_name == 'cpython' and sys_platform != 'ios' and extra == 'pin'", specifier = "==1.2.0" },
     { name = "brotlicffi", marker = "implementation_name != 'cpython' and extra == 'default'" },
+    { name = "brotlicffi", marker = "implementation_name != 'cpython' and extra == 'pin'", specifier = "==1.2.0.1" },
+    { name = "certifi", marker = "implementation_name == 'cpython' and extra == 'pin-curl-cffi'", specifier = "==2026.2.25" },
     { name = "certifi", marker = "extra == 'default'" },
+    { name = "certifi", marker = "extra == 'pin'", specifier = "==2026.2.25" },
+    { name = "cffi", marker = "platform_python_implementation != 'PyPy' and extra == 'pin-secretstorage'", specifier = "==2.0.0" },
+    { name = "cffi", marker = "implementation_name == 'cpython' and extra == 'pin-curl-cffi'", specifier = "==2.0.0" },
+    { name = "cffi", marker = "implementation_name != 'cpython' and extra == 'pin'", specifier = "==2.0.0" },
+    { name = "charset-normalizer", marker = "extra == 'pin'", specifier = "==3.4.6" },
+    { name = "cryptography", marker = "extra == 'pin-secretstorage'", specifier = "==46.0.6" },
     { name = "curl-cffi", marker = "implementation_name == 'cpython' and extra == 'curl-cffi'", specifier = ">=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.16" },
+    { name = "curl-cffi", marker = "implementation_name == 'cpython' and extra == 'pin-curl-cffi'", specifier = "==0.15.0" },
     { name = "deno", marker = "extra == 'deno'", specifier = ">=2.6.6" },
+    { name = "deno", marker = "extra == 'pin-deno'", specifier = "==2.7.8" },
+    { name = "idna", marker = "extra == 'pin'", specifier = "==3.11" },
+    { name = "jeepney", marker = "extra == 'pin-secretstorage'", specifier = "==0.9.0" },
+    { name = "markdown-it-py", marker = "implementation_name == 'cpython' and extra == 'pin-curl-cffi'", specifier = "==4.0.0" },
+    { name = "mdurl", marker = "implementation_name == 'cpython' and extra == 'pin-curl-cffi'", specifier = "==0.1.2" },
     { name = "mutagen", marker = "extra == 'default'" },
+    { name = "mutagen", marker = "extra == 'pin'", specifier = "==1.47.0" },
+    { name = "pycparser", marker = "implementation_name != 'PyPy' and platform_python_implementation != 'PyPy' and extra == 'pin-secretstorage'", specifier = "==3.0" },
+    { name = "pycparser", marker = "implementation_name != 'PyPy' and implementation_name != 'cpython' and extra == 'pin'", specifier = "==3.0" },
+    { name = "pycparser", marker = "implementation_name == 'cpython' and extra == 'pin-curl-cffi'", specifier = "==3.0" },
     { name = "pycryptodomex", marker = "extra == 'default'" },
+    { name = "pycryptodomex", marker = "extra == 'pin'", specifier = "==3.23.0" },
+    { name = "pygments", marker = "implementation_name == 'cpython' and extra == 'pin-curl-cffi'", specifier = "==2.19.2" },
     { name = "requests", marker = "extra == 'default'", specifier = ">=2.32.2,<3" },
+    { name = "requests", marker = "extra == 'pin'", specifier = "==2.33.0" },
+    { name = "rich", marker = "implementation_name == 'cpython' and extra == 'pin-curl-cffi'", specifier = "==14.3.3" },
+    { name = "secretstorage", marker = "extra == 'pin-secretstorage'", specifier = "==3.5.0" },
     { name = "secretstorage", marker = "extra == 'secretstorage'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11' and extra == 'pin-secretstorage'", specifier = "==4.15.0" },
     { name = "urllib3", marker = "extra == 'default'", specifier = ">=2.0.2,<3" },
+    { name = "urllib3", marker = "extra == 'pin'", specifier = "==2.6.3" },
     { name = "websockets", marker = "extra == 'default'", specifier = ">=13.0" },
+    { name = "websockets", marker = "extra == 'pin'", specifier = "==16.0" },
     { name = "yt-dlp-ejs", marker = "extra == 'default'", specifier = "==0.8.0" },
+    { name = "yt-dlp-ejs", marker = "extra == 'pin'", specifier = "==0.8.0" },
 ]
-provides-extras = ["curl-cffi", "default", "deno", "secretstorage"]
+provides-extras = ["curl-cffi", "default", "deno", "pin", "pin-curl-cffi", "pin-deno", "pin-secretstorage", "secretstorage"]
 
 [package.metadata.requires-dev]
 build = [
