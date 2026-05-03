@@ -119,8 +119,8 @@ WELLKNOWN_PACKAGES = {
     'protobug': {'owner': 'yt-dlp', 'repo': 'protobug'},
     'yt-dlp-ejs': {'owner': 'yt-dlp', 'repo': 'ejs'},
     **{
-        f'pyinstaller[{tag}]': {'owner': 'pyinstaller', 'repo': 'pyinstaller'}
-        for tag in PYINSTALLER_BUILDS_TARGETS.values()
+        f'pyinstaller[{asset_tag}]': {'owner': 'pyinstaller', 'repo': 'pyinstaller'}
+        for asset_tag in PYINSTALLER_BUILDS_TARGETS.values()
     },
 }
 
@@ -578,7 +578,7 @@ def update_requirements(
     all_updates = package_diff_dict(old_packages, new_packages)
 
     # Update Windows PyInstaller requirements; need to compare before & after .txt's for reporting
-    if not upgrade_only or upgrade_only.lower() == 'pyinstaller':
+    if not upgrade_only:
         info = fetch_latest_github_release('yt-dlp', 'Pyinstaller-Builds')
         for target_suffix, asset_tag in PYINSTALLER_BUILDS_TARGETS.items():
             asset_info = next(asset for asset in info['assets'] if asset_tag in asset['name'])
@@ -602,9 +602,9 @@ def update_requirements(
                     f'not found in {requirements_path}')
 
             diff_dict = evaluate_requirements_txt(old_requirements_txt, new_requirements_txt)
-            if diff_tuple := diff_dict.pop('pyinstaller', None):
-                all_updates[f'pyinstaller[{asset_tag}]'] = diff_tuple
-            all_updates.update(diff_dict)
+            if pyinstaller_diff := diff_dict.get('pyinstaller'):
+                # NB: this depends on 'pyinstaller[asset_tag]' keys in WELLKNOWN_PACKAGES
+                all_updates.update({f'pyinstaller[{asset_tag}]': pyinstaller_diff})
 
     # Export bundle requirements; any updates to these are already recorded w/ uv.lock package diff
     for target_suffix, target in BUNDLE_TARGETS.items():
