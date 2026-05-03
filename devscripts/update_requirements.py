@@ -699,15 +699,15 @@ def generate_report(
             new_tag = tags_info.get(new) and tags_info[new]['name']
             github_url = 'https://github.com/{owner}/{repo}'.format(**github_info)
             if new_tag:
-                md_new = f'[{md_new}]({github_url}/releases/tag/{new_tag})'
+                md_new = f'[{md_new}](<{github_url}/releases/tag/{new_tag}>)'
             if old_tag:
-                md_old = f'[{md_old}]({github_url}/releases/tag/{old_tag})'
+                md_old = f'[{md_old}](<{github_url}/releases/tag/{old_tag}>)'
             if new_tag and old_tag:
-                compare = f'[`{old_tag}...{new_tag}`]({github_url}/compare/{old_tag}...{new_tag})'
+                compare = f'[`{old_tag}...{new_tag}`](<{github_url}/compare/{old_tag}...{new_tag}>)'
 
         yield ' | '.join((
             # Strip the [win*] tag from package in the URL (e.g. pyinstaller[win32])
-            f'[**`{package}`**](https://pypi.org/project/{package.split("[")[0]}/)',
+            f'[**`{package}`**](<https://pypi.org/project/{package.split("[")[0]}/>)',
             md_old,
             md_new,
             compare,
