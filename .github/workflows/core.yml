@@ -1,6 +1,7 @@
 name: Core Tests
 on:
   push:
+    branches: ['master']
     paths:
       - pyproject.toml
       - .github/**
@@ -13,6 +14,7 @@ on:
       - yt_dlp/extractor/common.py
       - yt_dlp/extractor/extractors.py
   pull_request:
+    branches: ['**']
     paths:
       - pyproject.toml
       - .github/**
@@ -33,7 +35,7 @@ concurrency:
 
 jobs:
   tests:
-    name: Core Tests
+    name: Core tests
     if: ${{ !contains(github.event.head_commit.message, ':ci skip') }}
     permissions:
       contents: read
