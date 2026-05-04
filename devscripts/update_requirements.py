@@ -47,12 +47,6 @@ PINNED_EXTRAS = {
     'pin-deno': 'deno',
 }
 
-WELLKNOWN_PACKAGES = {
-    'deno': {'owner': 'denoland', 'repo': 'deno'},
-    'protobug': {'owner': 'yt-dlp', 'repo': 'protobug'},
-    'yt-dlp-ejs': {'owner': 'yt-dlp', 'repo': 'ejs'},
-}
-
 EJS_ASSETS = {
     'yt.solver.lib.js': False,
     'yt.solver.lib.min.js': False,
@@ -120,10 +114,15 @@ PYINSTALLER_BUILDS_TARGETS = {
     'win-arm64-pyinstaller': 'win_arm64',
 }
 
-PYINSTALLER_BUILDS_TMPL = '''\
-{}pyinstaller @ {} \\
-    --hash={}
-'''
+WELLKNOWN_PACKAGES = {
+    'deno': {'owner': 'denoland', 'repo': 'deno'},
+    'protobug': {'owner': 'yt-dlp', 'repo': 'protobug'},
+    'yt-dlp-ejs': {'owner': 'yt-dlp', 'repo': 'ejs'},
+    **{
+        f'pyinstaller[{asset_tag}]': {'owner': 'pyinstaller', 'repo': 'pyinstaller'}
+        for asset_tag in PYINSTALLER_BUILDS_TARGETS.values()
+    },
+}
 
 
 def call_pypi_api(project: str) -> dict[str, dict[str, typing.Any]]:
@@ -447,7 +446,7 @@ def parse_version_from_dist(filename: str, name: str, *, require: bool = False) 
     normalized_name = re.sub(r'[-_.]+', '-', name).lower().replace('-', '_')
 
     # Ref: https://packaging.python.org/en/latest/specifications/version-specifiers/#version-specifiers
-    if mobj := re.match(rf'{normalized_name}-(?P<version>[^-]+)-', filename):
+    if mobj := re.fullmatch(rf'{normalized_name}-(?P<version>[^-]+)(?:-.+\.whl|\.tar\.gz)', filename):
         return mobj.group('version')
 
     if require:
@@ -579,27 +578,33 @@ def update_requirements(
     all_updates = package_diff_dict(old_packages, new_packages)
 
     # Update Windows PyInstaller requirements; need to compare before & after .txt's for reporting
-    if not upgrade_only or upgrade_only.lower() == 'pyinstaller':
+    if not upgrade_only:
         info = fetch_latest_github_release('yt-dlp', 'Pyinstaller-Builds')
         for target_suffix, asset_tag in PYINSTALLER_BUILDS_TARGETS.items():
             asset_info = next(asset for asset in info['assets'] if asset_tag in asset['name'])
-            pyinstaller_version = parse_version_from_dist(
-                asset_info['name'], 'pyinstaller', require=True)
-            pyinstaller_builds_deps = run_pip_compile(
-                '--no-emit-package=pyinstaller',
-                upgrade_arg,
-                input_line=f'pyinstaller=={pyinstaller_version}',
-                env=env)
+
             requirements_path = REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(target_suffix)
             if requirements_path.is_file():
                 old_requirements_txt = requirements_path.read_text()
             else:
                 old_requirements_txt = ''
 
-            new_requirements_txt = PYINSTALLER_BUILDS_TMPL.format(
-                pyinstaller_builds_deps, asset_info['browser_download_url'], asset_info['digest'])
-            requirements_path.write_text(new_requirements_txt)
-            all_updates.update(evaluate_requirements_txt(old_requirements_txt, new_requirements_txt))
+            run_pip_compile(
+                upgrade_arg,
+                input_line=f'pyinstaller @ {asset_info["browser_download_url"]}',
+                output_file=requirements_path,
+                env=env)
+
+            new_requirements_txt = requirements_path.read_text()
+            if asset_info['digest'] not in new_requirements_txt:
+                raise ValueError(
+                    f'expected pyinstaller wheel hash {asset_info["digest"]} '
+                    f'not found in {requirements_path}')
+
+            diff_dict = evaluate_requirements_txt(old_requirements_txt, new_requirements_txt)
+            if pyinstaller_diff := diff_dict.get('pyinstaller'):
+                # NB: this depends on 'pyinstaller[asset_tag]' keys in WELLKNOWN_PACKAGES
+                all_updates.update({f'pyinstaller[{asset_tag}]': pyinstaller_diff})
 
     # Export bundle requirements; any updates to these are already recorded w/ uv.lock package diff
     for target_suffix, target in BUNDLE_TARGETS.items():
@@ -639,6 +644,10 @@ def update_requirements(
 
     # Write the finalized pyproject.toml
     modify_and_write_pyproject(pyproject_text, table_name=EXTRAS_TABLE, table=extras)
+
+    # Generate/upgrade final lockfile that includes pinned extras
+    print(f'Running: uv lock {upgrade_arg}', file=sys.stderr)
+    run_process('uv', 'lock', upgrade_arg, env=env)
 
     return all_updates
 
@@ -682,7 +691,9 @@ def generate_report(
 
             if offset is not None:
                 md_old = '.'.join(old_parts[:offset]) + '.***' + '.'.join(old_parts[offset:]) + '***'
+                md_old = md_old.lstrip('.')
                 md_new = '.'.join(new_parts[:offset]) + '.***' + '.'.join(new_parts[offset:]) + '***'
+                md_new = md_new.lstrip('.')
 
         compare = ''
         if github_info:
@@ -692,14 +703,15 @@ def generate_report(
             new_tag = tags_info.get(new) and tags_info[new]['name']
             github_url = 'https://github.com/{owner}/{repo}'.format(**github_info)
             if new_tag:
-                md_new = f'[{md_new}]({github_url}/releases/tag/{new_tag})'
+                md_new = f'[{md_new}](<{github_url}/releases/tag/{new_tag}>)'
             if old_tag:
-                md_old = f'[{md_old}]({github_url}/releases/tag/{old_tag})'
+                md_old = f'[{md_old}](<{github_url}/releases/tag/{old_tag}>)'
             if new_tag and old_tag:
-                compare = f'[`{old_tag}...{new_tag}`]({github_url}/compare/{old_tag}...{new_tag})'
+                compare = f'[`{old_tag}...{new_tag}`](<{github_url}/compare/{old_tag}...{new_tag}>)'
 
         yield ' | '.join((
-            f'[**`{package}`**](https://pypi.org/project/{package})',
+            # Strip the [win*] tag from package in the URL (e.g. pyinstaller[win32])
+            f'[**`{package}`**](<https://pypi.org/project/{package.split("[")[0]}/>)',
             md_old,
             md_new,
             compare,

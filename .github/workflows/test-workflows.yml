@@ -1,23 +1,10 @@
 name: Test and lint workflows
 on:
   push:
-    branches: [master]
-    paths:
-      - .github/*.yml
-      - .github/workflows/*
-      - bundle/docker/linux/*.sh
-      - devscripts/setup_variables.py
-      - devscripts/setup_variables_tests.py
-      - devscripts/utils.py
+    branches: ['master']
+  # This workflow contains required checks and needs to run for EVERY pull_request
   pull_request:
-    branches: [master]
-    paths:
-      - .github/*.yml
-      - .github/workflows/*
-      - bundle/docker/linux/*.sh
-      - devscripts/setup_variables.py
-      - devscripts/setup_variables_tests.py
-      - devscripts/utils.py
+    branches: ['**']
 
 permissions: {}
 
@@ -28,10 +15,12 @@ concurrency:
 env:
   ACTIONLINT_VERSION: "1.7.11"
   ACTIONLINT_SHA256SUM: 900919a84f2229bac68ca9cd4103ea297abc35e9689ebb842c6e34a3d1b01b0a
-  ACTIONLINT_REPO: https://github.com/rhysd/actionlint
+  ACTIONLINT_REPO: rhysd/actionlint
+  GH_TELEMETRY: "false"
 
 jobs:
   check:
+    # Required check; do not change name
     name: Check workflows
     permissions:
       contents: read
@@ -45,19 +34,26 @@ jobs:
           python-version: "3.13"  # Keep this in sync with release.yml's prepare job
       - name: Install requirements
         env:
+          GH_TOKEN: ${{ github.token }}
           ACTIONLINT_TARBALL: ${{ format('actionlint_{0}_linux_amd64.tar.gz', env.ACTIONLINT_VERSION) }}
         shell: bash
         run: |
           python -m devscripts.install_deps --omit-default --include-group test
           sudo apt -y install shellcheck
           python -m pip install -U pyflakes
-          curl -LO "${ACTIONLINT_REPO}/releases/download/v${ACTIONLINT_VERSION}/${ACTIONLINT_TARBALL}"
+          gh release download \
+            --repo "${ACTIONLINT_REPO}" \
+            --pattern "${ACTIONLINT_TARBALL}" \
+            "v${ACTIONLINT_VERSION}"
+          gh attestation verify \
+            --repo "${ACTIONLINT_REPO}" \
+            "${ACTIONLINT_TARBALL}"
           printf '%s  %s' "${ACTIONLINT_SHA256SUM}" "${ACTIONLINT_TARBALL}" | sha256sum -c -
           tar xvzf "${ACTIONLINT_TARBALL}" actionlint
-          chmod +x actionlint
+          sudo install -D --mode=755 actionlint /usr/bin/
       - name: Run actionlint
         run: |
-          ./actionlint -color
+          actionlint -color
       - name: Check Docker shell scripts
         run: |
           shellcheck bundle/docker/linux/*.sh
@@ -66,6 +62,7 @@ jobs:
           pytest -Werror --tb=short --color=yes devscripts/setup_variables_tests.py
 
   zizmor:
+    # Required check; do not change name
     name: Run zizmor
     permissions:
       contents: read
@@ -80,4 +77,3 @@ jobs:
         with:
           advanced-security: false
           persona: pedantic
-          version: v1.23.1

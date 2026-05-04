@@ -1,6 +1,7 @@
 name: Challenge Tests
 on:
   push:
+    branches: ['master']
     paths:
       - .github/workflows/challenge-tests.yml
       - test/test_jsc/*.py
@@ -9,6 +10,7 @@ on:
       - yt_dlp/extractor/youtube/pot/**.py
       - yt_dlp/utils/_jsruntime.py
   pull_request:
+    branches: ['**']
     paths:
       - .github/workflows/challenge-tests.yml
       - test/test_jsc/*.py
@@ -25,7 +27,7 @@ concurrency:
 
 jobs:
   tests:
-    name: Challenge Tests
+    name: Challenge tests
     if: ${{ !contains(github.event.head_commit.message, ':ci skip') }}
     permissions:
       contents: read

@@ -113,8 +113,8 @@ static-analysis = [
     "ruff~=0.15.0",
 ]
 test = [
-    "pytest~=8.1",
-    "pytest-rerunfailures~=14.0",
+    "pytest~=9.0",
+    "pytest-rerunfailures~=16.0",
 ]
 dev = [
     "pre-commit",
@@ -179,9 +179,6 @@ exclude = [
 [tool.hatch.version]
 path = "yt_dlp/version.py"
 pattern = "_pkg_version = '(?P<version>[^']+)'"
-
-[tool.hatch.metadata]
-allow-direct-references = true
 
 [tool.hatch.envs.default]
 features = [
@@ -463,12 +460,14 @@ select = [
 ]
 exclude = "*/extractor/lazy_extractors.py,*venv*,*/test/testdata/sigs/player-*.js,.idea,.vscode"
 
-[tool.pytest.ini_options]
+[tool.pytest]
 addopts = [
     "-ra",  # summary: all except passed
-    "--verbose",
-    "--strict-markers",
+    "--tb=short",
 ]
+verbosity_test_cases = "1"
+strict_config = true
+strict_markers = true
 markers = [
     "download",
 ]
