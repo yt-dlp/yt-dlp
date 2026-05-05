@@ -200,7 +200,7 @@ class ShahidShowIE(ShahidBaseIE):
                 if not product_url:
                     continue
                 yield self.url_result(
-                    product_url, ShahidIE,
+                    product_url, 'Shahid',
                     str_or_none(product.get('id')),
                     product.get('title'))
 
