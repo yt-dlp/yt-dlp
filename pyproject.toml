@@ -69,36 +69,36 @@ deno = [
 pin = [
     "brotli==1.2.0 ; implementation_name == 'cpython' and sys_platform != 'ios'",
     "brotlicffi==1.2.0.1 ; implementation_name != 'cpython'",
-    "certifi==2026.2.25",
-    "charset-normalizer==3.4.6",
-    "idna==3.11",
+    "certifi==2026.4.22",
+    "charset-normalizer==3.4.7",
+    "idna==3.13",
     "mutagen==1.47.0",
     "pycryptodomex==3.23.0",
-    "requests==2.33.0",
+    "requests==2.33.1",
     "urllib3==2.6.3",
     "websockets==16.0",
     "yt-dlp-ejs==0.8.0",
 ]
 pin-curl-cffi = [
-    "certifi==2026.2.25 ; implementation_name == 'cpython'",
+    "certifi==2026.4.22 ; implementation_name == 'cpython'",
     "cffi==2.0.0 ; implementation_name == 'cpython'",
     "curl-cffi==0.15.0 ; implementation_name == 'cpython'",
     "markdown-it-py==4.0.0 ; implementation_name == 'cpython'",
     "mdurl==0.1.2 ; implementation_name == 'cpython'",
     "pycparser==3.0 ; implementation_name == 'cpython'",
-    "pygments==2.19.2 ; implementation_name == 'cpython'",
-    "rich==14.3.3 ; implementation_name == 'cpython'",
+    "pygments==2.20.0 ; implementation_name == 'cpython'",
+    "rich==15.0.0 ; implementation_name == 'cpython'",
 ]
 pin-secretstorage = [
     "cffi==2.0.0 ; platform_python_implementation != 'PyPy'",
-    "cryptography==46.0.6",
+    "cryptography==47.0.0",
     "jeepney==0.9.0",
     "pycparser==3.0 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'",
     "secretstorage==3.5.0",
     "typing-extensions==4.15.0 ; python_full_version < '3.11'",
 ]
 pin-deno = [
-    "deno==2.7.8",
+    "deno==2.7.14",
 ]
 
 [dependency-groups]
