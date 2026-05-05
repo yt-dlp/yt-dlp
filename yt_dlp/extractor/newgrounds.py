@@ -1,4 +1,5 @@
 import functools
+import json
 import re
 
 from .common import InfoExtractor
@@ -128,18 +129,23 @@ class NewgroundsIE(InfoExtractor):
     def _perform_login(self, username, password):
         login_webpage = self._download_webpage(self._LOGIN_URL, None, 'Downloading login page')
         login_url = urljoin(self._LOGIN_URL, self._search_regex(
-            r'<form action="([^"]+)"', login_webpage, 'login endpoint', default=None))
+            r"loginUrl: '([^']+)'", login_webpage, 'login endpoint'))
+        csrf_token = self._search_regex(
+            r"csrfToken: '([^']+)'", login_webpage, 'CSRF token')
         result = self._download_json(login_url, None, 'Logging in', headers={
             'Accept': 'application/json',
+            'Content-Type': 'application/json',
             'Referer': self._LOGIN_URL,
-            'X-Requested-With': 'XMLHttpRequest',
-        }, data=urlencode_postdata({
-            **self._hidden_inputs(login_webpage),
-            'username': username,
+            'X-CSRF-TOKEN': csrf_token,
+        }, data=json.dumps({
+            'identity': username,
             'password': password,
-        }))
+            'remember': 0
+        }).encode())
         if errors := traverse_obj(result, ('errors', ..., {str})):
             raise ExtractorError(', '.join(errors) or 'Unknown Error', expected=True)
+        if result.get('two_factor'):
+            raise ExtractorError('2FA Not Supported', expected=True)
 
     def _real_extract(self, url):
         media_id = self._match_id(url)
