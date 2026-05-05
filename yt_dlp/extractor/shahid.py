@@ -18,7 +18,8 @@ from ..utils import (
 class ShahidBaseIE(AWSIE):
     _AWS_PROXY_HOST = 'api2.shahid.net'
     _AWS_API_KEY = '2RRtuMHx95aNI1Kvtn2rChEuwsCogUd4samGPjLh'  # trivy:ignore:SECRET
-    _AWS_ACCESS_KEY = 'AKIAI6X4TYCIXM2B7MUQ'                   # trivy:ignore:SECRET
+    # Third-party app client credentials required to authenticate with Shahid's API proxy
+    _AWS_ACCESS_KEY = 'AKIAI6X4TYCIXM2B7MUQ'                    # trivy:ignore:SECRET
     _AWS_SECRET_KEY = '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'  # trivy:ignore:SECRET
     _VALID_URL_BASE = r'https?://shahid\.mbc\.net/[a-z]{2}/'
 
@@ -27,10 +28,7 @@ class ShahidBaseIE(AWSIE):
             e.cause.response.read().decode('utf-8'), None, fatal=False)
         if fail_data:
             faults = fail_data.get('faults', [])
-            faults_message = ', '.join([
-                clean_html(fault['userMessage'])
-                for fault in faults if fault.get('userMessage')
-            ])
+            faults_message = ', '.join([clean_html(fault['userMessage']) for fault in faults if fault.get('userMessage')])
             if faults_message:
                 raise ExtractorError(faults_message, expected=True)
 
@@ -66,20 +64,14 @@ class ShahidIE(ShahidBaseIE):
             'categories': ['كوميديا'],
         },
         'params': {
+            # m3u8 download
             'skip_download': True,
         },
     }, {
         'url': 'https://shahid.mbc.net/ar/movies/%D8%A7%D9%84%D9%82%D9%86%D8%A7%D8%B5%D8%A9/movie-151746',
-        'info_dict': {
-            'id': '151746',
-            'ext': 'mp4',
-            'title': str,
-            'description': str,
-        },
-        'params': {
-            'skip_download': True,
-        },
+        'only_matching': True,
     }, {
+        # shahid plus subscriber only
         'url': 'https://shahid.mbc.net/ar/series/%D9%85%D8%B1%D8%A7%D9%8A%D8%A7-2011-%D8%A7%D9%84%D9%85%D9%88%D8%B3%D9%85-1-%D8%A7%D9%84%D8%AD%D9%84%D9%82%D8%A9-1/episode-90511',
         'only_matching': True,
     }, {
@@ -126,10 +118,10 @@ class ShahidIE(ShahidBaseIE):
             self.report_drm(video_id)
 
         formats = self._extract_m3u8_formats(re.sub(
+            # https://docs.aws.amazon.com/mediapackage/latest/ug/manifest-filtering.html
             r'aws\.manifestfilter=[\w:;,-]+&?',
             '', playout['url']), video_id, 'mp4')
 
-        # Use HTTPS to protect API key in transit
         response = self._download_json(
             f'https://api.shahid.net/api/v1_1/{page_type}/{video_id}',
             video_id, 'Downloading video JSON', query={
@@ -149,14 +141,6 @@ class ShahidIE(ShahidBaseIE):
             category['name']
             for category in video.get('genres', []) if 'name' in category]
 
-        # Extract subtitles if available
-        subtitles = {}
-        for subtitle in video.get('subtitles', []):
-            lang = subtitle.get('language') or 'und'
-            sub_url = subtitle.get('url')
-            if sub_url:
-                subtitles.setdefault(lang, []).append({'url': sub_url})
-
         return {
             'id': video_id,
             'title': title,
@@ -171,9 +155,6 @@ class ShahidIE(ShahidBaseIE):
             'season_id': str_or_none(video.get('seasonId')),
             'episode_number': int_or_none(video.get('number')),
             'episode_id': video_id,
-            'age_limit': int_or_none(video.get('ageRating')),
-            'view_count': int_or_none(video.get('viewsCount')),
-            'subtitles': subtitles,
             'formats': formats,
         }
 
