@@ -1,5 +1,6 @@
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     float_or_none,
     format_field,
     int_or_none,
@@ -85,6 +86,11 @@ class AcFunVideoIE(AcFunVideoBaseIE):
 
         webpage = self._download_webpage(url, video_id)
         json_all = self._search_json(r'window.videoInfo\s*=', webpage, 'videoInfo', video_id)
+
+        if error_message := json_all.get('playErrorMessage'):
+            if int(json_all.get('playErrorCode')) == 10114:
+                self.raise_geo_restricted()
+            raise ExtractorError(error_message)
 
         title = json_all.get('title')
         video_list = json_all.get('videoList') or []
