@@ -21,6 +21,11 @@ from .acast import (
     ACastChannelIE,
     ACastIE,
 )
+from .accountantsacademy import (
+    AccountantsAcademyCoursesIE,
+    AccountantsAcademyIE,
+    AccountantsAcademyUnitIE,
+)
 from .acfun import (
     AcFunBangumiIE,
     AcFunVideoIE,
