@@ -183,7 +183,7 @@ class ArteTVIE(ArteTVBaseIE):
                     stream['url'], video_id=video_id, ext='mp4', m3u8_id=stream_version_code, fatal=False)
                 for fmt in fmts:
                     fmt.update({
-                        'format_note': f'{stream_version.get("label", "unknown")} [{short_label}]',
+                        'format_note': fmt.get('format_note', f'{stream_version.get("label", "unknown")} [{short_label}]'),
                         'language_preference': lang_pref,
                     })
                 if any(map(short_label.startswith, ('cc', 'OGsub'))):
