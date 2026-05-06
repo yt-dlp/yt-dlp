@@ -459,6 +459,32 @@ class FacebookIE(InfoExtractor):
             'view_count': int,
         },
         'params': {'extractor_args': {'generic': {'impersonate': ['chrome']}}},
+    }, {
+        'url': 'https://www.facebook.com/permalink.php?story_fbid=pfbid034C2PVBhr311C2jo91sBMNwfvcBeLmspzTXLikp37aEqKsdh47mW7ZX8hcS3Ba8Uul&id=61573780995993',
+        'info_dict': {
+            'id': '895216832928155',
+            'ext': 'mp4',
+            'title': 'Haizz',
+            'description': '\u1787\u17bd\u1799\u1782\u17d2\u1793\u17b6\u1780\u17d2\u1793\u17bb\u1784\u1782\u17d2\u179a\u17b6\u1798\u17b6\u1793\u17a2\u17b6\u179f!\u1793\u17d2\u1793.\ud83d\ude4f\u2764\ufe0f',
+            'thumbnail': r're:https?://scontent\.fraj\d-\d.fna.fbcdn.net.+https?://scontent\.fraj\d-\d.fna.fbcdn.net.+',
+            'uploader': 'Haizz',
+            'uploader_id': '61573780995993',
+        },
+        'params': {'skip_download': True},
+    }, {
+        'url': 'https://www.facebook.com/100065192253855/posts/1165672128949185/?rdid=iLySVLxSX77GPmmj',
+        'info_dict': {
+            'id': '1451622962548421',
+            'ext': 'mp4',
+            'title': 'Stefan Paraschivescu',
+            'description': 'Stefan Paraschivescu. 1,625 likes \u00b7 18 talking about this. Digital creator',
+            'thumbnail': r're:https?://scontent\.fraj\d-\d.fna.fbcdn.net.+',
+            'uploader': 'Stefan Paraschivescu',
+            'uploader_id': '100065192253855',
+            'duration': 51.479,
+            'timestamp': 1757336430,
+        },
+        'params': {'skip_download': True},
     }]
     _SUPPORTED_PAGLETS_REGEX = r'(?:pagelet_group_mall|permalink_video_pagelet|hyperfeed_story_id_[0-9a-f]+)'
     _api_config = {
@@ -602,14 +628,16 @@ class FacebookIE(InfoExtractor):
                 entries = []
 
                 def parse_graphql_video(video):
-                    v_id = video.get('videoId') or video.get('id') or video_id
-                    reel_info = traverse_obj(
-                        video, ('creation_story', 'short_form_video_context', 'playback_video', {dict}))
-                    if reel_info:
-                        video = video['creation_story']
-                        video['owner'] = traverse_obj(video, ('short_form_video_context', 'video_owner'))
-                        video.update(reel_info)
+                    for story_key in ('fb_shorts_story', 'creation_story'):
+                        reel_info = traverse_obj(
+                            video, (story_key, 'short_form_video_context', 'playback_video', {dict}))
+                        if reel_info:
+                            video = video[story_key]
+                            video['owner'] = traverse_obj(video, ('short_form_video_context', 'video_owner'))
+                            video.update(reel_info)
+                            break
 
+                    v_id = video.get('videoId') or video.get('id') or video_id
                     formats = []
                     q = qualities(['sd', 'hd'])
 
@@ -714,10 +742,17 @@ class FacebookIE(InfoExtractor):
                     ..., ('styles', 'style_type_renderer', ('throwbackStyles', 'attachment_target_renderer')),
                     'attachment', {dict}))
                 for attachment in attachments:
-                    ns = traverse_obj(attachment, ('all_subattachments', 'nodes', ..., {dict}),
-                                      ('target', 'attachments', ..., 'styles', 'attachment', {dict}))
+                    ns = traverse_obj(
+                        attachment,
+                        ('all_subattachments', 'nodes', ..., {dict}),
+                        ('target', 'attachments', ..., 'styles', 'attachment', {dict}),
+                        ('subattachments', ..., 'multi_share_media_card_renderer', 'attachment', {dict}))
                     for n in ns:
                         parse_attachment(n)
+                    for story in traverse_obj(attachment, (
+                        'style_infos', lambda _, v: v['__typename'] == 'FBShortsShareAttachmentStyleInfo',
+                    )):
+                        parse_graphql_video(story)
                     parse_attachment(attachment)
 
                 edges = try_get(data, lambda x: x['mediaset']['currMedia']['edges'], list) or []
