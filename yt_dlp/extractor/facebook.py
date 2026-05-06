@@ -50,7 +50,8 @@ class FacebookIE(InfoExtractor):
                             [^/]+/posts/|
                             events/(?:[^/]+/)?|
                             groups/[^/]+/(?:permalink|posts)/(?:[\da-f]+/)?|
-                            watchparty/
+                            watchparty/|
+                            stories/
                         )|
                     facebook:
                 )
@@ -407,6 +408,13 @@ class FacebookIE(InfoExtractor):
             'uploader_id': '100065709540881',
         },
     }, {
+        'url': 'https://www.facebook.com/stories/171299957688542/UzpfSVNDOjE2MDM4MTMxNDE2NTI3NDY=',
+        'info_dict': {
+            'id': '171299957688542',
+        },
+        'playlist_count': 4,
+        'skip': 'Require loggin in',
+    }, {
         'url': 'https://www.facebook.com/groups/1513990329015294/posts/d41d8cd9/2013209885760000/?app=fbl',
         'only_matching': True,
     }]
@@ -597,7 +605,7 @@ class FacebookIE(InfoExtractor):
         if not video_data:
             data = extract_relay_prefetched_data(
                 r'"(?:dash_manifest|playable_url(?:_quality_hd)?)',
-                target_keys=('video', 'event', 'nodes', 'node', 'mediaset'))
+                target_keys=('video', 'event', 'nodes', 'node', 'mediaset', 'bucket'))
             if data:
                 entries = []
 
@@ -720,8 +728,12 @@ class FacebookIE(InfoExtractor):
                         parse_attachment(n)
                     parse_attachment(attachment)
 
-                edges = try_get(data, lambda x: x['mediaset']['currMedia']['edges'], list) or []
+                edges = traverse_obj(data,
+                                     ('mediaset', 'currMedia', 'edges', {list}),
+                                     ('bucket', 'unified_stories_with_notes', 'edges', {list}), default=[])
                 for edge in edges:
+                    for ns in traverse_obj(edge, ('node', 'attachments'), default=[]):
+                        parse_attachment(ns)
                     parse_attachment(edge, key='node')
 
                 video = traverse_obj(data, (
