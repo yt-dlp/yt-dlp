@@ -59,20 +59,25 @@ class LBRYBaseIE(InfoExtractor):
 
     def _parse_stream(self, stream, url):
         stream_type = traverse_obj(stream, ('value', 'stream_type', {str}))
+        description = traverse_obj(stream, ('value', 'description', {str}))
+        duration = traverse_obj(stream, ('value', stream_type, 'duration', {int_or_none}))
 
-        info = traverse_obj(stream, {
-            'title': ('value', 'title', {str}),
-            'thumbnail': ('value', 'thumbnail', 'url', {url_or_none}),
-            'description': ('value', 'description', {str}),
-            'license': ('value', 'license', {str}),
-            'timestamp': ('timestamp', {int_or_none}),
-            'release_timestamp': ('value', 'release_time', {int_or_none}),
-            'tags': ('value', 'tags', ..., filter),
-            'duration': ('value', stream_type, 'duration', {int_or_none}),
-            'channel': ('signing_channel', 'value', 'title', {str}),
-            'channel_id': ('signing_channel', 'claim_id', {str}),
-            'uploader_id': ('signing_channel', 'name', {str}),
-        })
+        info = {
+            **traverse_obj(stream, {
+                'title': ('value', 'title', {str}),
+                'thumbnail': ('value', 'thumbnail', 'url', {url_or_none}),
+                'license': ('value', 'license', {str}),
+                'timestamp': ('timestamp', {int_or_none}),
+                'release_timestamp': ('value', 'release_time', {int_or_none}),
+                'tags': ('value', 'tags', ..., filter),
+                'duration': ('value', stream_type, 'duration', {int_or_none}),
+                'channel': ('signing_channel', 'value', 'title', {str}),
+                'channel_id': ('signing_channel', 'claim_id', {str}),
+                'uploader_id': ('signing_channel', 'name', {str}),
+            }),
+            'description': description,
+            'chapters': self._extract_chapters_from_description(description, duration),
+        }
 
         if info.get('uploader_id') and info.get('channel_id'):
             info['channel_url'] = self._permanent_url(url, info['uploader_id'], info['channel_id'])
@@ -153,27 +158,20 @@ class LBRYIE(LBRYBaseIE):
             'id': '17f983b61f53091fb8ea58a9c56804e4ff8cff4d',
             'ext': 'mp4',
             'title': 'First day in LBRY? Start HERE!',
-            'description': 'md5:f6cb5c704b332d37f5119313c2c98f51',
-            'timestamp': 1595694354,
-            'upload_date': '20200725',
-            'release_timestamp': 1595340697,
-            'release_date': '20200721',
-            'width': 1280,
-            'height': 720,
             'thumbnail': 'https://spee.ch/7/67f2d809c263288c.png',
             'license': 'None',
-            'uploader_id': '@Mantega',
+            'timestamp': 1595694354,
+            'release_timestamp': 1595340697,
+            'tags': ['first day in lbry', 'lbc', 'lbry', 'start', 'tutorial'],
             'duration': 346,
             'channel': 'LBRY/Odysee rats united!!!',
             'channel_id': '1c8ad6a2ab4e889a71146ae4deeb23bb92dab627',
+            'uploader_id': '@Mantega',
+            'description': 'md5:f6cb5c704b332d37f5119313c2c98f51',
             'channel_url': 'https://lbry.tv/@Mantega:1c8ad6a2ab4e889a71146ae4deeb23bb92dab627',
-            'tags': [
-                'first day in lbry',
-                'lbc',
-                'lbry',
-                'start',
-                'tutorial',
-            ],
+            'upload_date': '20200725',
+            'release_date': '20200721',
+            'chapters': [],
         },
     }, {
         # Audio
@@ -197,6 +195,7 @@ class LBRYIE(LBRYBaseIE):
             'thumbnail': 'https://spee.ch/d/0bc63b0e6bf1492d.png',
             'license': 'None',
             'uploader_id': '@LBRYFoundation',
+            'chapters': [],
         },
     }, {
         'url': 'https://odysee.com/@gardeningincanada:b/plants-i-will-never-grow-again.-the:e',
@@ -219,6 +218,7 @@ class LBRYIE(LBRYBaseIE):
             'formats': 'mincount:3',
             'thumbnail': 'https://thumbnails.lbry.com/AgHSc_HzrrE',
             'license': 'Copyrighted (contact publisher)',
+            'chapters': [],
         },
     }, {
         # HLS live stream (might expire)
@@ -228,7 +228,7 @@ class LBRYIE(LBRYBaseIE):
             'ext': 'mp4',
             'live_status': 'is_live',
             'title': 'startswith:RT News | Livestream 24/7',
-            'description': 'md5:fe68d0056dfe79c1a6b8ce8c34d5f6fa',
+            'description': 'md5:bdedbb09b51865a14e30e402ad6c27e2',
             'timestamp': int,
             'upload_date': str,
             'release_timestamp': int,
@@ -265,7 +265,30 @@ class LBRYIE(LBRYBaseIE):
             'tags': ['smart skin surveillance', 'biotechnology invasion of skin', 'morgellons'],
             'license': 'None',
             'protocol': 'https',  # test for direct mp4 download
+            'chapters': [],
         },
+    }, {
+        'url': 'https://odysee.com/@MaestixNightcore:4/Nightcore-gaming-mix-2025:b',
+        'info_dict': {
+            'id': 'b1526a99a5c88bfb773bfd5ab683d89b8640b5a6',
+            'ext': 'mp4',
+            'title': 'Nightcore gaming mix 2025',
+            'description': 'md5:8b6b13820a441ee44950df7c8f775869',
+            'uploader_id': '@MaestixNightcore',
+            'channel': 'Nightcore Songs Mix 2025 ♫ Nightcore Gaming Music Mix ♫ Best of EDM Gaming Music 2025',
+            'channel_id': '481a436b152008c12b7d4713a93b27c7ce6dd4a6',
+            'channel_url': 'https://odysee.com/@MaestixNightcore:481a436b152008c12b7d4713a93b27c7ce6dd4a6',
+            'duration': 3479,
+            'thumbnail': 'https://thumbs.odycdn.com/a2f38490f72eb234a85223c30146b515.webp',
+            'chapters': 'count:25',
+            'timestamp': 1763313639,
+            'upload_date': '20251116',
+            'release_timestamp': 1763311758,
+            'release_date': '20251116',
+            'license': 'None',
+        },
+        'params': {'skip_download': True},
+        'expected_warnings': ['HTTP Error 404'],
     }, {
         'url': 'https://odysee.com/@BrodieRobertson:5/apple-is-tracking-everything-you-do-on:e',
         'only_matching': True,
