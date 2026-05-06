@@ -8,14 +8,20 @@ from ..utils import (
     extract_attributes,
     float_or_none,
     int_or_none,
+    join_nonempty,
     mimetype2ext,
     srt_subtitles_timecode,
     try_get,
+    unescapeHTML,
     url_or_none,
     urlencode_postdata,
     urljoin,
 )
-from ..utils.traversal import find_elements, require, traverse_obj
+from ..utils.traversal import (
+    find_elements,
+    require,
+    traverse_obj,
+)
 
 
 class LinkedInBaseIE(InfoExtractor):
@@ -111,25 +117,116 @@ class LinkedInIE(LinkedInBaseIE):
             'subtitles': 'mincount:1',
         },
     }, {
+        'url': 'https://www.linkedin.com/feed/update/urn:li:activity:7451597376491810816/',
+        'info_dict': {
+            'id': '7451597376491810816',
+            'ext': 'mp4',
+            'title': 'LinkedIn',
+            'description': 'md5:dce53c029b35f7fcd16935088c31f24a',
+            'uploader': 'Metin Fatih SAYAR • 3rd+',
+            'thumbnail': 're:^https?://media.licdn.com/dms/image/.*$',
+        },
+        'params': {'skip_download': 'm3u8'},
+        'skip': 'Login required',
+    }, {
         'url': 'https://www.linkedin.com/feed/update/urn:li:activity:7016901149999955968/?utm_source=share&utm_medium=member_desktop',
         'only_matching': True,
     }]
+
+    def extract_codes_metadata(self, video_id, webpage):
+        included = self._search_json(
+            r'<code[^>]+>',
+            unescapeHTML(webpage),
+            'Code data',
+            video_id,
+            contains_pattern=r'([^<]+mp4[^<]+)',
+            end_pattern=r'<',
+            default=None,
+        ).get('included')
+        media = traverse_obj(included, (lambda _, y: y.get('progressiveStreams') or y.get('adaptiveStreams'), any))
+        if not included or not media:
+            return {}
+
+        formats, subtitles = [], {}
+        for pstream in traverse_obj(media, ('progressiveStreams', lambda _, y: y.get('streamingLocations'))):
+            formats.append({
+                **traverse_obj(
+                    pstream, {
+                        'url': ('streamingLocations', ..., 'url', {url_or_none}, any),
+                        'filesize': ('size', {int_or_none}),
+                        'tbr': ('bitRate', {int_or_none(scale=1000)}),
+                        'width': ('width', {int_or_none}),
+                        'height': ('height', {int_or_none}),
+                    }),
+                'ext': 'mp4',
+            },
+            )
+
+        for astream in traverse_obj(media, ('adaptiveStreams', lambda _, y: y.get('masterPlaylists'))):
+            protocol = astream.get('protocol')
+            fmt_url = traverse_obj(astream, ('masterPlaylists', ..., 'url', any))
+            if protocol == 'HLS':
+                fmts = self._extract_m3u8_formats(fmt_url, video_id)
+            elif protocol == 'DASH':
+                raw_fmts = self._extract_mpd_formats(fmt_url, video_id)
+                fmts = []
+                for fmt in raw_fmts:
+                    fmt['ext'] = 'mp4'  # DASH file is giving mimeType iso.segment so ext will be iso.segment. We need to force ext into mp4
+                    fmts.append(fmt)
+            formats.extend(fmts)
+
+        for sub in traverse_obj(media, ('transcripts', lambda _, y: y.get('captionFile'))):
+            lang = traverse_obj(sub, ('locale', 'language'), default='en')
+            sub_info = traverse_obj(sub, {
+                'url': ('captionFile', {url_or_none}),
+                'ext': ('captionFormat', {str.lower}),
+            })
+            subtitles.setdefault(lang, []).append(sub_info)
+
+        thumbnails = []
+        if thumbs := media.get('thumbnail'):
+            root = thumbs.get('rootUrl')
+            for artifact in traverse_obj(thumbs, ('artifacts', lambda _, y: y.get('fileIdentifyingUrlPathSegment'))):
+                path = artifact.get('fileIdentifyingUrlPathSegment')
+                thumbnails.append({
+                    **traverse_obj(artifact, {
+                        'width': ('width', {int_or_none}),
+                        'height': ('height', {int_or_none}),
+                    }),
+                    'url': join_nonempty(root, path, delim=''),
+                })
+
+        return {
+            **traverse_obj(included, (lambda _, y: y.get('metadata'), {
+                'uploader': ('actor', 'description', ('text', 'accessibilityText')),
+                'description': ('commentary', 'text', 'text'),
+            }), get_all=False),
+            'thumbnails': thumbnails,
+            'formats': formats,
+            'subtitles': subtitles,
+        }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        video_attrs = extract_attributes(self._search_regex(r'(<video[^>]+>)', webpage, 'video'))
-        sources = self._parse_json(video_attrs['data-sources'], video_id)
-        formats = [{
-            'url': source['src'],
-            'ext': mimetype2ext(source.get('type')),
-            'tbr': float_or_none(source.get('data-bitrate'), scale=1000),
-        } for source in sources]
-        subtitles = {'en': [{
-            'url': video_attrs['data-captions-url'],
-            'ext': 'vtt',
-        }]} if url_or_none(video_attrs.get('data-captions-url')) else {}
+        if self._search_regex(
+                r'(?i:(sign\s+up))', webpage, 'Login page', default=None):
+            self.raise_login_required()
+
+        formats = subtitles = None
+        if video_block := self._search_regex(r'(<video[^>]+>)', webpage, 'video', default=None):
+            video_attrs = extract_attributes(video_block)
+            sources = self._parse_json(video_attrs['data-sources'], video_id)
+            formats = [{
+                'url': source['src'],
+                'ext': mimetype2ext(source.get('type')),
+                'tbr': float_or_none(source.get('data-bitrate'), scale=1000),
+            } for source in sources]
+            subtitles = {'en': [{
+                'url': video_attrs['data-captions-url'],
+                'ext': 'vtt',
+            }]} if url_or_none(video_attrs.get('data-captions-url')) else {}
 
         return {
             'id': video_id,
@@ -140,9 +237,10 @@ class LinkedInIE(LinkedInBaseIE):
             'uploader': traverse_obj(
                 self._yield_json_ld(webpage, video_id),
                 (lambda _, v: v['@type'] == 'SocialMediaPosting', 'author', 'name', {str}), get_all=False),
-            'thumbnail': self._og_search_thumbnail(webpage),
+            'thumbnail': self._og_search_thumbnail(webpage, default=None),
             'description': self._og_search_description(webpage, default=None),
             'subtitles': subtitles,
+            **(self.extract_codes_metadata(video_id, webpage) if not formats else {}),
         }
 
 
