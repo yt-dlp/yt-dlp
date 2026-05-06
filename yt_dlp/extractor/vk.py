@@ -575,7 +575,7 @@ class VKIE(VKBaseIE):
             **traverse_obj(data, {
                 'title': ('md_title', {str}, {unescapeHTML}),
                 'description': ('description', {clean_html}, filter),
-                'thumbnail': ('jpg', {url_or_none}),
+                'thumbnail': (('short_video_cover', 'jpg'), {url_or_none}, any),
                 'uploader': ('md_author', {str}, {unescapeHTML}),
                 'uploader_id': (('author_id', 'authorId'), {str_or_none}, any),
                 'duration': ('duration', {int_or_none}),
