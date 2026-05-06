@@ -13,6 +13,7 @@ from ..utils import (
     url_or_none,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class PeerTubeIE(InfoExtractor):
@@ -1477,7 +1478,6 @@ class PeerTubeIE(InfoExtractor):
             'uploader_url': 'https://video.macver.org/accounts/bog',
             'view_count': int,
         },
-        'expected_warnings': ['HTTP Error 400: Bad Request', 'Ignoring subtitle tracks found in the HLS manifest'],
         'params': {'skip_download': 'm3u8'},
     }]
 
@@ -1537,15 +1537,18 @@ class PeerTubeIE(InfoExtractor):
 
         title = video['name']
 
-        formats, is_live = [], False
+        is_live = bool(video.get('isLive'))
+        formats = []
+        subtitles = {}
         files = video.get('files') or []
         for playlist in (video.get('streamingPlaylists') or []):
             if not isinstance(playlist, dict):
                 continue
             if playlist_url := url_or_none(playlist.get('playlistUrl')):
-                is_live = True
-                formats.extend(self._extract_m3u8_formats(
-                    playlist_url, video_id, fatal=False, live=True))
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    playlist_url, video_id, fatal=False, live=is_live, m3u8_id='hls', ext='mp4')
+                self._merge_subtitles(subs, subtitles)
+                formats.extend(fmts)
             playlist_files = playlist.get('files')
             if not (playlist_files and isinstance(playlist_files, list)):
                 continue
@@ -1559,30 +1562,28 @@ class PeerTubeIE(InfoExtractor):
             file_size = int_or_none(file_.get('size'))
             format_id = try_get(
                 file_, lambda x: x['resolution']['label'], str)
-            f = parse_resolution(format_id)
+            f = traverse_obj(file_, {
+                'width': ('width'),
+                'height': ('height'),
+            }, default=None)
+            if not f:
+                f = parse_resolution(format_id)
             f.update({
                 'url': file_url,
                 'format_id': format_id,
                 'filesize': file_size,
             })
-            if format_id == '0p':
-                f['vcodec'] = 'none'
-            else:
+            is_video = bool(file_.get('hasVideo'))
+            is_audio = bool(file_.get('hasAudio')) or ('audio only' in format_id.lower())
+            f['vcodec'] = 'none' if is_audio else None
+            f['acodec'] = 'none' if is_video else None
+            if is_video and file_.get('fps'):
                 f['fps'] = int_or_none(file_.get('fps'))
             is_live = False
             formats.append(f)
 
-        description = video.get('description')
-        if description and len(description) >= 250:
-            # description is shortened
-            full_description = self._call_api(
-                host, video_id, 'description', note='Downloading description JSON',
-                fatal=False)
-
-            if isinstance(full_description, dict):
-                description = str_or_none(full_description.get('description')) or description
-
-        subtitles = self.extract_subtitles(host, video_id)
+        description = traverse_obj(video, ('description', 'truncatedDescription', any))
+        self._merge_subtitles(self.extract_subtitles(host, video_id), subtitles)
 
         def data(section, field, type_):
             return try_get(video, lambda x: x[section][field], type_)
@@ -1603,12 +1604,23 @@ class PeerTubeIE(InfoExtractor):
             age_limit = None
 
         webpage_url = f'https://{host}/videos/watch/{video_id}'
+        thumbnails = []
+        if thumb_path := video.get('thumbnailPath'):
+            thumbnails.append({'url': urljoin(webpage_url, thumb_path)})
+        for thumb in video.get('thumbnails', []):
+            thumbnails.append(
+                traverse_obj(thumb, {
+                    'url': ('fileUrl', {url_or_none}),
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                }),
+            )
 
         return {
             'id': video_id,
             'title': title,
             'description': description,
-            'thumbnail': urljoin(webpage_url, video.get('thumbnailPath')),
+            'thumbnails': thumbnails,
             'timestamp': unified_timestamp(video.get('publishedAt')),
             'uploader': account_data('displayName', str),
             'uploader_id': str_or_none(account_data('id', int)),
