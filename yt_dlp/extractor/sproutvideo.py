@@ -1,4 +1,5 @@
 import base64
+import random
 import urllib.parse
 
 from .common import InfoExtractor
@@ -123,6 +124,8 @@ class SproutVideoIE(InfoExtractor):
             manifest_query = self._policy_to_qs(data, 'm')
             fragment_query = self._policy_to_qs(data, 't', as_string=True)
             key_query = self._policy_to_qs(data, 'k', as_string=True)
+            if email := data.get('vemail'):
+                fragment_query += f'&email={email}'
 
             formats.extend(self._extract_m3u8_formats(
                 self._M3U8_URL_TMPL.format(**data), video_id, 'mp4',
@@ -199,6 +202,21 @@ class VidsIoIE(InfoExtractor):
                 if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                     raise ExtractorError('Incorrect password', expected=True)
                 raise
+
+            if self._search_regex(r'(<input[^>]+type\s*=\s*"email"[^>]+>)', webpage, 'email verification form', default=None):
+                email = self._configuration_arg('email', [None], ie_key=self.ie_key())[0]
+                if email and '@' not in email:
+                    raise ExtractorError(f'''{email} is invalid email address. '@' is required in the email address''', expected=True)
+                elif not email:
+                    characters = 'abcdefghijklmnopqrstuvwxyz1234567890_.'
+                    email = ''.join(random.choices(characters, k=10)) + '@gmail.com'
+                    self.to_screen(f'Generating fake email {email} for verification and watermarking. Use --extractor-arg VidsIo:email=<YOUR_EMAIL> to set your own email.')
+                webpage = self._download_webpage(
+                    url, display_id, 'Submitting email',
+                    data=urlencode_postdata({
+                        'email': email,
+                        **self._hidden_inputs(webpage),
+                    }))
 
         if embed_url := next(SproutVideoIE._extract_embed_urls(url, webpage), None):
             return self.url_result(embed_url, SproutVideoIE, video_id)
