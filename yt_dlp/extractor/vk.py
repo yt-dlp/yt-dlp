@@ -555,16 +555,25 @@ class VKIE(VKBaseIE):
                     'ext': 'flv',
                 })
 
-        for sub in data.get('subs') or {}:
-            subtitles.setdefault(sub.get('lang', 'en'), []).append({
-                'ext': sub.get('title', '.srt').split('.')[-1],
+        automatic_subtitles = {}
+        for sub in data.get('subs', []):
+            # Force ext to WEBVTT as per https://st.vkvideo.ru/dist/web/chunks/83757e58.18a7cf4a.js
+            sub_info = {
                 'url': url_or_none(sub.get('url')),
-            })
+                'ext': 'vtt',
+            }
+            lang = sub.get('lang', 'en')
+            if sub.get('is_auto'):
+                sub_info['name'] = sub.get('title') or 'Automated captions'
+                automatic_subtitles.setdefault(lang, []).append(sub_info)
+            else:
+                subtitles.setdefault(lang, []).append(sub_info)
 
         return {
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
+            'automatic_captions': automatic_subtitles,
             **traverse_obj(mv_data, {
                 'title': ('title', {str}, {unescapeHTML}),
                 'description': ('desc', {clean_html}, filter),
