@@ -11,6 +11,7 @@ from ..utils import (
     try_get,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class MailRuIE(InfoExtractor):
@@ -71,6 +72,12 @@ class MailRuIE(InfoExtractor):
                 'duration': 6001,
             },
             'skip': 'Not accessible from Travis CI server',
+        }, {
+            'url': 'https://my.mail.ru/v/thisishorosho_tv/video/1',
+            'info_dict': {
+                'id': 'v/thisishorosho_tv/video/1',
+            },
+            'playlist_count': 10,
         },
         {
             'url': 'http://m.my.mail.ru/mail/3sktvtr/video/_myvideo/138.html',
@@ -118,10 +125,12 @@ class MailRuIE(InfoExtractor):
                 r'(?s)<script[^>]+class="sp-video__page-config"[^>]*>(.+?)</script>',
                 r'(?s)"video":\s*({.+?}),'],
                 webpage, 'page config', default='{}'), video_id, fatal=False)
-            if page_config:
-                meta_url = page_config.get('metaUrl') or page_config.get('video', {}).get('metaUrl') or page_config.get('metadataUrl')
-            else:
-                meta_url = None
+            if meta_url := page_config.get('metaUrl') or page_config.get('video', {}) or page_config.get('metadataUrl'):
+                pass
+            elif videos := traverse_obj(page_config, ('videos', 'items')):
+                return self.playlist_result(
+                    [self.url_result(v.get('UrlHtml'), ie=self.ie_key()) for v in videos],
+                    video_id)
 
         video_data = None
 
