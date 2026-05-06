@@ -88,9 +88,7 @@ class ArteTVIE(ArteTVBaseIE):
         'es': 'E[ESP]',
         'it': 'E[ITA]',
         'pl': 'E[POL]',
-        # XXX: probably means mixed; <https://www.arte.tv/en/videos/107710-029-A/dispatches-from-ukraine-local-journalists-report/>
-        # uses this code for audio that happens to be in Ukrainian, but the manifest uses the ISO code 'mul' (mixed)
-        'mul': 'EU',
+        'mul': 'EU',  # multilingual OR language not matching Arte's official languages
     }
 
     _VERSION_CODE_RE = re.compile(r'''(?x)
