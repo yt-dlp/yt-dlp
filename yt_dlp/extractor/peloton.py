@@ -1,5 +1,8 @@
+import base64
 import json
+import random
 import re
+import time
 import urllib.parse
 
 from .common import InfoExtractor
@@ -7,9 +10,12 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     float_or_none,
+    jwt_decode_hs256,
+    parse_qs,
     str_or_none,
     traverse_obj,
     url_or_none,
+    urlencode_postdata,
 )
 
 
@@ -65,30 +71,142 @@ class PelotonIE(InfoExtractor):
     }]
 
     _MANIFEST_URL_TEMPLATE = '%s?hdnea=%s'
+    _LOGIN_BASE_URL = 'https://auth.onepeloton.com'
+    _ACCESS_TOKEN = None
+    _REFRESH_TOKEN = None
+    _CACHE_KEY = 'pelotondata'
 
     def _start_session(self, video_id):
         self._download_webpage('https://api.onepeloton.com/api/started_client_session', video_id, note='Starting session')
+
+    def random_code_generator(self, length=43):
+        valid_char = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_~.'
+        return ''.join(random.choice(valid_char) for _ in range(length))
+
+    def _is_jwt_expired(self, token):
+        return jwt_decode_hs256(token)['exp'] - time.time() < 300
+
+    def get_cached_access_token(self):
+        if self._ACCESS_TOKEN and not self._is_jwt_expired(self._ACCESS_TOKEN):
+            return self._ACCESS_TOKEN
+        self._ACCESS_TOKEN, self._REFRESH_TOKEN = self.cache.load(self._NETRC_MACHINE, self._CACHE_KEY, default=[None, None])
+        if self._ACCESS_TOKEN and self._REFRESH_TOKEN:
+            if not self._is_jwt_expired(self._ACCESS_TOKEN):
+                return self._ACCESS_TOKEN
+            else:
+                self.to_screen('Refreshing access token')
+                return self.refresh_token()
+        return None
+
+    def store_tokens(self, data):
+        self._ACCESS_TOKEN = data.get('access_token')
+        if not self._ACCESS_TOKEN:
+            raise ExtractorError('Unable to login')
+        self._REFRESH_TOKEN = data.get('refresh_token')
+        self.cache.store(self._NETRC_MACHINE, self._CACHE_KEY, [self._ACCESS_TOKEN, self._REFRESH_TOKEN])
+        return self._ACCESS_TOKEN
+
+    def refresh_token(self):
+        if not self._REFRESH_TOKEN:
+            return self._login(*self._get_login_info())
+
+        data = self._download_json(
+            f'{self._LOGIN_BASE_URL}/oauth/token',
+            None, 'fetching auth token',
+            data=urlencode_postdata({
+                'client_id': 'WVoJxVDdPoFx4RNewvvg6ch2mZ7bwnsM',
+                'refresh_token': self._REFRESH_TOKEN,
+                'grant_type': 'refresh_token',
+                'redirect_uri': 'https://members.onepeloton.com/callback',
+            }),
+        )
+        return self.store_tokens(data)
+
+    def fetch_auth_token(self, webpage, auth_url):
+        _, urlh = self._download_webpage_handle(
+            f'{self._LOGIN_BASE_URL}/login/callback',
+            None, 'login callback',
+            data=urlencode_postdata({**self._hidden_inputs(webpage)}),
+            headers={
+                'referer': auth_url,
+            },
+        )
+        code = parse_qs(urlh.url).get('code', [''])
+        if not code:
+            raise ExtractorError('Unable to login')
+        code = code[0]
+        data = self._download_json(
+            f'{self._LOGIN_BASE_URL}/oauth/token',
+            None, 'fetching auth token',
+            data=urlencode_postdata({
+                'client_id': 'WVoJxVDdPoFx4RNewvvg6ch2mZ7bwnsM',
+                'code_verifier': self.random_code_generator(),
+                'grant_type': 'authorization_code',
+                'redirect_uri': 'https://members.onepeloton.com/callback',
+                'code': code,
+            }),
+        )
+        return self.store_tokens(data)
 
     def _login(self, video_id):
         username, password = self._get_login_info()
         if not (username and password):
             self.raise_login_required()
+        if self.get_cached_access_token():
+            return
+
+        urlh = self._request_webpage(
+            f'{self._LOGIN_BASE_URL}/authorize',
+            None, note='Getting required cookies',
+            query={
+                'client_id': 'WVoJxVDdPoFx4RNewvvg6ch2mZ7bwnsM',  # Source https://members.onepeloton.com/_next/static/chunks/pages/_app-19d8241f56d3ba57.js
+                'scope': 'openid offline_access',
+                'audience': 'https://api.onepeloton.com/',
+                'redirect_uri': 'https://members.onepeloton.com/callback',
+                'response_type': 'code',
+                'response_mode': 'query',
+                'auth0Client': 'eyJuYW1lIjoiYXV0aDAtc3BhLWpzIiwidmVyc2lvbiI6IjIuMS4zIn0=',
+            },
+            headers={
+                'peloton-client-details': 'eyJEZXZpY2UgVHlwZSI6IldlYiIsIkFwcCBWZXJzaW9uIjoiMS4wLjAifQ==',
+                'referer': 'https://members.onepeloton.com/',
+            },
+        )
+        auth_url = urlh.url
+        state = parse_qs(auth_url).get('state', [''])[0] or base64.urlsafe_b64encode(self.random_code_generator().encode()).decode()
+        csrf = self._get_cookies(self._LOGIN_BASE_URL).get('_csrf')
         try:
-            self._download_json(
-                'https://api.onepeloton.com/auth/login', video_id, note='Logging in',
+            data, _ = self._download_webpage_handle(
+                'https://auth.onepeloton.com/usernamepassword/login', video_id, note='Logging in',
                 data=json.dumps({
-                    'username_or_email': username,
                     'password': password,
-                    'with_pubsub': False,
+                    'username': username,
+                    'state': state,
+                    '_csrf': csrf,
+                    'redirect_uri': 'https://members.onepeloton.com/callback',
+                    'tenant': 'peloton-prod',
+                    '_intstate': 'deprecated',
+                    'audience': 'https://api.onepeloton.com/',
+                    'client_id': 'WVoJxVDdPoFx4RNewvvg6ch2mZ7bwnsM',
+                    'connection': 'pelo-user-password',
+                    'response_type': 'code',
+                    'scope': 'offline_access openid peloton-api.members:default',
                 }).encode(),
-                headers={'Content-Type': 'application/json', 'User-Agent': 'web'})
+                headers={'Content-Type': 'application/json', 'referer': auth_url})
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                 json_string = self._webpage_read_content(e.cause.response, None, video_id)
                 res = self._parse_json(json_string, video_id)
-                raise ExtractorError(res['message'], expected=res['message'] == 'Login failed')
-            else:
-                raise
+                if res['code'] == 'invalid_user_password':
+                    raise ExtractorError('Invalid Username/password', expected=True)
+                raise ExtractorError(res['message'])
+            raise
+        return self.fetch_auth_token(data, auth_url)
+
+    def _download_webpage_handle(self, url_or_request, video_id, note=None, **kwargs):
+        if self._ACCESS_TOKEN:
+            kwargs['headers'] = {'Authorization': f'Bearer {self._ACCESS_TOKEN}'}
+        return super()._download_webpage_handle(url_or_request, video_id, note, **kwargs)
 
     def _get_token(self, video_id):
         try:
