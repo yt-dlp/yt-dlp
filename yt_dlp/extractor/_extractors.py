@@ -659,6 +659,7 @@ from .franceinter import FranceInterIE
 from .francetv import (
     FranceTVIE,
     FranceTVInfoIE,
+    FranceTVInfoLa1ereAudioIE,
     FranceTVSiteIE,
 )
 from .freesound import FreesoundIE
