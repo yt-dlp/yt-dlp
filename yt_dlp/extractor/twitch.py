@@ -52,6 +52,7 @@ class TwitchBaseIE(InfoExtractor):
         'VideoMetadata': '45111672eea2e507f8ba44d101a61862f9c56b11dee09a15634cb75cb9b9084d',
         'VideoPlayer_ChapterSelectButtonVideo': '71835d5ef425e154bf282453a926d99b328cdc5e32f36d3a209d0f4778b41203',
         'VideoPlayer_VODSeekbarPreviewVideo': '07e99e4d56c5a7c67117a154777b0baf85a5ffefa393b213f4bc712ccaf85dd6',
+        'ContentClipsManager_User': 'bdaf6f0fe8563e619dfbafc2b759f47f861b86b142d0f9b740b0614b763551f8',
     }
 
     @property
@@ -831,22 +832,7 @@ class TwitchVideosIE(TwitchVideosBaseIE):
                 f'sorted by {self._SORTED_BY.get(sort, self._DEFAULT_SORTED_BY)}'))
 
 
-class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
-    IE_NAME = 'twitch:videos:clips'
-    _VALID_URL = r'https?://(?:(?:www|go|m)\.)?twitch\.tv/(?P<id>[^/]+)/(?:clips|videos/*?\?.*?\bfilter=clips)'
-    _TESTS = [{
-        # Clips
-        'url': 'https://www.twitch.tv/vanillatv/clips?filter=clips&range=all',
-        'info_dict': {
-            'id': 'vanillatv',
-            'title': 'vanillatv - Clips Top All',
-        },
-        'playlist_mincount': 1,
-    }, {
-        'url': 'https://www.twitch.tv/dota2ruhub/videos?filter=clips&range=7d',
-        'only_matching': True,
-    }]
-
+class TwitchVideosClipsBaseIE(TwitchPlaylistBaseIE):
     Clip = collections.namedtuple('Clip', ['filter', 'label'])
 
     _DEFAULT_CLIP = Clip('LAST_WEEK', 'Top 7D')
@@ -860,19 +846,9 @@ class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
     # NB: values other than 20 result in skipped videos
     _PAGE_LIMIT = 20
 
-    _OPERATION_NAME = 'ClipsCards__User'
     _ENTRY_KIND = 'clip'
     _EDGE_KIND = 'ClipEdge'
     _NODE_KIND = 'Clip'
-
-    @staticmethod
-    def _make_variables(channel_name, channel_filter):
-        return {
-            'login': channel_name,
-            'criteria': {
-                'filter': channel_filter,
-            },
-        }
 
     @staticmethod
     def _extract_entry(node):
@@ -902,6 +878,60 @@ class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
             self._entries(channel_name, clip.filter),
             playlist_id=channel_name,
             playlist_title=f'{channel_name} - Clips {clip.label}')
+
+
+class TwitchVideosClipsIE(TwitchVideosClipsBaseIE):
+    IE_NAME = 'twitch:videos:clips'
+    _VALID_URL = r'https?://(?:(?:www|go|m)\.)?twitch\.tv/(?P<id>[^/]+)/(?:clips|videos/*?\?.*?\bfilter=clips)'
+    _TESTS = [{
+        # Clips
+        'url': 'https://www.twitch.tv/vanillatv/clips?filter=clips&range=all',
+        'info_dict': {
+            'id': 'vanillatv',
+            'title': 'vanillatv - Clips Top All',
+        },
+        'playlist_mincount': 1,
+    }, {
+        'url': 'https://www.twitch.tv/dota2ruhub/videos?filter=clips&range=7d',
+        'only_matching': True,
+    }]
+
+    _OPERATION_NAME = 'ClipsCards__User'
+
+    @staticmethod
+    def _make_variables(channel_name, channel_filter):
+        return {
+            'login': channel_name,
+            'criteria': {
+                'filter': channel_filter,
+            },
+        }
+
+
+class TwitchVideosClipsCreatedIE(TwitchVideosClipsBaseIE):
+    IE_NAME = 'twitch:clips:created'
+    _VALID_URL = r'https?://dashboard\.twitch\.tv/(?:[^/]+)/(?P<id>[^/]+)/(?:content)?/clips/created(?:[^#]+)?$'
+    _TESTS = [{
+        'url': 'https://dashboard.twitch.tv/u/0xvd1/content/clips/created',
+        'info_dict': {
+            'id': '0xvd1',
+            'title': '0xvd1 - Clips Top 7D',
+        },
+        'playlist_mincount': 2,
+    }]
+
+    _OPERATION_NAME = 'ContentClipsManager_User'
+
+    @staticmethod
+    def _make_variables(channel_name, channel_filter):
+        return {
+            'login': channel_name,
+            'criteria': {
+                'filter': channel_filter,
+                'period': 'ALL_TIME',
+                'role': 'CURATOR',
+            },
+        }
 
 
 class TwitchVideosCollectionsIE(TwitchPlaylistBaseIE):

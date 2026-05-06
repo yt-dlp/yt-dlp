@@ -2226,6 +2226,7 @@ from .twitch import (
     TwitchClipsIE,
     TwitchCollectionIE,
     TwitchStreamIE,
+    TwitchVideosClipsCreatedIE,
     TwitchVideosClipsIE,
     TwitchVideosCollectionsIE,
     TwitchVideosIE,
