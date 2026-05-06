@@ -8,6 +8,7 @@ from ..utils import (
     join_nonempty,
     parse_iso8601,
     parse_qs,
+    str_or_none,
     strip_or_none,
     traverse_obj,
     url_or_none,
@@ -15,7 +16,7 @@ from ..utils import (
 
 
 class ArteTVBaseIE(InfoExtractor):
-    _ARTE_LANGUAGES = 'fr|de|en|es|it|pl'
+    _ARTE_LANGUAGES = 'fr|de|en|es|it|pl|ro'  # Source https://www.arte.tv/_next/static/chunks/0563of~atzldn.js current function name `ey`
     _API_BASE = 'https://api.arte.tv/api/player/v2'
 
 
@@ -77,6 +78,18 @@ class ArteTVIE(ArteTVBaseIE):
             'ext': 'mp4',
         },
         'skip': '404 Not Found',
+    }, {
+        'url': 'https://www.arte.tv/ro/videos/115033-000-A/brancu-i-sculptorul-modernita-ii/',
+        'info_dict': {
+            'id': '115033-000-A',
+            'ext': 'mp4',
+            'title': 'Brâncuși: sculptorul modernității',
+            'description': 'md5:89cfdf832c02be3cb8c2d9885e66ff4d',
+            'duration': 3091,
+            'thumbnail': r're:https?://api-cdn\.arte\.tv/img/v2/image/.+',
+            'timestamp': 1771326811,
+            'upload_date': '20260217',
+        },
     }]
 
     _GEO_BYPASS = True
@@ -145,16 +158,16 @@ class ArteTVIE(ArteTVBaseIE):
         lang = mobj.group('lang') or mobj.group('lang_2')
         language_code = self._LANG_MAP.get(lang)
 
-        config = self._download_json(f'{self._API_BASE}/config/{lang}/{video_id}', video_id, headers={
+        attributes = self._download_json(f'{self._API_BASE}/config/{lang}/{video_id}', video_id, headers={
             'x-validated-age': '18',
-        })
+        })['data']['attributes']
 
-        geoblocking = traverse_obj(config, ('data', 'attributes', 'restriction', 'geoblocking')) or {}
+        geoblocking = traverse_obj(attributes, ('restriction', 'geoblocking')) or {}
         if geoblocking.get('restrictedArea'):
             raise GeoRestrictedError(f'Video restricted to {geoblocking["code"]!r}',
                                      countries=self._COUNTRIES_MAP.get(geoblocking['code'], ('DE', 'FR')))
 
-        if not traverse_obj(config, ('data', 'attributes', 'rights')):
+        if not traverse_obj(attributes, ('rights')):
             # Eg: https://www.arte.tv/de/videos/097407-215-A/28-minuten
             # Eg: https://www.arte.tv/es/videos/104351-002-A/serviteur-du-peuple-1-23
             raise ExtractorError(
@@ -162,7 +175,7 @@ class ArteTVIE(ArteTVBaseIE):
 
         formats, subtitles = [], {}
         secondary_formats = []
-        for stream in config['data']['attributes']['streams']:
+        for stream in attributes['streams']:
             # official player contains code like `e.get("versions")[0].eStat.ml5`
             stream_version = stream['versions'][0]
             stream_version_code = stream_version['eStat']['ml5']
@@ -210,29 +223,32 @@ class ArteTVIE(ArteTVBaseIE):
         formats.extend(secondary_formats)
         self._remove_duplicate_formats(formats)
 
-        metadata = config['data']['attributes']['metadata']
-
         return {
-            'id': metadata['providerId'],
-            'webpage_url': traverse_obj(metadata, ('link', 'url')),
-            'title': traverse_obj(metadata, 'subtitle', 'title'),
-            'alt_title': metadata.get('subtitle') and metadata.get('title'),
-            'description': metadata.get('description'),
-            'duration': traverse_obj(metadata, ('duration', 'seconds')),
-            'language': metadata.get('language'),
-            'timestamp': traverse_obj(config, ('data', 'attributes', 'rights', 'begin'), expected_type=parse_iso8601),
-            'is_live': config['data']['attributes'].get('live', False),
+            **traverse_obj(attributes, ('metadata', {
+                'id': ('providerId', {str_or_none}),
+                'title': ('title', {str_or_none}),
+                'alt_title': ('subtitle', {str_or_none}),
+                'description': ('description', {strip_or_none}),
+                'duration': ('duration', 'seconds', {int_or_none}),
+                'language': ('language', {str_or_none}),
+                'thumbnails': ('images', ...,
+                               {
+                                   'url': ('url', {url_or_none}),
+                                   'id': ('caption', {str_or_none}),
+                               }),
+            })),
             'formats': formats,
             'subtitles': subtitles,
-            'thumbnails': [
-                {'url': image['url'], 'id': image.get('caption')}
-                for image in metadata.get('images') or [] if url_or_none(image.get('url'))
-            ],
-            # TODO: chapters may also be in stream['segments']?
-            'chapters': traverse_obj(config, ('data', 'attributes', 'chapters', 'elements', ..., {
-                'start_time': 'startTime',
-                'title': 'title',
-            })) or None,
+            **traverse_obj(attributes, ({
+                'timestamp': ('rights', 'begin', {parse_iso8601}),
+                'is_live': ('live', {bool}),
+                # TODO: chapters may also be in stream['segments']?
+                'chapters': ('chapters', 'elements', ...,
+                             {
+                                 'start_time': ('start_time', {int_or_none}),
+                                 'title': ('title', {str_or_none}),
+                             }),
+            })),
         }
 
 
