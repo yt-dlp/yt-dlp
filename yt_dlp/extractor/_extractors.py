@@ -381,7 +381,9 @@ from .clyp import ClypIE
 from .cnbc import CNBCVideoIE
 from .cnn import (
     CNNIE,
+    CNNAudioIE,
     CNNIndonesiaIE,
+    CNNPodcastIE,
 )
 from .comedycentral import ComedyCentralIE
 from .commonmistakes import (

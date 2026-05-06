@@ -1,9 +1,11 @@
+import itertools
 import json
 import re
 
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
+    determine_ext,
     extract_attributes,
     int_or_none,
     merge_dicts,
@@ -11,14 +13,24 @@ from ..utils import (
     parse_iso8601,
     parse_resolution,
     try_call,
+    unified_strdate,
     update_url,
     url_or_none,
+    urljoin,
 )
-from ..utils.traversal import find_elements, traverse_obj
+from ..utils.traversal import (
+    find_element,
+    find_elements,
+    traverse_obj,
+)
 
 
-class CNNIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:edition|www|money|cnnespanol)\.)?cnn\.com/(?!audio/)(?P<display_id>[^?#]+?)(?:[?#]|$|/index\.html)'
+class CNNBaseIE(InfoExtractor):
+    _BASE_URL_RE = r'https?://(?:(?:edition|www|money|cnnespanol)\.)?cnn\.com'
+
+
+class CNNIE(CNNBaseIE):
+    _VALID_URL = fr'{CNNBaseIE._BASE_URL_RE}/(?!audio/)(?P<display_id>[^?#]+?)(?:[?#]|$|/index\.html)'
 
     _TESTS = [{
         'url': 'https://www.cnn.com/2024/05/31/sport/video/jadon-sancho-borussia-dortmund-champions-league-exclusive-spt-intl',
@@ -276,3 +288,82 @@ class CNNIndonesiaIE(InfoExtractor):
             'upload_date': upload_date,
             'tags': try_call(lambda: self._html_search_meta('keywords', webpage).split(', ')),
         })
+
+
+class CNNAudioBaseIE(CNNBaseIE):
+
+    def _extract_metadata(self, webpage):
+        base = 'https://edition.cnn.com'
+        audio_player = traverse_obj(webpage, ({find_element(cls='episode', html=True)}, {extract_attributes}))
+        fmt_url = audio_player.get('src')
+
+        return {
+            'id': audio_player.get('data-guid'),
+            **traverse_obj(webpage, ({find_element(cls='episode', html=True)}, {
+                'title': ({find_element(attr='slot', value='title')}, {clean_html}),
+                'description': ({find_element(attr='slot', value='description')}, {clean_html}),
+                'uploader': ({find_element(attr='slot', value='author')}, {clean_html}),
+                'uploader_url': ({find_element(attr='slot', value='author', html=True)}, {extract_attributes}, 'href', {urljoin(base)}),
+                'upload_date': ({find_element(attr='slot', value='date')}, {unified_strdate}),
+                'duration': ({find_element(attr='slot', value='eplength')}, {parse_duration}),
+            })),
+            'url': fmt_url,
+            'ext': determine_ext(fmt_url),
+            'vcodec': 'none',
+        }
+
+
+class CNNPodcastIE(CNNAudioBaseIE):
+    _VALID_URL = fr'{CNNBaseIE._BASE_URL_RE}/audio/podcasts/(?P<id>[^/]+)$'
+    _TESTS = [{
+        'url': 'https://edition.cnn.com/audio/podcasts/amanpour',
+        'info_dict': {
+            'id': 'amanpour',
+            'title': 'amanpour',
+        },
+        'playlist_mincount': 20,
+    }]
+
+    def entries(self, podcast):
+        base = 'https://edition.cnn.com'
+        next_url = urljoin(base, f'/audio/podcasts/{podcast}')
+
+        for page_num in itertools.count(1):
+            page = self._download_webpage(next_url, podcast, f'Downloading page {page_num}')
+            for audio_player in traverse_obj(page, ({find_elements(cls='episode', html=True)})):
+                yield self._extract_metadata(audio_player)
+            next_data = traverse_obj(page, ({find_element(id='load-more', html=True)}, {extract_attributes}, 'data-key', {json.loads}))
+            if not next_data:
+                break
+            next_id, next_pid, next_epts = next_data.get('id').lstrip('e_'), next_data.get('podcastId'), next_data.get('episodeCreatedAt')
+            next_url = urljoin(base, f'/audio/podcasts/{podcast}/episodes/{next_id}/{next_pid}/{next_epts}')
+
+    def _real_extract(self, url):
+        podcast = self._match_id(url)
+        return self.playlist_result(self.entries(podcast), podcast, podcast)
+
+
+class CNNAudioIE(CNNAudioBaseIE):
+    _VALID_URL = fr'{CNNBaseIE._BASE_URL_RE}/audio/podcasts/[^/]+/episodes/(?P<id>[^/?#]+)'
+    _TESTS = [{
+        'url': 'https://edition.cnn.com/audio/podcasts/amanpour/episodes/9aede650-b53e-11f0-9a89-2ba8c422ab7d',
+        'info_dict': {
+            'id': '9aede650-b53e-11f0-9a89-2ba8c422ab7d',
+            'ext': 'mp3',
+            'title': 'Czech President Petr Pavel',
+            'description': 'md5:928c86cf21abb7d7aa41ec7ade8331a9',
+            'uploader': 'Amanpour',
+            'uploader_url': 'https://edition.cnn.com/audio/podcasts/amanpour',
+            'duration': 3360.0,
+            'upload_date': '20260428',
+        },
+    }]
+
+    def _real_extract(self, url):
+        episode_id = self._match_id(url)
+        webpage = self._download_webpage(url, episode_id)
+
+        return {
+            **self._extract_metadata(webpage),
+            'id': episode_id,
+        }
