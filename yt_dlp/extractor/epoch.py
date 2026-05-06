@@ -3,14 +3,14 @@ from ..utils import extract_attributes, get_element_html_by_id
 
 
 class EpochIE(InfoExtractor):
-    _VALID_URL = r'https?://www.theepochtimes\.com/[\w-]+_(?P<id>\d+).html'
+    _VALID_URL = r'https?://www.theepochtimes\.com/(?:epochtv/)?[\w-]+(?:_|-)(?P<id>\d+)(?:\.html)?'
     _TESTS = [
         {
-            'url': 'https://www.theepochtimes.com/they-can-do-audio-video-physical-surveillance-on-you-24h-365d-a-year-rex-lee-on-intrusive-apps_4661688.html',
+            'url': 'https://www.theepochtimes.com/epochtv/they-can-do-audio-video-physical-surveillance-on-you-24h-365d-a-year-rex-lee-on-intrusive-apps-4661688',
             'info_dict': {
                 'id': 'a3dd732c-4750-4bc8-8156-69180668bda1',
                 'ext': 'mp4',
-                'title': '‘They Can Do Audio, Video, Physical Surveillance on You 24H/365D a Year’: Rex Lee on Intrusive Apps',
+                'title': '‘They Can Do Audio, Video, Physical Surveillance on You 24H/365D a Year’: Rex Lee on Intrusive Apps | EpochTV',
             },
         },
         {
@@ -20,21 +20,30 @@ class EpochIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'The Communist Party’s Cyberattacks on America Explained; Rex Lee Talks Tech Hybrid Warfare',
             },
+            'skip': 'PAGE NOT FOUND It could have been removed, had its name changed, or is temporarily unavailable.',
         },
         {
-            'url': 'https://www.theepochtimes.com/kash-patel-a-6-year-saga-of-government-corruption-from-russiagate-to-mar-a-lago_4690250.html',
+            'url': 'https://www.theepochtimes.com/epochtv/kash-patel-a-6-year-saga-of-government-corruption-from-russiagate-to-mar-a-lago-4690250',
             'info_dict': {
                 'id': 'aa9ceecd-a127-453d-a2de-7153d6fd69b6',
                 'ext': 'mp4',
-                'title': 'Kash Patel: A ‘6-Year-Saga’ of Government Corruption, From Russiagate to Mar-a-Lago',
+                'title': 'Kash Patel: A ‘6-Year-Saga’ of Government Corruption, From Russiagate to Mar-a-Lago | EpochTV',
             },
         },
         {
-            'url': 'https://www.theepochtimes.com/dick-morris-discusses-his-book-the-return-trumps-big-2024-comeback_4819205.html',
+            'url': 'https://www.theepochtimes.com/epochtv/dick-morris-discusses-his-book-the-return-trumps-big-2024-comeback-4819205',
             'info_dict': {
                 'id': '9489f994-2a20-4812-b233-ac0e5c345632',
                 'ext': 'mp4',
-                'title': 'Dick Morris Discusses His Book ‘The Return: Trump’s Big 2024 Comeback’',
+                'title': 'Dick Morris Discusses His Book ‘The Return: Trump’s Big 2024 Comeback’ | EpochTV',
+            },
+        },
+        {
+            'url': 'https://www.theepochtimes.com/epochtv/they-can-do-audio-video-physical-surveillance-on-you-24h-365d-a-year-rex-lee-on-intrusive-apps-4661688',
+            'info_dict': {
+                'id': 'a3dd732c-4750-4bc8-8156-69180668bda1',
+                'ext': 'mp4',
+                'title': 'md5:bab91b94cb44369f4b5bdf00b6f7d12b',
             },
         },
     ]
