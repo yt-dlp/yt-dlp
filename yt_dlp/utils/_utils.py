@@ -4974,7 +4974,7 @@ class Config:
             # FIXME: https://github.com/ytdl-org/youtube-dl/commit/dfe5fa49aed02cf36ba9f743b11b0903554b5e56
             contents = optionf.read().decode(enc or preferredencoding())
             res = shlex.split(contents, comments=True)
-        except Exception as err:
+        except (ValueError, OSError) as err:
             raise ValueError(f'Unable to parse "{filename}": {err}')
         finally:
             optionf.close()
