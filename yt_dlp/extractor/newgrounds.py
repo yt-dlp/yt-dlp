@@ -203,7 +203,7 @@ class NewgroundsIE(InfoExtractor):
             'duration': parse_duration(self._html_search_regex(
                 r'"duration"\s*:\s*["\']?(\d+)["\']?', webpage, 'duration', default=None)),
             'formats': formats,
-            'thumbnail': self._og_search_thumbnail(webpage),
+                        'thumbnail': self._extract_thumbnail(webpage, media_id),
             'description': (
                 clean_html(get_element_by_id('author_comments', webpage))
                 or self._og_search_description(webpage)),
