@@ -460,7 +460,11 @@ jobs:
           /yt-dlp-build-venv/Scripts/Activate.ps1
           python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
           python -m pip install -U --require-hashes -r "bundle/requirements/requirements-win-${Env:ARCH}-pyinstaller.txt"
-          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-win-${Env:ARCH}.txt"
+          if (${Env:ARCH} -eq "x86") {
+            python -m pip install -U --require-hashes -r "bundle/requirements/requirements-default.txt"
+          } else {
+            python -m pip install -U --require-hashes -r "bundle/requirements/requirements-curl-cffi.txt"
+          }
 
       - name: Prepare
         shell: pwsh

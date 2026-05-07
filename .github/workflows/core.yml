@@ -60,17 +60,32 @@ jobs:
           python-version: '3.14'
         - os: windows-latest
           python-version: pypy-3.11
+
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       with:
         fetch-depth: 0
         persist-credentials: false
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install test requirements
-      run: python ./devscripts/install_deps.py --include-group test --include-extra curl-cffi
+
+    - name: Install test requirements (cpython)
+      if: ${{ !startsWith(matrix.python-version, 'pypy') }}
+      run: |
+        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-test.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-curl-cffi.txt"
+
+    - name: Install test requirements (PyPy)
+      if: ${{ startsWith(matrix.python-version, 'pypy') }}
+      run: |
+        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-test.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-default.txt"
+
     - name: Run tests
       timeout-minutes: 15
       continue-on-error: False
