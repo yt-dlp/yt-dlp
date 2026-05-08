@@ -12,7 +12,7 @@ import pkgutil
 import sys
 import traceback
 from pathlib import Path
-from zipfile import ZipFile
+from zipfile import ZipFile, BadZipFile
 
 from .globals import (
     Indirect,
@@ -73,7 +73,7 @@ def dirs_in_zip(archive):
                 Path(file).parents for file in zip_.namelist()))
     except FileNotFoundError:
         pass
-    except Exception as e:
+    except (OSError, BadZipFile) as e:
         write_string(f'WARNING: Could not read zip file {archive}: {e}\n')
     return ()
 
@@ -204,6 +204,9 @@ def load_plugins(plugin_spec: PluginSpec):
             spec = finder.find_spec(module_name)
             module = importlib.util.module_from_spec(spec)
             sys.modules[module_name] = module
+        except (ModuleNotFoundError, ValueError):
+            continue
+        try:
             spec.loader.exec_module(module)
         except Exception:
             write_string(
