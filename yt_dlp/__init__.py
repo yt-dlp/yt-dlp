@@ -422,7 +422,7 @@ def validate_options(opts):
             cmd = f'--parse-metadata {shell_quote(f)}'
             try:
                 actions = [MetadataFromFieldPP.to_action(f)]
-            except Exception as err:
+            except (ValueError, TypeError) as err:
                 raise ValueError(f'{cmd} is invalid; {err}')
         else:
             cmd = f'--replace-in-metadata {shell_quote(f)}'
@@ -431,7 +431,7 @@ def validate_options(opts):
         for action in actions:
             try:
                 MetadataParserPP.validate_action(*action)
-            except Exception as err:
+            except (ValueError, TypeError) as err:
                 raise ValueError(f'{cmd} is invalid; {err}')
             yield action
 
@@ -450,14 +450,14 @@ def validate_options(opts):
     if opts.playlist_items is not None:
         try:
             tuple(PlaylistEntries.parse_playlist_items(opts.playlist_items))
-        except Exception as err:
+        except (ValueError, TypeError) as err:
             raise ValueError(f'Invalid playlist-items {opts.playlist_items!r}: {err}')
 
     opts.geo_bypass_country, opts.geo_bypass_ip_block = None, None
     if opts.geo_bypass.lower() not in ('default', 'never'):
         try:
             GeoUtils.random_ipv4(opts.geo_bypass)
-        except Exception:
+        except ValueError:
             raise ValueError(f'Unsupported --xff "{opts.geo_bypass}"')
         if len(opts.geo_bypass) == 2:
             opts.geo_bypass_country = opts.geo_bypass
@@ -989,7 +989,7 @@ def _real_main(argv=None):
             updater = Updater(ydl, opts.update_self)
             if opts.update_self and updater.update() and actual_use and updater.cmd:
                 return updater.restart()
-        except Exception:
+        except ValueError:
             traceback.print_exc()
             ydl._download_retcode = 100
 
