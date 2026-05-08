@@ -241,7 +241,7 @@ class Urllib3LoggingHandler(logging.Handler):
             else:
                 self._logger.stdout(msg)
 
-        except Exception:
+        except (ValueError, TypeError, AttributeError):
             self.handleError(record)
 
 
