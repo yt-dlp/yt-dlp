@@ -77,6 +77,43 @@ yt-dlp is a feature-rich command-line audio/video downloader with support for [t
 
 # INSTALLATION
 
+### Linux (Debian/Ubuntu/Mint) note
+
+If you see `error: externally-managed-environment` when using `pip`, your distribution follows PEP 668 to protect system-managed Python packages.
+
+Use one of these installation methods instead:
+
+#### 1. Standalone binary (simplest)
+
+```bash
+sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+sudo chmod a+rx /usr/local/bin/yt-dlp
+```
+
+#### 2. pipx (recommended for user-installed apps)
+
+```bash
+sudo apt update && sudo apt install pipx
+pipx ensurepath
+pipx install yt-dlp
+```
+
+#### 3. Virtual environment (isolated setup)
+
+```bash
+python3 -m venv ~/yt-dlp-venv
+source ~/yt-dlp-venv/bin/activate
+pip install "yt-dlp[default]"
+```
+
+#### 4. Distribution package (may be older)
+
+```bash
+sudo apt update && sudo apt install yt-dlp
+```
+
+These methods avoid using `--break-system-packages`.
+
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 [![Windows](https://img.shields.io/badge/-Windows_x64-blue.svg?style=for-the-badge&logo=windows)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)
 [![Unix](https://img.shields.io/badge/-Linux/BSD-red.svg?style=for-the-badge&logo=linux)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)
