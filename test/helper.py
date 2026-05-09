@@ -294,7 +294,7 @@ def expect_info_dict(self, got_dict, expected_dict):
 
     missing_keys = sorted(
         test_info_dict.keys() - expected_dict.keys(),
-        key=lambda x: ALLOWED_KEYS_SORT_ORDER.index(x))
+        key=ALLOWED_KEYS_SORT_ORDER.index)
     if missing_keys:
         def _repr(v):
             if isinstance(v, str):

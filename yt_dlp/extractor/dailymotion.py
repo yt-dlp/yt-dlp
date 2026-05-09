@@ -384,8 +384,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         last_error = None
 
         for note, kwargs in (
-            ('Downloading m3u8 information', {}),
-            ('Retrying m3u8 download with randomized headers', {
+            ('Downloading m3u8 information with randomized headers', {
                 'headers': self._generate_blockbuster_headers(),
             }),
             ('Retrying m3u8 download with Chrome impersonation', {
