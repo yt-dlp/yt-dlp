@@ -1133,6 +1133,11 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
         },
         'params': {'skip_download': 'm3u8'},
     }, {
+        'url': 'https://dmax.de/sendungen/feuerwache-3-alarm-in-muenchen/videos',
+        'playlist_mincount': 1,
+        'info_dict': {'id': 'sendungen-feuerwache-3-alarm-in-muenchen'},
+        'params': {'skip_download': 'm3u8'},
+    }, {
         'url': 'https://tlc.de/sendungen/ghost-adventures/season-28-episode-1',
         'info_dict': {
             'id': '19515',
@@ -1177,6 +1182,11 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
         },
         'params': {'skip_download': 'm3u8'},
     }, {
+        'url': 'https://tlc.de/sendungen/evil-gesichter-des-boesen/videos',
+        'playlist_mincount': 3,
+        'info_dict': {'id': 'sendungen-evil-gesichter-des-boesen'},
+        'params': {'skip_download': 'm3u8'},
+    }, {
         # slug_a and slug_b
         'url': 'https://tele5.de/mediathek/star-trek-enterprise/season-3-episode-18',
         'info_dict': {
@@ -1194,8 +1204,13 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'episode_number': 18,
             'timestamp': 1777737300,
             'upload_date': '20260502',
-            'categories': ['Sci-Fi', 'Serien', 'Star Trek', 'Derzeit nicht im Programm'],
+            'categories': ['Derzeit nicht im Programm', 'Serien', 'Sci-Fi', 'Star Trek'],
         },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://tele5.de/mediathek/star-trek-enterprise/videos',
+        'playlist_mincount': 3,
+        'info_dict': {'id': 'mediathek-star-trek-enterprise'},
         'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://tele5.de/mediathek/splice-das-genexperiment',
@@ -1248,6 +1263,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
     def _real_extract(self, url):
         channel, parent_slug, slug_a, slug_b = self._match_valid_url(url).group('channel', 'parent_slug', 'slug_a', 'slug_b')
         playlist_id = join_nonempty(parent_slug, slug_a, slug_b, delim='-')
+        list_path = ('blocks', ..., 'videoId', {str})
 
         # mapping channel from url → environment
         environment = {
@@ -1262,9 +1278,12 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'v': '2',
         }
 
-        if not slug_b:
+        if not slug_b or slug_b == 'videos':
             endpoint = f'page/{slug_a}'
             query['parent_slug'] = parent_slug
+            playlist_id = join_nonempty(parent_slug, slug_a, delim='-')
+            if slug_b == 'videos':
+                list_path = ('blocks', ..., 'items', ..., 'id')
         else:
             endpoint = f'shows/{slug_a}'
             query['filter[video.slug]'] = slug_b
@@ -1273,7 +1292,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
 
         return self.playlist_result(map(
             functools.partial(self._update_disco_api_info, url, disco_host='public.aurora.enhanced.live', realm='de', country='DE', cms_data=cms_data),
-            traverse_obj(cms_data, ('blocks', ..., 'videoId', {str}))), playlist_id)
+            traverse_obj(cms_data, list_path)), playlist_id)
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
         headers.update({
