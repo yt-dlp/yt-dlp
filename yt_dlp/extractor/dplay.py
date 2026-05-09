@@ -1287,7 +1287,6 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
         disco_api_info = self._get_disco_api_info(url, display_id, disco_host, realm, country, domain)
         disco_api_info['categories'] = traverse_obj(cms_data, (
             'taxonomies', lambda _, v: v['category'] == 'genre', 'title', {str.strip}, filter, all, filter))
-        # pprint.pprint(disco_api_info)
         return disco_api_info
 
 
