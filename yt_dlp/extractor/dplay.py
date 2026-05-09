@@ -335,7 +335,6 @@ class DiscoveryPlusBaseIE(DPlayBaseIE):
         })
 
     def _download_video_playback_info(self, disco_base, video_id, headers):
-        headers['Content-Type'] = 'application/json'
         return self._download_json(
             disco_base + 'playback/v3/videoPlaybackInfo',
             video_id, headers=headers, data=json.dumps({
@@ -1281,6 +1280,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'x-disco-params': f'realm={realm}',
             'x-disco-client': 'Alps:HyogaPlayer:0.0.0',
             'Authorization': self._get_auth(disco_base, display_id, realm),
+            'Content-Type': 'application/json',
         })
 
     def _update_disco_api_info(self, url, display_id, disco_host, realm, country, domain='', cms_data={}):
