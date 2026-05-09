@@ -382,7 +382,7 @@ class JSInterpreter:
 
         try:
             return _OPERATORS[op](left_val, right_val)
-        except Exception as e:
+        except (TypeError, KeyError, ZeroDivisionError) as e:
             raise self.Exception(f'Failed to evaluate {left_val!r} {op} {right_val!r}', expr, cause=e)
 
     def _index(self, obj, idx, allow_undefined=False):

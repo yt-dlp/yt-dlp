@@ -327,7 +327,7 @@ class UrllibResponseAdapter(Response):
                 # Catch-all for any cases where underlying file is closed
                 self.close()
             return data
-        except Exception as e:
+        except OSError as e:
             handle_response_read_exceptions(e)
             raise e
 
