@@ -1251,9 +1251,11 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
         playlist_id = join_nonempty(parent_slug, slug_a, slug_b, delim='-')
 
         # mapping channel from url → environment
-        environment = {'dmax': 'dmaxde',
-                       'tele5': 'tele5',
-                       'tlc': 'tlcde'}
+        environment = {
+            'dmax': 'dmaxde',
+            'tele5': 'tele5',
+            'tlc': 'tlcde',
+        }
 
         query = {
             'include': 'default',
