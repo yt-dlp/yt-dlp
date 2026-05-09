@@ -295,7 +295,7 @@ class TestMemoryFormatIOBackend:
         assert backend._memory_store.closed is False
 
         # Data should still be present in the memory store
-        assert backend._memory_store.getbuffer().nbytes == len(EXAMPLE_DATA)
+        assert len(backend._memory_store.getvalue()) == len(EXAMPLE_DATA)
 
         # We can create a reader and read the same data
         backend.initialize_reader()

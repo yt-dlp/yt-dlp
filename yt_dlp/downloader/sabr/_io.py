@@ -14,6 +14,10 @@ class FormatIOBackend(abc.ABC):
         self._fp = None
         self._fp_mode = None
 
+    @abc.abstractmethod
+    def __len__(self):
+        pass
+
     @property
     def writer(self):
         if self._fp is None or self._fp_mode != 'write':
@@ -54,9 +58,8 @@ class FormatIOBackend(abc.ABC):
         self._fp = None
         self._fp_mode = None
 
-    @abc.abstractmethod
     def validate_length(self, expected_length):
-        pass
+        return len(self) == expected_length
 
     def remove(self):
         self.close()
@@ -103,6 +106,9 @@ class FormatIOBackend(abc.ABC):
 
 
 class DiskFormatIOBackend(FormatIOBackend):
+    def __len__(self):
+        return 0 if not self.exists() else os.path.getsize(self.filename)
+
     def _create_writer(self, resume=False) -> typing.IO:
         if resume and self.exists():
             write_fp, self.filename = self.fd.sanitize_open(self.filename, 'ab')
@@ -114,9 +120,6 @@ class DiskFormatIOBackend(FormatIOBackend):
         read_fp, self.filename = self.fd.sanitize_open(self.filename, 'rb')
         return read_fp
 
-    def validate_length(self, expected_length):
-        return os.path.getsize(self.filename) == expected_length
-
     def _remove(self):
         self.fd.try_remove(self.filename)
 
@@ -126,8 +129,20 @@ class DiskFormatIOBackend(FormatIOBackend):
 
 class MemoryFormatIOBackend(FormatIOBackend):
     def __init__(self, *args, **kwargs):
+        self._remove()
         super().__init__(*args, **kwargs)
+
+    def _remove(self):
         self._memory_store = io.BytesIO()
+
+    def _reset(self):
+        self._memory_store.seek(0)
+        self._memory_store.truncate(0)
+
+    def __len__(self):
+        # NOTE: due to Python's buffer protocol, this should not copy the data.
+        # https://docs.python.org/3.13/c-api/buffer.html
+        return len(self._memory_store.getvalue())
 
     def _create_writer(self, resume=False) -> typing.IO:
         class NonClosingBufferedWriter(io.BufferedWriter):
@@ -138,8 +153,7 @@ class MemoryFormatIOBackend(FormatIOBackend):
         if resume and self.exists():
             self._memory_store.seek(0, io.SEEK_END)
         else:
-            self._memory_store.seek(0)
-            self._memory_store.truncate(0)
+            self._reset()
 
         return NonClosingBufferedWriter(self._memory_store)
 
@@ -152,11 +166,5 @@ class MemoryFormatIOBackend(FormatIOBackend):
         self._memory_store.seek(0)
         return NonClosingBufferedReader(self._memory_store)
 
-    def validate_length(self, expected_length):
-        return self._memory_store.getbuffer().nbytes == expected_length
-
-    def _remove(self):
-        self._memory_store = io.BytesIO()
-
     def exists(self):
-        return self._memory_store.getbuffer().nbytes > 0
+        return len(self) > 0
