@@ -1180,8 +1180,20 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 })
         return thumbnails
 
-    @staticmethod
-    def extract_relative_time(relative_time_text):
+    # Map abbreviated relative-time units to the long-form unit names that
+    # datetime_from_str() understands.
+    _RELATIVE_TIME_UNIT_MAP = {
+        's': 'second', 'sec': 'second', 'second': 'second',
+        'min': 'minute', 'minute': 'minute',
+        'h': 'hour', 'hr': 'hour', 'hour': 'hour',
+        'd': 'day', 'day': 'day',
+        'w': 'week', 'wk': 'week', 'week': 'week',
+        'mo': 'month', 'month': 'month',
+        'y': 'year', 'yr': 'year', 'year': 'year',
+    }
+
+    @classmethod
+    def extract_relative_time(cls, relative_time_text):
         """
         Extracts a relative time from string and converts to dt object
         e.g. 'streamed 6 days ago', '5 seconds ago (edited)', 'updated today', '8 yr ago'
@@ -1198,8 +1210,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             start = mobj.group('start')
             if start:
                 return datetime_from_str(start)
+            unit = cls._RELATIVE_TIME_UNIT_MAP[mobj.group('unit')]
             try:
-                return datetime_from_str('now-{}{}'.format(mobj.group('time'), mobj.group('unit')))
+                return datetime_from_str(f'now-{mobj.group("time")}{unit}')
             except ValueError:
                 return None
 
