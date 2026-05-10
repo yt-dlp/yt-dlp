@@ -390,7 +390,7 @@ class JSInterpreter:
             return len(obj)
         try:
             return obj[int(idx)] if isinstance(obj, list) else obj[str(idx)]
-        except Exception as e:
+        except (ValueError, TypeError, KeyError, IndexError) as e:
             if allow_undefined:
                 return JS_Undefined
             raise self.Exception(f'Cannot get index {idx}', repr(obj), cause=e)
