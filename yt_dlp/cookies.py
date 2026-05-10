@@ -109,7 +109,7 @@ def load_cookies(cookie_file, browser_specification, ydl):
             cookie_jars.append(jar)
 
         return _merge_cookie_jars(cookie_jars)
-    except Exception:
+    except (OSError, ValueError, KeyError):
         raise CookieLoadError('failed to load cookies')
 
 
