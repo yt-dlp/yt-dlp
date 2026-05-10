@@ -79,7 +79,6 @@ class ThisVidIE(InfoExtractor):
 
         return self.url_result(
             url, ie='Generic', url_transparent=True,
-            intentional_generic=True,
             title=title,
             age_limit=18,
             uploader=uploader,
