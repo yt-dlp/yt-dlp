@@ -90,7 +90,7 @@ class TV5UnisBaseIE(InfoExtractor):
 
 class TV5UnisVideoIE(TV5UnisBaseIE):
     IE_NAME = 'tv5unis:video'
-    _VALID_URL = r'https?://(?:www\.)?tv5unis\.ca/videos/[^/?#]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:tv5unis|tv5plus)\.ca/videos/[^/?#]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.tv5unis.ca/videos/bande-annonces/144041',
         'md5': '24a247c96119d77fe1bae8b440457dfa',
@@ -102,6 +102,9 @@ class TV5UnisVideoIE(TV5UnisBaseIE):
             'description': r"re:En aidant son frère .+ dicté par l'amour et la solidarité.",
             'duration': 61,
         },
+    }, {
+        'url': 'https://www.tv5plus.ca/videos/bande-annonces/151265',
+        'only_matching': True,
     }]
     _GQL_QUERY_NAME = 'productById'
 
@@ -112,7 +115,7 @@ class TV5UnisVideoIE(TV5UnisBaseIE):
 
 class TV5UnisIE(TV5UnisBaseIE):
     IE_NAME = 'tv5unis'
-    _VALID_URL = r'https?://(?:www\.)?tv5unis\.ca/videos/(?P<id>[^/?#]+)(?:/saisons/(?P<season_number>\d+)/episodes/(?P<episode_number>\d+))?/?(?:[?#&]|$)'
+    _VALID_URL = r'https?://(?:www\.)?(?:tv5unis|tv5plus)\.ca/videos/(?P<id>[^/?#]+)(?:/saisons/(?P<season_number>\d+)/episodes/(?P<episode_number>\d+))?/?(?:[?#&]|$)'
     _TESTS = [{
         # geo-restricted to Canada; xff is ineffective
         'url': 'https://www.tv5unis.ca/videos/watatatow/saisons/11/episodes/1',
@@ -151,6 +154,9 @@ class TV5UnisIE(TV5UnisBaseIE):
             'duration': 1200,
             'tags': 'count:5',
         },
+    }, {
+        'url': 'https://www.tv5plus.ca/videos/boite-a-savon',
+        'only_matching': True,
     }]
     _GQL_QUERY_NAME = 'productByRootProductSlug'
 
