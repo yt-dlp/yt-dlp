@@ -1284,6 +1284,8 @@ class InfoExtractor:
             kwargs['id'] = video_id
         if video_title is not None:
             kwargs['title'] = video_title
+        if kwargs.pop('intentional_generic', False):
+            url = smuggle_url(url, {'to_generic': True})
         return {
             **kwargs,
             '_type': 'url_transparent' if url_transparent else 'url',
