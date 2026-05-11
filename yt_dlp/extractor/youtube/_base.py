@@ -1203,8 +1203,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         # The relative time text strings are roughly the same as what
         # Javascript's Intl.RelativeTimeFormat function generates.
         # See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/RelativeTimeFormat
+        # Sort longest-first: regex alternation matches left-to-right, so short
+        # keys like 's' must come after 'sec'/'second' to avoid premature matches.
+        units = '|'.join(map(re.escape, sorted(cls._RELATIVE_TIME_UNIT_MAP, key=len, reverse=True)))
         mobj = re.search(
-            r'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>sec(?:ond)?|s|min(?:ute)?|h(?:our|r)?|d(?:ay)?|w(?:eek|k)?|mo(?:nth)?|y(?:ear|r)?)s?\s*ago',
+            rf'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>{units})s?\s*ago',
             relative_time_text)
         if mobj:
             start = mobj.group('start')

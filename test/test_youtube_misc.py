@@ -54,6 +54,10 @@ class TestYoutubeMisc(unittest.TestCase):
         self.assertIsNone(ert('not a date string'))
         self.assertIsNone(ert(''))
 
+        # Small safety check to prevent "drift".
+        for unit in YoutubeBaseInfoExtractor._RELATIVE_TIME_UNIT_MAP:
+            self.assertIsNotNone(ert(f'1 {unit} ago'), f'unit {unit!r} did not parse')
+
 
 if __name__ == '__main__':
     unittest.main()
