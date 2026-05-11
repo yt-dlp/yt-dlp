@@ -69,38 +69,36 @@ deno = [
 pin = [
     "brotli==1.2.0 ; implementation_name == 'cpython' and sys_platform != 'ios'",
     "brotlicffi==1.2.0.1 ; implementation_name != 'cpython'",
-    "certifi==2026.2.25",
-    "cffi==2.0.0 ; implementation_name != 'cpython'",
-    "charset-normalizer==3.4.6",
-    "idna==3.11",
+    "certifi==2026.4.22",
+    "charset-normalizer==3.4.7",
+    "idna==3.13",
     "mutagen==1.47.0",
-    "pycparser==3.0 ; implementation_name != 'PyPy' and implementation_name != 'cpython'",
     "pycryptodomex==3.23.0",
-    "requests==2.33.0",
+    "requests==2.33.1",
     "urllib3==2.6.3",
     "websockets==16.0",
     "yt-dlp-ejs==0.8.0",
 ]
 pin-curl-cffi = [
-    "certifi==2026.2.25 ; implementation_name == 'cpython'",
+    "certifi==2026.4.22 ; implementation_name == 'cpython'",
     "cffi==2.0.0 ; implementation_name == 'cpython'",
     "curl-cffi==0.15.0 ; implementation_name == 'cpython'",
     "markdown-it-py==4.0.0 ; implementation_name == 'cpython'",
     "mdurl==0.1.2 ; implementation_name == 'cpython'",
     "pycparser==3.0 ; implementation_name == 'cpython'",
-    "pygments==2.19.2 ; implementation_name == 'cpython'",
-    "rich==14.3.3 ; implementation_name == 'cpython'",
+    "pygments==2.20.0 ; implementation_name == 'cpython'",
+    "rich==15.0.0 ; implementation_name == 'cpython'",
 ]
 pin-secretstorage = [
     "cffi==2.0.0 ; platform_python_implementation != 'PyPy'",
-    "cryptography==46.0.6",
+    "cryptography==47.0.0",
     "jeepney==0.9.0",
     "pycparser==3.0 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'",
     "secretstorage==3.5.0",
     "typing-extensions==4.15.0 ; python_full_version < '3.11'",
 ]
 pin-deno = [
-    "deno==2.7.8",
+    "deno==2.7.14",
 ]
 
 [dependency-groups]
@@ -113,8 +111,8 @@ static-analysis = [
     "ruff~=0.15.0",
 ]
 test = [
-    "pytest~=8.1",
-    "pytest-rerunfailures~=14.0",
+    "pytest~=9.0",
+    "pytest-rerunfailures~=16.0",
 ]
 dev = [
     "pre-commit",
@@ -126,6 +124,15 @@ pyinstaller = [
 ]
 delocate = [
     "delocate>=0.13.0 ; sys_platform == 'darwin'",
+]
+pyflakes = [
+    "pyflakes~=3.4.0",
+]
+pip = [
+    "pip",
+]
+uv = [
+    "uv>=0.10",
 ]
 
 [project.urls]
@@ -179,9 +186,6 @@ exclude = [
 [tool.hatch.version]
 path = "yt_dlp/version.py"
 pattern = "_pkg_version = '(?P<version>[^']+)'"
-
-[tool.hatch.metadata]
-allow-direct-references = true
 
 [tool.hatch.envs.default]
 features = [
@@ -463,12 +467,14 @@ select = [
 ]
 exclude = "*/extractor/lazy_extractors.py,*venv*,*/test/testdata/sigs/player-*.js,.idea,.vscode"
 
-[tool.pytest.ini_options]
+[tool.pytest]
 addopts = [
     "-ra",  # summary: all except passed
-    "--verbose",
-    "--strict-markers",
+    "--tb=short",
 ]
+verbosity_test_cases = "1"
+strict_config = true
+strict_markers = true
 markers = [
     "download",
 ]
