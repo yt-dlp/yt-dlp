@@ -65,6 +65,9 @@ on:
 
 permissions: {}
 
+env:
+  GH_TELEMETRY: "false"
+
 jobs:
   prepare:
     name: Prepare
@@ -226,7 +229,7 @@ jobs:
           verbose: true
 
   publish:
-    name: Publish Github release
+    name: Publish GitHub release
     needs: [prepare, build]
     permissions:
       contents: write  # Needed by gh to publish release to Github
