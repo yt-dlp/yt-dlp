@@ -3,9 +3,7 @@ import collections
 import contextlib
 import functools
 import getpass
-import http.client
 import http.cookiejar
-import http.cookies
 import inspect
 import itertools
 import json
@@ -1890,6 +1888,7 @@ class InfoExtractor:
             'ShallowReactive': indirect_reviver,
             'Ref': indirect_reviver,
             'Reactive': indirect_reviver,
+            'skipHydrate': indirect_reviver,
         })
 
         while True:
