@@ -1129,7 +1129,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'creators': ['DMAX'],
             'thumbnail': 'https://images.aurora.enhanced.live/de/images/video/DCB862460010100310001/default.jpg',
             'tags': [],
-            'categories': ['DMAX Originals', 'Blaulicht', 'Jobs'],
+            'categories': ['Blaulicht', 'DMAX Originals', 'Jobs'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -1156,7 +1156,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'creators': ['TLC'],
             'thumbnail': 'https://images.aurora.enhanced.live/de/images/video/DCB759260023100310001/default.jpg',
             'tags': [],
-            'categories': ['Paranormal', 'Gruselig!'],
+            'categories': ['Gruselig!', 'Paranormal'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -1204,7 +1204,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'episode_number': 18,
             'timestamp': 1777737300,
             'upload_date': '20260502',
-            'categories': ['Derzeit nicht im Programm', 'Serien', 'Sci-Fi', 'Star Trek'],
+            'categories': ['Derzeit nicht im Programm', 'Sci-Fi', 'Serien', 'Star Trek'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -1230,7 +1230,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'season_number': 1,
             'episode': 'Episode 1',
             'episode_number': 1,
-            'categories': ['Filme', 'Fantasy', 'Drama'],
+            'categories': ['Drama', 'Fantasy', 'Filme'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -1276,7 +1276,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'season_number': 1,
             'episode': 'Episode 1',
             'episode_number': 1,
-            'categories': ['Action', 'Filme', 'Abenteuer'],
+            'categories': ['Abenteuer', 'Action', 'Filme'],
         },
         'params': {'skip_download': 'm3u8'},
     }]
@@ -1328,8 +1328,8 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
 
     def _update_disco_api_info(self, url, display_id, disco_host, realm, country, domain='', cms_data={}):
         disco_api_info = self._get_disco_api_info(url, display_id, disco_host, realm, country, domain)
-        disco_api_info['categories'] = traverse_obj(cms_data, (
-            'taxonomies', lambda _, v: v['category'] == 'genre', 'title', {str.strip}, filter, all, filter))
+        disco_api_info['categories'] = sorted(traverse_obj(cms_data, (
+            'taxonomies', lambda _, v: v['category'] == 'genre', 'title', {str.strip}, filter, all, filter)))
         return disco_api_info
 
 
