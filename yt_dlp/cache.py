@@ -41,7 +41,7 @@ class Cache:
             os.makedirs(os.path.dirname(fn), exist_ok=True)
             self._ydl.write_debug(f'Saving {section}.{key} to cache')
             write_json_file({'yt-dlp_version': __version__, 'data': data}, fn)
-        except Exception:
+        except (OSError, TypeError):
             tb = traceback.format_exc()
             self._ydl.report_warning(f'Writing cache to {fn!r} failed: {tb}')
 
