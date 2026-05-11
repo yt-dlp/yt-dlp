@@ -1056,7 +1056,7 @@ class DiscoveryPlusIndiaIE(DiscoveryPlusBaseIE):
 
 
 class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?P<channel>dmax|tele5|tlc)\.de/(?P<parent_slug>[\w-]+)/(?P<slug_a>[\w-]+)(?:/(?P<slug_b>[\w-]+))?'
+    _VALID_URL = r'https?://(?:www\.)?(?P<channel>dmax|tele5|tlc)\.de/(?:(?P<parent_slug>sendungen|mediathek)/)?(?P<slug_a>[\w-]+)(?:/(?P<slug_b>[\w-]+))?'
 
     _TESTS = [{
         'url': 'https://dmax.de/sendungen/goldrausch-in-australien/german-gold',
@@ -1258,6 +1258,27 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
         },
         'playlist_mincount': 3,
         'skip': 'Dead link',
+    }, {
+        'url': 'https://tele5.de/die-piratenbraut',
+        'info_dict': {
+            'id': '22656',
+            'ext': 'mp4',
+            'title': 'Die Piratenbraut',
+            'description': 'md5:7910bc860c991442b78491cb90a8c473',
+            'duration': 7140.8,
+            'thumbnail': 'https://images.aurora.enhanced.live/de/images/video/DCA54497100330001/default.jpg',
+            'tags': [],
+            'creators': ['TELE 5'],
+            'series': 'Die Piratenbraut',
+            'timestamp': 1778358600,
+            'upload_date': '20260509',
+            'season': 'Season 1',
+            'season_number': 1,
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'categories': ['Action', 'Filme', 'Abenteuer'],
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
@@ -1280,8 +1301,11 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
 
         if not slug_b or slug_b == 'videos':
             endpoint = f'page/{slug_a}'
-            query['parent_slug'] = parent_slug
+            # some Tele5-movies doesn't have a parent_slug
+            if parent_slug:
+                query['parent_slug'] = parent_slug
             playlist_id = join_nonempty(parent_slug, slug_a, delim='-')
+            # playlists
             if slug_b == 'videos':
                 list_path = ('blocks', ..., 'items', ..., 'id')
         else:
