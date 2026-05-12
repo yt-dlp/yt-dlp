@@ -4,6 +4,8 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
+    determine_ext,
     int_or_none,
     join_nonempty,
     js_to_json,
@@ -79,10 +81,65 @@ class RadioFranceBaseIE(InfoExtractor):
         'mouv',
     )))
 
+    @staticmethod
+    def _hydrate_devalue(flat):
+        """Inflate a SvelteKit devalue-serialized flat array starting at index 0.
+
+        See https://github.com/Rich-Harris/devalue for the format.
+        """
+        if not isinstance(flat, list) or not flat:
+            return None
+        seen = {}
+
+        def hydrate(idx):
+            if idx in (-1, -2):
+                return None
+            if idx == -3:
+                return float('nan')
+            if idx == -4:
+                return float('inf')
+            if idx == -5:
+                return float('-inf')
+            if idx == -6:
+                return -0.0
+            if idx in seen:
+                return seen[idx]
+            value = flat[idx]
+            if not isinstance(value, (list, dict)):
+                seen[idx] = value
+                return value
+            if isinstance(value, list):
+                result = []
+                seen[idx] = result
+                result.extend(hydrate(v) if isinstance(v, int) else v for v in value)
+                return result
+            result = {}
+            seen[idx] = result
+            for k, v in value.items():
+                result[k] = hydrate(v) if isinstance(v, int) else v
+            return result
+
+        return hydrate(0)
+
+    def _call_data_api(self, path, display_id, query=None, note='Downloading data JSON'):
+        """Fetch the SvelteKit /__data.json companion for a page and return the hydrated page content."""
+        data = self._download_json(
+            f'https://www.radiofrance.fr/{path.strip("/")}/__data.json',
+            display_id, note=note, query=query)
+        if traverse_obj(data, 'type') == 'redirect':
+            raise ExtractorError(
+                f'Page redirects to {data.get("location")!r}; retry with that URL',
+                expected=True)
+        for node in traverse_obj(data, ('nodes', lambda _, v: isinstance(v, dict) and v.get('type') == 'data')):
+            content = traverse_obj(self._hydrate_devalue(node.get('data')), ('content', {dict}))
+            if content:
+                return content
+        raise ExtractorError('Page is unavailable or does not exist', expected=True)
+
     def _extract_data_from_webpage(self, webpage, display_id, key):
         return traverse_obj(self._search_json(
             r'\bconst\s+data\s*=', webpage, key, display_id,
-            contains_pattern=r'\[\{(?s:.+)\}\]', transform_source=js_to_json),
+            contains_pattern=r'\[\{(?s:.+)\}\]', transform_source=js_to_json, default=None),
             (..., 'data', key, {dict}), get_all=False) or {}
 
 
@@ -102,7 +159,7 @@ class FranceCultureIE(RadioFranceBaseIE):
                 'ext': 'mp3',
                 'title': 'La physique d’Einstein aiderait-elle à comprendre le cerveau ?',
                 'description': 'Existerait-il un pont conceptuel entre la physique de l’espace-temps et les neurosciences ?',
-                'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+                'thumbnail': r're:^https?://www\.radiofrance\.fr/pikapi/images/.+',
                 'upload_date': '20220514',
                 'duration': 2750,
             },
@@ -114,7 +171,7 @@ class FranceCultureIE(RadioFranceBaseIE):
                 'display_id': 'le-7-9-30-du-vendredi-10-mars-2023',
                 'title': 'Inflation alimentaire : comment en sortir ? - Régis Debray et Claude Grange - Cybèle Idelot',
                 'description': 'md5:36ee74351ede77a314fdebb94026b916',
-                'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+                'thumbnail': r're:^https?://www\.radiofrance\.fr/pikapi/images/.+',
                 'upload_date': '20230310',
                 'duration': 8977,
                 'ext': 'mp3',
@@ -264,48 +321,117 @@ class RadioFranceLiveIE(RadioFranceBaseIE):
         }
 
 
+class RadioFranceTransistorIE(RadioFranceBaseIE):
+    IE_NAME = 'radiofrance:transistor'
+    _VALID_URL = rf'{RadioFranceBaseIE._VALID_URL_BASE}/transistor/aod/(?P<id>[0-9a-f-]+)'
+
+    _TESTS = [{
+        # episode of a "serie" podcast with no individual page
+        'url': 'https://www.radiofrance.fr/transistor/aod/fb76501c-09d3-4167-98d7-3f02194d2d18',
+        'info_dict': {
+            'id': 'fb76501c-09d3-4167-98d7-3f02194d2d18',
+            'ext': 'm4a',
+            'title': r're:.*Les Malheurs de Sophie.* - .+',
+            'series': r're:.*Les Malheurs de Sophie.*',
+            'episode': str,
+            'thumbnail': r're:^https?://www\.radiofrance\.fr/pikapi/images/.+',
+        },
+    }]
+
+    def _real_extract(self, url):
+        audio_id = self._match_id(url)
+        data = self._download_json(
+            f'https://www.radiofrance.fr/transistor/aod/{audio_id}', audio_id,
+            note='Downloading audio metadata')
+
+        formats = []
+        for source in traverse_obj(data, ('sources', lambda _, v: v['url'])):
+            ext = determine_ext(source['url'])
+            formats.append({
+                'url': source['url'],
+                'format_id': traverse_obj(source, ('preset', 'name', {str})) or ext,
+                'ext': ext,
+                'acodec': traverse_obj(source, ('preset', 'encoding', {str.lower})),
+                'abr': traverse_obj(source, ('preset', 'bitrate', {int_or_none})),
+                'vcodec': 'none',
+            })
+
+        first_line = traverse_obj(data, ('metadata', 'firstLine', {str}))
+        second_line = traverse_obj(data, ('metadata', 'secondLine', {str.strip}))
+        cover_id = traverse_obj(data, ('metadata', 'cover', 'id', {str}))
+
+        thumbnail = None
+        if cover_id:
+            # pikapi requires a size suffix; ?webp=false forces JPEG for embedders
+            thumbnail = f'https://www.radiofrance.fr/pikapi/images/{cover_id}/2048?webp=false'
+
+        return {
+            'id': audio_id,
+            'title': join_nonempty(first_line, second_line, delim=' - ') or audio_id,
+            'series': first_line,
+            'episode': second_line,
+            'thumbnail': thumbnail,
+            'formats': formats,
+        }
+
+
 class RadioFrancePlaylistBaseIE(RadioFranceBaseIE):
     """Subclasses must set _METADATA_KEY"""
 
-    def _call_api(self, content_id, cursor, page_num):
-        raise NotImplementedError('This method must be implemented by subclasses')
+    def _call_api(self, path, page_num):
+        return traverse_obj(
+            self._call_data_api(path, path, query={'p': page_num},
+                                note=f'Downloading page {page_num}'),
+            (self._METADATA_KEY, {dict})) or {}
 
-    def _generate_playlist_entries(self, content_id, content_response):
+    @staticmethod
+    def _pikapi_thumbnail(visual):
+        """Build a usable thumbnail URL from a `visual` object (pikapi requires a size suffix)."""
+        src = traverse_obj(visual, ('src', {str}))
+        if not src:
+            return None
+        return f'{src.rstrip("/")}/2048?webp=false'
+
+    def _generate_playlist_entries(self, path, content_response):
+        # FranceCultureIE only matches episode URLs ending in -\d{6,}; for any other shape
+        # (e.g. legacy slugs, "serie" episodes with no page) we fall back to transistor/aod.
+        france_culture_url_re = re.compile(r'-\d{6,}(?:[?#]|$)')
         for page_num in itertools.count(2):
-            for entry in content_response['items']:
-                yield self.url_result(
-                    f'https://www.radiofrance.fr/{entry["path"]}', url_transparent=True, **traverse_obj(entry, {
-                        'title': 'title',
-                        'description': 'standFirst',
-                        'timestamp': ('publishedDate', {int_or_none}),
-                        'thumbnail': ('visual', 'src'),
-                    }))
+            for entry in traverse_obj(content_response, ('items', lambda _, v: v.get('id'))):
+                metadata = traverse_obj(entry, {
+                    'title': ('titleProps', 'title', {str.strip}),
+                    'description': ('titleProps', 'text', {str.strip}),
+                    'duration': ('manifestation', 'duration', {int_or_none}),
+                })
+                metadata['thumbnail'] = self._pikapi_thumbnail(entry.get('visual'))
+                href = traverse_obj(entry, ('titleProps', 'href', {str}, filter))
+                if href and france_culture_url_re.search(href):
+                    yield self.url_result(
+                        urljoin('https://www.radiofrance.fr', href),
+                        url_transparent=True, **metadata)
+                else:
+                    yield self.url_result(
+                        f'https://www.radiofrance.fr/transistor/aod/{entry["id"]}',
+                        ie=RadioFranceTransistorIE.ie_key(), video_id=entry['id'],
+                        url_transparent=True, **metadata)
 
-            next_cursor = traverse_obj(content_response, (('pagination', None), 'next'), get_all=False)
-            if not next_cursor:
+            if not traverse_obj(content_response, ('next', {str}, filter)):
                 break
-
-            content_response = self._call_api(content_id, next_cursor, page_num)
+            content_response = self._call_api(path, page_num)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-
-        metadata = self._download_json(
-            'https://www.radiofrance.fr/api/v2.1/path', display_id,
-            query={'value': urllib.parse.urlparse(url).path})['content']
-
-        content_id = metadata['id']
+        path = urllib.parse.urlparse(url).path
+        content = self._call_data_api(path, display_id)
 
         return self.playlist_result(
-            self._generate_playlist_entries(content_id, metadata[self._METADATA_KEY]), content_id,
-            display_id=display_id, **{**traverse_obj(metadata, {
-                'title': 'title',
-                'description': 'standFirst',
-                'thumbnail': ('visual', 'src'),
-            }), **traverse_obj(metadata, {
-                'title': 'name',
-                'description': 'role',
-            })})
+            self._generate_playlist_entries(path, content.get(self._METADATA_KEY) or {}),
+            content.get('id') or display_id,
+            display_id=display_id, thumbnail=self._pikapi_thumbnail(content.get('visual')),
+            **traverse_obj(content, {
+                'title': (('title', 'name'), {str}, any),
+                'description': (('standFirst', 'role', 'chapo', 'baseline'), {str.strip}, filter, any),
+            }))
 
 
 class RadioFrancePodcastIE(RadioFrancePlaylistBaseIE):
@@ -316,41 +442,32 @@ class RadioFrancePodcastIE(RadioFrancePlaylistBaseIE):
     '''
 
     _TESTS = [{
-        'url': 'https://www.radiofrance.fr/franceinfo/podcasts/le-billet-vert',
+        'url': 'https://www.radiofrance.fr/franceinfo/podcasts/le-billet-sciences',
         'info_dict': {
             'id': 'eaf6ef81-a980-4f1c-a7d1-8a75ecd54b17',
-            'display_id': 'le-billet-vert',
+            'display_id': 'le-billet-sciences',
             'title': 'Le billet sciences',
-            'description': 'md5:eb1007b34b0c0a680daaa71525bbd4c1',
-            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            'description': 'md5:be91a0218154c0c69f18e0d9a2ce4b16',
+            'thumbnail': r're:^https?://www\.radiofrance\.fr/pikapi/images/.+',
         },
         'playlist_mincount': 11,
     }, {
-        'url': 'https://www.radiofrance.fr/franceinter/podcasts/jean-marie-le-pen-l-obsession-nationale',
+        # "serie" podcast: episodes have no individual page, resolved via transistor/aod
+        'url': 'https://www.radiofrance.fr/franceculture/podcasts/serie-les-malheurs-de-sophie-une-comedie-musicale-de-sabine-zovighian-et-michael-liot',
         'info_dict': {
-            'id': '566fd524-3074-4fbc-ac69-8696f2152a54',
-            'display_id': 'jean-marie-le-pen-l-obsession-nationale',
-            'title': 'Jean-Marie Le Pen, l\'obsession nationale',
-            'description': 'md5:a07c0cfb894f6d07a62d0ad12c4b7d73',
-            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            'id': 'a61c5684-b251-4bee-9566-1f8300c66aa9',
+            'display_id': 'serie-les-malheurs-de-sophie-une-comedie-musicale-de-sabine-zovighian-et-michael-liot',
+            'title': r're:.*Les Malheurs de Sophie.*',
+            'thumbnail': r're:^https?://www\.radiofrance\.fr/pikapi/images/.+',
         },
-        'playlist_count': 7,
-    }, {
-        'url': 'https://www.radiofrance.fr/franceculture/podcasts/serie-thomas-grjebine',
-        'info_dict': {
-            'id': '63c1ddc9-9f15-457a-98b2-411bac63f48d',
-            'display_id': 'serie-thomas-grjebine',
-            'title': 'Thomas Grjebine',
-        },
-        'playlist_count': 1,
+        'playlist_count': 5,
     }, {
         'url': 'https://www.radiofrance.fr/fip/podcasts/certains-l-aiment-fip',
         'info_dict': {
             'id': '143dff38-e956-4a5d-8576-1c0b7242b99e',
             'display_id': 'certains-l-aiment-fip',
             'title': 'Certains l’aiment Fip',
-            'description': 'md5:ff974672ba00d4fd5be80fb001c5b27e',
-            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            'thumbnail': r're:^https?://www\.radiofrance\.fr/pikapi/images/.+',
         },
         'playlist_mincount': 321,
     }, {
@@ -362,11 +479,6 @@ class RadioFrancePodcastIE(RadioFrancePlaylistBaseIE):
     }]
 
     _METADATA_KEY = 'expressions'
-
-    def _call_api(self, podcast_id, cursor, page_num):
-        return self._download_json(
-            f'https://www.radiofrance.fr/api/v2.1/concepts/{podcast_id}/expressions', podcast_id,
-            note=f'Downloading page {page_num}', query={'pageCursor': cursor})
 
 
 class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
@@ -388,7 +500,7 @@ class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
             'display_id': 'eugenie-bastie',
             'title': 'Eugénie Bastié',
             'description': 'Journaliste et essayiste',
-            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            'thumbnail': r're:^https?://www\.radiofrance\.fr/pikapi/images/.+',
         },
         'playlist_mincount': 39,
     }, {
@@ -397,17 +509,6 @@ class RadioFranceProfileIE(RadioFrancePlaylistBaseIE):
     }]
 
     _METADATA_KEY = 'documents'
-
-    def _call_api(self, profile_id, cursor, page_num):
-        resp = self._download_json(
-            f'https://www.radiofrance.fr/api/v2.1/taxonomy/{profile_id}/documents', profile_id,
-            note=f'Downloading page {page_num}', query={
-                'relation': 'personality',
-                'cursor': cursor,
-            })
-
-        resp['next'] = traverse_obj(resp, ('pagination', 'next'))
-        return resp
 
 
 class RadioFranceProgramScheduleIE(RadioFranceBaseIE):

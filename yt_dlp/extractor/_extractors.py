@@ -1622,6 +1622,7 @@ from .radiofrance import (
     RadioFrancePodcastIE,
     RadioFranceProfileIE,
     RadioFranceProgramScheduleIE,
+    RadioFranceTransistorIE,
 )
 from .radiojavan import RadioJavanIE
 from .radiokapital import (
