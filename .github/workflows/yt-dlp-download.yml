@@ -1,45 +1,61 @@
-name: yt-dlp Node runtime & cookies test
+name: yt-dlp download with Node.js and Chrome cookies
 
-on:
-  workflow_dispatch:
-    inputs:
-      url:
-        description: 'YouTube URL to download'
-        required: true
+on: [push]
 
 jobs:
-  download-test:
+  download:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: '24'
 
-      - name: Install yt-dlp from master branch
+      - name: Verify Node.js is installed
+        run: |
+          node -v
+          which node
+
+      - name: Install yt-dlp latest from GitHub master
         run: |
           python3 -m pip install --upgrade pip
-          python3 -m pip install -U "yt-dlp @ https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz"
+          python3 -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp.git@master
 
-      - name: Verify Python can find and run node
+      - name: Write Chrome cookies file from GitHub secret
         run: |
-          python3 -c "import shutil, subprocess; print('Node path:', shutil.which('node')); print('Node version:', subprocess.run(['node','-v'], capture_output=True, text=True).stdout)"
+          echo "${{ secrets.YTCOOKIES }}" > ./cookies.txt
+          # Optional: print first few lines for debug (remove if you want privacy)
+          head -10 ./cookies.txt
 
-      - name: Upload YouTube cookies file (optional)
-        # Replace with your cookies file source or secret usage method
-        # Here we just assume you have uploaded cookies.txt to some artifact or via actions/upload-artifact previously or store it as secret and echo it
+      - name: Add Node.js bin dir to PATH in this step
+        shell: bash
         run: |
-          echo "Paste your cookies.txt contents here or download it securely to ./cookies.txt"
-        # Remove this step if you upload cookies differently
-
-      - name: Run yt-dlp with explicit Node.js runtime and cookies
-        env:
-          EJS_RUNNER: node
-        run: |
-          set -euxo pipefail
           NODE_BIN_DIR=$(dirname "$(which node)")
-          NODE_EXE="$NODE_BIN_DIR/node"
-          echo "Node executable path used for yt-dlp: $NODE_EXE"
+          echo "Node bin dir: $NODE_BIN_DIR"
           export PATH="$NODE_BIN_DIR:$PATH"
-          yt-dlp --js-runtimes node:$NODE_EXE --cookies ./cookies.txt -v -f bestaudio --simulate "${{ github.event.inputs.url }}"
+          
+          # Show PATH for debug
+          echo "PATH=$PATH"
+
+          # Now run yt-dlp with Node.js enabled and your cookies file
+          EJS_RUNNER=node yt-dlp \
+            --cookies ./cookies.txt \
+            --no-warnings \
+            -f bestaudio \
+            --print-traffic \
+            --no-check-certificate \
+            --verbose \
+            https://www.youtube.com/watch?v=IlNwVWwGDpw
+
+      - name: Upload audio artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ytdlp-audio
+          path: |
+            *.m4a
+            *.webm
+            *.opus
