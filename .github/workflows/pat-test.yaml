@@ -10,11 +10,13 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Configure git
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "pat-test"
+          git config user.email "pat@test.com"
 
       - name: Test PAT authentication
         env:
@@ -22,17 +24,8 @@ jobs:
         run: |
           set -e
 
-          if [ -z "$REPO_PUSH_TOKEN" ]; then
-            echo "REPO_PUSH_TOKEN is empty"
-            exit 1
-          fi
-
-          echo "Setting remote with PAT..."
-
           git remote set-url origin \
-            https://x-access-token:${REPO_PUSH_TOKEN}@github.com/mostafa-technet/yt-dlp.git
-
-          echo "Creating test branch..."
+          https://x-access-token:${REPO_PUSH_TOKEN}@github.com/mostafa-technet/yt-dlp.git
 
           git checkout -B pat-test-branch
 
@@ -41,8 +34,4 @@ jobs:
           git add pat-test.txt
           git commit -m "PAT authentication test"
 
-          echo "Pushing..."
-
           git push origin pat-test-branch --force
-
-          echo "PAT works successfully"
