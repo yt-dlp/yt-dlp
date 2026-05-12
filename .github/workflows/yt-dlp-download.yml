@@ -1,69 +1,139 @@
-name: Download YouTube Audio
+name: yt-dlp multi download
 
 on:
   workflow_dispatch:
+    inputs:
+      urls:
+        description: "Paste one or more YouTube URLs, one per line"
+        required: true
+        type: string
+      mode:
+        description: "Choose download type"
+        required: true
+        default: audio
+        type: choice
+        options:
+          - audio
+          - video
 
 jobs:
-  download-audio:
+  download:
     runs-on: ubuntu-latest
+
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Checkout repo
-      uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-    - name: Setup Node.js 24
-      uses: actions/setup-node@v3
-      with:
-        node-version: 24
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
 
-    - name: Verify YT_COOKIES secret presence and length
-      run: |
-        secret="${{ secrets.YT_COOKIES }}"
-        if [ -z "$secret" ]; then
-          echo "Error: Secret YT_COOKIES is empty or not configured."
-          exit 1
-        else
-          echo "YT_COOKIES secret is set."
-          echo "Length of YT_COOKIES: ${#secret}"
-          echo "$secret" | sha256sum
-        fi
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
 
-    - name: Write cookies to file
-      run: echo "${{ secrets.YT_COOKIES }}" > cookies.txt
+      - name: Install yt-dlp
+        run: |
+          python -m pip install --upgrade pip
+          pip install -U yt-dlp
 
-    - name: Install yt-dlp latest (master branch)
-      run: python3 -m pip install -U git+https://github.com/yt-dlp/yt-dlp.git@master
+      - name: Write cookies
+        run: |
+          echo "${{ secrets.YT_COOKIES }}" > cookies.txt
+          echo "cookies.txt written"
+          test -s cookies.txt
 
-    - name: List available formats with Node JS runtime properly set
-      env:
-        EJS_RUNNER: node
-      run: |
-        NODE_BIN_DIR=$(dirname "$(which node)")
-        export PATH="$NODE_BIN_DIR:$PATH"
-        NODE_EXE=$(which node)
-        echo "Node executable: $NODE_EXE"
-        yt-dlp --verbose \
-          --js-runtimes "node:$NODE_EXE" \
-          --remote-components ejs:github \
-          --cookies ./cookies.txt \
-          --list-formats "https://www.youtube.com/watch?v=IlNwVWwGDpw"
+      - name: Save URL list
+        run: |
+          cat > urls.txt << 'EOF'
+          ${{ inputs.urls }}
+          EOF
+          echo "URLs received:"
+          cat urls.txt
 
-    - name: Run yt-dlp to download best audio or best available
-      env:
-        NODE_BIN_DIR: $(dirname "$(which node)")
-        NODE_EXE: $(which node)
-        EJS_RUNNER: node
-      run: |
-        export PATH="$NODE_BIN_DIR:$PATH"
-        yt-dlp --verbose \
-          --js-runtimes "node:$NODE_EXE" \
-          --remote-components ejs:github \
-          --cookies ./cookies.txt \
-          -f bestaudio/best \
-          "https://www.youtube.com/watch?v=IlNwVWwGDpw"
+      - name: Show environment diagnostics
+        run: |
+          which python
+          python --version
+          which node
+          node --version
+          which ffmpeg
+          ffmpeg -version | head -n 1
+          yt-dlp --version
 
-    - name: Upload audio file
-      uses: actions/upload-artifact@v4
-      with:
-        name: downloaded-audio
-        path: '*.m4a, *.webm, *.mp3, *.opus, *.mka' # common audio extensions
+      - name: Download media
+        env:
+          EJS_RUNNER: node
+          MODE: ${{ inputs.mode }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p downloads
+
+          NODE_BIN_DIR=$(dirname "$(which node)")
+          export PATH="$NODE_BIN_DIR:$PATH"
+          NODE_EXE=$(which node)
+
+          echo "Node executable: $NODE_EXE"
+          echo "Selected mode: $MODE"
+
+          yt_base_args=(
+            --verbose
+            --js-runtimes "node:$NODE_EXE"
+            --remote-components ejs:github
+            --cookies ./cookies.txt
+            --restrict-filenames
+            --no-playlist
+            -o "downloads/%(title).200s [%(id)s].%(ext)s"
+          )
+
+          while IFS= read -r url || [ -n "$url" ]; do
+            url="$(echo "$url" | xargs)"
+            if [ -z "$url" ]; then
+              continue
+            fi
+
+            echo "========================================"
+            echo "Processing URL: $url"
+            echo "========================================"
+
+            echo "Listing formats first..."
+            yt-dlp "${yt_base_args[@]}" --list-formats "$url"
+
+            if [ "$MODE" = "audio" ]; then
+              echo "Downloading best audio and converting to mp3..."
+              yt-dlp "${yt_base_args[@]}" \
+                -f "bestaudio/best" \
+                --extract-audio \
+                --audio-format mp3 \
+                --audio-quality 0 \
+                "$url"
+            else
+              echo "Downloading best video+audio..."
+              yt-dlp "${yt_base_args[@]}" \
+                -f "bv*+ba/b" \
+                --merge-output-format mp4 \
+                "$url"
+            fi
+
+          done < urls.txt
+
+      - name: Show downloaded files
+        run: |
+          echo "Downloaded files:"
+          ls -lah downloads || true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: yt-dlp-${{ inputs.mode }}-downloads
+          path: downloads/
+          if-no-files-found: error
