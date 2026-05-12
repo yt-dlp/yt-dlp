@@ -90,7 +90,6 @@ jobs:
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-
             - name: Commit and push downloads
         shell: bash
         env:
@@ -133,3 +132,6 @@ jobs:
 
           # Push
           git push origin "$TARGET_BRANCH" --force
+
+
+
