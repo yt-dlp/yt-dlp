@@ -1,14 +1,14 @@
-name: Test yt-dlp with explicit Node.js PATH
+name: yt-dlp Node runtime & cookies test
 
 on:
   workflow_dispatch:
     inputs:
       url:
-        description: "YouTube URL"
+        description: 'YouTube URL to download'
         required: true
 
 jobs:
-  test-node-path:
+  download-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -17,27 +17,29 @@ jobs:
         with:
           node-version: "24"
 
-      - name: Install yt-dlp
+      - name: Install yt-dlp from master branch
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install -U "yt-dlp @ https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz"
 
-      - name: Run yt-dlp with Node.js in PATH explicitly set
+      - name: Verify Python can find and run node
+        run: |
+          python3 -c "import shutil, subprocess; print('Node path:', shutil.which('node')); print('Node version:', subprocess.run(['node','-v'], capture_output=True, text=True).stdout)"
+
+      - name: Upload YouTube cookies file (optional)
+        # Replace with your cookies file source or secret usage method
+        # Here we just assume you have uploaded cookies.txt to some artifact or via actions/upload-artifact previously or store it as secret and echo it
+        run: |
+          echo "Paste your cookies.txt contents here or download it securely to ./cookies.txt"
+        # Remove this step if you upload cookies differently
+
+      - name: Run yt-dlp with explicit Node.js runtime and cookies
         env:
           EJS_RUNNER: node
         run: |
           set -euxo pipefail
-
-          # Print Node version & binary path
-          echo "Node.js version:"
-          node -v
           NODE_BIN_DIR=$(dirname "$(which node)")
-          echo "Node binary directory: $NODE_BIN_DIR"
-
-          # Explicitly add Node.js bin dir to PATH in the same step
+          NODE_EXE="$NODE_BIN_DIR/node"
+          echo "Node executable path used for yt-dlp: $NODE_EXE"
           export PATH="$NODE_BIN_DIR:$PATH"
-
-          echo "Updated PATH: $PATH"
-
-          # Run yt-dlp with simulate flag to verify JS runtime visibility
-          yt-dlp -v -f bestaudio --simulate "${{ github.event.inputs.url }}"
+          yt-dlp --js-runtimes node:$NODE_EXE --cookies ./cookies.txt -v -f bestaudio --simulate "${{ github.event.inputs.url }}"
