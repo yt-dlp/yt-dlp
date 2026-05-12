@@ -29,13 +29,15 @@ jobs:
         with:
           node-version: "24"
 
-      # ---------- Fix Node PATH visibility ----------
-      - name: Export Node to PATH explicitly
+      # ---------- Export Node.js bin directory to PATH explicitly ----------
+      - name: Export Node.js bin directory to PATH explicitly
         run: |
-          echo "$(dirname $(which node))" >> $GITHUB_PATH
+          NODE_BIN_DIR=$(dirname "$(which node)")
+          echo "Adding $NODE_BIN_DIR to PATH via GITHUB_PATH"
+          echo "$NODE_BIN_DIR" >> $GITHUB_PATH
 
-      # ---------- Verify runtimes ----------
-      - name: Verify JS runtime visibility
+      # ---------- Verify Node.js availability ----------
+      - name: Debug Node availability
         run: |
           echo "PATH=$PATH"
           which node
@@ -68,7 +70,7 @@ jobs:
       - name: Prepare cookies
         run: |
           echo "${{ secrets.YT_COOKIES }}" > cookies.txt
-          sed -n '1,5p' cookies.txt
+          head -5 cookies.txt
 
       # ---------- Download ----------
       - name: Download videos
@@ -80,7 +82,8 @@ jobs:
           for URL in $URLS; do
             echo "Downloading $URL"
 
-            yt-dlp -v \
+            # EJS_RUNNER=node forces yt-dlp to use node for JS challenge solving
+            EJS_RUNNER=node yt-dlp -v \
               --cookies cookies.txt \
               --geo-bypass \
               --retries 5 \
@@ -92,7 +95,6 @@ jobs:
               -f bestaudio \
               -o "%(title)s.%(ext)s" \
               "$URL"
-
           done
 
       # ---------- Upload ----------
