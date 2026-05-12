@@ -25,21 +25,19 @@ jobs:
       - name: Install yt-dlp (latest)
         run: |
           python3 -m pip install --upgrade pip
-          python3 -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp.git@master
-      - name: Verify YT_COOKIES secret presence
+          python3 -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp.git@maste
+      - name: Verify YT_COOKIES secret presence and length
         run: |
-          if [ -z "${{ secrets.YT_COOKIES }}" ]; then
+          secret="${{ secrets.YT_COOKIES }}"
+          if [ -z "$secret" ]; then
             echo "Error: Secret YT_COOKIES is empty or not configured."
             exit 1
           else
             echo "YT_COOKIES secret is set."
-            # Optional: print length of secret without revealing content
-            echo "Length of YT_COOKIES is ${#{
-              secrets.YT_COOKIES
-            }}"
-            # Or print sha256 hash to confirm unique content is supplied
-            echo "${{ secrets.YT_COOKIES }}" | sha256sum
+            echo "Length of YT_COOKIES is ${#secret}"
+            echo "$secret" | sha256sum
           fi
+
 
       - name: Write cookies file
         run: |
