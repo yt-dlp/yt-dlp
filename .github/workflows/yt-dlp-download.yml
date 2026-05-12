@@ -4,20 +4,18 @@ on:
   workflow_dispatch:
     inputs:
       urls:
-        description: "YouTube URLs (comma, space or newline separated)"
+        description: "YouTube URLs separated by spaces or commas"
         required: true
         type: string
+
       mode:
-        description: "Download mode: audio (mp3) or video (mp4)"
+        description: "Download mode"
         required: true
         default: audio
         type: choice
         options:
           - audio
           - video
-
-permissions:
-  contents: write
 
 jobs:
   ytdlp:
@@ -28,6 +26,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -44,13 +43,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg git
           python -m pip install --upgrade pip
-          pip install yt-dlp
+          pip install -U yt-dlp
 
-      - name: Write cookies.txt
+      - name: Write cookies
         run: |
           echo "${{ secrets.YT_COOKIES }}" > cookies.txt
+
           if [ ! -s cookies.txt ]; then
-            echo "YT_COOKIES secret is missing or empty"
+            echo "YT_COOKIES secret is empty"
             exit 1
           fi
 
@@ -58,7 +58,13 @@ jobs:
         shell: bash
         run: |
           INPUT="${{ inputs.urls }}"
-          printf '%s\n' "$INPUT" | tr ', ' '\n\n' | sed '/^$/d' > urls.txt
+
+          printf '%s\n' "$INPUT" \
+            | tr ',' '\n' \
+            | tr ' ' '\n' \
+            | sed '/^$/d' \
+            | sort -u > urls.txt
+
           echo "URLs:"
           cat urls.txt
 
@@ -67,47 +73,92 @@ jobs:
         env:
           MODE: ${{ inputs.mode }}
         run: |
-          set -euo pipefail
+          set +e
+
           mkdir -p downloads
+          mkdir -p failed
+
           NODE_EXE=$(which node)
 
+          SUCCESS_COUNT=0
+          FAIL_COUNT=0
+
           while IFS= read -r url || [ -n "$url" ]; do
+
             url=$(echo "$url" | xargs)
+
             [ -z "$url" ] && continue
 
+            echo ""
+            echo "======================================"
             echo "Downloading: $url"
+            echo "======================================"
 
             if [ "$MODE" = "audio" ]; then
+
               yt-dlp \
-                --cookies ./cookies.txt \
+                --cookies cookies.txt \
                 --js-runtimes "node:$NODE_EXE" \
                 --remote-components ejs:github \
+                --download-archive downloads/archive.txt \
                 --restrict-filenames \
-                -o "downloads/%(title).200s [%(id)s].%(ext)s" \
-                -f "bestaudio/best" \
+                --ignore-errors \
+                --continue \
+                --no-overwrites \
                 --extract-audio \
                 --audio-format mp3 \
                 --audio-quality 0 \
+                -f "bestaudio/best" \
+                -o "downloads/audio/%(uploader)s/%(title).200s [%(id)s].%(ext)s" \
                 "$url"
+
             else
+
               yt-dlp \
-                --cookies ./cookies.txt \
+                --cookies cookies.txt \
                 --js-runtimes "node:$NODE_EXE" \
                 --remote-components ejs:github \
+                --download-archive downloads/archive.txt \
                 --restrict-filenames \
-                -o "downloads/%(title).200s [%(id)s].%(ext)s" \
-                -f "bv*+ba/b" \
+                --ignore-errors \
+                --continue \
+                --no-overwrites \
                 --merge-output-format mp4 \
+                -f "bv*+ba/b" \
+                -o "downloads/video/%(uploader)s/%(title).200s [%(id)s].%(ext)s" \
                 "$url"
+
             fi
+
+            EXIT_CODE=$?
+
+            if [ "$EXIT_CODE" -eq 0 ]; then
+              echo "SUCCESS: $url"
+              SUCCESS_COUNT=$((SUCCESS_COUNT+1))
+            else
+              echo "$url" >> failed/failed_urls.txt
+              echo "FAILED: $url"
+              FAIL_COUNT=$((FAIL_COUNT+1))
+            fi
+
           done < urls.txt
+
+          echo ""
+          echo "========== SUMMARY =========="
+          echo "Successful: $SUCCESS_COUNT"
+          echo "Failed: $FAIL_COUNT"
+
+      - name: Show downloaded files
+        run: |
+          echo "Downloaded files:"
+          find downloads -type f | sort || true
 
       - name: Configure git
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "yt-dlp-bot"
+          git config user.email "yt-dlp@bot.local"
 
-      - name: Commit and push to yt-dlp-downloads
+      - name: Commit files
         shell: bash
         run: |
           set -e
@@ -117,6 +168,7 @@ jobs:
           git checkout -B "$TARGET_BRANCH"
 
           git add -f downloads/
+          git add -f failed/ || true
 
           if git diff --cached --quiet; then
             echo "No changes to commit"
@@ -125,4 +177,11 @@ jobs:
 
           git commit -m "yt-dlp downloads $(date -u '+%Y-%m-%d %H:%M UTC')"
 
-          git push origin "$TARGET_BRANCH" --force
+      - name: Push using PAT
+        env:
+          REPO_PUSH_TOKEN: ${{ secrets.REPO_PUSH_TOKEN }}
+        run: |
+          git remote set-url origin \
+          https://x-access-token:${REPO_PUSH_TOKEN}@github.com/mostafa-technet/yt-dlp.git
+
+          git push origin yt-dlp-downloads --force
