@@ -1,109 +1,43 @@
-name: yt-dlp hardened download
+name: Test yt-dlp with explicit Node.js PATH
 
 on:
   workflow_dispatch:
     inputs:
-      urls:
-        description: "YouTube URLs (space or comma separated)"
+      url:
+        description: "YouTube URL"
         required: true
 
 jobs:
-  download:
+  test-node-path:
     runs-on: ubuntu-latest
 
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
     steps:
-      - uses: actions/checkout@v4
-
-      # ---------- Python ----------
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      # ---------- Node.js (JS challenge solver) ----------
-      - name: Setup Node.js
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
           node-version: "24"
 
-      # ---------- Export Node.js bin directory to PATH explicitly ----------
-      - name: Export Node.js bin directory to PATH explicitly
+      - name: Install yt-dlp
         run: |
-          NODE_BIN_DIR=$(dirname "$(which node)")
-          echo "Adding $NODE_BIN_DIR to PATH via GITHUB_PATH"
-          echo "$NODE_BIN_DIR" >> $GITHUB_PATH
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -U "yt-dlp @ https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz"
 
-      # ---------- Verify Node.js availability ----------
-      - name: Debug Node availability
-        run: |
-          echo "PATH=$PATH"
-          which node
-          node -v
-          python --version
-          python -c "import shutil; print('node in PATH:', shutil.which('node'))"
-
-      # ---------- Cache pip ----------
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      # ---------- System deps ----------
-      - name: Install ffmpeg
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-
-      # ---------- yt-dlp (LATEST MASTER) ----------
-      - name: Install yt-dlp (GitHub master)
-        run: |
-          python -m pip install --upgrade pip
-          pip install -U "yt-dlp @ https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz"
-
-      # ---------- Cookies ----------
-      - name: Prepare cookies
-        run: |
-          echo "${{ secrets.YT_COOKIES }}" > cookies.txt
-          head -5 cookies.txt
-
-      # ---------- Download ----------
-      - name: Download videos
+      - name: Run yt-dlp with Node.js in PATH explicitly set
+        env:
+          EJS_RUNNER: node
         run: |
           set -euxo pipefail
 
-          URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
+          # Print Node version & binary path
+          echo "Node.js version:"
+          node -v
+          NODE_BIN_DIR=$(dirname "$(which node)")
+          echo "Node binary directory: $NODE_BIN_DIR"
 
-          for URL in $URLS; do
-            echo "Downloading $URL"
+          # Explicitly add Node.js bin dir to PATH in the same step
+          export PATH="$NODE_BIN_DIR:$PATH"
 
-            # EJS_RUNNER=node forces yt-dlp to use node for JS challenge solving
-            EJS_RUNNER=node yt-dlp -v \
-              --cookies cookies.txt \
-              --geo-bypass \
-              --retries 5 \
-              --fragment-retries 5 \
-              --sleep-interval 3 \
-              --max-sleep-interval 7 \
-              --extractor-args "youtube:player_client=web,web_safari" \
-              --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
-              -f bestaudio \
-              -o "%(title)s.%(ext)s" \
-              "$URL"
-          done
+          echo "Updated PATH: $PATH"
 
-      # ---------- Upload ----------
-      - name: Upload audio artifacts
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: downloaded-audio
-          path: |
-            *.m4a
-            *.webm
-            *.opus
+          # Run yt-dlp with simulate flag to verify JS runtime visibility
+          yt-dlp -v -f bestaudio --simulate "${{ github.event.inputs.url }}"
