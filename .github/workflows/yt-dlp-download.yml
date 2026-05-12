@@ -1,54 +1,69 @@
 name: Download YouTube Audio
 
-on: [push]
+on:
+  workflow_dispatch:
 
 jobs:
-  download_audio:
+  download-audio:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Setup Node.js 24
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
 
-      - name: Verify YT_COOKIES secret presence and length
-        run: |
-          secret="${{ secrets.YT_COOKIES }}"
-          if [ -z "$secret" ]; then
-            echo "Error: Secret YT_COOKIES is empty or not configured."
-            exit 1
-          else
-            echo "YT_COOKIES secret is set."
-            echo "Length of YT_COOKIES is ${#secret}"
-            echo "$secret" | sha256sum
-          fi
+    - name: Checkout repo
+      uses: actions/checkout@v3
 
-      - name: Write cookies file
-        run: |
-          echo "${{ secrets.YT_COOKIES }}" > cookies.txt
-          echo "Cookies file created."
+    - name: Setup Node.js 24
+      uses: actions/setup-node@v3
+      with:
+        node-version: 24
 
-      - name: Install yt-dlp from GitHub master branch
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install git+https://github.com/yt-dlp/yt-dlp.git@master
+    - name: Verify YT_COOKIES secret presence and length
+      run: |
+        secret="${{ secrets.YT_COOKIES }}"
+        if [ -z "$secret" ]; then
+          echo "Error: Secret YT_COOKIES is empty or not configured."
+          exit 1
+        else
+          echo "YT_COOKIES secret is set."
+          echo "Length of YT_COOKIES: ${#secret}"
+          echo "$secret" | sha256sum
+        fi
 
-      - name: Download audio with yt-dlp
-        env:
-          EJS_RUNNER: node
-        run: |
-          NODE_BIN_DIR=$(dirname "$(which node)")
-          export PATH="$NODE_BIN_DIR:$PATH"
-          NODE_EXE=$(which node)
-          yt-dlp --verbose \
-            --js-runtimes "node:$NODE_EXE" \
-            --cookies ./cookies.txt \
-            -f bestaudio \
-            "https://www.youtube.com/watch?v=IlNwVWwGDpw"
+    - name: Write cookies to file
+      run: echo "${{ secrets.YT_COOKIES }}" > cookies.txt
 
-      - name: Upload audio artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: audio-files
-          path: "*.m4a"
+    - name: Install yt-dlp latest (master branch)
+      run: python3 -m pip install -U git+https://github.com/yt-dlp/yt-dlp.git@master
+
+    - name: Run yt-dlp to list available formats (debug)
+      env:
+        NODE_BIN_DIR: $(dirname "$(which node)")
+        NODE_EXE: $(which node)
+        EJS_RUNNER: node
+      run: |
+        export PATH="$NODE_BIN_DIR:$PATH"
+        echo "Node.js path: $NODE_EXE"
+        yt-dlp --verbose \
+          --js-runtimes "node:$NODE_EXE" \
+          --remote-components ejs:github \
+          --cookies ./cookies.txt \
+          --list-formats "https://www.youtube.com/watch?v=IlNwVWwGDpw"
+
+    - name: Run yt-dlp to download best audio or best available
+      env:
+        NODE_BIN_DIR: $(dirname "$(which node)")
+        NODE_EXE: $(which node)
+        EJS_RUNNER: node
+      run: |
+        export PATH="$NODE_BIN_DIR:$PATH"
+        yt-dlp --verbose \
+          --js-runtimes "node:$NODE_EXE" \
+          --remote-components ejs:github \
+          --cookies ./cookies.txt \
+          -f bestaudio/best \
+          "https://www.youtube.com/watch?v=IlNwVWwGDpw"
+
+    - name: Upload audio file
+      uses: actions/upload-artifact@v4
+      with:
+        name: downloaded-audio
+        path: '*.m4a, *.webm, *.mp3, *.opus, *.mka' # common audio extensions
