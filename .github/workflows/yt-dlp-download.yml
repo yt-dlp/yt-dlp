@@ -74,7 +74,7 @@ jobs:
               --cookies cookies.txt \
               --extractor-args "youtube:player_client=android" \
               --geo-bypass \
-              -f "bv*+ba/b" \
+              -f "best[height=480]/best[height=720]/best[height=360]/best" \
               -o "out/%(title)s.%(ext)s" \
               "$URL"
           done
