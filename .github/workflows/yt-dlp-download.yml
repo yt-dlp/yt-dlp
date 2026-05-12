@@ -1,6 +1,8 @@
-name: yt-dlp download with Node.js and Chrome cookies
+name: yt-dlp download with cookies
 
-on: [push]
+on:
+  workflow_dispatch:
+  push:
 
 jobs:
   download:
@@ -8,51 +10,50 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js 24
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: "24"
 
-      - name: Verify Node.js is installed
+      - name: Verify Node.js
         run: |
           node -v
           which node
 
-      - name: Install yt-dlp latest from GitHub master
+      - name: Install yt-dlp (latest)
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp.git@master
 
-      - name: Write Chrome cookies file from GitHub secret
+      - name: Write cookies file
         run: |
-          echo "${{ secrets.YTCOOKIES }}" > ./cookies.txt
-          # Optional: print first few lines for debug (remove if you want privacy)
-          head -10 ./cookies.txt
+          echo "${{ secrets.YTCOOKIES }}" > cookies.txt
+          echo "Cookies file created"
 
-      - name: Add Node.js bin dir to PATH in this step
+      - name: Download audio with yt-dlp
         shell: bash
         run: |
           NODE_BIN_DIR=$(dirname "$(which node)")
-          echo "Node bin dir: $NODE_BIN_DIR"
           export PATH="$NODE_BIN_DIR:$PATH"
-          
-          # Show PATH for debug
-          echo "PATH=$PATH"
 
-          # Now run yt-dlp with Node.js enabled and your cookies file
+          NODE_EXE=$(which node)
+
+          echo "Using Node runtime: $NODE_EXE"
+
           EJS_RUNNER=node yt-dlp \
             --cookies ./cookies.txt \
+            --js-runtimes node:$NODE_EXE \
             --no-warnings \
-            -f bestaudio \
-            --print-traffic \
             --no-check-certificate \
             --verbose \
+            -f bestaudio \
+            -o "%(title)s.%(ext)s" \
             https://www.youtube.com/watch?v=IlNwVWwGDpw
 
       - name: Upload audio artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ytdlp-audio
           path: |
