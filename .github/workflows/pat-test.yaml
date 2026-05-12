@@ -1,0 +1,48 @@
+name: Test PAT Push Access
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-pat:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Test PAT authentication
+        env:
+          REPO_PUSH_TOKEN: ${{ secrets.REPO_PUSH_TOKEN }}
+        run: |
+          set -e
+
+          if [ -z "$REPO_PUSH_TOKEN" ]; then
+            echo "REPO_PUSH_TOKEN is empty"
+            exit 1
+          fi
+
+          echo "Setting remote with PAT..."
+
+          git remote set-url origin \
+            https://x-access-token:${REPO_PUSH_TOKEN}@github.com/mostafa-technet/yt-dlp.git
+
+          echo "Creating test branch..."
+
+          git checkout -B pat-test-branch
+
+          echo "test $(date)" > pat-test.txt
+
+          git add pat-test.txt
+          git commit -m "PAT authentication test"
+
+          echo "Pushing..."
+
+          git push origin pat-test-branch --force
+
+          echo "PAT works successfully"
