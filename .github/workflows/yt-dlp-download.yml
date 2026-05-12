@@ -1,55 +1,25 @@
-name: yt-dlp download (manual)
-
-on:
-  workflow_dispatch:
-    inputs:
-      url:
-        description: "YouTube URL"
-        required: true
-        type: string
-      mode:
-        description: "video or audio"
-        required: true
-        default: "video"
-        type: choice
-        options:
-          - video
-          - audio
-
-jobs:
-  download:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install yt-dlp + ffmpeg
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-          python -m pip install --upgrade pip
-          pip install yt-dlp
-
       - name: Download (video/audio)
+        env:
+          YT_COOKIES: ${{ secrets.YT_COOKIES }}
         run: |
           set -euxo pipefail
           mkdir -p out
+
+          echo "$YT_COOKIES" > cookies.txt
+          chmod 600 cookies.txt
+
           URL="${{ inputs.url }}"
           MODE="${{ inputs.mode }}"
 
           if [ "$MODE" = "audio" ]; then
-            yt-dlp -x --audio-format mp3 -o "out/%(title)s.%(ext)s" "$URL"
+            yt-dlp \
+              --cookies cookies.txt \
+              -x --audio-format mp3 \
+              -o "out/%(title)s.%(ext)s" \
+              "$URL"
           else
-            yt-dlp -o "out/%(title)s.%(ext)s" "$URL"
+            yt-dlp \
+              --cookies cookies.txt \
+              -o "out/%(title)s.%(ext)s" \
+              "$URL"
           fi
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: yt-dlp-out
-          path: out/
