@@ -91,20 +91,45 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
 
-      - name: Commit and push downloads
+            - name: Commit and push downloads
+        shell: bash
         env:
           REPO_PUSH_TOKEN: ${{ secrets.REPO_PUSH_TOKEN }}
           TARGET_BRANCH: yt-dlp-downloads
         run: |
-          if [ ! -d downloads ]; then
-            echo "Nothing to push, downloads directory missing!"
-            exit 0
+          set -e
+
+          # Verify token exists
+          if [ -z "$REPO_PUSH_TOKEN" ]; then
+            echo "REPO_PUSH_TOKEN secret is missing!"
+            exit 1
           fi
 
+          # Create/switch branch
           git checkout -B "$TARGET_BRANCH"
 
-          git add downloads/
-          git commit -m "Add yt-dlp downloads - $(date -u +"%Y-%m-%d %H:%M UTC")" || echo "No changes to commit"
+          # Ensure downloads folder exists
+          mkdir -p downloads
 
-          remote="https://x-access-token:${REPO_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push "$remote" "$TARGET_BRANCH" --force
+          echo "Git status before add:"
+          git status
+
+          # Force add downloads even if ignored
+          git add -f downloads/
+
+          echo "Git status after add:"
+          git status
+
+          # Commit only if changes exist
+          if git diff --cached --quiet; then
+            echo "No files to commit"
+          else
+            git commit -m "Add yt-dlp downloads - $(date -u +"%Y-%m-%d %H:%M UTC")"
+          fi
+
+          # Replace origin with PAT-authenticated remote
+          git remote remove origin || true
+          git remote add origin "https://x-access-token:${REPO_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          # Push
+          git push origin "$TARGET_BRANCH" --force
