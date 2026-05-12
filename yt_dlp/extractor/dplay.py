@@ -1335,7 +1335,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
         headers.update({
             'x-disco-params': f'realm={realm}',
-            'x-disco-client': 'Alps:HyogaPlayer:0.0.0',
+            'x-disco-client': 'WEB:UNKNOWN:wbdatv:2.1.9',
             'Authorization': self._get_auth(disco_base, display_id, realm),
             'Content-Type': 'application/json',
         })
