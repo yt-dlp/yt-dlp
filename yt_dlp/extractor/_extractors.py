@@ -133,6 +133,12 @@ from .arte import (
     ArteTVIE,
     ArteTVPlaylistIE,
 )
+from .arteradio import (
+    ArteRadioAudioblogBlogIE,
+    ArteRadioAudioblogIE,
+    ArteRadioCollectionIE,
+    ArteRadioIE,
+)
 from .asobichannel import (
     AsobiChannelIE,
     AsobiChannelTagURLIE,
