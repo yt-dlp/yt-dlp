@@ -34,14 +34,14 @@ jobs:
     - name: Install yt-dlp latest (master branch)
       run: python3 -m pip install -U git+https://github.com/yt-dlp/yt-dlp.git@master
 
-    - name: Run yt-dlp to list available formats (debug)
+    - name: List available formats with Node JS runtime properly set
       env:
-        NODE_BIN_DIR: $(dirname "$(which node)")
-        NODE_EXE: $(which node)
         EJS_RUNNER: node
       run: |
+        NODE_BIN_DIR=$(dirname "$(which node)")
         export PATH="$NODE_BIN_DIR:$PATH"
-        echo "Node.js path: $NODE_EXE"
+        NODE_EXE=$(which node)
+        echo "Node executable: $NODE_EXE"
         yt-dlp --verbose \
           --js-runtimes "node:$NODE_EXE" \
           --remote-components ejs:github \
