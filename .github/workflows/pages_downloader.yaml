@@ -1,53 +1,55 @@
-name: full webpage downloader
+name: httrack site downloader
 
 on:
   workflow_dispatch:
     inputs:
       url:
-        description: "Page URL to download"
+        description: "Website URL to mirror"
         required: true
         type: string
 
 jobs:
-  download:
+  mirror:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           persist-credentials: false
+          fetch-depth: 0
 
-      - name: Install wget
+      - name: Install HTTrack
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget git
+          sudo apt-get install -y httrack git
 
-      - name: Download page with assets
+      - name: Mirror website
         run: |
+          URL="${{ inputs.url }}"
           mkdir -p site
 
-          URL="${{ inputs.url }}"
-
-          wget \
-            --mirror \
-            --convert-links \
-            --adjust-extension \
-            --page-requisites \
-            --no-parent \
-            --directory-prefix=site \
-            "$URL"
+          httrack "$URL" \
+            -O site \
+            "+*" \
+            -v \
+            --depth=3 \
+            --robots=0 \
+            --sockets=4 \
+            --keep-alive \
+            --timeout=30 \
+            --retries=3 \
+            || true
 
           echo "Downloaded files:"
           find site | head -100
 
       - name: Configure git
         run: |
-          git config user.name "page-downloader-bot"
+          git config user.name "site-downloader-bot"
           git config user.email "bot@local"
 
-      - name: Commit files
+      - name: Commit site
         run: |
           TARGET_BRANCH="downloaded-pages"
 
@@ -56,11 +58,11 @@ jobs:
           git add site/
 
           if git diff --cached --quiet; then
-            echo "No changes"
+            echo "No changes to commit"
             exit 0
           fi
 
-          git commit -m "download page $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git commit -m "Mirror site $(date -u '+%Y-%m-%d %H:%M UTC')"
 
       - name: Push to GitHub
         env:
