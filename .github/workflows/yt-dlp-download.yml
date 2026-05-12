@@ -27,7 +27,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
 
       # ---------- Verify runtimes ----------
       - name: Verify runtimes
@@ -72,7 +72,7 @@ jobs:
           for URL in $URLS; do
             echo "Downloading $URL"
 
-            yt-dlp \
+            yt-dlp -v \
               --cookies cookies.txt \
               --geo-bypass \
               --retries 5 \
@@ -81,7 +81,7 @@ jobs:
               --max-sleep-interval 7 \
               --extractor-args "youtube:player_client=web,web_safari" \
               --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
-              -f "bestvideo[height<=720]/best" \
+              -f bestaudio \
               -o "%(title)s.%(ext)s" \
               "$URL"
 
