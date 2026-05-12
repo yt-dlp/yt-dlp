@@ -1,14 +1,14 @@
-name: yt-dlp multi download
+name: yt-dlp multi download and git push
 
 on:
   workflow_dispatch:
     inputs:
       urls:
-        description: "Paste one or more YouTube URLs, one per line"
+        description: "Paste one or more YouTube URLs (comma, space or newline separated)"
         required: true
         type: string
       mode:
-        description: "Choose download type"
+        description: "Download mode: audio (mp3) or video (mp4)"
         required: true
         default: audio
         type: choice
@@ -21,15 +21,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Setup Node
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
           node-version: "24"
@@ -44,96 +44,80 @@ jobs:
           python -m pip install --upgrade pip
           pip install -U yt-dlp
 
-      - name: Write cookies
+      - name: Write cookies.txt from secret
         run: |
           echo "${{ secrets.YT_COOKIES }}" > cookies.txt
-          echo "cookies.txt written"
           test -s cookies.txt
 
-      - name: Save URL list
+      - name: Parse URL input (supports comma, space, newline)
+        shell: bash
         run: |
-          cat > urls.txt << 'EOF'
-          ${{ inputs.urls }}
-          EOF
-          echo "URLs received:"
+          INPUT="${{ inputs.urls }}"
+          INPUT="${INPUT//,/ }"
+          echo "$INPUT" | tr ' ' '\n' | sed '/^$/d' > urls.txt
+          echo "Parsed URLs:"
           cat urls.txt
 
-      - name: Show environment diagnostics
-        run: |
-          which python
-          python --version
-          which node
-          node --version
-          which ffmpeg
-          ffmpeg -version | head -n 1
-          yt-dlp --version
-
-      - name: Download media
+      - name: Download media (audio or video mode)
         env:
-          EJS_RUNNER: node
           MODE: ${{ inputs.mode }}
         shell: bash
         run: |
           set -euo pipefail
 
           mkdir -p downloads
-
-          NODE_BIN_DIR=$(dirname "$(which node)")
-          export PATH="$NODE_BIN_DIR:$PATH"
+          touch success.txt failure.txt
           NODE_EXE=$(which node)
 
-          echo "Node executable: $NODE_EXE"
-          echo "Selected mode: $MODE"
-
-          yt_base_args=(
+          base_args=(
             --verbose
             --js-runtimes "node:$NODE_EXE"
             --remote-components ejs:github
             --cookies ./cookies.txt
             --restrict-filenames
-            --no-playlist
             -o "downloads/%(title).200s [%(id)s].%(ext)s"
           )
 
           while IFS= read -r url || [ -n "$url" ]; do
+            url="${url//[$'\r\n']}"
             url="$(echo "$url" | xargs)"
-            if [ -z "$url" ]; then
-              continue
-            fi
+            if [ -z "$url" ]; then continue; fi
 
-            echo "========================================"
             echo "Processing URL: $url"
-            echo "========================================"
-
-            echo "Listing formats first..."
-            yt-dlp "${yt_base_args[@]}" --list-formats "$url"
+            yt-dlp "${base_args[@]}" --list-formats "$url"
 
             if [ "$MODE" = "audio" ]; then
-              echo "Downloading best audio and converting to mp3..."
-              yt-dlp "${yt_base_args[@]}" \
-                -f "bestaudio/best" \
-                --extract-audio \
-                --audio-format mp3 \
-                --audio-quality 0 \
-                "$url"
+              if yt-dlp "${base_args[@]}" -f "bestaudio/best" --extract-audio --audio-format mp3 --audio-quality 0 "$url"; then
+                echo "$url" >> success.txt
+              else
+                echo "$url" >> failure.txt
+              fi
             else
-              echo "Downloading best video+audio..."
-              yt-dlp "${yt_base_args[@]}" \
-                -f "bv*+ba/b" \
-                --merge-output-format mp4 \
-                "$url"
+              if yt-dlp "${base_args[@]}" -f "bv*+ba/b" --merge-output-format mp4 "$url"; then
+                echo "$url" >> success.txt
+              else
+                echo "$url" >> failure.txt
+              fi
             fi
-
           done < urls.txt
 
-      - name: Show downloaded files
+      - name: Configure Git for pushing files
         run: |
-          echo "Downloaded files:"
-          ls -lah downloads || true
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: yt-dlp-${{ inputs.mode }}-downloads
-          path: downloads/
-          if-no-files-found: error
+      - name: Commit and push downloads to repository branch
+        env:
+          REPO_PUSH_TOKEN: ${{ secrets.REPO_PUSH_TOKEN }}
+          TARGET_BRANCH: "yt-dlp-downloads"
+        run: |
+          if [ ! -d downloads ]; then
+            echo "No downloads directory; nothing to push"
+            exit 1
+          fi
+
+          git checkout -B "$TARGET_BRANCH"
+          git add downloads/
+          git commit -m "Add yt-dlp downloads - $(date -u +"%Y-%m-%d %H:%M UTC")" || echo "No changes to commit"
+          remote_repo="https://x-access-token:${REPO_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push "$remote_repo" "$TARGET_BRANCH" --force
