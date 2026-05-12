@@ -1,10 +1,10 @@
-name: yt-dlp download
+name: yt-dlp hardened download
 
 on:
   workflow_dispatch:
     inputs:
       urls:
-        description: "YouTube URLs (separate with space or comma)"
+        description: "YouTube URLs (space or comma separated)"
         required: true
 
 jobs:
@@ -15,21 +15,28 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
+      # ---------- Python ----------
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Setup Node.js (for YouTube JS challenge)
+      # ---------- Node.js (JS challenge solver) ----------
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      # ---------- 🔒 Cache Python Dependencies ----------
-      - name: Cache pip packages
+      # ---------- Verify runtimes ----------
+      - name: Verify runtimes
+        run: |
+          node -v
+          python --version
+
+      # ---------- Cache pip ----------
+      - name: Cache pip
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
@@ -37,41 +44,50 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      # ---------- 🧾 Install yt-dlp & ffmpeg ----------
-      - name: Install dependencies
+      # ---------- System deps ----------
+      - name: Install ffmpeg
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
 
-      # ---------- 🍪 Prepare cookies ----------
+      # ---------- yt-dlp (LATEST MASTER) ----------
+      - name: Install yt-dlp (GitHub master)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -U "yt-dlp @ https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz"
+
+      # ---------- Cookies ----------
       - name: Prepare cookies
         run: |
           echo "${{ secrets.YT_COOKIES }}" > cookies.txt
-          head -n 5 cookies.txt
+          sed -n '1,5p' cookies.txt
 
-      # ---------- 🎥 Download Videos ----------
+      # ---------- Download ----------
       - name: Download videos
         run: |
           set -euxo pipefail
-          URLS="${{ github.event.inputs.urls }}"
-          URLS_CLEAN=$(echo "$URLS" | tr ',' ' ')
 
-          for URL in $URLS_CLEAN; do
+          URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
+
+          for URL in $URLS; do
             echo "Downloading $URL"
+
             yt-dlp \
               --cookies cookies.txt \
               --geo-bypass \
+              --retries 5 \
+              --fragment-retries 5 \
+              --sleep-interval 3 \
+              --max-sleep-interval 7 \
+              --extractor-args "youtube:player_client=web,web_safari" \
               --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
-              --extractor-args "youtube:player_client=web" \
-              --sleep-interval 3 --max-sleep-interval 7 \
-              -f "best[height=480]/best[height=720]/best[height=360]/best" \
+              -f "bestvideo[height<=720]/best" \
               -o "%(title)s.%(ext)s" \
               "$URL"
+
           done
 
-      # ---------- ☁️ Upload artifacts ----------
+      # ---------- Upload ----------
       - name: Upload videos
         if: success()
         uses: actions/upload-artifact@v4
