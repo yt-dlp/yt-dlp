@@ -1167,10 +1167,10 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'title': 'Prediger des Bösen',
             'description': 'md5:c41e95cf2da2074d77c8cf78c113bad6',
             'display_id': '21360',
-            'episode': 'Episode 5',
-            'episode_number': 5,
-            'season': 'Season 11',
-            'season_number': 11,
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'season': 'Season 7',
+            'season_number': 7,
             'series': 'Evil - Gesichter des Bösen',
             'duration': 2627.0,
             'upload_date': '20260506',
@@ -1286,6 +1286,11 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
         playlist_id = join_nonempty(parent_slug, slug_a, slug_b, delim='-')
         list_path = ('blocks', ..., 'videoId', {str})
 
+        disco_host = 'public.aurora.enhanced.live'
+        realm = 'de'
+        country = 'DE'
+        playlist = False
+
         # mapping channel from url → environment
         environment = {
             'dmax': 'dmaxde',
@@ -1307,6 +1312,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             playlist_id = join_nonempty(parent_slug, slug_a, delim='-')
             # playlists
             if slug_b == 'videos':
+                playlist = True
                 list_path = ('blocks', ..., 'items', ..., 'id')
         else:
             endpoint = f'shows/{slug_a}'
@@ -1314,9 +1320,17 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
 
         cms_data = self._download_json(f'https://public.aurora.enhanced.live/site/{endpoint}/', playlist_id, query=query)
 
+        video_ids = traverse_obj(cms_data, list_path)
+
+        if not playlist:
+            return {
+                '_type': 'video',
+                **self._update_disco_api_info(url, video_ids[0], disco_host=disco_host, realm=realm, country=country, cms_data=cms_data),
+            }
+
         return self.playlist_result(map(
-            functools.partial(self._update_disco_api_info, url, disco_host='public.aurora.enhanced.live', realm='de', country='DE', cms_data=cms_data),
-            traverse_obj(cms_data, list_path)), playlist_id)
+            functools.partial(self._update_disco_api_info, url, disco_host=disco_host, realm=realm, country=country, cms_data=cms_data),
+            video_ids), playlist_id)
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
         headers.update({
