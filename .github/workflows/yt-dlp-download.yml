@@ -58,42 +58,25 @@ jobs:
           head -n 1 cookies.txt | grep -q "Netscape" \
             || (echo "❌ Missing Netscape header" && exit 1)
 
-      - name: Download all URLs (verbose)
+      - name: Download all URLs
         run: |
           set -euxo pipefail
           mkdir -p out
 
-          echo "yt-dlp version:"
           yt-dlp --version
 
-          echo "Starting downloads..."
+          URLS_CLEAN=$(echo "$URLS" | tr ',' ' ')
 
-          echo "$URLS" | while IFS= read -r URL; do
-            [ -z "$URL" ] && continue
-
-            echo "=============================="
+          for URL in $URLS_CLEAN; do
             echo "Downloading: $URL"
-            echo "=============================="
 
-            if [ "$TYPE" = "audio" ]; then
-              yt-dlp -v \
-                --cookies cookies.txt \
-                --extractor-args "youtube:player_client=android" \
-                --geo-bypass \
-                --no-playlist \
-                -x --audio-format mp3 \
-                -o "out/%(title)s.%(ext)s" \
-                "$URL"
-            else
-              yt-dlp -v \
-                --cookies cookies.txt \
-                --extractor-args "youtube:player_client=android" \
-                --geo-bypass \
-                --no-playlist \
-                -f "bv*+ba/b" \
-                -o "out/%(title)s.%(ext)s" \
-                "$URL"
-            fi
+            yt-dlp -v \
+              --cookies cookies.txt \
+              --extractor-args "youtube:player_client=android" \
+              --geo-bypass \
+              -f "bv*+ba/b" \
+              -o "out/%(title)s.%(ext)s" \
+              "$URL"
           done
 
       - name: Upload results
