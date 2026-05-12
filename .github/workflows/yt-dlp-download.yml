@@ -45,7 +45,7 @@ jobs:
             --js-runtimes "node:$NODE_EXE" \
             --cookies ./cookies.txt \
             -f bestaudio \
-            "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
+            "https://www.youtube.com/watch?v=IlNwVWwGDpw"
 
       - name: Upload audio artifact
         uses: actions/upload-artifact@v4
