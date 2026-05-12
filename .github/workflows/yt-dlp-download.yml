@@ -1,10 +1,10 @@
-name: yt-dlp multi download and git push
+name: yt-dlp download and push
 
 on:
   workflow_dispatch:
     inputs:
       urls:
-        description: "Paste one or more YouTube URLs (comma, space or newline separated)"
+        description: "YouTube URLs (comma, space or newline separated)"
         required: true
         type: string
       mode:
@@ -21,103 +21,90 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: 3.12
 
       - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: 24
 
-      - name: Install ffmpeg
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          sudo apt-get install -y ffmpeg git
 
-      - name: Install yt-dlp
+      - name: Install yt-dlp python package
         run: |
           python -m pip install --upgrade pip
-          pip install -U yt-dlp
+          pip install yt-dlp
 
       - name: Write cookies.txt from secret
         run: |
           echo "${{ secrets.YT_COOKIES }}" > cookies.txt
           test -s cookies.txt
 
-      - name: Parse URL input (supports comma, space, newline)
+      - name: Parse input URLs
         shell: bash
         run: |
           INPUT="${{ inputs.urls }}"
           INPUT="${INPUT//,/ }"
           echo "$INPUT" | tr ' ' '\n' | sed '/^$/d' > urls.txt
-          echo "Parsed URLs:"
-          cat urls.txt
 
-      - name: Download media (audio or video mode)
+      - name: Download videos/audios
+        shell: bash
         env:
           MODE: ${{ inputs.mode }}
-        shell: bash
         run: |
           set -euo pipefail
-
           mkdir -p downloads
-          touch success.txt failure.txt
           NODE_EXE=$(which node)
 
           base_args=(
-            --verbose
+            --cookies ./cookies.txt
             --js-runtimes "node:$NODE_EXE"
             --remote-components ejs:github
-            --cookies ./cookies.txt
             --restrict-filenames
             -o "downloads/%(title).200s [%(id)s].%(ext)s"
           )
 
           while IFS= read -r url || [ -n "$url" ]; do
-            url="${url//[$'\r\n']}"
-            url="$(echo "$url" | xargs)"
+            url=${url//[$'\r\n']}
+            url=$(echo "$url" | xargs)
             if [ -z "$url" ]; then continue; fi
 
-            echo "Processing URL: $url"
-            yt-dlp "${base_args[@]}" --list-formats "$url"
-
-            if [ "$MODE" = "audio" ]; then
-              if yt-dlp "${base_args[@]}" -f "bestaudio/best" --extract-audio --audio-format mp3 --audio-quality 0 "$url"; then
-                echo "$url" >> success.txt
-              else
-                echo "$url" >> failure.txt
-              fi
+            echo "Downloading $url ..."
+            if [[ "$MODE" == "audio" ]]; then
+              yt-dlp "${base_args[@]}" -f "bestaudio/best" --extract-audio --audio-format mp3 --audio-quality 0 "$url"
             else
-              if yt-dlp "${base_args[@]}" -f "bv*+ba/b" --merge-output-format mp4 "$url"; then
-                echo "$url" >> success.txt
-              else
-                echo "$url" >> failure.txt
-              fi
+              yt-dlp "${base_args[@]}" -f "bv*+ba/b" --merge-output-format mp4 "$url"
             fi
           done < urls.txt
 
-      - name: Configure Git for pushing files
+      - name: Configure git user
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
 
-      - name: Commit and push downloads to repository branch
+      - name: Commit and push downloads
         env:
           REPO_PUSH_TOKEN: ${{ secrets.REPO_PUSH_TOKEN }}
-          TARGET_BRANCH: "yt-dlp-downloads"
+          TARGET_BRANCH: yt-dlp-downloads
         run: |
           if [ ! -d downloads ]; then
-            echo "No downloads directory; nothing to push"
-            exit 1
+            echo "Nothing to push, downloads directory missing!"
+            exit 0
           fi
 
           git checkout -B "$TARGET_BRANCH"
+
           git add downloads/
           git commit -m "Add yt-dlp downloads - $(date -u +"%Y-%m-%d %H:%M UTC")" || echo "No changes to commit"
-          remote_repo="https://x-access-token:${REPO_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push "$remote_repo" "$TARGET_BRANCH" --force
+
+          remote="https://x-access-token:${REPO_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push "$remote" "$TARGET_BRANCH" --force
