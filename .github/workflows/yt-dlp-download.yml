@@ -17,19 +17,20 @@ on:
           - video
 
 jobs:
-  download:
+  ytdlp:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.12
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: 3.12
 
-      - name: Setup Node.js 24
+      - name: Setup Node.js (for yt-dlp JS runtime)
         uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -39,31 +40,36 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg git
 
-      - name: Install yt-dlp python package
+      - name: Install yt-dlp
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install yt-dlp
 
-      - name: Write cookies.txt from secret
+      - name: Load cookies from secret
         run: |
           echo "${{ secrets.YT_COOKIES }}" > cookies.txt
-          test -s cookies.txt
+          if [ ! -s cookies.txt ]; then
+            echo "Cookies are empty! Fix your YT_COOKIES secret."
+            exit 1
+          fi
 
-      - name: Parse input URLs
-        shell: bash
+      - name: Parse URLs into urls.txt
         run: |
           INPUT="${{ inputs.urls }}"
           INPUT="${INPUT//,/ }"
           echo "$INPUT" | tr ' ' '\n' | sed '/^$/d' > urls.txt
+          echo "--- URLs to download ---"
+          cat urls.txt
 
       - name: Download videos/audios
-        shell: bash
         env:
           MODE: ${{ inputs.mode }}
         run: |
           set -euo pipefail
           mkdir -p downloads
           NODE_EXE=$(which node)
+
+          echo "JS Runtime: $NODE_EXE"
 
           base_args=(
             --cookies ./cookies.txt
@@ -74,43 +80,53 @@ jobs:
           )
 
           while IFS= read -r url || [ -n "$url" ]; do
-            url=${url//[$'\r\n']}
             url=$(echo "$url" | xargs)
-            if [ -z "$url" ]; then continue; fi
+            [ -z "$url" ] && continue
 
-            echo "Downloading $url ..."
-            if [[ "$MODE" == "audio" ]]; then
-              yt-dlp "${base_args[@]}" -f "bestaudio/best" --extract-audio --audio-format mp3 --audio-quality 0 "$url"
+            echo "Downloading: $url"
+
+            if [ "$MODE" = "audio" ]; then
+              yt-dlp "${base_args[@]}" -f "bestaudio/best" \
+                --extract-audio --audio-format mp3 --audio-quality 0 "$url"
             else
-              yt-dlp "${base_args[@]}" -f "bv*+ba/b" --merge-output-format mp4 "$url"
+              yt-dlp "${base_args[@]}" -f "bv*+ba/b" \
+                --merge-output-format mp4 "$url"
             fi
           done < urls.txt
 
-      - name: Configure Git for pushing files
+      - name: Configure Git identity
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
 
-      - name: Commit and push downloads to repository branch
+      - name: Commit & push downloads
         env:
-          REPO_PUSH_TOKEN: ${{ secrets.REPO_PUSH_TOKEN }}
-          TARGET_BRANCH: "yt-dlp-downloads"
+          TOKEN: ${{ secrets.REPO_PUSH_TOKEN }}
         run: |
-          # Make sure downloads dir exists
-          if [ ! -d downloads ]; then
-            echo "No downloads directory found; exiting"
+          if [ -z "$TOKEN" ]; then
+            echo "ERROR: Missing REPO_PUSH_TOKEN secret!"
             exit 1
           fi
 
-          # Initialize git if needed (already should be in checkout)
+          TARGET_BRANCH="yt-dlp-downloads"
+
           git checkout -B "$TARGET_BRANCH"
 
-          # Add downloaded files, commit with timestamp
-          git add downloads/
-          git commit -m "Add yt-dlp downloads - $(date -u +"%Y-%m-%d %H:%M UTC")" || echo "Nothing to commit"
+          echo "Adding downloads..."
+          git add -f downloads/
 
-          # Push using token authentication
-          # Use HTTPS remote url with token inserted
-          remote_repo="https://x-access-token:${REPO_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git diff --cached --quiet; then
+            echo "No new downloads to commit."
+            exit 0
+          fi
 
-          git push "$remote_repo" "$TARGET_BRANCH" --force
+          git commit -m "yt-dlp downloads $(date -u '+%Y-%m-%d %H:%M UTC')"
+
+          echo "Setting remote with token..."
+          git remote remove origin || true
+          git remote add origin "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          echo "Pushing to $TARGET_BRANCH..."
+          git push origin "$TARGET_BRANCH" --force
+
+          echo "DONE!"
