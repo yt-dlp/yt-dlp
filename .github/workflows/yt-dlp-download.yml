@@ -1,34 +1,34 @@
-name: yt-dlp download (multi-URL, verbose)
+name: yt-dlp download
 
 on:
   workflow_dispatch:
     inputs:
       urls:
-        description: "YouTube URLs (one per line)"
+        description: "YouTube URLs (separate with space or comma)"
         required: true
-      type:
-        description: "video or audio"
-        required: true
-        default: "video"
 
 jobs:
   download:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     env:
-      URLS: ${{ github.event.inputs.urls }}
-      TYPE: ${{ github.event.inputs.type }}
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      - name: Setup Node.js (for YouTube JS challenge)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # ---------- 🔒 Cache Python Dependencies ----------
       - name: Cache pip packages
         uses: actions/cache@v4
         with:
@@ -37,50 +37,44 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
+      # ---------- 🧾 Install yt-dlp & ffmpeg ----------
       - name: Install dependencies
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg --no-install-recommends
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Check YT_COOKIES secret
-        run: |
-          if [ -z "${{ secrets.YT_COOKIES }}" ]; then
-            echo "❌ YT_COOKIES secret is EMPTY or NOT SET"
-            exit 1
-          else
-            echo "✅ YT_COOKIES secret is set"
-          fi
-
-      - name: Write and validate cookies
+      # ---------- 🍪 Prepare cookies ----------
+      - name: Prepare cookies
         run: |
           echo "${{ secrets.YT_COOKIES }}" > cookies.txt
-          head -n 1 cookies.txt | grep -q "Netscape" \
-            || (echo "❌ Missing Netscape header" && exit 1)
+          head -n 5 cookies.txt
 
-      - name: Download all URLs
+      # ---------- 🎥 Download Videos ----------
+      - name: Download videos
         run: |
           set -euxo pipefail
-          mkdir -p out
-
-          yt-dlp --version
-
+          URLS="${{ github.event.inputs.urls }}"
           URLS_CLEAN=$(echo "$URLS" | tr ',' ' ')
 
           for URL in $URLS_CLEAN; do
-            echo "Downloading: $URL"
-
-            yt-dlp -v \
+            echo "Downloading $URL"
+            yt-dlp \
               --cookies cookies.txt \
               --geo-bypass \
+              --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+              --extractor-args "youtube:player_client=web" \
+              --sleep-interval 3 --max-sleep-interval 7 \
               -f "best[height=480]/best[height=720]/best[height=360]/best" \
-              -o "out/%(title)s.%(ext)s" \
+              -o "%(title)s.%(ext)s" \
               "$URL"
           done
 
-      - name: Upload results
+      # ---------- ☁️ Upload artifacts ----------
+      - name: Upload videos
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: yt-dlp-output
-          path: out/
+          name: downloaded-videos
+          path: "*.mp4"
