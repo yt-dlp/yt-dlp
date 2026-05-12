@@ -1,29 +1,27 @@
-name: yt-dlp download (manual)
+name: yt-dlp download (multi-URL, verbose)
 
 on:
   workflow_dispatch:
     inputs:
-      url:
-        description: "YouTube URL"
+      urls:
+        description: "YouTube URLs (one per line)"
         required: true
-        type: string
-      mode:
+      type:
         description: "video or audio"
         required: true
         default: "video"
-        type: choice
-        options:
-          - video
-          - audio
 
 jobs:
   download:
     runs-on: ubuntu-22.04
+
     env:
+      URLS: ${{ github.event.inputs.urls }}
+      TYPE: ${{ github.event.inputs.type }}
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -39,50 +37,68 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: Install yt-dlp + ffmpeg
+      - name: Install dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg --no-install-recommends
-          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Download (video/audio)
-        env:
-          YT_COOKIES: ${{ secrets.YT_COOKIES }}
+      - name: Check YT_COOKIES secret
         run: |
+          if [ -z "${{ secrets.YT_COOKIES }}" ]; then
+            echo "❌ YT_COOKIES secret is EMPTY or NOT SET"
+            exit 1
+          else
+            echo "✅ YT_COOKIES secret is set"
+          fi
+
+      - name: Write and validate cookies
+        run: |
+          echo "${{ secrets.YT_COOKIES }}" > cookies.txt
+          head -n 1 cookies.txt | grep -q "Netscape" \
+            || (echo "❌ Missing Netscape header" && exit 1)
+
+      - name: Download all URLs (verbose)
+        run: |
+          set -euxo pipefail
           mkdir -p out
 
-          if [ -z "${YT_COOKIES:-}" ]; then
-            echo "❌ YT_COOKIES secret is missing"
-            exit 1
-          fi
+          echo "yt-dlp version:"
+          yt-dlp --version
 
-          echo "$YT_COOKIES" > cookies.txt
-          chmod 600 cookies.txt
+          echo "Starting downloads..."
 
-          echo "✅ Cookies file created"
-          head -n 3 cookies.txt || true
+          echo "$URLS" | while IFS= read -r URL; do
+            [ -z "$URL" ] && continue
 
-          URL="${{ inputs.url }}"
-          MODE="${{ inputs.mode }}"
+            echo "=============================="
+            echo "Downloading: $URL"
+            echo "=============================="
 
-          COMMON_ARGS="--cookies cookies.txt --user-agent Mozilla/5.0 --geo-bypass --no-playlist"
+            if [ "$TYPE" = "audio" ]; then
+              yt-dlp -v \
+                --cookies cookies.txt \
+                --extractor-args "youtube:player_client=android" \
+                --geo-bypass \
+                --no-playlist \
+                -x --audio-format mp3 \
+                -o "out/%(title)s.%(ext)s" \
+                "$URL"
+            else
+              yt-dlp -v \
+                --cookies cookies.txt \
+                --extractor-args "youtube:player_client=android" \
+                --geo-bypass \
+                --no-playlist \
+                -f "bv*+ba/b" \
+                -o "out/%(title)s.%(ext)s" \
+                "$URL"
+            fi
+          done
 
-          if [ "$MODE" = "audio" ]; then
-            yt-dlp $COMMON_ARGS \
-              -x --audio-format mp3 \
-              -o "out/%(title)s.%(ext)s" \
-              "$URL"
-          else
-            yt-dlp $COMMON_ARGS \
-              -f "bv*+ba/b" \
-              -o "out/%(title)s.%(ext)s" \
-              "$URL"
-          fi
-
-      - name: Upload artifact
+      - name: Upload results
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: yt-dlp-out
+          name: yt-dlp-output
           path: out/
