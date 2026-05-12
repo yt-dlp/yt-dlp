@@ -26,6 +26,20 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp.git@master
+      - name: Verify YTCOOKIES secret presence
+        run: |
+          if [ -z "${{ secrets.YTCOOKIES }}" ]; then
+            echo "Error: Secret YTCOOKIES is empty or not configured."
+            exit 1
+          else
+            echo "YTCOOKIES secret is set."
+            # Optional: print length of secret without revealing content
+            echo "Length of YTCOOKIES is ${#{
+              secrets.YTCOOKIES
+            }}"
+            # Or print sha256 hash to confirm unique content is supplied
+            echo "${{ secrets.YTCOOKIES }}" | sha256sum
+          fi
 
       - name: Write cookies file
         run: |
