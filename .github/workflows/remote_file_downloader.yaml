@@ -1,0 +1,80 @@
+name: remote file downloader
+
+on:
+  workflow_dispatch:
+    inputs:
+      file_url:
+        description: "Direct file URL"
+        required: true
+        type: string
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget curl git
+
+      - name: Download file
+        shell: bash
+        run: |
+          mkdir -p downloads/files
+
+          URL="${{ inputs.file_url }}"
+
+          FILE_NAME=$(basename "${URL%%\?*}")
+
+          if [ -z "$FILE_NAME" ] || [ "$FILE_NAME" = "/" ]; then
+            FILE_NAME="downloaded_file"
+          fi
+
+          echo "Downloading: $URL"
+
+          curl -L --fail \
+            --retry 3 \
+            --retry-delay 5 \
+            -o "downloads/files/$FILE_NAME" \
+            "$URL"
+
+          echo ""
+          echo "Downloaded files:"
+          find downloads -type f
+
+      - name: Configure git
+        run: |
+          git config user.name "file-downloader-bot"
+          git config user.email "bot@local"
+
+      - name: Commit files
+        shell: bash
+        run: |
+          TARGET_BRANCH="remote-downloads"
+
+          git checkout -B "$TARGET_BRANCH"
+
+          git add downloads/
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git commit -m "remote download $(date -u '+%Y-%m-%d %H:%M UTC')"
+
+      - name: Push to GitHub
+        env:
+          REPO_PUSH_TOKEN: ${{ secrets.REPO_PUSH_TOKEN }}
+        run: |
+          git remote set-url origin \
+          https://x-access-token:${REPO_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+
+          git push origin remote-downloads --force
