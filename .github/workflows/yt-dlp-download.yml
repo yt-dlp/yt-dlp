@@ -1,31 +1,17 @@
-name: yt-dlp download with cookies
+name: Download YouTube Audio
 
-on:
-  workflow_dispatch:
-  push:
+on: [push]
 
 jobs:
-  download:
+  download_audio:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: 24
 
-      - name: Verify Node.js
-        run: |
-          node -v
-          which node
-
-      - name: Install yt-dlp (latest)
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp.git@maste
       - name: Verify YT_COOKIES secret presence and length
         run: |
           secret="${{ secrets.YT_COOKIES }}"
@@ -38,37 +24,31 @@ jobs:
             echo "$secret" | sha256sum
           fi
 
-
       - name: Write cookies file
         run: |
           echo "${{ secrets.YT_COOKIES }}" > cookies.txt
-          echo "Cookies file created"
+          echo "Cookies file created."
+
+      - name: Install yt-dlp from GitHub master branch
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install git+https://github.com/yt-dlp/yt-dlp.git@master
 
       - name: Download audio with yt-dlp
-        shell: bash
+        env:
+          EJS_RUNNER: node
         run: |
           NODE_BIN_DIR=$(dirname "$(which node)")
           export PATH="$NODE_BIN_DIR:$PATH"
-
           NODE_EXE=$(which node)
-
-          echo "Using Node runtime: $NODE_EXE"
-
-          EJS_RUNNER=node yt-dlp \
+          yt-dlp --verbose \
+            --js-runtimes "node:$NODE_EXE" \
             --cookies ./cookies.txt \
-            --js-runtimes node:$NODE_EXE \
-            --no-warnings \
-            --no-check-certificate \
-            --verbose \
             -f bestaudio \
-            -o "%(title)s.%(ext)s" \
-            https://www.youtube.com/watch?v=IlNwVWwGDpw
+            "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
 
-      - name: Upload audio artifacts
+      - name: Upload audio artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ytdlp-audio
-          path: |
-            *.m4a
-            *.webm
-            *.opus
+          name: audio-files
+          path: "*.m4a"
