@@ -1,0 +1,72 @@
+name: full webpage downloader
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Page URL to download"
+        required: true
+        type: string
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install wget
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget git
+
+      - name: Download page with assets
+        run: |
+          mkdir -p site
+
+          URL="${{ inputs.url }}"
+
+          wget \
+            --mirror \
+            --convert-links \
+            --adjust-extension \
+            --page-requisites \
+            --no-parent \
+            --directory-prefix=site \
+            "$URL"
+
+          echo "Downloaded files:"
+          find site | head -100
+
+      - name: Configure git
+        run: |
+          git config user.name "page-downloader-bot"
+          git config user.email "bot@local"
+
+      - name: Commit files
+        run: |
+          TARGET_BRANCH="downloaded-pages"
+
+          git checkout -B "$TARGET_BRANCH"
+
+          git add site/
+
+          if git diff --cached --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+
+          git commit -m "download page $(date -u '+%Y-%m-%d %H:%M UTC')"
+
+      - name: Push to GitHub
+        env:
+          REPO_PUSH_TOKEN: ${{ secrets.REPO_PUSH_TOKEN }}
+        run: |
+          git remote set-url origin \
+          https://x-access-token:${REPO_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+
+          git push origin downloaded-pages --force
