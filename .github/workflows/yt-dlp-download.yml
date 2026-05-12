@@ -19,6 +19,8 @@ on:
 jobs:
   download:
     runs-on: ubuntu-22.04
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
     steps:
       - name: Checkout
@@ -29,40 +31,57 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Install yt-dlp + ffmpeg
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg --no-install-recommends
           python -m pip install --upgrade pip
-          pip install yt-dlp
+          pip install -r requirements.txt
 
       - name: Download (video/audio)
         env:
           YT_COOKIES: ${{ secrets.YT_COOKIES }}
         run: |
-          set -euxo pipefail
           mkdir -p out
+
+          if [ -z "${YT_COOKIES:-}" ]; then
+            echo "❌ YT_COOKIES secret is missing"
+            exit 1
+          fi
 
           echo "$YT_COOKIES" > cookies.txt
           chmod 600 cookies.txt
 
+          echo "✅ Cookies file created"
+          head -n 3 cookies.txt || true
+
           URL="${{ inputs.url }}"
           MODE="${{ inputs.mode }}"
 
+          COMMON_ARGS="--cookies cookies.txt --user-agent Mozilla/5.0 --geo-bypass --no-playlist"
+
           if [ "$MODE" = "audio" ]; then
-            yt-dlp \
-              --cookies cookies.txt \
+            yt-dlp $COMMON_ARGS \
               -x --audio-format mp3 \
               -o "out/%(title)s.%(ext)s" \
               "$URL"
           else
-            yt-dlp \
-              --cookies cookies.txt \
+            yt-dlp $COMMON_ARGS \
+              -f "bv*+ba/b" \
               -o "out/%(title)s.%(ext)s" \
               "$URL"
           fi
 
       - name: Upload artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: yt-dlp-out
