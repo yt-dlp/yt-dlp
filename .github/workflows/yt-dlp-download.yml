@@ -26,24 +26,24 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp.git@master
-      - name: Verify YTCOOKIES secret presence
+      - name: Verify YT_COOKIES secret presence
         run: |
-          if [ -z "${{ secrets.YTCOOKIES }}" ]; then
-            echo "Error: Secret YTCOOKIES is empty or not configured."
+          if [ -z "${{ secrets.YT_COOKIES }}" ]; then
+            echo "Error: Secret YT_COOKIES is empty or not configured."
             exit 1
           else
-            echo "YTCOOKIES secret is set."
+            echo "YT_COOKIES secret is set."
             # Optional: print length of secret without revealing content
-            echo "Length of YTCOOKIES is ${#{
-              secrets.YTCOOKIES
+            echo "Length of YT_COOKIES is ${#{
+              secrets.YT_COOKIES
             }}"
             # Or print sha256 hash to confirm unique content is supplied
-            echo "${{ secrets.YTCOOKIES }}" | sha256sum
+            echo "${{ secrets.YT_COOKIES }}" | sha256sum
           fi
 
       - name: Write cookies file
         run: |
-          echo "${{ secrets.YTCOOKIES }}" > cookies.txt
+          echo "${{ secrets.YT_COOKIES }}" > cookies.txt
           echo "Cookies file created"
 
       - name: Download audio with yt-dlp
