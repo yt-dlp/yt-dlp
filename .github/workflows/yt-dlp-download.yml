@@ -29,11 +29,19 @@ jobs:
         with:
           node-version: "24"
 
-      # ---------- Verify runtimes ----------
-      - name: Verify runtimes
+      # ---------- Fix Node PATH visibility ----------
+      - name: Export Node to PATH explicitly
         run: |
+          echo "$(dirname $(which node))" >> $GITHUB_PATH
+
+      # ---------- Verify runtimes ----------
+      - name: Verify JS runtime visibility
+        run: |
+          echo "PATH=$PATH"
+          which node
           node -v
           python --version
+          python -c "import shutil; print('node in PATH:', shutil.which('node'))"
 
       # ---------- Cache pip ----------
       - name: Cache pip
@@ -88,9 +96,12 @@ jobs:
           done
 
       # ---------- Upload ----------
-      - name: Upload videos
+      - name: Upload audio artifacts
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: downloaded-videos
-          path: "*.mp4"
+          name: downloaded-audio
+          path: |
+            *.m4a
+            *.webm
+            *.opus
