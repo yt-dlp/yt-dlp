@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+
+<!-- Mirrored from ipstatic.net/app/feedback by HTTrack Website Copier/3.x [XR&CO'2014], Tue, 12 May 2026 13:11:18 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InterPals</title>
+                <link rel="canonical" href="../../www.interpals.net/index.html">
+    
+    <link rel='shortcut icon' href="../images/icons/env-blu-16.png" type='image/png'/>
+    
+    
+    <link rel="preconnect" href="../index.html">
+    <link rel="preload" href="../assets/aa7c997ca5586c4fe67a/interpals.aa7c997ca5586c4fe67a.min.js" as="script">
+    <link rel='stylesheet' type='text/css' href="../assets/aa7c997ca5586c4fe67a/interpals.aa7c997ca5586c4fe67a.min.css" />
+    <link rel="preload" href="../../fonts.googleapis.com/css2fb67.css?family=Inter:wght@400;500;600;700&amp;display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="../../fonts.googleapis.com/css2fb67.css?family=Inter:wght@400;500;600;700&amp;display=swap"></noscript>
+    <script src="../../ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js" defer></script>
+
+    <meta name="csrf_token" content="MWJjMjA4N2Y="/>
+
+    <style>
+        body, html {
+            margin: 0;
+            height: 100%;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        [x-cloak] { display: none !important; }
+
+        /* On iOS devices, show Apple login first */
+        html.ios .oauth-buttons > .ios-order-1 { order: 1 !important; }
+        html.ios .oauth-buttons > .ios-order-2 { order: 2 !important; }
+        html.ios .oauth-buttons > .ios-order-3 { order: 3 !important; }
+    </style>
+    <script>if(/iPad|iPhone|iPod/.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&'ontouchend' in document))document.documentElement.classList.add('ios');</script>
+
+    </head>
+<body>
+
+<div class="min-h-screen flex flex-col relative"
+     style="background: #ffffff;">
+
+    <header class="w-full bg-white border-b border-gray-200">
+    <div class="max-w-7xl 2xl:max-w-[1400px] mx-auto flex items-center justify-between px-4 sm:px-6 py-3">
+        <a href="../index.html" class="flex items-center gap-2 no-underline">
+            <img src="https://ipstatic.net/images/logo-interpals-v2.svg"
+                 alt="InterPals"
+                 class="h-7 sm:h-8 2xl:h-9 w-auto"
+                 width="233" height="50">
+        </a>
+
+        <div class="flex items-center gap-3 sm:gap-4">
+                        <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open"
+                        @keydown.escape.window="open = false"
+                        class="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors bg-transparent border-0 cursor-pointer p-1.5"
+                        aria-haspopup="listbox"
+                        :aria-expanded="open">
+                    <i data-lucide="globe" class="w-5 h-5"></i>
+                    <i data-lucide="chevron-down" class="w-3 h-3 transition-transform" :class="{ 'rotate-180': open }"></i>
+                </button>
+                <div x-show="open"
+                     x-transition:enter="transition ease-out duration-100"
+                     x-transition:enter-start="opacity-0 scale-95"
+                     x-transition:enter-end="opacity-100 scale-100"
+                     x-transition:leave="transition ease-in duration-75"
+                     x-transition:leave-start="opacity-100 scale-100"
+                     x-transition:leave-end="opacity-0 scale-95"
+                     @click.away="open = false"
+                     class="absolute top-full mt-1 right-0 bg-white rounded-lg shadow-xl py-2 min-w-[160px] z-50 border border-gray-100"
+                     role="listbox"
+                     style="display: none;">
+                                            <a href="https://ipstatic.net/app/set-locale?locale=id_ID&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Bahasa Indonesia
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=cs_CZ&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Čeština
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=da_DK&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Dansk
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=de_DE&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Deutsch
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=en_US&amp;redirect="
+                           role="option"
+                           aria-selected="true"                           class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  bg-blue-50 text-blue-600 font-medium">
+                            English
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=es-419&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Español
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=fr_FR&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Français
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=it_IT&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Italiano
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=hu_HU&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Magyar
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=nl_NL&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Nederlands
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=pl_PL&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Polski
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=pt_BR&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Português
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=ro_RO&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Română
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=fi_FI&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Suomi
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=sv_SE&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Svenska
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=vi_VN&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Tiếng Việt
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=tr_TR&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Türkçe
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=bg_BG&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Български
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=ru_RU&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Русский
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=uk_UA&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Українська
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=el_GR&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Ελληνικά
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=ar_SA&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            العربية
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=fa_IR&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            فارسی
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=th_TH&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            ไทย
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=hi_IN&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            हिन्दी
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=zh_CN&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            简体中文
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=zh_TW&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            繁體中文
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=ja_JP&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            日本語
+                        </a>
+                                            <a href="https://ipstatic.net/app/set-locale?locale=ko_KR&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            한국어
+                        </a>
+                                    </div>
+            </div>
+
+            <a href="../index211b.html?view=signin"
+               class="text-gray-600 hover:text-gray-900 text-sm 2xl:text-base font-medium no-underline transition-colors hidden sm:inline-block">
+                Sign in
+            </a>
+
+            <a href="signup.html"
+               class="bg-sky-500 text-white text-sm 2xl:text-base font-semibold px-4 2xl:px-5 py-2 2xl:py-2.5 rounded-full
+                      hover:bg-sky-600 transition-colors no-underline shadow-sm">
+                Join free
+            </a>
+        </div>
+    </div>
+</header>
+
+    <main class="flex-1 flex items-start justify-center px-4 py-4 sm:py-8 md:py-12">
+        <div class="w-full max-w-4xl">
+    <div class="space-y-4 -mx-4 sm:mx-0">
+                <div class="bg-white rounded-none sm:rounded-2xl shadow-none sm:shadow-sm border-0 sm:border sm:border-gray-100 overflow-hidden">
+                        <div class="p-4 lg:p-6 border-b border-gray-100">
+                <div class="flex items-start gap-3 lg:items-center">
+                    <div class="flex-shrink-0 w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
+                        <i data-lucide="mail" class="w-5 h-5 text-gray-600"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-2xl font-semibold text-gray-900 leading-tight">Contact InterPals</h1>
+                        <p class="text-sm text-gray-600 mt-0.5 leading-relaxed">We&#039;re here to help! Use the form below to get in touch with our team.</p>
+                    </div>
+                </div>
+            </div>
+
+                        <div class="@container p-4 lg:p-6">
+                                <a href="https://ipstatic.net/app/faq" class="btn-interactive group inline-flex items-center gap-2 mb-6 px-4 py-2.5 bg-amber-50 hover:bg-amber-100 rounded-full border border-amber-200/60 transition-colors">
+                    <i data-lucide="help-circle" class="w-4 h-4 text-amber-600"></i>
+                    <span class="text-sm text-gray-700">Looking for quick answers? <span class="text-amber-700 font-medium">Check our FAQ</span></span>
+                    <i data-lucide="arrow-right" class="w-4 h-4 text-amber-500 group-hover:translate-x-0.5 transition-transform"></i>
+                </a>
+
+                <form action="https://ipstatic.net/app/feedback" method="post" name="contactForm" id="contactForm" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="MWJjMjA4N2Y=" />
+                    <input type="hidden" name="send" value="1">
+                    <input type="hidden" name="action" value="send">
+                    <input type="hidden" name="topic" id="topicInput" value="" required>
+                    <input type="hidden" name="screen_width" id="screenWidth">
+                    <input type="hidden" name="screen_height" id="screenHeight">
+                    <input type="hidden" name="viewport_width" id="viewportWidth">
+                    <input type="hidden" name="viewport_height" id="viewportHeight">
+
+                    <div class="space-y-6">
+                                                                                                                                                
+                        <div x-data="topicSelector('')">
+                                                        <div x-show="selectedTopic && selectedTopic.length > 0" :class="{ 'hidden': !selectedTopic || selectedTopic.length === 0 }" class="hidden flex items-center justify-between gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                                <div class="flex items-center gap-3">
+                                    <div x-ref="selectedIcon"
+                                         x-effect="if (selectedTopic) { $refs.selectedIcon.innerHTML = '<i data-lucide=\'' + topicIcons[selectedTopic] + '\' class=\'w-5 h-5\'></i>'; $nextTick(() => window.LucideIcons && window.LucideIcons.initialize($refs.selectedIcon)); }"
+                                         class="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center">
+                                    </div>
+                                    <div>
+                                        <div class="text-xs text-emerald-600 font-medium">Topic</div>
+                                        <div class="text-sm font-medium text-gray-900" x-text="selectedLabel"></div>
+                                    </div>
+                                </div>
+                                <button type="button"
+                                        @click="clearTopic()"
+                                        class="text-sm text-gray-600 hover:text-gray-800 font-medium px-3 py-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                                    Change
+                                </button>
+                            </div>
+
+                                                        <div x-show="!selectedTopic || selectedTopic.length === 0">
+                                <label class="block text-base font-semibold text-gray-900 mb-4">What can we help you with?</label>
+
+                                                                <div class="grid grid-cols-1 @sm:grid-cols-2 @3xl:grid-cols-3 gap-3 mb-4">
+                                                                                                                                                                        <button type="button"
+                                                        @click="selectTopic('general', 'General\u0020Feedback')"
+                                                        class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:border-sky-300 hover:bg-gray-50 text-left transition-all">
+                                                    <div class="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center bg-gray-100 text-gray-500 transition-colors">
+                                                        <i data-lucide="message-circle" class="w-5 h-5"></i>
+                                                    </div>
+                                                    <div class="min-w-0">
+                                                        <div class="text-sm font-medium leading-tight text-gray-800 transition-colors">General Feedback</div>
+                                                        <div class="text-xs text-gray-500 mt-0.5 truncate">Questions or comments</div>
+                                                    </div>
+                                                </button>
+                                                                                                                                                                                <button type="button"
+                                                        @click="selectTopic('suggestion', 'Suggestion\u0020or\u0020feature\u0020request')"
+                                                        class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:border-sky-300 hover:bg-gray-50 text-left transition-all">
+                                                    <div class="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center bg-gray-100 text-gray-500 transition-colors">
+                                                        <i data-lucide="lightbulb" class="w-5 h-5"></i>
+                                                    </div>
+                                                    <div class="min-w-0">
+                                                        <div class="text-sm font-medium leading-tight text-gray-800 transition-colors">Suggestion or feature request</div>
+                                                        <div class="text-xs text-gray-500 mt-0.5 truncate">Ideas for new features</div>
+                                                    </div>
+                                                </button>
+                                                                                                                                                                                                                                                            <button type="button"
+                                                        @click="selectTopic('suspension', 'My\u0020account\u0020was\u0020suspended')"
+                                                        class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:border-sky-300 hover:bg-gray-50 text-left transition-all">
+                                                    <div class="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center bg-gray-100 text-gray-500 transition-colors">
+                                                        <i data-lucide="ban" class="w-5 h-5"></i>
+                                                    </div>
+                                                    <div class="min-w-0">
+                                                        <div class="text-sm font-medium leading-tight text-gray-800 transition-colors">My account was suspended</div>
+                                                        <div class="text-xs text-gray-500 mt-0.5 truncate">Appeal a suspension</div>
+                                                    </div>
+                                                </button>
+                                                                                                                                                                                <button type="button"
+                                                        @click="selectTopic('report', 'Report\u0020inappropriate\u0020content')"
+                                                        class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:border-sky-300 hover:bg-gray-50 text-left transition-all">
+                                                    <div class="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center bg-gray-100 text-gray-500 transition-colors">
+                                                        <i data-lucide="flag" class="w-5 h-5"></i>
+                                                    </div>
+                                                    <div class="min-w-0">
+                                                        <div class="text-sm font-medium leading-tight text-gray-800 transition-colors">Report inappropriate content</div>
+                                                        <div class="text-xs text-gray-500 mt-0.5 truncate">Report a user or content</div>
+                                                    </div>
+                                                </button>
+                                                                                                                                                                                                                                                            <button type="button"
+                                                        @click="selectTopic('issue', 'Technical\u0020issue\u0020or\u0020bugs')"
+                                                        class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:border-sky-300 hover:bg-gray-50 text-left transition-all">
+                                                    <div class="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center bg-gray-100 text-gray-500 transition-colors">
+                                                        <i data-lucide="bug" class="w-5 h-5"></i>
+                                                    </div>
+                                                    <div class="min-w-0">
+                                                        <div class="text-sm font-medium leading-tight text-gray-800 transition-colors">Technical issue or bugs</div>
+                                                        <div class="text-xs text-gray-500 mt-0.5 truncate">Something not working</div>
+                                                    </div>
+                                                </button>
+                                                                                                                                                                                <button type="button"
+                                                        @click="selectTopic('account', 'Account,\u0020email\u0020or\u0020password\u0020problems')"
+                                                        class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:border-sky-300 hover:bg-gray-50 text-left transition-all">
+                                                    <div class="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center bg-gray-100 text-gray-500 transition-colors">
+                                                        <i data-lucide="user-cog" class="w-5 h-5"></i>
+                                                    </div>
+                                                    <div class="min-w-0">
+                                                        <div class="text-sm font-medium leading-tight text-gray-800 transition-colors">Account, email or password problems</div>
+                                                        <div class="text-xs text-gray-500 mt-0.5 truncate">Login or email issues</div>
+                                                    </div>
+                                                </button>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </div>
+
+                                                                <div x-data="{ expanded: false }">
+                                    <button type="button"
+                                            @click="expanded = !expanded"
+                                            class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-3 transition-colors">
+                                        <i data-lucide="chevron-right" class="w-4 h-4 transition-transform" :class="expanded && 'rotate-90'"></i>
+                                        <span>Other inquiries</span>
+                                        <span class="text-gray-400">(press, legal, business)</span>
+                                    </button>
+
+                                    <div x-show="expanded" x-collapse x-cloak>
+                                        <div class="flex flex-wrap gap-2">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <button type="button"
+                                                                @click="selectTopic('security', 'Security\u0020concerns')"
+                                                                class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 text-sm transition-all">
+                                                            <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                                                            <span>Security concerns</span>
+                                                        </button>
+                                                                                                                                                                                                                                                                                                            <button type="button"
+                                                                @click="selectTopic('press', 'Press\/Media')"
+                                                                class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 text-sm transition-all">
+                                                            <i data-lucide="newspaper" class="w-4 h-4"></i>
+                                                            <span>Press/Media</span>
+                                                        </button>
+                                                                                                                                                                                                                <button type="button"
+                                                                @click="selectTopic('legal', 'Legal\u0020\/\u0020Law\u0020Enforcement')"
+                                                                class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 text-sm transition-all">
+                                                            <i data-lucide="scale" class="w-4 h-4"></i>
+                                                            <span>Legal / Law Enforcement</span>
+                                                        </button>
+                                                                                                                                                                                                                                                                                                            <button type="button"
+                                                                @click="selectTopic('partnership', 'Partnership')"
+                                                                class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 text-sm transition-all">
+                                                            <i data-lucide="handshake" class="w-4 h-4"></i>
+                                                            <span>Partnership</span>
+                                                        </button>
+                                                                                                                                                                                                                <button type="button"
+                                                                @click="selectTopic('ads', 'Advertising')"
+                                                                class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 text-sm transition-all">
+                                                            <i data-lucide="megaphone" class="w-4 h-4"></i>
+                                                            <span>Advertising</span>
+                                                        </button>
+                                                                                                                                                                                        </div>
+                                    </div>
+                                </div>
+
+                                                                <div x-show="showError" class="hidden mt-4 text-sm text-red-600 flex items-center gap-2" :class="{ 'hidden': !showError, '!flex': showError }">
+                                    <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                                    <span>Please select a topic to continue</span>
+                                </div>
+                            </div>
+                        </div>
+
+                                                <div id="formFields" class="hidden space-y-6 animate-fadeIn">
+                                                                                            <div class="relative">
+                                    <input type="text"
+                                           id="name"
+                                           name="name"
+                                           value=""
+                                           required
+                                           placeholder=" "
+                                           class="peer w-full px-4 pt-6 pb-2 border rounded-xl transition-all duration-200 border-gray-200 bg-gray-50 focus:border-sky-500 focus:bg-white focus:outline-none">
+                                    <label for="name"
+                                           class="absolute left-4 top-4 text-base text-gray-500 transition-all duration-200 pointer-events-none peer-focus:top-2 peer-focus:text-xs peer-focus:text-sky-600 peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:text-xs">
+                                        <span class="label-text">Name *</span>
+                                    </label>
+                                </div>
+
+                                                                <div class="relative">
+                                    <input type="email"
+                                           id="email"
+                                           name="email"
+                                           value=""
+                                           required
+                                           placeholder=" "
+                                           class="peer w-full px-4 pt-6 pb-2 border rounded-xl transition-all duration-200 border-gray-200 bg-gray-50 focus:border-sky-500 focus:bg-white focus:outline-none">
+                                    <label for="email"
+                                           class="absolute left-4 top-4 text-base text-gray-500 transition-all duration-200 pointer-events-none peer-focus:top-2 peer-focus:text-xs peer-focus:text-sky-600 peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:text-xs">
+                                        <span class="label-text">Email *</span>
+                                    </label>
+                                </div>
+                            
+                                                        <div>
+                                <label for="message" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Message <i data-lucide="asterisk" class="inline w-2.5 h-2.5 text-red-500"></i>
+                                </label>
+                                <p class="text-xs text-gray-500 mb-2">The more detail you provide, the better we can help you.</p>
+                                <textarea id="message"
+                                          name="message"
+                                          rows="5"
+                                          required
+                                          placeholder="Describe your question or issue..."
+                                          class="w-full px-4 py-3 border rounded-xl resize-none transition-all duration-200 border-gray-200 bg-gray-50 focus:border-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-gray-100 placeholder:text-gray-400"></textarea>
+                            </div>
+
+                                                        <div x-data="fileAttacher"
+                                 data-config='{
+                                     "maxFiles": 3,
+                                     "inputRef": "contactFileInput",
+                                     "messages": {
+                                         "tooMany":  "Maximum 3 attachments allowed.",
+                                         "badType":  "Only image files are allowed (JPEG, PNG, GIF, WebP).",
+                                         "tooLarge": "File is too large. Maximum size is 5MB."
+                                     }
+                                 }'>
+                                                                <div x-show="files.length > 0" class="flex flex-wrap gap-2 mb-3">
+                                    <template x-for="(file, index) in files" :key="index">
+                                        <div class="relative group">
+                                            <div class="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                                                <img :src="file.url" class="w-full h-full object-cover" alt="">
+                                            </div>
+                                            <button type="button"
+                                                    @click="removeFile(index)"
+                                                    class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gray-700 text-white rounded-full flex items-center justify-center text-xs sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:bg-red-500">
+                                                &times;
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                                                <div x-show="files.length < maxFiles"
+                                     @dragover.prevent="dragOver = true"
+                                     @dragleave.prevent="dragOver = false"
+                                     @drop.prevent="handleDrop($event)"
+                                     :class="dragOver ? 'border-sky-400 bg-sky-50' : 'border-gray-200 bg-gray-50'"
+                                     class="flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl transition-colors cursor-pointer hover:border-gray-300"
+                                     @click="$refs.contactFileInput.click()">
+                                    <i data-lucide="image-plus" class="w-5 h-5 text-gray-400"></i>
+                                    <span class="text-sm text-gray-500">Drag &amp; drop images or click to browse (max 3, 5MB each)</span>
+                                    <input type="file"
+                                           x-ref="contactFileInput"
+                                           @change="addFiles($event)"
+                                           name="attachments[]"
+                                           accept="image/jpeg,image/png,image/gif,image/webp"
+                                           multiple
+                                           class="hidden">
+                                </div>
+
+                                                                <p x-show="errorMsg" x-text="errorMsg" x-cloak class="text-sm text-red-600 mt-2"></p>
+                            </div>
+
+                                                        <button type="submit"
+                                    id="cfSub"
+                                    class="w-full py-3 px-6 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 bg-[#19b5fe] hover:bg-[#0ea5e9] text-white focus:outline-none focus:ring-2 focus:ring-sky-300 focus:ring-offset-2">
+                                <i data-lucide="send" class="w-5 h-5"></i>
+                                Send Message
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+                <div class="text-center py-4">
+            <p class="text-sm text-gray-500">
+                Having trouble? <a href="https://ipstatic.net/cdn-cgi/l/email-protection#1b686e6b6b74696f5b72756f7e696b7a776835757e6f" class="text-gray-600 hover:text-gray-800 underline"><span class="__cf_email__" data-cfemail="11626461617e636551787f65746361707d623f7f7465">[email&#160;protected]</span></a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<div data-component="wide-right-bar" class="hidden min-[1180px]:flex w-[336px] flex-col gap-4 flex-shrink-0 self-start sticky top-4">
+    <div class=" w-[336px] h-[280px] mx-auto overflow-hidden p-0 flex flex-col relative"
+     style="contain: strict;"
+     data-component="largeRectangleAd"
+     data-ad-zone="atf_lr"
+     data-ad-section="ros">
+    
+    
+<template data-ad-deferred>
+    <!-- ADS: default ad -->
+    <!-- AD:adSlot337888313:336:280:Interpals_ROS_Top_Rectangle_300x250_336x280:ros:ros_atf_lr:desktop -->
+<div class="ad-frame-container w-full h-full overflow-hidden" style="contain: paint; clip-path: inset(0);">
+    <div id="adSlot337888313" class="w-full h-full"></div>
+</div>
+<!-- End ad -->
+
+
+
+<script data-cfasync="false" src="https://ipstatic.net/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+(function() {
+    var adContainer = document.currentScript.closest('[data-ad-zone]');
+    if (!adContainer) return;
+
+    
+    var isDefaultProviderSession = true;
+    var AD_CLIENT = 'ca-pub-9960450599012781';
+    var ADSENSE_SLOTS = {
+        '_lb':        { slot: '8512348712', style: 'display:inline-block;width:728px;height:90px' },
+        '_mob_lb':    { slot: '8512348712', style: 'display:inline-block;width:728px;height:90px' },
+        '_lr':        { slot: '7022817857', style: 'display:block', format: 'auto', responsive: 'true' },
+        '_billboard': { slot: '1878302386', style: 'display:block', format: 'auto', responsive: 'true' },
+        '_sky':       { slot: '8034315496', style: 'display:inline-block;width:300px;height:600px' },
+        '_hp':        { slot: '8034315496', style: 'display:inline-block;width:300px;height:600px' },
+        'btf_sky':    { slot: '5958994106', style: 'display:block', format: 'auto', responsive: 'true' },
+        'feed':       { slot: '2892001155', style: 'display:block', format: 'fluid', layoutKey: '-fb+5w+4e-db+86' },
+        'matched':    { slot: '4747814786', style: 'display:block', format: 'autorelaxed' }
+    };
+    var passbackAttempted = false;
+
+    function checkAdLoaded() {
+        var hasLoadedAd = false;
+
+        var adsenseElements = adContainer.querySelectorAll('ins.adsbygoogle');
+        for (var i = 0; i < adsenseElements.length; i++) {
+            var el = adsenseElements[i];
+            var isPassback = el.hasAttribute('data-passback');
+            var iframes = el.querySelectorAll('iframe');
+            for (var j = 0; j < iframes.length; j++) {
+                if (iframes[j].offsetHeight > 50 && iframes[j].offsetWidth > 50) {
+                    hasLoadedAd = true;
+                }
+            }
+            // For passback ads, only the iframe size check above is reliable.
+            // The status-based check below can false-positive when AdSense marks
+            // the element as "done" without actually filling a creative.
+            if (!isPassback
+                && el.getAttribute('data-adsbygoogle-status') === 'done'
+                && el.offsetHeight > 10 && el.offsetWidth > 10
+                && el.children.length > 0 && el.getAttribute('data-ad-slot')
+            ) {
+                var collapsed = false;
+                for (var k = 0; k < iframes.length; k++) {
+                    if (iframes[k].offsetHeight <= 10 && iframes[k].offsetWidth <= 10) {
+                        collapsed = true;
+                    }
+                }
+                if (!collapsed) hasLoadedAd = true;
+            }
+        }
+
+        var allIframes = adContainer.querySelectorAll('iframe');
+        for (var i = 0; i < allIframes.length; i++) {
+            var iframe = allIframes[i];
+            // Skip aswift/google_ads iframes only when nested inside ins.adsbygoogle —
+            // those are already counted by the adsense loop above. A google_ads_iframe
+            // outside ins.adsbygoogle is a GPT/GAM primary ad and must count.
+            if (iframe.id && (iframe.id.indexOf('aswift') >= 0 || iframe.id.indexOf('google_ads') >= 0)) {
+                if (iframe.closest('ins.adsbygoogle')) continue;
+            }
+            if (iframe.offsetHeight > 50 && iframe.offsetWidth > 50) {
+                hasLoadedAd = true;
+            }
+        }
+
+        return hasLoadedAd;
+    }
+
+    function getAdSenseConfig(zone) {
+        if (ADSENSE_SLOTS[zone]) return ADSENSE_SLOTS[zone];
+        for (var suffix in ADSENSE_SLOTS) {
+            if (ADSENSE_SLOTS.hasOwnProperty(suffix) && zone.indexOf(suffix, zone.length - suffix.length) !== -1) {
+                return ADSENSE_SLOTS[suffix];
+            }
+        }
+        return { slot: '7022817857', style: 'display:block', format: 'auto', responsive: 'true' };
+    }
+
+    function tryAdSensePassback() {
+        if (passbackAttempted) return;
+        passbackAttempted = true;
+
+        var zone = adContainer.getAttribute('data-ad-zone');
+        var config = getAdSenseConfig(zone);
+
+        var ins = document.createElement('ins');
+        ins.className = 'adsbygoogle';
+        ins.setAttribute('style', config.style);
+        ins.setAttribute('data-ad-client', AD_CLIENT);
+        ins.setAttribute('data-ad-slot', config.slot);
+        ins.setAttribute('data-passback', 'true');
+        if (config.format) ins.setAttribute('data-ad-format', config.format);
+        if (config.responsive) ins.setAttribute('data-full-width-responsive', config.responsive);
+        if (config.layoutKey) ins.setAttribute('data-ad-layout-key', config.layoutKey);
+
+        var frameContainer = adContainer.querySelector('.ad-frame-container');
+        if (frameContainer) {
+            frameContainer.innerHTML = '';
+            frameContainer.appendChild(ins);
+        } else {
+            adContainer.appendChild(ins);
+        }
+
+        // Passback runs after the primary ad failed, with only the time until
+        // the 5s collapse timer to fill. Skip the viewport gate — the slot is
+        // already known to be CSS-visible, and viewport-gating a below-fold
+        // passback would let the collapse timer fire before adsbygoogle.push.
+        if (window.initAdSenseAdNow) {
+            window.initAdSenseAdNow(ins);
+        } else {
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+        }
+    }
+
+    
+    function collapseAd() {
+                adContainer.classList.add('hidden');
+        adContainer.classList.remove('flex');
+        var el = adContainer.parentElement;
+        while (el && !el.hasAttribute('data-component') && !el.classList.contains('topLB')) {
+            if (el.children.length === 1) {
+                el.classList.add('hidden');
+                el.classList.remove('flex');
+                el = el.parentElement;
+            } else {
+                break;
+            }
+        }
+            }
+
+        // 1.5s: primary ad didn't fill
+    setTimeout(function() {
+        if (!checkAdLoaded()) {
+            if (isDefaultProviderSession) {
+                tryAdSensePassback();
+            } else {
+                collapseAd();
+            }
+        }
+    }, 1500);
+
+    // 5s: if passback also didn't fill, collapse
+    setTimeout(function() {
+        if (adContainer.style.display !== 'none' && !checkAdLoaded()) {
+            collapseAd();
+        }
+    }, 5000);
+    })();
+</script>
+</template>
+<script>
+(function() {
+    var script = document.currentScript;
+    var container = script.closest('[data-ad-zone]');
+    var template = script.previousElementSibling;
+    if (!container || !template) return;
+
+    function activate() {
+        var content = template.content;
+        var scripts = content.querySelectorAll('script');
+        template.replaceWith(content);
+        scripts.forEach(function(orig) {
+            var s = document.createElement('script');
+            if (orig.src) { s.src = orig.src; s.async = true; }
+            else s.textContent = orig.textContent;
+            orig.replaceWith(s);
+        });
+    }
+
+    if (container.offsetWidth > 0) {
+        activate();
+    } else if (typeof ResizeObserver !== 'undefined') {
+        var ro = new ResizeObserver(function(entries) {
+            if (container.offsetWidth > 0) {
+                ro.disconnect();
+                activate();
+            }
+        });
+        ro.observe(container);
+    }
+})();
+</script> </div> 
+    
+                                                
+            
+        </div>
+
+    <style>
+        /* Floating label animations */
+        input:focus ~ label,
+        input:not(:placeholder-shown) ~ label,
+        textarea:focus ~ label,
+        textarea:not(:placeholder-shown) ~ label {
+            transform: translateY(-0.75rem);
+            font-size: 0.75rem;
+        }
+
+        input:focus ~ label,
+        textarea:focus ~ label {
+            color: #19b5fe;
+        }
+
+        /* Add background to label only when it's moved up */
+        input:focus ~ label .label-text,
+        input:not(:placeholder-shown) ~ label .label-text,
+        textarea:focus ~ label .label-text,
+        textarea:not(:placeholder-shown) ~ label .label-text {
+            background-color: white;
+            padding: 0 0.25rem;
+        }
+
+        /* Remove autofill background color */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0 30px #f9fafb inset !important;
+            -webkit-text-fill-color: #111827 !important;
+        }
+
+        /* Fade in animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fadeIn {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+    </style>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('topicSelector', (initialTopic) => ({
+                selectedTopic: initialTopic || '',
+                selectedLabel: '',
+                showError: false,
+                topicIcons: {
+                                            'general': 'message-circle',
+                                            'suggestion': 'lightbulb',
+                                            'issue': 'bug',
+                                            'account': 'user-cog',
+                                            'report': 'flag',
+                                            'suspension': 'ban',
+                                            'security': 'shield-alert',
+                                            'press': 'newspaper',
+                                            'legal': 'scale',
+                                            'partnership': 'handshake',
+                                            'ads': 'megaphone',
+                                    },
+
+                init() {
+                    // Set initial label if topic is pre-selected
+                    if (this.selectedTopic) {
+                        const labels = this.getTopicLabels();
+                        this.selectedLabel = labels[this.selectedTopic] || '';
+                        this.handleTopicChange(this.selectedTopic);
+                    }
+                },
+
+                getTopicLabels() {
+                    // Build label map from the template data
+                    return {
+                                                                                    'general': 'General\u0020Feedback',
+                                                            'suggestion': 'Suggestion\u0020or\u0020feature\u0020request',
+                                                                                                                'suspension': 'My\u0020account\u0020was\u0020suspended',
+                                                            'report': 'Report\u0020inappropriate\u0020content',
+                                                                                                                'issue': 'Technical\u0020issue\u0020or\u0020bugs',
+                                                            'account': 'Account,\u0020email\u0020or\u0020password\u0020problems',
+                                                            'security': 'Security\u0020concerns',
+                                                                                                                'press': 'Press\/Media',
+                                                            'legal': 'Legal\u0020\/\u0020Law\u0020Enforcement',
+                                                                                                                'partnership': 'Partnership',
+                                                            'ads': 'Advertising',
+                                                                        };
+                },
+
+                selectTopic(key, label) {
+                    this.selectedTopic = key;
+                    this.selectedLabel = label;
+                    this.showError = false;
+
+                    // Update hidden input
+                    document.getElementById('topicInput').value = key;
+
+                    this.handleTopicChange(key);
+                },
+
+                clearTopic() {
+                    this.selectedTopic = '';
+                    this.selectedLabel = '';
+                    document.getElementById('topicInput').value = '';
+                    document.getElementById('formFields').classList.add('hidden');
+                },
+
+                handleTopicChange(topicValue) {
+                    const formFields = document.getElementById('formFields');
+
+                    if (topicValue) {
+                        formFields.classList.remove('hidden');
+
+                        // Smooth scroll to form fields
+                        setTimeout(() => {
+                            formFields.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'nearest'
+                            });
+                        }, 100);
+                    }
+                },
+
+                validateTopic() {
+                    if (!this.selectedTopic) {
+                        this.showError = true;
+                        return false;
+                    }
+                    return true;
+                }
+            }));
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('screenWidth').value = window.screen.width;
+            document.getElementById('screenHeight').value = window.screen.height;
+            document.getElementById('viewportWidth').value = window.innerWidth;
+            document.getElementById('viewportHeight').value = window.innerHeight;
+
+            const form = document.getElementById('contactForm');
+
+            // Form validation
+            form.addEventListener('submit', function(e) {
+                const topicInput = document.getElementById('topicInput');
+                if (!topicInput.value) {
+                    e.preventDefault();
+                    // Trigger Alpine validation
+                    const topicComponent = document.querySelector('[x-data*="topicSelector"]');
+                    if (topicComponent && topicComponent.__x) {
+                        topicComponent.__x.$data.showError = true;
+                    }
+                    return false;
+                }
+            });
+        });
+    </script>
+    </main>
+
+    <footer class="bg-white border-t border-gray-200">
+    <div class="max-w-7xl mx-auto px-6 py-6">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+            <div>
+                &copy; 1998 - 2026 InterPals.
+            </div>
+            <nav class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2" aria-label="Footer Navigation">
+                <a href="about.html" class="text-gray-500 hover:text-gray-700 transition-colors no-underline">About</a>
+                <span class="text-gray-300">|</span>
+                <a href="feedback.html" class="text-gray-500 hover:text-gray-700 transition-colors no-underline">Help &amp; Feedback</a>
+                <span class="text-gray-300">|</span>
+                <a href="tos.html" class="text-gray-500 hover:text-gray-700 transition-colors no-underline">Terms of Service</a>
+                <span class="text-gray-300">|</span>
+                <a href="privacy.html" class="text-gray-500 hover:text-gray-700 transition-colors no-underline">Privacy Policy</a>
+            </nav>
+        </div>
+    </div>
+</footer>
+</div>
+
+
+<script>var online_update_domain = '';</script>
+<script type="text/javascript" src="../../ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js" defer></script>
+<script type="text/javascript" src="../assets/aa7c997ca5586c4fe67a/interpals.aa7c997ca5586c4fe67a.min.js" defer></script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="../../www.googletagmanager.com/gtag/js3ccd?id=G-0QW3XVG74P"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-0QW3XVG74P');
+</script>
+</body>
+
+<!-- Mirrored from ipstatic.net/app/feedback by HTTrack Website Copier/3.x [XR&CO'2014], Tue, 12 May 2026 13:11:18 GMT -->
+</html>

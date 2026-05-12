@@ -1,0 +1,2 @@
+!function(){"use strict";var e=$("#showRelatedTopics"),n=$("#learnRenderLeftNav"),o=$("body"),a=$(".learnRenderLeftNavMobileViewHeaderTitle"),l=$(".closePaneButtonContainer"),r=$(window);$((function(){e.on("click",(function(){n.addClass("learnRenderLeftNavMobileOpen"),o.css("overflow","hidden"),a.focus()})),l.on("click",(function(){n.removeClass("learnRenderLeftNavMobileOpen"),o.css("overflow","auto")})),r.on("resize",(function(){n.removeClass("learnRenderLeftNavMobileOpen"),o.css("overflow","auto")}))}))}();
+//# sourceMappingURL=LeftNavigation.Main.min.js.map

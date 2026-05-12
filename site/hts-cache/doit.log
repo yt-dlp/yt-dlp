@@ -1,0 +1,8 @@
+https://www.interpals.net/ItsGili?_cs=2 -O site +* -v -r3 -s0 -c4 -%k -T30 -R3
+File generated automatically on Tue, 12 May 2026 12:53:10, do NOT edit
+
+To update a mirror, just launch httrack without any parameters
+The existing cache will be used (and modified)
+To have other options, retype all parameters and launch HTTrack
+To continue an interrupted mirror, just launch httrack without any parameters
+

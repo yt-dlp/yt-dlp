@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+
+<!-- Mirrored from www.interpals.net/app/privacy by HTTrack Website Copier/3.x [XR&CO'2014], Tue, 12 May 2026 13:10:49 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><title>
+InterPals Penpals - Privacy
+</title>
+</title>
+                <link rel="canonical" href="../index.html">
+    
+    <link rel='shortcut icon' href="../images/icons/env-blu-16.png" type='image/png'/>
+    
+    
+    <link rel="preconnect" href="../../ipstatic.net/index.html">
+    <link rel="preload" href="../assets/aa7c997ca5586c4fe67a/interpals.aa7c997ca5586c4fe67a.min.js" as="script">
+    <link rel='stylesheet' type='text/css' href="../assets/aa7c997ca5586c4fe67a/interpals.aa7c997ca5586c4fe67a.min.css" />
+    <link rel="preload" href="../../fonts.googleapis.com/css2fb67.css?family=Inter:wght@400;500;600;700&amp;display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="../../fonts.googleapis.com/css2fb67.css?family=Inter:wght@400;500;600;700&amp;display=swap"></noscript>
+    <script src="../../ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js" defer></script>
+
+    <meta name="csrf_token" content="MWE5YTI3Yjg="/>
+
+    <style>
+        body, html {
+            margin: 0;
+            height: 100%;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        [x-cloak] { display: none !important; }
+
+        /* On iOS devices, show Apple login first */
+        html.ios .oauth-buttons > .ios-order-1 { order: 1 !important; }
+        html.ios .oauth-buttons > .ios-order-2 { order: 2 !important; }
+        html.ios .oauth-buttons > .ios-order-3 { order: 3 !important; }
+    </style>
+    <script>if(/iPad|iPhone|iPod/.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&'ontouchend' in document))document.documentElement.classList.add('ios');</script>
+
+    </head>
+<body>
+
+<div class="min-h-screen flex flex-col relative"
+     style="background: #ffffff;">
+
+    <header class="w-full bg-white border-b border-gray-200">
+    <div class="max-w-7xl 2xl:max-w-[1400px] mx-auto flex items-center justify-between px-4 sm:px-6 py-3">
+        <a href="../index.html" class="flex items-center gap-2 no-underline">
+            <img src="../images/logo-interpals-v2.svg"
+                 alt="InterPals"
+                 class="h-7 sm:h-8 2xl:h-9 w-auto"
+                 width="233" height="50">
+        </a>
+
+        <div class="flex items-center gap-3 sm:gap-4">
+                        <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open"
+                        @keydown.escape.window="open = false"
+                        class="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors bg-transparent border-0 cursor-pointer p-1.5"
+                        aria-haspopup="listbox"
+                        :aria-expanded="open">
+                    <i data-lucide="globe" class="w-5 h-5"></i>
+                    <i data-lucide="chevron-down" class="w-3 h-3 transition-transform" :class="{ 'rotate-180': open }"></i>
+                </button>
+                <div x-show="open"
+                     x-transition:enter="transition ease-out duration-100"
+                     x-transition:enter-start="opacity-0 scale-95"
+                     x-transition:enter-end="opacity-100 scale-100"
+                     x-transition:leave="transition ease-in duration-75"
+                     x-transition:leave-start="opacity-100 scale-100"
+                     x-transition:leave-end="opacity-0 scale-95"
+                     @click.away="open = false"
+                     class="absolute top-full mt-1 right-0 bg-white rounded-lg shadow-xl py-2 min-w-[160px] z-50 border border-gray-100"
+                     role="listbox"
+                     style="display: none;">
+                                            <a href="../index.html?locale=id_ID&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Bahasa Indonesia
+                        </a>
+                                            <a href="../index.html?locale=cs_CZ&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Čeština
+                        </a>
+                                            <a href="../index.html?locale=da_DK&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Dansk
+                        </a>
+                                            <a href="../index.html?locale=de_DE&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Deutsch
+                        </a>
+                                            <a href="../index.html?locale=en_US&amp;redirect="
+                           role="option"
+                           aria-selected="true"                           class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  bg-blue-50 text-blue-600 font-medium">
+                            English
+                        </a>
+                                            <a href="../index.html?locale=es-419&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Español
+                        </a>
+                                            <a href="../index.html?locale=fr_FR&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Français
+                        </a>
+                                            <a href="../index.html?locale=it_IT&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Italiano
+                        </a>
+                                            <a href="../index.html?locale=hu_HU&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Magyar
+                        </a>
+                                            <a href="../index.html?locale=nl_NL&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Nederlands
+                        </a>
+                                            <a href="../index.html?locale=pl_PL&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Polski
+                        </a>
+                                            <a href="../index.html?locale=pt_BR&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Português
+                        </a>
+                                            <a href="../index.html?locale=ro_RO&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Română
+                        </a>
+                                            <a href="../index.html?locale=fi_FI&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Suomi
+                        </a>
+                                            <a href="../index.html?locale=sv_SE&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Svenska
+                        </a>
+                                            <a href="../index.html?locale=vi_VN&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Tiếng Việt
+                        </a>
+                                            <a href="../index.html?locale=tr_TR&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Türkçe
+                        </a>
+                                            <a href="../index.html?locale=bg_BG&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Български
+                        </a>
+                                            <a href="../index.html?locale=ru_RU&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Русский
+                        </a>
+                                            <a href="../index.html?locale=uk_UA&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Українська
+                        </a>
+                                            <a href="../index.html?locale=el_GR&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            Ελληνικά
+                        </a>
+                                            <a href="../index.html?locale=ar_SA&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            العربية
+                        </a>
+                                            <a href="../index.html?locale=fa_IR&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            فارسی
+                        </a>
+                                            <a href="../index.html?locale=th_TH&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            ไทย
+                        </a>
+                                            <a href="../index.html?locale=hi_IN&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            हिन्दी
+                        </a>
+                                            <a href="../index.html?locale=zh_CN&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            简体中文
+                        </a>
+                                            <a href="../index.html?locale=zh_TW&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            繁體中文
+                        </a>
+                                            <a href="../index.html?locale=ja_JP&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            日本語
+                        </a>
+                                            <a href="../index.html?locale=ko_KR&amp;redirect="
+                           role="option"
+                                                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                  ">
+                            한국어
+                        </a>
+                                    </div>
+            </div>
+
+            <a href="../index211b.html?view=signin"
+               class="text-gray-600 hover:text-gray-900 text-sm 2xl:text-base font-medium no-underline transition-colors hidden sm:inline-block">
+                Sign in
+            </a>
+
+            <a href="signup.html"
+               class="bg-sky-500 text-white text-sm 2xl:text-base font-semibold px-4 2xl:px-5 py-2 2xl:py-2.5 rounded-full
+                      hover:bg-sky-600 transition-colors no-underline shadow-sm">
+                Join free
+            </a>
+        </div>
+    </div>
+</header>
+
+    <main class="flex-1 flex items-start justify-center px-4 py-4 sm:py-8 md:py-12">
+        <div class="flex gap-6">
+    <div class="flex-1 min-w-0">
+        <div class="infoPageMain">
+            <div class=boxHead>
+                <h1 class="dark:text-gray-100">InterPals Privacy Policy</h1>
+            </div>
+            <div class="text-sm font-[Verdana] text-gray-800 dark:text-gray-300 leading-[18px] space-y-5 [&_p.font-bold]:dark:text-gray-100 [&_span.font-bold]:dark:text-gray-200">
+
+            <p>
+                This policy covers how InterPals ("InterPals.net," "we," "us," or "our") treats personal
+                information that it collects and receives on www.InterPals.net. This notice tells
+                you what information we collect, steps we take to protect and secure it, how we
+                use and share information, and finally, how you can contact us with questions or
+                concerns.
+            </p>
+
+            <p class="font-bold">&nbsp;</p>
+
+            <p class="font-bold">1. INFORMATION WE COLLECT</p>
+
+            <p><span class="font-bold">1.1</span> InterPals collects personal information when you register with us, use Interpals products or services or post content on a InterPals site.</p>
+
+            <p><span class="font-bold">1.2</span> InterPals may also collect personal information when you enter into promotions or sweepstakes.</p>
+
+            <p><span class="font-bold">1.3</span> InterPals may combine information about you that we have with information we obtain from business partners or others.</p>
+
+            <p><span class="font-bold">1.4</span> InterPals may also collect information about your transactions with us and with some of our business partners. This information might include information necessary to process payments due to us from you such as your credit card number.</p>
+
+            <p><span class="font-bold">1.5</span> InterPals may automatically receive and record information on our server logs from your browser, including your IP address, cookies, and the pages you request.</p>
+
+            <p><span class="font-bold">1.6</span> InterPals uses information for the following general purposes: products and services provision, billing, identification and authentication, services improvement, contact, research, and anonymous reporting.</p>
+
+            <p class="font-bold">&nbsp;</p>
+
+            <p class="font-bold">2. IP ADDRESS</p>
+
+            <p>InterPals may occasionally obtain IP addresses from users depending upon how you access our web sites. IP addresses, browser and session information may be used for various purposes, including to:</p>
+
+            <p><span class="font-bold">2.1</span> Diagnose and prevent service or technology problems reported by our users or engineers that are associated with the IP addresses controlled by a specific web company or ISP.</p>
+
+            <p><span class="font-bold">2.2</span> Estimate the total number of users visiting InterPals.net's web sites from specific geographical regions.</p>
+
+            <p><span class="font-bold">2.3</span> Help determine which users have access privileges to certain content, services or resources that we offer.</p>
+
+            <p><span class="font-bold">2.4</span> Monitor and prevent fraud and abuse.</p>
+
+            <p><span class="font-bold">2.5</span> Provide more relevant advertisements to you.</p>
+
+            <p class="font-bold">&nbsp;</p>
+
+            <p class="font-bold">3. COOKIES</p>
+
+            <p><span class="font-bold">3.1</span> A cookie is a small amount of data, which often includes an anonymous unique identifier that is sent to your browser from a web site's computers and stored on your computer's hard drive.</p>
+
+            <p><span class="font-bold">3.2</span> If you reject all cookies, you may not be able to use Interpals services or products that require you to "sign in" and you may not be able to take full advantage of all offerings.</p>
+
+            <p><span class="font-bold">3.3</span> You can configure your browser to accept all cookies, reject all cookies or notify you when a cookie is set.</p>
+
+            <p><span class="font-bold">3.4</span> InterPals uses its own cookies for a number of purposes, including to:</p>
+
+            <p class="ml-5">- Require you to re-enter your password after a certain period of time has elapsed to protect you against others accidentally accessing your account contents.</p>
+            <p class="ml-5">- Keep track of preferences you specify while you are using the InterPals.net Sites, Products and Services.</p>
+            <p class="ml-5">- Estimate and report our total audience size and traffic.</p>
+            <p class="ml-5">- Conduct research to improve the content and services provided on the InterPals.net Sites, Products and Services.</p>
+            <p class="ml-5">- Ensure that visitors are not repeatedly offered the same advertisements and to customize advertising based on browser type and user profile information.</p>
+
+            <p><span class="font-bold">3.5</span> InterPals.net lets other entities that show advertisements or provide services on some of our web pages set and access their cookies on your computer. Other entities' use of their cookies is subject to their own privacy policies, and not this policy. Advertisers or other entities do not have access to InterPals.net's cookies.</p>
+
+            <p class="font-bold">&nbsp;</p>
+
+            <p class="font-bold">4. INFORMATION RELATING TO CHILDREN</p>
+
+            <p><span class="font-bold">4.1</span> Protecting the privacy of young children is especially important. For that reason, InterPals does not knowingly collect personally identifiable information through the InterPals web site from persons under 13 years of age, and no part of InterPals service is directed to persons under 13.</p>
+
+            <p><span class="font-bold">4.2</span> If you are under 13 years of age, then please do not use or access the InterPals service or web site at any time or in any manner.</p>
+
+            <p class="font-bold">&nbsp;</p>
+
+            <p class="font-bold">5. INFORMATION USE, SHARING AND DISCLOSURE</p>
+
+            <p><span class="font-bold">5.1</span> InterPals does not share personal information we learn about you from your use of the InterPals web sites, products and services with others except as described in this policy.</p>
+
+            <p><span class="font-bold">5.2</span> When you provide personal information through using InterPals you are however sharing your personal information with InterPals.net and its affiliated entities. The use of your personal information by these organizations is subject to this policy.</p>
+
+            <p><span class="font-bold">5.3</span> We do not share your information with unrelated third parties for their direct marketing purposes. However, InterPals may display targeted advertisements based on personally non-identifiable information (such as browser type and IP address) and/or personal selection (See the Section entitled Third Party Advertising below for more information on how your information is shared with advertisers).</p>
+
+            <p><span class="font-bold">5.4</span> InterPals may use or share your personal information where it is necessary to complete a transaction, to operate or improve the InterPals products and services, to do something that you have asked us to do, or tell you of products and services that we think may be of interest.</p>
+
+            <p><span class="font-bold">5.5</span> From time to time, InterPals.net or a partner, may sponsor a promotion, sweepstake or contest on InterPals. You may be asked to provide personal information including name, email address or home address or to answer questions in order to participate. InterPals.net may transfer personal information to certain advertising partners that you have explicitly requested to receive information from. It will be clear at the point of collection who is collecting the personal information and whose privacy statement will apply.</p>
+
+            <p><span class="font-bold">5.6</span> Where you are contacted with an offer or service based on information you have shared with InterPals, we will do our best to provide you with an opportunity to opt-out of receiving such further communications at the time you are contacted, however, in connection with any of our paid products and services (i.e., products or services that you license or use for a fee), we reserve the right to send you certain communications relating to those products and services, such as service announcements, and administrative messages, that are considered part of your InterPals.net account, without offering you the opportunity to opt-out of receiving them.</p>
+
+            <p><span class="font-bold">5.7</span> When you register for InterPals, InterPals.net collects user-submitted account information such as name, email address and age to identify users and send notifications related to the use of the service. InterPals.net also collects user-submitted profile information, including additional contact information, location, biographical information and photos. This additional profile information will assist other users in finding and communicating with you.</p>
+
+            <p><span class="font-bold">5.8</span> InterPals will display your "Display Name" on your profile. InterPals will display your name and any other user-submitted profile information on your profile according to the preferences you set in your account.</p>
+
+            <p><span class="font-bold">5.9</span> Email addresses and full names may be used when a user invites a friend via email to join InterPals and when InterPals sends notifications to a user related to their use of InterPals.</p>
+
+            <p><span class="font-bold">5.10</span> When you post a message on a InterPals Site, you have the ability to post a message which may include personally identifiable information about yourself.</p>
+
+            <p><span class="font-bold">5.11</span> If you post personal information online that is accessible to the public, you may receive unsolicited messages from other parties in return.</p>
+
+            <p><span class="font-bold">5.12</span> InterPals.net may share personally identifiable information about you under the following circumstances:</p>
+
+            <p><span class="font-bold">5.13</span> In the course of operating our business it may be necessary or appropriate for us to provide access to your personal information to others such as our service providers, contractors and select vendors so that we can operate InterPals and our business.</p>
+
+            <p><span class="font-bold">5.14</span> We may share your personal information to respond to subpoenas, court orders, or legal process, to establish or exercise our legal rights or, defend against legal claims and if in our judgment in such circumstances disclosure is required or appropriate.</p>
+
+            <p><span class="font-bold">5.15</span> We may share your personal information if we believe it is necessary in order to investigate, prevent, or take action regarding illegal activities, suspected fraud, situations involving potential threats to the physical safety of any person, violations of our various terms of use, or as otherwise required by law.</p>
+
+            <p><span class="font-bold">5.16</span> As we continue to develop our business, we may also buy or sell all or part of our business. In such transactions, personally identifiable information you have shared with us is generally one of the business assets that will be transferred. The transferred personally identifiable information will remain subject to the promises made in this privacy policy or subsequent policies to which you have consented.</p>
+
+            <p class="font-bold">&nbsp;</p>
+
+            <p class="font-bold">6. THIRD PARTY ADVERTISING</p>
+
+            <p><span class="font-bold">6.1</span> Advertisements appearing on the InterPals.net Sites, Product or Services may be delivered to users by InterPals.net or one of our Web advertising partners. Our Web advertising partners may set cookies. These cookies allow the ad server to recognize your computer each time they send you an online advertisement. In this way, ad servers may compile information about where you, or others who are using your computer, saw their advertisements and determine which ads are clicked on. This information allows an ad network to deliver targeted advertisements that they believe will be of most interest to you. This privacy policy covers the use of cookies by InterPals.net and does not cover the use of cookies by any advertisers.</p>
+
+            <p><span class="font-bold">6.2</span> InterPals.net does not share any personally identifiable information with advertisers. InterPals.net may share general demographic information (such as aggregated statistics about members' interests and occupations) and non-personally identifiable information (such as browser type and IP addresses) with advertisers and partners. InterPals.net does not give advertisers access to your individual personal account information. However, by selecting, interacting with or viewing an ad you are consenting to the possibility that the advertiser will make the assumption that you meet the targeting criteria used to display the ad.</p>
+
+            <p><span class="font-bold">6.3</span> We use third-party advertising companies to serve ads when you visit our Website. These companies may use information (not including your name, address email address or telephone number) about your visits to this and other Web sites in order to provide advertisements about goods and services of interest to you. If you would like more information about this practice and to know your choices about not having this information used by these companies, <a href='../../thenai.org/opt-out/index.html' class="text-blue-600 hover:underline">http://www.networkadvertising.org/managing/opt_out.asp</a>.</p>
+
+            <p class="font-bold">&nbsp;</p>
+
+            <p class="font-bold">7. CHANGES TO THIS PRIVACY POLICY</p>
+
+            <p>InterPals.net may revise, modify or update this policy. We may notify you about significant changes in the way we treat personal information by sending a notice to the primary email address specified in your particular InterPals.net account or by placing a prominent notice on our site. You are encouraged to check this policy frequently for any changes as your continued use of the InterPals service indicates your consent to such changes.</p>
+
+            <p class="font-bold">&nbsp;</p>
+
+            <p class="font-bold">8. CONFIDENTIALITY AND SECURITY</p>
+
+            <p><span class="font-bold">8.1</span> No data transmissions over the Internet can be guaranteed to be 100% secure. Consequently, we cannot ensure or warrant the security of any information you transmit to us and you do so at your own risk. Once we receive your information, we take reasonable measures to secure it on our systems.</p>
+
+            <p><span class="font-bold">8.2</span> If InterPals.net learns of a security systems breach we may attempt to notify you electronically so that you can take appropriate protective steps. By using InterPals or providing personal information to us you agree that we can communicate with you electronically regarding security, privacy and administrative issues relating to your use of those sites, products and services. We may post a notice on our applicable web sites if a security breach occurs. If this happens, you will need a web browser enabling you to view the applicable web sites. We may also send an email to you at the email address you have provided to us in these circumstances. Depending on where you live, you may have a legal right to receive notice of a security breach in writing. To receive free written notice of a security breach (or to withdraw your consent from receiving electronic notice) you should notify us at <a href="mailto:privacy@InterPals.net" class="text-blue-600 hover:underline">privacy@InterPals.net</a>.</p>
+
+            <p class="font-bold">&nbsp;</p>
+
+            <p class="font-bold">9. CHANGING YOUR PREFERENCES AND PERSONAL INFORMATION</p>
+
+            <p><span class="font-bold">9.1</span> You can edit your account information with InterPals at any time. Most personal information you may provide is entirely optional. For example, to the extent that parents are considering whether to permit their children to use Interpals, we do not condition a child's participation based upon their provision of any more personal information than is necessary to operate those sites, products and services.</p>
+
+            <p><span class="font-bold">9.2</span> You can delete your applicable account by visiting the applicable account deletion page; however, please note that some personal information, primarily your contact information, may remain in our records to the extent necessary to protect our legal interests or document compliance with regulatory requirements.</p>
+
+            <p class="font-bold">&nbsp;</p>
+
+            <p class="font-bold">10. PERSONAL DATA PROCESSING AND DELETION</p>
+
+            <p><span class="font-bold">10.1</span> Interpals collects personal user data when a user creates or edits an account. This information includes name, birthday, gender, current city, hometown, email address and other data voluntarily supplied by the user including photographs and description text. This data is stored on Interpals servers and a subset of it is made public to other users on the site via a user's public profile. Non-public data including email and passwords are used for authentication purposes and for notifications.</p>
+
+            <p><span class="font-bold">10.2</span> In compliance with the EU General Data Protection Regulation 2016/679 (GDPR), at a user's request, Interpals will delete all user data from its servers. To request data deletion, a user must send an email to <a href="mailto:support@interpals.net" class="text-blue-600 hover:underline">support@interpals.net</a> requesting "Permanent data deletion" and including the username of the profile in question. If the email is received from an email address other than the one used to register the account, supplemental identity verification will be required.</p>
+
+            <p class="font-bold">&nbsp;</p>
+
+            <p class="font-bold">11. INTERNATIONAL USERS</p>
+
+            <p>The InterPals web site is hosted in the US and is intended for and directed to users around the world. If you are accessing this web site from the European Union, Asia, or any other region with laws or regulations governing personal data collection, use, and disclosure, that differ from US laws, please be advised that through your continued use of this web site, which is governed by US law, this privacy policy, and our Terms of Service, you are transferring your personal information to US and you consent to that transfer.</p>
+
+            <p class="font-bold">&nbsp;</p>
+
+            <p class="font-bold">12. CONTACTING INTERPALS.NET</p>
+
+            <p>If you have a privacy concern regarding InterPals, or this policy, and if you cannot satisfactorily resolve it through the use of those sites, products or services, you should complete a feedback form or you can write to us by email at <a href="mailto:privacy@InterPals.net" class="text-blue-600 hover:underline">privacy@InterPals.net</a>.</p>
+
+            </div>
+        </div>
+    </div>
+    <div data-component="wide-right-bar" class="hidden min-[1180px]:flex w-[336px] flex-col gap-4 flex-shrink-0 self-start sticky top-4">
+    <div class=" w-[336px] h-[280px] mx-auto overflow-hidden p-0 flex flex-col relative"
+     style="contain: strict;"
+     data-component="largeRectangleAd"
+     data-ad-zone="atf_lr"
+     data-ad-section="ros">
+    
+    
+<template data-ad-deferred>
+    <!-- ADS: default ad -->
+    <!-- AD:adSlot58647070:336:280:Interpals_ROS_Top_Rectangle_300x250_336x280:ros:ros_atf_lr:desktop -->
+<div class="ad-frame-container w-full h-full overflow-hidden" style="contain: paint; clip-path: inset(0);">
+    <div id="adSlot58647070" class="w-full h-full"></div>
+</div>
+<!-- End ad -->
+
+
+
+<script>
+(function() {
+    var adContainer = document.currentScript.closest('[data-ad-zone]');
+    if (!adContainer) return;
+
+    
+    var isDefaultProviderSession = true;
+    var AD_CLIENT = 'ca-pub-9960450599012781';
+    var ADSENSE_SLOTS = {
+        '_lb':        { slot: '8512348712', style: 'display:inline-block;width:728px;height:90px' },
+        '_mob_lb':    { slot: '8512348712', style: 'display:inline-block;width:728px;height:90px' },
+        '_lr':        { slot: '7022817857', style: 'display:block', format: 'auto', responsive: 'true' },
+        '_billboard': { slot: '1878302386', style: 'display:block', format: 'auto', responsive: 'true' },
+        '_sky':       { slot: '8034315496', style: 'display:inline-block;width:300px;height:600px' },
+        '_hp':        { slot: '8034315496', style: 'display:inline-block;width:300px;height:600px' },
+        'btf_sky':    { slot: '5958994106', style: 'display:block', format: 'auto', responsive: 'true' },
+        'feed':       { slot: '2892001155', style: 'display:block', format: 'fluid', layoutKey: '-fb+5w+4e-db+86' },
+        'matched':    { slot: '4747814786', style: 'display:block', format: 'autorelaxed' }
+    };
+    var passbackAttempted = false;
+
+    function checkAdLoaded() {
+        var hasLoadedAd = false;
+
+        var adsenseElements = adContainer.querySelectorAll('ins.adsbygoogle');
+        for (var i = 0; i < adsenseElements.length; i++) {
+            var el = adsenseElements[i];
+            var isPassback = el.hasAttribute('data-passback');
+            var iframes = el.querySelectorAll('iframe');
+            for (var j = 0; j < iframes.length; j++) {
+                if (iframes[j].offsetHeight > 50 && iframes[j].offsetWidth > 50) {
+                    hasLoadedAd = true;
+                }
+            }
+            // For passback ads, only the iframe size check above is reliable.
+            // The status-based check below can false-positive when AdSense marks
+            // the element as "done" without actually filling a creative.
+            if (!isPassback
+                && el.getAttribute('data-adsbygoogle-status') === 'done'
+                && el.offsetHeight > 10 && el.offsetWidth > 10
+                && el.children.length > 0 && el.getAttribute('data-ad-slot')
+            ) {
+                var collapsed = false;
+                for (var k = 0; k < iframes.length; k++) {
+                    if (iframes[k].offsetHeight <= 10 && iframes[k].offsetWidth <= 10) {
+                        collapsed = true;
+                    }
+                }
+                if (!collapsed) hasLoadedAd = true;
+            }
+        }
+
+        var allIframes = adContainer.querySelectorAll('iframe');
+        for (var i = 0; i < allIframes.length; i++) {
+            var iframe = allIframes[i];
+            // Skip aswift/google_ads iframes only when nested inside ins.adsbygoogle —
+            // those are already counted by the adsense loop above. A google_ads_iframe
+            // outside ins.adsbygoogle is a GPT/GAM primary ad and must count.
+            if (iframe.id && (iframe.id.indexOf('aswift') >= 0 || iframe.id.indexOf('google_ads') >= 0)) {
+                if (iframe.closest('ins.adsbygoogle')) continue;
+            }
+            if (iframe.offsetHeight > 50 && iframe.offsetWidth > 50) {
+                hasLoadedAd = true;
+            }
+        }
+
+        return hasLoadedAd;
+    }
+
+    function getAdSenseConfig(zone) {
+        if (ADSENSE_SLOTS[zone]) return ADSENSE_SLOTS[zone];
+        for (var suffix in ADSENSE_SLOTS) {
+            if (ADSENSE_SLOTS.hasOwnProperty(suffix) && zone.indexOf(suffix, zone.length - suffix.length) !== -1) {
+                return ADSENSE_SLOTS[suffix];
+            }
+        }
+        return { slot: '7022817857', style: 'display:block', format: 'auto', responsive: 'true' };
+    }
+
+    function tryAdSensePassback() {
+        if (passbackAttempted) return;
+        passbackAttempted = true;
+
+        var zone = adContainer.getAttribute('data-ad-zone');
+        var config = getAdSenseConfig(zone);
+
+        var ins = document.createElement('ins');
+        ins.className = 'adsbygoogle';
+        ins.setAttribute('style', config.style);
+        ins.setAttribute('data-ad-client', AD_CLIENT);
+        ins.setAttribute('data-ad-slot', config.slot);
+        ins.setAttribute('data-passback', 'true');
+        if (config.format) ins.setAttribute('data-ad-format', config.format);
+        if (config.responsive) ins.setAttribute('data-full-width-responsive', config.responsive);
+        if (config.layoutKey) ins.setAttribute('data-ad-layout-key', config.layoutKey);
+
+        var frameContainer = adContainer.querySelector('.ad-frame-container');
+        if (frameContainer) {
+            frameContainer.innerHTML = '';
+            frameContainer.appendChild(ins);
+        } else {
+            adContainer.appendChild(ins);
+        }
+
+        // Passback runs after the primary ad failed, with only the time until
+        // the 5s collapse timer to fill. Skip the viewport gate — the slot is
+        // already known to be CSS-visible, and viewport-gating a below-fold
+        // passback would let the collapse timer fire before adsbygoogle.push.
+        if (window.initAdSenseAdNow) {
+            window.initAdSenseAdNow(ins);
+        } else {
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+        }
+    }
+
+    
+    function collapseAd() {
+                adContainer.classList.add('hidden');
+        adContainer.classList.remove('flex');
+        var el = adContainer.parentElement;
+        while (el && !el.hasAttribute('data-component') && !el.classList.contains('topLB')) {
+            if (el.children.length === 1) {
+                el.classList.add('hidden');
+                el.classList.remove('flex');
+                el = el.parentElement;
+            } else {
+                break;
+            }
+        }
+            }
+
+        // 1.5s: primary ad didn't fill
+    setTimeout(function() {
+        if (!checkAdLoaded()) {
+            if (isDefaultProviderSession) {
+                tryAdSensePassback();
+            } else {
+                collapseAd();
+            }
+        }
+    }, 1500);
+
+    // 5s: if passback also didn't fill, collapse
+    setTimeout(function() {
+        if (adContainer.style.display !== 'none' && !checkAdLoaded()) {
+            collapseAd();
+        }
+    }, 5000);
+    })();
+</script>
+</template>
+<script>
+(function() {
+    var script = document.currentScript;
+    var container = script.closest('[data-ad-zone]');
+    var template = script.previousElementSibling;
+    if (!container || !template) return;
+
+    function activate() {
+        var content = template.content;
+        var scripts = content.querySelectorAll('script');
+        template.replaceWith(content);
+        scripts.forEach(function(orig) {
+            var s = document.createElement('script');
+            if (orig.src) { s.src = orig.src; s.async = true; }
+            else s.textContent = orig.textContent;
+            orig.replaceWith(s);
+        });
+    }
+
+    if (container.offsetWidth > 0) {
+        activate();
+    } else if (typeof ResizeObserver !== 'undefined') {
+        var ro = new ResizeObserver(function(entries) {
+            if (container.offsetWidth > 0) {
+                ro.disconnect();
+                activate();
+            }
+        });
+        ro.observe(container);
+    }
+})();
+</script> </div> 
+    
+                                                
+            
+        </div>
+</div>
+
+    </main>
+
+    <footer class="bg-white border-t border-gray-200">
+    <div class="max-w-7xl mx-auto px-6 py-6">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+            <div>
+                &copy; 1998 - 2026 InterPals.
+            </div>
+            <nav class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2" aria-label="Footer Navigation">
+                <a href="about.html" class="text-gray-500 hover:text-gray-700 transition-colors no-underline">About</a>
+                <span class="text-gray-300">|</span>
+                <a href="feedback.html" class="text-gray-500 hover:text-gray-700 transition-colors no-underline">Help &amp; Feedback</a>
+                <span class="text-gray-300">|</span>
+                <a href="tos.html" class="text-gray-500 hover:text-gray-700 transition-colors no-underline">Terms of Service</a>
+                <span class="text-gray-300">|</span>
+                <a href="privacy.html" class="text-gray-500 hover:text-gray-700 transition-colors no-underline">Privacy Policy</a>
+            </nav>
+        </div>
+    </div>
+</footer>
+</div>
+
+
+<script>var online_update_domain = '';</script>
+<script type="text/javascript" src="../../ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js" defer></script>
+<script type="text/javascript" src="../assets/aa7c997ca5586c4fe67a/interpals.aa7c997ca5586c4fe67a.min.js" defer></script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="../../www.googletagmanager.com/gtag/js3ccd?id=G-0QW3XVG74P"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-0QW3XVG74P');
+</script>
+</body>
+
+<!-- Mirrored from www.interpals.net/app/privacy by HTTrack Website Copier/3.x [XR&CO'2014], Tue, 12 May 2026 13:11:18 GMT -->
+</html>

@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+
+<!-- Mirrored from ipstatic.net/app/forgot by HTTrack Website Copier/3.x [XR&CO'2014], Tue, 12 May 2026 13:11:18 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lost Password - InterPals</title>
+                <link rel="canonical" href="../../www.interpals.net/index.html">
+    
+    <link rel='shortcut icon' href="../images/icons/env-blu-16.png" type='image/png'/>
+    
+    
+    <link rel="preconnect" href="../index.html">
+    <link rel="preload" href="../assets/aa7c997ca5586c4fe67a/interpals.aa7c997ca5586c4fe67a.min.js" as="script">
+    <link rel='stylesheet' type='text/css' href="../assets/aa7c997ca5586c4fe67a/interpals.aa7c997ca5586c4fe67a.min.css" />
+    <link rel="preload" href="../../fonts.googleapis.com/css2fb67.css?family=Inter:wght@400;500;600;700&amp;display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="../../fonts.googleapis.com/css2fb67.css?family=Inter:wght@400;500;600;700&amp;display=swap"></noscript>
+    <script src="../../ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js" defer></script>
+
+    <meta name="csrf_token" content="MWJjMjA4N2Y="/>
+
+    <style>
+        body, html {
+            margin: 0;
+            height: 100%;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        [x-cloak] { display: none !important; }
+
+        /* On iOS devices, show Apple login first */
+        html.ios .oauth-buttons > .ios-order-1 { order: 1 !important; }
+        html.ios .oauth-buttons > .ios-order-2 { order: 2 !important; }
+        html.ios .oauth-buttons > .ios-order-3 { order: 3 !important; }
+    </style>
+    <script>if(/iPad|iPhone|iPod/.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&'ontouchend' in document))document.documentElement.classList.add('ios');</script>
+
+    </head>
+<body>
+
+<div class="min-h-screen flex flex-col relative"
+     style="background: linear-gradient(180deg, #159DFF 0%, #1180D8 100%);">
+
+        <header class="w-full" style="background-color: #159DFF;">
+        <div class="max-w-7xl 2xl:max-w-[1400px] mx-auto flex items-center justify-between px-4 sm:px-6 py-3">
+            <!-- Logo -->
+            <a href="../index.html" class="flex items-center gap-2 no-underline">
+                <img src="../images/logo-interpals-v2-white.svg"
+                     alt="InterPals"
+                     class="h-7 sm:h-8 2xl:h-9 w-auto drop-shadow-md"
+                     width="233" height="50"
+                     fetchpriority="high">
+            </a>
+
+            <!-- Right side: language + sign in + join free -->
+            <div class="flex items-center gap-3 sm:gap-4">
+                                <div class="relative" x-data="{ open: false }">
+                    <button @click="open = !open"
+                            @keydown.escape.window="open = false"
+                            class="flex items-center gap-1 text-white/80 hover:text-white transition-colors bg-transparent border-0 cursor-pointer p-1.5"
+                            aria-haspopup="listbox"
+                            :aria-expanded="open">
+                        <i data-lucide="globe" class="w-5 h-5"></i>
+                        <i data-lucide="chevron-down" class="w-3 h-3 transition-transform" :class="{ 'rotate-180': open }"></i>
+                    </button>
+                    <div x-show="open"
+                         x-transition:enter="transition ease-out duration-100"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-75"
+                         x-transition:leave-start="opacity-100 scale-100"
+                         x-transition:leave-end="opacity-0 scale-95"
+                         @click.away="open = false"
+                         class="absolute top-full mt-1 end-0 bg-white rounded-lg shadow-xl py-2 min-w-[160px] z-50"
+                         role="listbox"
+                         style="display: none;">
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=id_ID&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Bahasa Indonesia
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=cs_CZ&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Čeština
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=da_DK&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Dansk
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=de_DE&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Deutsch
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=en_US&amp;redirect="
+                               role="option"
+                               aria-selected="true"                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      bg-blue-50 text-blue-600 font-medium">
+                                English
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=es-419&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Español
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=fr_FR&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Français
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=it_IT&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Italiano
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=hu_HU&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Magyar
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=nl_NL&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Nederlands
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=pl_PL&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Polski
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=pt_BR&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Português
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=ro_RO&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Română
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=fi_FI&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Suomi
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=sv_SE&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Svenska
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=vi_VN&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Tiếng Việt
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=tr_TR&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Türkçe
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=bg_BG&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Български
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=ru_RU&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Русский
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=uk_UA&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Українська
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=el_GR&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Ελληνικά
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=ar_SA&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                العربية
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=fa_IR&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                فارسی
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=th_TH&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                ไทย
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=hi_IN&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                हिन्दी
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=zh_CN&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                简体中文
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=zh_TW&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                繁體中文
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=ja_JP&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                日本語
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=ko_KR&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                한국어
+                            </a>
+                                            </div>
+                </div>
+
+                <a href="../index211b.html?view=signin" id="header-signin-btn"
+                   class="text-white/90 hover:text-white text-sm 2xl:text-base font-medium no-underline transition-colors hidden sm:inline-block">
+                    Sign in
+                </a>
+
+                <a href="signup.html"
+                   class="bg-white text-gray-800 text-sm 2xl:text-base font-semibold px-4 2xl:px-5 py-2 2xl:py-2.5 rounded-full
+                          hover:bg-gray-100 transition-colors no-underline shadow-sm">
+                    Join free
+                </a>
+            </div>
+        </div>
+        <div class="border-b border-white/15"></div>
+    </header>
+    
+    <main class="flex-1 flex items-center justify-center px-4 py-4 sm:py-8 md:py-12">
+        <div class="w-full max-w-md mx-auto">
+    <!-- Logo -->
+    <div class="flex justify-center mb-6">
+        <a href="../index.html">
+            <img src="../images/logo-interpals-v2-white.svg"
+                 alt="InterPals"
+                 class="w-48 sm:w-56 h-auto drop-shadow-xl"
+                 width="233"
+                 height="50">
+        </a>
+    </div>
+
+    <div class="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-6 sm:p-8">
+                <div class="text-center mb-6">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Lost Password</h1>
+            <p class="text-gray-600">
+                Enter your email address below to receive a reset link
+            </p>
+        </div>
+
+                
+                <form action="https://ipstatic.net/app/forgot" method="post" class="space-y-6">
+            <input type="hidden" name="csrf_token" value="MWJjMjA4N2Y=" />
+            <input type="hidden" name="todo" value="retrieve">
+
+                        <div class="relative">
+                <input type="email"
+                       id="email"
+                       name="email"
+                       placeholder=" "
+                       required
+                       autofocus
+                       value=""
+                       class="peer w-full px-4 pt-6 pb-2 border-2 rounded-xl transition-all duration-200 border-gray-200 bg-gray-50 focus:border-sky-500 focus:bg-white focus:outline-none">
+                <label for="email"
+                       class="absolute left-4 top-4 text-base text-gray-500 transition-all duration-200 pointer-events-none peer-focus:top-2 peer-focus:text-xs peer-focus:text-sky-600 peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:text-xs">
+                    <span class="label-text">Email Address *</span>
+                </label>
+            </div>
+
+                        <button type="submit"
+                    class="w-full py-4 px-6 rounded-full font-semibold transition-all duration-200 flex items-center justify-center gap-2 bg-gradient-to-r from-[#159DFF] to-[#1180D8] hover:shadow-lg text-white focus:outline-none focus:ring-4 focus:ring-[#159DFF]/50 text-base sm:text-lg"
+                    style="transition: none !important; animation: none !important; transform: none !important; filter: none !important;">
+                Send Reset Link
+            </button>
+
+                        <div class="flex items-center gap-3 my-6">
+                <div class="flex-1 h-px bg-gray-300"></div>
+                <span class="text-gray-400 text-xs font-medium uppercase tracking-wider">or</span>
+                <div class="flex-1 h-px bg-gray-300"></div>
+            </div>
+
+                        <div class="text-center space-y-4">
+                <p class="text-gray-600">
+                    Remember your password?
+                    <a href="../index.html" class="text-sky-600 hover:text-sky-700 font-medium transition-colors">
+                        Sign in
+                    </a>
+                </p>
+                <p class="text-gray-600">
+                    Not a member yet?
+                    <a href="../index.html" class="text-sky-600 hover:text-sky-700 font-medium transition-colors">
+                        Sign up for free!
+                    </a>
+                </p>
+            </div>
+
+                        <div class="mt-6 pt-6 border-t border-gray-200">
+                <div class="bg-sky-50 rounded-xl p-4 border border-sky-200">
+                    <div class="flex items-start gap-3">
+                        <i data-lucide="info" class="w-5 h-5 text-sky-500 mt-0.5 flex-shrink-0"></i>
+                        <div class="text-sm text-gray-600 space-y-2">
+                            <p>Make sure to check your spam folder for the reset email.</p>
+                            <p>If you&#039;re still having trouble, visit our
+                                <a href="feedback.html" class="text-sky-600 font-medium hover:text-sky-700 underline">
+                                    support page
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    /* Floating label animations */
+    input:focus ~ label,
+    input:not(:placeholder-shown) ~ label {
+        transform: translateY(-0.75rem);
+        font-size: 0.75rem;
+    }
+
+    input:focus ~ label {
+        color: #0ea5e9;
+    }
+
+    input:focus ~ label .label-text,
+    input:not(:placeholder-shown) ~ label .label-text {
+        background-color: white;
+        padding: 0 0.25rem;
+    }
+
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus {
+        -webkit-box-shadow: 0 0 0 30px #f9fafb inset !important;
+        -webkit-text-fill-color: #111827 !important;
+    }
+</style>
+    </main>
+
+        <footer class="bg-black/50 backdrop-blur-sm text-white py-4 px-4 sm:px-6">
+    <div class="max-w-7xl mx-auto">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
+            <div class="text-white/90 order-2 sm:order-1">
+                &copy; 1998 - 2026 Interpals.
+            </div>
+            <nav class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 order-1 sm:order-2"
+                 aria-label="Footer Navigation">
+                <a href="about.html" class="text-white/90 hover:text-white transition-colors no-underline">About</a>
+                <span class="text-white/50">|</span>
+                <a href="feedback.html" class="text-white/90 hover:text-white transition-colors no-underline">Help &amp; Feedback</a>
+                <span class="text-white/50">|</span>
+                <a href="tos.html" class="text-white/90 hover:text-white transition-colors no-underline">Terms of Service</a>
+                <span class="text-white/50">|</span>
+                <a href="privacy.html" class="text-white/90 hover:text-white transition-colors no-underline">Privacy Policy</a>
+                <span class="text-white/50">|</span>
+                                <div class="relative" x-data="{ open: false }">
+                    <button @click="open = !open"
+                            @keydown.escape.window="open = false"
+                            class="flex items-center gap-1.5 text-white/90 hover:text-white transition-colors bg-transparent border-0 cursor-pointer p-0"
+                            aria-haspopup="listbox"
+                            :aria-expanded="open">
+                        <i data-lucide="globe" class="w-4 h-4"></i>
+                        <span>English</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 transition-transform" :class="{ 'rotate-180': open }"></i>
+                    </button>
+                    <div x-show="open"
+                         x-transition:enter="transition ease-out duration-100"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-75"
+                         x-transition:leave-start="opacity-100 scale-100"
+                         x-transition:leave-end="opacity-0 scale-95"
+                         @click.away="open = false"
+                         class="absolute bottom-full mb-2 right-0 bg-white rounded-lg shadow-xl py-2 min-w-[160px] z-50"
+                         role="listbox"
+                         style="display: none;">
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=id_ID&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Bahasa Indonesia
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=cs_CZ&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Čeština
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=da_DK&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Dansk
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=de_DE&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Deutsch
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=en_US&amp;redirect="
+                               role="option"
+                               aria-selected="true"                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      bg-blue-50 text-blue-600 font-medium">
+                                English
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=es-419&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Español
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=fr_FR&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Français
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=it_IT&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Italiano
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=hu_HU&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Magyar
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=nl_NL&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Nederlands
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=pl_PL&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Polski
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=pt_BR&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Português
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=ro_RO&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Română
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=fi_FI&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Suomi
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=sv_SE&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Svenska
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=vi_VN&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Tiếng Việt
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=tr_TR&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Türkçe
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=bg_BG&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Български
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=ru_RU&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Русский
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=uk_UA&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Українська
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=el_GR&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Ελληνικά
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=ar_SA&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                العربية
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=fa_IR&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                فارسی
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=th_TH&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                ไทย
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=hi_IN&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                हिन्दी
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=zh_CN&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                简体中文
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=zh_TW&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                繁體中文
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=ja_JP&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                日本語
+                            </a>
+                                                    <a href="https://ipstatic.net/app/set-locale?locale=ko_KR&amp;redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                한국어
+                            </a>
+                                            </div>
+                </div>
+            </nav>
+        </div>
+    </div>
+</footer>
+    </div>
+
+
+<script>var online_update_domain = '';</script>
+<script type="text/javascript" src="../../ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js" defer></script>
+<script type="text/javascript" src="../assets/aa7c997ca5586c4fe67a/interpals.aa7c997ca5586c4fe67a.min.js" defer></script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="../../www.googletagmanager.com/gtag/js3ccd?id=G-0QW3XVG74P"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-0QW3XVG74P');
+</script>
+</body>
+
+<!-- Mirrored from ipstatic.net/app/forgot by HTTrack Website Copier/3.x [XR&CO'2014], Tue, 12 May 2026 13:11:18 GMT -->
+</html>

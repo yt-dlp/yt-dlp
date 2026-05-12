@@ -1,0 +1,869 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<!-- Mirrored from ipstatic.net/app/signup by HTTrack Website Copier/3.x [XR&CO'2014], Tue, 12 May 2026 13:11:18 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+<head>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta name="csrf_token" content="MWJjMjA4N2Y=">
+                        <title>InterPals - Registration</title>
+    <meta charset="utf-8"/>
+
+    
+<style>[x-cloak] { display: none !important; }</style>
+
+<style>img { -webkit-user-drag: none; user-drag: none; }</style>
+
+<style>html.dark { color-scheme: dark; }</style>
+
+    <!-- header -->
+    <link rel='shortcut icon' href="../images/icons/env-blu-16.png" type='image/png' / >
+    <link rel='stylesheet' type='text/css' href="../assets/aa7c997ca5586c4fe67a/interpals.aa7c997ca5586c4fe67a.min.css" / >
+    <link href="../../netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
+    <script src="../../cdn.tailwindcss.com/index.html"></script>
+    <script src="../../ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js" defer></script>
+    <meta property="og:type" content="website "/>
+
+    <script src="../../www.google.com/recaptcha/apieebe.js?render=6Ldn6XYUAAAAAAkvX5N4XSTme3aMkwFq02-4vJw6"></script>
+        <!-- ADS: default head -->
+<link rel="preconnect" href="../../securepubads.g.doubleclick.net/index.html">
+<link rel="preconnect" href="../../pagead2.googlesyndication.com/index.html">
+<script type="text/javascript">
+    window.googletag = window.googletag || { cmd: [] };
+    window.pbjs = window.pbjs || { que: [] };
+    window.__adsConfig = {
+        prebidUnits: [],
+        adSlots: [],
+        targeting: {"premium":"true","tier":"1"},
+        refreshRate: 60
+    };
+</script>
+<script type="text/javascript" async src="../../securepubads.g.doubleclick.net/tag/js/f.txt"></script>
+<script type="text/javascript" defer src="https://ipstatic.net/js/prebid9.41.0.js"></script>
+<script type="text/javascript" defer src="https://ipstatic.net/js/interpals/ads-init.js"></script>
+<script async src="../../pagead2.googlesyndication.com/pagead/js/f.txt"></script>
+
+
+    <script>var online_update_domain = '';</script>
+        <script>
+      window.__i18nConfig = {
+        locale: 'en_US',
+        isRtl: false,
+        version: 'f07bc1d62251',
+        translationsUrl: '/assets/translations/f07bc1d62251/en_US.json',
+        translations: {}
+      };
+    </script>
+    <script type="text/javascript" src="../../ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js" defer></script>
+    <script type="text/javascript" src="../assets/aa7c997ca5586c4fe67a/interpals.aa7c997ca5586c4fe67a.min.js" defer></script>
+    <!-- Google tag (gtag.js) -->
+<script async src="../../www.googletagmanager.com/gtag/js3ccd?id=G-0QW3XVG74P"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-0QW3XVG74P');
+</script>
+
+<body style="background: linear-gradient(180deg, #159DFF 0%, #19b5fe 100%); min-height: 100vh;">
+
+
+<div class="w-full">
+    <div class="w-full max-w-5xl mx-auto">
+                
+        </div>
+
+<script type="text/javascript" src="../../appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js" async></script>
+<script>
+    window.fb_login = function() {
+        FB.login(function (response) {
+            if (response.authResponse) {
+                window.location.href = 'https://ipstatic.net/app/auth/fb';
+            }
+        }, {scope: 'email, public_profile'});
+    }
+
+    window.fbAsyncInit = function() {
+        FB.init({
+            appId      : '200381430048956',
+            xfbml      : true,
+            cookie     : true,
+            version    : 'v21.0'
+        });
+    };
+
+    (function(d, s, id){
+        var js, fjs = d.getElementsByTagName(s)[0];
+        if (d.getElementById(id)) {return;}
+        js = d.createElement(s); js.id = id;
+        js.src = "../../connect.facebook.net/en_US/sdk.js";
+        fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var googleOauthUrl = 'https://accounts.google.com/o/oauth2/v2/auth'
+            + '?client_id=886838556226-iqp1h490atsthtv2rj8p5cuush39eb67.apps.googleusercontent.com'
+            + '&redirect_uri=' + encodeURIComponent('https://www.interpals.net/app/auth/google')
+            + '&response_type=code'
+            + '&scope=' + encodeURIComponent('openid profile email')
+            + '&access_type=online'
+            + '&prompt=select_account';
+
+        document.querySelectorAll('.google-signin-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                window.location.href = googleOauthUrl;
+            });
+        });
+
+        var appleSignInAttempted = false;
+var appleSignInReady = false;
+var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+function initAppleSignIn() {
+    if (typeof AppleID === 'undefined' || appleSignInReady) return;
+    appleSignInReady = true;
+
+    AppleID.auth.init({
+        clientId: 'net.interpals.services',
+        scope: 'name email',
+        redirectURI: 'https://www.interpals.net/app/auth/apple',
+        state: 'origin:web',
+        usePopup: !isMobile
+    });
+
+    document.querySelectorAll('.apple-signin-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            appleSignInAttempted = true;
+            AppleID.auth.signIn();
+        });
+    });
+}
+
+initAppleSignIn();
+
+if (!appleSignInReady) {
+    var appleScript = document.querySelector('script[src*="appleid.auth.js"]');
+    if (appleScript) {
+        appleScript.addEventListener('load', initAppleSignIn);
+    }
+}
+
+document.addEventListener('AppleIDSignInOnSuccess', function(data) {
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = 'https://www.interpals.net/app/auth/apple';
+
+    var codeInput = document.createElement('input');
+    codeInput.type = 'hidden';
+    codeInput.name = 'code';
+    codeInput.value = data.detail.authorization.code;
+    form.appendChild(codeInput);
+
+    if (data.detail.user) {
+        var userInput = document.createElement('input');
+        userInput.type = 'hidden';
+        userInput.name = 'user';
+        userInput.value = JSON.stringify(data.detail.user);
+        form.appendChild(userInput);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+});
+
+document.addEventListener('AppleIDSignInOnFailure', function(error) {
+    if (!appleSignInAttempted) return;
+    console.error('Apple Sign In failed:', error);
+});
+
+        document.querySelectorAll('.more-oauth-toggle').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var container = btn.closest('.bg-white') || document.body;
+                var fbBtn = container.querySelector('.facebook-signin-btn');
+                if (fbBtn) {
+                    fbBtn.classList.remove('hidden');
+                    fbBtn.classList.add('flex');
+                }
+                btn.parentElement.classList.add('hidden');
+            });
+        });
+    });
+</script>
+
+<style>
+    /* EasyAutocomplete overrides - mobile-first responsive */
+    .easy-autocomplete-container ul {
+        background: white !important;
+        border: none !important;
+        border-radius: 0.75rem !important;
+        box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
+        margin-top: 0.5rem !important;
+        overflow: hidden !important;
+        overflow-y: auto !important;
+        padding: 0.5rem 0 !important;
+        max-height: 280px !important;
+    }
+    @media (min-width: 640px) {
+        .easy-autocomplete-container ul {
+            border-radius: 1rem !important;
+            max-height: 320px !important;
+        }
+    }
+    .easy-autocomplete-container ul li {
+        border: none !important;
+        padding: 0.75rem 1rem !important;
+        transition: background-color 150ms ease !important;
+        cursor: pointer !important;
+    }
+    @media (min-width: 640px) {
+        .easy-autocomplete-container ul li {
+            padding: 0.875rem 1.25rem !important;
+        }
+    }
+    .easy-autocomplete-container ul li.selected,
+    .easy-autocomplete-container ul li:hover {
+        background-color: #f3f4f6 !important;
+    }
+    .easy-autocomplete-container ul li:active {
+        background-color: #e5e7eb !important;
+    }
+    .easy-autocomplete {
+        width: 100% !important;
+    }
+    .easy-autocomplete input {
+        width: 100% !important;
+        padding: 0.625rem 40px 0.625rem 40px !important;
+        background-color: white !important;
+        border-radius: 0.5rem !important; /* rounded-lg on mobile */
+        border: 2px solid #e5e7eb !important;
+        transition: border-color 200ms !important;
+        height: 2.75rem !important; /* Smaller on mobile */
+        font-size: 1rem !important;
+        box-sizing: border-box !important;
+        -webkit-appearance: none !important; /* Better iOS compatibility */
+    }
+    @media (min-width: 640px) {
+        .easy-autocomplete input {
+            padding: 0.75rem 40px 0.75rem 40px !important;
+            border-radius: 0.75rem !important; /* rounded-xl on sm+ */
+            height: 3rem !important;
+        }
+    }
+    .easy-autocomplete input:focus {
+        border-color: #14b8a6 !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }
+    .easy-autocomplete .location-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        z-index: 10;
+        pointer-events: none;
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+
+<div class="w-full min-h-screen sm:min-h-[80vh] flex flex-col items-center justify-start sm:justify-center px-3 sm:px-4 pt-4 pb-6 sm:py-8"
+     x-data="signupWizard()"
+     x-init="init()">
+
+    <!-- Logo -->
+    <a href="../index.html" class="block mb-4 sm:mb-8">
+        <img src="../images/logo-interpals-v2-white.svg" alt="InterPals" class="w-40 sm:w-44 md:w-48 h-auto">
+    </a>
+
+        <div class="w-full max-w-md mb-4 sm:mb-5"
+         x-cloak
+         x-show="showContent && currentStep === 1"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6">
+            <div class="flex flex-col gap-2.5 2xl:gap-3 oauth-buttons">
+    <!-- Apple Sign-In - native style (black) -->
+    <button class="apple-signin-btn w-full bg-black text-white font-medium
+                   py-3 2xl:py-3.5 px-4 rounded-xl
+                   hover:bg-gray-800
+                   transition-colors duration-150
+                   focus:outline-none focus:ring-2 focus:ring-gray-500/50 focus:ring-offset-1
+                   text-[15px] 2xl:text-base flex items-center justify-center gap-3 ios-order-1"
+            type="button"
+            aria-label="Sign in with Apple">
+        <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" fill="white"/>
+        </svg>
+        <span>Sign in with Apple</span>
+    </button>
+
+    <!-- Google Sign-In - native style (white) -->
+    <button class="google-signin-btn w-full bg-white text-gray-700 font-medium
+                   py-3 2xl:py-3.5 px-4 rounded-xl
+                   border border-gray-200 shadow-sm
+                   hover:bg-gray-50 hover:border-gray-300
+                   transition-all duration-150
+                   focus:outline-none focus:ring-2 focus:ring-gray-300/50 focus:ring-offset-1
+                   text-[15px] 2xl:text-base flex items-center justify-center gap-3 ios-order-2"
+            type="button"
+            aria-label="Sign in with Google">
+        <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.64 9.20443C17.64 8.56625 17.5827 7.95262 17.4764 7.36353H9V10.8449H13.8436C13.635 11.9699 13.0009 12.9231 12.0477 13.5613V15.8194H14.9564C16.6582 14.2526 17.64 11.9453 17.64 9.20443Z" fill="#4285F4"/>
+            <path d="M9 18C11.43 18 13.4673 17.1941 14.9564 15.8195L12.0477 13.5613C11.2418 14.1013 10.2109 14.4204 9 14.4204C6.65591 14.4204 4.67182 12.8372 3.96409 10.71H0.957275V13.0418C2.43818 15.9831 5.48182 18 9 18Z" fill="#34A853"/>
+            <path d="M3.96409 10.71C3.78409 10.17 3.68182 9.59318 3.68182 9C3.68182 8.40682 3.78409 7.82999 3.96409 7.28999V4.95819H0.957275C0.347727 6.17318 0 7.54773 0 9C0 10.4523 0.347727 11.8268 0.957275 13.0418L3.96409 10.71Z" fill="#FBBC05"/>
+            <path d="M9 3.57955C10.3214 3.57955 11.5077 4.03364 12.4405 4.92545L15.0218 2.34409C13.4632 0.891818 11.4259 0 9 0C5.48182 0 2.43818 2.01682 0.957275 4.95818L3.96409 7.29C4.67182 5.16273 6.65591 3.57955 9 3.57955Z" fill="#EA4335"/>
+        </svg>
+        <span>Sign in with Google</span>
+    </button>
+
+    <!-- Facebook - hidden by default, revealed by toggle -->
+    <button onclick="fb_login();"
+            class="facebook-signin-btn hidden w-full bg-[#1877F2] text-white font-medium
+                   py-3 2xl:py-3.5 px-4 rounded-xl
+                   hover:bg-[#166FE5]
+                   transition-colors duration-150
+                   focus:outline-none focus:ring-2 focus:ring-[#1877F2]/50 focus:ring-offset-1
+                   text-[15px] 2xl:text-base flex items-center justify-center gap-3 ios-order-3"
+            type="button"
+            aria-label="Sign in with Facebook">
+        <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="../../www.w3.org/2000/svg.html">
+            <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047v-2.66c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.971H15.83c-1.491 0-1.956.93-1.956 1.886v2.264h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z" fill="white"/>
+        </svg>
+        <span>Sign in with Facebook</span>
+    </button>
+
+</div>
+
+            <div class="text-center mt-2">
+                <button type="button"
+                        class="more-oauth-toggle text-sm text-gray-500 hover:text-gray-700 underline decoration-gray-300 hover:decoration-gray-500 bg-transparent border-0 cursor-pointer transition-colors duration-150">
+                    More options
+                </button>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3 my-4 sm:my-5 px-2">
+            <div class="flex-1 h-px bg-white/30"></div>
+            <span class="text-white/80 text-xs font-medium uppercase tracking-wider">or</span>
+            <div class="flex-1 h-px bg-white/30"></div>
+        </div>
+    </div>
+    
+        <div :class="{'hidden': showContent}" class="w-full max-w-md flex justify-center py-12">
+        <div class="text-white/80">
+            <svg class="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+        </div>
+    </div>
+
+        <form action="#" method="post" id="signupForm" class="w-full max-w-md"
+          @submit.prevent="submitSignup()"
+          x-cloak
+          x-show="showContent"
+          x-transition:enter="transition ease-out duration-300"
+          x-transition:enter-start="opacity-0 scale-95"
+          x-transition:enter-end="opacity-100 scale-100">
+        <input type="hidden" name="csrf_token" value="MWJjMjA4N2Y=" />
+
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl">
+            <div class="flex justify-center gap-1.5 sm:gap-2 pt-5 sm:pt-6 pb-3 sm:pb-4">
+    <template x-for="step in totalSteps" :key="step">
+        <button type="button"
+                @click="goToStep(step)"
+                :class="{
+                    'bg-brand scale-110': currentStep === step,
+                    'bg-brand/40': currentStep > step,
+                    'bg-gray-200': currentStep < step
+                }"
+                class="w-2.5 h-2.5 sm:w-2 sm:h-2 rounded-full transition-all duration-200 touch-manipulation"
+                :aria-label="(window.t ? window.t('auth.go_to_step') : 'Go\u0020to\u0020step') + ' ' + step"
+                :aria-current="currentStep === step ? 'step' : null"></button>
+    </template>
+</div>
+
+
+            <div class="px-4 py-3 sm:p-6 md:p-8 pt-2 sm:pt-3">
+                <div class="grid">
+                                        <div x-cloak
+     x-show="currentStep === 1"
+     x-transition:enter="transition ease-out duration-200"
+     x-transition:enter-start="opacity-0 translate-x-4"
+     x-transition:enter-end="opacity-100 translate-x-0"
+     x-transition:leave="transition ease-in duration-150"
+     x-transition:leave-start="opacity-100 translate-x-0"
+     x-transition:leave-end="opacity-0 -translate-x-4"
+     class="col-start-1 row-start-1">
+    <div class="text-center mb-4 sm:mb-6">
+    <div class="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-green-50 mb-2 sm:mb-3">
+        <i data-lucide="mail" class="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-green-500"></i>
+    </div>
+    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-1 sm:mb-1.5 px-4">What&#039;s your email?</h2>
+    <p class="text-sm sm:text-base text-gray-500 px-4">We&#039;ll send you a verification link</p>
+</div>
+<div>
+    <input type="email"
+           id="email"
+           name="email"
+           x-model="email"
+           @blur="if (!isInitializing) touched.email = true"
+           @keydown.enter.prevent="next()"
+           placeholder="your@email.com"
+           autocomplete="email"
+           class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-base sm:text-lg border-2 border-gray-200 rounded-lg sm:rounded-xl focus:border-green-500 focus:ring-0 focus:outline-none transition-colors touch-manipulation">
+    <template x-if="currentStepError">
+        <div x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 -translate-y-1"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             class="flex items-center gap-2 mt-3 mb-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
+            <i data-lucide="alert-circle" class="w-4 h-4 text-red-500 flex-shrink-0"></i>
+            <span x-text="currentStepError" class="text-red-600 text-sm"></span>
+        </div>
+    </template>
+</div>
+
+</div>
+
+
+                                        <div x-cloak
+     x-show="currentStep === 2"
+     x-transition:enter="transition ease-out duration-200"
+     x-transition:enter-start="opacity-0 translate-x-4"
+     x-transition:enter-end="opacity-100 translate-x-0"
+     x-transition:leave="transition ease-in duration-150"
+     x-transition:leave-start="opacity-100 translate-x-0"
+     x-transition:leave-end="opacity-0 -translate-x-4"
+     class="col-start-1 row-start-1">
+    <div class="text-center mb-4 sm:mb-6">
+    <div class="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-blue-50 mb-2 sm:mb-3">
+        <i data-lucide="user" class="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-blue-500"></i>
+    </div>
+    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-1 sm:mb-1.5 px-4">What&#039;s your first name?</h2>
+    <p class="text-sm sm:text-base text-gray-500 px-4">This is how others will see you</p>
+</div>
+<div>
+    <input type="text"
+           id="name"
+           name="name"
+           x-model="name"
+           @blur="if (!isInitializing) touched.name = true"
+           @keydown.enter.prevent="next()"
+           placeholder="Your first name"
+           autocomplete="given-name"
+           class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-base sm:text-lg border-2 border-gray-200 rounded-lg sm:rounded-xl focus:border-blue-500 focus:ring-0 focus:outline-none transition-colors touch-manipulation">
+    <template x-if="currentStepError">
+        <div x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 -translate-y-1"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             class="flex items-center gap-2 mt-3 mb-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
+            <i data-lucide="alert-circle" class="w-4 h-4 text-red-500 flex-shrink-0"></i>
+            <span x-text="currentStepError" class="text-red-600 text-sm"></span>
+        </div>
+    </template>
+</div>
+
+</div>
+
+
+                                        <div x-cloak
+     x-show="currentStep === 3"
+     x-transition:enter="transition ease-out duration-200"
+     x-transition:enter-start="opacity-0 translate-x-4"
+     x-transition:enter-end="opacity-100 translate-x-0"
+     x-transition:leave="transition ease-in duration-150"
+     x-transition:leave-start="opacity-100 translate-x-0"
+     x-transition:leave-end="opacity-0 -translate-x-4"
+     class="col-start-1 row-start-1">
+    <div class="text-center mb-4 sm:mb-6">
+    <div class="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-purple-50 mb-2 sm:mb-3">
+        <i data-lucide="calendar" class="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-purple-500"></i>
+    </div>
+    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-1 sm:mb-1.5 px-4">When&#039;s your birthday?</h2>
+    <p class="text-sm sm:text-base text-gray-500 px-4">You must be 18 or older to join</p>
+</div>
+<div>
+    <div class="flex gap-2 sm:gap-3 justify-center"
+         x-ref="dateFields"
+         x-init="$nextTick(() => {
+             const c = $refs.dateFields;
+             const order = dateFormat === 'MDY' ? ['month','day','year'] : (dateFormat === 'YMD' ? ['year','month','day'] : ['day','month','year']);
+             order.forEach(name => { const el = c.querySelector('[data-field=' + name + ']'); if (el) c.appendChild(el); });
+         })">
+        <select name="month" data-field="month" x-model="month" @keydown.enter.prevent="next()"
+                class="flex-1 max-w-[100px] sm:max-w-[120px] px-2 sm:px-3 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-200 rounded-lg sm:rounded-xl focus:border-purple-500 focus:ring-0 focus:outline-none transition-colors bg-white touch-manipulation">
+            <option value="">Month</option>
+            <option value="01" :selected="month === '01'">Jan</option>
+            <option value="02" :selected="month === '02'">Feb</option>
+            <option value="03" :selected="month === '03'">Mar</option>
+            <option value="04" :selected="month === '04'">Apr</option>
+            <option value="05" :selected="month === '05'">May</option>
+            <option value="06" :selected="month === '06'">Jun</option>
+            <option value="07" :selected="month === '07'">Jul</option>
+            <option value="08" :selected="month === '08'">Aug</option>
+            <option value="09" :selected="month === '09'">Sep</option>
+            <option value="10" :selected="month === '10'">Oct</option>
+            <option value="11" :selected="month === '11'">Nov</option>
+            <option value="12" :selected="month === '12'">Dec</option>
+        </select>
+
+        <select id="day" name="day" data-field="day" x-model="day" @keydown.enter.prevent="next()"
+                class="flex-1 max-w-[85px] sm:max-w-[100px] px-2 sm:px-3 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-200 rounded-lg sm:rounded-xl focus:border-purple-500 focus:ring-0 focus:outline-none transition-colors bg-white touch-manipulation">
+            <option value="">Day</option>
+            <template x-for="d in dayOptions" :key="d">
+                <option :value="d" x-text="d" :selected="d === day"></option>
+            </template>
+        </select>
+
+        <select name="year" data-field="year" x-model="year" @keydown.enter.prevent="next()"
+                class="flex-1 max-w-[95px] sm:max-w-[110px] px-2 sm:px-3 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-200 rounded-lg sm:rounded-xl focus:border-purple-500 focus:ring-0 focus:outline-none transition-colors bg-white touch-manipulation">
+            <option value="">Year</option>
+            <template x-for="y in yearOptions" :key="y">
+                <option :value="y" x-text="y" :selected="y === year"></option>
+            </template>
+        </select>
+    </div>
+    <template x-if="currentStepError">
+        <div x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 -translate-y-1"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             class="flex items-center gap-2 mt-3 mb-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
+            <i data-lucide="alert-circle" class="w-4 h-4 text-red-500 flex-shrink-0"></i>
+            <span x-text="currentStepError" class="text-red-600 text-sm"></span>
+        </div>
+    </template>
+</div>
+
+</div>
+
+
+                                        <div x-cloak
+     x-show="currentStep === 4"
+     x-transition:enter="transition ease-out duration-200"
+     x-transition:enter-start="opacity-0 translate-x-4"
+     x-transition:enter-end="opacity-100 translate-x-0"
+     x-transition:leave="transition ease-in duration-150"
+     x-transition:leave-start="opacity-100 translate-x-0"
+     x-transition:leave-end="opacity-0 -translate-x-4"
+     class="col-start-1 row-start-1">
+    <div class="text-center mb-4 sm:mb-6">
+    <div class="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-pink-50 mb-2 sm:mb-3">
+        <i data-lucide="users" class="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-pink-500"></i>
+    </div>
+    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-1 sm:mb-1.5 px-4">How do you identify?</h2>
+    <p class="text-sm sm:text-base text-gray-500 px-4">This helps others find you</p>
+</div>
+<div>
+    <div class="space-y-3">
+        <input type="hidden" name="sex" :value="sex">
+
+        <button type="button"
+                @click="selectSex('male')"
+                :class="sex === 'male' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300 text-gray-700'"
+                class="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 sm:py-4 border-2 rounded-xl transition-all duration-200">
+            <div :class="sex === 'male' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'"
+                 class="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                    <circle cx="10" cy="14" r="6"/>
+                    <line x1="14.5" y1="9.5" x2="20" y2="4"/>
+                    <line x1="17" y1="4" x2="20" y2="4"/>
+                    <line x1="20" y1="4" x2="20" y2="7"/>
+                </svg>
+            </div>
+            <span class="text-base sm:text-lg font-medium">Male</span>
+            <div class="ml-auto" x-show="sex === 'male'">
+                <i data-lucide="check" class="w-5 h-5 text-blue-500"></i>
+            </div>
+        </button>
+
+        <button type="button"
+                @click="selectSex('female')"
+                :class="sex === 'female' ? 'border-pink-500 bg-pink-50 text-pink-700' : 'border-gray-200 hover:border-gray-300 text-gray-700'"
+                class="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 sm:py-4 border-2 rounded-xl transition-all duration-200">
+            <div :class="sex === 'female' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-500'"
+                 class="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                    <circle cx="12" cy="8" r="6"/>
+                    <line x1="12" y1="14" x2="12" y2="22"/>
+                    <line x1="8" y1="18" x2="16" y2="18"/>
+                </svg>
+            </div>
+            <span class="text-base sm:text-lg font-medium">Female</span>
+            <div class="ml-auto" x-show="sex === 'female'">
+                <i data-lucide="check" class="w-5 h-5 text-pink-500"></i>
+            </div>
+        </button>
+    </div>
+    <template x-if="currentStepError">
+        <div x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 -translate-y-1"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             class="flex items-center gap-2 mt-3 mb-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
+            <i data-lucide="alert-circle" class="w-4 h-4 text-red-500 flex-shrink-0"></i>
+            <span x-text="currentStepError" class="text-red-600 text-sm"></span>
+        </div>
+    </template>
+</div>
+
+</div>
+
+
+                                        <div x-cloak
+     x-show="currentStep === 5"
+     x-transition:enter="transition ease-out duration-200"
+     x-transition:enter-start="opacity-0 translate-x-4"
+     x-transition:enter-end="opacity-100 translate-x-0"
+     x-transition:leave="transition ease-in duration-150"
+     x-transition:leave-start="opacity-100 translate-x-0"
+     x-transition:leave-end="opacity-0 -translate-x-4"
+     class="col-start-1 row-start-1">
+    <div class="text-center mb-4 sm:mb-6">
+    <div class="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-teal-50 mb-2 sm:mb-3">
+        <i data-lucide="map-pin" class="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-teal-500"></i>
+    </div>
+    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-1 sm:mb-1.5 px-4">Where are you now?</h2>
+    <p class="text-sm sm:text-base text-gray-500 px-4">Your current city</p>
+</div>
+<div>
+    <div class="relative">
+        <input type="text" name="_userLocation" id="suCityName"
+               x-model="cityName"
+               @change="touched.currentCity = true"
+               placeholder="Type your city name"
+               autocomplete="off"
+               data-lpignore="true"
+               data-form-type="other"
+               autocorrect="off"
+               autocapitalize="off"
+               spellcheck="false"
+               :class="cityName ? 'cursor-text' : 'cursor-pointer'">
+        <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+            <i data-lucide="chevron-down" class="w-5 h-5"></i>
+        </div>
+    </div>
+    <input type="hidden" name="city_id" id="suCityId" x-model="cityId" class="cityVal"/>
+    <template x-if="currentStepError">
+        <div x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 -translate-y-1"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             class="flex items-center gap-2 mt-3 mb-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
+            <i data-lucide="alert-circle" class="w-4 h-4 text-red-500 flex-shrink-0"></i>
+            <span x-text="currentStepError" class="text-red-600 text-sm"></span>
+        </div>
+    </template>
+</div>
+
+</div>
+
+
+                                        <div x-cloak
+     x-show="currentStep === 6"
+     x-transition:enter="transition ease-out duration-200"
+     x-transition:enter-start="opacity-0 translate-x-4"
+     x-transition:enter-end="opacity-100 translate-x-0"
+     x-transition:leave="transition ease-in duration-150"
+     x-transition:leave-start="opacity-100 translate-x-0"
+     x-transition:leave-end="opacity-0 -translate-x-4"
+     class="col-start-1 row-start-1">
+    <div class="text-center mb-4 sm:mb-6">
+    <div class="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-rose-50 mb-2 sm:mb-3">
+        <i data-lucide="home" class="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-rose-500"></i>
+    </div>
+    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-1 sm:mb-1.5 px-4">Where are you from?</h2>
+    <p class="text-sm sm:text-base text-gray-500 px-4">Your hometown</p>
+</div>
+<div>
+    <div class="relative">
+        <input type="text" name="_userOrigin" id="suHomeCityName"
+               x-model="homeCityName"
+               @change="touched.homeCity = true"
+               placeholder="Type your hometown"
+               autocomplete="off"
+               data-lpignore="true"
+               data-form-type="other"
+               autocorrect="off"
+               autocapitalize="off"
+               spellcheck="false"
+               :class="homeCityName ? 'cursor-text' : 'cursor-pointer'">
+        <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+            <i data-lucide="chevron-down" class="w-5 h-5"></i>
+        </div>
+    </div>
+    <input type="hidden" name="home_city_id" id="suHomeCityId" x-model="homeCityId" class="cityVal"/>
+    <template x-if="currentStepError">
+        <div x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 -translate-y-1"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             class="flex items-center gap-2 mt-3 mb-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
+            <i data-lucide="alert-circle" class="w-4 h-4 text-red-500 flex-shrink-0"></i>
+            <span x-text="currentStepError" class="text-red-600 text-sm"></span>
+        </div>
+    </template>
+</div>
+
+</div>
+
+
+                                        <div x-cloak
+     x-show="currentStep === 7"
+     x-transition:enter="transition ease-out duration-200"
+     x-transition:enter-start="opacity-0 translate-x-4"
+     x-transition:enter-end="opacity-100 translate-x-0"
+     x-transition:leave="transition ease-in duration-150"
+     x-transition:leave-start="opacity-100 translate-x-0"
+     x-transition:leave-end="opacity-0 -translate-x-4"
+     class="col-start-1 row-start-1">
+    <div class="text-center mb-4 sm:mb-6">
+    <div class="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-amber-50 mb-2 sm:mb-3">
+        <i data-lucide="lock" class="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-amber-500"></i>
+    </div>
+    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-1 sm:mb-1.5 px-4">Create a password</h2>
+    <p class="text-sm sm:text-base text-gray-500 px-4">Make it strong and memorable</p>
+</div>
+<div>
+    <input type="password"
+           id="password"
+           name="password"
+           x-model="password"
+           @blur="if (!isInitializing) touched.password = true"
+           @keydown.enter.prevent="next()"
+           placeholder="At least 8 characters"
+           autocomplete="new-password"
+           maxlength="36"
+           class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-base sm:text-lg border-2 border-gray-200 rounded-lg sm:rounded-xl focus:border-amber-500 focus:ring-0 focus:outline-none transition-colors touch-manipulation">
+    <template x-if="currentStepError">
+        <div x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 -translate-y-1"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             class="flex items-center gap-2 mt-3 mb-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
+            <i data-lucide="alert-circle" class="w-4 h-4 text-red-500 flex-shrink-0"></i>
+            <span x-text="currentStepError" class="text-red-600 text-sm"></span>
+        </div>
+    </template>
+</div>
+
+</div>
+
+
+                                        <div x-cloak
+     x-show="currentStep === 8"
+     x-transition:enter="transition ease-out duration-200"
+     x-transition:enter-start="opacity-0 translate-x-4"
+     x-transition:enter-end="opacity-100 translate-x-0"
+     x-transition:leave="transition ease-in duration-150"
+     x-transition:leave-start="opacity-100 translate-x-0"
+     x-transition:leave-end="opacity-0 -translate-x-4"
+     class="col-start-1 row-start-1">
+    <div class="text-center mb-4 sm:mb-6">
+    <div class="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-indigo-50 mb-2 sm:mb-3">
+        <i data-lucide="at-sign" class="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-indigo-500"></i>
+    </div>
+    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-1 sm:mb-1.5 px-4">Choose a username</h2>
+    <p class="text-sm sm:text-base text-gray-500 px-4">This is your unique identity on InterPals</p>
+</div>
+<div>
+    <input type="text"
+           id="username"
+           name="username"
+           x-model="username"
+           @blur="if (!isInitializing) touched.username = true"
+           @keydown.enter.prevent="next()"
+           placeholder="yourname123"
+           autocomplete="username"
+           maxlength="20"
+           class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-base sm:text-lg border-2 border-gray-200 rounded-lg sm:rounded-xl focus:border-indigo-500 focus:ring-0 focus:outline-none transition-colors touch-manipulation">
+    <template x-if="currentStepError">
+        <div x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 -translate-y-1"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             class="flex items-center gap-2 mt-3 mb-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
+            <i data-lucide="alert-circle" class="w-4 h-4 text-red-500 flex-shrink-0"></i>
+            <span x-text="currentStepError" class="text-red-600 text-sm"></span>
+        </div>
+    </template>
+</div>
+
+</div>
+
+
+                </div>
+
+                                <div class="hidden" data-recaptcha-sitekey="6Ldn6XYUAAAAAAkvX5N4XSTme3aMkwFq02-4vJw6">
+                                        
+                </div>
+
+                                                                                                                    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+                    <div class="cf-turnstile mt-4"
+                         data-sitekey="0x4AAAAAADDJYGWrDMrSRd7v"
+                         data-size="flexible"
+                         data-theme="light"></div>
+                
+                <div class="flex items-center justify-between mt-4 sm:mt-5 pt-3 sm:pt-4">
+    <button type="button"
+            @click="back()"
+            x-show="!isFirstStep"
+            class="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base text-gray-500 hover:text-gray-700 transition-colors touch-manipulation"
+            style="visibility: hidden;"
+            x-bind:style="!isFirstStep ? 'visibility: visible;' : 'visibility: hidden;'">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        <span>Back</span>
+    </button>
+
+    <button type="button"
+            @click="isLastStep ? submitSignup() : next()"
+            :class="canProceed ? 'shadow-lg' : 'opacity-80'"
+            :disabled="isSubmitting"
+            class="flex items-center gap-1.5 sm:gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full text-sm sm:text-base font-bold text-white touch-manipulation bg-brand hover:bg-brand-hover shadow-md focus:outline-none focus:ring-4 focus:ring-brand/50">
+        <template x-if="isSubmitting">
+            <i class="fa fa-spinner fa-spin"></i>
+        </template>
+        <span x-text="isSubmitting ? 'Please\u0020wait...' : (isLastStep ? 'Create\u0020Account' : 'Next')"></span>
+        <template x-if="!isSubmitting">
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </template>
+    </button>
+</div>
+
+            </div>
+        </div>
+
+        <p class="text-center mt-4 sm:mt-6 text-sm sm:text-base text-white/80 px-4">
+            Already have an account?
+            <a href="https://ipstatic.net/?redirect=" class="text-white hover:text-white font-medium underline">Sign in</a>
+        </p>
+
+    </form>
+</div>
+
+<div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function() {
+        window.cur_ts = 1778590590279;
+        window.enable_notifs = false;
+        window.online_update_interval = 4000;
+    });
+</script>
+<div id="notifCont" style="display:none;top:auto; left:0; bottom:0; margin:0 0 10px 10px">
+    <div id="notifDefault">
+        <a class="ui-notify-cross ui-notify-close" href="#">x</a>
+        <a href="../index.html#{username}">#{img}</a>
+
+        <h1><a href="#{url}">#{title}</a></h1>
+
+        <p>#{text}</p>
+    </div>
+</div>
+</body>
+
+<!-- Mirrored from ipstatic.net/app/signup by HTTrack Website Copier/3.x [XR&CO'2014], Tue, 12 May 2026 13:11:18 GMT -->
+</html>

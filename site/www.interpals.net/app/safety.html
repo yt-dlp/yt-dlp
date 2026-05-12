@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ko-KR" dir="ltr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InterPals</title>
+                <link rel="canonical" href="https://www.interpals.net">
+    
+    <link rel='shortcut icon' href="/images/icons/env-blu-16.png" type='image/png'/>
+    
+    
+    <link rel="preconnect" href="https://ipstatic.net">
+    <link rel="preload" href="/assets/aa7c997ca5586c4fe67a/interpals.aa7c997ca5586c4fe67a.min.js" as="script">
+    <link rel='stylesheet' type='text/css' href="/assets/aa7c997ca5586c4fe67a/interpals.aa7c997ca5586c4fe67a.min.css" />
+    <link rel="preload" href="//fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="//fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js" defer></script>
+
+    <meta name="csrf_token" content="MWE5YTI3Yjg="/>
+
+    <style>
+        body, html {
+            margin: 0;
+            height: 100%;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        [x-cloak] { display: none !important; }
+
+        /* On iOS devices, show Apple login first */
+        html.ios .oauth-buttons > .ios-order-1 { order: 1 !important; }
+        html.ios .oauth-buttons > .ios-order-2 { order: 2 !important; }
+        html.ios .oauth-buttons > .ios-order-3 { order: 3 !important; }
+    </style>
+    <script>if(/iPad|iPhone|iPod/.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&'ontouchend' in document))document.documentElement.classList.add('ios');</script>
+
+    </head>
+<body>
+
+<div class="min-h-screen flex flex-col relative"
+     style="background: linear-gradient(180deg, #159DFF 0%, #1180D8 100%);">
+
+        <header class="w-full" style="background-color: #159DFF;">
+        <div class="max-w-7xl 2xl:max-w-[1400px] mx-auto flex items-center justify-between px-4 sm:px-6 py-3">
+            <!-- Logo -->
+            <a href="/" class="flex items-center gap-2 no-underline">
+                <img src="/images/logo-interpals-v2-white.svg"
+                     alt="InterPals"
+                     class="h-7 sm:h-8 2xl:h-9 w-auto drop-shadow-md"
+                     width="233" height="50"
+                     fetchpriority="high">
+            </a>
+
+            <!-- Right side: language + sign in + join free -->
+            <div class="flex items-center gap-3 sm:gap-4">
+                                <div class="relative" x-data="{ open: false }">
+                    <button @click="open = !open"
+                            @keydown.escape.window="open = false"
+                            class="flex items-center gap-1 text-white/80 hover:text-white transition-colors bg-transparent border-0 cursor-pointer p-1.5"
+                            aria-haspopup="listbox"
+                            :aria-expanded="open">
+                        <i data-lucide="globe" class="w-5 h-5"></i>
+                        <i data-lucide="chevron-down" class="w-3 h-3 transition-transform" :class="{ 'rotate-180': open }"></i>
+                    </button>
+                    <div x-show="open"
+                         x-transition:enter="transition ease-out duration-100"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-75"
+                         x-transition:leave-start="opacity-100 scale-100"
+                         x-transition:leave-end="opacity-0 scale-95"
+                         @click.away="open = false"
+                         class="absolute top-full mt-1 end-0 bg-white rounded-lg shadow-xl py-2 min-w-[160px] z-50"
+                         role="listbox"
+                         style="display: none;">
+                                                    <a href="/app/set-locale?locale=id_ID&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Bahasa Indonesia
+                            </a>
+                                                    <a href="/app/set-locale?locale=cs_CZ&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Čeština
+                            </a>
+                                                    <a href="/app/set-locale?locale=da_DK&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Dansk
+                            </a>
+                                                    <a href="/app/set-locale?locale=de_DE&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Deutsch
+                            </a>
+                                                    <a href="/app/set-locale?locale=en_US&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                English
+                            </a>
+                                                    <a href="/app/set-locale?locale=es-419&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Español
+                            </a>
+                                                    <a href="/app/set-locale?locale=fr_FR&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Français
+                            </a>
+                                                    <a href="/app/set-locale?locale=it_IT&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Italiano
+                            </a>
+                                                    <a href="/app/set-locale?locale=hu_HU&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Magyar
+                            </a>
+                                                    <a href="/app/set-locale?locale=nl_NL&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Nederlands
+                            </a>
+                                                    <a href="/app/set-locale?locale=pl_PL&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Polski
+                            </a>
+                                                    <a href="/app/set-locale?locale=pt_BR&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Português
+                            </a>
+                                                    <a href="/app/set-locale?locale=ro_RO&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Română
+                            </a>
+                                                    <a href="/app/set-locale?locale=fi_FI&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Suomi
+                            </a>
+                                                    <a href="/app/set-locale?locale=sv_SE&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Svenska
+                            </a>
+                                                    <a href="/app/set-locale?locale=vi_VN&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Tiếng Việt
+                            </a>
+                                                    <a href="/app/set-locale?locale=tr_TR&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Türkçe
+                            </a>
+                                                    <a href="/app/set-locale?locale=bg_BG&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Български
+                            </a>
+                                                    <a href="/app/set-locale?locale=ru_RU&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Русский
+                            </a>
+                                                    <a href="/app/set-locale?locale=uk_UA&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Українська
+                            </a>
+                                                    <a href="/app/set-locale?locale=el_GR&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Ελληνικά
+                            </a>
+                                                    <a href="/app/set-locale?locale=ar_SA&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                العربية
+                            </a>
+                                                    <a href="/app/set-locale?locale=fa_IR&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                فارسی
+                            </a>
+                                                    <a href="/app/set-locale?locale=th_TH&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                ไทย
+                            </a>
+                                                    <a href="/app/set-locale?locale=hi_IN&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                हिन्दी
+                            </a>
+                                                    <a href="/app/set-locale?locale=zh_CN&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                简体中文
+                            </a>
+                                                    <a href="/app/set-locale?locale=zh_TW&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                繁體中文
+                            </a>
+                                                    <a href="/app/set-locale?locale=ja_JP&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                日本語
+                            </a>
+                                                    <a href="/app/set-locale?locale=ko_KR&redirect="
+                               role="option"
+                               aria-selected="true"                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      bg-blue-50 text-blue-600 font-medium">
+                                한국어
+                            </a>
+                                            </div>
+                </div>
+
+                <a href="/?view=signin" id="header-signin-btn"
+                   class="text-white/90 hover:text-white text-sm 2xl:text-base font-medium no-underline transition-colors hidden sm:inline-block">
+                    로그인
+                </a>
+
+                <a href="/app/signup"
+                   class="bg-white text-gray-800 text-sm 2xl:text-base font-semibold px-4 2xl:px-5 py-2 2xl:py-2.5 rounded-full
+                          hover:bg-gray-100 transition-colors no-underline shadow-sm">
+                    무료 가입
+                </a>
+            </div>
+        </div>
+        <div class="border-b border-white/15"></div>
+    </header>
+    
+    <main class="flex-1 flex items-center justify-center px-4 py-4 sm:py-8 md:py-12">
+            <div class="flex flex-col items-center justify-center py-16 sm:py-24 px-4">
+
+                <div class="relative w-24 h-24 sm:w-32 sm:h-32 mb-8 flex items-center justify-center">
+            <div class="absolute inset-0 bg-white/15 rounded-full"></div>
+            <i data-lucide="alert-circle" class="relative w-12 h-12 sm:w-16 sm:h-16 text-white/80"></i>
+        </div>
+
+                <h1 class="text-2xl sm:text-3xl font-bold text-white mb-3 text-center">
+            페이지를 찾을 수 없습니다
+        </h1>
+
+                <p class="text-white/70 text-base sm:text-lg text-center max-w-md mb-8">
+            오류가 발생했어요. 다시 시도해 주세요.
+        </p>
+
+                <div class="flex flex-col sm:flex-row gap-3">
+            <button type="button"
+                    onclick="history.back()"
+                    class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-base font-semibold text-white bg-white/15 border border-white/30 hover:bg-white/25 shadow-sm hover:shadow transition-all duration-200">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                <span>뒤로 가기</span>
+            </button>
+
+                        <a href="/"
+               class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-base font-semibold text-gray-800 bg-white hover:bg-gray-100 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
+                <i data-lucide="home" class="w-5 h-5"></i>
+                <span>홈</span>
+            </a>
+                    </div>
+
+                        <div class="mt-12 w-full max-w-lg">
+            <p class="text-center text-sm text-white/50 mb-4">다음 중 하나를 시도해 보세요:</p>
+
+            <div class="flex flex-wrap justify-center gap-2">
+                <a href="/"
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-full text-sm font-medium text-white hover:bg-white/20 transition-all duration-200">
+                    <i data-lucide="home" class="w-3.5 h-3.5 text-white/60"></i>
+                    홈
+                </a>
+
+                <a href="/?view=signin"
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-full text-sm font-medium text-white hover:bg-white/20 transition-all duration-200">
+                    <i data-lucide="log-in" class="w-3.5 h-3.5 text-white/60"></i>
+                    로그인
+                </a>
+
+                <a href="/app/signup"
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-full text-sm font-medium text-white hover:bg-white/20 transition-all duration-200">
+                    <i data-lucide="user-plus" class="w-3.5 h-3.5 text-white/60"></i>
+                    무료 가입
+                </a>
+            </div>
+        </div>
+            </div>
+    </main>
+
+        <footer class="bg-black/50 backdrop-blur-sm text-white py-4 px-4 sm:px-6">
+    <div class="max-w-7xl mx-auto">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
+            <div class="text-white/90 order-2 sm:order-1">
+                &copy; 1998 - 2026 Interpals.
+            </div>
+            <nav class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 order-1 sm:order-2"
+                 aria-label="푸터 내비게이션">
+                <a href="/app/about" class="text-white/90 hover:text-white transition-colors no-underline">소개</a>
+                <span class="text-white/50">|</span>
+                <a href="/app/feedback" class="text-white/90 hover:text-white transition-colors no-underline">도움말 &amp; 피드백</a>
+                <span class="text-white/50">|</span>
+                <a href="/app/tos" class="text-white/90 hover:text-white transition-colors no-underline">이용약관</a>
+                <span class="text-white/50">|</span>
+                <a href="/app/privacy" class="text-white/90 hover:text-white transition-colors no-underline">개인정보처리방침</a>
+                <span class="text-white/50">|</span>
+                                <div class="relative" x-data="{ open: false }">
+                    <button @click="open = !open"
+                            @keydown.escape.window="open = false"
+                            class="flex items-center gap-1.5 text-white/90 hover:text-white transition-colors bg-transparent border-0 cursor-pointer p-0"
+                            aria-haspopup="listbox"
+                            :aria-expanded="open">
+                        <i data-lucide="globe" class="w-4 h-4"></i>
+                        <span>한국어</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 transition-transform" :class="{ 'rotate-180': open }"></i>
+                    </button>
+                    <div x-show="open"
+                         x-transition:enter="transition ease-out duration-100"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-75"
+                         x-transition:leave-start="opacity-100 scale-100"
+                         x-transition:leave-end="opacity-0 scale-95"
+                         @click.away="open = false"
+                         class="absolute bottom-full mb-2 right-0 bg-white rounded-lg shadow-xl py-2 min-w-[160px] z-50"
+                         role="listbox"
+                         style="display: none;">
+                                                    <a href="/app/set-locale?locale=id_ID&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Bahasa Indonesia
+                            </a>
+                                                    <a href="/app/set-locale?locale=cs_CZ&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Čeština
+                            </a>
+                                                    <a href="/app/set-locale?locale=da_DK&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Dansk
+                            </a>
+                                                    <a href="/app/set-locale?locale=de_DE&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Deutsch
+                            </a>
+                                                    <a href="/app/set-locale?locale=en_US&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                English
+                            </a>
+                                                    <a href="/app/set-locale?locale=es-419&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Español
+                            </a>
+                                                    <a href="/app/set-locale?locale=fr_FR&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Français
+                            </a>
+                                                    <a href="/app/set-locale?locale=it_IT&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Italiano
+                            </a>
+                                                    <a href="/app/set-locale?locale=hu_HU&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Magyar
+                            </a>
+                                                    <a href="/app/set-locale?locale=nl_NL&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Nederlands
+                            </a>
+                                                    <a href="/app/set-locale?locale=pl_PL&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Polski
+                            </a>
+                                                    <a href="/app/set-locale?locale=pt_BR&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Português
+                            </a>
+                                                    <a href="/app/set-locale?locale=ro_RO&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Română
+                            </a>
+                                                    <a href="/app/set-locale?locale=fi_FI&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Suomi
+                            </a>
+                                                    <a href="/app/set-locale?locale=sv_SE&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Svenska
+                            </a>
+                                                    <a href="/app/set-locale?locale=vi_VN&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Tiếng Việt
+                            </a>
+                                                    <a href="/app/set-locale?locale=tr_TR&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Türkçe
+                            </a>
+                                                    <a href="/app/set-locale?locale=bg_BG&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Български
+                            </a>
+                                                    <a href="/app/set-locale?locale=ru_RU&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Русский
+                            </a>
+                                                    <a href="/app/set-locale?locale=uk_UA&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Українська
+                            </a>
+                                                    <a href="/app/set-locale?locale=el_GR&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                Ελληνικά
+                            </a>
+                                                    <a href="/app/set-locale?locale=ar_SA&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                العربية
+                            </a>
+                                                    <a href="/app/set-locale?locale=fa_IR&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                فارسی
+                            </a>
+                                                    <a href="/app/set-locale?locale=th_TH&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                ไทย
+                            </a>
+                                                    <a href="/app/set-locale?locale=hi_IN&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                हिन्दी
+                            </a>
+                                                    <a href="/app/set-locale?locale=zh_CN&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                简体中文
+                            </a>
+                                                    <a href="/app/set-locale?locale=zh_TW&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                繁體中文
+                            </a>
+                                                    <a href="/app/set-locale?locale=ja_JP&redirect="
+                               role="option"
+                                                              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      ">
+                                日本語
+                            </a>
+                                                    <a href="/app/set-locale?locale=ko_KR&redirect="
+                               role="option"
+                               aria-selected="true"                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline
+                                      bg-blue-50 text-blue-600 font-medium">
+                                한국어
+                            </a>
+                                            </div>
+                </div>
+            </nav>
+        </div>
+    </div>
+</footer>
+    </div>
+
+
+<script>var online_update_domain = '';</script>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js" defer></script>
+<script type="text/javascript" src="/assets/aa7c997ca5586c4fe67a/interpals.aa7c997ca5586c4fe67a.min.js" defer></script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-0QW3XVG74P"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-0QW3XVG74P');
+</script>
+</body>
+</html>
