@@ -349,45 +349,6 @@ class DiscoveryPlusBaseIE(DPlayBaseIE):
         return self._get_disco_api_info(url, self._match_id(url), **self._DISCO_API_PARAMS)
 
 
-class HGTVDeIE(DiscoveryPlusBaseIE):
-    _VALID_URL = r'https?://de\.hgtv\.com/sendungen' + DPlayBaseIE._PATH_REGEX
-    _TESTS = [{
-        'url': 'https://de.hgtv.com/sendungen/mein-kleinstadt-traumhaus/vom-landleben-ins-loft',
-        'info_dict': {
-            'id': '7332936',
-            'ext': 'mp4',
-            'display_id': 'mein-kleinstadt-traumhaus/vom-landleben-ins-loft',
-            'title': 'Vom Landleben ins Loft',
-            'description': 'md5:e5f72c02c853970796dd3818f2e25745',
-            'episode': 'Episode 7',
-            'episode_number': 7,
-            'season': 'Season 7',
-            'season_number': 7,
-            'series': 'Mein Kleinstadt-Traumhaus',
-            'duration': 2645.0,
-            'timestamp': 1725998100,
-            'upload_date': '20240910',
-            'creators': ['HGTV'],
-            'tags': [],
-            'thumbnail': 'https://eu1-prod-images.disco-api.com/2024/08/09/82a386b9-c688-32c7-b9ff-0b13865f0bae.jpeg',
-        },
-    }]
-
-    _PRODUCT = 'hgtv'
-    _DISCO_API_PARAMS = {
-        'disco_host': 'eu1-prod.disco-api.com',
-        'realm': 'hgtv',
-        'country': 'de',
-    }
-
-    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
-        headers.update({
-            'x-disco-params': f'realm={realm}',
-            'x-disco-client': 'Alps:HyogaPlayer:0.0.0',
-            'Authorization': self._get_auth(disco_base, display_id, realm),
-        })
-
-
 class GoDiscoveryIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:go\.)?discovery\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
@@ -1055,7 +1016,7 @@ class DiscoveryPlusIndiaIE(DiscoveryPlusBaseIE):
 
 
 class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?P<channel>dmax|tele5|tlc)\.de/(?:(?P<parent_slug>sendungen|mediathek)/)?(?P<slug_a>[\w-]+)(?:/(?P<slug_b>[\w-]+))?'
+    _VALID_URL = r'https?://(?P<channel>dmax\.de|tele5\.de|tlc\.de|de\.hgtv\.com)/(?:(?P<parent_slug>sendungen|mediathek)/)?(?P<slug_a>[\w-]+)(?:/(?P<slug_b>[\w-]+))?'
 
     _DISCO_API_PARAMS = {
         'disco_host': 'public.aurora.enhanced.live',
@@ -1284,6 +1245,54 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'categories': ['Abenteuer', 'Action', 'Filme'],
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://de.hgtv.com/sendungen/mein-kleinstadt-traumhaus/vom-landleben-ins-loft',
+        'info_dict': {
+            'id': '7332936',
+            'ext': 'mp4',
+            'display_id': 'mein-kleinstadt-traumhaus/vom-landleben-ins-loft',
+            'title': 'Vom Landleben ins Loft',
+            'description': 'md5:e5f72c02c853970796dd3818f2e25745',
+            'episode': 'Episode 7',
+            'episode_number': 7,
+            'season': 'Season 7',
+            'season_number': 7,
+            'series': 'Mein Kleinstadt-Traumhaus',
+            'duration': 2645.0,
+            'timestamp': 1725998100,
+            'upload_date': '20240910',
+            'creators': ['HGTV'],
+            'tags': [],
+            'thumbnail': 'https://eu1-prod-images.disco-api.com/2024/08/09/82a386b9-c688-32c7-b9ff-0b13865f0bae.jpeg',
+        },
+        'skip': '500 Internal Server Error',
+    }, {
+        'url': 'https://de.hgtv.com/sendungen/mein-kleinstadt-traumhaus/season-9-episode-14',
+        'info_dict': {
+            'id': '19122',
+            'ext': 'mp4',
+            'display_id': '19122',
+            'title': 'Musik im Blut',
+            'description': 'md5:05249f7f0e9db86e8dee01585d148da4',
+            'episode': 'Episode 14',
+            'episode_number': 14,
+            'season': 'Season 9',
+            'season_number': 9,
+            'series': 'Mein Kleinstadt-Traumhaus',
+            'duration': 2631.0,
+            'timestamp': 1773172500,
+            'upload_date': '20260310',
+            'creators': ['HGTV'],
+            'tags': [],
+            'categories': ['Haus Makeover', 'Wohnträume'],
+            'thumbnail': 'https://images.aurora.enhanced.live/de/images/video/DCB853090020100310001/default.jpg',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://de.hgtv.com/sendungen/mein-kleinstadt-traumhaus/videos',
+        'playlist_mincount': 3,
+        'info_dict': {'id': 'sendungen-mein-kleinstadt-traumhaus'},
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
@@ -1294,9 +1303,10 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
 
         # mapping channel from url → environment
         environment = {
-            'dmax': 'dmaxde',
-            'tele5': 'tele5',
-            'tlc': 'tlcde',
+            'dmax.de': 'dmaxde',
+            'de.hgtv.com': 'hgtvde',
+            'tele5.de': 'tele5',
+            'tlc.de': 'tlcde',
         }
 
         query = {
