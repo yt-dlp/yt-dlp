@@ -1,4 +1,3 @@
-import functools
 import json
 import uuid
 
@@ -67,7 +66,7 @@ class DPlayBaseIE(InfoExtractor):
             })
         return streaming_list
 
-    def _get_disco_api_info(self, url, display_id, disco_host, realm, country, domain=''):
+    def _get_disco_api_info(self, url, display_id, disco_host, realm, country, domain='', *args, **kwargs):
         country = self.get_param('geo_bypass_country') or country
         geo_countries = [country.upper()]
         self._initialize_geo_bypass({
@@ -1058,6 +1057,12 @@ class DiscoveryPlusIndiaIE(DiscoveryPlusBaseIE):
 class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?(?P<channel>dmax|tele5|tlc)\.de/(?:(?P<parent_slug>sendungen|mediathek)/)?(?P<slug_a>[\w-]+)(?:/(?P<slug_b>[\w-]+))?'
 
+    _DISCO_API_PARAMS = {
+        'disco_host': 'public.aurora.enhanced.live',
+        'realm': 'de',
+        'country': 'DE',
+    }
+
     _TESTS = [{
         'url': 'https://dmax.de/sendungen/goldrausch-in-australien/german-gold',
         'info_dict': {
@@ -1285,10 +1290,6 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
         channel, parent_slug, slug_a, slug_b = self._match_valid_url(url).group('channel', 'parent_slug', 'slug_a', 'slug_b')
         playlist_id = join_nonempty(parent_slug, slug_a, slug_b, delim='-')
         list_path = ('blocks', ..., 'videoId', {str})
-
-        disco_host = 'public.aurora.enhanced.live'
-        realm = 'de'
-        country = 'DE'
         playlist = False
 
         # mapping channel from url → environment
@@ -1328,12 +1329,11 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
         if not playlist:
             return {
                 '_type': 'video',
-                **self._update_disco_api_info(url, video_ids[0], disco_host=disco_host, realm=realm, country=country, cms_data=cms_data),
+                **self._get_disco_api_info(url, video_ids[0], **self._DISCO_API_PARAMS, cms_data=cms_data),
             }
 
-        return self.playlist_result(map(
-            functools.partial(self._update_disco_api_info, url, disco_host=disco_host, realm=realm, country=country, cms_data=cms_data),
-            video_ids), playlist_id)
+        return self.playlist_result(
+            (self._get_disco_api_info(url, vid, **self._DISCO_API_PARAMS, cms_data=cms_data) for vid in video_ids), playlist_id)
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
         headers.update({
@@ -1343,8 +1343,8 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'Content-Type': 'application/json',
         })
 
-    def _update_disco_api_info(self, url, display_id, disco_host, realm, country, domain='', cms_data={}):
-        disco_api_info = self._get_disco_api_info(url, display_id, disco_host, realm, country, domain)
+    def _get_disco_api_info(self, url, display_id, disco_host, realm, country, domain='', cms_data={}):
+        disco_api_info = super()._get_disco_api_info(url, display_id, disco_host, realm, country, domain)
         disco_api_info['categories'] = sorted(traverse_obj(cms_data, (
             'taxonomies', lambda _, v: v['category'] == 'genre', 'title', {str.strip}, filter, all, filter)))
         return disco_api_info
