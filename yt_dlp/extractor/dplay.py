@@ -1343,7 +1343,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             }
 
         return self.playlist_result(
-            (self._get_disco_api_info(url, vid, **self._DISCO_API_PARAMS, cms_data=cms_data) for vid in video_ids), playlist_id)
+            (self._get_disco_api_info(url, vid, **self._DISCO_API_PARAMS, cms_data=cms_data) for vid in reversed(video_ids)), playlist_id)
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
         headers.update({
