@@ -1080,7 +1080,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'categories': ['Gold', 'Schatzsucher'],
         },
         'params': {'skip_download': 'm3u8'},
-        'skip': 'Dead link',
+        'skip': '404 Not Found',
     }, {
         'url': 'https://www.tlc.de/programme/breaking-amish/video/die-welt-da-drauen/DCB331270001100',
         'info_dict': {
@@ -1101,15 +1101,15 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'season_number': 1,
             'thumbnail': r're:https://.+\.jpg',
         },
-        'skip': 'Dead link',
+        'skip': '404 Not Found',
     }, {
         'url': 'https://www.dmax.de/programme/dmax-highlights/video/tuning-star-sidney-hoffmann-exklusiv-bei-dmax/191023082312316',
         'only_matching': True,
-        'skip': 'Dead link',
+        'skip': '404 Not Found',
     }, {
         'url': 'https://tlc.de/sendungen/breaking-amish/die-welt-da-drauen/',
         'only_matching': True,
-        'skip': 'Dead link',
+        'skip': '404 Not Found',
     }, {
         'url': 'https://dmax.de/sendungen/feuerwache-3-alarm-in-muenchen/season-1-episode-10',
         'info_dict': {
@@ -1249,7 +1249,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'timestamp': 1770417300,
             'upload_date': '20260206',
         },
-        'skip': 'Dead link',
+        'skip': '404 Not Found',
     }, {
         # playlist
         'url': 'https://tele5.de/mediathek/schlefaz',
@@ -1257,7 +1257,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'id': 'mediathek-schlefaz',
         },
         'playlist_mincount': 3,
-        'skip': 'Dead link',
+        'skip': '404 Not Found',
     }, {
         'url': 'https://tele5.de/die-piratenbraut',
         'info_dict': {
