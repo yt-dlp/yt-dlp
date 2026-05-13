@@ -141,7 +141,7 @@ class GoogleDriveIE(InfoExtractor):
         video_info = self._download_json(
             f'https://content-workspacevideo-pa.googleapis.com/v1/drive/media/{video_id}/playback',
             video_id, 'Downloading video webpage', query={'key': 'AIzaSyDVQw45DwoYh632gvsP5vPDqEKvb-Ywnb8'},
-            headers={'Referer': 'https://drive.google.com/'})
+            headers={'Referer': 'https://drive.google.com/'}, fatal=False) or {}
 
         formats = []
         for fmt in traverse_obj(video_info, (
@@ -230,7 +230,7 @@ class GoogleDriveIE(InfoExtractor):
                 }),
             }),
             'formats': formats,
-            'subtitles': self.extract_subtitles(video_id, video_info),
+            'subtitles': self.extract_subtitles(video_id, video_info) if video_info else {},
         }
 
 
