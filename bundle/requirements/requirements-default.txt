@@ -1,9 +1,3 @@
-altgraph==0.17.5 \
-    --hash=sha256:c87b395dd12fabde9c99573a9749d67da8d29ef9de0125c7f536699b4a9bc9e7 \
-    --hash=sha256:f3a22400bce1b0c701683820ac4f3b159cd301acab067c51c653e06961600597
-    # via
-    #   macholib
-    #   pyinstaller
 brotli==1.2.0 ; implementation_name == 'cpython' and sys_platform != 'ios' \
     --hash=sha256:022426c9e99fd65d9475dce5c195526f04bb8be8907607e27e747893f6ee3e24 \
     --hash=sha256:072e7624b1fc4d601036ab3f4f27942ef772887e876beff0301d261210bca97f \
@@ -78,7 +72,6 @@ certifi==2026.4.22 \
     --hash=sha256:3cb2210c8f88ba2318d29b0388d1023c8492ff72ecdde4ebdaddbb13a31b1c4a \
     --hash=sha256:8d455352a37b71bf76a79caa83a3d6c25afee4a385d632127b6afb3963f1c580
     # via
-    #   curl-cffi
     #   requests
     #   yt-dlp
 charset-normalizer==3.4.7 \
@@ -181,46 +174,14 @@ charset-normalizer==3.4.7 \
     --hash=sha256:fbccdc05410c9ee21bbf16a35f4c1d16123dcdeb8a1d38f33654fa21d0234f79 \
     --hash=sha256:fea24543955a6a729c45a73fe90e08c743f0b3334bbf3201e6c4bc1b0c7fa464
     # via requests
-delocate==0.13.0 ; sys_platform == 'darwin' \
-    --hash=sha256:11f7596f88984c33f76b27fe2eea7637d1ce369a9e0b6737bbc706b6426e862c \
-    --hash=sha256:a93e67a9f56ee01a3f7096a042231d4ac37fecac873cd5ea34ea2b4f43a8fa13
 idna==3.13 \
     --hash=sha256:585ea8fe5d69b9181ec1afba340451fba6ba764af97026f92a91d4eef164a242 \
     --hash=sha256:892ea0cde124a99ce773decba204c5552b69c3c67ffd5f232eb7696135bc8bb3
     # via requests
-macholib==1.16.4 ; sys_platform == 'darwin' \
-    --hash=sha256:da1a3fa8266e30f0ce7e97c6a54eefaae8edd1e5f86f3eb8b95457cae90265ea \
-    --hash=sha256:f408c93ab2e995cd2c46e34fe328b130404be143469e41bc366c807448979362
-    # via
-    #   delocate
-    #   pyinstaller
-markdown-it-py==4.0.0 ; implementation_name == 'cpython' \
-    --hash=sha256:87327c59b172c5011896038353a81343b6754500a08cd7a4973bb48c6d578147 \
-    --hash=sha256:cb0a2b4aa34f932c007117b194e945bd74e0ec24133ceb5bac59009cda1cb9f3
-    # via rich
-mdurl==0.1.2 ; implementation_name == 'cpython' \
-    --hash=sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8 \
-    --hash=sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba
-    # via markdown-it-py
 mutagen==1.47.0 \
     --hash=sha256:719fadef0a978c31b4cf3c956261b3c58b6948b32023078a2117b1de09f0fc99 \
     --hash=sha256:edd96f50c5907a9539d8e5bba7245f62c9f520aef333d13392a79a4f70aca719
     # via yt-dlp
-packaging==26.2 \
-    --hash=sha256:5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e \
-    --hash=sha256:ff452ff5a3e828ce110190feff1178bb1f2ea2281fa2075aadb987c2fb221661
-    # via
-    #   delocate
-    #   pyinstaller
-    #   pyinstaller-hooks-contrib
-pefile==2024.8.26 ; sys_platform == 'win32' \
-    --hash=sha256:3ff6c5d8b43e8c37bb6e6dd5085658d658a7a0bdcd20b6a07b1fcfc1c4e9d632 \
-    --hash=sha256:76f8b485dcd3b1bb8166f1128d395fa3d87af26360c2358fb75b80019b957c6f
-    # via pyinstaller
-pycparser==3.0 ; implementation_name != 'PyPy' \
-    --hash=sha256:600f49d217304a5902ac3c37e1281c9fe94e4d0489de643a9504c5cdfdfc6b29 \
-    --hash=sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992
-    # via cffi
 pycryptodomex==3.23.0 \
     --hash=sha256:02d87b80778c171445d67e23d1caef279bf4b25c3597050ccd2e13970b57fd51 \
     --hash=sha256:06698f957fe1ab229a99ba2defeeae1c09af185baa909a31a5d1f9d42b1aaed6 \
@@ -251,49 +212,10 @@ pycryptodomex==3.23.0 \
     --hash=sha256:f489c4765093fb60e2edafdf223397bc716491b2b69fe74367b70d6999257a5c \
     --hash=sha256:fdfac7cda115bca3a5abb2f9e43bc2fb66c2b65ab074913643803ca7083a79ea
     # via yt-dlp
-pygments==2.20.0 ; implementation_name == 'cpython' \
-    --hash=sha256:6757cd03768053ff99f3039c1a36d6c0aa0b263438fcab17520b30a303a82b5f \
-    --hash=sha256:81a9e26dd42fd28a23a2d169d86d7ac03b46e2f8b59ed4698fb4785f946d0176
-    # via rich
-pyinstaller==6.20.0 \
-    --hash=sha256:03696bb6350177c6bc23bcaf78e71a33c4a89b6754dd90d1be2f318e978c918b \
-    --hash=sha256:0ab39c690abad26ba148e8f664f0478acc82a733997f4f22e757774832802da9 \
-    --hash=sha256:1031bcc307f3fbeffd4e162723e64d46dbf591c82dd0997413afb2a07328b941 \
-    --hash=sha256:6357f1699f6af84f37e7367f031d4f68abdba65543b83990c9e8f5a4cebed0b7 \
-    --hash=sha256:72ae9c1fdea134afa791f58bdc9a1934d5c7609753c111e0026bfc272b32b712 \
-    --hash=sha256:8df3b3f347659fa2562d8d193a98ad4600133b8b8d07c268df89e4154376750e \
-    --hash=sha256:95c5c7e03d5d61e9dfb8ef259c699cf492bb1041beb6dbe83696608cec07347a \
-    --hash=sha256:9a7637e8e44b4387b13667fdcaac86ab6b29c446c16d34d8401539b81838759c \
-    --hash=sha256:b0d3cc9dd8120d448459bd3880a12e2f9774c51443af49047801446377999a59 \
-    --hash=sha256:bd53282c0a73e5c95573e1ddc8e5d564d4932bec91efbaed4dc5fdff9c2ae7f2 \
-    --hash=sha256:bf3be4e1284ee78ddccba5e29f99443a12a7b4673168288ffc4c9d38c6f7b90e \
-    --hash=sha256:d588844e890ee80c4365867f98146636e1849bbca8e4284bbf0c809aff0f161a
-pyinstaller-hooks-contrib==2026.4 \
-    --hash=sha256:1de1a5e49a878122010b88c7e295502bc69776c157c4a4dc78741a4e6178b00f \
-    --hash=sha256:766c281acb1ecc32e21c8c667056d7ebf5da0aabd5e30c219f9c2a283620eeaa
-    # via pyinstaller
-pywin32-ctypes==0.2.3 ; sys_platform == 'win32' \
-    --hash=sha256:8a1513379d709975552d202d942d9837758905c8d01eb82b8bcc30918929e7b8 \
-    --hash=sha256:d162dc04946d704503b2edc4d55f3dba5c1d539ead017afa00142c38b9885755
-    # via pyinstaller
 requests==2.33.1 \
     --hash=sha256:18817f8c57c6263968bc123d237e3b8b08ac046f5456bd1e307ee8f4250d3517 \
     --hash=sha256:4e6d1ef462f3626a1f0a0a9c42dd93c63bad33f9f1c1937509b8c5c8718ab56a
     # via yt-dlp
-rich==15.0.0 ; implementation_name == 'cpython' \
-    --hash=sha256:33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb \
-    --hash=sha256:edd07a4824c6b40189fb7ac9bc4c52536e9780fbbfbddf6f1e2502c31b068c36
-    # via curl-cffi
-setuptools==82.0.1 \
-    --hash=sha256:7d872682c5d01cfde07da7bccc7b65469d3dca203318515ada1de5eda35efbf9 \
-    --hash=sha256:a59e362652f08dcd477c78bb6e7bd9d80a7995bc73ce773050228a348ce2e5bb
-    # via
-    #   pyinstaller
-    #   pyinstaller-hooks-contrib
-typing-extensions==4.15.0 ; sys_platform == 'darwin' \
-    --hash=sha256:0cea48d173cc12fa28ecabc3b837ea3cf6f38c6d1136f85cbaaf598984861466 \
-    --hash=sha256:f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548
-    # via delocate
 urllib3==2.6.3 \
     --hash=sha256:1b62b6884944a57dbe321509ab94fd4d3b307075e0c2eae991ac71ee15ad38ed \
     --hash=sha256:bf272323e553dfb2e87d9bfd225ca7b0f467b919d7bbd355436d3fd37cb0acd4

@@ -35,7 +35,6 @@ MAKEFILE_PATH = BASE_PATH / 'Makefile'
 LOCKFILE_PATH = BASE_PATH / 'uv.lock'
 REQUIREMENTS_PATH = BASE_PATH / 'bundle/requirements'
 REQS_OUTPUT_TMPL = 'requirements-{}.txt'
-CUSTOM_COMPILE_COMMAND = 'python -m devscripts.update_requirements'
 
 EXTRAS_TABLE = 'project.optional-dependencies'
 GROUPS_TABLE = 'dependency-groups'
@@ -74,23 +73,18 @@ class Target:
     omit_packages: list[str] = dataclasses.field(default_factory=list)
 
 
-LINUX_TARGET = Target(
-    extras=['default', 'curl-cffi', 'secretstorage'],
-    groups=['pyinstaller'],
-)
-WIN64_TARGET = Target(
-    extras=['default', 'curl-cffi'],
-)
-
 BUNDLE_TARGETS = {
-    'linux-x86_64': LINUX_TARGET,
-    'linux-aarch64': LINUX_TARGET,
-    'linux-armv7l': LINUX_TARGET,
-    'musllinux-x86_64': LINUX_TARGET,
-    'musllinux-aarch64': LINUX_TARGET,
-    'win-x64': WIN64_TARGET,
-    'win-arm64': WIN64_TARGET,
-    'win-x86': Target(extras=['default']),
+    'default': Target(
+        extras=['default'],
+        # PyPy bundles cffi, which is a transitive dep of brotlicffi, which is only required for PyPy
+        prune_packages=['cffi'],
+    ),
+    'curl-cffi': Target(
+        extras=['default', 'curl-cffi'],
+    ),
+    'linux': Target(
+        extras=['default', 'curl-cffi', 'secretstorage'],
+    ),
     'macos': Target(
         extras=['default', 'curl-cffi'],
         # NB: Resolve delocate and PyInstaller together since they share dependencies
@@ -125,7 +119,41 @@ WELLKNOWN_PACKAGES = {
 }
 
 
-def call_pypi_api(project: str) -> dict[str, dict[str, typing.Any]]:
+def get_extras(pyproject_toml: dict[str, typing.Any], *, resolve: bool = True) -> dict[str, typing.Any]:
+    project_table = pyproject_toml['project']
+    extras = project_table.get('optional-dependencies', {})
+    if not resolve:
+        return extras
+
+    project_name = project_table['name']
+    recursive_pattern = re.compile(rf'{project_name}\[(?P<extra_name>[^]]+)\]')
+
+    def yield_deps_from_extra(extra):
+        for dep in extra:
+            if mobj := recursive_pattern.fullmatch(dep):
+                yield from extras[mobj.group('extra_name')]
+            else:
+                yield dep
+
+    return {extra_name: list(yield_deps_from_extra(extra)) for extra_name, extra in extras.items()}
+
+
+def get_groups(pyproject_toml: dict[str, typing.Any], *, resolve: bool = True) -> dict[str, typing.Any]:
+    groups = pyproject_toml.get('dependency-groups', {})
+    if not resolve:
+        return groups
+
+    def yield_deps_from_group(group):
+        for dep in group:
+            if isinstance(dep, dict):
+                yield from yield_deps_from_group(groups[dep['include-group']])
+            else:
+                yield dep
+
+    return {group_name: list(yield_deps_from_group(group)) for group_name, group in groups.items()}
+
+
+def call_pypi_api(project: str):
     print(f'Fetching package info from PyPI API: {project}', file=sys.stderr)
     headers = {
         'Accept': 'application/json',
@@ -135,7 +163,7 @@ def call_pypi_api(project: str) -> dict[str, dict[str, typing.Any]]:
         return json.load(resp)
 
 
-def fetch_latest_github_release(owner: str, repo: str) -> dict[str, dict[str, typing.Any]]:
+def fetch_latest_github_release(owner: str, repo: str):
     print(f'Fetching latest release from Github API: {owner}/{repo}', file=sys.stderr)
     return call_github_api(f'/repos/{owner}/{repo}/releases/latest')
 
@@ -145,7 +173,7 @@ def fetch_github_tags(
     repo: str,
     *,
     fetch_tags: list[str] | None = None,
-) -> dict[str, dict[str, typing.Any]]:
+):
 
     needed_tags = set(fetch_tags or [])
     results = {}
@@ -267,11 +295,12 @@ def run_uv_export(
         '--refresh',
         '--no-emit-project',
         '--no-default-groups',
+        '--no-header',
         *(f'--extra={extra}' for extra in (extras or [])),
         *(f'--group={group}' for group in (groups or [])),
         *(f'--prune={package}' for package in (prune_packages or [])),
         *(f'--no-emit-package={package}' for package in (omit_packages or [])),
-        *(['--no-annotate', '--no-hashes', '--no-header'] if bare else []),
+        *(['--no-annotate', '--no-hashes'] if bare else []),
         *([f'--output-file={output_file.relative_to(BASE_PATH)}'] if output_file else []),
     ).stdout
 
@@ -292,7 +321,7 @@ def run_pip_compile(
         '--refresh',
         '--generate-hashes',
         '--no-strip-markers',
-        f'--custom-compile-command={CUSTOM_COMPILE_COMMAND}',
+        '--no-header',
         '--universal',
         *args,
         *([f'--output-file={output_file.relative_to(BASE_PATH)}'] if output_file else []),
@@ -309,10 +338,9 @@ def makefile_variables(
     version: str | None = None,
     name: str | None = None,
     digest: str | None = None,
-    data: bytes | None = None,
+    data: bytes = b'',
     keys_only: bool = False,
 ) -> dict[str, str | None]:
-
     variables = {
         f'{prefix}_VERSION': version,
         f'{prefix}_WHEEL_NAME': name,
@@ -329,8 +357,7 @@ def makefile_variables(
 
     if not all(arg is not None for arg in (version, name, digest, not filetypes or data)):
         raise ValueError(
-            'makefile_variables requires version, name, digest, '
-            f'{"and data, " if filetypes else ""}OR keys_only=True')
+            f'makefile_variables requires version, name, digest, {"and data, " if filetypes else ""}OR keys_only=True')
 
     if filetypes:
         with io.BytesIO(data) as buf, zipfile.ZipFile(buf) as zipf:
@@ -346,7 +373,9 @@ def ejs_makefile_variables(**kwargs) -> dict[str, str | None]:
     return makefile_variables('EJS', filetypes=['PY', 'JS'], **kwargs)
 
 
-def update_ejs(verify: bool = False) -> dict[str, tuple[str | None, str | None]] | None:
+def update_ejs(
+    verify: bool = False,
+) -> dict[str, tuple[str, str] | tuple[str, None] | tuple[None, str]] | None:
     PACKAGE_NAME = 'yt-dlp-ejs'
     PREFIX = f'    "{PACKAGE_NAME}=='
     LIBRARY_NAME = PACKAGE_NAME.replace('-', '_')
@@ -375,7 +404,7 @@ def update_ejs(verify: bool = False) -> dict[str, tuple[str | None, str | None]]
     version = info['tag_name']
     if version == current_version:
         print(f'{PACKAGE_NAME} is up to date! ({version})', file=sys.stderr)
-        return
+        return None
 
     print(f'Updating {PACKAGE_NAME} from {current_version} to {version}', file=sys.stderr)
     hashes = []
@@ -432,16 +461,16 @@ def update_ejs(verify: bool = False) -> dict[str, tuple[str | None, str | None]]
     return update_requirements(upgrade_only=PACKAGE_NAME, verify=verify)
 
 
-@dataclasses.dataclass
-class Dependency:
+@dataclasses.dataclass(frozen=True)
+class PythonDependency:
     name: str
-    exact_version: str | None
+    exact_version: str
     direct_reference: str | None
     specifier: str | None
     markers: str | None
 
 
-def parse_version_from_dist(filename: str, name: str, *, require: bool = False) -> str | None:
+def parse_version_from_dist(filename: str, name: str) -> str:
     # Ref: https://packaging.python.org/en/latest/specifications/binary-distribution-format/#escaping-and-unicode
     normalized_name = re.sub(r'[-_.]+', '-', name).lower().replace('-', '_')
 
@@ -449,20 +478,17 @@ def parse_version_from_dist(filename: str, name: str, *, require: bool = False) 
     if mobj := re.fullmatch(rf'{normalized_name}-(?P<version>[^-]+)(?:-.+\.whl|\.tar\.gz)', filename):
         return mobj.group('version')
 
-    if require:
-        raise ValueError(f'unable to parse version from distribution filename: {filename}')
-
-    return None
+    raise ValueError(f'unable to parse version from distribution filename: {filename}')
 
 
-def parse_dependency(line: str, *, require_version: bool = False) -> Dependency:
+def parse_dependency(line: str) -> PythonDependency:
     # Ref: https://packaging.python.org/en/latest/specifications/name-normalization/
     NAME_RE = re.compile(r'^(?P<name>[A-Z0-9](?:[A-Z0-9._-]*[A-Z0-9])?)', re.IGNORECASE)
 
     line = line.rstrip().removesuffix('\\')
     mobj = NAME_RE.match(line)
     if not mobj:
-        raise ValueError(f'unable to parse Dependency.name from line:\n    {line}')
+        raise ValueError(f'unable to parse PythonDependency.name from line:\n    {line}')
 
     name = mobj.group('name')
     rest = line[len(name):].lstrip()
@@ -479,27 +505,28 @@ def parse_dependency(line: str, *, require_version: bool = False) -> Dependency:
         if filename.endswith(('.tar.gz', '.whl')):
             exact_version = parse_version_from_dist(filename, name)
 
-    if require_version and not exact_version:
-        raise ValueError(f'unable to parse Dependency.exact_version from line:\n    {line}')
+    if not exact_version:
+        raise ValueError(f'unable to parse PythonDependency.exact_version from line:\n    {line}')
 
-    return Dependency(
+    return PythonDependency(
         name=name,
         exact_version=exact_version,
         direct_reference=direct_reference or None,
         specifier=specifier or None,
-        markers=markers or None)
+        markers=markers or None,
+    )
 
 
 def package_diff_dict(
     old_dict: dict[str, str],
     new_dict: dict[str, str],
-) -> dict[str, tuple[str | None, str | None]]:
+) -> dict[str, tuple[str, str] | tuple[str, None] | tuple[None, str]]:
     """
     @param old_dict: Dictionary w/ package names as keys and old package versions as values
     @param new_dict: Dictionary w/ package names as keys and new package versions as values
     @returns         Dictionary w/ package names as keys and tuples of (old_ver, new_ver) as values
     """
-    ret_dict = {}
+    ret_dict: dict[str, tuple[str, str] | tuple[str, None] | tuple[None, str]] = {}
 
     for name, new_version in new_dict.items():
         if name not in old_dict:
@@ -525,15 +552,18 @@ def get_lock_packages(lock: dict[str, typing.Any]) -> dict[str, str]:
     }
 
 
-def evaluate_requirements_txt(old_txt: str, new_txt: str) -> dict[str, tuple[str | None, str | None]]:
-    old_dict = {}
-    new_dict = {}
+def evaluate_requirements_txt(
+    old_txt: str,
+    new_txt: str,
+) -> dict[str, tuple[str, str] | tuple[str, None] | tuple[None, str]]:
+    old_dict: dict[str, str] = {}
+    new_dict: dict[str, str] = {}
 
     for txt, dct in [(old_txt, old_dict), (new_txt, new_dict)]:
         for line in txt.splitlines():
             if not line.strip() or line.startswith(('#', ' ')):
                 continue
-            dep = parse_dependency(line, require_version=True)
+            dep = parse_dependency(line)
             dct.update({dep.name: dep.exact_version})
 
     return package_diff_dict(old_dict, new_dict)
@@ -542,13 +572,13 @@ def evaluate_requirements_txt(old_txt: str, new_txt: str) -> dict[str, tuple[str
 def update_requirements(
     upgrade_only: str | None = None,
     verify: bool = False,
-) -> dict[str, tuple[str | None, str | None]]:
+) -> dict[str, tuple[str, str] | tuple[str, None] | tuple[None, str]]:
     # Are we upgrading all packages or only one (e.g. 'yt-dlp-ejs' or 'protobug')?
     upgrade_arg = f'--upgrade-package={upgrade_only}' if upgrade_only else '--upgrade'
 
     pyproject_text = PYPROJECT_PATH.read_text()
     pyproject_toml = parse_toml(pyproject_text)
-    extras = pyproject_toml['project']['optional-dependencies']
+    extras = get_extras(pyproject_toml)
 
     # Remove pinned extras so they don't muck up the lockfile during generation/upgrade
     for pinned_extra_name in PINNED_EXTRAS:
@@ -565,7 +595,7 @@ def update_requirements(
     env = None
     if verify or upgrade_only in pyproject_toml['tool']['uv']['exclude-newer-package']:
         env = os.environ.copy()
-        env['UV_EXCLUDE_NEWER'] = old_lock['options']['exclude-newer']
+        env['UV_EXCLUDE_NEWER'] = old_lock['options']['exclude-newer']  # type: ignore[index]
         print(f'Setting UV_EXCLUDE_NEWER={env["UV_EXCLUDE_NEWER"]}', file=sys.stderr)
 
     # Generate/upgrade lockfile
@@ -606,6 +636,22 @@ def update_requirements(
                 # NB: this depends on 'pyinstaller[asset_tag]' keys in WELLKNOWN_PACKAGES
                 all_updates.update({f'pyinstaller[{asset_tag}]': pyinstaller_diff})
 
+    # Generate new pinned extras; any updates to these are already recorded w/ uv.lock package diff
+    for pinned_name, extra_name in PINNED_EXTRAS.items():
+        extras[pinned_name] = run_uv_export(
+            extras=[extra_name],
+            bare=True,
+            # PyPy bundles cffi, which is a transitive dep of brotlicffi, which is only required for PyPy
+            prune_packages=['cffi'] if extra_name == 'default' else [],
+        ).splitlines()
+
+    # Write the finalized pyproject.toml
+    modify_and_write_pyproject(pyproject_text, table_name=EXTRAS_TABLE, table=extras)
+
+    # Generate/upgrade final lockfile that includes pinned extras
+    print(f'Running: uv lock {upgrade_arg}', file=sys.stderr)
+    run_process('uv', 'lock', upgrade_arg, env=env)
+
     # Export bundle requirements; any updates to these are already recorded w/ uv.lock package diff
     for target_suffix, target in BUNDLE_TARGETS.items():
         run_uv_export(
@@ -616,38 +662,10 @@ def update_requirements(
             output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(target_suffix))
 
     # Export group requirements; any updates to these are already recorded w/ uv.lock package diff
-    for group in ('build',):
+    for group in get_groups(pyproject_toml, resolve=False):
         run_uv_export(
             groups=[group],
             output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(group))
-
-    # Compile requirements for single packages; need to compare before & after .txt's for reporting
-    for package in ('pip',):
-        requirements_path = REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(package)
-        if requirements_path.is_file():
-            old_requirements_txt = requirements_path.read_text()
-        else:
-            old_requirements_txt = ''
-
-        run_pip_compile(
-            upgrade_arg,
-            input_line=package,
-            output_file=REQUIREMENTS_PATH / REQS_OUTPUT_TMPL.format(package),
-            env=env)
-
-        new_requirements_txt = requirements_path.read_text()
-        all_updates.update(evaluate_requirements_txt(old_requirements_txt, new_requirements_txt))
-
-    # Generate new pinned extras; any updates to these are already recorded w/ uv.lock package diff
-    for pinned_name, extra_name in PINNED_EXTRAS.items():
-        extras[pinned_name] = run_uv_export(extras=[extra_name], bare=True).splitlines()
-
-    # Write the finalized pyproject.toml
-    modify_and_write_pyproject(pyproject_text, table_name=EXTRAS_TABLE, table=extras)
-
-    # Generate/upgrade final lockfile that includes pinned extras
-    print(f'Running: uv lock {upgrade_arg}', file=sys.stderr)
-    run_process('uv', 'lock', upgrade_arg, env=env)
 
     return all_updates
 
@@ -668,7 +686,7 @@ def generate_report(
             project_urls = call_pypi_api(package)['info']['project_urls']
             github_info = next((
                 mobj.groupdict() for url in project_urls.values()
-                if (mobj := GITHUB_RE.match(url))), None)
+                if (mobj := GITHUB_RE.match(url))), {})
             changelog = next((
                 url for key, url in project_urls.items()
                 if key.lower().startswith(('change', 'history', 'release '))), '')

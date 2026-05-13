@@ -29,18 +29,24 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           persist-credentials: false
+
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version: "3.13"  # Keep this in sync with release.yml's prepare job
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
+          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pyflakes.txt"
+          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-test.txt"
+
       - name: Install requirements
         env:
           GH_TOKEN: ${{ github.token }}
           ACTIONLINT_TARBALL: ${{ format('actionlint_{0}_linux_amd64.tar.gz', env.ACTIONLINT_VERSION) }}
         shell: bash
         run: |
-          python -m devscripts.install_deps --omit-default --include-group test
           sudo apt -y install shellcheck
-          python -m pip install -U pyflakes
           gh release download \
             --repo "${ACTIONLINT_REPO}" \
             --pattern "${ACTIONLINT_TARBALL}" \
@@ -51,12 +57,15 @@ jobs:
           printf '%s  %s' "${ACTIONLINT_SHA256SUM}" "${ACTIONLINT_TARBALL}" | sha256sum -c -
           tar xvzf "${ACTIONLINT_TARBALL}" actionlint
           sudo install -D --mode=755 actionlint /usr/bin/
+
       - name: Run actionlint
         run: |
           actionlint -color
+
       - name: Check Docker shell scripts
         run: |
           shellcheck bundle/docker/linux/*.sh
+
       - name: Test GHA devscripts
         run: |
           pytest -Werror --tb=short --color=yes devscripts/setup_variables_tests.py
@@ -72,6 +81,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           persist-credentials: false
+
       - name: Run zizmor
         uses: zizmorcore/zizmor-action@71321a20a9ded102f6e9ce5718a2fcec2c4f70d8  # v0.5.2
         with:

@@ -19,6 +19,7 @@ source .venv/bin/activate
 PYTHONHASHSEED=1
 export PYTHONHASHSEED
 
+python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pyinstaller.txt"
 python -m pip install -U --require-hashes -r "bundle/requirements/requirements-${REQUIREMENTS}.txt"
 python -m devscripts.make_lazy_extractors
 python devscripts/update-version.py -c "${CHANNEL}" -r "${ORIGIN}" "${VERSION}"
