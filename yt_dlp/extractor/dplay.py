@@ -1321,7 +1321,10 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
         cms_data = self._download_json(f'https://public.aurora.enhanced.live/site/{endpoint}/', playlist_id, query=query)
 
         video_ids = traverse_obj(cms_data, list_path)
-
+        if not isinstance(video_ids, list):
+            raise ExtractorError(f"Can't extract video_ids for {playlist_id} is unavailable")
+        if not playlist and (video_ids is None or len(video_ids) == 0):
+            raise ExtractorError(f'Video {playlist_id} is unavailable', expected=True)
         if not playlist:
             return {
                 '_type': 'video',
