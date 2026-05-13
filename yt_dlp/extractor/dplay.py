@@ -1016,7 +1016,7 @@ class DiscoveryPlusIndiaIE(DiscoveryPlusBaseIE):
 
 
 class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
-    _VALID_URL = r'https?://(?P<channel>dmax\.de|tele5\.de|tlc\.de|de\.hgtv\.com)/(?:(?P<parent_slug>sendungen|mediathek)/)?(?P<slug_a>[\w-]+)(?:/(?P<slug_b>[\w-]+))?'
+    _VALID_URL = r'https?://(?:www\.)?(?P<channel>dmax\.de|tele5\.de|tlc\.de|de\.hgtv\.com)/(?:(?P<parent_slug>sendungen|mediathek)/)?(?P<slug_a>[\w-]+)(?:/(?P<slug_b>[\w-]+))?'
 
     _DISCO_API_PARAMS = {
         'disco_host': 'public.aurora.enhanced.live',
