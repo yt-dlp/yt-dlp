@@ -673,6 +673,52 @@ class InstagramTagIE(InstagramPlaylistBaseIE):
         }
 
 
+class InstagramSavedIE(InstagramBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?instagram\.com/(?P<id>[^/?#]+)/saved(?:/(?:all-posts/?)?)?(?:[?#]|$)'
+    IE_DESC = 'Instagram saved posts of the logged in user'
+    IE_NAME = 'instagram:saved'
+    _TESTS = [{
+        'url': 'https://www.instagram.com/username/saved/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.instagram.com/username/saved/all-posts/',
+        'only_matching': True,
+    }]
+
+    def _entries(self, display_id):
+        url = 'https://www.instagram.com/api/v1/feed/saved/posts/'
+        max_id = None
+        for page_num in itertools.count(1):
+            csrf_token = self._get_cookies('https://www.instagram.com').get('csrftoken')
+            headers = {
+                **self._api_headers,
+                'X-CSRFToken': csrf_token.value if csrf_token else '',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Referer': f'https://www.instagram.com/{display_id}/saved/',
+            }
+            page = self._download_json(
+                url, display_id, note=f'Downloading saved posts page {page_num}',
+                headers=headers, query=filter_dict({'max_id': max_id}))
+            for item in traverse_obj(page, ('items', ..., {dict})):
+                shortcode = traverse_obj(item, ('media', 'code', {str}))
+                if not shortcode:
+                    continue
+                yield self.url_result(
+                    f'https://www.instagram.com/p/{shortcode}/',
+                    InstagramIE, shortcode)
+            if not page.get('more_available'):
+                break
+            max_id = page.get('next_max_id')
+            if not max_id:
+                break
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        if not self._get_cookies('https://www.instagram.com').get('sessionid'):
+            self.raise_login_required('Instagram saved posts require an authenticated session')
+        return self.playlist_result(self._entries(display_id), display_id, display_id)
+
+
 class InstagramStoryIE(InstagramBaseIE):
     _VALID_URL = r'https?://(?:www\.)?instagram\.com/stories/(?P<user>[^/?#]+)(?:/(?P<id>\d+))?'
     IE_NAME = 'instagram:story'
