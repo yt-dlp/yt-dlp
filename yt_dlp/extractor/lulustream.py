@@ -53,7 +53,7 @@ class LuluStreamIE(InfoExtractor):
             'upload_date': upload_date,
         }
 
-    def _extract_jwplayer_formats(self, webpage, video_id):
+    def _extract_packed_formats(self, webpage, video_id):
         for mobj in re.finditer(PACKED_CODES_RE, webpage):
             try:
                 decoded = decode_packed_codes(mobj.group(0))
