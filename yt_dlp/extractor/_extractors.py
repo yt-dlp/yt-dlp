@@ -1963,6 +1963,7 @@ from .streamcz import StreamCZIE
 from .streetvoice import StreetVoiceIE
 from .stretchinternet import StretchInternetIE
 from .stripchat import StripchatIE
+from .stuff import StuffIE
 from .stv import STVPlayerIE
 from .subsplash import (
     SubsplashIE,
