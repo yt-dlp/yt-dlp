@@ -8,7 +8,7 @@ from ..utils import (
 )
 
 
-class LuluStreamIE(InfoExtractor):
+class LuluVidIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?luluvid\.com/(?:d|e)/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://luluvid.com/d/yzip3nvuot20',
@@ -30,7 +30,7 @@ class LuluStreamIE(InfoExtractor):
         webpage = self._download_webpage(
             f'https://luluvid.com/e/{video_id}', video_id)
 
-        formats, thumbnail = self._extract_jwplayer_formats(webpage, video_id)
+        formats, thumbnail = self._extract_packed_formats(webpage, video_id)
 
         webpage = self._download_webpage(
             f'https://luluvid.com/d/{video_id}', video_id)
