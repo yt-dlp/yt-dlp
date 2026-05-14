@@ -1,0 +1,9 @@
+{
+    "binaryPath": "C:\\yt-dlp.exe",
+    "ffmpegPath": "C:\\ffmpeg\\bin\\ffmpeg.exe",
+    "jsruntimePath": "%PROGRAMFILES%\\nodejs\\node.exe",
+    "jsruntimeName": "node",
+    "videoSettings": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]",
+    "audioSettings": "mp3",
+    "logFile": "%USERPROFILE%\\Documents\\youtube-download.log"
+}
