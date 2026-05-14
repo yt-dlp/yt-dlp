@@ -3273,11 +3273,14 @@ def _match_one(filter_part, dct, incomplete):
             try:
                 numeric_comparison = int(comparison_value)
             except ValueError:
-                numeric_comparison = parse_filesize(comparison_value)
-                if numeric_comparison is None:
-                    numeric_comparison = parse_filesize(f'{comparison_value}B')
-                if numeric_comparison is None:
-                    numeric_comparison = parse_duration(comparison_value)
+                try:
+                    numeric_comparison = float(comparison_value)
+                except ValueError:
+                    numeric_comparison = parse_filesize(comparison_value)
+                    if numeric_comparison is None:
+                        numeric_comparison = parse_filesize(f'{comparison_value}B')
+                    if numeric_comparison is None:
+                        numeric_comparison = parse_duration(comparison_value)
         if numeric_comparison is not None and m['op'] in STRING_OPERATORS:
             raise ValueError('Operator {} only supports string values!'.format(m['op']))
         if actual_value is None:
