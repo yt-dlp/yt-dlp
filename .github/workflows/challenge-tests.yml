@@ -48,7 +48,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install Deno
-      uses: denoland/setup-deno@e95548e56dfa95d4e1a28d6f422fafe75c4c26fb  # v2.0.3
+      uses: denoland/setup-deno@667a34cdef165d8d2b2e98dde39547c9daac7282  # v2.0.4
       with:
         deno-version: '2.0.0'  # minimum supported version
     - name: Install Bun
@@ -58,7 +58,7 @@ jobs:
         bun-version: ${{ (matrix.os == 'windows-latest' && '1.1.0') || '1.0.31' }}
         no-cache: true
     - name: Install Node
-      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f  # v6.3.0
+      uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6.4.0
       with:
         node-version: '20.0'  # minimum supported version
     - name: Install QuickJS (Linux)
