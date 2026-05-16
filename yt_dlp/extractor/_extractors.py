@@ -1100,8 +1100,8 @@ from .mediastream import (
 )
 from .mediaworksnz import MediaWorksNZVODIE
 from .medici import (
-    MediciIE,
     MediciEduIE,
+    MediciIE,
 )
 from .megaphone import MegaphoneIE
 from .megatvcom import (
