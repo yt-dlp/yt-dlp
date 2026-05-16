@@ -124,7 +124,7 @@ jobs:
         id: linux_matrix
         env:
           INPUTS: ${{ toJSON(inputs) }}
-          PYTHON_VERSION: '3.13'
+          PYTHON_VERSION: '3.14'
           UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
         shell: python
         run: |
@@ -152,12 +152,10 @@ jobs:
                   'os': 'musllinux',
                   'arch': 'x86_64',
                   'runner': 'ubuntu-24.04',
-                  'python_version': '3.14',
               }, {
                   'os': 'musllinux',
                   'arch': 'aarch64',
                   'runner': 'ubuntu-24.04-arm',
-                  'python_version': '3.14',
               }],
           }
           INPUTS = json.loads(os.environ['INPUTS'])

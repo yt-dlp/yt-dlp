@@ -2,7 +2,7 @@
 set -exuo pipefail
 
 if [[ -z "${PYTHON_VERSION:-}" ]]; then
-    PYTHON_VERSION="3.13"
+    PYTHON_VERSION="3.14"
     echo "Defaulting to using Python ${PYTHON_VERSION}"
 fi
 
