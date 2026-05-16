@@ -34,7 +34,7 @@ PYPROJECT_PATH = BASE_PATH / 'pyproject.toml'
 MAKEFILE_PATH = BASE_PATH / 'Makefile'
 LOCKFILE_PATH = BASE_PATH / 'uv.lock'
 REQUIREMENTS_PATH = BASE_PATH / 'bundle/requirements'
-REQS_OUTPUT_TMPL = 'requirements-{}.txt'
+REQS_OUTPUT_TMPL = '{}.txt'
 
 EXTRAS_TABLE = 'project.optional-dependencies'
 GROUPS_TABLE = 'dependency-groups'
