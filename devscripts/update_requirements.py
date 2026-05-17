@@ -34,7 +34,7 @@ PYPROJECT_PATH = BASE_PATH / 'pyproject.toml'
 MAKEFILE_PATH = BASE_PATH / 'Makefile'
 LOCKFILE_PATH = BASE_PATH / 'uv.lock'
 REQUIREMENTS_PATH = BASE_PATH / 'bundle/requirements'
-REQS_OUTPUT_TMPL = 'requirements-{}.txt'
+REQS_OUTPUT_TMPL = '{}.txt'
 
 EXTRAS_TABLE = 'project.optional-dependencies'
 GROUPS_TABLE = 'dependency-groups'
@@ -544,11 +544,11 @@ def package_diff_dict(
     return ret_dict
 
 
-def get_lock_packages(lock: dict[str, typing.Any]) -> dict[str, str]:
+def get_lock_packages(lock: dict[str, typing.Any], ignore_names: list[str] | None = None) -> dict[str, str]:
     return {
         package['name']: package['version']
         for package in lock['package']
-        if package.get('version')
+        if package.get('version') and package['name'] not in (ignore_names or [])
     }
 
 
@@ -578,6 +578,7 @@ def update_requirements(
 
     pyproject_text = PYPROJECT_PATH.read_text()
     pyproject_toml = parse_toml(pyproject_text)
+    package_name = pyproject_toml['project']['name']
     extras = get_extras(pyproject_toml)
 
     # Remove pinned extras so they don't muck up the lockfile during generation/upgrade
@@ -603,8 +604,8 @@ def update_requirements(
     run_process('uv', 'lock', upgrade_arg, env=env)
 
     # Record diff in uv.lock packages
-    old_packages = get_lock_packages(old_lock) if old_lock else {}
-    new_packages = get_lock_packages(parse_toml(LOCKFILE_PATH.read_text()))
+    old_packages = get_lock_packages(old_lock, [package_name]) if old_lock else {}
+    new_packages = get_lock_packages(parse_toml(LOCKFILE_PATH.read_text()), [package_name])
     all_updates = package_diff_dict(old_packages, new_packages)
 
     # Update Windows PyInstaller requirements; need to compare before & after .txt's for reporting
