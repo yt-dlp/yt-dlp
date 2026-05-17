@@ -13,6 +13,7 @@ from ..utils import (
     time_seconds,
     unified_timestamp,
     url_or_none,
+    urljoin,
 )
 from ..utils.traversal import require, traverse_obj
 
@@ -25,6 +26,7 @@ class TVerBaseIE(StreaksBaseIE):
         'Origin': _BASE_URL,
         'Referer': f'{_BASE_URL}/',
     }
+    _IMG_BASE = 'https://image-cdn.tver.jp'
     _PLATFORM_QUERY = {}
     _STREAKS_API_INFO = {}
 
@@ -40,6 +42,14 @@ class TVerBaseIE(StreaksBaseIE):
             'https://player.tver.jp/player/streaks_info_v2.json', None,
             'Downloading STREAKS API info', 'Unable to download STREAKS API info')
 
+    def _streaks_api_headers(self, project_id):
+        key = dt.datetime.fromtimestamp(time_seconds(hours=9), dt.timezone.utc).month % 6 or 6
+
+        return {
+            **self._HEADERS,
+            'X-Streaks-Api-Key': self._STREAKS_API_INFO[project_id]['api_key'][f'key{key:02d}'],
+        }
+
     def _call_api(self, api_type, path, video_id, fatal=False, query=None, **kwargs):
         api_base = {
             'contents': 'https://contents-api.tver.jp/contents',
@@ -52,11 +62,10 @@ class TVerBaseIE(StreaksBaseIE):
             video_id, fatal=fatal, headers={'x-tver-platform-type': 'web'},
             query={**self._PLATFORM_QUERY, **(query or {})}, **kwargs)
 
-    @staticmethod
-    def _thumbnails(content_type, video_id):
+    def _thumbnails(self, content_type, video_id):
         return [{
             'id': quality,
-            'url': f'https://image-cdn.tver.jp/images/content/thumbnail/{content_type}/{quality}/{video_id}.jpg',
+            'url': f'{self._IMG_BASE}/images/content/thumbnail/{content_type}/{quality}/{video_id}.jpg',
             'width': width,
             'height': height,
         } for quality, width, height in [
@@ -124,20 +133,17 @@ class TVerIE(TVerBaseIE):
 
         video_info = self._call_api('contents', 'v1/episodes', video_id)
         streaks_ids = video_info['streaks']
+        project_id = traverse_obj(streaks_ids, ('project_id', {str_or_none}))
         media_id = traverse_obj(streaks_ids, (
             'ovp_player_callback_id', {str_or_none}, {require('STREAKS media ID')}))
         brightcove_id = traverse_obj(streaks_ids, (
-            'video_ref_id', {lambda x: f'ref:{x}' if x else None}, {str_or_none}))
+            'video_ref_id', {lambda x: f'ref:{x}' if x else None}, {str}, filter))
 
-        project_id = streaks_ids['project_id']
-        key_idx = dt.datetime.fromtimestamp(time_seconds(hours=9), dt.timezone.utc).month % 6 or 6
         try:
-            streaks_info = self._extract_from_streaks_api(project_id, media_id, {
-                **self._HEADERS,
-                'X-Streaks-Api-Key': self._STREAKS_API_INFO[project_id]['api_key'][f'key0{key_idx}'],
-            })
+            streaks_info = self._extract_from_streaks_api(
+                project_id, media_id, self._streaks_api_headers(project_id))
         except GeoRestrictedError as e:
-            # Catch and re-raise with metadata_available to support --ignore-no-formats-error
+            # Re-raise with metadata_available=True to support --ignore-no-formats-error
             self.raise_geo_restricted(e.orig_msg, countries=self._GEO_COUNTRIES, metadata_available=True)
             streaks_info = {}
 
@@ -172,6 +178,66 @@ class TVerIE(TVerBaseIE):
             })),
             'thumbnails': self._thumbnails('episode', video_id),
             '_old_archive_ids': [make_archive_id('BrightcoveNew', brightcove_id)] if brightcove_id else None,
+        }
+
+
+class TVerShortsIE(TVerBaseIE):
+    IE_NAME = 'tver:shorts'
+
+    _VALID_URL = r'https?://tver\.jp/shorts/(?P<id>[a-zA-Z0-9]+)(?:[/?#]|$)'
+    _TESTS = [{
+        'url': 'https://tver.jp/shorts/seplt43and',
+        'info_dict': {
+            'id': 'seplt43and',
+            'ext': 'mp4',
+            'title': '山﨑健太郎（建築家 ・＃1403）',
+            'channel_id': 'mbs',
+            'description': 'md5:81a161fa93c1295f721aaa33cb67d76b',
+            'display_id': 'ref:jounetsu_1403_s1',
+            'duration': 32,
+            'like_count': int,
+            'live_status': 'not_live',
+            'modified_date': '20260510',
+            'modified_timestamp': 1778395125,
+            'series': '情熱大陸',
+            'series_id': 'srz38rt0a3',
+            'tags': ['#TVer', '#ショート'],
+            'thumbnail': r're:https?://.+\.png',
+            'timestamp': 1778394452,
+            'upload_date': '20260510',
+            'uploader_id': 'tver-short-mbs',
+        },
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        video_info = self._call_api('contents', 'v2/short_episodes', video_id)
+
+        streaks_ids = video_info['streaks']
+        project_id = traverse_obj(streaks_ids, ('project_id', {str_or_none}))
+        media_id = traverse_obj(streaks_ids, (
+            'ref_id', {lambda x: f'ref:{x}' if x else None},
+            {str}, filter, {require('STREAKS media ID')}))
+
+        return {
+            **self._extract_from_streaks_api(
+                project_id, media_id, self._streaks_api_headers(project_id)),
+            **traverse_obj(video_info, {
+                'id': ('id', {str_or_none}),
+                'channel_id': ('broadcast_provider_id', {str_or_none}),
+                'duration': ('duration', {int_or_none}),
+                'tags': ('sns_share_body', 'hashtags', ..., {clean_html}, filter, all, filter),
+                'thumbnail': ('vertical_thumbnail_path', {urljoin(f'{self._IMG_BASE}/')}),
+            }),
+            **traverse_obj(video_info, ('episode', {
+                'title': ('title', {clean_html}, filter),
+                'description': ('description', {clean_html}, filter),
+                'like_count': ('like_count', {int_or_none}),
+            })),
+            **traverse_obj(video_info, ('series', {
+                'series': ('title', {clean_html}, filter),
+                'series_id': ('id', {str_or_none}),
+            })),
         }
 
 

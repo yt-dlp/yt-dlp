@@ -2189,6 +2189,7 @@ from .tver import (
     TVerOlympicIE,
     TVerPlaylistIE,
     TVerSearchIE,
+    TVerShortsIE,
 )
 from .tvigle import TvigleIE
 from .tviplayer import TVIPlayerIE
