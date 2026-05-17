@@ -1,4 +1,6 @@
 import datetime as dt
+import itertools
+import re
 import urllib.parse
 
 from .streaks import StreaksBaseIE
@@ -6,7 +8,9 @@ from ..utils import (
     ExtractorError,
     GeoRestrictedError,
     clean_html,
+    filter_dict,
     int_or_none,
+    join_nonempty,
     make_archive_id,
     parse_qs,
     str_or_none,
@@ -27,27 +31,25 @@ class TVerBaseIE(StreaksBaseIE):
         'Referer': f'{_BASE_URL}/',
     }
     _IMG_BASE = 'https://image-cdn.tver.jp'
-    _PLATFORM_QUERY = {}
-    _STREAKS_API_INFO = {}
 
     def _real_initialize(self):
         session_info = self._download_json(
             'https://platform-api.tver.jp/v2/api/platform_users/browser/create',
             None, 'Creating session', data=b'device_type=pc')
-        self._PLATFORM_QUERY = traverse_obj(session_info, ('result', {
+        self._platform_query = traverse_obj(session_info, ('result', {
             'platform_token': ('platform_token', {str_or_none}),
             'platform_uid': ('platform_uid', {str_or_none}),
-        }))
-        self._STREAKS_API_INFO = self._download_json(
-            'https://player.tver.jp/player/streaks_info_v2.json', None,
-            'Downloading STREAKS API info', 'Unable to download STREAKS API info')
+        })) or {}
 
     def _streaks_api_headers(self, project_id):
+        streaks_info = self._download_json(
+            'https://player.tver.jp/player/streaks_info_v2.json', None,
+            'Downloading STREAKS API info', 'Unable to download STREAKS API info')
         key = dt.datetime.fromtimestamp(time_seconds(hours=9), dt.timezone.utc).month % 6 or 6
 
         return {
             **self._HEADERS,
-            'X-Streaks-Api-Key': self._STREAKS_API_INFO[project_id]['api_key'][f'key{key:02d}'],
+            'X-Streaks-Api-Key': streaks_info[project_id]['api_key'][f'key{key:02d}'],
         }
 
     def _call_api(self, api_type, path, video_id, fatal=False, query=None, **kwargs):
@@ -55,12 +57,12 @@ class TVerBaseIE(StreaksBaseIE):
             'contents': 'https://contents-api.tver.jp/contents',
             'platform': 'https://platform-api.tver.jp/service',
             'service': 'https://service-api.tver.jp',
-        }.get(api_type)
+        }[api_type]
 
         return self._download_json(
             f'{api_base}/api/{path}{f"/{video_id}" if video_id else ""}',
             video_id, fatal=fatal, headers={'x-tver-platform-type': 'web'},
-            query={**self._PLATFORM_QUERY, **(query or {})}, **kwargs)
+            query={**self._platform_query, **(query or {})}, **kwargs)
 
     def _thumbnails(self, content_type, video_id):
         return [{
@@ -133,22 +135,23 @@ class TVerIE(TVerBaseIE):
 
         video_info = self._call_api('contents', 'v1/episodes', video_id)
         streaks_ids = video_info['streaks']
-        project_id = traverse_obj(streaks_ids, ('project_id', {str_or_none}))
+        project_id = traverse_obj(streaks_ids, (
+            'project_id', {str_or_none}, {require('project ID')}))
         media_id = traverse_obj(streaks_ids, (
             'ovp_player_callback_id', {str_or_none}, {require('STREAKS media ID')}))
         brightcove_id = traverse_obj(streaks_ids, (
             'video_ref_id', {lambda x: f'ref:{x}' if x else None}, {str}, filter))
 
         try:
-            streaks_info = self._extract_from_streaks_api(
+            streaks_metadata = self._extract_from_streaks_api(
                 project_id, media_id, self._streaks_api_headers(project_id))
         except GeoRestrictedError as e:
             # Re-raise with metadata_available=True to support --ignore-no-formats-error
             self.raise_geo_restricted(e.orig_msg, countries=self._GEO_COUNTRIES, metadata_available=True)
-            streaks_info = {}
+            streaks_metadata = {}
 
         return {
-            **streaks_info,
+            **streaks_metadata,
             **traverse_obj(video_info, {
                 'id': ('id', {str_or_none}),
                 'title': ('title', {clean_html}, filter),
@@ -241,15 +244,58 @@ class TVerShortsIE(TVerBaseIE):
         }
 
 
+class TVerChannelsIE(TVerBaseIE):
+    IE_NAME = 'tver:channels'
+
+    _VALID_URL = r'https?://tver\.jp/channels/(?P<id>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://tver.jp/channels/news-nnn',
+        'info_dict': {
+            'id': 'news-nnn',
+            'title': '日テレNEWS NNN',
+        },
+        'playlist_mincount': 3650,
+    }]
+    _PAGE_SIZE = 100
+
+    def _entries(self, channel_id):
+        next_cursor = None
+        for page in itertools.count(1):
+            latest_episodes = self._call_api(
+                'contents', 'v1/channels/news-nnn/pages/latest_episodes',
+                None, note=f'Downloading page {page}', query=filter_dict({
+                    'limit': self._PAGE_SIZE,
+                    'next_cursor': next_cursor,
+                }))
+
+            for episode_id in traverse_obj(latest_episodes, (
+                'episodes', ..., 'episode_id', {str_or_none},
+            )):
+                yield self.url_result(
+                    f'https://tver.jp/episodes/{episode_id}', TVerIE)
+
+            next_cursor = traverse_obj(latest_episodes, ('next_cursor', {str_or_none}))
+            if not next_cursor:
+                break
+
+    def _real_extract(self, url):
+        channel_id = self._match_id(url)
+        channel = self._call_api('contents', 'v1/channels', channel_id)
+
+        return self.playlist_result(
+            self._entries(channel_id), channel_id,
+            traverse_obj(channel, ('title', {clean_html}, filter)))
+
+
 class TVerPlaylistBaseIE(TVerBaseIE):
-    def _entries(self, playlist_info, keys):
+    def _entries(self, result, keys):
         types = {
             'episode': ('episodes', TVerIE),
             'series': ('series', TVerPlaylistIE),
         }
 
-        for item in traverse_obj(playlist_info, (
-            'result', 'contents', *keys, all, lambda _, v: v['type'] != 'live',
+        for item in traverse_obj(result, (
+            'contents', *keys, all, lambda _, v: v['type'] != 'live',
         )):
             path, ie = types.get(item['type'])
             yield self.url_result(
@@ -261,46 +307,70 @@ class TVerPlaylistIE(TVerPlaylistBaseIE):
 
     _PLAYLIST_TYPE_RE = '|'.join((
         'ender', 'newer', 'series', 'rankings/episode',
-        r'specials/[\w-]+', 'tags', 'talents', 'topics',
+        r'specials/[\w-]+', 'tags', 'talents',
     ))
     _VALID_URL = rf'https?://tver\.jp/(?P<type>{_PLAYLIST_TYPE_RE})(?:/(?P<id>[\w-]+))?(?:/episodes)?'
     _TESTS = [{
         'url': 'https://tver.jp/series/srqbg9lpzc',
         'info_dict': {
             'id': 'srqbg9lpzc',
+            'title': '【しらべてみたら】Live News イット！特集',
         },
         'playlist_mincount': 14,
     }, {
         'url': 'https://tver.jp/rankings/episode/drama',
         'info_dict': {
             'id': 'drama',
+            'title': 'ドラマ',
         },
         'playlist_count': 50,
     }, {
         'url': 'https://tver.jp/ender/anime',
         'info_dict': {
             'id': 'anime',
+            'title': 'アニメ／ヒーロー',
         },
         'playlist_count': 100,
     }]
 
     def _real_extract(self, url):
         playlist_type, playlist_id = self._match_valid_url(url).group('type', 'id')
+        playlist_key = playlist_type.split('/')[0]
 
         api_type, endpoint, keys = {
             'series': ('platform', 'v1/callSeriesEpisodes', (..., 'contents', ...)),
-            'specials': ('platform', 'v1/callSpecialContentsDetail', ('content', 'contents')),
+            'specials': ('platform', 'v1/callSpecialContentsDetail', ('content', 'contents', ...)),
             'tags': ('platform', 'v1/callTagSearch', (...,)),
             'talents': ('platform', 'v1/callTalentEpisode', (...,)),
             'ender': ('service', f'v1/callEnderDetail{"/all" * (not playlist_id)}', ('contents', ...)),
             'newer': ('service', f'v1/callNewerDetail{"/all" * (not playlist_id)}', ('contents', ...)),
             'rankings': ('service', 'v1/callEpisodeRankingDetail', ('contents', ...)),
-            'topics': ('service', 'v1/callTopics', (..., 'content', 'content')),
-        }[playlist_type.split('/')[0]]
-        playlist_info = self._call_api(api_type, endpoint, playlist_id)
+        }[playlist_key]
+        result = self._call_api(api_type, endpoint, playlist_id)['result']
+
+        if playlist_key == 'series':
+            playlist_title = traverse_obj(result, (
+                'contents', ..., 'contents', ...,
+                'content', 'seriesTitle', {clean_html}, filter, any))
+        elif playlist_key == 'specials':
+            playlist_title = traverse_obj(result, (
+                'contents', 'content',
+                ('specialMainTitle', 'title'), {clean_html},
+                filter, all, {lambda x: join_nonempty(*x, delim=' - ')}))
+        elif playlist_key in ('tags', 'ender', 'newer', 'rankings'):
+            playlist_title = traverse_obj(result, ((
+                ('contents', 'content', 'title'),
+                ('tag', 'name'),
+            ), {clean_html}, filter, any))
+        elif playlist_key == 'talents':
+            talents = self._call_api('contents', 'v1/talents', playlist_id)
+            playlist_title = traverse_obj(talents, (
+                'name', {clean_html}, {lambda x: re.sub(r'\s+', '', x)}, filter))
+        else:
+            playlist_title = None
 
         return self.playlist_result(
-            self._entries(playlist_info, keys), playlist_id or playlist_type)
+            self._entries(result, keys), playlist_id or playlist_type, playlist_title)
 
 
 class TVerSearchIE(TVerPlaylistBaseIE):
