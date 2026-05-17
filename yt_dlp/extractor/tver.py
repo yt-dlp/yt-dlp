@@ -12,7 +12,6 @@ from ..utils import (
     str_or_none,
     time_seconds,
     unified_timestamp,
-    update_url_query,
     url_or_none,
 )
 from ..utils.traversal import (
