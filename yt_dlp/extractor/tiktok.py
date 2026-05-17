@@ -674,6 +674,11 @@ class TikTokBaseIE(InfoExtractor):
                 # audio-only slideshows have a video duration of 0 and an actual audio duration
                 'duration': ('video', 'duration', {int_or_none}, filter),
                 'timestamp': ('createTime', {int_or_none}),
+                'categories': ('diversificationLabels', {list}),
+                'location_created': ('locationCreated', {str}),
+                'text_language': ('textLanguage', {str}),           # detected language in desc
+                'aigc_label_type': ('aigcLabelType', {str}),        # '1'=True
+                'moderation_aigc_label_type': ('moderationAigcLabelType', {str}),  # '1'=True
             }),
             **traverse_obj(aweme_detail, ('stats', {
                 'view_count': 'playCount',
@@ -682,6 +687,11 @@ class TikTokBaseIE(InfoExtractor):
                 'comment_count': 'commentCount',
                 'save_count': 'collectCount',
             }), expected_type=int_or_none),
+            **traverse_obj(aweme_detail, ('authorStats', {
+                'author_follower_count': ('followerCount', {int_or_none}),
+                'author_heart_count': ('heartCount', {int_or_none}),    # total likes of author
+                'author_video_count': ('videoCount', {int_or_none}),
+            })),
             'thumbnails': [
                 {
                     'id': cover_id,
@@ -724,6 +734,7 @@ class TikTokIE(TikTokBaseIE):
             'artist': 'Ysrbeats',
             'album': 'Lehanga',
             'track': 'Lehanga',
+            
         },
         'skip': '404 Not Found',
     }, {
@@ -753,6 +764,11 @@ class TikTokIE(TikTokBaseIE):
             'save_count': int,
             'artists': ['Evan Todd', 'Jessica Keenan Wynn', 'Alice Lee', 'Barrett Wilbert Weed', 'Jon Eidson'],
             'track': 'Big Fun',
+            'author_follower_count': int,
+            'author_heart_count': int,
+            'author_video_count': int,
+            'location_created': str,
+            'text_language': str,
         },
     }, {
         # Banned audio, was available on the app, now works with web too
@@ -779,6 +795,12 @@ class TikTokIE(TikTokBaseIE):
             'repost_count': int,
             'comment_count': int,
             'save_count': int,
+            'author_follower_count': int,
+            'author_heart_count': int,
+            'author_video_count': int,
+            'location_created': str,
+            'text_language': str,
+            'categories': list,
         },
     }, {
         # Sponsored video, only available with feed workaround
@@ -830,6 +852,11 @@ class TikTokIE(TikTokBaseIE):
             'repost_count': int,
             'comment_count': int,
             'save_count': int,
+            'author_follower_count': int,
+            'author_heart_count': int,
+            'author_video_count': int,
+            'location_created': str,
+            'text_language': str,
         },
     }, {
         # hydration JSON is sent in a <script> element
@@ -880,6 +907,11 @@ class TikTokIE(TikTokBaseIE):
             'comment_count': int,
             'save_count': int,
             'thumbnail': r're:^https://.+\.(?:webp|jpe?g)',
+            'author_follower_count': int,
+            'author_heart_count': int,
+            'author_video_count': int,
+            'location_created': str,
+            'text_language': str,
         },
     }, {
         # only available via web
@@ -964,6 +996,12 @@ class TikTokIE(TikTokBaseIE):
             'repost_count': int,
             'save_count': int,
             'thumbnail': r're:^https://.+\.(?:webp|jpe?g)',
+            'author_follower_count': int,
+            'author_heart_count': int,
+            'author_video_count': int,
+            'location_created': str,
+            'text_language': str,
+
         },
     }, {
         # Auto-captions available
