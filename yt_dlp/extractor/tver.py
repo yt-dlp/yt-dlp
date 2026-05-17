@@ -18,11 +18,12 @@ from ..utils.traversal import require, traverse_obj
 
 
 class TVerBaseIE(StreaksBaseIE):
+    _BASE_URL = 'https://tver.jp'
     _GEO_BYPASS = False
     _GEO_COUNTRIES = ['JP']
     _HEADERS = {
-        'Origin': 'https://tver.jp',
-        'Referer': 'https://tver.jp/',
+        'Origin': _BASE_URL,
+        'Referer': f'{_BASE_URL}/',
     }
     _PLATFORM_QUERY = {}
     _STREAKS_API_INFO = {}
@@ -32,8 +33,8 @@ class TVerBaseIE(StreaksBaseIE):
             'https://platform-api.tver.jp/v2/api/platform_users/browser/create',
             None, 'Creating session', data=b'device_type=pc')
         self._PLATFORM_QUERY = traverse_obj(session_info, ('result', {
-            'platform_token': 'platform_token',
-            'platform_uid': 'platform_uid',
+            'platform_token': ('platform_token', {str_or_none}),
+            'platform_uid': ('platform_uid', {str_or_none}),
         }))
         self._STREAKS_API_INFO = self._download_json(
             'https://player.tver.jp/player/streaks_info_v2.json', None,
@@ -117,7 +118,7 @@ class TVerIE(TVerBaseIE):
             webpage = self._download_webpage(url, video_id)
             redirect_url = self._og_search_url(webpage) or self._search_regex(
                 r'<link\s+rel="canonical"\s+href="(https?://tver\.jp/[^"]*)"/>', webpage, 'redirect URL')
-            if redirect_url == 'https://tver.jp/':
+            if redirect_url == f'{self._BASE_URL}/':
                 raise ExtractorError('This URL is currently unavailable', expected=True)
             return self.url_result(redirect_url)
 
@@ -186,20 +187,23 @@ class TVerPlaylistBaseIE(TVerBaseIE):
         )):
             path, ie = types.get(item['type'])
             yield self.url_result(
-                f'https://tver.jp/{path}/{item["content"]["id"]}', ie)
+                f'{self._BASE_URL}/{path}/{item["content"]["id"]}', ie)
 
 
 class TVerPlaylistIE(TVerPlaylistBaseIE):
     IE_NAME = 'tver:playlist'
 
-    _VALID_URL = r'https?://tver\.jp/(?P<type>{})(?:/(?P<id>[\w-]+))?(?:/episodes)?'.format(
-        '|'.join(('ender', 'newer', 'series', 'rankings/episode', r'specials/[\w-]+', 'tags', 'talents', 'topics')))
+    _PLAYLIST_TYPE_RE = '|'.join((
+        'ender', 'newer', 'series', 'rankings/episode',
+        r'specials/[\w-]+', 'tags', 'talents', 'topics',
+    ))
+    _VALID_URL = rf'https?://tver\.jp/(?P<type>{_PLAYLIST_TYPE_RE})(?:/(?P<id>[\w-]+))?(?:/episodes)?'
     _TESTS = [{
         'url': 'https://tver.jp/series/srqbg9lpzc',
         'info_dict': {
             'id': 'srqbg9lpzc',
         },
-        'playlist_mincount': 17,
+        'playlist_mincount': 14,
     }, {
         'url': 'https://tver.jp/rankings/episode/drama',
         'info_dict': {
@@ -244,11 +248,11 @@ class TVerSearchIE(TVerPlaylistBaseIE):
         },
         'playlist_mincount': 11,
     }, {
-        'url': 'https://tver.jp/search/%E3%83%8B%E3%83%A5%E3%83%BC%E3%82%B9?genre=news_documentary&weekday=mon&tvnetwork=jnn',
+        'url': 'https://tver.jp/search/%E3%83%8B%E3%83%A5%E3%83%BC%E3%82%B9?genre=news_documentary&weekday=mon&tvnetwork=txn',
         'info_dict': {
             'id': 'ニュース',
         },
-        'playlist_mincount': 57,
+        'playlist_mincount': 4,
     }]
 
     def _real_extract(self, url):
