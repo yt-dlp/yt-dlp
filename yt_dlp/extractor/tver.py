@@ -14,11 +14,7 @@ from ..utils import (
     unified_timestamp,
     url_or_none,
 )
-from ..utils.traversal import (
-    require,
-    traverse_obj,
-    trim_str,
-)
+from ..utils.traversal import require, traverse_obj
 
 
 class TVerBaseIE(StreaksBaseIE):
@@ -45,6 +41,7 @@ class TVerBaseIE(StreaksBaseIE):
 
     def _call_api(self, api_type, path, video_id, fatal=False, query=None, **kwargs):
         api_base = {
+            'contents': 'https://contents-api.tver.jp/contents',
             'platform': 'https://platform-api.tver.jp/service',
             'service': 'https://service-api.tver.jp',
         }.get(api_type)
@@ -58,7 +55,7 @@ class TVerBaseIE(StreaksBaseIE):
     def _thumbnails(content_type, video_id):
         return [{
             'id': quality,
-            'url': f'https://statics.tver.jp/images/content/thumbnail/{content_type}/{quality}/{video_id}.jpg',
+            'url': f'https://image-cdn.tver.jp/images/content/thumbnail/{content_type}/{quality}/{video_id}.jpg',
             'width': width,
             'height': height,
         } for quality, width, height in [
@@ -67,25 +64,6 @@ class TVerBaseIE(StreaksBaseIE):
             ('large', 960, 540),
             ('xlarge', 1280, 720),
         ]]
-
-    @staticmethod
-    def _parse_tver_metadata(json_data):
-        return traverse_obj(json_data, {
-            'id': ('id', {str_or_none}),
-            'title': ('title', {clean_html}),
-            'alt_title': ('broadcastDateLabel', {clean_html}, filter),
-            'channel': ('broadcastProviderLabel', {clean_html}),
-            'channel_id': (('broadcastChannelID', 'broadcastProviderID'), {str_or_none}, any),
-            'description': ('description', {clean_html}, filter),
-            'episode': ('title', {clean_html}),
-            'episode_id': ('id', {str_or_none}),
-            'episode_number': ('no', {int_or_none}),
-            'release_timestamp': ('viewStatus', 'startAt', {int_or_none}),
-            'season_id': ('seasonID', {str_or_none}),
-            'series': ('share', 'text', {trim_str(end='\n#TVer')}),
-            'series_id': ('seriesID', {str_or_none}),
-            'tags': ('tags', ..., 'name', {clean_html}, filter, all, filter),
-        })
 
 
 class TVerIE(TVerBaseIE):
@@ -100,19 +78,22 @@ class TVerIE(TVerBaseIE):
             'channel': '日テレ',
             'channel_id': 'ntv',
             'description': 'md5:b3e80d110373ab1a64d55241f7f0b22a',
-            'display_id': 'e85df0d0d6e94b708239803595ca3d29',
-            'duration': 647.48,
+            'display_id': 'ref:102343d6e76048edbeab05fb6e70d800',
+            'duration': 647,
             'episode': '【なるほどッ！】絶景から穴場まで…「温泉総選挙」人気は？',
             'episode_id': 'epjmuz7b1r',
             'episode_number': 1238,
+            'like_count': int,
             'live_status': 'not_live',
             'modified_date': '20251110',
             'modified_timestamp': 1762758822,
             'release_date': '20251110',
             'release_timestamp': 1762804800,
+            'season': '本編',
             'season_id': 'sspo4y3d1n',
             'series': '日テレNEWSセレクト',
             'series_id': 'sru578is4n',
+            'tags': ['報道／ドキュメンタリー'],
             'thumbnail': r're:https?://.+\.jpg',
             'timestamp': 1762757822,
             'upload_date': '20251110',
@@ -140,17 +121,15 @@ class TVerIE(TVerBaseIE):
                 raise ExtractorError('This URL is currently unavailable', expected=True)
             return self.url_result(redirect_url)
 
-        video_info = self._download_json(
-            f'https://statics.tver.jp/content/episode/{video_id}.json', video_id)
-        media_id = traverse_obj(video_info, (
-            'streaks', ('mediaID', ('videoRefID', {lambda x: f'ref:{x}' if x else None})),
-            {str}, filter, any, {require('STREAKS media ID')}))
+        video_info = self._call_api('contents', 'v1/episodes', video_id)
+        streaks_ids = video_info['streaks']
+        media_id = traverse_obj(streaks_ids, (
+            'ovp_player_callback_id', {str_or_none}, {require('STREAKS media ID')}))
+        brightcove_id = traverse_obj(streaks_ids, (
+            'video_ref_id', {lambda x: f'ref:{x}' if x else None}, {str_or_none}))
 
-        brightcove_id = traverse_obj(video_info, (
-            'video', 'videoRefID', {lambda x: f'ref:{x}' if x else None}, {str}, filter))
-        project_id = video_info['streaks']['projectID']
+        project_id = streaks_ids['project_id']
         key_idx = dt.datetime.fromtimestamp(time_seconds(hours=9), dt.timezone.utc).month % 6 or 6
-
         try:
             streaks_info = self._extract_from_streaks_api(project_id, media_id, {
                 **self._HEADERS,
@@ -163,7 +142,33 @@ class TVerIE(TVerBaseIE):
 
         return {
             **streaks_info,
-            **self._parse_tver_metadata(video_info),
+            **traverse_obj(video_info, {
+                'id': ('id', {str_or_none}),
+                'title': ('title', {clean_html}, filter),
+                'alt_title': ('broadcast_date_label', {clean_html}, filter),
+                'channel': ('broadcast_provider_label', {clean_html}, filter),
+                'channel_id': ('broadcast_provider_id', {str_or_none}),
+                'description': ('description', {clean_html}, filter),
+                'duration': ('duration', {int_or_none}),
+                'episode': ('title', {clean_html}, filter),
+                'episode_id': ('id', {str_or_none}),
+                'episode_number': ('index_number', {int_or_none}),
+                'tags': (('genres', 'sub_genres'), ..., 'name', {clean_html}, filter, all, filter),
+                'like_count': ('like_count', {int_or_none}),
+                'release_timestamp': ('view_status', 'start_at', {int_or_none}),
+            }),
+            **traverse_obj(video_info, ('channel', {
+                'channel': ('broadcast_provider_name', {clean_html}, filter),
+                'channel_id': ('url_key', {str_or_none}),
+            })),
+            **traverse_obj(video_info, ('season', {
+                'season': ('title', {clean_html}, filter),
+                'season_id': ('id', {str_or_none}),
+            })),
+            **traverse_obj(video_info, ('series', {
+                'series': ('title', {clean_html}, filter),
+                'series_id': ('id', {str_or_none}),
+            })),
             'thumbnails': self._thumbnails('episode', video_id),
             '_old_archive_ids': [make_archive_id('BrightcoveNew', brightcove_id)] if brightcove_id else None,
         }
