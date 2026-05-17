@@ -2,8 +2,10 @@ from .common import InfoExtractor
 from ..utils import (
     UserNotLive,
     int_or_none,
+    parse_qs,
     str_or_none,
     traverse_obj,
+    update_url_query,
     url_or_none,
 )
 
@@ -42,12 +44,18 @@ class GoodGameIE(InfoExtractor):
         response = self._download_json(f'https://goodgame.ru/api/4/users/{channel_name}/stream', channel_name)
         player_id = response['streamkey']
 
+        headers = {'referer': 'https://goodgame.ru/'}
         formats, subtitles = [], {}
         if response.get('status'):
             fmt_url = traverse_obj(response, ('sources', ('master', 'smil', 'source'), any))
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(fmt_url, channel_name, 'mp4', live=True)
+            fmt_url_params = parse_qs(fmt_url)
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(fmt_url, channel_name, 'mp4', headers=headers, live=True)
         else:
             raise UserNotLive(f'{channel_name} User is currently not live')
+
+        for fmt in formats:
+            url = fmt.get('url')
+            fmt['url'] = update_url_query(url, fmt_url_params)
 
         return {
             'id': player_id,
@@ -66,4 +74,5 @@ class GoodGameIE(InfoExtractor):
                 'channel_follower_count': ('followers', {int_or_none}),
                 'age_limit': ('adult', {bool}, {lambda x: 18 if x else None}),
             }),
+            'http_headers': headers,
         }
