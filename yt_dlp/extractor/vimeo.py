@@ -49,7 +49,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         'Cannot download embed-only video without embedding URL. Please call yt-dlp '
         'with the URL of the page that embeds this video.')
 
-    _DEFAULT_CLIENT = 'web'
+    _DEFAULT_CLIENT = 'macos'
     _DEFAULT_AUTHED_CLIENT = 'web'
     _CLIENT_HEADERS = {
         'Accept': 'application/vnd.vimeo.*+json; version=3.4.10',
@@ -85,6 +85,21 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 'embed_player_config_url', 'privacy', 'pictures', 'tags', 'stats', 'categories', 'uploader',
                 'metadata', 'user', 'files', 'download', 'app', 'play', 'status', 'resource_key', 'badge',
                 'upload', 'transcode', 'is_playable', 'has_audio',
+            ),
+        },
+        'macos': {
+            'CACHE_KEY': 'oauth-token-macos',
+            'CACHE_ONLY': False,
+            'VIEWER_JWT': False,
+            'REQUIRES_AUTH': False,
+            'AUTH': 'NDc1N2JlN2Y5ZjZmMjU3NzE3NTRkZTg1NmY2YzU2MTI0OTFlNjJiYjpwVUNDWUlBZmZqSHhQcndBYWxGMzgyYys2NkN5d1JrREJZZXdPcEdsU05tdjFlVVo2aE1lYk9GcWE3ZW9KVldlYnFlOWh5Vno5UWtpUGJ5empYZFBpYkFwV0FFTnB5VWV4ZEh3aHZnRUNEL0VySnBzTmFraDdNbS9nMXhWanhIcw==',
+            'USER_AGENT': 'Vimeo/1.6.3 (com.vimeo.mac; build:251121.142637.0; macOS 13.7.8) Alamofire/5.9.0 VimeoNetworking/5.0.0',
+            'VIDEOS_FIELDS': (
+                'uri', 'name', 'description', 'type', 'link', 'player_embed_url', 'duration', 'width',
+                'language', 'height', 'embed', 'created_time', 'modified_time', 'release_time', 'content_rating',
+                'content_rating_class', 'rating_mod_locked', 'license', 'privacy', 'pictures', 'tags', 'stats',
+                'categories', 'uploader', 'metadata', 'user', 'files', 'download', 'app', 'play', 'status',
+                'resource_key', 'badge', 'upload', 'transcode', 'is_playable', 'has_audio',
             ),
         },
         'web': {
