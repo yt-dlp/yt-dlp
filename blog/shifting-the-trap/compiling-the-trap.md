@@ -1,0 +1,204 @@
+# Compiling the Trap
+
+*A follow-up to "Shifting the Trap" and to Jacob K's "Writing custom programs for yt-dlp's jsinterp."*
+
+In *Shifting the Trap* I argued that `yt_dlp/jsinterp.py` is, despite the
+hedging, a real interpreter for a subset of JavaScript — and that an
+interpreter faithfully executing a non-free, Google-authored program
+(`base.js`) is The JavaScript Trap, merely relocated from the browser to
+the terminal.
+
+Jacob K then went further, empirically. He hand-wrote Fibonacci and a
+Rule 110 simulator *in jsinterp's language* and observed them run. His
+conclusion: at some point enough machinery accreted — `for`, `switch`,
+arrays — that the interpreter became Turing-complete. He left an explicit
+open question: which release crossed that line, and can it be shown
+rigorously rather than anecdotally?
+
+This post closes the loop with a constructive proof. Not "here is a
+program that looks Turing-complete," but: **here is a compiler whose
+target is yt-dlp's interpreter, and here is the formal reduction that
+makes its existence a proof.**
+
+## Why a compiler proves anything
+
+Turing-completeness is a statement about a *computational class*. The
+clean way to establish it for a system *S* is a reduction: exhibit a
+language *T* already known to be Turing-complete, and a **total**
+translation `compile : T → S` that preserves observable behaviour. If
+every *T*-program can be mechanically turned into an *S*-program that
+computes the same thing, then *S* can compute everything *T* can — which
+is everything.
+
+So the question is only: which *T*?
+
+The brief floated a C compiler. I want to explain why that would be the
+*wrong* instrument, because the reasoning is the proof's spine.
+
+A C frontend would be enormous, and worse, it would lean on exactly the
+features jsinterp *lacks*. Reading the actual 972-line source on this
+branch:
+
+- There is **no `while`** and no `do/while`. The only loop is `for`.
+- There is **no `else if`** (the code says so, in a `TODO`).
+- Function calls share a single recursion budget (~100), decremented per
+  statement *and* per expression. Anything recursion-heavy dies fast.
+- There are no structs, no pointer arithmetic, no real type system.
+
+A C compiler would spend thousands of lines fighting those gaps and
+would prove nothing extra: Turing-completeness is not about whether the
+language is *pleasant*, only about what it can *compute*. The right *T*
+is the smallest language already proven Turing-complete. That is
+**Brainfuck** — eight commands, a tape, and a loop; reducible to and from
+a Turing machine by a well-known construction.
+
+Brainfuck also happens to map onto precisely the part of jsinterp that is
+oldest, most exercised, and least likely to hide a bug — the same
+machinery Jacob K's programs already leaned on. That is not a
+coincidence; it is the point. The proof should rest on jsinterp's load-
+bearing wall, not its experimental trim.
+
+## The compiler (`bfc.py`)
+
+`compile_bf` is about sixty lines and imports nothing from yt-dlp. It is
+a total function from Brainfuck source to a single JavaScript function,
+written against the *intersection* of JavaScript and what jsinterp
+actually implements:
+
+| Brainfuck | Emitted JavaScript |
+|---|---|
+| `+` `-` | `t[p]=(t[p]+1)&255;` — `& 255` gives mod-256 cells; jsinterp's bit ops use Python `&`, so `(0-1)&255 == 255`, the correct Brainfuck wrap |
+| `>` `<` | `p=p+1;` |
+| `.` `,` | `o=o+String.fromCharCode(t[p]);` / a ternary read from the input array |
+| `[` `]` | **`for(;t[p]!=0;){` … `}`** |
+
+The one load-bearing trick is the loop. jsinterp has no `while`, so
+Brainfuck's `[ ]` becomes a `for` with empty init and increment whose
+guard re-reads the current cell. Nested Brainfuck loops are just nested
+`for`s. The guard uses loose `!=` (jsinterp's equality-coercion path),
+deliberately *not* `!==` (which is Python `is`-identity and unsafe across
+all cell values).
+
+Nothing in the output recurses. Brainfuck loops compile to JavaScript
+loops, so the proof never touches jsinterp's ~100-deep recursion budget.
+The compiler also coalesces runs of `+`/`>` into a single statement —
+the textbook Brainfuck optimization, observationally identical, included
+only so the regex-walking interpreter isn't re-parsing thousands of
+one-character statements.
+
+## The demonstration (`run_proof.py`)
+
+Each program is compiled and then executed by the **real, unmodified
+`yt_dlp.jsinterp.JSInterpreter` from this repository** — the same class,
+reached the same way (`JSInterpreter(code).call_function(...)`), that
+decodes YouTube's signatures — and its output is checked against an
+independent Python oracle.
+
+- **Hello World** — the canonical Brainfuck program. Loops and I/O, exact
+  output. Sanity.
+- **Unary echo** — output *n* asterisks, where *n* comes from the input.
+  This matters: the iteration count is *data-dependent*, decided at run
+  time, not baked into the program text. Straight-line code cannot do
+  this; an interpreter with genuine loops can. It is the smallest honest
+  witness that the `[ ]` → `for` lowering does real, unbounded work.
+- **Rule 110** — Cook's elementary cellular automaton, *proven*
+  Turing-complete, and the very automaton Jacob K simulated on older
+  jsinterp. Width is fixed; the number of generations comes from input,
+  so the outer loop is again data-dependent. Every generation is checked,
+  cell for cell, against a pure-Python Rule 110.
+
+All pass, in about 23 seconds, on the interpreter as shipped:
+
+```
+[PASS] hello world
+[PASS] unary echo n=0 / 1 / 5 / 23
+[PASS] rule 110 (w=24, g=1 / 8 / 20)
+ALL PROOFS PASSED   (on real yt_dlp.jsinterp)
+```
+
+Rule 110 from a single right-edge seed — the familiar fractal — emitted
+by `yt_dlp/jsinterp.py` and byte-for-byte equal to the oracle:
+
+```
+..............................##
+.............................###
+............................##.#
+...........................#####
+..........................##...#
+.........................###..##
+........................##.#.###
+.......................#######.#
+......................##.....###
+.....................###....##.#
+....................##.#...#####
+...................#####..##...#
+..................##...#.###..##
+.................###..####.#.###
+................##.#.##..#####.#
+...............########.##...###
+..............##......####..##.#
+.............###.....##..#.#####
+............##.#....###.####...#
+...........#####...##.###..#..##
+..........##...#..#####.#.##.###
+.........###..##.##...########.#
+........##.#.######..##......###
+.......#######....#.###.....##.#
+```
+
+## The honest caveat
+
+The real interpreter has a finite tape and a finite recursion budget.
+The Turing-completeness *of the model* is unaffected: the reduction is
+total, and the limits are resource bounds, not expressivity bounds. This
+is the same footnote that applies to every physical computer, and the
+same one Jacob K reached for when he noted that loop-unrolling in *very*
+old youtube-dl still satisfies the colloquial definition. Stating it
+plainly strengthens the claim rather than weakening it. The compiler is
+exact; the machine, like all machines, is merely large.
+
+It also sharpens Jacob K's open question. The boundary is not a release
+date; it is a *capability* date — the first release whose interpreter can
+express a data-dependent unbounded loop over mutable storage. `bfc.py`
+makes that test mechanical: point it at any historical `jsinterp.py`, run
+the ladder, and the unary-echo case alone answers "Turing-complete or
+not" for that revision.
+
+## Why this is the proof the argument needed
+
+*Shifting the Trap* made a definitional claim — jsinterp is an
+interpreter. The natural rejoinder was "an interpreter of *what*, and how
+much?" If it could only pattern-match signature functions, one might
+argue the freedom question is narrow. It cannot only do that. A faithful
+interpreter of a Turing-complete language is, by construction, a
+general-purpose execution engine: whatever Google ships in `base.js`,
+jsinterp will run, because there is no computable behaviour it *can't*
+run. The signature dance is not the ceiling; it is one program among all
+programs.
+
+That is the technical spine of the original essay's thesis. The trap was
+never "yt-dlp runs a specific clever string function." The trap is that a
+free program, in its normal operation, hands a non-free, Google-authored,
+daily-mutating program to a general-purpose interpreter on the user's
+machine and runs it. The compiler doesn't accuse yt-dlp of anything. It
+just removes the last place to hide the word "interpreter," and with it,
+the last reason to believe the question in the first post can be safely
+left unasked:
+
+> Whose program is running on your computer right now, and did you agree
+> to run it?
+
+## Reproducing
+
+From the repository root:
+
+```
+python3 blog/shifting-the-trap/run_proof.py
+```
+
+- `bfc.py` — the compiler. The proof object. No yt-dlp dependency.
+- `bf.py` — a small Brainfuck macro-assembler, used only to *author* the
+  echo and Rule 110 programs correctly. jsinterp never sees it; it only
+  ever runs compiled JavaScript.
+- `run_proof.py` — compiles each program, runs it on the real
+  `yt_dlp.jsinterp`, and checks it against an independent oracle.
