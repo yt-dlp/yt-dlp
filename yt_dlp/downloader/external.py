@@ -1,16 +1,14 @@
 import enum
 import functools
-import json
 import os
 import re
 import subprocess
 import sys
 import tempfile
 import time
-import uuid
+from shutil import which
 
 from .fragment import FragmentFD
-from ..networking import Request
 from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (
     Popen,
@@ -23,7 +21,6 @@ from ..utils import (
     cli_valueless_option,
     determine_ext,
     encodeArgument,
-    find_available_port,
     remove_end,
     traverse_obj,
 )
@@ -270,6 +267,18 @@ class Aria2cFD(ExternalFD):
     AVAILABLE_OPT = '-v'
     SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'dash_frag_urls', 'm3u8_frag_urls')
 
+    _LOG_LEVELS = {'debug': 0, 'info': 1, 'notice': 2, 'warn': 3, 'error': 4}
+    _ARIA2C_PROGRESS_RE = re.compile(r'\[#(?P<id>[a-f0-9]+)\s+(?P<downloaded_str>\d+)B/(?P<total_str>\d+)B.+?DL:(?P<speed_str>\d+)B')
+    _ARIA2C_SPEED_RE = re.compile(r'\[.*?DL:(?P<speed_str>\d+)B.*?\]')
+    _DOWNLOAD_COMPLETE_RE = re.compile(r'\[\x1b\[[;\d]*mNOTICE\x1b\[[;\d]*m\] Download complete: (?P<filename>.+?)$')
+    _ARIA2C_LOG_LEVEL_RE = re.compile(r'\[\x1b\[[;\d]*m(?P<level>\w+)\x1b\[[;\d]*m\]')
+    _ARIA2C_REDIRECTING_STR = '- Redirecting to'
+
+    def __init__(self, ydl, params):
+        super().__init__(ydl, params)
+        self._quiet = False
+        self._log_level = self._LOG_LEVELS['notice']
+
     @staticmethod
     def supports_manifest(manifest):
         UNSUPPORTED_FEATURES = [
@@ -283,14 +292,71 @@ class Aria2cFD(ExternalFD):
     def _aria2c_filename(fn):
         return fn if os.path.isabs(fn) else f'.{os.path.sep}{fn}'
 
-    def _call_downloader(self, tmpfilename, info_dict):
-        # FIXME: Disabled due to https://github.com/yt-dlp/yt-dlp/issues/5931
-        if False and 'no-external-downloader-progress' not in self.params.get('compat_opts', []):
-            info_dict['__rpc'] = {
-                'port': find_available_port() or 19190,
-                'secret': str(uuid.uuid4()),
-            }
-        return super()._call_downloader(tmpfilename, info_dict)
+    def _determine_user_log_level(self, cmd):
+        user_level_str = 'notice'
+        for arg in cmd[::-1]:
+            if arg.startswith('--console-log-level='):
+                user_level_str = arg.split('=', 1)[1]
+                break
+        return self._LOG_LEVELS.get(user_level_str, self._LOG_LEVELS['notice'])
+
+    def _can_print_line(self, line, fragmented, quiet, log_level):
+        if quiet or self._ARIA2C_REDIRECTING_STR in line:
+            return False
+
+        if not fragmented or log_level <= self._LOG_LEVELS['notice']:
+            return True
+
+        match = self._ARIA2C_LOG_LEVEL_RE.search(line)
+        if not match:
+            return True
+
+        line_level_str = match.group('level').lower()
+        line_level = self._LOG_LEVELS.get(line_level_str, 99)
+        return line_level >= log_level
+
+    def _parse_line(self, line, status, start_time):
+        fragmented = status['fragment_count'] is not None
+
+        if not fragmented and (progress_match := self._ARIA2C_PROGRESS_RE.search(line)):
+            data = progress_match.groupdict()
+            downloaded_bytes = int(data['downloaded_str'])
+            total_bytes = int(data['total_str'])
+            speed = int(data['speed_str'])
+            status.update({
+                'downloaded_bytes': downloaded_bytes,
+                'total_bytes': total_bytes,
+                'speed': speed,
+                'eta': (total_bytes - downloaded_bytes) / speed if speed > 0 else 0,
+                'elapsed': time.time() - start_time,
+            })
+
+        elif fragmented and (complete_match := self._DOWNLOAD_COMPLETE_RE.search(line)):
+            frag_index = status['fragment_index'] + 1
+            frag_filename = complete_match.group('filename')
+            try:
+                frag_size = os.path.getsize(frag_filename)
+            except FileNotFoundError:
+                return False
+
+            downloaded_bytes = status['downloaded_bytes'] + frag_size
+            total_estimate = status['fragment_count'] * downloaded_bytes / frag_index
+            status.update({
+                'downloaded_bytes': downloaded_bytes,
+                'total_bytes_estimate': total_estimate,
+                'fragment_index': frag_index,
+                'eta': (total_estimate - downloaded_bytes) / status['speed'] if status['speed'] > 0 else 0,
+                'elapsed': time.time() - start_time,
+            })
+
+        elif speed_match := self._ARIA2C_SPEED_RE.search(line):
+            status['speed'] = int(speed_match.group('speed_str'))
+
+        else:
+            return False
+
+        self._hook_progress(status, status['info_dict'])
+        return True
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-c', '--no-conf',
@@ -311,14 +377,21 @@ class Aria2cFD(ExternalFD):
         cmd += self._option('--all-proxy', 'proxy')
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
-        cmd += self._bool_option('--show-console-readout', 'noprogress', 'false', 'true', '=')
         cmd += self._configuration_args()
 
-        if '__rpc' in info_dict:
-            cmd += [
-                '--enable-rpc',
-                f'--rpc-listen-port={info_dict["__rpc"]["port"]}',
-                f'--rpc-secret={info_dict["__rpc"]["secret"]}']
+        # Extract user intent from configuration args before we force our overrides
+        self._quiet = any(i in cmd for i in ('-q', '--quiet', '--quiet=true'))
+        self._log_level = self._determine_user_log_level(cmd)
+
+        # Clear parameters that interfere with our parsing, but force them later
+        params_to_clear = ('-q', '--quiet', '--human-readable', '--truncate-console-readout', '--show-console-readout')
+        if 'fragments' in info_dict and self._log_level > self._LOG_LEVELS['notice']:
+            params_to_clear += ('--console-log-level',)
+
+        cmd = [i for i in cmd if not i.startswith(params_to_clear)]
+
+        # Force our required parameters for parsing
+        cmd += ['--quiet=false', '--human-readable=false', '--truncate-console-readout=false', '--show-console-readout=true']
 
         # aria2c strips out spaces from the beginning/end of filenames and paths.
         # We work around this issue by adding a "./" to the beginning of the
@@ -348,86 +421,54 @@ class Aria2cFD(ExternalFD):
             cmd += ['--', info_dict['url']]
         return cmd
 
-    def aria2c_rpc(self, rpc_port, rpc_secret, method, params=()):
-        # Does not actually need to be UUID, just unique
-        sanitycheck = str(uuid.uuid4())
-        d = json.dumps({
-            'jsonrpc': '2.0',
-            'id': sanitycheck,
-            'method': method,
-            'params': [f'token:{rpc_secret}', *params],
-        }).encode()
-        request = Request(
-            f'http://localhost:{rpc_port}/jsonrpc',
-            data=d, headers={
-                'Content-Type': 'application/json',
-                'Content-Length': f'{len(d)}',
-            }, proxies={'all': None})
-        with self.ydl.urlopen(request) as r:
-            resp = json.load(r)
-        assert resp.get('id') == sanitycheck, 'Something went wrong with RPC server'
-        return resp['result']
-
     def _call_process(self, cmd, info_dict):
-        if '__rpc' not in info_dict:
-            return super()._call_process(cmd, info_dict)
+        # Apply stdbuf if available to avoid chunked progress updates
+        if sys.platform != 'win32' and which('stdbuf'):
+            cmd = ['stdbuf', '-o0', *cmd]
 
-        send_rpc = functools.partial(self.aria2c_rpc, info_dict['__rpc']['port'], info_dict['__rpc']['secret'])
-        started = time.time()
+        # Workaround for HLS streams not passing hooks correctly
+        for hook in self.ydl._progress_hooks:
+            if hook not in self._progress_hooks:
+                self.add_progress_hook(hook)
 
         fragmented = 'fragments' in info_dict
-        frag_count = len(info_dict['fragments']) if fragmented else 1
+        start_time = time.time()
         status = {
             'filename': info_dict.get('_filename'),
             'status': 'downloading',
             'elapsed': 0,
+            'speed': 0,
             'downloaded_bytes': 0,
-            'fragment_count': frag_count if fragmented else None,
+            'fragment_count': len(info_dict['fragments']) if fragmented else None,
             'fragment_index': 0 if fragmented else None,
+            'total_bytes': None,
+            'total_bytes_estimate': None,
+            'info_dict': info_dict,
         }
         self._hook_progress(status, info_dict)
 
-        def get_stat(key, *obj, average=False):
-            val = tuple(filter(None, map(float, traverse_obj(obj, (..., ..., key))))) or [0]
-            return sum(val) / (len(val) if average else 1)
+        with Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as p:
+            if p.stdout is None:
+                raise RuntimeError('stdout is not available')
 
-        with Popen(cmd, text=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE) as p:
-            # Add a small sleep so that RPC client can receive response,
-            # or the connection stalls infinitely
-            time.sleep(0.2)
-            retval = p.poll()
-            while retval is None:
-                # We don't use tellStatus as we won't know the GID without reading stdout
-                # Ref: https://aria2.github.io/manual/en/html/aria2c.html#aria2.tellActive
-                active = send_rpc('aria2.tellActive')
-                completed = send_rpc('aria2.tellStopped', [0, frag_count])
+            try:
+                for raw_line in iter(p.stdout.readline, ''):
+                    line = raw_line.strip()
 
-                downloaded = get_stat('totalLength', completed) + get_stat('completedLength', active)
-                speed = get_stat('downloadSpeed', active)
-                total = frag_count * get_stat('totalLength', active, completed, average=True)
-                if total < downloaded:
-                    total = None
+                    if (
+                        not line
+                        or self._parse_line(line, status, start_time)
+                        or not self._can_print_line(line, fragmented, self._quiet, self._log_level)
+                    ):
+                        continue
 
-                status.update({
-                    'downloaded_bytes': int(downloaded),
-                    'speed': speed,
-                    'total_bytes': None if fragmented else total,
-                    'total_bytes_estimate': total,
-                    'eta': (total - downloaded) / (speed or 1),
-                    'fragment_index': min(frag_count, len(completed) + 1) if fragmented else None,
-                    'elapsed': time.time() - started,
-                })
-                self._hook_progress(status, info_dict)
+                    self.to_screen(f'[aria2c] {line}')
 
-                if not active and len(completed) >= frag_count:
-                    send_rpc('aria2.shutdown')
-                    retval = p.wait()
-                    break
+                return '', '', p.wait()
 
-                time.sleep(0.1)
-                retval = p.poll()
-
-            return '', p.stderr.read(), retval
+            except BaseException:
+                p.kill()
+                raise
 
 
 class HttpieFD(ExternalFD):
