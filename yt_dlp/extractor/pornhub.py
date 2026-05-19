@@ -281,7 +281,10 @@ class PornHubIE(PornHubBaseIE):
             self._set_cookie(host, 'platform', platform)
             return self._download_webpage(
                 f'https://www.{host}/view_video.php?viewkey={video_id}',
-                video_id, f'Downloading {platform} webpage')
+                video_id,
+                f'Downloading {platform} webpage',
+                impersonate=True,
+            )
 
         webpage = dl_webpage('pc')
 
@@ -299,6 +302,9 @@ class PornHubIE(PornHubBaseIE):
                 r'class=["\']geoBlocked["\']',
                 r'>\s*This content is unavailable in your country')):
             self.raise_geo_restricted()
+
+        if self._search_regex(r'originPart\s*=\s*["\']([^"\']+)["\']', webpage, 'is_redirected_to_homepage', default='') == 'homepage':
+            raise ExtractorError('Redirected to homepage may be video is deleted or require logged in cookies.', expected=True)
 
         # video_title from flashvars contains whitespace instead of non-ASCII (see
         # http://www.pornhub.com/view_video.php?viewkey=1331683002), not relying
@@ -450,7 +456,7 @@ class PornHubIE(PornHubBaseIE):
                 if upload_date:
                     upload_date = upload_date.replace('/', '')
             if '/video/get_media' in video_url:
-                medias = self._download_json(video_url, video_id, fatal=False)
+                medias = self._download_json(video_url, video_id, fatal=False, impersonate=True)
                 if isinstance(medias, list):
                     for media in medias:
                         if not isinstance(media, dict):
