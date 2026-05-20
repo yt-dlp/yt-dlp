@@ -17,6 +17,7 @@ class LaracastsBaseIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
         data = self._search_json(r'<script[^>]*data-page="app"[^>]*>',
                                  webpage, 'data', display_id, end_pattern=r'</script>')
+        
 
         return traverse_obj(data, 'props')
 
@@ -26,7 +27,7 @@ class LaracastsBaseIE(InfoExtractor):
 
         mux_playback_id = traverse_obj(episode, 'muxPlaybackId')
         mux_playback_token = traverse_obj(episode, ('muxTokens', 'playback'))
-
+        # Using Mux Instead of Vimeo to extract video data
         return self.url_result(
             f'https://player.mux.com/{mux_playback_id}?playback-token={mux_playback_token}',
             MuxIE, url_transparent=True,
