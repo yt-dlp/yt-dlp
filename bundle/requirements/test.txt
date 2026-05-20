@@ -28,9 +28,9 @@ pytest==9.0.3 \
     --hash=sha256:2c5efc453d45394fdd706ade797c0a81091eccd1d6e4bccfcd476e2b8e0ab5d9 \
     --hash=sha256:b86ada508af81d19edeb213c681b1d48246c1a91d304c6c81a427674c17eb91c
     # via pytest-rerunfailures
-pytest-rerunfailures==16.1 \
-    --hash=sha256:5d11b12c0ca9a1665b5054052fcc1084f8deadd9328962745ef6b04e26382e86 \
-    --hash=sha256:c38b266db8a808953ebd71ac25c381cb1981a78ff9340a14bcb9f1b9bff1899e
+pytest-rerunfailures==16.2 \
+    --hash=sha256:5f5a32f15674a3d54f7598388fcd3cc1bc5c37284731a4704a44485dcdda5e23 \
+    --hash=sha256:c22a53d2827becc76f057d4ded123c0e726523f2f0e5f0bb4efb31fd59e1f14e
 tomli==2.4.1 ; python_full_version < '3.11' \
     --hash=sha256:01f520d4f53ef97964a240a035ec2a869fe1a37dde002b57ebc4417a27ccd853 \
     --hash=sha256:0d85819802132122da43cb86656f8d1f8c6587d54ae7dcaf30e90533028b49fe \

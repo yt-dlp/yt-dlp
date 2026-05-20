@@ -66,12 +66,12 @@ pytest==9.0.3 \
     --hash=sha256:2c5efc453d45394fdd706ade797c0a81091eccd1d6e4bccfcd476e2b8e0ab5d9 \
     --hash=sha256:b86ada508af81d19edeb213c681b1d48246c1a91d304c6c81a427674c17eb91c
     # via pytest-rerunfailures
-pytest-rerunfailures==16.1 \
-    --hash=sha256:5d11b12c0ca9a1665b5054052fcc1084f8deadd9328962745ef6b04e26382e86 \
-    --hash=sha256:c38b266db8a808953ebd71ac25c381cb1981a78ff9340a14bcb9f1b9bff1899e
-python-discovery==1.2.2 \
-    --hash=sha256:876e9c57139eb757cb5878cbdd9ae5379e5d96266c99ef731119e04fffe533bb \
-    --hash=sha256:e1ae95d9af875e78f15e19aed0c6137ab1bb49c200f21f5061786490c9585c7a
+pytest-rerunfailures==16.2 \
+    --hash=sha256:5f5a32f15674a3d54f7598388fcd3cc1bc5c37284731a4704a44485dcdda5e23 \
+    --hash=sha256:c22a53d2827becc76f057d4ded123c0e726523f2f0e5f0bb4efb31fd59e1f14e
+python-discovery==1.3.1 \
+    --hash=sha256:62f6db28064c9613e7ca76cb3f00c38c839a07c31c00dfe7ed0986493d2150a6 \
+    --hash=sha256:ed188687ebb3b82c01a17cd5ac62fc94d9f6487a7f1a0f9dfe89753fec91039c
     # via virtualenv
 pyyaml==6.0.3 \
     --hash=sha256:00c4bdeba853cc34e7dd471f16b4114f4162dc03e6b7afcc2128711f0eca823c \
@@ -208,7 +208,7 @@ typing-extensions==4.15.0 ; python_full_version < '3.11' \
     # via
     #   exceptiongroup
     #   virtualenv
-virtualenv==21.3.0 \
-    --hash=sha256:4d28ee41f6d9ec8f1f00cd472b9ffbcedda1b3d3b9a575b5c94a2d004fd51bd7 \
-    --hash=sha256:733750db978ec95c2d8eb4feadaa57091002bce404cb39ba69899cf7bd28944e
+virtualenv==21.3.3 \
+    --hash=sha256:7d5987d8369e098e41406efb780a3d4ca79280097293899e351a6407ee153ab3 \
+    --hash=sha256:f5bda277e553b1c2b3c1a8debfc30496e1288cc93ce6b7b71b3280047e317328
     # via pre-commit
