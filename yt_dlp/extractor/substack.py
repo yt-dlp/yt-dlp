@@ -137,21 +137,12 @@ class SubstackIE(InfoExtractor):
 
         webpage_info = self._parse_json(self._search_json(
             r'window\._preloads\s*=\s*JSON\.parse\(', webpage, 'json string',
-            display_id, transform_source=js_to_json, contains_pattern=r'"{(?s:.+)}"'), display_id)
+            display_id, contains_pattern=r'"{(?s:.+)}"'), display_id)
 
         canonical_url = url
         domain = traverse_obj(webpage_info, ('domainInfo', 'customDomain', {str}))
         if domain:
             canonical_url = urllib.parse.urlparse(url)._replace(netloc=domain).geturl()
-
-        post = None
-        post_type = None
-        if 'feedData' in webpage_info and 'post' not in webpage_info:
-            post_type = 'feed'
-        else:
-            post_type = webpage_info['post']['type']
-        if post_type != 'feed':
-            post = webpage_info['post']
 
         title = None
         uploader = None
@@ -160,16 +151,32 @@ class SubstackIE(InfoExtractor):
         thumbnail = None
         formats, subtitles = [], {}
 
-        if post_type == 'podcast':
+        post = None
+        post_type = ''
+        if 'feedData' in webpage_info and 'post' not in webpage_info:
+            post_type = 'feed'
+        else:
+            post = webpage_info['post']
+            post_type = str(post['type'])
+            if 'video_upload_id' in post:
+                # Full credit to https://github.com/rdamas @ https://github.com/yt-dlp/yt-dlp/pull/13759
+                formats, subtitles = self._extract_video_formats(post['video_upload_id'], canonical_url)
+                post_type = None
+
+        if post is not None and 'podcast_url' in post:
+            # Full credit to https://github.com/rdamas @ https://github.com/yt-dlp/yt-dlp/pull/13759
+            ext = None
             fmt = {'url': post['podcast_url']}
-            if not determine_ext(fmt['url'], default_ext=None):
-                # The redirected format URL expires but the original URL doesn't,
-                # so we only want to extract the extension from this request
-                fmt['ext'] = determine_ext(self._request_webpage(
-                    HEADRequest(fmt['url']), display_id,
-                    'Resolving podcast file extension',
-                    'Podcast URL is invalid').url)
-            formats.append(fmt)
+            if not (ext := determine_ext(fmt['url'], default_ext=None)):
+                fatal = not formats
+                podcast_url_src = self._request_webpage(HEADRequest(fmt['url']), display_id,
+                                                        'Resolving podcast file extension',
+                                                        'Podcast URL is invalid', fatal=fatal)
+                if podcast_url_src:
+                    ext = determine_ext(podcast_url_src.url)
+            if ext is not None:
+                fmt['ext'] = ext
+                formats.append(fmt)
         elif post_type == 'video':
             if 'videoUpload' in post:
                 formats, subtitles = self._extract_video_formats(str(post['videoUpload']['id']), canonical_url)
@@ -197,7 +204,12 @@ class SubstackIE(InfoExtractor):
                 formats, subtitles = self._extract_video_formats(str(post['videoUpload']['id']), canonical_url)
             else:
                 formats, subtitles = self._extract_video_formats(str(post['mediaUpload']['id']), canonical_url)
-        else:
+        elif post_type is not None:
+            self.raise_no_formats(f'Page type "{post_type}" is not supported')
+            return {}
+
+        if not formats:
+            # Full credit to https://github.com/rdamas @ https://github.com/yt-dlp/yt-dlp/pull/13759
             self.raise_no_formats(f'Page type "{post_type}" is not supported')
             return {}
 
