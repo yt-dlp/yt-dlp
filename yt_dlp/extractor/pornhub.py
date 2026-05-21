@@ -279,8 +279,9 @@ class PornHubIE(PornHubBaseIE):
 
         def dl_webpage(platform):
             self._set_cookie(host, 'platform', platform)
+            webpage_url = f'https://www.{host}/view_video.php?viewkey={video_id}'
             return self._download_webpage(
-                f'https://www.{host}/view_video.php?viewkey={video_id}',
+                Request(webpage_url, extensions={'legacy_ssl': True}),
                 video_id, f'Downloading {platform} webpage')
 
         webpage = dl_webpage('pc')
@@ -450,7 +451,9 @@ class PornHubIE(PornHubBaseIE):
                 if upload_date:
                     upload_date = upload_date.replace('/', '')
             if '/video/get_media' in video_url:
-                medias = self._download_json(video_url, video_id, fatal=False)
+                medias = self._download_json(
+                    Request(video_url, extensions={'legacy_ssl': True}),
+                    video_id, fatal=False)
                 if isinstance(medias, list):
                     for media in medias:
                         if not isinstance(media, dict):
