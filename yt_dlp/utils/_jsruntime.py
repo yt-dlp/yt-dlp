@@ -41,12 +41,12 @@ def _find_exe(basename: str) -> str:
     else:
         exts = tuple(ext for ext in pathext.split(os.pathsep) if ext)
 
-    visited = []
+    visited = set()
     for path in map(os.path.realpath, paths):
         normed = os.path.normcase(path)
         if normed in visited:
             continue
-        visited.append(normed)
+        visited.add(normed)
 
         for ext in exts:
             binary = os.path.join(path, f'{basename}{ext}')

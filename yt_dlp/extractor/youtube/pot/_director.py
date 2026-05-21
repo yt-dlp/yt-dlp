@@ -6,6 +6,7 @@ import dataclasses
 import datetime as dt
 import hashlib
 import json
+import re
 import traceback
 import typing
 import urllib.parse
@@ -433,9 +434,13 @@ def provider_display_list(providers: Iterable[IEContentProvider]):
 def clean_pot(po_token: str):
     # Clean and validate the PO Token. This will strip invalid characters off
     # (e.g. additional url params the user may accidentally include)
+    mobj = re.match(r'([^?&#]+)', urllib.parse.unquote(po_token))
+    if not mobj:
+        raise ValueError('Invalid PO Token')
+
     try:
         return base64.urlsafe_b64encode(
-            base64.urlsafe_b64decode(urllib.parse.unquote(po_token))).decode()
+            base64.urlsafe_b64decode(mobj.group(1))).decode()
     except (binascii.Error, ValueError):
         raise ValueError('Invalid PO Token')
 
