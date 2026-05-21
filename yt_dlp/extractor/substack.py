@@ -5,7 +5,6 @@ from .common import InfoExtractor
 from ..networking import HEADRequest
 from ..utils import (
     determine_ext,
-    js_to_json,
     str_or_none,
 )
 from ..utils.traversal import traverse_obj
