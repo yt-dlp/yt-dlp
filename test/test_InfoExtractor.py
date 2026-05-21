@@ -15,6 +15,7 @@ from test.helper import FakeYDL, expect_dict, expect_value, http_server_port
 from yt_dlp.compat import compat_etree_fromstring
 from yt_dlp.extractor import YoutubeIE, get_info_extractor
 from yt_dlp.extractor.common import InfoExtractor
+from yt_dlp.extractor.pornhub import PornHubIE
 from yt_dlp.utils import (
     ExtractorError,
     RegexNotFoundError,
@@ -83,6 +84,11 @@ class TestInfoExtractor(unittest.TestCase):
         html = '<p id="foo">Watch this <a href="http://www.youtube.com/watch?v=BaW_jenozKc">video</a></p>'
         search = lambda re, *args: self.ie._html_search_regex(re, html, *args)
         self.assertEqual(search(r'<p id="foo">(.+?)</p>', 'foo'), 'Watch this video')
+
+    def test_pornhub_sets_updated_age_cookie(self):
+        ie = PornHubIE(FakeYDL())
+        ie._set_age_cookies('pornhub.com')
+        self.assertEqual(ie._get_cookies('https://www.pornhub.com')['accessAgeDisclaimerPH'].value, '2')
 
     def test_opengraph(self):
         ie = self.ie

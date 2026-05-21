@@ -61,7 +61,7 @@ class PornHubBaseIE(InfoExtractor):
 
     def _set_age_cookies(self, host):
         self._set_cookie(host, 'age_verified', '1')
-        self._set_cookie(host, 'accessAgeDisclaimerPH', '1')
+        self._set_cookie(host, 'accessAgeDisclaimerPH', '2')
         self._set_cookie(host, 'accessAgeDisclaimerUK', '1')
         self._set_cookie(host, 'accessPH', '1')
 

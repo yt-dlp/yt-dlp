@@ -19,6 +19,7 @@ from yt_dlp.networking._helper import (
     InstanceStoreMixin,
     add_accept_encoding_header,
     get_redirect_method,
+    make_ssl_context,
     make_socks_proxy_opts,
     ssl_load_certs,
 )
@@ -103,6 +104,20 @@ class TestNetworkingUtils:
 
         if context_default.get_ca_certs() == context_certifi.get_ca_certs():
             pytest.skip('System uses certifi as default. The test is not valid')
+
+    @pytest.mark.skipif(
+        ssl.OPENSSL_VERSION_INFO < (3, 0, 0) or ssl.OPENSSL_VERSION.startswith('LibreSSL'),
+        reason='OpenSSL 3+ only',
+    )
+    def test_make_ssl_context_uses_adjusted_ciphers_on_openssl3(self):
+        expected_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        expected_context.set_ciphers(
+            '@SECLEVEL=2:ECDH+AESGCM:ECDH+CHACHA20:ECDH+AES:DHE+AESGCM:DHE+CHACHA20:DHE+AES:'
+            '!aNULL:!eNULL:!aDSS:!SHA1:!AESCCM')
+
+        assert make_ssl_context().minimum_version == ssl.TLSVersion.TLSv1_2
+        assert [cipher['name'] for cipher in make_ssl_context().get_ciphers()] == [
+            cipher['name'] for cipher in expected_context.get_ciphers()]
 
     @pytest.mark.parametrize('method,status,expected', [
         ('GET', 303, 'GET'),
