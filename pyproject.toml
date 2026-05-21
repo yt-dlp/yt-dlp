@@ -74,7 +74,7 @@ pin = [
     "idna==3.15",
     "mutagen==1.47.0",
     "pycryptodomex==3.23.0",
-    "requests==2.34.1",
+    "requests==2.34.2",
     "urllib3==2.7.0",
     "websockets==16.0",
     "yt-dlp-ejs==0.8.0",
