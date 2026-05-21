@@ -54,6 +54,7 @@ from .agora import (
     WyborczaPodcastIE,
     WyborczaVideoIE,
 )
+from .aiplay import AIPlayIE
 from .airtv import AirTVIE
 from .aitube import AitubeKZVideoIE
 from .alibaba import AlibabaIE
