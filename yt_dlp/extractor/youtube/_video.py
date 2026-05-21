@@ -1938,6 +1938,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         lock = threading.Lock()
         start_time = time.time()
         formats = [f for f in formats if f.get('is_from_start')]
+        adaptive_last_seq_cache = {}
 
         def refetch_manifest(itag, client_name, delay):
             nonlocal formats, start_time, is_live
@@ -1978,16 +1979,53 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return f['manifest_url'], f['manifest_stream_number'], is_live
             return None
 
+        def url_feed(itag, client_name, delay):
+            """
+            @returns (base_url, is_live) or None
+            """
+            for retry in self.RetryManager(fatal=False):
+                with lock:
+                    refetch_manifest(itag, client_name, delay)
+
+                f = next((f for f in formats if f.get('_itag') == itag and f.get('_client') == client_name), None)
+                if not f:
+                    if not is_live:
+                        retry.error = f'{video_id}: Video is no longer live'
+                    else:
+                        retry.error = f'Cannot find refreshed url for format {itag}{bug_reports_message()}'
+                    continue
+
+                if not f.get('url'):
+                    break
+
+                return f['url'], is_live
+            return None
+
         for f in formats:
             f['is_live'] = is_live
-            gen = functools.partial(self._live_dash_fragments, video_id, f['_itag'], f['_client'],
-                                    live_start_time, mpd_feed, not is_live and f.copy())
-            if is_live:
-                f['fragments'] = gen
-                f['protocol'] = 'http_dash_segments_generator'
+            if f.get('manifest_url'):
+                # Live DASH formats
+                gen = functools.partial(self._live_dash_fragments, video_id, f['_itag'], f['_client'],
+                                        live_start_time, mpd_feed, not is_live and f.copy())
+                if is_live:
+                    f['fragments'] = gen
+                    f['protocol'] = 'http_dash_segments_generator'
+                else:
+                    f['fragments'] = LazyList(gen({}))
+                    del f['is_from_start']
             else:
-                f['fragments'] = LazyList(gen({}))
-                del f['is_from_start']
+                # Live adaptive https formats
+                gen = functools.partial(self._live_adaptive_fragments, video_id, f['_itag'], f['_client'],
+                                        live_start_time, url_feed if is_live else None,
+                                        not is_live and f.get('url'), f.get('target_duration'),
+                                        adaptive_last_seq_cache)
+                if is_live:
+                    f['fragments'] = gen
+                    f['protocol'] = 'http_dash_segments_generator'
+                else:
+                    f['fragments'] = LazyList(gen({}))
+                    f['protocol'] = 'http_dash_segments'
+                    del f['is_from_start']
 
     def _live_dash_fragments(self, video_id, itag, client_name, live_start_time, mpd_feed, manifestless_orig_fmt, ctx):
         FETCH_SPAN, MAX_DURATION = 5, 432000
@@ -2039,7 +2077,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             _last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
             return True, _last_seq
 
-        self.write_debug(f'[{video_id}] Generating fragments for format {itag}')
+        self.write_debug(f'[{video_id}] Generating dash fragments for format {itag}')
         while is_live:
             fetch_time = time.time()
             if no_fragment_score > 30:
@@ -2096,6 +2134,91 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if manifestless_orig_fmt:
                 # Stop at the first iteration if running for post-live manifestless;
                 # fragment count no longer increase since it starts
+                break
+
+            time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
+
+    def _live_adaptive_fragments(self, video_id, itag, client_name, live_start_time, url_feed, base_url, fragment_duration, last_seq_cache, ctx):
+        FETCH_SPAN, MAX_DURATION = 5, 432000
+
+        base_url, is_live = (None, True) if url_feed else (base_url, True)
+
+        begin_index = 0
+        download_start_time = ctx.get('start') or time.time()
+
+        lack_early_segments = download_start_time - (live_start_time or download_start_time) > MAX_DURATION
+        if lack_early_segments:
+            self.report_warning(bug_reports_message(
+                'Starting download from the last 120 hours of the live stream since '
+                'YouTube does not have data before that. If you think this is wrong,'), only_once=True)
+            lack_early_segments = True
+
+        known_idx, no_fragment_score = begin_index, 0
+
+        self.write_debug(f'[{video_id}] Generating adaptive fragments for format {itag}')
+        while is_live:
+            fetch_time = time.time()
+            if no_fragment_score > 30:
+                return
+
+            base_url, is_live = ((url_feed(itag, client_name, 5 if no_fragment_score > 15 else 18000)
+                                  or (base_url, False)) if url_feed else (base_url, False))
+            if not base_url:
+                no_fragment_score += 2
+                continue
+
+            # Obtain from "X-Head-Seqnum" header value. The bare base URL
+            # may return an empty response body, but the headers are still usable.
+            cache_key = is_live, int(time.time() // FETCH_SPAN)
+            if cache_key in last_seq_cache:
+                last_seq = last_seq_cache[cache_key]
+            else:
+                try:
+                    urlh = self._request_webpage(base_url, None, note=False, errnote=False, fatal=False)
+                except ExtractorError:
+                    urlh = None
+                last_seq = try_get(urlh, lambda x: int_or_none(x.headers['X-Head-Seqnum']))
+                if urlh:
+                    urlh.close()
+                if last_seq is not None:
+                    last_seq_cache.clear()
+                    last_seq_cache[cache_key] = last_seq
+            if last_seq is None:
+                no_fragment_score += 2
+                continue
+
+            if known_idx > last_seq:
+                no_fragment_score += 5
+                if is_live:
+                    time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
+                continue
+
+            last_seq += 1
+
+            if not url_feed:
+                last_seq -= 2
+
+            if begin_index < 0 and known_idx < 0:
+                # skip from the start when it's negative value
+                known_idx = last_seq + begin_index
+            if lack_early_segments:
+                known_idx = max(known_idx, last_seq - int(MAX_DURATION // fragment_duration))
+
+            fragment_base_url = f'{base_url}&sq='
+            for idx in range(known_idx, last_seq):
+                yield {
+                    'url': f'{fragment_base_url}{idx}',
+                    'fragment_count': last_seq,
+                }
+
+            if known_idx == last_seq:
+                no_fragment_score += 5
+            else:
+                no_fragment_score = 0
+            known_idx = last_seq
+
+            if not url_feed:
+                # Post-live: stop after first iteration, similar to _live_dash_fragments with manifestless_orig_fmt
                 break
 
             time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
@@ -3495,8 +3618,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 https_fmts = []
 
                 for fmt_stream in streaming_formats:
-                    # Live adaptive https formats are not supported: skip unless extractor-arg given
-                    if fmt_stream.get('targetDurationSec') and skip_bad_formats:
+                    # Live adaptive https formats will be skipped unless live-from-start or extractor-arg given
+                    if fmt_stream.get('targetDurationSec') and skip_bad_formats and not self.get_param('live_from_start'):
                         continue
 
                     # FORMAT_STREAM_TYPE_OTF(otf=1) requires downloading the init fragment
@@ -3590,6 +3713,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # For handling potential pre-playback required waiting period
                     if live_status not in ('is_live', 'post_live'):
                         fmt['available_at'] = available_at
+
+                    if fmt_stream.get('targetDurationSec') and self.get_param('live_from_start'):
+                        fmt['is_from_start'] = True
+                        fmt['target_duration'] = fmt_stream['targetDurationSec']
+                        fmt['_itag'] = stream_id[0]
+                        fmt['_client'] = client_name
 
                     https_fmts.append(fmt)
 
@@ -4130,7 +4259,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 protocol = fmt.get('protocol')
                 # Currently, protocol isn't set for adaptive https formats, but this could change
                 is_adaptive = protocol in (None, 'http', 'https')
-                if live_status == 'post_live' and is_adaptive:
+                if live_status == 'post_live' and is_adaptive and not fmt.get('is_from_start') and not fmt.get('fragments'):
                     # Post-live adaptive formats cause HttpFD to raise "Did not get any data blocks"
                     # These formats are *only* useful to external applications, so we can hide them
                     # Set their preference <= -1000 so that FormatSorter flags them as 'hidden'
@@ -4148,7 +4277,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         # Incomplete live adaptive https formats
                         adjust_incomplete_format(fmt, note_suffix='(incomplete)', pref_adjustment=-20)
 
-        if needs_live_processing:
+        if needs_live_processing or self.get_param('live_from_start'):
             self._prepare_live_from_start_formats(
                 formats, video_id, live_start_time, url, webpage_url, smuggled_data, live_status == 'is_live')
 
