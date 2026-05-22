@@ -3,9 +3,10 @@ import collections
 import contextlib
 import itertools
 import math
+import signal
 import time
-import threading
 import typing
+from yt_dlp.globals import IN_CLI
 
 from yt_dlp.utils import traverse_obj, int_or_none, DownloadError, join_nonempty
 from yt_dlp.downloader import FileDownloader
@@ -66,7 +67,7 @@ class SabrFdSession:
         pot_callback: PotCallback | None,
         reload_callback: ReloadCallback | None,
         heartbeat_callback: HeartbeatCallback | None,
-        client_info: ClientInfo | None,
+        client_info: ClientInfo,
         live_from_start: bool,
         target_duration_sec: int | None,
         live_status: str | None,
@@ -85,7 +86,6 @@ class SabrFdSession:
         self.writers: dict[str, SabrFDFormatWriter] = {}
         self.stream = None
         self._logged_dvr_message = False
-        self._error = None
 
         # NOTE: the below may become outdated once callbacks are used
         self.server_abr_streaming_url = server_abr_streaming_url
@@ -116,7 +116,10 @@ class SabrFdSession:
             self.fd.report_destination(writer.filename)
 
         start_time_ms = JS_MAX_SAFE_INTEGER if self.is_live and not self.live_from_start else 0
-        self.stream = self._create_sabr_stream(
+
+        self.stream = SabrStream(
+            urlopen=self.fd.ydl.urlopen,
+            logger=create_sabrfd_logger(self.fd.ydl, prefix='sabr:stream'),
             server_abr_streaming_url=self.server_abr_streaming_url,
             video_playback_ustreamer_config=self.video_playback_ustreamer_config,
             po_token=self.initial_po_token,
@@ -125,8 +128,10 @@ class SabrFdSession:
             caption_selection=caption_selector,
             start_time_ms=start_time_ms,
             client_info=self.client_info,
-            target_duration_sec=self.target_duration_sec,
+            live_segment_target_duration_sec=self.target_duration_sec,
+            post_live=self.is_post_live,
             video_id=self.video_id,
+            retry_sleep_func=self.fd.params.get('retry_sleep_functions', {}).get('http'),
             heartbeat_callback=self.heartbeat_callback,
             pot_callback=self.pot_callback,
             reload_callback=self.reload_callback,
@@ -134,31 +139,44 @@ class SabrFdSession:
 
         self.fd._prepare_multiline_status(len(self.writers) + 1)
 
-        stream_thread = threading.Thread(target=self._stream_loop, daemon=True)
-        stream_thread.start()
-
-        last_interrupt_at = 0.0
+        original_handler = signal.getsignal(signal.SIGINT)
         try:
-            while stream_thread.is_alive():
-                try:
-                    stream_thread.join()
-                except KeyboardInterrupt:
-                    # TODO: should be allow non-livestreams to finish the response before exit?
-                    if not self.is_live or (time.monotonic() - last_interrupt_at <= USER_FORCE_QUIT_WINDOW_SEC):
-                        raise
-                    # Allow livestreams to exit cleanly
-                    last_interrupt_at = time.monotonic()
-                    with self.fd.break_multiline():
-                        self.fd.report_warning(
-                            'Interrupted by user. Finishing current segments and finalizing formats. Press Ctrl+C again to force quit.')
-                    self.stream.close()
+            if IN_CLI.value:
+                # Custom signal handler to allow graceful shutdown on Ctrl+C for livestreams
+                # Only used if running in the CLI to avoid conflicts with custom signal handlers
+                # that may be registered when using yt-dlp as a library.
+                signal.signal(signal.SIGINT, self._create_signal_handler())
+            self._download()
         finally:
+            if IN_CLI.value:
+                signal.signal(signal.SIGINT, original_handler)
+
             self.stream.close()
             for writer in self.writers.values():
                 writer.close()
 
-        if self._error:
-            raise self._error
+            self.fd._finish_multiline_status()
+
+    # region: initialization
+    def _create_signal_handler(self):
+        # Allow livestreams to exit cleanly
+        last_interrupt_at = [0.0]
+
+        def handler(signum, frame):
+            if not self.is_live:
+                raise KeyboardInterrupt
+
+            current_time = time.monotonic()
+            if last_interrupt_at[0] > 0.0 and (current_time - last_interrupt_at[0] <= USER_FORCE_QUIT_WINDOW_SEC):
+                raise KeyboardInterrupt
+
+            last_interrupt_at[0] = current_time
+            with self.fd.break_multiline():
+                self.fd.report_warning(
+                    'Interrupted by user. Finishing current segments and finalizing formats. Press Ctrl+C again to force quit.')
+            self.stream.close()
+
+        return handler
 
     def _create_writers(self):
         audio_selector = None
@@ -188,7 +206,10 @@ class SabrFdSession:
 
         return audio_selector, video_selector, caption_selector
 
-    def _stream_loop(self):
+    # endregion
+
+    # region: download
+    def _download(self):
         try:
             total_bytes = 0  # used for --test
             for part in self.stream:
@@ -207,7 +228,7 @@ class SabrFdSession:
             self._finish_formats()
         except SabrStreamError as e:
             self.fd.write_debug(f'[SABR Debug Info]: {self.stream.create_stats_str()}')
-            self._error = DownloadError(str(e))
+            raise DownloadError(str(e))
 
     def _process_sabr_part(self, part) -> None:
         if isinstance(part, FormatInitializedSabrPart):
@@ -261,6 +282,25 @@ class SabrFdSession:
             if not part.full_stream_available:
                 self._log_dvr_window_availability(part.available_dvr_window_ms)
 
+    def _log_dvr_window_availability(self, available_dvr_window_ms):
+        if self._logged_dvr_message:
+            return
+        hours = math.ceil(available_dvr_window_ms / (3600 * 1000))
+        if self.live_from_start:
+            if not hours:
+                self.fd.to_screen(
+                    '[download] Downloading from the live edge; the streamer has disabled DVR for this stream')
+            else:
+                self.fd.to_screen(
+                    f'[download] Downloading the past {hours} hour(s) of the live stream; full stream is not available')
+        else:
+            self.fd.to_screen(
+                '[download] Downloading from the live edge; pass --live-from-start to download from the beginning of the stream')
+        self._logged_dvr_message = True
+
+    # endregion
+
+    # region: finalization
     def _count_writer_segments(self, writer):
         return sum(
             sequence.last_segment.sequence_number - sequence.first_segment.sequence_number + 1
@@ -289,57 +329,7 @@ class SabrFdSession:
         for writer in self.writers.values():
             writer.finish()
 
-    def _log_dvr_window_availability(self, available_dvr_window_ms):
-        if self._logged_dvr_message:
-            return
-        hours = math.ceil(available_dvr_window_ms / (3600 * 1000))
-        if self.live_from_start:
-            if not hours:
-                self.fd.to_screen(
-                    '[download] Downloading from the live edge; the streamer has disabled DVR for this stream')
-            else:
-                self.fd.to_screen(
-                    f'[download] Downloading the past {hours} hour(s) of the live stream; full stream is not available')
-        else:
-            self.fd.to_screen(
-                '[download] Downloading from the live edge; pass --live-from-start to download from the beginning of the stream')
-        self._logged_dvr_message = True
-
-    def _create_sabr_stream(
-        self,
-        server_abr_streaming_url: str,
-        video_playback_ustreamer_config: str,
-        po_token: str | None,
-        video_selection: VideoSelector | None,
-        audio_selection: AudioSelector | None,
-        caption_selection: CaptionSelector | None,
-        start_time_ms: int,
-        client_info: ClientInfo | None,
-        target_duration_sec: int | None,
-        video_id: str | None,
-        heartbeat_callback: HeartbeatCallback | None,
-        pot_callback: PotCallback | None,
-        reload_callback: ReloadCallback | None,
-    ) -> SabrStream:
-        return SabrStream(
-            urlopen=self.fd.ydl.urlopen,
-            logger=create_sabrfd_logger(self.fd.ydl, prefix='sabr:stream'),
-            server_abr_streaming_url=server_abr_streaming_url,
-            video_playback_ustreamer_config=video_playback_ustreamer_config,
-            po_token=po_token,
-            video_selection=video_selection,
-            audio_selection=audio_selection,
-            caption_selection=caption_selection,
-            start_time_ms=start_time_ms,
-            client_info=client_info,
-            live_segment_target_duration_sec=target_duration_sec,
-            post_live=self.is_post_live,
-            video_id=video_id,
-            retry_sleep_func=self.fd.params.get('retry_sleep_functions', {}).get('http'),
-            heartbeat_callback=heartbeat_callback,
-            pot_callback=pot_callback,
-            reload_callback=reload_callback,
-        )
+    # endregion
 
 
 class SabrFD(FileDownloader):
