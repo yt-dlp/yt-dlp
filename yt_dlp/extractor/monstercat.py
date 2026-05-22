@@ -12,7 +12,7 @@ from ..utils.traversal import find_element, traverse_obj
 
 
 class MonstercatIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.monstercat\.com/release/(?P<id>\d+)'
+    _VALID_URL = r'https?://www\.monstercat\.com/release/(?P<id>\d+|MC[A-Z]+\d+)'
     _TESTS = [{
         'url': 'https://www.monstercat.com/release/742779548009',
         'playlist_count': 20,
