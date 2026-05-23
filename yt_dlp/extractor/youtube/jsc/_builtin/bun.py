@@ -45,6 +45,8 @@ class BunJCP(EJSBaseJCP, BuiltinIEContentProvider):
     JS_RUNTIME_NAME = 'bun'
     BUN_NPM_LIB_FILENAME = 'yt.solver.bun.lib.js'
     SUPPORTED_PROXY_SCHEMES = ['http', 'https']
+    _BUN_MAX_SUPPORTED_VERSION = (1, 3, 14)
+    _BUN_DEPRECATION_URL = 'https://github.com/yt-dlp/yt-dlp/issues/16766'
 
     def _iter_script_sources(self):
         yield from super()._iter_script_sources()
@@ -112,6 +114,17 @@ class BunJCP(EJSBaseJCP, BuiltinIEContentProvider):
         return options
 
     def _run_js_runtime(self, stdin: str, /) -> str:
+        is_unsupported_version = self.runtime_info.version_tuple > self._BUN_MAX_SUPPORTED_VERSION
+        if is_unsupported_version:
+            self.logger.warning(
+                f'bun version {".".join(map(str, self.runtime_info.version_tuple))} is not supported! '
+                f'Proceeding anyways; Do NOT submit a bug report if you encounter errors',
+                once=True)
+        else:
+            self.logger.info(
+                f'bun support has been deprecated. See  {self._BUN_DEPRECATION_URL}  for details',
+                once=True)
+
         # https://bun.com/docs/cli/run
         options = ['--no-addons', '--prefer-offline']
         if self._lib_script.variant == ScriptVariant.BUN_NPM:
@@ -136,7 +149,7 @@ class BunJCP(EJSBaseJCP, BuiltinIEContentProvider):
                 msg = f'Error running bun process (returncode: {proc.returncode})'
                 if stderr:
                     msg = f'{msg}: {stderr.strip()}'
-                raise JsChallengeProviderError(msg)
+                raise JsChallengeProviderError(msg, expected=is_unsupported_version)
         return stdout
 
     def _clean_stderr(self, stderr):
