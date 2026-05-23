@@ -124,7 +124,7 @@ jobs:
         id: linux_matrix
         env:
           INPUTS: ${{ toJSON(inputs) }}
-          PYTHON_VERSION: '3.13'
+          PYTHON_VERSION: '3.14'
           UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
         shell: python
         run: |
@@ -152,12 +152,10 @@ jobs:
                   'os': 'musllinux',
                   'arch': 'x86_64',
                   'runner': 'ubuntu-24.04',
-                  'python_version': '3.14',
               }, {
                   'os': 'musllinux',
                   'arch': 'aarch64',
                   'runner': 'ubuntu-24.04-arm',
-                  'python_version': '3.14',
               }],
           }
           INPUTS = json.loads(os.environ['INPUTS'])
@@ -231,7 +229,7 @@ jobs:
           [[ "${version}" != "${downgraded_version}" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: build-bin-${{ github.job }}
           path: |
@@ -293,7 +291,7 @@ jobs:
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: build-bin-${{ matrix.os }}_${{ matrix.arch }}
           path: |
@@ -327,7 +325,7 @@ jobs:
           brew uninstall --ignore-dependencies python3
           python3 -m venv ~/yt-dlp-build-venv
           source ~/yt-dlp-build-venv/bin/activate
-          python3 -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
+          python3 -m pip install -U --require-hashes -r "bundle/requirements/pip.txt"
           rm -rf build
           # Only directly install wheels for "macosx_10_15_universal2" and "any" platforms
           mkdir -p build/wheels
@@ -337,7 +335,7 @@ jobs:
             --platform=any \
             -d build/wheels \
             --require-hashes \
-            -r "bundle/requirements/requirements-macos.txt"
+            -r "bundle/requirements/macos.txt"
           python3 -m pip install --force-reinstall --no-deps -U build/wheels/*.whl
           rm -rf build/wheels/*
           # We need to fuse our own universal2 wheels for curl_cffi and cffi
@@ -349,7 +347,7 @@ jobs:
               --platform "${platform}" \
               -d build/wheels \
                --require-hashes \
-              -r "bundle/requirements/requirements-macos-curl_cffi.txt"
+              -r "bundle/requirements/macos-curl_cffi.txt"
           done
           python3 -m delocate.cmd.delocate_merge build/wheels/curl_cffi-*.whl -w build/universal2
           python3 -m delocate.cmd.delocate_merge build/wheels/cffi-*.whl -w build/universal2
@@ -378,7 +376,7 @@ jobs:
           [[ "$version" != "$downgraded_version" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: build-bin-${{ github.job }}
           path: |
@@ -458,9 +456,13 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           python -m venv /yt-dlp-build-venv
           /yt-dlp-build-venv/Scripts/Activate.ps1
-          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
-          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-win-${Env:ARCH}-pyinstaller.txt"
-          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-win-${Env:ARCH}.txt"
+          python -m pip install -U --require-hashes -r "bundle/requirements/pip.txt"
+          python -m pip install -U --require-hashes -r "bundle/requirements/win-${Env:ARCH}-pyinstaller.txt"
+          if (${Env:ARCH} -eq "x86") {
+            python -m pip install -U --require-hashes -r "bundle/requirements/default.txt"
+          } else {
+            python -m pip install -U --require-hashes -r "bundle/requirements/curl-cffi.txt"
+          }
 
       - name: Prepare
         shell: pwsh
@@ -496,7 +498,7 @@ jobs:
           }
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: build-bin-${{ github.job }}-${{ matrix.arch }}
           path: |
@@ -586,7 +588,7 @@ jobs:
           done
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: build-${{ github.job }}
           path: |

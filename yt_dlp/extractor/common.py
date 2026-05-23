@@ -3,9 +3,7 @@ import collections
 import contextlib
 import functools
 import getpass
-import http.client
 import http.cookiejar
-import http.cookies
 import inspect
 import itertools
 import json

@@ -167,9 +167,9 @@ For other third-party package managers, see [the wiki](https://github.com/yt-dlp
 
 There are currently three release channels for binaries: `stable`, `nightly` and `master`.
 
-* `stable` is the default channel, and many of its changes have been tested by users of the `nightly` and `master` channels.
-* The `nightly` channel has releases scheduled to build every day around midnight UTC, for a snapshot of the project's new patches and changes. This is the **recommended channel for regular users** of yt-dlp. The `nightly` releases are available from [yt-dlp/yt-dlp-nightly-builds](https://github.com/yt-dlp/yt-dlp-nightly-builds/releases) or as development releases of the `yt-dlp` PyPI package (which can be installed with pip's `--pre` flag).
-* The `master` channel features releases that are built after each push to the master branch, and these will have the very latest fixes and additions, but may also be more prone to regressions. They are available from [yt-dlp/yt-dlp-master-builds](https://github.com/yt-dlp/yt-dlp-master-builds/releases).
+* `stable` is the default channel, which offers releases published on a (mostly) monthly schedule. While it is named `stable` due to many of its changes having been tested by users of the `nightly` or `master` release channels, the latest `stable` release is often "stale" and prone to external breakage (i.e. sites changing things on their end and breaking yt-dlp).
+* The `nightly` channel offers releases that publish shortly before midnight UTC on any day that sees changes to the codebase. This channel serves as a snapshot of the project's development, and it is the **recommended channel for regular users** of yt-dlp. The `nightly` releases are available from [yt-dlp/yt-dlp-nightly-builds](https://github.com/yt-dlp/yt-dlp-nightly-builds/releases) or as development releases of the `yt-dlp` PyPI package (which can be installed with pip's `--pre` flag).
+* The `master` channel offers "canary" releases that publish after each push to the master branch. This channel will always provide the very latest fixes and features, but may be prone to bugs or regressions. The `master` releases are available from [yt-dlp/yt-dlp-master-builds](https://github.com/yt-dlp/yt-dlp-master-builds/releases).
 
 When using `--update`/`-U`, a release binary will only update to its current channel.
 `--update-to CHANNEL` can be used to switch to a different channel when a newer version is available. `--update-to [CHANNEL@]TAG` can also be used to upgrade or downgrade to specific tags from a channel.
@@ -209,7 +209,7 @@ While all the other dependencies are optional, `ffmpeg`, `ffprobe`, `yt-dlp-ejs`
 
 * [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging separate video and audio files](#format-selection), as well as for various [post-processing](#post-processing-options) tasks. License [depends on the build](https://www.ffmpeg.org/legal.html)
 
-    There are bugs in ffmpeg that cause various issues when used alongside yt-dlp. Since ffmpeg is such an important dependency, we provide [custom builds](https://github.com/yt-dlp/FFmpeg-Builds#ffmpeg-static-auto-builds) with patches for some of these issues at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details on the specific issues solved by these builds
+    Since ffmpeg is such an important dependency, we provide our own builds at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). In the past, patches were applied to these builds in order to fix common issues for yt-dlp users, but currently our builds are equivalent to upstream ffmpeg. See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details
 
     **Important**: What you need is ffmpeg *binary*, **NOT** [the Python package of the same name](https://pypi.org/project/ffmpeg)
 

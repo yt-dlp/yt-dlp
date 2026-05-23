@@ -110,8 +110,8 @@ def zipf_files_and_folders(zipf: zipfile.ZipFile, glob: str = '*') -> tuple[list
     for f in itertools.chain(path.glob(glob), path.rglob(glob)):
         if not f.is_file():
             continue
-        files.append(f.at)
-        folder = f.parent.at.rstrip('/')
+        files.append(f.at)  # type: ignore[attr-defined]
+        folder = f.parent.at.rstrip('/')  # type: ignore[attr-defined]
         if folder and folder not in folders:
             folders.append(folder)
 
