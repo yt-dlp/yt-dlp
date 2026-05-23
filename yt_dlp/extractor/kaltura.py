@@ -437,7 +437,7 @@ class KalturaIE(InfoExtractor):
                 params = urllib.parse.parse_qs(query)
             if path:
                 splitted_path = path.split('/')
-                params.update(dict(zip(splitted_path[::2], [[v] for v in splitted_path[1::2]])))
+                params.update(dict(zip(splitted_path[::2], [[v] for v in splitted_path[1::2]])))  # noqa: B905
             if 'wid' in params:
                 partner_id = remove_start(params['wid'][0], '_')
             elif 'p' in params:

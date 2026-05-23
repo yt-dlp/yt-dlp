@@ -4,6 +4,7 @@ from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    determine_ext,
     jwt_decode_hs256,
     parse_codecs,
     try_get,
@@ -222,11 +223,18 @@ class DigitalConcertHallIE(InfoExtractor):
                     raise
 
             formats = []
-            for m3u8_url in traverse_obj(stream_info, ('channel', ..., 'stream', ..., 'url', {url_or_none})):
-                formats.extend(self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls', fatal=False))
-            for fmt in formats:
-                if fmt.get('format_note') and fmt.get('vcodec') == 'none':
-                    fmt.update(parse_codecs(fmt['format_note']))
+            for fmt_url in traverse_obj(stream_info, ('channel', ..., 'stream', ..., 'url', {url_or_none})):
+                ext = determine_ext(fmt_url)
+                if ext == 'm3u8':
+                    fmts = self._extract_m3u8_formats(fmt_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+                    for fmt in fmts:
+                        if fmt.get('format_note') and fmt.get('vcodec') == 'none':
+                            fmt.update(parse_codecs(fmt['format_note']))
+                    formats.extend(fmts)
+                elif ext == 'mpd':
+                    formats.extend(self._extract_mpd_formats(fmt_url, video_id, mpd_id='dash', fatal=False))
+                else:
+                    self.report_warning(f'Skipping unsupported format extension "{ext}"')
 
             yield {
                 'id': video_id,

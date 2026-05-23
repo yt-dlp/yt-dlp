@@ -14,7 +14,7 @@ from ..utils import (
     get_element_html_by_class,
     int_or_none,
     jwt_decode_hs256,
-    jwt_encode_hs256,
+    jwt_encode,
     make_archive_id,
     merge_dicts,
     parse_age_limit,
@@ -98,9 +98,9 @@ class VRTBaseIE(InfoExtractor):
                 'Content-Type': 'application/json',
             }, data=json.dumps({
                 'identityToken': id_token or '',
-                'playerInfo': jwt_encode_hs256(player_info, self._JWT_SIGNING_KEY, headers={
+                'playerInfo': jwt_encode(player_info, self._JWT_SIGNING_KEY, headers={
                     'kid': self._JWT_KEY_ID,
-                }).decode(),
+                }),
             }, separators=(',', ':')).encode())['vrtPlayerToken']
 
         return self._download_json(
