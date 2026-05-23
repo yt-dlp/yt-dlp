@@ -118,7 +118,8 @@ class BunJCP(EJSBaseJCP, BuiltinIEContentProvider):
         if is_unsupported_version:
             self.logger.warning(
                 f'bun version {".".join(map(str, self.runtime_info.version_tuple))} is not supported! '
-                f'Proceeding anyways; Do NOT submit a bug report if you encounter errors',
+                f'{self.ie._downloader._format_err("DO NOT", self.ie._downloader.Styles.ERROR)} '
+                f'open a bug report if you encounter any errors!',
                 once=True)
         else:
             self.logger.info(
