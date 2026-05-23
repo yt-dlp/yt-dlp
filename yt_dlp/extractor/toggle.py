@@ -1,9 +1,18 @@
 import itertools
-import re
+import operator
 
 from .common import InfoExtractor
-from ..networking.exceptions import HTTPError
-from ..utils import ExtractorError, determine_ext, int_or_none, parse_iso8601, strip_or_none
+from ..utils import (
+    ExtractorError,
+    determine_ext,
+    int_or_none,
+    parse_iso8601,
+    parse_qs,
+    str_or_none,
+    strip_or_none,
+    unified_strdate,
+    url_or_none,
+)
 from ..utils.traversal import traverse_obj
 
 
@@ -14,11 +23,13 @@ class ToggleIE(InfoExtractor):
         'url': 'https://www.mewatch.sg/clips/Cuit-Cuit-Clip-6-Warna-Ramadan-2024-450987',
         'info_dict': {
             'id': '450987',
+            'ext': 'mp4',
             'title': 'Cuit-Cuit - Clip 6 - Warna Ramadan 2024',
-            'description': 'Watch the antics of Mohd Shaqeel and Hanie Bella in Cuit-Cuit. Check out the activities that they do while waiting for break fast. Saksikan gelagat Mohd Shaqeel dan Hanie Bella dalam Cuit-Cuit. Apakah aktiviti yang dilakukan mereka ketika menunggu waktu berbuka?Clip',
-            'duration': 68,
-            'timestamp': 1712592000,
+            'description': 'md5:786469cb5fd4d479ae80976052a3ee43',
             'average_rating': 0,
+            'duration': 68,
+            'thumbnail': r're:https://(?:[^.]+\.)?togglestatic\.com/shain/v1/dataservice/ResizeImage/.+',
+            'upload_date': '20240408',
         },
         'params': {
             'skip_download': True,
@@ -39,132 +50,109 @@ class ToggleIE(InfoExtractor):
     }]
     _API_BASE = 'https://cdn.mewatch.sg/api'
 
-    def _extract_episode(self, video_id, meta):
-        try:
-            info = self._download_json(
-                f'{self._API_BASE}/items/{video_id}/videos',
-                video_id, 'Downloading video info json',
-                query={
-                    'delivery': 'stream,progressive',
-                    'ff': 'idp,ldp,rpt,cd',
-                    'lang': 'en',
-                    'resolution': 'External',
-                    'segments': 'all',
-                })
-        except ExtractorError as error:
-            if isinstance(error.cause, HTTPError) and error.cause.status == 403:
-                self.raise_login_required()
-            raise
+    def _call_api(self, item_id, endpoint, query=None, **kwargs):
+        query = {'segments': 'all', **(query or {})}
+        return self._download_json(f'{self._API_BASE}/items/{endpoint}', item_id, query=query, **kwargs)
+
+    def _extract_episode(self, video_id, meta, fatal=False):
+        info = self._call_api(video_id, f'{video_id}/videos', query={'delivery': 'stream,progressive', 'resolution': 'External'}, expected_status=403)
+
+        if isinstance(info, dict):
+            msg = info.get('message')
+            if not fatal:
+                self.report_warning(f'Unable to extract info for episode {video_id} api says: {msg}')
+                return {}
+            raise ExtractorError(msg, expected='permitted' in msg)
 
         formats = []
-        for video_file in info:
-            video_url, vid_format = video_file.get('url'), video_file.get('name')
-            if not video_url or video_url == 'NA' or not vid_format:
-                continue
+        for video_url, vid_format in traverse_obj(info, (
+                lambda _, v: (v.get('url') or 'NA') != 'NA' and v.get('name'),
+                {operator.itemgetter('url', 'name')},
+                {lambda x: x if len(x) == 2 and all(x) else None},
+        )):
             ext = determine_ext(video_url)
             if ext == 'm3u8':
-                m3u8_formats = self._extract_m3u8_formats(
+                fmts = self._extract_m3u8_formats(
                     video_url, video_id, ext='mp4', m3u8_id=vid_format,
                     note=f'Downloading {vid_format} m3u8 information',
-                    errnote=f'Failed to download {vid_format} m3u8 information',
-                    fatal=False)
-                for f in m3u8_formats:
-                    formats.append(f)
+                    errnote=f'Failed to download {vid_format} m3u8 information', fatal=False)
             elif ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(
+                fmts = self._extract_mpd_formats(
                     video_url, video_id, mpd_id=vid_format,
                     note=f'Downloading {vid_format} MPD manifest',
                     errnote=f'Failed to download {vid_format} MPD manifest',
-                    fatal=False))
+                    fatal=False)
             elif ext == 'ism':
-                formats.extend(self._extract_ism_formats(
+                fmts = self._extract_ism_formats(
                     video_url, video_id, ism_id=vid_format,
                     note=f'Downloading {vid_format} ISM manifest',
                     errnote=f'Failed to download {vid_format} ISM manifest',
-                    fatal=False))
+                    fatal=False)
+            formats.extend(fmts)
 
-        thumbnails = []
-        for _, pic_url in meta.get('images').items():
-            if not pic_url:
-                continue
-            thumbnail = {
-                'url': pic_url,
-            }
-            m = re.search(r'&width=(?P<width>\d+)(?:&height=(?P<height>\d+))?', pic_url, flags=re.IGNORECASE)
-            if m:
-                thumbnail.update({
-                    'width': int(m.group('width')),
-                    'height': int(m.group('height')),
-                })
-            thumbnails.append(thumbnail)
+        subtitles = {}
+        for sub in traverse_obj(info,(lambda _, x: x.get('subtitlesCollection'), 'subtitlesCollection', lambda _, x: x.get('url'))):
+            url = sub.get('url')
+            subtitles.setdefault(sub.get('languageCode', 'en'), []).append({
+                'url': url,
+                'ext': determine_ext(url),
+            })
 
         return {
             'id': video_id,
-            'formats': formats,
-            'thumbnails': thumbnails,
             **traverse_obj(meta, ({
-                'title': ('title'),
+                'title': ('title', {str_or_none}),
                 'description': ('description', {strip_or_none}),
                 'duration': ('duration', {int_or_none}),
-                'timestamp': (('TheatricalReleaseStart', {parse_iso8601}), ('offers', 0, 'startDate', {parse_iso8601})),
-                'average_rating': ('totalUserRatings'),
-                'is_live': (('type', {str.startswith}, 'channel'), False),
+                'timestamp': ('TheatricalReleaseStart', {parse_iso8601}),
+                'upload_date': ('offers', 0, 'startDate', {unified_strdate}),
+                'average_rating': ('totalUserRatings', {int_or_none}),
+                'is_live': ('type', {lambda x: x.startswith('channel')}),
+                'thumbnails': (
+                    'images', ..., {
+                        'url': {url_or_none},
+                        'width': ({str.lower}, {parse_qs}, 'width', -1, {int_or_none}),
+                        'height': ({str.lower}, {parse_qs}, 'height', -1, {int_or_none}),
+                    }),
             })),
+            'formats': formats,
+            'subtitles': subtitles,
         }
 
-    def _extract_playlist(self, video_id):
-        playlist_meta = self._download_json(
-            f'{self._API_BASE}/items/{video_id}',
-            video_id,
-            query={
-                'expand': 'all',
-                'segments': 'all',
-            })
-
+    def _extract_playlist(self, video_id, playlist_meta):
         def entries(playlist_data):
-            season_arg = self._configuration_arg('season_num', casesense=True)
-            season_num = int(season_arg[0]) if season_arg else None
-            if season_num is not None:
-                seasons = traverse_obj(playlist_data, ('seasons', 'items', lambda _, v: v.get('seasonNumber') == season_num))
-            else:
-                seasons = traverse_obj(playlist_data, ('seasons', 'items'))
-            for season in seasons:
+            for season in traverse_obj(playlist_data, ('seasons', 'items')):
                 season_title = season.get('title')
                 season_id = season.get('id')
-                for page in itertools.count(1):
-                    data = self._download_json(
-                        f'{self._API_BASE}/items/{season_id}/children',
+                for page_num in itertools.count(1):
+                    page = self._call_api(
                         season_id,
-                        note=f'Downloading Season {season_title} page - {page}',
+                        f'{season_id}/children',
+                        note=f'Downloading Season {season_title} page - {page_num}',
                         query={
-                            'ff': 'idp,ldp,rpt,cd',
-                            'lang': 'en',
-                            'page': page,
+                            'order': 'asc',
+                            'page': page_num,
                             'page_size': 25,
-                            'segments': 'all',
                         })
-                    for ep in data.get('items'):
+                    for ep in page.get('items'):
                         yield self._extract_episode(ep.get('id'), ep)
-                    if page == traverse_obj(data, ('paging', 'total')):
+                    if page_num == traverse_obj(page, ('paging', 'total')):
                         break
 
-        return self.playlist_result(
-            entries(playlist_meta), video_id,
-            strip_or_none(playlist_meta.get('title')),
-            strip_or_none(playlist_meta.get('description')))
+        return self.playlist_result(entries(playlist_meta), video_id, **traverse_obj(playlist_meta, {
+            'title': ('title', {strip_or_none}),
+            'description': ('description', {strip_or_none}),
+        }))
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        meta = self._download_json(
-            f'{self._API_BASE}/items/{video_id}',
-            video_id, 'Downloading video metadata json', query={'segments': 'all'})
-        is_drm = (traverse_obj(meta, ('customFields', 'Encryption', {str})))
-        if is_drm in ('True', '1', 'true'):
+        meta = self._call_api(video_id, video_id, query={'expand': 'all'})
+        is_drm = traverse_obj(meta, ('customFields', 'Encryption', {str.lower}), default='')
+        if is_drm == 'true':
             raise self.report_drm(video_id)
         if meta['type'] not in ('channel', 'movie', 'episode', 'program'):
-            return self._extract_playlist(video_id)
-        else:
-            return self._extract_episode(video_id, meta)
+            return self._extract_playlist(video_id, meta)
+        return self._extract_episode(video_id, meta, fatal=True)
 
 
 class MeWatchIE(InfoExtractor):
@@ -174,11 +162,13 @@ class MeWatchIE(InfoExtractor):
         'url': 'https://www.mewatch.sg/watch/New-Stirrings-E3-Innovation-and-New-Blood-598958',
         'info_dict': {
             'id': '598958',
+            'ext': 'mp4',
             'title': 'Ep 3 Innovation and New Blood',
-            'description': 'In New Stirrings: Innovation and New Blood, a new generation of hawkers is redefining what it means to cook, create and serve. At Jalan Batu, 24-year-old Fikri Rohaimi, who once worked in Michelin-starred kitchens, now brings restaurant-quality dishes to a hawker stall. At Ghim Moh, Amber Pang\u2019s artisanal bakes bring a breath of fresh air to one of Singapore\u2019s oldest hawker centres. Across the island, robots share the kitchen. From M Plus Fried Rice\u2019s wok hei machine to Steven Lam\u2019s glutinous rice dispenser, they prove that innovation can honour tradition. For others, purpose drives change. Madeline Chan uses her coffee stall to support refugees, while Li Jiali finds healing through pancakes. And through NEA\u2019s Incubation Stall Programme and Social Enterprise Hawker Centres, new hawkers like Jordan Chong and Rick Tan are finding their footing. This episode celebrates how fresh ideas and fearless hearts are keeping Singapore\u2019s hawker spirit alive.',
-            'duration': 2810,
-            'timestamp': 1767016800,
+            'description': 'md5:7f7af43b79465be2961f8277a980c1a0',
             'average_rating': 0,
+            'duration': 2810,
+            'thumbnail': r're:https://(?:[^.]+\.)?togglestatic\.com/shain/v1/dataservice/ResizeImage/.+',
+            'upload_date': '20251229',
         },
         'params': {
             'skip_download': True,
