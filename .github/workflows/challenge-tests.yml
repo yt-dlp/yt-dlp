@@ -50,7 +50,7 @@ jobs:
     - name: Install Deno
       uses: denoland/setup-deno@667a34cdef165d8d2b2e98dde39547c9daac7282  # v2.0.4
       with:
-        deno-version: '2.0.0'  # minimum supported version
+        deno-version: '2.3.0'  # minimum supported version
     - name: Install Bun
       uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6  # v2.2.0
       with:
