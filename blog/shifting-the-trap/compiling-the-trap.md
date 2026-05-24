@@ -52,11 +52,20 @@ is the smallest language already proven Turing-complete. That is
 **Brainfuck** — eight commands, a tape, and a loop; reducible to and from
 a Turing machine by a well-known construction.
 
-Brainfuck also happens to map onto precisely the part of jsinterp that is
-oldest, most exercised, and least likely to hide a bug — the same
-machinery Jacob K's programs already leaned on. That is not a
-coincidence; it is the point. The proof should rest on jsinterp's load-
-bearing wall, not its experimental trim.
+Brainfuck also maps onto a small, old part of jsinterp's grammar — the
+part Jacob K's own programs already leaned on. *How* old is an empirical
+question, not a rhetorical one, so the compiler is written against the
+intersection of current jsinterp and **yt-dlp 2022.04.08**, the exact
+release Jacob used in his forum post. Direct inspection of that older
+interpreter is instructive: it has *no* comparison operators (no `==`,
+`!=`, `<`, `>`), no `if`/`else`, no ternary, and no string `+` (which
+matches Jacob's diagnosis in his reply to a draft of this post). The
+only loop guard is truthiness of a single value. The compiler is
+constrained accordingly — countdown loops, array-and-`join` output, no
+ternary, no comparisons — and the same `run_proof.py` runs unchanged
+against the 2022.04.08 interpreter (`pip install yt-dlp==2022.04.08` in
+a venv, then `run_proof.py` with that venv's Python) and passes
+identically.
 
 ## The compiler (`bfc.py`)
 
@@ -69,15 +78,15 @@ actually implements:
 |---|---|
 | `+` `-` | `t[p]=(t[p]+1)&255;` — `& 255` gives mod-256 cells; jsinterp's bit ops use Python `&`, so `(0-1)&255 == 255`, the correct Brainfuck wrap |
 | `>` `<` | `p=p+1;` |
-| `.` `,` | `o=o+String.fromCharCode(t[p]);` / a ternary read from the input array |
-| `[` `]` | **`for(;t[p]!=0;){` … `}`** |
+| `.` | `o.push(String.fromCharCode(t[p]));` — output is an array, joined at the end, because old jsinterp has no string `+` |
+| `,` | `t[p]=inp[ip];ip=ip+1;` — unguarded, because old jsinterp has no `if`/`else`/ternary; the harness always supplies enough bytes |
+| `[` `]` | **`for(;t[p];){` … `}`** — truthiness of the current cell, the only loop guard the older interpreter accepts |
 
 The one load-bearing trick is the loop. jsinterp has no `while`, so
 Brainfuck's `[ ]` becomes a `for` with empty init and increment whose
 guard re-reads the current cell. Nested Brainfuck loops are just nested
-`for`s. The guard uses loose `!=` (jsinterp's equality-coercion path),
-deliberately *not* `!==` (which is Python `is`-identity and unsafe across
-all cell values).
+`for`s. The tape itself is built with a countdown loop for the same
+reason — there is no `i < N` in the older grammar.
 
 Nothing in the output recurses. Brainfuck loops compile to JavaScript
 loops, so the proof never touches jsinterp's ~100-deep recursion budget.
@@ -157,12 +166,22 @@ old youtube-dl still satisfies the colloquial definition. Stating it
 plainly strengthens the claim rather than weakening it. The compiler is
 exact; the machine, like all machines, is merely large.
 
-It also sharpens Jacob K's open question. The boundary is not a release
-date; it is a *capability* date — the first release whose interpreter can
-express a data-dependent unbounded loop over mutable storage. `bfc.py`
-makes that test mechanical: point it at any historical `jsinterp.py`, run
-the ladder, and the unary-echo case alone answers "Turing-complete or
-not" for that revision.
+It also bears on Jacob K's open question, though only in one direction.
+If the ladder *passes* on a given revision, that revision is
+Turing-complete — the compiler is the witness, contingent on its output
+being valid on that revision. The other direction does not follow: a
+failure means only that *this particular compiler* doesn't target *that
+particular revision*, not that the revision lacks Turing-completeness.
+Settling that in the negative needs either a different compiler or a
+direct argument about the language's expressivity, and in full
+generality the question is undecidable. Jacob K corrected me on this
+point and he is right.
+
+What the empirical compatibility *does* show is that the proof here is
+not dependent on any of jsinterp's recent accretions. The same emitter
+runs the same ladder unchanged on the 2022.04.08 release (Jacob's
+version) and on the current branch. That is a sturdier ground than the
+draft of this post claimed before Jacob corrected it.
 
 ## Why this is the proof the argument needed
 
@@ -202,3 +221,25 @@ python3 blog/shifting-the-trap/run_proof.py
   ever runs compiled JavaScript.
 - `run_proof.py` — compiles each program, runs it on the real
   `yt_dlp.jsinterp`, and checks it against an independent oracle.
+
+To run the same proof against the 2022.04.08 release in a venv:
+
+```
+python3 -m venv /tmp/v22
+/tmp/v22/bin/pip install 'yt-dlp==2022.04.08'
+PYTHONPATH=blog/shifting-the-trap /tmp/v22/bin/python blog/shifting-the-trap/run_proof.py
+```
+
+## Acknowledgments
+
+Jacob K read a draft of this post and made three corrections, all of
+which improved it. First: an aside about Brainfuck self-interpretation —
+since Brainfuck is Turing-complete one can write a Brainfuck interpreter
+in Brainfuck, and so the compiler here implicitly gives a Brainfuck
+interpreter on top of jsinterp. Second: my "oldest, most exercised"
+phrasing overclaimed, and the receipts were specific (`<` was added in
+commit 8f53dc4, string `+` in d108ca1); the empirical 2022.04.08 result
+above is the answer to "how old, really?". Third: my claim that the
+unary-echo test was a mechanical decision procedure for
+Turing-completeness was wrong in the negative direction, as discussed
+above.
