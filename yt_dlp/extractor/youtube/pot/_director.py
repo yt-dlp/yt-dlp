@@ -64,9 +64,9 @@ class YoutubeIEContentProviderLogger(IEContentProviderLogger):
         if self.log_level <= self.LogLevel.DEBUG:
             self.__ie.write_debug(self._format_msg(message), only_once=once)
 
-    def info(self, message: str):
+    def info(self, message: str, *, once=False):
         if self.log_level <= self.LogLevel.INFO:
-            self.__ie.to_screen(self._format_msg(message))
+            self.__ie.to_screen(self._format_msg(message), only_once=once)
 
     def warning(self, message: str, *, once=False):
         if self.log_level <= self.LogLevel.WARNING:

@@ -102,7 +102,7 @@ class DenoJsRuntime(JsRuntime):
 
 
 class BunJsRuntime(JsRuntime):
-    MIN_SUPPORTED_VERSION = (1, 0, 31)
+    MIN_SUPPORTED_VERSION = (1, 2, 11)
 
     def _info(self):
         path = _determine_runtime_path(self._path, 'bun')
