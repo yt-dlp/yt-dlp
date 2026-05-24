@@ -19,7 +19,11 @@ from ..utils import (
     url_or_none,
     urljoin,
 )
-from ..utils.traversal import require, traverse_obj
+from ..utils.traversal import (
+    require,
+    traverse_obj,
+    trim_str,
+)
 
 
 class TVerBaseIE(StreaksBaseIE):
@@ -31,15 +35,17 @@ class TVerBaseIE(StreaksBaseIE):
         'Referer': f'{_BASE_URL}/',
     }
     _IMG_BASE = 'https://image-cdn.tver.jp'
+    _platform_query = None
 
     def _real_initialize(self):
-        session_info = self._download_json(
-            'https://platform-api.tver.jp/v2/api/platform_users/browser/create',
-            None, 'Creating session', data=b'device_type=pc')
-        self._platform_query = traverse_obj(session_info, ('result', {
-            'platform_token': ('platform_token', {str_or_none}),
-            'platform_uid': ('platform_uid', {str_or_none}),
-        })) or {}
+        if self._platform_query is None:
+            session_info = self._download_json(
+                'https://platform-api.tver.jp/v2/api/platform_users/browser/create',
+                None, 'Creating session', data=b'device_type=pc')
+            TVerBaseIE._platform_query = traverse_obj(session_info, ('result', {
+                'platform_token': ('platform_token', {str_or_none}),
+                'platform_uid': ('platform_uid', {str_or_none}),
+            })) or {}
 
     def _streaks_api_headers(self, project_id):
         streaks_info = self._download_json(
@@ -140,7 +146,7 @@ class TVerIE(TVerBaseIE):
         media_id = traverse_obj(streaks_ids, (
             'ovp_player_callback_id', {str_or_none}, {require('STREAKS media ID')}))
         brightcove_id = traverse_obj(streaks_ids, (
-            'video_ref_id', {lambda x: f'ref:{x}' if x else None}, {str}, filter))
+            'video_ref_id', {lambda x: f'ref:{x}' if x else None}))
 
         try:
             streaks_metadata = self._extract_from_streaks_api(
@@ -189,38 +195,40 @@ class TVerShortsIE(TVerBaseIE):
 
     _VALID_URL = r'https?://tver\.jp/shorts/(?P<id>[a-zA-Z0-9]+)(?:[/?#]|$)'
     _TESTS = [{
-        'url': 'https://tver.jp/shorts/seplt43and',
+        'url': 'https://tver.jp/shorts/se6lzp0fza',
         'info_dict': {
-            'id': 'seplt43and',
+            'id': 'se6lzp0fza',
             'ext': 'mp4',
-            'title': '山﨑健太郎（建築家 ・＃1403）',
+            'title': 'イヨ・スカイ（プロレスラー・＃1404）',
             'channel_id': 'mbs',
-            'description': 'md5:81a161fa93c1295f721aaa33cb67d76b',
-            'display_id': 'ref:jounetsu_1403_s1',
-            'duration': 32,
+            'description': 'md5:179ad0cd533391f2d9650c9c0c00d9f1',
+            'display_id': 'ref:jounetsu_1404_s1',
+            'duration': 43,
             'like_count': int,
             'live_status': 'not_live',
-            'modified_date': '20260510',
-            'modified_timestamp': 1778395125,
+            'modified_date': '20260517',
+            'modified_timestamp': 1778994201,
             'series': '情熱大陸',
             'series_id': 'srz38rt0a3',
-            'tags': ['#TVer', '#ショート'],
+            'tags': ['TVer', 'ショート'],
             'thumbnail': r're:https?://.+\.png',
-            'timestamp': 1778394452,
-            'upload_date': '20260510',
+            'timestamp': 1778992040,
+            'upload_date': '20260517',
             'uploader_id': 'tver-short-mbs',
         },
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_info = self._call_api('contents', 'v2/short_episodes', video_id)
+        video_info = self._call_api(
+            'contents', 'v2/short_episodes', video_id, expected_status=404)
+        if traverse_obj(video_info, ('code', {int_or_none})) == 4007:
+            raise ExtractorError('This video is no longer available', expected=True)
 
         streaks_ids = video_info['streaks']
         project_id = traverse_obj(streaks_ids, ('project_id', {str_or_none}))
         media_id = traverse_obj(streaks_ids, (
-            'ref_id', {lambda x: f'ref:{x}' if x else None},
-            {str}, filter, {require('STREAKS media ID')}))
+            'ref_id', {lambda x: f'ref:{x}' if x else None}, {require('STREAKS media ID')}))
 
         return {
             **self._extract_from_streaks_api(
@@ -229,8 +237,10 @@ class TVerShortsIE(TVerBaseIE):
                 'id': ('id', {str_or_none}),
                 'channel_id': ('broadcast_provider_id', {str_or_none}),
                 'duration': ('duration', {int_or_none}),
-                'tags': ('sns_share_body', 'hashtags', ..., {clean_html}, filter, all, filter),
-                'thumbnail': ('vertical_thumbnail_path', {urljoin(f'{self._IMG_BASE}/')}),
+                'tags': ('sns_share_body', 'hashtags', ...,
+                         {clean_html}, {trim_str(start='#')}, filter, all, filter),
+                'thumbnails': (
+                    'vertical_thumbnail_path', all, ..., {'url': {urljoin(f'{self._IMG_BASE}/')}}),
             }),
             **traverse_obj(video_info, ('episode', {
                 'title': ('title', {clean_html}, filter),
@@ -241,6 +251,125 @@ class TVerShortsIE(TVerBaseIE):
                 'series': ('title', {clean_html}, filter),
                 'series_id': ('id', {str_or_none}),
             })),
+        }
+
+
+class TVerLiveIE(TVerBaseIE):
+    IE_NAME = 'tver:live'
+
+    _STATION_RE = '|'.join(map(re.escape, ('cx', 'ex', 'ntv', 'tbs', 'tx')))
+    _VALID_URL = rf'https?://tver\.jp/live/(?P<type>simul|special|{_STATION_RE})(?:/(?P<id>[a-zA-Z0-9]+))?(?:[/?#]|$)'
+    _TESTS = [{
+        'url': 'https://tver.jp/live/simul/le9lnui4e2',
+        'info_dict': {
+            'id': 'le9lnui4e2',
+            'ext': 'mp4',
+            'title': 'おウチに置きたい！珍奇植物ＳＰ',
+            'alt_title': '5月23日(土)放送分',
+            'channel': 'テレビ朝日',
+            'channel_id': 'ex',
+            'description': 'md5:744ab1d20b254e7133e6d2f105eef581',
+            'display_id': 'ref:le9lnui4e2',
+            'duration': 3839.969,
+            'live_status': 'was_live',
+            'modified_date': '20260523',
+            'modified_timestamp': 1779534039,
+            'release_date': '20260523',
+            'release_timestamp': 1779530160,
+            'season_id': 's0000644',
+            'series': 'サンドウィッチマン＆芦田愛菜の博士ちゃん',
+            'series_id': 'srb4rre2v0',
+            'tags': 'count:7',
+            'thumbnail': r're:https?://.+\.jpg',
+            'timestamp': 1779530181,
+            'upload_date': '20260523',
+            'uploader_id': 'tver-simul-ex',
+        },
+    }, {
+        'url': 'https://tver.jp/live/tx',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        video_type, video_id = self._match_valid_url(url).group('type', 'id')
+        live_from_start = self.get_param('live_from_start')
+        now = time_seconds()
+
+        if video_type not in ('simul', 'special'):
+            timeline = self._call_api('service', 'v1/callLiveTimeline', video_type)
+            video_id = traverse_obj(timeline, (
+                'result', 'contents',
+                lambda _, v: v['content']['onairStartAt'] <= now < v['content']['onairEndAt'],
+                'content', 'id', {str_or_none}, any))
+            if not video_id:
+                raise ExtractorError('This channel is offline', expected=True)
+
+        episode_status = self._call_api(
+            'service', 'v1/callEpisodeStatusCheck', None,
+            query={'episode_id': video_id, 'type': 'live'}, expected_status=404)
+        if traverse_obj(episode_status, ('code', {int_or_none})) == 70006:
+            raise ExtractorError('This livestream is no longer available', expected=True)
+
+        result = episode_status['result']
+        content = traverse_obj(result, ('content', {dict}))
+        if traverse_obj(result, ('type', {str})) == 'live':
+            start_at = traverse_obj(content, ('startAt', {int_or_none}))
+            end_at = traverse_obj(content, ('endAt', {int_or_none}))
+
+            if now < start_at:
+                self.raise_no_formats(
+                    f'This livestream is scheduled to start at {start_at} UTC', expected=True)
+
+                return {
+                    'id': video_id,
+                    'live_status': 'is_upcoming',
+                    'release_timestamp': start_at,
+                }
+            elif start_at <= now < end_at:
+                live_status = 'is_live'
+                if live_from_start and traverse_obj(content, (
+                    'dvr', 'isDVR', {bool},
+                )):
+                    key = 'dvrVideo'
+                else:
+                    key = 'liveVideo'
+            elif traverse_obj(content, ('isDVRNow', {bool})):
+                live_status = 'was_live'
+                key = 'dvrVideo'
+            else:
+                raise ExtractorError(
+                    'This livestream has ended and no archive is available', expected=True)
+        else:
+            return self.url_result(
+                f'{self._BASE_URL}/episodes/{content["id"]}', TVerIE)
+
+        live_info = self._download_json(
+            f'https://statics.tver.jp/content/live/{video_id}.json', video_id)
+        project_id = traverse_obj(live_info, (
+            key, 'projectID', {str_or_none}, {require('project ID')}))
+        media_id = traverse_obj(live_info, (
+            key, 'mediaID', {str_or_none}, {require('STREAKS media ID')}))
+
+        return {
+            **self._extract_from_streaks_api(
+                project_id, media_id,
+                self._streaks_api_headers(project_id),
+                live_from_start=live_from_start),
+            **traverse_obj(live_info, {
+                'id': ('id', {str_or_none}),
+                'title': ('title', {clean_html}, filter),
+                'alt_title': ('broadcastDateLabel', {clean_html}, filter),
+                'channel': ('broadcastProviderLabel', {clean_html}, filter),
+                'channel_id': ('broadcastChannelID', {str_or_none}),
+                'description': ('description', {clean_html}, filter),
+                'release_timestamp': ('viewStatus', 'startAt', {int_or_none}),
+                'season_id': ('seasonID', {str_or_none}),
+                'series': ('share', 'text', {clean_html}, {trim_str(end=' #TVer')}, filter),
+                'series_id': ('seriesID', {str_or_none}),
+                'tags': ('tags', ..., 'name', {clean_html}, filter, all, filter),
+            }),
+            'live_status': live_status,
+            'thumbnails': self._thumbnails('live', video_id),
         }
 
 
@@ -262,7 +391,7 @@ class TVerChannelsIE(TVerBaseIE):
         next_cursor = None
         for page in itertools.count(1):
             latest_episodes = self._call_api(
-                'contents', 'v1/channels/news-nnn/pages/latest_episodes',
+                'contents', f'v1/channels/{channel_id}/pages/latest_episodes',
                 None, note=f'Downloading page {page}', query=filter_dict({
                     'limit': self._PAGE_SIZE,
                     'next_cursor': next_cursor,
@@ -272,7 +401,7 @@ class TVerChannelsIE(TVerBaseIE):
                 'episodes', ..., 'episode_id', {str_or_none},
             )):
                 yield self.url_result(
-                    f'https://tver.jp/episodes/{episode_id}', TVerIE)
+                    f'{self._BASE_URL}/episodes/{episode_id}', TVerIE)
 
             next_cursor = traverse_obj(latest_episodes, ('next_cursor', {str_or_none}))
             if not next_cursor:
@@ -289,17 +418,20 @@ class TVerChannelsIE(TVerBaseIE):
 
 class TVerPlaylistBaseIE(TVerBaseIE):
     def _entries(self, result, keys):
-        types = {
+        type_map = {
             'episode': ('episodes', TVerIE),
+            'live': ('live/simul', TVerLiveIE),
             'series': ('series', TVerPlaylistIE),
         }
 
         for item in traverse_obj(result, (
-            'contents', *keys, all, lambda _, v: v['type'] != 'live',
+            'contents', *keys, all,
+            lambda _, v: v['type'] == 'episode' or v['content']['isDVRNow'],
         )):
-            path, ie = types.get(item['type'])
-            yield self.url_result(
-                f'{self._BASE_URL}/{path}/{item["content"]["id"]}', ie)
+            path, ie = type_map.get(item['type'])
+            item_id = traverse_obj(item, ('content', 'id', {str_or_none}))
+
+            yield self.url_result(f'{self._BASE_URL}/{path}/{item_id}', ie)
 
 
 class TVerPlaylistIE(TVerPlaylistBaseIE):
@@ -316,7 +448,7 @@ class TVerPlaylistIE(TVerPlaylistBaseIE):
             'id': 'srqbg9lpzc',
             'title': '【しらべてみたら】Live News イット！特集',
         },
-        'playlist_mincount': 14,
+        'playlist_mincount': 13,
     }, {
         'url': 'https://tver.jp/rankings/episode/drama',
         'info_dict': {
@@ -399,7 +531,8 @@ class TVerSearchIE(TVerPlaylistBaseIE):
                 'keyword': keyword,
             })
 
-        return self.playlist_result(self._entries(playlist_info, (...,)), keyword)
+        return self.playlist_result(
+            self._entries(playlist_info['result'], (...,)), keyword)
 
 
 class TVerOlympicIE(StreaksBaseIE):

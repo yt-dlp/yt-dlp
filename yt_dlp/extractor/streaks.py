@@ -22,7 +22,7 @@ class StreaksBaseIE(InfoExtractor):
     _GEO_BYPASS = False
     _GEO_COUNTRIES = ['JP']
 
-    def _extract_from_streaks_api(self, project_id, media_id, headers=None, query=None, ssai=False, live_from_start=False):
+    def _extract_from_streaks_api(self, project_id, media_id, headers=None, query=None, live_from_start=False):
         try:
             response = self._download_json(
                 self._API_URL_TEMPLATE.format('playback', project_id, media_id, ''),
@@ -59,8 +59,10 @@ class StreaksBaseIE(InfoExtractor):
 
         formats, subtitles = [], {}
         drm_formats = False
+        sources = response['sources']
+        ssai = traverse_obj(sources, (..., 'ssai', {dict}, any))
 
-        for source in traverse_obj(response, ('sources', lambda _, v: v['src'])):
+        for source in traverse_obj(sources, (lambda _, v: url_or_none(v['src']))):
             if source.get('key_systems'):
                 drm_formats = True
                 continue
