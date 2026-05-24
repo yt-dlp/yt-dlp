@@ -1939,6 +1939,7 @@ from .stacommu import (
     TheaterComplexTownPPVIE,
     TheaterComplexTownVODIE,
 )
+from .stage import StageIE
 from .stageplus import StagePlusVODConcertIE
 from .stanfordoc import StanfordOpenClassroomIE
 from .startrek import StarTrekIE
