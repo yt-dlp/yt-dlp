@@ -195,7 +195,7 @@ class SubstackLiveIE(InfoExtractor):
         },
         'params': {'skip_download': 'm3u8'},
     }, {
-        # Suscriber Only Live
+        # Subscribers_Only Live
         'url': 'https://open.substack.com/live-stream/214543',
         'info_dict': {
             'id': '214543',
@@ -224,8 +224,10 @@ class SubstackLiveIE(InfoExtractor):
             raise
 
         live_metadata = data.get('liveStream')
+        live_media = data.get('liveStreamInformation')
         live_status = live_metadata.get('status')
 
+        is_reply = live_media.get('isReplayEligible')
         is_live = True
         if live_status == 'scheduled':
             scheduled_at = live_metadata.get('scheduled_at')
@@ -236,25 +238,28 @@ class SubstackLiveIE(InfoExtractor):
         if live_status == 'idle':
             if not live_metadata.get('started_streaming_at'):
                 raise UserNotLive('Live stream will start soon')
-            else:
+            elif is_reply:
                 is_live = False
                 self.to_screen('Live stream is ended, downloading VOD')
+            else:
+                raise UserNotLive('Live stream is ended')
 
         formats = []
-        live_media = data.get('liveStreamInformation')
         for playback_url in traverse_obj(live_media, (('playbackUrl', 'desktopPlaybackUrl'), {url_or_none})):
             ext = determine_ext(playback_url)
             if ext == 'm3u8':
                 fmts = self._extract_m3u8_formats(playback_url, video_id)
             elif ext == 'mpd':
                 fmts = self._extract_mpd_formats(playback_url, video_id)
+            else:
+                continue
             formats.extend(fmts)
 
         audience = live_metadata.get('audience')
         if audience == 'only_founding' and not formats:
-            self.raise_login_required('Live stream is only for founding suscribers')
+            self.raise_login_required('Live stream is only for founding subscribers')
         elif audience == 'only_free' and not formats:
-            self.raise_login_required('Live stream is only for suscribers')
+            self.raise_login_required('Live stream is only for subscribers')
 
         return {
             'id': video_id,
