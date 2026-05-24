@@ -239,8 +239,7 @@ class TVerShortsIE(TVerBaseIE):
                 'duration': ('duration', {int_or_none}),
                 'tags': ('sns_share_body', 'hashtags', ...,
                          {clean_html}, {trim_str(start='#')}, filter, all, filter),
-                'thumbnails': (
-                    'vertical_thumbnail_path', all, ..., {'url': {urljoin(f'{self._IMG_BASE}/')}}),
+                'thumbnail': ('vertical_thumbnail_path', {urljoin(f'{self._IMG_BASE}/')}),
             }),
             **traverse_obj(video_info, ('episode', {
                 'title': ('title', {clean_html}, filter),

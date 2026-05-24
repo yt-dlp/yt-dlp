@@ -115,7 +115,7 @@ class StreaksBaseIE(InfoExtractor):
                 'duration': ('duration', {float_or_none}),
                 'modified_timestamp': ('updated_at', {parse_iso8601}),
                 'tags': ('tags', ..., {str}),
-                'thumbnails': (('poster', 'thumbnail'), 'src', {'url': {url_or_none}}),
+                'thumbnail': (('thumbnail', 'poster'), 'src', {url_or_none}, any),
                 'timestamp': ('created_at', {parse_iso8601}),
             }),
         }
