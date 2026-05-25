@@ -83,7 +83,7 @@ class PornHubBaseIE(InfoExtractor):
 
         login_url = 'https://www.{}/{}login'.format(host, 'premium/' if 'premium' in host else '')
         login_page = self._download_webpage(
-            login_url, None, f'Downloading {site} login page')
+            login_url, None, f'Downloading {site} login page', impersonate=True)
 
         def is_logged(webpage):
             return any(re.search(p, webpage) for p in (
@@ -109,7 +109,7 @@ class PornHubBaseIE(InfoExtractor):
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 'Referer': login_url,
                 'X-Requested-With': 'XMLHttpRequest',
-            })
+            }, impersonate=True)
 
         if response.get('success') == '1':
             self._logged_in = True
@@ -604,7 +604,7 @@ class PornHubPagedPlaylistBaseIE(PornHubPlaylistBaseIE):
         def download_page(base_url, num, fallback=False):
             note = 'Downloading page {}{}'.format(num, ' (switch to fallback)' if fallback else '')
             return self._download_webpage(
-                base_url, item_id, note, query={'page': num})
+                base_url, item_id, note, query={'page': num}, impersonate=True)
 
         def is_404(e):
             return isinstance(e.cause, HTTPError) and e.cause.status == 404
@@ -805,7 +805,7 @@ class PornHubPlaylistIE(PornHubPlaylistBaseIE):
                 'id': playlist_id,
                 'page': page_num,
                 'token': token,
-            })
+            }, impersonate=True)
 
         for page_num in range(1, page_count + 1):
             if page_num > 1:
