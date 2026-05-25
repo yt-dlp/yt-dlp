@@ -2139,16 +2139,16 @@ def parse_duration(s):
         (days, 86400), (hours, 3600), (mins, 60), (secs, 1), (ms, 1)))
 
 
-def _change_extension(prepend, filename, ext, expected_real_ext=None):
+def _change_extension(prepend, filename, ext, expected_real_ext=None, *, _allowed_exts=()):
     name, real_ext = os.path.splitext(filename)
 
     if not expected_real_ext or real_ext[1:] == expected_real_ext:
         filename = name
         if prepend and real_ext:
-            _UnsafeExtensionError.sanitize_extension(ext, prepend=True)
+            _UnsafeExtensionError.sanitize_extension(ext, prepend=True, _allowed_exts=_allowed_exts)
             return f'{filename}.{ext}{real_ext}'
 
-    return f'{filename}.{_UnsafeExtensionError.sanitize_extension(ext)}'
+    return f'{filename}.{_UnsafeExtensionError.sanitize_extension(ext, _allowed_exts=_allowed_exts)}'
 
 
 prepend_extension = functools.partial(_change_extension, True)
@@ -5211,12 +5211,9 @@ class _UnsafeExtensionError(Exception):
         # others
         *MEDIA_EXTENSIONS.manifests,
         *MEDIA_EXTENSIONS.storyboards,
-        'desktop',
         'ism',
         'm3u',
         'sbv',
-        'url',
-        'webloc',
     ])
 
     def __init__(self, extension, /):
@@ -5224,7 +5221,7 @@ class _UnsafeExtensionError(Exception):
         self.extension = extension
 
     @classmethod
-    def sanitize_extension(cls, extension, /, *, prepend=False):
+    def sanitize_extension(cls, extension, /, *, prepend=False, _allowed_exts=()):
         if extension is None:
             return None
 
@@ -5235,7 +5232,8 @@ class _UnsafeExtensionError(Exception):
             _, _, last = extension.rpartition('.')
             if last == 'bin':
                 extension = last = 'unknown_video'
-            if last.lower() not in cls.ALLOWED_EXTENSIONS:
+            allowed = _allowed_exts or cls.ALLOWED_EXTENSIONS
+            if last.lower() not in allowed:
                 raise cls(extension)
 
         return extension
