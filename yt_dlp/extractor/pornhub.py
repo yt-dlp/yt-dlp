@@ -303,8 +303,8 @@ class PornHubIE(PornHubBaseIE):
                 r'>\s*This content is unavailable in your country')):
             self.raise_geo_restricted()
 
-        if self._search_regex(r'originPart\s*=\s*["\']([^"\']+)["\']', webpage, 'is_redirected_to_homepage', default='') == 'homepage':
-            raise ExtractorError('Redirected to homepage may be video is deleted or require logged in cookies.', expected=True)
+        if self._search_regex(r'originPart\s*=\s*["\']([^"\']+)["\']', webpage, 'redirect to homepage', default='') == 'homepage':
+            raise ExtractorError('Redirected to homepage; the video may be deleted or require logging in.', expected=True)
 
         # video_title from flashvars contains whitespace instead of non-ASCII (see
         # http://www.pornhub.com/view_video.php?viewkey=1331683002), not relying
