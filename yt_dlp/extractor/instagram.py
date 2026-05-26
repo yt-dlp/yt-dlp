@@ -148,6 +148,7 @@ class InstagramBaseIE(InfoExtractor):
             'channel': user_info.get('username'),
             'uploader': user_info.get('full_name'),
             'uploader_id': str_or_none(user_info.get('pk')),
+            'uploader_url': format_field(user_info, 'username', 'https://www.instagram.com/%s/'),
             'view_count': int_or_none(product_info.get('view_count')),
             'like_count': int_or_none(product_info.get('like_count')),
             'comment_count': int_or_none(product_info.get('comment_count')),
@@ -510,6 +511,7 @@ class InstagramIE(InstagramBaseIE):
             'timestamp': traverse_obj(media, 'taken_at_timestamp', 'date', expected_type=int_or_none),
             'uploader_id': traverse_obj(media, ('owner', 'id')),
             'uploader': traverse_obj(media, ('owner', 'full_name')),
+            'uploader_url': format_field(username, None, 'https://www.instagram.com/%s/'),
             'channel': username,
             'like_count': self._get_count(media, 'likes', 'preview_like') or str_to_int(self._search_regex(
                 r'data-log-event="likeCountClick"[^>]*>[^\d]*([\d,\.]+)', webpage, 'like count', fatal=False)),
@@ -731,6 +733,7 @@ class InstagramStoryIE(InstagramBaseIE):
                 info_data.append({
                     'uploader': full_name,
                     'uploader_id': user_id,
+                    'uploader_url': format_field(username, None, 'https://www.instagram.com/%s/'),
                     **filter_dict(highlight_data),
                 })
         if username != 'highlights' and story_id and not self._yes_playlist(username, story_id):
