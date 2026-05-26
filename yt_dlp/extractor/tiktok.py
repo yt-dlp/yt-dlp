@@ -220,7 +220,7 @@ class TikTokBaseIE(InfoExtractor):
             raise ExtractorError('Unable to extract aweme detail info', video_id=aweme_id)
         return self._parse_aweme_video_app(aweme_detail)
 
-    def _solve_challenge_and_set_cookie(self, webpage):
+    def _solve_challenge_and_set_cookies(self, webpage):
         challenge_data = traverse_obj(webpage, (
             {find_element(id='cs', html=True)}, {extract_attributes}, 'class',
             filter, {lambda x: f'{x}==='}, {base64.b64decode}, {json.loads}))
@@ -250,17 +250,27 @@ class TikTokBaseIE(InfoExtractor):
         else:
             raise ExtractorError('Unable to solve JS challenge')
 
-        cookie_value = base64.b64encode(
+        wci_cookie_value = base64.b64encode(
             json.dumps(challenge_data, separators=(',', ':')).encode()).decode()
 
-        # At time of writing, the cookie name was _wafchallengeid
-        cookie_name = traverse_obj(webpage, (
+        # At time of writing, the wci cookie name was `_wafchallengeid`
+        wci_cookie_name = traverse_obj(webpage, (
             {find_element(id='wci', html=True)}, {extract_attributes},
             'class', {require('challenge cookie name')}))
 
-        # Actual JS sets Max-Age=1, but we need to adjust for --sleep-requests and Python slowness
-        expire_time = int(time.time()) + (self.get_param('sleep_interval_requests') or 0) + 2
-        self._set_cookie('.tiktok.com', cookie_name, cookie_value, expire_time=expire_time)
+        # At time of writing, the **optional** rci cookie name was `waforiginalreid`
+        rci_cookie_name = traverse_obj(webpage, (
+            {find_element(id='rci', html=True)}, {extract_attributes}, 'class'))
+        rci_cookie_value = traverse_obj(webpage, (
+            {find_element(id='rs', html=True)}, {extract_attributes}, 'class'))
+
+        # Actual JS sets Max-Age=1 for the cookies, but we'll manually clear them later instead
+        expire_time = int(time.time()) + (self.get_param('sleep_interval_requests') or 0) + 120
+        self._set_cookie('.tiktok.com', wci_cookie_name, wci_cookie_value, expire_time=expire_time)
+        if rci_cookie_name and rci_cookie_value:
+            self._set_cookie('.tiktok.com', rci_cookie_name, rci_cookie_value, expire_time=expire_time)
+
+        return wci_cookie_name, rci_cookie_name
 
     def _extract_web_data_and_status(self, url, video_id, fatal=True):
         video_data, status = {}, -1
@@ -287,7 +297,7 @@ class TikTokBaseIE(InfoExtractor):
         universal_data = self._get_universal_data(webpage, video_id)
         if not universal_data:
             try:
-                self._solve_challenge_and_set_cookie(webpage)
+                cookie_names = self._solve_challenge_and_set_cookies(webpage)
             except ExtractorError as e:
                 if fatal:
                     raise
@@ -295,6 +305,9 @@ class TikTokBaseIE(InfoExtractor):
                 return video_data, status
 
             webpage = get_webpage(note='Downloading webpage with challenge cookie')
+            # Manually clear challenge cookies that should expire immediately after webpage request
+            for cookie_name in filter(None, cookie_names):
+                self.cookiejar.clear(domain='.tiktok.com', path='/', name=cookie_name)
             if webpage is False:
                 return video_data, status
             universal_data = self._get_universal_data(webpage, video_id)

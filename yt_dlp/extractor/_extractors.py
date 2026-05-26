@@ -672,10 +672,6 @@ from .frontendmasters import (
     FrontendMastersIE,
     FrontendMastersLessonIE,
 )
-from .frontro import (
-    TheChosenGroupIE,
-    TheChosenIE,
-)
 from .fujitv import FujiTVFODPlus7IE
 from .funk import FunkIE
 from .funker530 import Funker530IE
@@ -1077,6 +1073,7 @@ from .markiza import (
 )
 from .massengeschmacktv import MassengeschmackTVIE
 from .masters import MastersIE
+from .matchitv import MatchiTVIE
 from .matchtv import MatchTVIE
 from .mave import (
     MaveChannelIE,
@@ -1791,7 +1788,10 @@ from .safari import (
 from .saitosan import SaitosanIE
 from .samplefocus import SampleFocusIE
 from .sapo import SapoIE
-from .sauceplus import SaucePlusIE
+from .sauceplus import (
+    SaucePlusChannelIE,
+    SaucePlusIE,
+)
 from .sbs import SBSIE
 from .sbscokr import (
     SBSCoKrAllvodProgramIE,
@@ -2059,6 +2059,10 @@ from .tenplay import (
 from .testurl import TestURLIE
 from .tf1 import TF1IE
 from .tfo import TFOIE
+from .thechosen import (
+    TheChosenGroupIE,
+    TheChosenIE,
+)
 from .theguardian import (
     TheGuardianPodcastIE,
     TheGuardianPodcastPlaylistIE,
@@ -2180,11 +2184,15 @@ from .tvc import (
     TVCIE,
     TVCArticleIE,
 )
-from .tver import TVerIE
+from .tver import (
+    TVerIE,
+    TVerOlympicIE,
+)
 from .tvigle import TvigleIE
 from .tviplayer import TVIPlayerIE
 from .tvn24 import TVN24IE
 from .tvnoe import TVNoeIE
+from .tvo import TvoIE
 from .tvopengr import (
     TVOpenGrEmbedIE,
     TVOpenGrWatchIE,
@@ -2548,7 +2556,6 @@ from .youtube import (
     YoutubeNotificationsIE,
     YoutubePlaylistIE,
     YoutubeRecommendedIE,
-    YoutubeSearchDateIE,
     YoutubeSearchIE,
     YoutubeSearchURLIE,
     YoutubeShortsAudioPivotIE,

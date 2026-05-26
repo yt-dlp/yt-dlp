@@ -511,7 +511,7 @@ def create_parser():
     general.add_option(
         '--live-from-start',
         action='store_true', dest='live_from_start',
-        help='Download livestreams from the start. Currently experimental and only supported for YouTube and Twitch')
+        help='Download livestreams from the start. Currently experimental and only supported for YouTube, Twitch, and TVer')
     general.add_option(
         '--no-live-from-start',
         action='store_false', dest='live_from_start',
@@ -1180,7 +1180,7 @@ def create_parser():
     workarounds.add_option(
         '--prefer-insecure', '--prefer-unsecure',
         action='store_true', dest='prefer_insecure',
-        help='Use an unencrypted connection to retrieve information about the video (Currently supported only for YouTube)')
+        help='Use an unencrypted connection to retrieve information about the video')
     workarounds.add_option(
         '--user-agent',
         metavar='UA', dest='user_agent',
