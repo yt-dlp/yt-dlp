@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import traverse_obj, unified_strdate, url_or_none
+from ..utils import str_or_none, traverse_obj, unified_strdate, url_or_none
 
 
 class S4CIE(InfoExtractor):
@@ -15,6 +15,8 @@ class S4CIE(InfoExtractor):
             'thumbnail': 'https://www.s4c.cymru/amg/1920x1080/Pride_2024S4C-P11_Uchafbwyntiau-0608.jpg',
             'release_date': '20240701',
             'modified_date': '20240717',
+            'series': 'Pride Cymru 2024',
+            'series_id': '893067960',
         },
     }, {
         # Geo restricted to the UK
@@ -28,6 +30,8 @@ class S4CIE(InfoExtractor):
             'thumbnail': 'https://www.s4c.cymru/amg/1920x1080/3can_2026S4C_Brand_001.jpg',
             'release_date': '20260513',
             'modified_date': '20260521',
+            'series': '3 Can',
+            'series_id': '947426687',
         },
     }]
 
@@ -73,6 +77,8 @@ class S4CIE(InfoExtractor):
                 'duration': ('duration', {lambda x: int(x) * 60}),
                 'release_date': ('clic_aired', {unified_strdate}),
                 'modified_date': ('last_tx', {unified_strdate}),
+                'series': ('series_title', {str}),
+                'series_id': ('series_id', {str_or_none}),
             }), get_all=False),
         }
 
