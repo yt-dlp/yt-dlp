@@ -394,20 +394,24 @@ class GenericIE(InfoExtractor):
         'expected_warnings': ['Untested major version'],
     }, {
         # KVS Player v7.11.4
-        # kt_player.js?v=2.11.5.1
+        # kt_player.js?v=7.5.0.1
         # https://github.com/yt-dlp/yt-dlp/commit/a318f59d14792d25b2206c3f50181e03e8716db7
         'url': 'https://www.kvs-demo.com/video/105/kelis-4th-of-july/',
+        'md5': 'a36ddb3f0a682f5e3f78b084f56d45ae',
         'info_dict': {
             'id': '105',
             'ext': 'mp4',
             'title': 'Kelis - 4th Of July',
+            'description': 'Kelis - 4th Of July',
+            'display_id': 'kelis-4th-of-july',
+            'thumbnail': r're:https?://www\.kvs-demo\.com/contents/videos_screenshots/.+\.jpg',
         },
     }, {
         # KVS Player v7.11.4
-        # kt_player.js?v=6.3.2
+        # kt_player.js?v=7.5.0
         # https://github.com/yt-dlp/yt-dlp/commit/a318f59d14792d25b2206c3f50181e03e8716db7
         'url': 'https://www.kvs-demo.com/embed/105/',
-        'md5': '1ff84c70acaddbb03288c6cc5ee1879f',
+        'md5': 'a36ddb3f0a682f5e3f78b084f56d45ae',
         'info_dict': {
             'id': '105',
             'ext': 'mp4',
@@ -415,16 +419,17 @@ class GenericIE(InfoExtractor):
             'display_id': 'kelis-4th-of-july',
             'thumbnail': r're:https?://www\.kvs-demo\.com/contents/videos_screenshots/.+\.jpg',
         },
-        # https://www.kvs-demo.com/player/kt_player.js?v=4.15.9.1
     }, {
+        # kt_player.js?v=7.5.0.1
         'url': 'https://www.kvs-demo.com/video/32/baby-alice-pina-colada-boy',
+        'md5': '72f9b50a554167b7a06ce24057436b30',
         'info_dict': {
             'id': '32',
             'ext': 'mp4',
             'display_id': 'baby-alice-pina-colada-boy',
             'title': 'Baby Alice - Piña Colada Boy',
             'description': 'Baby Alice - Piña Colada Boy',
-            'thumbnail': 'https://www.kvs-demo.com/contents/videos_screenshots/0/32/preview.jpg',
+            'thumbnail': r're:https?://www\.kvs-demo\.com/contents/videos_screenshots/.+\.jpg',
         },
     }, {
         # twitter:player:stream
