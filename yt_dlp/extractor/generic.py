@@ -14,6 +14,7 @@ from ..networking.impersonate import ImpersonateTarget
 from ..utils import (
     KNOWN_EXTENSIONS,
     MEDIA_EXTENSIONS,
+    NO_DEFAULT,
     ExtractorError,
     UnsupportedError,
     determine_ext,
@@ -736,9 +737,9 @@ class GenericIE(InfoExtractor):
         flashvars = merge_dicts(*(self._search_json(
             r'<script(?:\s[^>]*)?>[\s\S]*?%svar\s+%s\s*=' % (extra, varname),
             webpage, 'flashvars', video_id, end_pattern=r';[\s\S]*?</script>',
-            # further  to strixformationp non-JSON JS
-            transform_source=lambda s: js_to_json(re.sub(r'(?<!-)\badv_\w+\s*:.+?,', '', s)),
-            fatal=not extra, default={} if extra else None)
+            # strip non-JSON JS (adv_ keys may contain URLs with commas)
+            transform_source=lambda s: js_to_json(re.sub(r"(?<!-)\badv_\w+\s*:\s*(?:'(?:[^'\\]|\\.)*'|\"(?:[^\"\\]|\\.)*\"|[^,\n]+),?", '', s)),
+            fatal=not extra, default={} if extra else NO_DEFAULT)
             for extra in (r'', r'(?<!-)\belse\s*\{\s*')))
         # extract the part after the last / as the display_id from the
         # canonical URL.
