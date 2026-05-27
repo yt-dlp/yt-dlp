@@ -432,18 +432,6 @@ class GenericIE(InfoExtractor):
             'thumbnail': r're:https?://www\.kvs-demo\.com/contents/videos_screenshots/.+\.jpg',
         },
     }, {
-        # KVS Player v11.8.14
-        # kt_player.js?v=11.8.14
-        'url': 'https://xdegu.com/videos/21324/cumming-to-class-featuring-jennifer-white-xxx-hd-sex',
-        'md5': 'c110d11d039c3cc016e3835cc2c6fca8',
-        'info_dict': {
-            'id': '21324',
-            'ext': 'mp4',
-            'title': 'Cumming To Class Featuring Jennifer White - XXX HD Sex | xDEGU™',
-            'display_id': 'cumming-to-class-featuring-jennifer-white-xxx-hd-sex',
-            'age_limit': 18,
-        },
-    }, {
         # KVS Player v13.4.2
         # kt_player.js?v=13.4.2
         'url': 'https://www.porngem.com/videos/guiltless-college-girl-was-enticed-and-railed-by-old-mentor-158080',
@@ -1152,7 +1140,7 @@ class GenericIE(InfoExtractor):
         ), webpage, 'KVS player', group='ver', default=False)
         if found:
             self.report_detected('KVS Player')
-            if found.split('.')[0] not in ('2', '4', '5', '6', '7', '11', '13', '15'):
+            if found.split('.')[0] not in ('2', '3', '4', '5', '6', '7', '13', '15'):
                 self.report_warning(f'Untested major version ({found}) in player engine - download may fail.')
             return [self._extract_kvs(url, webpage, video_id)]
 
