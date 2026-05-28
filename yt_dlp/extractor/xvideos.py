@@ -137,6 +137,16 @@ class XVideosIE(InfoExtractor):
 
         formats = []
 
+        json_ld = self._search_json_ld(webpage, video_id, fatal=False)
+        if json_ld.get('url'):
+            format_id = self._search_regex(
+                r'/([^/?#]+)\.mp4', json_ld['url'], 'format id', default='mp4')
+            formats.append({
+                'url': json_ld['url'],
+                'ext': determine_ext(json_ld['url'], 'mp4'),
+                'format_id': format_id,
+            })
+
         video_url = urllib.parse.unquote(self._search_regex(
             r'flv_url=(.+?)&', webpage, 'video URL', default=''))
         if video_url:
