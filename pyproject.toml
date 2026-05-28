@@ -71,11 +71,11 @@ pin = [
     "brotlicffi==1.2.0.1 ; implementation_name != 'cpython'",
     "certifi==2026.4.22",
     "charset-normalizer==3.4.7",
-    "idna==3.13",
+    "idna==3.15",
     "mutagen==1.47.0",
     "pycryptodomex==3.23.0",
-    "requests==2.33.1",
-    "urllib3==2.6.3",
+    "requests==2.34.2",
+    "urllib3==2.7.0",
     "websockets==16.0",
     "yt-dlp-ejs==0.8.0",
 ]
@@ -83,7 +83,7 @@ pin-curl-cffi = [
     "certifi==2026.4.22 ; implementation_name == 'cpython'",
     "cffi==2.0.0 ; implementation_name == 'cpython'",
     "curl-cffi==0.15.0 ; implementation_name == 'cpython'",
-    "markdown-it-py==4.0.0 ; implementation_name == 'cpython'",
+    "markdown-it-py==4.2.0 ; implementation_name == 'cpython'",
     "mdurl==0.1.2 ; implementation_name == 'cpython'",
     "pycparser==3.0 ; implementation_name == 'cpython'",
     "pygments==2.20.0 ; implementation_name == 'cpython'",
@@ -91,7 +91,7 @@ pin-curl-cffi = [
 ]
 pin-secretstorage = [
     "cffi==2.0.0 ; platform_python_implementation != 'PyPy'",
-    "cryptography==47.0.0",
+    "cryptography==48.0.0",
     "jeepney==0.9.0",
     "pycparser==3.0 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'",
     "secretstorage==3.5.0",
