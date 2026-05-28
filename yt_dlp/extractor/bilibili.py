@@ -2158,6 +2158,7 @@ class BiliIntlBaseIE(InfoExtractor):
             'title': video_data.get('title_display') or video_data.get('title'),
             'description': video_data.get('desc'),
             'thumbnail': video_data.get('cover'),
+            'duration': int_or_none(video_data.get('duration')),
             'timestamp': unified_timestamp(video_data.get('formatted_pub_date')),
             'episode_number': int_or_none(self._search_regex(
                 r'^E(\d+)(?:$| - )', video_data.get('title_display') or '', 'episode number', default=None)),
@@ -2299,6 +2300,7 @@ class BiliIntlIE(BiliIntlBaseIE):
             'title': 'That Time I Got Reincarnated as a Slime: Scarlet Bond - Official Trailer 3| AnimeStan',
             'comment_count': int,
             'thumbnail': r're:https://pic\.bstarstatic\.(?:com|net)/ugc/f6c363659efd2eabe5683fbb906b1582\.jpg',
+            'duration': 109,
         },
         'params': {
             'getcomments': True,
