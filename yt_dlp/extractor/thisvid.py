@@ -2,6 +2,7 @@ import itertools
 import re
 import urllib.parse
 
+from .common import InfoExtractor
 from ..utils import (
     clean_html,
     get_element_by_class,
@@ -9,7 +10,6 @@ from ..utils import (
     url_or_none,
     urljoin,
 )
-from .common import InfoExtractor
 
 
 class ThisVidIE(InfoExtractor):
