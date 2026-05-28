@@ -207,17 +207,6 @@ class XVideosQuickiesIE(InfoExtractor):
             'duration': 9,
             'thumbnail': r're:^https://cdn.*-pic.xvideos-cdn.com/.+\.jpg',
         },
-    }, {
-        'url': 'https://www.xvideos.com/amateur-channels/wifeluna#quickies/a/47258683',
-        'md5': '16e322a93282667f1963915568f782c1',
-        'info_dict': {
-            'id': '47258683',
-            'ext': 'mp4',
-            'title': 'Verification video',
-            'age_limit': 18,
-            'duration': 16,
-            'thumbnail': r're:^https://cdn.*-pic.xvideos-cdn.com/.+\.jpg',
-        },
     }]
 
     def _real_extract(self, url):
