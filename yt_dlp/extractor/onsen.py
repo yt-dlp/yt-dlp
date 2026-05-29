@@ -72,14 +72,13 @@ class OnsenIE(InfoExtractor):
         'playlist_mincount': 35,
     }]
 
-    @staticmethod
-    def _decode_id(c):
-        return base64.urlsafe_b64decode(f'{c}===').decode()
-
     @classmethod
     def get_temp_id(cls, url):
-        if c := traverse_obj(parse_qs(url), ('c', -1, {str_or_none})):
-            return cls._decode_id(c)
+        import base64
+        import urllib.parse
+
+        if c := urllib.parse.parse_qs(urllib.parse.urlparse(url).query).get('c'):
+            return base64.urlsafe_b64decode(f'{c[-1]}===').decode()
         return super().get_temp_id(url)
 
     @staticmethod
@@ -125,7 +124,7 @@ class OnsenIE(InfoExtractor):
             return self.playlist_result(
                 entries, program_id, traverse_obj(programs, ('program_info', 'title', {clean_html})))
 
-        raw_id = self._decode_id(query['c'])
+        raw_id = base64.urlsafe_b64decode(f'{query["c"]}===').decode()
         p_keys = ('contents', lambda _, v: v['id'] == int(raw_id))
 
         program = traverse_obj(programs, (*p_keys, any))
