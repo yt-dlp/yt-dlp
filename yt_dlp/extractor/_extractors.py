@@ -1914,6 +1914,7 @@ from .telequebec import (
     TeleQuebecVideoIE,
 )
 from .teletask import TeleTaskIE
+from .telewebion import TelewebionIE
 from .tencent import (
     IflixEpisodeIE,
     IflixSeriesIE,
@@ -2142,6 +2143,7 @@ from .ustudio import (
     UstudioEmbedIE,
     UstudioIE,
 )
+from .varzesh3 import Varzesh3IE
 from .vbox7 import Vbox7IE
 from .veo import VeoIE
 from .vevo import (
