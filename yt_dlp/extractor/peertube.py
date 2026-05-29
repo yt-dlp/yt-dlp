@@ -1322,7 +1322,7 @@ class PeerTubeIE(InfoExtractor):
                     )
                     (?P<id>{_UUID_RE})
                     '''
-    _EMBED_REGEX = [r'''(?x)<iframe[^>]+\bsrc=["\'](?P<url>(?:https?:)?//{_INSTANCES_RE}/videos/embed/{cls._UUID_RE})''']
+    _EMBED_REGEX = [rf'''(?x)<iframe[^>]+\bsrc=["\'](?P<url>(?:https?:)?//{_INSTANCES_RE}/videos/embed/{_UUID_RE})''']
     _TESTS = [{
         'url': 'https://framatube.org/videos/watch/9c9de5e8-0a1e-484a-b099-e80766180a6d',
         'md5': '8563064d245a4be5705bddb22bb00a28',
