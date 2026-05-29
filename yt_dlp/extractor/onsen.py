@@ -21,6 +21,7 @@ class OnsenIE(InfoExtractor):
     IE_NAME = 'onsen'
     IE_DESC = 'インターネットラジオステーション＜音泉＞'
 
+    _API_HEADERS = {'X-Client': 'onsen-web'}
     _BASE_URL = 'https://www.onsen.ag'
     _HEADERS = {'Referer': f'{_BASE_URL}/'}
     _NETRC_MACHINE = 'onsen'
@@ -72,6 +73,16 @@ class OnsenIE(InfoExtractor):
     }]
 
     @staticmethod
+    def _decode_id(c):
+        return base64.urlsafe_b64decode(f'{c}===').decode()
+
+    @classmethod
+    def get_temp_id(cls, url):
+        if c := traverse_obj(parse_qs(url), ('c', -1, {str_or_none})):
+            return cls._decode_id(c)
+        return super().get_temp_id(url)
+
+    @staticmethod
     def _get_encoded_id(program):
         return base64.urlsafe_b64encode(str(program['id']).encode()).decode()
 
@@ -80,6 +91,7 @@ class OnsenIE(InfoExtractor):
             f'{self._BASE_URL}/web_api/signin', None, 'Logging in', headers={
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
+                **self._API_HEADERS,
             }, data=json.dumps({
                 'session': {
                     'email': username,
@@ -94,7 +106,8 @@ class OnsenIE(InfoExtractor):
         program_id = self._match_id(url)
         try:
             programs = self._download_json(
-                f'{self._BASE_URL}/web_api/programs/{program_id}', program_id)
+                f'{self._BASE_URL}/web_api/programs/{program_id}',
+                program_id, headers=self._API_HEADERS)
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 404:
                 raise ExtractorError('Invalid URL', expected=True)
@@ -103,14 +116,16 @@ class OnsenIE(InfoExtractor):
         query = {k: v[-1] for k, v in parse_qs(url).items() if v}
         if 'c' not in query:
             entries = [
-                self.url_result(update_url_query(url, {'c': self._get_encoded_id(program)}), OnsenIE)
-                for program in traverse_obj(programs, ('contents', lambda _, v: v['id']))
+                self.url_result(
+                    update_url_query(url, {'c': self._get_encoded_id(program)}),
+                    OnsenIE, str_or_none(program['id']),
+                ) for program in traverse_obj(programs, ('contents', lambda _, v: v['id']))
             ]
 
             return self.playlist_result(
                 entries, program_id, traverse_obj(programs, ('program_info', 'title', {clean_html})))
 
-        raw_id = base64.urlsafe_b64decode(f'{query["c"]}===').decode()
+        raw_id = self._decode_id(query['c'])
         p_keys = ('contents', lambda _, v: v['id'] == int(raw_id))
 
         program = traverse_obj(programs, (*p_keys, any))
