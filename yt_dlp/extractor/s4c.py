@@ -50,8 +50,6 @@ class S4CIE(InfoExtractor):
             'thumbnail': 'https://www.s4c.cymru/amg/1920x1080/Ffa_Coffi_Pawb_2024S4C_001.jpg',
             'upload_date': '20260131',
             'release_date': '20260131',
-            'series': '',
-            'series_id': '',
         },
     }]
 
@@ -97,8 +95,8 @@ class S4CIE(InfoExtractor):
                 'duration': ('duration', {lambda x: int(x) * 60}),
                 'upload_date': ('clic_aired', {unified_strdate}),
                 'release_date': ('last_tx', {unified_strdate}),
-                'series': ('series_title', {str}),
-                'series_id': ('series_id', {str_or_none}),
+                'series': ('series_title', {str}, filter),
+                'series_id': ('series_id', {str_or_none}, filter),
             }), get_all=False),
         }
 
