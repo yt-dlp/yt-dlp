@@ -917,10 +917,11 @@ class SabrStream:
                 self._consumed = True
                 return
 
+        not_near_head_suffix = ' and not near live head.' if not is_near_live_head else '.'
         raise StreamStallError(
             f'Stream stalled; no activity detected in '
-            f'{empty_requests} requests and {seconds_since_last_activity:.1f} seconds '
-            f'and not near live head.')
+            f'{empty_requests} requests and {seconds_since_last_activity:.1f} seconds'
+            f'{not_near_head_suffix}')
 
     # endregion
 

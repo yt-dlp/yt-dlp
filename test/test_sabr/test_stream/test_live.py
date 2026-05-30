@@ -396,8 +396,10 @@ class TestLiveStreamStall:
             post_live=post_live,
         )
         assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
-        with pytest.raises(StreamStallError,
-                           match=r'Stream stalled; no activity detected in 6 requests and 10.0 seconds and not near live head.'):
+        with pytest.raises(
+            StreamStallError,
+            match=r'Stream stalled; no activity detected in 6 requests and 10.0 seconds.',
+        ):
             list(sabr_stream.iter_parts())
 
         assert len(sabr_stream.processor.initialized_formats) == 1
