@@ -196,6 +196,7 @@ from .beatbump import (
 )
 from .beatport import BeatportIE
 from .beeg import BeegIE
+from .beeldengeluid import BeeldenGeluidIE
 from .behindkink import BehindKinkIE
 from .berufetv import BerufeTVIE
 from .bet import BetIE
