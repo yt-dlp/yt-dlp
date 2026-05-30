@@ -139,14 +139,21 @@ def make_cuepoint_info(
     track_type: TrackType = TrackType.AUDIO,
     *,
     cuepoint=None,
+    duration_ms=None,
+    start_time_ms=None,
 ):
+    time_range = None
+    if start_time_ms is not None:
+        time_range = TimeRange(start_ticks=start_time_ms, timescale=1000)
     return CuepointInfo(
         cuepoint=cuepoint if cuepoint is not None else Cuepoint(
             type=CuepointType.AD,
             event=event,
             identifier=identifier,
+            duration_sec=duration_ms // 1000 if duration_ms else None,
         ),
         track_type=track_type,
+        time_range=time_range,
     )
 
 
@@ -1571,9 +1578,12 @@ class TestCuepointList:
         processor.process_cuepoint_list(CuepointList(cuepoint_info=[make_cuepoint_info(identifier='new_identifier')]))
 
         assert set(processor.ad_cuepoints) == {'new_identifier'}
-        assert processor.ad_cuepoints['new_identifier'].cuepoint_id == 'new_identifier'
-        assert processor.ad_cuepoints['new_identifier'].magic_value == 11
-        logger.trace.assert_called_with('Registered ad cuepoint new_identifier due to START event')
+        assert processor.ad_cuepoints['new_identifier'].cuepoint_config.cuepoint_id == 'new_identifier'
+        assert processor.ad_cuepoints['new_identifier'].cuepoint_config.magic_value == 11
+        assert processor.ad_cuepoints['new_identifier'].cuepoint_end_ms is None
+        logger.trace.assert_called_with(
+            "Registered ad cuepoint new_identifier due to START event: "
+            "AdCuepoint(cuepoint_config=AdCuepointConfig(cuepoint_id='new_identifier', magic_value=11), cuepoint_end_ms=None)")
 
     def test_non_stop_existing_identifier_ignored(self, logger, base_args):
         processor = SabrProcessor(**base_args)
@@ -1588,8 +1598,8 @@ class TestCuepointList:
         processor.process_cuepoint_list(CuepointList(cuepoint_info=[make_cuepoint_info(cuepoint=cuepoint)]))
 
         assert set(processor.ad_cuepoints) == {'existing_identifier'}
-        assert processor.ad_cuepoints['existing_identifier'].cuepoint_id == 'existing_identifier'
-        assert processor.ad_cuepoints['existing_identifier'].magic_value == 11
+        assert processor.ad_cuepoints['existing_identifier'].cuepoint_config.cuepoint_id == 'existing_identifier'
+        assert processor.ad_cuepoints['existing_identifier'].cuepoint_config.magic_value == 11
         logger.trace.assert_called_with(
             f'Received ad cuepoint CONTINUE event for existing cuepoint identifier, ignoring: {cuepoint}')
 
@@ -1623,12 +1633,16 @@ class TestCuepointList:
         ]))
 
         assert set(processor.ad_cuepoints) == {'new_identifier'}
-        assert processor.ad_cuepoints['new_identifier'].cuepoint_id == 'new_identifier'
-        assert processor.ad_cuepoints['new_identifier'].magic_value == 11
-        logger.trace.assert_any_call('Registered ad cuepoint new_identifier due to START event')
+        assert processor.ad_cuepoints['new_identifier'].cuepoint_config.cuepoint_id == 'new_identifier'
+        assert processor.ad_cuepoints['new_identifier'].cuepoint_config.magic_value == 11
+        logger.trace.assert_any_call(
+            "Registered ad cuepoint new_identifier due to START event: "
+            "AdCuepoint(cuepoint_config=AdCuepointConfig(cuepoint_id='new_identifier', magic_value=11), cuepoint_end_ms=None)")
         logger.trace.assert_any_call(
             f'Received ad cuepoint CONTINUE event for existing cuepoint identifier, ignoring: {existing_continue}')
-        logger.trace.assert_any_call('Registered ad cuepoint stopped_identifier due to START event')
+        logger.trace.assert_any_call(
+            "Registered ad cuepoint stopped_identifier due to START event: "
+            "AdCuepoint(cuepoint_config=AdCuepointConfig(cuepoint_id='stopped_identifier', magic_value=11), cuepoint_end_ms=None)")
         logger.trace.assert_any_call('Cleared ad cuepoint stopped_identifier due to STOP event')
         logger.trace.assert_any_call(
             f'Received ad cuepoint STOP event for unknown cuepoint identifier, ignoring: {unknown_stop}')
@@ -1651,6 +1665,87 @@ class TestCuepointList:
         request_vpabr = build_vpabr_request(processor)
         assert {cuepoint.cuepoint_id for cuepoint in request_vpabr.ad_cuepoints} == {'first_identifier', 'second_identifier'}
         assert {cuepoint.magic_value for cuepoint in request_vpabr.ad_cuepoints} == {11}
+
+    def test_register_identifier_no_duration_secs(self, logger, base_args):
+        # should register an identifier without duration information but with start time
+        processor = SabrProcessor(**base_args)
+
+        cuepoint = make_cuepoint_info(identifier='new_identifier', start_time_ms=1000)
+        assert cuepoint.cuepoint.duration_sec is None
+
+        processor.process_cuepoint_list(CuepointList(cuepoint_info=[cuepoint]))
+
+        assert set(processor.ad_cuepoints) == {'new_identifier'}
+        assert processor.ad_cuepoints['new_identifier'].cuepoint_config.cuepoint_id == 'new_identifier'
+        assert processor.ad_cuepoints['new_identifier'].cuepoint_config.magic_value == 11
+        assert processor.ad_cuepoints['new_identifier'].cuepoint_end_ms is None
+        logger.trace.assert_called_with(
+            "Registered ad cuepoint new_identifier due to START event: "
+            "AdCuepoint(cuepoint_config=AdCuepointConfig(cuepoint_id='new_identifier', magic_value=11), cuepoint_end_ms=None)")
+
+    def test_register_identifier_no_start_time(self, logger, base_args):
+        # should register an identifier without start time information but with duration secs
+        processor = SabrProcessor(**base_args)
+
+        cuepoint = make_cuepoint_info(identifier='new_identifier', duration_ms=1000)
+        assert cuepoint.time_range is None
+
+        processor.process_cuepoint_list(CuepointList(cuepoint_info=[cuepoint]))
+
+        assert set(processor.ad_cuepoints) == {'new_identifier'}
+        assert processor.ad_cuepoints['new_identifier'].cuepoint_config.cuepoint_id == 'new_identifier'
+        assert processor.ad_cuepoints['new_identifier'].cuepoint_config.magic_value == 11
+        assert processor.ad_cuepoints['new_identifier'].cuepoint_end_ms is None
+        logger.trace.assert_called_with(
+            "Registered ad cuepoint new_identifier due to START event: "
+            "AdCuepoint(cuepoint_config=AdCuepointConfig(cuepoint_id='new_identifier', magic_value=11), cuepoint_end_ms=None)")
+
+    def test_register_identifier_with_time(self, logger, base_args):
+        # should register an identifier with duration information
+        processor = SabrProcessor(**base_args)
+
+        cuepoint = make_cuepoint_info(identifier='new_identifier', duration_ms=1000, start_time_ms=1)
+
+        processor.process_cuepoint_list(CuepointList(cuepoint_info=[cuepoint]))
+
+        assert set(processor.ad_cuepoints) == {'new_identifier'}
+        assert processor.ad_cuepoints['new_identifier'].cuepoint_config.cuepoint_id == 'new_identifier'
+        assert processor.ad_cuepoints['new_identifier'].cuepoint_config.magic_value == 11
+        assert processor.ad_cuepoints['new_identifier'].cuepoint_end_ms == 1001
+        logger.trace.assert_called_with(
+            "Registered ad cuepoint new_identifier due to START event: "
+            "AdCuepoint(cuepoint_config=AdCuepointConfig(cuepoint_id='new_identifier', magic_value=11), cuepoint_end_ms=1001)")
+
+    def test_clear_old_cuepoints(self, logger, base_args):
+        processor = SabrProcessor(**base_args)
+        processor.process_cuepoint_list(CuepointList(cuepoint_info=[
+            # should be cleared when pt>1000
+            make_cuepoint_info(identifier='old_identifier', duration_ms=1000, start_time_ms=0),
+            # should be cleared when pt > 3000
+            make_cuepoint_info(identifier='new_identifier', duration_ms=1000, start_time_ms=2000),
+            # should not be cleared automatically as no duration info
+            make_cuepoint_info(identifier='no_time_identifier'),
+        ]))
+        assert set(processor.ad_cuepoints) == {'old_identifier', 'new_identifier', 'no_time_identifier'}
+
+        processor.clear_old_cuepoints()
+        assert set(processor.ad_cuepoints) == {'old_identifier', 'new_identifier', 'no_time_identifier'}
+
+        processor.player_time_ms = 1000
+        processor.clear_old_cuepoints()
+        assert set(processor.ad_cuepoints) == {'old_identifier', 'new_identifier', 'no_time_identifier'}
+
+        processor.player_time_ms = 1001
+        processor.clear_old_cuepoints()
+        logger.trace.assert_called_with(
+            'Removed ad cuepoint old_identifier because its end time (1000ms) is less than player time 1001ms')
+        assert set(processor.ad_cuepoints) == {'new_identifier', 'no_time_identifier'}
+
+        processor.player_time_ms = 3001
+        processor.clear_old_cuepoints()
+        assert set(processor.ad_cuepoints) == {'no_time_identifier'}
+        logger.trace.assert_called_with(
+            'Removed ad cuepoint new_identifier because its end time (3000ms) is less than player time 3001ms')
 
 
 class TestSabrSeek:

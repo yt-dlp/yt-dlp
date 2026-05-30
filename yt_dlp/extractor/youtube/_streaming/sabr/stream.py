@@ -390,7 +390,7 @@ class SabrStream:
                     if not response.closed:
                         response.close()
 
-            self._validate_response_integrity()
+            self._finish_response_processing()
             self._process_sps_retry()
 
             if not self._current_http_retry.error:
@@ -415,6 +415,8 @@ class SabrStream:
                 self._is_retry = True
                 self._check_retry_live_stream_end()
 
+            self.processor.clear_old_cuepoints()
+
         self._consumed = True
         self._log_state()
 
@@ -437,7 +439,7 @@ class SabrStream:
     def _wait_for(self, seconds: int):
         self._next_request_wait_sec = max(self._next_request_wait_sec, seconds)
 
-    def _validate_response_integrity(self):
+    def _finish_response_processing(self):
         if not len(self.processor.partial_segments):
             return
         msg = 'Received partial segments: ' + ', '.join(

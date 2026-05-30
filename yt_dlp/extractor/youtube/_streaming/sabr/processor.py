@@ -107,6 +107,12 @@ BITFIELD_AUDIO_VIDEO = 0
 BITFIELD_AUDIO_VIDEO_CAPTIONS = 7
 
 
+@dataclasses.dataclass
+class AdCuepoint:
+    cuepoint_config: AdCuepointConfig
+    cuepoint_end_ms: int | None
+
+
 class SabrProcessor:
     """
     SABR Processor
@@ -167,7 +173,7 @@ class SabrProcessor:
         self.client_abr_state: ClientAbrState
         self.sabr_contexts_to_send: set[int] = set()
         self.sabr_context_updates: dict[int, SabrContextUpdate] = {}
-        self.ad_cuepoints: dict[str, AdCuepointConfig] = {}
+        self.ad_cuepoints: dict[str, AdCuepoint] = {}
         self._initialize_cabr_state()
 
     @property
@@ -183,8 +189,8 @@ class SabrProcessor:
         self._is_live = value
 
     @property
-    def player_time_ms(self):
-        return self.client_abr_state.player_time_ms
+    def player_time_ms(self) -> int:
+        return self.client_abr_state.player_time_ms or 0
 
     @player_time_ms.setter
     def player_time_ms(self, value: int):
@@ -786,9 +792,27 @@ class SabrProcessor:
                 if cuepoint_identifier in self.ad_cuepoints:
                     self.logger.trace(f'Received ad cuepoint {cuepoint.event.name} event for existing cuepoint identifier, ignoring: {cuepoint}')
                     continue
+                cuepoint_end_ms = None
+                if cuepoint_info.time_range is not None and cuepoint.duration_sec is not None:
+                    cuepoint_end_ms = (cuepoint.duration_sec * 1000) + ticks_to_ms(
+                        cuepoint_info.time_range.start_ticks, cuepoint_info.time_range.timescale)
                 # Not sure what the magic value is for yet, but 11 appears to be accepted (and required)
-                self.ad_cuepoints[cuepoint_identifier] = AdCuepointConfig(cuepoint_id=cuepoint_identifier, magic_value=11)
-                self.logger.trace(f'Registered ad cuepoint {cuepoint_identifier} due to {cuepoint.event.name} event')
+                self.ad_cuepoints[cuepoint_identifier] = AdCuepoint(
+                    cuepoint_config=AdCuepointConfig(cuepoint_id=cuepoint_identifier, magic_value=11),
+                    cuepoint_end_ms=cuepoint_end_ms)
+                self.logger.trace(f'Registered ad cuepoint {cuepoint_identifier} due to {cuepoint.event.name} event: {self.ad_cuepoints[cuepoint_identifier]}')
+
+    def clear_old_cuepoints(self):
+        # Clean up cuepoints that have ended based on the current player time.
+        # Sometimes the server does not send a STOP event so we need to do this.
+        for cuepoint_id, cuepoint in list(self.ad_cuepoints.items()):
+            if cuepoint.cuepoint_end_ms is None:
+                continue
+            if self.player_time_ms > cuepoint.cuepoint_end_ms:
+                self.ad_cuepoints.pop(cuepoint_id, None)
+                self.logger.trace(
+                    f'Removed ad cuepoint {cuepoint_id} because its end time '
+                    f'({cuepoint.cuepoint_end_ms}ms) is less than player time {self.player_time_ms}ms')
 
 
 def build_vpabr_request(processor: SabrProcessor):
@@ -830,5 +854,5 @@ def build_vpabr_request(processor: SabrProcessor):
             ) for initialized_format in processor.initialized_formats.values()
             for cr in initialized_format.consumed_ranges
         ],
-        ad_cuepoints=list(processor.ad_cuepoints.values()),
+        ad_cuepoints=[ad_cuepoint.cuepoint_config for ad_cuepoint in processor.ad_cuepoints.values()],
     )

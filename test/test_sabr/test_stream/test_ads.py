@@ -13,7 +13,14 @@ from test.test_sabr.test_stream.helpers import (
     setup_sabr_stream_av, LiveAVProfile, VALID_LIVE_URL,
 )
 
-from yt_dlp.extractor.youtube._proto.videostreaming import SabrContext, Cuepoint, CuepointType, AdCuepointConfig, SabrSeek
+from yt_dlp.extractor.youtube._proto.videostreaming import (
+    SabrContext,
+    Cuepoint,
+    CuepointType,
+    AdCuepointConfig,
+    SabrSeek,
+    TimeRange,
+)
 from yt_dlp.extractor.youtube._proto.videostreaming.cuepoint_list import CuepointInfo, CuepointEvent, TrackType, CuepointList
 
 
@@ -90,14 +97,18 @@ def test_sending_policy(logger, client_info):
     assert len(sabr_stream.processor.sabr_contexts_to_send) == 0
 
 
-def generate_cuepoint_info(identifier, event, track_type):
-    # Currently we ignore any of the duration info, but could be something to consider at a later date
+def generate_cuepoint_info(identifier, event, track_type, duration_ms=None, start_time_ms=None):
+    time_range = None
+    if start_time_ms is not None:
+        time_range = TimeRange(start_ticks=start_time_ms, timescale=1000)
     return CuepointInfo(
         cuepoint=Cuepoint(
             type=CuepointType.AD,
             event=event,
-            identifier=identifier),
+            identifier=identifier,
+            duration_sec=float(duration_ms // 1000) if duration_ms else None),
         track_type=track_type,
+        time_range=time_range,
     )
 
 
@@ -261,3 +272,64 @@ class TestLiveCuepointAds:
         # All following requests should also not include the cuepoint identifier
         for request in rh.request_history[3:]:
             assert len(request.vpabr.ad_cuepoints) == 0
+
+    @mock_time
+    def test_clear_old_cuepoints_after_response(self, logger, client_info):
+        total_segments = 10
+        segment_target_duration_ms = 2000
+
+        # should stick around
+        active_cuepoint = generate_cuepoint_info(
+            'active_identifier', CuepointEvent.START, track_type=TrackType.AUDIO,
+            start_time_ms=0, duration_ms=total_segments * segment_target_duration_ms)
+
+        # should be removed in third request
+        inactive_cuepoint = generate_cuepoint_info(
+            'inactive_identifier', CuepointEvent.START, track_type=TrackType.AUDIO,
+            start_time_ms=0, duration_ms=segment_target_duration_ms)
+
+        def insert_cuepoints(parts, vpabr, url, request_number):
+
+            if request_number == 1:
+                payload = protobug.dumps(CuepointList(
+                    cuepoint_info=[active_cuepoint, inactive_cuepoint]))
+                parts.append(
+                    UMPPart(
+                        part_id=UMPPartId.CUEPOINT_LIST,
+                        data=io.BytesIO(payload),
+                        size=len(payload),
+                    ),
+                )
+            return parts
+
+        profile = LiveAVProfile({
+            'total_segments': total_segments,
+            'segment_target_duration_ms': segment_target_duration_ms,
+            'dvr_segments': 9,
+            'custom_parts_function': insert_cuepoints,
+        })
+
+        sabr_stream, rh, _ = setup_sabr_stream_av(
+            sabr_response_processor=profile,
+            client_info=client_info,
+            logger=logger,
+            url=VALID_LIVE_URL,
+            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+        )
+
+        list(sabr_stream.iter_parts())
+
+        # First request should not include cuepoint identifier
+        first_request_vpabr = rh.request_history[0].vpabr
+        assert len(first_request_vpabr.ad_cuepoints) == 0
+
+        # Second request should include both cuepoint identifiers in the sabr context
+        second_request_vpabr = rh.request_history[1].vpabr
+        assert len(second_request_vpabr.ad_cuepoints) == 2
+        assert isinstance(second_request_vpabr.ad_cuepoints[0], AdCuepointConfig)
+        assert set(cp.cuepoint_id for cp in second_request_vpabr.ad_cuepoints) == {'active_identifier', 'inactive_identifier'}
+
+        # Third request should only have the active cuepoint - inactive should have been cleared
+        third_request_vpabr = rh.request_history[2].vpabr
+        assert len(third_request_vpabr.ad_cuepoints) == 1
+        assert set(cp.cuepoint_id for cp in third_request_vpabr.ad_cuepoints) == {'active_identifier'}

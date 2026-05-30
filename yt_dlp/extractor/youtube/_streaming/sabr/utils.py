@@ -106,7 +106,7 @@ def fallback_gvs_url(gvs_url):
         gvs_url_parsed._replace(netloc=next_host).geturl(), {'fallback_count': fallback_count + 1})
 
 
-def ticks_to_ms(time_ticks: int, timescale: int):
+def ticks_to_ms(time_ticks: int | None, timescale: int | None):
     if time_ticks is None or timescale is None:
         return None
     return math.ceil((time_ticks / timescale) * 1000)
