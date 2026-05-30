@@ -3687,7 +3687,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         fmt['downloader_options'] = {'http_chunk_size': CHUNK_SIZE}
                         yield fmt
 
-            def process_sabr_formats_and_subtitles():
+            def process_sabr_formats():
                 proto = 'sabr'
                 server_abr_streaming_url = streaming_data.get('serverAbrStreamingUrl')
                 if not server_abr_streaming_url:
@@ -3763,7 +3763,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not fmt:
                         continue
 
-                    caption_track = fmt_stream.get('captionTrack')
+                    # TODO(future): extract SABR live caption tracks.
+                    # (the SABR downloader supports these, just need to support extraction)
+                    if fmt_stream.get('captionTrack'):
+                        continue
 
                     fmt.update({
                         'is_from_start': live_status == 'is_live' and self.get_param('live_from_start'),
@@ -3779,20 +3782,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'target_duration_sec': fmt_stream.get('targetDurationSec'),
                     }
 
-                    single_stream = 'none' in (fmt.get('acodec'), fmt.get('vcodec'))
+                    if stream_id[0]:
+                        itags[stream_id[0]].add((proto, fmt.get('language')))
+                        stream_ids.append(stream_id)
 
-                    nonlocal subtitles
-                    if caption_track:
-                        # TODO: proper live subtitle extraction
-                        subtitles = self._merge_subtitles({str(stream_id[0]): [fmt]}, subtitles)
-                    elif single_stream:
-                        if stream_id[0]:
-                            itags[stream_id[0]].add((proto, fmt.get('language')))
-                            stream_ids.append(stream_id)
-                        yield fmt
+                    yield fmt
 
             yield from process_https_formats()
-            yield from process_sabr_formats_and_subtitles()
+            yield from process_sabr_formats()
 
             needs_live_processing = self._needs_live_processing(live_status, duration)
 
