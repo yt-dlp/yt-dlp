@@ -25,7 +25,7 @@ from .exceptions import (
 )
 from .impersonate import ImpersonateRequestHandler, ImpersonateTarget
 from ..dependencies import curl_cffi, certifi
-from ..utils import int_or_none
+from ..utils import int_or_none, version_tuple
 
 if curl_cffi is None:
     raise ImportError('curl_cffi is not installed')
@@ -33,9 +33,9 @@ if curl_cffi is None:
 
 curl_cffi_version = tuple(map(int, re.split(r'[^\d]+', curl_cffi.__version__)[:3]))
 
-if curl_cffi_version != (0, 5, 10) and not (0, 10) <= curl_cffi_version < (0, 15):
+if curl_cffi_version != (0, 5, 10) and not (0, 10) <= curl_cffi_version < (0, 16):
     curl_cffi._yt_dlp__version = f'{curl_cffi.__version__} (unsupported)'
-    raise ImportError('Only curl_cffi versions 0.5.10 and 0.10.x through 0.14.x are supported')
+    raise ImportError('Only curl_cffi versions 0.5.10 and 0.10.x through 0.15.x are supported')
 
 import curl_cffi.requests
 from curl_cffi.const import CurlECode, CurlOpt
@@ -123,31 +123,31 @@ BROWSER_TARGETS: dict[tuple[int, ...], dict[str, ImpersonateTarget]] = {
         'chrome110': ImpersonateTarget('chrome', '110', 'windows', '10'),
         'edge99': ImpersonateTarget('edge', '99', 'windows', '10'),
         'edge101': ImpersonateTarget('edge', '101', 'windows', '10'),
+    },
+    (0, 6): {
+        'chrome116': ImpersonateTarget('chrome', '116', 'windows', '10'),
+        'chrome119': ImpersonateTarget('chrome', '119', 'macos', '14'),
+        'chrome120': ImpersonateTarget('chrome', '120', 'macos', '14'),
+        'safari170': ImpersonateTarget('safari', '17.0', 'macos', '14'),
+        'safari172_ios': ImpersonateTarget('safari', '17.2', 'ios', '17.2'),
+        # safari153 and safari155 were available in 0.5.10, but fingerprints were wrong until 0.6.0
+        # Ref: https://github.com/lwthiker/curl-impersonate/issues/215
         'safari153': ImpersonateTarget('safari', '15.3', 'macos', '11'),
         'safari155': ImpersonateTarget('safari', '15.5', 'macos', '12'),
     },
     (0, 7): {
-        'chrome116': ImpersonateTarget('chrome', '116', 'windows', '10'),
-        'chrome119': ImpersonateTarget('chrome', '119', 'macos', '14'),
-        'chrome120': ImpersonateTarget('chrome', '120', 'macos', '14'),
         'chrome123': ImpersonateTarget('chrome', '123', 'macos', '14'),
         'chrome124': ImpersonateTarget('chrome', '124', 'macos', '14'),
-        'safari170': ImpersonateTarget('safari', '17.0', 'macos', '14'),
-        'safari172_ios': ImpersonateTarget('safari', '17.2', 'ios', '17.2'),
+    },
+    (0, 8): {
+        'safari180': ImpersonateTarget('safari', '18.0', 'macos', '15'),
+        'safari180_ios': ImpersonateTarget('safari', '18.0', 'ios', '18.0'),
     },
     (0, 9): {
-        'safari153': ImpersonateTarget('safari', '15.3', 'macos', '14'),
-        'safari155': ImpersonateTarget('safari', '15.5', 'macos', '14'),
-        'chrome119': ImpersonateTarget('chrome', '119', 'macos', '14'),
-        'chrome120': ImpersonateTarget('chrome', '120', 'macos', '14'),
-        'chrome123': ImpersonateTarget('chrome', '123', 'macos', '14'),
-        'chrome124': ImpersonateTarget('chrome', '124', 'macos', '14'),
         'chrome131': ImpersonateTarget('chrome', '131', 'macos', '14'),
         'chrome131_android': ImpersonateTarget('chrome', '131', 'android', '14'),
         'chrome133a': ImpersonateTarget('chrome', '133', 'macos', '15'),
         'firefox133': ImpersonateTarget('firefox', '133', 'macos', '14'),
-        'safari180': ImpersonateTarget('safari', '18.0', 'macos', '15'),
-        'safari180_ios': ImpersonateTarget('safari', '18.0', 'ios', '18.0'),
     },
     (0, 10): {
         'firefox135': ImpersonateTarget('firefox', '135', 'macos', '14'),
@@ -161,6 +161,18 @@ BROWSER_TARGETS: dict[tuple[int, ...], dict[str, ImpersonateTarget]] = {
     (0, 12): {
         'safari260': ImpersonateTarget('safari', '26.0', 'macos', '26'),
         'safari260_ios': ImpersonateTarget('safari', '26.0', 'ios', '26.0'),
+    },
+    (0, 14): {
+        'chrome142': ImpersonateTarget('chrome', '142', 'macos', '26'),
+        'safari2601': ImpersonateTarget('safari', '26.0.1', 'macos', '26'),
+    },
+    (0, 15): {
+        'chrome145': ImpersonateTarget('chrome', '145', 'macos', '26'),
+        'chrome146': ImpersonateTarget('chrome', '146', 'macos', '26'),
+        # firefox144 was added in 0.14.0, but its UA was wrong until 0.15.0
+        # Ref: https://github.com/lexiforest/curl-impersonate/issues/234
+        'firefox144': ImpersonateTarget('firefox', '144', 'macos', '26'),
+        'firefox147': ImpersonateTarget('firefox', '147', 'macos', '26'),
     },
 }
 
@@ -206,7 +218,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
             # prioritize tor < edge < firefox < safari < chrome
             ('tor', 'edge', 'firefox', 'safari', 'chrome').index(x[1].client),
             # prioritize newest version
-            float(x[1].version) if x[1].version else 0,
+            version_tuple(x[1].version or '0'),
             # group by os name
             x[1].os,
         ), reverse=True)).items()
