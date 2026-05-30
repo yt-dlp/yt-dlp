@@ -900,14 +900,16 @@ class SabrStream:
             context_msg = 'Near live stream head' if is_near_live_head else 'No live metadata available'
 
             # TODO: add a timeout on how long heartbeat can indicate it is still live
-            if self._heartbeat_is_live():
+            heartbeat_is_live = self._heartbeat_is_live()
+            if heartbeat_is_live:
                 self.logger.debug(
                     f'No activity detected in {empty_requests} requests and {seconds_since_last_activity:.1f} seconds. '
                     f'{context_msg} but heartbeat indicates stream is still live; continuing to wait for segments.')
                 return
 
             # In the case we only get one format at the start of a stream and stall, it should fail with a stall
-            if self._missing_initialized_format():
+            # However, if the livestream has definitely ended, this could occur if started download at the end of a non-DVR stream.
+            if self._missing_initialized_format() and heartbeat_is_live is not False:
                 self.logger.debug(
                     'Skipping end of live stream check; not all enabled format selectors have an initialized format yet')
             else:

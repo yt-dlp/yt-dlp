@@ -362,7 +362,7 @@ class TestLiveStreamStall:
 
     @mock_time
     @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
-    def test_stream_stall_header_consumed_ranges_missing_izf(self, logger, client_info, post_live):
+    def test_stream_stall_head_missing_izf(self, logger, client_info, post_live):
         # Stream stalled near the head of the stream, but not all format selectors are initialized
         # This can happen at the start of the stream
         total_segments = 2
@@ -406,6 +406,72 @@ class TestLiveStreamStall:
 
         # All responses should be closed
         assert all(request.response.closed for request in rh.request_history)
+
+        logger.debug.assert_any_call('Skipping end of live stream check; not all enabled format selectors have an initialized format yet')
+
+    @mock_time
+    def test_stream_stall_head_missing_izf_heartbeat_stream_ended(self, logger, client_info):
+        # Stream stalled near the head of the stream, but not all format selectors are initialized.
+        # Case where the heartbeat indicates stream has ended - should finish
+        # This can happen at the start of the download when the stream has ended for non-DVR streams.
+        # NOTE: only applies to live; post-live should still fail
+        total_segments = 2
+        segment_target_duration_ms = 2000
+        dvr_segments = 1
+
+        class MissingAudioFormatLiveAVProfile(LiveAVProfile):
+            def determine_formats(self, vpabr: VideoPlaybackAbrRequest):
+                audio_format_id, _, _ = super().determine_formats(vpabr)
+                return audio_format_id, None, _
+
+        def stall_func(parts, vpabr, url, request_number):
+            # Stop returning new segments after 8 requests
+            if request_number >= 2:
+                return []
+            return parts
+
+        heartbeat_callback = MagicMock()
+        heartbeat_callback.return_value = Heartbeat(
+            is_live=False, broadcast_id=LIVE_BROADCAST_ID, video_id='video_id')
+
+        profile = MissingAudioFormatLiveAVProfile({
+            'total_segments': total_segments,
+            'segment_target_duration_ms': segment_target_duration_ms,
+            'dvr_segments': dvr_segments,
+            'custom_parts_function': stall_func,
+        })
+
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=profile,
+            client_info=client_info,
+            logger=logger,
+            url=VALID_LIVE_URL,
+            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            heartbeat_callback=heartbeat_callback,
+        )
+        audio_selector, _ = selectors
+        assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+        parts = list(sabr_stream.iter_parts())
+        assert_media_sequence_in_order(parts, audio_selector, 1, check_segment_total_segments=False)
+
+        # Ensure we did not get any video segments
+        video_parts = [part for part in parts if hasattr(part, 'format_selector') and isinstance(part.format_selector, VideoSelector)]
+        assert not video_parts
+
+        assert len(sabr_stream.processor.initialized_formats) == 1
+
+        # All responses should be closed
+        assert all(request.response.closed for request in rh.request_history)
+
+        with pytest.raises(AssertionError):
+            logger.debug.assert_any_call('Skipping end of live stream check; not all enabled format selectors have an initialized format yet')
+
+        logger.debug.assert_any_call(
+            'No activity detected in 6 requests and 10.0 seconds. '
+            'Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+
+        # Heartbeat should have been called at least once
+        heartbeat_callback.assert_called()
 
     @mock_time
     def test_stream_stall_head_consumed_ranges_with_heartbeat(self, logger, client_info):

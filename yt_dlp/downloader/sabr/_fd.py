@@ -325,6 +325,12 @@ class SabrFdSession:
                         'The formats may be out of sync in the merged file.',
                         only_once=True)
                     break
+                if segment_count == 0:
+                    # Should only occur for non-DVR livestreams if started at the edge after the stream ended.
+                    # Other cases should raise a stall error.
+                    self.fd.to_screen(f'[SABR Debug Info]: {self.stream.create_stats_str()}')
+                    self.fd.report_warning('[download] Did not receive data for one or more formats')
+                    break
 
         for writer in self.writers.values():
             writer.finish()
