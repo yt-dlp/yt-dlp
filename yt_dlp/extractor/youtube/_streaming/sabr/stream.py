@@ -692,9 +692,7 @@ class SabrStream:
             return
 
         # 4. Update player time to the lowest end time of consumed ranges that match the current player time
-        min_izf, min_cr = min(
-            current_consumed_ranges,
-            key=lambda pair: pair[1].start_time_ms + pair[1].duration_ms)
+        min_izf, min_cr = self._get_min_consumed_range(current_consumed_ranges)
         min_consumed_time_ms = min_cr.start_time_ms + min_cr.duration_ms
         self.logger.trace(f'Lowest consumed range: format={min_izf.format_id}, cr={min_cr} (end={min_consumed_time_ms}ms)')
 
@@ -714,8 +712,29 @@ class SabrStream:
             max_seekable_time_ms = getattr(self.processor.live_state, 'head_sequence_time_ms', None)
 
         if max_seekable_time_ms is not None and self.processor.player_time_ms >= max_seekable_time_ms:
-            self.logger.trace(f'Setting player time to max seekable time ms: {max_seekable_time_ms}ms (-{self.processor.player_time_ms - max_seekable_time_ms}ms)')
-            self.processor.player_time_ms = max_seekable_time_ms
+            # If we are far past the max seekable time ms, move the player time backwards.
+            # This can occur if initially request a start time well past the head and no server seek occurs.
+            #
+            # Note: Sometimes the max seekable time in the live metadata may decrease (usually temporary).
+            # To avoid accidently requesting segments before the current consumed range,
+            # we set the minimum player time to the end of that consumed range.
+            #
+            # player time: | ------------- OK ------------- | ------ too far ahead, rollback to 2) ------>
+            #      1. max_seekable          2. max_seekable + est. seg duration
+            min_pair = self._get_min_consumed_range(self._current_consumed_ranges())
+            min_consumed_time_ms = 0
+            if min_pair:
+                min_consumed_time_ms = min_pair[1].start_time_ms + min_pair[1].duration_ms
+
+            new_time = max(
+                min_consumed_time_ms,
+                min(self.processor.player_time_ms, max_seekable_time_ms + (self.processor.live_segment_target_duration_sec * 1000) - self.processor.live_segment_target_duration_tolerance_ms))
+
+            if new_time != self.processor.player_time_ms:
+                self.logger.trace(
+                    f'Setting player time to: '
+                    f'{new_time}ms (-{self.processor.player_time_ms - new_time}ms)')
+                self.processor.player_time_ms = new_time
 
             # Wait for next segments to be available.
             # NOTE: If live metadata is not available, we have no way of knowing if we need to wait
@@ -929,6 +948,13 @@ class SabrStream:
             current.append((izf, cr))
         return current
 
+    def _get_min_consumed_range(self, current_consumed_ranges: list[tuple[InitializedFormat, ConsumedRange | None]]):
+        consumed_ranges = list(filter(lambda pair: pair[1] is not None, current_consumed_ranges))
+        if not consumed_ranges:
+            return None
+        return min(
+            consumed_ranges, key=lambda pair: pair[1].start_time_ms + pair[1].duration_ms)
+
     def _is_near_head_of_live_stream(self):
         # 1. Check if near head segment based on consumed segments
         head_sequence_number = getattr(self.processor.live_state, 'head_sequence_number', None)
@@ -1136,6 +1162,8 @@ class SabrStream:
             s = f'{izf.format_id.itag}'
             if izf.discard:
                 s += 'd'
+            if izf.seek_ms:
+                s += 's'
             p = []
             if izf.last_segment_number:
                 p.append(f'{izf.last_segment_number}')

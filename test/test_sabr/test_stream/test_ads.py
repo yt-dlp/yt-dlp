@@ -184,7 +184,7 @@ class TestLiveCuepointAds:
         for request in rh.request_history[6:]:
             assert len(request.vpabr.ad_cuepoints) == 0
 
-        # Check one of the SABR State logs include acp:1 (ad cue point number0
+        # Check one of the SABR State logs include acp:1 (ad cue point number)
         assert any(
             'acp:1' in call.args[0] for call in logger.debug.call_args_list
             if 'SABR State' in call.args[0])

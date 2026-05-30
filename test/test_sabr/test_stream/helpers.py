@@ -753,8 +753,8 @@ class LiveAVProfile(BasicAudioVideoProfile):
             # Basic server-side buffering logic to determine if the segment should be included
             # If not within 1 target segment of this segment, skip
             if (
-                (player_time_ms < start_ms - self.segment_target_duration_ms + segment_buffer_window_offset)
-                or (player_time_ms > start_ms + self.segment_target_duration_ms - segment_buffer_window_offset)
+                (player_time_ms < start_ms - self.segment_target_duration_ms - segment_buffer_window_offset)
+                or (player_time_ms > start_ms + self.segment_target_duration_ms + segment_buffer_window_offset)
             ):
                 continue
 
