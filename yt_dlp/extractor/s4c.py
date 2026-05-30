@@ -38,6 +38,21 @@ class S4CIE(InfoExtractor):
             'series': '3 Can',
             'series_id': '947426687',
         },
+    }, {
+        # No series
+        'url': 'https://www.s4c.cymru/clic/programme/876045439',
+        'info_dict': {
+            'id': '876045439',
+            'ext': 'mp4',
+            'title': 'Ffa Coffi Pawb!',
+            'description': 'md5:d1ccbb61c4233b3a443cc092f45bc193',
+            'duration': 3240,
+            'thumbnail': 'https://www.s4c.cymru/amg/1920x1080/Ffa_Coffi_Pawb_2024S4C_001.jpg',
+            'upload_date': '20260131',
+            'release_date': '20260131',
+            'series': '',
+            'series_id': '',
+        },
     }]
 
     def _real_extract(self, url):
