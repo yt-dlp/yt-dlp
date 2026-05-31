@@ -258,6 +258,18 @@ class GenericIE(InfoExtractor):
         },
         'playlist_count': 2,
     }, {
+        # Duplicate HTML5 videos
+        'url': 'https://www.erome.com/a/XxDBEBL0',
+        'info_dict': {
+            'id': 'XxDBEBL0',
+            'title': 'emo girl dancing teaser',
+            'ext': 'mp4',
+            'age_limit': 18,
+            'thumbnail': 'https://s16.erome.com/8022/XxDBEBL0/ECWftvK8.jpg',
+            'description': 'Visit the page to see this album : emo girl dancing teaser',
+            '_old_archive_ids': ['XxDBEBL0'],
+        },
+    }, {
         # Cinerama Player
         # https://github.com/ytdl-org/youtube-dl/commit/501f13fbf3d1f7225f91e3e0ad008df2cd3219f1
         'url': 'https://www.abc.net.au/res/libraries/cinerama2/examples/single_clip.htm',
