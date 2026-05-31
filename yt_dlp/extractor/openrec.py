@@ -80,14 +80,20 @@ class OpenRecBaseIE(InfoExtractor):
         detail = self._call_api(f'movies/{video_id}/detail', video_id)
         is_member = traverse_obj(detail, (
             'data', 'items', ..., 'membership', 'is_active', {bool}, any)) or False
+        has_ppv = traverse_obj(detail, (
+            'data', 'items', ..., 'ppv_ticket_products', ..., {dict}, any)) or False
 
+        need = None
         if need_premium and not is_premium:
-            self.raise_login_required(
-                'This content is only available for premium users', metadata_available=True)
+            need = 'premium membership'
         elif needs_subscription and not is_member:
+            need = 'channel subscription'
+        elif needs_auth and not has_ppv:
+            need = 'PPV purchase'
+
+        if need:
             self.raise_login_required(
-                'This content is only available for channel subscribers', metadata_available=True)
-        # PPV ticket validation is required
+                f'This content requires a {need}', metadata_available=True)
 
         return info, detail, {
             'id': video_id,
