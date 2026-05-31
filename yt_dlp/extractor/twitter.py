@@ -19,7 +19,6 @@ from ..utils import (
     make_archive_id,
     remove_end,
     str_or_none,
-    str_to_int,
     strip_or_none,
     truncate_string,
     try_call,
@@ -1115,9 +1114,7 @@ class TwitterIE(TwitterBaseIE):
         if binding_values:
             status['card']['binding_values'] = binding_values
 
-        status.update(traverse_obj(result, {'view_count': ('views', 'count')}))
-        if status.get('view_count'):
-            status['view_count'] = str_to_int(status['view_count'])
+        status.update(traverse_obj(result, {'view_count': ('views', 'count', {int_or_none})}))
 
         return status
 
@@ -1268,8 +1265,6 @@ class TwitterIE(TwitterBaseIE):
                 'formats': formats,
                 'subtitles': subtitles,
                 'thumbnails': thumbnails,
-                # Since its no longer available and we might get it from GraphQL I guess its safe to comment this
-                # 'view_count': traverse_obj(media, ('mediaStats', 'viewCount', {int_or_none})),  # No longer available
                 'duration': float_or_none(traverse_obj(media, ('video_info', 'duration_millis')), 1000),
                 # Prioritize m3u8 formats for compat, see https://github.com/yt-dlp/yt-dlp/issues/8117
                 '_format_sort_fields': ('res', 'proto:m3u8', 'br', 'size'),  # http format codec is unknown
