@@ -12,6 +12,7 @@ from yt_dlp.dependencies import protobug
 from yt_dlp.extractor.youtube._proto import unknown_fields
 from yt_dlp.extractor.youtube._proto.innertube import ClientInfo, NextRequestPolicy
 from yt_dlp.extractor.youtube._proto.videostreaming import (
+    BufferedRange,
     CuepointList,
     FormatInitializationMetadata,
     LiveMetadata,
@@ -23,6 +24,7 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     SabrRedirect,
     SabrSeek,
     StreamProtectionStatus,
+    TimeRange,
 )
 from yt_dlp.networking import Request, Response
 from yt_dlp.networking.exceptions import HTTPError, TransportError
@@ -60,6 +62,7 @@ from .utils import (
     broadcast_id_from_url,
     fallback_gvs_url,
     find_consumed_range_by_time,
+    find_consumed_range_chain,
     validate_sabr_url,
 )
 from ..ump import UMPDecoder, UMPPart, UMPPartId, read_varint
@@ -78,6 +81,10 @@ DEFAULT_MIN_LIVE_END_WAIT_SEC = 10
 # the head sequence time and max seekable time. However, for now it is sufficient to hardcode.
 DEFAULT_LIVE_END_SEGMENT_TOLERANCE = 4
 DEFAULT_EXPIRY_THRESHOLD_SEC = 60
+
+# YouTube allows retrieval of segments max 7 days.
+# -1 hour leeway added for stability
+DEFAULT_MAX_REWIND_TIME_MS = (7 * 24 * 3600 * 1000) - 3600
 
 
 @dataclasses.dataclass
@@ -221,6 +228,7 @@ class SabrStream:
         heartbeat_callback: HeartbeatCallback | None = None,
         pot_callback: PotCallback | None = None,
         reload_callback: ReloadCallback | None = None,
+        enable_live_deep_rewind: bool | None = None,
     ):
 
         self.logger = logger
@@ -250,6 +258,7 @@ class SabrStream:
         self.max_empty_requests = max_empty_requests or DEFAULT_MAX_EMPTY_REQUESTS
         self.live_end_wait_sec = live_end_wait_sec or max(DEFAULT_MIN_LIVE_END_WAIT_SEC, self.max_empty_requests * self.processor.live_segment_target_duration_sec)
         self.live_end_segment_tolerance = live_end_segment_tolerance or DEFAULT_LIVE_END_SEGMENT_TOLERANCE
+        self.enable_live_deep_rewind = enable_live_deep_rewind or False
         self.expiry_threshold_sec = expiry_threshold_sec or DEFAULT_EXPIRY_THRESHOLD_SEC
         if self.expiry_threshold_sec <= 0:
             raise ValueError('expiry_threshold_sec must be greater than 0')
@@ -273,6 +282,9 @@ class SabrStream:
         self._is_retry = False
 
         self._consumed = False
+
+        # Buffered ranges to be injected in the next request
+        self._injected_consumed_ranges = []
 
     def close(self):
         self._consumed = True
@@ -344,7 +356,7 @@ class SabrStream:
             self._process_next_wait()
 
             self._process_expiry()
-            vpabr = build_vpabr_request(self.processor)
+            vpabr = self._apply_injected_consumed_ranges(build_vpabr_request(self.processor))
             self._last_vpabr = vpabr
 
             payload = protobug.dumps(vpabr)
@@ -405,6 +417,9 @@ class SabrStream:
             if not retry_next_request:
                 self._process_next_player_time()
                 self._process_live_wait()
+
+                # TODO: should prevent waiting and post_live end of stream check if rewinding still
+                self._process_live_deep_rewind()
 
                 self._check_end_of_stream()
                 self._check_stream_stall()
@@ -701,6 +716,118 @@ class SabrStream:
         difference = min_consumed_time_ms - self.processor.player_time_ms
         self.processor.player_time_ms = min_consumed_time_ms
         self.logger.trace(f'Updated player time ms to: {self.processor.player_time_ms} (+{difference}ms)')
+
+    # endregion
+
+    # region: live deep rewind
+    def _process_live_deep_rewind(self):
+        # EXPERIMENTAL
+        # BEWARE: super janky code
+        # TODO: check how post_live behaves
+        if (
+            not self.processor.is_live
+            or not self.enable_live_deep_rewind
+            or self._missing_initialized_format()
+        ):
+            return
+
+        max_seekable_time_ms: int | None = getattr(self.processor.live_state, 'max_seekable_time_ms', None)
+        min_seekable_time_ms: int | None = getattr(self.processor.live_state, 'min_seekable_time_ms', None)
+        # TODO: for non-DVR, min seekable ends up being the first-deep reminded segment, so this detection doesn't work
+        if max_seekable_time_ms is None or min_seekable_time_ms is None:
+            self.logger.debug('cannot deep rewind: max_seekable_time_ms/min_seekable_time_ms is unavailable')
+            # TODO: seek to an expected segment and ensure that is validated
+            for izf in self._active_initialized_formats():
+                izf.seek_ms = 0
+            return
+
+        # TODO: temp solution to constant seeking and creating lots of new buffered ranges due to our anchor lagging behind DVR lower bound.
+        #  Should probably allow anchor to catch up by multiple segments at a time?
+        max_buffer_size = max_seekable_time_ms - min_seekable_time_ms
+        buffer = min(max_buffer_size, 20 * (self.processor.live_segment_target_duration_sec * 1000))
+        if min_seekable_time_ms is not None and self.processor.player_time_ms < min_seekable_time_ms + buffer:
+            self.logger.debug(f'deep rewind skipped: allowing player time to get ahead of the lower bound by {buffer}ms')
+            # TODO: seek to an expected segment and ensure that is validated
+            for izf in self._active_initialized_formats():
+                izf.seek_ms = 0
+            return
+
+        rewind_time_ms = max(0, self.processor.start_time_ms, max_seekable_time_ms - DEFAULT_MAX_REWIND_TIME_MS)
+        if rewind_time_ms >= self.processor.player_time_ms:
+            self.logger.trace(
+                f'skipping deep rewind: player_time_ms={self.processor.player_time_ms} is before rewind_time_ms={rewind_time_ms}')
+            return
+
+        estimated_rewind_segment = max(0, (rewind_time_ms // (self.processor.live_segment_target_duration_sec * 1000)) - 1)
+
+        injected_ranges = []
+        for izf in self._active_initialized_formats():
+            # Find last consumed range in cr chain at rewind_time_ms
+            tolerance_ms = self.processor.live_segment_target_duration_tolerance_ms
+            rewind_cr = find_consumed_range_by_time(
+                # When rewinding to 0, we cannot get segment 0, so it is expected there will not be a consumed range there.
+                time_ms=rewind_time_ms + (self.processor.live_segment_target_duration_sec * 1000),
+                consumed_ranges=izf.consumed_ranges,
+                tolerance_ms=tolerance_ms)
+
+            # If cannot find by time, try by the estimated segment:
+            # TODO: maybe use a bigger tolerance when trying to rewind as the estimate could be quite far off
+            if not rewind_cr:
+                chains = find_consumed_range_chain(estimated_rewind_segment + 1, izf.consumed_ranges)
+                if chains:
+                    rewind_cr = chains[-1]
+
+            # This range MUST be added to the end of buffered ranges.
+            # The start_time_ms MUST be the same as player_time_ms
+            self.logger.trace(f'rewind cr: {rewind_cr}, est rewind segment: {estimated_rewind_segment}')
+            injected_ranges.append((izf.format_id, ConsumedRange(
+                start_time_ms=self.processor.player_time_ms,
+                duration_ms=0,
+                start_sequence_number=None,
+                end_sequence_number=estimated_rewind_segment if rewind_cr is None else rewind_cr.end_sequence_number,
+            )))
+
+            # Must mark format as seeking backwards otherwise will get segment mismatch error
+            # TODO: add validation whether we got next segment at the player time OR at the rewind target CR.
+            izf.seek_ms = 0
+
+        # Store injected ranges for the next request
+        if injected_ranges:
+            self._injected_consumed_ranges.extend(injected_ranges)
+            # Calculate hours from rewind_time_ms
+            hours = (max_seekable_time_ms - rewind_time_ms) // 3600000
+            # TODO: once=true is not sufficient here, as the hours will change.
+            #  An event should be pushed up to the FD and logged there.
+            self.logger.warning(f'Attempting to deep-rewind up to {hours} hour(s)', once=True)
+
+    def _apply_injected_consumed_ranges(self, vpabr):
+        if not self._injected_consumed_ranges:
+            return vpabr
+
+        for format_id, cr in self._injected_consumed_ranges:
+            vpabr.buffered_ranges.append(
+                BufferedRange(
+                    format_id=format_id,
+                    start_segment_index=cr.start_sequence_number,
+                    end_segment_index=cr.end_sequence_number,
+                    start_time_ms=cr.start_time_ms,
+                    duration_ms=cr.duration_ms,
+                    time_range=TimeRange(
+                        start_ticks=cr.start_time_ms,
+                        duration_ticks=cr.duration_ms,
+                        timescale=1000,
+                    ),
+                ))
+
+        self.logger.trace(f'Injected {len(self._injected_consumed_ranges)} consumed ranges into vpabr')
+        if self.logger.log_level == self.logger.LogLevel.TRACE:
+            self.logger.trace(f'Injected consumed ranges: {self._injected_consumed_ranges}')
+
+        # TODO: clear here or after successful request?
+        # Could be useful to clear on bad request to try recover the stream
+        self._injected_consumed_ranges = []
+        return vpabr
+    # endregion
 
     def _process_live_wait(self):
         if not self.processor.is_live or self.processor.post_live:
@@ -1221,11 +1348,14 @@ class SabrStream:
         expires_in = dt.timedelta(seconds=int(expires_at - time.time()))
         return f'exp:{expires_in}'
 
+    def _player_time_part(self):
+        return f't:{self.processor.player_time_ms}' + ('R' if self._injected_consumed_ranges else '')
+
     def create_stats_str(self):
         parts = [
             f"v:{self.processor.video_id or 'unknown'}",
             f'c:{self.processor.client_info.client_name.name}',
-            f't:{self.processor.player_time_ms}',
+            self._player_time_part(),
             self._stats_host_part(),
             self._stats_exp_part(),
             f'rn:{self._request_number}',

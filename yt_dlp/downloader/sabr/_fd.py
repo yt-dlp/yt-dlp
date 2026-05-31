@@ -86,6 +86,8 @@ class SabrFdSession:
         self.writers: dict[str, SabrFDFormatWriter] = {}
         self.stream = None
         self._logged_dvr_message = False
+        self._enable_live_deep_rewind = traverse_obj(
+            self.fd.ydl.params, ('extractor_args', 'youtube', 'enable_live_deep_rewind', 0, {str}), get_all=False) == 'true'
 
         # NOTE: the below may become outdated once callbacks are used
         self.server_abr_streaming_url = server_abr_streaming_url
@@ -117,6 +119,11 @@ class SabrFdSession:
 
         start_time_ms = JS_MAX_SAFE_INTEGER if self.is_live and not self.live_from_start else 0
 
+        if self._enable_live_deep_rewind and self.is_live:
+            self.fd.report_warning(
+                'Enabled live deep rewind. This feature is under development and experimental. '
+                'Unexpected behavior may occur and the integrity of the downloaded files cannot be guaranteed.')
+
         self.stream = SabrStream(
             urlopen=self.fd.ydl.urlopen,
             logger=create_sabrfd_logger(self.fd.ydl, prefix='sabr:stream'),
@@ -135,6 +142,7 @@ class SabrFdSession:
             heartbeat_callback=self.heartbeat_callback,
             pot_callback=self.pot_callback,
             reload_callback=self.reload_callback,
+            enable_live_deep_rewind=self._enable_live_deep_rewind,
         )
 
         self.fd._prepare_multiline_status(len(self.writers) + 1)
@@ -293,6 +301,10 @@ class SabrFdSession:
             else:
                 self.fd.to_screen(
                     f'[download] Downloading the past {hours} hour(s) of the live stream; full stream is not available')
+            # TODO: proper logging
+            if self._enable_live_deep_rewind:
+                self.fd.to_screen(
+                    '[download] Live deep rewind is enabled, will attempt to download as early as possible')
         else:
             self.fd.to_screen(
                 '[download] Downloading from the live edge; pass --live-from-start to download from the beginning of the stream')
