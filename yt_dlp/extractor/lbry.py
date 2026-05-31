@@ -198,9 +198,9 @@ class LBRYBaseIE(InfoExtractor):
 
             # get commenter account/channel info
             channel_ids = traverse_obj(comments, (..., 'channel_id', {str}))
-            channel_ids = set(channel_ids)
+            channel_ids = set(channel_ids)                          # remove duplicates
             channel_ids.difference_update(processed_account_ids)    # remove processed accounts
-            channel_ids = list(channel_ids)                         # remove duplicates
+            channel_ids = list(channel_ids)
             if len(channel_ids) > 0:                                # API call and modify thumbnail dict only if new found
                 params = {
                     'claim_ids': channel_ids,
