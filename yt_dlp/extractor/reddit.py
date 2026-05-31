@@ -286,8 +286,7 @@ class RedditIE(InfoExtractor):
 
     def _real_initialize(self):
         # Get session cookies from a HTML page, otherwise the .json endpoint will return a block page
-        urlh = self._request_webpage('https://old.reddit.com/', None)
-        self._set_cookie('reddit.com', 'loid', self._get_cookies(urlh.url)['loid'].value)
+        _ = self._request_webpage('https://old.reddit.com/', None)
 
         # Set cookie to opt-in to age-restricted subreddits
         self._set_cookie('reddit.com', 'over18', '1')
@@ -308,7 +307,7 @@ class RedditIE(InfoExtractor):
 
         try:
             data = self._download_json(
-                f'https://old.reddit.com/{slug}/.json', video_id, expected_status=403)
+                f'https://www.reddit.com/{slug}/.json', video_id, expected_status=403)
         except ExtractorError as e:
             if isinstance(e.cause, json.JSONDecodeError):
                 if self._get_cookies('https://www.reddit.com/').get('reddit_session'):
