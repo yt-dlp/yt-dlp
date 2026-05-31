@@ -246,6 +246,7 @@ class SabrFDFormatWriter:
             'progress_idx': self.progress_idx,
             'fragment_count': part.total_segments,
             'fragment_index': part.sequence_number,
+            '_progress_type': self.info_dict.get('format_id'),
         }
 
         self._progress.update(self._state['downloaded_bytes'])
