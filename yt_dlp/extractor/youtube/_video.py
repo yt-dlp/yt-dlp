@@ -1876,7 +1876,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     }]
 
     _DEFAULT_PLAYER_JS_VERSION = 'actual'
-    _DEFAULT_PLAYER_JS_VARIANT = 'tv'
+    _DEFAULT_PLAYER_JS_VARIANT = 'main'
     _PLAYER_JS_VARIANT_MAP = {
         'main': 'player_ias.vflset/en_US/base.js',
         'tcc': 'player_ias_tcc.vflset/en_US/base.js',
@@ -1895,6 +1895,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     @functools.cached_property
     def _player_js_version(self):
         return self._configuration_arg('player_js_version', [None])[0] or self._DEFAULT_PLAYER_JS_VERSION
+
+    @functools.cached_property
+    def _webpage_client(self):
+        webpage_client = self._configuration_arg('webpage_client', [self._DEFAULT_WEBPAGE_CLIENT])[0]
+        if webpage_client not in self._WEBPAGE_CLIENTS:
+            self.report_warning(
+                f'Invalid webpage_client "{webpage_client}" requested; '
+                f'falling back to {self._DEFAULT_WEBPAGE_CLIENT}', only_once=True)
+            webpage_client = self._DEFAULT_WEBPAGE_CLIENT
+        return webpage_client
 
     @functools.cached_property
     def _skipped_webpage_data(self):
@@ -1929,13 +1939,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         start_time = time.time()
         formats = [f for f in formats if f.get('is_from_start')]
 
-        def refetch_manifest(format_id, delay):
+        def refetch_manifest(itag, client_name, delay):
             nonlocal formats, start_time, is_live
             if time.time() <= start_time + delay:
                 return
 
             _, _, _, _, prs, player_url = self._initial_extract(
-                url, smuggled_data, webpage_url, 'web', video_id)
+                url, smuggled_data, webpage_url, self._webpage_client, video_id)
             video_details = traverse_obj(prs, (..., 'videoDetails'), expected_type=dict)
             microformats = traverse_obj(
                 prs, (..., 'microformat', 'playerMicroformatRenderer'),
@@ -1944,20 +1954,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_live = live_status == 'is_live'
             start_time = time.time()
 
-        def mpd_feed(format_id, delay):
+        def mpd_feed(itag, client_name, delay):
             """
             @returns (manifest_url, manifest_stream_number, is_live) or None
             """
             for retry in self.RetryManager(fatal=False):
                 with lock:
-                    refetch_manifest(format_id, delay)
+                    refetch_manifest(itag, client_name, delay)
 
-                f = next((f for f in formats if f['format_id'] == format_id), None)
+                f = next((f for f in formats if f.get('_itag') == itag and f.get('_client') == client_name), None)
                 if not f:
                     if not is_live:
                         retry.error = f'{video_id}: Video is no longer live'
                     else:
-                        retry.error = f'Cannot find refreshed manifest for format {format_id}{bug_reports_message()}'
+                        retry.error = f'Cannot find refreshed manifest for format {itag}{bug_reports_message()}'
                     continue
 
                 # Formats from ended premieres will be missing a manifest_url
@@ -1970,7 +1980,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         for f in formats:
             f['is_live'] = is_live
-            gen = functools.partial(self._live_dash_fragments, video_id, f['format_id'],
+            gen = functools.partial(self._live_dash_fragments, video_id, f['_itag'], f['_client'],
                                     live_start_time, mpd_feed, not is_live and f.copy())
             if is_live:
                 f['fragments'] = gen
@@ -1979,7 +1989,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f['fragments'] = LazyList(gen({}))
                 del f['is_from_start']
 
-    def _live_dash_fragments(self, video_id, format_id, live_start_time, mpd_feed, manifestless_orig_fmt, ctx):
+    def _live_dash_fragments(self, video_id, itag, client_name, live_start_time, mpd_feed, manifestless_orig_fmt, ctx):
         FETCH_SPAN, MAX_DURATION = 5, 432000
 
         mpd_url, stream_number, is_live = None, None, True
@@ -2003,7 +2013,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             old_mpd_url = mpd_url
             last_error = ctx.pop('last_error', None)
             expire_fast = immediate or (last_error and isinstance(last_error, HTTPError) and last_error.status == 403)
-            mpd_url, stream_number, is_live = (mpd_feed(format_id, 5 if expire_fast else 18000)
+            mpd_url, stream_number, is_live = (mpd_feed(itag, client_name, 5 if expire_fast else 18000)
                                                or (mpd_url, stream_number, False))
             if not refresh_sequence:
                 if expire_fast and not is_live:
@@ -2029,7 +2039,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             _last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
             return True, _last_seq
 
-        self.write_debug(f'[{video_id}] Generating fragments for format {format_id}')
+        self.write_debug(f'[{video_id}] Generating fragments for format {itag}')
         while is_live:
             fetch_time = time.time()
             if no_fragment_score > 30:
@@ -3737,11 +3747,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         sub[STREAMING_DATA_CLIENT_NAME] = client_name
                     subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
                     for f in formats:
-                        if process_manifest_format(f, 'dash', client_name, f['format_id'], require_po_token and not po_token):
+                        # Save original itag value as format_id because process_manifest_format mutates f
+                        format_id = f['format_id']
+                        if process_manifest_format(f, 'dash', client_name, format_id, require_po_token and not po_token):
                             f['filesize'] = int_or_none(self._search_regex(
                                 r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
                             if needs_live_processing:
                                 f['is_from_start'] = True
+                                f['_itag'] = format_id
+                                f['_client'] = client_name
                             yield f
         yield subtitles
 
@@ -3902,15 +3916,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
-        webpage_client = self._configuration_arg('webpage_client', [self._DEFAULT_WEBPAGE_CLIENT])[0]
-        if webpage_client not in self._WEBPAGE_CLIENTS:
-            self.report_warning(
-                f'Invalid webpage_client "{webpage_client}" requested; '
-                f'falling back to {self._DEFAULT_WEBPAGE_CLIENT}', only_once=True)
-            webpage_client = self._DEFAULT_WEBPAGE_CLIENT
 
         webpage, webpage_ytcfg, initial_data, is_premium_subscriber, player_responses, player_url = self._initial_extract(
-            url, smuggled_data, webpage_url, webpage_client, video_id)
+            url, smuggled_data, webpage_url, self._webpage_client, video_id)
 
         playability_statuses = traverse_obj(
             player_responses, (..., 'playabilityStatus'), expected_type=dict)

@@ -4,6 +4,20 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2026.03.17
+
+#### Extractor changes
+- **youtube**
+    - [Always respect `webpage_client` extractor-arg](https://github.com/yt-dlp/yt-dlp/commit/66c4947e9cb70c9de96f7da75f9acbe4192d6c9d) ([#16250](https://github.com/yt-dlp/yt-dlp/issues/16250)) by [bashonly](https://github.com/bashonly)
+    - [Fix `--live-from-start` support](https://github.com/yt-dlp/yt-dlp/commit/1b6ec8fc2589a1733a0937270faa4230ce6b1ca5) ([#16254](https://github.com/yt-dlp/yt-dlp/issues/16254)) by [bashonly](https://github.com/bashonly)
+    - [Update ejs to 0.8.0](https://github.com/yt-dlp/yt-dlp/commit/04d6974f502bbdfaed72c624344f262e30ad9708) ([#16269](https://github.com/yt-dlp/yt-dlp/issues/16269)) by [bashonly](https://github.com/bashonly), [Grub4K](https://github.com/Grub4K)
+
+#### Misc. changes
+- **build**: [Use PyInstaller v6.19.0 for Windows](https://github.com/yt-dlp/yt-dlp/commit/7fab4c2b23e16c4a4f94020a37a6bdf8d502be37) ([#16265](https://github.com/yt-dlp/yt-dlp/issues/16265)) by [bashonly](https://github.com/bashonly)
+- **ci**: [Bump actions pins](https://github.com/yt-dlp/yt-dlp/commit/4fc768b7f7194a05b13ad3e7bc5bfde84ed9ede7) ([#16252](https://github.com/yt-dlp/yt-dlp/issues/16252)) by [bashonly](https://github.com/bashonly)
+- **docs**: [Fix `player_client` extractor-arg documentation](https://github.com/yt-dlp/yt-dlp/commit/e68afb28277b4bee39726dbcbb06801edde9f659) ([#16235](https://github.com/yt-dlp/yt-dlp/issues/16235)) by [bashonly](https://github.com/bashonly)
+- **test**: networking: [Mark all CurlCFFIRH tests as flaky for any OS](https://github.com/yt-dlp/yt-dlp/commit/18656b2f2af41a138793c7012a88f467c0d90274) ([#16266](https://github.com/yt-dlp/yt-dlp/issues/16266)) by [bashonly](https://github.com/bashonly)
+
 ### 2026.03.13
 
 #### Extractor changes
