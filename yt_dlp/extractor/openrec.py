@@ -117,7 +117,7 @@ class OpenRecBaseIE(InfoExtractor):
             }),
             **traverse_obj(info, ('channel', 'user', {
                 'channel_follower_count': ('followers', {int_or_none}),
-                'channel_id': ('id', {str}),
+                'channel_id': ('id', {str_or_none}),
                 'channel': ('name', {clean_html}, filter),
                 'channel_is_verified': ('isOfficial', {bool}),
             })),
@@ -245,7 +245,6 @@ class OpenRecIE(OpenRecBaseIE):
         root = xml.etree.ElementTree.Element('packet')
         for i, s in enumerate(filter_valid(subs), 1):
             posted_at = traverse_obj(s, ('posted_at', {parse_iso8601}))
-            # Offset is currently 1 second and needs testing
             offset = order[posted_at] / total[posted_at] - 1
             order[posted_at] += 1
             vpos = int_or_none((posted_at - started_at + offset) * 100)
