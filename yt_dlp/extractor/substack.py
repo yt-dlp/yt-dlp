@@ -1,10 +1,9 @@
 import re
 import urllib.parse
 
-from yt_dlp.networking.exceptions import HTTPError
-
 from .common import InfoExtractor
 from ..networking import HEADRequest
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     UserNotLive,
@@ -214,7 +213,9 @@ class SubstackLiveIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         try:
-            data = self._download_json(f'https://open.substack.com/api/v1/live_stream/{video_id}', video_id)['activeLiveStream']
+            live_metadata = self._download_json(
+                f'https://open.substack.com/api/v1/live_stream/{video_id}',
+                video_id)['activeLiveStream']['liveStream']
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError):
                 if e.cause.status == 404:
@@ -223,8 +224,6 @@ class SubstackLiveIE(InfoExtractor):
                     raise ExtractorError(f'Invalid live stream Id {video_id}', expected=True)
             raise
 
-        live_metadata = data.get('liveStream')
-        live_media = data.get('liveStreamInformation')
         live_status = live_metadata.get('status')
 
         is_replay = live_media.get('isReplayEligible')
@@ -245,34 +244,36 @@ class SubstackLiveIE(InfoExtractor):
                 raise UserNotLive('Live stream is ended')
 
         formats = []
-        for playback_url in traverse_obj(live_media, (('playbackUrl', 'desktopPlaybackUrl'), {url_or_none})):
+        for playback_url in traverse_obj(live_metadata, (
+            'liveStreamInformation', ('playbackUrl', 'desktopPlaybackUrl'), {url_or_none},
+        )):
             ext = determine_ext(playback_url)
             if ext == 'm3u8':
-                fmts = self._extract_m3u8_formats(playback_url, video_id)
+                formats.extend(self._extract_m3u8_formats(playback_url, video_id, 'mp4', m3u8_id='hls', fatal=False))
             elif ext == 'mpd':
-                fmts = self._extract_mpd_formats(playback_url, video_id)
+                formats.extend(self._extract_mpd_formats(playback_url, video_id, mpd_id='dash', fatal=False))
             else:
-                continue
-            formats.extend(fmts)
+                self.report_warning(f'Skipping unsupported format: {ext}', video_id=video_id)
 
-        audience = live_metadata.get('audience')
-        if audience == 'only_founding' and not formats:
-            self.raise_login_required('Live stream is only for founding subscribers')
-        elif audience == 'only_free' and not formats:
-            self.raise_login_required('Live stream is only for subscribers')
+        if not formats:
+            audience = live_metadata.get('audience')
+            if audience == 'only_founding':
+                self.raise_login_required('This live stream is only for founding subscribers')
+            elif audience == 'only_free':
+                self.raise_login_required('This live stream is only for subscribers')
 
         return {
             'id': video_id,
             **traverse_obj(live_metadata, {
-                'title': ('title', {str_or_none}),
+                'title': ('title', {str}),
                 'upload_date': ('created_at', {unified_strdate}),
-                'description': ('description', {str_or_none}),
-                'uploader_id': ('user_id', {int_or_none}),
+                'description': ('description', {str}),
+                'uploader_id': ('user_id', {int}, {str_or_none}),
             }),
             'availability': 'public' if live_metadata.get('audience') == 'everyone' else 'subscriber_only',
             'is_live': is_live,
             **traverse_obj(data, ('user', {
-                'uploader': ('name', {str_or_none}),
+                'uploader': ('name', {str}),
                 'uploader_url': ('line', {url_or_none}),
             })),
             'formats': formats,
