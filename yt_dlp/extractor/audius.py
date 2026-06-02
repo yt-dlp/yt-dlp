@@ -104,7 +104,29 @@ class AudiusIE(AudiusBaseIE):
                 'duration': 318,
                 'track': 'RADAR',
                 'artist': 'voltra',
+                'artists': ['voltra'],
                 'genre': 'Trance',
+                'genres': ['Trance'],
+                'thumbnail': r're:https?://.*\.jpg',
+                'view_count': int,
+                'like_count': int,
+                'repost_count': int,
+            },
+        },
+        {
+            # `artwork` dict contains a non-string `mirrors` list; see
+            # https://github.com/yt-dlp/yt-dlp/issues/16854
+            'url': 'https://audius.co/middled/desert-sand-323283',
+            'info_dict': {
+                'id': 'ogxJd',
+                'title': 'Desert Sand',
+                'ext': 'mp3',
+                'duration': 309,
+                'track': 'Desert Sand',
+                'artist': 'Middle-D',
+                'artists': ['Middle-D'],
+                'genre': 'Trance',
+                'genres': ['Trance'],
                 'thumbnail': r're:https?://.*\.jpg',
                 'view_count': int,
                 'like_count': int,
@@ -143,6 +165,10 @@ class AudiusIE(AudiusBaseIE):
         thumbnails = []
         if isinstance(artworks_data, dict):
             for quality_key, thumbnail_url in artworks_data.items():
+                if not isinstance(thumbnail_url, str):
+                    # The `artwork` dict may contain non-URL entries, e.g.
+                    # `mirrors` which is a list of content-node hosts
+                    continue
                 thumbnail = {
                     'url': thumbnail_url,
                 }
