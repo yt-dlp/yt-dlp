@@ -61,7 +61,7 @@ class PornHubBaseIE(InfoExtractor):
 
     def _set_age_cookies(self, host):
         self._set_cookie(host, 'age_verified', '1')
-        self._set_cookie(host, 'accessAgeDisclaimerPH', '1')
+        self._set_cookie(host, 'accessAgeDisclaimerPH', '2')
         self._set_cookie(host, 'accessAgeDisclaimerUK', '1')
         self._set_cookie(host, 'accessPH', '1')
 
@@ -429,15 +429,16 @@ class PornHubIE(PornHubBaseIE):
         formats = []
 
         def add_format(format_url, height=None):
+            headers = {'origin': f'https://www.{host}', 'referer': f'https://www.{host}/'}
             ext = determine_ext(format_url)
             if ext == 'mpd':
                 formats.extend(self._extract_mpd_formats(
-                    format_url, video_id, mpd_id='dash', fatal=False))
+                    format_url, video_id, mpd_id='dash', fatal=False, headers=headers))
                 return
             if ext == 'm3u8':
                 formats.extend(self._extract_m3u8_formats(
                     format_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                    m3u8_id='hls', fatal=False))
+                    m3u8_id='hls', fatal=False, headers=headers))
                 return
             if not height:
                 height = int_or_none(self._search_regex(
