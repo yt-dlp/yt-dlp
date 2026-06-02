@@ -1434,6 +1434,7 @@ from .opencast import (
 )
 from .openrec import (
     OpenRecCaptureIE,
+    OpenRecChannelIE,
     OpenRecIE,
     OpenRecMovieIE,
     OpenRecPlaylistIE,

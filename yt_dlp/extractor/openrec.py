@@ -1,12 +1,16 @@
 import collections
 import datetime as dt
+import functools
 import itertools
 import json
+import math
+import urllib.parse
 import xml.etree.ElementTree
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    InAdvancePagedList,
     clean_html,
     extract_attributes,
     int_or_none,
@@ -55,8 +59,15 @@ class OpenRecBaseIE(InfoExtractor):
         }))
 
     def _extract_pagestore(self, webpage, video_id):
-        return self._search_json(
-            r'window\.pageStore\s*=', webpage, 'window.pageStore', video_id)
+        start = r'window\.pageStore\s*='
+
+        if store := self._search_regex(
+                rf'{start}\s*JSON\.parse\s*\(\s*decodeURIComponent'
+                r'\s*\(\s*(?P<q>["\'])(?P<json>.*?)(?P=q)\s*\)\s*\)',
+                webpage, 'encoded window pagestore', group='json', default=None,
+        ):
+            return self._parse_json(urllib.parse.unquote(store), video_id)
+        return self._search_json(start, webpage, 'window pagestore', video_id)
 
     def _call_api(self, path, item_id):
         return self._download_json(
@@ -267,6 +278,7 @@ class OpenRecIE(OpenRecBaseIE):
     def _get_subtitles(self, duration, started_at, video_id):
         ended_at = started_at + duration
         timestamp = started_at
+
         subs = []
         for page in itertools.count(1):
             created_at = dt.datetime.fromtimestamp(
@@ -300,8 +312,10 @@ class OpenRecIE(OpenRecBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        webpage = self._download_webpage(url, video_id, expected_status=404)
         page_store = self._extract_pagestore(webpage, video_id)
+        if traverse_obj(page_store, ('movieStore', 'notFound', {bool})):
+            raise ExtractorError('This video in no longer available', expected=True)
 
         info, detail, metadata = self._parse_openrec_metadata(page_store, video_id)
         live_status = {
@@ -430,7 +444,7 @@ class OpenRecMovieIE(OpenRecBaseIE):
             'title': 'みゃこRaMuの企画会議#3 ～2人のやってみたいこと～',
             'availability': 'public',
             'categories': ['雑談'],
-            'channel': 'みゃことRaMuが暇してるってよ。',
+            'channel': 'みゃことRaMuの何して遊ぶ？',
             'channel_follower_count': int,
             'channel_id': 'myakoramu',
             'channel_is_verified': True,
@@ -540,14 +554,15 @@ class OpenRecPlaylistIE(OpenRecBaseIE):
             is_live = traverse_obj(movie, ('movie', 'is_live', {bool}))
             path, ie = ('live', OpenRecIE) if is_live else ('movie', OpenRecMovieIE)
             movie_id = movie['movie']['id']
-            yield self.url_result(
-                f'{self._BASE_URL}/{path}/{movie_id}', ie)
+
+            yield self.url_result(f'{self._BASE_URL}/{path}/{movie_id}', ie)
 
         for capture in traverse_obj(items, (
             'playlist_captures',
             lambda _, v: str_or_none(v['capture_relation']['capture']['id']),
         )):
             capture_id = capture['capture_relation']['capture']['id']
+
             yield self.url_result(
                 f'{self._BASE_URL}/capture/{capture_id}', OpenRecCaptureIE)
 
@@ -571,3 +586,52 @@ class OpenRecPlaylistIE(OpenRecBaseIE):
             {find_element(cls='sc-1ddd11y-0', html=True)},
             {extract_attributes}, 'href', {str},
         )), playlist_id, playlist_title, getter=urljoin(f'{self._BASE_URL}/'))
+
+
+class OpenRecChannelIE(OpenRecBaseIE):
+    IE_NAME = 'openrec:channel'
+
+    _PAGE_SIZE = 40
+    _VALID_URL = r'https?://(?:www\.)?openrec\.tv/(?:m/)?user/(?P<id>[^/?#]+)$'
+    _TESTS = [{
+        'url': 'https://www.openrec.tv/user/OPENRECPARK',
+        'info_dict': {
+            'id': 'OPENRECPARK',
+            'title': 'OPENREC PARK',
+        },
+        'playlist_mincount': 40,
+    }]
+
+    def _fetch_page(self, channel_id, page):
+        page += 1
+        search_movies = self._download_json(
+            'https://public.openrec.tv/external/api/v5/search-movies',
+            channel_id, f'Downloading page {page}', query={
+                'channel_ids': channel_id,
+                'include_live': True,
+                'include_upload': True,
+                'onair_status': '2',
+                'include_deleted': True,
+                'sort': 'published_at',
+                'page': str(page),
+            })
+
+        for movie in search_movies:
+            movie_id = traverse_obj(movie, ('id', {str_or_none}))
+            movie_type = traverse_obj(movie, ('movie_type', {int_or_none}))
+            path, ie = ('live', OpenRecIE) if movie_type == 1 else ('movie', OpenRecMovieIE)
+
+            yield self.url_result(f'{self._BASE_URL}/{path}/{movie_id}', ie)
+
+    def _real_extract(self, url):
+        channel_id = self._match_id(url)
+        webpage = self._download_webpage(url, channel_id)
+        page_store = self._extract_pagestore(webpage, channel_id)
+
+        channel = traverse_obj(page_store, ('state', '_channel', {dict}))
+        movie_count = traverse_obj(channel, ('movieCount', {int_or_none}))
+
+        return self.playlist_result(InAdvancePagedList(
+            functools.partial(self._fetch_page, channel_id),
+            math.ceil(movie_count / self._PAGE_SIZE), self._PAGE_SIZE,
+        ), channel_id, traverse_obj(channel, ('user', 'name', {clean_html}, filter)))
