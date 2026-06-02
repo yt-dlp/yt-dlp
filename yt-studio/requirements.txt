@@ -1,0 +1,4 @@
+PySide6>=6.7
+yt-dlp[default]>=2026.3.17
+pyinstaller>=6.17
+pytest>=8.1
