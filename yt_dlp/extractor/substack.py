@@ -6,9 +6,7 @@ from ..networking import HEADRequest
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
-    UserNotLive,
     determine_ext,
-    int_or_none,
     js_to_json,
     str_or_none,
     unified_strdate,
@@ -168,42 +166,42 @@ class SubstackLiveIE(InfoExtractor):
     _VALID_URL = r'https?://[\w-]+\.substack.com/(?:publish/)?live-stream/(?P<id>[^/?#&]+)'
     _TESTS = [{
         # Public VOD
-        'url': 'https://open.substack.com/live-stream/214452',
+        'url': 'https://open.substack.com/live-stream/224053',
         'info_dict': {
-            'id': '214452',
+            'id': '224053',
             'ext': 'mp4',
             'title': 'Live with NAIEM AHEMAD',
             'uploader': 'NAIEM AHEMAD',
-            'uploader_id': 370419928,
-            'upload_date': '20260524',
+            'uploader_id': '370419928',
+            'upload_date': '20260601',
             'availability': 'public',
+            'live_status': 'was_live',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
         # Live
-        'url': 'https://open.substack.com/live-stream/214538',
+        'url': 'https://open.substack.com/live-stream/224089',
         'info_dict': {
-            'id': '214538',
+            'id': '224089',
             'ext': 'mp4',
-            'title': 'Live with NAIEM AHEMAD 2026-05-24 20:43',
+            'title': 'Live with NAIEM AHEMAD 2026-06-01 17:58',
             'uploader': 'NAIEM AHEMAD',
-            'uploader_id': 370419928,
-            'upload_date': '20260524',
+            'uploader_id': '370419928',
+            'upload_date': '20260601',
             'availability': 'public',
             'live_status': 'is_live',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
         # Subscribers_Only Live
-        'url': 'https://open.substack.com/live-stream/214543',
+        'url': 'https://open.substack.com/live-stream/224078',
         'info_dict': {
-            'id': '214543',
+            'id': '224078',
             'ext': 'mp4',
-            'title': 'Live with NAIEM AHEMAD 2026-05-24 20:47',
+            'title': 'Live with NAIEM AHEMAD 2026-06-01 17:53',
             'uploader': 'NAIEM AHEMAD',
-            'uploader_id': 370419928,
-            'upload_date': '20260524',
-            'availability': 'subscriber_only',
+            'uploader_id': '370419928',
+            'upload_date': '20260601',
             'live_status': 'is_live',
         },
         'params': {'skip_download': 'm3u8'},
@@ -213,38 +211,41 @@ class SubstackLiveIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         try:
-            live_metadata = self._download_json(
+            live_data = self._download_json(
                 f'https://open.substack.com/api/v1/live_stream/{video_id}',
-                video_id)['activeLiveStream']['liveStream']
+                video_id)['activeLiveStream']
         except ExtractorError as e:
-            if isinstance(e.cause, HTTPError):
-                if e.cause.status == 404:
-                    raise ExtractorError(f'{video_id} Live stream not found', expected=True)
-                elif e.cause.status == 400:
-                    raise ExtractorError(f'Invalid live stream Id {video_id}', expected=True)
+            if isinstance(e.cause, HTTPError) and e.cause.status in (400, 404):
+                raise ExtractorError(f'Live stream not Found. {video_id}', expected=True)
             raise
 
-        live_status = live_metadata.get('status')
+        live_metadata = live_data['liveStream']
 
-        is_replay = live_media.get('isReplayEligible')
-        is_live = True
-        if live_status == 'scheduled':
-            scheduled_at = live_metadata.get('scheduled_at')
-            msg = f'Live stream is scheduled {f"at {scheduled_at}" if scheduled_at else ""}'
-            raise UserNotLive(msg)
-        elif live_status == 'pending':
-            raise UserNotLive('User not stated yet')
-        if live_status == 'idle':
+        live_status = 'is_upcoming'
+        scheduled_at = live_metadata.get('scheduled_at')
+
+        _status = live_metadata.get('status')
+        if _status == 'scheduled':
+            self.raise_no_formats(
+                f'Live stream is scheduled {f"at {scheduled_at}" if scheduled_at else ""}', expected=True)
+        elif _status == 'pending':
+            self.raise_no_formats('User not stated yet', expected=True)
+        elif _status == 'idle':
             if not live_metadata.get('started_streaming_at'):
-                raise UserNotLive('Live stream will start soon')
-            elif is_replay:
-                is_live = False
+                self.raise_no_formats('Live stream will start soon', expected=True)
+            elif traverse_obj(live_data, ('liveStreamInformation', 'isReplayEligible', {bool})):
+                live_status = 'was_live'
                 self.to_screen('Live stream is ended, extracting replay')
             else:
-                raise UserNotLive('Live stream is ended')
+                live_status = 'not_live'
+                self.raise_no_formats('Live stream is ended', expected=True)
+        elif _status == 'active':
+            live_status = 'is_live'
+        else:
+            self.raise_no_formats(f'Unkown status found {_status}', expected=True)
 
         formats = []
-        for playback_url in traverse_obj(live_metadata, (
+        for playback_url in traverse_obj(live_data, (
             'liveStreamInformation', ('playbackUrl', 'desktopPlaybackUrl'), {url_or_none},
         )):
             ext = determine_ext(playback_url)
@@ -255,12 +256,12 @@ class SubstackLiveIE(InfoExtractor):
             else:
                 self.report_warning(f'Skipping unsupported format: {ext}', video_id=video_id)
 
+        availablity = False
         if not formats:
             audience = live_metadata.get('audience')
-            if audience == 'only_founding':
-                self.raise_login_required('This live stream is only for founding subscribers')
-            elif audience == 'only_free':
-                self.raise_login_required('This live stream is only for subscribers')
+            if audience in ('only_founding', 'only_free'):
+                self.raise_login_required(f'This live stream is only for {"founding" if audience == "only_founding" else ""} subscribers', metadata_available=True)
+                availablity = True
 
         return {
             'id': video_id,
@@ -270,9 +271,10 @@ class SubstackLiveIE(InfoExtractor):
                 'description': ('description', {str}),
                 'uploader_id': ('user_id', {int}, {str_or_none}),
             }),
-            'availability': 'public' if live_metadata.get('audience') == 'everyone' else 'subscriber_only',
-            'is_live': is_live,
-            **traverse_obj(data, ('user', {
+            'release_timestamp': scheduled_at,
+            'availability': self._availability(needs_subscription=availablity) or 'public',
+            'live_status': live_status,
+            **traverse_obj(live_data, ('user', {
                 'uploader': ('name', {str}),
                 'uploader_url': ('line', {url_or_none}),
             })),
