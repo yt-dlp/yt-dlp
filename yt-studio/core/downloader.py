@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from pathlib import Path
 
 from core.models import DownloadJob
 from core.options import build_ydl_options
@@ -23,6 +24,8 @@ class DownloadWorker(QThread):
         self.app_settings = app_settings or {}
         self._youtube_dl_factory = youtube_dl_factory
         self._cancel_requested = False
+        self._download_finished_seen = False
+        self._last_downloaded_filename = ""
 
     def cancel(self):
         self._cancel_requested = True
@@ -51,6 +54,14 @@ class DownloadWorker(QThread):
             else:
                 self.finished.emit({"url": self.job.url, "title": self.job.title})
         except Exception as exc:
+            if self._download_finished_seen and self._last_finished_file_exists():
+                self.finished.emit({
+                    "url": self.job.url,
+                    "title": self.job.title,
+                    "filename": self._last_downloaded_filename,
+                    "warning": str(exc),
+                })
+                return
             self.error.emit(str(exc))
 
     def _progress_hook(self, data: dict):
@@ -71,4 +82,11 @@ class DownloadWorker(QThread):
             )
         elif data.get("status") == "finished":
             filename = data.get("filename", "")
+            self._download_finished_seen = True
+            self._last_downloaded_filename = filename
             self.status.emit(f"Finished downloading {filename}; post-processing if needed.")
+
+    def _last_finished_file_exists(self) -> bool:
+        if not self._last_downloaded_filename:
+            return False
+        return Path(self._last_downloaded_filename).exists()

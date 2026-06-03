@@ -1698,6 +1698,7 @@ from .rinsefm import (
     RinseFMArtistPlaylistIE,
     RinseFMIE,
 )
+from .rivestream import RiveStreamIE
 from .rmcdecouverte import RMCDecouverteIE
 from .rockstargames import RockstarGamesIE
 from .rokfin import (

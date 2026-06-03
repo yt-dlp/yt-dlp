@@ -357,10 +357,15 @@ class DownloadTab(QWidget):
         if event.get("filename"):
             self.log_output.append(event["filename"])
 
-    def _download_finished(self, _event):
+    def _download_finished(self, event):
+        warning = (event or {}).get("warning")
         if self.current_download_id:
-            self.history_store.finish_download(self.current_download_id, "completed")
-        self.status_label.setText("STATUS: DOWNLOAD COMPLETE")
+            self.history_store.finish_download(self.current_download_id, "completed", warning)
+        if warning:
+            self.status_label.setText("STATUS: DOWNLOAD COMPLETE - POST-PROCESS WARNING")
+            self.log_output.append(warning)
+        else:
+            self.status_label.setText("STATUS: DOWNLOAD COMPLETE")
         self.progress.setValue(100)
         self._reset_download_buttons()
         self.on_history_changed()

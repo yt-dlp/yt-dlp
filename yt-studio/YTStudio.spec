@@ -1,6 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 import sys
+import os
 from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_submodules
@@ -8,7 +9,9 @@ from PyInstaller.utils.hooks import collect_submodules
 
 block_cipher = None
 root = Path.cwd()
+env_engine = os.environ.get("YTSTUDIO_YTDLP_ENGINE")
 engine_candidates = (
+    *([Path(env_engine)] if env_engine else []),
     root.parent,
     root.parent / "yt-dlp-publish",
     root.parent / "yt-dlp-2026.03.17" / "yt-dlp-2026.03.17",
@@ -35,7 +38,11 @@ a = Analysis(
     pathex=pathex,
     binaries=[],
     datas=datas,
-    hiddenimports=collect_submodules("yt_dlp"),
+    hiddenimports=[
+        *collect_submodules("yt_dlp"),
+        "yt_dlp.extractor.rivestream",
+        "yt_dlp.extractor.streamimdb",
+    ],
     hookspath=hookspath,
     hooksconfig={},
     runtime_hooks=[],
