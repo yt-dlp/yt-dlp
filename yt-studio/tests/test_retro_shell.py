@@ -26,6 +26,7 @@ def test_retro_shell_has_sidebar_screens_without_tabs():
         "nav-config",
     ]
     assert window.status_left.text() == "DOWNLOAD MODE"
+    assert window.status_center.text() == "YT-STUDIO v1.0   Made by Omar Hesham"
 
 
 def test_retro_menubar_has_functional_actions():

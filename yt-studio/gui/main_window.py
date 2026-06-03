@@ -49,7 +49,7 @@ class MainWindow(QMainWindow):
         self.queue_tab.pause_requested.connect(self.download_tab.pause_queue_job)
 
         self.status_left = QLabel("DOWNLOAD MODE")
-        self.status_center = QLabel("YT-STUDIO v1.0")
+        self.status_center = QLabel("YT-STUDIO v1.0   Made by Omar Hesham")
         self.status_right = QLabel("")
         self.nav_buttons = []
         self.menu_buttons = {}
