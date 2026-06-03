@@ -1,10 +1,28 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import sys
 from pathlib import Path
+
+from PyInstaller.utils.hooks import collect_submodules
 
 
 block_cipher = None
 root = Path.cwd()
+engine_candidates = (
+    root.parent,
+    root.parent / "yt-dlp-publish",
+    root.parent / "yt-dlp-2026.03.17" / "yt-dlp-2026.03.17",
+)
+engine_source = next((candidate for candidate in engine_candidates if (candidate / "yt_dlp").is_dir()), None)
+pathex = [str(root)]
+hookspath = []
+if engine_source:
+    sys.path.insert(0, str(engine_source))
+    pathex.insert(0, str(engine_source))
+    yt_dlp_hooks = engine_source / "yt_dlp" / "__pyinstaller"
+    if yt_dlp_hooks.is_dir():
+        hookspath.append(str(yt_dlp_hooks))
+
 assets = root / "assets"
 datas = []
 ffmpeg = assets / "ffmpeg.exe"
@@ -14,11 +32,11 @@ if ffmpeg.exists():
 
 a = Analysis(
     ["main.py"],
-    pathex=[str(root)],
+    pathex=pathex,
     binaries=[],
     datas=datas,
-    hiddenimports=[],
-    hookspath=[],
+    hiddenimports=collect_submodules("yt_dlp"),
+    hookspath=hookspath,
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
