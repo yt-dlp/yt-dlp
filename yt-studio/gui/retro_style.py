@@ -31,9 +31,37 @@ QWidget#menubar, QWidget#statusbar {
     border-top: 1px solid #2a502a;
     border-bottom: 1px solid #2a502a;
 }
-QLabel#menu-item {
+QToolButton#menu-item {
+    background: transparent;
+    border: 0;
     color: #39ff14;
     padding: 2px 10px;
+    font-weight: 400;
+}
+QToolButton#menu-item:hover,
+QToolButton#menu-item:pressed {
+    background: #1a8c00;
+    color: #000000;
+}
+QToolButton#menu-item::menu-indicator {
+    image: none;
+}
+QMenu#retro-menu {
+    background: #0f140f;
+    color: #39ff14;
+    border: 1px solid #1a8c00;
+}
+QMenu#retro-menu::item {
+    padding: 4px 28px 4px 10px;
+}
+QMenu#retro-menu::item:selected {
+    background: #1a8c00;
+    color: #000000;
+}
+QMenu#retro-menu::separator {
+    height: 1px;
+    background: #2a502a;
+    margin: 3px 6px;
 }
 QWidget#sidebar {
     background: #0f140f;
