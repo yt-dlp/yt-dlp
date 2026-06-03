@@ -3,12 +3,54 @@
 from __future__ import annotations
 
 import os
+import sys
 from typing import Literal
 
 from yt_dlp import YoutubeDL
 
 
 EXTRACT_TYPES = Literal['playlist_flat', 'video']
+
+# Warnings that are noise for metadata-only extraction (we never download
+# formats, so missing-format / JS-runtime notices don't matter). Matched as
+# substrings against the warning text. Anything not listed here — e.g. HTTP 429
+# rate-limiting, geo-blocks, real extraction failures — is kept.
+_SUPPRESSED_WARNINGS = (
+    'No supported JavaScript runtime',
+    'YouTube extraction without a JS runtime has been deprecated',
+    'have been skipped as they are missing a URL',  # SABR / android_vr format skips
+    'SABR-only streaming experiment',
+)
+
+
+class _FilteringLogger:
+    """yt-dlp logger that drops known-noise warnings but forwards the rest.
+
+    Setting a `logger` in ydl_opts makes report_warning route here instead of
+    honoring `no_warnings` — so we can suppress selectively rather than all or
+    nothing. Output is written to stderr with yt-dlp's native prefixes so log
+    scraping/grep for `WARNING:` / `ERROR:` keeps working.
+    """
+
+    def debug(self, msg: str) -> None:
+        # to_screen() (the output `quiet` normally hides) and verbose [debug]
+        # lines route here. Drop them — the API runs quiet.
+        pass
+
+    def info(self, msg: str) -> None:
+        pass
+
+    def warning(self, msg: str) -> None:
+        if any(s in msg for s in _SUPPRESSED_WARNINGS):
+            return
+        sys.stderr.write(f'WARNING: {msg}\n')
+
+    def error(self, msg: str) -> None:
+        # msg already carries yt-dlp's "ERROR:" prefix from report_error.
+        sys.stderr.write(f'{msg}\n')
+
+
+YTDLP_LOGGER = _FilteringLogger()
 
 
 def _proxy_url() -> str | None:
@@ -34,10 +76,9 @@ def _opts_for(extract_type: EXTRACT_TYPES, url: str = '', limit: int | None = No
     base = {
         'skip_download': True,
         'quiet': True,
-        # Metadata-only extraction: we never download, so warnings about missing
-        # JS runtime / skipped formats (SABR, android_vr) are noise. quiet alone
-        # does not suppress warnings — no_warnings does (see report_warning).
-        'no_warnings': True,
+        # Route output through a logger that drops noise warnings (JS runtime,
+        # skipped formats) but keeps signal like HTTP 429. See _FilteringLogger.
+        'logger': YTDLP_LOGGER,
         'ignore_no_formats_error': True,
         'http_headers': {
             'Accept-Encoding': 'gzip, deflate',
