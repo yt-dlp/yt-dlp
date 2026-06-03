@@ -65,3 +65,77 @@ def test_builds_subtitle_metadata_thumbnail_and_network_options():
     assert options["ffmpeg_location"] == "C:/ffmpeg/bin"
     assert {"key": "FFmpegMetadata", "add_metadata": True} in options["postprocessors"]
     assert {"key": "EmbedThumbnail"} in options["postprocessors"]
+
+
+def test_builds_container_filename_skip_existing_and_chapter_options():
+    job = DownloadJob(
+        url="https://example.com/video",
+        output_dir=Path("C:/Downloads"),
+        format_id="bestvideo+bestaudio/best",
+        container="mkv",
+        filename_preset="uploader-title",
+        skip_existing=True,
+        split_chapters=True,
+    )
+
+    options = build_ydl_options(job, {})
+
+    assert options["merge_output_format"] == "mkv"
+    assert options["outtmpl"] == str(Path("C:/Downloads") / "%(uploader).80B - %(title).200B [%(id)s].%(ext)s")
+    assert options["overwrites"] is False
+    assert options["continuedl"] is True
+    assert options["split_chapters"] is True
+
+
+def test_builds_sponsorblock_playlist_and_live_options():
+    job = DownloadJob(
+        url="https://example.com/playlist",
+        output_dir=Path("C:/Downloads"),
+        format_id="best",
+        sponsorblock_mode="skip",
+        playlist_mode=True,
+        playlist_items="1:5",
+        max_downloads=3,
+        live_from_start=True,
+        wait_for_video="30-120",
+    )
+
+    options = build_ydl_options(job, {})
+
+    assert options["sponsorblock_remove"] == {"sponsor"}
+    assert options["noplaylist"] is False
+    assert options["playlist_items"] == "1:5"
+    assert options["max_downloads"] == 3
+    assert options["live_from_start"] is True
+    assert options["wait_for_video"] == "30-120"
+
+
+def test_builds_config_power_user_options():
+    job = DownloadJob(
+        url="https://example.com/video",
+        output_dir=Path("C:/Downloads"),
+        format_id="best",
+    )
+    settings = {
+        "concurrent_fragments": "4",
+        "retries": "15",
+        "download_archive": "C:/Downloads/archive.txt",
+        "impersonate": "chrome:windows-10",
+        "force_ip": "ipv4",
+        "socket_timeout": "30",
+        "cookies_from_browser": "firefox",
+        "paths_temp": "C:/Temp/YTStudio",
+        "keep_part": "true",
+    }
+
+    options = build_ydl_options(job, settings)
+
+    assert options["concurrent_fragment_downloads"] == 4
+    assert options["retries"] == 15
+    assert options["download_archive"] == "C:/Downloads/archive.txt"
+    assert options["impersonate"] == "chrome:windows-10"
+    assert options["force_ipv4"] is True
+    assert options["socket_timeout"] == 30
+    assert options["cookiesfrombrowser"] == ("firefox", None, None, None)
+    assert options["paths"]["temp"] == "C:/Temp/YTStudio"
+    assert options["nopart"] is False

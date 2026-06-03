@@ -8,6 +8,7 @@ if YTDLP_SOURCE.exists():
     sys.path.insert(0, str(YTDLP_SOURCE))
 
 
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication
 
 from gui.main_window import MainWindow
@@ -16,6 +17,7 @@ from gui.main_window import MainWindow
 def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("YT-Studio")
+    app.setFont(QFont("Courier New", 10))
     window = MainWindow()
     window.show()
     return app.exec()
