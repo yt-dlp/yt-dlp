@@ -2,7 +2,7 @@
 set -exuo pipefail
 
 if [[ -z "${PYTHON_VERSION:-}" ]]; then
-    PYTHON_VERSION="3.13"
+    PYTHON_VERSION="3.14"
     echo "Defaulting to using Python ${PYTHON_VERSION}"
 fi
 
@@ -19,8 +19,8 @@ source .venv/bin/activate
 PYTHONHASHSEED=1
 export PYTHONHASHSEED
 
-python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pyinstaller.txt"
-python -m pip install -U --require-hashes -r "bundle/requirements/requirements-${REQUIREMENTS}.txt"
+python -m pip install -U --require-hashes -r "bundle/requirements/pyinstaller.txt"
+python -m pip install -U --require-hashes -r "bundle/requirements/${REQUIREMENTS}.txt"
 python -m devscripts.make_lazy_extractors
 python devscripts/update-version.py -c "${CHANNEL}" -r "${ORIGIN}" "${VERSION}"
 

@@ -75,16 +75,16 @@ jobs:
     - name: Install test requirements (cpython)
       if: ${{ !startsWith(matrix.python-version, 'pypy') }}
       run: |
-        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
-        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-test.txt"
-        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-curl-cffi.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/pip.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/test.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/curl-cffi.txt"
 
     - name: Install test requirements (PyPy)
       if: ${{ startsWith(matrix.python-version, 'pypy') }}
       run: |
-        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
-        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-test.txt"
-        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-default.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/pip.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/test.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/default.txt"
 
     - name: Run tests
       timeout-minutes: 15
