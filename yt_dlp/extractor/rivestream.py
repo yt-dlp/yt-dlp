@@ -1,3 +1,4 @@
+from html import unescape
 from urllib.parse import parse_qs, urlparse
 
 from .common import InfoExtractor
@@ -18,6 +19,7 @@ class RiveStreamIE(InfoExtractor):
     _TMDB_API_KEY = 'addfba41d0cb5aba2ebaae12ac92b671'
 
     def _real_extract(self, url):
+        url = unescape(url)
         query = parse_qs(urlparse(url).query)
         media_type = (query.get('type') or ['movie'])[0]
         tmdb_id = (query.get('id') or [None])[0]

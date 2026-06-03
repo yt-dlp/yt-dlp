@@ -44,6 +44,7 @@ class SettingsTab(QWidget):
         self.cookies_from_browser.addItems(["", "chrome", "firefox", "edge", "brave", "vivaldi"])
         self.cookies_from_browser.setCurrentText(settings.get("cookies_from_browser", ""))
         self.cookies_file = QLineEdit(settings.get("cookies_file", ""))
+        self.wyzie_api_key = QLineEdit(settings.get("wyzie_api_key", ""))
 
         self.ffmpeg_location = QLineEdit(settings.get("ffmpeg_location", ""))
         self.temp_path = QLineEdit(settings.get("paths_temp", ""))
@@ -122,6 +123,8 @@ class SettingsTab(QWidget):
         layout.addWidget(QLabel("COOKIES FILE"), 1, 0)
         layout.addWidget(self.cookies_file, 1, 1)
         layout.addWidget(self.cookies_browse, 1, 2)
+        layout.addWidget(QLabel("WYZE/WYZIE SUBS API KEY"), 2, 0)
+        layout.addWidget(self.wyzie_api_key, 2, 1, 1, 2)
         return group
 
     def _files_group(self):
@@ -180,6 +183,7 @@ class SettingsTab(QWidget):
         self.socket_timeout.setValue(0)
         self.cookies_from_browser.setCurrentText("")
         self.cookies_file.clear()
+        self.wyzie_api_key.clear()
         self.ffmpeg_location.clear()
         self.temp_path.clear()
         self.keep_part.setChecked(True)
@@ -199,6 +203,7 @@ class SettingsTab(QWidget):
             "socket_timeout": str(self.socket_timeout.value()) if self.socket_timeout.value() else "",
             "cookies_from_browser": self.cookies_from_browser.currentText(),
             "cookies_file": self.cookies_file.text().strip(),
+            "wyzie_api_key": self.wyzie_api_key.text().strip(),
             "ffmpeg_location": self.ffmpeg_location.text().strip(),
             "paths_temp": self.temp_path.text().strip(),
             "keep_part": str(self.keep_part.isChecked()).lower(),

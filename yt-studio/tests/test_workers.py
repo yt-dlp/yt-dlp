@@ -86,7 +86,7 @@ def test_download_worker_keeps_completed_file_when_postprocess_raises(tmp_path):
     }]
 
 
-def test_download_worker_errors_when_finished_file_is_missing(tmp_path):
+def test_download_worker_keeps_finished_download_when_postprocess_file_is_renamed(tmp_path):
     missing_file = tmp_path / "missing.mp4"
 
     class FakeYDL:
@@ -119,5 +119,47 @@ def test_download_worker_errors_when_finished_file_is_missing(tmp_path):
 
     worker.run()
 
+    assert errors == []
+    assert finished_events == [{
+        "url": "https://streamimdb.ru/embed/movie/tt15940132",
+        "title": "",
+        "filename": str(missing_file),
+        "warning": "ERROR: Postprocessing: Error opening output files: Invalid argument",
+    }]
+
+
+def test_download_worker_errors_when_non_postprocess_failure_happens_after_finished(tmp_path):
+    missing_file = tmp_path / "missing.mp4"
+
+    class FakeYDL:
+        def __init__(self, opts):
+            self.opts = opts
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def download(self, _urls):
+            self.opts["progress_hooks"][0]({
+                "status": "finished",
+                "filename": str(missing_file),
+            })
+            raise RuntimeError("network cleanup failed")
+
+    job = DownloadJob(
+        url="https://streamimdb.ru/embed/movie/tt15940132",
+        output_dir=tmp_path,
+        format_id="best",
+    )
+    worker = DownloadWorker(job, youtube_dl_factory=FakeYDL)
+    finished_events = []
+    errors = []
+    worker.finished.connect(finished_events.append)
+    worker.error.connect(errors.append)
+
+    worker.run()
+
     assert finished_events == []
-    assert errors == ["ERROR: Postprocessing: Error opening output files: Invalid argument"]
+    assert errors == ["network cleanup failed"]

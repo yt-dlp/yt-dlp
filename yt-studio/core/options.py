@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from core.models import DownloadJob
+from core.runtime import bundled_ffmpeg_path
 
 
 FILENAME_TEMPLATES = {
@@ -105,16 +106,22 @@ def build_ydl_options(job: DownloadJob, app_settings: dict[str, str]) -> dict:
     if postprocessors:
         options["postprocessors"] = postprocessors
 
+    ffmpeg_location = app_settings.get("ffmpeg_location") or ""
+    if not ffmpeg_location and (ffmpeg := bundled_ffmpeg_path()):
+        ffmpeg_location = str(ffmpeg.parent)
+
     settings_to_options = {
         "cookies_file": "cookiefile",
         "proxy": "proxy",
         "rate_limit": "ratelimit",
-        "ffmpeg_location": "ffmpeg_location",
     }
     for setting_key, option_key in settings_to_options.items():
         value = app_settings.get(setting_key)
         if value:
             options[option_key] = value
+
+    if ffmpeg_location:
+        options["ffmpeg_location"] = ffmpeg_location
 
     for setting_key, option_key in {
         "concurrent_fragments": "concurrent_fragment_downloads",

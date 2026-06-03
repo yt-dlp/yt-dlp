@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from core.models import DownloadJob
+import core.options as options_module
 from core.options import build_ydl_options
 
 
@@ -139,3 +140,19 @@ def test_builds_config_power_user_options():
     assert options["cookiesfrombrowser"] == ("firefox", None, None, None)
     assert options["paths"]["temp"] == "C:/Temp/YTStudio"
     assert options["nopart"] is False
+
+
+def test_uses_bundled_ffmpeg_when_no_setting(monkeypatch, tmp_path):
+    ffmpeg = tmp_path / "assets" / "ffmpeg.exe"
+    ffmpeg.parent.mkdir()
+    ffmpeg.write_bytes(b"ffmpeg")
+    monkeypatch.setattr(options_module, "bundled_ffmpeg_path", lambda: ffmpeg)
+    job = DownloadJob(
+        url="https://example.com/video",
+        output_dir=Path("C:/Downloads"),
+        format_id="best",
+    )
+
+    options = build_ydl_options(job, {})
+
+    assert options["ffmpeg_location"] == str(ffmpeg.parent)

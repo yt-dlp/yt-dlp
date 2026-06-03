@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -21,7 +22,9 @@ from PySide6.QtWidgets import (
 from core.downloader import DownloadWorker
 from core.info_fetcher import InfoWorker
 from core.models import DownloadJob
+from core.subtitles import SubtitleDownloadWorker, SubtitleResult, SubtitleSearchWorker
 from core.ui_state import context_from_info, visible_sections
+from core.url_utils import normalize_input_url
 
 
 QUALITY_PRESETS = {
@@ -43,15 +46,24 @@ AUDIO_QUALITY = {"Best": "0", "Normal": "5", "192K": "192K", "128K": "128K"}
 
 
 class DownloadTab(QWidget):
-    def __init__(self, history_store, on_history_changed, on_queue_added):
+    def __init__(self, history_store, on_history_changed, on_queue_added, on_queue_update=None):
         super().__init__()
         self.history_store = history_store
         self.on_history_changed = on_history_changed
         self.on_queue_added = on_queue_added
+        self.on_queue_update = on_queue_update or (lambda *_args, **_kwargs: None)
         self.info_worker = None
         self.download_worker = None
+        self.subtitle_search_worker = None
+        self.subtitle_download_worker = None
         self.current_info = {}
         self.current_download_id = None
+        self.active_queue_id = None
+        self.active_download_id = None
+        self._pause_requested = False
+        self._fetch_dots = 0
+        self._fetch_url = ""
+        self.subtitle_results: list[SubtitleResult] = []
 
         self.url_input = QLineEdit()
         self.url_input.setPlaceholderText("https://youtube.com/watch?v=...")
@@ -81,6 +93,12 @@ class DownloadTab(QWidget):
         self.embed_thumbnail.setChecked(True)
         self.subtitles_combo = QComboBox()
         self.subtitles_combo.addItems(SUBTITLE_LANGS.keys())
+        self.subtitle_search_language = QComboBox()
+        self.subtitle_search_language.addItems(["English", "Arabic"])
+        self.subtitle_search_button = QPushButton("SEARCH SUBS")
+        self.subtitle_download_button = QPushButton("SAVE SUB")
+        self.subtitle_download_button.setEnabled(False)
+        self.subtitle_results_combo = QComboBox()
         self.embed_subs = QCheckBox("EMBED SUBS")
         self.auto_subs = QCheckBox("AUTO SUBS")
         self.auto_subs.setChecked(True)
@@ -110,6 +128,7 @@ class DownloadTab(QWidget):
         self.wait_for_video.setPlaceholderText("30-120")
 
         self.status_label = QLabel("STATUS: READY")
+        self.fetch_status_label = QLabel("")
         self.progress = QProgressBar()
         self.progress.setRange(0, 100)
         self.speed_label = QLabel("SPEED: -")
@@ -118,6 +137,7 @@ class DownloadTab(QWidget):
         self.log_output = QTextEdit()
         self.log_output.setReadOnly(True)
         self.log_output.setMaximumHeight(82)
+        self.fetch_timer = QTimer(self)
 
         self._build_layout()
         self._connect()
@@ -190,6 +210,10 @@ class DownloadTab(QWidget):
         layout.addWidget(self.subtitles_combo, 2, 1)
         layout.addWidget(self.embed_subs, 3, 0)
         layout.addWidget(self.auto_subs, 3, 1)
+        layout.addWidget(self.subtitle_search_language, 4, 0)
+        layout.addWidget(self.subtitle_search_button, 4, 1)
+        layout.addWidget(self.subtitle_results_combo, 5, 0)
+        layout.addWidget(self.subtitle_download_button, 5, 1)
         return group
 
     def _output_group(self):
@@ -221,6 +245,7 @@ class DownloadTab(QWidget):
     def _progress_group(self):
         group = QGroupBox("STATUS: READY")
         layout = QVBoxLayout(group)
+        layout.addWidget(self.fetch_status_label)
         layout.addWidget(self.status_label)
         layout.addWidget(self.progress)
         row = QHBoxLayout()
@@ -236,7 +261,10 @@ class DownloadTab(QWidget):
         self.download_button.clicked.connect(self.start_download)
         self.add_queue_button.clicked.connect(self.add_to_queue)
         self.cancel_button.clicked.connect(self.cancel_download)
+        self.subtitle_search_button.clicked.connect(self.search_subtitles)
+        self.subtitle_download_button.clicked.connect(self.download_selected_subtitle)
         self.browse_button.clicked.connect(self.choose_output_dir)
+        self.fetch_timer.timeout.connect(self._animate_fetch_status)
         self.quality_combo.currentTextChanged.connect(self._apply_contextual_visibility)
         self.subtitles_combo.currentTextChanged.connect(self._apply_contextual_visibility)
         self.sponsorblock_combo.currentTextChanged.connect(self._apply_contextual_visibility)
@@ -248,21 +276,25 @@ class DownloadTab(QWidget):
             self.history_store.set_setting("output_dir", folder)
 
     def fetch_info(self):
-        url = self.url_input.text().strip()
+        url = normalize_input_url(self.url_input.text())
         if not url:
             QMessageBox.warning(self, "Missing URL", "Paste a URL first.")
             return
+        self.url_input.setText(url)
         self.fetch_button.setEnabled(False)
-        self.status_label.setText("STATUS: FETCHING MEDIA INFO...")
+        self._fetch_url = url
+        self._start_fetch_animation()
         self.info_worker = InfoWorker(url, self.history_store.get_settings())
-        self.info_worker.fetched.connect(self._info_fetched)
+        self.info_worker.fetched.connect(lambda info, fetched_url=url: self._info_fetched(fetched_url, info))
         self.info_worker.error.connect(self._worker_error)
-        self.info_worker.finished.connect(lambda: self.fetch_button.setEnabled(True))
+        self.info_worker.finished.connect(self._fetch_finished)
         self.info_worker.start()
 
-    def _info_fetched(self, info):
+    def _info_fetched(self, fetched_url, info):
+        if fetched_url != self._fetch_url:
+            return
         self.current_info = info or {}
-        title = self.current_info.get("title") or self.url_input.text().strip()
+        title = self.current_info.get("title") or fetched_url
         duration = self.current_info.get("duration")
         view_count = self.current_info.get("view_count")
         extractor = self.current_info.get("extractor_key") or self.current_info.get("extractor", "--")
@@ -270,15 +302,23 @@ class DownloadTab(QWidget):
         self.meta_label.setText(
             f"DUR: {self._format_duration(duration)}   VIEWS: {self._format_count(view_count)}   SRC: {extractor.upper()}"
         )
-        self.status_label.setText("STATUS: MEDIA INFO LOADED")
+        self.fetch_status_label.setText("FETCH: MEDIA INFO LOADED")
+        if not self._download_active():
+            self.status_label.setText("STATUS: MEDIA INFO LOADED")
         self._apply_contextual_visibility()
+
+    def _fetch_finished(self):
+        self.fetch_button.setEnabled(True)
+        self.fetch_timer.stop()
+        if self.fetch_status_label.text().startswith("FETCHING"):
+            self.fetch_status_label.setText("")
 
     def _selected_job(self) -> DownloadJob:
         preset = self.quality_combo.currentText()
         subtitles = self.subtitles_combo.currentText()
         max_downloads = self.max_downloads.value() or None
         return DownloadJob(
-            url=self.url_input.text().strip(),
+            url=normalize_input_url(self.url_input.text()),
             output_dir=Path(self.output_input.text().strip()),
             format_id=QUALITY_PRESETS[preset],
             title=self.current_info.get("title", ""),
@@ -304,15 +344,15 @@ class DownloadTab(QWidget):
         )
 
     def add_to_queue(self):
-        if not self.url_input.text().strip():
+        if not normalize_input_url(self.url_input.text()):
             QMessageBox.warning(self, "Missing URL", "Paste a URL first.")
             return
         job = self._selected_job()
-        self.on_queue_added(job.title or job.url, job.format_id)
+        self.on_queue_added(job)
         self.status_label.setText("STATUS: ADDED TO QUEUE")
 
     def start_download(self):
-        url = self.url_input.text().strip()
+        url = normalize_input_url(self.url_input.text())
         output_dir = Path(self.output_input.text().strip())
         if not url:
             QMessageBox.warning(self, "Missing URL", "Paste a URL first.")
@@ -322,7 +362,13 @@ class DownloadTab(QWidget):
             return
 
         job = self._selected_job()
-        self.on_queue_added(job.title or job.url, job.format_id)
+        queue_id = self.on_queue_added(job)
+        self.start_job(job, queue_id)
+
+    def start_job(self, job: DownloadJob, queue_id: int | None = None):
+        if self._download_active():
+            QMessageBox.warning(self, "YT-Studio", "A download is already running. Add this link to the queue and start it after the active one finishes.")
+            return
 
         self.current_download_id = self.history_store.add_download(
             title=job.title or job.url,
@@ -334,8 +380,12 @@ class DownloadTab(QWidget):
         self.history_store.set_setting("output_dir", str(output_dir))
         self.download_button.setEnabled(False)
         self.cancel_button.setEnabled(True)
+        self.active_queue_id = queue_id
+        self._pause_requested = False
         self.progress.setValue(0)
         self.status_label.setText("STATUS: STARTING DOWNLOAD...")
+        if queue_id:
+            self.on_queue_update(queue_id, "RUN", 0)
 
         self.download_worker = DownloadWorker(job, self.history_store.get_settings())
         self.download_worker.progress.connect(self._download_progress)
@@ -350,10 +400,18 @@ class DownloadTab(QWidget):
             self.download_worker.cancel()
             self.status_label.setText("STATUS: CANCEL REQUESTED...")
 
+    def pause_queue_job(self, queue_id: int):
+        if self.active_queue_id == queue_id and self.download_worker:
+            self._pause_requested = True
+            self.download_worker.cancel()
+            self.status_label.setText("STATUS: PAUSE REQUESTED...")
+
     def _download_progress(self, event):
         self.progress.setValue(int(event["percent"]))
         self.speed_label.setText(f"SPEED: {self._format_speed(event.get('speed'))}")
         self.eta_label.setText(f"ETA: {self._format_duration(event.get('eta'))}")
+        if self.active_queue_id:
+            self.on_queue_update(self.active_queue_id, "RUN", int(event["percent"]))
         if event.get("filename"):
             self.log_output.append(event["filename"])
 
@@ -367,19 +425,25 @@ class DownloadTab(QWidget):
         else:
             self.status_label.setText("STATUS: DOWNLOAD COMPLETE")
         self.progress.setValue(100)
+        if self.active_queue_id:
+            self.on_queue_update(self.active_queue_id, "DONE", 100)
         self._reset_download_buttons()
         self.on_history_changed()
 
     def _download_canceled(self):
         if self.current_download_id:
-            self.history_store.finish_download(self.current_download_id, "canceled")
-        self.status_label.setText("STATUS: DOWNLOAD CANCELED")
+            self.history_store.finish_download(self.current_download_id, "paused" if self._pause_requested else "canceled")
+        if self.active_queue_id:
+            self.on_queue_update(self.active_queue_id, "PAUSED" if self._pause_requested else "CANCELED", self.progress.value())
+        self.status_label.setText("STATUS: DOWNLOAD PAUSED" if self._pause_requested else "STATUS: DOWNLOAD CANCELED")
         self._reset_download_buttons()
         self.on_history_changed()
 
     def _download_error(self, message):
         if self.current_download_id:
             self.history_store.finish_download(self.current_download_id, "failed", message)
+        if self.active_queue_id:
+            self.on_queue_update(self.active_queue_id, "FAILED", self.progress.value())
         self._worker_error(message)
         self._reset_download_buttons()
         self.on_history_changed()
@@ -392,6 +456,68 @@ class DownloadTab(QWidget):
     def _reset_download_buttons(self):
         self.download_button.setEnabled(True)
         self.cancel_button.setEnabled(False)
+        self.download_worker = None
+        self.active_queue_id = None
+        self._pause_requested = False
+
+    def search_subtitles(self):
+        media_id = self._subtitle_media_id()
+        if not media_id:
+            QMessageBox.warning(self, "YT-Studio", "Fetch media info first so YT-Studio can search by IMDb/TMDB ID.")
+            return
+        language = "ar" if self.subtitle_search_language.currentText() == "Arabic" else "en"
+        api_key = self.history_store.get_setting("wyzie_api_key", "")
+        self.subtitle_search_button.setEnabled(False)
+        self.fetch_status_label.setText(f"SUBS: SEARCHING {language.upper()}...")
+        self.subtitle_search_worker = SubtitleSearchWorker(media_id, language, api_key)
+        self.subtitle_search_worker.results.connect(self._subtitle_results_loaded)
+        self.subtitle_search_worker.error.connect(self._worker_error)
+        self.subtitle_search_worker.finished.connect(lambda: self.subtitle_search_button.setEnabled(True))
+        self.subtitle_search_worker.start()
+
+    def _subtitle_results_loaded(self, results):
+        self.subtitle_results = results or []
+        self.subtitle_results_combo.clear()
+        for result in self.subtitle_results:
+            self.subtitle_results_combo.addItem(f"{result.language.upper()} [{result.provider}] {result.display}")
+        self.subtitle_download_button.setEnabled(bool(self.subtitle_results))
+        self.fetch_status_label.setText(f"SUBS: {len(self.subtitle_results)} RESULT(S)")
+
+    def download_selected_subtitle(self):
+        index = self.subtitle_results_combo.currentIndex()
+        if index < 0 or index >= len(self.subtitle_results):
+            return
+        result = self.subtitle_results[index]
+        title = self.current_info.get("title") or self.url_input.text().strip() or "subtitle"
+        safe_title = "".join(ch if ch.isalnum() or ch in " ._-" else "_" for ch in title).strip() or "subtitle"
+        language = result.language or ("ar" if self.subtitle_search_language.currentText() == "Arabic" else "en")
+        output = Path(self.output_input.text().strip()) / f"{safe_title}.{language}.{result.format or 'srt'}"
+        self.subtitle_download_button.setEnabled(False)
+        self.subtitle_download_worker = SubtitleDownloadWorker(result, output)
+        self.subtitle_download_worker.downloaded.connect(lambda path: self.log_output.append(f"Subtitle saved: {path}"))
+        self.subtitle_download_worker.downloaded.connect(lambda _path: self.fetch_status_label.setText("SUBS: SAVED"))
+        self.subtitle_download_worker.error.connect(self._worker_error)
+        self.subtitle_download_worker.finished.connect(lambda: self.subtitle_download_button.setEnabled(True))
+        self.subtitle_download_worker.start()
+
+    def _subtitle_media_id(self):
+        for key in ("imdb_id", "display_id", "id"):
+            value = str(self.current_info.get(key) or "")
+            if value:
+                return value
+        return ""
+
+    def _download_active(self):
+        return bool(self.download_worker and self.download_button.isEnabled() is False)
+
+    def _start_fetch_animation(self):
+        self._fetch_dots = 0
+        self.fetch_status_label.setText("FETCHING DATA")
+        self.fetch_timer.start(350)
+
+    def _animate_fetch_status(self):
+        self._fetch_dots = (self._fetch_dots + 1) % 4
+        self.fetch_status_label.setText(f"FETCHING DATA{'.' * self._fetch_dots}")
 
     def _apply_contextual_visibility(self):
         context = context_from_info(

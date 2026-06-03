@@ -104,6 +104,7 @@ class TestAllURLsMatching(unittest.TestCase):
 
     def test_rivestream_matching(self):
         self.assertMatch('https://www.rivestream.xyz/watch?type=movie&id=1430077', ['RiveStream'])
+        self.assertMatch('https://www.rivestream.xyz/watch?type=movie&amp;id=1297842', ['RiveStream'])
 
     def test_tumblr(self):
         self.assertMatch('http://tatianamaslanydaily.tumblr.com/post/54196191430/orphan-black-dvd-extra-behind-the-scenes', ['Tumblr'])

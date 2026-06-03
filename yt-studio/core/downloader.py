@@ -54,7 +54,7 @@ class DownloadWorker(QThread):
             else:
                 self.finished.emit({"url": self.job.url, "title": self.job.title})
         except Exception as exc:
-            if self._download_finished_seen and self._last_finished_file_exists():
+            if self._should_keep_completed_download(str(exc)):
                 self.finished.emit({
                     "url": self.job.url,
                     "title": self.job.title,
@@ -90,3 +90,11 @@ class DownloadWorker(QThread):
         if not self._last_downloaded_filename:
             return False
         return Path(self._last_downloaded_filename).exists()
+
+    def _should_keep_completed_download(self, message: str) -> bool:
+        if not self._download_finished_seen:
+            return False
+        if self._last_finished_file_exists():
+            return True
+        normalized = message.lower()
+        return "postprocessing" in normalized or "error opening output files" in normalized

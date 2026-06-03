@@ -38,7 +38,14 @@ class MainWindow(QMainWindow):
         self.queue_tab = QueueTab()
         self.settings_tab = SettingsTab(self.history_store)
         self.history_tab = HistoryTab(self.history_store)
-        self.download_tab = DownloadTab(self.history_store, self.history_tab.refresh, self.queue_tab.add_job)
+        self.download_tab = DownloadTab(
+            self.history_store,
+            self.history_tab.refresh,
+            self.queue_tab.add_job,
+            self.queue_tab.update_job,
+        )
+        self.queue_tab.start_requested.connect(self.download_tab.start_job)
+        self.queue_tab.pause_requested.connect(self.download_tab.pause_queue_job)
 
         self.status_left = QLabel("DOWNLOAD MODE")
         self.status_center = QLabel("YT-STUDIO v1.0")
