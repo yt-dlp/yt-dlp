@@ -99,6 +99,9 @@ class TestAllURLsMatching(unittest.TestCase):
     def test_soundcloud_not_matching_sets(self):
         self.assertMatch('http://soundcloud.com/floex/sets/gone-ep', ['soundcloud:set'])
 
+    def test_streamimdb_matching(self):
+        self.assertMatch('https://streamimdb.ru/embed/movie/tt15940132', ['StreamIMDb'])
+
     def test_tumblr(self):
         self.assertMatch('http://tatianamaslanydaily.tumblr.com/post/54196191430/orphan-black-dvd-extra-behind-the-scenes', ['Tumblr'])
         self.assertMatch('http://tatianamaslanydaily.tumblr.com/post/54196191430', ['Tumblr'])
