@@ -46,12 +46,20 @@ AUDIO_QUALITY = {"Best": "0", "Normal": "5", "192K": "192K", "128K": "128K"}
 
 
 class DownloadTab(QWidget):
-    def __init__(self, history_store, on_history_changed, on_queue_added, on_queue_update=None):
+    def __init__(
+        self,
+        history_store,
+        on_history_changed,
+        on_queue_added,
+        on_queue_update=None,
+        on_queue_idle=None,
+    ):
         super().__init__()
         self.history_store = history_store
         self.on_history_changed = on_history_changed
         self.on_queue_added = on_queue_added
         self.on_queue_update = on_queue_update or (lambda *_args, **_kwargs: None)
+        self.on_queue_idle = on_queue_idle or (lambda: None)
         self.info_worker = None
         self.download_worker = None
         self.subtitle_search_worker = None
@@ -377,7 +385,7 @@ class DownloadTab(QWidget):
             format_id=job.format_id,
             status="running",
         )
-        self.history_store.set_setting("output_dir", str(output_dir))
+        self.history_store.set_setting("output_dir", str(job.output_dir))
         self.download_button.setEnabled(False)
         self.cancel_button.setEnabled(True)
         self.active_queue_id = queue_id
@@ -429,6 +437,7 @@ class DownloadTab(QWidget):
             self.on_queue_update(self.active_queue_id, "DONE", 100)
         self._reset_download_buttons()
         self.on_history_changed()
+        self.on_queue_idle()
 
     def _download_canceled(self):
         if self.current_download_id:
@@ -438,6 +447,7 @@ class DownloadTab(QWidget):
         self.status_label.setText("STATUS: DOWNLOAD PAUSED" if self._pause_requested else "STATUS: DOWNLOAD CANCELED")
         self._reset_download_buttons()
         self.on_history_changed()
+        self.on_queue_idle()
 
     def _download_error(self, message):
         if self.current_download_id:
@@ -447,6 +457,7 @@ class DownloadTab(QWidget):
         self._worker_error(message)
         self._reset_download_buttons()
         self.on_history_changed()
+        self.on_queue_idle()
 
     def _worker_error(self, message):
         self.status_label.setText("STATUS: ERROR")
@@ -466,10 +477,19 @@ class DownloadTab(QWidget):
             QMessageBox.warning(self, "YT-Studio", "Fetch media info first so YT-Studio can search by IMDb/TMDB ID.")
             return
         language = "ar" if self.subtitle_search_language.currentText() == "Arabic" else "en"
-        api_key = self.history_store.get_setting("wyzie_api_key", "")
+        wyzie_api_key = self.history_store.get_setting("wyzie_api_key", "")
+        subdl_api_key = self.history_store.get_setting("subdl_api_key", "")
         self.subtitle_search_button.setEnabled(False)
         self.fetch_status_label.setText(f"SUBS: SEARCHING {language.upper()}...")
-        self.subtitle_search_worker = SubtitleSearchWorker(media_id, language, api_key)
+        self.subtitle_search_worker = SubtitleSearchWorker(
+            media_id,
+            language,
+            wyzie_api_key=wyzie_api_key,
+            subdl_api_key=subdl_api_key,
+            media_type="tv" if self.current_info.get("season_number") or self.current_info.get("episode_number") else "movie",
+            season=self.current_info.get("season_number"),
+            episode=self.current_info.get("episode_number"),
+        )
         self.subtitle_search_worker.results.connect(self._subtitle_results_loaded)
         self.subtitle_search_worker.error.connect(self._worker_error)
         self.subtitle_search_worker.finished.connect(lambda: self.subtitle_search_button.setEnabled(True))

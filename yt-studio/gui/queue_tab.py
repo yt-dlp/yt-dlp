@@ -24,6 +24,7 @@ class QueueTab(QWidget):
     def __init__(self):
         super().__init__()
         self._next_id = 1
+        self.auto_start = False
         self.items: dict[int, QueueItem] = {}
         self.table = QTableWidget(0, 5)
         self.table.setHorizontalHeaderLabels(["ID", "Filename", "Format", "Progress", "Status"])
@@ -97,14 +98,21 @@ class QueueTab(QWidget):
                 self.table.setItem(row, column, QTableWidgetItem(value))
 
     def start_next_waiting(self):
+        self.auto_start = True
         for item in self.items.values():
             if item.status in {"WAIT", "PAUSED"}:
                 self.start_requested.emit(item.queue_id, item.job)
                 return
+        self.auto_start = False
+
+    def start_next_waiting_if_auto(self):
+        if self.auto_start:
+            self.start_next_waiting()
 
     def start_selected(self):
         item = self._selected_item()
         if item and item.status in {"WAIT", "PAUSED"}:
+            self.auto_start = False
             self.start_requested.emit(item.queue_id, item.job)
 
     def pause_selected(self):
@@ -115,6 +123,7 @@ class QueueTab(QWidget):
     def resume_selected(self):
         item = self._selected_item()
         if item and item.status == "PAUSED":
+            self.auto_start = False
             self.start_requested.emit(item.queue_id, item.job)
 
     def mark_selected_done(self):

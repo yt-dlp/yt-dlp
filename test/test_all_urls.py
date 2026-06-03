@@ -101,10 +101,15 @@ class TestAllURLsMatching(unittest.TestCase):
 
     def test_streamimdb_matching(self):
         self.assertMatch('https://streamimdb.ru/embed/movie/tt15940132', ['StreamIMDb'])
+        self.assertMatch('https://streamimdb.ru/embed/tv/tt0944947?season=1&episode=1', ['StreamIMDb'])
 
     def test_rivestream_matching(self):
         self.assertMatch('https://www.rivestream.xyz/watch?type=movie&id=1430077', ['RiveStream'])
         self.assertMatch('https://www.rivestream.xyz/watch?type=movie&amp;id=1297842', ['RiveStream'])
+        self.assertMatch('https://www.rivestream.xyz/watch?type=tv&id=1399&season=1&episode=1', ['RiveStream'])
+        self.assertMatch('https://www.rivestream.xyz/watch?type=anime&id=1399&season=1&episode=1', ['RiveStream'])
+        self.assertMatch('https://www.rivestream.xyz/watch?type=series&id=1399&season=1&episode=1', ['RiveStream'])
+        self.assertMatch('https://www.rivestream.xyz/watch?type=cartoon&id=1399&season=1&episode=1', ['RiveStream'])
 
     def test_tumblr(self):
         self.assertMatch('http://tatianamaslanydaily.tumblr.com/post/54196191430/orphan-black-dvd-extra-behind-the-scenes', ['Tumblr'])

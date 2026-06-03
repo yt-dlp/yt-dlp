@@ -5,7 +5,7 @@ import pytest
 
 pytest.importorskip("PySide6")
 
-from PySide6.QtWidgets import QApplication, QTabWidget, QToolButton
+from PySide6.QtWidgets import QApplication, QPushButton, QTabWidget, QToolButton
 
 from gui.main_window import MainWindow
 
@@ -37,6 +37,10 @@ def test_retro_menubar_has_functional_actions():
 
     assert set(window.menu_buttons) == {"File", "Edit", "View", "Tools", "Help"}
     assert all(isinstance(button, QToolButton) for button in window.menu_buttons.values())
+    assert any(
+        child.text() == "Made by Omar Hisham"
+        for child in window.findChildren(QPushButton)
+    )
 
     file_actions = [action.text().replace("&", "") for action in window.menu_buttons["File"].menu().actions()]
     assert "Fetch Info" in file_actions

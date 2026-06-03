@@ -1,4 +1,5 @@
 import re
+from urllib.parse import parse_qs, urlparse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -53,6 +54,9 @@ class StreamIMDbIE(InfoExtractor):
 
     def _real_extract(self, url):
         media_type, video_id = self._match_valid_url(url).group('media_type', 'id')
+        url_query = parse_qs(urlparse(url).query)
+        url_season = (url_query.get('season') or [None])[0]
+        url_episode = (url_query.get('episode') or [None])[0]
         webpage = self._download_webpage(url, video_id)
         player_url = self._extract_iframe_url(webpage, url)
 
@@ -74,8 +78,8 @@ class StreamIMDbIE(InfoExtractor):
             query={
                 'imdb' if str(api_video_id).startswith('tt') else 'tmdb': api_video_id,
                 'type': api_media_type,
-                **({'season': config.get('season')} if config.get('season') else {}),
-                **({'episode': config.get('episode')} if config.get('episode') else {}),
+                **({'season': config.get('season') or url_season} if config.get('season') or url_season else {}),
+                **({'episode': config.get('episode') or url_episode} if config.get('episode') or url_episode else {}),
             })
 
         data = stream_data.get('data') or {}

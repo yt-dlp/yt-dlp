@@ -43,6 +43,7 @@ class MainWindow(QMainWindow):
             self.history_tab.refresh,
             self.queue_tab.add_job,
             self.queue_tab.update_job,
+            self.queue_tab.start_next_waiting_if_auto,
         )
         self.queue_tab.start_requested.connect(self.download_tab.start_job)
         self.queue_tab.pause_requested.connect(self.download_tab.pause_queue_job)
@@ -94,6 +95,10 @@ class MainWindow(QMainWindow):
         title = QLabel("YT-STUDIO v1.0  [DOWNLOAD MANAGER]")
         title.setObjectName("title-text")
         layout.addWidget(title, 1)
+        made_by = QPushButton("Made by Omar Hisham")
+        made_by.setObjectName("window-button")
+        made_by.clicked.connect(self._menu_about)
+        layout.addWidget(made_by)
         for label, handler in (
             ("_", self.showMinimized),
             ("^", self._toggle_maximized),
