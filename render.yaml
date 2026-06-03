@@ -5,5 +5,13 @@ services:
     name: yt-dlp-api
     runtime: python
     buildCommand: pip install -e ".[api]"
-    startCommand: uvicorn api.app:app --host 0.0.0.0 --port $PORT
+    # gunicorn with a UvicornWorker, recycled every ~200 requests (+jitter) so any
+    # accumulated/fragmented memory is released back to the OS periodically.
+    # --max-requests addresses slow creep; MAX_CONCURRENT_EXTRACTIONS bounds the
+    # per-process spike. Keep workers at 1 so memory use stays predictable on a
+    # single instance (raise WEB_CONCURRENCY only with proportionally more RAM).
+    startCommand: gunicorn api.app:app -k uvicorn.workers.UvicornWorker --workers ${WEB_CONCURRENCY:-1} --max-requests 200 --max-requests-jitter 50 --timeout 120 --bind 0.0.0.0:$PORT
     healthCheckPath: /health
+    envVars:
+      - key: MAX_CONCURRENT_EXTRACTIONS
+        value: "4"

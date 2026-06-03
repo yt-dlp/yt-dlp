@@ -30,7 +30,7 @@ def _tiktok_extractor_args() -> dict | None:
     }
 
 
-def _opts_for(extract_type: EXTRACT_TYPES, url: str = '') -> dict:
+def _opts_for(extract_type: EXTRACT_TYPES, url: str = '', limit: int | None = None) -> dict:
     base = {
         'skip_download': True,
         'quiet': True,
@@ -41,6 +41,11 @@ def _opts_for(extract_type: EXTRACT_TYPES, url: str = '') -> dict:
     }
     if extract_type == 'playlist_flat':
         base['extract_flat'] = 'in_playlist'
+        # Bound playlist extraction so a huge channel can't pull thousands of
+        # entries into memory (sanitize_info deep-copies the whole result, then
+        # the JSON encoder copies it again — ~3x the payload at peak).
+        if limit is not None and limit > 0:
+            base['playlistend'] = limit
     proxy = _proxy_url()
     if proxy:
         base['proxy'] = proxy
@@ -51,12 +56,13 @@ def _opts_for(extract_type: EXTRACT_TYPES, url: str = '') -> dict:
     return base
 
 
-def extract(url: str, extract_type: EXTRACT_TYPES) -> dict | None:
+def extract(url: str, extract_type: EXTRACT_TYPES, limit: int | None = None) -> dict | None:
     """
     Extract metadata for the given URL. No provider-specific logic;
-    yt-dlp selects the extractor from the URL.
+    yt-dlp selects the extractor from the URL. `limit` caps the number of
+    entries for playlist_flat extraction (passed to yt-dlp as playlistend).
     """
-    opts = _opts_for(extract_type, url)
+    opts = _opts_for(extract_type, url, limit)
     with YoutubeDL(opts) as ydl:
         result = ydl.extract_info(url, download=False)
     if result is None:

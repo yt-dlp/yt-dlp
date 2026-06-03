@@ -23,12 +23,15 @@ def _is_youtube_url(url: str) -> bool:
 
 
 @router.get('/channel/videos')
-def channel_videos(url: str = Query(..., description='YouTube channel or playlist URL (e.g. .../channel/UC.../recent)')):
+def channel_videos(
+    url: str = Query(..., description='YouTube channel or playlist URL (e.g. .../channel/UC.../recent)'),
+    limit: int | None = Query(None, ge=1, description='Max number of videos to return (caps extraction; unbounded if omitted)'),
+):
     """Return flat list of videos for a channel/playlist (same shape as yt-dlp --flat-playlist -j)."""
     if not _is_youtube_url(url):
         raise HTTPException(status_code=400, detail='URL must be a YouTube channel or playlist URL')
     try:
-        result = service.extract(url, 'playlist_flat')
+        result = service.extract(url, 'playlist_flat', limit=limit)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e)) from e
     if result is None:
