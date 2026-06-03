@@ -34,6 +34,10 @@ def _opts_for(extract_type: EXTRACT_TYPES, url: str = '', limit: int | None = No
     base = {
         'skip_download': True,
         'quiet': True,
+        # Metadata-only extraction: we never download, so warnings about missing
+        # JS runtime / skipped formats (SABR, android_vr) are noise. quiet alone
+        # does not suppress warnings — no_warnings does (see report_warning).
+        'no_warnings': True,
         'ignore_no_formats_error': True,
         'http_headers': {
             'Accept-Encoding': 'gzip, deflate',

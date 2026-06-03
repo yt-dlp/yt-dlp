@@ -25,6 +25,7 @@ def _get_hashtag_posts_from_web(tag: str) -> list[dict[str, Any]] | None:
     opts = {
         'skip_download': True,
         'quiet': True,
+        'no_warnings': True,
         'ignore_no_formats_error': True,
     }
     with YoutubeDL(opts) as ydl:
@@ -52,6 +53,7 @@ def _get_user_info_by_username(username: str) -> tuple[dict[str, Any] | None, di
     opts = {
         'skip_download': True,
         'quiet': True,
+        'no_warnings': True,
         'ignore_no_formats_error': True,
     }
     with YoutubeDL(opts) as ydl:
