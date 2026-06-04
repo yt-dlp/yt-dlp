@@ -4,6 +4,7 @@ services:
   - type: web
     name: yt-dlp-api
     runtime: python
+    plan: pro
     buildCommand: pip install -e ".[api]"
     # gunicorn with a UvicornWorker, recycled every ~200 requests (+jitter) so any
     # accumulated/fragmented memory is released back to the OS periodically.
