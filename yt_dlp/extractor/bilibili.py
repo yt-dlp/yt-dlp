@@ -748,7 +748,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'id': f'{video_id}{format_field(part_id, None, "_p%d")}',
             '_old_archive_ids': [make_archive_id(self, old_video_id)] if old_video_id else None,
             'title': title,
-            'http_headers': {'Referer': url},
+            'http_headers': self._HEADERS,
         }
 
         is_interactive = traverse_obj(video_data, ('rights', 'is_stein_gate'))
