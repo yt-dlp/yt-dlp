@@ -2244,7 +2244,6 @@ Line 1
         test(self._JWT_WITH_REORDERED_HEADERS_AND_RS256_ALG)
         test(self._JWT_WITH_EXTRA_HEADERS_AND_ES256_ALG)
 
-
     def test_decode_lzstring(self):
         for mode, compressed in (
             ('base64', 'BYUwNmD2Q==='),
