@@ -4941,7 +4941,7 @@ def decode_lzstring(s, mode='base64'):
         length = (n + 1) // 2
         get_unit = lambda i: s[j] << 8 | (s[j + 1] if j + 1 < n else 0) if (j := 2 * i) < n else 0
     else:
-        raise ValueError(f'unsupported LZString mode: {mode}')
+        raise ValueError(f'Unsupported LZString mode: {mode}')
 
     val, pos, idx = get_unit(0), reset_pos, 1
 
@@ -4956,12 +4956,10 @@ def decode_lzstring(s, mode='base64'):
             if val & pos:
                 out |= bit
             pos >>= 1
-
             if not pos:
                 pos = reset_pos
                 val = get_unit(idx)
                 idx += 1
-
             bit <<= 1
 
         return out
@@ -4992,14 +4990,12 @@ def decode_lzstring(s, mode='base64'):
             return ''
 
         code = read_bits(width)
-
         if code < 2:
             entries.append(chr(read_bits(8 << code)))
             code = len(entries) - 1
             update_width()
         elif code == 2:
             return ''.join(out)
-
         if code < len(entries):
             entry = entries[code]
         elif code == len(entries):
