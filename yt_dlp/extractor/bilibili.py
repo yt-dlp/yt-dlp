@@ -659,8 +659,6 @@ class BiliBiliIE(BilibiliBaseIE):
         video_id, prefix = self._match_valid_url(url).group('id', 'prefix')
         headers = {'Referer': url, **self.geo_verification_headers()}
         webpage, urlh = self._download_webpage_handle(url, video_id, headers=headers)
-        with open("t1.html",mode="w",encoding="utf-8") as f:
-            f.write(webpage)
         if not self._match_valid_url(urlh.url):
             return self.url_result(urlh.url)
 
@@ -916,7 +914,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
 
     def _real_extract(self, url):
         episode_id = self._match_id(url)
-        headers = {'Referer': 'https://www.bilibili.com/', **self.geo_verification_headers()}
+        headers = {'Referer': url, **self.geo_verification_headers()}
         webpage = self._download_webpage(url, episode_id, headers=headers)
 
         if '您所在的地区无法观看本片' in webpage:
