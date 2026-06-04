@@ -1,6 +1,8 @@
 import datetime as dt
 import itertools
+import json
 import re
+import time
 import urllib.parse
 
 from .streaks import StreaksBaseIE
@@ -8,6 +10,7 @@ from ..utils import (
     ExtractorError,
     GeoRestrictedError,
     clean_html,
+    decode_lzstring,
     filter_dict,
     int_or_none,
     join_nonempty,
@@ -58,17 +61,24 @@ class TVerBaseIE(StreaksBaseIE):
             'X-Streaks-Api-Key': streaks_info[project_id]['api_key'][f'key{key:02d}'],
         }
 
-    def _call_api(self, api_type, path, video_id, fatal=False, query=None, **kwargs):
+    def _call_api(self, api_type, path, video_id, fatal=False, headers=None, query=None, **kwargs):
         api_base = {
             'contents': 'https://contents-api.tver.jp/contents',
+            'member': 'https://member-api.tver.jp/service',
             'platform': 'https://platform-api.tver.jp/service',
             'service': 'https://service-api.tver.jp',
+            'user': 'https://user-api.tver.jp/user',
         }[api_type]
 
         return self._download_json(
             f'{api_base}/api/{path}{f"/{video_id}" if video_id else ""}',
-            video_id, fatal=fatal, headers={'x-tver-platform-type': 'web'},
-            query={**self._platform_query, **(query or {})}, **kwargs)
+            video_id, fatal=fatal, headers={
+                'x-tver-platform-type': 'web',
+                **(headers or {}),
+            }, query={
+                **self._platform_query,
+                **(query or {}),
+            }, **kwargs)
 
     def _thumbnails(self, content_type, video_id):
         return [{
@@ -195,26 +205,26 @@ class TVerShortsIE(TVerBaseIE):
 
     _VALID_URL = r'https?://tver\.jp/shorts/(?P<id>[a-zA-Z0-9]+)(?:[/?#]|$)'
     _TESTS = [{
-        'url': 'https://tver.jp/shorts/se6lzp0fza',
+        'url': 'https://tver.jp/shorts/sej1hua0vh',
         'info_dict': {
-            'id': 'se6lzp0fza',
+            'id': 'sej1hua0vh',
             'ext': 'mp4',
-            'title': 'イヨ・スカイ（プロレスラー・＃1404）',
-            'channel_id': 'mbs',
-            'description': 'md5:179ad0cd533391f2d9650c9c0c00d9f1',
-            'display_id': 'ref:jounetsu_1404_s1',
-            'duration': 43,
+            'title': '若葉と潮風そよぐ港町 広島・呉 海軍の歴史＆瀬戸内の絶景を巡る',
+            'channel_id': 'tvo',
+            'description': 'md5:750a7d2a2f94bc88f07ba58da4223fde',
+            'display_id': 'ref:otonatabi20260523-00033-1',
+            'duration': 70,
             'like_count': int,
             'live_status': 'not_live',
-            'modified_date': '20260517',
-            'modified_timestamp': 1778994201,
-            'series': '情熱大陸',
-            'series_id': 'srz38rt0a3',
+            'modified_date': '20260521',
+            'modified_timestamp': 1779351746,
+            'series': 'おとな旅あるき旅',
+            'series_id': 'sr6q8agywz',
             'tags': ['TVer', 'ショート'],
             'thumbnail': r're:https?://.+\.png',
-            'timestamp': 1778992040,
-            'upload_date': '20260517',
-            'uploader_id': 'tver-short-mbs',
+            'timestamp': 1779350850,
+            'upload_date': '20260521',
+            'uploader_id': 'tver-short-tvo',
         },
     }]
 
@@ -259,30 +269,30 @@ class TVerLiveIE(TVerBaseIE):
     _STATION_RE = '|'.join(map(re.escape, ('cx', 'ex', 'ntv', 'tbs', 'tx')))
     _VALID_URL = rf'https?://tver\.jp/live/(?P<type>simul|special|{_STATION_RE})(?:/(?P<id>[a-zA-Z0-9]+))?(?:[/?#]|$)'
     _TESTS = [{
-        'url': 'https://tver.jp/live/simul/le9lnui4e2',
+        'url': 'https://tver.jp/live/simul/lec0q2882d',
         'info_dict': {
-            'id': 'le9lnui4e2',
+            'id': 'lec0q2882d',
             'ext': 'mp4',
-            'title': 'おウチに置きたい！珍奇植物ＳＰ',
-            'alt_title': '5月23日(土)放送分',
-            'channel': 'テレビ朝日',
-            'channel_id': 'ex',
-            'description': 'md5:744ab1d20b254e7133e6d2f105eef581',
-            'display_id': 'ref:le9lnui4e2',
-            'duration': 3839.969,
+            'title': 'ＷＢＳ【利上げはあるか？ 日銀・植田総裁の発言分析】',
+            'alt_title': '6月3日(水)放送分',
+            'channel': 'テレ東',
+            'channel_id': 'tx',
+            'description': 'md5:d46ec2475fc614f7335e7291070d3c99',
+            'display_id': 'ref:lec0q2882d',
+            'duration': 3389.952,
             'live_status': 'was_live',
-            'modified_date': '20260523',
-            'modified_timestamp': 1779534039,
-            'release_date': '20260523',
-            'release_timestamp': 1779530160,
-            'season_id': 's0000644',
-            'series': 'サンドウィッチマン＆芦田愛菜の博士ちゃん',
-            'series_id': 'srb4rre2v0',
-            'tags': 'count:7',
+            'modified_date': '20260603',
+            'modified_timestamp': 1780530183,
+            'release_date': '20260603',
+            'release_timestamp': 1780491600,
+            'season_id': 's0000152',
+            'series': 'ＷＢＳ（ワールドビジネスサテライト）',
+            'series_id': 'srx2o7o3c8',
+            'tags': 'count:5',
             'thumbnail': r're:https?://.+\.jpg',
-            'timestamp': 1779530181,
-            'upload_date': '20260523',
-            'uploader_id': 'tver-simul-ex',
+            'timestamp': 1780491626,
+            'upload_date': '20260603',
+            'uploader_id': 'tver-simul-tx',
         },
     }, {
         'url': 'https://tver.jp/live/tx',
@@ -382,7 +392,7 @@ class TVerChannelsIE(TVerBaseIE):
             'id': 'news-nnn',
             'title': '日テレNEWS NNN',
         },
-        'playlist_mincount': 3650,
+        'playlist_mincount': 5956,
     }]
     _PAGE_SIZE = 100
 
@@ -421,11 +431,13 @@ class TVerPlaylistBaseIE(TVerBaseIE):
             'episode': ('episodes', TVerIE),
             'live': ('live/simul', TVerLiveIE),
             'series': ('series', TVerPlaylistIE),
+            'specialMain': ('specials', TVerPlaylistIE),
+            'talent': ('talents', TVerPlaylistIE),
         }
 
         for item in traverse_obj(result, (
             'contents', *keys, all,
-            lambda _, v: v['type'] == 'episode' or v['content']['isDVRNow'],
+            lambda _, v: v['type'] != 'live' or v['content']['isDVRNow'],
         )):
             path, ie = type_map.get(item['type'])
             item_id = traverse_obj(item, ('content', 'id', {str_or_none}))
@@ -467,6 +479,15 @@ class TVerPlaylistIE(TVerPlaylistBaseIE):
     def _real_extract(self, url):
         playlist_type, playlist_id = self._match_valid_url(url).group('type', 'id')
         playlist_key = playlist_type.split('/')[0]
+
+        if playlist_key == 'specials' and not playlist_id:
+            main_id = playlist_type.split('/')[-1]
+            special = self._call_api('platform', 'v1/callSpecialContents', main_id)
+            all_id = traverse_obj(special, (
+                'result', 'specialContents', ..., 'content', 'id', {str_or_none}, any))
+
+            return self.url_result(
+                f'{self._BASE_URL}/specials/{main_id}/{all_id}', TVerPlaylistIE)
 
         api_type, endpoint, keys = {
             'series': ('platform', 'v1/callSeriesEpisodes', (..., 'contents', ...)),
@@ -513,7 +534,7 @@ class TVerSearchIE(TVerPlaylistBaseIE):
         'info_dict': {
             'id': 'ラヴィット！',
         },
-        'playlist_mincount': 11,
+        'playlist_mincount': 8,
     }, {
         'url': 'https://tver.jp/search/%E3%83%8B%E3%83%A5%E3%83%BC%E3%82%B9?genre=news_documentary&weekday=mon&tvnetwork=txn',
         'info_dict': {
@@ -532,6 +553,66 @@ class TVerSearchIE(TVerPlaylistBaseIE):
 
         return self.playlist_result(
             self._entries(playlist_info['result'], (...,)), keyword)
+
+
+class TVerMyPageIE(TVerPlaylistBaseIE):
+    IE_NAME = 'tver:mypage'
+
+    _VALID_URL = r'https?://(?:www\.)?tver\.jp/mypage/(?P<id>fav|later|resume)(?:\?|$)'
+    _TESTS = [{
+        'url': 'https://tver.jp/mypage/fav?filter=series',
+        'only_matching': True,
+    }, {
+        'url': 'https://tver.jp/mypage/later',
+        'only_matching': True,
+    }, {
+        'url': 'https://tver.jp/mypage/resume',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        cookies = self._get_cookies('https://s.tver.jp')
+        member_sid = traverse_obj(cookies, (
+            'tversdk.plfProfiles', 'value', {decode_lzstring},
+            {json.loads}, ..., 'member', 'member_sid', {str_or_none}, any))
+        if not member_sid:
+            self.raise_login_required(
+                'Login is required to access TVer My Page')
+
+        playlist_type = self._match_id(url)
+        query = traverse_obj(parse_qs(url), (
+            'filter', -1, {str}, filter,
+        )) or 'all' if playlist_type == 'fav' else None
+        playlist_id = join_nonempty(playlist_type, query, delim=':')
+
+        if query == 'channel':
+            channels = self._call_api(
+                'user', 'v1/favorites/channels',
+                None, headers={'X-Member-Sid': member_sid})
+
+            return self.playlist_result([
+                self.url_result(f'{self._BASE_URL}/channels/{channel_id}', TVerChannelsIE)
+                for channel_id in traverse_obj(channels, (
+                    'channels', ..., 'url_key', {str_or_none},
+                ))
+            ], playlist_id)
+
+            return self.playlist_result(self._entries(channels), playlist_id)
+
+        fav_keys = (...,) if query == 'all' else (..., 'favorite')
+        endpoint, keys, require_data = {
+            'fav': (f'v2/callMylistDetail/{int(time.time())}', fav_keys, 'mylist'),
+            'later': ('v2/callMyLater', (...,), 'later'),
+            'resume': ('v2/callMyResume', (...,), 'resume'),
+        }[playlist_type]
+        result = self._call_api(
+            'member', endpoint, None, query=filter_dict({
+                'filter': query,
+                'member_sid': member_sid,
+                'require_data': require_data,
+            }))['result']
+
+        return self.playlist_result(self._entries(result, keys), playlist_id)
 
 
 class TVerOlympicIE(StreaksBaseIE):

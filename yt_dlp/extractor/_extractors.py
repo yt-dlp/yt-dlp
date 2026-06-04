@@ -2188,6 +2188,7 @@ from .tver import (
     TVerChannelsIE,
     TVerIE,
     TVerLiveIE,
+    TVerMyPageIE,
     TVerOlympicIE,
     TVerPlaylistIE,
     TVerSearchIE,

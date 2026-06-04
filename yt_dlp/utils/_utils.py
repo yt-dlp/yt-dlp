@@ -4908,6 +4908,111 @@ def determine_file_encoding(data):
     return mobj.group(1).decode() if mobj else None, 0
 
 
+LZ_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+'
+LZ_B64 = {c: i for i, c in enumerate(f'{LZ_CHARS}/=')}
+LZ_URI = {c: i for i, c in enumerate(f'{LZ_CHARS}-$')}
+
+
+@partial_application
+def decode_lzstring(s, mode='base64'):
+    if s is None:
+        return ''
+    if not s:
+        return None
+
+    if mode in ('base64', 'uri'):
+        table = LZ_B64 if mode == 'base64' else LZ_URI
+        reset_pos = 32
+        if mode == 'uri':
+            s = s.replace(' ', '+')
+        length = len(s)
+        get_unit = lambda i: table.get(s[i], 0) if i < length else 0
+    elif mode == 'utf16':
+        reset_pos = 16384
+        length = len(s)
+        get_unit = lambda i: ord(s[i]) - 32 if i < length else 0
+    elif mode == 'raw':
+        reset_pos = 32768
+        length = len(s)
+        get_unit = lambda i: ord(s[i]) if i < length else 0
+    elif mode == 'uint8array':
+        reset_pos = 32768
+        n = len(s)
+        length = (n + 1) // 2
+        get_unit = lambda i: s[j] << 8 | (s[j + 1] if j + 1 < n else 0) if (j := 2 * i) < n else 0
+    else:
+        raise ValueError(f'unsupported LZString mode: {mode}')
+
+    val, pos, idx = get_unit(0), reset_pos, 1
+
+    def read_bits(width):
+        nonlocal val, pos, idx
+
+        out = 0
+        bit = 1
+        end = 1 << width
+
+        while bit < end:
+            if val & pos:
+                out |= bit
+            pos >>= 1
+
+            if not pos:
+                pos = reset_pos
+                val = get_unit(idx)
+                idx += 1
+
+            bit <<= 1
+
+        return out
+
+    code = read_bits(2)
+    if code < 2:
+        prev = chr(read_bits(8 << code))
+    elif code == 2:
+        return ''
+    else:
+        return None
+
+    entries = [None, None, None, prev]
+    out = [prev]
+    enlarge = 4
+    width = 3
+
+    def update_width():
+        nonlocal enlarge, width
+
+        enlarge -= 1
+        if not enlarge:
+            enlarge = 1 << width
+            width += 1
+
+    while True:
+        if idx > length:
+            return ''
+
+        code = read_bits(width)
+
+        if code < 2:
+            entries.append(chr(read_bits(8 << code)))
+            code = len(entries) - 1
+            update_width()
+        elif code == 2:
+            return ''.join(out)
+
+        if code < len(entries):
+            entry = entries[code]
+        elif code == len(entries):
+            entry = prev + prev[0]
+        else:
+            return None
+
+        out.append(entry)
+        entries.append(prev + entry[0])
+        prev = entry
+        update_width()
+
+
 class Config:
     own_args = None
     parsed_args = None
