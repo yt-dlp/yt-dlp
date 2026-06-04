@@ -657,12 +657,12 @@ class BiliBiliIE(BilibiliBaseIE):
 
     def _real_extract(self, url):
         video_id, prefix = self._match_valid_url(url).group('id', 'prefix')
-        headers = self.geo_verification_headers()
+        headers = {'Referer': url, **self.geo_verification_headers()}
         webpage, urlh = self._download_webpage_handle(url, video_id, headers=headers)
+        with open("t1.html",mode="w",encoding="utf-8") as f:
+            f.write(webpage)
         if not self._match_valid_url(urlh.url):
             return self.url_result(urlh.url)
-
-        headers['Referer'] = url
 
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id, default=None)
         if not initial_state:
@@ -758,11 +758,9 @@ class BiliBiliIE(BilibiliBaseIE):
                 duration=traverse_obj(initial_state, ('videoData', 'duration', {int_or_none})),
                 __post_extractor=self.extract_comments(aid))
 
-        play_info = None
-        if self.is_logged_in:
-            play_info = traverse_obj(
-                self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None),
-                ('data', {dict}))
+        play_info = traverse_obj(
+            self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None),
+            ('data', {dict}))
         if not play_info:
             play_info = self._download_playinfo(video_id, cid, headers=headers, query={'try_look': 1})
         formats = self.extract_formats(play_info)
@@ -918,7 +916,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
 
     def _real_extract(self, url):
         episode_id = self._match_id(url)
-        headers = self.geo_verification_headers()
+        headers = {'Referer': 'https://www.bilibili.com/', **self.geo_verification_headers()}
         webpage = self._download_webpage(url, episode_id, headers=headers)
 
         if '您所在的地区无法观看本片' in webpage:
