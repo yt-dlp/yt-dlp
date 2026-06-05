@@ -891,6 +891,8 @@ class TestYoutubeDL(unittest.TestCase):
             UnsafeExecExpansionError, r'Unsafe placeholder',
             test, 'echo %(title)q', {'outtmpl_na_placeholder': ';'})
 
+        self.assertIsInstance(test('echo'), YoutubeDL)
+        self.assertIsInstance(test('echo {}', {'outtmpl_na_placeholder': ';'}), YoutubeDL)
         self.assertIsInstance(test('echo %(title)q'), YoutubeDL)
         self.assertIsInstance(test('echo %(view_count)02d'), YoutubeDL)
         self.assertIsInstance(test(None, {'outtmpl_na_placeholder': ';'}), YoutubeDL)
