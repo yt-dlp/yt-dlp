@@ -6,10 +6,10 @@ import sys
 import unittest
 from unittest.mock import patch
 
-from yt_dlp.globals import all_plugins_loaded
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+
+from yt_dlp.globals import all_plugins_loaded
 
 import contextlib
 import copy
@@ -23,6 +23,7 @@ from yt_dlp.utils import (
     ExtractorError,
     LazyList,
     OnDemandPagedList,
+    UnsafeExecExpansionError,
     int_or_none,
     match_filter_func,
 )
@@ -866,6 +867,31 @@ class TestYoutubeDL(unittest.TestCase):
         assertRegexpMatches(self, ydl._format_note({
             'fps': 30,
         }), r'^30fps$')
+
+    def test_unsafe_exec_expansion(self):
+        def test(exec_cmd, params=None):
+            return YoutubeDL({
+                'ignoreerrors': 'only_download',
+                'postprocessors': [{
+                    'key': 'Exec',
+                    'exec_cmd': [exec_cmd],
+                    'when': 'after_move',
+                }] if exec_cmd else [],
+                **(params or {}),
+            })
+
+        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title)s"')
+        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title)S"')
+        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title)#S"')
+        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title)j"')
+        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title)#j"')
+        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe default', test, 'echo %(title|;)q')
+        self.assertRaisesRegex(
+            UnsafeExecExpansionError, r'Unsafe placeholder',
+            test, 'echo %(title)q', {'outtmpl_na_placeholder': ';'})
+
+        self.assertTrue(isinstance(test('echo %(title)q'), YoutubeDL))
+        self.assertTrue(isinstance(test(None, {'outtmpl_na_placeholder': ';'}), YoutubeDL))
 
     def test_postprocessors(self):
         filename = 'post-processor-testfile.mp4'
