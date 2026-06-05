@@ -891,9 +891,9 @@ class TestYoutubeDL(unittest.TestCase):
             UnsafeExecExpansionError, r'Unsafe placeholder',
             test, 'echo %(title)q', {'outtmpl_na_placeholder': ';'})
 
-        self.assertTrue(isinstance(test('echo %(title)q'), YoutubeDL))
-        self.assertTrue(isinstance(test('echo %(view_count).02d'), YoutubeDL))
-        self.assertTrue(isinstance(test(None, {'outtmpl_na_placeholder': ';'}), YoutubeDL))
+        self.assertIsInstance(test('echo %(title)q'), YoutubeDL)
+        self.assertIsInstance(test('echo %(view_count).02d'), YoutubeDL)
+        self.assertIsInstance(test(None, {'outtmpl_na_placeholder': ';'}), YoutubeDL)
 
     def test_postprocessors(self):
         filename = 'post-processor-testfile.mp4'
