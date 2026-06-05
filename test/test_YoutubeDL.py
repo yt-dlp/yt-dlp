@@ -896,10 +896,10 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertIsInstance(test('echo %(title)q'), YoutubeDL)
         self.assertIsInstance(test('echo %(view_count)02d'), YoutubeDL)
         self.assertIsInstance(
-            test('echo "%(title)s"', {'compat_opts': {'allow-unsafe-exec-commands'}}),
+            test('echo "%(title)s"', {'compat_opts': {'allow-unsafe-exec-expansion'}}),
             YoutubeDL)
         self.assertIsInstance(
-            test('echo %(title)q', {'outtmpl_na_placeholder': ';', 'compat_opts': {'allow-unsafe-exec-commands'}}),
+            test('echo %(title)q', {'outtmpl_na_placeholder': ';', 'compat_opts': {'allow-unsafe-exec-expansion'}}),
             YoutubeDL)
 
     def test_postprocessors(self):
