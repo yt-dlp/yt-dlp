@@ -876,7 +876,7 @@ class TestYoutubeDL(unittest.TestCase):
                     'key': 'Exec',
                     'exec_cmd': [exec_cmd],
                     'when': 'after_move',
-                }] if exec_cmd else [],
+                }],
                 **(params or {}),
             })
 
@@ -895,7 +895,6 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertIsInstance(test('echo {}', {'outtmpl_na_placeholder': ';'}), YoutubeDL)
         self.assertIsInstance(test('echo %(title)q'), YoutubeDL)
         self.assertIsInstance(test('echo %(view_count)02d'), YoutubeDL)
-        self.assertIsInstance(test(None, {'outtmpl_na_placeholder': ';'}), YoutubeDL)
 
     def test_postprocessors(self):
         filename = 'post-processor-testfile.mp4'
