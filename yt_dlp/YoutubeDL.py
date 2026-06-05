@@ -112,6 +112,7 @@ from .utils import (
     RejectedVideoReached,
     SameFileError,
     UnavailableVideoError,
+    UnsafeExecExpansionError,
     UserNotLive,
     YoutubeDLError,
     age_restricted,
@@ -833,9 +834,9 @@ class YoutubeDL:
                 for exec_cmd in exec_cmds:
                     try:
                         _ = self.prepare_outtmpl(exec_cmd, {}, _exec=True)
-                    except PostProcessingError as e:
+                    except UnsafeExecExpansionError as e:
                         self.report_error(e)
-                        continue
+                        raise
                     pp_def.setdefault('exec_cmd', []).append(exec_cmd)
                 if not pp_def.get('exec_cmd'):
                     continue
@@ -1449,12 +1450,12 @@ class YoutubeDL:
             # Validate safety of exec commands
             if _exec:
                 if fmt[-1] not in SAFE_EXEC_CONVERSIONS:
-                    raise PostProcessingError(f'Unsafe conversion(s) in exec command: {outtmpl!r}')
+                    raise UnsafeExecExpansionError(f'Unsafe conversion(s) in exec command: {outtmpl!r}')
                 elif any(unsafe_char in default for unsafe_char in UNSAFE_DEFAULT_CHARS):
                     if default == na:
-                        raise PostProcessingError(f'Unsafe placeholder for exec command: {na!r}')
+                        raise UnsafeExecExpansionError(f'Unsafe placeholder for exec command: {na!r}')
                     else:
-                        raise PostProcessingError(f'Unsafe default(s) in exec command: {outtmpl!r}')
+                        raise UnsafeExecExpansionError(f'Unsafe default(s) in exec command: {outtmpl!r}')
 
             flags = outer_mobj.group('conversion') or ''
             str_fmt = f'{fmt[:-1]}s'
