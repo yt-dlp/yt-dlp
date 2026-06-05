@@ -34,7 +34,7 @@ class OpenRecBaseIE(InfoExtractor):
     _BASE_URL = 'https://www.openrec.tv'
     _HEADERS = {'Referer': f'{_BASE_URL}/'}
     _NETRC_MACHINE = 'openrec'
-    _PUBLIC_BASE = 'https://public.openrec.tv/external/api/v5'
+    _PUBLIC_API_BASE = 'https://public.openrec.tv/external/api/v5'
 
     def _perform_login(self, username, password):
         if self._get_cookies(self._BASE_URL).get('access-token'):
@@ -290,7 +290,7 @@ class OpenRecIE(OpenRecBaseIE):
                 timestamp, dt.timezone(dt.timedelta(hours=9))).strftime('%Y-%m-%dT%H:%M:%S%z')
 
             chats = self._download_json(
-                f'{self._PUBLIC_BASE}/movies/{video_id}/chats',
+                f'{self._PUBLIC_API_BASE}/movies/{video_id}/chats',
                 video_id, f'Downloading chats page {page}', query={
                     'from_created_at': created_at,
                     'is_including_system_message': 'true',
@@ -334,7 +334,7 @@ class OpenRecIE(OpenRecBaseIE):
         release_timestamp = traverse_obj(page_store, ('movieStore', 'willStartAt', {parse_iso8601}))
         if live_status == 'is_upcoming':
             self.raise_no_formats(
-                f'This content is scheduled to start at {release_timestamp}', expected=True)
+                f'This content is scheduled to start at {release_timestamp} UTC', expected=True)
 
             return {
                 'id': video_id,
@@ -611,7 +611,7 @@ class OpenRecChannelIE(OpenRecBaseIE):
     def _fetch_page(self, channel_id, page):
         page += 1
         search_movies = self._download_json(
-            f'{self._PUBLIC_BASE}/search-movies', channel_id,
+            f'{self._PUBLIC_API_BASE}/search-movies', channel_id,
             f'Downloading page {page}', query={
                 'channel_ids': channel_id,
                 'include_live': True,
