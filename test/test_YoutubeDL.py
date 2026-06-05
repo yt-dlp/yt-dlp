@@ -895,6 +895,12 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertIsInstance(test('echo {}', {'outtmpl_na_placeholder': ';'}), YoutubeDL)
         self.assertIsInstance(test('echo %(title)q'), YoutubeDL)
         self.assertIsInstance(test('echo %(view_count)02d'), YoutubeDL)
+        self.assertIsInstance(
+            test('echo "%(title)s"', {'compat_opts': {'allow-unsafe-exec-commands'}}),
+            YoutubeDL)
+        self.assertIsInstance(
+            test('echo %(title)q', {'outtmpl_na_placeholder': ';', 'compat_opts': {'allow-unsafe-exec-commands'}}),
+            YoutubeDL)
 
     def test_postprocessors(self):
         filename = 'post-processor-testfile.mp4'

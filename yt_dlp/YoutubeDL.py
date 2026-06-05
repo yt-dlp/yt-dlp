@@ -829,7 +829,7 @@ class YoutubeDL:
             pp_key = pp_def.pop('key')
 
             # Validate safety of exec commands immediately
-            if pp_key == 'Exec':
+            if pp_key == 'Exec' and 'allow-unsafe-exec-commands' not in self.params['compat_opts']:
                 for exec_cmd in variadic(pp_def.get('exec_cmd', [])):
                     try:
                         self.prepare_outtmpl(exec_cmd, {}, _exec=True)
