@@ -830,7 +830,7 @@ class YoutubeDL:
 
             # Validate safety of exec commands immediately
             if pp_key == 'Exec':
-                for exec_cmd in pp_def.get('exec_cmd', []):
+                for exec_cmd in variadic(pp_def.get('exec_cmd', [])):
                     try:
                         self.prepare_outtmpl(exec_cmd, {}, _exec=True)
                     except UnsafeExecExpansionError as e:
