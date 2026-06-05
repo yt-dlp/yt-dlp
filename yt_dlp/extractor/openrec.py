@@ -4,6 +4,7 @@ import functools
 import itertools
 import json
 import math
+import time
 import urllib.parse
 import xml.etree.ElementTree
 
@@ -13,6 +14,7 @@ from ..utils import (
     InAdvancePagedList,
     clean_html,
     extract_attributes,
+    filter_dict,
     int_or_none,
     parse_iso8601,
     str_or_none,
@@ -32,6 +34,7 @@ class OpenRecBaseIE(InfoExtractor):
     _BASE_URL = 'https://www.openrec.tv'
     _HEADERS = {'Referer': f'{_BASE_URL}/'}
     _NETRC_MACHINE = 'openrec'
+    _PUBLIC_BASE = 'https://public.openrec.tv/external/api/v5'
 
     def _perform_login(self, username, password):
         if self._get_cookies(self._BASE_URL).get('access-token'):
@@ -261,14 +264,16 @@ class OpenRecIE(OpenRecBaseIE):
             vpos = int_or_none((posted_at - started_at + offset) * 100)
 
             xml.etree.ElementTree.SubElement(
-                root, 'chat',
-                premium=traverse_obj(s, (
-                    'user', 'is_premium', {bool}, {lambda x: '1' if x else '0'})),
-                user_id=traverse_obj(s, ('user', 'id', {str_or_none})),
-                name=traverse_obj(s, ('user', 'nickname', {clean_html}, filter)),
-                no=str_or_none(i),
-                vpos=str_or_none(vpos),
-                date=str_or_none(posted_at),
+                root, 'chat', filter_dict({
+                    **traverse_obj(s, ('user', {
+                        'premium': ('is_premium', {bool}, {lambda x: '1' if x else '0'}),
+                        'user_id': ('id', {str_or_none}),
+                        'name': ('nickname', {str}, filter),
+                    })),
+                    'no': str(i),
+                    'vpos': str_or_none(vpos),
+                    'date': str_or_none(posted_at),
+                }),
             ).text = traverse_obj(s, ('message', {clean_html}, filter))
         xml.etree.ElementTree.indent(root, space='  ')
 
@@ -285,7 +290,7 @@ class OpenRecIE(OpenRecBaseIE):
                 timestamp, dt.timezone(dt.timedelta(hours=9))).strftime('%Y-%m-%dT%H:%M:%S%z')
 
             chats = self._download_json(
-                f'https://public.openrec.tv/external/api/v5/movies/{video_id}/chats',
+                f'{self._PUBLIC_BASE}/movies/{video_id}/chats',
                 video_id, f'Downloading chats page {page}', query={
                     'from_created_at': created_at,
                     'is_including_system_message': 'true',
@@ -299,6 +304,7 @@ class OpenRecIE(OpenRecBaseIE):
                 break
 
             timestamp = last_posted_at + 1
+            time.sleep(0.1)
 
         return {
             'chats': [{
@@ -605,8 +611,8 @@ class OpenRecChannelIE(OpenRecBaseIE):
     def _fetch_page(self, channel_id, page):
         page += 1
         search_movies = self._download_json(
-            'https://public.openrec.tv/external/api/v5/search-movies',
-            channel_id, f'Downloading page {page}', query={
+            f'{self._PUBLIC_BASE}/search-movies', channel_id,
+            f'Downloading page {page}', query={
                 'channel_ids': channel_id,
                 'include_live': True,
                 'include_upload': True,
