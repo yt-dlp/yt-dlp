@@ -4,6 +4,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     OnDemandPagedList,
+    filter_dict,
     format_field,
     int_or_none,
     parse_resolution,
@@ -1358,7 +1359,7 @@ class PeerTubeIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'E2E tests',
             'categories': ['Unknown'],
-            'channel': 'Main chocobozzz channel',
+            'channel': 'Chocobozzz test channel',
             'channel_id': '5187',
             'channel_url': 'https://peertube2.cpy.re/video-channels/chocobozzz_channel',
             'description': 'md5:67daf92c833c41c95db874e18fcb2786',
@@ -1382,7 +1383,7 @@ class PeerTubeIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'E2E tests',
             'categories': ['Unknown'],
-            'channel': 'Main chocobozzz channel',
+            'channel': 'Chocobozzz test channel',
             'channel_id': '5187',
             'channel_url': 'https://peertube2.cpy.re/video-channels/chocobozzz_channel',
             'description': 'md5:67daf92c833c41c95db874e18fcb2786',
@@ -1406,7 +1407,7 @@ class PeerTubeIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'E2E tests',
             'categories': ['Unknown'],
-            'channel': 'Main chocobozzz channel',
+            'channel': 'Chocobozzz test channel',
             'channel_id': '5187',
             'channel_url': 'https://peertube2.cpy.re/video-channels/chocobozzz_channel',
             'description': 'md5:67daf92c833c41c95db874e18fcb2786',
@@ -1523,11 +1524,7 @@ class PeerTubeIE(InfoExtractor):
             return 'peertube:{}:{}'.format(*mobj.group('host', 'id'))
 
     def _get_headers(self):
-        password = self.get_param('videopassword')
-        if password:
-            return {'x-peertube-video-password': password}
-        else:
-            return {}
+        return filter_dict({'x-peertube-video-password': self.get_param('videopassword')})
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
