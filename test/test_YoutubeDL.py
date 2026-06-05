@@ -894,7 +894,11 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertIsInstance(test('echo'), YoutubeDL)
         self.assertIsInstance(test('echo {}', {'outtmpl_na_placeholder': ';'}), YoutubeDL)
         self.assertIsInstance(test('echo %(title)q'), YoutubeDL)
+        self.assertIsInstance(test('echo %(title)#q'), YoutubeDL)
+        self.assertIsInstance(test('echo %(view_count)i'), YoutubeDL)
         self.assertIsInstance(test('echo %(view_count)02d'), YoutubeDL)
+        self.assertIsInstance(test('echo %(aspect_ratio)f'), YoutubeDL)
+        self.assertIsInstance(test('echo %(aspect_ratio).2f'), YoutubeDL)
         self.assertIsInstance(
             test('echo "%(title)s"', {'compat_opts': {'allow-unsafe-exec-expansion'}}),
             YoutubeDL)

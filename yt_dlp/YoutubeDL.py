@@ -1317,7 +1317,7 @@ class YoutubeDL:
                 (?:&(?P<replacement>.*?))?
                 (?:\|(?P<default>.*?))?
             )$''')
-        SAFE_EXEC_CONVERSIONS = 'dq'
+        SAFE_EXEC_CONVERSIONS = 'difq'
         UNSAFE_DEFAULT_CHARS = '"\' \n\t;&|^$%*'
 
         def _from_user_input(field):

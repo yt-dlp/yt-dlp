@@ -1770,8 +1770,9 @@ def create_parser():
         help=(
             'Execute a command, optionally prefixed with when to execute it, separated by a ":". '
             'Supported values of "WHEN" are the same as that of --use-postprocessor (default: after_move). '
-            'The same syntax as the output template can be used to pass any field as arguments to the command, '
-            'but only "d" (digit) and "q" (shell-quote) conversions are allowed for security reasons. '
+            'The same syntax as the output template can be used to pass any field as arguments to the command; '
+            'however, for security reasons the only allowed conversions are: '
+            '"i"/"d" (signed integer decimal), "f" (floating-point decimal) and "q" (shell-quoted). '
             'If no fields are passed, %(filepath,_filename|)q is appended to the end of the command. '
             'This option can be used multiple times'))
     postproc.add_option(
