@@ -825,9 +825,24 @@ class YoutubeDL:
 
         for pp_def_raw in self.params.get('postprocessors', []):
             pp_def = dict(pp_def_raw)
+            pp_key = pp_def.pop('key')
+
+            # Validate safety of exec commands immediately
+            if pp_key == 'Exec':
+                exec_cmds = pp_def.pop('exec_cmd', [])
+                for exec_cmd in exec_cmds:
+                    try:
+                        _ = self.prepare_outtmpl(exec_cmd, {}, _exec=True)
+                    except PostProcessingError as e:
+                        self.report_error(e)
+                        continue
+                    pp_def.setdefault('exec_cmd', []).append(exec_cmd)
+                if not pp_def.get('exec_cmd'):
+                    continue
+
             when = pp_def.pop('when', 'post_process')
             self.add_post_processor(
-                get_postprocessor(pp_def.pop('key'))(self, **pp_def),
+                get_postprocessor(pp_key)(self, **pp_def),
                 when=when)
 
         def preload_download_archive(fn):
@@ -1254,7 +1269,7 @@ class YoutubeDL:
         info_dict.pop('__pending_error', None)
         return info_dict
 
-    def prepare_outtmpl(self, outtmpl, info_dict, sanitize=False):
+    def prepare_outtmpl(self, outtmpl, info_dict, sanitize=False, *, _exec=False):
         """ Make the outtmpl and info_dict suitable for substitution: ydl.escape_outtmpl(outtmpl) % info_dict
         @param sanitize    Whether to sanitize the output as a filename
         """
@@ -1305,6 +1320,8 @@ class YoutubeDL:
                 (?:&(?P<replacement>.*?))?
                 (?:\|(?P<default>.*?))?
             )$''')
+        SAFE_EXEC_CONVERSIONS = {'d', 'q'}
+        UNSAFE_DEFAULT_CHARS = {';', ' ', '\n', '\t', '&', '|', '"', "'", '^', '$', '%', '*'}
 
         def _from_user_input(field):
             if field == ':':
@@ -1428,6 +1445,16 @@ class YoutubeDL:
             fmt = outer_mobj.group('format')
             if fmt == 's' and last_field in field_size_compat_map and isinstance(value, int):
                 fmt = f'0{field_size_compat_map[last_field]:d}d'
+
+            # Validate safety of exec commands
+            if _exec:
+                if fmt[-1] not in SAFE_EXEC_CONVERSIONS:
+                    raise PostProcessingError(f'Unsafe conversion(s) in exec command: {outtmpl!r}')
+                elif any(unsafe_char in default for unsafe_char in UNSAFE_DEFAULT_CHARS):
+                    if default == na:
+                        raise PostProcessingError(f'Unsafe placeholder for exec command: {na!r}')
+                    else:
+                        raise PostProcessingError(f'Unsafe default(s) in exec command: {outtmpl!r}')
 
             flags = outer_mobj.group('conversion') or ''
             str_fmt = f'{fmt[:-1]}s'
