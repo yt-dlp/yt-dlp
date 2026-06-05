@@ -830,16 +830,12 @@ class YoutubeDL:
 
             # Validate safety of exec commands immediately
             if pp_key == 'Exec':
-                exec_cmds = pp_def.pop('exec_cmd', [])
-                for exec_cmd in exec_cmds:
+                for exec_cmd in pp_def.get('exec_cmd', []):
                     try:
                         _ = self.prepare_outtmpl(exec_cmd, {}, _exec=True)
                     except UnsafeExecExpansionError as e:
                         self.report_error(e)
                         raise
-                    pp_def.setdefault('exec_cmd', []).append(exec_cmd)
-                if not pp_def.get('exec_cmd'):
-                    continue
 
             when = pp_def.pop('when', 'post_process')
             self.add_post_processor(
