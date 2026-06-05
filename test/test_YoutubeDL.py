@@ -871,7 +871,7 @@ class TestYoutubeDL(unittest.TestCase):
     def test_unsafe_exec_expansion(self):
         def test(exec_cmd, params=None):
             return YoutubeDL({
-                'ignoreerrors': 'only_download',
+                'ignoreerrors': True,
                 'postprocessors': [{
                     'key': 'Exec',
                     'exec_cmd': [exec_cmd],
