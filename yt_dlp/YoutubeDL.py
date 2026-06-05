@@ -832,7 +832,7 @@ class YoutubeDL:
             if pp_key == 'Exec':
                 for exec_cmd in pp_def.get('exec_cmd', []):
                     try:
-                        _ = self.prepare_outtmpl(exec_cmd, {}, _exec=True)
+                        self.prepare_outtmpl(exec_cmd, {}, _exec=True)
                     except UnsafeExecExpansionError as e:
                         self.report_error(e)
                         raise
@@ -1317,8 +1317,8 @@ class YoutubeDL:
                 (?:&(?P<replacement>.*?))?
                 (?:\|(?P<default>.*?))?
             )$''')
-        SAFE_EXEC_CONVERSIONS = {'d', 'q'}
-        UNSAFE_DEFAULT_CHARS = {';', ' ', '\n', '\t', '&', '|', '"', "'", '^', '$', '%', '*'}
+        SAFE_EXEC_CONVERSIONS = 'dq'
+        UNSAFE_DEFAULT_CHARS = '"\' \n\t;&|^$%*'
 
         def _from_user_input(field):
             if field == ':':
