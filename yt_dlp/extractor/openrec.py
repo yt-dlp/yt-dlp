@@ -16,14 +16,18 @@ from ..utils import (
     extract_attributes,
     filter_dict,
     int_or_none,
+    join_nonempty,
     parse_iso8601,
+    parse_qs,
     str_or_none,
+    update_url_query,
     url_or_none,
     urljoin,
 )
 from ..utils.traversal import (
     find_element,
     find_elements,
+    require,
     traverse_obj,
 )
 
@@ -641,3 +645,77 @@ class OpenRecChannelIE(OpenRecBaseIE):
             functools.partial(self._fetch_page, channel_id),
             math.ceil(movie_count / self._PAGE_SIZE), self._PAGE_SIZE,
         ), channel_id, traverse_obj(channel, ('user', 'name', {clean_html}, filter)))
+
+
+class OpenRecChannelSearchIE(OpenRecBaseIE):
+    IE_NAME = 'openrec:channel:search'
+
+    _VALID_URL = r'https?://(?:www\.)?openrec\.tv/(?:m/)?user/(?P<id>[^/?#]+)/search(?:/(?P<type>capture|movie))?(?:[/?#]|$)'
+    _TESTS = [{
+        'url': 'https://www.openrec.tv/user/indegnasen/search?search_query=%E3%82%B9%E3%82%A4%E3%82%AB',
+        'info_dict': {
+            'id': 'indegnasen',
+            'title': 'indegnasen:スイカ',
+        },
+        'playlist_count': 2,
+    }, {
+        'url': 'https://www.openrec.tv/user/ofurekodesu/search/movie?search_query=%E3%82%A2%E3%83%AA%E3%82%AA%E5%85%AB%E5%B0%BE',
+        'info_dict': {
+            'id': 'ofurekodesu',
+            'title': 'ofurekodesu:アリオ八尾:movie',
+        },
+        'playlist_mincount': 31,
+    }, {
+        'url': 'https://www.openrec.tv/user/DbD_BPF/search/capture?search_query=%E3%81%82%E3%81%A3%E3%81%95%E3%82%8A%E3%81%97%E3%82%87%E3%81%93',
+        'info_dict': {
+            'id': 'DbD_BPF',
+            'title': 'DbD_BPF:あっさりしょこ:capture',
+        },
+        'playlist_mincount': 10,
+    }]
+
+    def _entries(self, channel_id, search_type, search_query):
+        api_url = f'{self._PUBLIC_API_BASE}/search-{search_type}s'
+        type_map = {
+            'capture': OpenRecCaptureIE,
+            'live': OpenRecIE,
+            'movie': OpenRecMovieIE,
+        }
+
+        for page in itertools.count(1):
+            search_items = self._download_json(
+                api_url, channel_id, f'Downloading page {page}', query={
+                    'channel_ids': channel_id,
+                    'page': page,
+                    'search_query': search_query,
+                })
+            if not search_items:
+                break
+
+            for item in search_items:
+                item_type = 'live' if search_type == 'movie' and traverse_obj(item, ('is_live', {bool})) else search_type
+                item_id = traverse_obj(item, ((None, 'capture'), 'id', {str_or_none}, any))
+
+                yield self.url_result(
+                    f'{self._BASE_URL}/{item_type}/{item_id}', type_map[item_type])
+
+    def _real_extract(self, url):
+        channel_id, search_type = self._match_valid_url(url).group('id', 'type')
+        search_query = traverse_obj(parse_qs(url), (
+            'search_query', -1, {str}, filter, {require('search query')}))
+
+        playlist_title = urllib.parse.unquote(search_query)
+
+        if not search_type:
+            entries = []
+            for search_type in ('capture', 'movie'):
+                search_url = update_url_query(
+                    f'{self._BASE_URL}/user/{channel_id}/search/{search_type}', {'search_query': search_query})
+                entries.append(self.url_result(search_url, OpenRecChannelSearchIE))
+
+            return self.playlist_result(
+                entries, channel_id, join_nonempty(channel_id, playlist_title, delim=':'))
+
+        return self.playlist_result(
+            self._entries(channel_id, search_type, search_query),
+            channel_id, join_nonempty(channel_id, playlist_title, search_type, delim=':'))
