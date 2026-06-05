@@ -826,21 +826,15 @@ class YoutubeDL:
 
         for pp_def_raw in self.params.get('postprocessors', []):
             pp_def = dict(pp_def_raw)
-            pp_key = pp_def.pop('key')
-
-            # Validate safety of exec commands immediately
-            if pp_key == 'Exec' and 'allow-unsafe-exec-expansion' not in self.params['compat_opts']:
-                for exec_cmd in variadic(pp_def.get('exec_cmd', [])):
-                    try:
-                        self.prepare_outtmpl(exec_cmd, {}, _exec=True)
-                    except UnsafeExecExpansionError as e:
-                        self.report_error(e)
-                        raise
-
             when = pp_def.pop('when', 'post_process')
-            self.add_post_processor(
-                get_postprocessor(pp_key)(self, **pp_def),
-                when=when)
+            # Handle errors for ExecPP command validation
+            try:
+                self.add_post_processor(
+                    get_postprocessor(pp_def.pop('key'))(self, **pp_def),
+                    when=when)
+            except UnsafeExecExpansionError as e:
+                self.report_error(e)
+                raise
 
         def preload_download_archive(fn):
             """Preload the archive, if any is specified"""

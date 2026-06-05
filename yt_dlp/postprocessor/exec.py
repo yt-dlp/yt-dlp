@@ -8,6 +8,16 @@ class ExecPP(PostProcessor):
         PostProcessor.__init__(self, downloader)
         self.exec_cmd = variadic(exec_cmd)
 
+        if (
+            self._downloader is None
+            or 'allow-unsafe-exec-expansion' in self._downloader.params['compat_opts']
+        ):
+            return
+
+        # Validate safety of exec commands
+        for cmd in self.exec_cmd:
+            _ = self._downloader.prepare_outtmpl(cmd, {}, _exec=True)
+
     def parse_cmd(self, cmd, info):
         tmpl, tmpl_dict = self._downloader.prepare_outtmpl(cmd, info)
         if tmpl_dict:  # if there are no replacements, tmpl_dict = {}
