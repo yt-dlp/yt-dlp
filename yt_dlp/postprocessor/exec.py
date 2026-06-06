@@ -5,18 +5,16 @@ from ..utils import Popen, PostProcessingError, shell_quote, variadic
 class ExecPP(PostProcessor):
 
     def __init__(self, downloader, exec_cmd):
-        PostProcessor.__init__(self, downloader)
+        # Need to set exec_cmd attribute before set_downloader is called by PostProcessor.__init__
         self.exec_cmd = variadic(exec_cmd)
+        PostProcessor.__init__(self, downloader)
 
-        if (
-            self._downloader is None
-            or 'allow-unsafe-exec-expansion' in self._downloader.params['compat_opts']
-        ):
-            return
-
+    def set_downloader(self, downloader):
+        super().set_downloader(downloader)
         # Validate safety of exec commands
-        for cmd in self.exec_cmd:
-            _ = self._downloader.prepare_outtmpl(cmd, {}, _exec=True)
+        if 'allow-unsafe-exec-expansion' not in self._downloader.params['compat_opts']:
+            for cmd in self.exec_cmd:
+                _ = self._downloader.prepare_outtmpl(cmd, {}, _exec=True)
 
     def parse_cmd(self, cmd, info):
         tmpl, tmpl_dict = self._downloader.prepare_outtmpl(cmd, info)
