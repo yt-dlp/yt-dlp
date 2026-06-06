@@ -52,6 +52,16 @@ class BilibiliBaseIE(InfoExtractor):
     _WBI_KEY_CACHE_TIMEOUT = 30  # exact expire timeout is unclear, use 30s for one session
     _wbi_key_cache = {}
 
+    def _get_buvid(self):
+        # Bilibili returns 412 when buvid3/buvid4 fingerprint cookies are absent
+        buvid_info = self._download_json(
+            'https://api.bilibili.com/x/frontend/finger/spi',
+            None, note='Fetching buvid cookies', fatal=False, headers=self._HEADERS)
+        if buvid3 := traverse_obj(buvid_info, ('data', 'b_3')):
+            self._set_cookie('bilibili.com', 'buvid3', buvid3)
+        if buvid4 := traverse_obj(buvid_info, ('data', 'b_4')):
+            self._set_cookie('bilibili.com', 'buvid4', buvid4)
+
     @property
     def is_logged_in(self):
         return bool(self._get_cookies('https://api.bilibili.com').get('SESSDATA'))
@@ -658,7 +668,14 @@ class BiliBiliIE(BilibiliBaseIE):
     def _real_extract(self, url):
         video_id, prefix = self._match_valid_url(url).group('id', 'prefix')
         headers = self.geo_verification_headers()
-        webpage, urlh = self._download_webpage_handle(url, video_id, headers=headers)
+        try:
+            webpage, urlh = self._download_webpage_handle(url, video_id, headers=headers)
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 412:
+                self._get_buvid()
+                webpage, urlh = self._download_webpage_handle(url, video_id, headers=headers)
+            else:
+                raise
         if not self._match_valid_url(urlh.url):
             return self.url_result(urlh.url)
 
