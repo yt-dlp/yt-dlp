@@ -31,8 +31,8 @@ jobs:
     - name: Install test requirements
       shell: bash
       run: |
-        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
-        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-test.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/pip.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/test.txt"
     - name: Run tests
       timeout-minutes: 15
       shell: bash
@@ -56,8 +56,8 @@ jobs:
         python-version: '3.14'
     - name: Install dev dependencies
       run: |
-        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
-        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-static-analysis.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/pip.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/static-analysis.txt"
     - name: Make lazy extractors
       run: python ./devscripts/make_lazy_extractors.py
     - name: Run ruff
