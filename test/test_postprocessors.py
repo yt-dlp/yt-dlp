@@ -95,23 +95,20 @@ class TestExec(unittest.TestCase):
         self.assertEqual(pp.parse_cmd('echo %(filepath)q', info), cmd)
 
     def test_unsafe_exec_expansion(self):
-        def test(exec_cmd):
-            return ExecPP(ydl, exec_cmd)
-
         # Test unsafe placeholder
         ydl = YoutubeDL({'outtmpl_na_placeholder': ';'})
-        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe placeholder', test, 'echo %(title)q')
+        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe placeholder', ExecPP, ydl, 'echo %(title)q')
 
         ydl = YoutubeDL()
         # Test unsafe commands
-        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title)s"')
-        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title).100B"')
-        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title)S"')
-        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title)#j"')
-        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe default', test, 'echo %(title|;)q')
+        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', ExecPP, ydl, 'echo "%(title)s"')
+        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', ExecPP, ydl, 'echo "%(title).100B"')
+        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', ExecPP, ydl, 'echo "%(title)S"')
+        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', ExecPP, ydl, 'echo "%(title)#j"')
+        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe default', ExecPP, ydl, 'echo %(title|;)q')
         # Test safe commands
         self.assertIsInstance(
-            test([
+            ExecPP(ydl, [
                 'echo',
                 'echo {}',
                 'echo %(title)q',
@@ -130,7 +127,7 @@ class TestExec(unittest.TestCase):
             'compat_opts': {'allow-unsafe-exec-expansion'},
         })
         self.assertIsInstance(
-            test([
+            ExecPP(ydl, [
                 'echo "%(title)s"',
                 'echo %(title)q',
                 'echo "%(title).100B"',
