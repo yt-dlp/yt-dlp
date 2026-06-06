@@ -662,12 +662,12 @@ def get_postprocessors(opts):
     if opts.remuxvideo:
         yield {
             'key': 'FFmpegVideoRemuxer',
-            'preferedformat': opts.remuxvideo,
+            'preferredformat': opts.remuxvideo,
         }
     if opts.recodevideo:
         yield {
             'key': 'FFmpegVideoConvertor',
-            'preferedformat': opts.recodevideo,
+            'preferredformat': opts.recodevideo,
         }
     # If ModifyChapters is going to remove chapters, subtitles must already be in the container.
     if opts.embedsubtitles:

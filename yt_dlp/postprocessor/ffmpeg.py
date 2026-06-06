@@ -543,9 +543,9 @@ class FFmpegVideoConvertorPP(FFmpegPostProcessor):
     FORMAT_RE = create_mapping_re(SUPPORTED_EXTS)
     _ACTION = 'converting'
 
-    def __init__(self, downloader=None, preferedformat=None):
+    def __init__(self, downloader=None, preferredformat=None):
         super().__init__(downloader)
-        self.mapping = preferedformat
+        self.mapping = preferredformat
 
     @staticmethod
     def _options(target_ext):
