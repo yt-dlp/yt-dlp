@@ -114,7 +114,7 @@ class RadikoBaseIE(InfoExtractor):
                 break
         if not prog:
             raise ExtractorError('Cannot identify radio program to download!')
-        assert ft, to
+        assert ft and to
         return prog, station_program, ft, ft_str, to_str
 
     def _extract_formats(self, video_id, station, is_onair, ft, cursor, auth_token, area_id, query):
