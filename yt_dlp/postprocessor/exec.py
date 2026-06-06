@@ -12,7 +12,8 @@ class ExecPP(PostProcessor):
     def set_downloader(self, downloader):
         super().set_downloader(downloader)
         # Validate safety of exec commands
-        if 'allow-unsafe-exec-expansion' not in self._downloader.params['compat_opts']:
+        params = getattr(self._downloader, 'params', None)
+        if params and 'allow-unsafe-exec-expansion' not in params['compat_opts']:
             for cmd in self.exec_cmd:
                 _ = self._downloader.prepare_outtmpl(cmd, {}, _exec=True)
 
