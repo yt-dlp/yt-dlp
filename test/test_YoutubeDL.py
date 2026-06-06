@@ -874,7 +874,7 @@ class TestYoutubeDL(unittest.TestCase):
                 'ignoreerrors': True,
                 'postprocessors': [{
                     'key': 'Exec',
-                    'exec_cmd': [exec_cmd],
+                    'exec_cmd': exec_cmd,
                     'when': 'after_move',
                 }],
                 **(params or {}),
@@ -883,27 +883,38 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title)s"')
         self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title).100B"')
         self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title)S"')
-        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title)#S"')
-        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title)j"')
         self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title)#j"')
         self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe default', test, 'echo %(title|;)q')
         self.assertRaisesRegex(
             UnsafeExecExpansionError, r'Unsafe placeholder',
             test, 'echo %(title)q', {'outtmpl_na_placeholder': ';'})
 
-        self.assertIsInstance(test('echo'), YoutubeDL)
-        self.assertIsInstance(test('echo {}', {'outtmpl_na_placeholder': ';'}), YoutubeDL)
-        self.assertIsInstance(test('echo %(title)q'), YoutubeDL)
-        self.assertIsInstance(test('echo %(title)#q'), YoutubeDL)
-        self.assertIsInstance(test('echo %(view_count)i'), YoutubeDL)
-        self.assertIsInstance(test('echo %(view_count)02d'), YoutubeDL)
-        self.assertIsInstance(test('echo %(aspect_ratio)f'), YoutubeDL)
-        self.assertIsInstance(test('echo %(aspect_ratio).2f'), YoutubeDL)
         self.assertIsInstance(
-            test('echo "%(title)s"', {'compat_opts': {'allow-unsafe-exec-expansion'}}),
+            test([
+                'echo',
+                'echo {}',
+                'echo %(title)q',
+                'echo %(title)#q',
+                'echo %(view_count)i',
+                'echo %(view_count)02d',
+                'echo %(aspect_ratio)f',
+                'echo %(aspect_ratio).2f',
+            ]),
             YoutubeDL)
         self.assertIsInstance(
-            test('echo %(title)q', {'outtmpl_na_placeholder': ';', 'compat_opts': {'allow-unsafe-exec-expansion'}}),
+            test([
+                'echo "%(title)s"',
+                'echo %(title)q',
+                'echo "%(title).100B"',
+                'echo "%(title)S"',
+                'echo "%(title)#S"',
+                'echo "%(title)j"',
+                'echo "%(title)#j"',
+                'echo %(title|;)q',
+            ], {
+                'outtmpl_na_placeholder': ';',
+                'compat_opts': {'allow-unsafe-exec-expansion'},
+            }),
             YoutubeDL)
 
     def test_postprocessors(self):
