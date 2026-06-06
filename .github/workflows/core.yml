@@ -45,7 +45,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         # CPython 3.10 is in quick-test
-        python-version: ['3.11', '3.12', '3.13', '3.14', pypy-3.11]
+        python-version: ['3.11', '3.12', '3.13', '3.14', '3.15', pypy-3.11]
         include:
         # atleast one of each CPython/PyPy tests must be in windows
         - os: windows-latest
@@ -59,6 +59,8 @@ jobs:
         - os: windows-latest
           python-version: '3.14'
         - os: windows-latest
+          python-version: '3.15'
+        - os: windows-latest
           python-version: pypy-3.11
 
     steps:
@@ -71,6 +73,7 @@ jobs:
       uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
       with:
         python-version: ${{ matrix.python-version }}
+        allow-prereleases: true
 
     - name: Install test requirements (cpython)
       if: ${{ !startsWith(matrix.python-version, 'pypy') }}
