@@ -11,7 +11,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import subprocess
 
 from yt_dlp import YoutubeDL
-from yt_dlp.utils import shell_quote
+from yt_dlp.utils import (
+    UnsafeExecExpansionError,
+    shell_quote,
+)
 from yt_dlp.postprocessor import (
     ExecPP,
     FFmpegThumbnailsConvertorPP,
@@ -90,6 +93,54 @@ class TestExec(unittest.TestCase):
         self.assertEqual(pp.parse_cmd('echo', info), cmd)
         self.assertEqual(pp.parse_cmd('echo {}', info), cmd)
         self.assertEqual(pp.parse_cmd('echo %(filepath)q', info), cmd)
+
+    def test_unsafe_exec_expansion(self):
+        def test(exec_cmd):
+            return ExecPP(ydl, exec_cmd)
+
+        # Test unsafe placeholder
+        ydl = YoutubeDL({'outtmpl_na_placeholder': ';'})
+        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe placeholder', test, 'echo %(title)q')
+
+        ydl = YoutubeDL()
+        # Test unsafe commands
+        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title)s"')
+        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title).100B"')
+        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title)S"')
+        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title)#j"')
+        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe default', test, 'echo %(title|;)q')
+        # Test safe commands
+        self.assertIsInstance(
+            test([
+                'echo',
+                'echo {}',
+                'echo %(title)q',
+                'echo %(title|NA)q',
+                'echo %(title)#q',
+                'echo %(view_count)i',
+                'echo %(view_count)02d',
+                'echo %(aspect_ratio)f',
+                'echo %(aspect_ratio).2f',
+            ]),
+            ExecPP)
+
+        # Test compat opt
+        ydl = YoutubeDL({
+            'outtmpl_na_placeholder': ';',
+            'compat_opts': {'allow-unsafe-exec-expansion'},
+        })
+        self.assertIsInstance(
+            test([
+                'echo "%(title)s"',
+                'echo %(title)q',
+                'echo "%(title).100B"',
+                'echo "%(title)S"',
+                'echo "%(title)#S"',
+                'echo "%(title)j"',
+                'echo "%(title)#j"',
+                'echo %(title|;)q',
+            ]),
+            ExecPP)
 
 
 class TestModifyChaptersPP(unittest.TestCase):

@@ -23,7 +23,6 @@ from yt_dlp.utils import (
     ExtractorError,
     LazyList,
     OnDemandPagedList,
-    UnsafeExecExpansionError,
     int_or_none,
     match_filter_func,
 )
@@ -867,55 +866,6 @@ class TestYoutubeDL(unittest.TestCase):
         assertRegexpMatches(self, ydl._format_note({
             'fps': 30,
         }), r'^30fps$')
-
-    def test_unsafe_exec_expansion(self):
-        def test(exec_cmd, params=None):
-            return YoutubeDL({
-                'ignoreerrors': True,
-                'postprocessors': [{
-                    'key': 'Exec',
-                    'exec_cmd': exec_cmd,
-                    'when': 'after_move',
-                }],
-                **(params or {}),
-            })
-
-        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title)s"')
-        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title).100B"')
-        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title)S"')
-        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe conversion', test, 'echo "%(title)#j"')
-        self.assertRaisesRegex(UnsafeExecExpansionError, r'Unsafe default', test, 'echo %(title|;)q')
-        self.assertRaisesRegex(
-            UnsafeExecExpansionError, r'Unsafe placeholder',
-            test, 'echo %(title)q', {'outtmpl_na_placeholder': ';'})
-
-        self.assertIsInstance(
-            test([
-                'echo',
-                'echo {}',
-                'echo %(title)q',
-                'echo %(title)#q',
-                'echo %(view_count)i',
-                'echo %(view_count)02d',
-                'echo %(aspect_ratio)f',
-                'echo %(aspect_ratio).2f',
-            ]),
-            YoutubeDL)
-        self.assertIsInstance(
-            test([
-                'echo "%(title)s"',
-                'echo %(title)q',
-                'echo "%(title).100B"',
-                'echo "%(title)S"',
-                'echo "%(title)#S"',
-                'echo "%(title)j"',
-                'echo "%(title)#j"',
-                'echo %(title|;)q',
-            ], {
-                'outtmpl_na_placeholder': ';',
-                'compat_opts': {'allow-unsafe-exec-expansion'},
-            }),
-            YoutubeDL)
 
     def test_postprocessors(self):
         filename = 'post-processor-testfile.mp4'
