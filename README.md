@@ -2358,7 +2358,7 @@ The following compat options restore vulnerable behavior from before security pa
 
     > :warning: Only use if a valid file download is rejected because its extension is detected as uncommon
     >
-    > **This option can enable remote code execution! Consider [opening an issue](<https://github.com/yt-dlp/yt-dlp/issues/new/choose>) instead!**
+    > **This option can enable remote code execution!** Consider [opening an issue](<https://github.com/yt-dlp/yt-dlp/issues/new/choose>) instead!
 
 * `--compat-options allow-unsafe-exec-expansion`: The `--exec` option allows output template syntax to be used in its commands; however, for security reasons the conversions that can be used are restricted to `i`/`d` (signed integer decimal), `f` (floating-point decimal) and `q` (shell-quoted). yt-dlp versions from 2021.04.11 to 2026.03.17 (inclusive) did not apply this restriction. This option reverts this restriction
 
