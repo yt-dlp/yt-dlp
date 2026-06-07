@@ -36,7 +36,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14', pypy-3.11]
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14', '3.15', pypy-3.11]
     env:
       QJS_VERSION: '2025-04-26'  # Earliest version with rope strings
     steps:
@@ -47,6 +47,7 @@ jobs:
       uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
       with:
         python-version: ${{ matrix.python-version }}
+        allow-prereleases: true
     - name: Install Deno
       uses: denoland/setup-deno@667a34cdef165d8d2b2e98dde39547c9daac7282  # v2.0.4
       with:

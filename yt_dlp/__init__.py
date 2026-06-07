@@ -44,6 +44,7 @@ from .utils import (
     GeoUtils,
     PlaylistEntries,
     SameFileError,
+    UnsafeExecExpansionError,
     download_range_func,
     expand_path,
     float_or_none,
@@ -1077,7 +1078,7 @@ def main(argv=None):
     IN_CLI.value = True
     try:
         _exit(*variadic(_real_main(argv)))
-    except (CookieLoadError, DownloadError):
+    except (CookieLoadError, DownloadError, UnsafeExecExpansionError):
         _exit(1)
     except SameFileError as e:
         _exit(f'ERROR: {e}')
