@@ -1,5 +1,6 @@
 import enum
 import functools
+import io
 import json
 import os
 import re
@@ -16,6 +17,7 @@ from ..utils import (
     Popen,
     RetryManager,
     _configuration_args,
+    _get_exe_version_output,
     check_executable,
     classproperty,
     cli_bool_option,
@@ -26,6 +28,7 @@ from ..utils import (
     find_available_port,
     remove_end,
     traverse_obj,
+    version_tuple,
 )
 
 
@@ -136,7 +139,9 @@ class ExternalFD(FragmentFD):
             self._cookies_tempfile = tmp_cookies.name
             self.to_screen(f'[download] Writing temporary cookies file to "{self._cookies_tempfile}"')
         # real_download resets _cookies_tempfile; if it's None then save() will write to cookiejar.filename
-        self.ydl.cookiejar.save(self._cookies_tempfile)
+        self.ydl.cookiejar.save(self._cookies_tempfile, True, True)
+        with open(self.ydl.cookiejar.filename or self._cookies_tempfile, "r") as file:
+            print("cookies", repr(file.read()))
         return self.ydl.cookiejar.filename or self._cookies_tempfile
 
     def _call_downloader(self, tmpfilename, info_dict):
@@ -195,12 +200,39 @@ class ExternalFD(FragmentFD):
 class CurlFD(ExternalFD):
     AVAILABLE_OPT = '-V'
     _CAPTURE_STDERR = False  # curl writes the progress to stderr
+    _MIN_VERSION_FOR_STDIN_COOKIES = (7, 59)
+
+    @classmethod
+    def available(cls, path=None):
+        if path is None:
+            path = 'curl'
+        output = _get_exe_version_output(path, ['-V'])
+        if not output:
+            return False
+        parts = output.split(' ', maxsplit=2)
+        if len(parts) < 3:
+            return False
+
+        cls.exe = path
+        cls._curl_version = version_tuple(parts[1])
+        return path
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '--location', '-o', tmpfilename, '--compressed']
-        cookie_header = self.ydl.cookiejar.get_cookie_header(info_dict['url'])
-        if cookie_header:
-            cmd += ['--cookie', cookie_header]
+
+        if self._curl_version >= self._MIN_VERSION_FOR_STDIN_COOKIES:
+            # Supports `--cookies -`
+            cmd += ['--cookie', '-']
+        elif os.path.islink('/dev/fd/0'):
+            cmd += ['--cookie', '/dev/fd/0']
+        else:
+            cookies_file = self._write_cookies()
+            if '=' in cookies_file:
+                # XXX: what to raise here?
+                raise RuntimeError('curl version too old or temp directory contains `=`; please use another downloader or update curl')
+            assert cookies_file != '-'
+            cmd += ['--cookie', cookies_file]
+
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', f'{key}: {val}']
@@ -221,6 +253,16 @@ class CurlFD(ExternalFD):
         cmd += self._configuration_args()
         cmd += ['--', info_dict['url']]
         return cmd
+
+    def _call_process(self, cmd, info_dict):
+        if self._curl_version > self._MIN_VERSION_FOR_STDIN_COOKIES or os.path.islink('/dev/fd/0'):
+            # Supports `--cookies -` or reading from device file as `--cookies /dev/fd/0`
+            buffer = io.StringIO()
+            self.ydl.cookiejar._really_save(buffer, True, True)
+            return Popen.run(cmd, text=True, input=buffer.getvalue())
+
+        # Cookies already passed via cookiesfile
+        return Popen.run(cmd, text=True)
 
 
 class AxelFD(ExternalFD):
@@ -244,8 +286,7 @@ class WgetFD(ExternalFD):
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-O', tmpfilename, '-nv', '--compression=auto']
-        if self.ydl.cookiejar.get_cookie_header(info_dict['url']):
-            cmd += ['--load-cookies', self._write_cookies()]
+        cmd += ['--load-cookies', self._write_cookies()]
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', f'{key}: {val}']
@@ -301,8 +342,7 @@ class Aria2cFD(ExternalFD):
         else:
             cmd += ['--min-split-size', '1M']
 
-        if self.ydl.cookiejar.get_cookie_header(info_dict['url']):
-            cmd += [f'--load-cookies={self._write_cookies()}']
+        cmd += [f'--load-cookies={self._write_cookies()}']
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', f'{key}: {val}']

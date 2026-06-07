@@ -915,10 +915,12 @@ class Popen(subprocess.Popen):
             self.wait(timeout=timeout)
 
     @classmethod
-    def run(cls, *args, timeout=None, **kwargs):
+    def run(cls, *args, timeout=None, input=None, **kwargs):
+        if input is not None and kwargs.get('stdin') is None:
+            kwargs['stdin'] = subprocess.PIPE
         with cls(*args, **kwargs) as proc:
             default = '' if proc.__text_mode else b''
-            stdout, stderr = proc.communicate_or_kill(timeout=timeout)
+            stdout, stderr = proc.communicate_or_kill(input=input, timeout=timeout)
             return stdout or default, stderr or default, proc.returncode
 
 
