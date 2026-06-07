@@ -1697,6 +1697,7 @@ class TikTokLiveIE(TikTokBaseIE):
         statuses.append(status)
 
         formats = self._extract_formats(live_info, ('liveRoom', 'streamData', 'pull_data', 'stream_data'), get_quality)
+        formats += self._extract_formats(live_info, ('liveRoom', 'hevcStreamData', 'pull_data', 'stream_data'), get_quality)
 
         if not formats:
             self.report_warning('Could not extract any formats from api-live/user/room, attempting alternate endpoint')
