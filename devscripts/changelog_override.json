@@ -342,5 +342,10 @@
         "action": "add",
         "when": "1fbbe29b99dc61375bf6d786f824d9fcf6ea9c1a",
         "short": "[priority] Security: [[CVE-2026-26331](https://nvd.nist.gov/vuln/detail/CVE-2026-26331)] [Arbitrary command injection with the `--netrc-cmd` option](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-g3gw-q23r-pgqm)\n    - The argument passed to the command in `--netrc-cmd` is now limited to a safe subset of characters"
+    },
+    {
+        "action": "add",
+        "when": "5faffa999fd33b373d47773e8ee639d072accec2",
+        "short": "[priority] Security: Due to many users continuing to use vulnerable conversions (e.g. `%()s`) we have decided to require safe conversions when using `--exec`.\n    Most users will be able to simply replace `%(...)s` with `%(...)q` in the `--exec` parameter. Numeric conversions are unaffected by this change. We hope to prevent users [and security researchers](<https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-69qj-pvh9-c5wg>) from falling for this common pitfall."
     }
 ]
