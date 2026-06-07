@@ -425,11 +425,40 @@ class SoundcloudBaseIE(InfoExtractor):
             'tags': traverse_obj(info, ('tag_list', {self._TAGS_RE.findall}, ..., ..., filter)),
             'artists': traverse_obj(info, ('publisher_metadata', 'artist', {str}, filter, all, filter)),
             'formats': formats if not extract_flat else None,
+            '__post_extractor': self.extract_comments(track_id),
         }
 
     @classmethod
     def _resolv_url(cls, url):
         return cls._API_V2_BASE + 'resolve?url=' + url
+
+    def _get_comments(self, track_id):
+        available_filters = ('newest', 'oldest', 'track-timestamp')
+        self.to_screen(f'Use --extractor-args {self.ie_key()}:comment_filter=FILTER. Available filters {available_filters} default will be newest.')
+        comment_filter = self._configuration_arg('comment_filter', default=['newest'], ie_key=self.ie_key())[0]
+        if comment_filter not in available_filters:
+            raise ExtractorError(f'Invalid filter {comment_filter}', expected=True)
+
+        offset = 0
+        next_url = f'{self._API_V2_BASE}/tracks/{track_id}/comments?sort={comment_filter}&limit=20&offset={offset}&threaded=1'
+        for page_num in itertools.count(1):
+            page = self._call_api(next_url, track_id, note=f'Downloading comments page {page_num}')
+
+            for comment_dict in traverse_obj(page, ('collection', {list})):
+                yield traverse_obj(comment_dict, {
+                    'id': ('id', {str_or_none}),
+                    'author': ('user', 'full_name', {str_or_none}),
+                    'author_id': (('user_id', ('user', 'id')), {str}, any),
+                    'author_thumbnail': ('user', 'avatar_url', {url_or_none}),
+                    'author_url': ('user', 'permalink_url', {url_or_none}),
+                    'author_is_verified': ('user', 'verified', {bool}),
+                    'timestamp': ('created_at', {unified_timestamp}),
+                    'text': ('body', {str}),
+                })
+
+            next_url = page.get('next_href')
+            if not next_url:
+                break
 
 
 class SoundcloudIE(SoundcloudBaseIE):
