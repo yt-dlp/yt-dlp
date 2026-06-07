@@ -440,7 +440,7 @@ class SoundcloudBaseIE(InfoExtractor):
             raise ExtractorError(f'Invalid filter {comment_filter}', expected=True)
 
         offset = 0
-        next_url = f'{self._API_V2_BASE}/tracks/{track_id}/comments?sort={comment_filter}&limit=20&offset={offset}&threaded=1'
+        next_url = f'{self._API_V2_BASE}tracks/{track_id}/comments?sort={comment_filter}&limit=20&offset={offset}&threaded=1'
         for page_num in itertools.count(1):
             page = self._call_api(next_url, track_id, note=f'Downloading comments page {page_num}')
 
