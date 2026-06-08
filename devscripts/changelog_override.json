@@ -346,6 +346,6 @@
     {
         "action": "add",
         "when": "5faffa999fd33b373d47773e8ee639d072accec2",
-        "short": "[priority] Security: Due to many users continuing to use vulnerable conversions (e.g. `%()s`) we have decided to require safe conversions when using `--exec`.\n    Most users will be able to simply replace `%(...)s` with `%(...)q` in the `--exec` parameter. Numeric conversions are unaffected by this change. We hope to prevent users [and security researchers](<https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-69qj-pvh9-c5wg>) from falling for this common pitfall."
+        "short": "[priority] Security: Usage of vulnerable conversions (e.g. `%()s`) with the `--exec` option is an all-too-common pitfall. To remedy this, exec command templates have been limited to allow safe conversions only.\n    Most users can simply replace `%(...)s` with `%(...)q` in their `--exec` argument(s). Numeric conversions are unaffected by this change. Using unsafe conversions with `--exec` poses a significant security risk. [Read more](<https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-69qj-pvh9-c5wg>)"
     }
 ]
