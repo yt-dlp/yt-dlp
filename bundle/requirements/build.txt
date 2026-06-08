@@ -81,11 +81,11 @@ tomli==2.4.1 ; python_full_version < '3.11' \
     # via
     #   build
     #   hatchling
-trove-classifiers==2026.5.7.17 \
-    --hash=sha256:5ec0800de5e2ddbd7c663cb4c0c15328f132dc168813897c18866c5c7b93db33 \
-    --hash=sha256:a04a48f8f0a787cb996514d3969ac7608aa3c60cb15d073c1e02801e60533e80
+trove-classifiers==2026.5.22.10 \
+    --hash=sha256:01fe864225726e03efb843827ecabfe319fc4dee8dd66d65b8996cb09be46e2c \
+    --hash=sha256:5477e9974e91904fb2cfa4a7581ab6e2f30c2c38d847fd00ed866080748101d5
     # via hatchling
-zipp==3.23.1 ; python_full_version < '3.10.2' \
-    --hash=sha256:0b3596c50a5c700c9cb40ba8d86d9f2cc4807e9bedb06bcdf7fac85633e444dc \
-    --hash=sha256:32120e378d32cd9714ad503c1d024619063ec28aad2248dc6672ad13edfa5110
+zipp==4.1.0 ; python_full_version < '3.10.2' \
+    --hash=sha256:25ad4e16390cd314347dd8f1de67a2ac538ae658ed4ab9db16029c07c188e97f \
+    --hash=sha256:4cb57381f544315db7688e976e922a2b18cdb513d21cc194eb42232ba2a3e602
     # via importlib-metadata
