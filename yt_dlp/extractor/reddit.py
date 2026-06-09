@@ -293,10 +293,10 @@ class RedditIE(InfoExtractor):
 
     def _real_initialize(self):
         if not self._is_logged_in:
-            try:
-                self._request_webpage('https://old.reddit.com/', None, 'Setting up session')
-            except ExtractorError:
-                self.raise_login_required('Account authentication is required')
+            # We need to get a 'loid' cookie to access the API anonymously
+            self._request_webpage(
+                'https://old.reddit.com/', None,
+                'Setting up session via old reddit', 'Session request failed', fatal=False)
 
         # Set cookie to opt-in to age-restricted subreddits
         self._set_cookie('reddit.com', 'over18', '1')
@@ -314,6 +314,18 @@ class RedditIE(InfoExtractor):
 
     def _real_extract(self, url):
         slug, video_id = self._match_valid_url(url).group('slug', 'id')
+
+        # Fallback for if old.reddit session request failed
+        if not self._is_logged_in and not self._get_cookies('https://www.reddit.com/').get('loid'):
+            self._request_webpage(
+                f'https://www.reddit.com/svc/shreddit/{slug}', video_id,
+                'Setting up session via shreddit', 'Session request failed',
+                fatal=False, impersonate=True,
+                query={
+                    'seeker-session': 'false',
+                    'render-mode': 'partial',
+                    'referer': url,
+                })
 
         try:
             data = self._download_json(
