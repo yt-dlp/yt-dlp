@@ -1089,12 +1089,6 @@ from .mlssoccer import MLSSoccerIE
 from .mocha import MochaVideoIE
 from .mojevideo import MojevideoIE
 from .monstercat import MonstercatIE
-from .motherless import (
-    MotherlessGalleryIE,
-    MotherlessGroupIE,
-    MotherlessIE,
-    MotherlessUploaderIE,
-)
 from .motorsport import MotorsportIE
 from .moviepilot import MoviepilotIE
 from .movingimage import MovingImageIE
