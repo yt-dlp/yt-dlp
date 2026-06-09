@@ -1157,6 +1157,10 @@ class XAttrUnavailableError(YoutubeDLError):
     pass
 
 
+class UnsafeExecExpansionError(YoutubeDLError):
+    pass
+
+
 def is_path_like(f):
     return isinstance(f, (str, bytes, os.PathLike))
 
