@@ -11,6 +11,7 @@ import time
 from .fragment import FragmentFD
 from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (
+    DownloadError,
     Popen,
     RetryManager,
     _configuration_args,
@@ -136,8 +137,6 @@ class ExternalFD(FragmentFD):
             self.to_screen(f'[download] Writing temporary cookies file to "{self._cookies_tempfile}"')
         # real_download resets _cookies_tempfile; if it's None then save() will write to cookiejar.filename
         self.ydl.cookiejar.save(self._cookies_tempfile, True, True)
-        with open(self.ydl.cookiejar.filename or self._cookies_tempfile, "r") as file:
-            print("cookies", repr(file.read()))
         return self.ydl.cookiejar.filename or self._cookies_tempfile
 
     def _call_downloader(self, tmpfilename, info_dict):
@@ -224,8 +223,7 @@ class CurlFD(ExternalFD):
         else:
             cookies_file = self._write_cookies()
             if '=' in cookies_file:
-                # XXX: what to raise here?
-                raise RuntimeError('curl version too old or temp directory contains `=`; please use another downloader or update curl')
+                raise DownloadError('curl version too old or temp directory contains `=`; please use another downloader or update curl')
             assert cookies_file != '-'
             cmd += ['--cookie', cookies_file]
 

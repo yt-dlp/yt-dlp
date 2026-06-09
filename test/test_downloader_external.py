@@ -102,6 +102,7 @@ class HTTPTestHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps(list(self.headers.items())).encode())
 
+
 class HTTPTestServer(http.server.HTTPServer):
     @property
     def address(self, /):
