@@ -43,10 +43,10 @@ class TwitchBaseIE(InfoExtractor):
     _OPERATION_HASHES = {
         'CollectionSideBar': '016e1e4ccee0eb4698eb3bf1a04dc1c077fb746c78c82bac9a8f0289658fbd1a',
         'FilterableVideoTower_Videos': '67004f7881e65c297936f32c75246470629557a393788fb5a69d6d9a25a8fd5f',
-        'ClipsCards__User': '90c33f5e6465122fba8f9371e2a97076f9ed06c6fed3788d002ab9eba8f91d88',
-        'ShareClipRenderStatus': '1844261bb449fa51e6167040311da4a7a5f1c34fe71c71a3e0c4f551bc30c698',
+        'ClipsCards__User': '1cd671bfa12cec480499c087319f26d21925e9695d1f80225aae6a4354f23088',
+        'ShareClipRenderStatus': '0a02bb974443b576f5579aab0fef1d4b7f44e58a8a256f0c5adfead0db70640f',
         'ChannelCollectionsContent': '5247910a19b1cd2b760939bf4cba4dcbd3d13bdf8c266decd16956f6ef814077',
-        'StreamMetadata': 'b57f9b910f8cd1a4659d894fe7550ccc81ec9052c01e438b290fd66a040b9b93',
+        'StreamMetadata': 'ad022ca32220d5523d03a23cbcb5beaa1e0999889c1f8f78f9f2520dafb5cae6',
         'ComscoreStreamingQuery': 'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
         'VideoPreviewOverlay': '9515480dee68a77e667cb19de634739d33f243572b007e98e67184b1a5d8369f',
         'VideoMetadata': '45111672eea2e507f8ba44d101a61862f9c56b11dee09a15634cb75cb9b9084d',

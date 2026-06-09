@@ -167,9 +167,9 @@ For other third-party package managers, see [the wiki](https://github.com/yt-dlp
 
 There are currently three release channels for binaries: `stable`, `nightly` and `master`.
 
-* `stable` is the default channel, and many of its changes have been tested by users of the `nightly` and `master` channels.
-* The `nightly` channel has releases scheduled to build every day around midnight UTC, for a snapshot of the project's new patches and changes. This is the **recommended channel for regular users** of yt-dlp. The `nightly` releases are available from [yt-dlp/yt-dlp-nightly-builds](https://github.com/yt-dlp/yt-dlp-nightly-builds/releases) or as development releases of the `yt-dlp` PyPI package (which can be installed with pip's `--pre` flag).
-* The `master` channel features releases that are built after each push to the master branch, and these will have the very latest fixes and additions, but may also be more prone to regressions. They are available from [yt-dlp/yt-dlp-master-builds](https://github.com/yt-dlp/yt-dlp-master-builds/releases).
+* `stable` is the default channel, which offers releases published on a (mostly) monthly schedule. While it is named `stable` due to many of its changes having been tested by users of the `nightly` or `master` release channels, the latest `stable` release is often "stale" and prone to external breakage (i.e. sites changing things on their end and breaking yt-dlp).
+* The `nightly` channel offers releases that publish shortly before midnight UTC on any day that sees changes to the codebase. This channel serves as a snapshot of the project's development, and it is the **recommended channel for regular users** of yt-dlp. The `nightly` releases are available from [yt-dlp/yt-dlp-nightly-builds](https://github.com/yt-dlp/yt-dlp-nightly-builds/releases) or as development releases of the `yt-dlp` PyPI package (which can be installed with pip's `--pre` flag).
+* The `master` channel offers "canary" releases that publish after each push to the master branch. This channel will always provide the very latest fixes and features, but may be prone to bugs or regressions. The `master` releases are available from [yt-dlp/yt-dlp-master-builds](https://github.com/yt-dlp/yt-dlp-master-builds/releases).
 
 When using `--update`/`-U`, a release binary will only update to its current channel.
 `--update-to CHANNEL` can be used to switch to a different channel when a newer version is available. `--update-to [CHANNEL@]TAG` can also be used to upgrade or downgrade to specific tags from a channel.
@@ -209,7 +209,7 @@ While all the other dependencies are optional, `ffmpeg`, `ffprobe`, `yt-dlp-ejs`
 
 * [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging separate video and audio files](#format-selection), as well as for various [post-processing](#post-processing-options) tasks. License [depends on the build](https://www.ffmpeg.org/legal.html)
 
-    There are bugs in ffmpeg that cause various issues when used alongside yt-dlp. Since ffmpeg is such an important dependency, we provide [custom builds](https://github.com/yt-dlp/FFmpeg-Builds#ffmpeg-static-auto-builds) with patches for some of these issues at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details on the specific issues solved by these builds
+    Since ffmpeg is such an important dependency, we provide our own builds at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). In the past, patches were applied to these builds in order to fix common issues for yt-dlp users, but currently our builds are equivalent to upstream ffmpeg. See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details
 
     **Important**: What you need is ffmpeg *binary*, **NOT** [the Python package of the same name](https://pypi.org/project/ffmpeg)
 
@@ -229,7 +229,7 @@ The following provide support for impersonating browser requests. This may be re
 
 * [**curl_cffi**](https://github.com/lexiforest/curl_cffi) (recommended) - Python binding for [curl-impersonate](https://github.com/lexiforest/curl-impersonate). Provides impersonation targets for Chrome, Edge and Safari. Licensed under [MIT](https://github.com/lexiforest/curl_cffi/blob/main/LICENSE)
   * Can be installed with the `curl-cffi` extra, e.g. `pip install "yt-dlp[default,curl-cffi]"`
-  * Currently included in most builds *except* `yt-dlp` (Unix zipimport binary), `yt-dlp_x86` (Windows 32-bit) and `yt-dlp_musllinux_aarch64`
+  * Currently included in most builds *except* `yt-dlp` (Unix zipimport binary) and `yt-dlp_x86` (Windows 32-bit)
 
 
 ### Metadata
@@ -265,7 +265,7 @@ To build the standalone executable, you must have Python and `pyinstaller` (plus
 You can run the following commands:
 
 ```
-python devscripts/install_deps.py --include-extra pyinstaller
+python devscripts/install_deps.py --include-group pyinstaller
 python devscripts/make_lazy_extractors.py
 python -m bundle.pyinstaller
 ```
@@ -2332,8 +2332,8 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * `certifi` will be used for SSL root certificates, if installed. If you want to use system certificates (e.g. self-signed), use `--compat-options no-certifi`
 * yt-dlp's sanitization of invalid characters in filenames is different/smarter than in youtube-dl. You can use `--compat-options filename-sanitization` to revert to youtube-dl's behavior
 * ~~yt-dlp tries to parse the external downloader outputs into the standard progress output if possible (Currently implemented: [aria2c](https://github.com/yt-dlp/yt-dlp/issues/5931)). You can use `--compat-options no-external-downloader-progress` to get the downloader output as-is~~
-* yt-dlp versions between 2021.09.01 and 2023.01.02 applies `--match-filters` to nested playlists. This was an unintentional side-effect of [8f18ac](https://github.com/yt-dlp/yt-dlp/commit/8f18aca8717bb0dd49054555af8d386e5eda3a88) and is fixed in [d7b460](https://github.com/yt-dlp/yt-dlp/commit/d7b460d0e5fc710950582baed2e3fc616ed98a80). Use `--compat-options playlist-match-filter` to revert this
-* yt-dlp versions between 2021.11.10 and 2023.06.21 estimated `filesize_approx` values for fragmented/manifest formats. This was added for convenience in [f2fe69](https://github.com/yt-dlp/yt-dlp/commit/f2fe69c7b0d208bdb1f6292b4ae92bc1e1a7444a), but was reverted in [0dff8e](https://github.com/yt-dlp/yt-dlp/commit/0dff8e4d1e6e9fb938f4256ea9af7d81f42fd54f) due to the potentially extreme inaccuracy of the estimated values. Use `--compat-options manifest-filesize-approx` to keep extracting the estimated values
+* yt-dlp versions from 2021.09.01 to 2022.11.11 (inclusive) applied `--match-filters` to nested playlists. This was an unintentional side-effect of [8f18ac](https://github.com/yt-dlp/yt-dlp/commit/8f18aca8717bb0dd49054555af8d386e5eda3a88) and is fixed in [d7b460](https://github.com/yt-dlp/yt-dlp/commit/d7b460d0e5fc710950582baed2e3fc616ed98a80). Use `--compat-options playlist-match-filter` to revert this
+* yt-dlp versions from 2021.11.10 to 2023.06.21 (inclusive) estimated `filesize_approx` values for fragmented/manifest formats. This was added for convenience in [f2fe69](https://github.com/yt-dlp/yt-dlp/commit/f2fe69c7b0d208bdb1f6292b4ae92bc1e1a7444a), but was reverted in [0dff8e](https://github.com/yt-dlp/yt-dlp/commit/0dff8e4d1e6e9fb938f4256ea9af7d81f42fd54f) due to the potentially extreme inaccuracy of the estimated values. Use `--compat-options manifest-filesize-approx` to keep extracting the estimated values
 * yt-dlp uses modern http client backends such as `requests`. Use `--compat-options prefer-legacy-http-handler` to prefer the legacy http handler (`urllib`) to be used for standard http requests.
 * The sub-modules `swfinterp`, `casefold` are removed.
 * Passing `--simulate` (or calling `extract_info` with `download=False`) no longer alters the default format selection. See [#9843](https://github.com/yt-dlp/yt-dlp/issues/9843) for details.
@@ -2342,8 +2342,8 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 For convenience, there are some compat option aliases available to use:
 
 * `--compat-options all`: Use all compat options (**Do NOT use this!**)
-* `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams,-playlist-match-filter,-manifest-filesize-approx,-allow-unsafe-ext,-prefer-vp9-sort`
-* `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect,-playlist-match-filter,-manifest-filesize-approx,-allow-unsafe-ext,-prefer-vp9-sort`
+* `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams,-playlist-match-filter,-manifest-filesize-approx,-allow-unsafe-ext,-prefer-vp9-sort,-allow-unsafe-exec-expansion`
+* `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect,-playlist-match-filter,-manifest-filesize-approx,-allow-unsafe-ext,-prefer-vp9-sort,-allow-unsafe-exec-expansion`
 * `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization`
 * `--compat-options 2022`: Same as `--compat-options 2023,playlist-match-filter,no-external-downloader-progress,prefer-legacy-http-handler,manifest-filesize-approx`
 * `--compat-options 2023`: Same as `--compat-options 2024,prefer-vp9-sort`
@@ -2358,7 +2358,12 @@ The following compat options restore vulnerable behavior from before security pa
 
     > :warning: Only use if a valid file download is rejected because its extension is detected as uncommon
     >
-    > **This option can enable remote code execution! Consider [opening an issue](<https://github.com/yt-dlp/yt-dlp/issues/new/choose>) instead!**
+    > **This option can enable remote code execution!** Consider [opening an issue](<https://github.com/yt-dlp/yt-dlp/issues/new/choose>) instead!
+
+* `--compat-options allow-unsafe-exec-expansion`: The `--exec` option allows output template syntax to be used in its commands; however, for security reasons the conversions that can be used are restricted to `i`/`d` (signed integer decimal), `f` (floating-point decimal) and `q` (shell-quoted). yt-dlp versions from 2021.04.11 to 2026.03.17 (inclusive) did not apply this restriction. This option reverts this restriction
+
+    > :warning: **This option can enable remote code execution!** Consider using `%()q` conversions in your exec command templates for any string values.
+
 
 ### Deprecated options
 
