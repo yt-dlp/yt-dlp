@@ -589,17 +589,6 @@ class TwitchVodIE(TwitchBaseIE):
         if 't' in query:
             info['start_time'] = parse_duration(query['t'][0])
 
-        if info.get('timestamp') is not None:
-            info['subtitles'] = {
-                'rechat': [{
-                    'url': update_url_query(
-                        f'https://api.twitch.tv/v5/videos/{vod_id}/comments', {
-                            'client_id': self._CLIENT_ID,
-                        }),
-                    'ext': 'json',
-                }],
-            }
-
         return info
 
 

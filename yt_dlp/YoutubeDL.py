@@ -3405,7 +3405,9 @@ class YoutubeDL:
                 self.report_warning(
                     f'Cannot write internet shortcut file because the actual URL of "{info_dict["webpage_url"]}" is unknown')
                 return True
-            linkfn = replace_extension(self.prepare_filename(info_dict, 'link'), link_type, info_dict.get('ext'))
+            linkfn = replace_extension(
+                self.prepare_filename(info_dict, 'link'), link_type,
+                info_dict.get('ext'), _allowed_exts=tuple(LINK_TEMPLATES))
             if not self._ensure_dir_exists(linkfn):
                 return False
             if self.params.get('overwrites', True) and os.path.exists(linkfn):
