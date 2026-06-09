@@ -61,7 +61,7 @@ class PornHubBaseIE(InfoExtractor):
 
     def _set_age_cookies(self, host):
         self._set_cookie(host, 'age_verified', '1')
-        self._set_cookie(host, 'accessAgeDisclaimerPH', '2')
+        self._set_cookie(host, 'accessAgeDisclaimerPH', '1')  # site sets '2'
         self._set_cookie(host, 'accessAgeDisclaimerUK', '1')
         self._set_cookie(host, 'accessPH', '1')
 
@@ -279,12 +279,14 @@ class PornHubIE(PornHubBaseIE):
 
         def dl_webpage(platform):
             self._set_cookie(host, 'platform', platform)
-            return self._download_webpage(
+            webpage, urlh = self._download_webpage_handle(
                 f'https://www.{host}/view_video.php?viewkey={video_id}',
-                video_id,
-                f'Downloading {platform} webpage',
-                impersonate=True,
-            )
+                video_id, f'Downloading {platform} webpage',
+                impersonate=True)
+            if parse_qs(urlh.url).get('viewkey', [None])[-1] != video_id:
+                raise ExtractorError(
+                    'Redirection detected; the video may be deleted or require login', expected=True)
+            return webpage
 
         webpage = dl_webpage('pc')
 
@@ -302,9 +304,6 @@ class PornHubIE(PornHubBaseIE):
                 r'class=["\']geoBlocked["\']',
                 r'>\s*This content is unavailable in your country')):
             self.raise_geo_restricted()
-
-        if self._search_regex(r'originPart\s*=\s*["\']([^"\']+)["\']', webpage, 'redirect to homepage', default='') == 'homepage':
-            raise ExtractorError('Redirected to homepage; the video may be deleted or require logging in.', expected=True)
 
         # video_title from flashvars contains whitespace instead of non-ASCII (see
         # http://www.pornhub.com/view_video.php?viewkey=1331683002), not relying
