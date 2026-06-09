@@ -9,10 +9,14 @@ services:
       args:
         BUILDIMAGE: ghcr.io/yt-dlp/manylinux2014_x86_64-shared:latest
     environment:
+      REQUIREMENTS: linux
       EXE_NAME: ${EXE_NAME:?}
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
       VERSION:
+      PYTHON_VERSION:
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
     volumes:
       - ../..:/yt-dlp
 
@@ -23,10 +27,12 @@ services:
       platforms:
         - "linux/amd64"
       args:
-        VERIFYIMAGE: quay.io/pypa/manylinux2014_x86_64:latest
+        VERIFYIMAGE: quay.io/pypa/manylinux2014_x86_64:2025.12.19-1@sha256:b716645f9aecd0c1418283af930804bbdbd68a73d855a60101c5aab8548d737d
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
     volumes:
       - ../../dist:/build
 
@@ -39,10 +45,14 @@ services:
       args:
         BUILDIMAGE: ghcr.io/yt-dlp/manylinux2014_aarch64-shared:latest
     environment:
+      REQUIREMENTS: linux
       EXE_NAME: ${EXE_NAME:?}
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
       VERSION:
+      PYTHON_VERSION:
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
     volumes:
       - ../..:/yt-dlp
 
@@ -53,10 +63,12 @@ services:
       platforms:
         - "linux/arm64"
       args:
-        VERIFYIMAGE: quay.io/pypa/manylinux2014_aarch64:latest
+        VERIFYIMAGE: quay.io/pypa/manylinux2014_aarch64:2025.12.19-1@sha256:36cbe6638c7c605c2b44a92e35751baa537ec8902112f790139d89c7e1ccd2a4
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
     volumes:
       - ../../dist:/build
 
@@ -69,14 +81,16 @@ services:
       args:
         BUILDIMAGE: ghcr.io/yt-dlp/manylinux_2_31_armv7l-shared:latest
     environment:
+      REQUIREMENTS: linux
       EXE_NAME: ${EXE_NAME:?}
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
       VERSION:
-      SKIP_ONEFILE_BUILD: "1"
+      PYTHON_VERSION:
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
     volumes:
       - ../..:/yt-dlp
-      - ~/yt-dlp-build-venv:/yt-dlp-build-venv
 
   linux_armv7l_verify:
     build:
@@ -85,11 +99,12 @@ services:
       platforms:
         - "linux/arm/v7"
       args:
-        VERIFYIMAGE: arm32v7/debian:bullseye
+        VERIFYIMAGE: arm32v7/debian:bullseye@sha256:9d544bf6ff73e36b8df1b7e415f6c8ee40ed84a0f3a26970cac8ea88b0ccf2ac
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
-      TEST_ONEDIR_BUILD: "1"
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
     volumes:
       - ../../dist:/build
 
@@ -102,10 +117,14 @@ services:
       args:
         BUILDIMAGE: ghcr.io/yt-dlp/musllinux_1_2_x86_64-shared:latest
     environment:
+      REQUIREMENTS: linux
       EXE_NAME: ${EXE_NAME:?}
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
       VERSION:
+      PYTHON_VERSION:
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
     volumes:
       - ../..:/yt-dlp
 
@@ -116,10 +135,12 @@ services:
       platforms:
         - "linux/amd64"
       args:
-        VERIFYIMAGE: alpine:3.22
+        VERIFYIMAGE: alpine:3.23.2@sha256:865b95f46d98cf867a156fe4a135ad3fe50d2056aa3f25ed31662dff6da4eb62
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
     volumes:
       - ../../dist:/build
 
@@ -132,11 +153,14 @@ services:
       args:
         BUILDIMAGE: ghcr.io/yt-dlp/musllinux_1_2_aarch64-shared:latest
     environment:
+      REQUIREMENTS: linux
       EXE_NAME: ${EXE_NAME:?}
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
       VERSION:
-      EXCLUDE_CURL_CFFI: "1"
+      PYTHON_VERSION:
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
     volumes:
       - ../..:/yt-dlp
 
@@ -147,9 +171,11 @@ services:
       platforms:
         - "linux/arm64"
       args:
-        VERIFYIMAGE: alpine:3.22
+        VERIFYIMAGE: alpine:3.23.2@sha256:865b95f46d98cf867a156fe4a135ad3fe50d2056aa3f25ed31662dff6da4eb62
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:
+      SKIP_ONEDIR_BUILD:
+      SKIP_ONEFILE_BUILD:
     volumes:
       - ../../dist:/build

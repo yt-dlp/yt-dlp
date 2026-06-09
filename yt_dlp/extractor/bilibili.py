@@ -124,7 +124,7 @@ class BilibiliBaseIE(InfoExtractor):
                 **traverse_obj(play_info, {
                     'quality': ('quality', {int_or_none}),
                     'format_id': ('quality', {str_or_none}),
-                    'format_note': ('quality', {lambda x: format_names.get(x)}),
+                    'format_note': ('quality', {format_names.get}),
                     'duration': ('timelength', {float_or_none(scale=1000)}),
                 }),
                 **parse_resolution(format_names.get(play_info.get('quality'))),
@@ -1366,7 +1366,7 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
                 else:
                     yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}', BiliBiliIE, entry['bvid'])
 
-        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
+        _, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
         return self.playlist_result(paged_list, playlist_id)
 
 
@@ -1400,7 +1400,7 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
             for entry in page_data.get('data') or []:
                 yield self.url_result(f'https://www.bilibili.com/audio/au{entry["id"]}', BilibiliAudioIE, entry['id'])
 
-        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
+        _, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
         return self.playlist_result(paged_list, playlist_id)
 
 
