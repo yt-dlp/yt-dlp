@@ -316,7 +316,7 @@ class Updater:
         return json.loads(self.ydl.urlopen(Request(url, headers={
             'Accept': 'application/vnd.github+json',
             'User-Agent': 'yt-dlp',
-            'X-GitHub-Api-Version': '2022-11-28',
+            'X-GitHub-Api-Version': '2026-03-10',
         })).read().decode())
 
     def _get_version_info(self, tag: str) -> tuple[str | None, str | None]:

@@ -151,7 +151,6 @@ class TubeTuGrazIE(TubeTuGrazBaseIE):
                 'title': '#6 (23.11.2017)',
                 'episode': '#6 (23.11.2017)',
                 'series': '[INB03001UF] Einführung in die strukturierte Programmierung',
-                'creator': 'Safran C',
                 'duration': 3295818,
                 'series_id': 'b1192fff-2aa7-4bf0-a5cf-7b15c3bd3b34',
                 'creators': ['Safran C'],

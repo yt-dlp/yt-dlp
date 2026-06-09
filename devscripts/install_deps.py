@@ -25,16 +25,16 @@ def parse_args():
         '-e', '--exclude-dependency', metavar='DEPENDENCY', action='append',
         help='exclude a dependency (can be used multiple times)')
     parser.add_argument(
-        '-i', '--include-group', metavar='GROUP', action='append',
-        help='include an optional dependency group (can be used multiple times)')
+        '-i', '--include', '--include-extra', '--include-group', metavar='EXTRA/GROUP', action='append', dest='includes',
+        help='include an extra/group (can be used multiple times)')
     parser.add_argument(
         '-c', '--cherry-pick', metavar='DEPENDENCY', action='append',
         help=(
             'only include a specific dependency from the resulting dependency list '
             '(can be used multiple times)'))
     parser.add_argument(
-        '-o', '--only-optional-groups', action='store_true',
-        help='omit default dependencies unless the "default" group is specified with --include-group')
+        '-o', '--omit-default', action='store_true',
+        help='omit the "default" extra unless it is explicitly included (it is included by default)')
     parser.add_argument(
         '-p', '--print', action='store_true',
         help='only print requirements to stdout')
@@ -50,29 +50,41 @@ def uniq(arg) -> dict[str, None]:
 
 def main():
     args = parse_args()
-    project_table = parse_toml(read_file(args.input))['project']
-    recursive_pattern = re.compile(rf'{project_table["name"]}\[(?P<group_name>[\w-]+)\]')
-    optional_groups = project_table['optional-dependencies']
+    toml_data = parse_toml(read_file(args.input))
+    project_table = toml_data['project']
+    recursive_pattern = re.compile(rf'{project_table["name"]}\[(?P<extra_name>[\w-]+)\]')
+    extras = project_table['optional-dependencies']
+    groups = toml_data['dependency-groups']
 
     excludes = uniq(args.exclude_dependency)
     only_includes = uniq(args.cherry_pick)
-    include_groups = uniq(args.include_group)
+    includes = uniq(args.includes)
 
-    def yield_deps(group):
-        for dep in group:
+    def yield_deps_from_extra(extra):
+        for dep in extra:
             if mobj := recursive_pattern.fullmatch(dep):
-                yield from optional_groups.get(mobj.group('group_name'), ())
+                yield from extras.get(mobj.group('extra_name'), ())
+            else:
+                yield dep
+
+    def yield_deps_from_group(group):
+        for dep in group:
+            if isinstance(dep, dict):
+                yield from yield_deps_from_group(groups[dep['include-group']])
             else:
                 yield dep
 
     targets = {}
-    if not args.only_optional_groups:
+    if not args.omit_default:
         # legacy: 'dependencies' is empty now
         targets.update(dict.fromkeys(project_table['dependencies']))
-        targets.update(dict.fromkeys(yield_deps(optional_groups['default'])))
+        targets.update(dict.fromkeys(yield_deps_from_extra(extras['default'])))
 
-    for include in filter(None, map(optional_groups.get, include_groups)):
-        targets.update(dict.fromkeys(yield_deps(include)))
+    for include in filter(None, map(extras.get, includes)):
+        targets.update(dict.fromkeys(yield_deps_from_extra(include)))
+
+    for include in filter(None, map(groups.get, includes)):
+        targets.update(dict.fromkeys(yield_deps_from_group(include)))
 
     def target_filter(target):
         name = re.match(r'[\w-]+', target).group(0).lower()
