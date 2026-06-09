@@ -1319,6 +1319,29 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'categories': ['motor'],
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        # empty taxonomie
+        'url': 'https://tele5.de/mediathek/der-graf-von-monte-christo/season-1-episode-1',
+        'info_dict': {
+            'id': '22823',
+            'ext': 'mp4',
+            'title': 'Der Brief',
+            'description': 'md5:4caa468caed172235d3363ecfd685b24',
+            'display_id': '22823',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'season': 'Season 1',
+            'season_number': 1,
+            'series': 'Der Graf von Monte Christo',
+            'duration': 2971.96,
+            'upload_date': '20260523',
+            'timestamp': 1779563100,
+            'creators': ['TELE 5'],
+            'thumbnail': 'https://images.aurora.enhanced.live/de/images/video/DCB898660001100310001/default.jpg',
+            'tags': [],
+            'categories': [],
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
@@ -1381,8 +1404,10 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
 
     def _get_disco_api_info(self, url, display_id, disco_host, realm, country, domain='', cms_data={}):
         disco_api_info = super()._get_disco_api_info(url, display_id, disco_host, realm, country, domain)
-        disco_api_info['categories'] = sorted(traverse_obj(cms_data, (
-            'taxonomies', lambda _, v: v['category'] in ['genre', 'topic'], 'title', {str.strip}, filter, all, filter)))
+        disco_api_info['categories'] = []
+        if cms_data.get('taxonomies'):
+            disco_api_info['categories'] = sorted(traverse_obj(cms_data, (
+                'taxonomies', lambda _, v: v['category'] in ['genre', 'topic'], 'title', {str.strip}, filter, all, filter)))
         return disco_api_info
 
 
