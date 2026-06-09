@@ -426,10 +426,8 @@ class RumbleChannelIE(InfoExtractor):
             if not video_items:
                 break
 
-            for video_dict in video_items.get('items') or []:
-                base_url = 'https://rumble.com'
-                video_url = traverse_obj(video_dict, (('url', ('relative_url', {urljoin(base_url)})), {url_or_none}, any))
-                yield self.url_result(video_url, ie=RumbleIE.ie_key())
+            for entry_url in traverse_obj(video_items, ('items', ..., 'url', {url_or_none})):
+                yield self.url_result(entry_url, RumbleIE)
 
             is_next = self._search_regex(fr'((?:<link[^>]+rel=next[^>]+>)?(?:page={page_num + 1}))', page, 'next page', default=None)
             if not is_next:
