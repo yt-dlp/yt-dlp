@@ -22,14 +22,19 @@ def parse_args():
         'input', nargs='?', metavar='TOMLFILE', default=Path(__file__).parent.parent / 'pyproject.toml',
         help='input file (default: %(default)s)')
     parser.add_argument(
-        '-e', '--exclude', metavar='DEPENDENCY', action='append',
-        help='exclude a dependency')
+        '-e', '--exclude-dependency', metavar='DEPENDENCY', action='append',
+        help='exclude a dependency (can be used multiple times)')
     parser.add_argument(
-        '-i', '--include', metavar='GROUP', action='append',
-        help='include an optional dependency group')
+        '-i', '--include', '--include-extra', '--include-group', metavar='EXTRA/GROUP', action='append', dest='includes',
+        help='include an extra/group (can be used multiple times)')
     parser.add_argument(
-        '-o', '--only-optional', action='store_true',
-        help='only install optional dependencies')
+        '-c', '--cherry-pick', metavar='DEPENDENCY', action='append',
+        help=(
+            'only include a specific dependency from the resulting dependency list '
+            '(can be used multiple times)'))
+    parser.add_argument(
+        '-o', '--omit-default', action='store_true',
+        help='omit the "default" extra unless it is explicitly included (it is included by default)')
     parser.add_argument(
         '-p', '--print', action='store_true',
         help='only print requirements to stdout')
@@ -39,30 +44,53 @@ def parse_args():
     return parser.parse_args()
 
 
+def uniq(arg) -> dict[str, None]:
+    return dict.fromkeys(map(str.lower, arg or ()))
+
+
 def main():
     args = parse_args()
-    project_table = parse_toml(read_file(args.input))['project']
-    recursive_pattern = re.compile(rf'{project_table["name"]}\[(?P<group_name>[\w-]+)\]')
-    optional_groups = project_table['optional-dependencies']
-    excludes = args.exclude or []
+    toml_data = parse_toml(read_file(args.input))
+    project_table = toml_data['project']
+    recursive_pattern = re.compile(rf'{project_table["name"]}\[(?P<extra_name>[\w-]+)\]')
+    extras = project_table['optional-dependencies']
+    groups = toml_data['dependency-groups']
 
-    def yield_deps(group):
-        for dep in group:
+    excludes = uniq(args.exclude_dependency)
+    only_includes = uniq(args.cherry_pick)
+    includes = uniq(args.includes)
+
+    def yield_deps_from_extra(extra):
+        for dep in extra:
             if mobj := recursive_pattern.fullmatch(dep):
-                yield from optional_groups.get(mobj.group('group_name'), [])
+                yield from extras.get(mobj.group('extra_name'), ())
             else:
                 yield dep
 
-    targets = []
-    if not args.only_optional:  # `-o` should exclude 'dependencies' and the 'default' group
-        targets.extend(project_table['dependencies'])
-        if 'default' not in excludes:  # `--exclude default` should exclude entire 'default' group
-            targets.extend(yield_deps(optional_groups['default']))
+    def yield_deps_from_group(group):
+        for dep in group:
+            if isinstance(dep, dict):
+                yield from yield_deps_from_group(groups[dep['include-group']])
+            else:
+                yield dep
 
-    for include in filter(None, map(optional_groups.get, args.include or [])):
-        targets.extend(yield_deps(include))
+    targets = {}
+    if not args.omit_default:
+        # legacy: 'dependencies' is empty now
+        targets.update(dict.fromkeys(project_table['dependencies']))
+        targets.update(dict.fromkeys(yield_deps_from_extra(extras['default'])))
 
-    targets = [t for t in targets if re.match(r'[\w-]+', t).group(0).lower() not in excludes]
+    for include in filter(None, map(extras.get, includes)):
+        targets.update(dict.fromkeys(yield_deps_from_extra(include)))
+
+    for include in filter(None, map(groups.get, includes)):
+        targets.update(dict.fromkeys(yield_deps_from_group(include)))
+
+    def target_filter(target):
+        name = re.match(r'[\w-]+', target).group(0).lower()
+        return name not in excludes and (not only_includes or name in only_includes)
+
+    targets = list(filter(target_filter, targets))
 
     if args.print:
         for target in targets:

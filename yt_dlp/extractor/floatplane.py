@@ -6,15 +6,15 @@ from ..utils import (
     OnDemandPagedList,
     clean_html,
     determine_ext,
+    float_or_none,
     format_field,
     int_or_none,
     join_nonempty,
-    parse_codecs,
     parse_iso8601,
     url_or_none,
     urljoin,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import require, traverse_obj
 
 
 class FloatplaneBaseIE(InfoExtractor):
@@ -50,37 +50,31 @@ class FloatplaneBaseIE(InfoExtractor):
             media_id = media['id']
             media_typ = media.get('type') or 'video'
 
-            metadata = self._download_json(
-                f'{self._BASE_URL}/api/v3/content/{media_typ}', media_id, query={'id': media_id},
-                note=f'Downloading {media_typ} metadata', impersonate=self._IMPERSONATE_TARGET)
-
             stream = self._download_json(
-                f'{self._BASE_URL}/api/v2/cdn/delivery', media_id, query={
-                    'type': 'vod' if media_typ == 'video' else 'aod',
-                    'guid': metadata['guid'],
-                }, note=f'Downloading {media_typ} stream data',
+                f'{self._BASE_URL}/api/v3/delivery/info', media_id,
+                query={'scenario': 'onDemand', 'entityId': media_id},
+                note=f'Downloading {media_typ} stream data',
                 impersonate=self._IMPERSONATE_TARGET)
 
-            path_template = traverse_obj(stream, ('resource', 'uri', {str}))
+            metadata = self._download_json(
+                f'{self._BASE_URL}/api/v3/content/{media_typ}', media_id,
+                f'Downloading {media_typ} metadata', query={'id': media_id},
+                fatal=False, impersonate=self._IMPERSONATE_TARGET)
 
-            def format_path(params):
-                path = path_template
-                for i, val in (params or {}).items():
-                    path = path.replace(f'{{qualityLevelParams.{i}}}', val)
-                return path
+            cdn_base_url = traverse_obj(stream, (
+                'groups', 0, 'origins', ..., 'url', {url_or_none}, any, {require('cdn base url')}))
 
             formats = []
-            for quality in traverse_obj(stream, ('resource', 'data', 'qualityLevels', ...)):
-                url = urljoin(stream['cdn'], format_path(traverse_obj(
-                    stream, ('resource', 'data', 'qualityLevelParams', quality['name'], {dict}))))
-                format_id = traverse_obj(quality, ('name', {str}))
+            for variant in traverse_obj(stream, ('groups', 0, 'variants', lambda _, v: v['url'])):
+                format_url = urljoin(cdn_base_url, variant['url'])
+                format_id = traverse_obj(variant, ('name', {str}))
                 hls_aes = {}
                 m3u8_data = None
 
                 # If we need impersonation for the API, then we need it for HLS keys too: extract in advance
                 if self._IMPERSONATE_TARGET is not None:
                     m3u8_data = self._download_webpage(
-                        url, media_id, fatal=False, impersonate=self._IMPERSONATE_TARGET, headers=self._HEADERS,
+                        format_url, media_id, fatal=False, impersonate=self._IMPERSONATE_TARGET, headers=self._HEADERS,
                         note=join_nonempty('Downloading', format_id, 'm3u8 information', delim=' '),
                         errnote=join_nonempty('Failed to download', format_id, 'm3u8 information', delim=' '))
                     if not m3u8_data:
@@ -98,18 +92,34 @@ class FloatplaneBaseIE(InfoExtractor):
                             hls_aes['key'] = urlh.read().hex()
 
                 formats.append({
-                    **traverse_obj(quality, {
+                    **traverse_obj(variant, {
                         'format_note': ('label', {str}),
-                        'width': ('width', {int}),
-                        'height': ('height', {int}),
+                        'width': ('meta', 'video', 'width', {int_or_none}),
+                        'height': ('meta', 'video', 'height', {int_or_none}),
+                        'vcodec': ('meta', 'video', 'codec', {str}),
+                        'acodec': ('meta', 'audio', 'codec', {str}),
+                        'vbr': ('meta', 'video', 'bitrate', 'average', {int_or_none(scale=1000)}),
+                        'abr': ('meta', 'audio', 'bitrate', 'average', {int_or_none(scale=1000)}),
+                        'audio_channels': ('meta', 'audio', 'channelCount', {int_or_none}),
+                        'fps': ('meta', 'video', 'fps', {float_or_none}),
                     }),
-                    **parse_codecs(quality.get('codecs')),
-                    'url': url,
-                    'ext': determine_ext(url.partition('/chunk.m3u8')[0], 'mp4'),
+                    'url': format_url,
+                    'ext': determine_ext(format_url.partition('/chunk.m3u8')[0], 'mp4'),
                     'format_id': format_id,
                     'hls_media_playlist_data': m3u8_data,
                     'hls_aes': hls_aes or None,
                 })
+
+            subtitles = {}
+            automatic_captions = {}
+            for sub_data in traverse_obj(metadata, ('textTracks', lambda _, v: url_or_none(v['src']))):
+                sub_lang = sub_data.get('language') or 'en'
+                sub_entry = {'url': sub_data['src']}
+                if sub_data.get('generated'):
+                    automatic_captions.setdefault(sub_lang, []).append(sub_entry)
+                else:
+                    subtitles.setdefault(sub_lang, []).append(sub_entry)
+
             items.append({
                 **common_info,
                 'id': media_id,
@@ -119,6 +129,8 @@ class FloatplaneBaseIE(InfoExtractor):
                     'thumbnail': ('thumbnail', 'path', {url_or_none}),
                 }),
                 'formats': formats,
+                'subtitles': subtitles,
+                'automatic_captions': automatic_captions,
             })
 
         post_info = {
@@ -306,9 +318,48 @@ class FloatplaneIE(FloatplaneBaseIE):
             self.raise_login_required()
 
 
-class FloatplaneChannelIE(InfoExtractor):
+class FloatplaneChannelBaseIE(InfoExtractor):
+    """Subclasses must set _RESULT_IE, _BASE_URL and _PAGE_SIZE"""
+
+    def _fetch_page(self, display_id, creator_id, channel_id, page):
+        query = {
+            'id': creator_id,
+            'limit': self._PAGE_SIZE,
+            'fetchAfter': page * self._PAGE_SIZE,
+        }
+        if channel_id:
+            query['channel'] = channel_id
+        page_data = self._download_json(
+            f'{self._BASE_URL}/api/v3/content/creator', display_id,
+            query=query, note=f'Downloading page {page + 1}')
+        for post in page_data or []:
+            yield self.url_result(
+                f'{self._BASE_URL}/post/{post["id"]}',
+                self._RESULT_IE, id=post['id'], title=post.get('title'),
+                release_timestamp=parse_iso8601(post.get('releaseDate')))
+
+    def _real_extract(self, url):
+        creator, channel = self._match_valid_url(url).group('id', 'channel')
+        display_id = join_nonempty(creator, channel, delim='/')
+
+        creator_data = self._download_json(
+            f'{self._BASE_URL}/api/v3/creator/named',
+            display_id, query={'creatorURL[0]': creator})[0]
+
+        channel_data = traverse_obj(
+            creator_data, ('channels', lambda _, v: v['urlname'] == channel), get_all=False) or {}
+
+        return self.playlist_result(OnDemandPagedList(functools.partial(
+            self._fetch_page, display_id, creator_data['id'], channel_data.get('id')), self._PAGE_SIZE),
+            display_id, title=channel_data.get('title') or creator_data.get('title'),
+            description=channel_data.get('about') or creator_data.get('about'))
+
+
+class FloatplaneChannelIE(FloatplaneChannelBaseIE):
     _VALID_URL = r'https?://(?:(?:www|beta)\.)?floatplane\.com/channel/(?P<id>[\w-]+)/home(?:/(?P<channel>[\w-]+))?'
+    _BASE_URL = 'https://www.floatplane.com'
     _PAGE_SIZE = 20
+    _RESULT_IE = FloatplaneIE
     _TESTS = [{
         'url': 'https://www.floatplane.com/channel/linustechtips/home/ltxexpo',
         'info_dict': {
@@ -334,36 +385,3 @@ class FloatplaneChannelIE(InfoExtractor):
         },
         'playlist_mincount': 200,
     }]
-
-    def _fetch_page(self, display_id, creator_id, channel_id, page):
-        query = {
-            'id': creator_id,
-            'limit': self._PAGE_SIZE,
-            'fetchAfter': page * self._PAGE_SIZE,
-        }
-        if channel_id:
-            query['channel'] = channel_id
-        page_data = self._download_json(
-            'https://www.floatplane.com/api/v3/content/creator', display_id,
-            query=query, note=f'Downloading page {page + 1}')
-        for post in page_data or []:
-            yield self.url_result(
-                f'https://www.floatplane.com/post/{post["id"]}',
-                FloatplaneIE, id=post['id'], title=post.get('title'),
-                release_timestamp=parse_iso8601(post.get('releaseDate')))
-
-    def _real_extract(self, url):
-        creator, channel = self._match_valid_url(url).group('id', 'channel')
-        display_id = join_nonempty(creator, channel, delim='/')
-
-        creator_data = self._download_json(
-            'https://www.floatplane.com/api/v3/creator/named',
-            display_id, query={'creatorURL[0]': creator})[0]
-
-        channel_data = traverse_obj(
-            creator_data, ('channels', lambda _, v: v['urlname'] == channel), get_all=False) or {}
-
-        return self.playlist_result(OnDemandPagedList(functools.partial(
-            self._fetch_page, display_id, creator_data['id'], channel_data.get('id')), self._PAGE_SIZE),
-            display_id, title=channel_data.get('title') or creator_data.get('title'),
-            description=channel_data.get('about') or creator_data.get('about'))
