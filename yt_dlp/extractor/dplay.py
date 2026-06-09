@@ -1296,6 +1296,29 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
         'playlist_mincount': 3,
         'info_dict': {'id': 'sendungen-mein-kleinstadt-traumhaus'},
         'params': {'skip_download': 'm3u8'},
+    }, {
+        # no category topic
+        'url': 'https://dmax.de/sendungen/mike-brewer-born-car-dealer/season-1-episode-1',
+        'info_dict': {
+            'id': '23843',
+            'ext': 'mp4',
+            'title': 'Marktlücke gesucht',
+            'description': 'md5:9647b4ecbf69b35e97b578152c34a68e',
+            'display_id': '23843',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'season': 'Season 1',
+            'season_number': 1,
+            'series': 'Mike Brewer: Born Car Dealer',
+            'duration': 2664.0,
+            'upload_date': '20260608',
+            'timestamp': 1780949100,
+            'creators': ['DMAX'],
+            'thumbnail': 'https://images.aurora.enhanced.live/de/images/video/DCB880070001100310001/default.jpg',
+            'tags': [],
+            'categories': ['motor'],
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
@@ -1359,7 +1382,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
     def _get_disco_api_info(self, url, display_id, disco_host, realm, country, domain='', cms_data={}):
         disco_api_info = super()._get_disco_api_info(url, display_id, disco_host, realm, country, domain)
         disco_api_info['categories'] = sorted(traverse_obj(cms_data, (
-            'taxonomies', lambda _, v: v['category'] == 'genre', 'title', {str.strip}, filter, all, filter)))
+            'taxonomies', lambda _, v: v['category'] in ['genre', 'topic'], 'title', {str.strip}, filter, all, filter)))
         return disco_api_info
 
 
