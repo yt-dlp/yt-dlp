@@ -136,8 +136,6 @@ class ExternalFD(FragmentFD):
             self.to_screen(f'[download] Writing temporary cookies file to "{self._cookies_tempfile}"')
         # real_download resets _cookies_tempfile; if it's None then save() will write to cookiejar.filename
         self.ydl.cookiejar.save(self._cookies_tempfile, True, True)
-        with open(self.ydl.cookiejar.filename or self._cookies_tempfile, "r") as file:
-            print("cookies", repr(file.read()))
         return self.ydl.cookiejar.filename or self._cookies_tempfile
 
     def _call_downloader(self, tmpfilename, info_dict):
