@@ -1144,7 +1144,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'creators': ['TLC'],
             'thumbnail': 'https://images.aurora.enhanced.live/de/images/video/DCB863260001100310001/default.jpg',
             'tags': [],
-            'categories': ['Mord', 'True Crime'],
+            'categories': ['Mord', 'True Crime', 'evil'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -1173,6 +1173,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'categories': ['Derzeit nicht im Programm', 'Sci-Fi', 'Serien', 'Star Trek'],
         },
         'params': {'skip_download': 'm3u8'},
+        'skip': 'Video unavailable',
     }, {
         'url': 'https://tele5.de/mediathek/star-trek-enterprise/videos',
         'playlist_mincount': 3,
@@ -1199,6 +1200,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'categories': ['Drama', 'Fantasy', 'Filme'],
         },
         'params': {'skip_download': 'm3u8'},
+        'skip': '404 Not Found',
     }, {
         # only slug_a
         'url': 'https://tele5.de/mediathek/30-miles-from-nowhere-im-wald-hoert-dich-niemand-schreien',
@@ -1245,6 +1247,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'categories': ['Abenteuer', 'Action', 'Filme'],
         },
         'params': {'skip_download': 'm3u8'},
+        'skip': '404 Not Found',
     }, {
         'url': 'https://de.hgtv.com/sendungen/mein-kleinstadt-traumhaus/vom-landleben-ins-loft',
         'info_dict': {
