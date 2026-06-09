@@ -265,7 +265,14 @@ class RedditIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    @property
+    def _is_logged_in(self):
+        return bool(self._get_cookies('https://www.reddit.com/').get('reddit_session'))
+
     def _perform_login(self, username, password):
+        if self._is_logged_in:
+            return
+
         captcha = self._download_json(
             'https://www.reddit.com/api/requires_captcha/login.json', None,
             'Checking login requirement')['required']
@@ -285,6 +292,12 @@ class RedditIE(InfoExtractor):
             raise ExtractorError('Unable to login, no cookie was returned')
 
     def _real_initialize(self):
+        if not self._is_logged_in:
+            # We need to get a 'loid' cookie to access the API anonymously
+            self._request_webpage(
+                'https://old.reddit.com/', None,
+                'Setting up session via old reddit', 'Session request failed', fatal=False)
+
         # Set cookie to opt-in to age-restricted subreddits
         self._set_cookie('reddit.com', 'over18', '1')
         # Set cookie to opt-in to "gated" subreddits
@@ -302,12 +315,24 @@ class RedditIE(InfoExtractor):
     def _real_extract(self, url):
         slug, video_id = self._match_valid_url(url).group('slug', 'id')
 
+        # Fallback for if old.reddit session request failed
+        if not self._is_logged_in and not self._get_cookies('https://www.reddit.com/').get('loid'):
+            self._request_webpage(
+                f'https://www.reddit.com/svc/shreddit/{slug}', video_id,
+                'Setting up session via shreddit', 'Session request failed',
+                fatal=False, impersonate=True,
+                query={
+                    'seeker-session': 'false',
+                    'render-mode': 'partial',
+                    'referer': url,
+                })
+
         try:
             data = self._download_json(
                 f'https://www.reddit.com/{slug}/.json', video_id, expected_status=403)
         except ExtractorError as e:
             if isinstance(e.cause, json.JSONDecodeError):
-                if self._get_cookies('https://www.reddit.com/').get('reddit_session'):
+                if self._is_logged_in:
                     raise ExtractorError('Your IP address is unable to access the Reddit API', expected=True)
                 self.raise_login_required('Account authentication is required')
             raise
