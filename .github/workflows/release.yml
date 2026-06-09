@@ -65,6 +65,9 @@ on:
 
 permissions: {}
 
+env:
+  GH_TELEMETRY: "false"
+
 jobs:
   prepare:
     name: Prepare
@@ -81,7 +84,7 @@ jobs:
       head_sha: ${{ steps.get_target.outputs.head_sha }}
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
           fetch-depth: 0
           persist-credentials: true  # Needed to git-push the release commit
@@ -171,7 +174,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
           fetch-depth: 0  # Needed for changelog
           persist-credentials: false
@@ -182,8 +185,8 @@ jobs:
       - name: Install Requirements
         run: |
           sudo apt -y install pandoc man
-          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
-          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-build.txt"
+          python -m pip install -U --require-hashes -r "bundle/requirements/pip.txt"
+          python -m pip install -U --require-hashes -r "bundle/requirements/build.txt"
 
       - name: Prepare
         env:
@@ -212,7 +215,7 @@ jobs:
 
       - name: Upload artifacts
         if: github.event.workflow != '.github/workflows/release.yml'  # Reusable workflow_call
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: build-pypi
           path: |
@@ -221,12 +224,12 @@ jobs:
 
       - name: Publish to PyPI
         if: github.event.workflow == '.github/workflows/release.yml'  # Direct workflow_dispatch
-        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # v1.13.0
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # v1.14.0
         with:
           verbose: true
 
   publish:
-    name: Publish Github release
+    name: Publish GitHub release
     needs: [prepare, build]
     permissions:
       contents: write  # Needed by gh to publish release to Github
@@ -237,7 +240,7 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
       HEAD_SHA: ${{ needs.prepare.outputs.head_sha }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
           fetch-depth: 0
           persist-credentials: true  # Needed to git-push the release tag
