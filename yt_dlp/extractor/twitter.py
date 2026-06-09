@@ -978,6 +978,7 @@ class TwitterIE(TwitterBaseIE):
             'repost_count': int,
             'like_count': int,
             'comment_count': int,
+            'view_count': int,
             'age_limit': 0,
             '_old_archive_ids': ['twitter 1724884212803834154'],
         },
@@ -1002,6 +1003,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'thumbnail': r're:https://pbs\.twimg\.com/amplify_video_thumb/.+',
             'age_limit': 0,
             '_old_archive_ids': ['twitter 1790637656616943991'],
@@ -1022,6 +1024,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'like_count': int,
             'repost_count': int,
+            'view_count': int,
             'age_limit': 0,
             'duration': 30.278,
             'thumbnail': 'https://pbs.twimg.com/amplify_video_thumb/2001841416071450628/img/hpy5KpJh4pO17b65.jpg?name=orig',
@@ -1111,6 +1114,8 @@ class TwitterIE(TwitterBaseIE):
         }
         if binding_values:
             status['card']['binding_values'] = binding_values
+
+        status.update(traverse_obj(result, {'view_count': ('views', 'count', {int_or_none})}))
 
         return status
 
@@ -1223,6 +1228,7 @@ class TwitterIE(TwitterBaseIE):
             'channel_id': str_or_none(status.get('user_id_str')) or str_or_none(user.get('id_str')),
             'uploader_id': uploader_id,
             'uploader_url': format_field(uploader_id, None, 'https://twitter.com/%s'),
+            'view_count': int_or_none(status.get('view_count')),
             'like_count': int_or_none(status.get('favorite_count')),
             'repost_count': int_or_none(status.get('retweet_count')),
             'comment_count': int_or_none(status.get('reply_count')),
@@ -1260,7 +1266,6 @@ class TwitterIE(TwitterBaseIE):
                 'formats': formats,
                 'subtitles': subtitles,
                 'thumbnails': thumbnails,
-                'view_count': traverse_obj(media, ('mediaStats', 'viewCount', {int_or_none})),  # No longer available
                 'duration': float_or_none(traverse_obj(media, ('video_info', 'duration_millis')), 1000),
                 # Prioritize m3u8 formats for compat, see https://github.com/yt-dlp/yt-dlp/issues/8117
                 '_format_sort_fields': ('res', 'proto:m3u8', 'br', 'size'),  # http format codec is unknown
