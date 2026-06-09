@@ -39,242 +39,8 @@ var jsc = (function (meriyah, astring) {
   function isOneOf(value, ...of) {
     return of.includes(value);
   }
-  function _optionalChain$2(ops) {
-    let lastAccessLHS = undefined;
-    let value = ops[0];
-    let i = 1;
-    while (i < ops.length) {
-      const op = ops[i];
-      const fn = ops[i + 1];
-      i += 2;
-      if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
-        return undefined;
-      }
-      if (op === 'access' || op === 'optionalAccess') {
-        lastAccessLHS = value;
-        value = fn(value);
-      } else if (op === 'call' || op === 'optionalCall') {
-        value = fn((...args) => value.call(lastAccessLHS, ...args));
-        lastAccessLHS = undefined;
-      }
-    }
-    return value;
-  }
-  const nsigExpression = {
-    type: 'VariableDeclaration',
-    kind: 'var',
-    declarations: [
-      {
-        type: 'VariableDeclarator',
-        init: {
-          type: 'CallExpression',
-          callee: { type: 'Identifier' },
-          arguments: [
-            { type: 'Literal' },
-            {
-              type: 'CallExpression',
-              callee: { type: 'Identifier', name: 'decodeURIComponent' },
-            },
-          ],
-        },
-      },
-    ],
-  };
-  const logicalExpression = {
-    type: 'ExpressionStatement',
-    expression: {
-      type: 'LogicalExpression',
-      left: { type: 'Identifier' },
-      right: {
-        type: 'SequenceExpression',
-        expressions: [
-          {
-            type: 'AssignmentExpression',
-            left: { type: 'Identifier' },
-            operator: '=',
-            right: {
-              type: 'CallExpression',
-              callee: { type: 'Identifier' },
-              arguments: {
-                or: [
-                  [
-                    { type: 'Literal' },
-                    {
-                      type: 'CallExpression',
-                      callee: {
-                        type: 'Identifier',
-                        name: 'decodeURIComponent',
-                      },
-                      arguments: [{ type: 'Identifier' }],
-                      optional: false,
-                    },
-                  ],
-                  [
-                    {
-                      type: 'CallExpression',
-                      callee: {
-                        type: 'Identifier',
-                        name: 'decodeURIComponent',
-                      },
-                      arguments: [{ type: 'Identifier' }],
-                      optional: false,
-                    },
-                  ],
-                ],
-              },
-              optional: false,
-            },
-          },
-          { type: 'CallExpression' },
-        ],
-      },
-      operator: '&&',
-    },
-  };
-  const identifier$1 = {
-    or: [
-      {
-        type: 'ExpressionStatement',
-        expression: {
-          type: 'AssignmentExpression',
-          operator: '=',
-          left: { type: 'Identifier' },
-          right: { type: 'FunctionExpression', params: [{}, {}, {}] },
-        },
-      },
-      { type: 'FunctionDeclaration', params: [{}, {}, {}] },
-      {
-        type: 'VariableDeclaration',
-        declarations: {
-          anykey: [
-            {
-              type: 'VariableDeclarator',
-              init: { type: 'FunctionExpression', params: [{}, {}, {}] },
-            },
-          ],
-        },
-      },
-    ],
-  };
-  function extract$1(node) {
-    if (!matchesStructure(node, identifier$1)) {
-      return null;
-    }
-    let block;
-    if (
-      node.type === 'ExpressionStatement' &&
-      node.expression.type === 'AssignmentExpression' &&
-      node.expression.right.type === 'FunctionExpression'
-    ) {
-      block = node.expression.right.body;
-    } else if (node.type === 'VariableDeclaration') {
-      for (const decl of node.declarations) {
-        if (
-          decl.type === 'VariableDeclarator' &&
-          _optionalChain$2([
-            decl,
-            'access',
-            (_) => _.init,
-            'optionalAccess',
-            (_2) => _2.type,
-          ]) === 'FunctionExpression' &&
-          _optionalChain$2([
-            decl,
-            'access',
-            (_3) => _3.init,
-            'optionalAccess',
-            (_4) => _4.params,
-            'access',
-            (_5) => _5.length,
-          ]) === 3
-        ) {
-          block = decl.init.body;
-          break;
-        }
-      }
-    } else if (node.type === 'FunctionDeclaration') {
-      block = node.body;
-    } else {
-      return null;
-    }
-    const relevantExpression = _optionalChain$2([
-      block,
-      'optionalAccess',
-      (_6) => _6.body,
-      'access',
-      (_7) => _7.at,
-      'call',
-      (_8) => _8(-2),
-    ]);
-    let call = null;
-    if (matchesStructure(relevantExpression, logicalExpression)) {
-      if (
-        _optionalChain$2([
-          relevantExpression,
-          'optionalAccess',
-          (_9) => _9.type,
-        ]) !== 'ExpressionStatement' ||
-        relevantExpression.expression.type !== 'LogicalExpression' ||
-        relevantExpression.expression.right.type !== 'SequenceExpression' ||
-        relevantExpression.expression.right.expressions[0].type !==
-          'AssignmentExpression' ||
-        relevantExpression.expression.right.expressions[0].right.type !==
-          'CallExpression'
-      ) {
-        return null;
-      }
-      call = relevantExpression.expression.right.expressions[0].right;
-    } else if (
-      _optionalChain$2([
-        relevantExpression,
-        'optionalAccess',
-        (_10) => _10.type,
-      ]) === 'IfStatement' &&
-      relevantExpression.consequent.type === 'BlockStatement'
-    ) {
-      for (const n of relevantExpression.consequent.body) {
-        if (!matchesStructure(n, nsigExpression)) {
-          continue;
-        }
-        if (
-          n.type !== 'VariableDeclaration' ||
-          _optionalChain$2([
-            n,
-            'access',
-            (_11) => _11.declarations,
-            'access',
-            (_12) => _12[0],
-            'access',
-            (_13) => _13.init,
-            'optionalAccess',
-            (_14) => _14.type,
-          ]) !== 'CallExpression'
-        ) {
-          continue;
-        }
-        call = n.declarations[0].init;
-        break;
-      }
-    }
-    if (call === null) {
-      return null;
-    }
-    return {
-      type: 'ArrowFunctionExpression',
-      params: [{ type: 'Identifier', name: 'sig' }],
-      body: {
-        type: 'CallExpression',
-        callee: { type: 'Identifier', name: call.callee.name },
-        arguments:
-          call.arguments.length === 1
-            ? [{ type: 'Identifier', name: 'sig' }]
-            : [call.arguments[0], { type: 'Identifier', name: 'sig' }],
-        optional: false,
-      },
-      async: false,
-      expression: false,
-      generator: false,
-    };
+  function generateArrowFunction(data) {
+    return meriyah.parse(data).body[0].expression;
   }
   function _optionalChain$1(ops) {
     let lastAccessLHS = undefined;
@@ -300,155 +66,116 @@ var jsc = (function (meriyah, astring) {
   const identifier = {
     or: [
       {
+        type: 'ExpressionStatement',
+        expression: {
+          type: 'AssignmentExpression',
+          operator: '=',
+          left: { or: [{ type: 'Identifier' }, { type: 'MemberExpression' }] },
+          right: { type: 'FunctionExpression', async: false },
+        },
+      },
+      { type: 'FunctionDeclaration', async: false, id: { type: 'Identifier' } },
+      {
         type: 'VariableDeclaration',
-        kind: 'var',
         declarations: {
           anykey: [
             {
               type: 'VariableDeclarator',
-              id: { type: 'Identifier' },
-              init: {
-                type: 'ArrayExpression',
-                elements: [{ type: 'Identifier' }],
-              },
+              init: { type: 'FunctionExpression', async: false },
             },
           ],
         },
       },
-      {
-        type: 'ExpressionStatement',
-        expression: {
-          type: 'AssignmentExpression',
-          left: { type: 'Identifier' },
-          operator: '=',
-          right: {
-            type: 'ArrayExpression',
-            elements: [{ type: 'Identifier' }],
-          },
-        },
-      },
     ],
   };
-  const catchBlockBody = [
-    {
-      type: 'ReturnStatement',
-      argument: {
-        type: 'BinaryExpression',
-        left: {
-          type: 'MemberExpression',
-          object: { type: 'Identifier' },
-          computed: true,
-          property: { type: 'Literal' },
-          optional: false,
-        },
-        right: { type: 'Identifier' },
-        operator: '+',
+  const asdasd = {
+    type: 'ExpressionStatement',
+    expression: {
+      type: 'CallExpression',
+      callee: {
+        type: 'MemberExpression',
+        object: { type: 'Identifier' },
+        property: {},
+        optional: false,
       },
+      arguments: [
+        { type: 'Literal', value: 'alr' },
+        { type: 'Literal', value: 'yes' },
+      ],
+      optional: false,
     },
-  ];
+  };
   function extract(node) {
     if (!matchesStructure(node, identifier)) {
-      let name = null;
-      let block = null;
-      switch (node.type) {
-        case 'ExpressionStatement': {
-          if (
-            node.expression.type === 'AssignmentExpression' &&
-            node.expression.left.type === 'Identifier' &&
-            node.expression.right.type === 'FunctionExpression' &&
-            node.expression.right.params.length === 1
-          ) {
-            name = node.expression.left.name;
-            block = node.expression.right.body;
-          }
-          break;
-        }
-        case 'FunctionDeclaration': {
-          if (node.params.length === 1) {
-            name = _optionalChain$1([
-              node,
-              'access',
-              (_) => _.id,
-              'optionalAccess',
-              (_2) => _2.name,
-            ]);
-            block = node.body;
-          }
-          break;
-        }
-      }
-      if (!block || !name) {
-        return null;
-      }
-      const tryNode = block.body.at(-2);
-      if (
-        _optionalChain$1([tryNode, 'optionalAccess', (_3) => _3.type]) !==
-          'TryStatement' ||
-        _optionalChain$1([
-          tryNode,
-          'access',
-          (_4) => _4.handler,
-          'optionalAccess',
-          (_5) => _5.type,
-        ]) !== 'CatchClause'
-      ) {
-        return null;
-      }
-      const catchBody = tryNode.handler.body.body;
-      if (matchesStructure(catchBody, catchBlockBody)) {
-        return makeSolverFuncFromName(name);
-      }
       return null;
     }
-    if (node.type === 'VariableDeclaration') {
-      for (const declaration of node.declarations) {
-        if (
-          declaration.type !== 'VariableDeclarator' ||
-          !declaration.init ||
-          declaration.init.type !== 'ArrayExpression' ||
-          declaration.init.elements.length !== 1
-        ) {
-          continue;
-        }
-        const [firstElement] = declaration.init.elements;
-        if (firstElement && firstElement.type === 'Identifier') {
-          return makeSolverFuncFromName(firstElement.name);
-        }
+    const options = [];
+    if (node.type === 'FunctionDeclaration') {
+      if (
+        node.id &&
+        _optionalChain$1([
+          node,
+          'access',
+          (_) => _.body,
+          'optionalAccess',
+          (_2) => _2.body,
+        ])
+      ) {
+        options.push({
+          name: node.id,
+          statements: _optionalChain$1([
+            node,
+            'access',
+            (_3) => _3.body,
+            'optionalAccess',
+            (_4) => _4.body,
+          ]),
+        });
       }
     } else if (node.type === 'ExpressionStatement') {
-      const expr = node.expression;
-      if (
-        expr.type === 'AssignmentExpression' &&
-        expr.left.type === 'Identifier' &&
-        expr.operator === '=' &&
-        expr.right.type === 'ArrayExpression' &&
-        expr.right.elements.length === 1
-      ) {
-        const [firstElement] = expr.right.elements;
-        if (firstElement && firstElement.type === 'Identifier') {
-          return makeSolverFuncFromName(firstElement.name);
+      if (node.expression.type !== 'AssignmentExpression') {
+        return null;
+      }
+      const name = node.expression.left;
+      const body = _optionalChain$1([
+        node.expression.right,
+        'optionalAccess',
+        (_5) => _5.body,
+        'optionalAccess',
+        (_6) => _6.body,
+      ]);
+      if (name && body) {
+        options.push({ name: name, statements: body });
+      }
+    } else if (node.type === 'VariableDeclaration') {
+      for (const declaration of node.declarations) {
+        const name = declaration.id;
+        const body = _optionalChain$1([
+          declaration.init,
+          'optionalAccess',
+          (_7) => _7.body,
+          'optionalAccess',
+          (_8) => _8.body,
+        ]);
+        if (name && body) {
+          options.push({ name: name, statements: body });
         }
+      }
+    }
+    for (const { name: name, statements: statements } of options) {
+      if (matchesStructure(statements, { anykey: [asdasd] })) {
+        return createSolver(name);
       }
     }
     return null;
   }
-  function makeSolverFuncFromName(name) {
-    return {
-      type: 'ArrowFunctionExpression',
-      params: [{ type: 'Identifier', name: 'n' }],
-      body: {
-        type: 'CallExpression',
-        callee: { type: 'Identifier', name: name },
-        arguments: [{ type: 'Identifier', name: 'n' }],
-        optional: false,
-      },
-      async: false,
-      expression: false,
-      generator: false,
-    };
+  function createSolver(expression) {
+    return generateArrowFunction(
+      `\n({sig, n}) => {\n  const url = (${astring.generate(expression)})("https://youtube.com/watch?v=yt-dlp-wins", "s", sig ? encodeURIComponent(sig) : undefined);\n  url.set("n", n);\n  const proto = Object.getPrototypeOf(url);\n  const keys = Object.keys(proto).concat(Object.getOwnPropertyNames(proto));\n  for (const key of keys) {\n    if (!["constructor", "set", "get", "clone"].includes(key)) {\n      url[key]();\n      break;\n    }\n  }\n  const s = url.get("s");\n  return {\n    sig: s ? decodeURIComponent(s) : null,\n    n: url.get("n") ?? null,\n  };\n}\n`,
+    );
   }
   const setupNodes = meriyah.parse(
-    `\nif (typeof globalThis.XMLHttpRequest === "undefined") {\n    globalThis.XMLHttpRequest = { prototype: {} };\n}\nconst window = Object.create(null);\nif (typeof URL === "undefined") {\n    window.location = {\n        hash: "",\n        host: "www.youtube.com",\n        hostname: "www.youtube.com",\n        href: "https://www.youtube.com/watch?v=yt-dlp-wins",\n        origin: "https://www.youtube.com",\n        password: "",\n        pathname: "/watch",\n        port: "",\n        protocol: "https:",\n        search: "?v=yt-dlp-wins",\n        username: "",\n    };\n} else {\n    window.location = new URL("https://www.youtube.com/watch?v=yt-dlp-wins");\n}\nif (typeof globalThis.document === "undefined") {\n    globalThis.document = Object.create(null);\n}\nif (typeof globalThis.navigator === "undefined") {\n    globalThis.navigator = Object.create(null);\n}\nif (typeof globalThis.self === "undefined") {\n    globalThis.self = globalThis;\n}\n`,
+    `\nif (typeof globalThis.XMLHttpRequest === "undefined") {\n    globalThis.XMLHttpRequest = { prototype: {} };\n}\nif (typeof URL === "undefined") {\n    globalThis.location = {\n        hash: "",\n        host: "www.youtube.com",\n        hostname: "www.youtube.com",\n        href: "https://www.youtube.com/watch?v=yt-dlp-wins",\n        origin: "https://www.youtube.com",\n        password: "",\n        pathname: "/watch",\n        port: "",\n        protocol: "https:",\n        search: "?v=yt-dlp-wins",\n        username: "",\n    };\n} else {\n    globalThis.location = new URL("https://www.youtube.com/watch?v=yt-dlp-wins");\n}\nif (typeof globalThis.document === "undefined") {\n    globalThis.document = Object.create(null);\n}\nif (typeof globalThis.navigator === "undefined") {\n    globalThis.navigator = Object.create(null);\n}\nif (typeof globalThis.self === "undefined") {\n    globalThis.self = globalThis;\n}\nif (typeof globalThis.window === "undefined") {\n    globalThis.window = globalThis;\n}\n`,
   ).body;
   function _optionalChain(ops) {
     let lastAccessLHS = undefined;
@@ -472,8 +199,31 @@ var jsc = (function (meriyah, astring) {
     return value;
   }
   function preprocessPlayer(data) {
-    const ast = meriyah.parse(data);
-    const body = ast.body;
+    const program = meriyah.parse(data);
+    const plainStatements = modifyPlayer(program);
+    const solutions = getSolutions(plainStatements);
+    for (const [name, options] of Object.entries(solutions)) {
+      plainStatements.push({
+        type: 'ExpressionStatement',
+        expression: {
+          type: 'AssignmentExpression',
+          operator: '=',
+          left: {
+            type: 'MemberExpression',
+            computed: false,
+            object: { type: 'Identifier', name: '_result' },
+            property: { type: 'Identifier', name: name },
+            optional: false,
+          },
+          right: multiTry(options),
+        },
+      });
+    }
+    program.body.splice(0, 0, ...setupNodes);
+    return astring.generate(program);
+  }
+  function modifyPlayer(program) {
+    const body = program.body;
     const block = (() => {
       switch (body.length) {
         case 1: {
@@ -506,16 +256,7 @@ var jsc = (function (meriyah, astring) {
       }
       throw 'unexpected structure';
     })();
-    const found = { n: [], sig: [] };
-    const plainExpressions = block.body.filter((node) => {
-      const n = extract(node);
-      if (n) {
-        found.n.push(n);
-      }
-      const sig = extract$1(node);
-      if (sig) {
-        found.sig.push(sig);
-      }
+    block.body = block.body.filter((node) => {
       if (node.type === 'ExpressionStatement') {
         if (node.expression.type === 'AssignmentExpression') {
           return true;
@@ -524,40 +265,64 @@ var jsc = (function (meriyah, astring) {
       }
       return true;
     });
-    block.body = plainExpressions;
-    for (const [name, options] of Object.entries(found)) {
-      const unique = new Set(options.map((x) => JSON.stringify(x)));
-      if (unique.size !== 1) {
-        const message = `found ${unique.size} ${name} function possibilities`;
-        throw (
-          message +
-          (unique.size
-            ? `: ${options.map((x) => astring.generate(x)).join(', ')}`
-            : '')
-        );
+    return block.body;
+  }
+  function getSolutions(statements) {
+    const found = { n: [], sig: [] };
+    for (const statement of statements) {
+      const result = extract(statement);
+      if (result) {
+        found.n.push(makeSolver(result, { type: 'Identifier', name: 'n' }));
+        found.sig.push(makeSolver(result, { type: 'Identifier', name: 'sig' }));
       }
-      plainExpressions.push({
-        type: 'ExpressionStatement',
-        expression: {
-          type: 'AssignmentExpression',
-          operator: '=',
-          left: {
-            type: 'MemberExpression',
-            computed: false,
-            object: { type: 'Identifier', name: '_result' },
-            property: { type: 'Identifier', name: name },
-          },
-          right: options[0],
-        },
-      });
     }
-    ast.body.splice(0, 0, ...setupNodes);
-    return astring.generate(ast);
+    return found;
+  }
+  function makeSolver(result, ident) {
+    return {
+      type: 'ArrowFunctionExpression',
+      params: [ident],
+      body: {
+        type: 'MemberExpression',
+        object: {
+          type: 'CallExpression',
+          callee: result,
+          arguments: [
+            {
+              type: 'ObjectExpression',
+              properties: [
+                {
+                  type: 'Property',
+                  key: ident,
+                  value: ident,
+                  kind: 'init',
+                  computed: false,
+                  method: false,
+                  shorthand: true,
+                },
+              ],
+            },
+          ],
+          optional: false,
+        },
+        computed: false,
+        property: ident,
+        optional: false,
+      },
+      async: false,
+      expression: true,
+      generator: false,
+    };
   }
   function getFromPrepared(code) {
     const resultObj = { n: null, sig: null };
     Function('_result', code)(resultObj);
     return resultObj;
+  }
+  function multiTry(generators) {
+    return generateArrowFunction(
+      `\n(_input) => {\n  const _results = new Set();\n  const errors = [];\n  for (const _generator of ${astring.generate({ type: 'ArrayExpression', elements: generators })}) {\n    try {\n      _results.add(_generator(_input));\n    } catch (e) {\n      errors.push(e);\n    }\n  }\n  if (!_results.size) {\n    throw \`no solutions: \${errors.join(", ")}\`;\n  }\n  if (_results.size !== 1) {\n    throw \`invalid solutions: \${[..._results].map(x => JSON.stringify(x)).join(", ")}\`;\n  }\n  return _results.values().next().value;\n}\n`,
+    );
   }
   function main(input) {
     const preprocessedPlayer =
