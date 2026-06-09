@@ -521,10 +521,11 @@ class FFmpegFD(ExternalFD):
                 args.extend(['-cookies', ''.join(
                     f'{cookie.name}={cookie.value}; path={cookie.path}; domain={cookie.domain};\r\n'
                     for cookie in cookies)])
-            if fmt.get('http_headers') and is_http:
+            http_headers = fmt.get('http_headers') or info_dict.get('http_headers')
+            if http_headers and is_http:
                 # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg:
                 # [http @ 00000000003d2fa0] No trailing CRLF found in HTTP header.
-                args.extend(['-headers', ''.join(f'{key}: {val}\r\n' for key, val in fmt['http_headers'].items())])
+                args.extend(['-headers', ''.join(f'{key}: {val}\r\n' for key, val in http_headers.items())])
 
             if start_time:
                 args += ['-ss', str(start_time)]
