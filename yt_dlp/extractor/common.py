@@ -3,9 +3,7 @@ import collections
 import contextlib
 import functools
 import getpass
-import http.client
 import http.cookiejar
-import http.cookies
 import inspect
 import itertools
 import json
@@ -348,6 +346,7 @@ class InfoExtractor:
     duration:       Length of the video in seconds, as an integer or float.
     view_count:     How many users have watched the video on the platform.
     concurrent_view_count: How many users are currently watching the video on the platform.
+    save_count:     Number of times the video has been saved or bookmarked
     like_count:     Number of positive ratings of the video
     dislike_count:  Number of negative ratings of the video
     repost_count:   Number of reposts of the video
@@ -660,9 +659,11 @@ class InfoExtractor:
         if not self._ready:
             self._initialize_pre_login()
             if self.supports_login():
-                username, password = self._get_login_info()
-                if username:
-                    self._perform_login(username, password)
+                # try login only if it would actually do anything
+                if type(self)._perform_login is not InfoExtractor._perform_login:
+                    username, password = self._get_login_info()
+                    if username:
+                        self._perform_login(username, password)
             elif self.get_param('username') and False not in (self.IE_DESC, self._NETRC_MACHINE):
                 self.report_warning(f'Login with password is not supported for this website. {self._login_hint("cookies")}')
             self._real_initialize()
@@ -1384,6 +1385,11 @@ class InfoExtractor:
 
     def _get_netrc_login_info(self, netrc_machine=None):
         netrc_machine = netrc_machine or self._NETRC_MACHINE
+        if not netrc_machine:
+            raise ExtractorError(f'Missing netrc_machine and {type(self).__name__}._NETRC_MACHINE')
+        ALLOWED = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_'
+        if netrc_machine.startswith(('-', '_')) or not all(c in ALLOWED for c in netrc_machine):
+            raise ExtractorError(f'Invalid netrc machine: {netrc_machine!r}', expected=True)
 
         cmd = self.get_param('netrc_cmd')
         if cmd:
@@ -1882,6 +1888,7 @@ class InfoExtractor:
             'ShallowReactive': indirect_reviver,
             'Ref': indirect_reviver,
             'Reactive': indirect_reviver,
+            'skipHydrate': indirect_reviver,
         })
 
         while True:
@@ -2963,6 +2970,8 @@ class InfoExtractor:
                     content_type = representation_attrib.get('contentType', mime_type.split('/')[0])
 
                     codec_str = representation_attrib.get('codecs', '')
+                    supplemental_codecs = representation_attrib.get(
+                        '{urn:scte:dash:scte214-extensions}supplementalCodecs')
                     # Some kind of binary subtitle found in some youtube livestreams
                     if mime_type == 'application/x-rawcc':
                         codecs = {'scodec': codec_str}
@@ -3018,7 +3027,7 @@ class InfoExtractor:
                             'asr': int_or_none(representation_attrib.get('audioSamplingRate')),
                             'fps': int_or_none(representation_attrib.get('frameRate')),
                             'language': lang if lang not in ('mul', 'und', 'zxx', 'mis') else None,
-                            'format_note': f'DASH {content_type}',
+                            'format_note': join_nonempty(f'DASH {content_type}', supplemental_codecs, delim=', '),
                             'filesize': filesize,
                             'container': mimetype2ext(mime_type) + '_dash',
                             **codecs,

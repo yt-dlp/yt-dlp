@@ -1,4 +1,4 @@
-from .floatplane import FloatplaneBaseIE
+from .floatplane import FloatplaneBaseIE, FloatplaneChannelBaseIE
 
 
 class SaucePlusIE(FloatplaneBaseIE):
@@ -39,3 +39,19 @@ class SaucePlusIE(FloatplaneBaseIE):
     def _real_initialize(self):
         if not self._get_cookies(self._BASE_URL).get('__Host-sp-sess'):
             self.raise_login_required()
+
+
+class SaucePlusChannelIE(FloatplaneChannelBaseIE):
+    _VALID_URL = r'https?://(?:(?:www|beta)\.)?sauceplus\.com/channel/(?P<id>[\w-]+)/home(?:/(?P<channel>[\w-]+))?'
+    _BASE_URL = 'https://www.sauceplus.com'
+    _RESULT_IE = SaucePlusIE
+    _PAGE_SIZE = 20
+    _TESTS = [{
+        'url': 'https://www.sauceplus.com/channel/williamosman/home',
+        'info_dict': {
+            'id': 'williamosman',
+            'title': 'William Osman',
+            'description': 'md5:a67bc961d23c293b2c5308d84f34f26c',
+        },
+        'playlist_mincount': 158,
+    }]
