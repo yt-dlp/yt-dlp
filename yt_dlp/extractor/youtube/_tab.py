@@ -81,7 +81,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'reelPlayerHeaderSupportedRenderers', 'reelPlayerHeaderRenderer'))
 
         title = self._get_text(renderer, 'title', 'headline') or self._get_text(reel_header_renderer, 'reelTitleText')
-        description = self._get_text(renderer, 'descriptionSnippet')
+        description = self._get_text(renderer, 'descriptionSnippet', ('detailedMetadataSnippets', ..., 'snippetText'))
 
         duration = int_or_none(renderer.get('lengthSeconds'))
         if duration is None:
@@ -340,8 +340,9 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             thumbnails=self._extract_thumbnails(view_model, (
                 'contentImage', *thumb_keys, 'thumbnailViewModel', 'image'), final_key='sources'),
             duration=traverse_obj(view_model, (
-                'contentImage', 'thumbnailViewModel', 'overlays', ..., 'thumbnailOverlayBadgeViewModel',
-                'thumbnailBadges', ..., 'thumbnailBadgeViewModel', 'text', {parse_duration}, any)),
+                'contentImage', 'thumbnailViewModel', 'overlays', ...,
+                (('thumbnailBottomOverlayViewModel', 'badges'), ('thumbnailOverlayBadgeViewModel', 'thumbnailBadges')),
+                ..., 'thumbnailBadgeViewModel', 'text', {parse_duration}, any)),
             timestamp=(traverse_obj(view_model, (
                 'metadata', 'lockupMetadataViewModel', 'metadata', 'contentMetadataViewModel', 'metadataRows',
                 ..., 'metadataParts', ..., 'text', 'content', {lambda t: self._parse_time_text(t, report_failure=False)}, any))
@@ -381,7 +382,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                         ('accessibilityText', {lambda x: re.fullmatch(r'(.+), (?:[\d,.]+(?:[KM]| million)?|No) views? - play Short', x)}, 1)), any),
                     'view_count': ('overlayMetadata', 'secondaryText', 'content', {parse_count}),
                 }),
-                thumbnails=self._extract_thumbnails(renderer, 'thumbnail', final_key='sources'))
+                thumbnails=self._extract_thumbnails(
+                    renderer, ('thumbnailViewModel', 'thumbnailViewModel', 'image'), final_key='sources'))
             return
 
     def _video_entry(self, video_renderer):
@@ -1584,7 +1586,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_count': 50,
         'expected_warnings': ['YouTube Music is not directly supported'],
     }, {
-        # TODO: fix test suite, 208163447408c78673b08c172beafe5c310fb167 broke this test
         'note': 'unlisted single video playlist',
         'url': 'https://www.youtube.com/playlist?list=PLt5yu3-wZAlQLfIN0MMgp0wVV6MP3bM4_',
         'info_dict': {
@@ -1884,8 +1885,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 30,
     }, {
         # Shorts url result in shorts tab
-        # TODO: Fix channel id extraction
-        # TODO: fix test suite, 208163447408c78673b08c172beafe5c310fb167 broke this test
         'url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA/shorts',
         'info_dict': {
             'id': 'UCiu-3thuViMebBjw_5nWYrA',
@@ -1914,7 +1913,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'params': {'extract_flat': True},
     }, {
         # Live video status should be extracted
-        # TODO: fix test suite, 208163447408c78673b08c172beafe5c310fb167 broke this test
         'url': 'https://www.youtube.com/channel/UCQvWX73GQygcwXOTSf_VDVg/live',
         'info_dict': {
             'id': 'UCQvWX73GQygcwXOTSf_VDVg',
@@ -2150,7 +2148,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                     f'https://music.youtube.com/playlist?list={item_id[2:]}', YoutubeTabIE, item_id[2:])
             elif item_id[:2] == 'MP':  # Resolve albums (/[channel/browse]/MP...) to their equivalent playlist
                 mdata = self._extract_tab_endpoint(
-                    f'https://music.youtube.com/channel/{item_id}', item_id, default_client='web_music')
+                    f'https://music.youtube.com/browse/{item_id}', item_id, default_client='web_music')
                 murl = traverse_obj(mdata, ('microformat', 'microformatDataRenderer', 'urlCanonical'),
                                     get_all=False, expected_type=str)
                 if not murl:

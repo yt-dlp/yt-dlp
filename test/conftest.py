@@ -52,6 +52,33 @@ def skip_handlers_if(request, handler):
             pytest.skip(marker.args[1] if len(marker.args) > 1 else '')
 
 
+@pytest.fixture(autouse=True)
+def handler_flaky(request, handler):
+    """Mark a certain handler as being flaky.
+
+    This will skip the test if pytest does not get run using `--allow-flaky`
+
+    usage:
+        pytest.mark.handler_flaky('my_handler', os.name != 'nt', reason='reason')
+    """
+    for marker in request.node.iter_markers(handler_flaky.__name__):
+        if (
+            marker.args[0] == handler.RH_KEY
+            and (not marker.args[1:] or any(marker.args[1:]))
+            and request.config.getoption('disallow_flaky')
+        ):
+            reason = marker.kwargs.get('reason')
+            pytest.skip(f'flaky: {reason}' if reason else 'flaky')
+
+
+def pytest_addoption(parser, pluginmanager):
+    parser.addoption(
+        '--disallow-flaky',
+        action='store_true',
+        help='disallow flaky tests from running.',
+    )
+
+
 def pytest_configure(config):
     config.addinivalue_line(
         'markers', 'skip_handler(handler): skip test for the given handler',
@@ -61,4 +88,7 @@ def pytest_configure(config):
     )
     config.addinivalue_line(
         'markers', 'skip_handlers_if(handler): skip test for handlers when the condition is true',
+    )
+    config.addinivalue_line(
+        'markers', 'handler_flaky(handler): mark handler as flaky if condition is true',
     )
