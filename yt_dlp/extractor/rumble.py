@@ -376,7 +376,7 @@ class RumbleIE(InfoExtractor):
 
 
 class RumbleChannelIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?rumble\.com/(?!playlists/)(?:c|user)?/?(?P<id>[^/?#&]+)(?:/(?!shorts)[^#]+)?$'
+    _VALID_URL = r'https?://(?:www\.)?rumble\.com/(?!playlists/|embed/)(?:c|user)?/?(?P<id>[^/?#&]+)(?:/(?!shorts)[^#]+)?$'
 
     _TESTS = [{
         'url': 'https://rumble.com/c/Styxhexenhammer666',
