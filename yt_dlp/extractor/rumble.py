@@ -1,7 +1,9 @@
 import itertools
+import json
 import re
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     UnsupportedError,
@@ -14,8 +16,8 @@ from ..utils import (
     parse_iso8601,
     traverse_obj,
     unescapeHTML,
+    update_url_query,
     url_or_none,
-    urljoin,
 )
 
 
@@ -376,7 +378,7 @@ class RumbleIE(InfoExtractor):
 
 
 class RumbleChannelIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?rumble\.com/(?!playlists/|embed/)(?:c|user)?/?(?P<id>[^/?#&]+)(?:/(?!shorts)[^#]+)?$'
+    _VALID_URL = r'https?://(?:www\.)?rumble\.com/(?!playlists/|embed/|v(?:ideos)?[\w.-]{5,6})(?:c|user)?/?(?P<id>[^/?#&]+)(?:/(?!shorts)[^#]+)?$'
 
     _TESTS = [{
         'url': 'https://rumble.com/c/Styxhexenhammer666',
@@ -415,24 +417,24 @@ class RumbleChannelIE(InfoExtractor):
                 try:
                     page = self._download_webpage(url, playlist_id, query={'page': page_num}, note=f'Downloading page {page_num}')
                 except ExtractorError as e:
-                    retry.error = e.cause
+                    if isinstance(e.cause, HTTPError) and e.cause.status == 404:
+                        break
+                    if isinstance(e.cause, TimeoutError):
+                        retry.error = e.cause
+                        continue
+                    raise
 
-            video_items = self._search_json(
-                r'<script[^>]+>\s+', page, 'video items', playlist_id,
-                contains_pattern=r'.*?["\']items["\'].*?',
-                end_pattern=r'\s+</script>',
-                fatal=False,
-            )
+            video_items = []
+            for raw_video_item in re.findall(r'<script[^>]+>\s*(\{[\s\S]+?["\']items"[\s\S]+?\})\s*</script>', page):
+                video_items(traverse_obj(raw_video_item, ({json.loads}, 'items', {list}), default=[]))
+
             if not video_items:
                 break
 
             for entry_url in traverse_obj(video_items, ('items', ..., 'url', {url_or_none})):
                 yield self.url_result(entry_url, RumbleIE)
 
-            is_next = self._search_regex(fr'((?:<link[^>]+rel=next[^>]+>)?(?:page={page_num + 1}))', page, 'next page', default=None)
-            if not is_next:
-                break
-
     def _real_extract(self, url):
+        url = update_url_query(url, query={'page', []})
         playlist_id = self._match_id(url)
         return self.playlist_result(self.entries(url, playlist_id), playlist_id=playlist_id)
