@@ -2061,6 +2061,7 @@ from .tf1 import TF1IE
 from .tfo import (
     TFOIE,
     TFOSeriesIE,
+)
 from .thechosen import (
     TheChosenGroupIE,
     TheChosenIE,
