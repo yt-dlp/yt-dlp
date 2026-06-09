@@ -618,7 +618,7 @@ class ARDAudiothekBaseIE(InfoExtractor):
 
 
 class ARDAudiothekIE(ARDAudiothekBaseIE):
-    _VALID_URL = r'https:?//(?:www\.)?ardaudiothek\.de/episode/(?P<id>urn:ard:(?:episode|section|extra):[a-f0-9]{16})'
+    _VALID_URL = r'https:?//(?:www\.)?ard(?:audiothek|sounds)\.de/episode/(?P<id>urn:ard:(?:episode|section|extra):[a-f0-9]{16})'
 
     _TESTS = [{
         'url': 'https://www.ardaudiothek.de/episode/urn:ard:episode:eabead1add170e93/',
@@ -649,13 +649,13 @@ class ARDAudiothekIE(ARDAudiothekBaseIE):
             'description': 'md5:3552d571e1959754cff66c1da6c0fdae',
             'display_id': 'urn:ard:section:855c7a53dac72e0a',
             'timestamp': 1735629900,
-            'series': 'Auf der Spur – Die ARD Ermittlerkrimis',
+            'series': 'Auf der Spur - ARD Ermittlerkrimis',
             'channel': 'ARD',
             'episode': 'Episode 1',
             'episode_number': 1,
         },
     }, {
-        'url': 'https://www.ardaudiothek.de/episode/urn:ard:extra:d2fe7303d2dcbf5d/',
+        'url': 'https://www.ardsounds.de/episode/urn:ard:extra:d2fe7303d2dcbf5d/',
         'info_dict': {
             'id': 'urn:ard:extra:d2fe7303d2dcbf5d',
             'ext': 'mp3',
@@ -724,7 +724,7 @@ class ARDAudiothekIE(ARDAudiothekBaseIE):
 
 
 class ARDAudiothekPlaylistIE(ARDAudiothekBaseIE):
-    _VALID_URL = r'https:?//(?:www\.)?ardaudiothek\.de/sendung/(?P<playlist>[\w-]+)/(?P<id>urn:ard:show:[a-f0-9]{16})'
+    _VALID_URL = r'https:?//(?:www\.)?ard(?:audiothek|sounds)\.de/sendung/(?P<playlist>[\w-]+)/(?P<id>urn:ard:show:[a-f0-9]{16})'
 
     _TESTS = [{
         'url': 'https://www.ardaudiothek.de/sendung/mia-insomnia/urn:ard:show:c405aa26d9a4060a/',
@@ -736,7 +736,7 @@ class ARDAudiothekPlaylistIE(ARDAudiothekBaseIE):
         },
         'playlist_mincount': 37,
     }, {
-        'url': 'https://www.ardaudiothek.de/sendung/100-berlin/urn:ard:show:4d248e0806ce37bc/',
+        'url': 'https://www.ardsounds.de/sendung/100-berlin/urn:ard:show:4d248e0806ce37bc/',
         'only_matching': True,
     }]
 
