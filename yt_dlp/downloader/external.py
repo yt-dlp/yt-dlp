@@ -11,6 +11,7 @@ import time
 from .fragment import FragmentFD
 from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (
+    DownloadError,
     Popen,
     RetryManager,
     _configuration_args,
@@ -222,8 +223,7 @@ class CurlFD(ExternalFD):
         else:
             cookies_file = self._write_cookies()
             if '=' in cookies_file:
-                # XXX: what to raise here?
-                raise RuntimeError('curl version too old or temp directory contains `=`; please use another downloader or update curl')
+                raise DownloadError('curl version too old or temp directory contains `=`; please use another downloader or update curl')
             assert cookies_file != '-'
             cmd += ['--cookie', cookies_file]
 
