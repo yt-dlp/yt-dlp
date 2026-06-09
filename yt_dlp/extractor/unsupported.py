@@ -72,6 +72,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'video\.unext\.jp',
         r'www\.web\.nhk',
         r'fod\.fujitv\.co\.jp',
+        r'zee5\.com',
     )
 
     _TESTS = [{
@@ -257,6 +258,9 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         # https://github.com/yt-dlp/yt-dlp/issues/7064
         # https://github.com/yt-dlp/yt-dlp/issues/10264
         'url': 'https://fod.fujitv.co.jp/title/709f/709f130001/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.zee5.com/',
         'only_matching': True,
     }]
 

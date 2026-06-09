@@ -2445,10 +2445,6 @@ from .zdf import (
     ZDFIE,
     ZDFChannelIE,
 )
-from .zee5 import (
-    Zee5IE,
-    Zee5SeriesIE,
-)
 from .zeenews import ZeeNewsIE
 from .zenporn import ZenPornIE
 from .zetland import ZetlandDKArticleIE
