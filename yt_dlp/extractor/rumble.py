@@ -2,21 +2,19 @@ import itertools
 import re
 
 from .common import InfoExtractor
-from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     UnsupportedError,
     clean_html,
-    extract_attributes,
     format_field,
     get_element_by_class,
-    get_elements_html_by_class,
     int_or_none,
     join_nonempty,
     parse_count,
     parse_iso8601,
     traverse_obj,
     unescapeHTML,
+    url_or_none,
     urljoin,
 )
 
@@ -254,7 +252,7 @@ class RumbleEmbedIE(InfoExtractor):
 
 
 class RumbleIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?rumble\.com/(?P<id>v(?!ideos)[\w.-]+)[^/]*$'
+    _VALID_URL = r'https?://(?:www\.)?rumble\.com/(?P<id>v(?!ideos)[\w.-]{5,6})[^/]*$'
     _EMBED_REGEX = [
         r'<a class=video-item--a href=(?P<url>/v[\w.-]+\.html)>',
         r'<a[^>]+class="videostream__link link"[^>]+href=(?P<url>/v[\w.-]+\.html)[^>]*>']
@@ -378,7 +376,7 @@ class RumbleIE(InfoExtractor):
 
 
 class RumbleChannelIE(InfoExtractor):
-    _VALID_URL = r'(?P<url>https?://(?:www\.)?rumble\.com/(?:c|user)/(?P<id>[^&?#$/]+))'
+    _VALID_URL = r'https?://(?:www\.)?rumble\.com/(?!playlists/)(?:c|user)?/?(?P<id>[^/?#&]+)(?:/(?!shorts)[^#]+)?$'
 
     _TESTS = [{
         'url': 'https://rumble.com/c/Styxhexenhammer666',
@@ -392,21 +390,51 @@ class RumbleChannelIE(InfoExtractor):
         'info_dict': {
             'id': 'goldenpoodleharleyeuna',
         },
+    }, {
+        'url': 'https://rumble.com/OdinsMen',
+        'info_dict': {
+            'id': 'OdinsMen',
+        },
+        'playlist_count': 376,
+    }, {
+        # Videos Page
+        'url': 'https://rumble.com/c/SwitchedToLinux/videos',
+        'info_dict': {
+            'id': 'SwitchedToLinux',
+        },
+        'playlist_mincount': 50,
+    }, {
+        # User Live stream page
+        'url': 'https://rumble.com/c/BillGatesIsEvi1/livestreams',
+        'only_matching': True,
     }]
 
     def entries(self, url, playlist_id):
-        for page in itertools.count(1):
-            try:
-                webpage = self._download_webpage(f'{url}?page={page}', playlist_id, note=f'Downloading page {page}')
-            except ExtractorError as e:
-                if isinstance(e.cause, HTTPError) and e.cause.status == 404:
-                    break
-                raise
-            for video_url in traverse_obj(
-                get_elements_html_by_class('videostream__link', webpage), (..., {extract_attributes}, 'href'),
-            ):
-                yield self.url_result(urljoin('https://rumble.com', video_url), RumbleIE)
+        for page_num in itertools.count(1):
+            for retry in self.RetryManager():
+                try:
+                    page = self._download_webpage(url, playlist_id, query={'page': page_num}, note=f'Downloading page {page_num}')
+                except ExtractorError as e:
+                    retry.error = e.cause
+
+            video_items = self._search_json(
+                r'<script[^>]+>\s+', page, 'video items', playlist_id,
+                contains_pattern=r'.*?["\']items["\'].*?',
+                end_pattern=r'\s+</script>',
+                fatal=False,
+            )
+            if not video_items:
+                break
+
+            for video_dict in video_items.get('items') or []:
+                base_url = 'https://rumble.com'
+                video_url = traverse_obj(video_dict, (('url', ('relative_url', {urljoin(base_url)})), {url_or_none}, any))
+                yield self.url_result(video_url, ie=RumbleIE.ie_key())
+
+            is_next = self._search_regex(fr'((?:<link[^>]+rel=next[^>]+>)?(?:page={page_num + 1}))', page, 'next page', default=None)
+            if not is_next:
+                break
 
     def _real_extract(self, url):
-        url, playlist_id = self._match_valid_url(url).groups()
+        playlist_id = self._match_id(url)
         return self.playlist_result(self.entries(url, playlist_id), playlist_id=playlist_id)
