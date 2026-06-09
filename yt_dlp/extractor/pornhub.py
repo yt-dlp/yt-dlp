@@ -15,6 +15,7 @@ from ..utils import (
     determine_ext,
     format_field,
     int_or_none,
+    parse_qs,
     merge_dicts,
     orderedSet,
     remove_quotes,
@@ -30,6 +31,14 @@ from ..utils.traversal import find_elements, traverse_obj
 class PornHubBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'pornhub'
     _PORNHUB_HOST_RE = r'(?:(?P<host>pornhub(?:premium)?\.(?:com|net|org))|pornhubvybmsymdol4iibwgwtkpwmeyd6luq2gxajgjzfjvotyt5zhyd\.onion)'
+
+    # To avoid 412 HttpError
+    @staticmethod
+    def _headers(host):
+        return {
+            'origin': f'https://www.{host}',
+            'referer': f'https://www.{host}/',
+        }
 
     def _download_webpage_handle(self, *args, **kwargs):
         def dl(*args, **kwargs):
@@ -428,7 +437,7 @@ class PornHubIE(PornHubBaseIE):
         formats = []
 
         def add_format(format_url, height=None):
-            headers = {'origin': f'https://www.{host}', 'referer': f'https://www.{host}/'}
+            headers = self._headers(host)
             ext = determine_ext(format_url)
             if ext == 'mpd':
                 formats.extend(self._extract_mpd_formats(
@@ -512,7 +521,7 @@ class PornHubIE(PornHubBaseIE):
                 'cast': ({find_elements(attr='data-label', value='pornstar')}, ..., {clean_html}),
             }),
             'subtitles': subtitles,
-            'http_headers': {'Referer': f'https://www.{host}/'},
+            'http_headers': self._headers(host),
         }, info)
 
 
