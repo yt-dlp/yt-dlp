@@ -2100,6 +2100,15 @@ from .tiktok import (
     TikTokUserIE,
     TikTokVMIE,
 )
+from .tmgrup import (
+    AtvIE,
+    AtvSeriesIE,
+    A2tvLiveIE,
+    AHaberIE,
+    ANewsIE,
+    ASporIE,
+    FotomacIE,
+)
 from .tmz import TMZIE
 from .tnaflix import (
     EMPFlixIE,
