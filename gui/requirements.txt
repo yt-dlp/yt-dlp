@@ -1,0 +1,3 @@
+python==3.13.13
+pyinstaller==6.20.0
+PyQt6==6.11.0
