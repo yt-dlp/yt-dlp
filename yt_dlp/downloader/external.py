@@ -209,7 +209,7 @@ class CurlFD(ExternalFD):
             return False
 
         cls.exe = path
-        cls._curl_version = version_tuple(parts[1])
+        cls._curl_version = version_tuple(parts[1], lenient=True)
         return path
 
     def _make_cmd(self, tmpfilename, info_dict):
