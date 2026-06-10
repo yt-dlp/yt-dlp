@@ -5218,12 +5218,17 @@ class _UnsafeExtensionError(Exception):
         'sbv',
     ])
 
+    _enabled = True
+
     def __init__(self, extension, /):
         super().__init__(f'unsafe file extension: {extension!r}')
         self.extension = extension
 
     @classmethod
     def sanitize_extension(cls, extension, /, *, prepend=False, _allowed_exts=()):
+        if not cls._enabled:
+            return extension
+
         if extension is None:
             return None
 
