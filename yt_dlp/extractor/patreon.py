@@ -1,8 +1,5 @@
 import functools
 import itertools
-import json
-
-from yt_dlp.utils._utils import join_nonempty
 
 from .common import InfoExtractor
 from .sproutvideo import VidsIoIE
@@ -223,7 +220,7 @@ class PatreonIE(PatreonBaseIE):
             'channel_id': '2147162',
             'uploader_url': 'https://www.patreon.com/yaboyroshi',
         },
-        'skip': 'Login required m3u8 request giving json with login required information'
+        'skip': 'Login required m3u8 request giving json with login required information',
     }, {
         # NSFW vimeo embed URL
         'url': 'https://www.patreon.com/posts/4k-spiderman-4k-96414599',
@@ -246,7 +243,7 @@ class PatreonIE(PatreonBaseIE):
         },
         'params': {'skip_download': 'm3u8'},
         'expected_warnings': ['Failed to parse XML: not well-formed'],
-        'skip': 'Video removed'
+        'skip': 'Video removed',
     }, {
         # multiple attachments/embeds
         'url': 'https://www.patreon.com/posts/holy-wars-solos-100601977',
@@ -290,7 +287,7 @@ class PatreonIE(PatreonBaseIE):
         },
         'params': {'getcomments': True},
     }, {
-        # FIXME Error: No supported media found in this post
+        # FIXME: Error: No supported media found in this post
         # Inlined media in post; uses _extract_from_media_api
         'url': 'https://www.patreon.com/posts/scottfalco-146966245',
         'info_dict': {
