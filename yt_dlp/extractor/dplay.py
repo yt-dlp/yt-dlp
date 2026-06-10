@@ -1404,10 +1404,11 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
 
     def _get_disco_api_info(self, url, display_id, disco_host, realm, country, domain='', cms_data={}):
         disco_api_info = super()._get_disco_api_info(url, display_id, disco_host, realm, country, domain)
-        disco_api_info['categories'] = []
-        if cms_data.get('taxonomies'):
-            disco_api_info['categories'] = sorted(traverse_obj(cms_data, (
-                'taxonomies', lambda _, v: v['category'] in ['genre', 'topic'], 'title', {str.strip}, filter, all, filter)))
+        disco_api_info['categories'] = sorted(
+            traverse_obj(
+                cms_data,
+                ('taxonomies', lambda _, v: v.get('category') in ['genre', 'topic'], 'title', {str.strip}, filter, all, filter))
+            or [])
         return disco_api_info
 
 
