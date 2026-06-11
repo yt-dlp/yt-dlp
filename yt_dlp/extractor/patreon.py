@@ -311,6 +311,7 @@ class PatreonIE(PatreonBaseIE):
     }, {
         # FIXME: Error: No Description Available
         'url': 'https://www.patreon.com/Insanimate/posts/meatcanyon-in-142663524',
+        'md5': '132332e3bb345f75d8b471242346dee6',
         'info_dict': {
             'id': '142663524',
             'ext': 'mp4',
@@ -323,7 +324,7 @@ class PatreonIE(PatreonBaseIE):
             'channel_follower_count': int,
             'comment_count': int,
             'like_count': int,
-            'thumbnail': 'https://image.mux.com/MxfVLgzo3yrmBhp2yiZPY01AkjUxwqtIS300mkin1IZZA/thumbnail.jpg?token=eyJhbGciOiJSUzI1NiIsImtpZCI6Ik5CY3o3Sk5RcUNmdDdWcmo5MWhra2lEY3Vyc2xtRGNmSU1oSFUzallZMDI0IiwidHlwIjoiSldUIn0.eyJzdWIiOiJNeGZWTGd6bzN5cm1CaHAyeWlaUFkwMUFralV4d3F0SVMzMDBta2luMUlaWkEiLCJleHAiOjE3ODM4MTQ0MDAsImF1ZCI6InQiLCJ3aWR0aCI6MTA4MCwiZml0X21vZGUiOiJwcmVzZXJ2ZSIsInRpbWUiOjB9.jkPTrcG7VHTuuWGBtKWLJ7_baET52fbmQF3fLnUpivk1A6XTvWmPY1DOveJeXeSGzXcV8CH0srJZWJuBaWZEEa57cddJfK9WwvPDgirDwbnUJredxLDzVspWS9ihX-qFqpeLrGOBzlBuMJ5Nb3wgO0ML34s7AwHBw85SY9RrZFd2dXjX2dPLA_Y1vUGVQRQphO1cLiaMnucjvobil6I0YkaFZe5prVGQLnZBdr-P0GDZrAmgMscxrQPs56J8kSflfYtvkM-P7YfMrdr71EN3F_KpGxzm-BmsayIes5xL9FIYXGKCc56JlWEAMautMrGVdLxq1ozvgDEy6T8XZjhGkw',
+            'thumbnail': 're:^https?://.*$',
             'timestamp': 1762101034,
             'upload_date': '20251102',
         },
