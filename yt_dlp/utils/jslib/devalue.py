@@ -26,8 +26,8 @@ _ARRAY_TYPE_LOOKUP = {
     'Uint32Array': 'I',
     'Float32Array': 'f',
     'Float64Array': 'd',
-    'BigInt64Array': 'l',
-    'BigUint64Array': 'L',
+    'BigInt64Array': 'q',
+    'BigUint64Array': 'Q',
     'ArrayBuffer': 'B',
 }
 
