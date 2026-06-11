@@ -697,6 +697,10 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
     --no-write-description          Do not write video description (default)
     --write-info-json               Write video metadata to a .info.json file
                                     (this may contain personal information)
+    --write-nfo                     Write video metadata to a Kodi/Jellyfin-
+                                    compatible .nfo file
+    --no-write-nfo                  Do not write video metadata to a .nfo file
+                                    (default)
     --no-write-info-json            Do not write video metadata (default)
     --write-playlist-metafiles      Write playlist metadata in addition to the
                                     video metadata when using --write-info-json,
@@ -1310,7 +1314,7 @@ To summarize, the general syntax for a field is:
 %(name[.keys][addition][>strf][,alternate][&replacement][|default])[flags][width][.precision][length]type
 ```
 
-Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `link`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`, `pl_video`. E.g. `-o "%(title)s.%(ext)s" -o "thumbnail:%(title)s\%(title)s.%(ext)s"` will put the thumbnails in a folder with the same name as the video. If any of the templates is empty, that type of file will not be written. E.g. `--write-thumbnail -o "thumbnail:"` will write thumbnails only for playlists and not for video.
+Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `nfo`, `link`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`, `pl_video`. E.g. `-o "%(title)s.%(ext)s" -o "thumbnail:%(title)s\%(title)s.%(ext)s"` will put the thumbnails in a folder with the same name as the video. If any of the templates is empty, that type of file will not be written. E.g. `--write-thumbnail -o "thumbnail:"` will write thumbnails only for playlists and not for video.
 
 <a id="outtmpl-postprocess-note"></a>
 

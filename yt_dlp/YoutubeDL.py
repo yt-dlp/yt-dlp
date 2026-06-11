@@ -3397,6 +3397,13 @@ class YoutubeDL:
             info_dict['__infojson_filename'] = infofn
         elif _infojson_written is None:
             return
+        
+        nfofn = self.prepare_filename(info_dict, 'nfo')
+        _nfo_written = self._write_info_nfo('video', info_dict, nfofn)
+        if _nfo_written:
+            info_dict['nfo_filename'] = nfofn
+        elif _nfo_written is None:
+            return
 
         # Write internet shortcut files
         def _write_link_file(link_type):
@@ -4406,6 +4413,85 @@ class YoutubeDL:
             return True
         except OSError:
             self.report_error(f'Cannot write {label} metadata to JSON file {infofn}')
+            return None
+
+    def _make_nfo(self, info_dict):
+        def xml_escape(value):
+            if value is None:
+                return ''
+            return escapeHTML(str(value)).strip()
+
+        def tag(name, value):
+            value = xml_escape(value)
+            if not value:
+                return ''
+            return f'  <{name}>{value}</{name}>\n'
+
+        upload_date = info_dict.get('upload_date') or ''
+        if re.fullmatch(r'\d{8}', upload_date):
+            upload_date = f'{upload_date[:4]}-{upload_date[4:6]}-{upload_date[6:8]}'
+        year = upload_date[:4] if upload_date else ''
+
+        duration = info_dict.get('duration')
+        runtime = str(round(duration / 60)) if duration else ''
+
+        timestamp = info_dict.get('timestamp')
+        dateadded = str(int(timestamp)) if timestamp else ''
+
+        extractor = xml_escape(info_dict.get('extractor_key') or info_dict.get('extractor') or 'yt-dlp')
+
+        nfo = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+        nfo += '<movie>\n'
+        nfo += tag('title', info_dict.get('title'))
+        nfo += tag('originaltitle', info_dict.get('fulltitle') or info_dict.get('title'))
+        nfo += tag('plot', info_dict.get('description'))
+        nfo += tag('premiered', upload_date)
+        nfo += tag('releasedate', upload_date)
+        nfo += tag('year', year)
+        nfo += tag('dateadded', dateadded)
+        nfo += tag('runtime', runtime)
+        nfo += tag('studio', info_dict.get('uploader') or info_dict.get('channel'))
+        nfo += tag('director', info_dict.get('uploader') or info_dict.get('channel'))
+
+        categories = info_dict.get('categories') or []
+        nfo += tag('genre', categories[0] if categories else 'Online Video')
+
+        for t in (info_dict.get('tags') or []):
+            v = xml_escape(t)
+            if v:
+                nfo += f'  <tag>{v}</tag>\n'
+
+        vid_id = xml_escape(info_dict.get('id') or '')
+        if vid_id:
+            nfo += f'  <uniqueid type="{extractor}" default="true">{vid_id}</uniqueid>\n'
+
+        nfo += tag('thumb', info_dict.get('thumbnail'))
+        nfo += tag('trailer', info_dict.get('webpage_url'))
+
+        age = info_dict.get('age_limit')
+        if age is not None:
+            mpaa_map = {0: 'G', 10: 'PG', 13: 'PG-13', 17: 'R', 18: 'NC-17'}
+            nfo += tag('mpaa', mpaa_map.get(age, f'Rated-{age}'))
+
+        nfo += '</movie>\n'
+        return nfo
+
+    def _write_info_nfo(self, label, info_dict, nfofn):
+        if not self.params.get('writenfo'):
+            return False
+        if self.params.get('overwrites', True) is False and os.path.exists(nfofn):
+            self.to_screen(f'[info] {label.title()} metadata NFO is already present')
+            return True
+        self.to_screen(f'[info] Writing {label} metadata as NFO to: {nfofn}')
+        if not self._ensure_dir_exists(nfofn):
+            return None
+        try:
+            nfo = self._make_nfo(info_dict)
+            with open(to_high_limit_path(nfofn), 'w', encoding='utf-8') as nfofile:
+                nfofile.write(nfo)
+            return True
+        except OSError:
+            self.report_error(f'Cannot write NFO metadata to {nfofn}')
             return None
 
     def _write_description(self, label, ie_result, descfn):

@@ -1503,6 +1503,14 @@ def create_parser():
         action='store_false', dest='writeinfojson',
         help='Do not write video metadata (default)')
     filesystem.add_option(
+        '--write-nfo',
+        action='store_true', dest='writenfo', default=False,
+        help='Write video metadata to a Kodi/Jellyfin-compatible .nfo file')
+    filesystem.add_option(
+        '--no-write-nfo',
+        action='store_false', dest='writenfo',
+        help='Do not write video metadata to a .nfo file (default)')
+    filesystem.add_option(
         '--write-playlist-metafiles',
         action='store_true', dest='allow_playlist_files', default=None,
         help=(
