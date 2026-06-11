@@ -327,6 +327,12 @@ class TestUtil(unittest.TestCase):
             with self.assertRaises(_UnsafeExtensionError):
                 prepend_extension('abc.unexpected_ext', ext, 'ext')
 
+        # Test allow-unsafe-ext compat option
+        _UnsafeExtensionError._enabled = False
+        self.assertEqual(prepend_extension('abc.ext', 'un/safe'), 'abc.un/safe.ext')
+        # Re-enable sanitization for other tests
+        _UnsafeExtensionError._enabled = True
+
     def test_replace_extension(self):
         self.assertEqual(replace_extension('abc.ext', 'temp'), 'abc.temp')
         self.assertEqual(replace_extension('abc.ext', 'temp', 'ext'), 'abc.temp')
@@ -344,6 +350,12 @@ class TestUtil(unittest.TestCase):
                 replace_extension('abc.ext', ext, 'ext')
             with self.assertRaises(_UnsafeExtensionError):
                 replace_extension('abc.unexpected_ext', ext, 'ext')
+
+        # Test allow-unsafe-ext compat option
+        _UnsafeExtensionError._enabled = False
+        self.assertEqual(replace_extension('abc.ext', 'bin'), 'abc.bin')
+        # Re-enable sanitization for other tests
+        _UnsafeExtensionError._enabled = True
 
     def test_subtitles_filename(self):
         self.assertEqual(subtitles_filename('abc.ext', 'en', 'vtt'), 'abc.en.vtt')
