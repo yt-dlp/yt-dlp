@@ -139,11 +139,10 @@ class UdioIE(InfoExtractor):
 class UdioListIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?udio\.com/(?P<list_type>(?!songs)[^/]+)/(?P<id>[^/?#&]+)'
     _FALLBACK_SEARCH = {
-        'tags': lambda list_id: {'tags': [list_id]},
-        'genres': lambda list_id: {'tags': [list_id]},
-        'collections': lambda list_id: {'tags': [list_id]},
-        'artists': lambda list_id: {'artist': list_id},
-        'playlists': lambda list_id: {'tags': [list_id]},
+        'tags': lambda list_id: {'searchTerm': list_id},
+        'genres': lambda list_id: {'searchTerm': list_id},
+        'collections': lambda list_id: {'searchTerm': list_id},
+        'artists': lambda list_id: {'searchTerm': list_id},
     }
     _TESTS = [{
         'url': 'https://www.udio.com/tags/flute',
@@ -302,5 +301,7 @@ class UdioListIE(InfoExtractor):
                     self._song_to_entry(song)
                     for song in self._search_songs(search_builder(list_id), list_id, page_size=50)
                 ]
+            elif list_type == 'playlists':
+                raise ExtractorError('Playlist not found', expected=True)
 
         return self.playlist_result(entries, list_id, f'{list_type}: {list_id}')
