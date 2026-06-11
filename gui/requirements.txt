@@ -1,4 +1,14 @@
-python==3.13.13
 pyinstaller==6.20.0
 PyQt6==6.11.0
+yt-dlp==2026.6.9
+altgraph==0.17.5
+packaging==26.2
+pefile==2024.8.26
+pyinstaller==6.20.0
+pyinstaller-hooks-contrib==2026.6
+PyQt6==6.11.0
+PyQt6-Qt6==6.11.1
+PyQt6_sip==13.11.1
+pywin32-ctypes==0.2.3
+setuptools==82.0.1
 yt-dlp==2026.6.9
