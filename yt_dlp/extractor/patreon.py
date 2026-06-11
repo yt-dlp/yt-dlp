@@ -65,7 +65,7 @@ class PatreonBaseIE(InfoExtractor):
 
 class PatreonIE(PatreonBaseIE):
     IE_NAME = 'patreon'
-    _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?:creation\?hid=|(?:[^/]+/)?posts/(?:[\w-]+-)?)(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?:creation\?hid=|(?:[^/?#]+/)?posts/(?:[\w-]+-)?)(?P<id>\d+)'
     _TESTS = [{
         'url': 'http://www.patreon.com/creation?hid=743933',
         'md5': 'e25505eec1053a6e6813b8ed369875cc',
@@ -220,7 +220,7 @@ class PatreonIE(PatreonBaseIE):
             'channel_id': '2147162',
             'uploader_url': 'https://www.patreon.com/yaboyroshi',
         },
-        'skip': 'Login required m3u8 request giving json with login required information',
+        'skip': 'HTTP Error 401 for m3u8 request; site now requires login to play the video',
     }, {
         # NSFW vimeo embed URL
         'url': 'https://www.patreon.com/posts/4k-spiderman-4k-96414599',
