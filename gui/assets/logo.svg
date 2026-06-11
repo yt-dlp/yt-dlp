@@ -1,0 +1,36 @@
+<svg width="80" height="80" viewBox="170 82 60 72" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#d4a843"/>
+      <stop offset="100%" stop-color="#8b6914"/>
+    </linearGradient>
+    <linearGradient id="triface" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d4a843"/>
+      <stop offset="100%" stop-color="#8b6914"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="176" y="88" width="48" height="64" rx="2"
+        fill="none" stroke="url(#gold)" stroke-width="1"/>
+  <rect x="179" y="91" width="42" height="58" rx="1"
+        fill="none" stroke="url(#gold)" stroke-width="0.3" opacity="0.4"/>
+
+  <polygon points="200,98 213,105 213,119 200,126 187,119 187,105"
+           fill="none" stroke="url(#gold)" stroke-width="1"/>
+
+  <line x1="200" y1="98" x2="200" y2="126"
+        stroke="#d4a843" stroke-width="0.4" opacity="0.4"/>
+  <line x1="187" y1="105" x2="213" y2="119"
+        stroke="#d4a843" stroke-width="0.4" opacity="0.4"/>
+  <line x1="213" y1="105" x2="187" y2="119"
+        stroke="#d4a843" stroke-width="0.4" opacity="0.4"/>
+
+  <polygon points="194,105 194,119 208,112"
+           fill="url(#triface)" opacity="0.9"/>
+
+  <circle cx="200" cy="112" r="3"
+          fill="none" stroke="url(#gold)" stroke-width="0.6"/>
+
+  <line x1="176" y1="145" x2="224" y2="145"
+        stroke="url(#gold)" stroke-width="0.5" opacity="0.5"/>
+</svg>
