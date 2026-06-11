@@ -170,7 +170,12 @@ from .utils import (
     write_json_file,
     write_string,
 )
-from .utils._utils import _UnsafeExtensionError, _YDLLogger, _ProgressState
+from .utils._utils import (
+    _UnsafeExtensionError,
+    _YDLLogger,
+    _ProgressState,
+    _desktop_entry_localestring,
+)
 from .utils.networking import (
     HTTPHeaderDict,
     clean_headers,
@@ -3406,10 +3411,13 @@ class YoutubeDL:
 
         # Write internet shortcut files
         def _write_link_file(link_type):
+            # iri_to_uri converts to ascii, percent-escapes unsafe characters & validates scheme
+            # See https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-6v4j-43gg-vj32
             url = try_get(info_dict['webpage_url'], iri_to_uri)
             if not url:
                 self.report_warning(
-                    f'Cannot write internet shortcut file because the actual URL of "{info_dict["webpage_url"]}" is unknown')
+                    f'Cannot write internet shortcut file because the actual URL '
+                    f'of "{info_dict["webpage_url"]}" is unknown or disallowed')
                 return True
             linkfn = replace_extension(
                 self.prepare_filename(info_dict, 'link'), link_type,
@@ -3425,7 +3433,8 @@ class YoutubeDL:
                           newline='\r\n' if link_type == 'url' else '\n') as linkfile:
                     template_vars = {'url': url}
                     if link_type == 'desktop':
-                        template_vars['filename'] = linkfn[:-(len(link_type) + 1)]
+                        # See https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-6v4j-43gg-vj32
+                        template_vars['filename'] = _desktop_entry_localestring(linkfn[:-(len(link_type) + 1)])
                     linkfile.write(LINK_TEMPLATES[link_type] % template_vars)
             except OSError:
                 self.report_error(f'Cannot write internet shortcut {linkfn}')
