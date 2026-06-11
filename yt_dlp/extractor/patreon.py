@@ -67,6 +67,7 @@ class PatreonIE(PatreonBaseIE):
     IE_NAME = 'patreon'
     _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?:creation\?hid=|(?:[^/]+/)?posts/(?:[\w-]+-)?)(?P<id>\d+)'
     _TESTS = [{
+        # FIXME: Error: No Description Available
         'url': 'http://www.patreon.com/creation?hid=743933',
         'md5': 'e25505eec1053a6e6813b8ed369875cc',
         'info_dict': {
@@ -74,7 +75,6 @@ class PatreonIE(PatreonBaseIE):
             'ext': 'mp3',
             'alt_title': 'cd166.mp3',
             'title': 'Episode 166: David Smalley of Dogma Debate',
-            # 'description': 'md5:34d207dd29aa90e24f1b3f58841b81c7', TODO: Add content_json_string and extract_from it
             'uploader': 'Cognitive Dissonance Podcast',
             'thumbnail': 're:^https?://.*$',
             'timestamp': 1406473987,
@@ -157,6 +157,7 @@ class PatreonIE(PatreonBaseIE):
         },
         'skip': 'Patron-only content',
     }, {
+        # FIXME: Error: No Description Available
         # m3u8 video (https://github.com/yt-dlp/yt-dlp/issues/2277)
         'url': 'https://www.patreon.com/posts/video-sketchbook-32452882',
         'info_dict': {
@@ -169,7 +170,6 @@ class PatreonIE(PatreonBaseIE):
             'upload_date': '20191218',
             'thumbnail': r're:^https?://.*$',
             'uploader_url': 'https://www.patreon.com/loish',
-            # 'description': 'md5:e2693e97ee299c8ece47ffdb67e7d9d2', TODO: Add content_json_string and extract_from it
             'title': 'VIDEO // sketchbook flipthrough',
             'uploader': 'Loish',
             'tags': ['sketchbook', 'video'],
@@ -309,8 +309,24 @@ class PatreonIE(PatreonBaseIE):
         },
         'skip': 'No supported media found in this post',
     }, {
-        'url': 'https://www.patreon.com/thedollop/posts/243-meet-press-160713469',
-        'only_matching': True,
+        # FIXME: Error: No Description Available
+        'url': 'https://www.patreon.com/Insanimate/posts/meatcanyon-in-142663524',
+        'info_dict': {
+            'id': '142663524',
+            'ext': 'mp4',
+            'title': 'Meatcanyon in Playground',
+            'uploader': 'Insanimate',
+            'uploader_id': '2828146',
+            'uploader_url': 'https://www.patreon.com/Insanimate',
+            'channel_id': '6260877',
+            'channel_url': 'https://www.patreon.com/Insanimate',
+            'channel_follower_count': int,
+            'comment_count': int,
+            'like_count': int,
+            'thumbnail': 'https://image.mux.com/MxfVLgzo3yrmBhp2yiZPY01AkjUxwqtIS300mkin1IZZA/thumbnail.jpg?token=eyJhbGciOiJSUzI1NiIsImtpZCI6Ik5CY3o3Sk5RcUNmdDdWcmo5MWhra2lEY3Vyc2xtRGNmSU1oSFUzallZMDI0IiwidHlwIjoiSldUIn0.eyJzdWIiOiJNeGZWTGd6bzN5cm1CaHAyeWlaUFkwMUFralV4d3F0SVMzMDBta2luMUlaWkEiLCJleHAiOjE3ODM4MTQ0MDAsImF1ZCI6InQiLCJ3aWR0aCI6MTA4MCwiZml0X21vZGUiOiJwcmVzZXJ2ZSIsInRpbWUiOjB9.jkPTrcG7VHTuuWGBtKWLJ7_baET52fbmQF3fLnUpivk1A6XTvWmPY1DOveJeXeSGzXcV8CH0srJZWJuBaWZEEa57cddJfK9WwvPDgirDwbnUJredxLDzVspWS9ihX-qFqpeLrGOBzlBuMJ5Nb3wgO0ML34s7AwHBw85SY9RrZFd2dXjX2dPLA_Y1vUGVQRQphO1cLiaMnucjvobil6I0YkaFZe5prVGQLnZBdr-P0GDZrAmgMscxrQPs56J8kSflfYtvkM-P7YfMrdr71EN3F_KpGxzm-BmsayIes5xL9FIYXGKCc56JlWEAMautMrGVdLxq1ozvgDEy6T8XZjhGkw',
+            'timestamp': 1762101034,
+            'upload_date': '20251102',
+        },
     }]
     _RETURN_TYPE = 'video'
     _HTTP_HEADERS = {
@@ -461,7 +477,7 @@ class PatreonIE(PatreonBaseIE):
                 })
             elif name == 'video' or determine_ext(post_file.get('url')) == 'm3u8':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                    post_file['url'], video_id, headers=self._HTTP_HEADERS, fatal=False)
+                    post_file['url'], video_id, headers=self._HTTP_HEADERS)
                 for f in formats:
                     f['http_headers'] = self._HTTP_HEADERS
                 entries.append({
