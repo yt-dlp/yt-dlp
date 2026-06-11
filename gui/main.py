@@ -1,4 +1,5 @@
-import sys 
+import sys
+from pathlib import Path
 # GOT DAMN okay im using import * next time. i Cba adding every single import again.
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLineEdit, QPushButton, QProgressBar, QTextEdit
 from PyQt6.QtGui import QIcon
@@ -9,11 +10,14 @@ from PyQt6.QtCore import QProcess
 #The syntax looks weird, because we need to instantiate alot of objects. This is a common pattern in PyQt applications, where you create various widgets and set up their properties and layout before starting the event loop.
 
 
-
+downloads = Path.home()
+output = str(downloads / "%(title)s.%(ext)s")
 
 # app is required to run the application and starts the event loop. TL;dr dont move it from the top.
 # maby i should put it in a main function?
+
 app = QApplication(sys.argv)
+
 
 
 # sets the window title, size and icon. 
@@ -78,7 +82,7 @@ def download_function():
     url = input_field.text().strip()
     if url:
         # Start the download process using yt-dlp, Damn thats a cursed path.
-        process.start(sys.executable, ["-m", "yt_dlp", "-x", "--audio-format", "mp3", "-o", "../downloads/%(title)s.%(ext)s", url])  
+        process.start(sys.executable, ["-m", "yt_dlp", "-x", "--audio-format", "mp3", "--js-runtimes", "-o", "../downloads/", url])
     else:
         print("Please enter a valid URL")  # You can also display this in the GUI if needed
 
@@ -93,6 +97,7 @@ layout.addWidget(button)
 # Status bar at the bottom of the window, which shows the status of the application.
 window.statusBar().showMessage("Ready") 
 window.show()
+
 
 # SystemExit(app.exec()) Stops the process off app.exec. app.exec() starts the event loop on the first line, which is necessary for the GUI to function. It waits for events (like button clicks) and updates the GUI accordingly. When the application is closed, app.exec() returns, and sys.exit(). note@ freddy: "This might be wrong, but its just my understanding of it."" 
 sys.exit(app.exec())
