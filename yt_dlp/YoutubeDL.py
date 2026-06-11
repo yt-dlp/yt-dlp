@@ -4436,7 +4436,10 @@ class YoutubeDL:
         runtime = str(round(duration / 60)) if duration else ''
 
         timestamp = info_dict.get('timestamp')
-        dateadded = str(int(timestamp)) if timestamp else ''
+        dateadded = (
+            dt.datetime.fromtimestamp(timestamp, tz=dt.timezone.utc)
+            .strftime('%Y-%m-%d %H:%M:%S')
+        ) if timestamp else ''
 
         extractor = xml_escape(info_dict.get('extractor_key') or info_dict.get('extractor') or 'yt-dlp')
 
@@ -4454,13 +4457,15 @@ class YoutubeDL:
         nfo += tag('director', info_dict.get('uploader') or info_dict.get('channel'))
 
         categories = info_dict.get('categories') or []
-        nfo += tag('genre', categories[0] if categories else 'Online Video')
+        if categories:
+            nfo += tag('genre', categories[0])
 
         for t in (info_dict.get('tags') or []):
             v = xml_escape(t)
             if v:
                 nfo += f'  <tag>{v}</tag>\n'
 
+         # <uniqueid> is the modern Kodi spec; legacy <id> tag intentionally omitted
         vid_id = xml_escape(info_dict.get('id') or '')
         if vid_id:
             nfo += f'  <uniqueid type="{extractor}" default="true">{vid_id}</uniqueid>\n'
