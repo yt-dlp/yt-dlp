@@ -4720,7 +4720,7 @@ def make_dir(path, to_screen=None):
             os.makedirs(dn, exist_ok=True)
         return True
     except OSError as err:
-        if callable(to_screen) is not None:
+        if callable(to_screen):
             to_screen(f'unable to create directory {err}')
         return False
 
