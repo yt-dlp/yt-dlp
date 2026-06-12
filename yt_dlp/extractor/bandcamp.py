@@ -420,10 +420,11 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
         'info_dict': {
             'id': '224',
             'ext': 'mp3',
-            'title': 'Magic Moments, 2017-04-04',
+            'title': 'Bandcamp Weekly, 2017-04-04',
+            'episode': 'Magic Moments',
             'description': 'md5:5d48150916e8e02d030623a48512c874',
             'thumbnail': 'https://f4.bcbits.com/img/9982549_0.jpg',
-            'series': 'Magic Moments',
+            'series': 'Bandcamp Weekly',
             'episode_id': '224',
             'release_timestamp': 1491264000,
             'release_date': '20170404',
@@ -450,12 +451,13 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
         format_id = traverse_obj(stream_url, ({parse_qs}, 'enc', -1))
         encoding, _, bitrate_str = (format_id or '').partition('-')
 
-        series_title = show_data.get('title')
+        series_title = show_data.get('subtitle')
         release_timestamp = unified_timestamp(show_data.get('date'))
 
         return {
             'id': show_id,
             'episode_id': show_id,
+            'episode': show_data.get('title'),
             'title': join_nonempty(series_title, strftime_or_none(release_timestamp, '%Y-%m-%d'), delim=', '),
             'series': series_title,
             'thumbnail': format_field(show_data, 'imageId', 'https://f4.bcbits.com/img/%s_0.jpg', default=None),
