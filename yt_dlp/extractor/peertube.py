@@ -1663,6 +1663,7 @@ class PeerTubeIE(InfoExtractor):
             'subtitles': subtitles,
             'is_live': is_live,
             'webpage_url': webpage_url,
+            # Headers are needed for ALL format requests, but not thumbnails
             'http_headers': self._get_headers(),
         }
 
