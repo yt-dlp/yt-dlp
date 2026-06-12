@@ -171,6 +171,7 @@ class PatreonIE(PatreonBaseIE):
             'upload_date': '20191218',
             'thumbnail': r're:^https?://.*$',
             'uploader_url': 'https://www.patreon.com/loish',
+            'description': 'md5:e2693e97ee299c8ece47ffdb67e7d9d2',
             'title': 'VIDEO // sketchbook flipthrough',
             'uploader': 'Loish',
             'tags': ['sketchbook', 'video'],
