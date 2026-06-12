@@ -158,7 +158,7 @@ class PatreonIE(PatreonBaseIE):
         },
         'skip': 'Patron-only content',
     }, {
-        # FIXME: Error: No Description Available
+        # FIXME: Fails due to no description extracted
         # m3u8 video (https://github.com/yt-dlp/yt-dlp/issues/2277)
         'url': 'https://www.patreon.com/posts/video-sketchbook-32452882',
         'info_dict': {
