@@ -4718,16 +4718,6 @@ def make_parent_dirs(path):
         os.makedirs(dir_name, exist_ok=True)
 
 
-def make_dir(path, to_screen=None):
-    try:
-        make_parent_dirs(path)
-        return True
-    except OSError as e:
-        if to_screen is not None:
-            to_screen(f'Unable to create directory: {e}')
-        return False
-
-
 def get_executable_path():
     from ..update import _get_variant_and_executable_path
 
