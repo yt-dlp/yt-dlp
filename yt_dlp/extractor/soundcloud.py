@@ -439,22 +439,37 @@ class SoundcloudBaseIE(InfoExtractor):
         if comment_filter not in available_filters:
             raise ExtractorError(f'Invalid filter {comment_filter}', expected=True)
 
+        lc_ts, lc_id, lc_author_id = None, None, None
         offset = 0
         next_url = f'{self._API_V2_BASE}tracks/{track_id}/comments?sort={comment_filter}&limit=20&offset={offset}&threaded=1'
         for page_num in itertools.count(1):
             page = self._call_api(next_url, track_id, note=f'Downloading comments page {page_num}')
 
-            for comment_dict in traverse_obj(page, ('collection', {list})):
-                yield traverse_obj(comment_dict, {
-                    'id': ('id', {str_or_none}),
-                    'author': ('user', 'full_name', {str_or_none}),
-                    'author_id': (('user_id', ('user', 'id')), {str}, any),
-                    'author_thumbnail': ('user', 'avatar_url', {url_or_none}),
-                    'author_url': ('user', 'permalink_url', {url_or_none}),
-                    'author_is_verified': ('user', 'verified', {bool}),
-                    'timestamp': ('created_at', {unified_timestamp}),
-                    'text': ('body', {str}),
-                })
+            for comment_dict in traverse_obj(page, ('collection', lambda _, x: x.get('id'), {list})):
+                parent = 'root'
+                comment_id = comment_dict.get('id')
+                comment_ts = comment_dict.get('timestamp')
+                author_id = traverse_obj(comment_dict, (('user_id', ('user', 'id')), {str_or_none}, any))
+                if (lc_ts is not None and (comment_ts == lc_ts)) or (lc_author_id == author_id):
+                    parent = str(lc_id)
+                else:
+                    lc_id = comment_id
+                lc_author_id = author_id
+                lc_ts = comment_ts
+
+                yield {
+                    'id': str_or_none(comment_id),
+                    'author_id': author_id,
+                    'parent': parent,
+                    **traverse_obj(comment_dict, {
+                        'author': ('user', ('full_name', 'username'), {str_or_none}, {lambda x: x if x != '' else None}, any),
+                        'author_thumbnail': ('user', 'avatar_url', {url_or_none}),
+                        'author_url': ('user', 'permalink_url', {url_or_none}),
+                        'author_is_verified': ('user', 'verified', {bool}),
+                        'timestamp': ('created_at', {unified_timestamp}),
+                        'text': ('body', {str}),
+                    }),
+                }
 
             next_url = page.get('next_href')
             if not next_url:
