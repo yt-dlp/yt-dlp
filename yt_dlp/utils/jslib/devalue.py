@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import array
 import base64
 import datetime as dt
 import math
 import re
+import struct
 
 from .._utils import parse_iso8601
 
@@ -28,7 +28,6 @@ _ARRAY_TYPE_LOOKUP = {
     'Float64Array': 'd',
     'BigInt64Array': 'q',
     'BigUint64Array': 'Q',
-    'ArrayBuffer': 'B',
 }
 
 
@@ -132,10 +131,13 @@ def parse_iter(parsed: typing.Any, /, *, revivers: dict[str, collections.abc.Cal
                     for key, new_source in zip(*(iter(value[1:]),) * 2, strict=True):
                         stack.append((result, key, new_source))
 
+                elif value[0] == 'ArrayBuffer':
+                    result = list(base64.b64decode(value[1]))
+
                 elif value[0] in _ARRAY_TYPE_LOOKUP:
                     typecode = _ARRAY_TYPE_LOOKUP[value[0]]
                     data = base64.b64decode(value[1])
-                    result = array.array(typecode, data).tolist()
+                    result = [item[0] for item in struct.iter_unpack(f'={typecode}', data)]
 
                 else:
                     yield TypeError(f'invalid type at {source}: {value[0]!r}')

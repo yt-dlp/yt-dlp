@@ -7,10 +7,12 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+import base64
 import datetime as dt
 import json
 import math
 import re
+import struct
 import unittest
 
 from yt_dlp.utils.jslib import devalue
@@ -84,6 +86,20 @@ TEST_CASES_EQUALS = [{
     'name': 'Uint8Array',
     'unparsed': [['Uint8Array', 'AQID']],
     'parsed': [1, 2, 3],
+}, {
+    'name': 'Uint32Array',
+    'unparsed': [[
+        'Uint32Array',
+        base64.b64encode(struct.pack('=2I', 12345, 12345678)).decode(),
+    ]],
+    'parsed': [12345, 12345678],
+}, {
+    'name': 'BigUint64Array',
+    'unparsed': [[
+        'BigUint64Array',
+        base64.b64encode(struct.pack('=2Q', 1, 2)).decode(),
+    ]],
+    'parsed': [1, 2],
 }, {
     'name': 'ArrayBuffer',
     'unparsed': [['ArrayBuffer', 'AQID']],
