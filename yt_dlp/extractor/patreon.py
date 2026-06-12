@@ -67,7 +67,7 @@ class PatreonIE(PatreonBaseIE):
     IE_NAME = 'patreon'
     _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?:creation\?hid=|(?:[^/?#]+/)?posts/(?:[\w-]+-)?)(?P<id>\d+)'
     _TESTS = [{
-        # FIXME: Error: No Description Available
+        # FIXME: Fails due to no description extracted
         'url': 'http://www.patreon.com/creation?hid=743933',
         'md5': 'e25505eec1053a6e6813b8ed369875cc',
         'info_dict': {
@@ -75,6 +75,7 @@ class PatreonIE(PatreonBaseIE):
             'ext': 'mp3',
             'alt_title': 'cd166.mp3',
             'title': 'Episode 166: David Smalley of Dogma Debate',
+            'description': 'md5:34d207dd29aa90e24f1b3f58841b81c7',
             'uploader': 'Cognitive Dissonance Podcast',
             'thumbnail': 're:^https?://.*$',
             'timestamp': 1406473987,
@@ -307,9 +308,8 @@ class PatreonIE(PatreonBaseIE):
             'timestamp': 1767061800,
             'upload_date': '20251230',
         },
-        'skip': 'No supported media found in this post',
     }, {
-        # FIXME: Error: No Description Available
+        # FIXME: need to extract description
         'url': 'https://www.patreon.com/Insanimate/posts/meatcanyon-in-142663524',
         'md5': '132332e3bb345f75d8b471242346dee6',
         'info_dict': {
