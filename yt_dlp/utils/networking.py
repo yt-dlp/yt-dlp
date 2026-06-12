@@ -64,7 +64,7 @@ class HTTPHeaderDict(dict):
             other = other.sensitive()
         if isinstance(other, dict):
             self.update(other)
-            return
+            return self
         return NotImplemented
 
     def __or__(self, other, /) -> typing.Self:
