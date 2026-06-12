@@ -4713,16 +4713,9 @@ def random_uuidv4():
     return re.sub(r'[xy]', lambda x: _HEX_TABLE[random.randint(0, 15)], 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx')
 
 
-def make_dir(path, to_screen=None):
-    try:
-        dn = os.path.dirname(path)
-        if dn:
-            os.makedirs(dn, exist_ok=True)
-        return True
-    except OSError as err:
-        if callable(to_screen) is not None:
-            to_screen(f'unable to create directory {err}')
-        return False
+def make_parent_dirs(path):
+    if dir_name := os.path.dirname(path):
+        os.makedirs(dir_name, exist_ok=True)
 
 
 def get_executable_path():
