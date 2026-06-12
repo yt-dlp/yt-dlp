@@ -47,7 +47,7 @@ def jwt_encode_hs256(payload_data, key, headers={}):
 
 
 def make_dir(path, to_screen=None):
-    from ._utils import make_parent_dirs
+    from . import make_parent_dirs
 
     try:
         make_parent_dirs(path)
