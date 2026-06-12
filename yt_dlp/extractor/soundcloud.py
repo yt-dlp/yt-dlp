@@ -269,6 +269,9 @@ class SoundcloudBaseIE(InfoExtractor):
                         f'for registered users. {self._login_hint()}')
                 elif isinstance(e.cause, HTTPError) and e.cause.status == 403:
                     self.write_debug('Original download format is not available for this client')
+                # Propagate 429 to the RetryManager in SoundcloudIE._real_extract
+                elif isinstance(e.cause, HTTPError) and e.cause.status == 429:
+                    raise
                 else:
                     self.report_warning(e.msg)
                 download_data = None

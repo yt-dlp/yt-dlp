@@ -420,10 +420,10 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
         'info_dict': {
             'id': '224',
             'ext': 'mp3',
-            'title': 'Bandcamp Weekly, 2017-04-04',
+            'title': 'Magic Moments, 2017-04-04',
             'description': 'md5:5d48150916e8e02d030623a48512c874',
             'thumbnail': 'https://f4.bcbits.com/img/9982549_0.jpg',
-            'series': 'Bandcamp Weekly',
+            'series': 'Magic Moments',
             'episode_id': '224',
             'release_timestamp': 1491264000,
             'release_date': '20170404',
@@ -440,10 +440,10 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     def _real_extract(self, url):
         show_id = self._match_id(url)
         show_data = self._download_json(
-            'https://bandcamp.com/api/bcradio_api/1/get_show',
+            'https://bandcamp.com/api/player/2/player_data_web',
             show_id, 'Downloading radio show JSON',
-            data=json.dumps({'id': show_id}).encode(),
-            headers={'Content-Type': 'application/json'})
+            data=json.dumps({'item_id': int(show_id), 'item_type': 'radio'}).encode(),
+            headers={'Content-Type': 'application/json'})['tracklist']
         audio_data = show_data['compiledTrack']
 
         stream_url = audio_data['streamUrl']
