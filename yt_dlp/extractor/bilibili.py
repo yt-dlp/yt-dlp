@@ -47,13 +47,19 @@ from ..utils import (
 
 
 class BilibiliBaseIE(InfoExtractor):
-    _HEADERS = {'Referer': 'https://www.bilibili.com/'}
+    _HEADERS = {
+        'Referer': 'https://www.bilibili.com/',
+        'Sec-CH-UA': '"Google Chrome";v="148", "Chromium";v="148", "Not)A;Brand";v="24"',
+        'Sec-CH-UA-Mobile': '?0',
+        'Sec-CH-UA-Platform': '"Windows"',
+    }
     _FORMAT_ID_RE = re.compile(r'-(\d+)\.m4s\?')
     _WBI_KEY_CACHE_TIMEOUT = 30  # exact expire timeout is unclear, use 30s for one session
     _wbi_key_cache = {}
 
     def _get_buvid(self):
-        # Bilibili returns 412 when buvid3/buvid4 fingerprint cookies are absent
+        # Bilibili returns 412 or v_voucher challenge when fingerprint cookies are absent.
+        # buvid3/buvid4 come from the finger API; buvid_fp is a browser-side JS fingerprint.
         buvid_info = self._download_json(
             'https://api.bilibili.com/x/frontend/finger/spi',
             None, note='Fetching buvid cookies', fatal=False, headers=self._HEADERS)
@@ -61,6 +67,8 @@ class BilibiliBaseIE(InfoExtractor):
             self._set_cookie('bilibili.com', 'buvid3', buvid3)
         if buvid4 := traverse_obj(buvid_info, ('data', 'b_4')):
             self._set_cookie('bilibili.com', 'buvid4', buvid4)
+        if not self._get_cookies('https://www.bilibili.com').get('buvid_fp'):
+            self._set_cookie('bilibili.com', 'buvid_fp', hashlib.md5(uuid.uuid4().bytes).hexdigest())
 
     @property
     def is_logged_in(self):
@@ -185,9 +193,50 @@ class BilibiliBaseIE(InfoExtractor):
         else:
             note = f'Downloading video formats for cid {cid}'
 
-        return self._download_json(
-            'https://api.bilibili.com/x/player/wbi/playurl', bvid,
-            query=self._sign_wbi(params, bvid), headers=headers, note=note)['data']
+        # Bilibili's anti-bot check requires Origin + buvid_fp for api.bilibili.com calls.
+        # buvid3/b_nut from the 301 redirect can trigger a v_voucher challenge on
+        # rate-limited IPs — use only a fresh buvid_fp to stay clean.
+        fresh_fp = traverse_obj(
+            self._get_cookies('https://www.bilibili.com'), ('buvid_fp', 'value'),
+        ) or hashlib.md5(uuid.uuid4().bytes).hexdigest()
+        api_headers = {
+            **(headers or {}),
+            'Accept': 'application/json, text/plain, */*',
+            'Origin': 'https://www.bilibili.com',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Site': 'same-site',
+            'Cookie': f'buvid_fp={fresh_fp}',
+        }
+
+        try:
+            play_info = self._download_json(
+                'https://api.bilibili.com/x/player/wbi/playurl', bvid,
+                query=self._sign_wbi(params, bvid), headers=api_headers, note=note)['data']
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 412:
+                raise ExtractorError(
+                    'Request blocked by Bilibili (HTTP 412). '
+                    'Your IP may be rate-limited; try again later or use a VPN/proxy.',
+                    expected=True) from e
+            raise
+        if play_info.get('v_voucher'):
+            # buvid_fp was rejected; retry with a brand new fingerprint.
+            # Bilibili may transiently rate-limit an IP; up to 3 attempts total.
+            for _ in range(2):
+                api_headers['Cookie'] = f'buvid_fp={hashlib.md5(uuid.uuid4().bytes).hexdigest()}'
+                play_info = self._download_json(
+                    'https://api.bilibili.com/x/player/wbi/playurl', bvid,
+                    query=self._sign_wbi(params, bvid), headers=api_headers,
+                    note=f'{note} (retry)')['data']
+                if not play_info.get('v_voucher'):
+                    break
+        if play_info.get('v_voucher'):
+            raise ExtractorError(
+                'Bilibili requires cookie verification to play this video. '
+                f'Use --cookies-from-browser or --cookies to pass your browser cookies. {self._login_hint()}',
+                expected=True)
+        return play_info
 
     def json2srt(self, json_data):
         srt_data = ''
@@ -667,13 +716,23 @@ class BiliBiliIE(BilibiliBaseIE):
 
     def _real_extract(self, url):
         video_id, prefix = self._match_valid_url(url).group('id', 'prefix')
-        headers = self.geo_verification_headers()
+        headers = {**self.geo_verification_headers(), **self._HEADERS}
+        if not self._get_cookies('https://www.bilibili.com').get('buvid_fp'):
+            self._set_cookie('bilibili.com', 'buvid_fp', hashlib.md5(uuid.uuid4().bytes).hexdigest())
         try:
             webpage, urlh = self._download_webpage_handle(url, video_id, headers=headers)
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 412:
                 self._get_buvid()
-                webpage, urlh = self._download_webpage_handle(url, video_id, headers=headers)
+                try:
+                    webpage, urlh = self._download_webpage_handle(url, video_id, headers=headers)
+                except ExtractorError as e2:
+                    if isinstance(e2.cause, HTTPError) and e2.cause.status == 412:
+                        raise ExtractorError(
+                            'Request blocked by Bilibili (HTTP 412). '
+                            'Your IP may be rate-limited; try again later or use a VPN/proxy.',
+                            expected=True) from e2
+                    raise
             else:
                 raise
         if not self._match_valid_url(urlh.url):
