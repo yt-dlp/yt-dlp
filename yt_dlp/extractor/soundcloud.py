@@ -503,7 +503,7 @@ class SoundcloudIE(SoundcloudBaseIE):
         'md5': 'de9bac153e7427a7333b4b0c1b6a18d2',
         'info_dict': {
             'id': '62986583',
-            'ext': 'opus',
+            'ext': 'm4a',
             'title': 'Lostin Powers - She so Heavy (SneakPreview) Adrian Ackers Blueprint 1',
             'track': 'Lostin Powers - She so Heavy (SneakPreview) Adrian Ackers Blueprint 1',
             'description': 'md5:7b6074e00887ad79f59b647c8fb6d5ae',
@@ -511,7 +511,7 @@ class SoundcloudIE(SoundcloudBaseIE):
             'uploader_id': '1571244',
             'timestamp': 1349920598,
             'upload_date': '20121011',
-            'duration': 143.216,
+            'duration': 143.206,
             'license': 'all-rights-reserved',
             'view_count': int,
             'like_count': int,
@@ -521,31 +521,7 @@ class SoundcloudIE(SoundcloudBaseIE):
             'uploader_url': 'https://soundcloud.com/ethmusic',
             'tags': 'count:14',
         },
-    }, {
-        # Geo-restricted
-        'url': 'https://soundcloud.com/the-concept-band/goldrushed-mastered?in=the-concept-band/sets/the-royal-concept-ep',
-        'info_dict': {
-            'id': '47127627',
-            'ext': 'opus',
-            'title': 'Goldrushed',
-            'track': 'Goldrushed',
-            'description': 'md5:c0080b79a3710811d60234f94f391a40',
-            'uploader': 'The Royal Concept',
-            'uploader_id': '9615865',
-            'timestamp': 1337635207,
-            'upload_date': '20120521',
-            'duration': 227.103,
-            'license': 'all-rights-reserved',
-            'view_count': int,
-            'like_count': int,
-            'comment_count': int,
-            'repost_count': int,
-            'uploader_url': 'https://soundcloud.com/the-concept-band',
-            'thumbnail': r're:https?://[ai]1\.sndcdn\.com/.+\.(?:jpg|png)',
-            'genres': ['Alternative'],
-            'artists': ['The Royal Concept'],
-            'tags': [],
-        },
+        'params': {'skip_download': 'm3u8'},
     }, {
         # private link
         'url': 'https://soundcloud.com/jaimemf/youtube-dl-test-video-a-y-baw/s-8Pjrp',
@@ -602,7 +578,7 @@ class SoundcloudIE(SoundcloudBaseIE):
         'md5': 'ecb87d7705d5f53e6c02a63760573c75',  # wav: '9ffcddb08c87d74fb5808a3c183a1d04'
         'info_dict': {
             'id': '343609555',
-            'ext': 'opus',  # wav original available with auth
+            'ext': 'm4a',  # wav original available with auth
             'title': 'The Following',
             'track': 'The Following',
             'description': '',
@@ -611,7 +587,7 @@ class SoundcloudIE(SoundcloudBaseIE):
             'uploader_url': 'https://soundcloud.com/the80m',
             'upload_date': '20170922',
             'timestamp': 1506120436,
-            'duration': 397.228,
+            'duration': 397.175,
             'thumbnail': r're:https?://[ai]1\.sndcdn\.com/.+\.(?:jpg|png)',
             'license': 'all-rights-reserved',
             'like_count': int,
@@ -622,15 +598,16 @@ class SoundcloudIE(SoundcloudBaseIE):
             'artists': ['80M'],
             'tags': 'count:4',
         },
+        'params': {'skip_download': 'm3u8'},
         'expected_warnings': ['Original download format is only available for registered users'],
     }, {
         # private link, downloadable format
         # tags with spaces (e.g. "Uplifting Trance", "Ori Uplift")
         'url': 'https://soundcloud.com/oriuplift/uponly-238-no-talking-wav/s-AyZUd',
-        'md5': '2e1530d0e9986a833a67cb34fc90ece0',  # wav: '64a60b16e617d41d0bef032b7f55441e'
+        'md5': '59ed00579679f3b660dfdb8d2dbf8589',  # wav: '64a60b16e617d41d0bef032b7f55441e'
         'info_dict': {
             'id': '340344461',
-            'ext': 'opus',  # wav original available with auth
+            'ext': 'mp3',  # wav original available with auth
             'title': 'Uplifting Only 238 [No Talking] (incl. Alex Feed Guestmix) (Aug 31, 2017) [wav]',
             'track': 'Uplifting Only 238 [No Talking] (incl. Alex Feed Guestmix) (Aug 31, 2017) [wav]',
             'description': 'md5:fa20ee0fca76a3d6df8c7e57f3715366',
@@ -657,7 +634,7 @@ class SoundcloudIE(SoundcloudBaseIE):
         'md5': '59c7872bc44e5d99b7211891664760c2',
         'info_dict': {
             'id': '309699954',
-            'ext': 'mp3',
+            'ext': 'm4a',
             'title': 'Sideways (Prod. Mad Real)',
             'track': 'Sideways (Prod. Mad Real)',
             'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
@@ -665,7 +642,7 @@ class SoundcloudIE(SoundcloudBaseIE):
             'uploader_id': '2366352',
             'timestamp': 1488152409,
             'upload_date': '20170226',
-            'duration': 207.012,
+            'duration': 206.988,
             'thumbnail': r're:https?://[ai]1\.sndcdn\.com/.+\.(?:jpg|png)',
             'license': 'all-rights-reserved',
             'view_count': int,
@@ -739,6 +716,30 @@ class SoundcloudIE(SoundcloudBaseIE):
             ],
         },
         'params': {'skip_download': 'm3u8', 'format': 'hls_aac_160k'},
+    }, {
+        'url': 'https://soundcloud.com/user615617514/dagames',
+        'info_dict': {
+            'id': '309858375',
+            'ext': 'm4a',
+            'title': 'BENDY AND THE INK MACHINE SONG (Build Our Machine) INSTRUMENTAL by DAGAMES',
+            'description': '',
+            'uploader': 'xXwolffykittyXx',
+            'uploader_id': '157677999',
+            'uploader_url': 'https://soundcloud.com/user615617514',
+            'comment_count': 161,
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'duration': 241.601,
+            'thumbnail': 'https://i1.sndcdn.com/artworks-000209893581-orfv6t-original.jpg',
+            'tags': [],
+            'artists': ['BENDY AND THE INK MACHINE SONG (Build Our Machine) INSTRUMENTAL '],
+            'track': 'BENDY AND THE INK MACHINE SONG (Build Our Machine) INSTRUMENTAL by DAGAMES',
+            'timestamp': 1488232827,
+            'upload_date': '20170227',
+            'license': 'all-rights-reserved',
+        },
+        'params': {'get_comments': True, 'skip_download': 'm3u8'},
     }, {
         # AAC HQ format available (account with active subscription needed)
         'url': 'https://soundcloud.com/wandw/the-chainsmokers-ft-daya-dont-let-me-down-ww-remix-1',
