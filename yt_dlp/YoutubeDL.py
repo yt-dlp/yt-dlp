@@ -112,6 +112,7 @@ from .utils import (
     RejectedVideoReached,
     SameFileError,
     UnavailableVideoError,
+    UnsafeExecExpansionError,
     UserNotLive,
     YoutubeDLError,
     age_restricted,
@@ -826,9 +827,14 @@ class YoutubeDL:
         for pp_def_raw in self.params.get('postprocessors', []):
             pp_def = dict(pp_def_raw)
             when = pp_def.pop('when', 'post_process')
-            self.add_post_processor(
-                get_postprocessor(pp_def.pop('key'))(self, **pp_def),
-                when=when)
+            # Handle errors for ExecPP command validation
+            try:
+                self.add_post_processor(
+                    get_postprocessor(pp_def.pop('key'))(self, **pp_def),
+                    when=when)
+            except UnsafeExecExpansionError as e:
+                self.report_error(e)
+                raise
 
         def preload_download_archive(fn):
             """Preload the archive, if any is specified"""
@@ -1254,7 +1260,7 @@ class YoutubeDL:
         info_dict.pop('__pending_error', None)
         return info_dict
 
-    def prepare_outtmpl(self, outtmpl, info_dict, sanitize=False):
+    def prepare_outtmpl(self, outtmpl, info_dict, sanitize=False, *, _exec=False):
         """ Make the outtmpl and info_dict suitable for substitution: ydl.escape_outtmpl(outtmpl) % info_dict
         @param sanitize    Whether to sanitize the output as a filename
         """
@@ -1305,6 +1311,9 @@ class YoutubeDL:
                 (?:&(?P<replacement>.*?))?
                 (?:\|(?P<default>.*?))?
             )$''')
+        SAFE_EXEC_CONVERSIONS = 'difq'
+        UNSAFE_DEFAULT_CHARS = '"\' \n\t;&|^$%*<>{}()[]`#\\'
+        EXEC_ADVISORY_MSG = 'See  https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-69qj-pvh9-c5wg  for details'
 
         def _from_user_input(field):
             if field == ':':
@@ -1428,6 +1437,25 @@ class YoutubeDL:
             fmt = outer_mobj.group('format')
             if fmt == 's' and last_field in field_size_compat_map and isinstance(value, int):
                 fmt = f'0{field_size_compat_map[last_field]:d}d'
+
+            # Validate safety of exec commands
+            if _exec:
+                if fmt[-1] not in SAFE_EXEC_CONVERSIONS:
+                    raise UnsafeExecExpansionError(
+                        f'Unsafe conversion(s) in exec command: {outtmpl!r}\n'
+                        f'Conversions such as %()s are too dangerous to be used in '
+                        f'--exec command templates; use %()q instead. {EXEC_ADVISORY_MSG}')
+                elif any(unsafe_char in default for unsafe_char in UNSAFE_DEFAULT_CHARS):
+                    if default == na:
+                        raise UnsafeExecExpansionError(
+                            f'Unsafe placeholder for exec command: {na!r}\n'
+                            f'The --output-na-placeholder argument also applies to '
+                            f'--exec command templates. {EXEC_ADVISORY_MSG}')
+                    else:
+                        raise UnsafeExecExpansionError(
+                            f'Unsafe default(s) in exec command: {outtmpl!r}\n'
+                            f'Conversions are not applied to --exec command template defaults, '
+                            f'e.g. %(...|DEFAULT;)q. {EXEC_ADVISORY_MSG}')
 
             flags = outer_mobj.group('conversion') or ''
             str_fmt = f'{fmt[:-1]}s'
@@ -3377,7 +3405,9 @@ class YoutubeDL:
                 self.report_warning(
                     f'Cannot write internet shortcut file because the actual URL of "{info_dict["webpage_url"]}" is unknown')
                 return True
-            linkfn = replace_extension(self.prepare_filename(info_dict, 'link'), link_type, info_dict.get('ext'))
+            linkfn = replace_extension(
+                self.prepare_filename(info_dict, 'link'), link_type,
+                info_dict.get('ext'), _allowed_exts=tuple(LINK_TEMPLATES))
             if not self._ensure_dir_exists(linkfn):
                 return False
             if self.params.get('overwrites', True) and os.path.exists(linkfn):
