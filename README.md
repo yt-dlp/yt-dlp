@@ -1468,6 +1468,8 @@ To use percent literals in an output template use `%%`. To output to stdout use 
 
 The current default template is `%(title)s [%(id)s].%(ext)s`.
 
+Append `+` to a template field (e.g. `%(title)s+`) to mark it as trim-eligible when the generated output path exceeds filesystem path-length limits. yt-dlp will only trim marked fields and preserve unmarked fields as much as possible.
+
 In some cases, you don't want special characters such as 中, spaces, or &, such as when transferring the downloaded filename to a Windows system or the filename through an 8bit-unsafe channel. In these cases, add the `--restrict-filenames` flag to get a shorter title.
 
 #### Output template examples

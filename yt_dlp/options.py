@@ -1448,6 +1448,10 @@ def create_parser():
         dest='trim_file_name', default=0, type=int,
         help='Limit the filename length (excluding extension) to the specified number of characters')
     filesystem.add_option(
+        '--smart-trimming',
+        action='store_true', dest='smart_trimming', default=False,
+        help='Enable VFS staging to handle long paths automatically by downloading to a temporary short path')
+    filesystem.add_option(
         '-w', '--no-overwrites',
         action='store_false', dest='overwrites', default=None,
         help='Do not overwrite any files')
