@@ -51,7 +51,7 @@ class TVIPlayerIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         json_data = self._search_json(
-            r'(?<!-)\bvideo\s*:\s*\[', webpage, 'json_data', video_id,
+            r'\sopts\s*=\s*\{\s*video\s*:\s*\[', webpage, 'JSON data', video_id,
             transform_source=js_to_json)
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
