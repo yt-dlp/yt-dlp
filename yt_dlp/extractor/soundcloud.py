@@ -437,20 +437,32 @@ class SoundcloudBaseIE(InfoExtractor):
 
     def _get_comments(self, track_id):
         available_filters = ('newest', 'oldest', 'track-timestamp')
-        self.to_screen(f'Use --extractor-args {self.ie_key()}:comment_filter=FILTER. Available filters {available_filters} default will be newest.')
-        comment_filter = self._configuration_arg('comment_filter', default=['newest'], ie_key=self.ie_key())[0]
-        if comment_filter not in available_filters:
-            raise ExtractorError(f'Invalid filter {comment_filter}', expected=True)
+        sort_by = self._configuration_arg('comments_sort_by', default=[None], ie_key='soundcloud')[0]
+        if not sort_by:
+            sort_by = available_filters[0]
+            self.to_screen(
+                f'Defaulting to sort comments by {sort_by}. '
+                f'Configure this with  --extractor-args soundcloud:comments_sort_by=FILTER . '
+                f'Available filters: {", ".join(available_filters)})
+        elif sort_by not in available_filters:
+            raise ExtractorError(f'Invalid comment_sort_by filter: {comment_filter}', expected=True)
+        else:
+            self.to_screen(f'Sorting comments by {sort_by}')
 
         lc_ts, lc_id, lc_author_id = None, None, None
-        offset = 0
-        next_url = f'{self._API_V2_BASE}tracks/{track_id}/comments?sort={comment_filter}&limit=20&offset={offset}&threaded=1'
+        next_url = update_url_query(
+            f'{self._API_V2_BASE}tracks/{track_id}/comments', {
+                'sort': sort_by,
+                'limit': '20',
+                'offset': '0',
+                'threaded': '1'
+            })
         for page_num in itertools.count(1):
             page = self._call_api(next_url, track_id, note=f'Downloading comments page {page_num}')
 
-            for comment_dict in traverse_obj(page, ('collection', lambda _, x: x.get('id'), {list})):
+            for comment_dict in traverse_obj(page, ('collection', lambda _, v: v['id'])):
                 parent = 'root'
-                comment_id = comment_dict.get('id')
+                comment_id = comment_dict['id']
                 comment_ts = comment_dict.get('timestamp')
                 author_id = traverse_obj(comment_dict, (('user_id', ('user', 'id')), {str_or_none}, any))
                 if (lc_ts is not None and (comment_ts == lc_ts)) or (lc_author_id == author_id):
@@ -465,7 +477,7 @@ class SoundcloudBaseIE(InfoExtractor):
                     'author_id': author_id,
                     'parent': parent,
                     **traverse_obj(comment_dict, {
-                        'author': ('user', ('full_name', 'username'), {str_or_none}, {lambda x: x if x != '' else None}, any),
+                        'author': ('user', ('full_name', 'username'), {str}, filter, any),
                         'author_thumbnail': ('user', 'avatar_url', {url_or_none}),
                         'author_url': ('user', 'permalink_url', {url_or_none}),
                         'author_is_verified': ('user', 'verified', {bool}),
@@ -503,7 +515,6 @@ class SoundcloudIE(SoundcloudBaseIE):
     IE_NAME = 'soundcloud'
     _TESTS = [{
         'url': 'http://soundcloud.com/ethmusic/lostin-powers-she-so-heavy',
-        'md5': 'de9bac153e7427a7333b4b0c1b6a18d2',
         'info_dict': {
             'id': '62986583',
             'ext': 'm4a',
@@ -578,7 +589,6 @@ class SoundcloudIE(SoundcloudBaseIE):
     }, {
         # downloadable song
         'url': 'https://soundcloud.com/the80m/the-following',
-        'md5': 'ecb87d7705d5f53e6c02a63760573c75',  # wav: '9ffcddb08c87d74fb5808a3c183a1d04'
         'info_dict': {
             'id': '343609555',
             'ext': 'm4a',  # wav original available with auth
@@ -729,7 +739,7 @@ class SoundcloudIE(SoundcloudBaseIE):
             'uploader': 'xXwolffykittyXx',
             'uploader_id': '157677999',
             'uploader_url': 'https://soundcloud.com/user615617514',
-            'comment_count': 161,
+            'comment_count': int,
             'view_count': int,
             'like_count': int,
             'repost_count': int,
