@@ -322,6 +322,7 @@ from .cellebrite import CellebriteIE
 from .ceskatelevize import CeskaTelevizeIE
 from .cgtn import CGTNIE
 from .charlierose import CharlieRoseIE
+from .chartdrama import ChartDramaIE
 from .chaturbate import ChaturbateIE
 from .chilloutzone import ChilloutzoneIE
 from .chzzk import (

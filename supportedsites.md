@@ -247,6 +247,7 @@ The only reliable way to check if a site is supported is to try it.
  - **CeskaTelevize**
  - **CGTN**
  - **CharlieRose**
+ - **ChartDrama**
  - **Chaturbate**
  - **Chilloutzone**
  - **chzzk:live**
