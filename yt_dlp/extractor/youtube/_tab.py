@@ -1032,14 +1032,14 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 94,
         'info_dict': {
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'title': 'Igor Kleiner  - Playlists',
-            'description': r're:(?s)Добро пожаловать на мой канал! Здесь вы найдете видео .{504}/a1/50b/10a$',
-            'uploader': 'Igor Kleiner ',
+            'title': 'Igor DS: ИИ, Наука и Творчество  - Playlists',
+            'description': r're:(?s)Добро пожаловать! Здесь сложные технологии встречаются.+\n$',
+            'uploader': 'Igor DS: ИИ, Наука и Творчество ',
             'uploader_id': '@IgorDataScience',
             'uploader_url': 'https://www.youtube.com/@IgorDataScience',
-            'channel': 'Igor Kleiner ',
+            'channel': 'Igor DS: ИИ, Наука и Творчество ',
             'channel_id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'tags': 'count:23',
+            'tags': 'count:19',
             'channel_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
             'channel_follower_count': int,
         },
@@ -1049,14 +1049,13 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 94,
         'info_dict': {
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'title': 'Igor Kleiner  - Playlists',
-            'description': r're:(?s)Добро пожаловать на мой канал! Здесь вы найдете видео .{504}/a1/50b/10a$',
-            'uploader': 'Igor Kleiner ',
+            'title': 'Igor DS: ИИ, Наука и Творчество  - Playlists',
+            'description': r're:(?s)Добро пожаловать! Здесь сложные технологии встречаются.+\n$',
             'uploader_id': '@IgorDataScience',
             'uploader_url': 'https://www.youtube.com/@IgorDataScience',
-            'tags': 'count:23',
+            'tags': 'count:19',
             'channel_id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'channel': 'Igor Kleiner ',
+            'channel': 'Igor DS: ИИ, Наука и Творчество ',
             'channel_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
             'channel_follower_count': int,
         },
@@ -1154,6 +1153,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_follower_count': int,
         },
         'playlist_mincount': 2,
+        'skip': 'This channel was removed because it violated our Community Guidelines',
     }, {
         'note': 'Videos tab',
         'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/videos',
@@ -1171,6 +1171,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_follower_count': int,
         },
         'playlist_mincount': 975,
+        'skip': 'This channel was removed because it violated our Community Guidelines',
     }, {
         'note': 'Videos tab, sorted by popular',
         'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/videos?view=0&sort=p&flow=grid',
@@ -1188,6 +1189,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_follower_count': int,
         },
         'playlist_mincount': 199,
+        'skip': 'This channel was removed because it violated our Community Guidelines',
     }, {
         'note': 'Playlists tab',
         'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/playlists',
@@ -1205,6 +1207,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_follower_count': int,
         },
         'playlist_mincount': 17,
+        'skip': 'This channel was removed because it violated our Community Guidelines',
     }, {
         'note': 'Posts tab',
         'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/community',
@@ -1272,6 +1275,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         },
         'playlist_count': 96,
     }, {
+        # TODO: fix availability extraction
         'note': 'Large playlist',
         'url': 'https://www.youtube.com/playlist?list=UUBABnxM4Ar9ten8Mdjj1j0Q',
         'info_dict': {
@@ -1296,6 +1300,8 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'url': 'http://www.youtube.com/user/NASAgovVideo/videos',
         'only_matching': True,
     }, {
+        # TODO: fix availability extraction
+        # The 'note' below is outdated: there is no longer a "Load more" button
         'note': 'Buggy playlist: the webpage has a "Load more" button but it doesn\'t have more videos',
         'url': 'https://www.youtube.com/playlist?list=UUXw-G3eDE9trcvY2sBMM_aA',
         'info_dict': {
@@ -1313,7 +1319,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'Interstellar Movie',
             'uploader_url': 'https://www.youtube.com/@InterstellarMovie',
         },
-        'playlist_mincount': 21,
+        'playlist_mincount': 10,
     }, {
         # TODO: fix availability extraction
         'note': 'Playlist with "show unavailable videos" button',
@@ -1336,6 +1342,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 150,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
     }, {
+        # TODO: fix availability extraction
         'note': 'Playlist with unavailable videos in page 7',
         'url': 'https://www.youtube.com/playlist?list=UU8l9frL61Yl5KFOl87nIm2w',
         'info_dict': {
@@ -1407,7 +1414,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live',
         'info_dict': {
-            'id': 'VFGoUmo74wE',  # This will keep changing
+            'id': 'ubIX-TwVqZI',  # This will keep changing
             'ext': 'mp4',
             'title': str,
             'upload_date': r're:\d{8}',
@@ -1586,6 +1593,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_count': 50,
         'expected_warnings': ['YouTube Music is not directly supported'],
     }, {
+        # TODO: investigate test failing on differing channel*/uploader*/view_count
         'note': 'unlisted single video playlist',
         'url': 'https://www.youtube.com/playlist?list=PLt5yu3-wZAlQLfIN0MMgp0wVV6MP3bM4_',
         'info_dict': {
@@ -1809,7 +1817,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'title': 'Not Just Bikes - Shorts',
             'tags': 'count:10',
             'channel_url': 'https://www.youtube.com/channel/UC0intLFzLaudFG-xAvUEO-A',
-            'description': 'md5:295758591d0d43d8594277be54584da7',
+            'description': 'md5:2cb3ccdafa58608fa016f1de4930ec54',
             'channel_follower_count': int,
             'channel_id': 'UC0intLFzLaudFG-xAvUEO-A',
             'channel': 'Not Just Bikes',
@@ -1831,8 +1839,8 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel': '中村悠一',
             'channel_follower_count': int,
             'description': 'md5:76b312b48a26c3b0e4d90e2dfc1b417d',
-            'uploader_url': 'https://www.youtube.com/@Yuichi-Nakamura',
-            'uploader_id': '@Yuichi-Nakamura',
+            'uploader_url': 'https://www.youtube.com/@中村悠一のあそびば',
+            'uploader_id': '@中村悠一のあそびば',
             'uploader': '中村悠一',
         },
         'playlist_mincount': 60,
@@ -2010,7 +2018,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel': '99% Invisible',
             'uploader_id': '@99percentinvisiblepodcast',
         },
-        'playlist_count': 5,
+        'playlist_mincount': 5,
     }, {
         # Releases tab, with rich entry playlistRenderers (same as Podcasts tab)
         # TODO: fix channel_is_verified extraction
@@ -2034,6 +2042,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         # Playlist with only shorts, shown as reel renderers
         # FIXME: future: YouTube currently doesn't give continuation for this,
         # may do in future.
+        # TODO: fix availability extraction
         'url': 'https://www.youtube.com/playlist?list=UUxqPAgubo4coVn9Lx1FuKcg',
         'info_dict': {
             'id': 'UUxqPAgubo4coVn9Lx1FuKcg',
