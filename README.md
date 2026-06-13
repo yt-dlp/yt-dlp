@@ -42,6 +42,7 @@ yt-dlp is a feature-rich command-line audio/video downloader with support for [t
     * [SponsorBlock Options](#sponsorblock-options)
     * [Extractor Options](#extractor-options)
     * [Preset Aliases](#preset-aliases)
+    * [Common Commands](#common-commands)
 * [CONFIGURATION](#configuration)
     * [Configuration file encoding](#configuration-file-encoding)
     * [Authentication with netrc](#authentication-with-netrc)
@@ -1182,6 +1183,18 @@ Predefined aliases for convenience and ease of use. Note that future
 
     -t sleep                        --sleep-subtitles 5 --sleep-requests 0.75
                                     --sleep-interval 10 --max-sleep-interval 20
+
+## Common Commands:
+    yt-dlp "video-url"                                                  Basic video download
+    
+    yt-dlp -x --audio-format mp3 "video-url"                            Basic audio download
+    
+    yt-dlp --playlist-start x --playlist-end y "playlist-url"           Download x through y videos in a playlist
+    
+    yt-dlp --write-subs --sub-langs "en.*" "video-url"                  Download with English subtitles
+    
+    yt-dlp -U                                                           Update yt-dlp
+    
 
 # CONFIGURATION
 
