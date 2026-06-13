@@ -443,9 +443,10 @@ class SoundcloudBaseIE(InfoExtractor):
             self.to_screen(
                 f'Defaulting to sort comments by {sort_by}. '
                 f'Configure this with  --extractor-args soundcloud:comments_sort_by=FILTER . '
-                f'Available filters: {", ".join(available_filters)})
+                f'Available filters: {", ".join(available_filters)}',
+            )
         elif sort_by not in available_filters:
-            raise ExtractorError(f'Invalid comment_sort_by filter: {comment_filter}', expected=True)
+            raise ExtractorError(f'Invalid comment_sort_by filter: {sort_by}', expected=True)
         else:
             self.to_screen(f'Sorting comments by {sort_by}')
 
@@ -455,7 +456,7 @@ class SoundcloudBaseIE(InfoExtractor):
                 'sort': sort_by,
                 'limit': '20',
                 'offset': '0',
-                'threaded': '1'
+                'threaded': '1',
             })
         for page_num in itertools.count(1):
             page = self._call_api(next_url, track_id, note=f'Downloading comments page {page_num}')
