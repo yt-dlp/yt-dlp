@@ -139,7 +139,7 @@ from .utils import (
     join_nonempty,
     locked_file,
     make_archive_id,
-    make_dir,
+    make_parent_dirs,
     number_of_digits,
     orderedSet,
     orderedSet_from_options,
@@ -2036,7 +2036,12 @@ class YoutubeDL:
             raise Exception(f'Invalid result type: {result_type}')
 
     def _ensure_dir_exists(self, path):
-        return make_dir(path, self.report_error)
+        try:
+            make_parent_dirs(path)
+            return True
+        except OSError as e:
+            self.report_error(f'Unable to create directory: {e}')
+            return False
 
     @staticmethod
     def _playlist_infodict(ie_result, strict=False, **kwargs):
