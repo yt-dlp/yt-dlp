@@ -64,7 +64,8 @@ class TVIPlayerIE(InfoExtractor):
             'duration': int_or_none(json_data.get('duration')),
             'formats': formats,
             'subtitles': subtitles,
-            'season_number': int_or_none(self._search_regex(
-                r'"seasonNumber"\s*:\s*"(\d+)"', webpage, 'season number', default=None)),
+            'season_number': traverse_obj(
+                self._yield_json_ld(webpage, video_id, default=None),
+                (lambda _, v: v['@type'] == 'TVEpisode', 'seasonNumber', {int_or_none}, any)),
             'episode_number': int_or_none(json_data.get('episodeNum')),
         }
