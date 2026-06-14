@@ -184,14 +184,7 @@ class RumbleEmbedIE(InfoExtractor):
 
     @staticmethod
     def _remove_tracking_query_param(url):
-        parsed_url = urllib.parse.urlsplit(url)
-        if not parsed_url.query:
-            return url
-        query = urllib.parse.parse_qsl(parsed_url.query, keep_blank_values=True)
-        filtered_query = [(key, value) for key, value in query if key != 'e9s']
-        if len(filtered_query) == len(query):
-            return url
-        return urllib.parse.urlunsplit(parsed_url._replace(query=urllib.parse.urlencode(filtered_query, doseq=True)))
+        return update_url_query(url, {'e9s': []})
 
     def _real_extract(self, url):
         url = self._remove_tracking_query_param(url)
