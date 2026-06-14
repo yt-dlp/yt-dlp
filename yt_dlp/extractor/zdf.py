@@ -437,6 +437,21 @@ class ZDFIE(ZDFBaseIE):
             '_old_archive_ids': ['zdf 251219_kr_alina_grijseels_neu_log'],
         },
     }, {
+        # Live stream
+        'url': 'https://www.zdf.de/play/live-tv/sender/zdf-live-beitrag-100',
+        'info_dict': {
+            'id': 'zdf-live-beitrag-100',
+            'ext': 'mp4',
+            'title': r're:ZDF Livestream',
+            'description': str,
+            'thumbnail': r're:https://www\.zdf\.de/assets/2400-zdf-100~original\?cb=\d+',
+            'timestamp': int,
+            'upload_date': str,
+            'live_status': 'is_live',
+            '_old_archive_ids': ['zdf zdf-live-beitrag-100'],
+        },
+        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
+    }, {
         # Same as https://www.phoenix.de/sendungen/ereignisse/corona-nachgehakt/wohin-fuehrt-der-protest-in-der-pandemie-a-2050630.html
         'url': 'https://www.zdf.de/politik/phoenix-sendungen/wohin-fuehrt-der-protest-in-der-pandemie-100.html',
         'only_matching': True,
@@ -584,12 +599,14 @@ query VideoByCanonical($canonical: String!) {
             return self._extract_fallback(video_id)
 
         aspect_ratio = None
+        is_live = False
         ptmd_urls = []
         for node in traverse_obj(video_data, ('currentMedia', 'nodes', lambda _, v: v['ptmdTemplate'])):
             ptmd_url = self._expand_ptmd_template('https://api.zdf.de', node['ptmdTemplate'])
             # Smuggle vod_media_type so that _extract_ptmd is aware of 'DGS' variants
             if vod_media_type := node.get('vodMediaType'):
                 ptmd_url = smuggle_url(ptmd_url, {'vod_media_type': vod_media_type})
+            is_live = 'liveMediaType' in node
             ptmd_urls.append(ptmd_url)
             if not aspect_ratio:
                 aspect_ratio = self._parse_aspect_ratio(node.get('aspectRatio'))
@@ -607,6 +624,7 @@ query VideoByCanonical($canonical: String!) {
                 'chapters': ('currentMedia', 'nodes', 0, 'streamAnchorTags', 'nodes', {self._extract_chapters}),
             }),
             **self._extract_ptmd(ptmd_urls, video_id, self._get_api_token(), aspect_ratio),
+            'is_live': is_live,
             'id': video_id,
         }
 
