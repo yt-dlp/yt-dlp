@@ -182,6 +182,29 @@ class TestConfig(unittest.TestCase):
             opts.outtmpl['default'], 'pass',
             'The earlier group did not override the later ones')
 
+    def test_alias_expands_escaped_braces_without_arguments(self):
+        _, opts, urls = parseOpts([
+            '--alias', 'released-date',
+            '--parse-metadata "description:Released on: (?P<meta_date>\\d{{4}}-\\d\\d-\\d\\d)"',
+            '--released-date',
+            'https://example.com',
+        ], False)
+
+        self.assertEqual(urls, ['https://example.com'])
+        self.assertEqual(
+            opts.parse_metadata['pre_process'],
+            ['description:Released on: (?P<meta_date>\\d{4}-\\d\\d-\\d\\d)'])
+
+    def test_alias_quotes_arguments(self):
+        _, opts, urls = parseOpts([
+            '--alias', 'parse-title', '--parse-metadata "title:{0}"',
+            '--parse-title', 'hello world',
+            'https://example.com',
+        ], False)
+
+        self.assertEqual(urls, ['https://example.com'])
+        self.assertEqual(opts.parse_metadata['pre_process'], ["title:'hello world'"])
+
 
 @contextlib.contextmanager
 def ConfigMock(read_file=None):

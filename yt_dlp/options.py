@@ -339,11 +339,9 @@ def create_parser():
         counter[opt_str] += 1
         if counter[opt_str] > parser.ALIAS_TRIGGER_LIMIT:
             raise optparse.OptionValueError(f'Alias {opt_str} exceeded invocation limit')
-        if nargs == 1:
-            value = [value]
-        assert (nargs == 0 and value is None) or len(value) == nargs
-        parser.rargs[:0] = shlex.split(
-            opts if value is None else opts.format(*map(shlex.quote, value)))
+        value = [] if nargs == 0 else [value] if nargs == 1 else value
+        assert len(value) == nargs
+        parser.rargs[:0] = shlex.split(opts.format(*map(shlex.quote, value)))
 
     def _preset_alias_callback(option, opt_str, value, parser):
         if not value:
