@@ -157,7 +157,7 @@ class Magic(HeaderBlock):
 
     _REGEX_TSMAP = re.compile(r'X-TIMESTAMP-MAP=')
     _REGEX_TSMAP_LOCAL = re.compile(r'LOCAL:')
-    _REGEX_TSMAP_MPEGTS = re.compile(r'MPEGTS:([0-9]+)')
+    _REGEX_TSMAP_MPEGTS = re.compile(r'MPEGTS:(-?[0-9]+)')
     _REGEX_TSMAP_SEP = re.compile(r'[ \t]*,[ \t]*')
 
     # This was removed from the spec in the 2017 revision;
