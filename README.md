@@ -3,15 +3,12 @@
 
 [![YT-DLP](https://raw.githubusercontent.com/yt-dlp/yt-dlp/master/.github/banner.svg)](#readme)
 
-[![Release version](https://img.shields.io/github/v/release/yt-dlp/yt-dlp?color=brightgreen&label=Download&style=for-the-badge)](#installation "Installation")
+[![Release version](https://img.shields.io/github/v/release/yt-dlp/yt-dlp?color=brightgreen&label=Latest&style=for-the-badge)](#installation "Installation")
+[![Python Version](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fyt-dlp%2Fyt-dlp%2Frefs%2Fheads%2Fmaster%2Fpyproject.toml&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/blob/master/pyproject.toml "Python Version")
 [![PyPI](https://img.shields.io/badge/-PyPI-blue.svg?logo=pypi&labelColor=555555&style=for-the-badge)](https://pypi.org/project/yt-dlp "PyPI")
-[![Donate](https://img.shields.io/badge/_-Donate-red.svg?logo=githubsponsors&labelColor=555555&style=for-the-badge)](Maintainers.md#maintainers "Donate")
-[![Discord](https://img.shields.io/discord/807245652072857610?color=blue&labelColor=555555&label=&logo=discord&style=for-the-badge)](https://discord.gg/H5MNcFW63r "Discord")
-[![Supported Sites](https://img.shields.io/badge/-Supported_Sites-brightgreen.svg?style=for-the-badge)](supportedsites.md "Supported Sites")
-[![License: Unlicense](https://img.shields.io/badge/-Unlicense-blue.svg?style=for-the-badge)](LICENSE "License")
-[![CI Status](https://img.shields.io/github/actions/workflow/status/yt-dlp/yt-dlp/core.yml?branch=master&label=Tests&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/actions "CI Status")
+[![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?&logo=discord&logoColor=white&style=for-the-badge)]([#](https://discord.gg/H5MNcFW63r "Discord")
+[![License: Unlicense](https://img.shields.io/badge/-Unlicense-red.svg?style=for-the-badge)](LICENSE "License")
 [![Commits](https://img.shields.io/github/commit-activity/m/yt-dlp/yt-dlp?label=commits&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/commits "Commit History")
-[![Last Commit](https://img.shields.io/github/last-commit/yt-dlp/yt-dlp/master?label=&style=for-the-badge&display_timestamp=committer)](https://github.com/yt-dlp/yt-dlp/pulse/monthly "Last activity")
 
 </div>
 <!-- MANPAGE: END EXCLUDED SECTION -->
@@ -167,9 +164,9 @@ For other third-party package managers, see [the wiki](https://github.com/yt-dlp
 
 There are currently three release channels for binaries: `stable`, `nightly` and `master`.
 
-* `stable` is the default channel, and many of its changes have been tested by users of the `nightly` and `master` channels.
-* The `nightly` channel has releases scheduled to build every day around midnight UTC, for a snapshot of the project's new patches and changes. This is the **recommended channel for regular users** of yt-dlp. The `nightly` releases are available from [yt-dlp/yt-dlp-nightly-builds](https://github.com/yt-dlp/yt-dlp-nightly-builds/releases) or as development releases of the `yt-dlp` PyPI package (which can be installed with pip's `--pre` flag).
-* The `master` channel features releases that are built after each push to the master branch, and these will have the very latest fixes and additions, but may also be more prone to regressions. They are available from [yt-dlp/yt-dlp-master-builds](https://github.com/yt-dlp/yt-dlp-master-builds/releases).
+* `stable` is the default channel, which offers releases published on a (mostly) monthly schedule. While it is named `stable` due to many of its changes having been tested by users of the `nightly` or `master` release channels, the latest `stable` release is often "stale" and prone to external breakage (i.e. sites changing things on their end and breaking yt-dlp).
+* The `nightly` channel offers releases that publish shortly before midnight UTC on any day that sees changes to the codebase. This channel serves as a snapshot of the project's development, and it is the **recommended channel for regular users** of yt-dlp. The `nightly` releases are available from [yt-dlp/yt-dlp-nightly-builds](https://github.com/yt-dlp/yt-dlp-nightly-builds/releases) or as development releases of the `yt-dlp` PyPI package (which can be installed with pip's `--pre` flag).
+* The `master` channel offers "canary" releases that publish after each push to the master branch. This channel will always provide the very latest fixes and features, but may be prone to bugs or regressions. The `master` releases are available from [yt-dlp/yt-dlp-master-builds](https://github.com/yt-dlp/yt-dlp-master-builds/releases).
 
 When using `--update`/`-U`, a release binary will only update to its current channel.
 `--update-to CHANNEL` can be used to switch to a different channel when a newer version is available. `--update-to [CHANNEL@]TAG` can also be used to upgrade or downgrade to specific tags from a channel.
@@ -209,7 +206,7 @@ While all the other dependencies are optional, `ffmpeg`, `ffprobe`, `yt-dlp-ejs`
 
 * [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging separate video and audio files](#format-selection), as well as for various [post-processing](#post-processing-options) tasks. License [depends on the build](https://www.ffmpeg.org/legal.html)
 
-    There are bugs in ffmpeg that cause various issues when used alongside yt-dlp. Since ffmpeg is such an important dependency, we provide [custom builds](https://github.com/yt-dlp/FFmpeg-Builds#ffmpeg-static-auto-builds) with patches for some of these issues at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details on the specific issues solved by these builds
+    Since ffmpeg is such an important dependency, we provide our own builds at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). In the past, patches were applied to these builds in order to fix common issues for yt-dlp users, but currently our builds are equivalent to upstream ffmpeg. See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details
 
     **Important**: What you need is ffmpeg *binary*, **NOT** [the Python package of the same name](https://pypi.org/project/ffmpeg)
 
@@ -229,7 +226,7 @@ The following provide support for impersonating browser requests. This may be re
 
 * [**curl_cffi**](https://github.com/lexiforest/curl_cffi) (recommended) - Python binding for [curl-impersonate](https://github.com/lexiforest/curl-impersonate). Provides impersonation targets for Chrome, Edge and Safari. Licensed under [MIT](https://github.com/lexiforest/curl_cffi/blob/main/LICENSE)
   * Can be installed with the `curl-cffi` extra, e.g. `pip install "yt-dlp[default,curl-cffi]"`
-  * Currently included in most builds *except* `yt-dlp` (Unix zipimport binary), `yt-dlp_x86` (Windows 32-bit) and `yt-dlp_musllinux_aarch64`
+  * Currently included in most builds *except* `yt-dlp` (Unix zipimport binary) and `yt-dlp_x86` (Windows 32-bit)
 
 
 ### Metadata
@@ -265,7 +262,7 @@ To build the standalone executable, you must have Python and `pyinstaller` (plus
 You can run the following commands:
 
 ```
-python devscripts/install_deps.py --include-extra pyinstaller
+python devscripts/install_deps.py --include-group pyinstaller
 python devscripts/make_lazy_extractors.py
 python -m bundle.pyinstaller
 ```
@@ -497,7 +494,7 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
     --max-filesize SIZE             Abort download if filesize is larger than
                                     SIZE, e.g. 50k or 44.6M
     --date DATE                     Download only videos uploaded on this date.
-                                    The date can be "YYYYMMDD" or in the format 
+                                    The date can be "YYYYMMDD" or in the format
                                     [now|today|yesterday][-N[day|week|month|year]].
                                     E.g. "--date today-2weeks" downloads only
                                     videos uploaded on the same day two weeks ago
@@ -834,8 +831,7 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     renegotiation
     --no-check-certificates         Suppress HTTPS certificate validation
     --prefer-insecure               Use an unencrypted connection to retrieve
-                                    information about the video (Currently
-                                    supported only for YouTube)
+                                    information about the video
     --add-headers FIELD:VALUE       Specify a custom HTTP header and its value,
                                     separated by a colon ":". You can use this
                                     option multiple times
@@ -1053,10 +1049,14 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     that of --use-postprocessor (default:
                                     after_move). The same syntax as the output
                                     template can be used to pass any field as
-                                    arguments to the command. If no fields are
-                                    passed, %(filepath,_filename|)q is appended
-                                    to the end of the command. This option can
-                                    be used multiple times
+                                    arguments to the command; however, for
+                                    security reasons the only allowed
+                                    conversions are: "i"/"d" (signed integer
+                                    decimal), "f" (floating-point decimal) and
+                                    "q" (shell-quoted). If no fields are passed,
+                                    %(filepath,_filename|)q is appended to the
+                                    end of the command. This option can be used
+                                    multiple times
     --no-exec                       Remove any previously defined --exec
     --convert-subs FORMAT           Convert the subtitles to another format
                                     (currently supported: ass, lrc, srt, vtt).
@@ -1860,12 +1860,13 @@ The following extractors use this feature:
 #### youtube
 * `lang`: Prefer translated metadata (`title`, `description` etc) of this language code (case-sensitive). By default, the video primary language metadata is preferred, with a fallback to `en` translated. See [youtube/_base.py](https://github.com/yt-dlp/yt-dlp/blob/415b4c9f955b1a0391204bd24a7132590e7b3bdb/yt_dlp/extractor/youtube/_base.py#L402-L409) for the list of supported content language codes
 * `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and [auto-translated subtitles](https://github.com/yt-dlp/yt-dlp/issues/4090#issuecomment-1158102032) respectively
-* `player_client`: Clients to extract video data from. The currently available clients are `web`, `web_safari`, `web_embedded`, `web_music`, `web_creator`, `mweb`, `ios`, `android`, `android_vr`, `tv`, `tv_downgraded`, and `tv_simply`. By default, `android_vr,web,web_safari` is used. If no JavaScript runtime/engine is available, then only `android_vr` is used. If logged-in cookies are passed to yt-dlp, then `tv_downgraded,web,web_safari` is used for free accounts and `tv_downgraded,web_creator,web` is used for premium accounts. The `web_music` client is added for `music.youtube.com` URLs when logged-in cookies are used. The `web_embedded` client is added for age-restricted videos but only successfully works around the age-restriction sometimes (e.g. if the video is embeddable), and may be added as a fallback if `android_vr` is unable to access a video. The `web_creator` client is added for age-restricted videos if account age-verification is required. Some clients, such as `web_creator` and `web_music`, require a `po_token` for their formats to be downloadable. Some clients, such as `web_creator`, will only work with authentication. Not all clients support authentication via cookies. You can use `default` for the default clients, or you can use `all` for all clients (not recommended). You can prefix a client with `-` to exclude it, e.g. `youtube:player_client=default,-web`
+* `player_client`: Clients to extract video data from. The currently available clients are `web`, `web_safari`, `web_embedded`, `web_music`, `web_creator`, `mweb`, `ios`, `android`, `android_vr`, `tv`, `tv_downgraded`, and `tv_simply`. By default, `android_vr,web_safari` is used. If no JavaScript runtime/engine is available, then only `android_vr` is used. If logged-in cookies are passed to yt-dlp, then `tv_downgraded,web_safari` is used for free accounts and `tv_downgraded,web_creator` is used for premium accounts. The `web_music` client is added for `music.youtube.com` URLs when logged-in cookies are used. The `web_embedded` client is added for age-restricted videos but only successfully works around the age-restriction sometimes (e.g. if the video is embeddable), and may be added as a fallback if `android_vr` is unable to access a video. The `web_creator` client is added for age-restricted videos if account age-verification is required. Some clients, such as `web_creator` and `web_music`, require a `po_token` for their formats to be downloadable. Some clients, such as `web_creator`, will only work with authentication. Not all clients support authentication via cookies. You can use `default` for the default clients, or you can use `all` for all clients (not recommended). You can prefix a client with `-` to exclude it, e.g. `youtube:player_client=default,-web_safari`
 * `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player), `initial_data` (skip initial data/next ep request). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause issues such as missing formats or metadata.  See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) and [#12826](https://github.com/yt-dlp/yt-dlp/issues/12826) for more details
-* `webpage_skip`: Skip extraction of embedded webpage data. One or both of `player_response`, `initial_data`. These options are for testing purposes and don't skip any network requests
+* `webpage_skip`: Skip extraction of embedded webpage data. One or both of `player_response`, `initial_data`. These options are for testing purposes and don't skip any network requests. Neither is skipped by default; however, if a `player_js_version` value other than `actual` is used, then `webpage_skip=player_response` is implied
+* `webpage_client`: Client to use for the video webpage request. One of `web` or `web_safari` (default)
 * `player_params`: YouTube player parameters to use for player requests. Will overwrite any default ones set by yt-dlp.
-* `player_js_variant`: The player javascript variant to use for n/sig deciphering. The known variants are: `main`, `tcc`, `tce`, `es5`, `es6`, `es6_tcc`, `es6_tce`, `tv`, `tv_es6`, `phone`, `house`. The default is `tv`, and the others are for debugging purposes. You can use `actual` to go with what is prescribed by the site
-* `player_js_version`: The player javascript version to use for n/sig deciphering, in the format of `signature_timestamp@hash` (e.g. `20348@0004de42`). The default is to use what is prescribed by the site, and can be selected with `actual`
+* `player_js_variant`: The player javascript variant to use for n/sig deciphering. The known variants are: `main`, `tcc`, `tce`, `es5`, `es6`, `es6_tcc`, `es6_tce`, `tv`, `tv_es6`, `phone`, `house`. The default is `main`, and the others are for debugging purposes. You can use `actual` to go with what is prescribed by the site
+* `player_js_version`: The player javascript version to use for n/sig deciphering, in the format of `signature_timestamp@hash` (e.g. `20348@0004de42`). The default is to use what is prescribed by the site, and can be selected with `actual`. Using any other value will imply `webpage_skip=player_response`
 * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
 * `max_comments`: Limit the amount of comments to gather. Comma-separated list of integers representing `max-comments,max-parents,max-replies,max-replies-per-thread,max-depth`. Default is `all,all,all,all,all`
     * A `max-depth` value of `1` will discard all replies, regardless of the `max-replies` or `max-replies-per-thread` values given
@@ -1880,7 +1881,7 @@ The following extractors use this feature:
 * `pot_trace`: Enable debug logging for PO Token fetching. Either `true` or `false` (default)
 * `fetch_pot`: Policy to use for fetching a PO Token from providers. One of `always` (always try fetch a PO Token regardless if the client requires one for the given context), `never` (never fetch a PO Token), or `auto` (default; only fetch a PO Token if the client requires one for the given context)
 * `jsc_trace`: Enable debug logging for JS Challenge fetching. Either `true` or `false` (default)
-* `use_ad_playback_context`: Skip preroll ads to eliminate the mandatory wait period before download. Do NOT use this when passing premium account cookies to yt-dlp, as it will result in a loss of premium formats. Only effective with the `web`, `web_safari`, `web_music` and `mweb` player clients. Either `true` or `false` (default)
+* `use_ad_playback_context`: Skip preroll ads to eliminate the mandatory wait period before download. Do NOT use this when passing premium account cookies to yt-dlp, as it will result in a loss of premium formats. Only effective with the `mweb` and `web_music` player clients. Either `true` or `false` (default)
 
 #### youtube-ejs
 * `jitless`: Run supported Javascript engines in JIT-less mode. Supported runtimes are `deno`, `node` and `bun`. Provides better security at the cost of performance/speed. Do note that `node` and `bun` are still considered insecure. Either `true` or `false` (default)
@@ -2274,8 +2275,6 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
 * **Multi-threaded fragment downloads**: Download multiple fragments of m3u8/mpd videos in parallel. Use `--concurrent-fragments` (`-N`) option to set the number of threads used
 
-* **Aria2c with HLS/DASH**: You can use `aria2c` as the external downloader for DASH(mpd) and HLS(m3u8) formats
-
 * **New and fixed extractors**: Many new extractors have been added and a lot of existing ones have been fixed. See the [changelog](Changelog.md) or the [list of supported sites](supportedsites.md)
 
 * **New MSOs**: Philo, Spectrum, SlingTV, Cablevision, RCN etc.
@@ -2330,9 +2329,9 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * When `--embed-subs` and `--write-subs` are used together, the subtitles are written to disk and also embedded in the media file. You can use just `--embed-subs` to embed the subs and automatically delete the separate file. See [#630 (comment)](https://github.com/yt-dlp/yt-dlp/issues/630#issuecomment-893659460) for more info. `--compat-options no-keep-subs` can be used to revert this
 * `certifi` will be used for SSL root certificates, if installed. If you want to use system certificates (e.g. self-signed), use `--compat-options no-certifi`
 * yt-dlp's sanitization of invalid characters in filenames is different/smarter than in youtube-dl. You can use `--compat-options filename-sanitization` to revert to youtube-dl's behavior
-* ~~yt-dlp tries to parse the external downloader outputs into the standard progress output if possible (Currently implemented: [aria2c](https://github.com/yt-dlp/yt-dlp/issues/5931)). You can use `--compat-options no-external-downloader-progress` to get the downloader output as-is~~
-* yt-dlp versions between 2021.09.01 and 2023.01.02 applies `--match-filters` to nested playlists. This was an unintentional side-effect of [8f18ac](https://github.com/yt-dlp/yt-dlp/commit/8f18aca8717bb0dd49054555af8d386e5eda3a88) and is fixed in [d7b460](https://github.com/yt-dlp/yt-dlp/commit/d7b460d0e5fc710950582baed2e3fc616ed98a80). Use `--compat-options playlist-match-filter` to revert this
-* yt-dlp versions between 2021.11.10 and 2023.06.21 estimated `filesize_approx` values for fragmented/manifest formats. This was added for convenience in [f2fe69](https://github.com/yt-dlp/yt-dlp/commit/f2fe69c7b0d208bdb1f6292b4ae92bc1e1a7444a), but was reverted in [0dff8e](https://github.com/yt-dlp/yt-dlp/commit/0dff8e4d1e6e9fb938f4256ea9af7d81f42fd54f) due to the potentially extreme inaccuracy of the estimated values. Use `--compat-options manifest-filesize-approx` to keep extracting the estimated values
+* (Not currently implemented) ~~yt-dlp tries to parse the external downloader outputs into the standard progress output if possible. You can use `--compat-options no-external-downloader-progress` to get the downloader output as-is~~
+* yt-dlp versions from 2021.09.01 to 2022.11.11 (inclusive) applied `--match-filters` to nested playlists. This was an unintentional side-effect of [8f18ac](https://github.com/yt-dlp/yt-dlp/commit/8f18aca8717bb0dd49054555af8d386e5eda3a88) and is fixed in [d7b460](https://github.com/yt-dlp/yt-dlp/commit/d7b460d0e5fc710950582baed2e3fc616ed98a80). Use `--compat-options playlist-match-filter` to revert this
+* yt-dlp versions from 2021.11.10 to 2023.06.21 (inclusive) estimated `filesize_approx` values for fragmented/manifest formats. This was added for convenience in [f2fe69](https://github.com/yt-dlp/yt-dlp/commit/f2fe69c7b0d208bdb1f6292b4ae92bc1e1a7444a), but was reverted in [0dff8e](https://github.com/yt-dlp/yt-dlp/commit/0dff8e4d1e6e9fb938f4256ea9af7d81f42fd54f) due to the potentially extreme inaccuracy of the estimated values. Use `--compat-options manifest-filesize-approx` to keep extracting the estimated values
 * yt-dlp uses modern http client backends such as `requests`. Use `--compat-options prefer-legacy-http-handler` to prefer the legacy http handler (`urllib`) to be used for standard http requests.
 * The sub-modules `swfinterp`, `casefold` are removed.
 * Passing `--simulate` (or calling `extract_info` with `download=False`) no longer alters the default format selection. See [#9843](https://github.com/yt-dlp/yt-dlp/issues/9843) for details.
@@ -2341,8 +2340,8 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 For convenience, there are some compat option aliases available to use:
 
 * `--compat-options all`: Use all compat options (**Do NOT use this!**)
-* `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams,-playlist-match-filter,-manifest-filesize-approx,-allow-unsafe-ext,-prefer-vp9-sort`
-* `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect,-playlist-match-filter,-manifest-filesize-approx,-allow-unsafe-ext,-prefer-vp9-sort`
+* `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams,-playlist-match-filter,-manifest-filesize-approx,-allow-unsafe-ext,-prefer-vp9-sort,-allow-unsafe-exec-expansion`
+* `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect,-playlist-match-filter,-manifest-filesize-approx,-allow-unsafe-ext,-prefer-vp9-sort,-allow-unsafe-exec-expansion`
 * `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization`
 * `--compat-options 2022`: Same as `--compat-options 2023,playlist-match-filter,no-external-downloader-progress,prefer-legacy-http-handler,manifest-filesize-approx`
 * `--compat-options 2023`: Same as `--compat-options 2024,prefer-vp9-sort`
@@ -2357,7 +2356,12 @@ The following compat options restore vulnerable behavior from before security pa
 
     > :warning: Only use if a valid file download is rejected because its extension is detected as uncommon
     >
-    > **This option can enable remote code execution! Consider [opening an issue](<https://github.com/yt-dlp/yt-dlp/issues/new/choose>) instead!**
+    > **This option can enable remote code execution!** Consider [opening an issue](<https://github.com/yt-dlp/yt-dlp/issues/new/choose>) instead!
+
+* `--compat-options allow-unsafe-exec-expansion`: The `--exec` option allows output template syntax to be used in its commands; however, for security reasons the conversions that can be used are restricted to `i`/`d` (signed integer decimal), `f` (floating-point decimal) and `q` (shell-quoted). yt-dlp versions from 2021.04.11 to 2026.03.17 (inclusive) did not apply this restriction. This option reverts this restriction
+
+    > :warning: **This option can enable remote code execution!** Consider using `%()q` conversions in your exec command templates for any string values.
+
 
 ### Deprecated options
 

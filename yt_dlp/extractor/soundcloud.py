@@ -269,6 +269,9 @@ class SoundcloudBaseIE(InfoExtractor):
                         f'for registered users. {self._login_hint()}')
                 elif isinstance(e.cause, HTTPError) and e.cause.status == 403:
                     self.write_debug('Original download format is not available for this client')
+                # Propagate 429 to the RetryManager in SoundcloudIE._real_extract
+                elif isinstance(e.cause, HTTPError) and e.cause.status == 429:
+                    raise
                 else:
                     self.report_warning(e.msg)
                 download_data = None
@@ -321,9 +324,16 @@ class SoundcloudBaseIE(InfoExtractor):
                 continue
 
             # XXX: if not extract_flat, 429 error must be caught where _extract_info_dict is called
-            stream_url = traverse_obj(self._call_api(
-                format_url, track_id, f'Downloading {short_identifier} format info JSON',
-                query=query, headers=self._HEADERS), ('url', {url_or_none}))
+            try:
+                stream_url = traverse_obj(self._call_api(
+                    format_url, track_id, f'Downloading {short_identifier} format info JSON',
+                    query=query, headers=self._HEADERS), ('url', {url_or_none}))
+            except ExtractorError as e:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 404:
+                    self.report_warning(f'{short_identifier} format not found', video_id=track_id)
+                    continue
+                raise
+
             if invalid_url(stream_url):
                 continue
             format_urls.add(stream_url)
