@@ -10,44 +10,55 @@ from ..utils import (
 
 class MurrtubeIE(InfoExtractor):
     _VALID_URL = r'https?://murrtube\.net/v/(?P<id>\w+)'
-    _TEST = {
-        'url': 'https://murrtube.net/videos/inferno-x-skyler-148b6f2a-fdcc-4902-affe-9c0f41aaaca0',
-        'md5': '70380878a77e8565d4aea7f68b8bbb35',
+    _TESTS = [{
+        'url': 'https://murrtube.net/v/IAPW',
+        'md5': '99c6c5e0a8b1414cf4f52042b6166827',
+        'file_minsize': None,
         'info_dict': {
             'id': 'IAPW',
             'ext': 'mp4',
             'title': 'Inferno X Skyler',
             'description': 'Humping a very good slutty sheppy (roomate)',
             'uploader': 'Inferno Wolf',
+            'uploader_id': 'inferno-wolf',
             'age_limit': 18,
-            'thumbnail': 'https://storage.murrtube.net/murrtube-production/ekbs3zcfvuynnqfx72nn2tkokvsd',
+            'thumbnail': 'https://storage.murrtube.net/038/ca885d8456b95de529b6723b158032e11115d/thumbnail.jpg',
             'comment_count': int,
             'view_count': int,
             'like_count': int,
-            'timestamp': int,
-            'release_timestamp': int,
-            '_old_archive_ids': ['murrtube ca885d8456b95de529b6723b158032e11115d'],
-        },
+            'timestamp': 1588192741,
+            'release_timestamp': 1588431972,
+            'duration': 284,
+            'tags': ['bareback', 'breeding', 'fursuit', 'humping', 'murrsuit'],
+            'upload_date': '20200429',
+            'release_date': '20200502',
+            '_old_archive_ids': ['murrtube 148b6f2afdcc4902affe9c0f41aaaca0'],
+        }
     }, {
         'url': 'https://murrtube.net/v/0J2Q',
-        'md5': '31262f6ac56f0ca75e5a54a0f3fefcb6',
+        'md5': '174fe9d6c9e664fdb042e85d0dbffc49',
+        'file_minsize': None,
         'info_dict': {
             'id': '0J2Q',
             'ext': 'mp4',
             'uploader': 'Hayel',
+            'uploader_id': 'hayel',
             'title': 'Who\'s in charge now?',
-            'description': 'md5:795791e97e5b0f1805ea84573f02a997',
+            'description': 'Fenny sneaked into my bed room and played naughty with one of my plushies. I caught him in the act and wanted to punish him. He thought he was in charge and wanted to use me instead but he wasn\'t prepared on my butt milking him within just a minute.\n\nFenny: @fenny_ad (both here and on Twitter)\nHayel on Twitter: https://twitter.com/plushmods',
             'age_limit': 18,
-            'thumbnail': 'https://storage.murrtube.net/murrtube-production/fb1ojjwiucufp34ya6hxu5vfqi5s',
+            'thumbnail': 'https://storage.murrtube.net/03c/8442998c52134968d9caa36e473e1a6bac6ca/thumbnail.jpg',
             'comment_count': int,
             'view_count': int,
             'like_count': int,
-            'timestamp': int,
-            'release_timestamp': int,
+            'timestamp': 1652996188,
+            'release_timestamp': 1653039644,
+            'duration': 331,
+            'upload_date': '20220519',
+            'release_date': '20220520',
             'tags': ['anal', 'deer', 'fursuit', 'male/male', 'murrsuit', 'plushie', 'plushophilia', 'toy', 'wolf'],
-            '_old_archive_ids': ['murrtube 8442998c52134968d9caa36e473e1a6bac6ca'],
+            '_old_archive_ids': ['murrtube fcfd303b00024da99a9fbef8ce4c0f0d'],
         }
-    }
+    }]
 
     _age_check_done = False
 
@@ -118,7 +129,6 @@ class MurrtubeIE(InfoExtractor):
 
 
 class MurrtubeUserIE(MurrtubeIE):
-    _WORKING = False
     IE_DESC = 'Murrtube user profile'
     _VALID_URL = r'https?://murrtube\.net/(?P<id>[^/]+)$'
     _TESTS = [{
@@ -151,7 +161,7 @@ class MurrtubeUserIE(MurrtubeIE):
             for item in media:
                 short_code = item.get('short_code')
                 if short_code:
-                    yield self.url_result(f"https://murrtube.net/v/{short_code}")
+                    yield self.url_result(f'https://murrtube.net/v/{short_code}')
             
             pagination = props.get('pagination', {})
             if page >= pagination.get('pages', 1):
