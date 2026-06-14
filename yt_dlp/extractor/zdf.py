@@ -529,7 +529,7 @@ query VideoByCanonical($canonical: String!) {
         ptmd_data['_old_archive_ids'] = [make_archive_id(self, old_archive_id)]
         return ptmd_data
 
-    # This fallback should generally only happen for pages under `zdf.de/nachrichten`.
+    # This fallback should generally only happen for pages on zdfheute.de and logo.de
     # They are on a separate website for which GraphQL often doesn't return results.
     # The API used here is no longer in use by official clients and likely deprecated.
     # Long-term, news documents probably should use the API used by the mobile apps:
