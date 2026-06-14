@@ -280,7 +280,7 @@ class KickChannelVideosIE(KickBaseIE):
         # Default sort
         'url': 'https://kick.com/xqc/videos',
         'info_dict': {
-            'id': 'xqc',
+            'id': 'xqc-by-date',
             'title': 'xqc - Past broadcasts sorted by "Most recent"',
         },
         'playlist_mincount': 15,
@@ -288,7 +288,7 @@ class KickChannelVideosIE(KickBaseIE):
         # Sorted by "Most recent"
         'url': 'https://kick.com/xqc/videos?sort=date',
         'info_dict': {
-            'id': 'xqc',
+            'id': 'xqc-by-date',
             'title': 'xqc - Past broadcasts sorted by "Most recent"',
         },
         'playlist_mincount': 15,
@@ -296,7 +296,7 @@ class KickChannelVideosIE(KickBaseIE):
         # Sorted by "Views"
         'url': 'https://kick.com/xqc/videos?sort=views',
         'info_dict': {
-            'id': 'xqc',
+            'id': 'xqc-by-views',
             'title': 'xqc - Past broadcasts sorted by "Views"',
         },
         'playlist_mincount': 15,
@@ -304,7 +304,7 @@ class KickChannelVideosIE(KickBaseIE):
         # Sorted by invalid value
         'url': 'https://kick.com/xqc/videos?sort=foo',
         'info_dict': {
-            'id': 'xqc',
+            'id': 'xqc-by-date',
             'title': 'xqc - Past broadcasts sorted by "Most recent"',
         },
         'playlist_mincount': 15,
