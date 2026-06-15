@@ -135,7 +135,7 @@ body > figure > img {
                 'Content-Type: text/html; charset=utf-8\r\n'
                 f'Content-Length: {len(stub)}\r\n'
                 '\r\n'
-                ).encode() + stub + b'\r\n')
+            ).encode() + stub + b'\r\n')
             extra_state['header_written'] = True
 
         for i, fragment in enumerate(fragments):
