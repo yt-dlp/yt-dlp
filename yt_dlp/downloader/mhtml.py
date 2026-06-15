@@ -119,7 +119,7 @@ body > figure > img {
                 fragments=fragments,
                 frag_boundary=frag_boundary,
                 title=title,
-            )
+            ).encode()
 
             ctx['dest_stream'].write((
                 'MIME-Version: 1.0\r\n'
@@ -133,9 +133,9 @@ body > figure > img {
                 '\r\n'
                 f'--{frag_boundary}\r\n'
                 'Content-Type: text/html; charset=utf-8\r\n'
-                f'Content-Length: {len(stub.encode())}\r\n'
+                f'Content-Length: {len(stub)}\r\n'
                 '\r\n'
-                f'{stub}\r\n').encode())
+                ).encode() + stub + b'\r\n')
             extra_state['header_written'] = True
 
         for i, fragment in enumerate(fragments):
