@@ -180,7 +180,7 @@ class RPlayVideoIE(RPlayBaseIE):
             'thumbnail': 'https://pb.rplay.live/thumbnail/682065da13ed2c564c77d8f7',
             'uploader': 'Seldea',
             'uploader_id': '64d483add2c96306099ef734',
-            'tags': ['셀데아', '무료', 'Free', '無料'],
+            'tags': ['셀데아', '무료', 'Free', '無料', 'セルデア'],
             'like_count': int,
             'view_count': int,
             'location': 'KR',
@@ -205,9 +205,32 @@ class RPlayVideoIE(RPlayBaseIE):
             'age_limit': 18,
             'like_count': int,
             'view_count': int,
-            'location': 'JP',
+            'location': 'KR',
         },
-        'skip': 'subscribe required',
+        'skip': 'subscription required',
+    }, {
+        'url': 'https://rplay.live/play/69e667dfab2b54338a20f0d5',
+        'info_dict': {
+            'id': '69e667dfab2b54338a20f0d5',
+            'ext': 'mp4',
+            'title': 'md5:8d08ab551ef90f5146b2d6dee4695593',
+            'description': '',
+            'timestamp': 1776707551,
+            'upload_date': '20260420',
+            'release_timestamp': 1776934800,
+            'release_date': '20260423',
+            'duration': 646.24,
+            'thumbnail': 'https://pb.rplay.live/thumbnail/69e667dfab2b54338a20f0d5',
+            'uploader': 'れいきら',
+            'uploader_id': '66e5acf671791377dfcebe5d',
+            'tags': 'count:5',
+            'age_limit': 18,
+            'like_count': int,
+            'view_count': int,
+            'location': str,
+            'subtitles': 'count:3',
+        },
+        'skip': 'subscription required',
     }]
 
     def _real_extract(self, url):
@@ -250,6 +273,8 @@ class RPlayVideoIE(RPlayBaseIE):
             'view_count': ('views', {int}),
             'like_count': ('likes', {int}),
             'live_status': ('isReplayContent', {lambda x: 'was_live' if x else None}),
+            'subtitles': ('subtitles', {dict}, {lambda x: {
+                str(k): [{'url': u}] for k, v in x.items() if (u := url_or_none(v))}}),
         })
         if preferred_lang := self._configuration_arg('lang', ie_key='rplaylive', default=[None])[0]:
             translated_metainfo = traverse_obj(video_info, {
