@@ -44,6 +44,7 @@ from .utils import (
     GeoUtils,
     PlaylistEntries,
     SameFileError,
+    UnsafeExecExpansionError,
     download_range_func,
     expand_path,
     float_or_none,
@@ -618,7 +619,7 @@ def validate_options(opts):
         warnings.append(
             'Using allow-unsafe-ext opens you up to potential attacks. '
             'Use with great care!')
-        _UnsafeExtensionError.sanitize_extension = lambda x, prepend=False: x
+        _UnsafeExtensionError._enabled = False
 
     return warnings, deprecation_warnings
 
@@ -1077,7 +1078,7 @@ def main(argv=None):
     IN_CLI.value = True
     try:
         _exit(*variadic(_real_main(argv)))
-    except (CookieLoadError, DownloadError):
+    except (CookieLoadError, DownloadError, UnsafeExecExpansionError):
         _exit(1)
     except SameFileError as e:
         _exit(f'ERROR: {e}')
