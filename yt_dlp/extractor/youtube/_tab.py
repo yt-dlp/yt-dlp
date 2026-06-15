@@ -333,20 +333,40 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 only_once=True)
             return
 
+        lockup_mdvm = traverse_obj(view_model, ('metadata', 'lockupMetadataViewModel', {dict}))
+        content_mdvm = traverse_obj(lockup_mdvm, ('metadata', 'contentMetadataViewModel', {dict}))
+
+        channel_info = traverse_obj(content_mdvm, (
+            'metadataRows', ..., 'metadataParts',
+            lambda _, v: v['text']['commandRuns'][0]['onTap']['innertubeCommand']['browseEndpoint']['browseId'],
+            'text', any, {
+                'channel': ('content', {str}),
+                'channel_id': ('commandRuns', 0, 'onTap', 'innertubeCommand', 'browseEndpoint', 'browseId', {self.ucid_or_none}),
+                'uploader': ('content', {str}),
+                'uploader_id': ('commandRuns', 0, 'onTap', 'innertubeCommand', 'browseEndpoint', 'canonicalBaseUrl', {self.handle_from_url}),
+            }))
+
+        views_and_date = traverse_obj(content_mdvm, (
+            'metadataRows', lambda _, v: len(v['metadataParts']) == 2 and 'accessibilityLabel' in v['metadataParts'][1],
+            'metadataParts', ...))
+
+        # This can be tested with TestDownload.test_YoutubeTab_25 (PLt5yu3-wZAlQLfIN0MMgp0wVV6MP3bM4_)
         return self.url_result(
             url, ie, content_id,
-            title=traverse_obj(view_model, (
-                'metadata', 'lockupMetadataViewModel', 'title', 'content', {str})),
+            title=traverse_obj(lockup_mdvm, ('title', 'content', {str})),
             thumbnails=self._extract_thumbnails(view_model, (
                 'contentImage', *thumb_keys, 'thumbnailViewModel', 'image'), final_key='sources'),
             duration=traverse_obj(view_model, (
                 'contentImage', 'thumbnailViewModel', 'overlays', ...,
                 (('thumbnailBottomOverlayViewModel', 'badges'), ('thumbnailOverlayBadgeViewModel', 'thumbnailBadges')),
                 ..., 'thumbnailBadgeViewModel', 'text', {parse_duration}, any)),
-            timestamp=(traverse_obj(view_model, (
-                'metadata', 'lockupMetadataViewModel', 'metadata', 'contentMetadataViewModel', 'metadataRows',
-                ..., 'metadataParts', ..., 'text', 'content', {lambda t: self._parse_time_text(t, report_failure=False)}, any))
-                if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE) else None))
+            view_count=traverse_obj(views_and_date, (0, 'text', 'content', {parse_count})),
+            timestamp=(traverse_obj(views_and_date, (
+                1, 'accessibilityLabel', {lambda t: self._parse_time_text(t, report_failure=False)}, any))
+                if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE) else None),
+            channel_url=format_field(channel_info, 'channel_id', 'https://www.youtube.com/channel/%s', default=None),
+            uploader_url=format_field(channel_info, 'uploader_id', 'https://www.youtube.com/%s', default=None),
+            **channel_info)
 
     def _rich_entries(self, rich_grid_renderer):
         if lockup_view_model := traverse_obj(rich_grid_renderer, ('content', 'lockupViewModel', {dict})):
@@ -1588,7 +1608,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_count': 50,
         'expected_warnings': ['YouTube Music is not directly supported'],
     }, {
-        # TODO: investigate test failing on differing channel*/uploader*/view_count
         'note': 'unlisted single video playlist',
         'url': 'https://www.youtube.com/playlist?list=PLt5yu3-wZAlQLfIN0MMgp0wVV6MP3bM4_',
         'info_dict': {
