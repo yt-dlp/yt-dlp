@@ -23,20 +23,22 @@ class ZanIE(InfoExtractor):
             'id': '663',
             'ext': 'mp4',
             'title': 'The sample video page',
+            'alt_title': 'こちらはサンプル動画の再生テストページとなります。',
             'description': 'md5:12ba331396215fe345b9362c56f3da86',
             'release_date': '20220228',
             'release_timestamp': 1646060400,
             'thumbnail': r're:https?://storage\.zan-live\.com/image/.+\.(?:jpe?g|png)',
         },
     }, {
-        'url': 'https://www.zan-live.com/ja/live/play/6265/3950',
+        'url': 'https://www.zan-live.com/ja/live/play/6910/4268',
         'info_dict': {
-            'id': '3950',
+            'id': '4268',
             'ext': 'mp4',
-            'title': '[全編無料]小児がん治療支援啓発番組「LEC TV 2026 ～子どもたちの『生きる力』をつくる～ supported by HIROTSUバイオサイエンス」',
-            'description': 'md5:a3617d9b0b9e94695638326173995089',
-            'release_date': '20260215',
-            'release_timestamp': 1771151100,
+            'title': '縁結びのゆかり様1stイベント 結び、結ばれ、桃源郷',
+            'alt_title': '縁結びのゆかり様1stイベント 結び、結ばれ、桃源郷 昼公演[アーカイブ]',
+            'description': 'md5:f53156a49ce5b45265d07966679ab494',
+            'release_date': '20260614',
+            'release_timestamp': 1781419500,
             'thumbnail': r're:https?://storage\.zan-live\.com/image/.+\.(?:jpe?g|png)',
         },
     }]
@@ -82,7 +84,8 @@ class ZanIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': clean_html(self._og_search_title(detail)),
+            'title': traverse_obj(self._og_search_title(detail), ({clean_html}, filter)),
+            'alt_title': traverse_obj(self._og_search_title(webpage), ({clean_html}, filter)),
             'description': traverse_obj(detail, (
                 ({find_element(cls='p-eventinfo__detail')}, {find_element(cls='groupDetail')}), {clean_html}, filter, any)),
             'formats': formats,
