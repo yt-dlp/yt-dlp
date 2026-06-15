@@ -68,7 +68,7 @@ class ZanIE(InfoExtractor):
             ('isFinished', False, 'Video is no longer available'),
             ('canPlay', True, 'Ticket has expired'),
         ):
-            if traverse_obj(status, ('result', key, {bool})) != required:
+            if traverse_obj(status, ('result', key, {bool})) is not required:
                 raise ExtractorError(error_message, expected=True)
 
         m3u8_url = self._html_search_meta('live-url', webpage, fatal=True)
