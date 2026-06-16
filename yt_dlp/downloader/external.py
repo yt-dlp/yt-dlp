@@ -1,5 +1,6 @@
 import enum
 import functools
+import io
 import os
 import re
 import subprocess
@@ -11,9 +12,11 @@ from shutil import which
 from .fragment import FragmentFD
 from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (
+    DownloadError,
     Popen,
     RetryManager,
     _configuration_args,
+    _get_exe_version_output,
     check_executable,
     classproperty,
     cli_bool_option,
@@ -23,6 +26,7 @@ from ..utils import (
     encodeArgument,
     remove_end,
     traverse_obj,
+    version_tuple,
 )
 
 
@@ -133,7 +137,7 @@ class ExternalFD(FragmentFD):
             self._cookies_tempfile = tmp_cookies.name
             self.to_screen(f'[download] Writing temporary cookies file to "{self._cookies_tempfile}"')
         # real_download resets _cookies_tempfile; if it's None then save() will write to cookiejar.filename
-        self.ydl.cookiejar.save(self._cookies_tempfile)
+        self.ydl.cookiejar.save(self._cookies_tempfile, True, True)
         return self.ydl.cookiejar.filename or self._cookies_tempfile
 
     def _call_downloader(self, tmpfilename, info_dict):
@@ -192,12 +196,38 @@ class ExternalFD(FragmentFD):
 class CurlFD(ExternalFD):
     AVAILABLE_OPT = '-V'
     _CAPTURE_STDERR = False  # curl writes the progress to stderr
+    _MIN_VERSION_FOR_STDIN_COOKIES = (7, 59)
+
+    @classmethod
+    def available(cls, path=None):
+        if path is None:
+            path = 'curl'
+        output = _get_exe_version_output(path, ['-V'])
+        if not output:
+            return False
+        parts = output.split(' ', maxsplit=2)
+        if len(parts) < 3:
+            return False
+
+        cls.exe = path
+        cls._curl_version = version_tuple(parts[1], lenient=True)
+        return path
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '--location', '-o', tmpfilename, '--compressed']
-        cookie_header = self.ydl.cookiejar.get_cookie_header(info_dict['url'])
-        if cookie_header:
-            cmd += ['--cookie', cookie_header]
+
+        if self._curl_version >= self._MIN_VERSION_FOR_STDIN_COOKIES:
+            # Supports `--cookies -`
+            cmd += ['--cookie', '-']
+        elif os.path.islink('/dev/fd/0'):
+            cmd += ['--cookie', '/dev/fd/0']
+        else:
+            cookies_file = self._write_cookies()
+            if '=' in cookies_file:
+                raise DownloadError('curl version too old or temp directory contains `=`; please use another downloader or update curl')
+            assert cookies_file != '-'
+            cmd += ['--cookie', cookies_file]
+
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', f'{key}: {val}']
@@ -218,6 +248,16 @@ class CurlFD(ExternalFD):
         cmd += self._configuration_args()
         cmd += ['--', info_dict['url']]
         return cmd
+
+    def _call_process(self, cmd, info_dict):
+        if self._curl_version > self._MIN_VERSION_FOR_STDIN_COOKIES or os.path.islink('/dev/fd/0'):
+            # Supports `--cookies -` or reading from device file as `--cookies /dev/fd/0`
+            buffer = io.StringIO()
+            self.ydl.cookiejar._really_save(buffer, True, True)
+            return Popen.run(cmd, text=True, input=buffer.getvalue())
+
+        # Cookies already passed via cookiesfile
+        return Popen.run(cmd, text=True)
 
 
 class AxelFD(ExternalFD):
@@ -241,8 +281,7 @@ class WgetFD(ExternalFD):
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-O', tmpfilename, '-nv', '--compression=auto']
-        if self.ydl.cookiejar.get_cookie_header(info_dict['url']):
-            cmd += ['--load-cookies', self._write_cookies()]
+        cmd += ['--load-cookies', self._write_cookies()]
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', f'{key}: {val}']
@@ -265,12 +304,11 @@ class WgetFD(ExternalFD):
 
 class Aria2cFD(ExternalFD):
     AVAILABLE_OPT = '-v'
-    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'dash_frag_urls', 'm3u8_frag_urls')
+    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps')
 
     _LOG_LEVELS = {'debug': 0, 'info': 1, 'notice': 2, 'warn': 3, 'error': 4}
     _ARIA2C_PROGRESS_RE = re.compile(r'\[#(?P<id>[a-f0-9]+)\s+(?P<downloaded_str>\d+)B/(?P<total_str>\d+)B.+?DL:(?P<speed_str>\d+)B')
     _ARIA2C_SPEED_RE = re.compile(r'\[.*?DL:(?P<speed_str>\d+)B.*?\]')
-    _DOWNLOAD_COMPLETE_RE = re.compile(r'\[\x1b\[[;\d]*mNOTICE\x1b\[[;\d]*m\] Download complete: (?P<filename>.+?)$')
     _ARIA2C_LOG_LEVEL_RE = re.compile(r'\[\x1b\[[;\d]*m(?P<level>\w+)\x1b\[[;\d]*m\]')
     _ARIA2C_REDIRECTING_STR = '- Redirecting to'
 
@@ -278,15 +316,6 @@ class Aria2cFD(ExternalFD):
         super().__init__(ydl, params)
         self._quiet = False
         self._log_level = self._LOG_LEVELS['notice']
-
-    @staticmethod
-    def supports_manifest(manifest):
-        UNSUPPORTED_FEATURES = [
-            r'#EXT-X-BYTERANGE',  # playlists composed of byte ranges of media files [1]
-            # 1. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.2.2
-        ]
-        check_results = (not re.search(feature, manifest) for feature in UNSUPPORTED_FEATURES)
-        return all(check_results)
 
     @staticmethod
     def _aria2c_filename(fn):
@@ -300,12 +329,9 @@ class Aria2cFD(ExternalFD):
                 break
         return self._LOG_LEVELS.get(user_level_str, self._LOG_LEVELS['notice'])
 
-    def _can_print_line(self, line, fragmented, quiet, log_level):
+    def _can_print_line(self, line, quiet, log_level):
         if quiet or self._ARIA2C_REDIRECTING_STR in line:
             return False
-
-        if not fragmented or log_level <= self._LOG_LEVELS['notice']:
-            return True
 
         match = self._ARIA2C_LOG_LEVEL_RE.search(line)
         if not match:
@@ -316,9 +342,7 @@ class Aria2cFD(ExternalFD):
         return line_level >= log_level
 
     def _parse_line(self, line, status, start_time):
-        fragmented = status['fragment_count'] is not None
-
-        if not fragmented and (progress_match := self._ARIA2C_PROGRESS_RE.search(line)):
+        if progress_match := self._ARIA2C_PROGRESS_RE.search(line):
             data = progress_match.groupdict()
             downloaded_bytes = int(data['downloaded_str'])
             total_bytes = int(data['total_str'])
@@ -328,24 +352,6 @@ class Aria2cFD(ExternalFD):
                 'total_bytes': total_bytes,
                 'speed': speed,
                 'eta': (total_bytes - downloaded_bytes) / speed if speed > 0 else 0,
-                'elapsed': time.time() - start_time,
-            })
-
-        elif fragmented and (complete_match := self._DOWNLOAD_COMPLETE_RE.search(line)):
-            frag_index = status['fragment_index'] + 1
-            frag_filename = complete_match.group('filename')
-            try:
-                frag_size = os.path.getsize(frag_filename)
-            except FileNotFoundError:
-                return False
-
-            downloaded_bytes = status['downloaded_bytes'] + frag_size
-            total_estimate = status['fragment_count'] * downloaded_bytes / frag_index
-            status.update({
-                'downloaded_bytes': downloaded_bytes,
-                'total_bytes_estimate': total_estimate,
-                'fragment_index': frag_index,
-                'eta': (total_estimate - downloaded_bytes) / status['speed'] if status['speed'] > 0 else 0,
                 'elapsed': time.time() - start_time,
             })
 
@@ -361,17 +367,14 @@ class Aria2cFD(ExternalFD):
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-c', '--no-conf',
                '--console-log-level=warn', '--summary-interval=0', '--download-result=hide',
-               '--http-accept-gzip=true', '--file-allocation=none', '-x16', '-j16', '-s16']
-        if 'fragments' in info_dict:
-            cmd += ['--allow-overwrite=true', '--allow-piece-length-change=true']
-        else:
-            cmd += ['--min-split-size', '1M']
+               '--http-accept-gzip=true', '--file-allocation=none', '-x16', '-j16', '-s16',
+               '--min-split-size', '1M']
 
-        if self.ydl.cookiejar.get_cookie_header(info_dict['url']):
-            cmd += [f'--load-cookies={self._write_cookies()}']
+        cmd += [f'--load-cookies={self._write_cookies()}']
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', f'{key}: {val}']
+
         cmd += self._option('--max-overall-download-limit', 'ratelimit')
         cmd += self._option('--interface', 'source_address')
         cmd += self._option('--all-proxy', 'proxy')
@@ -383,14 +386,8 @@ class Aria2cFD(ExternalFD):
         self._quiet = any(i in cmd for i in ('-q', '--quiet', '--quiet=true'))
         self._log_level = self._determine_user_log_level(cmd)
 
-        # Clear parameters that interfere with our parsing, but force them later
         params_to_clear = ('-q', '--quiet', '--human-readable', '--truncate-console-readout', '--show-console-readout')
-        if 'fragments' in info_dict and self._log_level > self._LOG_LEVELS['notice']:
-            params_to_clear += ('--console-log-level',)
-
         cmd = [i for i in cmd if not i.startswith(params_to_clear)]
-
-        # Force our required parameters for parsing
         cmd += ['--quiet=false', '--human-readable=false', '--truncate-console-readout=false', '--show-console-readout=true']
 
         # aria2c strips out spaces from the beginning/end of filenames and paths.
@@ -402,23 +399,15 @@ class Aria2cFD(ExternalFD):
         dn = os.path.dirname(tmpfilename)
         if dn:
             cmd += ['--dir', self._aria2c_filename(dn) + os.path.sep]
-        if 'fragments' not in info_dict:
-            cmd += ['--out', self._aria2c_filename(os.path.basename(tmpfilename))]
-        cmd += ['--auto-file-renaming=false']
 
-        if 'fragments' in info_dict:
-            cmd += ['--uri-selector=inorder']
-            url_list_file = f'{tmpfilename}.frag.urls'
-            url_list = []
-            for frag_index, fragment in enumerate(info_dict['fragments']):
-                fragment_filename = f'{os.path.basename(tmpfilename)}-Frag{frag_index}'
-                url_list.append('{}\n\tout={}'.format(fragment['url'], self._aria2c_filename(fragment_filename)))
-            stream, _ = self.sanitize_open(url_list_file, 'wb')
-            stream.write('\n'.join(url_list).encode())
-            stream.close()
-            cmd += ['-i', self._aria2c_filename(url_list_file)]
-        else:
-            cmd += ['--', info_dict['url']]
+        cmd += [
+            '--out',
+            self._aria2c_filename(os.path.basename(tmpfilename)),
+            '--auto-file-renaming=false',
+            '--',
+            info_dict['url'],
+        ]
+
         return cmd
 
     def _call_process(self, cmd, info_dict):
@@ -426,12 +415,6 @@ class Aria2cFD(ExternalFD):
         if sys.platform != 'win32' and which('stdbuf'):
             cmd = ['stdbuf', '-o0', *cmd]
 
-        # Workaround for HLS streams not passing hooks correctly
-        for hook in self.ydl._progress_hooks:
-            if hook not in self._progress_hooks:
-                self.add_progress_hook(hook)
-
-        fragmented = 'fragments' in info_dict
         start_time = time.time()
         status = {
             'filename': info_dict.get('_filename'),
@@ -439,8 +422,6 @@ class Aria2cFD(ExternalFD):
             'elapsed': 0,
             'speed': 0,
             'downloaded_bytes': 0,
-            'fragment_count': len(info_dict['fragments']) if fragmented else None,
-            'fragment_index': 0 if fragmented else None,
             'total_bytes': None,
             'total_bytes_estimate': None,
             'info_dict': info_dict,
@@ -458,7 +439,7 @@ class Aria2cFD(ExternalFD):
                     if (
                         not line
                         or self._parse_line(line, status, start_time)
-                        or not self._can_print_line(line, fragmented, self._quiet, self._log_level)
+                        or not self._can_print_line(line, self._quiet, self._log_level)
                     ):
                         continue
 
@@ -562,10 +543,11 @@ class FFmpegFD(ExternalFD):
                 args.extend(['-cookies', ''.join(
                     f'{cookie.name}={cookie.value}; path={cookie.path}; domain={cookie.domain};\r\n'
                     for cookie in cookies)])
-            if fmt.get('http_headers') and is_http:
+            http_headers = fmt.get('http_headers') or info_dict.get('http_headers')
+            if http_headers and is_http:
                 # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg:
                 # [http @ 00000000003d2fa0] No trailing CRLF found in HTTP header.
-                args.extend(['-headers', ''.join(f'{key}: {val}\r\n' for key, val in fmt['http_headers'].items())])
+                args.extend(['-headers', ''.join(f'{key}: {val}\r\n' for key, val in http_headers.items())])
 
             if start_time:
                 args += ['-ss', str(start_time)]

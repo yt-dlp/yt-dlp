@@ -71,6 +71,8 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'watch\.telusoriginals\.com',
         r'video\.unext\.jp',
         r'www\.web\.nhk',
+        r'fod\.fujitv\.co\.jp',
+        r'zee5\.com',
     )
 
     _TESTS = [{
@@ -252,6 +254,14 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         # https://github.com/yt-dlp/yt-dlp/issues/14620
         'url': 'https://www.web.nhk/tv/an/72hours/pl/series-tep-W3W8WRN8M3/ep/QW8ZY6146V',
         'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/7064
+        # https://github.com/yt-dlp/yt-dlp/issues/10264
+        'url': 'https://fod.fujitv.co.jp/title/709f/709f130001/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.zee5.com/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -291,6 +301,8 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
         r'einthusan\.(?:tv|com|ca)',
         r'yourupload\.com',
         r'xanimu\.com',
+        r'musicdex\.org',
+        r'duboku\.io',
     )
 
     _TESTS = [{
