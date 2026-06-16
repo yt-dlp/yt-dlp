@@ -380,8 +380,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 else 'is_live' if 'THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE' in thumbnail_badge_styles
                 else 'was_live' if relative_time_text and 'streamed' in relative_time_text
                 else None),
-            # XXX: YouTube gives us nothing to differentiate 'public' from 'unlisted' anymore
-            availability=self._availability(needs_subscription='BADGE_MEMBERS_ONLY' in badge_styles) or 'public',
+            # XXX: We cannot assume 'public' since we have no way to differentiate from 'unlisted'
+            availability=self._availability(needs_subscription='BADGE_MEMBERS_ONLY' in badge_styles),
             channel_url=format_field(channel_info, 'channel_id', 'https://www.youtube.com/channel/%s', default=None),
             uploader_url=format_field(channel_info, 'uploader_id', 'https://www.youtube.com/%s', default=None),
             **channel_info)
@@ -1659,7 +1659,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 'uploader_id': '@BlenderOfficial',
                 'uploader_url': 'https://www.youtube.com/@BlenderOfficial',
                 'uploader': 'Blender',
-                'availability': 'public',
             },
         }],
         'playlist_count': 1,
