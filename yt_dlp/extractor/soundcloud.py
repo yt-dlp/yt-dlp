@@ -446,11 +446,13 @@ class SoundcloudBaseIE(InfoExtractor):
                 f'Available filters: {", ".join(available_filters)}',
             )
         elif sort_by not in available_filters:
-            raise ExtractorError(f'Invalid comment_sort_by filter: {sort_by}', expected=True)
+            raise ExtractorError(f'Invalid comments_sort_by filter: {sort_by}', expected=True)
         else:
             self.to_screen(f'Sorting comments by {sort_by}')
 
-        lc_ts, lc_id, lc_author_id = None, None, None
+        last_timestamp = None
+        last_comment_id = None
+        last_author_id = None
         next_url = update_url_query(
             f'{self._API_V2_BASE}tracks/{track_id}/comments', {
                 'sort': sort_by,
