@@ -1,7 +1,3 @@
-import base64
-import datetime as dt
-import hashlib
-import hmac
 import json
 import random
 import re
@@ -14,6 +10,7 @@ from ..utils import (
     UserNotLive,
     encode_data_uri,
     float_or_none,
+    jwt_decode_hs256,
     parse_iso8601,
     parse_qs,
     traverse_obj,
@@ -23,41 +20,40 @@ from ..utils import (
 
 class RPlayBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'rplaylive'
-    _TOKEN_CACHE = {}
     _user_id = None
+    _refresh_token = None
     _jwt_token = None
-    _tested_jwt = False
-
-    def _check_jwt_args(self):
-        jwt_arg = self._configuration_arg('jwt_token', ie_key='rplaylive', casesense=True)
-        if self._jwt_token is None and jwt_arg and not self._tested_jwt:
-            self.report_warning('rplaylive:jwt_token is deprecated in favor of using '
-                                '--username jwt --password <token> instead', only_once=True)
-            self._login_by_token(jwt_arg[0], raw_token_hint=True)
-            self._tested_jwt = True
 
     @property
     def user_id(self):
-        self._check_jwt_args()
         return self._user_id
 
     @property
     def jwt_token(self):
-        self._check_jwt_args()
+        if self._jwt_token and jwt_decode_hs256(self._jwt_token)['exp'] - time.time() < 240:
+            self._perform_refresh()
         return self._jwt_token
 
     @property
     def requestor_query(self):
         return {
             'requestorOid': self.user_id,
-            'loginType': 'plax',
+            'loginType': 'rplay',
         } if self.user_id else {}
+
+    @property
+    def refresh_token_header(self):
+        return {
+            'Origin': 'https://rplay.live',
+            'Referer': 'https://rplay.live/',
+            'Platform-Type': 'rplay',
+            **({'Refresh-Token': self._refresh_token} if self._refresh_token else {}),
+        }
 
     @property
     def jwt_header(self):
         return {
-            'Origin': 'https://rplay.live',
-            'Referer': 'https://rplay.live/',
+            **self.refresh_token_header,
             'Authorization': self.jwt_token or 'null',
         }
 
@@ -71,47 +67,40 @@ class RPlayBaseIE(InfoExtractor):
 
     def _login_hint(self, *args, **kwargs):
         return (f'Use --username and --password, --netrc-cmd, --netrc ({self._NETRC_MACHINE}) '
-                'to provide account credentials. For third-party login, use --username jwt '
-                '--password <token> to pass JWT token')
-
-    def _jwt_encode_hs256(self, payload: dict, key: str):
-        # yt_dlp.utils.jwt_encode_hs256() uses slightly different details that would fail
-        # and we need to re-implement it with minor changes
-        b64encode = lambda x: base64.urlsafe_b64encode(
-            json.dumps(x, separators=(',', ':')).encode()).strip(b'=')
-
-        header_b64 = b64encode({'alg': 'HS256', 'typ': 'JWT'})
-        payload_b64 = b64encode(payload)
-        h = hmac.new(key.encode(), header_b64 + b'.' + payload_b64, hashlib.sha256)
-        signature_b64 = base64.urlsafe_b64encode(h.digest()).strip(b'=')
-        return header_b64 + b'.' + payload_b64 + b'.' + signature_b64
+                'to provide account credentials. For third-party login, use --username <requestorOid> '
+                '--password <refresh-token> to pass credential (find oid in query and token in header).')
 
     def _perform_login(self, username, password):
-        if username == 'jwt':  # safe to do this since not an email
-            self._login_by_token(password, raw_token_hint=True)
-        else:
-            payload = {
-                'eml': username,
-                'dat': dt.datetime.now(dt.timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z'),
-                'iat': int(time.time()),
-            }
-            key = hashlib.sha256(password.encode()).hexdigest()
-            self._login_by_token(self._jwt_encode_hs256(payload, key).decode())
-
-    def _login_by_token(self, jwt_token, raw_token_hint=False):
-        user_info = self._download_json(
-            'https://api.rplay.live/account/login', 'login', note='performing login', errnote='login failed',
-            data=f'{{"token":"{jwt_token}","loginType":null,"checkAdmin":null}}'.encode(),
-            headers={'Content-Type': 'application/json', 'Authorization': 'null'}, fatal=False)
-
-        if user_info:
-            self._user_id = traverse_obj(user_info, 'oid')
-            self._jwt_token = jwt_token if self._user_id else None
-        if not self._user_id:
-            if raw_token_hint:
-                self.report_warning('Login failed, possibly due to wrong or expired JWT token')
+        if '@' in username:
+            result = self._download_json(
+                'https://api.rplay.live/rplay/account/login', 'login', note='performing email login',
+                data=json.dumps({'accountType': 'plax', 'email': username, 'password': password}).encode(),
+                headers={'Content-Type': 'application/json'}, fatal=False)
+            if traverse_obj(result, 'success'):
+                self._refresh_token = result['refreshToken']
+                self._jwt_token = result['token']
+                self._user_id = result['user']['_id']
             else:
-                self.report_warning('Login failed, possibly due to wrong password or website change')
+                self.report_warning('Failed to login using email password')
+        elif re.match(r'[0-9a-f]{24}', username):
+            self._user_id = username
+            self._refresh_token = password
+            self._perform_refresh()
+            if not self._jwt_token:
+                self.report_warning('Invalid refresh token, make sure you take requestorOid (NOT creatorOid) and '
+                                    'refresh-token (NOT authorization JWT token)')
+        else:
+            self.report_warning('only email + password, or requestorOid + refresh-token can be used for login')
+
+    def _perform_refresh(self):
+        result = self._download_json(
+            'https://api.rplay.live/rplay/account/refresh-token', 'refresh', note='refreshing token',
+            data=json.dumps({'requestorOid': self._user_id}).encode(),
+            headers={'Content-Type': 'application/json', **self.refresh_token_header}, fatal=False)
+        if jwt := traverse_obj(result, ('accessToken', {str})):
+            self._jwt_token = jwt
+        else:
+            self.report_warning('Failed to refresh jwt token')
 
     def get_butter_token(self):
         salt = b'QWI@(!WAS)Dj1AA(!@*DJ#@$@~1)P'
