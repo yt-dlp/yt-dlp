@@ -467,13 +467,16 @@ class SoundcloudBaseIE(InfoExtractor):
                 parent = 'root'
                 comment_id = comment_dict['id']
                 comment_ts = comment_dict.get('timestamp')
-                author_id = traverse_obj(comment_dict, (('user_id', ('user', 'id')), {str_or_none}, any))
-                if (lc_ts is not None and (comment_ts == lc_ts)) or (lc_author_id == author_id):
-                    parent = str(lc_id)
+                author_id = traverse_obj(comment_dict, ('user', 'id', {str_or_none}))
+                # Timestamp is key for filtering parent and root comments.
+                # Every same Timestamp is parent of root comment that has same timestamp but older created_at.
+                # Every User has only one root comment and all other comment of same user will parent of their own comment.
+                if (last_timestamp is not None and (comment_ts == last_timestamp)) or (last_author_id == author_id):
+                    parent = str(last_comment_id)
                 else:
-                    lc_id = comment_id
-                lc_author_id = author_id
-                lc_ts = comment_ts
+                    last_comment_id = comment_id
+                last_author_id = author_id
+                last_timestamp = comment_ts
 
                 yield {
                     'id': str_or_none(comment_id),
