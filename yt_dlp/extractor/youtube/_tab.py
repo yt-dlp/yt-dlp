@@ -336,6 +336,14 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         lockup_mdvm = traverse_obj(view_model, ('metadata', 'lockupMetadataViewModel', {dict}))
         content_mdvm = traverse_obj(lockup_mdvm, ('metadata', 'contentMetadataViewModel', {dict}))
 
+        thumbnail_badge_view_models = traverse_obj(view_model, (
+            'contentImage', 'thumbnailViewModel', 'overlays', ..., (
+                ('thumbnailBottomOverlayViewModel', 'badges'),
+                ('thumbnailOverlayBadgeViewModel', 'thumbnailBadges'),
+            ), ..., 'thumbnailBadgeViewModel', {dict}))
+        duration_text = traverse_obj(thumbnail_badge_view_models, (..., 'text', {str.lower}, any))
+        thumbnail_badge_styles = traverse_obj(thumbnail_badge_view_models, (..., 'badgeStyle', {str}))
+
         channel_info = traverse_obj(content_mdvm, (
             'metadataRows', ..., 'metadataParts',
             lambda _, v: v['text']['commandRuns'][0]['onTap']['innertubeCommand']['browseEndpoint']['browseId'],
@@ -346,24 +354,34 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 'uploader_id': ('commandRuns', 0, 'onTap', 'innertubeCommand', 'browseEndpoint', 'canonicalBaseUrl', {self.handle_from_url}),
             }))
 
-        views_and_date = traverse_obj(content_mdvm, (
-            'metadataRows', lambda _, v: len(v['metadataParts']) == 2 and 'accessibilityLabel' in v['metadataParts'][1],
+        views_and_time = traverse_obj(content_mdvm, (
+            'metadataRows', lambda _, v: 'accessibilityLabel' in v['metadataParts'][-1],
             'metadataParts', ...))
+        relative_time_text = traverse_obj(views_and_time, (-1, 'text', 'content', {str.lower}))
 
-        # This can be tested with TestDownload.test_YoutubeTab_25 (PLt5yu3-wZAlQLfIN0MMgp0wVV6MP3bM4_)
+        badge_styles = traverse_obj(content_mdvm, (
+            'metadataRows', ..., 'badges', ..., 'badgeViewModel', 'badgeStyle', {str}))
+
         return self.url_result(
             url, ie, content_id,
             title=traverse_obj(lockup_mdvm, ('title', 'content', {str})),
             thumbnails=self._extract_thumbnails(view_model, (
                 'contentImage', *thumb_keys, 'thumbnailViewModel', 'image'), final_key='sources'),
-            duration=traverse_obj(view_model, (
-                'contentImage', 'thumbnailViewModel', 'overlays', ...,
-                (('thumbnailBottomOverlayViewModel', 'badges'), ('thumbnailOverlayBadgeViewModel', 'thumbnailBadges')),
-                ..., 'thumbnailBadgeViewModel', 'text', {parse_duration}, any)),
-            view_count=traverse_obj(views_and_date, (0, 'text', 'content', {parse_count})),
-            timestamp=(traverse_obj(views_and_date, (
-                1, 'accessibilityLabel', {lambda t: self._parse_time_text(t, report_failure=False)}, any))
+            duration=parse_duration(duration_text),
+            view_count=(
+                traverse_obj(views_and_time, (0, 'text', 'content', {parse_count}))
+                # view_count isn't always available; only extract if this metadataRow is 2 metadataParts
+                if len(views_and_time) == 2 else None),
+            timestamp=(
+                self._parse_time_text(relative_time_text, report_failure=False)
                 if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE) else None),
+            live_status=(
+                'is_upcoming' if duration_text == 'upcoming'
+                else 'is_live' if 'THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE' in thumbnail_badge_styles
+                else 'was_live' if relative_time_text and 'streamed' in relative_time_text
+                else None),
+            # XXX: YouTube gives us nothing to differentiate 'public' from 'unlisted' anymore
+            availability=self._availability(needs_subscription='BADGE_MEMBERS_ONLY' in badge_styles) or 'public',
             channel_url=format_field(channel_info, 'channel_id', 'https://www.youtube.com/channel/%s', default=None),
             uploader_url=format_field(channel_info, 'uploader_id', 'https://www.youtube.com/%s', default=None),
             **channel_info)
@@ -1608,6 +1626,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_count': 50,
         'expected_warnings': ['YouTube Music is not directly supported'],
     }, {
+        # YoutubeTab_25: use to test _extract_lockup_view_model
         'note': 'unlisted single video playlist',
         'url': 'https://www.youtube.com/playlist?list=PLt5yu3-wZAlQLfIN0MMgp0wVV6MP3bM4_',
         'info_dict': {
@@ -1640,6 +1659,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 'uploader_id': '@BlenderOfficial',
                 'uploader_url': 'https://www.youtube.com/@BlenderOfficial',
                 'uploader': 'Blender',
+                'availability': 'public',
             },
         }],
         'playlist_count': 1,
