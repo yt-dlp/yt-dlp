@@ -752,8 +752,15 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             })
 
         channel_badges = self._extract_badges(traverse_obj(data, ('header', ..., 'badges'), get_all=False))
-        if self._has_badge(channel_badges, BadgeType.VERIFIED):
+        if (
+            self._has_badge(channel_badges, BadgeType.VERIFIED)
+            or 'CHECK_CIRCLE_FILLED' in traverse_obj(page_header_view_model, (
+                'title', 'dynamicTextViewModel', 'text', 'attachmentRuns', ..., 'element', 'type',
+                'imageType', 'image', 'sources', ..., 'clientResource', 'imageName', {str},
+            ))
+        ):
             info['channel_is_verified'] = True
+
         # Playlist stats is a text runs array containing [video count, view count, last updated].
         # last updated or (view count and last updated) may be missing.
         playlist_stats = get_first(
