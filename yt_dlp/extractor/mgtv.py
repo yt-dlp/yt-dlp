@@ -78,13 +78,33 @@ class MGTVIE(InfoExtractor):
         video_id = self._match_id(url)
         tk2 = base64.urlsafe_b64encode(
             f'did={uuid.uuid4()}|pno=1030|ver=0.3.0301|clit={int(time.time())}'.encode())[::-1]
+
+        headers = {
+            **self.geo_verification_headers(),
+            'Referer': 'https://w.mgtv.com/',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.9,km;q=0.8',
+        }
+
+        cookie_header = self.cookiejar.get_cookie_header('https://www.mgtv.com')
+        if cookie_header:
+            headers['Cookie'] = cookie_header
+            self.write_debug('MGTV: sending cookie header to API requests')
+        else:
+            self.write_debug('MGTV: no cookie header found for https://www.mgtv.com')
+
         try:
             api_data = self._download_json(
-                'https://pcweb.api.mgtv.com/player/video', video_id, query={
+                'https://pcweb.api.mgtv.com/player/video',
+                video_id,
+                query={
                     'tk2': tk2,
                     'video_id': video_id,
                     'type': 'pch5',
-                }, headers=self.geo_verification_headers())['data']
+                },
+                headers=headers,
+            )['data']
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                 error = self._parse_json(e.cause.response.read().decode(), None)
@@ -93,14 +113,29 @@ class MGTVIE(InfoExtractor):
                 raise ExtractorError(error['msg'], expected=True)
             raise
 
+        abroad = self._search_regex(
+            r'(?:^|;\s*)abroad=([^;]+)', cookie_header or '', 'abroad cookie', default='10')
+
         stream_data = self._download_json(
-            'https://pcweb.api.mgtv.com/player/getSource', video_id, query={
+            'https://tinker.glb.mgtv.com/player/getSource',
+            video_id,
+            query={
+                '_support': '10000000',
                 'tk2': tk2,
                 'pm2': api_data['atc']['pm2'],
                 'video_id': video_id,
                 'type': 'pch5',
+                'auth_mode': '1',
+                'cxid': '',
+                'supportMse': '1',
                 'src': 'intelmgtv',
-            }, headers=self.geo_verification_headers())['data']
+                'abroad': abroad,
+                'allowedRC': '1',
+            },
+            headers=headers,
+        )['data']
+        self.write_debug('MGTV: using tinker.glb.mgtv.com getSource with auth_mode=1')
+
         stream_domain = traverse_obj(stream_data, ('stream_domain', ..., {url_or_none}), get_all=False)
 
         formats = []
@@ -110,7 +145,8 @@ class MGTVIE(InfoExtractor):
                 self._RESOLUTIONS, (stream_name, 1 if stream.get('scale') == '16:9' else 0))
             format_url = traverse_obj(self._download_json(
                 urljoin(stream_domain, stream['url']), video_id, fatal=False,
-                note=f'Downloading video info for format {resolution or stream_name}'),
+                note=f'Downloading video info for format {resolution or stream_name}',
+                headers=headers),
                 ('info', {url_or_none}))
             if not format_url:
                 continue
