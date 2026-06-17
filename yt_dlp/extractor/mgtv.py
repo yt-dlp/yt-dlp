@@ -78,22 +78,13 @@ class MGTVIE(InfoExtractor):
         video_id = self._match_id(url)
         tk2 = base64.urlsafe_b64encode(
             f'did={uuid.uuid4()}|pno=1030|ver=0.3.0301|clit={int(time.time())}'.encode())[::-1]
-
-        headers = {
-            **self.geo_verification_headers(),
-            'Referer': 'https://w.mgtv.com/',
-        }
-
-
         try:
             api_data = self._download_json(
                 'https://pcweb.api.mgtv.com/player/video', video_id, query={
                     'tk2': tk2,
                     'video_id': video_id,
                     'type': 'pch5',
-                },
-                headers=headers,
-            )['data']
+                }, headers=self.geo_verification_headers())['data']
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                 error = self._parse_json(e.cause.response.read().decode(), None)
@@ -103,9 +94,7 @@ class MGTVIE(InfoExtractor):
             raise
 
         stream_data = self._download_json(
-            'https://tinker.glb.mgtv.com/player/getSource',
-            video_id,
-            query={
+            'https://tinker.glb.mgtv.com/player/getSource', video_id, query={
                 '_support': '10000000',
                 'tk2': tk2,
                 'pm2': api_data['atc']['pm2'],
@@ -117,10 +106,7 @@ class MGTVIE(InfoExtractor):
                 'src': 'intelmgtv',
                 'abroad': try_call(lambda: self._get_cookies('https://www.mgtv.com')['abroad'].value) or '10',
                 'allowedRC': '1',
-            },
-            headers=headers,
-        )['data']
-
+            }, headers=self.geo_verification_headers())['data']
         stream_domain = traverse_obj(stream_data, ('stream_domain', ..., {url_or_none}), get_all=False)
 
         formats = []
@@ -131,7 +117,7 @@ class MGTVIE(InfoExtractor):
             format_url = traverse_obj(self._download_json(
                 urljoin(stream_domain, stream['url']), video_id, fatal=False,
                 note=f'Downloading video info for format {resolution or stream_name}',
-                headers=headers),
+                headers=self.geo_verification_headers()),
                 ('info', {url_or_none}))
             if not format_url:
                 continue
