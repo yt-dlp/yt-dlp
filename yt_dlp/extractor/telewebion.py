@@ -56,7 +56,7 @@ class TelewebionIE(InfoExtractor):
             'tags': ['کلیپ های منتخب', ' کلیپ طنز ', ' کلیپ سیاست ', 'پاورقی', 'ویژه فلسطین'],
             'thumbnail': 'https://static.telewebion.ir/episodeImages/871e9455-7567-49a5-9648-34c22c197f5f/default',
         },
-        'skip_download': 'm3u8',
+        'skip': 'Dead link',
     }]
 
     def _call_graphql_api(
