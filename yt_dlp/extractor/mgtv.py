@@ -115,7 +115,7 @@ class MGTVIE(InfoExtractor):
                 'cxid': '',
                 'supportMse': '1',
                 'src': 'intelmgtv',
-                'abroad': abroad,
+                'abroad': try_call(lambda: self._get_cookies('https://www.mgtv.com')['abroad'].value) or '10',
                 'allowedRC': '1',
             },
             headers=headers,
