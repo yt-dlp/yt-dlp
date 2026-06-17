@@ -35,7 +35,7 @@ class TelewebionIE(InfoExtractor):
             'tags': ['ورزشی', 'لیگ اروپا', 'اروپا'],
             'thumbnail': 'https://static.telewebion.ir/episodeImages/YjFhM2MxMDBkMDNiZTU0MjE5YjQ3ZDY0Mjk1ZDE0ZmUwZWU3OTE3OWRmMDAyODNhNzNkNjdmMWMzMWIyM2NmMA/default',
         },
-        'skip_download': 'm3u8',
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://telewebion.ir/episode/162175536',
         'info_dict': {
