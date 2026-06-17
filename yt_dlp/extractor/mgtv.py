@@ -9,6 +9,7 @@ from ..utils import (
     int_or_none,
     parse_resolution,
     traverse_obj,
+    try_call,
     try_get,
     url_or_none,
     urljoin,
