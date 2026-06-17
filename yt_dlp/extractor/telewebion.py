@@ -14,7 +14,7 @@ def _fmt_url(url):
 
 
 class TelewebionIE(InfoExtractor):
-    _WORKING = False
+    _WORKING = True
     _VALID_URL = r'https?://(?:www\.)?telewebion\.ir/episode/(?P<id>(?:0x[a-fA-F\d]+|\d+))'
     _TESTS = [{
         'url': 'http://www.telewebion.ir/episode/0x1b3139c/',
