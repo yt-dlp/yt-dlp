@@ -4,6 +4,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     OnDemandPagedList,
+    filter_dict,
     format_field,
     int_or_none,
     parse_resolution,
@@ -1358,7 +1359,7 @@ class PeerTubeIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'E2E tests',
             'categories': ['Unknown'],
-            'channel': 'Main chocobozzz channel',
+            'channel': 'Chocobozzz test channel',
             'channel_id': '5187',
             'channel_url': 'https://peertube2.cpy.re/video-channels/chocobozzz_channel',
             'description': 'md5:67daf92c833c41c95db874e18fcb2786',
@@ -1382,7 +1383,7 @@ class PeerTubeIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'E2E tests',
             'categories': ['Unknown'],
-            'channel': 'Main chocobozzz channel',
+            'channel': 'Chocobozzz test channel',
             'channel_id': '5187',
             'channel_url': 'https://peertube2.cpy.re/video-channels/chocobozzz_channel',
             'description': 'md5:67daf92c833c41c95db874e18fcb2786',
@@ -1406,7 +1407,7 @@ class PeerTubeIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'E2E tests',
             'categories': ['Unknown'],
-            'channel': 'Main chocobozzz channel',
+            'channel': 'Chocobozzz test channel',
             'channel_id': '5187',
             'channel_url': 'https://peertube2.cpy.re/video-channels/chocobozzz_channel',
             'description': 'md5:67daf92c833c41c95db874e18fcb2786',
@@ -1452,6 +1453,36 @@ class PeerTubeIE(InfoExtractor):
     }, {
         'url': 'peertube:framatube.org:b37a5b9f-e6b5-415c-b700-04a5cd6ec205',
         'only_matching': True,
+    }, {
+        'url': 'https://videos.john-livingston.fr/w/mna1A6SxZ94cra4hMtjRQm',
+        'md5': '6a5faad22916e41ba4078ef59c33bc9f',
+        'info_dict': {
+            'id': 'mna1A6SxZ94cra4hMtjRQm',
+            'ext': 'mp4',
+            'title': 'test yt-dlp',
+            'description': 'md5:d8556ee790ad9b3fac6f0bb3eb5b67bd',
+            'thumbnail': r're:https?://videos.john-livingston\.fr/lazy-static/thumbnails/.+\.jpg',
+            'timestamp': 1780645286,
+            'upload_date': '20260605',
+            'uploader': 'John Livingston',
+            'uploader_id': '5',
+            'uploader_url': 'https://videos.john-livingston.fr/accounts/john',
+            'channel': 'john_livingston',
+            'channel_id': '4',
+            'channel_url': 'https://videos.john-livingston.fr/video-channels/john_livingston',
+            'license': 'Unknown',
+            'duration': 16,
+            'view_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'tags': 'count:0',
+            'categories': ['Unknown'],
+        },
+        'params': {
+            'videopassword': 'thepassword',
+            'format': '600p',
+        },
+        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://video.macver.org/w/6gvhZpUGQVd4SQ6oYDc9pC',
@@ -1492,6 +1523,9 @@ class PeerTubeIE(InfoExtractor):
                 '>We are sorry but it seems that PeerTube is not compatible with your web browser.<')):
             return 'peertube:{}:{}'.format(*mobj.group('host', 'id'))
 
+    def _get_headers(self):
+        return filter_dict({'x-peertube-video-password': self.get_param('videopassword')})
+
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
         embeds = tuple(super()._extract_embed_urls(url, webpage))
@@ -1505,7 +1539,7 @@ class PeerTubeIE(InfoExtractor):
     def _call_api(self, host, video_id, path, note=None, errnote=None, fatal=True):
         return self._download_json(
             self._API_BASE % (host, video_id, path), video_id,
-            note=note, errnote=errnote, fatal=fatal)
+            note=note, errnote=errnote, fatal=fatal, headers=self._get_headers())
 
     def _get_subtitles(self, host, video_id):
         captions = self._call_api(
@@ -1545,7 +1579,7 @@ class PeerTubeIE(InfoExtractor):
             if playlist_url := url_or_none(playlist.get('playlistUrl')):
                 is_live = True
                 formats.extend(self._extract_m3u8_formats(
-                    playlist_url, video_id, fatal=False, live=True))
+                    playlist_url, video_id, fatal=False, live=True, headers=self._get_headers()))
             playlist_files = playlist.get('files')
             if not (playlist_files and isinstance(playlist_files, list)):
                 continue
@@ -1629,6 +1663,8 @@ class PeerTubeIE(InfoExtractor):
             'subtitles': subtitles,
             'is_live': is_live,
             'webpage_url': webpage_url,
+            # Headers are needed for ALL format requests, but not thumbnails
+            'http_headers': self._get_headers(),
         }
 
 
