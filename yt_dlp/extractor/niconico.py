@@ -428,7 +428,7 @@ class NiconicoIE(NiconicoBaseIE):
                 'actionTrackId': f'AAAAAAAAAA_{round(time_seconds() * 1000)}',
             }, expected_status=[400, 404])
 
-        api_data = api_resp['data']
+        api_data = traverse_obj(api_resp, ('data', {dict}))
         scheduled_time = traverse_obj(api_data, ('publishScheduledAt', {str}))
         status = traverse_obj(api_resp, ('meta', 'status', {int}))
 
