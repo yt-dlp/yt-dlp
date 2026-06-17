@@ -1369,7 +1369,7 @@ The only reliable way to check if a site is supported is to try it.
  - **TeleQuebecSquat**
  - **TeleQuebecVideo**
  - **TeleTask**: (**Currently broken**)
- - **Telewebion**: (**Currently broken**)
+ - **Telewebion**
  - **TennisTV**: [*tennistv*](## "netrc machine")
  - **TF1**
  - **TFO**: (**Currently broken**)
