@@ -84,12 +84,6 @@ class MGTVIE(InfoExtractor):
             'Referer': 'https://w.mgtv.com/',
         }
 
-        cookie_header = self.cookiejar.get_cookie_header('https://www.mgtv.com')
-        if cookie_header:
-            headers['Cookie'] = cookie_header
-            self.write_debug('MGTV: sending cookie header to API requests')
-        else:
-            self.write_debug('MGTV: no cookie header found for https://www.mgtv.com')
 
         try:
             api_data = self._download_json(
