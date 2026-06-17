@@ -1166,6 +1166,16 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         # PRELOADED_STATE with current programmme
         current_programme = traverse_obj(preload_state, ('programmes', 'current', {dict}))
         programme_id = traverse_obj(current_programme, ('id', {str}))
+        if not (programme_id and current_programme.get('type') == 'playable_item'):
+            # BBC Sounds migrated to Next.js __NEXT_DATA__ with dehydrated React Query state at some point
+            # so cover that edge case off
+            current_programme = traverse_obj(
+                self._search_nextjs_data(webpage, playlist_id, default={}), (
+                    'props', 'pageProps', 'dehydratedState', 'queries', ...,
+                    'state', 'data', 'data', ..., 'data',
+                    lambda _, v: v.get('type') == 'playable_item' and v.get('urn', '').endswith(playlist_id),
+                    any))
+            programme_id = traverse_obj(current_programme, ('id', {str}))
         if programme_id and current_programme.get('type') == 'playable_item':
             title = traverse_obj(current_programme, ('titles', ('tertiary', 'secondary'), {str}, any)) or playlist_title
             formats, subtitles = self._download_media_selector(programme_id)
