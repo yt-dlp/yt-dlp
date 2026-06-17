@@ -87,9 +87,7 @@ class MGTVIE(InfoExtractor):
 
         try:
             api_data = self._download_json(
-                'https://pcweb.api.mgtv.com/player/video',
-                video_id,
-                query={
+                'https://pcweb.api.mgtv.com/player/video', video_id, query={
                     'tk2': tk2,
                     'video_id': video_id,
                     'type': 'pch5',
