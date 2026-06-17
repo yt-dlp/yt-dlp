@@ -82,9 +82,6 @@ class MGTVIE(InfoExtractor):
         headers = {
             **self.geo_verification_headers(),
             'Referer': 'https://w.mgtv.com/',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
-            'Accept': '*/*',
-            'Accept-Language': 'en-US,en;q=0.9,km;q=0.8',
         }
 
         cookie_header = self.cookiejar.get_cookie_header('https://www.mgtv.com')
