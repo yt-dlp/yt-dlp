@@ -166,7 +166,7 @@ class MxplayerIE(InfoExtractor):
             video_type = 'episode'
 
         data_json = self._download_json(
-            f'https://api.mxplay.com/v1/web/detail/video?type={video_type}&id={video_id}', display_id)
+            f'https://api.mxplayer.in/v1/web/detail/video?type={video_type}&id={video_id}', display_id)
 
         formats, subtitles = [], {}
         m3u8_url = urljoin('https://llvod.mxplay.com/', traverse_obj(
