@@ -120,7 +120,6 @@ class MGTVIE(InfoExtractor):
             },
             headers=headers,
         )['data']
-        self.write_debug('MGTV: using tinker.glb.mgtv.com getSource with auth_mode=1')
 
         stream_domain = traverse_obj(stream_data, ('stream_domain', ..., {url_or_none}), get_all=False)
 
