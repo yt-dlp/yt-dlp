@@ -16,12 +16,12 @@ class MxplayerIE(InfoExtractor):
             'display_id': 'episode-1-online',
             'ext': 'mp4',
             'title': 'Episode 1',
-            'description': 'md5:62ed43eb9fec5efde5cf3bd1040b7670',
+            'description': 'md5:e90dc55a393f557049284eb36efdb773',
             'season_number': 1,
             'episode_number': 1,
             'duration': 2451,
             'season': 'Season 1',
-            'series': 'My Girlfriend Is An Alien (Hindi Dubbed)',
+            'series': 'My Girlfriend Is An Alien',
             'episode': 'Episode 1',
         },
         'params': {
@@ -74,7 +74,7 @@ class MxplayerIE(InfoExtractor):
             'episode_number': 3,
             'duration': 2568,
             'season': 'Season 1',
-            'series': 'Aashram',
+            'series': 'Ek Badnaam Aashram',
             'episode': 'Episode 3',
         },
         'params': {
@@ -128,16 +128,17 @@ class MxplayerIE(InfoExtractor):
             'format': 'bv',
             'skip_download': True,
         },
+        'skip': 'video removed',
     }, {
         'url': 'https://www.mxplayer.in/show/watch-ek-thi-begum-hindi/season-2/game-of-power-online-5e5305c28f1409847cdc4520b6ad77cf',
         'info_dict': {
             'id': '5e5305c28f1409847cdc4520b6ad77cf',
             'display_id': 'game-of-power-online',
             'title': 'Game Of Power',
-            'duration': 1845,
+            'duration': 1851,
             'ext': 'mp4',
             'description': 'md5:1d0948d2a5312d7013792d53542407f9',
-            'series': 'Ek Thi Begum (Hindi)',
+            'series': 'Ek Thi Begum',
             'season': 'Season 2',
             'season_number': 2,
             'episode': 'Episode 2',
@@ -158,6 +159,7 @@ class MxplayerIE(InfoExtractor):
             'description': 'md5:d17bd5c651016c4ed2e6f8a4ace15534',
         },
         'params': {'skip_download': 'm3u8'},
+        'skip': 'video removed',
     }]
 
     def _real_extract(self, url):
@@ -166,7 +168,7 @@ class MxplayerIE(InfoExtractor):
             video_type = 'episode'
 
         data_json = self._download_json(
-            f'https://api.mxplay.com/v1/web/detail/video?type={video_type}&id={video_id}', display_id)
+            f'https://api.mxplayer.in/v1/web/detail/video?type={video_type}&id={video_id}', display_id)
 
         formats, subtitles = [], {}
         m3u8_url = urljoin('https://llvod.mxplay.com/', traverse_obj(
@@ -208,8 +210,8 @@ class MxplayerShowIE(InfoExtractor):
         },
     }]
 
-    _API_SHOW_URL = 'https://api.mxplay.com/v1/web/detail/tab/tvshowseasons?type=tv_show&id={}&device-density=2&platform=com.mxplay.desktop&content-languages=hi,en'
-    _API_EPISODES_URL = 'https://api.mxplay.com/v1/web/detail/tab/tvshowepisodes?type=season&id={}&device-density=1&platform=com.mxplay.desktop&content-languages=hi,en&{}'
+    _API_SHOW_URL = 'https://api.mxplayer.in/v1/web/detail/tab/tvshowseasons?type=tv_show&id={}&device-density=2&platform=com.mxplay.desktop&content-languages=hi,en'
+    _API_EPISODES_URL = 'https://api.mxplayer.in/v1/web/detail/tab/tvshowepisodes?type=season&id={}&device-density=1&platform=com.mxplay.desktop&content-languages=hi,en&{}'
 
     def _entries(self, show_id):
         show_json = self._download_json(
