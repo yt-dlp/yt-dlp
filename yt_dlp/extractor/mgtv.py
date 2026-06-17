@@ -102,9 +102,6 @@ class MGTVIE(InfoExtractor):
                 raise ExtractorError(error['msg'], expected=True)
             raise
 
-        abroad = self._search_regex(
-            r'(?:^|;\s*)abroad=([^;]+)', cookie_header or '', 'abroad cookie', default='10')
-
         stream_data = self._download_json(
             'https://tinker.glb.mgtv.com/player/getSource',
             video_id,
