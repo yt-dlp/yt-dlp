@@ -568,9 +568,10 @@ def create_parser():
                 'embed-metadata', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
                 'prefer-legacy-http-handler', 'manifest-filesize-approx', 'allow-unsafe-ext', 'prefer-vp9-sort', 'mtime-by-default',
+                'allow-unsafe-exec-expansion',
             }, 'aliases': {
-                'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext', '-prefer-vp9-sort'],
-                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext', '-prefer-vp9-sort'],
+                'youtube-dl': ['all', '-multistreams', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext', '-prefer-vp9-sort', '-allow-unsafe-exec-expansion'],
+                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter', '-manifest-filesize-approx', '-allow-unsafe-ext', '-prefer-vp9-sort', '-allow-unsafe-exec-expansion'],
                 '2021': ['2022', 'no-certifi', 'filename-sanitization'],
                 '2022': ['2023', 'no-external-downloader-progress', 'playlist-match-filter', 'prefer-legacy-http-handler', 'manifest-filesize-approx'],
                 '2023': ['2024', 'prefer-vp9-sort'],
@@ -1769,7 +1770,9 @@ def create_parser():
         help=(
             'Execute a command, optionally prefixed with when to execute it, separated by a ":". '
             'Supported values of "WHEN" are the same as that of --use-postprocessor (default: after_move). '
-            'The same syntax as the output template can be used to pass any field as arguments to the command. '
+            'The same syntax as the output template can be used to pass any field as arguments to the command; '
+            'however, for security reasons the only allowed conversions are: '
+            '"i"/"d" (signed integer decimal), "f" (floating-point decimal) and "q" (shell-quoted). '
             'If no fields are passed, %(filepath,_filename|)q is appended to the end of the command. '
             'This option can be used multiple times'))
     postproc.add_option(
