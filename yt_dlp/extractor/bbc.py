@@ -2,7 +2,6 @@ import functools
 import itertools
 import json
 import re
-import urllib.parse
 import xml.etree.ElementTree
 
 from .common import InfoExtractor
@@ -1557,8 +1556,7 @@ class BBCCoUkArticleIE(InfoExtractor):
 
 class BBCCoUkPlaylistBaseIE(InfoExtractor):
     def _entries(self, webpage, url, playlist_id):
-        single_page = 'page' in urllib.parse.parse_qs(
-            urllib.parse.urlparse(url).query)
+        single_page = 'page' in parse_qs(url)
         for page_num in itertools.count(2):
             for video_id in re.findall(
                     self._VIDEO_ID_TEMPLATE % BBCCoUkIE._ID_REGEX, webpage):
@@ -1567,12 +1565,12 @@ class BBCCoUkPlaylistBaseIE(InfoExtractor):
             if single_page:
                 return
             next_page = self._search_regex(
-                r'<li[^>]+class=(["\'])pagination_+next\1[^>]*><a[^>]+href=(["\'])(?P<url>(?:(?!\2).)+)\2',
+                r'<li[^>]+class=(["\'])pagination_+next\1[^>]*>\s*<a[^>]+href=(["\'])(?P<url>(?:(?!\2).)+)\2',
                 webpage, 'next page url', default=None, group='url')
             if not next_page:
                 break
             webpage = self._download_webpage(
-                urllib.parse.urljoin(url, next_page), playlist_id,
+                urljoin(url, next_page), playlist_id,
                 f'Downloading page {page_num}', page_num)
 
     def _real_extract(self, url):
@@ -1799,17 +1797,18 @@ class BBCCoUkPlaylistIE(BBCCoUkPlaylistBaseIE):
         'url': 'http://www.bbc.co.uk/programmes/b05rcz9v/clips',
         'info_dict': {
             'id': 'b05rcz9v',
-            'title': 'The Disappearance - Clips - BBC Four',
-            'description': 'French thriller serial about a missing teenager.',
+            'title': 'BBC Four - The Disappearance - Clips',
+            'description': 'Clips from The Disappearance',
         },
         'playlist_mincount': 7,
+        'skip': 'clips removed',
     }, {
         # multipage playlist, explicit page
         'url': 'http://www.bbc.co.uk/programmes/b00mfl7n/clips?page=1',
         'info_dict': {
             'id': 'b00mfl7n',
-            'title': 'Frozen Planet - Clips - BBC One',
-            'description': 'md5:65dcbf591ae628dafe32aa6c4a4a0d8c',
+            'title': 'BBC One - Frozen Planet - Clips',
+            'description': 'md5:4a629b1ba5f1eee1264b90a9fa2b88c0',
         },
         'playlist_mincount': 24,
     }, {
@@ -1817,8 +1816,8 @@ class BBCCoUkPlaylistIE(BBCCoUkPlaylistBaseIE):
         'url': 'http://www.bbc.co.uk/programmes/b00mfl7n/clips',
         'info_dict': {
             'id': 'b00mfl7n',
-            'title': 'Frozen Planet - Clips - BBC One',
-            'description': 'md5:65dcbf591ae628dafe32aa6c4a4a0d8c',
+            'title': 'BBC One - Frozen Planet - Clips',
+            'description': 'md5:4a629b1ba5f1eee1264b90a9fa2b88c0',
         },
         'playlist_mincount': 142,
     }, {
@@ -1833,6 +1832,4 @@ class BBCCoUkPlaylistIE(BBCCoUkPlaylistBaseIE):
     }]
 
     def _extract_title_and_description(self, webpage):
-        title = self._og_search_title(webpage, fatal=False)
-        description = self._og_search_description(webpage)
-        return title, description
+        return self._og_search_title(webpage), self._og_search_description(webpage)
