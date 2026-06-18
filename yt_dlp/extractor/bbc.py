@@ -11,6 +11,7 @@ from ..utils import (
     OnDemandPagedList,
     clean_html,
     dict_get,
+    extract_attributes,
     float_or_none,
     get_element_by_class,
     int_or_none,
@@ -20,7 +21,6 @@ from ..utils import (
     parse_iso8601,
     parse_qs,
     strip_or_none,
-    traverse_obj,
     try_get,
     unescapeHTML,
     unified_timestamp,
@@ -28,6 +28,7 @@ from ..utils import (
     urlencode_postdata,
     urljoin,
 )
+from ..utils.traversal import find_element, find_elements, traverse_obj
 
 
 class BBCCoUkIE(InfoExtractor):
@@ -1564,9 +1565,10 @@ class BBCCoUkPlaylistBaseIE(InfoExtractor):
                     self._URL_TEMPLATE % video_id, BBCCoUkIE.ie_key())
             if single_page:
                 return
-            next_page = self._search_regex(
-                r'<li[^>]+class=(["\'])pagination_+next\1[^>]*>\s*<a[^>]+href=(["\'])(?P<url>(?:(?!\2).)+)\2',
-                webpage, 'next page url', default=None, group='url')
+            next_page = traverse_obj(webpage, (
+                {find_elements(tag='li', attr='class', value='pagination_+next')},
+                ..., {find_element(tag='a', attr='href', html=True)},
+                {extract_attributes}, 'href', {urljoin(url)}, any))
             if not next_page:
                 break
             webpage = self._download_webpage(
@@ -1797,8 +1799,8 @@ class BBCCoUkPlaylistIE(BBCCoUkPlaylistBaseIE):
         'url': 'http://www.bbc.co.uk/programmes/b05rcz9v/clips',
         'info_dict': {
             'id': 'b05rcz9v',
-            'title': 'BBC Four - The Disappearance - Clips',
-            'description': 'Clips from The Disappearance',
+            'title': 'The Disappearance - Clips - BBC Four',
+            'description': 'French thriller serial about a missing teenager.',
         },
         'playlist_mincount': 7,
         'skip': 'clips removed',
@@ -1808,7 +1810,7 @@ class BBCCoUkPlaylistIE(BBCCoUkPlaylistBaseIE):
         'info_dict': {
             'id': 'b00mfl7n',
             'title': 'BBC One - Frozen Planet - Clips',
-            'description': 'md5:4a629b1ba5f1eee1264b90a9fa2b88c0',
+            'description': 'Clips from Frozen Planet',
         },
         'playlist_mincount': 24,
     }, {
@@ -1817,7 +1819,7 @@ class BBCCoUkPlaylistIE(BBCCoUkPlaylistBaseIE):
         'info_dict': {
             'id': 'b00mfl7n',
             'title': 'BBC One - Frozen Planet - Clips',
-            'description': 'md5:4a629b1ba5f1eee1264b90a9fa2b88c0',
+            'description': 'Clips from Frozen Planet',
         },
         'playlist_mincount': 142,
     }, {
