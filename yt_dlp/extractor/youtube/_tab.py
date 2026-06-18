@@ -1096,6 +1096,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': 'count:19',
             'channel_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
             'channel_follower_count': int,
+            'availability': 'public',
         },
     }, {
         'note': 'playlists, multipage, different order',
@@ -1105,6 +1106,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'title': 'Igor DS: ИИ, Наука и Творчество  - Playlists',
             'description': r're:(?s)Добро пожаловать! Здесь сложные технологии встречаются.+\n$',
+            'uploader': 'Igor DS: ИИ, Наука и Творчество ',
             'uploader_id': '@IgorDataScience',
             'uploader_url': 'https://www.youtube.com/@IgorDataScience',
             'tags': 'count:19',
@@ -1112,9 +1114,9 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel': 'Igor DS: ИИ, Наука и Творчество ',
             'channel_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
             'channel_follower_count': int,
+            'availability': 'public',
         },
     }, {
-        # TODO: fix channel_is_verified extraction
         'note': 'playlists, series',
         'url': 'https://www.youtube.com/c/3blue1brown/playlists?view=50&sort=dd&shelf_id=3',
         'playlist_mincount': 5,
@@ -1131,6 +1133,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': ['Mathematics'],
             'channel_follower_count': int,
             'channel_is_verified': True,
+            'availability': 'public',
         },
     }, {
         'note': 'playlists, singlepage',
@@ -1148,6 +1151,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': 'count:12',
             'channel': 'ThirstForScience',
             'channel_follower_count': int,
+            'availability': 'public',
         },
     }, {
         'url': 'https://www.youtube.com/c/ChristophLaimer/playlists',
@@ -1188,6 +1192,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/@sergeym.6173',
             'uploader_id': '@sergeym.6173',
             'uploader': 'Sergey M.',
+            'view_count': int,
         },
         'playlist_count': 0,
     }, {
@@ -1205,6 +1210,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UCTwECeGqMZee77BjdoYtI2Q',
             'channel_follower_count': int,
             'tags': ['creative commons', 'remix', 'culture', 'nonprofit'],
+            'availability': 'public',
         },
         'playlist_mincount': 6,
     }, {
@@ -1222,6 +1228,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UCTwECeGqMZee77BjdoYtI2Q',
             'channel_follower_count': int,
             'tags': ['creative commons', 'remix', 'culture', 'nonprofit'],
+            'availability': 'public',
         },
         'playlist_mincount': 239,
     }, {
@@ -1239,6 +1246,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UCTwECeGqMZee77BjdoYtI2Q',
             'channel_follower_count': int,
             'tags': ['creative commons', 'remix', 'culture', 'nonprofit'],
+            'availability': 'public',
         },
         'playlist_mincount': 239,
     }, {
@@ -1256,6 +1264,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UCTwECeGqMZee77BjdoYtI2Q',
             'channel_follower_count': int,
             'tags': ['creative commons', 'remix', 'culture', 'nonprofit'],
+            'availability': 'public',
         },
         'playlist_mincount': 20,
     }, {
@@ -1273,10 +1282,11 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UCtS3BcCw-tITPFYSvkbP0Bg',
             'channel_follower_count': int,
             'tags': 'count:17',
+            'availability': 'public',
+            'channel_is_verified': True,
         },
         'playlist_mincount': 145,
     }, {
-        # TODO: fix channel_is_verified extraction
         'note': 'Search tab',
         'url': 'https://www.youtube.com/c/3blue1brown/search?query=linear%20algebra',
         'playlist_mincount': 40,
@@ -1293,6 +1303,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_id': '@3blue1brown',
             'uploader': '3Blue1Brown',
             'channel_is_verified': True,
+            'availability': 'public',
         },
     }, {
         'url': 'https://invidio.us/channel/UCmlqkdCBesrv2Lak1mF_MxA',
@@ -1304,7 +1315,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'url': 'https://music.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
         'only_matching': True,
     }, {
-        # TODO: fix availability extraction
         'note': 'Playlist with deleted videos (#651). As a bonus, the video #51 is also twice in this list.',
         'url': 'https://www.youtube.com/playlist?list=PLwP_SiAcdui0KVebT0mU9Apz359a4ubsC',
         'info_dict': {
@@ -1324,7 +1334,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         },
         'playlist_count': 96,
     }, {
-        # TODO: fix availability extraction
         'note': 'Large playlist',
         'url': 'https://www.youtube.com/playlist?list=UUBABnxM4Ar9ten8Mdjj1j0Q',
         'info_dict': {
@@ -1349,7 +1358,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'url': 'http://www.youtube.com/user/NASAgovVideo/videos',
         'only_matching': True,
     }, {
-        # TODO: fix availability extraction
         # The 'note' below is outdated: there is no longer a "Load more" button
         'note': 'Buggy playlist: the webpage has a "Load more" button but it doesn\'t have more videos',
         'url': 'https://www.youtube.com/playlist?list=UUXw-G3eDE9trcvY2sBMM_aA',
@@ -1370,7 +1378,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         },
         'playlist_mincount': 10,
     }, {
-        # TODO: fix availability extraction
         'note': 'Playlist with "show unavailable videos" button',
         'url': 'https://www.youtube.com/playlist?list=PLYwq8WOe86_xGmR7FrcJq8Sb7VW8K3Tt2',
         'info_dict': {
@@ -1391,7 +1398,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 150,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
     }, {
-        # TODO: fix availability extraction
         'note': 'Playlist with unavailable videos in page 7',
         'url': 'https://www.youtube.com/playlist?list=UU8l9frL61Yl5KFOl87nIm2w',
         'info_dict': {
@@ -1412,7 +1418,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 1000,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
     }, {
-        # TODO: fix availability extraction
         'note': 'https://github.com/ytdl-org/youtube-dl/issues/21844',
         'url': 'https://www.youtube.com/playlist?list=PLzH6n4zXuckpfMu_4Ff8E7Z1behQks5ba',
         'info_dict': {
@@ -1463,7 +1468,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live',
         'info_dict': {
-            'id': 'ubIX-TwVqZI',  # This will keep changing
+            'id': '8GbcigMs1_c',  # This will keep changing
             'ext': 'mp4',
             'title': str,
             'upload_date': r're:\d{8}',
@@ -1497,20 +1502,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'expected_warnings': ['Ignoring subtitle tracks found in '],
     }, {
         'url': 'https://www.youtube.com/user/TheYoungTurks/live',
-        'info_dict': {
-            'id': 'a48o2S1cPoo',
-            'ext': 'mp4',
-            'title': 'The Young Turks - Live Main Show',
-            'upload_date': '20150715',
-            'license': 'Standard YouTube License',
-            'description': 'md5:438179573adcdff3c97ebb1ee632b891',
-            'categories': ['News & Politics'],
-            'tags': ['Cenk Uygur (TV Program Creator)', 'The Young Turks (Award-Winning Work)', 'Talk Show (TV Genre)'],
-            'like_count': int,
-        },
-        'params': {
-            'skip_download': True,
-        },
         'only_matching': True,
     }, {
         'url': 'https://www.youtube.com/channel/UC1yBKRuGpC1tSM73A0ZjYjQ/live',
@@ -1577,7 +1568,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'url': 'https://music.youtube.com/browse/UC1a8OFewdjuLq6KlF8M_8Ng',
         'only_matching': True,
     }, {
-        # TODO: fix availability extraction
         'note': 'VLPL, should redirect to playlist?list=PL...',
         'url': 'https://music.youtube.com/browse/VLPLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
         'info_dict': {
@@ -1773,13 +1763,13 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/@coletdjnz',
             'uploader_id': '@coletdjnz',
             'uploader': 'cole-dlp-test-acc',
+            'availability': 'public',
         },
         'playlist_mincount': 1,
         'params': {'extractor_args': {'youtube': {'lang': ['ja']}}},
         'expected_warnings': ['Preferring "ja"'],
     }, {
         # XXX: this should really check flat playlist entries, but the test suite doesn't support that
-        # TODO: fix availability extraction
         'note': 'preferred lang set with playlist with translated video titles',
         'url': 'https://www.youtube.com/playlist?list=PLt5yu3-wZAlQAaPZ5Z-rJoTdbT-45Q7c0',
         'info_dict': {
@@ -1802,11 +1792,11 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     }, {
         # shorts audio pivot for 2GtVksBMYFM.
         'url': 'https://www.youtube.com/feed/sfv_audio_pivot?bp=8gUrCikSJwoLMkd0VmtzQk1ZRk0SCzJHdFZrc0JNWUZNGgsyR3RWa3NCTVlGTQ==',
-        # TODO: fix extraction
         'info_dict': {
             'id': 'sfv_audio_pivot',
             'title': 'sfv_audio_pivot',
             'tags': [],
+            'availability': 'public',
         },
         'playlist_mincount': 50,
 
@@ -1818,6 +1808,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'UCEH7P7kyJIkS_gJf93VYbmg',
             'title': 'UCEH7P7kyJIkS_gJf93VYbmg - Live',
             'tags': [],
+            'availability': 'public',
         },
         'playlist_mincount': 20,
     }, {
@@ -1827,6 +1818,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'UCQvWX73GQygcwXOTSf_VDVg',
             'title': 'UCQvWX73GQygcwXOTSf_VDVg - Let\'s play',
             'tags': [],
+            'availability': 'public',
         },
         'playlist_mincount': 8,
     }, {
@@ -1836,6 +1828,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'UCQvWX73GQygcwXOTSf_VDVg',
             'title': 'UCQvWX73GQygcwXOTSf_VDVg - Home',
             'tags': [],
+            'availability': 'public',
         },
         'playlist_mincount': 8,
     }, {
@@ -1855,11 +1848,11 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'Polka Ch. 尾丸ポルカ',
             'uploader_id': '@OmaruPolka',
             'channel_is_verified': True,
+            'availability': 'public',
         },
         'playlist_count': 3,
     }, {
         # Shorts tab with channel with handle
-        # TODO: fix channel_is_verified extraction
         'url': 'https://www.youtube.com/@NotJustBikes/shorts',
         'info_dict': {
             'id': 'UC0intLFzLaudFG-xAvUEO-A',
@@ -1874,6 +1867,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'Not Just Bikes',
             'uploader_id': '@NotJustBikes',
             'channel_is_verified': True,
+            'availability': 'public',
         },
         'playlist_mincount': 10,
     }, {
@@ -1891,6 +1885,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/@中村悠一のあそびば',
             'uploader_id': '@中村悠一のあそびば',
             'uploader': '中村悠一',
+            'availability': 'public',
         },
         'playlist_mincount': 60,
     }, {
@@ -1954,6 +1949,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/@coletdjnz',
             'uploader_id': '@coletdjnz',
             'uploader': 'cole-dlp-test-acc',
+            'availability': 'public',
         },
         'playlist': [{
             'info_dict': {
@@ -1975,6 +1971,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'UCQvWX73GQygcwXOTSf_VDVg',
             'title': 'UCQvWX73GQygcwXOTSf_VDVg - Live',  # TODO: should be Minecraft - Live or Minecraft - Topic - Live
             'tags': [],
+            'availability': 'public',
         },
         'playlist': [{
             'info_dict': {
@@ -2034,7 +2031,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'params': {'extract_flat': True},
         'skip': 'channels tab removed',
     }, {
-        # TODO: fix channel_is_verified extraction
         'url': 'https://www.youtube.com/@3blue1brown/about',
         'info_dict': {
             'id': '@3blue1brown',
@@ -2049,6 +2045,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_id': '@3blue1brown',
             'uploader': '3Blue1Brown',
             'channel_is_verified': True,
+            'availability': 'public',
         },
         'playlist_count': 0,
     }, {
@@ -2066,11 +2063,12 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': [],
             'channel': '99% Invisible',
             'uploader_id': '@99percentinvisiblepodcast',
+            'availability': 'public',
         },
         'playlist_mincount': 5,
     }, {
         # Releases tab, with rich entry playlistRenderers (same as Podcasts tab)
-        # TODO: fix channel_is_verified extraction
+        # TODO: FIX CHANNEL_IS_VERIFIED
         'url': 'https://www.youtube.com/@AHimitsu/releases',
         'info_dict': {
             'id': 'UCgFwu-j5-xNJml2FtTrrB3A',
@@ -2085,13 +2083,13 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UCgFwu-j5-xNJml2FtTrrB3A',
             'channel_follower_count': int,
             'channel_is_verified': True,
+            'availability': 'public',
         },
         'playlist_mincount': 10,
     }, {
         # Playlist with only shorts, shown as reel renderers
         # FIXME: future: YouTube currently doesn't give continuation for this,
         # may do in future.
-        # TODO: fix availability extraction
         'url': 'https://www.youtube.com/playlist?list=UUxqPAgubo4coVn9Lx1FuKcg',
         'info_dict': {
             'id': 'UUxqPAgubo4coVn9Lx1FuKcg',
@@ -2111,7 +2109,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 100,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
     }, {
-        # TODO: fix channel_is_verified extraction
         'note': 'Tags containing spaces',
         'url': 'https://www.youtube.com/channel/UC7_YxT-KID8kRbqZo7MyscQ',
         'playlist_count': 3,
@@ -2127,6 +2124,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'Markiplier',
             'channel_url': 'https://www.youtube.com/channel/UC7_YxT-KID8kRbqZo7MyscQ',
             'channel_is_verified': True,
+            'availability': 'public',
             'tags': ['markiplier', 'comedy', 'gaming', 'funny videos', 'funny moments',
                      'sketch comedy', 'laughing', 'lets play', 'challenge videos', 'hilarious',
                      'challenges', 'sketches', 'scary games', 'funny games', 'rage games',
@@ -2149,6 +2147,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'sbcitygov',
             'channel_url': 'https://www.youtube.com/channel/UCH6-qfQwlUgz9SAf05jvc_w',
             'tags': [],
+            'availability': 'public',
         },
     }]
 
