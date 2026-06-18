@@ -333,20 +333,58 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 only_once=True)
             return
 
+        lockup_mdvm = traverse_obj(view_model, ('metadata', 'lockupMetadataViewModel', {dict}))
+        content_mdvm = traverse_obj(lockup_mdvm, ('metadata', 'contentMetadataViewModel', {dict}))
+
+        thumbnail_badge_view_models = traverse_obj(view_model, (
+            'contentImage', 'thumbnailViewModel', 'overlays', ..., (
+                ('thumbnailBottomOverlayViewModel', 'badges'),
+                ('thumbnailOverlayBadgeViewModel', 'thumbnailBadges'),
+            ), ..., 'thumbnailBadgeViewModel', {dict}))
+        duration_text = traverse_obj(thumbnail_badge_view_models, (..., 'text', {str.lower}, any))
+        thumbnail_badge_styles = traverse_obj(thumbnail_badge_view_models, (..., 'badgeStyle', {str}))
+
+        channel_info = traverse_obj(content_mdvm, (
+            'metadataRows', ..., 'metadataParts',
+            lambda _, v: v['text']['commandRuns'][0]['onTap']['innertubeCommand']['browseEndpoint']['browseId'],
+            'text', any, {
+                'channel': ('content', {str}),
+                'channel_id': ('commandRuns', 0, 'onTap', 'innertubeCommand', 'browseEndpoint', 'browseId', {self.ucid_or_none}),
+                'uploader': ('content', {str}),
+                'uploader_id': ('commandRuns', 0, 'onTap', 'innertubeCommand', 'browseEndpoint', 'canonicalBaseUrl', {self.handle_from_url}),
+            }))
+
+        views_and_time = traverse_obj(content_mdvm, (
+            'metadataRows', lambda _, v: 'accessibilityLabel' in v['metadataParts'][-1],
+            'metadataParts', ...))
+        relative_time_text = traverse_obj(views_and_time, (-1, 'text', 'content', {str.lower}))
+
+        badge_styles = traverse_obj(content_mdvm, (
+            'metadataRows', ..., 'badges', ..., 'badgeViewModel', 'badgeStyle', {str}))
+
         return self.url_result(
             url, ie, content_id,
-            title=traverse_obj(view_model, (
-                'metadata', 'lockupMetadataViewModel', 'title', 'content', {str})),
+            title=traverse_obj(lockup_mdvm, ('title', 'content', {str})),
             thumbnails=self._extract_thumbnails(view_model, (
                 'contentImage', *thumb_keys, 'thumbnailViewModel', 'image'), final_key='sources'),
-            duration=traverse_obj(view_model, (
-                'contentImage', 'thumbnailViewModel', 'overlays', ...,
-                (('thumbnailBottomOverlayViewModel', 'badges'), ('thumbnailOverlayBadgeViewModel', 'thumbnailBadges')),
-                ..., 'thumbnailBadgeViewModel', 'text', {parse_duration}, any)),
-            timestamp=(traverse_obj(view_model, (
-                'metadata', 'lockupMetadataViewModel', 'metadata', 'contentMetadataViewModel', 'metadataRows',
-                ..., 'metadataParts', ..., 'text', 'content', {lambda t: self._parse_time_text(t, report_failure=False)}, any))
-                if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE) else None))
+            duration=parse_duration(duration_text),
+            view_count=(
+                traverse_obj(views_and_time, (0, 'text', 'content', {parse_count}))
+                # view_count isn't always available; only extract if this metadataRow is 2 metadataParts
+                if len(views_and_time) == 2 else None),
+            timestamp=(
+                self._parse_time_text(relative_time_text, report_failure=False)
+                if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE) else None),
+            live_status=(
+                'is_upcoming' if duration_text == 'upcoming'
+                else 'is_live' if 'THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE' in thumbnail_badge_styles
+                else 'was_live' if relative_time_text and 'streamed' in relative_time_text
+                else None),
+            # XXX: We cannot assume 'public' since we have no way to differentiate from 'unlisted'
+            availability=self._availability(needs_subscription='BADGE_MEMBERS_ONLY' in badge_styles),
+            channel_url=format_field(channel_info, 'channel_id', 'https://www.youtube.com/channel/%s', default=None),
+            uploader_url=format_field(channel_info, 'uploader_id', 'https://www.youtube.com/%s', default=None),
+            **channel_info)
 
     def _rich_entries(self, rich_grid_renderer):
         if lockup_view_model := traverse_obj(rich_grid_renderer, ('content', 'lockupViewModel', {dict})):
@@ -1032,14 +1070,14 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 94,
         'info_dict': {
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'title': 'Igor Kleiner  - Playlists',
-            'description': r're:(?s)Добро пожаловать на мой канал! Здесь вы найдете видео .{504}/a1/50b/10a$',
-            'uploader': 'Igor Kleiner ',
+            'title': 'Igor DS: ИИ, Наука и Творчество  - Playlists',
+            'description': r're:(?s)Добро пожаловать! Здесь сложные технологии встречаются.+\n$',
+            'uploader': 'Igor DS: ИИ, Наука и Творчество ',
             'uploader_id': '@IgorDataScience',
             'uploader_url': 'https://www.youtube.com/@IgorDataScience',
-            'channel': 'Igor Kleiner ',
+            'channel': 'Igor DS: ИИ, Наука и Творчество ',
             'channel_id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'tags': 'count:23',
+            'tags': 'count:19',
             'channel_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
             'channel_follower_count': int,
         },
@@ -1049,14 +1087,13 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 94,
         'info_dict': {
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'title': 'Igor Kleiner  - Playlists',
-            'description': r're:(?s)Добро пожаловать на мой канал! Здесь вы найдете видео .{504}/a1/50b/10a$',
-            'uploader': 'Igor Kleiner ',
+            'title': 'Igor DS: ИИ, Наука и Творчество  - Playlists',
+            'description': r're:(?s)Добро пожаловать! Здесь сложные технологии встречаются.+\n$',
             'uploader_id': '@IgorDataScience',
             'uploader_url': 'https://www.youtube.com/@IgorDataScience',
-            'tags': 'count:23',
+            'tags': 'count:19',
             'channel_id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'channel': 'Igor Kleiner ',
+            'channel': 'Igor DS: ИИ, Наука и Творчество ',
             'channel_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
             'channel_follower_count': int,
         },
@@ -1139,90 +1176,89 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_count': 0,
     }, {
         'note': 'Home tab',
-        'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/featured',
+        'url': 'https://www.youtube.com/channel/UCTwECeGqMZee77BjdoYtI2Q/featured',
         'info_dict': {
-            'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'title': 'lex will - Home',
-            'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
-            'uploader': 'lex will',
-            'uploader_id': '@lexwill718',
-            'channel': 'lex will',
-            'tags': ['bible', 'history', 'prophesy'],
-            'uploader_url': 'https://www.youtube.com/@lexwill718',
-            'channel_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
-            'channel_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
+            'id': 'UCTwECeGqMZee77BjdoYtI2Q',
+            'title': 'Creative Commons - Home',
+            'description': 'md5:7cfc22824277588d26a66054f22d93c8',
+            'uploader': 'Creative Commons',
+            'uploader_id': '@creativecommons',
+            'uploader_url': 'https://www.youtube.com/@creativecommons',
+            'channel': 'Creative Commons',
+            'channel_id': 'UCTwECeGqMZee77BjdoYtI2Q',
+            'channel_url': 'https://www.youtube.com/channel/UCTwECeGqMZee77BjdoYtI2Q',
             'channel_follower_count': int,
+            'tags': ['creative commons', 'remix', 'culture', 'nonprofit'],
         },
-        'playlist_mincount': 2,
+        'playlist_mincount': 6,
     }, {
         'note': 'Videos tab',
-        'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/videos',
+        'url': 'https://www.youtube.com/channel/UCTwECeGqMZee77BjdoYtI2Q/videos',
         'info_dict': {
-            'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'title': 'lex will - Videos',
-            'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
-            'uploader': 'lex will',
-            'uploader_id': '@lexwill718',
-            'tags': ['bible', 'history', 'prophesy'],
-            'channel_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
-            'channel_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'uploader_url': 'https://www.youtube.com/@lexwill718',
-            'channel': 'lex will',
+            'id': 'UCTwECeGqMZee77BjdoYtI2Q',
+            'title': 'Creative Commons - Videos',
+            'description': 'md5:7cfc22824277588d26a66054f22d93c8',
+            'uploader': 'Creative Commons',
+            'uploader_id': '@creativecommons',
+            'uploader_url': 'https://www.youtube.com/@creativecommons',
+            'channel': 'Creative Commons',
+            'channel_id': 'UCTwECeGqMZee77BjdoYtI2Q',
+            'channel_url': 'https://www.youtube.com/channel/UCTwECeGqMZee77BjdoYtI2Q',
             'channel_follower_count': int,
+            'tags': ['creative commons', 'remix', 'culture', 'nonprofit'],
         },
-        'playlist_mincount': 975,
+        'playlist_mincount': 239,
     }, {
         'note': 'Videos tab, sorted by popular',
-        'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/videos?view=0&sort=p&flow=grid',
+        'url': 'https://www.youtube.com/channel/UCTwECeGqMZee77BjdoYtI2Q/videos?view=0&sort=p&flow=grid',
         'info_dict': {
-            'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'title': 'lex will - Videos',
-            'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
-            'uploader': 'lex will',
-            'uploader_id': '@lexwill718',
-            'channel_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'uploader_url': 'https://www.youtube.com/@lexwill718',
-            'channel': 'lex will',
-            'tags': ['bible', 'history', 'prophesy'],
-            'channel_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
+            'id': 'UCTwECeGqMZee77BjdoYtI2Q',
+            'title': 'Creative Commons - Videos',
+            'description': 'md5:7cfc22824277588d26a66054f22d93c8',
+            'uploader': 'Creative Commons',
+            'uploader_id': '@creativecommons',
+            'uploader_url': 'https://www.youtube.com/@creativecommons',
+            'channel': 'Creative Commons',
+            'channel_id': 'UCTwECeGqMZee77BjdoYtI2Q',
+            'channel_url': 'https://www.youtube.com/channel/UCTwECeGqMZee77BjdoYtI2Q',
             'channel_follower_count': int,
+            'tags': ['creative commons', 'remix', 'culture', 'nonprofit'],
         },
-        'playlist_mincount': 199,
+        'playlist_mincount': 239,
     }, {
         'note': 'Playlists tab',
-        'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/playlists',
+        'url': 'https://www.youtube.com/channel/UCTwECeGqMZee77BjdoYtI2Q/playlists',
         'info_dict': {
-            'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'title': 'lex will - Playlists',
-            'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
-            'uploader': 'lex will',
-            'uploader_id': '@lexwill718',
-            'uploader_url': 'https://www.youtube.com/@lexwill718',
-            'channel': 'lex will',
-            'channel_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
-            'channel_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'tags': ['bible', 'history', 'prophesy'],
+            'id': 'UCTwECeGqMZee77BjdoYtI2Q',
+            'title': 'Creative Commons - Playlists',
+            'description': 'md5:7cfc22824277588d26a66054f22d93c8',
+            'uploader': 'Creative Commons',
+            'uploader_id': '@creativecommons',
+            'uploader_url': 'https://www.youtube.com/@creativecommons',
+            'channel': 'Creative Commons',
+            'channel_id': 'UCTwECeGqMZee77BjdoYtI2Q',
+            'channel_url': 'https://www.youtube.com/channel/UCTwECeGqMZee77BjdoYtI2Q',
             'channel_follower_count': int,
+            'tags': ['creative commons', 'remix', 'culture', 'nonprofit'],
         },
-        'playlist_mincount': 17,
+        'playlist_mincount': 20,
     }, {
         'note': 'Posts tab',
-        'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/community',
+        'url': 'https://www.youtube.com/channel/UCtS3BcCw-tITPFYSvkbP0Bg/posts',
         'info_dict': {
-            'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'title': 'lex will - Posts',
-            'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
-            'channel': 'lex will',
-            'channel_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
-            'channel_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'tags': ['bible', 'history', 'prophesy'],
+            'id': 'UCtS3BcCw-tITPFYSvkbP0Bg',
+            'title': 'Office Hours Live with Tim Heidecker - Posts',
+            'description': 'md5:01ec1460ea6c6e2aa47d3be9c756559c',
+            'uploader': 'Office Hours Live with Tim Heidecker',
+            'uploader_id': '@OfficeHoursLive',
+            'uploader_url': 'https://www.youtube.com/@OfficeHoursLive',
+            'channel': 'Office Hours Live with Tim Heidecker',
+            'channel_id': 'UCtS3BcCw-tITPFYSvkbP0Bg',
+            'channel_url': 'https://www.youtube.com/channel/UCtS3BcCw-tITPFYSvkbP0Bg',
             'channel_follower_count': int,
-            'uploader_url': 'https://www.youtube.com/@lexwill718',
-            'uploader_id': '@lexwill718',
-            'uploader': 'lex will',
+            'tags': 'count:17',
         },
-        'playlist_mincount': 18,
-        'skip': 'This Community isn\'t available',
+        'playlist_mincount': 145,
     }, {
         # TODO: fix channel_is_verified extraction
         'note': 'Search tab',
@@ -1272,6 +1308,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         },
         'playlist_count': 96,
     }, {
+        # TODO: fix availability extraction
         'note': 'Large playlist',
         'url': 'https://www.youtube.com/playlist?list=UUBABnxM4Ar9ten8Mdjj1j0Q',
         'info_dict': {
@@ -1296,6 +1333,8 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'url': 'http://www.youtube.com/user/NASAgovVideo/videos',
         'only_matching': True,
     }, {
+        # TODO: fix availability extraction
+        # The 'note' below is outdated: there is no longer a "Load more" button
         'note': 'Buggy playlist: the webpage has a "Load more" button but it doesn\'t have more videos',
         'url': 'https://www.youtube.com/playlist?list=UUXw-G3eDE9trcvY2sBMM_aA',
         'info_dict': {
@@ -1313,7 +1352,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'Interstellar Movie',
             'uploader_url': 'https://www.youtube.com/@InterstellarMovie',
         },
-        'playlist_mincount': 21,
+        'playlist_mincount': 10,
     }, {
         # TODO: fix availability extraction
         'note': 'Playlist with "show unavailable videos" button',
@@ -1336,6 +1375,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 150,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
     }, {
+        # TODO: fix availability extraction
         'note': 'Playlist with unavailable videos in page 7',
         'url': 'https://www.youtube.com/playlist?list=UU8l9frL61Yl5KFOl87nIm2w',
         'info_dict': {
@@ -1407,7 +1447,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live',
         'info_dict': {
-            'id': 'VFGoUmo74wE',  # This will keep changing
+            'id': 'ubIX-TwVqZI',  # This will keep changing
             'ext': 'mp4',
             'title': str,
             'upload_date': r're:\d{8}',
@@ -1586,6 +1626,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_count': 50,
         'expected_warnings': ['YouTube Music is not directly supported'],
     }, {
+        # YoutubeTab_25: use to test _extract_lockup_view_model
         'note': 'unlisted single video playlist',
         'url': 'https://www.youtube.com/playlist?list=PLt5yu3-wZAlQLfIN0MMgp0wVV6MP3bM4_',
         'info_dict': {
@@ -1809,7 +1850,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'title': 'Not Just Bikes - Shorts',
             'tags': 'count:10',
             'channel_url': 'https://www.youtube.com/channel/UC0intLFzLaudFG-xAvUEO-A',
-            'description': 'md5:295758591d0d43d8594277be54584da7',
+            'description': 'md5:2cb3ccdafa58608fa016f1de4930ec54',
             'channel_follower_count': int,
             'channel_id': 'UC0intLFzLaudFG-xAvUEO-A',
             'channel': 'Not Just Bikes',
@@ -1831,8 +1872,8 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel': '中村悠一',
             'channel_follower_count': int,
             'description': 'md5:76b312b48a26c3b0e4d90e2dfc1b417d',
-            'uploader_url': 'https://www.youtube.com/@Yuichi-Nakamura',
-            'uploader_id': '@Yuichi-Nakamura',
+            'uploader_url': 'https://www.youtube.com/@中村悠一のあそびば',
+            'uploader_id': '@中村悠一のあそびば',
             'uploader': '中村悠一',
         },
         'playlist_mincount': 60,
@@ -2010,7 +2051,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel': '99% Invisible',
             'uploader_id': '@99percentinvisiblepodcast',
         },
-        'playlist_count': 5,
+        'playlist_mincount': 5,
     }, {
         # Releases tab, with rich entry playlistRenderers (same as Podcasts tab)
         # TODO: fix channel_is_verified extraction
@@ -2034,6 +2075,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         # Playlist with only shorts, shown as reel renderers
         # FIXME: future: YouTube currently doesn't give continuation for this,
         # may do in future.
+        # TODO: fix availability extraction
         'url': 'https://www.youtube.com/playlist?list=UUxqPAgubo4coVn9Lx1FuKcg',
         'info_dict': {
             'id': 'UUxqPAgubo4coVn9Lx1FuKcg',
