@@ -33,7 +33,7 @@ class PeriscopeBaseIE(InfoExtractor):
                 'concurrent_view_count': ('total_watching', {int_or_none}),
                 'release_timestamp': (('scheduled_start_ms', 'start_ms'), {int_or_none(scale=1000)}, any),
                 'tags': ('tags', ..., {clean_html}, filter, all, filter),
-                'thumbnail': (('image_url', 'image_url_medium', 'image_url_small'), {url_or_none}, any),
+                'thumbnails': (('image_url_small', 'image_url_medium', 'image_url'), {'url': {url_or_none}}),
                 'timestamp': ((('created_at', {parse_iso8601}), ('created_at_ms', {int_or_none(scale=1000)})), any),
                 'uploader': ('user_display_name', {clean_html}, filter),
                 'uploader_id': ('username', {clean_html}, filter),
