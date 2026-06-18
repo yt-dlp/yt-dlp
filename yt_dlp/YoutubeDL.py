@@ -139,7 +139,7 @@ from .utils import (
     join_nonempty,
     locked_file,
     make_archive_id,
-    make_dir,
+    make_parent_dirs,
     number_of_digits,
     orderedSet,
     orderedSet_from_options,
@@ -1313,6 +1313,7 @@ class YoutubeDL:
             )$''')
         SAFE_EXEC_CONVERSIONS = 'difq'
         UNSAFE_DEFAULT_CHARS = '"\' \n\t;&|^$%*<>{}()[]`#\\'
+        EXEC_ADVISORY_MSG = 'See  https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-69qj-pvh9-c5wg  for details'
 
         def _from_user_input(field):
             if field == ':':
@@ -1440,12 +1441,21 @@ class YoutubeDL:
             # Validate safety of exec commands
             if _exec:
                 if fmt[-1] not in SAFE_EXEC_CONVERSIONS:
-                    raise UnsafeExecExpansionError(f'Unsafe conversion(s) in exec command: {outtmpl!r}')
+                    raise UnsafeExecExpansionError(
+                        f'Unsafe conversion(s) in exec command: {outtmpl!r}\n'
+                        f'Conversions such as %()s are too dangerous to be used in '
+                        f'--exec command templates; use %()q instead. {EXEC_ADVISORY_MSG}')
                 elif any(unsafe_char in default for unsafe_char in UNSAFE_DEFAULT_CHARS):
                     if default == na:
-                        raise UnsafeExecExpansionError(f'Unsafe placeholder for exec command: {na!r}')
+                        raise UnsafeExecExpansionError(
+                            f'Unsafe placeholder for exec command: {na!r}\n'
+                            f'The --output-na-placeholder argument also applies to '
+                            f'--exec command templates. {EXEC_ADVISORY_MSG}')
                     else:
-                        raise UnsafeExecExpansionError(f'Unsafe default(s) in exec command: {outtmpl!r}')
+                        raise UnsafeExecExpansionError(
+                            f'Unsafe default(s) in exec command: {outtmpl!r}\n'
+                            f'Conversions are not applied to --exec command template defaults, '
+                            f'e.g. %(...|DEFAULT;)q. {EXEC_ADVISORY_MSG}')
 
             flags = outer_mobj.group('conversion') or ''
             str_fmt = f'{fmt[:-1]}s'
@@ -2026,7 +2036,12 @@ class YoutubeDL:
             raise Exception(f'Invalid result type: {result_type}')
 
     def _ensure_dir_exists(self, path):
-        return make_dir(path, self.report_error)
+        try:
+            make_parent_dirs(path)
+            return True
+        except OSError as e:
+            self.report_error(f'Unable to create directory: {e}')
+            return False
 
     @staticmethod
     def _playlist_infodict(ie_result, strict=False, **kwargs):
@@ -3395,7 +3410,9 @@ class YoutubeDL:
                 self.report_warning(
                     f'Cannot write internet shortcut file because the actual URL of "{info_dict["webpage_url"]}" is unknown')
                 return True
-            linkfn = replace_extension(self.prepare_filename(info_dict, 'link'), link_type, info_dict.get('ext'))
+            linkfn = replace_extension(
+                self.prepare_filename(info_dict, 'link'), link_type,
+                info_dict.get('ext'), _allowed_exts=tuple(LINK_TEMPLATES))
             if not self._ensure_dir_exists(linkfn):
                 return False
             if self.params.get('overwrites', True) and os.path.exists(linkfn):
