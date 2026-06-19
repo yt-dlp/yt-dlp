@@ -1037,8 +1037,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             return next_continuation
 
         return traverse_obj(renderer, (
-            ('contents', 'items', 'rows', 'subThreads'), ..., 'continuationItemRenderer',
-            ('continuationEndpoint', ('button', 'buttonRenderer', 'command')),
+            ('contents', 'items', 'rows', 'subThreads'), ..., (
+                ('continuationItemRenderer', ('continuationEndpoint', ('button', 'buttonRenderer', 'command'))),
+                ('continuationItemViewModel', 'continuationCommand', 'innertubeCommand'),
+            ),
         ), get_all=False, expected_type=cls._extract_continuation_ep_data)
 
     @classmethod
