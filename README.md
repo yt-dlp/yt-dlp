@@ -2479,7 +2479,7 @@ These options may no longer work as intended
     --youtube-print-sig-code         Removed testing functionality
     --dump-user-agent                No longer supported
     --xattr-set-filesize             No longer supported
-    --compat-options seperate-video-versions  No longer needed
+    --compat-options separate-video-versions  No longer needed
     --compat-options no-youtube-prefer-utc-upload-date  No longer supported
 
 #### Removed
