@@ -754,10 +754,10 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         channel_badges = self._extract_badges(traverse_obj(data, ('header', ..., 'badges'), get_all=False))
         if (
             self._has_badge(channel_badges, BadgeType.VERIFIED)
-            or 'CHECK_CIRCLE_FILLED' in traverse_obj(page_header_view_model, (
+            or any(image_name in traverse_obj(page_header_view_model, (
                 'title', 'dynamicTextViewModel', 'text', 'attachmentRuns', ..., 'element', 'type',
                 'imageType', 'image', 'sources', ..., 'clientResource', 'imageName', {str},
-            ))
+            )) for image_name in ('CHECK_CIRCLE_FILLED', 'AUDIO_BADGE'))
         ):
             info['channel_is_verified'] = True
 
@@ -907,7 +907,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             return 'public'
 
         return None
-
 
     @staticmethod
     def _extract_sidebar_info_renderer(data, info_renderer, expected_type=dict):
@@ -1157,7 +1156,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'url': 'https://www.youtube.com/c/ChristophLaimer/playlists',
         'only_matching': True,
     }, {
-        # TODO: fix availability and view_count extraction
         'note': 'basic, single video playlist',
         'url': 'https://www.youtube.com/playlist?list=PLt5yu3-wZAlSLRHmI1qNm0wjyVNWw1pCU',
         'info_dict': {
@@ -1833,7 +1831,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 8,
     }, {
         # Should get three playlists for videos, shorts and streams tabs
-        # TODO: fix channel_is_verified extraction
         'url': 'https://www.youtube.com/channel/UCK9V2B22uJYu3N7eR_BT9QA',
         'info_dict': {
             'id': 'UCK9V2B22uJYu3N7eR_BT9QA',
@@ -2068,7 +2065,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 5,
     }, {
         # Releases tab, with rich entry playlistRenderers (same as Podcasts tab)
-        # TODO: FIX CHANNEL_IS_VERIFIED
         'url': 'https://www.youtube.com/@AHimitsu/releases',
         'info_dict': {
             'id': 'UCgFwu-j5-xNJml2FtTrrB3A',
@@ -2367,7 +2363,6 @@ class YoutubePlaylistIE(YoutubeBaseInfoExtractor):
     )
     IE_NAME = 'youtube:playlist'
     _TESTS = [{
-        # TODO: fix availability extraction
         'note': 'issue #673',
         'url': 'PLBB231211A4F62143',
         'info_dict': {
@@ -2395,7 +2390,6 @@ class YoutubePlaylistIE(YoutubeBaseInfoExtractor):
         'playlist_count': 2,
         'skip': 'This playlist is private',
     }, {
-        # TODO: fix availability extraction
         'note': 'embedded',
         'url': 'https://www.youtube.com/embed/videoseries?list=PL6IaIsEjSbf96XFRuNccS_RuEXwNdsoEu',
         'playlist_count': 4,
@@ -2416,7 +2410,6 @@ class YoutubePlaylistIE(YoutubeBaseInfoExtractor):
         },
         'expected_warnings': [r'[Uu]navailable videos? (is|are|will be) hidden', 'Retrying', 'Giving up'],
     }, {
-        # TODO: fix availability extraction
         'url': 'http://www.youtube.com/embed/_xDOZElKyNU?list=PLsyOSbh5bs16vubvKePAQ1x3PhKavfBIl',
         'playlist_mincount': 455,
         'info_dict': {
