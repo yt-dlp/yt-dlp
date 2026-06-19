@@ -28,7 +28,6 @@ from .jsc._director import initialize_jsc_director
 from .jsc.provider import JsChallengeRequest, JsChallengeType, NChallengeInput, SigChallengeInput
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
-from ...networking.exceptions import HTTPError
 from ...utils import (
     NO_DEFAULT,
     ExtractorError,
