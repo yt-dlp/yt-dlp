@@ -360,6 +360,8 @@ class MxplayerRedirectIE(MxplayerBaseIE):
         },
         'params': {'skip_download': True},
     }, {
+        # movie
+        # https://www.mxplayer.in/movie/watch-sardar-udham-movie-online-0c586053d7ac563ca911ddfe08cf922f
         'url': 'https://www.mxplayer.in/detail/movie/0c586053d7ac563ca911ddfe08cf922f',
         'info_dict': {
             'id': '0c586053d7ac563ca911ddfe08cf922f',
@@ -384,6 +386,8 @@ class MxplayerRedirectIE(MxplayerBaseIE):
         },
         'params': {'skip_download': True},
     }, {
+        # shorts
+        # https://www.mxplayer.in/shorts/watch-official-trailer-lafangey-sapne-dosti-duniya-online-55c77863e406c7b71f6bab28f7fbbe85
         'url': 'https://www.mxplayer.in/detail/shorts/55c77863e406c7b71f6bab28f7fbbe85',
         'info_dict': {
             'id': '55c77863e406c7b71f6bab28f7fbbe85',
@@ -404,6 +408,8 @@ class MxplayerRedirectIE(MxplayerBaseIE):
         },
         'params': {'skip_download': True},
     }, {
+        # season
+        # https://www.mxplayer.in/show/watch-demon-slayer/seasons/season-3-41a6d7432bea96f2f0d06a625b39d9b1
         'url': 'https://www.mxplayer.in/detail/season/41a6d7432bea96f2f0d06a625b39d9b1',
         'info_dict': {
             'id': '41a6d7432bea96f2f0d06a625b39d9b1',
@@ -411,6 +417,8 @@ class MxplayerRedirectIE(MxplayerBaseIE):
         },
         'playlist_mincount': 11,
     }, {
+        # tvshow
+        # https://www.mxplayer.in/show/watch-my-hero-academia-series-online-e7c68fb3951e61986af073a719c2ee4f
         'url': 'https://www.mxplayer.in/detail/tvshow/e7c68fb3951e61986af073a719c2ee4f',
         'info_dict': {
             'id': 'e7c68fb3951e61986af073a719c2ee4f',
