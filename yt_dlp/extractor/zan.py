@@ -3,8 +3,8 @@ from ..utils import (
     ExtractorError,
     clean_html,
     extract_attributes,
+    int_or_none,
     parse_iso8601,
-    parse_resolution,
     urlencode_postdata,
     urljoin,
 )
@@ -16,6 +16,8 @@ class ZanIE(InfoExtractor):
     IE_DESC = 'Z-aN'
 
     _BASE_URL = 'https://www.zan-live.com'
+    _GEO_BYPASS = False
+    _GEO_COUNTRIES = ['JP']
     _VALID_URL = r'https?://(www\.)?zan-live\.com/[^/?#]+/live/play/\d+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.zan-live.com/en/live/play/1797/663',
@@ -46,6 +48,11 @@ class ZanIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
+        if error_msg := traverse_obj(webpage, (
+            {find_element(cls='p-common_message__headline--error')}, {clean_html}, filter,
+        )):
+            self.raise_geo_restricted(error_msg, countries=self._GEO_COUNTRIES)
+
         csrf_token = self._html_search_meta('csrf-token', webpage, default=None)
         pct = self._html_search_meta('vod-pct', webpage, default=None)
         token = self._html_search_meta('live-player-token', webpage, default=None)
@@ -54,41 +61,56 @@ class ZanIE(InfoExtractor):
 
         status = self._download_json(
             f'{self._BASE_URL}/api/live/{video_id}/getLiveStatus', video_id, headers={
-                'Content-Type': 'application/x-www-form-urlencoded',
                 'X-Csrf-Token': csrf_token,
             }, data=urlencode_postdata({
                 'pct': pct,
                 'token': token,
             }))
         if not traverse_obj(status, ('isSuccess', {bool})):
-            self.raise_login_required()
+            raise ExtractorError('Unexpected error')
 
+        result = traverse_obj(status, ('result', {dict}))
         for key, required, error_message in (
-            ('isVod', True, 'Video is not yet archived'),
             ('isFinished', False, 'Video is no longer available'),
             ('canPlay', True, 'Ticket has expired'),
         ):
-            if traverse_obj(status, ('result', key, {bool})) is not required:
+            if traverse_obj(result, (key, {bool})) is not required:
                 raise ExtractorError(error_message, expected=True)
+
+        is_live = not traverse_obj(result, ('isVod', {bool}))
+        release_timestamp = parse_iso8601(self._html_search_meta('open-live-date', webpage))
+        if is_live and traverse_obj(status, ('srvTime', {int_or_none})) < release_timestamp:
+            self.raise_no_formats(
+                f'This stream is scheduled to start at {release_timestamp} UTC', expected=True)
+
+            return {
+                'id': video_id,
+                'live_status': 'is_upcoming',
+                'release_timestamp': release_timestamp,
+            }
 
         m3u8_url = self._html_search_meta('live-url', webpage, fatal=True)
         formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4')
-        for fmt in formats:
-            fmt.update(parse_resolution(fmt['url'].split('/')[-2]))
 
         detail_url = traverse_obj(webpage, (
             {find_element(cls='linkTxt')},
             {find_element(cls='d-flex align-items-center', html=True)},
             {extract_attributes}, 'href', {urljoin(f'{self._BASE_URL}/')}))
-        detail = self._download_webpage(detail_url, video_id)
+        detail = self._download_webpage(detail_url, video_id, fatal=False) or ''
 
         return {
             'id': video_id,
-            'title': traverse_obj(self._og_search_title(detail), ({clean_html}, filter)),
-            'alt_title': traverse_obj(self._og_search_title(webpage), ({clean_html}, filter)),
-            'description': traverse_obj(detail, (
-                ({find_element(cls='p-eventinfo__detail')}, {find_element(cls='groupDetail')}), {clean_html}, filter, any)),
+            'alt_title': traverse_obj(webpage, (
+                {self._og_search_title}, {clean_html}, filter)),
             'formats': formats,
-            'release_timestamp': parse_iso8601(self._html_search_meta('open-live-date', webpage)),
+            'is_live': is_live,
+            'release_timestamp': release_timestamp,
             'thumbnail': self._og_search_thumbnail(detail),
+            **traverse_obj(detail, {
+                'title': ({self._og_search_title}, {clean_html}, filter),
+                'description': ((
+                    {find_element(cls='p-eventinfo__detail')},
+                    {find_element(cls='groupDetail')},
+                ), {clean_html}, filter, any),
+            }),
         }
