@@ -9,6 +9,7 @@ from ..utils import (
     determine_ext,
     float_or_none,
     int_or_none,
+    join_nonempty,
     orderedSet,
     parse_iso8601,
     str_or_none,
@@ -22,6 +23,15 @@ class MxplayerBaseIE(InfoExtractor):
     _BASE_URL = 'https://www.mxplayer.in'
     _GEO_BYPASS = False
     _GEO_COUNTRIES = ['IN']
+
+    def _extract_mxs(self, url, item_id):
+        webpage = self._download_webpage(url, item_id)
+        if error_msg := traverse_obj(webpage, (
+            {find_element(cls='sub-message')}, {clean_html}, filter,
+        )):
+            self.raise_geo_restricted(error_msg, countries=self._GEO_COUNTRIES)
+
+        return self._search_json(r'window\.__mxs__\s*=', webpage, 'mxs', item_id)
 
 
 class MxplayerIE(MxplayerBaseIE):
@@ -164,12 +174,7 @@ class MxplayerIE(MxplayerBaseIE):
 
     def _real_extract(self, url):
         display_id, video_id = self._match_valid_url(url).group('display_id', 'id')
-        webpage = self._download_webpage(url, video_id)
-        if error_msg := traverse_obj(webpage, (
-            {find_element(cls='sub-message')}, {clean_html}, filter,
-        )):
-            self.raise_geo_restricted(error_msg, countries=self._GEO_COUNTRIES)
-        mxs = self._search_json(r'window\.__mxs__\s*=', webpage, 'mxs', video_id)
+        mxs = self._extract_mxs(url, video_id)
 
         config = traverse_obj(mxs, ('config', {dict}))
         cdn_base = traverse_obj(config, (
@@ -249,7 +254,7 @@ class MxplayerSeasonIE(MxplayerBaseIE):
         'url': 'https://www.mxplayer.in/show/watch-campus-beats/seasons/season-4-925794ae840c597b3c36f2d8f2f138b8',
         'info_dict': {
             'id': '925794ae840c597b3c36f2d8f2f138b8',
-            'title': 'Season 4',
+            'title': 'Campus Beats - Season 4',
         },
         'playlist_mincount': 15,
     }]
@@ -260,10 +265,10 @@ class MxplayerSeasonIE(MxplayerBaseIE):
             'tabs', ..., 'api', {urljoin('https://api.mxplayer.in/v1/web/')}, any))
 
         for page in itertools.count(1):
-            season = self._download_json(
+            season_data = self._download_json(
                 api_url, season_id, f'Downloading Page {page}', query=query)
 
-            items = traverse_obj(season, ('items', lambda _, v: v['shareUrl']))
+            items = traverse_obj(season_data, ('items', lambda _, v: v['shareUrl']))
             if not items:
                 break
             for item in items:
@@ -272,24 +277,21 @@ class MxplayerSeasonIE(MxplayerBaseIE):
             if len(items) < self._PAGE_SIZE:
                 break
 
-            query = traverse_obj(season, ('next', {urllib.parse.parse_qs}))
+            query = traverse_obj(season_data, ('next', {urllib.parse.parse_qs}))
             if not query:
                 break
 
     def _real_extract(self, url):
         season_id = self._match_id(url)
-        webpage = self._download_webpage(url, season_id)
-        if error_msg := traverse_obj(webpage, (
-            {find_element(cls='sub-message')}, {clean_html}, filter,
-        )):
-            self.raise_geo_restricted(error_msg, countries=self._GEO_COUNTRIES)
-        mxs = self._search_json(r'window\.__mxs__\s*=', webpage, 'mxs', season_id)
+        mxs = self._extract_mxs(url, season_id)
 
         entities = traverse_obj(mxs, ('entities', season_id, {dict}))
+        series_title = traverse_obj(entities, ('container', 'title', {clean_html}, filter))
+        season_title = traverse_obj(entities, ('title', {clean_html}, filter))
 
         return self.playlist_result(
-            self._entries(entities, season_id), season_id,
-            traverse_obj(entities, ('title', {clean_html}, filter)))
+            self._entries(entities, season_id),
+            season_id, join_nonempty(series_title, season_title, delim=' - '))
 
 
 class MxplayerShowIE(MxplayerBaseIE):
@@ -300,12 +302,12 @@ class MxplayerShowIE(MxplayerBaseIE):
         'url': 'https://www.mxplayer.in/show/watch-bhaukaal-series-online-775ad3b682fde6a608559a60986b230d',
         'info_dict': {
             'id': '775ad3b682fde6a608559a60986b230d',
-            'title': 'Watch Chakravartin Ashoka Samrat Series Online',
+            'title': 'Bhaukaal',
         },
-        'playlist_mincount': 440,
+        'playlist_mincount': 2,
     }]
 
-    def _entries(self, entities, show_id):
+    def _entries(self, entities):
         for container in traverse_obj(entities, (
             'tabs', ..., 'containers', lambda _, v: str_or_none(v['id']),
         )):
@@ -314,17 +316,12 @@ class MxplayerShowIE(MxplayerBaseIE):
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
-        webpage = self._download_webpage(url, show_id)
-        if error_msg := traverse_obj(webpage, (
-            {find_element(cls='sub-message')}, {clean_html}, filter,
-        )):
-            self.raise_geo_restricted(error_msg, countries=self._GEO_COUNTRIES)
-        mxs = self._search_json(r'window\.__mxs__\s*=', webpage, 'mxs', show_id)
+        mxs = self._extract_mxs(url, show_id)
 
         entities = traverse_obj(mxs, ('entities', show_id, {dict}))
 
         return self.playlist_result(
-            self._entries(entities, show_id), show_id,
+            self._entries(entities), show_id,
             traverse_obj(entities, ('title', {clean_html}, filter)))
 
 
@@ -332,7 +329,7 @@ class MxplayerRedirectIE(MxplayerBaseIE):
     IE_NAME = 'mxplayer:redirect'
     IE_DESC = False
 
-    _VALID_URL = r'https?://(?:www\.)?mxplayer\.in/detail/(?P<type>episode|season|tvshow)/(?P<id>[0-9a-f]{32})(?:[/?#]|$)'
+    _VALID_URL = r'https?://(?:www\.)?mxplayer\.in/detail/(?P<type>episode|movie|season|shorts|tvshow)/(?P<id>[0-9a-f]{32})(?:[/?#]|$)'
     _TESTS = [{
         # episode
         # https://www.mxplayer.in/show/watch-that-time-i-got-reincarnated-as-a-slime/season-2/megiddo-online-3eda0b3baf27f2892d3fca2fd650fb95
@@ -363,26 +360,72 @@ class MxplayerRedirectIE(MxplayerBaseIE):
         },
         'params': {'skip_download': True},
     }, {
-        'url': 'https://www.mxplayer.in/detail/season/fd983ff16be6f7a1e2986c6f1ea10f95',
+        'url': 'https://www.mxplayer.in/detail/movie/0c586053d7ac563ca911ddfe08cf922f',
         'info_dict': {
-            'id': '775ad3b682fde6a608559a60986b230d',
-            'title': 'Watch Chakravartin Ashoka Samrat Series Online',
+            'id': '0c586053d7ac563ca911ddfe08cf922f',
+            'ext': 'mp4',
+            'title': 'Sardar Udham',
+            'age_limit': 13,
+            'cast': 'count:6',
+            'creators': 'count:1',
+            'description': 'md5:58f0d90f802898aaf328ac2942e878e5',
+            'display_id': 'watch-sardar-udham-movie-online',
+            'episode': 'Episode 0',
+            'episode_number': 0,
+            'duration': 9770,
+            'genres': 'count:3',
+            'release_date': '20211015',
+            'release_timestamp': 1634322600,
+            'tags': 'count:4',
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1739952608,
+            'upload_date': '20250219',
+            'view_count': int,
         },
-        'playlist_mincount': 440,
+        'params': {'skip_download': True},
     }, {
-        'url': 'https://www.mxplayer.in/detail/tvshow/1f77222f5c62b8e954fbbfad9e80b155',
+        'url': 'https://www.mxplayer.in/detail/shorts/55c77863e406c7b71f6bab28f7fbbe85',
         'info_dict': {
-            'id': '775ad3b682fde6a608559a60986b230d',
-            'title': 'Watch Chakravartin Ashoka Samrat Series Online',
+            'id': '55c77863e406c7b71f6bab28f7fbbe85',
+            'ext': 'mp4',
+            'title': 'Official Trailer| Lafangey - Sapne, Dosti, Duniya',
+            'age_limit': 18,
+            'description': 'md5:623d53e4543155dd732e96587711481c',
+            'display_id': 'watch-official-trailer-lafangey-sapne-dosti-duniya-online',
+            'episode': 'Episode 0',
+            'episode_number': 0,
+            'duration': 118,
+            'genres': 'count:2',
+            'release_date': '20250601',
+            'release_timestamp': 1748802600,
+            'tags': 'count:3',
+            'thumbnail': r're:https?://.+',
+            'view_count': int,
         },
-        'playlist_mincount': 440,
+        'params': {'skip_download': True},
+    }, {
+        'url': 'https://www.mxplayer.in/detail/season/41a6d7432bea96f2f0d06a625b39d9b1',
+        'info_dict': {
+            'id': '41a6d7432bea96f2f0d06a625b39d9b1',
+            'title': 'Demon Slayer - Season 3',
+        },
+        'playlist_mincount': 11,
+    }, {
+        'url': 'https://www.mxplayer.in/detail/tvshow/e7c68fb3951e61986af073a719c2ee4f',
+        'info_dict': {
+            'id': 'e7c68fb3951e61986af073a719c2ee4f',
+            'title': 'My Hero Academia',
+        },
+        'playlist_mincount': 4,
     }]
 
     def _real_extract(self, url):
         redirect_type, redirect_id = self._match_valid_url(url).group('type', 'id')
         ie = {
             'episode': MxplayerIE,
+            'movie': MxplayerIE,
             'season': MxplayerSeasonIE,
+            'shorts': MxplayerIE,
             'tvshow': MxplayerShowIE,
         }[redirect_type]
 
