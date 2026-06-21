@@ -221,6 +221,7 @@ class RedditIE(InfoExtractor):
             'skip_download': True,
             'writesubtitles': True,
         },
+        'skip': 'Video deleted',
     }, {
         # "gated" subreddit post
         'url': 'https://old.reddit.com/r/ketamine/comments/degtjo/when_the_k_hits/',
@@ -240,6 +241,25 @@ class RedditIE(InfoExtractor):
             'thumbnail': r're:https?://.+/.+\.(?:jpg|png)',
             'timestamp': 1570438713.0,
             'upload_date': '20191007',
+        },
+    }, {
+        'url': 'https://www.reddit.com/r/NEETard/comments/1uap4u8/student_from_nagpur_gets_abu_dhabi_centre_for/',
+        'info_dict': {
+            'id': '8pmxo8xnrd8h1',
+            'ext': 'mp4',
+            'display_id': '1uap4u8',
+            'title': 'Student From Nagpur Gets Abu Dhabi Centre For NEET Retest',
+            'alt_title': 'Student From Nagpur Gets Abu Dhabi Centre For NEET Retest',
+            'uploader': 'Glittering-Angle-799',
+            'channel_id': 'NEETard',
+            'comment_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'age_limit': 0,
+            'duration': 204,
+            'thumbnail': r're:https?://.+/.+\.(?:jpg|png)',
+            'timestamp': 1781936438.0,
+            'upload_date': '20260620',
         },
     }, {
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj',
@@ -487,7 +507,7 @@ class RedditIE(InfoExtractor):
             'url': video_url,
         }
 
-    def _get_more_children(self, post_id, data, fatal=False):
+    def _get_and_yield_more_childs(self, post_id, data, fatal=False):
         children_ids = traverse_obj(
             data, ('children', ...),
             (..., 'data', 'children', lambda _, x: x['kind'] == 'more', 'data', 'children', ...),
@@ -526,11 +546,11 @@ class RedditIE(InfoExtractor):
         for comment in traverse_obj(data, (('things', (..., 'data', 'children')), lambda _, x: x['kind'] == 't1', {dict})):
             yield from self._yield_comments(post_id, comment)
 
-        yield from self._get_more_children(post_id, data)
+        yield from self._get_and_yield_more_childs(post_id, data)
 
     def _yield_comments(self, post_id, comment_data):
         for reply_tree in traverse_obj(comment_data, (('data', None), 'replies', 'data', 'children', lambda _, x: x['kind'] in ('t1', 'more'), 'data', {dict})):
-            yield from self._get_more_children(post_id, reply_tree)
+            yield from self._get_and_yield_more_childs(post_id, reply_tree)
             yield from self._yield_comments(post_id, reply_tree)
         yield self._extract_comment(comment_data)
 
