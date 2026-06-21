@@ -104,7 +104,7 @@ class NiconicoIE(NiconicoBaseIE):
     IE_NAME = 'niconico'
     IE_DESC = 'ニコニコ動画'
 
-    _VALID_URL = r'https?://(?:(?:embed|sp|www)\.)?nicovideo\.jp/watch/(?P<id>(?:[a-z]{2})?\d+)'
+    _VALID_URL = r'https?://(?:(?:embed|sp|www)\.)?nicovideo\.jp/(?:shorts|watch)/(?P<id>(?:[a-z]{2})?\d+)'
     _ERROR_MAP = {
         'FORBIDDEN': {
             'ADMINISTRATOR_DELETE_VIDEO': 'Video unavailable, possibly removed by admins',
@@ -361,6 +361,29 @@ class NiconicoIE(NiconicoBaseIE):
         },
         'params': {'skip_download': 'm3u8'},
         'skip': 'Channel members only; specified continuous membership period required',
+    }, {
+        'url': 'https://www.nicovideo.jp/shorts/ss46441082',
+        'info_dict': {
+            'id': 'ss46441082',
+            'ext': 'mp4',
+            'title': '『超かぐや姫！』WEB予告 ＜ アクション編 ＞',
+            'availability': 'public',
+            'channel': '『超かぐや姫！』公式',
+            'channel_id': '141907929',
+            'comment_count': int,
+            'description': 'md5:86cd619f675377c7d77ddc13b4dda8bf',
+            'duration': 15,
+            'genres': ['アニメ'],
+            'like_count': int,
+            'tags': 'mincount:5',
+            'thumbnail': r're:https?://img\.cdn\.nimg\.jp/s/nicovideo/thumbnails/.+',
+            'timestamp': 1781600400,
+            'upload_date': '20260616',
+            'uploader': '『超かぐや姫！』公式',
+            'uploader_id': '141907929',
+            'view_count': int,
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _extract_formats(self, api_data, video_id):
@@ -428,7 +451,7 @@ class NiconicoIE(NiconicoBaseIE):
                 'actionTrackId': f'AAAAAAAAAA_{round(time_seconds() * 1000)}',
             }, expected_status=[400, 404])
 
-        api_data = api_resp['data']
+        api_data = traverse_obj(api_resp, ('data', {dict}))
         scheduled_time = traverse_obj(api_data, ('publishScheduledAt', {str}))
         status = traverse_obj(api_resp, ('meta', 'status', {int}))
 
@@ -465,7 +488,7 @@ class NiconicoIE(NiconicoBaseIE):
         if not formats and err_msg:
             self.raise_login_required(err_msg, metadata_available=True)
 
-        thumb_prefs = qualities(['url', 'middleUrl', 'largeUrl', 'player', 'ogp'])
+        thumb_prefs = qualities(['url', 'middleUrl', 'largeUrl', 'player', 'ogp', 'short'])
 
         return {
             'availability': availability,
@@ -482,7 +505,8 @@ class NiconicoIE(NiconicoBaseIE):
                 'url': url,
                 **parse_resolution(url, lenient=True),
             } for key, url in traverse_obj(api_data, (
-                'video', 'thumbnail', {dict}), default={}).items()],
+                'video', 'thumbnail', {dict.items}, lambda _, v: url_or_none(v[1])),
+            )],
             **traverse_obj(api_data, (('channel', 'owner'), any, {
                 'channel': (('name', 'nickname'), {str}, any),
                 'channel_id': ('id', {str_or_none}),
