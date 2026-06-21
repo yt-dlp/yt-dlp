@@ -438,9 +438,11 @@ def clean_pot(po_token: str):
     if not mobj:
         raise ValueError('Invalid PO Token')
 
+    # compat: <=py3.14: padded was added in 3.15 and the default for urlsafe is false
+    data = mobj.group(1).translate(str.maketrans('-_', '+/'))
     try:
         return base64.urlsafe_b64encode(
-            base64.urlsafe_b64decode(mobj.group(1))).decode()
+            base64.b64decode(data)).decode()
     except (binascii.Error, ValueError):
         raise ValueError('Invalid PO Token')
 
