@@ -1158,12 +1158,17 @@ class TikTokUserIE(TikTokBaseIE):
                 fatal=False, impersonate=True) or ''
             detail = traverse_obj(
                 self._get_universal_data(webpage, user_name), ('webapp.user-detail', {dict})) or {}
+
+            # Extract account-level statistics
+            stats_v2 = traverse_obj(detail, ('userInfo', 'statsV2'))
             video_count = traverse_obj(detail, ('userInfo', ('stats', 'statsV2'), 'videoCount', {int}, any))
+
             if not video_count and detail.get('statusCode') == 10222:
                 self.raise_login_required(
                     'This user\'s account is private. Log into an account that has access')
             elif video_count == 0:
                 raise ExtractorError('This account does not have any videos posted', expected=True)
+
             sec_uid = traverse_obj(detail, ('userInfo', 'user', 'secUid', {str}))
             if sec_uid:
                 fail_early = not traverse_obj(detail, ('userInfo', 'itemList', ...))
@@ -1176,6 +1181,23 @@ class TikTokUserIE(TikTokBaseIE):
                 'Unable to extract secondary user ID. If you are able to get the channel_id '
                 'from a video posted by this user, try using "tiktokuser:channel_id" as the '
                 'input URL (replacing `channel_id` with its actual value)', expected=True)
+
+        # Handle site-specific extractor arguments
+        extractor_args = self.get_param('extractor_args', {}).get('tiktok', {})
+        include_metadata = 'true' in extractor_args.get('user_metadata', [])
+
+        if include_metadata and stats_v2:
+            # Return raw metrics as strings to prevent 32-bit signed integer overflow
+            user_info = traverse_obj(detail, ('userInfo', 'user'), default={})
+            return self.playlist_result(
+                self._entries(sec_uid, user_name, fail_early), sec_uid, user_name,
+                description=user_info.get('signature'),
+                follower_count=stats_v2.get('followerCount'),
+                following_count=stats_v2.get('followingCount'),
+                like_count=stats_v2.get('heartCount') or stats_v2.get('heart'),
+                video_count=stats_v2.get('videoCount'),
+                digg_count=stats_v2.get('diggCount'),
+                friend_count=stats_v2.get('friendCount'))
 
         return self.playlist_result(self._entries(sec_uid, user_name, fail_early), sec_uid, user_name)
 
