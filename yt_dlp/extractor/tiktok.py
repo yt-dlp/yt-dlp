@@ -1038,14 +1038,8 @@ class TikTokUserIE(TikTokBaseIE):
         'info_dict': {
             'id': 'MS4wLjABAAAAv7iSuuXDJGDvJkmH_vz1qkDZYo1apxgzaxdBSeIuPiM',
             'title': 'tiktok',
-            'bio_description': str,
-            'bio_link': str,
-            'follower_count': int,
-            'following_count': int,
-            'like_count': int,
-            'video_count': int,
-            'digg_count': int,
-            'friend_count': int,
+            'description': str,
+            'channel_follower_count': int,
         },
         'playlist_mincount': 10,  # Ensures the extractor returns a valid list of videos
     }]
@@ -1198,14 +1192,8 @@ class TikTokUserIE(TikTokBaseIE):
 
         # Construct profile metadata
         profile_metadata = filter_dict({
-            'bio_description': traverse_obj(detail, ('userInfo', 'user', 'signature', {str_or_none})),
-            'bio_link': traverse_obj(detail, ('userInfo', 'user', 'bioLink', 'link', {str_or_none})),
-            'follower_count': traverse_obj(detail, ('userInfo', 'statsV2', 'followerCount', {int_or_none})),
-            'following_count': traverse_obj(detail, ('userInfo', 'statsV2', 'followingCount', {int_or_none})),
-            'like_count': traverse_obj(detail, ('userInfo', 'statsV2', 'heartCount', {int_or_none})),
-            'video_count': traverse_obj(detail, ('userInfo', 'statsV2', 'videoCount', {int_or_none})),
-            'digg_count': traverse_obj(detail, ('userInfo', 'statsV2', 'diggCount', {int_or_none})),
-            'friend_count': traverse_obj(detail, ('userInfo', 'statsV2', 'friendCount', {int_or_none})),
+            'description': traverse_obj(detail, ('userInfo', 'user', 'signature', {str_or_none})),
+            'channel_follower_count': traverse_obj(detail, ('userInfo', 'statsV2', 'followerCount', {int_or_none}))
         })
 
         if profile_metadata:
