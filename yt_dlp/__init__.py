@@ -1,8 +1,8 @@
 import sys
 
-if sys.version_info < (3, 9):
+if sys.version_info < (3, 10):
     raise ImportError(
-        f'You are using an unsupported version of Python. Only Python versions 3.9 and above are supported by yt-dlp')  # noqa: F541
+        f'You are using an unsupported version of Python. Only Python versions 3.10 and above are supported by yt-dlp')  # noqa: F541
 
 __license__ = 'The Unlicense'
 
@@ -44,6 +44,7 @@ from .utils import (
     GeoUtils,
     PlaylistEntries,
     SameFileError,
+    UnsafeExecExpansionError,
     download_range_func,
     expand_path,
     float_or_none,
@@ -61,8 +62,15 @@ from .utils import (
     shell_quote,
     variadic,
     write_string,
+
 )
 from .utils._utils import _UnsafeExtensionError
+from .utils._jsruntime import (
+    BunJsRuntime as _BunJsRuntime,
+    DenoJsRuntime as _DenoJsRuntime,
+    NodeJsRuntime as _NodeJsRuntime,
+    QuickJsRuntime as _QuickJsRuntime,
+)
 from .YoutubeDL import YoutubeDL
 
 
@@ -155,7 +163,7 @@ def set_compat_opts(opts):
     if 'format-sort' in opts.compat_opts:
         opts.format_sort.extend(FormatSorter.ytdl_default)
     elif 'prefer-vp9-sort' in opts.compat_opts:
-        opts.format_sort.extend(FormatSorter._prefer_vp9_sort)
+        FormatSorter.default = FormatSorter._prefer_vp9_sort
 
     if 'mtime-by-default' in opts.compat_opts:
         if opts.updatetime is None:
@@ -611,7 +619,7 @@ def validate_options(opts):
         warnings.append(
             'Using allow-unsafe-ext opens you up to potential attacks. '
             'Use with great care!')
-        _UnsafeExtensionError.sanitize_extension = lambda x, prepend=False: x
+        _UnsafeExtensionError._enabled = False
 
     return warnings, deprecation_warnings
 
@@ -772,6 +780,10 @@ def parse_options(argv=None):
         else opts.remuxvideo if opts.remuxvideo in FFmpegVideoRemuxerPP.SUPPORTED_EXTS
         else opts.audioformat if (opts.extractaudio and opts.audioformat in FFmpegExtractAudioPP.SUPPORTED_EXTS)
         else None)
+
+    js_runtimes = {
+        runtime.lower(): {'path': path} for runtime, path in (
+            [*arg.split(':', 1), None][:2] for arg in opts.js_runtimes)}
 
     return ParsedOptions(parser, opts, urls, {
         'usenetrc': opts.usenetrc,
@@ -940,6 +952,8 @@ def parse_options(argv=None):
         'geo_bypass_country': opts.geo_bypass_country,
         'geo_bypass_ip_block': opts.geo_bypass_ip_block,
         'useid': opts.useid or None,
+        'js_runtimes': js_runtimes,
+        'remote_components': opts.remote_components,
         'warn_when_outdated': opts.update_self is None,
         '_warnings': warnings,
         '_deprecation_warnings': deprecation_warnings,
@@ -974,13 +988,8 @@ def _real_main(argv=None):
 
         try:
             updater = Updater(ydl, opts.update_self)
-            if opts.update_self and updater.update() and actual_use:
-                if updater.cmd:
-                    return updater.restart()
-                # This code is reachable only for zip variant in py < 3.10
-                # It makes sense to exit here, but the old behavior is to continue
-                ydl.report_warning('Restart yt-dlp to use the updated version')
-                # return 100, 'ERROR: The program must exit for the update to complete'
+            if opts.update_self and updater.update() and actual_use and updater.cmd:
+                return updater.restart()
         except Exception:
             traceback.print_exc()
             ydl._download_retcode = 100
@@ -1069,7 +1078,7 @@ def main(argv=None):
     IN_CLI.value = True
     try:
         _exit(*variadic(_real_main(argv)))
-    except (CookieLoadError, DownloadError):
+    except (CookieLoadError, DownloadError, UnsafeExecExpansionError):
         _exit(1)
     except SameFileError as e:
         _exit(f'ERROR: {e}')
@@ -1085,6 +1094,16 @@ def main(argv=None):
 
 
 from .extractor import gen_extractors, list_extractors
+
+# Register JS runtimes and remote components
+from .globals import supported_js_runtimes, supported_remote_components
+supported_js_runtimes.value['deno'] = _DenoJsRuntime
+supported_js_runtimes.value['node'] = _NodeJsRuntime
+supported_js_runtimes.value['bun'] = _BunJsRuntime
+supported_js_runtimes.value['quickjs'] = _QuickJsRuntime
+
+supported_remote_components.value.append('ejs:github')
+supported_remote_components.value.append('ejs:npm')
 
 __all__ = [
     'YoutubeDL',

@@ -1,21 +1,21 @@
 import enum
 import functools
-import json
+import io
 import os
 import re
 import subprocess
 import sys
 import tempfile
 import time
-import uuid
 
 from .fragment import FragmentFD
-from ..networking import Request
 from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (
+    DownloadError,
     Popen,
     RetryManager,
     _configuration_args,
+    _get_exe_version_output,
     check_executable,
     classproperty,
     cli_bool_option,
@@ -23,9 +23,9 @@ from ..utils import (
     cli_valueless_option,
     determine_ext,
     encodeArgument,
-    find_available_port,
     remove_end,
     traverse_obj,
+    version_tuple,
 )
 
 
@@ -136,7 +136,7 @@ class ExternalFD(FragmentFD):
             self._cookies_tempfile = tmp_cookies.name
             self.to_screen(f'[download] Writing temporary cookies file to "{self._cookies_tempfile}"')
         # real_download resets _cookies_tempfile; if it's None then save() will write to cookiejar.filename
-        self.ydl.cookiejar.save(self._cookies_tempfile)
+        self.ydl.cookiejar.save(self._cookies_tempfile, True, True)
         return self.ydl.cookiejar.filename or self._cookies_tempfile
 
     def _call_downloader(self, tmpfilename, info_dict):
@@ -195,12 +195,38 @@ class ExternalFD(FragmentFD):
 class CurlFD(ExternalFD):
     AVAILABLE_OPT = '-V'
     _CAPTURE_STDERR = False  # curl writes the progress to stderr
+    _MIN_VERSION_FOR_STDIN_COOKIES = (7, 59)
+
+    @classmethod
+    def available(cls, path=None):
+        if path is None:
+            path = 'curl'
+        output = _get_exe_version_output(path, ['-V'])
+        if not output:
+            return False
+        parts = output.split(' ', maxsplit=2)
+        if len(parts) < 3:
+            return False
+
+        cls.exe = path
+        cls._curl_version = version_tuple(parts[1], lenient=True)
+        return path
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '--location', '-o', tmpfilename, '--compressed']
-        cookie_header = self.ydl.cookiejar.get_cookie_header(info_dict['url'])
-        if cookie_header:
-            cmd += ['--cookie', cookie_header]
+
+        if self._curl_version >= self._MIN_VERSION_FOR_STDIN_COOKIES:
+            # Supports `--cookies -`
+            cmd += ['--cookie', '-']
+        elif os.path.islink('/dev/fd/0'):
+            cmd += ['--cookie', '/dev/fd/0']
+        else:
+            cookies_file = self._write_cookies()
+            if '=' in cookies_file:
+                raise DownloadError('curl version too old or temp directory contains `=`; please use another downloader or update curl')
+            assert cookies_file != '-'
+            cmd += ['--cookie', cookies_file]
+
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', f'{key}: {val}']
@@ -221,6 +247,16 @@ class CurlFD(ExternalFD):
         cmd += self._configuration_args()
         cmd += ['--', info_dict['url']]
         return cmd
+
+    def _call_process(self, cmd, info_dict):
+        if self._curl_version > self._MIN_VERSION_FOR_STDIN_COOKIES or os.path.islink('/dev/fd/0'):
+            # Supports `--cookies -` or reading from device file as `--cookies /dev/fd/0`
+            buffer = io.StringIO()
+            self.ydl.cookiejar._really_save(buffer, True, True)
+            return Popen.run(cmd, text=True, input=buffer.getvalue())
+
+        # Cookies already passed via cookiesfile
+        return Popen.run(cmd, text=True)
 
 
 class AxelFD(ExternalFD):
@@ -244,8 +280,7 @@ class WgetFD(ExternalFD):
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-O', tmpfilename, '-nv', '--compression=auto']
-        if self.ydl.cookiejar.get_cookie_header(info_dict['url']):
-            cmd += ['--load-cookies', self._write_cookies()]
+        cmd += ['--load-cookies', self._write_cookies()]
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', f'{key}: {val}']
@@ -268,41 +303,19 @@ class WgetFD(ExternalFD):
 
 class Aria2cFD(ExternalFD):
     AVAILABLE_OPT = '-v'
-    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'dash_frag_urls', 'm3u8_frag_urls')
-
-    @staticmethod
-    def supports_manifest(manifest):
-        UNSUPPORTED_FEATURES = [
-            r'#EXT-X-BYTERANGE',  # playlists composed of byte ranges of media files [1]
-            # 1. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.2.2
-        ]
-        check_results = (not re.search(feature, manifest) for feature in UNSUPPORTED_FEATURES)
-        return all(check_results)
+    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps')
 
     @staticmethod
     def _aria2c_filename(fn):
         return fn if os.path.isabs(fn) else f'.{os.path.sep}{fn}'
 
-    def _call_downloader(self, tmpfilename, info_dict):
-        # FIXME: Disabled due to https://github.com/yt-dlp/yt-dlp/issues/5931
-        if False and 'no-external-downloader-progress' not in self.params.get('compat_opts', []):
-            info_dict['__rpc'] = {
-                'port': find_available_port() or 19190,
-                'secret': str(uuid.uuid4()),
-            }
-        return super()._call_downloader(tmpfilename, info_dict)
-
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-c', '--no-conf',
                '--console-log-level=warn', '--summary-interval=0', '--download-result=hide',
-               '--http-accept-gzip=true', '--file-allocation=none', '-x16', '-j16', '-s16']
-        if 'fragments' in info_dict:
-            cmd += ['--allow-overwrite=true', '--allow-piece-length-change=true']
-        else:
-            cmd += ['--min-split-size', '1M']
+               '--http-accept-gzip=true', '--file-allocation=none', '-x16', '-j16', '-s16',
+               '--min-split-size', '1M']
 
-        if self.ydl.cookiejar.get_cookie_header(info_dict['url']):
-            cmd += [f'--load-cookies={self._write_cookies()}']
+        cmd += [f'--load-cookies={self._write_cookies()}']
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', f'{key}: {val}']
@@ -314,12 +327,6 @@ class Aria2cFD(ExternalFD):
         cmd += self._bool_option('--show-console-readout', 'noprogress', 'false', 'true', '=')
         cmd += self._configuration_args()
 
-        if '__rpc' in info_dict:
-            cmd += [
-                '--enable-rpc',
-                f'--rpc-listen-port={info_dict["__rpc"]["port"]}',
-                f'--rpc-secret={info_dict["__rpc"]["secret"]}']
-
         # aria2c strips out spaces from the beginning/end of filenames and paths.
         # We work around this issue by adding a "./" to the beginning of the
         # filename and relative path, and adding a "/" at the end of the path.
@@ -329,105 +336,16 @@ class Aria2cFD(ExternalFD):
         dn = os.path.dirname(tmpfilename)
         if dn:
             cmd += ['--dir', self._aria2c_filename(dn) + os.path.sep]
-        if 'fragments' not in info_dict:
-            cmd += ['--out', self._aria2c_filename(os.path.basename(tmpfilename))]
-        cmd += ['--auto-file-renaming=false']
 
-        if 'fragments' in info_dict:
-            cmd += ['--uri-selector=inorder']
-            url_list_file = f'{tmpfilename}.frag.urls'
-            url_list = []
-            for frag_index, fragment in enumerate(info_dict['fragments']):
-                fragment_filename = f'{os.path.basename(tmpfilename)}-Frag{frag_index}'
-                url_list.append('{}\n\tout={}'.format(fragment['url'], self._aria2c_filename(fragment_filename)))
-            stream, _ = self.sanitize_open(url_list_file, 'wb')
-            stream.write('\n'.join(url_list).encode())
-            stream.close()
-            cmd += ['-i', self._aria2c_filename(url_list_file)]
-        else:
-            cmd += ['--', info_dict['url']]
+        cmd += [
+            '--out',
+            self._aria2c_filename(os.path.basename(tmpfilename)),
+            '--auto-file-renaming=false',
+            '--',
+            info_dict['url'],
+        ]
+
         return cmd
-
-    def aria2c_rpc(self, rpc_port, rpc_secret, method, params=()):
-        # Does not actually need to be UUID, just unique
-        sanitycheck = str(uuid.uuid4())
-        d = json.dumps({
-            'jsonrpc': '2.0',
-            'id': sanitycheck,
-            'method': method,
-            'params': [f'token:{rpc_secret}', *params],
-        }).encode()
-        request = Request(
-            f'http://localhost:{rpc_port}/jsonrpc',
-            data=d, headers={
-                'Content-Type': 'application/json',
-                'Content-Length': f'{len(d)}',
-            }, proxies={'all': None})
-        with self.ydl.urlopen(request) as r:
-            resp = json.load(r)
-        assert resp.get('id') == sanitycheck, 'Something went wrong with RPC server'
-        return resp['result']
-
-    def _call_process(self, cmd, info_dict):
-        if '__rpc' not in info_dict:
-            return super()._call_process(cmd, info_dict)
-
-        send_rpc = functools.partial(self.aria2c_rpc, info_dict['__rpc']['port'], info_dict['__rpc']['secret'])
-        started = time.time()
-
-        fragmented = 'fragments' in info_dict
-        frag_count = len(info_dict['fragments']) if fragmented else 1
-        status = {
-            'filename': info_dict.get('_filename'),
-            'status': 'downloading',
-            'elapsed': 0,
-            'downloaded_bytes': 0,
-            'fragment_count': frag_count if fragmented else None,
-            'fragment_index': 0 if fragmented else None,
-        }
-        self._hook_progress(status, info_dict)
-
-        def get_stat(key, *obj, average=False):
-            val = tuple(filter(None, map(float, traverse_obj(obj, (..., ..., key))))) or [0]
-            return sum(val) / (len(val) if average else 1)
-
-        with Popen(cmd, text=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE) as p:
-            # Add a small sleep so that RPC client can receive response,
-            # or the connection stalls infinitely
-            time.sleep(0.2)
-            retval = p.poll()
-            while retval is None:
-                # We don't use tellStatus as we won't know the GID without reading stdout
-                # Ref: https://aria2.github.io/manual/en/html/aria2c.html#aria2.tellActive
-                active = send_rpc('aria2.tellActive')
-                completed = send_rpc('aria2.tellStopped', [0, frag_count])
-
-                downloaded = get_stat('totalLength', completed) + get_stat('completedLength', active)
-                speed = get_stat('downloadSpeed', active)
-                total = frag_count * get_stat('totalLength', active, completed, average=True)
-                if total < downloaded:
-                    total = None
-
-                status.update({
-                    'downloaded_bytes': int(downloaded),
-                    'speed': speed,
-                    'total_bytes': None if fragmented else total,
-                    'total_bytes_estimate': total,
-                    'eta': (total - downloaded) / (speed or 1),
-                    'fragment_index': min(frag_count, len(completed) + 1) if fragmented else None,
-                    'elapsed': time.time() - started,
-                })
-                self._hook_progress(status, info_dict)
-
-                if not active and len(completed) >= frag_count:
-                    send_rpc('aria2.shutdown')
-                    retval = p.wait()
-                    break
-
-                time.sleep(0.1)
-                retval = p.poll()
-
-            return '', p.stderr.read(), retval
 
 
 class HttpieFD(ExternalFD):
@@ -457,6 +375,8 @@ class FFmpegFD(ExternalFD):
 
     @classmethod
     def available(cls, path=None):
+        # TODO: Fix path for ffmpeg
+        # Fixme: This may be wrong when --ffmpeg-location is used
         return FFmpegPostProcessor().available
 
     def on_process_started(self, proc, stdin):
@@ -488,20 +408,6 @@ class FFmpegFD(ExternalFD):
         if not self.params.get('verbose'):
             args += ['-hide_banner']
 
-        args += traverse_obj(info_dict, ('downloader_options', 'ffmpeg_args', ...))
-
-        # These exists only for compatibility. Extractors should use
-        # info_dict['downloader_options']['ffmpeg_args'] instead
-        args += info_dict.get('_ffmpeg_args') or []
-        seekable = info_dict.get('_seekable')
-        if seekable is not None:
-            # setting -seekable prevents ffmpeg from guessing if the server
-            # supports seeking(by adding the header `Range: bytes=0-`), which
-            # can cause problems in some cases
-            # https://github.com/ytdl-org/youtube-dl/issues/11800#issuecomment-275037127
-            # http://trac.ffmpeg.org/ticket/6125#comment:10
-            args += ['-seekable', '1' if seekable else '0']
-
         env = None
         proxy = self.params.get('proxy')
         if proxy:
@@ -521,38 +427,9 @@ class FFmpegFD(ExternalFD):
             env['HTTP_PROXY'] = proxy
             env['http_proxy'] = proxy
 
-        protocol = info_dict.get('protocol')
-
-        if protocol == 'rtmp':
-            player_url = info_dict.get('player_url')
-            page_url = info_dict.get('page_url')
-            app = info_dict.get('app')
-            play_path = info_dict.get('play_path')
-            tc_url = info_dict.get('tc_url')
-            flash_version = info_dict.get('flash_version')
-            live = info_dict.get('rtmp_live', False)
-            conn = info_dict.get('rtmp_conn')
-            if player_url is not None:
-                args += ['-rtmp_swfverify', player_url]
-            if page_url is not None:
-                args += ['-rtmp_pageurl', page_url]
-            if app is not None:
-                args += ['-rtmp_app', app]
-            if play_path is not None:
-                args += ['-rtmp_playpath', play_path]
-            if tc_url is not None:
-                args += ['-rtmp_tcurl', tc_url]
-            if flash_version is not None:
-                args += ['-rtmp_flashver', flash_version]
-            if live:
-                args += ['-rtmp_live', 'live']
-            if isinstance(conn, list):
-                for entry in conn:
-                    args += ['-rtmp_conn', entry]
-            elif isinstance(conn, str):
-                args += ['-rtmp_conn', conn]
-
         start_time, end_time = info_dict.get('section_start') or 0, info_dict.get('section_end')
+
+        fallback_input_args = traverse_obj(info_dict, ('downloader_options', 'ffmpeg_args', ...))
 
         selected_formats = info_dict.get('requested_formats') or [info_dict]
         for i, fmt in enumerate(selected_formats):
@@ -562,15 +439,54 @@ class FFmpegFD(ExternalFD):
                 args.extend(['-cookies', ''.join(
                     f'{cookie.name}={cookie.value}; path={cookie.path}; domain={cookie.domain};\r\n'
                     for cookie in cookies)])
-            if fmt.get('http_headers') and is_http:
+            http_headers = fmt.get('http_headers') or info_dict.get('http_headers')
+            if http_headers and is_http:
                 # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg:
                 # [http @ 00000000003d2fa0] No trailing CRLF found in HTTP header.
-                args.extend(['-headers', ''.join(f'{key}: {val}\r\n' for key, val in fmt['http_headers'].items())])
+                args.extend(['-headers', ''.join(f'{key}: {val}\r\n' for key, val in http_headers.items())])
 
             if start_time:
                 args += ['-ss', str(start_time)]
             if end_time:
                 args += ['-t', str(end_time - start_time)]
+
+            protocol = fmt.get('protocol')
+
+            if protocol == 'rtmp':
+                player_url = fmt.get('player_url')
+                page_url = fmt.get('page_url')
+                app = fmt.get('app')
+                play_path = fmt.get('play_path')
+                tc_url = fmt.get('tc_url')
+                flash_version = fmt.get('flash_version')
+                live = fmt.get('rtmp_live', False)
+                conn = fmt.get('rtmp_conn')
+                if player_url is not None:
+                    args += ['-rtmp_swfverify', player_url]
+                if page_url is not None:
+                    args += ['-rtmp_pageurl', page_url]
+                if app is not None:
+                    args += ['-rtmp_app', app]
+                if play_path is not None:
+                    args += ['-rtmp_playpath', play_path]
+                if tc_url is not None:
+                    args += ['-rtmp_tcurl', tc_url]
+                if flash_version is not None:
+                    args += ['-rtmp_flashver', flash_version]
+                if live:
+                    args += ['-rtmp_live', 'live']
+                if isinstance(conn, list):
+                    for entry in conn:
+                        args += ['-rtmp_conn', entry]
+                elif isinstance(conn, str):
+                    args += ['-rtmp_conn', conn]
+
+            elif protocol == 'http_dash_segments' and info_dict.get('is_live'):
+                # ffmpeg may try to read past the latest available segments for
+                # live DASH streams unless we pass `-re`. In modern ffmpeg, this
+                # is an alias of `-readrate 1`, but `-readrate` was not added
+                # until ffmpeg 5.0, so we must stick to using `-re`
+                args += ['-re']
 
             url = fmt['url']
             if self.params.get('enable_file_urls') and url.startswith('file:'):
@@ -586,6 +502,7 @@ class FFmpegFD(ExternalFD):
                 #      https://trac.ffmpeg.org/ticket/2702
                 url = re.sub(r'^file://(?:localhost)?/', 'file:' if os.name == 'nt' else 'file:/', url)
 
+            args += traverse_obj(fmt, ('downloader_options', 'ffmpeg_args', ...)) or fallback_input_args
             args += [*self._configuration_args((f'_i{i + 1}', '_i')), '-i', url]
 
         if not (start_time or end_time) or not self.params.get('force_keyframes_at_cuts'):

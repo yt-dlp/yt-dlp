@@ -75,6 +75,9 @@ MONTH_NAMES = {
     'fr': [
         'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
         'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'],
+    'is': [
+        'janúar', 'febrúar', 'mars', 'apríl', 'maí', 'júní',
+        'júlí', 'ágúst', 'september', 'október', 'nóvember', 'desember'],
     # these follow the genitive grammatical case (dopełniacz)
     # some websites might be using nominative, which will require another month list
     # https://en.wikibooks.org/wiki/Polish/Noun_cases
@@ -95,7 +98,7 @@ TIMEZONE_NAMES = {
 # needed for sanitizing filenames in restricted mode
 ACCENT_CHARS = dict(zip('ÂÃÄÀÁÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖŐØŒÙÚÛÜŰÝÞßàáâãäåæçèéêëìíîïðñòóôõöőøœùúûüűýþÿ',
                         itertools.chain('AAAAAA', ['AE'], 'CEEEEIIIIDNOOOOOOO', ['OE'], 'UUUUUY', ['TH', 'ss'],
-                                        'aaaaaa', ['ae'], 'ceeeeiiiionooooooo', ['oe'], 'uuuuuy', ['th'], 'y')))
+                                        'aaaaaa', ['ae'], 'ceeeeiiiionooooooo', ['oe'], 'uuuuuy', ['th'], 'y'), strict=True))
 
 DATE_FORMATS = (
     '%d %B %Y',
@@ -876,13 +879,19 @@ class Popen(subprocess.Popen):
             kwargs.setdefault('encoding', 'utf-8')
             kwargs.setdefault('errors', 'replace')
 
-        if shell and os.name == 'nt' and kwargs.get('executable') is None:
-            if not isinstance(args, str):
-                args = shell_quote(args, shell=True)
-            shell = False
-            # Set variable for `cmd.exe` newline escaping (see `utils.shell_quote`)
-            env['='] = '"^\n\n"'
-            args = f'{self.__comspec()} /Q /S /D /V:OFF /E:ON /C "{args}"'
+        if os.name == 'nt' and kwargs.get('executable') is None:
+            # Must apply shell escaping if we are trying to run a batch file
+            # These conditions should be very specific to limit impact
+            if not shell and isinstance(args, list) and args and args[0].lower().endswith(('.bat', '.cmd')):
+                shell = True
+
+            if shell:
+                if not isinstance(args, str):
+                    args = shell_quote(args, shell=True)
+                shell = False
+                # Set variable for `cmd.exe` newline escaping (see `utils.shell_quote`)
+                env['='] = '"^\n\n"'
+                args = f'{self.__comspec()} /Q /S /D /V:OFF /E:ON /C "{args}"'
 
         super().__init__(args, *remaining, env=env, shell=shell, **kwargs, startupinfo=self._startupinfo)
 
@@ -906,10 +915,12 @@ class Popen(subprocess.Popen):
             self.wait(timeout=timeout)
 
     @classmethod
-    def run(cls, *args, timeout=None, **kwargs):
+    def run(cls, *args, timeout=None, input=None, **kwargs):
+        if input is not None and kwargs.get('stdin') is None:
+            kwargs['stdin'] = subprocess.PIPE
         with cls(*args, **kwargs) as proc:
             default = '' if proc.__text_mode else b''
-            stdout, stderr = proc.communicate_or_kill(timeout=timeout)
+            stdout, stderr = proc.communicate_or_kill(input=input, timeout=timeout)
             return stdout or default, stderr or default, proc.returncode
 
 
@@ -1173,6 +1184,10 @@ class XAttrUnavailableError(YoutubeDLError):
     pass
 
 
+class UnsafeExecExpansionError(YoutubeDLError):
+    pass
+
+
 def is_path_like(f):
     return isinstance(f, (str, bytes, os.PathLike))
 
@@ -1256,7 +1271,8 @@ def unified_strdate(date_str, day_first=True):
         return str(upload_date)
 
 
-def unified_timestamp(date_str, day_first=True):
+@partial_application
+def unified_timestamp(date_str, day_first=True, tz_offset=0):
     if not isinstance(date_str, str):
         return None
 
@@ -1264,7 +1280,8 @@ def unified_timestamp(date_str, day_first=True):
         r'(?i)[,|]|(mon|tues?|wed(nes)?|thu(rs)?|fri|sat(ur)?|sun)(day)?', '', date_str))
 
     pm_delta = 12 if re.search(r'(?i)PM', date_str) else 0
-    timezone, date_str = extract_timezone(date_str)
+    timezone, date_str = extract_timezone(
+        date_str, default=dt.timedelta(hours=tz_offset) if tz_offset else None)
 
     # Remove AM/PM + timezone
     date_str = re.sub(r'(?i)\s*(?:AM|PM)(?:\s+[A-Z]+)?', '', date_str)
@@ -2124,16 +2141,16 @@ def parse_duration(s):
         (days, 86400), (hours, 3600), (mins, 60), (secs, 1), (ms, 1)))
 
 
-def _change_extension(prepend, filename, ext, expected_real_ext=None):
+def _change_extension(prepend, filename, ext, expected_real_ext=None, *, _allowed_exts=()):
     name, real_ext = os.path.splitext(filename)
 
     if not expected_real_ext or real_ext[1:] == expected_real_ext:
         filename = name
         if prepend and real_ext:
-            _UnsafeExtensionError.sanitize_extension(ext, prepend=True)
+            _UnsafeExtensionError.sanitize_extension(ext, prepend=True, _allowed_exts=_allowed_exts)
             return f'{filename}.{ext}{real_ext}'
 
-    return f'{filename}.{_UnsafeExtensionError.sanitize_extension(ext)}'
+    return f'{filename}.{_UnsafeExtensionError.sanitize_extension(ext, _allowed_exts=_allowed_exts)}'
 
 
 prepend_extension = functools.partial(_change_extension, True)
@@ -2150,14 +2167,14 @@ def check_executable(exe, args=[]):
     return exe
 
 
-def _get_exe_version_output(exe, args):
+def _get_exe_version_output(exe, args, ignore_return_code=False):
     try:
         # STDIN should be redirected too. On UNIX-like systems, ffmpeg triggers
         # SIGTTOU if yt-dlp is run in the background.
         # See https://github.com/ytdl-org/youtube-dl/issues/955#issuecomment-209789656
         stdout, _, ret = Popen.run([encodeArgument(exe), *args], text=True,
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        if ret:
+        if not ignore_return_code and ret:
             return None
     except OSError:
         return False
@@ -2415,7 +2432,7 @@ class PlaylistEntries:
         if self.is_incomplete:
             assert self.is_exhausted
             self._entries = [self.MissingEntry] * max(requested_entries or [0])
-            for i, entry in zip(requested_entries, entries):
+            for i, entry in zip(requested_entries, entries):  # noqa: B905
                 self._entries[i - 1] = entry
         elif isinstance(entries, (list, PagedList, LazyList)):
             self._entries = entries
@@ -2822,7 +2839,7 @@ def js_to_json(code, vars={}, *, strict=False):
         {STRING_RE}|
         {COMMENT_RE}|,(?={SKIP_RE}[\]}}])|
         void\s0|(?:(?<![0-9])[eE]|[a-df-zA-DF-Z_$])[.a-zA-Z_$0-9]*|
-        \b(?:0[xX][0-9a-fA-F]+|0+[0-7]+)(?:{SKIP_RE}:)?|
+        \b(?:0[xX][0-9a-fA-F]+|(?<!\.)0+[0-7]+)(?:{SKIP_RE}:)?|
         [0-9]+(?={SKIP_RE}:)|
         !+
         ''', fix_kv, code)
@@ -2889,8 +2906,9 @@ def limit_length(s, length):
     return s
 
 
-def version_tuple(v):
-    return tuple(int(e) for e in re.split(r'[-.]', v))
+def version_tuple(v, *, lenient=False):
+    parse = int_or_none(default=-1) if lenient else int
+    return tuple(parse(e) for e in re.split(r'[-.]', v))
 
 
 def is_outdated_version(version, limit, assume_new=True):
@@ -2995,6 +3013,8 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'ttaf+xml': 'dfxp',
         'ttml+xml': 'ttml',
         'x-ms-sami': 'sami',
+        'x-subrip': 'srt',
+        'x-srt': 'srt',
 
         # misc
         'gzip': 'gz',
@@ -3184,7 +3204,7 @@ def render_table(header_row, data, delim=False, extra_gap=0, hide_empty=False):
         return len(remove_terminal_sequences(string).replace('\t', ''))
 
     def get_max_lens(table):
-        return [max(width(str(v)) for v in col) for col in zip(*table)]
+        return [max(width(str(v)) for v in col) for col in zip(*table, strict=True)]
 
     def filter_using_list(row, filter_array):
         return [col for take, col in itertools.zip_longest(filter_array, row, fillvalue=True) if take]
@@ -3540,7 +3560,7 @@ def dfxp2srt(dfxp_data):
             continue
         default_style.update(style)
 
-    for para, index in zip(paras, itertools.count(1)):
+    for para, index in zip(paras, itertools.count(1), strict=False):
         begin_time = parse_dfxp_time_expr(para.attrib.get('begin'))
         end_time = parse_dfxp_time_expr(para.attrib.get('end'))
         dur = parse_dfxp_time_expr(para.attrib.get('dur'))
@@ -4467,7 +4487,7 @@ def decode_packed_codes(code):
         symbol_table[base_n_count] = symbols[count] or base_n_count
 
     return re.sub(
-        r'\b(\w+)\b', lambda mobj: symbol_table[mobj.group(0)],
+        r'\b(\w+)\b', lambda m: symbol_table.get(m.group(0), m.group(0)),
         obfuscated_code)
 
 
@@ -4693,16 +4713,9 @@ def random_uuidv4():
     return re.sub(r'[xy]', lambda x: _HEX_TABLE[random.randint(0, 15)], 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx')
 
 
-def make_dir(path, to_screen=None):
-    try:
-        dn = os.path.dirname(path)
-        if dn:
-            os.makedirs(dn, exist_ok=True)
-        return True
-    except OSError as err:
-        if callable(to_screen) is not None:
-            to_screen(f'unable to create directory {err}')
-        return False
+def make_parent_dirs(path):
+    if dir_name := os.path.dirname(path):
+        os.makedirs(dir_name, exist_ok=True)
 
 
 def get_executable_path():
@@ -4854,7 +4867,7 @@ def scale_thumbnails_to_max_format_width(formats, thumbnails, url_width_re):
     return [
         merge_dicts(
             {'url': re.sub(url_width_re, str(max_dimensions[0]), thumbnail['url'])},
-            dict(zip(_keys, max_dimensions)), thumbnail)
+            dict(zip(_keys, max_dimensions, strict=True)), thumbnail)
         for thumbnail in thumbnails
     ]
 
@@ -5193,20 +5206,22 @@ class _UnsafeExtensionError(Exception):
         # others
         *MEDIA_EXTENSIONS.manifests,
         *MEDIA_EXTENSIONS.storyboards,
-        'desktop',
         'ism',
         'm3u',
         'sbv',
-        'url',
-        'webloc',
     ])
+
+    _enabled = True
 
     def __init__(self, extension, /):
         super().__init__(f'unsafe file extension: {extension!r}')
         self.extension = extension
 
     @classmethod
-    def sanitize_extension(cls, extension, /, *, prepend=False):
+    def sanitize_extension(cls, extension, /, *, prepend=False, _allowed_exts=()):
+        if not cls._enabled:
+            return extension
+
         if extension is None:
             return None
 
@@ -5217,7 +5232,8 @@ class _UnsafeExtensionError(Exception):
             _, _, last = extension.rpartition('.')
             if last == 'bin':
                 extension = last = 'unknown_video'
-            if last.lower() not in cls.ALLOWED_EXTENSIONS:
+            allowed = _allowed_exts or cls.ALLOWED_EXTENSIONS
+            if last.lower() not in allowed:
                 raise cls(extension)
 
         return extension

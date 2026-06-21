@@ -1,6 +1,6 @@
 import pytest
 
-from yt_dlp.extractor.youtube.pot._provider import IEContentProvider
+from yt_dlp.extractor.youtube.pot._provider import IEContentProvider, configuration_arg
 from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.utils.networking import HTTPHeaderDict
 from yt_dlp.extractor.youtube.pot.provider import (
@@ -627,3 +627,13 @@ def test_logger_log_level(logger):
     assert logger.LogLevel('debuG') == logger.LogLevel.DEBUG
     assert logger.LogLevel(10) == logger.LogLevel.DEBUG
     assert logger.LogLevel('UNKNOWN') == logger.LogLevel.INFO
+
+
+def test_configuration_arg():
+    config = {'abc': ['123D'], 'xyz': ['456a', '789B']}
+
+    assert configuration_arg(config, 'abc') == ['123d']
+    assert configuration_arg(config, 'abc', default=['default']) == ['123d']
+    assert configuration_arg(config, 'ABC', default=['default']) == ['default']
+    assert configuration_arg(config, 'abc', casesense=True) == ['123D']
+    assert configuration_arg(config, 'xyz', casesense=False) == ['456a', '789b']

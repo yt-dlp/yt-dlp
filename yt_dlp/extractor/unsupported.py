@@ -66,6 +66,13 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'rtlmost\.hu',
         r'plus\.rtl\.de(?!/podcast/)',
         r'mediasetinfinity\.es',
+        r'tv5mondeplus\.com',
+        r'tv\.rakuten\.co\.jp',
+        r'watch\.telusoriginals\.com',
+        r'video\.unext\.jp',
+        r'www\.web\.nhk',
+        r'fod\.fujitv\.co\.jp',
+        r'zee5\.com',
     )
 
     _TESTS = [{
@@ -226,6 +233,35 @@ class KnownDRMIE(UnsupportedInfoExtractor):
     }, {
         'url': 'https://www.mediasetinfinity.es/',
         'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/14743
+        'url': 'https://www.tv5mondeplus.com/',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/8821
+        'url': 'https://tv.rakuten.co.jp/content/519554/',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/9851
+        'url': 'https://watch.telusoriginals.com/play?assetID=fruit-is-ripe',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/13220
+        # https://github.com/yt-dlp/yt-dlp/issues/14564
+        'url': 'https://video.unext.jp/play/SID0062010/ED00337407',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/14620
+        'url': 'https://www.web.nhk/tv/an/72hours/pl/series-tep-W3W8WRN8M3/ep/QW8ZY6146V',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/7064
+        # https://github.com/yt-dlp/yt-dlp/issues/10264
+        'url': 'https://fod.fujitv.co.jp/title/709f/709f130001/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.zee5.com/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -265,6 +301,8 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
         r'einthusan\.(?:tv|com|ca)',
         r'yourupload\.com',
         r'xanimu\.com',
+        r'musicdex\.org',
+        r'duboku\.io',
     )
 
     _TESTS = [{
