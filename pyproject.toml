@@ -71,7 +71,7 @@ pin = [
     "brotlicffi==1.2.0.1 ; implementation_name != 'cpython'",
     "certifi==2026.5.20",
     "charset-normalizer==3.4.7",
-    "idna==3.17",
+    "idna==3.18",
     "mutagen==1.47.0",
     "pycryptodomex==3.23.0",
     "requests==2.34.2",
@@ -91,14 +91,14 @@ pin-curl-cffi = [
 ]
 pin-secretstorage = [
     "cffi==2.0.0 ; platform_python_implementation != 'PyPy'",
-    "cryptography==48.0.0",
+    "cryptography==49.0.0",
     "jeepney==0.9.0",
     "pycparser==3.0 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'",
     "secretstorage==3.5.0",
     "typing-extensions==4.15.0 ; python_full_version < '3.11'",
 ]
 pin-deno = [
-    "deno==2.8.1",
+    "deno==2.8.3",
 ]
 
 [dependency-groups]
