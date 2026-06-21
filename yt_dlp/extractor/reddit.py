@@ -2,19 +2,23 @@ import json
 import urllib.parse
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
     parse_qs,
-    traverse_obj,
+    remove_start,
+    str_or_none,
     truncate_string,
     try_get,
     unescapeHTML,
     update_url_query,
     url_or_none,
     urlencode_postdata,
+    urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class RedditIE(InfoExtractor):
@@ -328,7 +332,7 @@ class RedditIE(InfoExtractor):
                 })
 
         try:
-            data = self._download_json(
+            api_data = self._download_json(
                 f'https://www.reddit.com/{slug}/.json', video_id, expected_status=403)
         except ExtractorError as e:
             if isinstance(e.cause, json.JSONDecodeError):
@@ -337,8 +341,8 @@ class RedditIE(InfoExtractor):
                 self.raise_login_required('Account authentication is required')
             raise
 
-        if traverse_obj(data, 'error') == 403:
-            reason = data.get('reason')
+        if traverse_obj(api_data, 'error') == 403:
+            reason = api_data.get('reason')
             if reason == 'quarantined':
                 self.raise_login_required('Quarantined subreddit; an account that has opted in is required')
             elif reason == 'private':
@@ -346,7 +350,7 @@ class RedditIE(InfoExtractor):
             else:
                 raise ExtractorError(f'HTTP Error 403 Forbidden; reason given: {reason}')
 
-        data = data[0]['data']['children'][0]['data']
+        data = api_data[0]['data']['children'][0]['data']
         video_url = data['url']
 
         thumbnails = []
@@ -387,6 +391,7 @@ class RedditIE(InfoExtractor):
                 'dislike_count': ('downs', {int_or_none}),
                 'comment_count': ('num_comments', {int_or_none}),
             }),
+            '__post_extractor': self.extract_comments(None, api_data),
         }
 
         parsed_url = urllib.parse.urlparse(video_url)
@@ -480,4 +485,71 @@ class RedditIE(InfoExtractor):
             'display_id': video_id,
             '_type': 'url_transparent',
             'url': video_url,
+        }
+
+    def _get_more_children(self, post_id, data, fatal=False):
+        children_ids = traverse_obj(
+            data, ('children', ...),
+            (..., 'data', 'children', lambda _, x: x['kind'] == 'more', 'data', 'children', ...),
+            ('things', lambda _, x: x['kind'] == 'more', 'data', 'children', ...),
+        )
+
+        if not children_ids:
+            return {}
+
+        for retry in self.RetryManager():
+            try:
+                yield from self._get_comments(post_id, traverse_obj(
+                    self._download_json(
+                        'https://www.reddit.com/api/morechildren.json',
+                        post_id, 'Downloading more comments',
+                        errnote='Unable to download more comments',
+                        query={
+                            'link_id': post_id,
+                            'children': ','.join(children_ids),
+                            'api_type': 'json',
+                        }), ('json', 'data', {dict}), default={}),
+                )
+            except ExtractorError as e:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 429:
+                    retry.error = e
+                if not fatal:
+                    self.report_warning(str(e))
+                    return {}
+                raise
+
+    def _get_comments(self, post_id, data):
+        post_id = post_id or traverse_obj(data, (..., 'data', 'children', lambda _, x: x['kind'] == 't3', 'data', ('name', 'id'), {str}, any), default='')
+        if post_id and not post_id.startswith('t3_'):
+            post_id = f't3_{post_id}'
+
+        for comment in traverse_obj(data, (('things', (..., 'data', 'children')), lambda _, x: x['kind'] == 't1', {dict})):
+            yield from self._yield_comments(post_id, comment)
+
+        yield from self._get_more_children(post_id, data)
+
+    def _yield_comments(self, post_id, comment_data):
+        for reply_tree in traverse_obj(comment_data, (('data', None), 'replies', 'data', 'children', lambda _, x: x['kind'] in ('t1', 'more'), 'data', {dict})):
+            yield from self._get_more_children(post_id, reply_tree)
+            yield from self._yield_comments(post_id, reply_tree)
+        yield self._extract_comment(comment_data)
+
+    @staticmethod
+    def _extract_comment(comment_data):
+        author_base_url = 'https://www.reddit.com/user'
+        parent_id = comment_data.get('parent_id')
+        parent_id = remove_start(parent_id, 't1_') if parent_id and parent_id.startswith('t1_') else 'root'
+
+        return {
+            **traverse_obj(comment_data, (('data', None), {
+                'id': ('id', {str_or_none}),
+                'text': ('body', {str_or_none}),
+                'timestamp': (('created', 'created_uc'), {int}, any),
+                'like_count': (('ups', 'score'), {int_or_none}, any),
+                'dislike_count': ('downs', {int_or_none}),
+                'is_pinned': ('pinned', {bool}),
+                'author': ('author', {str_or_none}),
+                'author_url': ('author', {str_or_none}, {urljoin(author_base_url)}),
+            }), get_all=False),
+            'parent_id': parent_id,
         }
