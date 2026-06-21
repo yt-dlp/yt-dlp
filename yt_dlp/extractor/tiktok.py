@@ -1033,6 +1033,21 @@ class TikTokUserIE(TikTokBaseIE):
         },
         'expected_warnings': ['TikTok API keeps sending the same page'],
         'params': {'extractor_retries': 10},
+    }, {
+        'url': 'https://www.tiktok.com/@tiktok',
+        'info_dict': {
+            'id': 'MS4wLjABAAAAv7iSuuXDJGDvJkmH_vz1qkDZYo1apxgzaxdBSeIuPiM',
+            'title': 'tiktok',
+            'bio_description': str,
+            'bio_link': str,
+            'follower_count': int,
+            'following_count': int,
+            'like_count': int,
+            'video_count': int,
+            'digg_count': int,
+            'friend_count': int,
+        },
+        'playlist_mincount': 10,  # Ensures the extractor returns a valid list of videos
     }]
     _API_BASE_URL = 'https://www.tiktok.com/api/creator/item_list/'
 
@@ -1148,6 +1163,8 @@ class TikTokUserIE(TikTokBaseIE):
 
     def _real_extract(self, url):
         user_name, sec_uid = self._match_id(url), None
+        detail = {}  # Initialize to prevent UnboundLocalError
+
         if re.fullmatch(r'MS4wLjABAAAA[\w-]{64}', user_name):
             user_name, sec_uid = None, user_name
             fail_early = True
@@ -1158,12 +1175,14 @@ class TikTokUserIE(TikTokBaseIE):
                 fatal=False, impersonate=True) or ''
             detail = traverse_obj(
                 self._get_universal_data(webpage, user_name), ('webapp.user-detail', {dict})) or {}
+            
             video_count = traverse_obj(detail, ('userInfo', ('stats', 'statsV2'), 'videoCount', {int}, any))
             if not video_count and detail.get('statusCode') == 10222:
                 self.raise_login_required(
                     'This user\'s account is private. Log into an account that has access')
             elif video_count == 0:
                 raise ExtractorError('This account does not have any videos posted', expected=True)
+            
             sec_uid = traverse_obj(detail, ('userInfo', 'user', 'secUid', {str}))
             if sec_uid:
                 fail_early = not traverse_obj(detail, ('userInfo', 'itemList', ...))
@@ -1176,6 +1195,23 @@ class TikTokUserIE(TikTokBaseIE):
                 'Unable to extract secondary user ID. If you are able to get the channel_id '
                 'from a video posted by this user, try using "tiktokuser:channel_id" as the '
                 'input URL (replacing `channel_id` with its actual value)', expected=True)
+
+        # Construct profile metadata
+        profile_metadata = filter_dict({
+            'bio_description': traverse_obj(detail, ('userInfo', 'user', 'signature', {str_or_none})),
+            'bio_link': traverse_obj(detail, ('userInfo', 'user', 'bioLink', 'link', {str_or_none})),
+            'follower_count': traverse_obj(detail, ('userInfo', 'statsV2', 'followerCount', {int_or_none})),
+            'following_count': traverse_obj(detail, ('userInfo', 'statsV2', 'followingCount', {int_or_none})),
+            'like_count': traverse_obj(detail, ('userInfo', 'statsV2', 'heartCount', {int_or_none})),
+            'video_count': traverse_obj(detail, ('userInfo', 'statsV2', 'videoCount', {int_or_none})),
+            'digg_count': traverse_obj(detail, ('userInfo', 'statsV2', 'diggCount', {int_or_none})),
+            'friend_count': traverse_obj(detail, ('userInfo', 'statsV2', 'friendCount', {int_or_none})),
+        })
+
+        if profile_metadata:
+            return self.playlist_result(self._entries(sec_uid, user_name, fail_early), sec_uid, user_name, **profile_metadata)
+        else:
+            self.report_warning('Unable to extract user profile metadata')
 
         return self.playlist_result(self._entries(sec_uid, user_name, fail_early), sec_uid, user_name)
 
