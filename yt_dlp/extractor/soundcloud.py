@@ -784,7 +784,7 @@ class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
             **traverse_obj(playlist, {
                 'uploader': ('user', 'username', {str}),
                 'uploader_id': ('user', 'id', {str_or_none}),
-                'uploader_url': ('user', 'permalink_url', {str}),
+                'uploader_url': ('user', 'permalink_url', {url_or_none}),
             }),
         )
 
