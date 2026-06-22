@@ -167,7 +167,16 @@ class BilibiliBaseIE(InfoExtractor):
         return params
 
     def _download_playinfo(self, bvid, cid, headers=None, query=None):
-        params = {'bvid': bvid, 'cid': cid, 'fnval': 4048, **(query or {})}
+        params = {
+            'bvid': bvid, 'cid': cid, 'fnval': 4048,
+            'dm_img_list': '[]',
+            'dm_img_str': base64.b64encode(
+                ''.join(random.choices(string.ascii_letters + string.digits, k=16)).encode()).decode(),
+            'dm_cover_img_str': base64.b64encode(
+                ''.join(random.choices(string.ascii_letters + string.digits, k=32)).encode()).decode(),
+            'dm_img_inter': '{"ds":[],"wh":[0,0,0],"of":[0,0,0]}',
+            **(query or {})
+        }
         if self.is_logged_in:
             params.pop('try_look', None)
         if qn := params.get('qn'):
