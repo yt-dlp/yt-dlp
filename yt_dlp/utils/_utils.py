@@ -2847,12 +2847,11 @@ def js_to_json(code, vars={}, *, strict=False):
 
 def qualities(quality_ids):
     """ Get a numeric quality value out of a list of possible values """
-    def q(qid):
-        try:
-            return quality_ids.index(qid)
-        except ValueError:
-            return -1
-    return q
+    quality_map = {}
+    for index, quality_id in enumerate(quality_ids):
+        quality_map.setdefault(quality_id, index)
+
+    return lambda qid: quality_map.get(qid, -1)
 
 
 POSTPROCESS_WHEN = ('pre_process', 'after_filter', 'video', 'before_dl', 'post_process', 'after_move', 'after_video', 'playlist')
