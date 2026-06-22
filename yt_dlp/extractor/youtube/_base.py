@@ -1152,6 +1152,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _get_count(self, data, *path_list):
         count_text = self._get_text(data, *path_list) or ''
+        if count_text.lower().startswith('no '):
+            return 0
         count = parse_count(count_text)
         if count is None:
             count = str_to_int(
