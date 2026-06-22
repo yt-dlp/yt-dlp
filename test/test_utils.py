@@ -689,8 +689,6 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(url_or_none('//foo.de'), '//foo.de')
         self.assertEqual(url_or_none('s3://foo.de'), None)
         self.assertEqual(url_or_none('rtmpte://foo.de'), 'rtmpte://foo.de')
-        self.assertEqual(url_or_none('mms://foo.de'), 'mms://foo.de')
-        self.assertEqual(url_or_none('rtspu://foo.de'), 'rtspu://foo.de')
         self.assertEqual(url_or_none('ftps://foo.de'), 'ftps://foo.de')
         self.assertEqual(url_or_none('ws://foo.de'), 'ws://foo.de')
         self.assertEqual(url_or_none('wss://foo.de'), 'wss://foo.de')
