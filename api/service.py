@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import sys
 from typing import Literal
+from urllib.parse import urlparse
 
 from yt_dlp import YoutubeDL
 
@@ -53,6 +54,75 @@ class _FilteringLogger:
 YTDLP_LOGGER = _FilteringLogger()
 
 
+# ---------------------------------------------------------------------------
+# HTTP byte-counting instrumentation
+# ---------------------------------------------------------------------------
+
+def _url_label(url: str) -> str:
+    """Return scheme+host+path of a URL, dropping query params and tokens."""
+    try:
+        p = urlparse(url)
+        return f'{p.scheme}://{p.netloc}{p.path}'
+    except Exception:
+        return url[:80]
+
+
+class _CountingResponse:
+    """Transparent proxy for a yt-dlp Response that counts bytes via read()."""
+
+    def __init__(self, inner, entry: dict):
+        self._inner = inner
+        self._entry = entry  # {'url': str, 'bytes': int}
+
+    def read(self, amt=None):
+        data = self._inner.read(amt)
+        if data:
+            self._entry['bytes'] += len(data)
+        return data
+
+    def readable(self):
+        return self._inner.readable()
+
+    def close(self):
+        return self._inner.close()
+
+    @property
+    def closed(self):
+        return self._inner.closed
+
+    def __getattr__(self, name):
+        return getattr(self._inner, name)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+
+class _MeasuringYoutubeDL(YoutubeDL):
+    """YoutubeDL subclass that records bytes read from every HTTP response."""
+
+    def __init__(self, params):
+        self.request_log: list[dict] = []  # [{'url': str, 'bytes': int}]
+        super().__init__(params)
+
+    @property
+    def total_bytes(self) -> int:
+        return sum(r['bytes'] for r in self.request_log)
+
+    def urlopen(self, req):
+        resp = super().urlopen(req)
+        url = resp.url if hasattr(resp, 'url') else (req if isinstance(req, str) else getattr(req, 'url', '?'))
+        entry = {'url': _url_label(url), 'bytes': 0}
+        self.request_log.append(entry)
+        return _CountingResponse(resp, entry)
+
+
+# ---------------------------------------------------------------------------
+# Extraction helpers
+# ---------------------------------------------------------------------------
+
 def _proxy_url() -> str | None:
     """Proxy URL from PROXY_URL env, or None if unset."""
     url = os.environ.get('PROXY_URL', '').strip()
@@ -91,6 +161,18 @@ def _opts_for(extract_type: EXTRACT_TYPES, url: str = '', limit: int | None = No
         # the JSON encoder copies it again — ~3x the payload at peak).
         if limit is not None and limit > 0:
             base['playlistend'] = limit
+    if extract_type == 'video':
+        # Skip the 1.2 MB /watch webpage. android_vr has REQUIRE_JS_PLAYER=False
+        # and _download_ytcfg returns {} immediately (no extra HTTP call), so it
+        # calls /player directly. The /next API fallback then supplies engagement
+        # data (like_count, comment_count, game panel, etc.). Together ~430 KB vs
+        # ~1.25 MB for the webpage path — ~66% savings with no field loss.
+        base['extractor_args'] = {
+            'youtube': {
+                'player_client': ['android_vr'],
+                'player_skip': ['webpage'],
+            },
+        }
     proxy = _proxy_url()
     if proxy:
         base['proxy'] = proxy
@@ -101,16 +183,41 @@ def _opts_for(extract_type: EXTRACT_TYPES, url: str = '', limit: int | None = No
     return base
 
 
-def extract(url: str, extract_type: EXTRACT_TYPES, limit: int | None = None) -> dict | None:
+def _debug_enabled() -> bool:
+    return os.environ.get('DEBUG', '').strip().lower() in ('1', 'true', 'yes')
+
+
+def _log_request_summary(label: str, request_log: list[dict]) -> None:
+    total = sum(r['bytes'] for r in request_log)
+    sys.stderr.write(
+        f'METRICS [{label}]: {len(request_log)} requests, '
+        f'{total:,} bytes decompressed\n'
+    )
+    for r in request_log:
+        sys.stderr.write(f'  {r["bytes"]:>10,}B  {r["url"]}\n')
+
+
+def extract(url: str, extract_type: EXTRACT_TYPES, limit: int | None = None) -> tuple[dict | None, list[dict]]:
     """
-    Extract metadata for the given URL. No provider-specific logic;
-    yt-dlp selects the extractor from the URL. `limit` caps the number of
-    entries for playlist_flat extraction (passed to yt-dlp as playlistend).
+    Extract metadata for the given URL. Returns (info_dict, request_log).
+
+    When DEBUG=true, uses _MeasuringYoutubeDL to record per-request byte counts
+    and logs a summary to stderr. In production (DEBUG unset) the standard
+    YoutubeDL is used and request_log is always empty.
+
+    `limit` caps entries for playlist_flat extraction.
     """
     opts = _opts_for(extract_type, url, limit)
-    with YoutubeDL(opts) as ydl:
+    debug = _debug_enabled()
+    ydl_class = _MeasuringYoutubeDL if debug else YoutubeDL
+    with ydl_class(opts) as ydl:
         result = ydl.extract_info(url, download=False)
+        request_log = list(ydl.request_log) if debug else []
+
+    if debug:
+        _log_request_summary(extract_type, request_log)
+
     if result is None:
-        return None
+        return None, request_log
     # remove_private_keys=True would strip 'entries' from playlists; keep it so channel/videos returns the list
-    return YoutubeDL.sanitize_info(result, remove_private_keys=False)
+    return YoutubeDL.sanitize_info(result, remove_private_keys=False), request_log

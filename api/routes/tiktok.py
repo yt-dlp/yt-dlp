@@ -200,7 +200,7 @@ def user_posts(
         raise HTTPException(status_code=400, detail='Provide only one of username or sec_uid')
     url = f'https://www.tiktok.com/@{username}' if username else f'tiktokuser:{sec_uid}'
     try:
-        result = service.extract(url, 'playlist_flat', limit=count)
+        result, _ = service.extract(url, 'playlist_flat', limit=count)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e)) from e
     if not result:
@@ -222,7 +222,7 @@ def hashtag_posts(
         return {'itemList': web_items[:count]}
     url = f'https://www.tiktok.com/tag/{tag}'
     try:
-        result = service.extract(url, 'playlist_flat', limit=count)
+        result, _ = service.extract(url, 'playlist_flat', limit=count)
     except Exception as e:
         msg = str(e)
         if 'No working app info' in msg or 'marked as broken' in msg:
