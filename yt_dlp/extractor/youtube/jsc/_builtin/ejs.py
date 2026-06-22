@@ -309,7 +309,18 @@ class EJSBaseJCP(JsChallengeProvider):
     @property
     def runtime_info(self) -> JsRuntimeInfo | None:
         runtime = self.ie._downloader._js_runtimes.get(self.JS_RUNTIME_NAME)
-        if not runtime or not runtime.info or not runtime.info.supported:
+        if not runtime or not runtime.info:
+            return None
+        if not runtime.info.supported:
+            min_supported_version = getattr(runtime, 'MIN_SUPPORTED_VERSION', None)
+            min_supported = (
+                f' {self.JS_RUNTIME_NAME} >= {".".join(map(str, min_supported_version))} is required.'
+                if min_supported_version else '')
+            self.ie.report_warning(
+                f'{self.JS_RUNTIME_NAME} version {runtime.info.version} is not supported and cannot be used '
+                f'for YouTube JS challenges.{min_supported} Please update {self.JS_RUNTIME_NAME} '
+                'or enable another JS runtime with --js-runtimes.',
+                only_once=True)
             return None
         return runtime.info
 
