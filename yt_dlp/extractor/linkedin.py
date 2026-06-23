@@ -16,8 +16,6 @@ from ..utils.traversal import find_elements, require, traverse_obj
 
 
 class LinkedInLearningBaseIE(InfoExtractor):
-    _LOGIN_URL = 'https://www.linkedin.com/uas/login?trk=learning'
-
     def _call_api(self, course_slug, fields, video_slug=None, resolution=None):
         query = {
             'courseSlug': course_slug,
