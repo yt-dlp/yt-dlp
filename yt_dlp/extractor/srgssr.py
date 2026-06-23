@@ -17,8 +17,8 @@ class SRGSSRIE(InfoExtractor):
                         srgssr
                     ):
                     (?P<bu>
-                        srf|rts|rsi|rtr|swi
-                    ):(?:[^:]+:)?
+                        srf|rts|rsi|rtr|swi|swisstxt
+                    ):(?:(?P<sub_unit>[^:]+):)?
                     (?P<type>
                         video|audio
                     ):
@@ -43,27 +43,37 @@ class SRGSSRIE(InfoExtractor):
         'rsi': 'it',
         'rtr': 'rm',
         'swi': 'en',
+        'swisstxt': 'it',
     }
 
     def _get_tokenized_src(self, url, video_id, format_id):
         token = self._download_json(
-            'http://tp.srgssr.ch/akahd/token?acl=*',
+            'https://tp.srgssr.ch/akahd/token?acl=*',
             video_id, f'Downloading {format_id} token', fatal=False) or {}
         auth_params = try_get(token, lambda x: x['token']['authparams'])
         if auth_params:
             url += ('?' if '?' not in url else '&') + auth_params
         return url
 
-    def _get_media_data(self, bu, media_type, media_id):
-        query = {'onlyChapters': True} if media_type == 'video' else {}
-        full_media_data = self._download_json(
-            f'https://il.srgssr.ch/integrationlayer/2.0/{bu}/mediaComposition/{media_type}/{media_id}.json',
-            media_id, query=query)['chapterList']
-        try:
-            media_data = next(
-                x for x in full_media_data if x.get('id') == media_id)
-        except StopIteration:
-            raise ExtractorError('No media information found')
+    def _get_media_data(self, bu, media_type, media_id, sub_unit=None):
+        if bu == 'swisstxt':
+            urn = f'urn:{bu}:{media_type}:{sub_unit}:{media_id}'
+            full_media_data = self._download_json(
+                f'https://il.srgssr.ch/integrationlayer/2.0/mediaComposition/byUrn/{urn}.json',
+                media_id)['chapterList']
+            if not full_media_data:
+                raise ExtractorError('No media information found')
+            media_data = full_media_data[0]
+        else:
+            query = {'onlyChapters': True} if media_type == 'video' else {}
+            full_media_data = self._download_json(
+                f'https://il.srgssr.ch/integrationlayer/2.0/{bu}/mediaComposition/{media_type}/{media_id}.json',
+                media_id, query=query)['chapterList']
+            try:
+                media_data = next(
+                    x for x in full_media_data if x.get('id') == media_id)
+            except StopIteration:
+                raise ExtractorError('No media information found')
 
         block_reason = media_data.get('blockReason')
         if block_reason and block_reason in self._ERRORS:
@@ -77,8 +87,12 @@ class SRGSSRIE(InfoExtractor):
         return media_data
 
     def _real_extract(self, url):
-        bu, media_type, media_id = self._match_valid_url(url).groups()
-        media_data = self._get_media_data(bu, media_type, media_id)
+        mobj = self._match_valid_url(url)
+        bu = mobj.group('bu')
+        sub_unit = mobj.group('sub_unit')
+        media_type = mobj.group('type')
+        media_id = mobj.group('id')
+        media_data = self._get_media_data(bu, media_type, media_id, sub_unit=sub_unit)
         title = media_data['title']
 
         formats = []
@@ -133,7 +147,8 @@ class SRGSSRIE(InfoExtractor):
                 sub_url = sub.get('url')
                 if not sub_url:
                     continue
-                lang = sub.get('locale') or self._DEFAULT_LANGUAGE_CODES[bu]
+                lang = sub.get('locale') or self._DEFAULT_LANGUAGE_CODES.get(
+                    sub_unit or bu, self._DEFAULT_LANGUAGE_CODES.get(bu, 'und'))
                 subtitles.setdefault(lang, []).append({
                     'url': sub_url,
                 })
@@ -160,7 +175,7 @@ class SRGSSRPlayIE(InfoExtractor):
                             [^/]+/(?P<type>video|audio)/[^?]+|
                             popup(?P<type_2>video|audio)player
                         )
-                        \?.*?\b(?:id=|urn=urn:[^:]+:video:)(?P<id>[0-9a-f\-]{36}|\d+)
+                        \?.*?\b(?:id=|urn=urn:[^:]+:(?:video|audio):(?:[a-z]+:)?)(?P<id>[0-9a-f\-]{36}|\d+)
                     '''
 
     _TESTS = [{
@@ -236,6 +251,10 @@ class SRGSSRPlayIE(InfoExtractor):
         # audio segment, has podcastSdUrl of the full episode
         'url': 'https://www.srf.ch/play/radio/popupaudioplayer?id=50b20dc8-f05b-4972-bf03-e438ff2833eb',
         'only_matching': True,
+    }, {
+        # swisstxt URN (new format: urn:swisstxt:type:sub_unit:id)
+        'url': 'https://www.rsi.ch/play/tv/-/video/fifa-world-cup-2026--spagna-arabia-saudita?urn=urn:swisstxt:video:rsi:1835802',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -243,4 +262,12 @@ class SRGSSRPlayIE(InfoExtractor):
         bu = mobj.group('bu')
         media_type = mobj.group('type') or mobj.group('type_2')
         media_id = mobj.group('id')
+
+        swisstxt_sub_unit = self._search_regex(
+            r'[?&]urn=urn:swisstxt:(?:video|audio):([a-z]+):', url,
+            'swisstxt sub-unit', default=None)
+        if swisstxt_sub_unit:
+            return self.url_result(
+                f'srgssr:swisstxt:{swisstxt_sub_unit}:{media_type}:{media_id}', 'SRGSSR')
+
         return self.url_result(f'srgssr:{bu[:3]}:{media_type}:{media_id}', 'SRGSSR')
