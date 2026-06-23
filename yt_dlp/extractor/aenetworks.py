@@ -4,8 +4,8 @@ import json
 import re
 import time
 
-from yt_dlp.extractor.theplatform import ThePlatformIE
-from yt_dlp.utils import (
+from .theplatform import ThePlatformIE
+from ..utils import (
     ExtractorError,
     GeoRestrictedError,
     int_or_none,
@@ -15,7 +15,7 @@ from yt_dlp.utils import (
     url_or_none,
     xpath_text,
 )
-from yt_dlp.utils.traversal import traverse_obj
+from ..utils.traversal import traverse_obj
 
 
 class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
