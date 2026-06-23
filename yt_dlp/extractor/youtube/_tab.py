@@ -394,7 +394,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             availability=self._availability(needs_subscription='BADGE_MEMBERS_ONLY' in badge_styles),
             channel_url=format_field(channel_info, 'channel_id', 'https://www.youtube.com/channel/%s', default=None),
             uploader_url=format_field(channel_info, 'uploader_id', 'https://www.youtube.com/%s', default=None),
-            creators=traverse_obj(collaborator_data, (..., 'content', {str})) or None,
+            creators=traverse_obj(collaborator_data, (..., 'content', {str}, all, filter)),
             **channel_info)
 
     def _rich_entries(self, rich_grid_renderer):
