@@ -43,7 +43,7 @@ class LocalStorageBaseIE(InfoExtractor):
             self.cookiejar.set_cookie(cookie)
 
     def _get_local_storages(self, url: str):
-        return { key: item.value for key, item in LenientSimpleCookie(
+        return {key: item.value for key, item in LenientSimpleCookie(
             self.cookiejar.get_cookie_header(f'http://{self.__make_storage_domain(url)}/')).items()}
 
 
