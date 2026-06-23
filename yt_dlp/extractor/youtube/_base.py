@@ -4,6 +4,7 @@ import dataclasses
 import datetime as dt
 import enum
 import functools
+import gzip
 import hashlib
 import json
 import re
@@ -99,11 +100,12 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20260114.08.00',
+                'clientVersion': '2.20260618.05.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'SUPPORTS_COOKIES': True,
+        'REQUIRE_GZIP': True,
         **WEB_PO_TOKEN_POLICIES,
     },
     # Safari UA returns pre-merged video+audio 144p/240p/360p/720p/1080p HLS formats
@@ -111,12 +113,13 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20260114.08.00',
+                'clientVersion': '2.20260618.05.00',
                 'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15,gzip(gfe)',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'SUPPORTS_COOKIES': True,
+        'REQUIRE_GZIP': True,
         **WEB_PO_TOKEN_POLICIES,
     },
     'web_embedded': {
@@ -389,6 +392,7 @@ def build_innertube_clients():
         ytcfg.setdefault('SUPPORTS_COOKIES', False)
         ytcfg.setdefault('SUPPORTS_AD_PLAYBACK_CONTEXT', False)
         ytcfg.setdefault('PLAYER_PARAMS', None)
+        ytcfg.setdefault('REQUIRE_GZIP', False)
         ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
 
         _, base_client, variant = _split_innertube_client(client)
@@ -802,10 +806,19 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         real_headers.update({'content-type': 'application/json'})
         if headers:
             real_headers.update(headers)
+
+        json_bytes = json.dumps(data).encode('utf8')
+
+        if INNERTUBE_CLIENTS[default_client].get('REQUIRE_GZIP'):
+            body = gzip.compress(json_bytes)
+            real_headers['Content-Encoding'] = 'gzip'
+        else:
+            body = json_bytes
+
         return self._download_json(
             f'https://{self._select_api_hostname(api_hostname, default_client)}/youtubei/v1/{ep}',
             video_id=video_id, fatal=fatal, note=note, errnote=errnote,
-            data=json.dumps(data).encode('utf8'), headers=real_headers,
+            data=body, headers=real_headers,
             query=filter_dict({
                 'key': self._configuration_arg(
                     'innertube_key', [api_key], ie_key=CONFIGURATION_ARG_KEY, casesense=True)[0],
