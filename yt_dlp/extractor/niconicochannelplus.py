@@ -1,6 +1,7 @@
 import base64
 import functools
 import hashlib
+import http.cookiejar
 import json
 import random
 import re
@@ -9,6 +10,7 @@ import time
 import urllib.parse
 
 from .common import InfoExtractor
+from ..cookies import LenientSimpleCookie
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -25,14 +27,32 @@ from ..utils import (
 )
 
 
+class LocalStorageBaseIE(InfoExtractor):
+    @staticmethod
+    def __make_storage_domain(url: str):
+        parsed = urllib.parse.urlparse(url)
+        return f'{parsed.scheme}.{parsed.hostname}.{parsed.port}.localstorage'.lower()
+
+    def _set_local_storage(self, url: str, name: str, value: str | None):
+        if value is None:
+            self.cookiejar.clear(self.__make_storage_domain(url), '/', name)
+        else:
+            cookie = http.cookiejar.Cookie(
+                0, name, str(value), None, False, self.__make_storage_domain(url), True,
+                False, '/', True, False, None, False, None, None, {})
+            self.cookiejar.set_cookie(cookie)
+
+    def _get_local_storages(self, url: str):
+        return { key: item.value for key, item in LenientSimpleCookie(
+            self.cookiejar.get_cookie_header(f'http://{self.__make_storage_domain(url)}/')).items()}
+
+
 class SiteContext:
     _REFRESH_TIMEOUT_THRES = 30
 
-    def __init__(self, ie: InfoExtractor, url, video_id=None):
+    def __init__(self, ie: 'NicoChannelBaseIE', url, video_id=None):
         self._ie = ie
         self._site_url = urljoin(url, '/')
-        self._access_token = None
-        self._refresh_token = None
         self._settings = self._ie._download_json(
             urljoin(self._site_url, '/site/settings.json'), video_id,
             headers={'Referer': url}, note='Downloading nicochannel site settings')
@@ -43,6 +63,22 @@ class SiteContext:
         self._perform_login()
 
     @property
+    def _access_token(self):
+        return self._ie._get_local_storages(self._site_url).get('access_token')
+
+    @_access_token.setter
+    def _access_token(self, value):
+        self._ie._set_local_storage(self._site_url, 'access_token', value)
+
+    @property
+    def _refresh_token(self):
+        return self._ie._get_local_storages(self._site_url).get('refresh_token')
+
+    @_refresh_token.setter
+    def _refresh_token(self, value):
+        self._ie._set_local_storage(self._site_url, 'refresh_token', value)
+
+    @property
     def _netrc(self):
         domain = urllib.parse.urlparse(self._site_url).hostname
         return 'nicochannel' if domain == 'nicochannel.jp' else f'nicochannel-{domain.replace(".", "-")}'
@@ -51,7 +87,9 @@ class SiteContext:
     def _login_hint(self):
         return (f'Use --username and --password, --netrc-cmd, or --netrc ({self._netrc}) to provide '
                 'account credentials. For third-party login, use --username jwt_token --password <token> '
-                'or --username refresh_token --password <token> to provide auth token')
+                'or --username refresh_token --password <token> to provide auth token. When using --username '
+                'refresh_token, use --cookies cookies.txt as a WORKAROUND to store NON-COOKIE credential. '
+                'You can use --cookies cookies.txt alone after a valid refresh_token is stored inside')
 
     def _parse_jwt_timeout(self, access_token):
         return jwt_decode_hs256(access_token)['exp'] - time.time()
@@ -217,7 +255,7 @@ class SiteContext:
         return data
 
 
-class NicoChannelBaseIE(InfoExtractor):
+class NicoChannelBaseIE(LocalStorageBaseIE):
     _NETRC_MACHINE = False
 
     _SITE_CONTEXTS = {}
