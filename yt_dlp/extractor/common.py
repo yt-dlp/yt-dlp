@@ -586,6 +586,7 @@ class InfoExtractor:
     _WORKING = True
     _ENABLED = True
     _NETRC_MACHINE = None
+    _NETRC_CACHE: dict = {}
     IE_DESC = None
     SEARCH_KEY = None
     _VALID_URL = None
@@ -1394,17 +1395,23 @@ class InfoExtractor:
         cmd = self.get_param('netrc_cmd')
         if cmd:
             cmd = cmd.replace('{}', netrc_machine)
-            self.to_screen(f'Executing command: {cmd}')
-            stdout, _, ret = Popen.run(cmd, text=True, shell=True, stdout=subprocess.PIPE)
-            if ret != 0:
-                raise OSError(f'Command returned error code {ret}')
-            info = netrc_from_content(stdout).authenticators(netrc_machine)
+            if cmd in self._NETRC_CACHE:
+                self.write_debug(f'Using cached netrc command: {cmd}')
+            else:
+                self.to_screen(f'Executing command: {cmd}')
+                stdout, _, ret = Popen.run(cmd, text=True, shell=True, stdout=subprocess.PIPE)
+                if ret != 0:
+                    raise OSError(f'Command returned error code {ret}')
+                self._NETRC_CACHE[cmd] = netrc_from_content(stdout)
+            info = self._NETRC_CACHE[cmd].authenticators(netrc_machine)
 
         elif self.get_param('usenetrc', False):
-            netrc_file = compat_expanduser(self.get_param('netrc_location') or '~')
-            if os.path.isdir(netrc_file):
-                netrc_file = os.path.join(netrc_file, '.netrc')
-            info = netrc.netrc(netrc_file).authenticators(netrc_machine)
+            if '' not in self._NETRC_CACHE:
+                netrc_file = compat_expanduser(self.get_param('netrc_location') or '~')
+                if os.path.isdir(netrc_file):
+                    netrc_file = os.path.join(netrc_file, '.netrc')
+                self._NETRC_CACHE[''] = netrc.netrc(netrc_file)
+            info = self._NETRC_CACHE[''].authenticators(netrc_machine)
 
         else:
             return None, None
