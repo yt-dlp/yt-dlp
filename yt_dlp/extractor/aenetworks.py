@@ -1,7 +1,11 @@
+import hashlib
+import hmac
 import json
+import re
+import time
 
-from .theplatform import ThePlatformIE
-from ..utils import (
+from yt_dlp.extractor.theplatform import ThePlatformIE
+from yt_dlp.utils import (
     ExtractorError,
     GeoRestrictedError,
     int_or_none,
@@ -9,8 +13,9 @@ from ..utils import (
     remove_start,
     update_url_query,
     url_or_none,
+    xpath_text,
 )
-from ..utils.traversal import traverse_obj
+from yt_dlp.utils.traversal import traverse_obj
 
 
 class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
@@ -35,8 +40,13 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         query getUserVideo($videoId: ID!) {
             video(id: $videoId) {
                 title
+                description
+                duration
+                rating
                 publicUrl
                 programId
+                secondaryProgramId
+                isBehindWall
                 tvSeasonNumber
                 tvSeasonEpisodeNumber
                 series {
@@ -44,6 +54,59 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 }
             }
         }'''
+
+    _ARGUS_BASE_URL = 'https://argus.media.aetnd.com'
+    _ARGUS_SIG_KEY = b'43jXaGRQud'
+    _ARGUS_SIG_SECRET = 'S10BPXHMlb'
+
+    @classmethod
+    def _sign_argus_query(cls, query_str, life=3600):
+        flags = '00'
+        expiration = '%x' % (int(time.time()) + life)
+        path = query_str.split('?', 1)[0].replace('%2F', '')
+        clear_text = bytes.fromhex(flags + expiration + path.encode().hex())
+        checksum = hmac.new(cls._ARGUS_SIG_KEY, clear_text, hashlib.sha1).hexdigest()
+        return flags + expiration + checksum + cls._ARGUS_SIG_SECRET.encode().hex()
+
+    def _extract_argus_url(self, video_id, brand, auth_xml=None):
+        meta = self._download_json(
+            'https://yoga.appsvcs.aetnd.com/', video_id,
+            'Downloading videoMetaToken',
+            query={'brand': brand, 'mode': 'live', 'platform': 'web'},
+            data=json.dumps({
+                'operationName': 'getVideoMetaToken',
+                'variables': {'videoId': video_id},
+                'query': 'query getVideoMetaToken($videoId: ID!) { videoMetaToken(id: $videoId) }',
+            }).encode(),
+            headers={'Content-Type': 'application/json'})
+        token = traverse_obj(meta, ('data', 'videoMetaToken', {str}))
+        if not token:
+            raise ExtractorError('Could not obtain videoMetaToken from yoga', expected=True)
+
+        params = {
+            'bestCdn': 'akamai',
+            'brand': brand,
+            'client': 'tve',
+            'x-video-meta-token': token,
+        }
+        if auth_xml:
+            auth_token = self._search_regex(
+                r'(<authToken>.*?</authToken>)', auth_xml, 'authToken', default=None, flags=re.DOTALL)
+            if auth_token:
+                auth_doc = self._parse_xml(auth_token, video_id, fatal=False)
+                params.update({
+                    'x-resource-id': xpath_text(auth_doc, 'resourceID', default='') or '',
+                    'x-requestor-id': xpath_text(auth_doc, 'requestorID', default='') or '',
+                    'x-mvpd-id': xpath_text(auth_doc, 'mvpdId', default='') or '',
+                    'x-media-token': auth_xml,
+                })
+
+        url_with_params = update_url_query(self._ARGUS_BASE_URL + '/', params)
+        sig = self._sign_argus_query('?' + url_with_params.partition('?')[2])
+        urlh = self._request_webpage(
+            update_url_query(url_with_params, {'sig': sig}), video_id,
+            'Resolving argus playback URL', errnote='argus URL request failed')
+        return urlh.url
 
     def _extract_aen_smil(self, smil_url, video_id, auth=None):
         query = {
@@ -114,25 +177,50 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'Content-Type': 'application/json',
             })
 
-        result = traverse_obj(result, ('data', 'video', {dict}))
+        result = traverse_obj(result, ('data', 'video', {dict})) or {}
         media_url = traverse_obj(result, ('publicUrl', {url_or_none}))
-        if not media_url:
-            raise ExtractorError('Show not found in A&E feed (too new?)', expected=True,
-                                 video_id=remove_start(filter_value, '/'))
-        title = result['title']
-        video_id = result['programId']
-        theplatform_metadata = self._download_theplatform_metadata(self._search_regex(
-            r'https?://link\.theplatform\.com/s/([^?]+)', media_url, 'theplatform_path'), video_id)
-        info = self._parse_theplatform_metadata(theplatform_metadata)
-        auth = None
-        if theplatform_metadata.get('AETN$isBehindWall'):
-            resource = self._get_mvpd_resource(
-                requestor_id, theplatform_metadata['title'],
-                theplatform_metadata.get('AETN$PPL_pplProgramId') or theplatform_metadata.get('AETN$PPL_pplProgramId_OLD'),
-                traverse_obj(theplatform_metadata, ('ratings', 0, 'rating')))
-            auth = self._extract_mvpd_auth(
-                url, video_id, requestor_id, resource, software_statement)
-        info.update(self._extract_aen_smil(media_url, video_id, auth))
+        title = result.get('title')
+        video_id = result.get('programId') or graphql_video_id
+
+        if media_url:
+            theplatform_metadata = self._download_theplatform_metadata(self._search_regex(
+                r'https?://link\.theplatform\.com/s/([^?]+)', media_url, 'theplatform_path'), video_id)
+            info = self._parse_theplatform_metadata(theplatform_metadata)
+            auth = None
+            if theplatform_metadata.get('AETN$isBehindWall'):
+                resource = self._get_mvpd_resource(
+                    requestor_id, theplatform_metadata['title'],
+                    theplatform_metadata.get('AETN$PPL_pplProgramId') or theplatform_metadata.get('AETN$PPL_pplProgramId_OLD'),
+                    traverse_obj(theplatform_metadata, ('ratings', 0, 'rating')))
+                auth = self._extract_mvpd_auth(
+                    url, video_id, requestor_id, resource, software_statement)
+            info.update(self._extract_aen_smil(media_url, video_id, auth))
+        else:
+            if not title:
+                raise ExtractorError('Show not found in A&E feed', expected=True,
+                                     video_id=remove_start(filter_value, '/'))
+            auth_xml = None
+            if result.get('isBehindWall'):
+                if not requestor_id:
+                    raise ExtractorError(
+                        f'Brand {brand!r} requires MVPD authentication but has no requestor_id',
+                        expected=True)
+                resource = self._get_mvpd_resource(
+                    requestor_id, title,
+                    traverse_obj(result, ('secondaryProgramId', 0, {str})) or video_id,
+                    result.get('rating'))
+                auth_xml = self._extract_mvpd_auth(
+                    url, video_id, requestor_id, resource, software_statement)
+            playback_url = self._extract_argus_url(graphql_video_id, brand, auth_xml)
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                playback_url, video_id, 'mp4', m3u8_id='hls')
+            info = {
+                'id': video_id,
+                'formats': formats,
+                'subtitles': subtitles,
+                'description': result.get('description'),
+                'duration': int_or_none(result.get('duration')),
+            }
         info.update({
             'title': title,
             'display_id': graphql_video_id,
