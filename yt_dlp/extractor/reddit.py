@@ -13,7 +13,6 @@ from ..utils import (
     unescapeHTML,
     update_url_query,
     url_or_none,
-    urlencode_postdata,
 )
 
 
@@ -267,6 +266,7 @@ class RedditIE(InfoExtractor):
     @property
     def _is_logged_in(self):
         return bool(self._get_cookies('https://www.reddit.com/').get('reddit_session'))
+
     def _real_initialize(self):
         if not self._is_logged_in:
             # We need to get a 'loid' cookie to access the API anonymously
