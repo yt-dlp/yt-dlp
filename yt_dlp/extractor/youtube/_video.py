@@ -3446,7 +3446,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     self._report_pot_format_skipped(video_id, client_name, proto)
                     return None
 
-                name = fmt_stream.get('qualityLabel') or quality.replace('audio_quality_', '') or ''
+                name = fmt_stream.get('qualityLabel') or (quality or '').replace('audio_quality_', '')
                 fps = int_or_none(fmt_stream.get('fps')) or 0
                 dct = {
                     'asr': int_or_none(fmt_stream.get('audioSampleRate')),
@@ -4363,7 +4363,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not release_year:
                         release_year = release_date[:4]
                 info.update({
-                    'album': mobj.group('album'.strip()),
+                    'album': mobj.group('album').strip(),
                     'artists': ([a] if (a := mobj.group('clean_artist'))
                                 else [a.strip() for a in mobj.group('artist').split(' · ')]),
                     'track': mobj.group('track').strip(),
