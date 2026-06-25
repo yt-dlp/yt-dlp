@@ -128,13 +128,15 @@ class SportDeutschlandIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         meta = self._download_json(
-            f'https://api.sporteurope.tv/api/stateless/frontend/assets/{display_id}',
-            display_id, query={'access_token': 'true'})
+            f'https://api.sporteurope.tv/api/web/public/assets/{display_id}',
+            display_id, note='Downloading asset metadata')
+
+        asset_id = traverse_obj(meta, (('id', 'uuid'), ), get_all=False)
 
         info = {
+            'id': asset_id,
             'display_id': display_id,
             **traverse_obj(meta, {
-                'id': (('id', 'uuid'), ),
                 'title': (('title', 'name'), {strip_or_none}),
                 'description': 'description',
                 'channel': ('profile', 'name'),
@@ -142,23 +144,34 @@ class SportDeutschlandIE(InfoExtractor):
                 'is_live': 'currently_live',
                 'was_live': 'was_live',
                 'channel_url': ('profile', 'slug', {lambda x: f'https://sporteurope.tv/{x}'}),
+                'duration': ('duration_in_seconds', {lambda x: float(x) > 0 and float(x)}),
             }, get_all=False),
         }
+        player_meta = self._download_json(
+            f'https://api.sporteurope.tv/api/web-player/personal/assets/{asset_id}',
+            display_id, note='Downloading player metadata',
+            headers={
+                'Origin': 'https://sporteurope.tv',
+                'Referer': 'https://sporteurope.tv/',
+                'x-version': '2',
+                },)
 
-        parts = traverse_obj(meta, (('livestream', ('videos', ...)), ))
-        entries = [{
-            'title': join_nonempty(info.get('title'), f'Part {i}', delim=' '),
-            **traverse_obj(info, {'channel': 'channel', 'channel_id': 'channel_id',
-                                  'channel_url': 'channel_url', 'was_live': 'was_live'}),
-            **self._process_video(info['id'], video),
-        } for i, video in enumerate(parts, 1)]
+        formats, subtitles = [], {}
+        for track in traverse_obj(player_meta, ('tracks', ...)):
+            language = traverse_obj(track, 'audio_language')
+            for source in traverse_obj(track, ('sources', ...)):
+                hls_url = traverse_obj(source, 'hls')
+                if not hls_url:
+                    continue
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    hls_url, display_id, 'mp4',
+                    live=info.get('is_live'), fatal=False)
+                for f in fmts:
+                    if language:
+                        f['language'] = language
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
 
-        return {
-            '_type': 'multi_video',
-            **info,
-            'entries': entries,
-        } if len(entries) > 1 else {
-            **info,
-            **entries[0],
-            'title': info.get('title'),
-        }
+        info['formats'] = formats
+        info['subtitles'] = subtitles
+        return info
