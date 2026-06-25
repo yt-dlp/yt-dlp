@@ -1138,9 +1138,10 @@ class YoutubeDL:
         """
         if self.params.get('logger') is not None:
             self.params['logger'].warning(message)
+        elif self.params.get('no_warnings'):
+            if self.params.get('verbose'):
+                self.to_stderr(f'[debug:warning] {message}', only_once=only_once)
         else:
-            if self.params.get('no_warnings'):
-                return
             self.to_stderr(f'{self._format_err("WARNING:", self.Styles.WARNING)} {message}', only_once)
 
     def deprecation_warning(self, message, *, stacklevel=0):
