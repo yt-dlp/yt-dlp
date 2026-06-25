@@ -64,6 +64,10 @@ def _determine_runtime_path(path, basename):
     return path
 
 
+def _min_version_reason(name: str, min_version: tuple[int, ...]) -> str:
+    return f'{name} >= {".".join(map(str, min_version))} is required'
+
+
 @dataclasses.dataclass(frozen=True)
 class JsRuntimeInfo:
     name: str
@@ -71,6 +75,7 @@ class JsRuntimeInfo:
     version: str
     version_tuple: tuple[int, ...]
     supported: bool = True
+    unsupported_reason: str | None = None
 
 
 class JsRuntime(abc.ABC):
@@ -96,9 +101,11 @@ class DenoJsRuntime(JsRuntime):
             return None
         version = detect_exe_version(out, r'^deno (\S+)', 'unknown')
         vt = version_tuple(version, lenient=True)
+        supported = vt >= self.MIN_SUPPORTED_VERSION
         return JsRuntimeInfo(
             name='deno', path=path, version=version, version_tuple=vt,
-            supported=vt >= self.MIN_SUPPORTED_VERSION)
+            supported=supported,
+            unsupported_reason=None if supported else _min_version_reason('deno', self.MIN_SUPPORTED_VERSION))
 
 
 class BunJsRuntime(JsRuntime):
@@ -111,9 +118,11 @@ class BunJsRuntime(JsRuntime):
             return None
         version = detect_exe_version(out, r'^(\S+)', 'unknown')
         vt = version_tuple(version, lenient=True)
+        supported = vt >= self.MIN_SUPPORTED_VERSION
         return JsRuntimeInfo(
             name='bun', path=path, version=version, version_tuple=vt,
-            supported=vt >= self.MIN_SUPPORTED_VERSION)
+            supported=supported,
+            unsupported_reason=None if supported else _min_version_reason('bun', self.MIN_SUPPORTED_VERSION))
 
 
 class NodeJsRuntime(JsRuntime):
@@ -126,9 +135,11 @@ class NodeJsRuntime(JsRuntime):
             return None
         version = detect_exe_version(out, r'^v(\S+)', 'unknown')
         vt = version_tuple(version, lenient=True)
+        supported = vt >= self.MIN_SUPPORTED_VERSION
         return JsRuntimeInfo(
             name='node', path=path, version=version, version_tuple=vt,
-            supported=vt >= self.MIN_SUPPORTED_VERSION)
+            supported=supported,
+            unsupported_reason=None if supported else _min_version_reason('node', self.MIN_SUPPORTED_VERSION))
 
 
 class QuickJsRuntime(JsRuntime):
@@ -145,9 +156,14 @@ class QuickJsRuntime(JsRuntime):
         version = detect_exe_version(out, r'^QuickJS(?:-ng)?\s+version\s+(\S+)', 'unknown')
         vt = version_tuple(version, lenient=True)
         if is_ng:
+            # quickjs-ng has no minimum version; it only needs a detectable version
+            supported = vt > (0,)
             return JsRuntimeInfo(
                 name='quickjs-ng', path=path, version=version, version_tuple=vt,
-                supported=vt > (0,))
+                supported=supported,
+                unsupported_reason=None if supported else 'quickjs-ng version could not be determined')
+        supported = vt >= self.MIN_SUPPORTED_VERSION
         return JsRuntimeInfo(
             name='quickjs', path=path, version=version, version_tuple=vt,
-            supported=vt >= self.MIN_SUPPORTED_VERSION)
+            supported=supported,
+            unsupported_reason=None if supported else _min_version_reason('quickjs', self.MIN_SUPPORTED_VERSION))
