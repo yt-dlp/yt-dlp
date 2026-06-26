@@ -3819,11 +3819,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         wait_seconds = 0
 
         for renderer in traverse_obj(player_response, (
-            'adSlots', lambda _, v: v['adSlotRenderer']['adSlotMetadata']['triggerEvent'] == 'SLOT_TRIGGER_EVENT_BEFORE_CONTENT',
-            'adSlotRenderer', 'fulfillmentContent', 'fulfilledLayout', 'playerBytesAdLayoutRenderer', 'renderingContent', (
-                None,
-                ('playerBytesSequentialLayoutRenderer', 'sequentialLayouts', ..., 'playerBytesAdLayoutRenderer', 'renderingContent'),
-            ), 'instreamVideoAdRenderer', {dict},
+            (
+                (
+                    'adPlacements', lambda _, v: v['adPlacementRenderer']['config']['adPlacementConfig']['kind'] == 'AD_PLACEMENT_KIND_START',
+                    'adPlacementRenderer', 'renderer',
+                ),
+                (
+                    'adSlots', lambda _, v: v['adSlotRenderer']['adSlotMetadata']['triggerEvent'] == 'SLOT_TRIGGER_EVENT_BEFORE_CONTENT',
+                    'adSlotRenderer', 'fulfillmentContent', 'fulfilledLayout', 'playerBytesAdLayoutRenderer', 'renderingContent', (
+                        None,
+                        ('playerBytesSequentialLayoutRenderer', 'sequentialLayouts', ..., 'playerBytesAdLayoutRenderer', 'renderingContent'),
+                    ),
+                ),
+            ),
+            'instreamVideoAdRenderer', {dict},
         )):
             duration = traverse_obj(renderer, ('playerVars', {urllib.parse.parse_qs}, 'length_seconds', -1, {int_or_none}))
             ad = 'an ad' if duration is None else f'a {duration}s ad'
