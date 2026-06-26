@@ -1264,7 +1264,7 @@ As an alternative to using the `.netrc` file, which has the disadvantage of keep
 
 E.g. To use an encrypted `.netrc` file stored as `.authinfo.gpg`
 ```
-yt-dlp --netrc-cmd 'gpg --decrypt ~/.authinfo.gpg' 'https://www.youtube.com/watch?v=BaW_jenozKc'
+yt-dlp --netrc-cmd 'gpg --decrypt ~/.authinfo.gpg' 'https://www.youtube.com/watch?v=YE7VzlLtp-4'
 ```
 
 
@@ -1454,7 +1454,7 @@ Available only in `--sponsorblock-chapter-title`:
  - `name` (string): Friendly name of the smallest category
  - `type` (string): The [SponsorBlock action type](https://wiki.sponsor.ajay.app/w/Types#Action_Type) of the chapter
 
-Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. E.g. for `-o %(title)s-%(id)s.%(ext)s` and an mp4 video with title `yt-dlp test video` and id `BaW_jenozKc`, this will result in a `yt-dlp test video-BaW_jenozKc.mp4` file created in the current directory.
+Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. E.g. for `-o %(title)s-%(id)s.%(ext)s` and an mp4 video with title `yt-dlp test video` and id `YE7VzlLtp-4`, this will result in a `yt-dlp test video-YE7VzlLtp-4.mp4` file created in the current directory.
 
 **Note**: Some of the sequences are not guaranteed to be present, since they depend on the metadata obtained by a particular extractor. Such sequences will be replaced with placeholder value provided with `--output-na-placeholder` (`NA` by default).
 
@@ -1473,14 +1473,14 @@ In some cases, you don't want special characters such as 中, spaces, or &, such
 #### Output template examples
 
 ```bash
-$ yt-dlp --print filename -o "test video.%(ext)s" BaW_jenozKc
+$ yt-dlp --print filename -o "test video.%(ext)s" ptd1NN40vMw
 test video.webm    # Literal name with correct extension
 
-$ yt-dlp --print filename -o "%(title)s.%(ext)s" BaW_jenozKc
-youtube-dl test video ''_ä↭𝕐.webm    # All kinds of weird characters
+$ yt-dlp --print filename -o "%(title)s.%(ext)s" ptd1NN40vMw
+To'y!🤯😂🤦🏻‍♂️.webm    # All kinds of weird characters
 
-$ yt-dlp --print filename -o "%(title)s.%(ext)s" BaW_jenozKc --restrict-filenames
-youtube-dl_test_video_.webm    # Restricted file name
+$ yt-dlp --print filename -o "%(title)s.%(ext)s" ptd1NN40vMw --restrict-filenames
+To_y.webm    # Restricted file name
 
 # Download YouTube playlist videos in separate directory indexed by video order in a playlist
 $ yt-dlp -o "%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s" "https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re"
@@ -1489,7 +1489,7 @@ $ yt-dlp -o "%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s" "https://www.y
 $ yt-dlp -o "%(upload_date>%Y)s/%(title)s.%(ext)s" "https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re"
 
 # Prefix playlist index with " - " separator, but only if it is available
-$ yt-dlp -o "%(playlist_index&{} - |)s%(title)s.%(ext)s" BaW_jenozKc "https://www.youtube.com/user/TheLinuxFoundation/playlists"
+$ yt-dlp -o "%(playlist_index&{} - |)s%(title)s.%(ext)s" YE7VzlLtp-4 "https://www.youtube.com/user/TheLinuxFoundation/playlists"
 
 # Download all playlists of YouTube channel/user keeping each playlist in separate directory:
 $ yt-dlp -o "%(uploader)s/%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s" "https://www.youtube.com/user/TheLinuxFoundation/playlists"
@@ -1502,13 +1502,13 @@ $ yt-dlp -P "C:/MyVideos" -o "%(series)s/%(season_number)s - %(season)s/%(episod
 
 # Download video as "C:\MyVideos\uploader\title.ext", subtitles as "C:\MyVideos\subs\uploader\title.ext"
 # and put all temporary files in "C:\MyVideos\tmp"
-$ yt-dlp -P "C:/MyVideos" -P "temp:tmp" -P "subtitle:subs" -o "%(uploader)s/%(title)s.%(ext)s" BaW_jenozKc --write-subs
+$ yt-dlp -P "C:/MyVideos" -P "temp:tmp" -P "subtitle:subs" -o "%(uploader)s/%(title)s.%(ext)s" YE7VzlLtp-4 --write-subs
 
 # Download video as "C:\MyVideos\uploader\title.ext" and subtitles as "C:\MyVideos\uploader\subs\title.ext"
-$ yt-dlp -P "C:/MyVideos" -o "%(uploader)s/%(title)s.%(ext)s" -o "subtitle:%(uploader)s/subs/%(title)s.%(ext)s" BaW_jenozKc --write-subs
+$ yt-dlp -P "C:/MyVideos" -o "%(uploader)s/%(title)s.%(ext)s" -o "subtitle:%(uploader)s/subs/%(title)s.%(ext)s" YE7VzlLtp-4 --write-subs
 
 # Stream the video being downloaded to stdout
-$ yt-dlp -o - BaW_jenozKc
+$ yt-dlp -o - YE7VzlLtp-4
 ```
 
 # FORMAT SELECTION
@@ -2062,7 +2062,7 @@ From a Python program, you can embed yt-dlp in a more powerful fashion, like thi
 ```python
 from yt_dlp import YoutubeDL
 
-URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+URLS = ['https://www.youtube.com/watch?v=YE7VzlLtp-4']
 with YoutubeDL() as ydl:
     ydl.download(URLS)
 ```
@@ -2079,7 +2079,7 @@ Most likely, you'll want to use various options. For a list of options available
 import json
 import yt_dlp
 
-URL = 'https://www.youtube.com/watch?v=BaW_jenozKc'
+URL = 'https://www.youtube.com/watch?v=YE7VzlLtp-4'
 
 # ℹ️ See help(yt_dlp.YoutubeDL) for a list of available options and public functions
 ydl_opts = {}
@@ -2108,7 +2108,7 @@ print('Some videos failed to download' if error_code
 ```python
 import yt_dlp
 
-URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+URLS = ['https://www.youtube.com/watch?v=YE7VzlLtp-4']
 
 ydl_opts = {
     'format': 'm4a/bestaudio/best',
@@ -2128,7 +2128,7 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 ```python
 import yt_dlp
 
-URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+URLS = ['https://www.youtube.com/watch?v=YE7VzlLtp-4']
 
 def longer_than_a_minute(info, *, incomplete):
     """Download only videos longer than a minute (or with unknown duration)"""
@@ -2149,7 +2149,7 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 ```python
 import yt_dlp
 
-URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+URLS = ['https://www.youtube.com/watch?v=YE7VzlLtp-4']
 
 class MyLogger:
     def debug(self, msg):
@@ -2190,7 +2190,7 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 ```python
 import yt_dlp
 
-URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+URLS = ['https://www.youtube.com/watch?v=YE7VzlLtp-4']
 
 # ℹ️ See help(yt_dlp.postprocessor.PostProcessor)
 class MyCustomPP(yt_dlp.postprocessor.PostProcessor):
@@ -2211,7 +2211,7 @@ with yt_dlp.YoutubeDL() as ydl:
 ```python
 import yt_dlp
 
-URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+URLS = ['https://www.youtube.com/watch?v=YE7VzlLtp-4']
 
 def format_selector(ctx):
     """ Select the best video and the best audio that won't result in an mkv.
