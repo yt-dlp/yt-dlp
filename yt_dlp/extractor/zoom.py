@@ -177,7 +177,6 @@ class ZoomClipsIE(InfoExtractor):
         'info_dict': {
             'id': '6YEG4i_qS0eiT7UH9zPeYw',
             'ext': 'mp4',
-
             'title': 'Test Clip',
             'uploader': 'Hans Müller',
             'duration': 1,
@@ -189,14 +188,12 @@ class ZoomClipsIE(InfoExtractor):
 
     def _real_extract(self, url):
         clip_id = self._match_id(url)
-
-        # NOTE: the response of this share info request automatically sets cookies
-        # that are required for downloading the HLS manifest (e.g. 'CloudFront-Key-Pair-Id')
+        # The API response sets cloudfront cookies necessary for access to the m3u8 format
         result = self._download_json(
             f'https://zoomclips.zoom.us/nws/marvel/2.0/clips/share/{clip_id}',
             clip_id, note='Downloading share info JSON')['result']
-
         media_info = result['mediaInfo']
+
         return {
             'id': clip_id,
             **traverse_obj(media_info, {
@@ -206,11 +203,9 @@ class ZoomClipsIE(InfoExtractor):
                 'duration': ('mediaDuration', {int_or_none}),
             }),
             'view_count': traverse_obj(result, ('statisticsInfo', 'count', {int_or_none})),
-            'formats': [
-                {
-                    'url': media_info['playUrl'],
-                    'protocol': 'm3u8_native',
-                    'ext': 'mp4',
-                },
-            ],
+            'formats': [{
+                'url': media_info['playUrl'],
+                'protocol': 'm3u8_native',
+                'ext': 'mp4',
+            }],
         }
