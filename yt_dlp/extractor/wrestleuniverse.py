@@ -216,15 +216,15 @@ class WrestleUniverseVODIE(WrestleUniverseBaseIE):
         except ExtractorError as e:
             # try the encrypted API if normal API fails
             # there might be a better approach than trial and error
-            if "400" not in str(e):
+            if '400' not in str(e):
                 # fails with a HTTP 400 error
                 # unclear if this is always the case
                 raise
             video_data, decrypt = self._call_encrypted_api(
-                video_id, ':watch', 'watch', data={'deviceId': self._DEVICE_ID, 'method': 1}
+                video_id, ':watch', 'watch', data={'deviceId': self._DEVICE_ID, 'method': 1},
             )
         info['formats'] = self._get_formats(
-            video_data, ('protocolHls', 'url', {url_or_none}), video_id
+            video_data, ('protocolHls', 'url', {url_or_none}), video_id,
         )
 
         if decrypt:
