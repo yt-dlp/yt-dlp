@@ -32,7 +32,7 @@ VERBOSE = '''
       description: |
         It should start like this:
       placeholder: |
-        [debug] Command-line config: ['-vU', 'https://www.youtube.com/watch?v=BaW_jenozKc']
+        [debug] Command-line config: ['-vU', 'https://www.youtube.com/watch?v=YE7VzlLtp-4']
         [debug] Encodings: locale cp65001, fs utf-8, pref cp65001, out utf-8, error utf-8, screen utf-8
         [debug] yt-dlp version nightly@... from yt-dlp/yt-dlp-nightly-builds [1a176d874] (win_exe)
         [debug] Python 3.10.11 (CPython AMD64 64bit) - Windows-10-10.0.20348-SP0 (OpenSSL 1.1.1t  7 Feb 2023)
@@ -44,7 +44,7 @@ VERBOSE = '''
         [debug] Fetching release info: https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest
         Latest version: nightly@... from yt-dlp/yt-dlp-nightly-builds
         yt-dlp is up to date (nightly@... from yt-dlp/yt-dlp-nightly-builds)
-        [youtube] Extracting URL: https://www.youtube.com/watch?v=BaW_jenozKc
+        [youtube] Extracting URL: https://www.youtube.com/watch?v=YE7VzlLtp-4
         <more lines>
       render: shell
     validations:
