@@ -28,6 +28,7 @@ import os
 import platform
 import random
 import re
+import secrets
 import shlex
 import socket
 import ssl
@@ -4428,16 +4429,16 @@ def ohdave_rsa_encrypt(data, exponent, modulus):
 
 def pkcs1pad(data, length):
     """
-    Padding input data with PKCS#1 scheme
+    Pad input data using EME-PKCS1-v1_5 encoding
 
     @param {int[]} data        input data
     @param {int}   length      target length
     @returns {int[]}           padded data
     """
     if len(data) > length - 11:
-        raise ValueError('Input data too long for PKCS#1 padding')
+        raise ValueError('Input data too long for EME-PKCS1-v1_5 encoding')
 
-    pseudo_random = [random.randint(0, 254) for _ in range(length - len(data) - 3)]
+    pseudo_random = [secrets.randbelow(255) + 1 for _ in range(length - len(data) - 3)]
     return [0, 2, *pseudo_random, 0, *data]
 
 
