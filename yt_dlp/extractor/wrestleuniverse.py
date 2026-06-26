@@ -240,6 +240,7 @@ class WrestleUniverseVODIE(WrestleUniverseBaseIE):
 
         return info
 
+
 class WrestleUniversePPVIE(WrestleUniverseBaseIE):
     _VALID_URL = WrestleUniverseBaseIE._VALID_URL_TMPL % 'lives'
     _TESTS = [{
