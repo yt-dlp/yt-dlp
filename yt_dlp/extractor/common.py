@@ -1068,9 +1068,9 @@ class InfoExtractor:
 
     def __print_error(self, errnote, fatal, video_id, err):
         if fatal:
-            raise ExtractorError(f'{video_id}: {errnote}', cause=err)
+            raise ExtractorError(f'{errnote}', cause=err, video_id=video_id)
         elif errnote:
-            self.report_warning(f'{video_id}: {errnote}: {err}')
+            self.report_warning(f'{errnote}: {err}', video_id=video_id)
 
     def _parse_xml(self, xml_string, video_id, transform_source=None, fatal=True, errnote=None):
         if transform_source:
