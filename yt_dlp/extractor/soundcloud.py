@@ -465,12 +465,14 @@ class SoundcloudBaseIE(InfoExtractor):
 
             for comment_dict in traverse_obj(page, ('collection', lambda _, v: v['id'])):
                 parent = 'root'
-                comment_id = comment_dict.get['id'] or traverse_obj(comment_dict, ('self', 'urn', {lambda x: remove_start(x, 'soundcloud:comments:')}, {str}))
+                comment_id = traverse_obj(comment_dict, ('id', {int}, {str_or_none}))
                 if comment_id is None:
-                    self.report_warning('Skipping comment; got unknown comment id')
+                    self.report_warning(
+                        bug_reports_message('Skipping comment(s) due to missing/unrecognized comment ID'),
+                        video_id=track_id, only_once=True)
                     continue
                 comment_ts = comment_dict.get('timestamp')
-                author_id = traverse_obj(comment_dict, ('user', 'id', {str_or_none}))
+                author_id = traverse_obj(comment_dict, ('user', 'id', {int}, {str_or_none}))
                 # Timestamp is key for filtering parent and root comments.
                 # Every same Timestamp is parent of root comment that has same timestamp but older created_at.
                 # Every User has only one root comment and all other comment of same user will parent of their own comment.
