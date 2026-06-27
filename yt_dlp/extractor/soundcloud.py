@@ -9,12 +9,12 @@ from ..networking.exceptions import HTTPError
 from ..networking.impersonate import ImpersonateTarget
 from ..utils import (
     ExtractorError,
+    bug_reports_message,
     float_or_none,
     int_or_none,
     join_nonempty,
     mimetype2ext,
     parse_qs,
-    remove_start,
     str_or_none,
     try_call,
     unified_timestamp,
@@ -450,9 +450,6 @@ class SoundcloudBaseIE(InfoExtractor):
         else:
             self.to_screen(f'Sorting comments by {sort_by}')
 
-        last_timestamp = None
-        last_comment_id = None
-        last_author_id = None
         next_url = update_url_query(
             f'{self._API_V2_BASE}tracks/{track_id}/comments', {
                 'sort': sort_by,
@@ -464,36 +461,25 @@ class SoundcloudBaseIE(InfoExtractor):
             page = self._call_api(next_url, track_id, note=f'Downloading comments page {page_num}')
 
             for comment_dict in traverse_obj(page, ('collection', lambda _, v: v['id'])):
-                parent = 'root'
                 comment_id = traverse_obj(comment_dict, ('id', {int}, {str_or_none}))
                 if comment_id is None:
                     self.report_warning(
                         bug_reports_message('Skipping comment(s) due to missing/unrecognized comment ID'),
                         video_id=track_id, only_once=True)
                     continue
-                comment_ts = comment_dict.get('timestamp')
-                author_id = traverse_obj(comment_dict, ('user', 'id', {int}, {str_or_none}))
-                # Timestamp is key for filtering parent and root comments.
-                # Every same Timestamp is parent of root comment that has same timestamp but older created_at.
-                # Every User has only one root comment and all other comment of same user will parent of their own comment.
-                if (last_timestamp is not None and (comment_ts == last_timestamp)) or (last_author_id == author_id):
-                    parent = str(last_comment_id)
-                else:
-                    last_comment_id = comment_id
-                last_author_id = author_id
-                last_timestamp = comment_ts
 
                 yield {
                     'id': str_or_none(comment_id),
-                    'author_id': author_id,
-                    'parent': parent,
                     **traverse_obj(comment_dict, {
+                        'author_id': ('user', 'id', {int}, {str_or_none}),
                         'author': ('user', 'username', {str}),
                         'author_thumbnail': ('user', 'avatar_url', {url_or_none}),
                         'author_url': ('user', 'permalink_url', {url_or_none}),
                         'author_is_verified': ('user', 'verified', {bool}),
                         'timestamp': ('created_at', {unified_timestamp}),
                         'text': ('body', {str}),
+                        'start_time': ('timestamp', {float_or_none(scale=1000)}),
+                        'end_time': ('timestamp', {float_or_none(scale=1000)}),
                     }),
                 }
 
