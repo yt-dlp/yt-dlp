@@ -1231,7 +1231,7 @@ class InfoExtractor:
         """Report information extraction."""
         self.to_screen(f'{id_or_name}: Extracting information')
 
-    def report_download_webpage(self, video_id, note=None):
+    def report_download_webpage(self, video_id, *, note=None):
         """Report webpage download."""
         self.to_screen(join_nonempty(video_id, note or 'Downloading webpage', delim=': '))
 
