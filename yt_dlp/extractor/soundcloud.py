@@ -460,20 +460,18 @@ class SoundcloudBaseIE(InfoExtractor):
             page = self._call_api(next_url, track_id, note=f'Downloading comments page {page_num}')
 
             for comment_dict in traverse_obj(page, ('collection', lambda _, v: isinstance(v['id'], int))):
-                yield {
-                    'id': str(comment['id']),
-                    **traverse_obj(comment_dict, {
-                        'author_id': ('user', 'id', {int}, {str_or_none}),
-                        'author': ('user', 'username', {str}),
-                        'author_thumbnail': ('user', 'avatar_url', {url_or_none}),
-                        'author_url': ('user', 'permalink_url', {url_or_none}),
-                        'author_is_verified': ('user', 'verified', {bool}),
-                        'timestamp': ('created_at', {unified_timestamp}),
-                        'text': ('body', {str}),
-                        'start_time': ('timestamp', {float_or_none(scale=1000)}),
-                        'end_time': ('timestamp', {float_or_none(scale=1000)}),
-                    }),
-                }
+                yield traverse_obj(comment_dict, {
+                    'id': ('id', {int}, {str_or_none}),
+                    'author_id': ('user', 'id', {int}, {str_or_none}),
+                    'author': ('user', 'username', {str}),
+                    'author_thumbnail': ('user', 'avatar_url', {url_or_none}),
+                    'author_url': ('user', 'permalink_url', {url_or_none}),
+                    'author_is_verified': ('user', 'verified', {bool}),
+                    'timestamp': ('created_at', {unified_timestamp}),
+                    'text': ('body', {str}),
+                    'start_time': ('timestamp', {float_or_none(scale=1000)}),
+                    'end_time': ('timestamp', {float_or_none(scale=1000)}),
+                })
 
             next_url = page.get('next_href')
             if not next_url:

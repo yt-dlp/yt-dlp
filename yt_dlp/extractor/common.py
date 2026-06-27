@@ -375,6 +375,8 @@ class InfoExtractor:
                                            favorite by the video uploader
                         * "is_pinned" - Whether the comment is pinned to
                                         the top of the comments
+                        * "start_time" - Media position in seconds where the comment is applies.
+                        * "end_time" - Media position in seconds where the comment is applies.
     age_limit:      Age restriction for the video, as an integer (years)
     webpage_url:    The URL to the video webpage, if given to yt-dlp it
                     should allow to get the same result again. (It will be set
