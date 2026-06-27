@@ -3,8 +3,6 @@ import itertools
 import json
 import re
 
-from yt_dlp.utils._utils import remove_start
-
 from .common import InfoExtractor, SearchInfoExtractor
 from ..networking import HEADRequest
 from ..networking.exceptions import HTTPError
@@ -16,6 +14,7 @@ from ..utils import (
     join_nonempty,
     mimetype2ext,
     parse_qs,
+    remove_start,
     str_or_none,
     try_call,
     unified_timestamp,
