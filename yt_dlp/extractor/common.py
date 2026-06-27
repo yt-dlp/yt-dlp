@@ -922,9 +922,9 @@ class InfoExtractor:
 
             errmsg = f'{errnote}: {err}'
             if fatal:
-                raise ExtractorError(errmsg, cause=err)
+                raise ExtractorError(errmsg, cause=err, video_id=video_id)
             else:
-                self.report_warning(errmsg)
+                self.report_warning(errmsg, video_id=video_id)
                 return False
 
     def _download_webpage_handle(self, url_or_request, video_id, note=None, errnote=None, fatal=True,
