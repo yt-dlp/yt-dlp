@@ -1037,8 +1037,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             return next_continuation
 
         return traverse_obj(renderer, (
-            ('contents', 'items', 'rows', 'subThreads'), ..., 'continuationItemRenderer',
-            ('continuationEndpoint', ('button', 'buttonRenderer', 'command')),
+            ('contents', 'items', 'rows', 'subThreads'), ..., (
+                ('continuationItemRenderer', ('continuationEndpoint', ('button', 'buttonRenderer', 'command'))),
+                ('continuationItemViewModel', 'continuationCommand', 'innertubeCommand'),
+            ),
         ), get_all=False, expected_type=cls._extract_continuation_ep_data)
 
     @classmethod
@@ -1150,6 +1152,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _get_count(self, data, *path_list):
         count_text = self._get_text(data, *path_list) or ''
+        if count_text.lower().startswith('no '):
+            return 0
         count = parse_count(count_text)
         if count is None:
             count = str_to_int(

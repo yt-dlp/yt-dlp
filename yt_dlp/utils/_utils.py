@@ -28,6 +28,7 @@ import os
 import platform
 import random
 import re
+import secrets
 import shlex
 import socket
 import ssl
@@ -915,10 +916,12 @@ class Popen(subprocess.Popen):
             self.wait(timeout=timeout)
 
     @classmethod
-    def run(cls, *args, timeout=None, **kwargs):
+    def run(cls, *args, timeout=None, input=None, **kwargs):
+        if input is not None and kwargs.get('stdin') is None:
+            kwargs['stdin'] = subprocess.PIPE
         with cls(*args, **kwargs) as proc:
             default = '' if proc.__text_mode else b''
-            stdout, stderr = proc.communicate_or_kill(timeout=timeout)
+            stdout, stderr = proc.communicate_or_kill(input=input, timeout=timeout)
             return stdout or default, stderr or default, proc.returncode
 
 
@@ -1179,6 +1182,10 @@ class XAttrMetadataError(YoutubeDLError):
 
 
 class XAttrUnavailableError(YoutubeDLError):
+    pass
+
+
+class UnsafeExecExpansionError(YoutubeDLError):
     pass
 
 
@@ -2135,16 +2142,16 @@ def parse_duration(s):
         (days, 86400), (hours, 3600), (mins, 60), (secs, 1), (ms, 1)))
 
 
-def _change_extension(prepend, filename, ext, expected_real_ext=None):
+def _change_extension(prepend, filename, ext, expected_real_ext=None, *, _allowed_exts=()):
     name, real_ext = os.path.splitext(filename)
 
     if not expected_real_ext or real_ext[1:] == expected_real_ext:
         filename = name
         if prepend and real_ext:
-            _UnsafeExtensionError.sanitize_extension(ext, prepend=True)
+            _UnsafeExtensionError.sanitize_extension(ext, prepend=True, _allowed_exts=_allowed_exts)
             return f'{filename}.{ext}{real_ext}'
 
-    return f'{filename}.{_UnsafeExtensionError.sanitize_extension(ext)}'
+    return f'{filename}.{_UnsafeExtensionError.sanitize_extension(ext, _allowed_exts=_allowed_exts)}'
 
 
 prepend_extension = functools.partial(_change_extension, True)
@@ -4422,16 +4429,16 @@ def ohdave_rsa_encrypt(data, exponent, modulus):
 
 def pkcs1pad(data, length):
     """
-    Padding input data with PKCS#1 scheme
+    Pad input data using EME-PKCS1-v1_5 encoding
 
     @param {int[]} data        input data
     @param {int}   length      target length
     @returns {int[]}           padded data
     """
     if len(data) > length - 11:
-        raise ValueError('Input data too long for PKCS#1 padding')
+        raise ValueError('Input data too long for EME-PKCS1-v1_5 encoding')
 
-    pseudo_random = [random.randint(0, 254) for _ in range(length - len(data) - 3)]
+    pseudo_random = [secrets.randbelow(255) + 1 for _ in range(length - len(data) - 3)]
     return [0, 2, *pseudo_random, 0, *data]
 
 
@@ -4707,16 +4714,9 @@ def random_uuidv4():
     return re.sub(r'[xy]', lambda x: _HEX_TABLE[random.randint(0, 15)], 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx')
 
 
-def make_dir(path, to_screen=None):
-    try:
-        dn = os.path.dirname(path)
-        if dn:
-            os.makedirs(dn, exist_ok=True)
-        return True
-    except OSError as err:
-        if callable(to_screen) is not None:
-            to_screen(f'unable to create directory {err}')
-        return False
+def make_parent_dirs(path):
+    if dir_name := os.path.dirname(path):
+        os.makedirs(dir_name, exist_ok=True)
 
 
 def get_executable_path():
@@ -5207,20 +5207,22 @@ class _UnsafeExtensionError(Exception):
         # others
         *MEDIA_EXTENSIONS.manifests,
         *MEDIA_EXTENSIONS.storyboards,
-        'desktop',
         'ism',
         'm3u',
         'sbv',
-        'url',
-        'webloc',
     ])
+
+    _enabled = True
 
     def __init__(self, extension, /):
         super().__init__(f'unsafe file extension: {extension!r}')
         self.extension = extension
 
     @classmethod
-    def sanitize_extension(cls, extension, /, *, prepend=False):
+    def sanitize_extension(cls, extension, /, *, prepend=False, _allowed_exts=()):
+        if not cls._enabled:
+            return extension
+
         if extension is None:
             return None
 
@@ -5231,7 +5233,8 @@ class _UnsafeExtensionError(Exception):
             _, _, last = extension.rpartition('.')
             if last == 'bin':
                 extension = last = 'unknown_video'
-            if last.lower() not in cls.ALLOWED_EXTENSIONS:
+            allowed = _allowed_exts or cls.ALLOWED_EXTENSIONS
+            if last.lower() not in allowed:
                 raise cls(extension)
 
         return extension
