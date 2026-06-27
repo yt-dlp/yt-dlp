@@ -2,7 +2,7 @@ import random
 import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, str_or_none, try_get
+from ..utils import ExtractorError, str_or_none, try_get, url_or_none
 
 
 class AudiusBaseIE(InfoExtractor):
@@ -143,6 +143,8 @@ class AudiusIE(AudiusBaseIE):
         thumbnails = []
         if isinstance(artworks_data, dict):
             for quality_key, thumbnail_url in artworks_data.items():
+                if not url_or_none(thumbnail_url):
+                    continue
                 thumbnail = {
                     'url': thumbnail_url,
                 }
