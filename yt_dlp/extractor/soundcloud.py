@@ -3,6 +3,8 @@ import itertools
 import json
 import re
 
+from yt_dlp.utils._utils import remove_start
+
 from .common import InfoExtractor, SearchInfoExtractor
 from ..networking import HEADRequest
 from ..networking.exceptions import HTTPError
@@ -464,7 +466,10 @@ class SoundcloudBaseIE(InfoExtractor):
 
             for comment_dict in traverse_obj(page, ('collection', lambda _, v: v['id'])):
                 parent = 'root'
-                comment_id = comment_dict['id']
+                comment_id = comment_dict.get['id'] or traverse_obj(comment_dict, ('self', 'urn', {lambda x: remove_start(x, 'soundcloud:comments:')}, {str}))
+                if comment_id is None:
+                    self.report_warning('Skipping comment; got unknown comment id')
+                    continue
                 comment_ts = comment_dict.get('timestamp')
                 author_id = traverse_obj(comment_dict, ('user', 'id', {str_or_none}))
                 # Timestamp is key for filtering parent and root comments.
