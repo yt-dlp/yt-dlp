@@ -443,8 +443,7 @@ class SoundcloudBaseIE(InfoExtractor):
             self.to_screen(
                 f'Defaulting to sort comments by {sort_by}. '
                 f'Configure this with  --extractor-args soundcloud:comments_sort_by=FILTER . '
-                f'Available filters: {", ".join(available_filters)}',
-            )
+                f'Available filters: {", ".join(available_filters)}')
         elif sort_by not in available_filters:
             raise ExtractorError(f'Invalid comments_sort_by filter: {sort_by}', expected=True)
         else:
@@ -483,7 +482,7 @@ class SoundcloudBaseIE(InfoExtractor):
                     'author_id': author_id,
                     'parent': parent,
                     **traverse_obj(comment_dict, {
-                        'author': ('user', ('full_name', 'username'), {str}, filter, any),
+                        'author': ('user', 'username', {str}),
                         'author_thumbnail': ('user', 'avatar_url', {url_or_none}),
                         'author_url': ('user', 'permalink_url', {url_or_none}),
                         'author_is_verified': ('user', 'verified', {bool}),
