@@ -732,7 +732,9 @@ class SoundcloudIE(SoundcloudBaseIE):
             info_json_url = self._resolv_url(self._BASE_URL + resolve_title)
 
         info = self._call_api(
-            info_json_url, full_title, 'Downloading info JSON', query=query, headers=self._HEADERS)
+            info_json_url, full_title, 'Downloading info JSON', query=query,
+            headers=self._HEADERS,
+            errnote=f'{full_title}: Could not download info JSON')
 
         for retry in self.RetryManager():
             try:
