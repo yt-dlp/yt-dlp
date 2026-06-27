@@ -17,8 +17,6 @@ class LaracastsBaseIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
         data = self._search_json(r'<script[^>]*data-page="app"[^>]*>',
                                  webpage, 'data', display_id, end_pattern=r'</script>')
-        
-
         return traverse_obj(data, 'props')
 
     def _parse_episode(self, episode):
