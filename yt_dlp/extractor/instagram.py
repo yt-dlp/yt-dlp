@@ -1,3 +1,4 @@
+import functools
 import hashlib
 import itertools
 import json
@@ -42,20 +43,33 @@ class InstagramBaseIE(InfoExtractor):
     _API_BASE_URL = 'https://i.instagram.com/api/v1'
     _BASE_URL = 'https://www.instagram.com/'
     _LOGIN_URL = 'https://www.instagram.com/accounts/login'
+    _APP_IDS = {
+        'ios': '124024574287414',
+        'web': '936619743392459',  # default
+    }
 
     @property
     def _is_logged_in(self):
         return bool(self._get_cookies(self._BASE_URL).get('sessionid'))
 
+    @functools.cached_property
+    def _app_id(self):
+        user_input = self._configuration_arg('app_id', [None], ie_key=InstagramIE)[0]
+        return self._APP_IDS.get(user_input, user_input or self._APP_IDS['web'])
+
     @property
     def _api_headers(self):
         return {
-            'X-IG-App-ID': self._configuration_arg('app_id', ['936619743392459'], ie_key=InstagramIE)[0],
+            'X-IG-App-ID': self._app_id,
             'X-ASBD-ID': '359341',
             'X-IG-WWW-Claim': '0',
             'Origin': 'https://www.instagram.com',
             'Accept': '*/*',
         }
+
+    @property
+    def _is_web_app(self):
+        return self._app_id == self._APP_IDS['web']
 
     def _get_count(self, media, kind, *keys):
         return traverse_obj(
@@ -400,7 +414,7 @@ class InstagramIE(InstagramBaseIE):
             return self._extract_product(self._download_json(
                 f'{self._API_BASE_URL}/media/{media_id}/info/', video_id,
                 'Downloading video info', 'Video info extraction failed',
-                headers=self._api_headers)['items'][0])
+                impersonate=self._is_web_app, headers=self._api_headers)['items'][0])
 
         api_check = self._download_json(
             f'{self._API_BASE_URL}/web/get_ruling_for_content/', video_id,
@@ -657,7 +671,7 @@ class InstagramStoryIE(InstagramBaseIE):
         if username == 'highlights' and not story_id:  # story id is only mandatory for highlights
             raise ExtractorError('Input URL is missing a highlight ID', expected=True)
         display_id = story_id or username
-        story_info = self._download_webpage(url, display_id)
+        story_info = self._download_webpage(url, display_id, impersonate=self._is_web_app)
         user_info = self._search_json(r'"user":', story_info, 'user info', display_id, fatal=False)
         if not user_info:
             self.raise_login_required('This content is unreachable')
@@ -672,7 +686,8 @@ class InstagramStoryIE(InstagramBaseIE):
 
         videos = traverse_obj(self._download_json(
             f'{self._API_BASE_URL}/feed/reels_media/?reel_ids={story_info_url}',
-            display_id, errnote=False, fatal=False, headers=self._api_headers), 'reels')
+            display_id, errnote=False, fatal=False, impersonate=self._is_web_app,
+            headers=self._api_headers), 'reels')
         if not videos:
             self.raise_login_required('You need to log in to access this content')
         user_info = traverse_obj(videos, (user_id, 'user', {dict})) or {}

@@ -1916,7 +1916,7 @@ The following extractors use this feature:
 * `dr`: dynamic range to ignore - one or more of `sdr`, `hdr10`, `dv`
 
 #### instagram
-* `app_id`: The value of the `X-IG-App-ID` header used for API requests. Default is the web app ID, `936619743392459`
+* `app_id`: The value of the `X-IG-App-ID` header used for API requests. Can be the actual ID number, `ios`, or `web` (default)
 
 #### niconicochannelplus
 * `max_comments`: Maximum number of comments to extract - default is `120`
