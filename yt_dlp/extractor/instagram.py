@@ -124,7 +124,7 @@ class InstagramBaseIE(InfoExtractor):
             }
 
     def _extract_product_media(self, product_media):
-        video_id = traverse_obj(product_media, ('pk', {str}, {lambda x: x[:19]}, {_pk_to_id}))
+        video_id = traverse_obj(product_media, ('pk', {_pk_to_id}))
 
         formats = traverse_obj(product_media, ('video_versions', lambda _, v: url_or_none(v['url']), {
             'url': 'url',
@@ -165,11 +165,11 @@ class InstagramBaseIE(InfoExtractor):
             'id': video_id,
             'title': format_field(product_info, [('user', 'username', {str})], 'Video by %s', default=None),
             **traverse_obj(product_info, {
-                'id': ('pk', {str}, {lambda x: x[:19]}, {_pk_to_id}),
+                'id': ('pk', {_pk_to_id}),
                 'title': ('title', {str}),
                 'description': ('caption', 'text', {str}),
                 'channel': ('user', 'username', {str}),
-                'uploader_id': ('user', 'pk', {str}),
+                'uploader_id': ('user', 'pk', {str_or_none}),
                 'uploader': ('user', 'full_name', {str}),
                 'timestamp': ('taken_at', {int_or_none}),
                 'view_count': ('view_count', {int_or_none}),
@@ -212,9 +212,9 @@ class InstagramBaseIE(InfoExtractor):
         for comment_dict in comment_data or []:
             yield {
                 'author': traverse_obj(comment_dict, ('node', 'owner', 'username'), ('user', 'username')),
-                'author_id': traverse_obj(comment_dict, ('node', 'owner', 'id'), ('user', 'pk')),
+                'author_id': traverse_obj(comment_dict, ('node', 'owner', 'id'), ('user', 'pk'), expected_type=str_or_none),
                 'author_thumbnail': traverse_obj(comment_dict, ('node', 'owner', 'profile_pic_url'), ('user', 'profile_pic_url'), expected_type=url_or_none),
-                'id': traverse_obj(comment_dict, ('node', 'id'), 'pk'),
+                'id': traverse_obj(comment_dict, ('node', 'id'), 'pk', expected_type=str_or_none),
                 'text': traverse_obj(comment_dict, ('node', 'text'), 'text'),
                 'like_count': traverse_obj(comment_dict, ('node', 'edge_liked_by', 'count'), 'comment_like_count', expected_type=int_or_none),
                 'timestamp': traverse_obj(comment_dict, ('node', 'created_at'), 'created_at', expected_type=int_or_none),
@@ -480,8 +480,8 @@ class InstagramIE(InstagramBaseIE):
         comments = traverse_obj(media, (
             'comments_connection', 'edges', lambda _, v: v['node']['text'], 'node', {
                 'author': ('user', 'username', {str}),
-                'author_id': ('user', 'pk', {str}),
-                'id': ('pk', {str}),
+                'author_id': ('user', 'pk', {str_or_none}),
+                'id': ('pk', {str_or_none}),
                 'text': ('text', {str}),
                 'timestamp': ('created_at', {int_or_none}),
                 'like_count': ('comment_like_count', {int_or_none}),
@@ -676,7 +676,7 @@ class InstagramStoryIE(InstagramBaseIE):
         if not user_info:
             self.raise_login_required('This content is unreachable')
 
-        user_id = traverse_obj(user_info, 'pk', 'id', expected_type=str)
+        user_id = traverse_obj(user_info, 'pk', 'id', expected_type=str_or_none)
         if username == 'highlights':
             story_info_url = f'highlight:{story_id}'
         else:
