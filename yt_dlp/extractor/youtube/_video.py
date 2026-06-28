@@ -3319,10 +3319,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def parse_xtags(self, f_url=None, b64_xtags=None):
         # Parses xtags into dictionary like {'sr': '1', 'drc': '1}
         if f_url:
-            return traverse_obj(f_url, ({parse_qs}, 'xtags', -1, {urllib.parse.parse_qsl}, {lambda x: dict(x)}))  # noqa: PLW0108
-
+            xtags = traverse_obj(f_url, ({parse_qs}, 'xtags', -1, {urllib.parse.parse_qsl}, {lambda x: dict(x)}))  # noqa: PLW0108
+            if xtags:
+                return xtags
         if not protobug or not b64_xtags:
-            return None
+            return {}
         try:
             from ._proto.innertube.xtags import XTags
             # server sometimes strips padding which Python does not like
@@ -3330,7 +3331,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return {tag.key: tag.value for tag in parsed_xtags.tags}
         except Exception as e:
             self.report_warning(f'Failed to parse xtags protobuf: {e!r}', only_once=True)
-            return None
+            return {}
 
     def _extract_formats_and_subtitles(self, video_id, player_responses, player_url, live_status, duration):
         CHUNK_SIZE = 10 << 20
@@ -3360,8 +3361,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                                                 'Use formats=duplicate extractor argument instead')
 
         def is_super_resolution(f_url=None, b64_xtags=None):
-            xtags = self.parse_xtags(f_url, b64_xtags) or {}
-            return xtags.get('sr') == '1'
+            return self.parse_xtags(f_url, b64_xtags).get('sr') == '1'
 
         def solve_sig(s, spec):
             return ''.join(s[i] for i in spec)
