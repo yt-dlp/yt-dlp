@@ -58,6 +58,10 @@ class InstagramBaseIE(InfoExtractor):
         return self._APP_IDS.get(user_input, user_input or self._APP_IDS['web'])
 
     @property
+    def _is_web_app(self):
+        return self._app_id == self._APP_IDS['web']
+
+    @property
     def _api_headers(self):
         return {
             'X-IG-App-ID': self._app_id,
@@ -66,10 +70,6 @@ class InstagramBaseIE(InfoExtractor):
             'Origin': 'https://www.instagram.com',
             'Accept': '*/*',
         }
-
-    @property
-    def _is_web_app(self):
-        return self._app_id == self._APP_IDS['web']
 
     def _get_count(self, media, kind, *keys):
         return traverse_obj(
