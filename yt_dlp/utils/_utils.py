@@ -2852,7 +2852,10 @@ def qualities(quality_ids):
     for index, quality_id in enumerate(quality_ids):
         quality_map.setdefault(quality_id, index)
 
-    return lambda qid: quality_map.get(qid, -1)
+    def q(qid):
+        return quality_map.get(qid, -1)
+
+    return q
 
 
 POSTPROCESS_WHEN = ('pre_process', 'after_filter', 'video', 'before_dl', 'post_process', 'after_move', 'after_video', 'playlist')
