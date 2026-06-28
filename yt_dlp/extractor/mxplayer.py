@@ -334,7 +334,7 @@ class MxplayerRedirectIE(MxplayerBaseIE):
         'shorts': MxplayerIE,
         'tvshow': MxplayerShowIE,
     }
-    _VALID_URL = r'https?://(?:www\.)?mxplayer\.in/detail/(?P<type>episode|movie|season|shorts|tvshow)/(?P<id>[0-9a-f]{32})(?:[/?#]|$)'
+    _VALID_URL = rf'https?://(?:www\.)?mxplayer\.in/detail/(?P<type>{"|".join(_IE_MAP)})/(?P<id>[0-9a-f]{{32}})(?:[/?#]|$)'
     _TESTS = [{
         # episode
         # https://www.mxplayer.in/show/watch-that-time-i-got-reincarnated-as-a-slime/season-2/megiddo-online-3eda0b3baf27f2892d3fca2fd650fb95
