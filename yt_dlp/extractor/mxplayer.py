@@ -268,13 +268,11 @@ class MxplayerSeasonIE(MxplayerBaseIE):
             season_data = self._download_json(
                 api_url, season_id, f'Downloading Page {page}', query=query)
 
-            items = traverse_obj(season_data, ('items', lambda _, v: v['shareUrl']))
-            if not items:
-                break
-            for item in items:
-                yield self.url_result(
-                    urljoin(f'{self._BASE_URL}/', item['shareUrl']), MxplayerRedirectIE.ie_key())
-            if len(items) < self._PAGE_SIZE:
+            share_urls = traverse_obj(season_data, (
+                'items', ..., 'shareUrl', {urljoin(f'{self._BASE_URL}/')}))
+            for share_url in share_urls:
+                yield self.url_result(share_url, MxplayerRedirectIE)
+            if len(share_urls) < self._PAGE_SIZE:
                 break
 
             query = traverse_obj(season_data, ('next', {urllib.parse.parse_qs}))
@@ -286,8 +284,8 @@ class MxplayerSeasonIE(MxplayerBaseIE):
         mxs = self._extract_mxs(url, season_id)
 
         entities = traverse_obj(mxs, ('entities', season_id, {dict}))
-        series_title = traverse_obj(entities, ('container', 'title', {clean_html}, filter))
-        season_title = traverse_obj(entities, ('title', {clean_html}, filter))
+        series_title = traverse_obj(entities, ('container', 'title', {clean_html}))
+        season_title = traverse_obj(entities, ('title', {clean_html}))
 
         return self.playlist_result(
             self._entries(entities, season_id),
@@ -308,11 +306,11 @@ class MxplayerShowIE(MxplayerBaseIE):
     }]
 
     def _entries(self, entities):
-        for container in traverse_obj(entities, (
-            'tabs', ..., 'containers', lambda _, v: str_or_none(v['id']),
+        for season_id in traverse_obj(entities, (
+            'tabs', ..., 'containers', ..., 'id', {str_or_none},
         )):
             yield self.url_result(
-                f'{self._BASE_URL}/detail/season/{container["id"]}', MxplayerRedirectIE.ie_key())
+                f'{self._BASE_URL}/detail/season/{season_id}', MxplayerRedirectIE)
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
@@ -329,6 +327,13 @@ class MxplayerRedirectIE(MxplayerBaseIE):
     IE_NAME = 'mxplayer:redirect'
     IE_DESC = False
 
+    _IE_MAP = {
+        'episode': MxplayerIE,
+        'movie': MxplayerIE,
+        'season': MxplayerSeasonIE,
+        'shorts': MxplayerIE,
+        'tvshow': MxplayerShowIE,
+    }
     _VALID_URL = r'https?://(?:www\.)?mxplayer\.in/detail/(?P<type>episode|movie|season|shorts|tvshow)/(?P<id>[0-9a-f]{32})(?:[/?#]|$)'
     _TESTS = [{
         # episode
@@ -429,13 +434,7 @@ class MxplayerRedirectIE(MxplayerBaseIE):
 
     def _real_extract(self, url):
         redirect_type, redirect_id = self._match_valid_url(url).group('type', 'id')
-        ie = {
-            'episode': MxplayerIE,
-            'movie': MxplayerIE,
-            'season': MxplayerSeasonIE,
-            'shorts': MxplayerIE,
-            'tvshow': MxplayerShowIE,
-        }[redirect_type]
+        ie = self._IE_MAP[redirect_type]
 
         detail = self._download_json(
             'https://seo.mxplayer.in/v1/api/seo/get-url-details',
@@ -446,6 +445,6 @@ class MxplayerRedirectIE(MxplayerBaseIE):
         )):
             if self.suitable(redirect_url):
                 raise UnsupportedError(redirect_url)
-            return self.url_result(redirect_url, ie.ie_key())
+            return self.url_result(redirect_url, ie)
 
         raise ExtractorError('Unable to resolve redirect URL')
