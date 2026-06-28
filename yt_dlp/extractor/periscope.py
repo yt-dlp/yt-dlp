@@ -107,11 +107,6 @@ class PeriscopeIE(PeriscopeBaseIE):
         width = int_or_none(broadcast.get('width'))
         height = int_or_none(broadcast.get('height'))
 
-        def add_width_and_height(f):
-            for key, val in (('width', width), ('height', height)):
-                if not f.get(key):
-                    f[key] = val
-
         video_urls = set()
         formats = []
         for format_id in ('replay', 'rtmp', 'hls', 'https_hls', 'lhls', 'lhlsweb'):
@@ -128,7 +123,7 @@ class PeriscopeIE(PeriscopeBaseIE):
                 'url': video_url,
                 'ext': 'flv' if format_id == 'rtmp' else 'mp4',
             }
-            self._add_width_and_height(rtmp_format)
+            self._add_width_and_height(rtmp_format, width, height)
             formats.append(rtmp_format)
 
         info['formats'] = formats
