@@ -136,10 +136,6 @@ from .audiodraft import (
     AudiodraftCustomIE,
     AudiodraftGenericIE,
 )
-from .audiomack import (
-    AudiomackAlbumIE,
-    AudiomackIE,
-)
 from .audius import (
     AudiusIE,
     AudiusPlaylistIE,
