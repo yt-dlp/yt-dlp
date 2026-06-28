@@ -1873,7 +1873,8 @@ def parse_count(s):
         return str_to_int(mobj.group(1))
 
 
-def parse_resolution(s, *, lenient=False):
+@partial_application
+def parse_resolution(s, *, lenient=False, parse_fps=False):
     if s is None:
         return {}
 
@@ -1887,13 +1888,19 @@ def parse_resolution(s, *, lenient=False):
             'height': int(mobj.group('h')),
         }
 
-    mobj = re.search(r'(?<![a-zA-Z0-9])(\d+)[pPiI](?![a-zA-Z0-9])', s)
+    fps_suffix = r'(?P<fps>\d{2,3})?'
+    mobj = re.search(rf'(?<![a-zA-Z0-9])(?P<height>\d+)[pPiI]{fps_suffix}(?![a-zA-Z0-9])', s)
+    scale = 1
+    if not mobj:
+        mobj = re.search(rf'\b(?P<height>[48])[kK]{fps_suffix}\b', s)
+        scale = 540
     if mobj:
-        return {'height': int(mobj.group(1))}
+        res = {'height': int(mobj.group('height')) * scale}
+        if parse_fps:
+            if fps := mobj.group('fps'):
+                res['fps'] = int(fps)
 
-    mobj = re.search(r'\b([48])[kK]\b', s)
-    if mobj:
-        return {'height': int(mobj.group(1)) * 540}
+        return res
 
     if lenient:
         mobj = re.search(r'(?<!\d)(\d{2,5})w(?![a-zA-Z0-9])', s)
