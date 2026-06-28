@@ -404,7 +404,7 @@ class InstagramIE(InstagramBaseIE):
 
         api_check = self._download_json(
             f'{self._API_BASE_URL}/web/get_ruling_for_content/', video_id,
-            'Fetching CSRF token', errnote=False, fatal=False,
+            'Checking post accessibility', errnote=False, fatal=False,
             impersonate=True, require_impersonation=True, headers=self._api_headers,
             query={'content_type': 'MEDIA', 'target_id': media_id}) or {}
 
