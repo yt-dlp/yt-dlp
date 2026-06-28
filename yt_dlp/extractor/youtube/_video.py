@@ -3341,8 +3341,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._downloader.deprecated_feature('[youtube] include_duplicate_formats extractor argument is deprecated. '
                                                 'Use formats=duplicate extractor argument instead')
 
-        def is_super_resolution(f_url):
-            return '1' in traverse_obj(f_url, ({parse_qs}, 'xtags', ..., {urllib.parse.parse_qs}, 'sr', ...))
+        def is_super_resolution(f_url=None, xtags=None):
+            if f_url:
+                return '1' in traverse_obj(f_url, ({parse_qs}, 'xtags', ..., {urllib.parse.parse_qs}, 'sr', ...))
+            if not protobug:
+                return False
+            try:
+                from ._proto.innertube.xtags import XTags
+                parsed_xtags = protobug.loads(base64.urlsafe_b64decode(xtags.encode()), XTags)
+                return any(tag.name == 'sr' and tag.value == '1' for tag in parsed_xtags.tags)
+            except Exception as e:
+                self.report_warning(f'Failed to extract super-resolution tag from xtags: {e!r}', only_once=True)
+                return False
 
         def solve_sig(s, spec):
             return ''.join(s[i] for i in spec)
@@ -3759,7 +3769,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         if stream_id in stream_ids:
                             continue
 
-                    fmt = process_format_stream(fmt_stream, proto, missing_pot=require_po_token and not po_token)
+                    xtags = fmt_stream.get('xtags')
+                    fmt = process_format_stream(
+                        fmt_stream, proto, missing_pot=require_po_token and not po_token,
+                        super_resolution=is_super_resolution(xtags=xtags))
                     if not fmt:
                         continue
 
@@ -3777,7 +3790,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     fmt['_sabr_config'] = {
                         **sabr_config,
                         'itag': stream_id[0],
-                        'xtags': fmt_stream.get('xtags'),
+                        'xtags': xtags,
                         'last_modified': fmt_stream.get('lastModified'),
                         'target_duration_sec': fmt_stream.get('targetDurationSec'),
                     }

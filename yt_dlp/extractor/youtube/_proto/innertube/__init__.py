@@ -3,3 +3,4 @@ from .compression_algorithm import CompressionAlgorithm  # noqa: F401
 from .next_request_policy import NextRequestPolicy  # noqa: F401
 from .range import Range  # noqa: F401
 from .seek_source import SeekSource  # noqa: F401
+from .xtags import XTags  # noqa: F401
