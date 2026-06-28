@@ -1109,6 +1109,8 @@ from .mx3 import (
 )
 from .mxplayer import (
     MxplayerIE,
+    MxplayerRedirectIE,
+    MxplayerSeasonIE,
     MxplayerShowIE,
 )
 from .myspace import (
