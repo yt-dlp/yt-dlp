@@ -375,6 +375,8 @@ class InfoExtractor:
                                            favorite by the video uploader
                         * "is_pinned" - Whether the comment is pinned to
                                         the top of the comments
+                        * "start_time" - Start time (in seconds) for displaying the comment
+                        * "end_time" - End time (in seconds) for displaying the comment
     age_limit:      Age restriction for the video, as an integer (years)
     webpage_url:    The URL to the video webpage, if given to yt-dlp it
                     should allow to get the same result again. (It will be set
@@ -875,13 +877,8 @@ class InfoExtractor:
         else:
             self._downloader._first_webpage_request = False
 
-        if note is None:
-            self.report_download_webpage(video_id)
-        elif note is not False:
-            if video_id is None:
-                self.to_screen(str(note))
-            else:
-                self.to_screen(f'{video_id}: {note}')
+        if note is not False:
+            self.report_download_webpage(video_id, note=note)
 
         # Some sites check X-Forwarded-For HTTP header in order to figure out
         # the origin of the client behind proxy. This allows bypassing geo
@@ -920,9 +917,9 @@ class InfoExtractor:
 
             errmsg = f'{errnote}: {err}'
             if fatal:
-                raise ExtractorError(errmsg, cause=err)
+                raise ExtractorError(errmsg, cause=err, video_id=video_id)
             else:
-                self.report_warning(errmsg)
+                self.report_warning(errmsg, video_id=video_id)
                 return False
 
     def _download_webpage_handle(self, url_or_request, video_id, note=None, errnote=None, fatal=True,
@@ -1071,9 +1068,9 @@ class InfoExtractor:
 
     def __print_error(self, errnote, fatal, video_id, err):
         if fatal:
-            raise ExtractorError(f'{video_id}: {errnote}', cause=err)
+            raise ExtractorError(f'{errnote}', cause=err, video_id=video_id)
         elif errnote:
-            self.report_warning(f'{video_id}: {errnote}: {err}')
+            self.report_warning(f'{errnote}: {err}', video_id=video_id)
 
     def _parse_xml(self, xml_string, video_id, transform_source=None, fatal=True, errnote=None):
         if transform_source:
@@ -1234,9 +1231,9 @@ class InfoExtractor:
         """Report information extraction."""
         self.to_screen(f'{id_or_name}: Extracting information')
 
-    def report_download_webpage(self, video_id):
+    def report_download_webpage(self, video_id, *, note=None):
         """Report webpage download."""
-        self.to_screen(f'{video_id}: Downloading webpage')
+        self.to_screen(join_nonempty(video_id, note or 'Downloading webpage', delim=': '))
 
     def report_age_confirmation(self):
         """Report attempt to confirm age."""
@@ -2970,6 +2967,8 @@ class InfoExtractor:
                     content_type = representation_attrib.get('contentType', mime_type.split('/')[0])
 
                     codec_str = representation_attrib.get('codecs', '')
+                    supplemental_codecs = representation_attrib.get(
+                        '{urn:scte:dash:scte214-extensions}supplementalCodecs')
                     # Some kind of binary subtitle found in some youtube livestreams
                     if mime_type == 'application/x-rawcc':
                         codecs = {'scodec': codec_str}
@@ -3025,7 +3024,7 @@ class InfoExtractor:
                             'asr': int_or_none(representation_attrib.get('audioSamplingRate')),
                             'fps': int_or_none(representation_attrib.get('frameRate')),
                             'language': lang if lang not in ('mul', 'und', 'zxx', 'mis') else None,
-                            'format_note': f'DASH {content_type}',
+                            'format_note': join_nonempty(f'DASH {content_type}', supplemental_codecs, delim=', '),
                             'filesize': filesize,
                             'container': mimetype2ext(mime_type) + '_dash',
                             **codecs,
