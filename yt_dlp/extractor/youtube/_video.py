@@ -3319,9 +3319,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def parse_xtags(self, f_url=None, b64_xtags=None):
         # Parses xtags into dictionary like {'sr': '1', 'drc': '1}
         if f_url:
-            xtags = traverse_obj(f_url, ({parse_qs}, 'xtags', -1, {urllib.parse.parse_qsl}))
-            if xtags:
-                return {tag[0]: tag[1] for tag in xtags}
+            return traverse_obj(f_url, ({parse_qs}, 'xtags', -1, {urllib.parse.parse_qsl}, {lambda x: dict(x)}))  # noqa: PLW0108
 
         if not protobug or not b64_xtags:
             return None
@@ -3566,10 +3564,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'format_id': join_nonempty(itag, (
                         'drc' if fmt_stream.get('isDrc')
                         else 'sr' if super_resolution
+                        else 'vb' if fmt_stream.get('isVb')
                         else None)),
                     'format_note': join_nonempty(
                         join_nonempty(audio_track.get('displayName'), audio_track.get('audioIsDefault') and '(default)', delim=' '),
-                        name, fmt_stream.get('isDrc') and 'DRC', super_resolution and 'AI-upscaled',
+                        name, fmt_stream.get('isDrc') and 'DRC', super_resolution and 'AI-upscaled', fmt_stream.get('isVb') and 'AI-voice boosted',
                         try_get(fmt_stream, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                         try_get(fmt_stream, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
                         is_damaged and 'DAMAGED', missing_pot and 'MISSING POT',
