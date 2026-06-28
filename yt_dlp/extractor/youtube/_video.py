@@ -3316,6 +3316,24 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         raise ExtractorError(f'No SABR formats found for client {client_name}', expected=True)
 
+    def parse_xtags(self, f_url=None, b64_xtags=None):
+        # Parses xtags into dictionary like {'sr': '1', 'drc': '1}
+        if f_url:
+            xtags = traverse_obj(f_url, ({parse_qs}, 'xtags', -1, {urllib.parse.parse_qsl}))
+            if xtags:
+                return {tag[0]: tag[1] for tag in xtags}
+
+        if not protobug or not b64_xtags:
+            return None
+        try:
+            from ._proto.innertube.xtags import XTags
+            # server sometimes strips padding which Python does not like
+            parsed_xtags = protobug.loads(base64.urlsafe_b64decode(f'{b64_xtags}=='), XTags)
+            return {tag.key: tag.value for tag in parsed_xtags.tags}
+        except Exception as e:
+            self.report_warning(f'Failed to parse xtags protobuf: {e!r}', only_once=True)
+            return None
+
     def _extract_formats_and_subtitles(self, video_id, player_responses, player_url, live_status, duration):
         CHUNK_SIZE = 10 << 20
         ORIGINAL_LANG_VALUE = 10
@@ -3343,18 +3361,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._downloader.deprecated_feature('[youtube] include_duplicate_formats extractor argument is deprecated. '
                                                 'Use formats=duplicate extractor argument instead')
 
-        def is_super_resolution(f_url=None, xtags=None):
-            if f_url:
-                return '1' in traverse_obj(f_url, ({parse_qs}, 'xtags', ..., {urllib.parse.parse_qs}, 'sr', ...))
-            if not protobug:
-                return False
-            try:
-                from ._proto.innertube.xtags import XTags
-                parsed_xtags = protobug.loads(base64.urlsafe_b64decode(xtags.encode()), XTags)
-                return any(tag.name == 'sr' and tag.value == '1' for tag in parsed_xtags.tags)
-            except Exception as e:
-                self.report_warning(f'Failed to extract super-resolution tag from xtags: {e!r}', only_once=True)
-                return False
+        def is_super_resolution(f_url=None, b64_xtags=None):
+            xtags = self.parse_xtags(f_url, b64_xtags) or {}
+            return xtags.get('sr') == '1'
 
         def solve_sig(s, spec):
             return ''.join(s[i] for i in spec)
@@ -3774,7 +3783,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     xtags = fmt_stream.get('xtags')
                     fmt = process_format_stream(
                         fmt_stream, proto, missing_pot=require_po_token and not po_token,
-                        super_resolution=is_super_resolution(xtags=xtags))
+                        super_resolution=is_super_resolution(b64_xtags=xtags))
                     if not fmt:
                         continue
 

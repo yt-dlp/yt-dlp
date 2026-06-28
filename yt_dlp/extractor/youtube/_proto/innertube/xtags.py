@@ -4,11 +4,11 @@ from yt_dlp.dependencies import protobug
 
 
 @protobug.message
-class Tag:
-    name: protobug.String = protobug.field(1)
+class KeyValuePair:
+    key: protobug.String = protobug.field(1)
     value: protobug.String = protobug.field(2)
 
 
 @protobug.message
 class XTags:
-    tags: list[Tag] = protobug.field(1, default=list)
+    tags: list[KeyValuePair] = protobug.field(1, default=list)
