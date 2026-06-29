@@ -1615,7 +1615,11 @@ def create_parser():
     postproc.add_option(
         '-x', '--extract-audio',
         action='store_true', dest='extractaudio', default=False,
-        help='Convert video files to audio-only files (requires ffmpeg and ffprobe)')
+        help=(
+            'Download audio-only formats when available, or extract audio from video files '
+            'when no audio-only format is available. '
+            'Changes the default format selection to -f bestaudio/best if no format is specified. '
+            '(requires ffmpeg and ffprobe)'))
     postproc.add_option(
         '--audio-format', metavar='FORMAT', dest='audioformat', default='best',
         help=(

@@ -940,8 +940,11 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     is encrypted, yt-dlp will ask interactively
 
 ## Post-Processing Options:
-    -x, --extract-audio             Convert video files to audio-only files
-                                    (requires ffmpeg and ffprobe)
+    -x, --extract-audio             Download audio-only formats when available, or
+                                    extract audio from video files when no audio-only
+                                    format is available. Changes default format
+                                    selection to -f bestaudio/best if no format is
+                                    specified (requires ffmpeg and ffprobe)
     --audio-format FORMAT           Format to convert the audio to when -x is
                                     used. (currently supported: best (default),
                                     aac, alac, flac, m4a, mp3, opus, vorbis,
