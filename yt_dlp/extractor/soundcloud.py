@@ -380,31 +380,6 @@ class SoundcloudBaseIE(InfoExtractor):
 
         user = info.get('user') or {}
 
-        thumbnails = []
-        artwork_url = info.get('artwork_url')
-        thumbnail = artwork_url or user.get('avatar_url')
-        if url_or_none(thumbnail):
-            if mobj := re.search(self._IMAGE_REPL_RE, thumbnail):
-                for image_id, size in self._ARTWORK_MAP.items():
-                    # Soundcloud serves JPEG regardless of URL's ext *except* for "original" thumb
-                    ext = mobj.group('ext') if image_id == 'original' else 'jpg'
-                    i = {
-                        'id': image_id,
-                        'url': re.sub(self._IMAGE_REPL_RE, f'-{image_id}.{ext}', thumbnail),
-                    }
-                    if image_id == 'tiny' and not artwork_url:
-                        size = 18
-                    elif image_id == 'original':
-                        i['preference'] = 10
-                    if size:
-                        i.update({
-                            'width': size,
-                            'height': size,
-                        })
-                    thumbnails.append(i)
-            else:
-                thumbnails = [{'url': thumbnail}]
-
         def extract_count(key):
             return int_or_none(info.get(f'{key}_count'))
 
@@ -417,7 +392,7 @@ class SoundcloudBaseIE(InfoExtractor):
             'title': info.get('title'),
             'track': info.get('title'),
             'description': info.get('description'),
-            'thumbnails': thumbnails,
+            'thumbnails': self._extract_thumbnails(info),
             'duration': float_or_none(info.get('duration'), 1000),
             'webpage_url': info.get('permalink_url'),
             'license': info.get('license'),
@@ -430,6 +405,8 @@ class SoundcloudBaseIE(InfoExtractor):
             'artists': traverse_obj(info, ('publisher_metadata', 'artist', {str}, filter, all, filter)),
             'formats': formats if not extract_flat else None,
             '__post_extractor': self.extract_comments(track_id),
+            'release_timestamp': traverse_obj(info, ('release_date', {unified_timestamp})),
+            'modified_timestamp': traverse_obj(info, ('last_modified', {unified_timestamp})),
         }
 
     @classmethod
@@ -478,6 +455,41 @@ class SoundcloudBaseIE(InfoExtractor):
             if not next_url:
                 break
 
+    def _extract_thumbnails(self, info):
+        thumbnails = []
+        artwork_url = info.get('artwork_url')
+        thumbnail_url = artwork_url or traverse_obj(info, ('user', 'avatar_url'))
+        if url_or_none(thumbnail_url):
+            if mobj := re.search(self._IMAGE_REPL_RE, thumbnail_url):
+                for image_id, size in self._ARTWORK_MAP.items():
+                    # Soundcloud serves JPEG regardless of URL's ext *except* for "original" thumb
+                    ext = mobj.group('ext') if image_id == 'original' else 'jpg'
+                    thumbnail = {
+                        'id': image_id,
+                        'url': re.sub(self._IMAGE_REPL_RE, f'-{image_id}.{ext}', thumbnail_url),
+                    }
+                    if image_id == 'tiny' and not artwork_url:
+                        size = 18
+                    elif image_id == 'original':
+                        thumbnail['preference'] = 10
+                        # "original" thumb ext doesn't always match ext used for other thumbs, check with HEAD req
+                        req = self._request_webpage(
+                            HEADRequest(thumbnail['url']), str(info['id']), note='Checking thumbnail extension',
+                            errnote=False, fatal=False, headers=self._HEADERS)
+                        if not req:
+                            # If "original" thumb doesn't exist, assume different ext
+                            ext = 'jpg' if ext == 'png' else 'png'
+                            thumbnail['url'] = re.sub(self._IMAGE_REPL_RE, f'-{image_id}.{ext}', thumbnail_url)
+                    if size:
+                        thumbnail.update({
+                            'width': size,
+                            'height': size,
+                        })
+                    thumbnails.append(thumbnail)
+            else:
+                thumbnails = [{'url': thumbnail_url}]
+        return thumbnails
+
 
 class SoundcloudIE(SoundcloudBaseIE):
     """Information extractor for soundcloud.com
@@ -522,6 +534,8 @@ class SoundcloudIE(SoundcloudBaseIE):
             'thumbnail': r're:https?://[ai]1\.sndcdn\.com/.+\.(?:jpg|png)',
             'uploader_url': 'https://soundcloud.com/ethmusic',
             'tags': 'count:14',
+            'modified_timestamp': 1350184468,
+            'modified_date': '20121014',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -548,6 +562,8 @@ class SoundcloudIE(SoundcloudBaseIE):
             'thumbnail': r're:https?://[ai]1\.sndcdn\.com/.+\.(?:jpg|png)',
             'genres': ['youtubedl'],
             'tags': [],
+            'modified_timestamp': 1386604920,
+            'modified_date': '20131209',
         },
     }, {
         # private link (alt format)
@@ -573,6 +589,8 @@ class SoundcloudIE(SoundcloudBaseIE):
             'thumbnail': r're:https?://[ai]1\.sndcdn\.com/.+\.(?:jpg|png)',
             'genres': ['youtubedl'],
             'tags': [],
+            'modified_timestamp': 1386604920,
+            'modified_date': '20131209',
         },
     }, {
         # downloadable song
@@ -598,6 +616,10 @@ class SoundcloudIE(SoundcloudBaseIE):
             'genres': ['Dance & EDM'],
             'artists': ['80M'],
             'tags': 'count:4',
+            'release_timestamp': 1506384000,
+            'release_date': '20170926',
+            'modified_timestamp': 1647390150,
+            'modified_date': '20220316',
         },
         'params': {'skip_download': 'm3u8'},
         'expected_warnings': ['Original download format is only available for registered users'],
@@ -627,6 +649,8 @@ class SoundcloudIE(SoundcloudBaseIE):
             'genres': ['Trance'],
             'artists': ['Ori Uplift'],
             'tags': 'count:6',
+            'modified_timestamp': 1504258507,
+            'modified_date': '20170901',
         },
         'expected_warnings': ['Original download format is only available for registered users'],
     }, {
@@ -653,6 +677,8 @@ class SoundcloudIE(SoundcloudBaseIE):
             'uploader_url': 'https://soundcloud.com/garyvee',
             'artists': ['MadReal'],
             'tags': [],
+            'modified_timestamp': 1488293034,
+            'modified_date': '20170228',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -678,6 +704,8 @@ class SoundcloudIE(SoundcloudBaseIE):
             'genres': ['Piano'],
             'uploader_url': 'https://soundcloud.com/giovannisarani',
             'tags': 'count:10',
+            'modified_timestamp': 1692623663,
+            'modified_date': '20230821',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -702,6 +730,10 @@ class SoundcloudIE(SoundcloudBaseIE):
             'timestamp': 1737143201,
             'upload_date': '20250117',
             'license': 'all-rights-reserved',
+            'release_timestamp': 1736985600,
+            'release_date': '20250116',
+            'modified_timestamp': 1737143467,
+            'modified_date': '20250117',
             'thumbnail': r're:https?://[ai]1\.sndcdn\.com/.+\.(?:jpg|png)',
             'thumbnails': [
                 {'id': 'mini', 'url': 'https://i1.sndcdn.com/artworks-a1wKGMYNreDLTMrT-fGjRiw-mini.jpg'},
@@ -739,6 +771,8 @@ class SoundcloudIE(SoundcloudBaseIE):
             'timestamp': 1488232827,
             'upload_date': '20170227',
             'license': 'all-rights-reserved',
+            'modified_timestamp': 1645028949,
+            'modified_date': '20220216',
         },
         'params': {'get_comments': True, 'skip_download': 'm3u8'},
     }, {
@@ -827,6 +861,16 @@ class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
                 'uploader': ('user', 'username', {str}),
                 'uploader_id': ('user', 'id', {str_or_none}),
                 'uploader_url': ('user', 'permalink_url', {url_or_none}),
+                'timestamp': ('created_at', {unified_timestamp}),
+                'release_timestamp': (('release_date', 'published_at'), any, {unified_timestamp}),
+                'modified_timestamp': ('last_modified', {unified_timestamp}),
+                'duration': ('duration', {float_or_none(scale=1000)}),
+                'license': ('license', {str_or_none}),
+                'like_count': ('likes_count', {int_or_none}),
+                'repost_count': ('reposts_count', {int_or_none}),
+                'genres': ('genre', {str_or_none}, filter, all, filter),
+                'tags': ('tag_list', {self._TAGS_RE.findall}, ..., ..., filter),
+                'thumbnails': ({self._extract_thumbnails}),
             }),
         )
 
@@ -835,6 +879,7 @@ class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
     _VALID_URL = r'https?://(?:(?:www|m)\.)?soundcloud\.com/(?P<uploader>[\w\d-]+)/sets/(?P<slug_title>[:\w\d-]+)(?:/(?P<token>[^?/]+))?'
     IE_NAME = 'soundcloud:set'
     _TESTS = [{
+        # No release date, no tags
         'url': 'https://soundcloud.com/the-concept-band/sets/the-royal-concept-ep',
         'info_dict': {
             'id': '2284613',
@@ -846,8 +891,68 @@ class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
             'album': 'The Royal Concept EP',
             'album_artists': ['The Royal Concept'],
             'album_type': 'ep',
+            'timestamp': 1343497860,
+            'upload_date': '20120728',
+            'modified_timestamp': 1358471457,
+            'modified_date': '20130118',
+            'duration': 1398.595,
+            'license': 'all-rights-reserved',
+            'like_count': 482,
+            'repost_count': 99,
+            'genres': ['Indie/pop'],
+            'thumbnails': [
+                {'id': 'mini', 'url': 'https://i1.sndcdn.com/artworks-000030896212-o16m9v-mini.jpg'},
+                {'id': 'tiny', 'url': 'https://i1.sndcdn.com/artworks-000030896212-o16m9v-tiny.jpg'},
+                {'id': 'small', 'url': 'https://i1.sndcdn.com/artworks-000030896212-o16m9v-small.jpg'},
+                {'id': 'badge', 'url': 'https://i1.sndcdn.com/artworks-000030896212-o16m9v-badge.jpg'},
+                {'id': 't67x67', 'url': 'https://i1.sndcdn.com/artworks-000030896212-o16m9v-t67x67.jpg'},
+                {'id': 'large', 'url': 'https://i1.sndcdn.com/artworks-000030896212-o16m9v-large.jpg'},
+                {'id': 't300x300', 'url': 'https://i1.sndcdn.com/artworks-000030896212-o16m9v-t300x300.jpg'},
+                {'id': 'crop', 'url': 'https://i1.sndcdn.com/artworks-000030896212-o16m9v-crop.jpg'},
+                {'id': 't500x500', 'url': 'https://i1.sndcdn.com/artworks-000030896212-o16m9v-t500x500.jpg'},
+                {'id': 'original', 'url': 'https://i1.sndcdn.com/artworks-000030896212-o16m9v-original.jpg'},
+            ],
         },
         'playlist_mincount': 5,
+    }, {
+        # Release date, multiple tags, empty desc
+        'url': 'https://soundcloud.com/leviryan/sets/out-of-spite',
+        'info_dict': {
+            'id': '1524158182',
+            'title': 'out of spite',
+            'description': '',
+            'uploader': 'Levi Ryan',
+            'uploader_id': '229146182',
+            'uploader_url': 'https://soundcloud.com/leviryan',
+            'album': 'out of spite',
+            'album_artists': ['Levi Ryan'],
+            'album_type': 'album',
+            'timestamp': 1667935849,
+            'upload_date': '20221108',
+            'release_timestamp': 1667865600,
+            'release_date': '20221108',
+            'modified_timestamp': 1667935903,
+            'modified_date': '20221108',
+            'duration': 1531.376,
+            'license': 'all-rights-reserved',
+            'like_count': 184,
+            'repost_count': 40,
+            'genres': ['Hip-hop & Rap'],
+            'tags': ['Drum & Bass', 'Alternative', 'Ambient'],
+            'thumbnails': [
+                {'id': 'mini', 'url': 'https://i1.sndcdn.com/artworks-2hmuDCrcvCzzCaXZ-1rztZA-mini.jpg'},
+                {'id': 'tiny', 'url': 'https://i1.sndcdn.com/artworks-2hmuDCrcvCzzCaXZ-1rztZA-tiny.jpg'},
+                {'id': 'small', 'url': 'https://i1.sndcdn.com/artworks-2hmuDCrcvCzzCaXZ-1rztZA-small.jpg'},
+                {'id': 'badge', 'url': 'https://i1.sndcdn.com/artworks-2hmuDCrcvCzzCaXZ-1rztZA-badge.jpg'},
+                {'id': 't67x67', 'url': 'https://i1.sndcdn.com/artworks-2hmuDCrcvCzzCaXZ-1rztZA-t67x67.jpg'},
+                {'id': 'large', 'url': 'https://i1.sndcdn.com/artworks-2hmuDCrcvCzzCaXZ-1rztZA-large.jpg'},
+                {'id': 't300x300', 'url': 'https://i1.sndcdn.com/artworks-2hmuDCrcvCzzCaXZ-1rztZA-t300x300.jpg'},
+                {'id': 'crop', 'url': 'https://i1.sndcdn.com/artworks-2hmuDCrcvCzzCaXZ-1rztZA-crop.jpg'},
+                {'id': 't500x500', 'url': 'https://i1.sndcdn.com/artworks-2hmuDCrcvCzzCaXZ-1rztZA-t500x500.jpg'},
+                {'id': 'original', 'url': 'https://i1.sndcdn.com/artworks-2hmuDCrcvCzzCaXZ-1rztZA-original.jpg'},
+            ],
+        },
+        'playlist_count': 8,
     }, {
         'url': 'https://soundcloud.com/the-concept-band/sets/the-royal-concept-ep/token',
         'only_matching': True,
@@ -1163,6 +1268,31 @@ class SoundcloudPlaylistIE(SoundcloudPlaylistBaseIE):
             'album_artists': ['Non-Site Records'],
             'album_type': 'playlist',
             'album': 'TILT Brass - Bowery Poetry Club, August \'03 [Non-Site SCR 02]',
+            'timestamp': 1363395687,
+            'upload_date': '20130316',
+            'release_timestamp': 1363392000,
+            'release_date': '20130316',
+            'modified_timestamp': 1444746489,
+            'modified_date': '20151013',
+            'duration': 2152.685,
+            'license': 'all-rights-reserved',
+            'like_count': 2,
+            'repost_count': 2,
+            'genres': ['Downtown'],
+            'tags': ['Non-Site Records', 'TILT Brass', 'TILT Creative Brass Band', 'Bowery Poetry Club',
+                     'Nick Didkovsky', 'Tom Waits', 'Dave Ballou', 'Elliott Sharp', 'AFKA Prince', 'NPG'],
+            'thumbnails': [
+                {'id': 'mini', 'url': 'https://i1.sndcdn.com/artworks-000043059944-9zwy8g-mini.jpg'},
+                {'id': 'tiny', 'url': 'https://i1.sndcdn.com/artworks-000043059944-9zwy8g-tiny.jpg'},
+                {'id': 'small', 'url': 'https://i1.sndcdn.com/artworks-000043059944-9zwy8g-small.jpg'},
+                {'id': 'badge', 'url': 'https://i1.sndcdn.com/artworks-000043059944-9zwy8g-badge.jpg'},
+                {'id': 't67x67', 'url': 'https://i1.sndcdn.com/artworks-000043059944-9zwy8g-t67x67.jpg'},
+                {'id': 'large', 'url': 'https://i1.sndcdn.com/artworks-000043059944-9zwy8g-large.jpg'},
+                {'id': 't300x300', 'url': 'https://i1.sndcdn.com/artworks-000043059944-9zwy8g-t300x300.jpg'},
+                {'id': 'crop', 'url': 'https://i1.sndcdn.com/artworks-000043059944-9zwy8g-crop.jpg'},
+                {'id': 't500x500', 'url': 'https://i1.sndcdn.com/artworks-000043059944-9zwy8g-t500x500.jpg'},
+                {'id': 'original', 'url': 'https://i1.sndcdn.com/artworks-000043059944-9zwy8g-original.png'},
+            ],
         },
         'playlist_count': 6,
     }, {
