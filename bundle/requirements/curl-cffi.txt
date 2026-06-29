@@ -286,9 +286,9 @@ mdurl==0.1.2 ; implementation_name == 'cpython' \
     --hash=sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8 \
     --hash=sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba
     # via markdown-it-py
-mutagen==1.47.0 \
-    --hash=sha256:719fadef0a978c31b4cf3c956261b3c58b6948b32023078a2117b1de09f0fc99 \
-    --hash=sha256:edd96f50c5907a9539d8e5bba7245f62c9f520aef333d13392a79a4f70aca719
+mutagen==1.48.0 \
+    --hash=sha256:4933d14b83a2add03c23e04a3c397ffbe44f130403f1256881ee228869aee3bb \
+    --hash=sha256:60a48d3e30173f728170fb0503f66b26026bf7629afb12546b18395c5cdf0bd6
     # via yt-dlp
 pycparser==3.0 ; implementation_name != 'PyPy' \
     --hash=sha256:600f49d217304a5902ac3c37e1281c9fe94e4d0489de643a9504c5cdfdfc6b29 \
