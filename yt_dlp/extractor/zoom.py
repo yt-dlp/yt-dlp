@@ -166,3 +166,46 @@ class ZoomIE(InfoExtractor):
                 'Referer': base_url,
             },
         }
+
+
+class ZoomClipsIE(InfoExtractor):
+    IE_NAME = 'zoom:clips'
+    _VALID_URL = r'https?://(?:[^.]+\.)?zoom\.us/clips/share/(?P<id>[\w.-]+)'
+    _TESTS = [{
+        'url': 'https://zoom.us/clips/share/6YEG4i_qS0eiT7UH9zPeYw',
+        'md5': '1431f67d2e74a3ff3fec4feadb984777',
+        'info_dict': {
+            'id': '6YEG4i_qS0eiT7UH9zPeYw',
+            'ext': 'mp4',
+            'title': 'Test Clip',
+            'uploader': 'Hans Müller',
+            'duration': 1,
+            'release_timestamp': 1781866637,
+            'release_date': '20260619',
+            'view_count': int,
+        },
+    }]
+
+    def _real_extract(self, url):
+        clip_id = self._match_id(url)
+        # The API response sets cloudfront cookies necessary for access to the m3u8 format
+        result = self._download_json(
+            f'https://zoomclips.zoom.us/nws/marvel/2.0/clips/share/{clip_id}',
+            clip_id, note='Downloading share info JSON')['result']
+        media_info = result['mediaInfo']
+
+        return {
+            'id': clip_id,
+            **traverse_obj(media_info, {
+                'title': ('mediaTopic', {str}),
+                'uploader': ('ownerName', {str}),
+                'release_timestamp': ('createdTime', {int_or_none(scale=1000)}),
+                'duration': ('mediaDuration', {int_or_none}),
+            }),
+            'view_count': traverse_obj(result, ('statisticsInfo', 'count', {int_or_none})),
+            'formats': [{
+                'url': media_info['playUrl'],
+                'protocol': 'm3u8_native',
+                'ext': 'mp4',
+            }],
+        }
