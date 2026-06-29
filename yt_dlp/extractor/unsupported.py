@@ -303,6 +303,7 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
         r'xanimu\.com',
         r'musicdex\.org',
         r'duboku\.io',
+        r'gofile\.io',
     )
 
     _TESTS = [{
@@ -311,9 +312,42 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
     }, {
         'url': 'https://thisav.com/en/terms',
         'only_matching': True,
+    }, {
+        'url': 'https://gofile.io/d/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         raise ExtractorError(
             f'This website is no longer supported since it has been determined to be primarily used for piracy.{LF}'
+            f'{self._downloader._format_err("DO NOT", self._downloader.Styles.ERROR)} open issues for it', expected=True)
+
+
+class KnownLiabilityIE(UnsupportedInfoExtractor):
+    """Sites that would be a liability to the project if supported
+
+    In order for this to not end up being a catalog of sketchy sites,
+    only sites that were once supported should be added to this list
+    """
+
+    URLS = (
+        r'motherless\.com',
+        r'suno\.com',
+        r'udio\.com',
+    )
+
+    _TESTS = [{
+        'url': 'https://motherless.com/',
+        'only_matching': True,
+    }, {
+        'url': 'https://suno.com/song/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.udio.com/songs/',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        raise ExtractorError(
+            f'This website is not supported and will not be supported.{LF}'
             f'{self._downloader._format_err("DO NOT", self._downloader.Styles.ERROR)} open issues for it', expected=True)
