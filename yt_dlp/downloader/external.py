@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from shutil import which
 
 from .fragment import FragmentFD
 from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
@@ -305,9 +306,63 @@ class Aria2cFD(ExternalFD):
     AVAILABLE_OPT = '-v'
     SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps')
 
+    _LOG_LEVELS = {'debug': 0, 'info': 1, 'notice': 2, 'warn': 3, 'error': 4}
+    _ARIA2C_PROGRESS_RE = re.compile(r'\[#(?P<id>[a-f0-9]+)\s+(?P<downloaded_str>\d+)B/(?P<total_str>\d+)B.+?DL:(?P<speed_str>\d+)B')
+    _ARIA2C_SPEED_RE = re.compile(r'\[.*?DL:(?P<speed_str>\d+)B.*?\]')
+    _ARIA2C_LOG_LEVEL_RE = re.compile(r'\[\x1b\[[;\d]*m(?P<level>\w+)\x1b\[[;\d]*m\]')
+    _ARIA2C_REDIRECTING_STR = '- Redirecting to'
+
+    def __init__(self, ydl, params):
+        super().__init__(ydl, params)
+        self._quiet = False
+        self._log_level = self._LOG_LEVELS['notice']
+
     @staticmethod
     def _aria2c_filename(fn):
         return fn if os.path.isabs(fn) else f'.{os.path.sep}{fn}'
+
+    def _determine_user_log_level(self, cmd):
+        user_level_str = 'notice'
+        for arg in cmd[::-1]:
+            if arg.startswith('--console-log-level='):
+                user_level_str = arg.split('=', 1)[1]
+                break
+        return self._LOG_LEVELS.get(user_level_str, self._LOG_LEVELS['notice'])
+
+    def _can_print_line(self, line, quiet, log_level):
+        if quiet or self._ARIA2C_REDIRECTING_STR in line:
+            return False
+
+        match = self._ARIA2C_LOG_LEVEL_RE.search(line)
+        if not match:
+            return True
+
+        line_level_str = match.group('level').lower()
+        line_level = self._LOG_LEVELS.get(line_level_str, 99)
+        return line_level >= log_level
+
+    def _parse_line(self, line, status, start_time):
+        if progress_match := self._ARIA2C_PROGRESS_RE.search(line):
+            data = progress_match.groupdict()
+            downloaded_bytes = int(data['downloaded_str'])
+            total_bytes = int(data['total_str'])
+            speed = int(data['speed_str'])
+            status.update({
+                'downloaded_bytes': downloaded_bytes,
+                'total_bytes': total_bytes,
+                'speed': speed,
+                'eta': (total_bytes - downloaded_bytes) / speed if speed > 0 else 0,
+                'elapsed': time.time() - start_time,
+            })
+
+        elif speed_match := self._ARIA2C_SPEED_RE.search(line):
+            status['speed'] = int(speed_match.group('speed_str'))
+
+        else:
+            return False
+
+        self._hook_progress(status, status['info_dict'])
+        return True
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-c', '--no-conf',
@@ -319,13 +374,21 @@ class Aria2cFD(ExternalFD):
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', f'{key}: {val}']
+
         cmd += self._option('--max-overall-download-limit', 'ratelimit')
         cmd += self._option('--interface', 'source_address')
         cmd += self._option('--all-proxy', 'proxy')
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
-        cmd += self._bool_option('--show-console-readout', 'noprogress', 'false', 'true', '=')
         cmd += self._configuration_args()
+
+        # Extract user intent from configuration args before we force our overrides
+        self._quiet = any(i in cmd for i in ('-q', '--quiet', '--quiet=true'))
+        self._log_level = self._determine_user_log_level(cmd)
+
+        params_to_clear = ('-q', '--quiet', '--human-readable', '--truncate-console-readout', '--show-console-readout')
+        cmd = [i for i in cmd if not i.startswith(params_to_clear)]
+        cmd += ['--quiet=false', '--human-readable=false', '--truncate-console-readout=false', '--show-console-readout=true']
 
         # aria2c strips out spaces from the beginning/end of filenames and paths.
         # We work around this issue by adding a "./" to the beginning of the
@@ -346,6 +409,47 @@ class Aria2cFD(ExternalFD):
         ]
 
         return cmd
+
+    def _call_process(self, cmd, info_dict):
+        # Apply stdbuf if available to avoid chunked progress updates
+        if sys.platform != 'win32' and which('stdbuf'):
+            cmd = ['stdbuf', '-o0', *cmd]
+
+        start_time = time.time()
+        status = {
+            'filename': info_dict.get('_filename'),
+            'status': 'downloading',
+            'elapsed': 0,
+            'speed': 0,
+            'downloaded_bytes': 0,
+            'total_bytes': None,
+            'total_bytes_estimate': None,
+            'info_dict': info_dict,
+        }
+        self._hook_progress(status, info_dict)
+
+        with Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as p:
+            if p.stdout is None:
+                raise RuntimeError('stdout is not available')
+
+            try:
+                for raw_line in iter(p.stdout.readline, ''):
+                    line = raw_line.strip()
+
+                    if (
+                        not line
+                        or self._parse_line(line, status, start_time)
+                        or not self._can_print_line(line, self._quiet, self._log_level)
+                    ):
+                        continue
+
+                    self.to_screen(f'[aria2c] {line}')
+
+                return '', '', p.wait()
+
+            except BaseException:
+                p.kill()
+                raise
 
 
 class HttpieFD(ExternalFD):
