@@ -123,7 +123,7 @@ class InstagramBaseIE(InfoExtractor):
                       require_impersonation=True,
                       **kwargs,
                       ):
-        if self._is_logged_in:
+        if self._is_logged_in and not self._fb_dtsg:
             self._fb_dtsg = self._extract_authenticate_token('f', 'DTSGInitData', video_id=video_id, note='Fetching Fb Dtsg Token')
 
         headers = filter_dict({
@@ -296,29 +296,41 @@ class InstagramBaseIE(InfoExtractor):
             }
 
     def _get_comments(self, video_id):
-        cursor = None
-
-        for page_num in itertools.count(1):
-            page = self._call_graphql(
-                video_id,
-                variables={
-                    **({
-                        'after': cursor,
-                        'sort_order': 'popular',
-                    } if cursor else {}),
-                    '__relay_internal__pv__PolarisIsLoggedInrelayprovider': True,
-                    'media_id': _id_to_pk(video_id),
-                },
-                doc_id=26297736713236852,
-                fb_friendly_name='PolarisPostCommentsContainerQuery',
-                errnote='Comments extraction failed', note=f'Downloading comments page {page_num}',
-            )
-            comments_info = traverse_obj(page, ('data', 'xdt_api__v1__media__media_id__comments__connection', {dict}))
-            if not comments_info:
-                break
+        for comments_info in self._graphql_pagination(
+            video_id,
+            variables={
+                '__relay_internal__pv__PolarisIsLoggedInrelayprovider': True,
+                'media_id': _id_to_pk(video_id),
+            },
+            cursor_data={'sort_order': 'popular'},
+            doc_id=26297736713236852,
+            fb_friendly_name='PolarisPostCommentsContainerQuery',
+            keys=('data', 'xdt_api__v1__media__media_id__comments__connection', {dict}),
+            errnote='Comments extraction failed', note='Downloading comments page {page_num}',
+        ):
             yield from self._parse_comments(comments_info, ('edges', ..., {dict}))
 
-            page_info = comments_info.get('page_info') or {}
+    def _graphql_pagination(self, video_id, variables, doc_id, keys, cursor_data=None, **kwargs):
+        cursor_data = cursor_data or {}
+        cursor = None
+        for page_num in itertools.count(1):
+            note = kwargs.get('note') or ''
+            if '{page_num}' in note:
+                note = note.format(page_num=page_num)
+            elif not note:
+                note = f'Downloading page {page_num}'
+            kwargs['note'] = note
+            page = traverse_obj(
+                self._call_graphql(
+                    video_id,
+                    variables={**variables, **({'after': cursor, **cursor_data} if cursor else {})},
+                    doc_id=doc_id,
+                    **kwargs,
+                ), keys)
+            if not page:
+                break
+            yield page
+            page_info = page.get('page_info') or {}
             if not page_info.get('has_next_page'):
                 break
             cursor = page_info.get('end_cursor')
@@ -791,29 +803,20 @@ class InstagramStoryIE(InstagramBaseIE):
             if not user_id:  # user id is only mandatory for non-highlights
                 raise ExtractorError('Unable to extract user id')
             videos = []
-            cursor = None
-            for page_num in itertools.count(1):
-                page = self._call_graphql(
-                    username,
-                    note=f'Downloading page {page_num}',
-                    variables={
-                        **({'after': cursor} if cursor else {}),
-                        'first': 10,
-                        'initial_reel_id': user_id,
-                        'reel_ids': [user_id],
-                        '__relay_internal__pv__PolarisCommunityNoteStoriesLabelEnabledrelayprovider': True,
-                        '__relay_internal__pv__PolarisAIGMMediaWebLabelEnabledrelayprovider': True,
-                    },
-                    doc_id=27172656412386142,
-                    fb_friendly_name='PolarisStoriesV3ReelPageGalleryQuery',
-                )
-                if not page:
-                    break
-                videos.extend(traverse_obj(page, ('data', 'xdt_api__v1__feed__reels_media__connection', 'edges', ..., 'node', 'items', ..., {dict})))
-                page_info = page.get('page_info') or {}
-                if not page_info.get('has_next_page'):
-                    break
-                cursor = page_info.get('end_cursor')
+            for data in self._graphql_pagination(
+                username,
+                variables={
+                    'first': 10,
+                    'initial_reel_id': user_id,
+                    'reel_ids': [user_id],
+                    '__relay_internal__pv__PolarisCommunityNoteStoriesLabelEnabledrelayprovider': True,
+                    '__relay_internal__pv__PolarisAIGMMediaWebLabelEnabledrelayprovider': True,
+                },
+                doc_id=27172656412386142,
+                keys=('data', 'xdt_api__v1__feed__reels_media__connection'),
+                fb_friendly_name='PolarisStoriesV3ReelPageGalleryQuery',
+            ):
+                videos.extend(traverse_obj(data, ('edges', ..., 'node', 'items', ..., {dict})))
 
         if not videos:
             self.raise_login_required('You need to log in to access this content')
