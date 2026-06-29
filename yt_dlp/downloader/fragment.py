@@ -171,7 +171,9 @@ class FragmentFD(FileDownloader):
             'sleep_interval': 0,
             'max_sleep_interval': 0,
             'sleep_interval_subtitles': 0,
-        })
+             # Bypass filesize limits for individual fragments
+            'max_filesize': None,  
+            'min_filesize': None,  
         tmpfilename = self.temp_name(ctx['filename'])
         open_mode = 'wb'
 
@@ -478,6 +480,13 @@ class FragmentFD(FileDownloader):
                 ctx['dest_stream'].close()
                 self.report_error(f'fragment {frag_index} not found, unable to continue')
                 return False
+            
+             # Enforce max-filesize limit on the cumulative downloaded size
+            max_filesize = self.params.get('max_filesize')
+            if max_filesize is not None and ctx.get('complete_frags_downloaded_bytes', 0) > max_filesize:
+                self.to_screen(f'\r[download] File is larger than max-filesize ({ctx.get("complete_frags_downloaded_bytes", 0)} bytes > {max_filesize} bytes). Aborting.')
+                return False
+
             return True
 
         decrypt_fragment = self.decrypter(info_dict)
