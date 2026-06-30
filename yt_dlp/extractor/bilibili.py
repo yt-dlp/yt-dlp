@@ -1398,7 +1398,9 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
         def get_entries(page_data):
             # data is None when the playlist is empty
             for entry in page_data.get('data') or []:
-                yield self.url_result(f'https://www.bilibili.com/audio/au{entry["id"]}', BilibiliAudioIE, entry['id'])
+                yield self.url_result(
+                    f'https://www.bilibili.com/audio/au{entry["id"]}',
+                    BilibiliAudioIE, str_or_none(entry['id']))
 
         _, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
         return self.playlist_result(paged_list, playlist_id)

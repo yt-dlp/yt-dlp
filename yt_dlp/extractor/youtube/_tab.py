@@ -333,20 +333,69 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 only_once=True)
             return
 
+        lockup_mdvm = traverse_obj(view_model, ('metadata', 'lockupMetadataViewModel', {dict}))
+        content_mdvm = traverse_obj(lockup_mdvm, ('metadata', 'contentMetadataViewModel', {dict}))
+
+        thumbnail_badge_view_models = traverse_obj(view_model, (
+            'contentImage', 'thumbnailViewModel', 'overlays', ..., (
+                ('thumbnailBottomOverlayViewModel', 'badges'),
+                ('thumbnailOverlayBadgeViewModel', 'thumbnailBadges'),
+            ), ..., 'thumbnailBadgeViewModel', {dict}))
+        duration_text = traverse_obj(thumbnail_badge_view_models, (..., 'text', {str.lower}, any))
+        thumbnail_badge_styles = traverse_obj(thumbnail_badge_view_models, (..., 'badgeStyle', {str}))
+
+        channel_traversal_dict = {
+            'channel': ('content', {str}),
+            'channel_id': ('commandRuns', 0, 'onTap', 'innertubeCommand', 'browseEndpoint', 'browseId', {self.ucid_or_none}),
+            'uploader': ('content', {str}),
+            'uploader_id': ('commandRuns', 0, 'onTap', 'innertubeCommand', 'browseEndpoint', 'canonicalBaseUrl', {self.handle_from_url}),
+        }
+
+        channel_info = traverse_obj(content_mdvm, (
+            'metadataRows', ..., 'metadataParts',
+            lambda _, v: v['text']['commandRuns'][0]['onTap']['innertubeCommand']['browseEndpoint']['browseId'],
+            'text', any, channel_traversal_dict))
+
+        # For videos credited to multiple channels / "collaborators"
+        collaborator_data = traverse_obj(lockup_mdvm, (
+            'image', 'avatarStackViewModel', 'rendererContext', 'commandContext', 'onTap', 'innertubeCommand',
+            'showDialogCommand', 'panelLoadingStrategy', 'inlineContent', 'dialogViewModel', 'customContent',
+            'listViewModel', 'listItems', ..., 'listItemViewModel', 'title', {dict}))
+        if not channel_info:
+            channel_info = traverse_obj(collaborator_data, (0, channel_traversal_dict))
+
+        views_and_time = traverse_obj(content_mdvm, (
+            'metadataRows', lambda _, v: 'accessibilityLabel' in v['metadataParts'][-1],
+            'metadataParts', ...))
+        relative_time_text = traverse_obj(views_and_time, (-1, 'text', 'content', {str.lower}))
+
+        badge_styles = traverse_obj(content_mdvm, (
+            'metadataRows', ..., 'badges', ..., 'badgeViewModel', 'badgeStyle', {str}))
+
         return self.url_result(
             url, ie, content_id,
-            title=traverse_obj(view_model, (
-                'metadata', 'lockupMetadataViewModel', 'title', 'content', {str})),
+            title=traverse_obj(lockup_mdvm, ('title', 'content', {str})),
             thumbnails=self._extract_thumbnails(view_model, (
                 'contentImage', *thumb_keys, 'thumbnailViewModel', 'image'), final_key='sources'),
-            duration=traverse_obj(view_model, (
-                'contentImage', 'thumbnailViewModel', 'overlays', ...,
-                (('thumbnailBottomOverlayViewModel', 'badges'), ('thumbnailOverlayBadgeViewModel', 'thumbnailBadges')),
-                ..., 'thumbnailBadgeViewModel', 'text', {parse_duration}, any)),
-            timestamp=(traverse_obj(view_model, (
-                'metadata', 'lockupMetadataViewModel', 'metadata', 'contentMetadataViewModel', 'metadataRows',
-                ..., 'metadataParts', ..., 'text', 'content', {lambda t: self._parse_time_text(t, report_failure=False)}, any))
-                if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE) else None))
+            duration=parse_duration(duration_text),
+            view_count=(
+                traverse_obj(views_and_time, (0, 'text', 'content', {parse_count}))
+                # view_count isn't always available; only extract if this metadataRow is 2 metadataParts
+                if len(views_and_time) == 2 else None),
+            timestamp=(
+                self._parse_time_text(relative_time_text, report_failure=False)
+                if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE) else None),
+            live_status=(
+                'is_upcoming' if duration_text == 'upcoming'
+                else 'is_live' if 'THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE' in thumbnail_badge_styles
+                else 'was_live' if relative_time_text and 'streamed' in relative_time_text
+                else None),
+            # XXX: We cannot assume 'public' since we have no way to differentiate from 'unlisted'
+            availability=self._availability(needs_subscription='BADGE_MEMBERS_ONLY' in badge_styles),
+            channel_url=format_field(channel_info, 'channel_id', 'https://www.youtube.com/channel/%s', default=None),
+            uploader_url=format_field(channel_info, 'uploader_id', 'https://www.youtube.com/%s', default=None),
+            creators=traverse_obj(collaborator_data, (..., 'content', {str}, all, filter)),
+            **channel_info)
 
     def _rich_entries(self, rich_grid_renderer):
         if lockup_view_model := traverse_obj(rich_grid_renderer, ('content', 'lockupViewModel', {dict})):
@@ -714,8 +763,15 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             })
 
         channel_badges = self._extract_badges(traverse_obj(data, ('header', ..., 'badges'), get_all=False))
-        if self._has_badge(channel_badges, BadgeType.VERIFIED):
+        if (
+            self._has_badge(channel_badges, BadgeType.VERIFIED)
+            or any(image_name in traverse_obj(page_header_view_model, (
+                'title', 'dynamicTextViewModel', 'text', 'attachmentRuns', ..., 'element', 'type',
+                'imageType', 'image', 'sources', ..., 'clientResource', 'imageName', {str},
+            )) for image_name in ('CHECK_CIRCLE_FILLED', 'AUDIO_BADGE'))
+        ):
             info['channel_is_verified'] = True
+
         # Playlist stats is a text runs array containing [video count, view count, last updated].
         # last updated or (view count and last updated) may be missing.
         playlist_stats = get_first(
@@ -817,13 +873,13 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
     def _extract_availability(self, data):
         """
         Gets the availability of a given playlist/tab.
-        Note: Unless YouTube tells us explicitly, we do not assume it is public
         @param data: response
         """
-        sidebar_renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer') or {}
-        playlist_header_renderer = traverse_obj(data, ('header', 'playlistHeaderRenderer')) or {}
+        sidebar_renderer = self._extract_sidebar_info_renderer(data, ('playlistSidebarPrimaryInfoRenderer', {dict})) or {}
+        playlist_header_renderer = traverse_obj(data, ('header', 'playlistHeaderRenderer', {dict})) or {}
         player_header_privacy = playlist_header_renderer.get('privacy')
 
+        # NB: Badges are currently not extracted from playlists/tabs
         badges = self._extract_badges(traverse_obj(sidebar_renderer, 'badges'))
 
         # Personal playlists, when authenticated, have a dropdown visibility selector instead of a badge
@@ -833,27 +889,35 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
              lambda _, v: v['privacyDropdownItemRenderer']['isSelected'], 'privacyDropdownItemRenderer', 'icon', 'iconType'),
             expected_type=str)
 
-        microformats_is_unlisted = traverse_obj(
-            data, ('microformat', 'microformatDataRenderer', 'unlisted'), expected_type=bool)
+        microformat_data_renderer = traverse_obj(data, ('microformat', 'microformatDataRenderer', {dict}))
 
-        return (
-            'public' if (
-                self._has_badge(badges, BadgeType.AVAILABILITY_PUBLIC)
-                or player_header_privacy == 'PUBLIC'
-                or privacy_setting_icon == 'PRIVACY_PUBLIC')
-            else self._availability(
-                is_private=(
-                    self._has_badge(badges, BadgeType.AVAILABILITY_PRIVATE)
-                    or player_header_privacy == 'PRIVATE' if player_header_privacy is not None
-                    else privacy_setting_icon == 'PRIVACY_PRIVATE' if privacy_setting_icon is not None else None),
-                is_unlisted=(
-                    self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED)
-                    or player_header_privacy == 'UNLISTED' if player_header_privacy is not None
-                    else privacy_setting_icon == 'PRIVACY_UNLISTED' if privacy_setting_icon is not None
-                    else microformats_is_unlisted if microformats_is_unlisted is not None else None),
-                needs_subscription=self._has_badge(badges, BadgeType.AVAILABILITY_SUBSCRIPTION) or None,
-                needs_premium=self._has_badge(badges, BadgeType.AVAILABILITY_PREMIUM) or None,
-                needs_auth=False))
+        if availability := self._availability(
+            # Private playlists are only viewable by the creator
+            is_private=(
+                self._has_badge(badges, BadgeType.AVAILABILITY_PRIVATE)
+                or player_header_privacy == 'PRIVATE' if player_header_privacy is not None
+                else privacy_setting_icon == 'PRIVACY_PRIVATE' if privacy_setting_icon is not None else None),
+            is_unlisted=(
+                self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED)
+                or player_header_privacy == 'UNLISTED' if player_header_privacy is not None
+                else privacy_setting_icon == 'PRIVACY_UNLISTED' if privacy_setting_icon is not None
+                else traverse_obj(microformat_data_renderer, ('unlisted', {bool}))),
+            # It is unlikely that members-only or premium-only playlists/tabs exist
+            needs_subscription=self._has_badge(badges, BadgeType.AVAILABILITY_SUBSCRIPTION) or None,
+            needs_premium=self._has_badge(badges, BadgeType.AVAILABILITY_PREMIUM) or None,
+            needs_auth=False,
+        ):
+            return availability
+
+        if (
+            self._has_badge(badges, BadgeType.AVAILABILITY_PUBLIC)
+            or player_header_privacy == 'PUBLIC'
+            or privacy_setting_icon == 'PRIVACY_PUBLIC'
+            or traverse_obj(microformat_data_renderer, ('noindex', {bool})) is False
+        ):
+            return 'public'
+
+        return None
 
     @staticmethod
     def _extract_sidebar_info_renderer(data, info_renderer, expected_type=dict):
@@ -1042,6 +1106,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': 'count:19',
             'channel_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
             'channel_follower_count': int,
+            'availability': 'public',
         },
     }, {
         'note': 'playlists, multipage, different order',
@@ -1051,6 +1116,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'title': 'Igor DS: ИИ, Наука и Творчество  - Playlists',
             'description': r're:(?s)Добро пожаловать! Здесь сложные технологии встречаются.+\n$',
+            'uploader': 'Igor DS: ИИ, Наука и Творчество ',
             'uploader_id': '@IgorDataScience',
             'uploader_url': 'https://www.youtube.com/@IgorDataScience',
             'tags': 'count:19',
@@ -1058,9 +1124,9 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel': 'Igor DS: ИИ, Наука и Творчество ',
             'channel_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
             'channel_follower_count': int,
+            'availability': 'public',
         },
     }, {
-        # TODO: fix channel_is_verified extraction
         'note': 'playlists, series',
         'url': 'https://www.youtube.com/c/3blue1brown/playlists?view=50&sort=dd&shelf_id=3',
         'playlist_mincount': 5,
@@ -1077,6 +1143,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': ['Mathematics'],
             'channel_follower_count': int,
             'channel_is_verified': True,
+            'availability': 'public',
         },
     }, {
         'note': 'playlists, singlepage',
@@ -1094,12 +1161,12 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': 'count:12',
             'channel': 'ThirstForScience',
             'channel_follower_count': int,
+            'availability': 'public',
         },
     }, {
         'url': 'https://www.youtube.com/c/ChristophLaimer/playlists',
         'only_matching': True,
     }, {
-        # TODO: fix availability and view_count extraction
         'note': 'basic, single video playlist',
         'url': 'https://www.youtube.com/playlist?list=PLt5yu3-wZAlSLRHmI1qNm0wjyVNWw1pCU',
         'info_dict': {
@@ -1134,6 +1201,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/@sergeym.6173',
             'uploader_id': '@sergeym.6173',
             'uploader': 'Sergey M.',
+            'view_count': int,
         },
         'playlist_count': 0,
     }, {
@@ -1151,6 +1219,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UCTwECeGqMZee77BjdoYtI2Q',
             'channel_follower_count': int,
             'tags': ['creative commons', 'remix', 'culture', 'nonprofit'],
+            'availability': 'public',
         },
         'playlist_mincount': 6,
     }, {
@@ -1168,6 +1237,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UCTwECeGqMZee77BjdoYtI2Q',
             'channel_follower_count': int,
             'tags': ['creative commons', 'remix', 'culture', 'nonprofit'],
+            'availability': 'public',
         },
         'playlist_mincount': 239,
     }, {
@@ -1185,6 +1255,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UCTwECeGqMZee77BjdoYtI2Q',
             'channel_follower_count': int,
             'tags': ['creative commons', 'remix', 'culture', 'nonprofit'],
+            'availability': 'public',
         },
         'playlist_mincount': 239,
     }, {
@@ -1202,6 +1273,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UCTwECeGqMZee77BjdoYtI2Q',
             'channel_follower_count': int,
             'tags': ['creative commons', 'remix', 'culture', 'nonprofit'],
+            'availability': 'public',
         },
         'playlist_mincount': 20,
     }, {
@@ -1219,10 +1291,11 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UCtS3BcCw-tITPFYSvkbP0Bg',
             'channel_follower_count': int,
             'tags': 'count:17',
+            'availability': 'public',
+            'channel_is_verified': True,
         },
         'playlist_mincount': 145,
     }, {
-        # TODO: fix channel_is_verified extraction
         'note': 'Search tab',
         'url': 'https://www.youtube.com/c/3blue1brown/search?query=linear%20algebra',
         'playlist_mincount': 40,
@@ -1239,6 +1312,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_id': '@3blue1brown',
             'uploader': '3Blue1Brown',
             'channel_is_verified': True,
+            'availability': 'public',
         },
     }, {
         'url': 'https://invidio.us/channel/UCmlqkdCBesrv2Lak1mF_MxA',
@@ -1250,7 +1324,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'url': 'https://music.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
         'only_matching': True,
     }, {
-        # TODO: fix availability extraction
         'note': 'Playlist with deleted videos (#651). As a bonus, the video #51 is also twice in this list.',
         'url': 'https://www.youtube.com/playlist?list=PLwP_SiAcdui0KVebT0mU9Apz359a4ubsC',
         'info_dict': {
@@ -1270,7 +1343,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         },
         'playlist_count': 96,
     }, {
-        # TODO: fix availability extraction
         'note': 'Large playlist',
         'url': 'https://www.youtube.com/playlist?list=UUBABnxM4Ar9ten8Mdjj1j0Q',
         'info_dict': {
@@ -1295,7 +1367,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'url': 'http://www.youtube.com/user/NASAgovVideo/videos',
         'only_matching': True,
     }, {
-        # TODO: fix availability extraction
         # The 'note' below is outdated: there is no longer a "Load more" button
         'note': 'Buggy playlist: the webpage has a "Load more" button but it doesn\'t have more videos',
         'url': 'https://www.youtube.com/playlist?list=UUXw-G3eDE9trcvY2sBMM_aA',
@@ -1316,7 +1387,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         },
         'playlist_mincount': 10,
     }, {
-        # TODO: fix availability extraction
         'note': 'Playlist with "show unavailable videos" button',
         'url': 'https://www.youtube.com/playlist?list=PLYwq8WOe86_xGmR7FrcJq8Sb7VW8K3Tt2',
         'info_dict': {
@@ -1337,7 +1407,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 150,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
     }, {
-        # TODO: fix availability extraction
         'note': 'Playlist with unavailable videos in page 7',
         'url': 'https://www.youtube.com/playlist?list=UU8l9frL61Yl5KFOl87nIm2w',
         'info_dict': {
@@ -1358,7 +1427,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 1000,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
     }, {
-        # TODO: fix availability extraction
         'note': 'https://github.com/ytdl-org/youtube-dl/issues/21844',
         'url': 'https://www.youtube.com/playlist?list=PLzH6n4zXuckpfMu_4Ff8E7Z1behQks5ba',
         'info_dict': {
@@ -1409,7 +1477,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live',
         'info_dict': {
-            'id': 'ubIX-TwVqZI',  # This will keep changing
+            'id': '8GbcigMs1_c',  # This will keep changing
             'ext': 'mp4',
             'title': str,
             'upload_date': r're:\d{8}',
@@ -1443,20 +1511,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'expected_warnings': ['Ignoring subtitle tracks found in '],
     }, {
         'url': 'https://www.youtube.com/user/TheYoungTurks/live',
-        'info_dict': {
-            'id': 'a48o2S1cPoo',
-            'ext': 'mp4',
-            'title': 'The Young Turks - Live Main Show',
-            'upload_date': '20150715',
-            'license': 'Standard YouTube License',
-            'description': 'md5:438179573adcdff3c97ebb1ee632b891',
-            'categories': ['News & Politics'],
-            'tags': ['Cenk Uygur (TV Program Creator)', 'The Young Turks (Award-Winning Work)', 'Talk Show (TV Genre)'],
-            'like_count': int,
-        },
-        'params': {
-            'skip_download': True,
-        },
         'only_matching': True,
     }, {
         'url': 'https://www.youtube.com/channel/UC1yBKRuGpC1tSM73A0ZjYjQ/live',
@@ -1523,7 +1577,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'url': 'https://music.youtube.com/browse/UC1a8OFewdjuLq6KlF8M_8Ng',
         'only_matching': True,
     }, {
-        # TODO: fix availability extraction
         'note': 'VLPL, should redirect to playlist?list=PL...',
         'url': 'https://music.youtube.com/browse/VLPLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
         'info_dict': {
@@ -1588,7 +1641,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_count': 50,
         'expected_warnings': ['YouTube Music is not directly supported'],
     }, {
-        # TODO: investigate test failing on differing channel*/uploader*/view_count
+        # YoutubeTab_25: use to test _extract_lockup_view_model
         'note': 'unlisted single video playlist',
         'url': 'https://www.youtube.com/playlist?list=PLt5yu3-wZAlQLfIN0MMgp0wVV6MP3bM4_',
         'info_dict': {
@@ -1719,13 +1772,13 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/@coletdjnz',
             'uploader_id': '@coletdjnz',
             'uploader': 'cole-dlp-test-acc',
+            'availability': 'public',
         },
         'playlist_mincount': 1,
         'params': {'extractor_args': {'youtube': {'lang': ['ja']}}},
         'expected_warnings': ['Preferring "ja"'],
     }, {
         # XXX: this should really check flat playlist entries, but the test suite doesn't support that
-        # TODO: fix availability extraction
         'note': 'preferred lang set with playlist with translated video titles',
         'url': 'https://www.youtube.com/playlist?list=PLt5yu3-wZAlQAaPZ5Z-rJoTdbT-45Q7c0',
         'info_dict': {
@@ -1748,11 +1801,11 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     }, {
         # shorts audio pivot for 2GtVksBMYFM.
         'url': 'https://www.youtube.com/feed/sfv_audio_pivot?bp=8gUrCikSJwoLMkd0VmtzQk1ZRk0SCzJHdFZrc0JNWUZNGgsyR3RWa3NCTVlGTQ==',
-        # TODO: fix extraction
         'info_dict': {
             'id': 'sfv_audio_pivot',
             'title': 'sfv_audio_pivot',
             'tags': [],
+            'availability': 'public',
         },
         'playlist_mincount': 50,
 
@@ -1764,6 +1817,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'UCEH7P7kyJIkS_gJf93VYbmg',
             'title': 'UCEH7P7kyJIkS_gJf93VYbmg - Live',
             'tags': [],
+            'availability': 'public',
         },
         'playlist_mincount': 20,
     }, {
@@ -1773,6 +1827,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'UCQvWX73GQygcwXOTSf_VDVg',
             'title': 'UCQvWX73GQygcwXOTSf_VDVg - Let\'s play',
             'tags': [],
+            'availability': 'public',
         },
         'playlist_mincount': 8,
     }, {
@@ -1782,11 +1837,11 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'UCQvWX73GQygcwXOTSf_VDVg',
             'title': 'UCQvWX73GQygcwXOTSf_VDVg - Home',
             'tags': [],
+            'availability': 'public',
         },
         'playlist_mincount': 8,
     }, {
         # Should get three playlists for videos, shorts and streams tabs
-        # TODO: fix channel_is_verified extraction
         'url': 'https://www.youtube.com/channel/UCK9V2B22uJYu3N7eR_BT9QA',
         'info_dict': {
             'id': 'UCK9V2B22uJYu3N7eR_BT9QA',
@@ -1801,11 +1856,11 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'Polka Ch. 尾丸ポルカ',
             'uploader_id': '@OmaruPolka',
             'channel_is_verified': True,
+            'availability': 'public',
         },
         'playlist_count': 3,
     }, {
         # Shorts tab with channel with handle
-        # TODO: fix channel_is_verified extraction
         'url': 'https://www.youtube.com/@NotJustBikes/shorts',
         'info_dict': {
             'id': 'UC0intLFzLaudFG-xAvUEO-A',
@@ -1820,6 +1875,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'Not Just Bikes',
             'uploader_id': '@NotJustBikes',
             'channel_is_verified': True,
+            'availability': 'public',
         },
         'playlist_mincount': 10,
     }, {
@@ -1837,6 +1893,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/@中村悠一のあそびば',
             'uploader_id': '@中村悠一のあそびば',
             'uploader': '中村悠一',
+            'availability': 'public',
         },
         'playlist_mincount': 60,
     }, {
@@ -1900,6 +1957,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/@coletdjnz',
             'uploader_id': '@coletdjnz',
             'uploader': 'cole-dlp-test-acc',
+            'availability': 'public',
         },
         'playlist': [{
             'info_dict': {
@@ -1921,6 +1979,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'UCQvWX73GQygcwXOTSf_VDVg',
             'title': 'UCQvWX73GQygcwXOTSf_VDVg - Live',  # TODO: should be Minecraft - Live or Minecraft - Topic - Live
             'tags': [],
+            'availability': 'public',
         },
         'playlist': [{
             'info_dict': {
@@ -1980,7 +2039,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'params': {'extract_flat': True},
         'skip': 'channels tab removed',
     }, {
-        # TODO: fix channel_is_verified extraction
         'url': 'https://www.youtube.com/@3blue1brown/about',
         'info_dict': {
             'id': '@3blue1brown',
@@ -1995,6 +2053,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_id': '@3blue1brown',
             'uploader': '3Blue1Brown',
             'channel_is_verified': True,
+            'availability': 'public',
         },
         'playlist_count': 0,
     }, {
@@ -2012,11 +2071,11 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': [],
             'channel': '99% Invisible',
             'uploader_id': '@99percentinvisiblepodcast',
+            'availability': 'public',
         },
         'playlist_mincount': 5,
     }, {
         # Releases tab, with rich entry playlistRenderers (same as Podcasts tab)
-        # TODO: fix channel_is_verified extraction
         'url': 'https://www.youtube.com/@AHimitsu/releases',
         'info_dict': {
             'id': 'UCgFwu-j5-xNJml2FtTrrB3A',
@@ -2031,13 +2090,13 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UCgFwu-j5-xNJml2FtTrrB3A',
             'channel_follower_count': int,
             'channel_is_verified': True,
+            'availability': 'public',
         },
         'playlist_mincount': 10,
     }, {
         # Playlist with only shorts, shown as reel renderers
         # FIXME: future: YouTube currently doesn't give continuation for this,
         # may do in future.
-        # TODO: fix availability extraction
         'url': 'https://www.youtube.com/playlist?list=UUxqPAgubo4coVn9Lx1FuKcg',
         'info_dict': {
             'id': 'UUxqPAgubo4coVn9Lx1FuKcg',
@@ -2057,7 +2116,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 100,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
     }, {
-        # TODO: fix channel_is_verified extraction
         'note': 'Tags containing spaces',
         'url': 'https://www.youtube.com/channel/UC7_YxT-KID8kRbqZo7MyscQ',
         'playlist_count': 3,
@@ -2073,6 +2131,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'Markiplier',
             'channel_url': 'https://www.youtube.com/channel/UC7_YxT-KID8kRbqZo7MyscQ',
             'channel_is_verified': True,
+            'availability': 'public',
             'tags': ['markiplier', 'comedy', 'gaming', 'funny videos', 'funny moments',
                      'sketch comedy', 'laughing', 'lets play', 'challenge videos', 'hilarious',
                      'challenges', 'sketches', 'scary games', 'funny games', 'rage games',
@@ -2095,6 +2154,49 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'sbcitygov',
             'channel_url': 'https://www.youtube.com/channel/UCH6-qfQwlUgz9SAf05jvc_w',
             'tags': [],
+            'availability': 'public',
+        },
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/17044
+        'note': 'flat playlist entry credited to multiple channels / "collaborators"',
+        'url': 'https://www.youtube.com/playlist?list=PLzMNc_TBkmzei1ejIkbjNUP9J7q0hmepM',
+        'info_dict': {
+            'id': 'PLzMNc_TBkmzei1ejIkbjNUP9J7q0hmepM',
+            'title': 'Music for Creating, Building, Imagining 1',
+            'description': 'md5:329cd827b1c70910e80c108cfefdb37d',
+            'uploader': 'Sebtt',
+            'uploader_id': '@Sebtt',
+            'uploader_url': 'https://www.youtube.com/@Sebtt',
+            'channel': 'Sebtt',
+            'channel_id': 'UC-EmUaZucfuL81RYKcKjpbw',
+            'channel_url': 'https://www.youtube.com/channel/UC-EmUaZucfuL81RYKcKjpbw',
+            'view_count': int,
+            'tags': [],
+            'modified_date': str,
+            'availability': 'public',
+        },
+        'playlist': [{
+            'info_dict': {
+                'title': 'Thomas Bergersen - Made of Fire',
+                'id': 'KUokLzs947k',
+                '_type': 'url',
+                'ie_key': 'Youtube',
+                'url': 'https://www.youtube.com/watch?v=KUokLzs947k',
+                'uploader': 'Two Steps From Hell',
+                'uploader_id': '@TwoStepsFromHell-Official',
+                'uploader_url': 'https://www.youtube.com/@TwoStepsFromHell-Official',
+                'channel': 'Two Steps From Hell',
+                'channel_id': 'UC3swwxiALG5c0Tvom83tPGg',
+                'channel_url': 'https://www.youtube.com/channel/UC3swwxiALG5c0Tvom83tPGg',
+                'view_count': int,
+                'duration': 341.0,
+                'creators': ['Two Steps From Hell', 'Thomas Bergersen'],
+            },
+        }],
+        'playlist_count': 1,
+        'params': {
+            'extract_flat': True,
+            'playlist_items': '75',
         },
     }]
 
@@ -2314,7 +2416,6 @@ class YoutubePlaylistIE(YoutubeBaseInfoExtractor):
     )
     IE_NAME = 'youtube:playlist'
     _TESTS = [{
-        # TODO: fix availability extraction
         'note': 'issue #673',
         'url': 'PLBB231211A4F62143',
         'info_dict': {
@@ -2342,7 +2443,6 @@ class YoutubePlaylistIE(YoutubeBaseInfoExtractor):
         'playlist_count': 2,
         'skip': 'This playlist is private',
     }, {
-        # TODO: fix availability extraction
         'note': 'embedded',
         'url': 'https://www.youtube.com/embed/videoseries?list=PL6IaIsEjSbf96XFRuNccS_RuEXwNdsoEu',
         'playlist_count': 4,
@@ -2363,7 +2463,6 @@ class YoutubePlaylistIE(YoutubeBaseInfoExtractor):
         },
         'expected_warnings': [r'[Uu]navailable videos? (is|are|will be) hidden', 'Retrying', 'Giving up'],
     }, {
-        # TODO: fix availability extraction
         'url': 'http://www.youtube.com/embed/_xDOZElKyNU?list=PLsyOSbh5bs16vubvKePAQ1x3PhKavfBIl',
         'playlist_mincount': 455,
         'info_dict': {
