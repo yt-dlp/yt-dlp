@@ -377,5 +377,10 @@
         "action": "add",
         "when": "7b03011294c0210802ffc901390006c39152b999",
         "short": "[priority] **The official Windows release binaries will soon require Windows 10 or later.** [Read more](https://github.com/yt-dlp/yt-dlp/issues/16917)"
+    },
+    {
+        "action": "add",
+        "when": "b6590aaa1e3808155d69c9a79a797ae484163789",
+        "short": "[priority] Security: [[CVE-2026-55404](https://nvd.nist.gov/vuln/detail/CVE-2026-55404)] [Downstream command injection via improper sanitization of --write-link output](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-6v4j-43gg-vj32)\n        - Shortcut file data is now properly validated and sanitized when the `--write-link` options are used"
     }
 ]
