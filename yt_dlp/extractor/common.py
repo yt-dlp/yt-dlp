@@ -3070,8 +3070,8 @@ class InfoExtractor:
                         # %(...) counterparts to be used with % operator
                         t = re.sub(r'\$({})\$'.format('|'.join(identifiers)), r'%(\1)d', t)
                         t = re.sub(r'\$({})%([^$]+)\$'.format('|'.join(identifiers)), r'%(\1)\2', t)
-                        t.replace('$$', '$')
-                        return t
+
+                        return t.replace('$$', '$')
 
                     # @initialization is a regular template like @media one
                     # so it should be handled just the same way (see
