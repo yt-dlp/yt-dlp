@@ -342,5 +342,30 @@
         "action": "add",
         "when": "1fbbe29b99dc61375bf6d786f824d9fcf6ea9c1a",
         "short": "[priority] Security: [[CVE-2026-26331](https://nvd.nist.gov/vuln/detail/CVE-2026-26331)] [Arbitrary command injection with the `--netrc-cmd` option](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-g3gw-q23r-pgqm)\n    - The argument passed to the command in `--netrc-cmd` is now limited to a safe subset of characters"
+    },
+    {
+        "action": "add",
+        "when": "98e42eb04486e00bf86479b24dbfe19321f652ee",
+        "short": "[priority] **The minimum supported versions of Deno, Node, and Bun have been raised.**\n The minimum required version of [Deno](https://github.com/yt-dlp/yt-dlp/issues/16767) is now `v2.3.0`; supported [Node](https://github.com/yt-dlp/yt-dlp/issues/16765) versions are `v22` and up; [Bun support has been deprecated](https://github.com/yt-dlp/yt-dlp/issues/16766) and limited to versions `1.2.11` through `1.3.14`."
+    },
+    {
+        "action": "add",
+        "when": "5faffa999fd33b373d47773e8ee639d072accec2",
+        "short": "[priority] Security: Usage of vulnerable conversions (e.g. `%()s`) with the `--exec` option is an all-too-common pitfall. To remedy this, `--exec` now only allows safe conversions in its command templates.\n        - Most users can simply replace `%(...)s` with `%(...)q` in their `--exec` argument(s). Numeric conversions are unaffected by this change. Using unsafe conversions with `--exec` poses a significant security risk. [Read more](<https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-69qj-pvh9-c5wg>)"
+    },
+    {
+        "action": "add",
+        "when": "e578e265f7c6ca94a74b30e0d8d6196a4d19fb6a",
+        "short": "[priority] Security: [[CVE-2026-50023](https://nvd.nist.gov/vuln/detail/CVE-2026-50023)] [Dangerous file type creation via insufficient filename sanitization](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-c6mh-fpjc-4pr3)\n        - Writing files with the extensions `.desktop`, `.url`, or `.webloc` is now only allowed in the context of `--write-link` functionality"
+    },
+    {
+        "action": "add",
+        "when": "2726572520238356bcf64aba2040228648b44c82",
+        "short": "[priority] Security: [[CVE-2026-50019](https://nvd.nist.gov/vuln/detail/CVE-2026-50019)] [File Downloader cookie leak with curl](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-f7j3-774f-rfhj)\n        - Impact is limited to users of `--downloader curl`; cookies are now properly passed to curl so that it respects their scope"
+    },
+    {
+        "action": "add",
+        "when": "25056f0d2d47adbd235a8d422fa62d68d0be2bc2",
+        "short": "[priority] Security: [[CVE-2026-50574](https://nvd.nist.gov/vuln/detail/CVE-2026-50574)] [Arbitrary code execution via manifest downloads with aria2c](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-vx4q-3cr2-7cg2)\n        - Impact is limited to users of `--downloader aria2c`\n        - Support for downloading HLS and DASH formats with aria2c has been removed. Users affected by this change should migrate to use `-N` for concurrent fragment downloads via the native downloader"
     }
 ]
