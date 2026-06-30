@@ -1,10 +1,17 @@
+import datetime as dt
+import itertools
+import math
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     clean_html,
     extract_attributes,
+    float_or_none,
     int_or_none,
     parse_iso8601,
+    parse_m3u8_attributes,
+    parse_resolution,
     urlencode_postdata,
     urljoin,
 )
@@ -45,6 +52,90 @@ class ZanIE(InfoExtractor):
         },
     }]
 
+    @staticmethod
+    def _fixup_m3u8_formats(formats, m3u8_doc, m3u8_url):
+        for stream_inf, media_url in itertools.pairwise(
+            map(str.strip, m3u8_doc.splitlines()),
+        ):
+            if not stream_inf.startswith('#EXT-X-STREAM-INF:') or not media_url:
+                continue
+
+            format_url = urljoin(m3u8_url, media_url)
+            res = traverse_obj(stream_inf, (
+                {parse_m3u8_attributes}, 'DISPLAY-NAME', {parse_resolution}), default={})
+
+            for fmt in formats:
+                if fmt['url'] != format_url:
+                    continue
+
+                for k, v in res.items():
+                    if v is not None and fmt.get(k) is None:
+                        fmt[k] = v
+                break
+
+    @staticmethod
+    def _multiangle_areas(ma_type, ma_number):
+        divisions = int_or_none(ma_type.partition('_')[0]) or 0
+        unit = math.isqrt(divisions)
+
+        if unit and unit ** 2 == divisions:
+            areas = [(i % unit, i // unit, 1, 1) for i in range(divisions)]
+        elif divisions == 6:
+            unit = 3
+            areas = [
+                (0, 0, 2, 2),
+                *[(2, i, 1, 1) for i in range(2)],
+                *[(i, 2, 1, 1) for i in range(3)],
+            ]
+        else:
+            return None
+
+        if not (ma_number and 1 <= ma_number <= len(areas)):
+            ma_number = len(areas)
+
+        return unit, areas[:ma_number]
+
+    @staticmethod
+    def _multiangle_crop(x, y, w, h, unit, margin_y):
+        margin_x = margin_y * 9 / 16
+
+        return (
+            f'crop='
+            f'trunc((iw*{w}/{unit}-{margin_x * 2:g})/2)*2:'
+            f'trunc((ih*{h}/{unit}-{margin_y * 2:g})/2)*2:'
+            f'trunc(iw*{x}/{unit}+{margin_x:g}):'
+            f'trunc(ih*{y}/{unit}+{margin_y:g})'
+        )
+
+    def _multiangle_formats(self, formats, ma_type, ma_number, ma_margin):
+        layout = self._multiangle_areas(ma_type, ma_number)
+        if not layout:
+            self.report_warning(f'Unsupported multiangle type: {ma_type}')
+            return formats
+
+        unit, areas = layout
+        angle_formats = []
+        for fmt in formats:
+            if fmt.get('vcodec') == 'none':
+                continue
+
+            for i, area in enumerate(areas, 1):
+                angle_formats.append({
+                    **fmt,
+                    'format_id': f'{fmt["format_id"]}-angle{i}',
+                    'protocol': 'm3u8',
+                    'source_preference': -i,
+                    'downloader_options': {
+                        'ffmpeg_args_out': [
+                            '-vf', self._multiangle_crop(*area, unit, ma_margin),
+                            '-c:v', 'libx264',
+                            '-c:a', 'copy',
+                        ],
+                    },
+                })
+
+        return angle_formats
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
@@ -71,7 +162,7 @@ class ZanIE(InfoExtractor):
 
         result = traverse_obj(status, ('result', {dict}))
         for key, required, error_message in (
-            ('isFinished', False, 'Video is no longer available'),
+            ('isFinished', False, 'This video is no longer available'),
             ('canPlay', True, 'Ticket has expired'),
         ):
             if traverse_obj(result, (key, {bool})) is not required:
@@ -79,9 +170,13 @@ class ZanIE(InfoExtractor):
 
         is_live = not traverse_obj(result, ('isVod', {bool}))
         release_timestamp = parse_iso8601(self._html_search_meta('open-live-date', webpage))
-        if is_live and traverse_obj(status, ('srvTime', {int_or_none})) < release_timestamp:
+        start_time = dt.datetime.fromtimestamp(
+            release_timestamp, dt.timezone.utc,
+        ).astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
+
+        if is_live and traverse_obj(status, ('srvTime', {int_or_none}), default=0) < release_timestamp:
             self.raise_no_formats(
-                f'This stream is scheduled to start at {release_timestamp} UTC', expected=True)
+                f'This stream is scheduled to start at {start_time}', expected=True)
 
             return {
                 'id': video_id,
@@ -90,7 +185,20 @@ class ZanIE(InfoExtractor):
             }
 
         m3u8_url = self._html_search_meta('live-url', webpage, fatal=True)
-        formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4')
+        m3u8_doc, urlh = self._download_webpage_handle(
+            m3u8_url, video_id, note='Downloading m3u8 information')
+        m3u8_url = urlh.url
+
+        formats, _ = self._parse_m3u8_formats_and_subtitles(m3u8_doc, m3u8_url, 'mp4')
+        self._fixup_m3u8_formats(formats, m3u8_doc, m3u8_url)
+
+        ma_type = self._html_search_meta('multiangle-type', webpage, default=None)
+        if ma_type:
+            ma_number = int_or_none(self._html_search_meta(
+                'multiangle-number', webpage, default=None))
+            ma_margin = float_or_none(self._html_search_meta(
+                'multiangle-margin', webpage, default=None), default=0)
+            formats = self._multiangle_formats(formats, ma_type, ma_number, ma_margin)
 
         detail_url = traverse_obj(webpage, (
             {find_element(cls='linkTxt')},
