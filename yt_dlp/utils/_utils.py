@@ -5740,9 +5740,3 @@ class _ProgressState(enum.Enum):
     def get_ansi_escape(self, /, percent=None):
         percent = 0 if percent is None else int(percent)
         return f'\033]9;4;{self.value};{percent}\007'
-
-
-def value_or_none(val):
-    if val is not None:
-        return val
-    return None
