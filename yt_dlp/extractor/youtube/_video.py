@@ -2887,7 +2887,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # All requests that would need to be proxied should be in the
             # context of www.youtube.com or the innertube host
             request_proxy=(
-                select_proxy('https://www.youtube.com', proxies)
+                # Prefer geo_verification_proxy so the PO Token is issued from the same IP
+                # as the player API request above; otherwise YouTube may reject the token.
+                self.get_param('geo_verification_proxy')
+                or select_proxy('https://www.youtube.com', proxies)
                 or select_proxy(f'https://{innertube_host}', proxies)
             ),
             request_headers=headers,
@@ -2931,6 +2934,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 or self._extract_user_session_id(webpage_ytcfg, initial_pr, player_ytcfg)
             ),
         )
+        # Route the player API request (playability/region check & streamingData) through
+        # geo_verification_proxy when set, so region-restricted videos can be verified via a
+        # "clean" region IP while the actual download still uses the global --proxy. See
+        # yt_dlp/extractor/common.py:geo_verification_headers for the header mechanism.
+        headers.update(self.geo_verification_headers())
 
         yt_query = {
             'videoId': video_id,
@@ -3809,9 +3817,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 query['pp'] = pp
             webpage = self._download_webpage_with_retries(
                 webpage_url, video_id, query=query,
-                headers=traverse_obj(self._get_default_ytcfg(webpage_client), {
-                    'User-Agent': ('INNERTUBE_CONTEXT', 'client', 'userAgent', {str}),
-                }))
+                headers={
+                    **traverse_obj(self._get_default_ytcfg(webpage_client), {
+                        'User-Agent': ('INNERTUBE_CONTEXT', 'client', 'userAgent', {str}),
+                    }),
+                    # Verify the watch page (and its embedded initial player response) via
+                    # geo_verification_proxy when set; consistent with the player API request.
+                    **self.geo_verification_headers(),
+                })
         return webpage
 
     def _get_available_at_timestamp(self, player_response, video_id, client):
