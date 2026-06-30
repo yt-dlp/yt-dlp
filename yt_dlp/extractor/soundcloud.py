@@ -862,16 +862,16 @@ class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
                 'uploader_id': ('user', 'id', {str_or_none}),
                 'uploader_url': ('user', 'permalink_url', {url_or_none}),
                 'timestamp': ('created_at', {unified_timestamp}),
-                'release_timestamp': (('release_date', 'published_at'), any, {unified_timestamp}),
+                'release_timestamp': (('release_date', 'published_at'), {unified_timestamp}, any),
                 'modified_timestamp': ('last_modified', {unified_timestamp}),
                 'duration': ('duration', {float_or_none(scale=1000)}),
-                'license': ('license', {str_or_none}),
+                'license': ('license', {str}),
                 'like_count': ('likes_count', {int_or_none}),
                 'repost_count': ('reposts_count', {int_or_none}),
-                'genres': ('genre', {str_or_none}, filter, all, filter),
+                'genres': ('genre', {str}, filter, all, filter),
                 'tags': ('tag_list', {self._TAGS_RE.findall}, ..., ..., filter),
-                'thumbnails': ({self._extract_thumbnails}),
             }),
+            thumbnails=self._extract_thumbnails(playlist),
         )
 
 
