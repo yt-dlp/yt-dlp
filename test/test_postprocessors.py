@@ -16,6 +16,7 @@ from yt_dlp.utils import (
     shell_quote,
 )
 from yt_dlp.postprocessor import (
+    EmbedThumbnailPP,
     ExecPP,
     FFmpegThumbnailsConvertorPP,
     MetadataFromFieldPP,
@@ -678,6 +679,18 @@ outpoint 10.000000
         self.assertEqual(
             r"'special '\'' characters '\'' galore'\'\'\'",
             self._pp._quote_for_ffmpeg("special ' characters ' galore'''"))
+
+
+class TestEmbedThumbnail(unittest.TestCase):
+    def test_uppercase_ext(self):
+        pp = EmbedThumbnailPP(YoutubeDL())
+        info = {
+            'filepath': 'test.MP3',
+            'ext': 'MP3',
+            'thumbnails': [{'filepath': 'nonexistent_thumb.jpg'}],
+        }
+        _, returned_info = pp.run(info)
+        self.assertEqual(returned_info['ext'], 'mp3')
 
 
 if __name__ == '__main__':

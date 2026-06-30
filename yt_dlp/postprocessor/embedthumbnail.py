@@ -56,6 +56,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
         filename = info['filepath']
+        info['ext'] = info.get('ext', '').lower()
         temp_filename = prepend_extension(filename, 'temp')
 
         if not info.get('thumbnails'):

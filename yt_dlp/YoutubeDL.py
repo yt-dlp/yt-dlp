@@ -3467,7 +3467,7 @@ class YoutubeDL:
                     file = self.existing_file(itertools.chain(*zip(map(converted, filepaths), filepaths, strict=True)),
                                               default_overwrite=False)
                     if file:
-                        info_dict['ext'] = os.path.splitext(file)[1][1:]
+                        info_dict['ext'] = os.path.splitext(file)[1][1:].lower()
                     return file
 
                 fd, success = None, True
@@ -3496,7 +3496,7 @@ class YoutubeDL:
                     def correct_ext(filename, ext=new_ext):
                         if filename == '-':
                             return filename
-                        filename_real_ext = os.path.splitext(filename)[1][1:]
+                        filename_real_ext = os.path.splitext(filename)[1][1:].lower()
                         filename_wo_ext = (
                             os.path.splitext(filename)[0]
                             if filename_real_ext in (old_ext, new_ext)
