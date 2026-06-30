@@ -691,7 +691,6 @@ from .gmanetwork import GMANetworkVideoIE
 from .go import GoIE
 from .godresource import GodResourceIE
 from .godtube import GodTubeIE
-from .gofile import GofileIE
 from .golem import GolemIE
 from .goodgame import GoodGameIE
 from .googledrive import (
@@ -2120,6 +2119,7 @@ from .unitednations import UnitedNationsWebTvIE
 from .unity import UnityIE
 from .unsupported import (
     KnownDRMIE,
+    KnownLiabilityIE,
     KnownPiracyIE,
 )
 from .uol import UOLIE
