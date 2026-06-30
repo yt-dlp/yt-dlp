@@ -456,10 +456,12 @@ class SoundcloudBaseIE(InfoExtractor):
                 break
 
     def _extract_thumbnails(self, info):
+        artwork_url = traverse_obj(info, ('artwork_url', {url_or_none}))
+        thumbnail_url = artwork_url or traverse_obj(info, ('user', 'avatar_url', {url_or_none}))
+        if not thumbnail_url:
+            return None
+
         thumbnails = []
-        artwork_url = info.get('artwork_url')
-        thumbnail_url = artwork_url or traverse_obj(info, ('user', 'avatar_url'))
-        if url_or_none(thumbnail_url):
             if mobj := re.search(self._IMAGE_REPL_RE, thumbnail_url):
                 for image_id, size in self._ARTWORK_MAP.items():
                     # Soundcloud serves JPEG regardless of URL's ext *except* for "original" thumb
