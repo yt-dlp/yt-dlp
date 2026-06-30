@@ -456,38 +456,40 @@ class SoundcloudBaseIE(InfoExtractor):
                 break
 
     def _extract_thumbnails(self, info):
+        artwork_url = traverse_obj(info, ('artwork_url', {url_or_none}))
+        thumbnail_url = artwork_url or traverse_obj(info, ('user', 'avatar_url', {url_or_none}))
+        if not thumbnail_url:
+            return None
+
         thumbnails = []
-        artwork_url = info.get('artwork_url')
-        thumbnail_url = artwork_url or traverse_obj(info, ('user', 'avatar_url'))
-        if url_or_none(thumbnail_url):
-            if mobj := re.search(self._IMAGE_REPL_RE, thumbnail_url):
-                for image_id, size in self._ARTWORK_MAP.items():
-                    # Soundcloud serves JPEG regardless of URL's ext *except* for "original" thumb
-                    ext = mobj.group('ext') if image_id == 'original' else 'jpg'
-                    thumbnail = {
-                        'id': image_id,
-                        'url': re.sub(self._IMAGE_REPL_RE, f'-{image_id}.{ext}', thumbnail_url),
-                    }
-                    if image_id == 'tiny' and not artwork_url:
-                        size = 18
-                    elif image_id == 'original':
-                        thumbnail['preference'] = 10
-                        # "original" thumb ext doesn't always match ext used for other thumbs, check with HEAD req
-                        req = self._request_webpage(
-                            HEADRequest(thumbnail['url']), str(info['id']), note='Checking thumbnail extension',
-                            errnote=False, fatal=False, headers=self._HEADERS)
-                        if not req:
-                            # If "original" thumb doesn't exist, assume different ext
-                            ext = 'jpg' if ext == 'png' else 'png'
-                            thumbnail['url'] = re.sub(self._IMAGE_REPL_RE, f'-{image_id}.{ext}', thumbnail_url)
-                    if size:
-                        thumbnail.update({
-                            'width': size,
-                            'height': size,
-                        })
-                    thumbnails.append(thumbnail)
-            else:
-                thumbnails = [{'url': thumbnail_url}]
+        if mobj := re.search(self._IMAGE_REPL_RE, thumbnail_url):
+            for image_id, size in self._ARTWORK_MAP.items():
+                # Soundcloud serves JPEG regardless of URL's ext *except* for "original" thumb
+                ext = mobj.group('ext') if image_id == 'original' else 'jpg'
+                thumbnail = {
+                    'id': image_id,
+                    'url': re.sub(self._IMAGE_REPL_RE, f'-{image_id}.{ext}', thumbnail_url),
+                }
+                if image_id == 'tiny' and not artwork_url:
+                    size = 18
+                elif image_id == 'original':
+                    thumbnail['preference'] = 10
+                    # "original" thumb ext doesn't always match ext used for other thumbs, check with HEAD req
+                    req = self._request_webpage(
+                        HEADRequest(thumbnail['url']), str(info['id']), note='Checking thumbnail extension',
+                        errnote=False, fatal=False, headers=self._HEADERS)
+                    if not req:
+                        # If "original" thumb doesn't exist, assume different ext
+                        ext = 'jpg' if ext == 'png' else 'png'
+                        thumbnail['url'] = re.sub(self._IMAGE_REPL_RE, f'-{image_id}.{ext}', thumbnail_url)
+                if size:
+                    thumbnail.update({
+                        'width': size,
+                        'height': size,
+                    })
+                thumbnails.append(thumbnail)
+        else:
+            thumbnails = [{'url': thumbnail_url}]
         return thumbnails
 
 
