@@ -317,6 +317,8 @@ class ArteTVPlaylistIE(ArteTVBaseIE):
         },
     }]
 
+    _API_TOKEN = 'Nzc1Yjc1ZjJkYjk1NWFhN2I2MWEwMmRlMzAzNjI5NmU3NWU3ODg4ODJjOWMxNTMxYzEzZGRjYjg2ZGE4MmIwOA'
+
     def _season_entries(self, season_ids, lang):
         for season_id in season_ids:
             season_data = self._download_json(
@@ -340,30 +342,30 @@ class ArteTVPlaylistIE(ArteTVBaseIE):
                 }
 
     def _real_extract(self, url):
-        _API_TOKEN = 'Nzc1Yjc1ZjJkYjk1NWFhN2I2MWEwMmRlMzAzNjI5NmU3NWU3ODg4ODJjOWMxNTMxYzEzZGRjYjg2ZGE4MmIwOA'
         lang, playlist_id = self._match_valid_url(url).group('lang', 'id')
 
-        playlist_info = self._download_json(
+        playlist_info = traverse_obj(self._download_json(
             f'https://api.arte.tv/api/opa/v3/programs/{lang}/{playlist_id}', playlist_id,
-            headers={'Authorization': f'Bearer {_API_TOKEN}'})
-        playlist_info = traverse_obj(playlist_info, ('programs', ...), get_all=False)
-        metadata = traverse_obj(
-            playlist_info, {'title': ('title', {str}), 'description': ('shortDescription', {str})})
+            headers={'Authorization': f'Bearer {self._API_TOKEN}'}), ('programs', ..., {dict}, any))
+
+        metadata = traverse_obj(playlist_info, {
+            'title': ('title', {str}),
+            'description': ('shortDescription', {str}),
+        })
 
         # Check first if there are seasons
         season_ids = traverse_obj(
             playlist_info, ('children', (lambda _, v: v['catalogType'] == 'SEASON'), 'programId'))
         if season_ids:
-            return self.playlist_result(self._season_entries(season_ids, lang),
-                                        playlist_id,
-                                        **metadata)
+            return self.playlist_result(
+                self._season_entries(season_ids, lang), playlist_id, **metadata)
 
         # It might be a mini series comprised of a few shows
         shows = traverse_obj(playlist_info, (
             'videos', lambda _, v: v['kind'] == 'SHOW' and url_or_none(v['url'])))
-        return self.playlist_result([self.url_result(show['url'], ArteTVIE) for show in shows],
-                                    playlist_id,
-                                    **metadata)
+        return self.playlist_result(
+            [self.url_result(show['url'], ArteTVIE) for show in shows],
+            playlist_id, **metadata)
 
 
 class ArteTVCategoryIE(ArteTVBaseIE):
