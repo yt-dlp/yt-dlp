@@ -139,7 +139,7 @@ from .utils import (
     join_nonempty,
     locked_file,
     make_archive_id,
-    make_dir,
+    make_parent_dirs,
     number_of_digits,
     orderedSet,
     orderedSet_from_options,
@@ -1138,9 +1138,10 @@ class YoutubeDL:
         """
         if self.params.get('logger') is not None:
             self.params['logger'].warning(message)
+        elif self.params.get('no_warnings'):
+            if self.params.get('verbose'):
+                self.to_stderr(f'[debug:warning] {message}', only_once=only_once)
         else:
-            if self.params.get('no_warnings'):
-                return
             self.to_stderr(f'{self._format_err("WARNING:", self.Styles.WARNING)} {message}', only_once)
 
     def deprecation_warning(self, message, *, stacklevel=0):
@@ -2000,7 +2001,7 @@ class YoutubeDL:
             if webpage_url and webpage_url in self._playlist_urls:
                 self.to_screen(
                     '[download] Skipping already downloaded playlist: {}'.format(
-                        ie_result.get('title')) or ie_result.get('id'))
+                        ie_result.get('title') or ie_result.get('id')))
                 return
 
             self._playlist_level += 1
@@ -2036,7 +2037,12 @@ class YoutubeDL:
             raise Exception(f'Invalid result type: {result_type}')
 
     def _ensure_dir_exists(self, path):
-        return make_dir(path, self.report_error)
+        try:
+            make_parent_dirs(path)
+            return True
+        except OSError as e:
+            self.report_error(f'Unable to create directory: {e}')
+            return False
 
     @staticmethod
     def _playlist_infodict(ie_result, strict=False, **kwargs):
