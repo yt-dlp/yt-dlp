@@ -2001,7 +2001,7 @@ class YoutubeDL:
             if webpage_url and webpage_url in self._playlist_urls:
                 self.to_screen(
                     '[download] Skipping already downloaded playlist: {}'.format(
-                        ie_result.get('title')) or ie_result.get('id'))
+                        ie_result.get('title') or ie_result.get('id')))
                 return
 
             self._playlist_level += 1
