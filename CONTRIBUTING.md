@@ -152,7 +152,7 @@ This means:
 
 - No AI / no LLMs for issue tracker comments or code review comments.
 
-- No AI / no LLMs for translation. Communication via English is preferred, but you're welcome to write in your native language and rely on others to translate your text with their own tools.
+- No AI / no LLMs for translation. Communication in English is preferred, but you're welcome to write in your native language and rely on others to translate your text with their own tools.
 
 Anyone who violates this policy may be blocked from this organization's repositories without warning.
 
