@@ -297,23 +297,23 @@ class ArteTVPlaylistIE(ArteTVBaseIE):
         'info_dict': {
             'description': 'md5:84e7bf1feda248bc325ebfac818c476e',
             'id': 'RC-014123',
-            'title': 'ARTE Reportage - najlepsze reportaże',
+            'title': 'ARTE Reportage',
         },
     }, {
-        'url': 'https://www.arte.tv/de/videos/RC-025470/ramy/',
-        'playlist_mincount': 30,
+        'url': 'https://www.arte.tv/de/videos/RC-027513/twin-peaks/',
+        'playlist_mincount': 48,
         'info_dict': {
-            'description': 'md5:8766d73504ddccd12dbd1395a1d56815',
-            'id': 'RC-025470',
-            'title': 'Ramy',
+            'description': 'md5:4a99f0339d76e4a11a6ad751234d2398',
+            'id': 'RC-027513',
+            'title': 'Twin Peaks',
         },
     }, {
-        'url': 'https://www.arte.tv/de/videos/RC-027148/zucker-genuss-um-welchen-preis/',
-        'playlist_mincount': 1,
+        'url': 'https://www.arte.tv/de/videos/RC-027683/unterschaetzt-die-rechte-terrorgefahr/',
+        'playlist_mincount': 2,
         'info_dict': {
-            'description': 'md5:4c06c2b63970f78276bcadaea2d0df0b',
-            'id': 'RC-027148',
-            'title': 'Zucker, Genuss um welchen Preis?',
+            'description': 'md5:910dc74d146fd9a12f62ec0d5495c700',
+            'id': 'RC-027683',
+            'title': 'Unterschätzt - Die rechte Terrorgefahr',
         },
     }]
 
