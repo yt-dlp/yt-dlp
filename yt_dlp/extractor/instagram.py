@@ -479,12 +479,12 @@ class InstagramIE(InstagramBaseIE):
                 '__bbox', 'result', 'data', 'xig_polaris_media', {dict}, any))
             product_info = traverse_obj(media, ('if_not_gated_logged_out', {dict}))
 
-            if not product_info:
-                raise ExtractorError(
-                    'Instagram sent an empty media response. Check if this post is accessible in your '
-                    f'browser without being logged-in. If it is not, then u{self._login_hint()[1:]}. '
-                    'Otherwise, if the post is accessible in browser without being logged-in'
-                    f'{bug_reports_message(before=",")}', expected=True)
+        if not product_info:
+            raise ExtractorError(
+                'Instagram sent an empty media response. Check if this post is accessible in your '
+                f'browser without being logged-in. If it is not, then u{self._login_hint()[1:]}. '
+                'Otherwise, if the post is accessible in browser without being logged-in'
+                f'{bug_reports_message(before=",")}', expected=True)
 
         info_dict = self._extract_product(product_info, video_id=video_id, get_comments=False)
         is_playlist = info_dict.get('_type') == 'playlist'
