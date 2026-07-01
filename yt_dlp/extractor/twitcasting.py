@@ -215,6 +215,11 @@ class TwitCastingIE(InfoExtractor):
                 '_format_sort_fields': ('source', ),
             }
         elif not m3u8_urls:
+            msg = self._html_search_regex(
+                r'(?i)\b(members only|login required)\b', webpage, 'access check', default=None, fatal=False,
+            )
+            if msg:
+                self.raise_login_required(msg=msg)
             raise ExtractorError('Failed to get m3u8 playlist')
         elif len(m3u8_urls) == 1:
             formats = self._extract_m3u8_formats(
