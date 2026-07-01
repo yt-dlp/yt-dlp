@@ -1,5 +1,6 @@
 # CONTRIBUTING TO YT-DLP
 
+- [NO AI / NO LLM POLICY](#no-ai--no-llm-policy)
 - [OPENING AN ISSUE](#opening-an-issue)
     - [Is the description of the issue itself sufficient?](#is-the-description-of-the-issue-itself-sufficient)
     - [Are you using the latest version?](#are-you-using-the-latest-version)
@@ -12,7 +13,6 @@
     - [Is your question about yt-dlp?](#is-your-question-about-yt-dlp)
     - [Are you willing to share account details if needed?](#are-you-willing-to-share-account-details-if-needed)
     - [Is the website primarily used for piracy](#is-the-website-primarily-used-for-piracy)
-- [NO AI / NO LLM POLICY](#no-ai--no-llm-policy)
 - [DEVELOPER INSTRUCTIONS](#developer-instructions)
     - [Adding new feature or making overarching changes](#adding-new-feature-or-making-overarching-changes)
     - [Adding support for a new site](#adding-support-for-a-new-site)
@@ -29,6 +29,27 @@
     - [My pull request is labeled pending-fixes](#my-pull-request-is-labeled-pending-fixes)
 - [EMBEDDING YT-DLP](README.md#embedding-yt-dlp)
 
+
+# NO AI / NO LLM POLICY
+
+This project strictly forbids the usage of LLMs, agents, or any other AI tools for any kind of contribution.
+
+This means:
+
+- No AI / no LLMs for issues or bug reports.
+
+- No AI / no LLMs for patches or pull requests (including PR descriptions).
+
+- No AI / no LLMs for issue tracker comments or code review comments.
+
+- No AI / no LLMs for translation. Communication in English is preferred, but you're welcome to write in your native language and rely on others to translate your text with their own tools.
+
+Anyone who violates this policy may be blocked from this organization's repositories without warning.
+
+
+# AUTOMATED CONTRIBUTIONS (AI / LLM) POLICY
+
+See above: [NO AI / NO LLM POLICY](#no-ai--no-llm-policy)
 
 
 # OPENING AN ISSUE
@@ -133,28 +154,6 @@ While these steps won't necessarily ensure that no misuse of the account takes p
 ### Is the website primarily used for piracy?
 
 We follow [youtube-dl's policy](https://github.com/ytdl-org/youtube-dl#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free) to not support services that is primarily used for infringing copyright. Additionally, it has been decided to not to support porn sites that specialize in fakes. We also cannot support any service that serves only [DRM protected content](https://en.wikipedia.org/wiki/Digital_rights_management).
-
-
-# AUTOMATED CONTRIBUTIONS (AI / LLM) POLICY
-
-See below.
-
-
-# NO AI / NO LLM POLICY
-
-This project strictly forbids the usage of LLMs, agents, or any other AI tools for any kind of contribution.
-
-This means:
-
-- No AI / no LLMs for issues or bug reports.
-
-- No AI / no LLMs for patches or pull requests (including PR descriptions).
-
-- No AI / no LLMs for issue tracker comments or code review comments.
-
-- No AI / no LLMs for translation. Communication in English is preferred, but you're welcome to write in your native language and rely on others to translate your text with their own tools.
-
-Anyone who violates this policy may be blocked from this organization's repositories without warning.
 
 
 # DEVELOPER INSTRUCTIONS
