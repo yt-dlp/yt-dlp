@@ -216,7 +216,7 @@ class WrestleUniverseVODIE(WrestleUniverseBaseIE):
         except ExtractorError as e:
             # try the encrypted API if normal API fails
             # there might be a better approach than trial and error
-            if '400' not in str(e):
+            if isinstance(e.cause, HTTPError) and e.cause.status != 400:
                 # fails with a HTTP 400 error
                 # unclear if this is always the case
                 raise
