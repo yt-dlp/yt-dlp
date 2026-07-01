@@ -431,7 +431,8 @@ class InstagramIE(InstagramBaseIE):
                 self.report_warning('Instagram API is not granting access', video_id)
 
         response = self._download_json(
-            'https://www.instagram.com/api/graphql', video_id, impersonate=True,
+            'https://www.instagram.com/api/graphql', video_id,
+            fatal=False, impersonate=True,
             headers=filter_dict({
                 **self._api_headers,
                 'X-FB-Friendly-Name': 'PolarisLoggedOutDesktopWWWPostRootContentQuery',
