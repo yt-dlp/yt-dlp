@@ -1985,12 +1985,6 @@ from .toypics import (
     ToypicsIE,
     ToypicsUserIE,
 )
-from .trovo import (
-    TrovoChannelClipIE,
-    TrovoChannelVodIE,
-    TrovoIE,
-    TrovoVodIE,
-)
 from .trtcocuk import TrtCocukVideoIE
 from .trtworld import TrtWorldIE
 from .trueid import TrueIDIE
