@@ -310,7 +310,7 @@ class Aria2cFD(ExternalFD):
         return fn if os.path.isabs(fn) else f'.{os.path.sep}{fn}'
 
     def _make_cmd(self, tmpfilename, info_dict):
-        cmd = [self.exe, '-c', '--no-conf',
+        cmd = [self.exe, '--no-conf', '--auto-save-interval=10',
                '--console-log-level=warn', '--summary-interval=0', '--download-result=hide',
                '--http-accept-gzip=true', '--file-allocation=none', '-x16', '-j16', '-s16',
                '--min-split-size', '1M']
@@ -325,7 +325,13 @@ class Aria2cFD(ExternalFD):
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
         cmd += self._bool_option('--show-console-readout', 'noprogress', 'false', 'true', '=')
+        cmd += self._bool_option('--remove-control-file', 'continuedl', 'false', 'true', '=')
         cmd += self._configuration_args()
+        # do not allow changing these flags
+        cmd += ['--allow-overwrite=true']
+        cmd += ['--always-resume=false']
+        cmd += ['--auto-file-renaming=false']
+        cmd += ['--force-save=false']
 
         # aria2c strips out spaces from the beginning/end of filenames and paths.
         # We work around this issue by adding a "./" to the beginning of the
@@ -340,7 +346,6 @@ class Aria2cFD(ExternalFD):
         cmd += [
             '--out',
             self._aria2c_filename(os.path.basename(tmpfilename)),
-            '--auto-file-renaming=false',
             '--',
             info_dict['url'],
         ]
