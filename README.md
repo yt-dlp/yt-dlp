@@ -624,7 +624,7 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     "*10:15-inf" --download-sections "intro"
     --downloader [PROTO:]NAME       Name or path of the external downloader to
                                     use (optionally) prefixed by the protocols
-                                    (http, ftp, m3u8, dash, rstp, rtmp, mms) to
+                                    (http, ftp, m3u8, dash, rtmp) to
                                     use it for. Currently supports native,
                                     aria2c, axel, curl, ffmpeg, httpie, wget.
                                     You can use this option multiple times to
