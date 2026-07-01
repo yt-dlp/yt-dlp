@@ -119,19 +119,21 @@ class ZanIE(InfoExtractor):
             if fmt.get('vcodec') == 'none':
                 continue
 
-            for i, area in enumerate(areas, 1):
+            height = traverse_obj(fmt, ('height', {int_or_none}))
+            for i, (x, y, w, h) in enumerate(areas, 1):
                 angle_formats.append({
                     **fmt,
-                    'format_id': f'{fmt["format_id"]}-angle{i}',
-                    'protocol': 'm3u8',
-                    'source_preference': -i,
                     'downloader_options': {
                         'ffmpeg_args_out': [
-                            '-vf', self._multiangle_crop(*area, unit, ma_margin),
+                            '-vf', self._multiangle_crop(x, y, w, h, unit, ma_margin),
                             '-c:v', 'libx264',
                             '-c:a', 'copy',
                         ],
                     },
+                    'format_id': f'{fmt["format_id"]}-angle{i}',
+                    'height': int_or_none((height * h / unit - ma_margin * 2) // 2 * 2) if height else None,
+                    'protocol': 'm3u8',
+                    'source_preference': -i,
                 })
 
         return angle_formats
