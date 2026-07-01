@@ -1280,7 +1280,19 @@ def unified_timestamp(date_str, day_first=True, tz_offset=0):
     date_str = re.sub(r'\s+', ' ', re.sub(
         r'(?i)[,|]|(mon|tues?|wed(nes)?|thu(rs)?|fri|sat(ur)?|sun)(day)?', '', date_str))
 
-    pm_delta = 12 if re.search(r'(?i)PM', date_str) else 0
+    meridiem = re.search(r'(?i)(AM|PM)', date_str)
+    meridiem = meridiem.group(1).lower() if meridiem else None
+
+    def _meridiem_hours(hour):
+        # 12-hour clock correction: 12 PM is noon and 12 AM is midnight, while
+        # every other PM hour is +12. Keying on the parsed hour (rather than just
+        # the presence of "PM") is what fixes the 12 o'clock cases, which were
+        # previously off by 12 hours (12 PM -> next-day midnight, 12 AM -> noon).
+        if meridiem == 'pm' and hour != 12:
+            return 12
+        if meridiem == 'am' and hour == 12:
+            return -12
+        return 0
     timezone, date_str = extract_timezone(
         date_str, default=dt.timedelta(hours=tz_offset) if tz_offset else None)
 
@@ -1299,12 +1311,13 @@ def unified_timestamp(date_str, day_first=True, tz_offset=0):
 
     for expression in date_formats(day_first):
         with contextlib.suppress(ValueError):
-            dt_ = dt.datetime.strptime(date_str, expression) - timezone + dt.timedelta(hours=pm_delta)
-            return calendar.timegm(dt_.timetuple())
+            upload_datetime = dt.datetime.strptime(date_str, expression)
+            upload_datetime += dt.timedelta(hours=_meridiem_hours(upload_datetime.hour))
+            return calendar.timegm((upload_datetime - timezone).timetuple())
 
     timetuple = email.utils.parsedate_tz(date_str)
     if timetuple:
-        return calendar.timegm(timetuple) + pm_delta * 3600 - int(timezone.total_seconds())
+        return calendar.timegm(timetuple) + _meridiem_hours(timetuple[3]) * 3600 - int(timezone.total_seconds())
 
 
 @partial_application

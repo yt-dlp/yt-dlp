@@ -495,7 +495,11 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(unified_timestamp('December 15, 2017 at 7:49 am'), 1513324140)
         self.assertEqual(unified_timestamp('2018-03-14T08:32:43.1493874+00:00'), 1521016363)
         self.assertEqual(unified_timestamp('Sunday, 26 Nov 2006, 19:00'), 1164567600)
-        self.assertEqual(unified_timestamp('wed, aug 16, 2008, 12:00pm'), 1218931200)
+        self.assertEqual(unified_timestamp('wed, aug 16, 2008, 12:00pm'), 1218888000)  # noon, not next-day midnight
+        self.assertEqual(unified_timestamp('Dec 15, 2017 at 12:00 pm'), 1513339200)
+        self.assertEqual(unified_timestamp('Dec 15, 2017 at 12:00 am'), 1513296000)
+        self.assertEqual(unified_timestamp('Dec 15, 2017 at 12:30 am'), 1513297800)
+        self.assertEqual(unified_timestamp('May 16, 2016 12:15 PM'), 1463400900)
 
         self.assertEqual(unified_timestamp('December 31 1969 20:00:01 EDT'), 1)
         self.assertEqual(unified_timestamp('Wednesday 31 December 1969 18:01:26 MDT'), 86)
