@@ -380,6 +380,8 @@ class InstagramIE(InstagramBaseIE):
         'only_matching': True,
     }]
 
+    _SJS_RE = re.compile(r'<script\b[^>]+\bdata-sjs>(\{.+?\})</script>')
+
     _lsd_token = None
 
     @classmethod
@@ -397,11 +399,9 @@ class InstagramIE(InstagramBaseIE):
         if self._is_logged_in:
             return
         if not self._lsd_token:
-            webpage = self._download_webpage(
-                self._BASE_URL, None, 'Setting up session',
-                impersonate=True, require_impersonation=True)
+            webpage = self._download_webpage(self._BASE_URL, None, 'Setting up session', impersonate=True)
             eqmc = self._search_json(
-                r'<script\b[^>]* id="__eqmc"[^>]*>', webpage, 'eqmc JSON', None, default={})
+                r'<script\b[^>]*\bid="__eqmc"[^>]*>', webpage, 'eqmc JSON', None, default={})
             self._lsd_token = (
                 traverse_obj(eqmc, ('l', {str}))
                 or self._search_regex(r'\["LSD",\[\],\{"token":"([^"]+)"', webpage, 'LSD token'))
@@ -419,7 +419,7 @@ class InstagramIE(InstagramBaseIE):
         api_check = self._download_json(
             f'{self._API_BASE_URL}/web/get_ruling_for_content/', video_id,
             'Checking post accessibility', errnote=False, fatal=False,
-            impersonate=True, require_impersonation=True, headers=self._api_headers,
+            impersonate=True, headers=self._api_headers,
             query={'content_type': 'MEDIA', 'target_id': media_id}) or {}
 
         csrf_token = self._get_cookies('https://www.instagram.com').get('csrftoken')
@@ -432,7 +432,7 @@ class InstagramIE(InstagramBaseIE):
 
         response = self._download_json(
             'https://www.instagram.com/api/graphql', video_id,
-            impersonate=True, require_impersonation=True,
+            fatal=False, impersonate=True,
             headers=filter_dict({
                 **self._api_headers,
                 'X-FB-Friendly-Name': 'PolarisLoggedOutDesktopWWWPostRootContentQuery',
@@ -441,10 +441,6 @@ class InstagramIE(InstagramBaseIE):
                 'X-Requested-With': 'XMLHttpRequest',
                 'Referer': url,
             }), data=urlencode_postdata({
-                'av': '0',
-                '__d': 'www',
-                '__user': '0',
-                'dpr': '1',
                 'lsd': self._lsd_token,
                 'fb_api_caller_class': 'RelayModern',
                 'fb_api_req_friendly_name': 'PolarisLoggedOutDesktopWWWPostRootContentQuery',
@@ -455,6 +451,7 @@ class InstagramIE(InstagramBaseIE):
 
         media = traverse_obj(response, ('data', 'xig_polaris_media', {dict}))
         product_info = traverse_obj(media, ('if_not_gated_logged_out', {dict}))
+
         if not product_info:
             error = join_nonempty('title', 'description', delim=': ', from_dict=api_check)
             if 'Restricted Video' in error:
@@ -466,6 +463,23 @@ class InstagramIE(InstagramBaseIE):
                 # Only raise after getting empty response; sometimes "long"-shortcode posts are public
                 self.raise_login_required(
                     'This content is only available for registered users who follow this account')
+
+            webpage, urlh = self._download_webpage_handle(
+                f'https://www.instagram.com/p/{video_id}', video_id)
+            if urlh.url.startswith(self._LOGIN_URL):
+                self.raise_login_required(
+                    'The webpage request was redirected to the login page. '
+                    'You have exceeded the rate-limit for accessing posts anonymously')
+
+            media = traverse_obj(webpage, (
+                {self._SJS_RE.findall}, ..., {json.loads},
+                'require', ..., ..., ..., '__bbox', 'require',
+                lambda _, v: v[0] == 'RelayPrefetchedStreamCache', ...,
+                lambda _, v: v['__bbox']['result']['data']['xig_polaris_media'],
+                '__bbox', 'result', 'data', 'xig_polaris_media', {dict}, any))
+            product_info = traverse_obj(media, ('if_not_gated_logged_out', {dict}))
+
+        if not product_info:
             raise ExtractorError(
                 'Instagram sent an empty media response. Check if this post is accessible in your '
                 f'browser without being logged-in. If it is not, then u{self._login_hint()[1:]}. '
