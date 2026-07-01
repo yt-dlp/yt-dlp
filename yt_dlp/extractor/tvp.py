@@ -150,7 +150,7 @@ class TVPIE(InfoExtractor):
         website_data = self._search_regex([
             # website - regiony, tvp.info
             # directory - jp2.tvp.pl
-            r'window\.__(?:website|directory)Data\s*=\s*({(?:.|\s)+?});',
+            r'window\.__(?:website|directory)Data\s*=\s*({[\s\S]+?});',
         ], webpage, 'website data')
         if not website_data:
             return None
@@ -188,7 +188,7 @@ class TVPIE(InfoExtractor):
     def _handle_vuejs_page(self, url, webpage, page_id):
         # vue client-side rendered sites (all regional pages + tvp.info)
         video_data = self._search_regex([
-            r'window\.__(?:news|video)Data\s*=\s*({(?:.|\s)+?})\s*;',
+            r'window\.__(?:news|video)Data\s*=\s*({[\s\S]+?})\s*;',
         ], webpage, 'video data', default=None)
         if video_data:
             return self._extract_vue_video(video_data, page_id=page_id)
