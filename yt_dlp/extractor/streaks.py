@@ -23,16 +23,22 @@ class StreaksBaseIE(InfoExtractor):
     _GEO_BYPASS = False
     _GEO_COUNTRIES = ['JP']
 
-    def _extract_from_streaks_api(self, project_id, media_id, headers=None, query=None, ssai=False, live_from_start=False):
+    def _streaks_playback_api_url(self, project_id, media_id):
+        return self._API_URL_TEMPLATE.format('playback', project_id, media_id, '')
+
+    def _download_streaks_playback_json(self, project_id, media_id, headers=None):
+        return self._download_json(
+            self._streaks_playback_api_url(project_id, media_id),
+            media_id, 'Downloading STREAKS playback API JSON', headers={
+                'Accept': 'application/json',
+                'Origin': 'https://players.streaks.jp',
+                **self.geo_verification_headers(),
+                **(headers or {}),
+            })
+
+    def _extract_from_streaks_api(self, project_id, media_id, headers=None, query=None, live_from_start=False):
         try:
-            response = self._download_json(
-                self._API_URL_TEMPLATE.format('playback', project_id, media_id, ''),
-                media_id, 'Downloading STREAKS playback API JSON', headers={
-                    'Accept': 'application/json',
-                    'Origin': 'https://players.streaks.jp',
-                    **self.geo_verification_headers(),
-                    **(headers or {}),
-                })
+            response = self._download_streaks_playback_json(project_id, media_id, headers=headers)
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status in (403, 404):
                 error = self._parse_json(e.cause.response.read().decode(), media_id, fatal=False)
@@ -60,9 +66,11 @@ class StreaksBaseIE(InfoExtractor):
 
         formats, subtitles = [], {}
         drm_formats = False
+        sources = response['sources']
+        ssai = traverse_obj(sources, (..., 'ssai', {dict}, any))
 
-        for source in traverse_obj(response, (
-            'sources', lambda _, v: url_or_none(v['src']),
+        for source in traverse_obj(sources, (
+            lambda _, v: url_or_none(v['src']),
         )):
             if source.get('key_systems'):
                 drm_formats = True
@@ -116,7 +124,7 @@ class StreaksBaseIE(InfoExtractor):
                 'duration': ('duration', {float_or_none}),
                 'modified_timestamp': ('updated_at', {parse_iso8601}),
                 'tags': ('tags', ..., {clean_html}, filter, all, filter),
-                'thumbnails': (('poster', 'thumbnail'), 'src', {'url': {url_or_none}}),
+                'thumbnail': (('thumbnail', 'poster'), 'src', {url_or_none}, any),
                 'timestamp': ('created_at', {parse_iso8601}),
             }),
         }
