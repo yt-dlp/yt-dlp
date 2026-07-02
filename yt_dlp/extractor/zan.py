@@ -126,13 +126,13 @@ class ZanIE(InfoExtractor):
             self.report_warning(f'Unsupported multiangle type: {ma_type}')
             return formats
 
-        angle = int_or_none(angle, default=0)
+        angle_num = int_or_none(angle, default=0)
         angle_count = len(areas)
-        if not 1 <= angle <= angle_count:
+        if not 1 <= angle_num <= angle_count:
             raise ExtractorError(
                 f'Invalid angle value, expected 1-{angle_count}', expected=True)
 
-        x, y, w, h = areas[angle - 1]
+        x, y, w, h = areas[angle_num - 1]
         angle_formats = []
         for fmt in formats:
             if fmt.get('vcodec') == 'none':
@@ -148,7 +148,7 @@ class ZanIE(InfoExtractor):
                         '-c:a', 'copy',
                     ],
                 },
-                'format_id': f'{fmt["format_id"]}-angle{angle}',
+                'format_id': f'{fmt["format_id"]}-angle{angle_num}',
                 'height': int_or_none((height * h / unit - ma_margin * 2) // 2 * 2) if height else None,
                 'protocol': 'm3u8',
             })
