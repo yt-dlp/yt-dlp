@@ -41,7 +41,7 @@ class WrestleUniverseBaseIE(InfoExtractor):
 
     @property
     def _TOKEN(self):
-        if not (self._REAL_TOKEN and self._TOKEN_EXPIRY):
+        if not self._REAL_TOKEN or not self._TOKEN_EXPIRY:
             token = try_call(lambda: self._get_cookies('https://www.wrestle-universe.com/')['token'].value)
             if not token and not self._REFRESH_TOKEN:
                 self.raise_login_required()
@@ -160,8 +160,27 @@ class WrestleUniverseBaseIE(InfoExtractor):
             if not data.get('canWatch'):
                 self.raise_no_formats(
                     'This account does not have access to the requested content', expected=True)
-            self.raise_no_formats('No supported formats found')
+            else:
+                self.raise_no_formats('No supported formats found')
+            return []
         return self._extract_m3u8_formats(hls_url, video_id, 'mp4', m3u8_id='hls', live=True)
+
+    def _extract_hls_aes_info(self, video_data, decrypt):
+        if decrypt is None:
+            return {}
+
+        hls_aes_key = traverse_obj(video_data, ('hls', 'key', {decrypt}))
+        if hls_aes_key:
+            return {
+                'hls_aes': {
+                    'key': hls_aes_key,
+                    'iv': traverse_obj(video_data, ('hls', 'iv', {decrypt})),
+                },
+            }
+        elif traverse_obj(video_data, ('hls', 'encryptType', {int})):
+            self.report_warning('HLS AES-128 key was not found in API response')
+
+        return {}
 
 
 class WrestleUniverseVODIE(WrestleUniverseBaseIE):
@@ -192,47 +211,35 @@ class WrestleUniverseVODIE(WrestleUniverseBaseIE):
     def _real_extract(self, url):
         lang, video_id = self._match_valid_url(url).group('lang', 'id')
         metadata = self._download_metadata(url, video_id, lang, 'videoEpisodeFallbackData')
-        info = {
+        decrypt = None
+
+        try:
+            video_data = self._call_api(video_id, ':watch', 'watch', data={'deviceId': self._DEVICE_ID})
+        except ExtractorError as error:
+            if not isinstance(error.cause, HTTPError) or error.cause.status != 400:
+                raise
+            video_data, decrypt = self._call_encrypted_api(video_id, ':watch', 'watch', data={'method': 1})
+
+        return {
             'id': video_id,
+            'formats': self._get_formats(video_data, ('protocolHls', 'url', {url_or_none}), video_id),
+            **self._extract_hls_aes_info(video_data, decrypt),
             **traverse_obj(metadata, {
                 'title': ('displayName', {str}),
                 'description': ('description', {str}),
                 'channel': ('labels', 'group', {str}),
                 'location': ('labels', 'venue', {str}),
-                'timestamp': ('watchStartTime', {int}),
+                'timestamp': ('watchStartTime', {int_or_none}),
                 'thumbnail': ('keyVisualUrl', {url_or_none}),
                 'cast': ('casts', ..., 'displayName', {str}),
                 'duration': ('duration', {int}),
-                'chapters': ('videoChapters', lambda _, v: int_or_none(v['start']), {
+                'chapters': ('videoChapters', lambda _, v: isinstance(v['start'], int), {
                     'title': ('displayName', {str}),
                     'start_time': ('start', {int}),
                     'end_time': ('end', {int}),
                 }),
             }),
         }
-        try:
-            decrypt = None
-            video_data = self._call_api(video_id, ':watch', 'watch', data={'deviceId': self._DEVICE_ID})
-        except ExtractorError as e:
-            if isinstance(e.cause, HTTPError) and e.cause.status == 400:
-                video_data, decrypt = self._call_encrypted_api(
-                    video_id, ':watch', 'watch', data={'deviceId': self._DEVICE_ID, 'method': 1})
-            else:
-                raise
-
-        info['formats'] = self._get_formats(video_data, ('protocolHls', 'url', {url_or_none}), video_id)
-
-        if decrypt:
-            if key_and_iv := traverse_obj(video_data,
-                                          ('protocolHls', {
-                                              'key': ('key', {decrypt}),
-                                              'iv': ('iv', {decrypt}),
-                                          }), default=[None, None]):
-                info['hls_aes'] = key_and_iv
-            else:
-                self.report_warning('HLS AES-128 key was not found in API response')
-
-        return info
 
 
 class WrestleUniversePPVIE(WrestleUniverseBaseIE):
@@ -321,13 +328,6 @@ class WrestleUniversePPVIE(WrestleUniverseBaseIE):
             if not f['format_id'].startswith(url_basename(f['manifest_url']).partition('.')[0]):
                 f['preference'] = -10
 
-        hls_aes_key = traverse_obj(video_data, ('hls', 'key', {decrypt}))
-        if hls_aes_key:
-            info['hls_aes'] = {
-                'key': hls_aes_key,
-                'iv': traverse_obj(video_data, ('hls', 'iv', {decrypt})),
-            }
-        elif traverse_obj(video_data, ('hls', 'encryptType', {int})):
-            self.report_warning('HLS AES-128 key was not found in API response')
+        info.update(self._extract_hls_aes_info(video_data, decrypt))
 
         return info
