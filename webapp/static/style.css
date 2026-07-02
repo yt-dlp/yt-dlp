@@ -209,7 +209,38 @@ form.dl-form input {
   font-size: 14px;
 }
 form.dl-form input:focus { outline: none; border-color: var(--accent-2); }
+form.dl-form select {
+  background: var(--bg);
+  border: 1px solid #2c303c;
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
 @media (max-width: 860px) { form.dl-form { grid-template-columns: 1fr; } }
+
+/* --- recherche --- */
+form.search-form { grid-template-columns: 1fr 280px auto; }
+
+.pill {
+  background: var(--accent-2);
+  color: #fff;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 8px;
+  vertical-align: 1px;
+}
+
+.result .ep { cursor: default; }
+.result .ep .sub { color: var(--text-dim); font-size: 12px; font-weight: 400; }
+.result .ep .btn, .result .ep button { flex-shrink: 0; }
+
+form.confirm-form {
+  grid-template-columns: 1fr 110px auto;
+  margin: 6px 0 12px;
+  padding: 14px 16px;
+}
 
 /* --- jobs --- */
 .job {

@@ -18,7 +18,9 @@ import shutil
 import sys
 import threading
 import uuid
+from concurrent.futures import ThreadPoolExecutor, wait
 from pathlib import Path
+from urllib.parse import urlencode, urlparse
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
@@ -173,6 +175,100 @@ def clear_downloads():
         for jid in [j['id'] for j in jobs.values() if j['status'] in ('done', 'error')]:
             del jobs[jid]
     return {'ok': True}
+
+
+# ---------------------------------------------------------------------------
+# Recherche multi-sites
+# ---------------------------------------------------------------------------
+
+# Extracteurs de recherche yt-dlp interrogés en parallèle. Google Vidéo et
+# Yahoo sont des méta-moteurs : ils remontent des vidéos hébergées sur de
+# nombreux sites, que yt-dlp sait ensuite télécharger.
+SEARCH_SOURCES = [
+    ('ytsearch', 'YouTube'),
+    ('gvsearch', 'Google Vidéo'),
+    ('yvsearch', 'Yahoo Vidéo'),
+    ('bilisearch', 'BiliBili'),
+    ('nicosearch', 'NicoNico'),
+]
+SEARCH_TIMEOUT = 30
+
+
+def flat_extract(query):
+    opts = {
+        'quiet': True,
+        'noprogress': True,
+        'extract_flat': True,
+        'skip_download': True,
+        'ignoreerrors': True,
+        'socket_timeout': 15,
+    }
+    with yt_dlp.YoutubeDL(opts) as ydl:
+        return ydl.extract_info(query, download=False)
+
+
+def entry_to_result(entry, site):
+    url = entry.get('url') or entry.get('webpage_url')
+    if not url or not url.startswith('http'):
+        return None
+    return {
+        'site': site,
+        'source': urlparse(url).netloc.removeprefix('www.') or site,
+        'title': entry.get('title') or url,
+        'url': url,
+        'duration': entry.get('duration'),
+        'uploader': entry.get('uploader') or entry.get('channel'),
+        'is_playlist': entry.get('_type') == 'playlist' or 'list=' in url,
+    }
+
+
+def search_source(key, label, q, count):
+    info = flat_extract(f'{key}{count}:{q}') or {}
+    results = []
+    for entry in info.get('entries') or []:
+        if entry and (r := entry_to_result(entry, label)):
+            results.append(r)
+    return results
+
+
+def search_youtube_playlists(q, count):
+    # page de résultats YouTube filtrée sur les playlists (sp=EgIQAw==)
+    url = 'https://www.youtube.com/results?' + urlencode({'search_query': q, 'sp': 'EgIQAw=='})
+    info = flat_extract(url) or {}
+    results = []
+    for entry in (info.get('entries') or [])[:count]:
+        if entry and (r := entry_to_result(entry, 'YouTube')):
+            r['is_playlist'] = True
+            results.append(r)
+    return results
+
+
+@app.get('/api/search')
+def search(q: str, mode: str = 'videos', count: int = 8):
+    q = q.strip()
+    if not q:
+        raise HTTPException(400, 'Recherche vide')
+    count = max(1, min(count, 20))
+
+    executor = ThreadPoolExecutor(max_workers=len(SEARCH_SOURCES))
+    try:
+        if mode == 'playlists':
+            futures = {executor.submit(search_youtube_playlists, q, count): 'YouTube'}
+        else:
+            futures = {
+                executor.submit(search_source, key, label, q, count): label
+                for key, label in SEARCH_SOURCES
+            }
+        done, not_done = wait(futures, timeout=SEARCH_TIMEOUT)
+        results, failed = [], [futures[f] for f in not_done]
+        for fut in done:
+            try:
+                results.extend(fut.result())
+            except Exception:
+                failed.append(futures[fut])
+        return {'query': q, 'results': results, 'failed_sources': sorted(failed)}
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
 
 
 # ---------------------------------------------------------------------------

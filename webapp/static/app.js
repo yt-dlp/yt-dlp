@@ -34,6 +34,12 @@ const getPos = (path) => parseFloat(localStorage.getItem('anistream.pos.' + path
 
 const fmtSpeed = (b) => b ? (b / 1048576).toFixed(1) + ' Mo/s' : '';
 const fmtEta = (s) => s ? `~${Math.ceil(s / 60)} min restantes` : '';
+const fmtDuration = (s) => {
+  if (!s) return '';
+  s = Math.round(s);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(sec).padStart(2, '0');
+};
 
 // ---------------------------------------------------------------- vues
 
@@ -134,6 +140,116 @@ async function viewWatch(path) {
     markSeen(path);
     savePos(path, 0);
     if (next) location.hash = '#/watch/' + encodeURIComponent(next.path);
+  });
+}
+
+let lastSearch = { q: '', mode: 'videos', data: null };
+
+async function viewSearch() {
+  app.innerHTML = `
+    <h1>Recherche</h1>
+    <form class="dl-form search-form" id="search-form">
+      <label>Animé ou série à chercher
+        <input name="q" placeholder="One Piece épisode 1 vostfr…" required value="${esc(lastSearch.q)}">
+      </label>
+      <label>Type
+        <select name="mode">
+          <option value="videos" ${lastSearch.mode === 'videos' ? 'selected' : ''}>Vidéos / épisodes (tous sites)</option>
+          <option value="playlists" ${lastSearch.mode === 'playlists' ? 'selected' : ''}>Playlists YouTube (saisons)</option>
+        </select>
+      </label>
+      <button type="submit">Rechercher</button>
+    </form>
+    <div id="search-results"></div>
+    <p class="hint">La recherche interroge YouTube, Google Vidéo et Yahoo (méta-moteurs couvrant de
+    nombreux sites), BiliBili et NicoNico, puis yt-dlp télécharge depuis le site trouvé.
+    Tu peux aussi coller directement une URL dans l'onglet Téléchargements.</p>`;
+
+  document.getElementById('search-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const q = f.q.value.trim(), mode = f.mode.value;
+    const box = document.getElementById('search-results');
+    const btn = f.querySelector('button');
+    btn.disabled = true;
+    box.innerHTML = '<div class="empty">Recherche en cours sur tous les sites…</div>';
+    try {
+      const data = await api(`/api/search?q=${encodeURIComponent(q)}&mode=${mode}`);
+      lastSearch = { q, mode, data };
+      renderSearchResults(data);
+    } catch (err) {
+      box.innerHTML = `<div class="empty">Erreur : ${esc(err.message)}</div>`;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  if (lastSearch.data) renderSearchResults(lastSearch.data);
+}
+
+function renderSearchResults(data) {
+  const box = document.getElementById('search-results');
+  if (!box) return;
+  const bySite = new Map();
+  for (const r of data.results) {
+    if (!bySite.has(r.site)) bySite.set(r.site, []);
+    bySite.get(r.site).push(r);
+  }
+  let html = '';
+  if (data.failed_sources.length) {
+    html += `<p class="hint">Sans réponse : ${data.failed_sources.map(esc).join(', ')}</p>`;
+  }
+  if (!data.results.length) {
+    box.innerHTML = html + '<div class="empty">Aucun résultat.</div>';
+    return;
+  }
+  for (const [site, results] of bySite) {
+    html += `<h2>${esc(site)} (${results.length})</h2><div class="ep-list">` + results.map((r, i) => `
+      <div class="result" data-url="${esc(r.url)}">
+        <div class="ep result-row">
+          <div class="ep-title">
+            ${r.is_playlist ? '<span class="pill">playlist</span> ' : ''}${esc(r.title)}
+            <div class="sub">${esc(r.source)}${r.uploader ? ' · ' + esc(r.uploader) : ''}${r.duration ? ' · ' + fmtDuration(r.duration) : ''}</div>
+          </div>
+          <a class="btn secondary" href="${esc(r.url)}" target="_blank" rel="noopener">Ouvrir</a>
+          <button class="pick">Télécharger</button>
+        </div>
+        <form class="dl-form confirm-form" hidden>
+          <label>Série (dossier)
+            <input name="series" required value="${esc(data.query)}">
+          </label>
+          <label>Saison (optionnel)
+            <input name="season" type="number" min="0" placeholder="1">
+          </label>
+          <button type="submit">Lancer</button>
+        </form>
+      </div>`).join('') + '</div>';
+  }
+  box.innerHTML = html;
+
+  box.querySelectorAll('.result').forEach((el) => {
+    const form = el.querySelector('.confirm-form');
+    el.querySelector('.pick').addEventListener('click', () => { form.hidden = !form.hidden; });
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = form.querySelector('button');
+      btn.disabled = true;
+      try {
+        await api('/api/download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: el.dataset.url,
+            series: form.series.value.trim(),
+            season: form.season.value ? parseInt(form.season.value, 10) : null,
+          }),
+        });
+        btn.textContent = 'Lancé ✓';
+      } catch (err) {
+        alert('Erreur : ' + err.message);
+        btn.disabled = false;
+      }
+    });
   });
 }
 
@@ -243,13 +359,16 @@ function router() {
   clearInterval(pollTimer);
   const hash = location.hash || '#/';
   document.querySelectorAll('nav a').forEach((a) => a.classList.remove('active'));
-  const route = hash.startsWith('#/downloads') ? 'downloads' : 'library';
+  const route = hash.startsWith('#/downloads') ? 'downloads'
+    : hash.startsWith('#/search') ? 'search' : 'library';
   document.querySelector(`nav a[data-nav="${route}"]`).classList.add('active');
 
   if (hash.startsWith('#/series/')) {
     viewSeries(decodeURIComponent(hash.slice('#/series/'.length)));
   } else if (hash.startsWith('#/watch/')) {
     viewWatch(decodeURIComponent(hash.slice('#/watch/'.length)));
+  } else if (hash.startsWith('#/search')) {
+    viewSearch();
   } else if (hash.startsWith('#/downloads')) {
     viewDownloads();
     pollTimer = setInterval(renderJobs, 2000);
