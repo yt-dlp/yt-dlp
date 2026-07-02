@@ -104,7 +104,6 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'SUPPORTS_COOKIES': True,
-        'SUPPORTS_AD_PLAYBACK_CONTEXT': True,
         **WEB_PO_TOKEN_POLICIES,
     },
     # Safari UA returns pre-merged video+audio 144p/240p/360p/720p/1080p HLS formats
@@ -118,7 +117,6 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'SUPPORTS_COOKIES': True,
-        'SUPPORTS_AD_PLAYBACK_CONTEXT': True,
         **WEB_PO_TOKEN_POLICIES,
     },
     'web_embedded': {
@@ -223,16 +221,17 @@ INNERTUBE_CLIENTS = {
         },
         'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
     },
-    # YouTube Kids videos aren't returned on this client for some reason
+    # "Made for kids" videos aren't available with this client
+    # Using a clientVersion>1.65 may return SABR streams only
     'android_vr': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_VR',
-                'clientVersion': '1.71.26',
+                'clientVersion': '1.65.10',
                 'deviceMake': 'Oculus',
                 'deviceModel': 'Quest 3',
                 'androidSdkVersion': 32,
-                'userAgent': 'com.google.android.apps.youtube.vr.oculus/1.71.26 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip',
+                'userAgent': 'com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip',
                 'osName': 'Android',
                 'osVersion': '12L',
             },
@@ -369,7 +368,7 @@ def short_client_name(client_name):
 
 def _fix_embedded_ytcfg(ytcfg):
     ytcfg['INNERTUBE_CONTEXT'].setdefault('thirdParty', {}).update({
-        'embedUrl': 'https://www.youtube.com/',  # Can be any valid URL
+        'embedUrl': 'https://www.reddit.com/',  # Can be any valid non-YouTube URL
     })
 
 
@@ -958,16 +957,25 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         url = {
             'mweb': 'https://m.youtube.com',
             'web': 'https://www.youtube.com',
+            'web_safari': 'https://www.youtube.com',
             'web_music': 'https://music.youtube.com',
+            'web_creator': 'https://studio.youtube.com',
             'web_embedded': f'https://www.youtube.com/embed/{video_id}?html5=1',
             'tv': 'https://www.youtube.com/tv',
         }.get(client)
         if not url:
             return {}
+
+        default_ytcfg = self._get_default_ytcfg(client)
+
+        if default_ytcfg['REQUIRE_AUTH'] and not self.is_authenticated:
+            return {}
+
         webpage = self._download_webpage_with_retries(
             url, video_id, note=f'Downloading {client.replace("_", " ").strip()} client config',
-            headers=traverse_obj(self._get_default_ytcfg(client), {
+            headers=traverse_obj(default_ytcfg, {
                 'User-Agent': ('INNERTUBE_CONTEXT', 'client', 'userAgent', {str}),
+                'Referer': ('INNERTUBE_CONTEXT', 'thirdParty', 'embedUrl', {str}),
             }))
 
         ytcfg = self.extract_ytcfg(video_id, webpage) or {}
@@ -1029,8 +1037,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             return next_continuation
 
         return traverse_obj(renderer, (
-            ('contents', 'items', 'rows', 'subThreads'), ..., 'continuationItemRenderer',
-            ('continuationEndpoint', ('button', 'buttonRenderer', 'command')),
+            ('contents', 'items', 'rows', 'subThreads'), ..., (
+                ('continuationItemRenderer', ('continuationEndpoint', ('button', 'buttonRenderer', 'command'))),
+                ('continuationItemViewModel', 'continuationCommand', 'innertubeCommand'),
+            ),
         ), get_all=False, expected_type=cls._extract_continuation_ep_data)
 
     @classmethod
@@ -1142,6 +1152,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _get_count(self, data, *path_list):
         count_text = self._get_text(data, *path_list) or ''
+        if count_text.lower().startswith('no '):
+            return 0
         count = parse_count(count_text)
         if count is None:
             count = str_to_int(
@@ -1172,8 +1184,20 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 })
         return thumbnails
 
-    @staticmethod
-    def extract_relative_time(relative_time_text):
+    # Map abbreviated relative-time units to the long-form unit names that
+    # datetime_from_str() understands.
+    _RELATIVE_TIME_UNIT_MAP = {
+        's': 'second', 'sec': 'second', 'second': 'second',
+        'min': 'minute', 'minute': 'minute',
+        'h': 'hour', 'hr': 'hour', 'hour': 'hour',
+        'd': 'day', 'day': 'day',
+        'w': 'week', 'wk': 'week', 'week': 'week',
+        'mo': 'month', 'month': 'month',
+        'y': 'year', 'yr': 'year', 'year': 'year',
+    }
+
+    @classmethod
+    def extract_relative_time(cls, relative_time_text):
         """
         Extracts a relative time from string and converts to dt object
         e.g. 'streamed 6 days ago', '5 seconds ago (edited)', 'updated today', '8 yr ago'
@@ -1183,15 +1207,19 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         # The relative time text strings are roughly the same as what
         # Javascript's Intl.RelativeTimeFormat function generates.
         # See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/RelativeTimeFormat
+        # Sort longest-first: regex alternation matches left-to-right, so short
+        # keys like 's' must come after 'sec'/'second' to avoid premature matches.
+        units = '|'.join(map(re.escape, sorted(cls._RELATIVE_TIME_UNIT_MAP, key=len, reverse=True)))
         mobj = re.search(
-            r'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>sec(?:ond)?|s|min(?:ute)?|h(?:our|r)?|d(?:ay)?|w(?:eek|k)?|mo(?:nth)?|y(?:ear|r)?)s?\s*ago',
+            rf'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>{units})s?\s*ago',
             relative_time_text)
         if mobj:
             start = mobj.group('start')
             if start:
                 return datetime_from_str(start)
+            unit = cls._RELATIVE_TIME_UNIT_MAP[mobj.group('unit')]
             try:
-                return datetime_from_str('now-{}{}'.format(mobj.group('time'), mobj.group('unit')))
+                return datetime_from_str(f'now-{mobj.group("time")}{unit}')
             except ValueError:
                 return None
 
