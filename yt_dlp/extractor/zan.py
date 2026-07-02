@@ -114,11 +114,10 @@ class ZanIE(InfoExtractor):
         )
 
     def _multiangle_formats(self, formats, ma_type, ma_number, ma_margin):
-        angle = self._configuration_arg('angle', [None])[0]
-        if angle is None:
+        if self._configuration_arg('split_angles', ['false'])[0] != 'true':
             self.to_screen(
                 'Multi-angle formats are available. Use --extractor-args '
-                '"zan:angle=N" to download a specific angle')
+                '"zan:split_angles=true" to list separate angle formats')
             return formats
 
         unit, areas = self._get_multiangle_layout(ma_type, ma_number)
@@ -126,32 +125,28 @@ class ZanIE(InfoExtractor):
             self.report_warning(f'Unsupported multiangle type: {ma_type}')
             return formats
 
-        angle_num = int_or_none(angle, default=0)
-        angle_count = len(areas)
-        if not 1 <= angle_num <= angle_count:
-            raise ExtractorError(
-                f'Invalid angle value, expected 1-{angle_count}', expected=True)
-
-        x, y, w, h = areas[angle_num - 1]
         angle_formats = []
         for fmt in formats:
             if fmt.get('vcodec') == 'none':
                 continue
 
             height = traverse_obj(fmt, ('height', {int_or_none}))
-            angle_formats.append({
-                **fmt,
-                'downloader_options': {
-                    'ffmpeg_args_out': [
-                        '-vf', self._multiangle_crop(x, y, w, h, unit, ma_margin),
-                        '-c:v', 'libx264',
-                        '-c:a', 'copy',
-                    ],
-                },
-                'format_id': f'{fmt["format_id"]}-angle{angle_num}',
-                'height': int_or_none((height * h / unit - ma_margin * 2) // 2 * 2) if height else None,
-                'protocol': 'm3u8',
-            })
+            for i, (x, y, w, h) in enumerate(areas, 1):
+                angle_formats.append({
+                    **fmt,
+                    'downloader_options': {
+                        'ffmpeg_args_out': [
+                            '-vf', self._multiangle_crop(x, y, w, h, unit, ma_margin),
+                            '-c:v', 'libx264',
+                            '-c:a', 'copy',
+                        ],
+                    },
+                    'format_id': f'{fmt["format_id"]}-angle{i}',
+                    'height': int_or_none(
+                        (height * h / unit - ma_margin * 2) // 2 * 2) if height else None,
+                    'protocol': 'm3u8',
+                    'source_preference': -i,
+                })
 
         return angle_formats
 
