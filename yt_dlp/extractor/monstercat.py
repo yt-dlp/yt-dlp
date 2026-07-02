@@ -12,7 +12,7 @@ from ..utils.traversal import find_element, traverse_obj
 
 
 class MonstercatIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.monstercat\.com/release/(?P<id>\d+)'
+    _VALID_URL = r'https?://www\.monstercat\.com/release/(?P<id>\d{12}|MC[A-Z]+\d+)'
     _TESTS = [{
         'url': 'https://www.monstercat.com/release/742779548009',
         'playlist_count': 20,
@@ -23,6 +23,28 @@ class MonstercatIE(InfoExtractor):
             'release_date': '20230711',
             'album': 'The Secret Language of Trees',
             'album_artists': ['BT'],
+        },
+    }, {
+        'url': 'https://www.monstercat.com/release/MCRAB001',
+        'playlist_count': 1,
+        'info_dict': {
+            'title': 'Crab Rave',
+            'id': 'MCRAB001',
+            'thumbnail': 'https://www.monstercat.com/release/MCRAB001/cover',
+            'release_date': '20180401',
+            'album': 'Crab Rave',
+            'album_artists': ['Noisestorm'],
+        },
+    }, {
+        'url': 'https://www.monstercat.com/release/MCEP209',
+        'playlist_count': 5,
+        'info_dict': {
+            'title': 'Somewhere New',
+            'id': 'MCEP209',
+            'thumbnail': 'https://www.monstercat.com/release/MCEP209/cover',
+            'release_date': '20210415',
+            'album': 'Somewhere New',
+            'album_artists': ['Bad Computer'],
         },
     }]
 
