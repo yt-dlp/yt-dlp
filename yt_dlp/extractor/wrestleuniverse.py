@@ -184,6 +184,7 @@ class WrestleUniverseBaseIE(InfoExtractor):
 
 
 class WrestleUniverseVODIE(WrestleUniverseBaseIE):
+    IE_NAME = 'wrestleuniverse:vod'
     _VALID_URL = WrestleUniverseBaseIE._VALID_URL_TMPL % 'videos'
     _TESTS = [{
         'url': 'https://www.wrestle-universe.com/en/videos/dp8mpjmcKfxzUhEHM2uFws',
@@ -243,6 +244,7 @@ class WrestleUniverseVODIE(WrestleUniverseBaseIE):
 
 
 class WrestleUniversePPVIE(WrestleUniverseBaseIE):
+    IE_NAME = 'wrestleuniverse:ppv'
     _VALID_URL = WrestleUniverseBaseIE._VALID_URL_TMPL % 'lives'
     _TESTS = [{
         'note': 'HLS AES-128 key obtained via API',
