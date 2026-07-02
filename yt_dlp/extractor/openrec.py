@@ -33,12 +33,11 @@ from ..utils.traversal import (
 
 
 class OpenRecBaseIE(InfoExtractor):
-    _API_BASE = 'https://apiv5.openrec.tv/api/v5'
-    _API_HEADERS = {}
-    _BASE_URL = 'https://www.openrec.tv'
+    _API_BASE = 'https://apiv5.mellow-fan.com/api/v5'
+    _BASE_URL = 'https://www.mellow-fan.com'
     _HEADERS = {'Referer': f'{_BASE_URL}/'}
     _NETRC_MACHINE = 'openrec'
-    _PUBLIC_API_BASE = 'https://public.openrec.tv/external/api/v5'
+    _PUBLIC_API_BASE = 'https://public.mellow-fan.com/external/api/v5'
 
     def _perform_login(self, username, password):
         if self._get_cookies(self._BASE_URL).get('access-token'):
@@ -58,12 +57,12 @@ class OpenRecBaseIE(InfoExtractor):
 
     def _real_initialize(self):
         cookies = self._get_cookies(self._BASE_URL)
-        self._API_HEADERS.update(traverse_obj(cookies, {
+        self._api_headers = traverse_obj(cookies, {
             'access-token': ('access_token', 'value', {str}, filter),
             'random': ('random', 'value', {str}, filter),
             'token': ('token', 'value', {str}, filter),
             'uuid': ('uuid', 'value', {str}, filter),
-        }))
+        })
 
     def _extract_pagestore(self, webpage, video_id):
         start = r'window\.pageStore\s*='
@@ -79,7 +78,7 @@ class OpenRecBaseIE(InfoExtractor):
     def _call_api(self, path, item_id):
         return self._download_json(
             f'{self._API_BASE}/{path}', item_id,
-            headers=self._API_HEADERS, expected_status=401)
+            headers=self._api_headers, expected_status=401)
 
     def _parse_openrec_metadata(self, page_store, video_id):
         info = traverse_obj(page_store, ('v8', 'movie', {dict}))
@@ -143,10 +142,9 @@ class OpenRecBaseIE(InfoExtractor):
 
 
 class OpenRecIE(OpenRecBaseIE):
-    IE_NAME = 'openrec'
-    IE_DESC = 'OPENREC.tv'
+    IE_NAME = 'mellow-fan'
 
-    _VALID_URL = r'https?://(?:www\.)?openrec\.tv/(?:m/)?live/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:mellow-fan\.com|openrec\.tv)/(?:m/)?live/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.openrec.tv/live/e2zwj0mp6ro',
         'info_dict': {
@@ -169,9 +167,10 @@ class OpenRecIE(OpenRecBaseIE):
             'upload_date': '20230528',
             'view_count': int,
         },
+        'skip': '404 Not Found',
     }, {
         # SP
-        'url': 'https://www.openrec.tv/live/2p8vv29438y',
+        'url': 'https://www.mellow-fan.com/live/2p8vv29438y',
         'info_dict': {
             'id': '2p8vv29438y',
             'ext': 'mp4',
@@ -195,7 +194,7 @@ class OpenRecIE(OpenRecBaseIE):
         },
     }, {
         # Members only
-        'url': 'https://www.openrec.tv/live/kdr7nldqgzj',
+        'url': 'https://www.mellow-fan.com/live/kdr7nldqgzj',
         'info_dict': {
             'id': 'kdr7nldqgzj',
             'ext': 'mp4',
@@ -226,7 +225,7 @@ class OpenRecIE(OpenRecBaseIE):
         'skip': 'Subscribers only',
     }, {
         # PPV
-        'url': 'https://www.openrec.tv/live/e5rk93xn1zv',
+        'url': 'https://www.mellow-fan.com/live/e5rk93xn1zv',
         'info_dict': {
             'id': 'e5rk93xn1zv',
             'ext': 'mp4',
@@ -337,8 +336,11 @@ class OpenRecIE(OpenRecBaseIE):
 
         release_timestamp = traverse_obj(page_store, ('movieStore', 'willStartAt', {parse_iso8601}))
         if live_status == 'is_upcoming':
+            start_time = dt.datetime.fromtimestamp(
+                release_timestamp, dt.timezone.utc,
+            ).astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
             self.raise_no_formats(
-                f'This content is scheduled to start at {release_timestamp} UTC', expected=True)
+                f'This livestream is scheduled to start at {start_time}', expected=True)
 
             return {
                 'id': video_id,
@@ -387,33 +389,34 @@ class OpenRecIE(OpenRecBaseIE):
 
 
 class OpenRecCaptureIE(OpenRecBaseIE):
-    IE_NAME = 'openrec:capture'
-    _VALID_URL = r'https?://(?:www\.)?openrec\.tv/(?:m/)?capture/(?P<id>[^/?#]+)'
+    IE_NAME = 'mellow-fan:capture'
+
+    _VALID_URL = r'https?://(?:www\.)?(?:mellow-fan\.com|openrec\.tv)/(?:m/)?capture/(?P<id>[^/?#]+)'
     _TESTS = [{
-        'url': 'https://www.openrec.tv/capture/l9nk2x4gn14',
+        'url': 'https://www.mellow-fan.com/capture/l2q00vxl8q8',
         'info_dict': {
-            'id': 'l9nk2x4gn14',
+            'id': 'l2q00vxl8q8',
             'ext': 'mp4',
-            'title': 'すもしゅら「助けてぇぇ、おとこのひとーー」',
-            'channel': 'すもも',
-            'channel_id': 'sumomo_xqx',
-            'duration': 37,
+            'title': '？？？？',
+            'channel': '布団ちゃん',
+            'channel_id': 'indegnasen',
+            'duration': 89,
             'thumbnail': r're:https?://.+',
-            'timestamp': 1612509889,
-            'upload_date': '20210205',
+            'timestamp': 1637589871,
+            'upload_date': '20211122',
         },
     }, {
-        'url': 'https://www.openrec.tv/capture/mldjr82p7qk',
+        'url': 'https://www.mellow-fan.com/capture/9pdz9334vng',
         'info_dict': {
-            'id': 'mldjr82p7qk',
+            'id': '9pdz9334vng',
             'ext': 'mp4',
-            'title': 'たいじの恥ずかしい英語力',
-            'channel': 'たいちゃんねる',
-            'channel_id': 'Yaritaiji',
-            'duration': 46,
+            'title': 'オプレの現実',
+            'channel': 'ゆゆうた&みゃこの泥沼バラエティ',
+            'channel_id': 'doronuma-variety',
+            'duration': 64,
             'thumbnail': r're:https?://.+',
-            'timestamp': 1627926283,
-            'upload_date': '20210802',
+            'timestamp': 1677585253,
+            'upload_date': '20230228',
         },
     }]
 
@@ -444,10 +447,11 @@ class OpenRecCaptureIE(OpenRecBaseIE):
 
 
 class OpenRecMovieIE(OpenRecBaseIE):
-    IE_NAME = 'openrec:movie'
-    _VALID_URL = r'https?://(?:www\.)?openrec\.tv/(?:m/)?movie/(?P<id>[^/?#]+)'
+    IE_NAME = 'mellow-fan:movie'
+
+    _VALID_URL = r'https?://(?:www\.)?(?:mellow-fan\.com|openrec\.tv)/(?:m/)?movie/(?P<id>[^/?#]+)'
     _TESTS = [{
-        'url': 'https://www.openrec.tv/movie/e5rk9k4o6zv',
+        'url': 'https://www.mellow-fan.com/movie/e5rk9k4o6zv',
         'info_dict': {
             'id': 'e5rk9k4o6zv',
             'ext': 'mp4',
@@ -466,7 +470,7 @@ class OpenRecMovieIE(OpenRecBaseIE):
         },
     }, {
         # Members only
-        'url': 'https://www.openrec.tv/movie/n9ze6q3eo84',
+        'url': 'https://www.mellow-fan.com/movie/n9ze6q3eo84',
         'info_dict': {
             'id': 'n9ze6q3eo84',
             'ext': 'mp4',
@@ -486,7 +490,7 @@ class OpenRecMovieIE(OpenRecBaseIE):
         'skip': 'Subscribers only',
     }, {
         # PPV
-        'url': 'https://www.openrec.tv/movie/em8xvd4ljr2',
+        'url': 'https://www.mellow-fan.com/movie/em8xvd4ljr2',
         'info_dict': {
             'id': 'em8xvd4ljr2',
             'ext': 'mp4',
@@ -527,12 +531,12 @@ class OpenRecMovieIE(OpenRecBaseIE):
 
 
 class OpenRecPlaylistIE(OpenRecBaseIE):
-    IE_NAME = 'openrec:playlist'
+    IE_NAME = 'mellow-fan:playlist'
 
-    _VALID_URL = r'https?://(?:www\.)?openrec\.tv/(?:m/)?user/[^/?#]+/playlist/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:mellow-fan\.com|openrec\.tv)/(?:m/)?user/[^/?#]+/playlist/(?P<id>[^/?#]+)'
     _TESTS = [{
         # live
-        'url': 'https://www.openrec.tv/user/DbD_BPF/playlist/j59svruhtua2z8t',
+        'url': 'https://www.mellow-fan.com/user/DbD_BPF/playlist/j59svruhtua2z8t',
         'info_dict': {
             'id': 'j59svruhtua2z8t',
             'title': 'BPFのおすすめ',
@@ -540,7 +544,7 @@ class OpenRecPlaylistIE(OpenRecBaseIE):
         'playlist_mincount': 10,
     }, {
         # capture
-        'url': 'https://www.openrec.tv/user/sagara_mayu/playlist/xngNMzv71yLjGdW',
+        'url': 'https://www.mellow-fan.com/user/sagara_mayu/playlist/xngNMzv71yLjGdW',
         'info_dict': {
             'id': 'xngNMzv71yLjGdW',
             'title': '相良茉優のFAN!FUN!FACTORY!キャプチャ',
@@ -548,7 +552,7 @@ class OpenRecPlaylistIE(OpenRecBaseIE):
         'playlist_mincount': 4,
     }, {
         # movie
-        'url': 'https://www.openrec.tv/user/oreranohonoka/playlist/sficoshvi9dgkqh',
+        'url': 'https://www.mellow-fan.com/user/oreranohonoka/playlist/sficoshvi9dgkqh',
         'info_dict': {
             'id': 'sficoshvi9dgkqh',
             'title': 'SP（スペシャル）映像：（短編映像）おにいたむプランだけが視聴できます',
@@ -599,12 +603,12 @@ class OpenRecPlaylistIE(OpenRecBaseIE):
 
 
 class OpenRecChannelIE(OpenRecBaseIE):
-    IE_NAME = 'openrec:channel'
+    IE_NAME = 'mellow-fan:channel'
 
     _PAGE_SIZE = 40
-    _VALID_URL = r'https?://(?:www\.)?openrec\.tv/(?:m/)?user/(?P<id>[^/?#]+)$'
+    _VALID_URL = r'https?://(?:www\.)?(?:mellow-fan\.com|openrec\.tv)/(?:m/)?user/(?P<id>[^/?#]+)$'
     _TESTS = [{
-        'url': 'https://www.openrec.tv/user/OPENRECPARK',
+        'url': 'https://www.mellow-fan.com/user/OPENRECPARK',
         'info_dict': {
             'id': 'OPENRECPARK',
             'title': 'OPENREC PARK',
@@ -648,25 +652,25 @@ class OpenRecChannelIE(OpenRecBaseIE):
 
 
 class OpenRecChannelSearchIE(OpenRecBaseIE):
-    IE_NAME = 'openrec:channel:search'
+    IE_NAME = 'mellow-fan:channel:search'
 
-    _VALID_URL = r'https?://(?:www\.)?openrec\.tv/(?:m/)?user/(?P<id>[^/?#]+)/search(?:/(?P<type>capture|movie))?(?:[/?#]|$)'
+    _VALID_URL = r'https?://(?:www\.)?(?:mellow-fan\.com|openrec\.tv)/(?:m/)?user/(?P<id>[^/?#]+)/search(?:/(?P<type>capture|movie))?(?:[/?#]|$)'
     _TESTS = [{
-        'url': 'https://www.openrec.tv/user/indegnasen/search?search_query=%E3%82%B9%E3%82%A4%E3%82%AB',
+        'url': 'https://www.mellow-fan.com/user/indegnasen/search?search_query=%E3%82%B9%E3%82%A4%E3%82%AB',
         'info_dict': {
             'id': 'indegnasen',
             'title': 'indegnasen:スイカ',
         },
         'playlist_count': 2,
     }, {
-        'url': 'https://www.openrec.tv/user/ofurekodesu/search/movie?search_query=%E3%82%A2%E3%83%AA%E3%82%AA%E5%85%AB%E5%B0%BE',
+        'url': 'https://www.mellow-fan.com/user/ofurekodesu/search/movie?search_query=%E3%82%A2%E3%83%AA%E3%82%AA%E5%85%AB%E5%B0%BE',
         'info_dict': {
             'id': 'ofurekodesu',
             'title': 'ofurekodesu:アリオ八尾:movie',
         },
         'playlist_mincount': 31,
     }, {
-        'url': 'https://www.openrec.tv/user/DbD_BPF/search/capture?search_query=%E3%81%82%E3%81%A3%E3%81%95%E3%82%8A%E3%81%97%E3%82%87%E3%81%93',
+        'url': 'https://www.mellow-fan.com/user/DbD_BPF/search/capture?search_query=%E3%81%82%E3%81%A3%E3%81%95%E3%82%8A%E3%81%97%E3%82%87%E3%81%93',
         'info_dict': {
             'id': 'DbD_BPF',
             'title': 'DbD_BPF:あっさりしょこ:capture',
