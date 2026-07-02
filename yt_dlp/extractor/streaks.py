@@ -169,19 +169,19 @@ class StreaksIE(StreaksBaseIE):
             'uploader_id': 'ktv-web',
         },
     }, {
-        # https://www.ktv.jp/news/articles/?id=26089
-        'url': 'https://playback.api.streaks.jp/v1/projects/ktv-news/medias/2574a2542f7a461892b9a17457acd604',
+        # https://www.ktv.jp/news/articles/?id=28105
+        'url': 'https://playback.api.streaks.jp/v1/projects/ktv-news/medias/714171c4c53c409bb41e1572997ebfcf',
         'info_dict': {
-            'id': '2574a2542f7a461892b9a17457acd604',
+            'id': '714171c4c53c409bb41e1572997ebfcf',
             'ext': 'mp4',
-            'title': '26089.mp4',
-            'duration': 51.752,
+            'title': '28105.mp4',
+            'duration': 49.984,
             'live_status': 'not_live',
-            'modified_date': '20260331',
-            'modified_timestamp': 1774999785,
+            'modified_date': '20260702',
+            'modified_timestamp': 1783028559,
             'thumbnail': r're:https?://.+\.jpg',
-            'timestamp': 1774999564,
-            'upload_date': '20260331',
+            'timestamp': 1783028407,
+            'upload_date': '20260702',
             'uploader_id': 'ktv-news',
         },
         'params': {'extractor_args': {'streaks': {'api_key': ['0ff2ccfb6381401582d6ee60e3cb66a1']}}},
@@ -255,11 +255,9 @@ class StreaksIE(StreaksBaseIE):
     }]
 
     def _real_extract(self, url):
-        project_id, media_id = self._match_valid_url(url).group('project_id', 'id')
-        if urllib.parse.urlparse(url).hostname == 'players.streaks.jp':
-            api_key = self._match_valid_url(url).group('api_key')
-        else:
-            api_key = self._configuration_arg('api_key', [None])[0]
+        mobj = self._match_valid_url(url).groupdict()
+        project_id, media_id = mobj['project_id'], mobj['id']
+        api_key = mobj.get('api_key') or self._configuration_arg('api_key', [None])[0]
 
         return self._extract_from_streaks_api(
             project_id, media_id, headers=filter_dict({
