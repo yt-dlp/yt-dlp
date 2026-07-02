@@ -72,7 +72,7 @@ pin = [
     "certifi==2026.6.17",
     "charset-normalizer==3.4.7",
     "idna==3.18",
-    "mutagen==1.48.0",
+    "mutagen==1.48.1",
     "pycryptodomex==3.23.0",
     "requests==2.34.2",
     "urllib3==2.7.0",

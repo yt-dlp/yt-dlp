@@ -595,11 +595,11 @@ wheels = [
 
 [[package]]
 name = "mutagen"
-version = "1.48.0"
+version = "1.48.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/eb/2e/3e1b17cc655e59faac1008cfdaae2e38f123b9b229f0d1695f9860500d4d/mutagen-1.48.0.tar.gz", hash = "sha256:4933d14b83a2add03c23e04a3c397ffbe44f130403f1256881ee228869aee3bb", size = 1276933, upload-time = "2026-06-22T14:03:17.455Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/df/70/1675da133ea92227da41bf5b24e1c66be597ff736a1533ade41da986852f/mutagen-1.48.1.tar.gz", hash = "sha256:8f95637ab9f6f305cec6bd1294e197debe207998e3e068596563c74f86b0a173", size = 1276978, upload-time = "2026-06-25T09:47:32.443Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/39/1f/b62af7c661850ded4a550143e816613bd057b8c38fed534a6142735a77d0/mutagen-1.48.0-py3-none-any.whl", hash = "sha256:60a48d3e30173f728170fb0503f66b26026bf7629afb12546b18395c5cdf0bd6", size = 195754, upload-time = "2026-06-22T14:03:13.254Z" },
+    { url = "https://files.pythonhosted.org/packages/47/d8/a29e4e3991765e7ce4ed1f7e4074fe1ba9da03e0048639734de60f9cadb9/mutagen-1.48.1-py3-none-any.whl", hash = "sha256:4f077fe87d3fc7fba259aa63d8c026b18382ca6a42ef37c61e16f1b1b5b82fe7", size = 195706, upload-time = "2026-06-25T09:47:30.296Z" },
 ]
 
 [[package]]
@@ -1302,7 +1302,7 @@ requires-dist = [
     { name = "markdown-it-py", marker = "implementation_name == 'cpython' and extra == 'pin-curl-cffi'", specifier = "==4.2.0" },
     { name = "mdurl", marker = "implementation_name == 'cpython' and extra == 'pin-curl-cffi'", specifier = "==0.1.2" },
     { name = "mutagen", marker = "extra == 'default'" },
-    { name = "mutagen", marker = "extra == 'pin'", specifier = "==1.48.0" },
+    { name = "mutagen", marker = "extra == 'pin'", specifier = "==1.48.1" },
     { name = "pycparser", marker = "implementation_name != 'PyPy' and platform_python_implementation != 'PyPy' and extra == 'pin-secretstorage'", specifier = "==3.0" },
     { name = "pycparser", marker = "implementation_name == 'cpython' and extra == 'pin-curl-cffi'", specifier = "==3.0" },
     { name = "pycryptodomex", marker = "extra == 'default'" },
