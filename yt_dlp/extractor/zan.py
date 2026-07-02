@@ -117,7 +117,7 @@ class ZanIE(InfoExtractor):
         if self._configuration_arg('split_angles', ['false'])[0] == 'false':
             self.to_screen(
                 'Multi-angle formats are available. Use --extractor-args '
-                '"zan:split_angles=true" to list separate angle formats')
+                '"zan:split_angles=true" to extract separate angle formats')
             return formats
 
         unit, areas = self._get_multiangle_layout(ma_type, ma_number)
