@@ -1890,6 +1890,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'tv': 'tv-player-ias.vflset/tv-player-ias.js',
         'tv_es6': 'tv-player-es6.vflset/tv-player-es6.js',
         'phone': 'player-plasma-ias-phone-en_US.vflset/base.js',
+        'plasma_es6': 'player-plasma-es6-en_US.vflset/base.js',
+        'plasma_es6_tcc': 'player-plasma-es6-tcc-en_US.vflset/base.js',
+        'plasma_es6_tce': 'player-plasma-es6-tce-en_US.vflset/base.js',
+        'embed': 'player_embed.vflset/en_US/base.js',
+        'embed_tcc': 'player_embed_tcc.vflset/en_US/base.js',
+        'embed_tce': 'player_embed_tce.vflset/en_US/base.js',
+        'embed_es6': 'player_embed_es6.vflset/en_US/base.js',
+        'embed_es6_tcc': 'player_embed_es6_tcc.vflset/en_US/base.js',
+        'embed_es6_tce': 'player_embed_es6_tce.vflset/en_US/base.js',
         'house': 'house_brand_player.vflset/en_US/base.js',  # Used by Google Drive
     }
     _INVERSE_PLAYER_JS_VARIANT_MAP = {v: k for k, v in _PLAYER_JS_VARIANT_MAP.items()}
