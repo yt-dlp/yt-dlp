@@ -114,33 +114,44 @@ class ZanIE(InfoExtractor):
         )
 
     def _multiangle_formats(self, formats, ma_type, ma_number, ma_margin):
+        angle = self._configuration_arg('angle', [None])[0]
+        if angle is None:
+            self.to_screen(
+                'Multi-angle formats are available. Use --extractor-args '
+                '"zan:angle=N" to download a specific angle')
+            return formats
+
         unit, areas = self._get_multiangle_layout(ma_type, ma_number)
         if areas is None:
             self.report_warning(f'Unsupported multiangle type: {ma_type}')
             return formats
 
+        angle = int_or_none(angle, default=0)
+        angle_count = len(areas)
+        if not 1 <= angle <= angle_count:
+            raise ExtractorError(
+                f'Invalid angle value, expected 1-{angle_count}', expected=True)
+
+        x, y, w, h = areas[angle - 1]
         angle_formats = []
         for fmt in formats:
             if fmt.get('vcodec') == 'none':
                 continue
 
             height = traverse_obj(fmt, ('height', {int_or_none}))
-            for i, (x, y, w, h) in enumerate(areas, 1):
-                angle_formats.append({
-                    **fmt,
-                    'downloader_options': {
-                        'ffmpeg_args_out': [
-                            '-vf', self._multiangle_crop(x, y, w, h, unit, ma_margin),
-                            '-c:v', 'libx264',
-                            '-c:a', 'copy',
-                        ],
-                    },
-                    'format_id': f'{fmt["format_id"]}-angle{i}',
-                    'height': int_or_none(
-                        (height * h / unit - ma_margin * 2) // 2 * 2) if height else None,
-                    'protocol': 'm3u8',
-                    'source_preference': -i,
-                })
+            angle_formats.append({
+                **fmt,
+                'downloader_options': {
+                    'ffmpeg_args_out': [
+                        '-vf', self._multiangle_crop(x, y, w, h, unit, ma_margin),
+                        '-c:v', 'libx264',
+                        '-c:a', 'copy',
+                    ],
+                },
+                'format_id': f'{fmt["format_id"]}-angle{angle}',
+                'height': int_or_none((height * h / unit - ma_margin * 2) // 2 * 2) if height else None,
+                'protocol': 'm3u8',
+            })
 
         return angle_formats
 
@@ -201,8 +212,7 @@ class ZanIE(InfoExtractor):
         formats, _ = self._parse_m3u8_formats_and_subtitles(m3u8_doc, m3u8_url, 'mp4')
         self._fixup_m3u8_formats(formats, m3u8_doc, m3u8_url)
 
-        ma_type = self._html_search_meta('multiangle-type', webpage, default=None)
-        if ma_type:
+        if ma_type := self._html_search_meta('multiangle-type', webpage, default=None):
             ma_number = int_or_none(self._html_search_meta(
                 'multiangle-number', webpage, default=None))
             ma_margin = float_or_none(self._html_search_meta(
