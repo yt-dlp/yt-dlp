@@ -1977,7 +1977,7 @@ The following extractors use this feature:
 * `original_format_policy`: Policy for when to try extracting original formats. One of `always`, `never`, or `auto`. The default `auto` policy tries to avoid exceeding the web client's API rate-limit by only making an extra request when Vimeo publicizes the video's downloadability
 
 #### zan
-* `split_angles`: Split multi-angle streams into separate angle formats, disabled by default
+* `split_angles`: Split multi-angle streams into separate angle formats. Forces re-encoding of the video stream during download, and requires ffmpeg. Either `true` or `false` (default)
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 

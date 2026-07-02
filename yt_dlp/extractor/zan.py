@@ -114,7 +114,7 @@ class ZanIE(InfoExtractor):
         )
 
     def _multiangle_formats(self, formats, ma_type, ma_number, ma_margin):
-        if self._configuration_arg('split_angles', ['false'])[0] != 'true':
+        if self._configuration_arg('split_angles', ['false'])[0] == 'false':
             self.to_screen(
                 'Multi-angle formats are available. Use --extractor-args '
                 '"zan:split_angles=true" to list separate angle formats')
