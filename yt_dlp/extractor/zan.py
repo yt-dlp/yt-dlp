@@ -196,7 +196,7 @@ class ZanIE(InfoExtractor):
                 release_timestamp, dt.timezone.utc,
             ).astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
             self.raise_no_formats(
-                f'This stream is scheduled to start at {start_time}', expected=True)
+                f'This livestream is scheduled to start at {start_time}', expected=True)
 
             return {
                 'id': video_id,
