@@ -74,7 +74,7 @@ class HRTiBaseIE(InfoExtractor):
                 data=json.dumps(auth_data).encode())
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 406:
-                auth_info = self._parse_json(e.cause.response.read().encode(), None)
+                auth_info = self._parse_json(e.cause.response.read().decode(), None)
             else:
                 raise
 
