@@ -130,14 +130,14 @@ class OmnyfmIE(InfoExtractor):
                 'filesize': ('PublishedAudioSizeInBytes', {int_or_none}),
                 'modified_timestamp': ('ModifiedAtUtc', {parse_iso8601}),
                 'season_number': ('Season', {int_or_none}),
-                'tags': ('Tags', ..., {clean_html}, filter),
+                'tags': ('Tags', ..., {clean_html}, filter, all, filter),
                 'thumbnail': ('ImageUrl', {update_url(query=None)}),
                 'timestamp': ('PublishedUtc', {parse_iso8601}),
                 'url': ('AudioUrl', {url_or_none}, {require('audio URL')}),
                 'webpage_url': ('PublishedUrl', {url_or_none}),
             }),
             **traverse_obj(clip, ('Program', {
-                'categories': ('Categories', ..., {clean_html}, filter),
+                'categories': ('Categories', ..., {clean_html}, filter, all, filter),
                 'uploader': ('Name', {clean_html}, filter),
             })),
         }
