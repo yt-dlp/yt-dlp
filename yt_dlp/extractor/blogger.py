@@ -15,7 +15,6 @@ from ..utils.traversal import require, traverse_obj
 
 
 class BloggerIE(InfoExtractor):
-    _BASE_URL = 'https://www.blogger.com'
     _ITAG_MAP = {
         '7': (320, 240),
         '18': (640, 360),
@@ -64,11 +63,8 @@ class BloggerIE(InfoExtractor):
         ]]], separators=(',', ':'))
 
         player_data = self._download_webpage(
-            f'{self._BASE_URL}/_/BloggerVideoPlayerUi/data/batchexecute',
-            None, headers={
-                'Origin': self._BASE_URL,
-                'Referer': f'{self._BASE_URL}/',
-            }, query={
+            'https://www.blogger.com/_/BloggerVideoPlayerUi/data/batchexecute',
+            None, query={
                 'bl': bl,
                 'f.sid': f_sid,
                 'rpcids': self._RPC_ID,
