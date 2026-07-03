@@ -20,7 +20,7 @@ env:
 jobs:
   issue-llm:
     name: Issue (ai-policy-violation)
-    if: github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'ai-policy-violation')
+    if: github.event.issue.state == 'open' && contains(github.event.issue.labels.*.name, 'ai-policy-violation')
     permissions:
       issues: write  # Needed to comment on, close, and lock issues
     runs-on: ubuntu-slim
@@ -30,12 +30,13 @@ jobs:
     steps:
       - name: Comment, close and lock issue
         run: |
+          gh issue unlock "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" || true
           gh issue close "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --reason "not planned" --comment "${LLM_MESSAGE}"
           gh issue lock "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}"
 
   issue-bad:
     name: Issue (piracy/illegal)
-    if: github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'piracy/illegal')
+    if: github.event.issue.state == 'open' && contains(github.event.issue.labels.*.name, 'piracy/illegal')
     permissions:
       issues: write  # Needed to comment on, close, and lock issues
     runs-on: ubuntu-slim
@@ -45,14 +46,14 @@ jobs:
     steps:
       - name: Comment, close and lock issue
         run: |
+          gh issue unlock "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" || true
           gh issue close "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --reason "not planned" --comment "${BAD_MESSAGE}"
           gh issue lock "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}"
 
   pr-llm:
     name: PR (ai-policy-violation)
-    if: github.event_name == 'pull_request_target' && contains(github.event.pull_request.labels.*.name, 'ai-policy-violation')
+    if: github.event.pull_request.state == 'open' && contains(github.event.pull_request.labels.*.name, 'ai-policy-violation')
     permissions:
-      issues: write  # Needed to comment on, close, and lock issues
       pull-requests: write  # Needed to comment on, close, and lock PRs
     runs-on: ubuntu-slim
     env:
@@ -61,14 +62,14 @@ jobs:
     steps:
       - name: Comment, close and lock PR
         run: |
+          gh pr unlock "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" || true
           gh pr close "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --comment "${LLM_MESSAGE}"
           gh pr lock "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}"
 
   pr-bad:
     name: PR (piracy/illegal)
-    if: github.event_name == 'pull_request_target' && contains(github.event.pull_request.labels.*.name, 'piracy/illegal')
+    if: github.event.pull_request.state == 'open' && contains(github.event.pull_request.labels.*.name, 'piracy/illegal')
     permissions:
-      issues: write  # Needed to comment on, close, and lock issues
       pull-requests: write  # Needed to comment on, close, and lock PRs
     runs-on: ubuntu-slim
     env:
@@ -77,5 +78,6 @@ jobs:
     steps:
       - name: Comment, close and lock PR
         run: |
+          gh pr unlock "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" || true
           gh pr close "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --comment "${BAD_MESSAGE}"
           gh pr lock "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}"
