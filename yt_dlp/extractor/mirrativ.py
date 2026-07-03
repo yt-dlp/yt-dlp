@@ -18,7 +18,7 @@ class MirrativIE(MirrativBaseIE):
     IE_NAME = 'mirrativ'
     _VALID_URL = r'https?://(?:www\.)?mirrativ\.com/live/(?P<id>[^/?#&]+)'
 
-    TESTS = [{
+    _TESTS = [{
         'url': 'https://mirrativ.com/live/UQomuS7EMgHoxRHjEhNiHw',
         'info_dict': {
             'id': 'UQomuS7EMgHoxRHjEhNiHw',
@@ -59,7 +59,7 @@ class MirrativIE(MirrativBaseIE):
         return {
             'id': video_id,
             'title': self._og_search_title(webpage, default=None) or self._search_regex(
-                r'<title>\s*(.+?) - Mirrativ\s*</title>', webpage) or live_response.get('title'),
+                r'<title>\s*(.+?) - Mirrativ\s*</title>', webpage, 'title', default=None) or live_response.get('title'),
             'is_live': is_live,
             'description': live_response.get('description'),
             'formats': formats,

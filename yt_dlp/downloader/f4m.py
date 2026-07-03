@@ -149,14 +149,14 @@ class FlvReader(io.BytesIO):
         segments_count = self.read_unsigned_char()
         segments = []
         for _ in range(segments_count):
-            box_size, box_type, box_data = self.read_box_info()
+            _box_size, box_type, box_data = self.read_box_info()
             assert box_type == b'asrt'
             segment = FlvReader(box_data).read_asrt()
             segments.append(segment)
         fragments_run_count = self.read_unsigned_char()
         fragments = []
         for _ in range(fragments_run_count):
-            box_size, box_type, box_data = self.read_box_info()
+            _box_size, box_type, box_data = self.read_box_info()
             assert box_type == b'afrt'
             fragments.append(FlvReader(box_data).read_afrt())
 
@@ -167,7 +167,7 @@ class FlvReader(io.BytesIO):
         }
 
     def read_bootstrap_info(self):
-        total_size, box_type, box_data = self.read_box_info()
+        _, box_type, box_data = self.read_box_info()
         assert box_type == b'abst'
         return FlvReader(box_data).read_abst()
 
@@ -324,9 +324,9 @@ class F4mFD(FragmentFD):
         if requested_bitrate is None or len(formats) == 1:
             # get the best format
             formats = sorted(formats, key=lambda f: f[0])
-            rate, media = formats[-1]
+            _, media = formats[-1]
         else:
-            rate, media = next(filter(
+            _, media = next(filter(
                 lambda f: int(f[0]) == requested_bitrate, formats))
 
         # Prefer baseURL for relative URLs as per 11.2 of F4M 3.0 spec.

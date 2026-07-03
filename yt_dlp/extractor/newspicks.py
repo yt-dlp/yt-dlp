@@ -18,7 +18,6 @@ class NewsPicksIE(InfoExtractor):
             'title': '日本の課題を破壊せよ【ゲスト：成田悠輔】',
             'cast': 'count:4',
             'description': 'md5:09397aad46d6ded6487ff13f138acadf',
-            'duration': 2940,
             'release_date': '20220117',
             'release_timestamp': 1642424400,
             'series': 'HORIE ONE',
@@ -35,7 +34,6 @@ class NewsPicksIE(InfoExtractor):
             'title': '【検証】専門家は、KADOKAWAをどう見るか',
             'cast': 'count:3',
             'description': 'md5:2c2d4bf77484a4333ec995d676f9a91d',
-            'duration': 1320,
             'release_date': '20240622',
             'release_timestamp': 1719088080,
             'series': 'NPレポート',
@@ -52,7 +50,14 @@ class NewsPicksIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         fragment = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['fragment']
-        m3u8_url = traverse_obj(fragment, ('movie', 'movieUrl', {url_or_none}, {require('m3u8 URL')}))
+        movie = fragment['movie']
+
+        if traverse_obj(movie, ('viewable', {str})) == 'PARTIAL_FREE' and not traverse_obj(movie, ('canWatch', {bool})):
+            self.report_warning(
+                'Full video is for Premium members. Without cookies, '
+                f'only the preview is downloaded. {self._login_hint()}', video_id)
+
+        m3u8_url = traverse_obj(movie, ('movieUrl', {url_or_none}, {require('m3u8 URL')}))
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4')
 
         return {
@@ -61,12 +66,12 @@ class NewsPicksIE(InfoExtractor):
             'series': traverse_obj(fragment, ('series', 'title', {str})),
             'series_id': series_id,
             'subtitles': subtitles,
-            **traverse_obj(fragment, ('movie', {
+            **traverse_obj(movie, {
                 'title': ('title', {str}),
                 'cast': ('relatedUsers', ..., 'displayName', {str}, filter, all, filter),
                 'description': ('explanation', {clean_html}),
                 'release_timestamp': ('onAirStartDate', {parse_iso8601}),
                 'thumbnail': (('image', 'coverImageUrl'), {url_or_none}, any),
                 'timestamp': ('published', {parse_iso8601}),
-            })),
+            }),
         }

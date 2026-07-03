@@ -99,33 +99,31 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20250312.04.00',
+                'clientVersion': '2.20260114.08.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'SUPPORTS_COOKIES': True,
         **WEB_PO_TOKEN_POLICIES,
-        'PLAYER_PARAMS': '8AEB',
     },
     # Safari UA returns pre-merged video+audio 144p/240p/360p/720p/1080p HLS formats
     'web_safari': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20250312.04.00',
+                'clientVersion': '2.20260114.08.00',
                 'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15,gzip(gfe)',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
         'SUPPORTS_COOKIES': True,
         **WEB_PO_TOKEN_POLICIES,
-        'PLAYER_PARAMS': '8AEB',
     },
     'web_embedded': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_EMBEDDED_PLAYER',
-                'clientVersion': '1.20250310.01.00',
+                'clientVersion': '1.20260115.01.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 56,
@@ -136,7 +134,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_REMIX',
-                'clientVersion': '1.20250310.01.00',
+                'clientVersion': '1.20260114.03.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
@@ -159,13 +157,14 @@ INNERTUBE_CLIENTS = {
             ),
         },
         'SUPPORTS_COOKIES': True,
+        'SUPPORTS_AD_PLAYBACK_CONTEXT': True,
     },
     # This client now requires sign-in for every video
     'web_creator': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_CREATOR',
-                'clientVersion': '1.20250312.03.01',
+                'clientVersion': '1.20260114.05.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
@@ -194,9 +193,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '20.10.38',
+                'clientVersion': '21.02.35',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip',
+                'userAgent': 'com.google.android.youtube/21.02.35 (Linux; U; Android 11) gzip',
                 'osName': 'Android',
                 'osVersion': '11',
             },
@@ -222,16 +221,17 @@ INNERTUBE_CLIENTS = {
         },
         'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
     },
-    # YouTube Kids videos aren't returned on this client for some reason
+    # "Made for kids" videos aren't available with this client
+    # Using a clientVersion>1.65 may return SABR streams only
     'android_vr': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_VR',
-                'clientVersion': '1.62.27',
+                'clientVersion': '1.65.10',
                 'deviceMake': 'Oculus',
                 'deviceModel': 'Quest 3',
                 'androidSdkVersion': 32,
-                'userAgent': 'com.google.android.apps.youtube.vr.oculus/1.62.27 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip',
+                'userAgent': 'com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip',
                 'osName': 'Android',
                 'osVersion': '12L',
             },
@@ -245,10 +245,10 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS',
-                'clientVersion': '20.10.4',
+                'clientVersion': '21.02.3',
                 'deviceMake': 'Apple',
                 'deviceModel': 'iPhone16,2',
-                'userAgent': 'com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)',
+                'userAgent': 'com.google.ios.youtube/21.02.3 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)',
                 'osName': 'iPhone',
                 'osVersion': '18.3.2.22D82',
             },
@@ -261,9 +261,8 @@ INNERTUBE_CLIENTS = {
                 not_required_with_player_token=True,
             ),
             # HLS Livestreams require POT 30 seconds in
-            # TODO: Rolling out
             StreamingProtocol.HLS: GvsPoTokenPolicy(
-                required=False,
+                required=True,
                 recommended=True,
                 not_required_with_player_token=True,
             ),
@@ -277,7 +276,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'MWEB',
-                'clientVersion': '2.20250311.03.00',
+                'clientVersion': '2.20260115.01.00',
                 # mweb previously did not require PO Token with this UA
                 'userAgent': 'Mozilla/5.0 (iPad; CPU OS 16_7_10 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1,gzip(gfe)',
             },
@@ -302,18 +301,31 @@ INNERTUBE_CLIENTS = {
             ),
         },
         'SUPPORTS_COOKIES': True,
+        'SUPPORTS_AD_PLAYBACK_CONTEXT': True,
     },
     'tv': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'TVHTML5',
-                'clientVersion': '7.20250312.16.00',
-                'userAgent': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version',
+                'clientVersion': '7.20260114.12.00',
+                # See: https://github.com/youtube/cobalt/blob/main/cobalt/browser/user_agent/user_agent_platform_info.cc#L506
+                'userAgent': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/25.lts.30.1034943-gold (unlike Gecko), Unknown_TV_Unknown_0/Unknown (Unknown, Unknown)',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
         'SUPPORTS_COOKIES': True,
-        'PLAYER_PARAMS': '8AEB',
+    },
+    'tv_downgraded': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'TVHTML5',
+                'clientVersion': '5.20260114',
+                'userAgent': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
+        'REQUIRE_AUTH': True,
+        'SUPPORTS_COOKIES': True,
     },
     'tv_simply': {
         'INNERTUBE_CONTEXT': {
@@ -322,21 +334,21 @@ INNERTUBE_CLIENTS = {
                 'clientVersion': '1.0',
             },
         },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 75,
-    },
-    # This client now requires sign-in for every video
-    # It was previously an age-gate workaround for videos that were `playable_in_embed`
-    # It may still be useful if signed into an EU account that is not age-verified
-    'tv_embedded': {
-        'INNERTUBE_CONTEXT': {
-            'client': {
-                'clientName': 'TVHTML5_SIMPLY_EMBEDDED_PLAYER',
-                'clientVersion': '2.0',
-            },
+        'GVS_PO_TOKEN_POLICY': {
+            StreamingProtocol.HTTPS: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+            ),
+            StreamingProtocol.DASH: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+            ),
+            StreamingProtocol.HLS: GvsPoTokenPolicy(
+                required=False,
+                recommended=True,
+            ),
         },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 85,
-        'REQUIRE_AUTH': True,
-        'SUPPORTS_COOKIES': True,
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 75,
     },
 }
 
@@ -354,11 +366,15 @@ def short_client_name(client_name):
     return join_nonempty(main[:4], ''.join(x[0] for x in parts)).upper()
 
 
+def _fix_embedded_ytcfg(ytcfg):
+    ytcfg['INNERTUBE_CONTEXT'].setdefault('thirdParty', {}).update({
+        'embedUrl': 'https://www.reddit.com/',  # Can be any valid non-YouTube URL
+    })
+
+
 def build_innertube_clients():
-    THIRD_PARTY = {
-        'embedUrl': 'https://www.youtube.com/',  # Can be any valid URL
-    }
-    BASE_CLIENTS = ('ios', 'web', 'tv', 'mweb', 'android')
+    # From highest to lowest priority
+    BASE_CLIENTS = ('tv', 'web', 'mweb', 'android', 'ios')
     priority = qualities(BASE_CLIENTS[::-1])
 
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
@@ -371,6 +387,7 @@ def build_innertube_clients():
         ytcfg.setdefault('SUBS_PO_TOKEN_POLICY', SubsPoTokenPolicy())
         ytcfg.setdefault('REQUIRE_AUTH', False)
         ytcfg.setdefault('SUPPORTS_COOKIES', False)
+        ytcfg.setdefault('SUPPORTS_AD_PLAYBACK_CONTEXT', False)
         ytcfg.setdefault('PLAYER_PARAMS', None)
         ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
 
@@ -378,10 +395,7 @@ def build_innertube_clients():
         ytcfg['priority'] = 10 * priority(base_client)
 
         if variant == 'embedded':
-            ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = THIRD_PARTY
-            ytcfg['priority'] -= 2
-        elif variant:
-            ytcfg['priority'] -= 3
+            _fix_embedded_ytcfg(ytcfg)
 
 
 build_innertube_clients()
@@ -943,18 +957,41 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         url = {
             'mweb': 'https://m.youtube.com',
             'web': 'https://www.youtube.com',
+            'web_safari': 'https://www.youtube.com',
             'web_music': 'https://music.youtube.com',
+            'web_creator': 'https://studio.youtube.com',
             'web_embedded': f'https://www.youtube.com/embed/{video_id}?html5=1',
             'tv': 'https://www.youtube.com/tv',
         }.get(client)
         if not url:
             return {}
+
+        default_ytcfg = self._get_default_ytcfg(client)
+
+        if default_ytcfg['REQUIRE_AUTH'] and not self.is_authenticated:
+            return {}
+
         webpage = self._download_webpage_with_retries(
             url, video_id, note=f'Downloading {client.replace("_", " ").strip()} client config',
-            headers=traverse_obj(self._get_default_ytcfg(client), {
+            headers=traverse_obj(default_ytcfg, {
                 'User-Agent': ('INNERTUBE_CONTEXT', 'client', 'userAgent', {str}),
+                'Referer': ('INNERTUBE_CONTEXT', 'thirdParty', 'embedUrl', {str}),
             }))
-        return self.extract_ytcfg(video_id, webpage) or {}
+
+        ytcfg = self.extract_ytcfg(video_id, webpage) or {}
+
+        # See https://github.com/yt-dlp/yt-dlp/issues/14826
+        if _split_innertube_client(client)[2] == 'embedded':
+            _fix_embedded_ytcfg(ytcfg)
+
+        # Workaround for https://github.com/yt-dlp/yt-dlp/issues/12563
+        # But it's not effective when logged-in
+        if client == 'tv' and not self.is_authenticated:
+            config_info = traverse_obj(ytcfg, (
+                'INNERTUBE_CONTEXT', 'client', 'configInfo', {dict})) or {}
+            config_info.pop('appInstallData', None)
+
+        return ytcfg
 
     @staticmethod
     def _build_api_continuation_query(continuation, ctp=None):
@@ -1000,8 +1037,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             return next_continuation
 
         return traverse_obj(renderer, (
-            ('contents', 'items', 'rows'), ..., 'continuationItemRenderer',
-            ('continuationEndpoint', ('button', 'buttonRenderer', 'command')),
+            ('contents', 'items', 'rows', 'subThreads'), ..., (
+                ('continuationItemRenderer', ('continuationEndpoint', ('button', 'buttonRenderer', 'command'))),
+                ('continuationItemViewModel', 'continuationCommand', 'innertubeCommand'),
+            ),
         ), get_all=False, expected_type=cls._extract_continuation_ep_data)
 
     @classmethod
@@ -1113,6 +1152,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _get_count(self, data, *path_list):
         count_text = self._get_text(data, *path_list) or ''
+        if count_text.lower().startswith('no '):
+            return 0
         count = parse_count(count_text)
         if count is None:
             count = str_to_int(
@@ -1143,8 +1184,20 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 })
         return thumbnails
 
-    @staticmethod
-    def extract_relative_time(relative_time_text):
+    # Map abbreviated relative-time units to the long-form unit names that
+    # datetime_from_str() understands.
+    _RELATIVE_TIME_UNIT_MAP = {
+        's': 'second', 'sec': 'second', 'second': 'second',
+        'min': 'minute', 'minute': 'minute',
+        'h': 'hour', 'hr': 'hour', 'hour': 'hour',
+        'd': 'day', 'day': 'day',
+        'w': 'week', 'wk': 'week', 'week': 'week',
+        'mo': 'month', 'month': 'month',
+        'y': 'year', 'yr': 'year', 'year': 'year',
+    }
+
+    @classmethod
+    def extract_relative_time(cls, relative_time_text):
         """
         Extracts a relative time from string and converts to dt object
         e.g. 'streamed 6 days ago', '5 seconds ago (edited)', 'updated today', '8 yr ago'
@@ -1154,19 +1207,23 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         # The relative time text strings are roughly the same as what
         # Javascript's Intl.RelativeTimeFormat function generates.
         # See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/RelativeTimeFormat
+        # Sort longest-first: regex alternation matches left-to-right, so short
+        # keys like 's' must come after 'sec'/'second' to avoid premature matches.
+        units = '|'.join(map(re.escape, sorted(cls._RELATIVE_TIME_UNIT_MAP, key=len, reverse=True)))
         mobj = re.search(
-            r'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>sec(?:ond)?|s|min(?:ute)?|h(?:our|r)?|d(?:ay)?|w(?:eek|k)?|mo(?:nth)?|y(?:ear|r)?)s?\s*ago',
+            rf'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>{units})s?\s*ago',
             relative_time_text)
         if mobj:
             start = mobj.group('start')
             if start:
                 return datetime_from_str(start)
+            unit = cls._RELATIVE_TIME_UNIT_MAP[mobj.group('unit')]
             try:
-                return datetime_from_str('now-{}{}'.format(mobj.group('time'), mobj.group('unit')))
+                return datetime_from_str(f'now-{mobj.group("time")}{unit}')
             except ValueError:
                 return None
 
-    def _parse_time_text(self, text):
+    def _parse_time_text(self, text, report_failure=True):
         if not text:
             return
         dt_ = self.extract_relative_time(text)
@@ -1181,7 +1238,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                         (r'([a-z]+\s*\d{1,2},?\s*20\d{2})', r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*(?:on|for))?\s*(.+\d)'),
                         text.lower(), 'time text', default=None)))
 
-        if text and timestamp is None and self._preferred_lang in (None, 'en'):
+        if report_failure and text and timestamp is None and self._preferred_lang in (None, 'en'):
             self.report_warning(
                 f'Cannot parse localized time text "{text}"', only_once=True)
         return timestamp

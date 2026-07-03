@@ -1,4 +1,8 @@
 """Deprecated - New code should avoid these"""
+import base64
+import hashlib
+import hmac
+import json
 import warnings
 
 from ..compat.compat_utils import passthrough_module
@@ -26,6 +30,32 @@ def intlist_to_bytes(xs):
     if not xs:
         return b''
     return struct.pack('%dB' % len(xs), *xs)
+
+
+def jwt_encode_hs256(payload_data, key, headers={}):
+    header_data = {
+        'alg': 'HS256',
+        'typ': 'JWT',
+    }
+    if headers:
+        header_data.update(headers)
+    header_b64 = base64.b64encode(json.dumps(header_data).encode())
+    payload_b64 = base64.b64encode(json.dumps(payload_data).encode())
+    h = hmac.new(key.encode(), header_b64 + b'.' + payload_b64, hashlib.sha256)
+    signature_b64 = base64.b64encode(h.digest())
+    return header_b64 + b'.' + payload_b64 + b'.' + signature_b64
+
+
+def make_dir(path, to_screen=None):
+    from . import make_parent_dirs
+
+    try:
+        make_parent_dirs(path)
+        return True
+    except OSError as e:
+        if to_screen is not None:
+            to_screen(f'Unable to create directory: {e}')
+        return False
 
 
 compiled_regex_type = type(re.compile(''))

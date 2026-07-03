@@ -446,9 +446,10 @@ class NRKTVIE(InfoExtractor):
 
 
 class NRKTVEpisodeIE(InfoExtractor):
-    _VALID_URL = r'https?://tv\.nrk\.no/serie/(?P<id>[^/]+/sesong/(?P<season_number>\d+)/episode/(?P<episode_number>\d+))'
+    _VALID_URL = r'https?://tv\.nrk\.no/serie/(?P<id>[^/?#]+/sesong/(?P<season_number>\d+)/episode/(?P<episode_number>\d+))'
     _TESTS = [{
         'url': 'https://tv.nrk.no/serie/hellums-kro/sesong/1/episode/2',
+        'add_ie': [NRKIE.ie_key()],
         'info_dict': {
             'id': 'MUHH36005220',
             'ext': 'mp4',
@@ -485,26 +486,23 @@ class NRKTVEpisodeIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        display_id, season_number, episode_number = self._match_valid_url(url).groups()
+        display_id, season_number, episode_number = self._match_valid_url(url).group(
+            'id', 'season_number', 'episode_number')
+        webpage, urlh = self._download_webpage_handle(url, display_id)
 
-        webpage = self._download_webpage(url, display_id)
+        if NRKTVIE.suitable(urlh.url):
+            nrk_id = NRKTVIE._match_id(urlh.url)
+        else:
+            nrk_id = self._search_json(
+                r'<script\b[^>]+\bid="pageData"[^>]*>', webpage,
+                'page data', display_id)['initialState']['selectedEpisodePrfId']
+            if not re.fullmatch(NRKTVIE._EPISODE_RE, nrk_id):
+                raise ExtractorError('Unable to extract NRK ID')
 
-        info = self._search_json_ld(webpage, display_id, default={})
-        nrk_id = info.get('@id') or self._html_search_meta(
-            'nrk:program-id', webpage, default=None) or self._search_regex(
-            rf'data-program-id=["\']({NRKTVIE._EPISODE_RE})', webpage,
-            'nrk id')
-        assert re.match(NRKTVIE._EPISODE_RE, nrk_id)
-
-        info.update({
-            '_type': 'url',
-            'id': nrk_id,
-            'url': f'nrk:{nrk_id}',
-            'ie_key': NRKIE.ie_key(),
-            'season_number': int(season_number),
-            'episode_number': int(episode_number),
-        })
-        return info
+        return self.url_result(
+            f'nrk:{nrk_id}', NRKIE, nrk_id,
+            season_number=int(season_number),
+            episode_number=int(episode_number))
 
 
 class NRKTVSerieBaseIE(NRKBaseIE):

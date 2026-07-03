@@ -18,6 +18,7 @@ from ..utils import (
 
 
 class RuutuIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
@@ -26,112 +27,111 @@ class RuutuIE(InfoExtractor):
                         )
                         (?P<id>\d+)
                     '''
-    _TESTS = [
-        {
-            'url': 'http://www.ruutu.fi/video/2058907',
-            'md5': 'ab2093f39be1ca8581963451b3c0234f',
-            'info_dict': {
-                'id': '2058907',
-                'ext': 'mp4',
-                'title': 'Oletko aina halunnut tietää mitä tapahtuu vain hetki ennen lähetystä? - Nyt se selvisi!',
-                'description': 'md5:cfc6ccf0e57a814360df464a91ff67d6',
-                'thumbnail': r're:^https?://.*\.jpg$',
-                'duration': 114,
-                'age_limit': 0,
-                'upload_date': '20150508',
-            },
+    _TESTS = [{
+        'url': 'http://www.ruutu.fi/video/2058907',
+        'md5': 'ab2093f39be1ca8581963451b3c0234f',
+        'info_dict': {
+            'id': '2058907',
+            'ext': 'mp4',
+            'title': 'Oletko aina halunnut tietää mitä tapahtuu vain hetki ennen lähetystä? - Nyt se selvisi!',
+            'description': 'md5:cfc6ccf0e57a814360df464a91ff67d6',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 114,
+            'age_limit': 0,
+            'upload_date': '20150508',
         },
-        {
-            'url': 'http://www.ruutu.fi/video/2057306',
-            'md5': '065a10ae4d5b8cfd9d0c3d332465e3d9',
-            'info_dict': {
-                'id': '2057306',
-                'ext': 'mp4',
-                'title': 'Superpesis: katso koko kausi Ruudussa',
-                'description': 'md5:bfb7336df2a12dc21d18fa696c9f8f23',
-                'thumbnail': r're:^https?://.*\.jpg$',
-                'duration': 40,
-                'age_limit': 0,
-                'upload_date': '20150507',
-                'series': 'Superpesis',
-                'categories': ['Urheilu'],
-            },
+    }, {
+        'url': 'http://www.ruutu.fi/video/2057306',
+        'md5': '065a10ae4d5b8cfd9d0c3d332465e3d9',
+        'info_dict': {
+            'id': '2057306',
+            'ext': 'mp4',
+            'title': 'Superpesis: katso koko kausi Ruudussa',
+            'description': 'md5:bfb7336df2a12dc21d18fa696c9f8f23',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 40,
+            'age_limit': 0,
+            'upload_date': '20150507',
+            'series': 'Superpesis',
+            'categories': ['Urheilu'],
         },
-        {
-            'url': 'http://www.supla.fi/supla/2231370',
-            'md5': 'df14e782d49a2c0df03d3be2a54ef949',
-            'info_dict': {
-                'id': '2231370',
-                'ext': 'mp4',
-                'title': 'Osa 1: Mikael Jungner',
-                'description': 'md5:7d90f358c47542e3072ff65d7b1bcffe',
-                'thumbnail': r're:^https?://.*\.jpg$',
-                'age_limit': 0,
-                'upload_date': '20151012',
-                'series': 'Läpivalaisu',
-            },
+    }, {
+        'url': 'http://www.supla.fi/supla/2231370',
+        'md5': 'df14e782d49a2c0df03d3be2a54ef949',
+        'info_dict': {
+            'id': '2231370',
+            'ext': 'mp4',
+            'title': 'Osa 1: Mikael Jungner',
+            'description': 'md5:7d90f358c47542e3072ff65d7b1bcffe',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'age_limit': 0,
+            'upload_date': '20151012',
+            'series': 'Läpivalaisu',
         },
+    }, {
         # Episode where <SourceFile> is "NOT-USED", but has other
         # downloadable sources available.
-        {
-            'url': 'http://www.ruutu.fi/video/3193728',
-            'only_matching': True,
+        'url': 'http://www.ruutu.fi/video/3193728',
+        'only_matching': True,
+    }, {
+        # audio podcast
+        'url': 'https://www.supla.fi/supla/3382410',
+        'md5': 'b9d7155fed37b2ebf6021d74c4b8e908',
+        'info_dict': {
+            'id': '3382410',
+            'ext': 'mp3',
+            'title': 'Mikä ihmeen poltergeist?',
+            'description': 'md5:bbb6963df17dfd0ecd9eb9a61bf14b52',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'age_limit': 0,
+            'upload_date': '20190320',
+            'series': 'Mysteeritarinat',
+            'duration': 1324,
         },
-        {
-            # audio podcast
-            'url': 'https://www.supla.fi/supla/3382410',
-            'md5': 'b9d7155fed37b2ebf6021d74c4b8e908',
-            'info_dict': {
-                'id': '3382410',
-                'ext': 'mp3',
-                'title': 'Mikä ihmeen poltergeist?',
-                'description': 'md5:bbb6963df17dfd0ecd9eb9a61bf14b52',
-                'thumbnail': r're:^https?://.*\.jpg$',
-                'age_limit': 0,
-                'upload_date': '20190320',
-                'series': 'Mysteeritarinat',
-                'duration': 1324,
-            },
-            'expected_warnings': [
-                'HTTP Error 502: Bad Gateway',
-                'Failed to download m3u8 information',
-            ],
+        'expected_warnings': [
+            'HTTP Error 502: Bad Gateway',
+            'Failed to download m3u8 information',
+        ],
+    }, {
+        'url': 'http://www.supla.fi/audio/2231370',
+        'only_matching': True,
+    }, {
+        'url': 'https://static.nelonenmedia.fi/player/misc/embed_player.html?nid=3618790',
+        'only_matching': True,
+    }, {
+        # episode
+        'url': 'https://www.ruutu.fi/video/3401964',
+        'info_dict': {
+            'id': '3401964',
+            'ext': 'mp4',
+            'title': 'Temptation Island Suomi - Kausi 5 - Jakso 17',
+            'description': 'md5:87cf01d5e1e88adf0c8a2937d2bd42ba',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 2582,
+            'age_limit': 12,
+            'upload_date': '20190508',
+            'series': 'Temptation Island Suomi',
+            'season_number': 5,
+            'episode_number': 17,
+            'categories': ['Reality ja tositapahtumat', 'Kotimaiset suosikit', 'Romantiikka ja parisuhde'],
         },
-        {
-            'url': 'http://www.supla.fi/audio/2231370',
-            'only_matching': True,
+        'params': {
+            'skip_download': True,
         },
-        {
-            'url': 'https://static.nelonenmedia.fi/player/misc/embed_player.html?nid=3618790',
-            'only_matching': True,
+    }, {
+        # premium
+        'url': 'https://www.ruutu.fi/video/3618715',
+        'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Broken IE
+        'url': 'https://www.hs.fi/maailma/art-2000011353059.html',
+        'info_dict': {
+            'id': '4746675',
+            'ext': 'mp4',
+            'title': 'Yhdysvaltojen Texasin osavaltiota ovat koetelleet tuhoisat tulvat',
         },
-        {
-            # episode
-            'url': 'https://www.ruutu.fi/video/3401964',
-            'info_dict': {
-                'id': '3401964',
-                'ext': 'mp4',
-                'title': 'Temptation Island Suomi - Kausi 5 - Jakso 17',
-                'description': 'md5:87cf01d5e1e88adf0c8a2937d2bd42ba',
-                'thumbnail': r're:^https?://.*\.jpg$',
-                'duration': 2582,
-                'age_limit': 12,
-                'upload_date': '20190508',
-                'series': 'Temptation Island Suomi',
-                'season_number': 5,
-                'episode_number': 17,
-                'categories': ['Reality ja tositapahtumat', 'Kotimaiset suosikit', 'Romantiikka ja parisuhde'],
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
-        {
-            # premium
-            'url': 'https://www.ruutu.fi/video/3618715',
-            'only_matching': True,
-        },
-    ]
+    }]
     _API_BASE = 'https://gatling.nelonenmedia.fi'
 
     @classmethod
