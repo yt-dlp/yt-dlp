@@ -51,7 +51,6 @@ class BilibiliBaseIE(InfoExtractor):
     _FORMAT_ID_RE = re.compile(r'-(\d+)\.m4s\?')
     _WBI_KEY_CACHE_TIMEOUT = 30  # exact expire timeout is unclear, use 30s for one session
     _wbi_key_cache = {}
-    _W_WEBID = None
 
     @property
     def is_logged_in(self):
