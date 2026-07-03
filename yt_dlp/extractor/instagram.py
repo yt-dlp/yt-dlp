@@ -497,7 +497,7 @@ class InstagramIE(InstagramBaseIE):
                     'This content is only available for registered users who follow this account')
 
             webpage, urlh = self._download_webpage_handle(
-                f'https://www.instagram.com/p/{video_id}', video_id)
+                f'https://www.instagram.com/p/{video_id}', video_id, impersonate=self._can_impersonate)
             if self._is_login_redirect(urlh.url):
                 self.raise_login_required(
                     'The webpage request was redirected to the login page. '
