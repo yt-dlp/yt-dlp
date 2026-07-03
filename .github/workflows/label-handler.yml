@@ -21,7 +21,6 @@ jobs:
   issue-llm:
     name: Issue (ai-policy-violation)
     if: github.event_name == 'issues' && github.event.issue.labels.*.name == 'ai-policy-violation'
-    if: github.event.label.name == 'ai-policy-violation'
     permissions:
       issues: write  # Needed to comment on, close, and lock issues
     runs-on: ubuntu-slim
@@ -36,7 +35,6 @@ jobs:
   issue-bad:
     name: Issue (piracy/illegal)
     if: github.event_name == 'issues' && github.event.issue.labels.*.name == 'piracy/illegal'
-    if: github.event.label.name == 'piracy/illegal'
     permissions:
       issues: write  # Needed to comment on, close, and lock issues
     runs-on: ubuntu-slim
