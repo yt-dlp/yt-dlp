@@ -48,6 +48,14 @@ class InstagramBaseIE(InfoExtractor):
         'web': '936619743392459',  # default
     }
     _AUTH_COOKIE_NAME = 'sessionid'
+    _COOKIE_DOMAINS = (
+        'i.instagram.com',
+        '.i.instagram.com',
+        'www.instagram.com',
+        '.www.instagram.com',
+        'instagram.com',
+        '.instagram.com',
+    )
 
     @property
     def _is_logged_in(self):
@@ -75,10 +83,6 @@ class InstagramBaseIE(InfoExtractor):
     @staticmethod
     def _is_login_redirect(url):
         return urllib.parse.urlparse(url).path.startswith('/accounts/login')
-
-    def _clear_instagram_cookie(self, name, *, path='/'):
-        for domain in ('i.instagram.com', 'www.instagram.com', 'instagram.com', '.instagram.com'):
-            self.cookiejar.clear(domain=domain, path=path, name=name)
 
     def _get_count(self, media, kind, *keys):
         return traverse_obj(
@@ -427,12 +431,14 @@ class InstagramIE(InstagramBaseIE):
                     'Downloading video info', 'Video info extraction failed',
                     impersonate=self._is_web_app, headers=self._api_headers)['items'][0])
             except ExtractorError as e:
-                if not isinstance(e.cause, HTTPError) or not self._is_login_redirect(e.cause.response.url):
+                if not (isinstance(e.cause, HTTPError) and self._is_login_redirect(e.cause.response.url)):
                     raise
 
             self.report_warning('The provided Instagram account cookies are no longer valid')
             # XXX: With curl-cffi, the error response may not invalidate the cookie in our jar
-            self._clear_instagram_cookie(self._AUTH_COOKIE_NAME)
+            for domain in self._COOKIE_DOMAINS:
+                self.cookiejar.clear(domain=domain, path='/', name=self._AUTH_COOKIE_NAME)
+            # Re-initialize to set lsd token for logged-out extraction
             self._real_initialize()
 
         api_check = self._download_json(
