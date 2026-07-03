@@ -1340,8 +1340,11 @@ from .opencast import (
 )
 from .openrec import (
     OpenRecCaptureIE,
+    OpenRecChannelIE,
+    OpenRecChannelSearchIE,
     OpenRecIE,
     OpenRecMovieIE,
+    OpenRecPlaylistIE,
 )
 from .orf import (
     ORFIPTVIE,
