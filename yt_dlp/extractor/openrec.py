@@ -72,7 +72,7 @@ class OpenRecBaseIE(InfoExtractor):
                 r'\s*\(\s*(?P<q>["\'])(?P<json>.*?)(?P=q)\s*\)\s*\)',
                 webpage, 'encoded window pagestore', group='json', default=None,
         ):
-            return self._parse_json(urllib.parse.unquote(store), video_id)
+            return self._parse_json(store, video_id, transform_source=urllib.parse.unquote)
         return self._search_json(start, webpage, 'window pagestore', video_id)
 
     def _call_api(self, path, item_id):
@@ -89,7 +89,7 @@ class OpenRecBaseIE(InfoExtractor):
         needs_auth = target_members == 'ppv'
 
         me = self._call_api('users/me', video_id)
-        need_premium = traverse_obj(info, (
+        needs_premium = traverse_obj(info, (
             'publicType', {str}, filter)) == 'premium'
         is_premium = traverse_obj(me, (
             'data', 'items', ..., 'is_premium', {bool}, any)) or False
@@ -101,7 +101,7 @@ class OpenRecBaseIE(InfoExtractor):
             'data', 'items', ..., 'ppv_ticket_products', ..., {dict}, any)) or False
 
         need = None
-        if need_premium and not is_premium:
+        if needs_premium and not is_premium:
             need = 'premium membership'
         elif needs_subscription and not is_member:
             need = 'channel subscription'
@@ -115,7 +115,7 @@ class OpenRecBaseIE(InfoExtractor):
         return info, detail, {
             'id': video_id,
             'availability': self._availability(
-                needs_premium=need_premium,
+                needs_premium=needs_premium,
                 needs_subscription=needs_subscription,
                 needs_auth=needs_auth,
             ) or 'public',
@@ -562,8 +562,7 @@ class OpenRecPlaylistIE(OpenRecBaseIE):
 
     def _entries(self, items):
         for movie in traverse_obj(items, (
-            'playlist_movies',
-            lambda _, v: str_or_none(v['movie']['id']),
+            'playlist_movies', ..., 'movie', 'id', {str_or_none},
         )):
             is_live = traverse_obj(movie, ('movie', 'is_live', {bool}))
             path, ie = ('live', OpenRecIE) if is_live else ('movie', OpenRecMovieIE)
@@ -572,8 +571,8 @@ class OpenRecPlaylistIE(OpenRecBaseIE):
             yield self.url_result(f'{self._BASE_URL}/{path}/{movie_id}', ie)
 
         for capture in traverse_obj(items, (
-            'playlist_captures',
-            lambda _, v: str_or_none(v['capture_relation']['capture']['id']),
+            'playlist_captures', ...,
+            'capture_relation', 'capture', 'id', {str_or_none},
         )):
             capture_id = capture['capture_relation']['capture']['id']
 
@@ -622,20 +621,20 @@ class OpenRecChannelIE(OpenRecBaseIE):
             f'{self._PUBLIC_API_BASE}/search-movies', channel_id,
             f'Downloading page {page}', query={
                 'channel_ids': channel_id,
-                'include_live': True,
-                'include_upload': True,
+                'include_live': 'true',
+                'include_upload': 'true',
                 'onair_status': '2',
-                'include_deleted': True,
+                'include_deleted': 'true',
                 'sort': 'published_at',
                 'page': str(page),
             })
 
-        for movie in search_movies:
-            movie_id = traverse_obj(movie, ('id', {str_or_none}))
-            movie_type = traverse_obj(movie, ('movie_type', {int_or_none}))
-            path, ie = ('live', OpenRecIE) if movie_type == 1 else ('movie', OpenRecMovieIE)
+        for movie in traverse_obj(search_movies, (
+            lambda _, v: str_or_none(v['movie_type']) and str_or_none(v['id']),
+        )):
+            path, ie = ('live', OpenRecIE) if movie['movie_type'] == '1' else ('movie', OpenRecMovieIE)
 
-            yield self.url_result(f'{self._BASE_URL}/{path}/{movie_id}', ie)
+            yield self.url_result(f'{self._BASE_URL}/{path}/{movie["id"]}', ie)
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
@@ -705,10 +704,9 @@ class OpenRecChannelSearchIE(OpenRecBaseIE):
 
     def _real_extract(self, url):
         channel_id, search_type = self._match_valid_url(url).group('id', 'type')
-        search_query = traverse_obj(parse_qs(url), (
-            'search_query', -1, {str}, filter, {require('search query')}))
-
-        playlist_title = urllib.parse.unquote(search_query)
+        search_query = traverse_obj(url, (
+            {parse_qs}, 'search_query', -1, {str}, filter,
+            {require('search query', expected=True)}))
 
         if not search_type:
             entries = []
@@ -718,8 +716,8 @@ class OpenRecChannelSearchIE(OpenRecBaseIE):
                 entries.append(self.url_result(search_url, OpenRecChannelSearchIE))
 
             return self.playlist_result(
-                entries, channel_id, join_nonempty(channel_id, playlist_title, delim=':'))
+                entries, channel_id, join_nonempty(channel_id, search_query, delim=':'))
 
         return self.playlist_result(
             self._entries(channel_id, search_type, search_query),
-            channel_id, join_nonempty(channel_id, playlist_title, search_type, delim=':'))
+            channel_id, join_nonempty(channel_id, search_query, search_type, delim=':'))
