@@ -11,7 +11,6 @@ from ..utils import (
     parse_duration,
     parse_iso8601,
     parse_qs,
-    str_or_none,
     update_url,
     url_or_none,
 )
@@ -24,7 +23,7 @@ from ..utils.traversal import (
 
 class OmnyfmIE(InfoExtractor):
     _VALID_URL = r'https?://omny\.fm/shows/(?P<uploader_id>[\w-]+)/(?P<id>(?!playlists(?:[/?#"\']|$))[\w-]+)(?:/embed)?(?=[?#"\']|$)'
-    _EMBED_REGEX = [fr'<iframe[^>]+\bsrc=(["\'])(?P<url>{_VALID_URL}[^"\']*)\1']
+    _EMBED_REGEX = [rf'<iframe[^>]+\bsrc\s*=\s*(["\'])(?P<url>{_VALID_URL}[^"\']*)\1']
     _TESTS = [{
         'url': 'https://omny.fm/shows/sleep-hub/cannabinoids-and-sleep',
         'md5': 'e45ec0ce43da757a0be6ca117ec01bdc',
@@ -146,7 +145,7 @@ class OmnyfmPlaylistBaseIE(InfoExtractor):
 
     def _yield_clips(self, clips, uploader_id):
         for audio_id in traverse_obj(clips, (
-            'Clips', ..., 'Slug', {str_or_none},
+            'Clips', ..., 'Slug', {str},
         )):
             yield self.url_result(
                 f'{self._BASE_URL}/{uploader_id}/{audio_id}', OmnyfmIE)
@@ -180,7 +179,7 @@ class OmnyfmPlaylistIE(OmnyfmPlaylistBaseIE):
             'thumbnail': r're:https?://www\.omnycontent\.com/.+',
             'webpage_url': 'https://omny.fm/shows/asahi/playlists/podcast',
         },
-        'playlist_mincount': 2367,
+        'playlist_mincount': 2517,
     }]
 
     def _entries(self, uploader_id, playlist_id):
@@ -200,7 +199,7 @@ class OmnyfmPlaylistIE(OmnyfmPlaylistBaseIE):
             if not clips.get('NextClipsAvailable'):
                 break
 
-            clip_id = traverse_obj(clips, ('Clips', ..., 'Id', {str_or_none}, all, -1))
+            clip_id = traverse_obj(clips, ('Clips', -1, 'Id', {str}))
             if not clip_id:
                 break
 
@@ -214,7 +213,7 @@ class OmnyfmPlaylistIE(OmnyfmPlaylistBaseIE):
             entries = [self.url_result(
                 f'{self._BASE_URL}/{uploader_id}/playlists/{playlist_id}', OmnyfmPlaylistIE,
             ) for playlist_id in traverse_obj(page_props, (
-                'playlistsWithClips', ..., 'playlist', 'Slug', {str_or_none},
+                'playlistsWithClips', ..., 'playlist', 'Slug', {str},
             ))]
 
             return self.playlist_result(entries, uploader_id)
@@ -259,8 +258,8 @@ class OmnyfmShowIE(OmnyfmPlaylistBaseIE):
         program = traverse_obj(nextjs_data, ('props', 'pageProps', 'program', {dict}))
 
         organization_id = traverse_obj(program, (
-            'OrganizationId', {str_or_none}, {require('organization ID')}))
-        program_id = traverse_obj(program, ('Id', {str_or_none}, {require('program ID')}))
+            'OrganizationId', {str}, {require('organization ID')}))
+        program_id = traverse_obj(program, ('Id', {str}, {require('program ID')}))
         entries = OnDemandPagedList(
             functools.partial(self._fetch_page, uploader_id, organization_id, program_id), self._PAGE_SIZE)
 
