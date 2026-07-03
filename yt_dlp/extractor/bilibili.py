@@ -205,7 +205,7 @@ class BilibiliBaseIE(InfoExtractor):
             ((2560, 1440), 7),
             ((1440, 900), 5),
             ((1600, 900), 5),
-        )
+            strict=True)
         return random.choices(dims, weights=prefs)[0]
 
     @property
@@ -234,7 +234,7 @@ class BilibiliBaseIE(InfoExtractor):
         }
 
     def _download_playinfo(self, bvid, cid, headers=None, query=None, fatal=True):
-        params = {'bvid': bvid, 'cid': cid, 'fnval': 4048, **(query or {})}
+        params = {'bvid': bvid, 'cid': cid, 'fnval': 4048, **self._dm_params, **(query or {})}
         if self.is_logged_in:
             params.pop('try_look', None)
         if qn := params.get('qn'):
@@ -244,10 +244,7 @@ class BilibiliBaseIE(InfoExtractor):
 
         playurl_raw = self._download_json(
             'https://api.bilibili.com/x/player/wbi/playurl', bvid,
-            query=self._sign_wbi(merge_dicts(params, self._dm_params), bvid), headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
-                **headers,
-            }, note=note)
+            query=self._sign_wbi(params, bvid), headers=headers, note=note)
         code = -playurl_raw['code']
         if code == 0:
             return playurl_raw['data']
@@ -745,7 +742,8 @@ class BiliBiliIE(BilibiliBaseIE):
         if not self._match_valid_url(urlh.url):
             return self.url_result(urlh.url)
 
-        headers['Referer'] = url
+        headers['Referer'] = 'https://www.bilibili.com/'
+        headers['Origin'] = 'https://www.bilibili.com'
 
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id, default=None)
         if not initial_state:
@@ -1417,7 +1415,6 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
                     note=f'Downloading space page {page_idx}', headers={
                         'Referer': url,
                         'Origin': 'https://space.bilibili.com',
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
                         'Accept-Language': 'en,zh-CN;q=0.9,zh;q=0.8',
                     })
             except ExtractorError as e:
@@ -2120,9 +2117,7 @@ class BiliBiliDynamicIE(InfoExtractor):
         # Without the newer chrome UA, the API will return an error (-352)
         post_data = self._download_json(
             'https://api.bilibili.com/x/polymer/web-dynamic/v1/detail', post_id,
-            query={'id': post_id}, headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
-            })
+            query={'id': post_id})
         video_url = traverse_obj(post_data, (
             'data', 'item', (None, 'orig'), 'modules', 'module_dynamic',
             (('major', ('archive', 'pgc')), ('additional', ('reserve', 'common'))),
