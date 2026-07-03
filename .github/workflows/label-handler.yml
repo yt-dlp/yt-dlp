@@ -25,6 +25,7 @@ jobs:
       issues: write  # Needed to comment on, close, and lock issues
     runs-on: ubuntu-slim
     env:
+      GH_TOKEN: ${{ github.token }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
     steps:
       - name: Comment, close and lock issue
@@ -39,6 +40,7 @@ jobs:
       issues: write  # Needed to comment on, close, and lock issues
     runs-on: ubuntu-slim
     env:
+      GH_TOKEN: ${{ github.token }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
     steps:
       - name: Comment, close and lock issue
@@ -54,6 +56,7 @@ jobs:
       pull-requests: write  # Needed to comment on, close, and lock PRs
     runs-on: ubuntu-slim
     env:
+      GH_TOKEN: ${{ github.token }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
     steps:
       - name: Comment, close and lock PR
@@ -69,6 +72,7 @@ jobs:
       pull-requests: write  # Needed to comment on, close, and lock PRs
     runs-on: ubuntu-slim
     env:
+      GH_TOKEN: ${{ github.token }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
     steps:
       - name: Comment, close and lock PR
