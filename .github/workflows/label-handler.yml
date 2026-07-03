@@ -30,8 +30,8 @@ jobs:
     steps:
       - name: Comment, close and lock issue
         run: |
-          gh issue close "${ISSUE_NUMBER}" --reason "not planned" --comment "${LLM_MESSAGE}"
-          gh issue lock "${ISSUE_NUMBER}"
+          gh issue close "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --reason "not planned" --comment "${LLM_MESSAGE}"
+          gh issue lock "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}"
 
   issue-bad:
     name: Issue (piracy/illegal)
@@ -45,8 +45,8 @@ jobs:
     steps:
       - name: Comment, close and lock issue
         run: |
-          gh issue close "${ISSUE_NUMBER}" --reason "not planned" --comment "${BAD_MESSAGE}"
-          gh issue lock "${ISSUE_NUMBER}"
+          gh issue close "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --reason "not planned" --comment "${BAD_MESSAGE}"
+          gh issue lock "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}"
 
   pr-llm:
     name: PR (ai-policy-violation)
@@ -61,8 +61,8 @@ jobs:
     steps:
       - name: Comment, close and lock PR
         run: |
-          gh pr close "${PR_NUMBER}" --comment "${LLM_MESSAGE}"
-          gh pr lock "${PR_NUMBER}"
+          gh pr close "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --comment "${LLM_MESSAGE}"
+          gh pr lock "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}"
 
   pr-bad:
     name: PR (piracy/illegal)
@@ -77,5 +77,5 @@ jobs:
     steps:
       - name: Comment, close and lock PR
         run: |
-          gh pr close "${PR_NUMBER}" --comment "${BAD_MESSAGE}"
-          gh pr lock "${PR_NUMBER}"
+          gh pr close "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --comment "${BAD_MESSAGE}"
+          gh pr lock "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}"
