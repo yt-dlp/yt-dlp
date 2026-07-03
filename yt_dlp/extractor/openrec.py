@@ -36,7 +36,7 @@ class OpenRecBaseIE(InfoExtractor):
     _API_BASE = 'https://apiv5.mellow-fan.com/api/v5'
     _BASE_URL = 'https://www.mellow-fan.com'
     _HEADERS = {'Referer': f'{_BASE_URL}/'}
-    _NETRC_MACHINE = 'openrec'
+    _NETRC_MACHINE = 'mellowfan'
     _PUBLIC_API_BASE = 'https://public.mellow-fan.com/external/api/v5'
 
     def _perform_login(self, username, password):
