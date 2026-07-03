@@ -336,11 +336,15 @@ class OpenRecIE(OpenRecBaseIE):
 
         release_timestamp = traverse_obj(page_store, ('movieStore', 'willStartAt', {parse_iso8601}))
         if live_status == 'is_upcoming':
-            start_time = dt.datetime.fromtimestamp(
-                release_timestamp, dt.timezone.utc,
-            ).astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
-            self.raise_no_formats(
-                f'This livestream is scheduled to start at {start_time}', expected=True)
+            if release_timestamp is not None:
+                start_time = dt.datetime.fromtimestamp(
+                    release_timestamp, dt.timezone.utc,
+                ).astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
+                msg = f'This livestream is scheduled to start at {start_time}'
+            else:
+                msg = 'This livestream has not yet started'
+
+            self.raise_no_formats(msg, expected=True)
 
             return {
                 'id': video_id,
