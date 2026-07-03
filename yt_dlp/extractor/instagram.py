@@ -3,6 +3,7 @@ import hashlib
 import itertools
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
@@ -42,15 +43,23 @@ def _id_to_pk(shortcode):
 class InstagramBaseIE(InfoExtractor):
     _API_BASE_URL = 'https://i.instagram.com/api/v1'
     _BASE_URL = 'https://www.instagram.com/'
-    _LOGIN_URL = 'https://www.instagram.com/accounts/login'
     _APP_IDS = {
         'ios': '124024574287414',
         'web': '936619743392459',  # default
     }
+    _AUTH_COOKIE_NAME = 'sessionid'
+    _COOKIE_DOMAINS = (
+        'i.instagram.com',
+        '.i.instagram.com',
+        'www.instagram.com',
+        '.www.instagram.com',
+        'instagram.com',
+        '.instagram.com',
+    )
 
     @property
     def _is_logged_in(self):
-        return bool(self._get_cookies(self._BASE_URL).get('sessionid'))
+        return bool(self._get_cookies(self._BASE_URL).get(self._AUTH_COOKIE_NAME))
 
     @functools.cached_property
     def _app_id(self):
@@ -70,6 +79,10 @@ class InstagramBaseIE(InfoExtractor):
             'Origin': 'https://www.instagram.com',
             'Accept': '*/*',
         }
+
+    @staticmethod
+    def _is_login_redirect(url):
+        return urllib.parse.urlparse(url).path.startswith('/accounts/login')
 
     def _get_count(self, media, kind, *keys):
         return traverse_obj(
@@ -397,6 +410,7 @@ class InstagramIE(InstagramBaseIE):
 
     def _real_initialize(self):
         if self._is_logged_in:
+            self.write_debug('Found Instagram account cookies')
             return
         if not self._lsd_token:
             webpage = self._download_webpage(self._BASE_URL, None, 'Setting up session', impersonate=True)
@@ -411,10 +425,21 @@ class InstagramIE(InstagramBaseIE):
         media_id = str(_id_to_pk(video_id))
 
         if self._is_logged_in:
-            return self._extract_product(self._download_json(
-                f'{self._API_BASE_URL}/media/{media_id}/info/', video_id,
-                'Downloading video info', 'Video info extraction failed',
-                impersonate=self._is_web_app, headers=self._api_headers)['items'][0])
+            try:
+                return self._extract_product(self._download_json(
+                    f'{self._API_BASE_URL}/media/{media_id}/info/', video_id,
+                    'Downloading video info', 'Video info extraction failed',
+                    impersonate=self._is_web_app, headers=self._api_headers)['items'][0])
+            except ExtractorError as e:
+                if not (isinstance(e.cause, HTTPError) and self._is_login_redirect(e.cause.response.url)):
+                    raise
+
+            self.report_warning('The provided Instagram account cookies are no longer valid')
+            # XXX: With curl-cffi, the error response may not invalidate the cookie in our jar
+            for domain in self._COOKIE_DOMAINS:
+                self.cookiejar.clear(domain=domain, path='/', name=self._AUTH_COOKIE_NAME)
+            # Re-initialize to set lsd token for logged-out extraction
+            self._real_initialize()
 
         api_check = self._download_json(
             f'{self._API_BASE_URL}/web/get_ruling_for_content/', video_id,
@@ -466,7 +491,7 @@ class InstagramIE(InstagramBaseIE):
 
             webpage, urlh = self._download_webpage_handle(
                 f'https://www.instagram.com/p/{video_id}', video_id)
-            if urlh.url.startswith(self._LOGIN_URL):
+            if self._is_login_redirect(urlh.url):
                 self.raise_login_required(
                     'The webpage request was redirected to the login page. '
                     'You have exceeded the rate-limit for accessing posts anonymously')
