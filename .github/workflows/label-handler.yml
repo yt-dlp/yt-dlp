@@ -3,7 +3,7 @@ on:
   issues:
     types: [labeled]
   pull_request_target:
-    types: [labeled]
+    types: [labeled]  # zizmor: ignore[dangerous-triggers]
 
 permissions: {}
 
