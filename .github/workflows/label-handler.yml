@@ -15,11 +15,16 @@ concurrency:
 env:
   GH_TELEMETRY: "false"
   LLM_MESSAGE: >-
-    This contribution has been determined to be in violation of yt-dlp's [**NO AI / NO LLM POLICY**](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#no-ai--no-llm-policy).
+    This contribution has been determined to be in violation of yt-dlp's
+    [**NO AI / NO LLM POLICY**](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#no-ai--no-llm-policy).
     Repeat or flagrant violations of this policy will result in a permanent ban from this repository.
   BAD_MESSAGE: >-
-    This contribution has been determined to be in violation of yt-dlp's [policy against supporting sites that are primarily used for piracy](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#is-the-website-primarily-used-for-piracy).
-    Please consult the [yt-dlp wiki FAQ](https://github.com/yt-dlp/yt-dlp/wiki/FAQ#why-is-there-a-rule-against-websites-primarily-used-for-piracy) if you have questions.
+    This contribution has been determined to be in violation of yt-dlp's
+    [policy against supporting sites that are primarily used for
+    piracy](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#is-the-website-primarily-used-for-piracy).
+    Please consult the [yt-dlp wiki
+    FAQ](https://github.com/yt-dlp/yt-dlp/wiki/FAQ#why-is-there-a-rule-against-websites-primarily-used-for-piracy)
+    if you have questions.
 
 jobs:
   issue-llm:
