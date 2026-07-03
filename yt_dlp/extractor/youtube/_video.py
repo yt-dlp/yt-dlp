@@ -152,37 +152,38 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     IE_NAME = 'youtube'
     _TESTS = [{
-        'url': 'https://www.youtube.com/watch?v=BaW_jenozKc&t=1s&end=9',
+        'url': 'https://www.youtube.com/watch?v=YE7VzlLtp-4&t=1s&end=9',
         'info_dict': {
-            'id': 'BaW_jenozKc',
+            'id': 'YE7VzlLtp-4',
             'ext': 'mp4',
-            'title': 'youtube-dl test video "\'/\\ä↭𝕐',
-            'age_limit': 0,
-            'availability': 'public',
-            'categories': ['Science & Technology'],
-            'channel': 'Philipp Hagemeister',
+            'title': 'Big Buck Bunny',
+            'description': 'md5:e95316924b5eca2a74b87ab0b290724a',
+            'media_type': 'video',
+            'uploader': 'Blender',
+            'uploader_id': '@BlenderOfficial',
+            'uploader_url': 'https://www.youtube.com/@BlenderOfficial',
+            'channel': 'Blender',
+            'channel_id': 'UCSMOQeBJ2RAnuFungnQOxLg',
+            'channel_url': 'https://www.youtube.com/channel/UCSMOQeBJ2RAnuFungnQOxLg',
+            'channel_is_verified': True,
             'channel_follower_count': int,
-            'channel_id': 'UCLqxVugv74EIW3VWh2NOa3Q',
-            'channel_url': 'https://www.youtube.com/channel/UCLqxVugv74EIW3VWh2NOa3Q',
             'comment_count': int,
-            'description': 'md5:8fb536f4877b8a7455c2ec23794dbc22',
-            'duration': 10,
-            'end_time': 9,
-            'heatmap': 'count:100',
-            'like_count': int,
-            'live_status': 'not_live',
-            'playable_in_embed': True,
-            'start_time': 1,
-            'tags': 'count:1',
-            'thumbnail': r're:https?://i\.ytimg\.com/.+',
-            'timestamp': 1349198244,
-            'upload_date': '20121002',
-            'uploader': 'Philipp Hagemeister',
-            'uploader_id': '@PhilippHagemeister',
-            'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
             'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 597,
+            'thumbnail': 'https://i.ytimg.com/vi/YE7VzlLtp-4/maxresdefault.jpg',
+            'heatmap': 'count:100',
+            'start_time': 1.0,
+            'end_time': 9.0,
+            'categories': ['Film & Animation'],
+            'tags': 'count:16',
+            'timestamp': 1212060266,
+            'upload_date': '20080529',
+            'playable_in_embed': True,
+            'availability': 'public',
+            'live_status': 'not_live',
         },
-        'skip': 'Video unavailable',
     }, {
         'note': 'Embed-only video (#1746)',
         'url': '//www.YouTube.com/watch?v=yZIXLfi8CZQ',
@@ -197,35 +198,36 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'skip': 'Private video',
     }, {
         'note': 'Use the first video ID in the URL',
-        'url': 'https://www.youtube.com/watch?v=BaW_jenozKc&v=yZIXLfi8CZQ',
+        'url': 'https://www.youtube.com/watch?v=YE7VzlLtp-4&v=BaW_jenozKc',
         'info_dict': {
-            'id': 'BaW_jenozKc',
+            'id': 'YE7VzlLtp-4',
             'ext': 'mp4',
-            'title': 'youtube-dl test video "\'/\\ä↭𝕐',
-            'age_limit': 0,
-            'availability': 'public',
-            'categories': ['Science & Technology'],
-            'channel': 'Philipp Hagemeister',
+            'title': 'Big Buck Bunny',
+            'description': 'md5:e95316924b5eca2a74b87ab0b290724a',
+            'media_type': 'video',
+            'uploader': 'Blender',
+            'uploader_id': '@BlenderOfficial',
+            'uploader_url': 'https://www.youtube.com/@BlenderOfficial',
+            'channel': 'Blender',
+            'channel_id': 'UCSMOQeBJ2RAnuFungnQOxLg',
+            'channel_url': 'https://www.youtube.com/channel/UCSMOQeBJ2RAnuFungnQOxLg',
+            'channel_is_verified': True,
             'channel_follower_count': int,
-            'channel_id': 'UCLqxVugv74EIW3VWh2NOa3Q',
-            'channel_url': 'https://www.youtube.com/channel/UCLqxVugv74EIW3VWh2NOa3Q',
             'comment_count': int,
-            'description': 'md5:8fb536f4877b8a7455c2ec23794dbc22',
-            'duration': 10,
-            'heatmap': 'count:100',
-            'like_count': int,
-            'live_status': 'not_live',
-            'playable_in_embed': True,
-            'tags': 'count:1',
-            'thumbnail': r're:https?://i\.ytimg\.com/.+',
-            'timestamp': 1349198244,
-            'upload_date': '20121002',
-            'uploader': 'Philipp Hagemeister',
-            'uploader_id': '@PhilippHagemeister',
-            'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
             'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'duration': 597,
+            'thumbnail': 'https://i.ytimg.com/vi/YE7VzlLtp-4/maxresdefault.jpg',
+            'heatmap': 'count:100',
+            'categories': ['Film & Animation'],
+            'tags': 'count:16',
+            'timestamp': 1212060266,
+            'upload_date': '20080529',
+            'playable_in_embed': True,
+            'availability': 'public',
+            'live_status': 'not_live',
         },
-        'skip': 'Video unavailable',
     }, {
         'note': '256k DASH audio (format 141) via DASH manifest',
         'url': 'https://www.youtube.com/watch?v=a9LDPn-MO4I',
@@ -823,10 +825,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'url': 'sJL6WA-aGkQ',
         'only_matching': True,
     }, {
-        'url': 'https://invidio.us/watch?v=BaW_jenozKc',
+        'url': 'https://invidio.us/watch?v=YE7VzlLtp-4',
         'only_matching': True,
     }, {
-        'url': 'https://redirect.invidious.io/watch?v=BaW_jenozKc',
+        'url': 'https://redirect.invidious.io/watch?v=YE7VzlLtp-4',
         'only_matching': True,
     }, {
         # from https://nitter.pussthecat.org/YouTube/status/1360363141947944964#m
@@ -3446,7 +3448,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     self._report_pot_format_skipped(video_id, client_name, proto)
                     return None
 
-                name = fmt_stream.get('qualityLabel') or quality.replace('audio_quality_', '') or ''
+                name = fmt_stream.get('qualityLabel') or (quality or '').replace('audio_quality_', '')
                 fps = int_or_none(fmt_stream.get('fps')) or 0
                 dct = {
                     'asr': int_or_none(fmt_stream.get('audioSampleRate')),
@@ -3819,11 +3821,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         wait_seconds = 0
 
         for renderer in traverse_obj(player_response, (
-            'adSlots', lambda _, v: v['adSlotRenderer']['adSlotMetadata']['triggerEvent'] == 'SLOT_TRIGGER_EVENT_BEFORE_CONTENT',
-            'adSlotRenderer', 'fulfillmentContent', 'fulfilledLayout', 'playerBytesAdLayoutRenderer', 'renderingContent', (
-                None,
-                ('playerBytesSequentialLayoutRenderer', 'sequentialLayouts', ..., 'playerBytesAdLayoutRenderer', 'renderingContent'),
-            ), 'instreamVideoAdRenderer', {dict},
+            (
+                (
+                    'adPlacements', lambda _, v: v['adPlacementRenderer']['config']['adPlacementConfig']['kind'] == 'AD_PLACEMENT_KIND_START',
+                    'adPlacementRenderer', 'renderer',
+                ),
+                (
+                    'adSlots', lambda _, v: v['adSlotRenderer']['adSlotMetadata']['triggerEvent'] == 'SLOT_TRIGGER_EVENT_BEFORE_CONTENT',
+                    'adSlotRenderer', 'fulfillmentContent', 'fulfilledLayout', 'playerBytesAdLayoutRenderer', 'renderingContent', (
+                        None,
+                        ('playerBytesSequentialLayoutRenderer', 'sequentialLayouts', ..., 'playerBytesAdLayoutRenderer', 'renderingContent'),
+                    ),
+                ),
+            ),
+            'instreamVideoAdRenderer', {dict},
         )):
             duration = traverse_obj(renderer, ('playerVars', {urllib.parse.parse_qs}, 'length_seconds', -1, {int_or_none}))
             ad = 'an ad' if duration is None else f'a {duration}s ad'
@@ -4363,7 +4374,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not release_year:
                         release_year = release_date[:4]
                 info.update({
-                    'album': mobj.group('album'.strip()),
+                    'album': mobj.group('album').strip(),
                     'artists': ([a] if (a := mobj.group('clean_artist'))
                                 else [a.strip() for a in mobj.group('artist').split(' · ')]),
                     'track': mobj.group('track').strip(),
