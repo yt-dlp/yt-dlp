@@ -130,7 +130,7 @@ class BilibiliBaseIE(InfoExtractor):
                     'format_note': ('quality', {format_names.get}),
                     'duration': ('timelength', {float_or_none(scale=1000)}),
                 }),
-                **parse_resolution(format_names.get(play_info.get('quality'))),
+                **parse_resolution(traverse_obj(play_info, ('quality', {format_names.get}))),
             })
         return formats
 
@@ -220,9 +220,10 @@ class BilibiliBaseIE(InfoExtractor):
             rnd = math.floor(514 * random.random())
             return [3 * res0 + 2 * res1 + rnd, 4 * res0 - 4 * res1 + 2 * rnd, rnd]
 
-        # .dm_img_list and .dm_img_inter.ds are more troublesome as user interactions are involved.
-        # Leave them empty for now as the site isn't checking them yet.
-        # Reference: https://github.com/SocialSisterYi/bilibili-API-collect/issues/868#issuecomment-1908690516
+        # Source: https://s1.hdslb.com/bfs/seed/jinkela/short/user-fingerprint/bili-user-fingerprint.min.js
+        # function window.__biliUserFp__.queryUserLog
+        # .dm_img_list and .dm_img_inter.ds are more troublesome as they come from mousemove/click events.
+        # Leave them empty for now, since they should allow playing the video without any mousemove/click.
         return {
             'dm_img_list': '[]',
             'dm_img_str': base64.b64encode(
@@ -378,7 +379,7 @@ class BilibiliBaseIE(InfoExtractor):
                 'title': f'{metainfo.get("title")} - {next(iter(edges.values())).get("title")}',
                 'formats': self.extract_formats(play_info),
                 'description': f'{json.dumps(edges, ensure_ascii=False)}\n{metainfo.get("description", "")}',
-                'duration': float_or_none(play_info.get('timelength'), scale=1000),
+                'duration': traverse_obj(play_info, ('timelength', {float_or_none(scale=1000)})),
                 'subtitles': self.extract_subtitles(video_id, cid),
             }
 
@@ -845,8 +846,6 @@ class BiliBiliIE(BilibiliBaseIE):
         if not self.is_logged_in or not play_info:
             if dl_play_info := self._download_playinfo(video_id, cid, headers=headers, query={'try_look': 1}, fatal=False):
                 play_info = dl_play_info
-        if not play_info:
-            raise ExtractorError('Unable to extract or download play info')
         formats = self.extract_formats(play_info)
 
         if video_data.get('is_upower_exclusive'):
@@ -901,13 +900,13 @@ class BiliBiliIE(BilibiliBaseIE):
                     'subtitles': self.extract_subtitles(video_id, cid) if idx == 0 else None,
                     '__post_extractor': self.extract_comments(aid) if idx == 0 else None,
                 } for idx, fragment in enumerate(formats[0]['fragments'])],
-                'duration': float_or_none(play_info.get('timelength'), scale=1000),
+                'duration': traverse_obj(play_info, ('timelength', {float_or_none(scale=1000)})),
             }
 
         return {
             **metainfo,
             'formats': formats,
-            'duration': float_or_none(play_info.get('timelength'), scale=1000),
+            'duration': traverse_obj(play_info, ('timelength', {float_or_none(scale=1000)})),
             'chapters': self._get_chapters(aid, cid),
             'subtitles': self.extract_subtitles(video_id, cid),
             '__post_extractor': self.extract_comments(aid),
