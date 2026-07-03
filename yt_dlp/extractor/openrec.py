@@ -36,7 +36,7 @@ class OpenRecBaseIE(InfoExtractor):
     _API_BASE = 'https://apiv5.mellow-fan.com/api/v5'
     _BASE_URL = 'https://www.mellow-fan.com'
     _HEADERS = {'Referer': f'{_BASE_URL}/'}
-    _NETRC_MACHINE = 'openrec'
+    _NETRC_MACHINE = 'mellowfan'
     _PUBLIC_API_BASE = 'https://public.mellow-fan.com/external/api/v5'
 
     def _perform_login(self, username, password):
@@ -142,7 +142,8 @@ class OpenRecBaseIE(InfoExtractor):
 
 
 class OpenRecIE(OpenRecBaseIE):
-    IE_NAME = 'mellow-fan'
+    IE_NAME = 'mellowfan'
+    IE_DESC = 'mellow-fan'
 
     _VALID_URL = r'https?://(?:www\.)?(?:mellow-fan\.com|openrec\.tv)/(?:m/)?live/(?P<id>[^/?#]+)'
     _TESTS = [{
@@ -393,7 +394,7 @@ class OpenRecIE(OpenRecBaseIE):
 
 
 class OpenRecCaptureIE(OpenRecBaseIE):
-    IE_NAME = 'mellow-fan:capture'
+    IE_NAME = 'mellowfan:capture'
 
     _VALID_URL = r'https?://(?:www\.)?(?:mellow-fan\.com|openrec\.tv)/(?:m/)?capture/(?P<id>[^/?#]+)'
     _TESTS = [{
@@ -451,7 +452,7 @@ class OpenRecCaptureIE(OpenRecBaseIE):
 
 
 class OpenRecMovieIE(OpenRecBaseIE):
-    IE_NAME = 'mellow-fan:movie'
+    IE_NAME = 'mellowfan:movie'
 
     _VALID_URL = r'https?://(?:www\.)?(?:mellow-fan\.com|openrec\.tv)/(?:m/)?movie/(?P<id>[^/?#]+)'
     _TESTS = [{
@@ -535,7 +536,7 @@ class OpenRecMovieIE(OpenRecBaseIE):
 
 
 class OpenRecPlaylistIE(OpenRecBaseIE):
-    IE_NAME = 'mellow-fan:playlist'
+    IE_NAME = 'mellowfan:playlist'
 
     _VALID_URL = r'https?://(?:www\.)?(?:mellow-fan\.com|openrec\.tv)/(?:m/)?user/[^/?#]+/playlist/(?P<id>[^/?#]+)'
     _TESTS = [{
@@ -606,7 +607,7 @@ class OpenRecPlaylistIE(OpenRecBaseIE):
 
 
 class OpenRecChannelIE(OpenRecBaseIE):
-    IE_NAME = 'mellow-fan:channel'
+    IE_NAME = 'mellowfan:channel'
 
     _PAGE_SIZE = 40
     _VALID_URL = r'https?://(?:www\.)?(?:mellow-fan\.com|openrec\.tv)/(?:m/)?user/(?P<id>[^/?#]+)$'
@@ -655,7 +656,7 @@ class OpenRecChannelIE(OpenRecBaseIE):
 
 
 class OpenRecChannelSearchIE(OpenRecBaseIE):
-    IE_NAME = 'mellow-fan:channel:search'
+    IE_NAME = 'mellowfan:channel:search'
 
     _VALID_URL = r'https?://(?:www\.)?(?:mellow-fan\.com|openrec\.tv)/(?:m/)?user/(?P<id>[^/?#]+)/search(?:/(?P<type>capture|movie))?(?:[/?#]|$)'
     _TESTS = [{
