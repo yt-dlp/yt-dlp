@@ -1,9 +1,8 @@
 import functools
-import math
+import itertools
 
 from .common import InfoExtractor
 from ..utils import (
-    InAdvancePagedList,
     OnDemandPagedList,
     clean_html,
     filter_dict,
@@ -24,7 +23,7 @@ from ..utils.traversal import (
 
 
 class OmnyfmIE(InfoExtractor):
-    _VALID_URL = r'https?://omny\.fm/shows/(?P<uploader_id>[\w-]+)/(?P<id>(?!playlists$)[\w-]+)(?:/embed)?(?=[?#"\']|$)'
+    _VALID_URL = r'https?://omny\.fm/shows/(?P<uploader_id>[\w-]+)/(?P<id>(?!playlists(?:[/?#"\']|$))[\w-]+)(?:/embed)?(?=[?#"\']|$)'
     _EMBED_REGEX = [fr'<iframe[^>]+\bsrc=(["\'])(?P<url>{_VALID_URL}[^"\']*)\1']
     _TESTS = [{
         'url': 'https://omny.fm/shows/sleep-hub/cannabinoids-and-sleep',
@@ -47,7 +46,6 @@ class OmnyfmIE(InfoExtractor):
             'episode_number': 48,
             'modified_date': r're:\d{8}',
             'modified_timestamp': int,
-            'section_start': 0,
             'tags': 'count:6',
             'thumbnail': r're:https?://www\.omnycontent\.com/.+',
             'timestamp': 1574013600,
@@ -71,7 +69,6 @@ class OmnyfmIE(InfoExtractor):
             'modified_timestamp': int,
             'season': 'Season 3',
             'season_number': 3,
-            'section_start': 0,
             'tags': 'count:27',
             'thumbnail': r're:https?://www\.omnycontent\.com/.+',
             'timestamp': 1679445000,
@@ -96,7 +93,6 @@ class OmnyfmIE(InfoExtractor):
             'modified_timestamp': int,
             'season': 'Season 1',
             'season_number': 1,
-            'section_start': 0,
             'tags': 'count:4',
             'thumbnail': r're:https?://www\.omnycontent\.com/.+',
             'timestamp': 1670266800,
@@ -115,12 +111,12 @@ class OmnyfmIE(InfoExtractor):
 
         return {
             'id': audio_id,
-            'section_start': traverse_obj(parse_qs(url), ('t', -1, {parse_duration})) or 0,
+            'section_start': traverse_obj(url, ({parse_qs}, 't', -1, {parse_duration})),
             'uploader_id': uploader_id,
             'vcodec': 'none',
             **traverse_obj(clip, {
                 'title': ('Title', {clean_html}, filter),
-                'chapters': ('Chapters', ..., {
+                'chapters': ('Chapters', lambda _, v: parse_duration(v['Position']) is not None, {
                     'title': ('Name', {clean_html}, filter),
                     'start_time': ('Position', {parse_duration}),
                 }),
@@ -187,27 +183,31 @@ class OmnyfmPlaylistIE(OmnyfmPlaylistBaseIE):
         'playlist_mincount': 2367,
     }]
 
-    def _fetch_page(self, uploader_id, playlist_id, page):
-        if page == 0:
-            self._clip_id = None
+    def _entries(self, uploader_id, playlist_id):
+        clip_id = None
 
-        clips = self._download_json(
-            f'{self._API_BASE}/programs/{uploader_id}/playlists/{playlist_id}/clips',
-            playlist_id, f'Downloading page {page + 1}', query=filter_dict({
-                'clipId': self._clip_id,
-                'direction': 'AfterExclusive',
-                'pageSize': self._PAGE_SIZE,
-            }))
+        for page in itertools.count(1):
+            clips = self._download_json(
+                f'{self._API_BASE}/programs/{uploader_id}/playlists/{playlist_id}/clips',
+                playlist_id, f'Downloading page {page}', query=filter_dict({
+                    'clipId': clip_id,
+                    'direction': 'AfterExclusive',
+                    'pageSize': self._PAGE_SIZE,
+                }))
 
-        yield from self._yield_clips(clips, uploader_id)
+            yield from self._yield_clips(clips, uploader_id)
 
-        if clips.get('NextClipsAvailable'):
-            self._clip_id = traverse_obj(clips, ('Clips', ..., 'Id', {str_or_none}, all, -1))
+            if not clips.get('NextClipsAvailable'):
+                break
+
+            clip_id = traverse_obj(clips, ('Clips', ..., 'Id', {str_or_none}, all, -1))
+            if not clip_id:
+                break
 
     def _real_extract(self, url):
         uploader_id, playlist_id = self._match_valid_url(url).group('uploader_id', 'id')
-        webpage = self._download_webpage(url, playlist_id)
-        nextjs_data = self._search_nextjs_data(webpage, playlist_id)
+        webpage = self._download_webpage(url, playlist_id or uploader_id)
+        nextjs_data = self._search_nextjs_data(webpage, playlist_id or uploader_id)
         page_props = traverse_obj(nextjs_data, ('props', 'pageProps', {dict}))
 
         if not playlist_id:
@@ -219,19 +219,14 @@ class OmnyfmPlaylistIE(OmnyfmPlaylistBaseIE):
 
             return self.playlist_result(entries, uploader_id)
 
-        playlist = traverse_obj(page_props, ('playlist', {dict}))
-        entries = InAdvancePagedList(
-            functools.partial(self._fetch_page, uploader_id, playlist_id),
-            math.ceil(int(playlist['NumberOfClips']) / self._PAGE_SIZE), self._PAGE_SIZE)
-
         return self.playlist_result(
-            entries, playlist_id,
-            **traverse_obj(playlist, {
+            self._entries(uploader_id, playlist_id), playlist_id,
+            **traverse_obj(page_props, ('playlist', {
                 'title': ('Title', {clean_html}, filter),
                 'description': ('Description', {clean_html}, filter),
                 'thumbnail': ('ArtworkUrl', {update_url(query=None)}),
                 'webpage_url': ('EmbedUrl', {url_or_none}, {trim_str(end='/embed')}),
-            }))
+            })))
 
 
 class OmnyfmShowIE(OmnyfmPlaylistBaseIE):
