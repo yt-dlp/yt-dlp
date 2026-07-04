@@ -1980,10 +1980,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         for f in formats:
             f['is_live'] = is_live
-            gen = functools.partial(self._live_adaptive_fragments, video_id, f['_itag'], f['_client'],
-                                    live_start_time, url_feed if is_live else None,
-                                    not is_live and f.get('url'), f.get('target_duration'),
-                                    adaptive_last_seq_cache)
+            gen = functools.partial(
+                self._live_adaptive_fragments,
+                video_id,
+                f['_itag'],
+                f['_client'],
+                live_start_time,
+                url_feed if is_live else None,
+                not is_live and f.get('url'),
+                f.get('target_duration'),
+                adaptive_last_seq_cache,
+            )
             if is_live:
                 f['fragments'] = gen
                 f['protocol'] = 'http_dash_segments_generator'
@@ -1995,7 +2002,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _live_adaptive_fragments(self, video_id, itag, client_name, live_start_time, url_feed, base_url, fragment_duration, last_seq_cache, ctx):
         FETCH_SPAN, MAX_DURATION = 5, 432000
 
-        base_url, is_live = (None, True) if url_feed else (base_url, True)
+        base_url, should_iterate = (None, True) if url_feed else (base_url, True)
 
         begin_index = 0
         download_start_time = ctx.get('start') or time.time()
@@ -2010,20 +2017,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         known_idx, no_fragment_score = begin_index, 0
 
         self.write_debug(f'[{video_id}] Generating adaptive fragments for format {itag}')
-        while is_live:
+        while should_iterate:
             fetch_time = time.time()
             if no_fragment_score > 30:
                 return
 
-            base_url, is_live = ((url_feed(itag, client_name, 5 if no_fragment_score > 15 else 18000)
-                                  or (base_url, False)) if url_feed else (base_url, False))
+            if feed_results := url_feed(itag, client_name, 5 if no_fragment_score > 15 else 18000):
+                base_url, should_iterate = feed_results
+            else:
+                should_iterate = False
             if not base_url:
                 no_fragment_score += 2
                 continue
 
             # Obtain from "X-Head-Seqnum" header value. The bare base URL
             # may return an empty response body, but the headers are still usable.
-            cache_key = is_live, int(time.time() // FETCH_SPAN)
+            cache_key = should_iterate, int(time.time() // FETCH_SPAN)
             if cache_key in last_seq_cache:
                 last_seq = last_seq_cache[cache_key]
             else:
@@ -2043,7 +2052,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             if known_idx > last_seq:
                 no_fragment_score += 5
-                if is_live:
+                if should_iterate:
                     time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
                 continue
 
@@ -2058,10 +2067,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if lack_early_segments:
                 known_idx = max(known_idx, last_seq - int(MAX_DURATION // fragment_duration))
 
-            fragment_base_url = f'{base_url}&sq='
             for idx in range(known_idx, last_seq):
                 yield {
-                    'url': f'{fragment_base_url}{idx}',
+                    'url': update_url_query(base_url, {'sq': str(idx)}),
                     'fragment_count': last_seq,
                 }
 
