@@ -4125,13 +4125,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 protocol = fmt.get('protocol')
                 # Currently, protocol isn't set for adaptive https formats, but this could change
                 is_adaptive = protocol in (None, 'http', 'https')
-                if live_status == 'post_live' and is_adaptive and not fmt.get('is_from_start') and not fmt.get('fragments'):
-                    # Post-live adaptive formats cause HttpFD to raise "Did not get any data blocks"
-                    # These formats are *only* useful to external applications, so we can hide them
-                    # Set their preference <= -1000 so that FormatSorter flags them as 'hidden'
-                    adjust_incomplete_format(fmt, note_suffix='(ended)', pref_adjustment=-5000)
                 # Is it live with --live-from-start? Or is it post-live and its duration is >2hrs?
-                elif needs_live_processing:
+                if needs_live_processing:
                     if not fmt.get('is_from_start'):
                         # Post-live m3u8 formats for >2hr streams
                         adjust_incomplete_format(fmt)
