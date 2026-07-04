@@ -404,7 +404,7 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     (default)
     --live-from-start               Download livestreams from the start.
                                     Currently experimental and only supported
-                                    for YouTube, Twitch, and TVer
+                                    for YouTube, Twitch, TVer, and mellow-fan
     --no-live-from-start            Download livestreams from the current time
                                     (default)
     --wait-for-video MIN[-MAX]      Wait for scheduled streams to become
@@ -1918,7 +1918,7 @@ The following extractors use this feature:
 * `dr`: dynamic range to ignore - one or more of `sdr`, `hdr10`, `dv`
 
 #### instagram
-* `app_id`: The value of the `X-IG-App-ID` header used for API requests. Default is the web app ID, `936619743392459`
+* `app_id`: The value of the `X-IG-App-ID` header used for API requests. Can be the actual ID number, `ios`, or `web` (default)
 
 #### niconicochannelplus
 * `max_comments`: Maximum number of comments to extract - default is `120`
@@ -1971,12 +1971,18 @@ The following extractors use this feature:
 #### sonylivseries
 * `sort_order`: Episode sort order for series extraction - one of `asc` (ascending, oldest first) or `desc` (descending, newest first). Default is `asc`
 
+#### streaks
+* `api_key`: API key for the `X-Streaks-Api-Key` header
+
 #### tver
 * `backend`: Backend API to use for extraction - one of `streaks` (default) or `brightcove` (deprecated)
 
 #### vimeo
 * `client`: Client to extract video data from. The currently available clients are `android`, `ios`, `macos` and `web`. Only one client can be used. The `macos` client is used by default, but the `web` client is used when logged-in. The `web` client only works with account cookies or login credentials. The `android` and `ios` clients only work with previously cached OAuth tokens
 * `original_format_policy`: Policy for when to try extracting original formats. One of `always`, `never`, or `auto`. The default `auto` policy tries to avoid exceeding the web client's API rate-limit by only making an extra request when Vimeo publicizes the video's downloadability
+
+#### zan
+* `split_angles`: Split multi-angle streams into separate angle formats. Forces re-encoding of the video stream during download, and requires ffmpeg. Either `true` or `false` (default)
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 

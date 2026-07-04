@@ -1873,7 +1873,8 @@ def parse_count(s):
         return str_to_int(mobj.group(1))
 
 
-def parse_resolution(s, *, lenient=False):
+@partial_application
+def parse_resolution(s, *, lenient=False, parse_fps=False):
     if s is None:
         return {}
 
@@ -1887,13 +1888,19 @@ def parse_resolution(s, *, lenient=False):
             'height': int(mobj.group('h')),
         }
 
-    mobj = re.search(r'(?<![a-zA-Z0-9])(\d+)[pPiI](?![a-zA-Z0-9])', s)
+    fps_suffix = r'(?P<fps>\d{2,3})?'
+    mobj = re.search(rf'(?<![a-zA-Z0-9])(?P<height>\d+)[pPiI]{fps_suffix}(?![a-zA-Z0-9])', s)
+    scale = 1
+    if not mobj:
+        mobj = re.search(rf'\b(?P<height>[48])[kK]{fps_suffix}\b', s)
+        scale = 540
     if mobj:
-        return {'height': int(mobj.group(1))}
+        res = {'height': int(mobj.group('height')) * scale}
+        if parse_fps:
+            if fps := mobj.group('fps'):
+                res['fps'] = int(fps)
 
-    mobj = re.search(r'\b([48])[kK]\b', s)
-    if mobj:
-        return {'height': int(mobj.group(1)) * 540}
+        return res
 
     if lenient:
         mobj = re.search(r'(?<!\d)(\d{2,5})w(?![a-zA-Z0-9])', s)
@@ -2138,8 +2145,10 @@ def parse_duration(s):
 
     if ms:
         ms = ms.replace(':', '.')
-    return sum(float(part or 0) * mult for part, mult in (
+    total = sum(float(part or 0) * mult for part, mult in (
         (days, 86400), (hours, 3600), (mins, 60), (secs, 1), (ms, 1)))
+
+    return int(total) if total.is_integer() else total
 
 
 def _change_extension(prepend, filename, ext, expected_real_ext=None, *, _allowed_exts=()):
@@ -2848,11 +2857,13 @@ def js_to_json(code, vars={}, *, strict=False):
 
 def qualities(quality_ids):
     """ Get a numeric quality value out of a list of possible values """
+    quality_map = {}
+    for index, quality_id in enumerate(quality_ids):
+        quality_map.setdefault(quality_id, index)
+
     def q(qid):
-        try:
-            return quality_ids.index(qid)
-        except ValueError:
-            return -1
+        return quality_map.get(qid, -1)
+
     return q
 
 
