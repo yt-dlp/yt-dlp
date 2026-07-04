@@ -2016,7 +2016,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         known_idx, no_fragment_score = begin_index, 0
 
-        self.write_debug(f'[{video_id}] Generating adaptive fragments for format {itag}')
+        self.write_debug(f'[{video_id}] Generating fragments for format {itag}')
         while should_iterate:
             fetch_time = time.time()
             if no_fragment_score > 30:
