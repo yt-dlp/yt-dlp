@@ -66,6 +66,13 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'rtlmost\.hu',
         r'plus\.rtl\.de(?!/podcast/)',
         r'mediasetinfinity\.es',
+        r'tv5mondeplus\.com',
+        r'tv\.rakuten\.co\.jp',
+        r'watch\.telusoriginals\.com',
+        r'video\.unext\.jp',
+        r'www\.web\.nhk',
+        r'fod\.fujitv\.co\.jp',
+        r'zee5\.com',
     )
 
     _TESTS = [{
@@ -226,6 +233,35 @@ class KnownDRMIE(UnsupportedInfoExtractor):
     }, {
         'url': 'https://www.mediasetinfinity.es/',
         'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/14743
+        'url': 'https://www.tv5mondeplus.com/',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/8821
+        'url': 'https://tv.rakuten.co.jp/content/519554/',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/9851
+        'url': 'https://watch.telusoriginals.com/play?assetID=fruit-is-ripe',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/13220
+        # https://github.com/yt-dlp/yt-dlp/issues/14564
+        'url': 'https://video.unext.jp/play/SID0062010/ED00337407',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/14620
+        'url': 'https://www.web.nhk/tv/an/72hours/pl/series-tep-W3W8WRN8M3/ep/QW8ZY6146V',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/7064
+        # https://github.com/yt-dlp/yt-dlp/issues/10264
+        'url': 'https://fod.fujitv.co.jp/title/709f/709f130001/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.zee5.com/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -265,6 +301,9 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
         r'einthusan\.(?:tv|com|ca)',
         r'yourupload\.com',
         r'xanimu\.com',
+        r'musicdex\.org',
+        r'duboku\.io',
+        r'gofile\.io',
     )
 
     _TESTS = [{
@@ -273,9 +312,42 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
     }, {
         'url': 'https://thisav.com/en/terms',
         'only_matching': True,
+    }, {
+        'url': 'https://gofile.io/d/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         raise ExtractorError(
             f'This website is no longer supported since it has been determined to be primarily used for piracy.{LF}'
+            f'{self._downloader._format_err("DO NOT", self._downloader.Styles.ERROR)} open issues for it', expected=True)
+
+
+class KnownLiabilityIE(UnsupportedInfoExtractor):
+    """Sites that would be a liability to the project if supported
+
+    In order for this to not end up being a catalog of sketchy sites,
+    only sites that were once supported should be added to this list
+    """
+
+    URLS = (
+        r'motherless\.com',
+        r'suno\.com',
+        r'udio\.com',
+    )
+
+    _TESTS = [{
+        'url': 'https://motherless.com/',
+        'only_matching': True,
+    }, {
+        'url': 'https://suno.com/song/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.udio.com/songs/',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        raise ExtractorError(
+            f'This website is not supported and will not be supported.{LF}'
             f'{self._downloader._format_err("DO NOT", self._downloader.Styles.ERROR)} open issues for it', expected=True)

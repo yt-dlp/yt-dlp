@@ -62,7 +62,7 @@ class ViewSourceIE(InfoExtractor):
     _VALID_URL = r'view-source:(?P<url>.+)'
 
     _TEST = {
-        'url': 'view-source:https://www.youtube.com/watch?v=BaW_jenozKc',
+        'url': 'view-source:https://www.youtube.com/watch?v=YE7VzlLtp-4',
         'only_matching': True,
     }
 

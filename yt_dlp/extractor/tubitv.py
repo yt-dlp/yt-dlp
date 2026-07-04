@@ -15,7 +15,7 @@ from ..utils import (
 
 class TubiTvIE(InfoExtractor):
     IE_NAME = 'tubitv'
-    _VALID_URL = r'https?://(?:www\.)?tubitv\.com/(?P<type>video|movies|tv-shows)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?tubitv\.com/(?:[a-z]{2}-[a-z]{2}/)?(?P<type>video|movies|tv-shows)/(?P<id>\d+)'
     _LOGIN_URL = 'http://tubitv.com/login'
     _NETRC_MACHINE = 'tubitv'
     _TESTS = [{
@@ -73,6 +73,9 @@ class TubiTvIE(InfoExtractor):
             'release_year': 1979,
         },
         'skip': 'Content Unavailable',
+    }, {
+        'url': 'https://tubitv.com/es-mx/tv-shows/477363/s01-e03-jacob-dos-dos-y-la-tarjets-de-hockey-robada',
+        'only_matching': True,
     }]
 
     # DRM formats are included only to raise appropriate error
@@ -182,13 +185,13 @@ class TubiTvShowIE(InfoExtractor):
         webpage = self._download_webpage(show_url, playlist_id)
 
         data = self._search_json(
-            r'window\.__data\s*=', webpage, 'data', playlist_id,
-            transform_source=js_to_json)['video']
+            r'window\.__REACT_QUERY_STATE__\s*=', webpage, 'data', playlist_id,
+            transform_source=js_to_json)['queries'][0]['state']['data']
 
         # v['number'] is already a decimal string, but stringify to protect against API changes
         path = [lambda _, v: str(v['number']) == selected_season] if selected_season else [..., {dict}]
 
-        for season in traverse_obj(data, ('byId', lambda _, v: v['type'] == 's', 'seasons', *path)):
+        for season in traverse_obj(data, ('seasons', *path)):
             season_number = int_or_none(season.get('number'))
             for episode in traverse_obj(season, ('episodes', lambda _, v: v['id'])):
                 episode_id = episode['id']

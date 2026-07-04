@@ -42,6 +42,9 @@ class MetadataParserPP(PostProcessor):
         to a regex like
            '(?P<title>.+)\ \-\ (?P<artist>.+)'
         """
+        if re.fullmatch(r'\w+', fmt):
+            # convert a single field name into regex pattern that matches the entire input
+            return rf'(?s)(?P<{fmt}>.+)'
         if not re.search(r'%\(\w+\)s', fmt):
             return fmt
         lastpos = 0

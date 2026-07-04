@@ -16,14 +16,11 @@ STABLE_REPOSITORY = 'yt-dlp/yt-dlp'
 def setup_variables(environment):
     """
     `environment` must contain these keys:
-        REPOSITORY, INPUTS, PROCESSED,
-        PUSH_VERSION_COMMIT, PYPI_PROJECT,
+        REPOSITORY, INPUTS, PROCESSED, PYPI_PROJECT,
         SOURCE_PYPI_PROJECT, SOURCE_PYPI_SUFFIX,
         TARGET_PYPI_PROJECT, TARGET_PYPI_SUFFIX,
         SOURCE_ARCHIVE_REPO, TARGET_ARCHIVE_REPO,
-        HAS_SOURCE_ARCHIVE_REPO_TOKEN,
-        HAS_TARGET_ARCHIVE_REPO_TOKEN,
-        HAS_ARCHIVE_REPO_TOKEN
+        HAS_ARCHIVE_REPO_TOKEN, HAS_RELEASE_KEY
 
     `INPUTS` must contain these keys:
         prerelease
@@ -37,8 +34,6 @@ def setup_variables(environment):
     PROCESSED = json.loads(environment['PROCESSED'])
 
     source_channel = None
-    does_not_have_needed_token = False
-    target_repo_token = None
     pypi_project = None
     pypi_suffix = None
 
@@ -61,7 +56,7 @@ def setup_variables(environment):
         resolved_source = 'stable'
 
     revision = None
-    if INPUTS['prerelease'] or not environment['PUSH_VERSION_COMMIT']:
+    if INPUTS['prerelease'] or not json.loads(environment['HAS_RELEASE_KEY']):
         revision = dt.datetime.now(tz=dt.timezone.utc).strftime('%H%M%S')
 
     version = calculate_version(INPUTS.get('version') or revision)
@@ -81,28 +76,19 @@ def setup_variables(environment):
                 target_repo = REPOSITORY
         if target_repo != REPOSITORY:
             target_repo = environment['TARGET_ARCHIVE_REPO']
-            target_repo_token = f'{PROCESSED["target_repo"].upper()}_ARCHIVE_REPO_TOKEN'
-            if not json.loads(environment['HAS_TARGET_ARCHIVE_REPO_TOKEN']):
-                does_not_have_needed_token = True
             pypi_project = environment['TARGET_PYPI_PROJECT'] or None
             pypi_suffix = environment['TARGET_PYPI_SUFFIX'] or None
     else:
         target_tag = source_tag or version
         if source_channel:
             target_repo = source_channel
-            target_repo_token = f'{PROCESSED["source_repo"].upper()}_ARCHIVE_REPO_TOKEN'
-            if not json.loads(environment['HAS_SOURCE_ARCHIVE_REPO_TOKEN']):
-                does_not_have_needed_token = True
             pypi_project = environment['SOURCE_PYPI_PROJECT'] or None
             pypi_suffix = environment['SOURCE_PYPI_SUFFIX'] or None
         else:
             target_repo = REPOSITORY
 
-    if does_not_have_needed_token:
-        if not json.loads(environment['HAS_ARCHIVE_REPO_TOKEN']):
-            print(f'::error::Repository access secret {target_repo_token} not found')
-            return None
-        target_repo_token = 'ARCHIVE_REPO_TOKEN'
+    if target_repo != REPOSITORY and not json.loads(environment['HAS_ARCHIVE_REPO_TOKEN']):
+        return None
 
     if target_repo == REPOSITORY and not INPUTS['prerelease']:
         pypi_project = environment['PYPI_PROJECT'] or None
@@ -111,7 +97,6 @@ def setup_variables(environment):
         'channel': resolved_source,
         'version': version,
         'target_repo': target_repo,
-        'target_repo_token': target_repo_token,
         'target_tag': target_tag,
         'pypi_project': pypi_project,
         'pypi_suffix': pypi_suffix,
@@ -147,6 +132,7 @@ if __name__ == '__main__':
 
     outputs = setup_variables(dict(os.environ))
     if not outputs:
+        print('::error::Repository access secret ARCHIVE_REPO_TOKEN not found')
         sys.exit(1)
 
     print('::group::Output variables')

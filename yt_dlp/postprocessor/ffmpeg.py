@@ -192,7 +192,10 @@ class FFmpegPostProcessor(PostProcessor):
 
     @property
     def available(self):
-        return bool(self._ffmpeg_location.get()) or self.basename is not None
+        # If we return that ffmpeg is available, then the basename property *must* be run
+        # (as doing so has side effects), and its value can never be None
+        # See: https://github.com/yt-dlp/yt-dlp/issues/12829
+        return self.basename is not None
 
     @property
     def executable(self):
@@ -418,7 +421,7 @@ class FFmpegPostProcessor(PostProcessor):
         if concat_opts is None:
             concat_opts = [{}] * len(in_files)
         yield 'ffconcat version 1.0\n'
-        for file, opts in zip(in_files, concat_opts):
+        for file, opts in zip(in_files, concat_opts, strict=True):
             yield f'file {cls._quote_for_ffmpeg(cls._ffmpeg_filename_argument(file))}\n'
             # Iterate explicitly to yield the following directives in order, ignoring the rest.
             for directive in 'inpoint', 'outpoint', 'duration':
@@ -639,7 +642,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             # postprocessor a second time
             '-map', '-0:s',
         ]
-        for i, (lang, name) in enumerate(zip(sub_langs, sub_names)):
+        for i, (lang, name) in enumerate(zip(sub_langs, sub_names, strict=True)):
             opts.extend(['-map', f'{i + 1}:0'])
             lang_code = ISO639Utils.short2long(lang) or lang
             opts.extend([f'-metadata:s:s:{i}', f'language={lang_code}'])
@@ -747,8 +750,8 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         add('track', 'track_number')
         add('artist', ('artist', 'artists', 'creator', 'creators', 'uploader', 'uploader_id'))
         add('composer', ('composer', 'composers'))
-        add('genre', ('genre', 'genres'))
-        add('album')
+        add('genre', ('genre', 'genres', 'categories', 'tags'))
+        add('album', ('album', 'series'))
         add('album_artist', ('album_artist', 'album_artists'))
         add('disc', 'disc_number')
         add('show', 'series')
@@ -774,7 +777,16 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         stream_idx = 0
         for fmt in info.get('requested_formats') or [info]:
             stream_count = 2 if 'none' not in (fmt.get('vcodec'), fmt.get('acodec')) else 1
-            lang = ISO639Utils.short2long(fmt.get('language') or '') or fmt.get('language')
+            lang = fmt.get('language') or ''
+            # Avoid using ISO639Utils.short2long if `lang` is likely already a valid long code.
+            # Some languages have only a long code and no short code, but the language map in
+            # ISO639Utils only contains languages with *both* a short and long code.
+            # If the language doesn't have a short code, short2long will give the wrong result.
+            # See https://github.com/yt-dlp/yt-dlp/issues/16045
+            if len(lang) == 3:
+                lang = lang.lower()
+            else:
+                lang = ISO639Utils.short2long(lang.lower()) or lang
             for i in range(stream_idx, stream_idx + stream_count):
                 if lang:
                     metadata[str(i)].setdefault('language', lang)

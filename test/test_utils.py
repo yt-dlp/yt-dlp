@@ -327,6 +327,12 @@ class TestUtil(unittest.TestCase):
             with self.assertRaises(_UnsafeExtensionError):
                 prepend_extension('abc.unexpected_ext', ext, 'ext')
 
+        # Test allow-unsafe-ext compat option
+        _UnsafeExtensionError._enabled = False
+        self.assertEqual(prepend_extension('abc.ext', 'un/safe'), 'abc.un/safe.ext')
+        # Re-enable sanitization for other tests
+        _UnsafeExtensionError._enabled = True
+
     def test_replace_extension(self):
         self.assertEqual(replace_extension('abc.ext', 'temp'), 'abc.temp')
         self.assertEqual(replace_extension('abc.ext', 'temp', 'ext'), 'abc.temp')
@@ -344,6 +350,12 @@ class TestUtil(unittest.TestCase):
                 replace_extension('abc.ext', ext, 'ext')
             with self.assertRaises(_UnsafeExtensionError):
                 replace_extension('abc.unexpected_ext', ext, 'ext')
+
+        # Test allow-unsafe-ext compat option
+        _UnsafeExtensionError._enabled = False
+        self.assertEqual(replace_extension('abc.ext', 'bin'), 'abc.bin')
+        # Re-enable sanitization for other tests
+        _UnsafeExtensionError._enabled = True
 
     def test_subtitles_filename(self):
         self.assertEqual(subtitles_filename('abc.ext', 'en', 'vtt'), 'abc.en.vtt')
@@ -488,6 +500,10 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(unified_timestamp('December 31 1969 20:00:01 EDT'), 1)
         self.assertEqual(unified_timestamp('Wednesday 31 December 1969 18:01:26 MDT'), 86)
         self.assertEqual(unified_timestamp('12/31/1969 20:01:18 EDT', False), 78)
+
+        self.assertEqual(unified_timestamp('2026-01-01 00:00:00', tz_offset=0), 1767225600)
+        self.assertEqual(unified_timestamp('2026-01-01 00:00:00', tz_offset=8), 1767196800)
+        self.assertEqual(unified_timestamp('2026-01-01 00:00:00 +0800', tz_offset=-5), 1767196800)
 
     def test_determine_ext(self):
         self.assertEqual(determine_ext('http://example.com/foo/bar.mp4/?download'), 'mp4')
@@ -920,6 +936,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(month_by_name(None), None)
         self.assertEqual(month_by_name('December', 'en'), 12)
         self.assertEqual(month_by_name('décembre', 'fr'), 12)
+        self.assertEqual(month_by_name('desember', 'is'), 12)
         self.assertEqual(month_by_name('December'), 12)
         self.assertEqual(month_by_name('décembre'), None)
         self.assertEqual(month_by_name('Unknown', 'unknown'), None)
@@ -1276,6 +1293,9 @@ class TestUtil(unittest.TestCase):
         on = js_to_json('[new Date("spam"), \'("eggs")\']')
         self.assertEqual(json.loads(on), ['spam', '("eggs")'], msg='Date regex should match a single string')
 
+        on = js_to_json('[0.077, 7.06, 29.064, 169.0072]')
+        self.assertEqual(json.loads(on), [0.077, 7.06, 29.064, 169.0072])
+
     def test_js_to_json_malformed(self):
         self.assertEqual(js_to_json('42a1'), '42"a1"')
         self.assertEqual(js_to_json('42a-1'), '42"a"-1')
@@ -1385,7 +1405,11 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_resolution('1920×1080 '), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('1920 x 1080'), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('720p'), {'height': 720})
+        self.assertEqual(parse_resolution('1080p60'), {'height': 1080})
+        self.assertEqual(parse_resolution('1080p120', parse_fps=True), {'height': 1080, 'fps': 120})
         self.assertEqual(parse_resolution('4k'), {'height': 2160})
+        self.assertEqual(parse_resolution('4K60'), {'height': 2160})
+        self.assertEqual(parse_resolution('4K120', parse_fps=True), {'height': 2160, 'fps': 120})
         self.assertEqual(parse_resolution('8K'), {'height': 4320})
         self.assertEqual(parse_resolution('pre_1920x1080_post'), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('ep1x2'), {})
@@ -1403,6 +1427,9 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(version_tuple('1'), (1,))
         self.assertEqual(version_tuple('10.23.344'), (10, 23, 344))
         self.assertEqual(version_tuple('10.1-6'), (10, 1, 6))  # avconv style
+        self.assertEqual(version_tuple('invalid', lenient=True), (-1,))
+        self.assertEqual(version_tuple('1.2.3', lenient=True), (1, 2, 3))
+        self.assertEqual(version_tuple('12.34-something', lenient=True), (12, 34, -1))
 
     def test_detect_exe_version(self):
         self.assertEqual(detect_exe_version('''ffmpeg version 1.2.1
@@ -1863,7 +1890,7 @@ Line 1
 
         self.assertEqual(
             list(get_elements_text_and_html_by_attribute('class', 'foo bar', html)),
-            list(zip(['nice', 'also nice'], self.GET_ELEMENTS_BY_CLASS_RES)))
+            list(zip(['nice', 'also nice'], self.GET_ELEMENTS_BY_CLASS_RES, strict=True)))
         self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'foo', html)), [])
         self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'no-such-foo', html)), [])
 
@@ -2148,6 +2175,10 @@ Line 1
         # test if picklable
         headers6 = HTTPHeaderDict(a=1, b=2)
         self.assertEqual(pickle.loads(pickle.dumps(headers6)), headers6)
+
+        headers7 = HTTPHeaderDict()
+        headers7 |= {'X-dlp': 'data'}
+        self.assertEqual(headers7.sensitive(), {'X-dlp': 'data'})
 
     def test_extract_basic_auth(self):
         assert extract_basic_auth('http://:foo.bar') == ('http://:foo.bar', None)
