@@ -3701,10 +3701,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                                 r'/itag/(\d+)', f['url'], 'itag', default=None), require_po_token and not po_token):
                             yield f
 
-            dash_manifest_url = (
-                live_status not in ('is_live', 'post_live')
-                and 'dash' not in skip_manifests
-                and streaming_data.get('dashManifestUrl'))
+            dash_manifest_url = 'dash' not in skip_manifests and streaming_data.get('dashManifestUrl')
             if dash_manifest_url:
                 manifest_path = urllib.parse.urlparse(dash_manifest_url).path
 
