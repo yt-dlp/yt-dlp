@@ -2002,7 +2002,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _live_adaptive_fragments(self, video_id, itag, client_name, live_start_time, url_feed, base_url, fragment_duration, last_seq_cache, ctx):
         FETCH_SPAN, MAX_DURATION = 5, 432000
 
-        base_url, should_iterate = (None, True) if url_feed else (base_url, True)
+        if url_feed:
+            base_url = None
 
         begin_index = 0
         download_start_time = ctx.get('start') or time.time()
@@ -2017,6 +2018,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         known_idx, no_fragment_score = begin_index, 0
 
         self.write_debug(f'[{video_id}] Generating fragments for format {itag}')
+        should_iterate = True
         while should_iterate:
             fetch_time = time.time()
             if no_fragment_score > 30:
