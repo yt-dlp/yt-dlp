@@ -1145,7 +1145,7 @@ class YoutubeDL:
             self.params['logger'].warning(message)
         elif self.params.get('no_warnings'):
             if self.params.get('verbose'):
-                self.to_stderr(f'[debug:warning] {message}', only_once=only_once)
+                self.to_stderr(f'[debug] WARNING: {message}', only_once=only_once)
         else:
             self.to_stderr(f'{self._format_err("WARNING:", self.Styles.WARNING)} {message}', only_once)
 
