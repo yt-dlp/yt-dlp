@@ -4127,18 +4127,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # Adjust preference and format note for incomplete live/post-live formats
         if live_status in ('is_live', 'post_live'):
             for fmt in formats:
-                protocol = fmt.get('protocol')
-                # Currently, protocol isn't set for adaptive https formats, but this could change
-                is_adaptive = protocol in (None, 'http', 'https')
-                # Is it live with --live-from-start? Or is it post-live and its duration is >2hrs?
+                # Is it live with --live-from-start or post-live?
                 if needs_live_processing:
                     if not fmt.get('is_from_start'):
-                        # Post-live m3u8 formats for >2hr streams
+                        # Post-live DASH and m3u8 manifests only have the last ~2 hours
                         adjust_incomplete_format(fmt)
                 elif live_status == 'is_live':
-                    if is_adaptive:
-                        # Incomplete live adaptive https formats
+                    protocol = fmt.get('protocol')
+                    # Currently, protocol isn't set for incomplete (non-generated) live adaptive formats
+                    if protocol in (None, 'http', 'https'):
                         adjust_incomplete_format(fmt, note_suffix='(incomplete)', pref_adjustment=-20)
+                    elif protocol == 'http_dash_segments':
+                        # Live DASH formats (no longer properly supported)
+                        adjust_incomplete_format(fmt)
 
         if needs_live_processing:
             self._prepare_live_from_start_formats(
