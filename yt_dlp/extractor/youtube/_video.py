@@ -2022,7 +2022,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if no_fragment_score > 30:
                 return
 
-            if feed_results := url_feed(itag, client_name, 5 if no_fragment_score > 15 else 18000):
+            if url_feed and (feed_results := url_feed(itag, client_name, 5 if no_fragment_score > 15 else 18000)):
                 base_url, should_iterate = feed_results
             else:
                 should_iterate = False
