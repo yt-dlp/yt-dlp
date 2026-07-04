@@ -359,7 +359,6 @@ from .commonmistakes import (
     UnicodeBOMIE,
 )
 from .commonprotocols import (
-    MmsIE,
     RtmpIE,
     ViewSourceIE,
 )
