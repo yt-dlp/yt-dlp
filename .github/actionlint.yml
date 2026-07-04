@@ -18,3 +18,7 @@ paths:
     ignore:
       # SC1090 "Can't follow non-constant source": ignore when using `source` to activate venv
       - '.+SC1090.+'
+  .github/workflows/label-handler.yml:
+    ignore:
+      # https://github.com/rhysd/actionlint/issues/657
+      - 'unexpected key "queue" for "concurrency" section.+'

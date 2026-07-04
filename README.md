@@ -245,7 +245,6 @@ The following provide support for impersonating browser requests. This may be re
 ### Deprecated
 
 * [**rtmpdump**](http://rtmpdump.mplayerhq.hu) - For downloading `rtmp` streams. ffmpeg can be used instead with `--downloader ffmpeg`. Licensed under [GPLv2+](http://rtmpdump.mplayerhq.hu)
-* [**mplayer**](http://mplayerhq.hu/design7/info.html) or [**mpv**](https://mpv.io) - For downloading `rstp`/`mms` streams. ffmpeg can be used instead with `--downloader ffmpeg`. Licensed under [GPLv2+](https://github.com/mpv-player/mpv/blob/master/Copyright)
 
 To use or redistribute the dependencies, you must agree to their respective licensing terms.
 
@@ -403,7 +402,7 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     (default)
     --live-from-start               Download livestreams from the start.
                                     Currently experimental and only supported
-                                    for YouTube, Twitch, and TVer
+                                    for YouTube, Twitch, TVer, and mellow-fan
     --no-live-from-start            Download livestreams from the current time
                                     (default)
     --wait-for-video MIN[-MAX]      Wait for scheduled streams to become
@@ -625,16 +624,16 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     "*10:15-inf" --download-sections "intro"
     --downloader [PROTO:]NAME       Name or path of the external downloader to
                                     use (optionally) prefixed by the protocols
-                                    (http, ftp, m3u8, dash, rstp, rtmp, mms) to
-                                    use it for. Currently supports native,
-                                    aria2c, axel, curl, ffmpeg, httpie, wget.
-                                    You can use this option multiple times to
-                                    set different downloaders for different
-                                    protocols. E.g. --downloader aria2c
-                                    --downloader "dash,m3u8:native" will use
-                                    aria2c for http/ftp downloads, and the
-                                    native downloader for dash/m3u8 downloads
-                                    (Alias: --external-downloader)
+                                    (http, ftp, m3u8, dash, rtmp) to use it for.
+                                    Currently supports native, aria2c, axel,
+                                    curl, ffmpeg, httpie, wget. You can use this
+                                    option multiple times to set different
+                                    downloaders for different protocols. E.g.
+                                    --downloader aria2c --downloader
+                                    "dash,m3u8:native" will use aria2c for
+                                    http/ftp downloads, and the native
+                                    downloader for dash/m3u8 downloads (Alias:
+                                    --external-downloader)
     --downloader-args NAME:ARGS     Give these arguments to the external
                                     downloader. Specify the downloader name and
                                     the arguments separated by a colon ":". For
@@ -1587,7 +1586,7 @@ Also filtering work for comparisons `=` (equals), `^=` (starts with), `$=` (ends
  - `acodec`: Name of the audio codec in use
  - `vcodec`: Name of the video codec in use
  - `container`: Name of the container format
- - `protocol`: The protocol that will be used for the actual download, lower-case (`http`, `https`, `rtsp`, `rtmp`, `rtmpe`, `mms`, `f4m`, `ism`, `http_dash_segments`, `m3u8`, or `m3u8_native`)
+ - `protocol`: The protocol that will be used for the actual download, lower-case (`http`, `https`, `rtmp`, `rtmpe`, `f4m`, `ism`, `http_dash_segments`, `m3u8`, or `m3u8_native`)
  - `language`: Language code
  - `dynamic_range`: The dynamic range of the video
  - `format_id`: A short description of the format
@@ -1615,7 +1614,7 @@ The available fields are:
  - `lang`: The language preference as determined by the extractor (e.g. original language preferred over audio description)
  - `quality`: The quality of the format
  - `source`: The preference of the source
- - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8_native`/`m3u8` > `http_dash_segments`> `websocket_frag` > `mms`/`rtsp` > `f4f`/`f4m`)
+ - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8_native`/`m3u8` > `http_dash_segments`> `websocket_frag` > `f4f`/`f4m`)
  - `vcodec`: Video Codec (`av01` > `vp9.2` > `vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other)
  - `acodec`: Audio Codec (`flac`/`alac` > `wav`/`aiff` > `opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `ac4` > `eac3` > `ac3` > `dts` > other)
  - `codec`: Equivalent to `vcodec,acodec`
@@ -1871,7 +1870,7 @@ The following extractors use this feature:
 * `max_comments`: Limit the amount of comments to gather. Comma-separated list of integers representing `max-comments,max-parents,max-replies,max-replies-per-thread,max-depth`. Default is `all,all,all,all,all`
     * A `max-depth` value of `1` will discard all replies, regardless of the `max-replies` or `max-replies-per-thread` values given
     * E.g. `all,all,1000,10,2` will get a maximum of 1000 replies total, with up to 10 replies per thread, and only 2 levels of depth (i.e. top-level comments plus their immediate replies). `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies total
-* `formats`: Change the types of formats to return. `dashy` (convert HTTP to DASH), `duplicate` (identical content but different URLs or protocol; includes `dashy`), `incomplete` (cannot be downloaded completely - live dash, live adaptive https, and post-live m3u8), `missing_pot` (include formats that require a PO Token but are missing one)
+* `formats`: Change the types of formats to return. `dashy` (convert HTTP to DASH), `duplicate` (identical content but different URLs or protocol; includes `dashy`), `incomplete` (cannot be downloaded completely - live and post-live dash, post-live m3u8, and live adaptive https without --live-from-start), `missing_pot` (include formats that require a PO Token but are missing one)
 * `innertube_host`: Innertube API host to use for all API requests; e.g. `studio.youtube.com`, `youtubei.googleapis.com`. Note that cookies exported from one subdomain will not work on others
 * `innertube_key`: Innertube API key to use for all API requests. By default, no API key is used
 * `raise_incomplete_data`: `Incomplete Data Received` raises an error instead of reporting a warning
@@ -1969,12 +1968,18 @@ The following extractors use this feature:
 #### sonylivseries
 * `sort_order`: Episode sort order for series extraction - one of `asc` (ascending, oldest first) or `desc` (descending, newest first). Default is `asc`
 
+#### streaks
+* `api_key`: API key for the `X-Streaks-Api-Key` header
+
 #### tver
 * `backend`: Backend API to use for extraction - one of `streaks` (default) or `brightcove` (deprecated)
 
 #### vimeo
 * `client`: Client to extract video data from. The currently available clients are `android`, `ios`, `macos` and `web`. Only one client can be used. The `macos` client is used by default, but the `web` client is used when logged-in. The `web` client only works with account cookies or login credentials. The `android` and `ios` clients only work with previously cached OAuth tokens
 * `original_format_policy`: Policy for when to try extracting original formats. One of `always`, `never`, or `auto`. The default `auto` policy tries to avoid exceeding the web client's API rate-limit by only making an extra request when Vimeo publicizes the video's downloadability
+
+#### zan
+* `split_angles`: Split multi-angle streams into separate angle formats. Forces re-encoding of the video stream during download, and requires ffmpeg. Either `true` or `false` (default)
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
