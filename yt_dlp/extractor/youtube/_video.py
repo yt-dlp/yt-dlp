@@ -4137,8 +4137,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # Currently, protocol isn't set for incomplete (non-generated) live adaptive formats
                     if protocol in (None, 'http', 'https'):
                         adjust_incomplete_format(fmt, note_suffix='(incomplete)', pref_adjustment=-20)
+                    # Live DASH formats (no longer properly supported)
                     elif protocol == 'http_dash_segments':
-                        # Live DASH formats (no longer properly supported)
                         adjust_incomplete_format(fmt)
 
         if needs_live_processing:
