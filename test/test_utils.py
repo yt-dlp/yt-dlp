@@ -134,7 +134,10 @@ from yt_dlp.utils import (
     xpath_text,
     xpath_with_ns,
 )
-from yt_dlp.utils._utils import _UnsafeExtensionError
+from yt_dlp.utils._utils import (
+    _UnsafeExtensionError,
+    _desktop_entry_localestring,
+)
 from yt_dlp.utils.networking import (
     HTTPHeaderDict,
     escape_rfc3986,
@@ -1948,6 +1951,27 @@ Line 1
         self.assertEqual(
             iri_to_uri('http://导航.中国/'),
             'http://xn--fet810g.xn--fiqs8s/')
+        self.assertEqual(
+            iri_to_uri('file://example.org/run.exe', allowed_schemes=('file',)),
+            'file://example.org/run.exe')
+        self.assertRaises(ValueError, iri_to_uri, 'file://example.org/run.exe')
+
+    def test_desktop_entry_localestring(self):
+        self.assertEqual(
+            _desktop_entry_localestring('A B'),
+            'A\\sB')
+        self.assertEqual(
+            _desktop_entry_localestring('A\nB'),
+            'A\\nB')
+        self.assertEqual(
+            _desktop_entry_localestring('A\tB'),
+            'A\\tB')
+        self.assertEqual(
+            _desktop_entry_localestring('A\rB'),
+            'A\\rB')
+        self.assertEqual(
+            _desktop_entry_localestring('A\\B'),
+            'A\\\\B')
 
     def test_clean_podcast_url(self):
         self.assertEqual(clean_podcast_url('https://www.podtrac.com/pts/redirect.mp3/chtbl.com/track/5899E/traffic.megaphone.fm/HSW7835899191.mp3'), 'https://traffic.megaphone.fm/HSW7835899191.mp3')

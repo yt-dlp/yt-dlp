@@ -4631,8 +4631,21 @@ LINK_TEMPLATES = {
     'webloc': DOT_WEBLOC_LINK_TEMPLATE,
 }
 
+# Ref: https://specifications.freedesktop.org/desktop-entry/latest/value-types.html
+_DESKTOP_ENTRY_TRANS = str.maketrans({
+    ' ': R'\s',
+    '\n': R'\n',
+    '\t': R'\t',
+    '\r': R'\r',
+    '\\': R'\\',
+})
 
-def iri_to_uri(iri):
+
+def _desktop_entry_localestring(s):
+    return s.translate(_DESKTOP_ENTRY_TRANS)
+
+
+def iri_to_uri(iri, *, allowed_schemes=('http', 'https')):
     """
     Converts an IRI (Internationalized Resource Identifier, allowing Unicode characters) to a URI (Uniform Resource Identifier, ASCII-only).
 
@@ -4640,6 +4653,9 @@ def iri_to_uri(iri):
     """
 
     iri_parts = urllib.parse.urlparse(iri)
+
+    if iri_parts.scheme not in allowed_schemes:
+        raise ValueError(f'"{iri_parts.scheme}" is not in allowed_schemes: {", ".join(allowed_schemes)}')
 
     if '[' in iri_parts.netloc:
         raise ValueError('IPv6 URIs are not, yet, supported.')
