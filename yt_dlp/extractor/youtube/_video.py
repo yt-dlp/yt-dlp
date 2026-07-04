@@ -3169,12 +3169,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             raise ExtractorError('Failed to extract any player response')
         return prs, player_url
 
-    def _needs_live_processing(self, live_status, duration):
-        if ((live_status == 'is_live' and self.get_param('live_from_start'))
-                or (live_status == 'post_live' and (duration or 0) > 2 * 3600)):
-            return live_status
-
-    def _needs_adaptive_formats_extraction(self, live_status):
+    def _needs_live_processing(self, live_status):
         return live_status == 'post_live' or (
             live_status == 'is_live' and self.get_param('live_from_start'))
 
@@ -3476,9 +3471,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 https_fmts = []
 
                 for fmt_stream in streaming_formats:
-                    # Live adaptive https formats will be skipped unless video is post-live or
-                    # live-from-start or extractor-arg given
-                    if fmt_stream.get('targetDurationSec') and skip_bad_formats and not self._needs_adaptive_formats_extraction(live_status):
+                    if (
+                        # It's a live adaptive format
+                        fmt_stream.get('targetDurationSec')
+                        # The user didn't pass the formats=incomplete extractor-arg
+                        and skip_bad_formats
+                        # This is not a --live-from-start or post-live stream
+                        and not self._needs_live_processing(live_status)
+                    ):
                         continue
 
                     # FORMAT_STREAM_TYPE_OTF(otf=1) requires downloading the init fragment
@@ -3573,7 +3573,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if live_status not in ('is_live', 'post_live'):
                         fmt['available_at'] = available_at
 
-                    if fmt_stream.get('targetDurationSec') and self._needs_adaptive_formats_extraction(live_status):
+                    if fmt_stream.get('targetDurationSec') and self._needs_live_processing(live_status):
                         fmt['is_from_start'] = True
                         fmt['target_duration'] = fmt_stream['targetDurationSec']
                         fmt['_itag'] = stream_id[0]
@@ -3595,11 +3595,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             yield from process_https_formats()
 
-            needs_live_processing = self._needs_live_processing(live_status, duration)
+            needs_live_processing = self._needs_live_processing(live_status)
 
             skip_manifests = set(self._configuration_arg('skip'))
-            if (needs_live_processing == 'is_live'  # These will be filtered out by YoutubeDL anyway
-                    or (needs_live_processing and skip_bad_formats)):
+            if needs_live_processing and skip_bad_formats:
                 skip_manifests.add('hls')
 
             def process_manifest_format(f, proto, client_name, itag, missing_pot):
@@ -4111,7 +4110,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not duration and live_end_time and live_start_time:
             duration = live_end_time - live_start_time
 
-        needs_live_processing = self._needs_live_processing(live_status, duration)
+        needs_live_processing = self._needs_live_processing(live_status)
 
         def adjust_incomplete_format(fmt, note_suffix='(Last 2 hours)', pref_adjustment=-10):
             fmt['preference'] = (fmt.get('preference') or -1) + pref_adjustment
@@ -4138,7 +4137,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         # Incomplete live adaptive https formats
                         adjust_incomplete_format(fmt, note_suffix='(incomplete)', pref_adjustment=-20)
 
-        if needs_live_processing or self._needs_adaptive_formats_extraction(live_status):
+        if needs_live_processing:
             self._prepare_live_from_start_formats(
                 formats, video_id, live_start_time, url, webpage_url, smuggled_data, live_status == 'is_live')
 
