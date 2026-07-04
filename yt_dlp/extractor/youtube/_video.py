@@ -1987,7 +1987,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f['_client'],
                 live_start_time,
                 url_feed if is_live else None,
-                not is_live and f.get('url'),
+                f.get('url') if not is_live else None,
                 f.get('target_duration'),
                 adaptive_last_seq_cache,
             )
@@ -2001,9 +2001,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _live_adaptive_fragments(self, video_id, itag, client_name, live_start_time, url_feed, base_url, fragment_duration, last_seq_cache, ctx):
         FETCH_SPAN, MAX_DURATION = 5, 432000
-
-        if url_feed:
-            base_url = None
 
         begin_index = 0
         download_start_time = ctx.get('start') or time.time()
