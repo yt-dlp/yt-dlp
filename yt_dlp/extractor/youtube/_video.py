@@ -28,7 +28,6 @@ from .jsc._director import initialize_jsc_director
 from .jsc.provider import JsChallengeRequest, JsChallengeType, NChallengeInput, SigChallengeInput
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
-from ...networking.exceptions import HTTPError
 from ...utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -1940,6 +1939,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         lock = threading.Lock()
         start_time = time.time()
         formats = [f for f in formats if f.get('is_from_start')]
+        adaptive_last_seq_cache = {}
 
         def refetch_manifest(itag, client_name, delay):
             nonlocal formats, start_time, is_live
@@ -1956,9 +1956,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_live = live_status == 'is_live'
             start_time = time.time()
 
-        def mpd_feed(itag, client_name, delay):
+        def url_feed(itag, client_name, delay):
             """
-            @returns (manifest_url, manifest_stream_number, is_live) or None
+            @returns (base_url, is_live) or None
             """
             for retry in self.RetryManager(fatal=False):
                 with lock:
@@ -1969,32 +1969,38 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not is_live:
                         retry.error = f'{video_id}: Video is no longer live'
                     else:
-                        retry.error = f'Cannot find refreshed manifest for format {itag}{bug_reports_message()}'
+                        retry.error = f'Cannot find refreshed url for format {itag}{bug_reports_message()}'
                     continue
 
-                # Formats from ended premieres will be missing a manifest_url
-                # See https://github.com/yt-dlp/yt-dlp/issues/8543
-                if not f.get('manifest_url'):
+                if not f.get('url'):
                     break
 
-                return f['manifest_url'], f['manifest_stream_number'], is_live
+                return f['url'], is_live
             return None
 
         for f in formats:
             f['is_live'] = is_live
-            gen = functools.partial(self._live_dash_fragments, video_id, f['_itag'], f['_client'],
-                                    live_start_time, mpd_feed, not is_live and f.copy())
+            gen = functools.partial(
+                self._live_adaptive_fragments,
+                video_id,
+                f['_itag'],
+                f['_client'],
+                live_start_time,
+                url_feed if is_live else None,
+                f.get('url') if not is_live else None,
+                f.get('target_duration'),
+                adaptive_last_seq_cache,
+            )
             if is_live:
                 f['fragments'] = gen
                 f['protocol'] = 'http_dash_segments_generator'
             else:
                 f['fragments'] = LazyList(gen({}))
+                f['protocol'] = 'http_dash_segments'
                 del f['is_from_start']
 
-    def _live_dash_fragments(self, video_id, itag, client_name, live_start_time, mpd_feed, manifestless_orig_fmt, ctx):
+    def _live_adaptive_fragments(self, video_id, itag, client_name, live_start_time, url_feed, base_url, fragment_duration, last_seq_cache, ctx):
         FETCH_SPAN, MAX_DURATION = 5, 432000
-
-        mpd_url, stream_number, is_live = None, None, True
 
         begin_index = 0
         download_start_time = ctx.get('start') or time.time()
@@ -2006,98 +2012,74 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'YouTube does not have data before that. If you think this is wrong,'), only_once=True)
             lack_early_segments = True
 
-        known_idx, no_fragment_score, last_segment_url = begin_index, 0, None
-        fragments, fragment_base_url = None, None
-
-        def _extract_sequence_from_mpd(refresh_sequence, immediate):
-            nonlocal mpd_url, stream_number, is_live, no_fragment_score, fragments, fragment_base_url
-            # Obtain from MPD's maximum seq value
-            old_mpd_url = mpd_url
-            last_error = ctx.pop('last_error', None)
-            expire_fast = immediate or (last_error and isinstance(last_error, HTTPError) and last_error.status == 403)
-            mpd_url, stream_number, is_live = (mpd_feed(itag, client_name, 5 if expire_fast else 18000)
-                                               or (mpd_url, stream_number, False))
-            if not refresh_sequence:
-                if expire_fast and not is_live:
-                    return False, last_seq
-                elif old_mpd_url == mpd_url:
-                    return True, last_seq
-            if manifestless_orig_fmt:
-                fmt_info = manifestless_orig_fmt
-            else:
-                try:
-                    fmts, _ = self._extract_mpd_formats_and_subtitles(
-                        mpd_url, None, note=False, errnote=False, fatal=False)
-                except ExtractorError:
-                    fmts = None
-                if not fmts:
-                    no_fragment_score += 2
-                    return False, last_seq
-                fmt_info = next(x for x in fmts if x['manifest_stream_number'] == stream_number)
-            fragments = fmt_info['fragments']
-            fragment_base_url = fmt_info['fragment_base_url']
-            assert fragment_base_url
-
-            _last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
-            return True, _last_seq
+        known_idx, no_fragment_score = begin_index, 0
 
         self.write_debug(f'[{video_id}] Generating fragments for format {itag}')
-        while is_live:
+        should_iterate = True
+        while should_iterate:
             fetch_time = time.time()
             if no_fragment_score > 30:
                 return
-            if last_segment_url:
-                # Obtain from "X-Head-Seqnum" header value from each segment
+
+            if url_feed and (feed_results := url_feed(itag, client_name, 5 if no_fragment_score > 15 else 18000)):
+                base_url, should_iterate = feed_results
+            else:
+                should_iterate = False
+            if not base_url:
+                no_fragment_score += 2
+                continue
+
+            # Obtain from "X-Head-Seqnum" header value. The bare base URL
+            # may return an empty response body, but the headers are still usable.
+            cache_key = should_iterate, int(time.time() // FETCH_SPAN)
+            if cache_key in last_seq_cache:
+                last_seq = last_seq_cache[cache_key]
+            else:
                 try:
-                    urlh = self._request_webpage(
-                        last_segment_url, None, note=False, errnote=False, fatal=False)
+                    urlh = self._request_webpage(base_url, None, note=False, errnote=False, fatal=False)
                 except ExtractorError:
                     urlh = None
                 last_seq = try_get(urlh, lambda x: int_or_none(x.headers['X-Head-Seqnum']))
-                if last_seq is None:
-                    no_fragment_score += 2
-                    last_segment_url = None
-                    continue
-            else:
-                should_continue, last_seq = _extract_sequence_from_mpd(True, no_fragment_score > 15)
+                if urlh:
+                    urlh.close()
+                if last_seq is not None:
+                    last_seq_cache.clear()
+                    last_seq_cache[cache_key] = last_seq
+            if last_seq is None:
                 no_fragment_score += 2
-                if not should_continue:
-                    continue
+                continue
 
             if known_idx > last_seq:
-                last_segment_url = None
+                no_fragment_score += 5
+                if should_iterate:
+                    time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
                 continue
 
             last_seq += 1
+
+            if not url_feed:
+                last_seq -= 2
 
             if begin_index < 0 and known_idx < 0:
                 # skip from the start when it's negative value
                 known_idx = last_seq + begin_index
             if lack_early_segments:
-                known_idx = max(known_idx, last_seq - int(MAX_DURATION // fragments[-1]['duration']))
-            try:
-                for idx in range(known_idx, last_seq):
-                    # do not update sequence here or you'll get skipped some part of it
-                    should_continue, _ = _extract_sequence_from_mpd(False, False)
-                    if not should_continue:
-                        known_idx = idx - 1
-                        raise ExtractorError('breaking out of outer loop')
-                    last_segment_url = urljoin(fragment_base_url, f'sq/{idx}')
-                    yield {
-                        'url': last_segment_url,
-                        'fragment_count': last_seq,
-                    }
-                if known_idx == last_seq:
-                    no_fragment_score += 5
-                else:
-                    no_fragment_score = 0
-                known_idx = last_seq
-            except ExtractorError:
-                continue
+                known_idx = max(known_idx, last_seq - int(MAX_DURATION // fragment_duration))
 
-            if manifestless_orig_fmt:
-                # Stop at the first iteration if running for post-live manifestless;
-                # fragment count no longer increase since it starts
+            for idx in range(known_idx, last_seq):
+                yield {
+                    'url': update_url_query(base_url, {'sq': str(idx)}),
+                    'fragment_count': last_seq,
+                }
+
+            if known_idx == last_seq:
+                no_fragment_score += 5
+            else:
+                no_fragment_score = 0
+            known_idx = last_seq
+
+            if not url_feed:
+                # Post-live: stop after first iteration
                 break
 
             time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
@@ -3194,10 +3176,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             raise ExtractorError('Failed to extract any player response')
         return prs, player_url
 
-    def _needs_live_processing(self, live_status, duration):
-        if ((live_status == 'is_live' and self.get_param('live_from_start'))
-                or (live_status == 'post_live' and (duration or 0) > 2 * 3600)):
-            return live_status
+    def _needs_live_processing(self, live_status):
+        return live_status == 'post_live' or (
+            live_status == 'is_live' and self.get_param('live_from_start'))
 
     def _report_pot_format_skipped(self, video_id, client_name, proto):
         msg = (
@@ -3497,8 +3478,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 https_fmts = []
 
                 for fmt_stream in streaming_formats:
-                    # Live adaptive https formats are not supported: skip unless extractor-arg given
-                    if fmt_stream.get('targetDurationSec') and skip_bad_formats:
+                    if (
+                        # It's a live adaptive format
+                        fmt_stream.get('targetDurationSec')
+                        # The user didn't pass the formats=incomplete extractor-arg
+                        and skip_bad_formats
+                        # This is not a --live-from-start or post-live stream
+                        and not self._needs_live_processing(live_status)
+                    ):
                         continue
 
                     # FORMAT_STREAM_TYPE_OTF(otf=1) requires downloading the init fragment
@@ -3593,6 +3580,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if live_status not in ('is_live', 'post_live'):
                         fmt['available_at'] = available_at
 
+                    if fmt_stream.get('targetDurationSec') and self._needs_live_processing(live_status):
+                        fmt['is_from_start'] = True
+                        fmt['target_duration'] = fmt_stream['targetDurationSec']
+                        fmt['_itag'] = stream_id[0]
+                        fmt['_client'] = client_name
+
                     https_fmts.append(fmt)
 
                 for fmt in https_fmts:
@@ -3609,14 +3602,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             yield from process_https_formats()
 
-            needs_live_processing = self._needs_live_processing(live_status, duration)
+            needs_live_processing = self._needs_live_processing(live_status)
 
             skip_manifests = set(self._configuration_arg('skip'))
-            if (needs_live_processing == 'is_live'  # These will be filtered out by YoutubeDL anyway
-                    or (needs_live_processing and skip_bad_formats)):
+            if needs_live_processing and skip_bad_formats:
                 skip_manifests.add('hls')
 
-            if skip_bad_formats and live_status == 'is_live' and needs_live_processing != 'is_live':
+            if skip_bad_formats and (
+                live_status == 'is_live'
+                or (live_status == 'post_live' and (duration or 0) > 2 * 3600)
+            ):
                 skip_manifests.add('dash')
 
             def process_manifest_format(f, proto, client_name, itag, missing_pot):
@@ -3754,10 +3749,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         if process_manifest_format(f, 'dash', client_name, format_id, require_po_token and not po_token):
                             f['filesize'] = int_or_none(self._search_regex(
                                 r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
-                            if needs_live_processing:
-                                f['is_from_start'] = True
-                                f['_itag'] = format_id
-                                f['_client'] = client_name
                             yield f
         yield subtitles
 
@@ -4129,7 +4120,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not duration and live_end_time and live_start_time:
             duration = live_end_time - live_start_time
 
-        needs_live_processing = self._needs_live_processing(live_status, duration)
+        needs_live_processing = self._needs_live_processing(live_status)
 
         def adjust_incomplete_format(fmt, note_suffix='(Last 2 hours)', pref_adjustment=-10):
             fmt['preference'] = (fmt.get('preference') or -1) + pref_adjustment
@@ -4138,26 +4129,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # Adjust preference and format note for incomplete live/post-live formats
         if live_status in ('is_live', 'post_live'):
             for fmt in formats:
-                protocol = fmt.get('protocol')
-                # Currently, protocol isn't set for adaptive https formats, but this could change
-                is_adaptive = protocol in (None, 'http', 'https')
-                if live_status == 'post_live' and is_adaptive:
-                    # Post-live adaptive formats cause HttpFD to raise "Did not get any data blocks"
-                    # These formats are *only* useful to external applications, so we can hide them
-                    # Set their preference <= -1000 so that FormatSorter flags them as 'hidden'
-                    adjust_incomplete_format(fmt, note_suffix='(ended)', pref_adjustment=-5000)
-                # Is it live with --live-from-start? Or is it post-live and its duration is >2hrs?
-                elif needs_live_processing:
+                # Is it live with --live-from-start or post-live?
+                if needs_live_processing:
                     if not fmt.get('is_from_start'):
-                        # Post-live m3u8 formats for >2hr streams
+                        # Post-live DASH and m3u8 manifests only have the last ~2 hours
                         adjust_incomplete_format(fmt)
                 elif live_status == 'is_live':
-                    if protocol == 'http_dash_segments':
-                        # Live DASH formats without --live-from-start
-                        adjust_incomplete_format(fmt)
-                    elif is_adaptive:
-                        # Incomplete live adaptive https formats
+                    protocol = fmt.get('protocol')
+                    # Currently, protocol isn't set for incomplete (non-generated) live adaptive formats
+                    if protocol in (None, 'http', 'https'):
                         adjust_incomplete_format(fmt, note_suffix='(incomplete)', pref_adjustment=-20)
+                    # Live DASH formats (no longer properly supported)
+                    elif protocol == 'http_dash_segments':
+                        adjust_incomplete_format(fmt)
 
         if needs_live_processing:
             self._prepare_live_from_start_formats(
