@@ -3601,6 +3601,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if needs_live_processing and skip_bad_formats:
                 skip_manifests.add('hls')
 
+            if skip_bad_formats and live_status in ('is_live', 'post_live'):
+                skip_manifests.add('dash')
+
             def process_manifest_format(f, proto, client_name, itag, missing_pot):
                 key = (proto, f.get('language'))
                 if not all_formats and key in itags[itag]:
