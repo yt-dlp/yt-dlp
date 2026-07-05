@@ -339,14 +339,14 @@ DEPENDENCIES: list[Dependency] = [
         name='Meriyah',
         license='ISC',
         license_url='https://raw.githubusercontent.com/meriyah/meriyah/refs/heads/main/LICENSE.md',
-        comment='Also included in `yt-dlp` Unix zipimport binaries',
+        comment='Also included in `yt-dlp` zipimport Unix executables and `yt-dlp.tar.gz` release tarballs',
         project_url='https://github.com/meriyah/meriyah',
     ),
     Dependency(
         name='Astring',
         license='MIT',
         license_url='https://raw.githubusercontent.com/davidbonnet/astring/refs/heads/main/LICENSE',
-        comment='Also included in `yt-dlp` Unix zipimport binaries',
+        comment='Also included in `yt-dlp` zipimport Unix executables and `yt-dlp.tar.gz` release tarballs',
         project_url='https://github.com/davidbonnet/astring/',
     ),
 ]

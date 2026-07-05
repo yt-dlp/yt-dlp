@@ -4437,7 +4437,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
 Meriyah | ISC
-Note: Also included in `yt-dlp` Unix zipimport binaries
+Note: Also included in `yt-dlp` zipimport Unix executables and `yt-dlp.tar.gz` release tarballs
 URL: https://github.com/meriyah/meriyah
 --------------------------------------------------------------------------------
 ISC License
@@ -4452,7 +4452,7 @@ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH RE
 
 --------------------------------------------------------------------------------
 Astring | MIT
-Note: Also included in `yt-dlp` Unix zipimport binaries
+Note: Also included in `yt-dlp` zipimport Unix executables and `yt-dlp.tar.gz` release tarballs
 URL: https://github.com/davidbonnet/astring/
 --------------------------------------------------------------------------------
 Copyright (c) 2015, David Bonnet <david@bonnet.cc>
