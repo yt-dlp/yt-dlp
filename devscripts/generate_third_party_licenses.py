@@ -141,7 +141,7 @@ DEPENDENCIES: list[Dependency] = [
         project_url='https://facebook.github.io/zstd/',
     ),
 
-    # Non-Python dependencies of curl-cffi
+    # Non-Python dependencies of curl_cffi
     Dependency(
         name='curl-impersonate',
         license='MIT',
@@ -213,7 +213,7 @@ DEPENDENCIES: list[Dependency] = [
         comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
         project_url='https://curl-cffi.readthedocs.io/',
     ),
-    # Dependency of curl-cffi
+    # Dependency of curl_cffi
     Dependency(
         name='rich',
         license='MIT',
@@ -245,7 +245,7 @@ DEPENDENCIES: list[Dependency] = [
         comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
         project_url='https://github.com/executablebooks/mdurl',
     ),
-    # Dependency of cryptography and curl-cffi
+    # Dependency of cryptography and curl_cffi
     Dependency(
         name='cffi',
         license='MIT-0',  # Technically does not need to be included
