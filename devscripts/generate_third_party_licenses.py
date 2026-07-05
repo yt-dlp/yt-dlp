@@ -268,22 +268,6 @@ DEPENDENCIES: list[Dependency] = [
         comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://github.com/eliben/pycparser',
     ),
-    # Dependency of PyInstaller imported by cffi
-    Dependency(
-        name='packaging',
-        license='Apache-2.0',
-        license_url='https://raw.githubusercontent.com/pypa/packaging/refs/heads/main/LICENSE.APACHE',
-        comment='Not included in `yt-dlp_x86.exe` Windows builds',
-        project_url='https://packaging.pypa.io/',
-    ),
-    # Dependency of PyInstaller imported by cffi
-    Dependency(
-        name='setuptools',
-        license='MIT',
-        license_url='https://raw.githubusercontent.com/pypa/setuptools/refs/heads/main/LICENSE',
-        comment='Not included in `yt-dlp_x86.exe` Windows builds',
-        project_url='https://pypi.org/project/setuptools/',
-    ),
     Dependency(
         name='mutagen',
         license='GPL-2.0-or-later',
