@@ -7,6 +7,7 @@ from ..utils import (
 
 
 class ShowRoomLiveIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?showroom-live\.com/(?!onlive|timetable|event|campaign|news|ranking|room)(?P<id>[^/?#&]+)'
     _TEST = {
         'url': 'https://www.showroom-live.com/48_Nana_Okada',
