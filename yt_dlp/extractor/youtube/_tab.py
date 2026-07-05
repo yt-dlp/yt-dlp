@@ -344,15 +344,25 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         duration_text = traverse_obj(thumbnail_badge_view_models, (..., 'text', {str.lower}, any))
         thumbnail_badge_styles = traverse_obj(thumbnail_badge_view_models, (..., 'badgeStyle', {str}))
 
+        channel_traversal_dict = {
+            'channel': ('content', {str}),
+            'channel_id': ('commandRuns', 0, 'onTap', 'innertubeCommand', 'browseEndpoint', 'browseId', {self.ucid_or_none}),
+            'uploader': ('content', {str}),
+            'uploader_id': ('commandRuns', 0, 'onTap', 'innertubeCommand', 'browseEndpoint', 'canonicalBaseUrl', {self.handle_from_url}),
+        }
+
         channel_info = traverse_obj(content_mdvm, (
             'metadataRows', ..., 'metadataParts',
             lambda _, v: v['text']['commandRuns'][0]['onTap']['innertubeCommand']['browseEndpoint']['browseId'],
-            'text', any, {
-                'channel': ('content', {str}),
-                'channel_id': ('commandRuns', 0, 'onTap', 'innertubeCommand', 'browseEndpoint', 'browseId', {self.ucid_or_none}),
-                'uploader': ('content', {str}),
-                'uploader_id': ('commandRuns', 0, 'onTap', 'innertubeCommand', 'browseEndpoint', 'canonicalBaseUrl', {self.handle_from_url}),
-            }))
+            'text', any, channel_traversal_dict))
+
+        # For videos credited to multiple channels / "collaborators"
+        collaborator_data = traverse_obj(lockup_mdvm, (
+            'image', 'avatarStackViewModel', 'rendererContext', 'commandContext', 'onTap', 'innertubeCommand',
+            'showDialogCommand', 'panelLoadingStrategy', 'inlineContent', 'dialogViewModel', 'customContent',
+            'listViewModel', 'listItems', ..., 'listItemViewModel', 'title', {dict}))
+        if not channel_info:
+            channel_info = traverse_obj(collaborator_data, (0, channel_traversal_dict))
 
         views_and_time = traverse_obj(content_mdvm, (
             'metadataRows', lambda _, v: 'accessibilityLabel' in v['metadataParts'][-1],
@@ -384,6 +394,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             availability=self._availability(needs_subscription='BADGE_MEMBERS_ONLY' in badge_styles),
             channel_url=format_field(channel_info, 'channel_id', 'https://www.youtube.com/channel/%s', default=None),
             uploader_url=format_field(channel_info, 'uploader_id', 'https://www.youtube.com/%s', default=None),
+            creators=traverse_obj(collaborator_data, (..., 'content', {str}, all, filter)),
             **channel_info)
 
     def _rich_entries(self, rich_grid_renderer):
@@ -2144,6 +2155,48 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UCH6-qfQwlUgz9SAf05jvc_w',
             'tags': [],
             'availability': 'public',
+        },
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/17044
+        'note': 'flat playlist entry credited to multiple channels / "collaborators"',
+        'url': 'https://www.youtube.com/playlist?list=PLzMNc_TBkmzei1ejIkbjNUP9J7q0hmepM',
+        'info_dict': {
+            'id': 'PLzMNc_TBkmzei1ejIkbjNUP9J7q0hmepM',
+            'title': 'Music for Creating, Building, Imagining 1',
+            'description': 'md5:329cd827b1c70910e80c108cfefdb37d',
+            'uploader': 'Sebtt',
+            'uploader_id': '@Sebtt',
+            'uploader_url': 'https://www.youtube.com/@Sebtt',
+            'channel': 'Sebtt',
+            'channel_id': 'UC-EmUaZucfuL81RYKcKjpbw',
+            'channel_url': 'https://www.youtube.com/channel/UC-EmUaZucfuL81RYKcKjpbw',
+            'view_count': int,
+            'tags': [],
+            'modified_date': str,
+            'availability': 'public',
+        },
+        'playlist': [{
+            'info_dict': {
+                'title': 'Thomas Bergersen - Made of Fire',
+                'id': 'KUokLzs947k',
+                '_type': 'url',
+                'ie_key': 'Youtube',
+                'url': 'https://www.youtube.com/watch?v=KUokLzs947k',
+                'uploader': 'Two Steps From Hell',
+                'uploader_id': '@TwoStepsFromHell-Official',
+                'uploader_url': 'https://www.youtube.com/@TwoStepsFromHell-Official',
+                'channel': 'Two Steps From Hell',
+                'channel_id': 'UC3swwxiALG5c0Tvom83tPGg',
+                'channel_url': 'https://www.youtube.com/channel/UC3swwxiALG5c0Tvom83tPGg',
+                'view_count': int,
+                'duration': 341.0,
+                'creators': ['Two Steps From Hell', 'Thomas Bergersen'],
+            },
+        }],
+        'playlist_count': 1,
+        'params': {
+            'extract_flat': True,
+            'playlist_items': '75',
         },
     }]
 
