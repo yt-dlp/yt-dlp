@@ -1,7 +1,6 @@
 import errno
 import os
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -63,7 +62,7 @@ class TestSabrStateFile:
         assert state_file.exists is False
         assert Path(state_file.filename).exists() is False
 
-    def test_update_retry_replace(self, fd, filename, sabr_state, logger):
+    def test_update_retry_replace(self, fd, filename, sabr_state, monkeypatch, logger):
         # should retry on the state file replace if a filesystem error occurs.
         # Windows sometimes throws a permission error which a retry can resolve.
         state_file = SabrStateFile(filename, fd)
@@ -78,8 +77,8 @@ class TestSabrStateFile:
                 raise OSError(errno.EACCES, 'Permission denied', dst)
             return original_replace(src, dst)
 
-        with patch('yt_dlp.downloader.common.os.replace', side_effect=os_replace_fail):
-            state_file.update(sabr_state)
+        monkeypatch.setattr('yt_dlp.downloader.common.os.replace', os_replace_fail)
+        state_file.update(sabr_state)
 
         assert call_count == 2
         log_message = logger.debug.mock_calls[0].args[0]

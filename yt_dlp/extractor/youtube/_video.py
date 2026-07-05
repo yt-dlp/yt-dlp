@@ -3705,6 +3705,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 server_abr_streaming_url = streaming_data.get('serverAbrStreamingUrl')
                 if not server_abr_streaming_url:
                     return
+
+                if protobug is None:
+                    self.report_warning(
+                        f'{video_id}: {client_name} client {proto} formats will be skipped as protobug is not installed',
+                        only_once=True)
+                    return
+
                 # web_creator client sometimes serves the url on c.youtube.com - SABR downloader only support googlevideo.com.
                 server_abr_streaming_url = server_abr_streaming_url.replace('.c.youtube.com/videoplayback', '.googlevideo.com/videoplayback')
                 query = parse_qs(server_abr_streaming_url)
@@ -3724,12 +3731,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     pr, ('playerConfig', 'mediaCommonConfig', 'mediaUstreamerRequestConfig', 'videoPlaybackUstreamerConfig'))
 
                 if not server_abr_streaming_url or not video_playback_ustreamer_config:
-                    return
-
-                if protobug is None:
-                    self.report_warning(
-                        f'{video_id}: {client_name} client {proto} formats will be skipped as protobug is not installed',
-                        only_once=True)
                     return
 
                 pot_policy: GvsPoTokenPolicy = self._get_default_ytcfg(client_name)['GVS_PO_TOKEN_POLICY'][StreamingProtocol.SABR]
