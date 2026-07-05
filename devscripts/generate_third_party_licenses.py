@@ -10,7 +10,7 @@ HEADER = '''THIRD-PARTY LICENSES
 This file aggregates license texts of third-party components included with the yt-dlp PyInstaller-bundled executables.
 yt-dlp itself is licensed under the Unlicense (see LICENSE file).
 Source code for bundled third-party components is available from the original projects.
-If you cannot obtain it, the maintainers will provide it as per license obligation; maintainer emails are listed in pyproject.toml.'''
+If you cannot obtain it, the maintainers will provide it as per license obligation: email maintainers@yt-dlp.org'''
 
 
 @dataclass(frozen=True)
