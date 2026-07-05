@@ -148,14 +148,6 @@ DEPENDENCIES: list[Dependency] = [
         project_url='https://www.gnu.org/software/libunistring/',
     ),
     Dependency(
-        name='librtmp',
-        license='LGPL-2.1-or-later',
-        # No official repo URL
-        license_url='https://gist.githubusercontent.com/seproDev/31d8c691ccddebe37b8b379307cb232d/raw/053408e98547ea8c7d9ba3a80c965f33e163b881/librtmp_COPYING.txt',
-        comment='Only included in macOS builds',
-        project_url='https://rtmpdump.mplayerhq.hu/',
-    ),
-    Dependency(
         name='zstd',
         license='BSD-3-Clause',
         license_url='https://raw.githubusercontent.com/facebook/zstd/refs/heads/dev/LICENSE',
