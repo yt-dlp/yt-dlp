@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from yt_dlp.dependencies import protobug
 
+from .media_capabilities import MediaCapabilities
+
 
 @protobug.message
 class ClientAbrState:
@@ -9,3 +11,4 @@ class ClientAbrState:
     enabled_track_types_bitfield: protobug.Int32 | None = protobug.field(40, default=None)
     drc_enabled: protobug.Bool = protobug.field(46, default=False)
     enable_voice_boost: protobug.Bool = protobug.field(76, default=False)
+    media_capabilities: MediaCapabilities | None = protobug.field(38, default=None)

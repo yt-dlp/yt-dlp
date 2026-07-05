@@ -103,3 +103,4 @@ class ClientInfo:
     client_version: protobug.String | None = protobug.field(17, default=None)
     os_name: protobug.String | None = protobug.field(18, default=None)
     os_version: protobug.String | None = protobug.field(19, default=None)
+    android_sdk_version: protobug.Int32 | None = protobug.field(64, default=None)

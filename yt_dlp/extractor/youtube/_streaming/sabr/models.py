@@ -68,12 +68,10 @@ class FormatSelector:
     def match(self, format_id: FormatId = None, mime_type: str | None = None, **kwargs) -> bool:
         return (
             format_id in self.format_ids
-            or (
+            or bool(
                 not self.format_ids
                 and self.mime_prefix
-                and mime_type and mime_type.lower().startswith(self.mime_prefix)
-            )
-        )
+                and mime_type and mime_type.lower().startswith(self.mime_prefix)))
 
 
 @dataclasses.dataclass
@@ -84,6 +82,7 @@ class AudioSelector(FormatSelector):
 @dataclasses.dataclass
 class VideoSelector(FormatSelector):
     mime_prefix: str = dataclasses.field(default='video')
+    prefer_hdr: bool = dataclasses.field(default=False)
 
 
 @dataclasses.dataclass

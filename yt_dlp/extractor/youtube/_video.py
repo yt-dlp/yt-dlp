@@ -3759,6 +3759,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'os_name': 'osName',
                         'device_model': 'deviceModel',
                         'device_make': 'deviceMake',
+                        'android_sdk_version': 'androidSdkVersion',
                     }))
 
                 sabr_config = {
@@ -3784,6 +3785,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         fmt_stream, proto, missing_pot=require_po_token and not po_token,
                         super_resolution=is_super_resolution(b64_xtags=xtags))
                     if not fmt:
+                        continue
+
+                    if fmt.get('acodec') != 'none' and fmt.get('vcodec') != 'none':
+                        # SABR does not support combined formats
+                        continue
+
+                    # TODO: mark as broken and put behind formats extractor arg
+                    if (
+                        (fmt_stream.get('qualityOrdinal').endswith('_SAVER')
+                         or fmt_stream.get('audioQuality') == 'AUDIO_QUALITY_ULTRALOW')
+                        and client_name in ('android', 'android_vr', 'ios')
+                    ):
+                        # These formats are broken for SABR on these clients.
+                        # Probably requires some extra information in the sabr request to enable them.
                         continue
 
                     # TODO(future): extract SABR live caption tracks.

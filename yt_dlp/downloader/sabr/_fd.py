@@ -200,7 +200,10 @@ class SabrFdSession:
 
         if self.video_format:
             video_selector = VideoSelector(
-                display_name=self.video_format['display_name'], format_ids=[self.video_format['format_id']])
+                display_name=self.video_format['display_name'],
+                format_ids=[self.video_format['format_id']],
+                # required for server to select hdr/non-hdr formats corrrectly for android/ios
+                prefer_hdr='HDR' in self.video_format['info_dict'].get('dynamic_range', 'SDR'))
             self.writers[video_selector.display_name] = SabrFDFormatWriter(
                 self.fd, self.video_format.get('filename'),
                 self.video_format['info_dict'], len(self.writers), resume=self.resume)
@@ -223,7 +226,7 @@ class SabrFdSession:
             for part in self.stream:
                 if self.is_test and total_bytes >= self.fd._TEST_FILE_SIZE:
                     break
-                if isinstance(part, MediaSegmentDataSabrPart):
+                if isinstance(part, MediaSegmentDataSabrPart) and not part.is_init_segment:
                     total_bytes += part.content_length
                 self._process_sabr_part(part)
             self._finish_formats()

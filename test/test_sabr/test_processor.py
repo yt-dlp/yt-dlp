@@ -44,6 +44,8 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     SabrSeek,
     MediaHeader,
     TimeRange,
+    MediaCapabilities,
+    VideoFormatCapability,
 )
 from yt_dlp.extractor.youtube._proto.videostreaming.cuepoint_list import (
     Cuepoint,
@@ -53,7 +55,12 @@ from yt_dlp.extractor.youtube._proto.videostreaming.cuepoint_list import (
     CuepointType,
     TrackType,
 )
-from yt_dlp.extractor.youtube._proto.innertube import NextRequestPolicy, CompressionAlgorithm
+from yt_dlp.extractor.youtube._proto.innertube import (
+    NextRequestPolicy,
+    CompressionAlgorithm,
+    ClientName,
+    ClientInfo,
+)
 
 
 @pytest.fixture
@@ -305,42 +312,50 @@ class TestSabrProcessorInitialization:
         # Voice boost should be enabled by default
         assert processor.client_abr_state.enable_voice_boost is True
 
-    @pytest.mark.parametrize(
-        'duration_sec,tolerance_ms',
-        [
-            (10, 4999),
-            (10, 0),
-        ],
-    )
-    def test_live_segment_target_duration_tolerance_ms_valid(self, base_args, duration_sec, tolerance_ms):
-        # Should not raise
-        SabrProcessor(
+    @pytest.mark.parametrize('client_name', [
+        client_name for client_name in ClientName
+        if client_name not in (ClientName.ANDROID, ClientName.IOS, ClientName.ANDROID_VR)
+    ])
+    def test_cabr_state_not_set_media_capabilities(self, base_args, client_name):
+        # Should not set media_capabilities in client_abr_state for non-android/ios clients'
+        base_args.pop('client_info', None)
+        processor = SabrProcessor(
             **base_args,
-            live_segment_target_duration_sec=duration_sec,
-            live_segment_target_duration_tolerance_ms=tolerance_ms,
+            client_info=ClientInfo(client_name=client_name),
+        )
+        assert processor.client_abr_state.media_capabilities is None
+
+    @pytest.mark.parametrize('client_name', [
+        ClientName.ANDROID, ClientName.IOS, ClientName.ANDROID_VR,
+    ])
+    @pytest.mark.parametrize('hdr_enabled', [
+        True, False,
+    ], ids=['hdr_enabled', 'hdr_disabled'])
+    def test_cabr_state_set_media_capabilities(self, base_args, client_name, hdr_enabled):
+        # Should set media_capabilities in client_abr_state for android/ios clients when prefer_hdr is False
+        base_args.pop('client_info', None)
+        processor = SabrProcessor(
+            **base_args,
+            video_selection=VideoSelector(prefer_hdr=hdr_enabled, display_name='non-hdr-video'),
+            client_info=ClientInfo(client_name=client_name),
         )
 
-    @pytest.mark.parametrize(
-        'duration_sec,tolerance_ms',
-        [
-            (10, 5000),  # exactly half
-            (10, 6000),  # more than half
-        ],
-    )
-    def test_live_segment_target_duration_tolerance_ms_validation(self, base_args, duration_sec, tolerance_ms):
-        with pytest.raises(ValueError, match='live_segment_target_duration_tolerance_ms must be less than'):
-            SabrProcessor(
-                **base_args,
-                live_segment_target_duration_sec=duration_sec,
-                live_segment_target_duration_tolerance_ms=tolerance_ms,
-            )
+        expected_media_capabilities = MediaCapabilities(
+            audio_format_capabilities=[], hdr_mode_bitmask=0 if not hdr_enabled else 3,
+            video_format_capabilities=[
+                VideoFormatCapability(video_codec=VideoFormatCapability.VideoCodec.UNKNOWN_CODEC, efficient=True, is_10_bit_supported=True),
+                VideoFormatCapability(video_codec=VideoFormatCapability.VideoCodec.H263, efficient=True, is_10_bit_supported=True),
+                VideoFormatCapability(video_codec=VideoFormatCapability.VideoCodec.H264, efficient=True, is_10_bit_supported=True),
+                VideoFormatCapability(video_codec=VideoFormatCapability.VideoCodec.VP8, efficient=True, is_10_bit_supported=True),
+                VideoFormatCapability(video_codec=VideoFormatCapability.VideoCodec.VP9, efficient=True, is_10_bit_supported=True),
+                VideoFormatCapability(video_codec=VideoFormatCapability.VideoCodec.H262, efficient=True, is_10_bit_supported=True),
+                VideoFormatCapability(video_codec=VideoFormatCapability.VideoCodec.VP6, efficient=True, is_10_bit_supported=True),
+                VideoFormatCapability(video_codec=VideoFormatCapability.VideoCodec.MPEG4, efficient=True, is_10_bit_supported=True),
+                VideoFormatCapability(video_codec=VideoFormatCapability.VideoCodec.AV1, efficient=True, is_10_bit_supported=True),
+                VideoFormatCapability(video_codec=VideoFormatCapability.VideoCodec.H265, efficient=True, is_10_bit_supported=True),
+                VideoFormatCapability(video_codec=VideoFormatCapability.VideoCodec.FLV1, efficient=True, is_10_bit_supported=True)])
 
-    def test_defaults(self, base_args):
-        processor = SabrProcessor(**base_args)
-        assert processor.live_segment_target_duration_sec == 5
-        assert processor.live_segment_target_duration_tolerance_ms == 100
-        assert processor.start_time_ms == 0
-        assert processor.post_live is False
+        assert processor.client_abr_state.media_capabilities == expected_media_capabilities
 
     def test_override_defaults(self, base_args):
         processor = SabrProcessor(

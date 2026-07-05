@@ -5,7 +5,7 @@ import dataclasses
 import io
 import math
 
-from yt_dlp.extractor.youtube._proto.innertube import ClientInfo, NextRequestPolicy
+from yt_dlp.extractor.youtube._proto.innertube import ClientInfo, ClientName, NextRequestPolicy
 from yt_dlp.extractor.youtube._proto.videostreaming import (
     AdCuepointConfig,
     BufferedRange,
@@ -14,6 +14,7 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     CuepointList,
     FormatInitializationMetadata,
     LiveMetadata,
+    MediaCapabilities,
     MediaHeader,
     SabrContext,
     SabrContextSendingPolicy,
@@ -22,6 +23,7 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     StreamerContext,
     StreamProtectionStatus,
     TimeRange,
+    VideoFormatCapability,
     VideoPlaybackAbrRequest,
 )
 
@@ -231,6 +233,30 @@ class SabrProcessor:
             drc_enabled=True,
             # Not currently required to stream voice boost (probably allow to auto-select)
             enable_voice_boost=True,
+
+            media_capabilities=self._get_media_capabilities())
+
+    def _get_media_capabilities(self):
+        # For ANDROID / IOS based clients:
+        # - HDR and non-HDR formats cannot be enabled at the same time
+        # - to select HDR or non-HDR:
+        #    - the hdr_mode_bitmask must be set appropriately (3=hdr)
+        #    - AV1, H264 and VP9 codecs must be advertised with efficient=True to select HDR
+
+        # WEB-based clients do not use MediaCapabilities. If MediaCapabilities is supplied,
+        # the preferred format ids appears to be ignored, causing other formats to be returned.
+        if self.client_info.client_name not in (ClientName.ANDROID_VR, ClientName.ANDROID, ClientName.IOS):
+            return None
+
+        return MediaCapabilities(
+            hdr_mode_bitmask=3 if self._video_format_selector.prefer_hdr else 0,
+            video_format_capabilities=[
+                VideoFormatCapability(
+                    video_codec=codec,
+                    efficient=True,
+                    is_10_bit_supported=True,
+                ) for codec in VideoFormatCapability.VideoCodec
+            ],
         )
 
     def format_selectors(self):
