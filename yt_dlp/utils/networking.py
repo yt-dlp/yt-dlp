@@ -15,10 +15,10 @@ from .traversal import traverse_obj
 
 
 def random_user_agent():
-    USER_AGENT_TMPL = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{} Safari/537.36'
+    USER_AGENT_TMPL = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{}.0.0.0 Safari/537.36'
     # Target versions released within the last ~6 months
-    CHROME_MAJOR_VERSION_RANGE = (143, 149)
-    return USER_AGENT_TMPL.format(f'{random.randint(*CHROME_MAJOR_VERSION_RANGE)}.0.0.0')
+    CHROME_MAJOR_VERSION_RANGE = (144, 150)
+    return USER_AGENT_TMPL.format(random.randint(*CHROME_MAJOR_VERSION_RANGE))
 
 
 class HTTPHeaderDict(dict):
@@ -64,7 +64,7 @@ class HTTPHeaderDict(dict):
             other = other.sensitive()
         if isinstance(other, dict):
             self.update(other)
-            return
+            return self
         return NotImplemented
 
     def __or__(self, other, /) -> typing.Self:

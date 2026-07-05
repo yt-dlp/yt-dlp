@@ -245,7 +245,6 @@ The following provide support for impersonating browser requests. This may be re
 ### Deprecated
 
 * [**rtmpdump**](http://rtmpdump.mplayerhq.hu) - For downloading `rtmp` streams. ffmpeg can be used instead with `--downloader ffmpeg`. Licensed under [GPLv2+](http://rtmpdump.mplayerhq.hu)
-* [**mplayer**](http://mplayerhq.hu/design7/info.html) or [**mpv**](https://mpv.io) - For downloading `rstp`/`mms` streams. ffmpeg can be used instead with `--downloader ffmpeg`. Licensed under [GPLv2+](https://github.com/mpv-player/mpv/blob/master/Copyright)
 
 To use or redistribute the dependencies, you must agree to their respective licensing terms.
 
@@ -403,7 +402,7 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     (default)
     --live-from-start               Download livestreams from the start.
                                     Currently experimental and only supported
-                                    for YouTube, Twitch, and TVer
+                                    for YouTube, Twitch, TVer, and mellow-fan
     --no-live-from-start            Download livestreams from the current time
                                     (default)
     --wait-for-video MIN[-MAX]      Wait for scheduled streams to become
@@ -625,16 +624,16 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     "*10:15-inf" --download-sections "intro"
     --downloader [PROTO:]NAME       Name or path of the external downloader to
                                     use (optionally) prefixed by the protocols
-                                    (http, ftp, m3u8, dash, rstp, rtmp, mms) to
-                                    use it for. Currently supports native,
-                                    aria2c, axel, curl, ffmpeg, httpie, wget.
-                                    You can use this option multiple times to
-                                    set different downloaders for different
-                                    protocols. E.g. --downloader aria2c
-                                    --downloader "dash,m3u8:native" will use
-                                    aria2c for http/ftp downloads, and the
-                                    native downloader for dash/m3u8 downloads
-                                    (Alias: --external-downloader)
+                                    (http, ftp, m3u8, dash, rtmp) to use it for.
+                                    Currently supports native, aria2c, axel,
+                                    curl, ffmpeg, httpie, wget. You can use this
+                                    option multiple times to set different
+                                    downloaders for different protocols. E.g.
+                                    --downloader aria2c --downloader
+                                    "dash,m3u8:native" will use aria2c for
+                                    http/ftp downloads, and the native
+                                    downloader for dash/m3u8 downloads (Alias:
+                                    --external-downloader)
     --downloader-args NAME:ARGS     Give these arguments to the external
                                     downloader. Specify the downloader name and
                                     the arguments separated by a colon ":". For
@@ -1264,7 +1263,7 @@ As an alternative to using the `.netrc` file, which has the disadvantage of keep
 
 E.g. To use an encrypted `.netrc` file stored as `.authinfo.gpg`
 ```
-yt-dlp --netrc-cmd 'gpg --decrypt ~/.authinfo.gpg' 'https://www.youtube.com/watch?v=BaW_jenozKc'
+yt-dlp --netrc-cmd 'gpg --decrypt ~/.authinfo.gpg' 'https://www.youtube.com/watch?v=YE7VzlLtp-4'
 ```
 
 
@@ -1454,7 +1453,7 @@ Available only in `--sponsorblock-chapter-title`:
  - `name` (string): Friendly name of the smallest category
  - `type` (string): The [SponsorBlock action type](https://wiki.sponsor.ajay.app/w/Types#Action_Type) of the chapter
 
-Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. E.g. for `-o %(title)s-%(id)s.%(ext)s` and an mp4 video with title `yt-dlp test video` and id `BaW_jenozKc`, this will result in a `yt-dlp test video-BaW_jenozKc.mp4` file created in the current directory.
+Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. E.g. for `-o %(title)s-%(id)s.%(ext)s` and an mp4 video with title `yt-dlp test video` and id `YE7VzlLtp-4`, this will result in a `yt-dlp test video-YE7VzlLtp-4.mp4` file created in the current directory.
 
 **Note**: Some of the sequences are not guaranteed to be present, since they depend on the metadata obtained by a particular extractor. Such sequences will be replaced with placeholder value provided with `--output-na-placeholder` (`NA` by default).
 
@@ -1473,14 +1472,14 @@ In some cases, you don't want special characters such as 中, spaces, or &, such
 #### Output template examples
 
 ```bash
-$ yt-dlp --print filename -o "test video.%(ext)s" BaW_jenozKc
+$ yt-dlp --print filename -o "test video.%(ext)s" ptd1NN40vMw
 test video.webm    # Literal name with correct extension
 
-$ yt-dlp --print filename -o "%(title)s.%(ext)s" BaW_jenozKc
-youtube-dl test video ''_ä↭𝕐.webm    # All kinds of weird characters
+$ yt-dlp --print filename -o "%(title)s.%(ext)s" ptd1NN40vMw
+To'y!🤯😂🤦🏻‍♂️.webm    # All kinds of weird characters
 
-$ yt-dlp --print filename -o "%(title)s.%(ext)s" BaW_jenozKc --restrict-filenames
-youtube-dl_test_video_.webm    # Restricted file name
+$ yt-dlp --print filename -o "%(title)s.%(ext)s" ptd1NN40vMw --restrict-filenames
+To_y.webm    # Restricted file name
 
 # Download YouTube playlist videos in separate directory indexed by video order in a playlist
 $ yt-dlp -o "%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s" "https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re"
@@ -1489,7 +1488,7 @@ $ yt-dlp -o "%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s" "https://www.y
 $ yt-dlp -o "%(upload_date>%Y)s/%(title)s.%(ext)s" "https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re"
 
 # Prefix playlist index with " - " separator, but only if it is available
-$ yt-dlp -o "%(playlist_index&{} - |)s%(title)s.%(ext)s" BaW_jenozKc "https://www.youtube.com/user/TheLinuxFoundation/playlists"
+$ yt-dlp -o "%(playlist_index&{} - |)s%(title)s.%(ext)s" YE7VzlLtp-4 "https://www.youtube.com/user/TheLinuxFoundation/playlists"
 
 # Download all playlists of YouTube channel/user keeping each playlist in separate directory:
 $ yt-dlp -o "%(uploader)s/%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s" "https://www.youtube.com/user/TheLinuxFoundation/playlists"
@@ -1502,13 +1501,13 @@ $ yt-dlp -P "C:/MyVideos" -o "%(series)s/%(season_number)s - %(season)s/%(episod
 
 # Download video as "C:\MyVideos\uploader\title.ext", subtitles as "C:\MyVideos\subs\uploader\title.ext"
 # and put all temporary files in "C:\MyVideos\tmp"
-$ yt-dlp -P "C:/MyVideos" -P "temp:tmp" -P "subtitle:subs" -o "%(uploader)s/%(title)s.%(ext)s" BaW_jenozKc --write-subs
+$ yt-dlp -P "C:/MyVideos" -P "temp:tmp" -P "subtitle:subs" -o "%(uploader)s/%(title)s.%(ext)s" YE7VzlLtp-4 --write-subs
 
 # Download video as "C:\MyVideos\uploader\title.ext" and subtitles as "C:\MyVideos\uploader\subs\title.ext"
-$ yt-dlp -P "C:/MyVideos" -o "%(uploader)s/%(title)s.%(ext)s" -o "subtitle:%(uploader)s/subs/%(title)s.%(ext)s" BaW_jenozKc --write-subs
+$ yt-dlp -P "C:/MyVideos" -o "%(uploader)s/%(title)s.%(ext)s" -o "subtitle:%(uploader)s/subs/%(title)s.%(ext)s" YE7VzlLtp-4 --write-subs
 
 # Stream the video being downloaded to stdout
-$ yt-dlp -o - BaW_jenozKc
+$ yt-dlp -o - YE7VzlLtp-4
 ```
 
 # FORMAT SELECTION
@@ -1587,7 +1586,7 @@ Also filtering work for comparisons `=` (equals), `^=` (starts with), `$=` (ends
  - `acodec`: Name of the audio codec in use
  - `vcodec`: Name of the video codec in use
  - `container`: Name of the container format
- - `protocol`: The protocol that will be used for the actual download, lower-case (`http`, `https`, `rtsp`, `rtmp`, `rtmpe`, `mms`, `f4m`, `ism`, `http_dash_segments`, `m3u8`, or `m3u8_native`)
+ - `protocol`: The protocol that will be used for the actual download, lower-case (`http`, `https`, `rtmp`, `rtmpe`, `f4m`, `ism`, `http_dash_segments`, `m3u8`, or `m3u8_native`)
  - `language`: Language code
  - `dynamic_range`: The dynamic range of the video
  - `format_id`: A short description of the format
@@ -1615,7 +1614,7 @@ The available fields are:
  - `lang`: The language preference as determined by the extractor (e.g. original language preferred over audio description)
  - `quality`: The quality of the format
  - `source`: The preference of the source
- - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8_native`/`m3u8` > `http_dash_segments`> `websocket_frag` > `mms`/`rtsp` > `f4f`/`f4m`)
+ - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8_native`/`m3u8` > `http_dash_segments`> `websocket_frag` > `f4f`/`f4m`)
  - `vcodec`: Video Codec (`av01` > `vp9.2` > `vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other)
  - `acodec`: Audio Codec (`flac`/`alac` > `wav`/`aiff` > `opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `ac4` > `eac3` > `ac3` > `dts` > other)
  - `codec`: Equivalent to `vcodec,acodec`
@@ -1871,7 +1870,7 @@ The following extractors use this feature:
 * `max_comments`: Limit the amount of comments to gather. Comma-separated list of integers representing `max-comments,max-parents,max-replies,max-replies-per-thread,max-depth`. Default is `all,all,all,all,all`
     * A `max-depth` value of `1` will discard all replies, regardless of the `max-replies` or `max-replies-per-thread` values given
     * E.g. `all,all,1000,10,2` will get a maximum of 1000 replies total, with up to 10 replies per thread, and only 2 levels of depth (i.e. top-level comments plus their immediate replies). `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies total
-* `formats`: Change the types of formats to return. `dashy` (convert HTTP to DASH), `duplicate` (identical content but different URLs or protocol; includes `dashy`), `incomplete` (cannot be downloaded completely - live dash, live adaptive https, and post-live m3u8), `missing_pot` (include formats that require a PO Token but are missing one)
+* `formats`: Change the types of formats to return. `dashy` (convert HTTP to DASH), `duplicate` (identical content but different URLs or protocol; includes `dashy`), `incomplete` (cannot be downloaded completely - live and post-live dash, post-live m3u8, and live adaptive https without --live-from-start), `missing_pot` (include formats that require a PO Token but are missing one)
 * `innertube_host`: Innertube API host to use for all API requests; e.g. `studio.youtube.com`, `youtubei.googleapis.com`. Note that cookies exported from one subdomain will not work on others
 * `innertube_key`: Innertube API key to use for all API requests. By default, no API key is used
 * `raise_incomplete_data`: `Incomplete Data Received` raises an error instead of reporting a warning
@@ -1916,7 +1915,7 @@ The following extractors use this feature:
 * `dr`: dynamic range to ignore - one or more of `sdr`, `hdr10`, `dv`
 
 #### instagram
-* `app_id`: The value of the `X-IG-App-ID` header used for API requests. Default is the web app ID, `936619743392459`
+* `app_id`: The value of the `X-IG-App-ID` header used for API requests. Can be the actual ID number, `ios`, or `web` (default)
 
 #### niconicochannelplus
 * `max_comments`: Maximum number of comments to extract - default is `120`
@@ -1969,12 +1968,18 @@ The following extractors use this feature:
 #### sonylivseries
 * `sort_order`: Episode sort order for series extraction - one of `asc` (ascending, oldest first) or `desc` (descending, newest first). Default is `asc`
 
+#### streaks
+* `api_key`: API key for the `X-Streaks-Api-Key` header
+
 #### tver
 * `backend`: Backend API to use for extraction - one of `streaks` (default) or `brightcove` (deprecated)
 
 #### vimeo
 * `client`: Client to extract video data from. The currently available clients are `android`, `ios`, `macos` and `web`. Only one client can be used. The `macos` client is used by default, but the `web` client is used when logged-in. The `web` client only works with account cookies or login credentials. The `android` and `ios` clients only work with previously cached OAuth tokens
 * `original_format_policy`: Policy for when to try extracting original formats. One of `always`, `never`, or `auto`. The default `auto` policy tries to avoid exceeding the web client's API rate-limit by only making an extra request when Vimeo publicizes the video's downloadability
+
+#### zan
+* `split_angles`: Split multi-angle streams into separate angle formats. Forces re-encoding of the video stream during download, and requires ffmpeg. Either `true` or `false` (default)
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
@@ -2062,7 +2067,7 @@ From a Python program, you can embed yt-dlp in a more powerful fashion, like thi
 ```python
 from yt_dlp import YoutubeDL
 
-URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+URLS = ['https://www.youtube.com/watch?v=YE7VzlLtp-4']
 with YoutubeDL() as ydl:
     ydl.download(URLS)
 ```
@@ -2079,7 +2084,7 @@ Most likely, you'll want to use various options. For a list of options available
 import json
 import yt_dlp
 
-URL = 'https://www.youtube.com/watch?v=BaW_jenozKc'
+URL = 'https://www.youtube.com/watch?v=YE7VzlLtp-4'
 
 # ℹ️ See help(yt_dlp.YoutubeDL) for a list of available options and public functions
 ydl_opts = {}
@@ -2108,7 +2113,7 @@ print('Some videos failed to download' if error_code
 ```python
 import yt_dlp
 
-URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+URLS = ['https://www.youtube.com/watch?v=YE7VzlLtp-4']
 
 ydl_opts = {
     'format': 'm4a/bestaudio/best',
@@ -2128,7 +2133,7 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 ```python
 import yt_dlp
 
-URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+URLS = ['https://www.youtube.com/watch?v=YE7VzlLtp-4']
 
 def longer_than_a_minute(info, *, incomplete):
     """Download only videos longer than a minute (or with unknown duration)"""
@@ -2149,7 +2154,7 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 ```python
 import yt_dlp
 
-URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+URLS = ['https://www.youtube.com/watch?v=YE7VzlLtp-4']
 
 class MyLogger:
     def debug(self, msg):
@@ -2190,7 +2195,7 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 ```python
 import yt_dlp
 
-URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+URLS = ['https://www.youtube.com/watch?v=YE7VzlLtp-4']
 
 # ℹ️ See help(yt_dlp.postprocessor.PostProcessor)
 class MyCustomPP(yt_dlp.postprocessor.PostProcessor):
@@ -2211,7 +2216,7 @@ with yt_dlp.YoutubeDL() as ydl:
 ```python
 import yt_dlp
 
-URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+URLS = ['https://www.youtube.com/watch?v=YE7VzlLtp-4']
 
 def format_selector(ctx):
     """ Select the best video and the best audio that won't result in an mkv.

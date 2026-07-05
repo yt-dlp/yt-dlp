@@ -28,6 +28,7 @@ import os
 import platform
 import random
 import re
+import secrets
 import shlex
 import socket
 import ssl
@@ -1872,7 +1873,8 @@ def parse_count(s):
         return str_to_int(mobj.group(1))
 
 
-def parse_resolution(s, *, lenient=False):
+@partial_application
+def parse_resolution(s, *, lenient=False, parse_fps=False):
     if s is None:
         return {}
 
@@ -1886,13 +1888,19 @@ def parse_resolution(s, *, lenient=False):
             'height': int(mobj.group('h')),
         }
 
-    mobj = re.search(r'(?<![a-zA-Z0-9])(\d+)[pPiI](?![a-zA-Z0-9])', s)
+    fps_suffix = r'(?P<fps>\d{2,3})?'
+    mobj = re.search(rf'(?<![a-zA-Z0-9])(?P<height>\d+)[pPiI]{fps_suffix}(?![a-zA-Z0-9])', s)
+    scale = 1
+    if not mobj:
+        mobj = re.search(rf'\b(?P<height>[48])[kK]{fps_suffix}\b', s)
+        scale = 540
     if mobj:
-        return {'height': int(mobj.group(1))}
+        res = {'height': int(mobj.group('height')) * scale}
+        if parse_fps:
+            if fps := mobj.group('fps'):
+                res['fps'] = int(fps)
 
-    mobj = re.search(r'\b([48])[kK]\b', s)
-    if mobj:
-        return {'height': int(mobj.group(1)) * 540}
+        return res
 
     if lenient:
         mobj = re.search(r'(?<!\d)(\d{2,5})w(?![a-zA-Z0-9])', s)
@@ -2068,7 +2076,7 @@ def url_or_none(url):
     if not url or not isinstance(url, str):
         return None
     url = url.strip()
-    return url if re.match(r'(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?|wss?):)?//', url) else None
+    return url if re.match(r'(?:(?:https?|rtm(?:pt?[es]?|fp)|ftps?|wss?):)?//', url) else None
 
 
 def strftime_or_none(timestamp, date_format='%Y%m%d', default=None):
@@ -2137,8 +2145,10 @@ def parse_duration(s):
 
     if ms:
         ms = ms.replace(':', '.')
-    return sum(float(part or 0) * mult for part, mult in (
+    total = sum(float(part or 0) * mult for part, mult in (
         (days, 86400), (hours, 3600), (mins, 60), (secs, 1), (ms, 1)))
+
+    return int(total) if total.is_integer() else total
 
 
 def _change_extension(prepend, filename, ext, expected_real_ext=None, *, _allowed_exts=()):
@@ -2847,11 +2857,13 @@ def js_to_json(code, vars={}, *, strict=False):
 
 def qualities(quality_ids):
     """ Get a numeric quality value out of a list of possible values """
+    quality_map = {}
+    for index, quality_id in enumerate(quality_ids):
+        quality_map.setdefault(quality_id, index)
+
     def q(qid):
-        try:
-            return quality_ids.index(qid)
-        except ValueError:
-            return -1
+        return quality_map.get(qid, -1)
+
     return q
 
 
@@ -3183,10 +3195,6 @@ def determine_protocol(info_dict):
     url = sanitize_url(info_dict['url'])
     if url.startswith('rtmp'):
         return 'rtmp'
-    elif url.startswith('mms'):
-        return 'mms'
-    elif url.startswith('rtsp'):
-        return 'rtsp'
 
     ext = determine_ext(url)
     if ext == 'm3u8':
@@ -4428,16 +4436,16 @@ def ohdave_rsa_encrypt(data, exponent, modulus):
 
 def pkcs1pad(data, length):
     """
-    Padding input data with PKCS#1 scheme
+    Pad input data using EME-PKCS1-v1_5 encoding
 
     @param {int[]} data        input data
     @param {int}   length      target length
     @returns {int[]}           padded data
     """
     if len(data) > length - 11:
-        raise ValueError('Input data too long for PKCS#1 padding')
+        raise ValueError('Input data too long for EME-PKCS1-v1_5 encoding')
 
-    pseudo_random = [random.randint(0, 254) for _ in range(length - len(data) - 3)]
+    pseudo_random = [secrets.randbelow(255) + 1 for _ in range(length - len(data) - 3)]
     return [0, 2, *pseudo_random, 0, *data]
 
 
@@ -4623,8 +4631,21 @@ LINK_TEMPLATES = {
     'webloc': DOT_WEBLOC_LINK_TEMPLATE,
 }
 
+# Ref: https://specifications.freedesktop.org/desktop-entry/latest/value-types.html
+_DESKTOP_ENTRY_TRANS = str.maketrans({
+    ' ': R'\s',
+    '\n': R'\n',
+    '\t': R'\t',
+    '\r': R'\r',
+    '\\': R'\\',
+})
 
-def iri_to_uri(iri):
+
+def _desktop_entry_localestring(s):
+    return s.translate(_DESKTOP_ENTRY_TRANS)
+
+
+def iri_to_uri(iri, *, allowed_schemes=('http', 'https')):
     """
     Converts an IRI (Internationalized Resource Identifier, allowing Unicode characters) to a URI (Uniform Resource Identifier, ASCII-only).
 
@@ -4632,6 +4653,9 @@ def iri_to_uri(iri):
     """
 
     iri_parts = urllib.parse.urlparse(iri)
+
+    if iri_parts.scheme not in allowed_schemes:
+        raise ValueError(f'"{iri_parts.scheme}" is not in allowed_schemes: {", ".join(allowed_schemes)}')
 
     if '[' in iri_parts.netloc:
         raise ValueError('IPv6 URIs are not, yet, supported.')
@@ -4713,16 +4737,9 @@ def random_uuidv4():
     return re.sub(r'[xy]', lambda x: _HEX_TABLE[random.randint(0, 15)], 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx')
 
 
-def make_dir(path, to_screen=None):
-    try:
-        dn = os.path.dirname(path)
-        if dn:
-            os.makedirs(dn, exist_ok=True)
-        return True
-    except OSError as err:
-        if callable(to_screen) is not None:
-            to_screen(f'unable to create directory {err}')
-        return False
+def make_parent_dirs(path):
+    if dir_name := os.path.dirname(path):
+        os.makedirs(dir_name, exist_ok=True)
 
 
 def get_executable_path():
@@ -5218,12 +5235,17 @@ class _UnsafeExtensionError(Exception):
         'sbv',
     ])
 
+    _enabled = True
+
     def __init__(self, extension, /):
         super().__init__(f'unsafe file extension: {extension!r}')
         self.extension = extension
 
     @classmethod
     def sanitize_extension(cls, extension, /, *, prepend=False, _allowed_exts=()):
+        if not cls._enabled:
+            return extension
+
         if extension is None:
             return None
 
@@ -5363,7 +5385,7 @@ class FormatSorter:
         'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
                 'order': ['dv', '(hdr)?12', r'(hdr)?10\+', '(hdr)?10', 'hlg', '', 'sdr', None]},
         'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',
-                  'order': ['(ht|f)tps', '(ht|f)tp$', 'm3u8.*', '.*dash', 'websocket_frag', 'rtmpe?', '', 'mms|rtsp', 'ws|websocket', 'f4']},
+                  'order': ['(ht|f)tps', '(ht|f)tp$', 'm3u8.*', '.*dash', 'websocket_frag', 'rtmpe?', '', 'ws|websocket', 'f4']},
         'vext': {'type': 'ordered', 'field': 'video_ext',
                  'order': ('mp4', 'mov', 'webm', 'flv', '', 'none'),
                  'order_free': ('webm', 'mp4', 'mov', 'flv', '', 'none')},

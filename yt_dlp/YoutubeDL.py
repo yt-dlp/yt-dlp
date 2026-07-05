@@ -139,7 +139,7 @@ from .utils import (
     join_nonempty,
     locked_file,
     make_archive_id,
-    make_dir,
+    make_parent_dirs,
     number_of_digits,
     orderedSet,
     orderedSet_from_options,
@@ -170,7 +170,12 @@ from .utils import (
     write_json_file,
     write_string,
 )
-from .utils._utils import _UnsafeExtensionError, _YDLLogger, _ProgressState
+from .utils._utils import (
+    _UnsafeExtensionError,
+    _YDLLogger,
+    _ProgressState,
+    _desktop_entry_localestring,
+)
 from .utils.networking import (
     HTTPHeaderDict,
     clean_headers,
@@ -480,7 +485,7 @@ class YoutubeDL:
                        geo_bypass_country
     external_downloader: A dictionary of protocol keys and the executable of the
                        external downloader to use for it. The allowed protocols
-                       are default|http|ftp|m3u8|dash|rtsp|rtmp|mms.
+                       are default|http|ftp|m3u8|dash|rtmp.
                        Set the value to 'native' to use the native downloader
     compat_opts:       Compatibility options. See "Differences in default behavior".
                        The following options do not work when used through the API:
@@ -1138,9 +1143,10 @@ class YoutubeDL:
         """
         if self.params.get('logger') is not None:
             self.params['logger'].warning(message)
+        elif self.params.get('no_warnings'):
+            if self.params.get('verbose'):
+                self.to_stderr(f'[debug] WARNING: {message}', only_once=only_once)
         else:
-            if self.params.get('no_warnings'):
-                return
             self.to_stderr(f'{self._format_err("WARNING:", self.Styles.WARNING)} {message}', only_once)
 
     def deprecation_warning(self, message, *, stacklevel=0):
@@ -2000,7 +2006,7 @@ class YoutubeDL:
             if webpage_url and webpage_url in self._playlist_urls:
                 self.to_screen(
                     '[download] Skipping already downloaded playlist: {}'.format(
-                        ie_result.get('title')) or ie_result.get('id'))
+                        ie_result.get('title') or ie_result.get('id')))
                 return
 
             self._playlist_level += 1
@@ -2036,7 +2042,12 @@ class YoutubeDL:
             raise Exception(f'Invalid result type: {result_type}')
 
     def _ensure_dir_exists(self, path):
-        return make_dir(path, self.report_error)
+        try:
+            make_parent_dirs(path)
+            return True
+        except OSError as e:
+            self.report_error(f'Unable to create directory: {e}')
+            return False
 
     @staticmethod
     def _playlist_infodict(ie_result, strict=False, **kwargs):
@@ -3400,10 +3411,13 @@ class YoutubeDL:
 
         # Write internet shortcut files
         def _write_link_file(link_type):
+            # iri_to_uri converts to ascii, percent-escapes unsafe characters & validates scheme
+            # See https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-6v4j-43gg-vj32
             url = try_get(info_dict['webpage_url'], iri_to_uri)
             if not url:
                 self.report_warning(
-                    f'Cannot write internet shortcut file because the actual URL of "{info_dict["webpage_url"]}" is unknown')
+                    f'Cannot write internet shortcut file because the actual URL '
+                    f'of "{info_dict["webpage_url"]}" is unknown or disallowed')
                 return True
             linkfn = replace_extension(
                 self.prepare_filename(info_dict, 'link'), link_type,
@@ -3419,7 +3433,8 @@ class YoutubeDL:
                           newline='\r\n' if link_type == 'url' else '\n') as linkfile:
                     template_vars = {'url': url}
                     if link_type == 'desktop':
-                        template_vars['filename'] = linkfn[:-(len(link_type) + 1)]
+                        # See https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-6v4j-43gg-vj32
+                        template_vars['filename'] = _desktop_entry_localestring(linkfn[:-(len(link_type) + 1)])
                     linkfile.write(LINK_TEMPLATES[link_type] % template_vars)
             except OSError:
                 self.report_error(f'Cannot write internet shortcut {linkfn}')
