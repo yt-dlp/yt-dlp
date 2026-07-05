@@ -43,6 +43,7 @@ def main():
         '--exclude-module=pkg_resources',
         '--noconfirm',
         '--additional-hooks-dir=yt_dlp/__pyinstaller',
+        '--add-data=THIRD_PARTY_LICENSES.txt:.',
         *opts,
         'yt_dlp/__main__.py',
     ]
