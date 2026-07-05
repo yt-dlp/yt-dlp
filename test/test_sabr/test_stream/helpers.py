@@ -1048,7 +1048,7 @@ class Respond403Processor(SabrResponseProcessor):
         return None, [], 403
 
 
-def handle_media_init_part(part, parts, callback_state=None):
+def handle_media_init_part(part, parts, callback_state=None, read=True):
     if not isinstance(part, MediaSegmentInitSabrPart):
         return
 
@@ -1061,7 +1061,8 @@ def handle_media_init_part(part, parts, callback_state=None):
     def data_callback(part):
         if callback_state is not None and callback_generation != callback_state.get('generation'):
             raise AssertionError('wrong callback called')
-        part.data.read()
+        if read:
+            part.data.read()
         parts.append(part)
 
     part.register_data_callback(data_callback)

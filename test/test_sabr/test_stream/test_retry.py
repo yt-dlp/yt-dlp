@@ -359,7 +359,10 @@ class TestResponseRetries:
         audio_selector, video_selector = selectors
 
         # ump file streams are automatically consumed if not done manually
-        parts = collect_parts(sabr_stream)
+        parts = []
+        for part in sabr_stream:
+            handle_media_init_part(part, parts, read=False)
+            parts.append(part)
         assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1, allow_retry=True)
         assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1, allow_retry=True)
 

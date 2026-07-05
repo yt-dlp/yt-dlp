@@ -159,7 +159,7 @@ class SabrStream:
     @param caption_selection: The caption format selector to use for captions.
     @param live_segment_target_duration_sec: The target duration of live segments in seconds.
     @param live_segment_target_duration_tolerance_ms: The tolerance to accept for estimated duration of live segment in milliseconds.
-    @param enable_live_deep_rewind: Enable experiemntal livestream deep rewind
+    @param enable_live_deep_rewind: Enable experimental livestream deep rewind.
     @param start_time_ms: The time in milliseconds to start playback from.
     @param po_token: Initial GVS PO Token.
     @param http_retries: The maximum number of times to retry a request before failing.
