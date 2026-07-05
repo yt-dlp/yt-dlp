@@ -99,20 +99,6 @@ DEPENDENCIES: list[Dependency] = [
         project_url='https://www.gnu.org/software/readline/',
     ),
     Dependency(
-        name='libstdc++',
-        license='GPL-3.0-with-GCC-exception',
-        license_url='https://raw.githubusercontent.com/gcc-mirror/gcc/refs/heads/master/COPYING.RUNTIME',
-        comment='Only included in Linux builds',
-        project_url='https://gcc.gnu.org/onlinedocs/libstdc++/',
-    ),
-    Dependency(
-        name='libgcc',
-        license='GPL-3.0-with-GCC-exception',
-        license_url='https://raw.githubusercontent.com/gcc-mirror/gcc/refs/heads/master/COPYING.RUNTIME',
-        comment='Only included in Linux builds',
-        project_url='https://gcc.gnu.org/',
-    ),
-    Dependency(
         name='libuuid',
         license='BSD-3-Clause',
         license_url='https://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git/plain/lib/uuid/COPYING',
@@ -155,6 +141,64 @@ DEPENDENCIES: list[Dependency] = [
         project_url='https://facebook.github.io/zstd/',
     ),
 
+    # Non-Python dependencies of curl-cffi
+    Dependency(
+        name='curl-impersonate',
+        license='MIT',
+        license_url='https://raw.githubusercontent.com/lexiforest/curl-impersonate/refs/heads/main/LICENSE',
+        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
+        project_url='https://github.com/lexiforest/curl-impersonate',
+    ),
+    Dependency(
+        name='curl',
+        license='curl',
+        license_url='https://raw.githubusercontent.com/curl/curl/refs/heads/master/LICENSES/curl.txt',
+        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
+        project_url='https://curl.se/',
+    ),
+    Dependency(
+        name='BoringSSL',
+        license='Apache-2.0',
+        license_url='https://raw.githubusercontent.com/google/boringssl/refs/heads/main/LICENSE',
+        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
+        project_url='https://boringssl.googlesource.com/boringssl',
+    ),
+    Dependency(
+        name='nghttp2',
+        license='MIT',
+        license_url='https://raw.githubusercontent.com/nghttp2/nghttp2/refs/heads/master/COPYING',
+        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
+        project_url='https://nghttp2.org/',
+    ),
+    Dependency(
+        name='ngtcp2',
+        license='MIT',
+        license_url='https://raw.githubusercontent.com/ngtcp2/ngtcp2/refs/heads/main/COPYING',
+        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
+        project_url='https://nghttp2.org/ngtcp2/',
+    ),
+    Dependency(
+        name='nghttp3',
+        license='MIT',
+        license_url='https://raw.githubusercontent.com/ngtcp2/nghttp3/refs/heads/main/COPYING',
+        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
+        project_url='https://nghttp2.org/nghttp3/',
+    ),
+    Dependency(
+        name='libstdc++',
+        license='GPL-3.0-with-GCC-exception',
+        license_url='https://raw.githubusercontent.com/gcc-mirror/gcc/refs/heads/master/COPYING.RUNTIME',
+        comment='Only included in the `yt-dlp_musllinux` and `yt-dlp_musllinux_aarch64` Linux builds',
+        project_url='https://gcc.gnu.org/onlinedocs/libstdc++/',
+    ),
+    Dependency(
+        name='libgcc',
+        license='GPL-3.0-with-GCC-exception',
+        license_url='https://raw.githubusercontent.com/gcc-mirror/gcc/refs/heads/master/COPYING.RUNTIME',
+        comment='Only included in the `yt-dlp_musllinux` and `yt-dlp_musllinux_aarch64` Linux builds',
+        project_url='https://gcc.gnu.org/',
+    ),
+
     # Python packages
     Dependency(
         name='brotli',
@@ -168,14 +212,6 @@ DEPENDENCIES: list[Dependency] = [
         license_url='https://raw.githubusercontent.com/lexiforest/curl_cffi/refs/heads/main/LICENSE',
         comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
         project_url='https://curl-cffi.readthedocs.io/',
-    ),
-    # Dependency of curl_cffi
-    Dependency(
-        name='curl-impersonate',
-        license='MIT',
-        license_url='https://raw.githubusercontent.com/lexiforest/curl-impersonate/refs/heads/main/LICENSE',
-        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
-        project_url='https://github.com/lexiforest/curl-impersonate',
     ),
     # Dependency of curl-cffi
     Dependency(
