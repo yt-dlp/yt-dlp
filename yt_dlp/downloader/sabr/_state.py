@@ -62,7 +62,7 @@ class SabrStateFile:
             os.fsync(tf.fileno())
 
         try:
-            os.replace(tf.name, self.filename)
+            self.fd.try_rename(tf.name, self.filename)
         finally:
             if os.path.exists(tf.name):
                 with contextlib.suppress(FileNotFoundError, OSError):
