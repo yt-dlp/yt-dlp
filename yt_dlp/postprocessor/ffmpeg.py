@@ -1,11 +1,13 @@
 import collections
 import contextvars
 import functools
+import importlib
 import itertools
 import json
 import os
 import re
 import subprocess
+import sys
 import time
 
 from .common import PostProcessor
@@ -83,11 +85,222 @@ class FFmpegPostProcessorError(PostProcessingError):
     pass
 
 
+class FFmpegBridgeUnavailable(Exception):
+    pass
+
+
+class FFmpegBridgeBackend:
+    """Optional in-process FFmpeg backend for platforms that cannot spawn executables.
+
+    The bridge module is intentionally argv-based so yt-dlp can keep owning the
+    postprocessor command construction. A native app can provide either
+    ``yt_dlp_mobile_ffmpeg`` or ``_yt_dlp_mobile_ffmpeg`` with:
+
+      - is_available() -> bool, optional
+      - version(kind='ffmpeg') -> str | None, optional
+      - features() -> dict, optional
+      - get_audio_codec(path) -> str | None, optional
+      - probe(path, opts=()) -> dict, optional
+      - run_ffmpeg(input_path_opts, output_path_opts, argv, expected_retcodes=(0,)) -> str | dict, optional
+      - run(argv: list[str], expected_retcodes=(0,)) -> str | dict
+
+    Structured functions are preferred so an app can implement merge/remux/probe
+    with libav* APIs without parsing CLI arguments. ``run`` remains as a generic
+    escape hatch for operations not yet covered by structured calls. Functions
+    should return stderr text or a dict containing stderr/stdout/returncode.
+    Setting ``YTDLP_FFMPEG_BACKEND=cli`` disables this backend; setting
+    ``YTDLP_FFMPEG_BACKEND=bridge`` forces bridge loading.
+    """
+
+    _module = None
+    _load_error = None
+
+    def __init__(self, pp):
+        self._pp = pp
+        self._module = self._load_module()
+
+    @classmethod
+    def enabled(cls):
+        backend = os.environ.get('YTDLP_FFMPEG_BACKEND', 'auto').lower()
+        if backend in ('cli', 'subprocess', 'ffmpeg'):
+            return False
+        return backend == 'bridge' or sys.platform in ('ios', 'darwin')
+
+    @classmethod
+    def _candidate_module_names(cls):
+        configured = os.environ.get('YTDLP_FFMPEG_BRIDGE_MODULE')
+        if configured:
+            yield configured
+        yield 'yt_dlp_mobile_ffmpeg'
+        yield '_yt_dlp_mobile_ffmpeg'
+
+    @classmethod
+    def _load_module(cls):
+        if cls._module is not None:
+            return cls._module
+        if cls._load_error is not None:
+            raise cls._load_error
+        if not cls.enabled():
+            cls._load_error = FFmpegBridgeUnavailable('FFmpeg bridge backend is disabled')
+            raise cls._load_error
+
+        errors = []
+        for module_name in cls._candidate_module_names():
+            try:
+                module = importlib.import_module(module_name)
+            except Exception as e:
+                errors.append(f'{module_name}: {e}')
+                continue
+            is_available = getattr(module, 'is_available', None)
+            if is_available and not is_available():
+                errors.append(f'{module_name}: bridge reported unavailable')
+                continue
+            cls._module = module
+            return module
+
+        cls._load_error = FFmpegBridgeUnavailable('; '.join(errors) or 'no FFmpeg bridge module found')
+        raise cls._load_error
+
+    @classmethod
+    def maybe(cls, pp):
+        try:
+            return cls(pp)
+        except FFmpegBridgeUnavailable as e:
+            if os.environ.get('YTDLP_FFMPEG_BACKEND', 'auto').lower() == 'bridge':
+                pp.report_warning(f'FFmpeg bridge backend was requested but is unavailable: {e}', only_once=True)
+                return UnavailableFFmpegBridgeBackend(e)
+            return None
+
+    @property
+    def executable_names(self):
+        return {'ffmpeg': 'ios-ffmpeg-bridge', 'ffprobe': 'ios-ffprobe-bridge'}
+
+    def version(self, kind):
+        version_fn = getattr(self._module, 'version', None)
+        if not version_fn:
+            return 'bridge'
+        try:
+            return version_fn(kind)
+        except TypeError:
+            return version_fn()
+
+    def features(self):
+        features_fn = getattr(self._module, 'features', None)
+        if not features_fn:
+            return {
+                'fdk': False,
+                'needs_adtstoasc': False,
+                'setts': True,
+            }
+        return features_fn() or {}
+
+    def _normalize_result(self, result, *, expected_retcodes=(0,)):
+        try:
+            if isinstance(result, dict):
+                returncode = result.get('returncode', result.get('exit_code', 0))
+                stdout = result.get('stdout') or ''
+                stderr = result.get('stderr') or ''
+            else:
+                returncode = 0
+                stdout = ''
+                stderr = result or ''
+        except Exception as e:
+            raise FFmpegPostProcessorError(str(e))
+
+        if returncode not in variadic(expected_retcodes):
+            message = stderr.strip().splitlines()[-1] if stderr.strip() else f'FFmpeg bridge exited with status {returncode}'
+            raise FFmpegPostProcessorError(message)
+        return stdout, stderr, returncode
+
+    def get_audio_codec(self, path):
+        get_audio_codec_fn = getattr(self._module, 'get_audio_codec', None)
+        if not get_audio_codec_fn:
+            return None
+        try:
+            return get_audio_codec_fn(path)
+        except Exception as e:
+            raise FFmpegPostProcessorError(str(e))
+
+    def probe(self, path, opts=()):
+        probe_fn = getattr(self._module, 'probe', None)
+        if not probe_fn:
+            return None
+        try:
+            return probe_fn(path, opts=tuple(opts))
+        except TypeError:
+            return probe_fn(path)
+        except Exception as e:
+            raise FFmpegPostProcessorError(str(e))
+
+    def run_ffmpeg(self, input_path_opts, output_path_opts, argv, *, expected_retcodes=(0,)):
+        run_ffmpeg_fn = getattr(self._module, 'run_ffmpeg', None)
+        if not run_ffmpeg_fn:
+            return self.run(argv, expected_retcodes=expected_retcodes)
+        try:
+            result = run_ffmpeg_fn(
+                [(path, tuple(opts)) for path, opts in input_path_opts],
+                [(path, tuple(opts)) for path, opts in output_path_opts],
+                argv=list(argv),
+                expected_retcodes=tuple(variadic(expected_retcodes)))
+        except TypeError:
+            result = run_ffmpeg_fn(
+                [(path, tuple(opts)) for path, opts in input_path_opts],
+                [(path, tuple(opts)) for path, opts in output_path_opts])
+        except Exception as e:
+            raise FFmpegPostProcessorError(str(e))
+        return self._normalize_result(result, expected_retcodes=expected_retcodes)
+
+    def run(self, argv, *, expected_retcodes=(0,)):
+        run_fn = getattr(self._module, 'run', None)
+        if not run_fn:
+            raise FFmpegPostProcessorError('FFmpeg bridge module does not expose run(argv, expected_retcodes=...)')
+
+        try:
+            result = run_fn(list(argv), expected_retcodes=tuple(variadic(expected_retcodes)))
+        except TypeError:
+            result = run_fn(list(argv))
+        except Exception as e:
+            raise FFmpegPostProcessorError(str(e))
+        return self._normalize_result(result, expected_retcodes=expected_retcodes)
+
+
+class UnavailableFFmpegBridgeBackend:
+    def __init__(self, error):
+        self._error = error
+
+    @property
+    def executable_names(self):
+        return {'ffmpeg': 'ios-ffmpeg-bridge-unavailable', 'ffprobe': 'ios-ffprobe-bridge-unavailable'}
+
+    def version(self, kind):
+        return 'bridge-unavailable'
+
+    def features(self):
+        return {
+            'fdk': False,
+            'needs_adtstoasc': False,
+            'setts': True,
+        }
+
+    def get_audio_codec(self, path):
+        return None
+
+    def probe(self, path, opts=()):
+        raise FFmpegPostProcessorError(f'FFmpeg bridge backend is unavailable: {self._error}')
+
+    def run_ffmpeg(self, input_path_opts, output_path_opts, argv, *, expected_retcodes=(0,)):
+        raise FFmpegPostProcessorError(f'FFmpeg bridge backend is unavailable: {self._error}')
+
+    def run(self, argv, *, expected_retcodes=(0,)):
+        raise FFmpegPostProcessorError(f'FFmpeg bridge backend is unavailable: {self._error}')
+
+
 class FFmpegPostProcessor(PostProcessor):
     _ffmpeg_location = contextvars.ContextVar('ffmpeg_location', default=None)
 
     def __init__(self, downloader=None):
         PostProcessor.__init__(self, downloader)
+        self._bridge = FFmpegBridgeBackend.maybe(self)
         self._paths = self._determine_executables()
 
     @staticmethod
@@ -100,6 +313,9 @@ class FFmpegPostProcessor(PostProcessor):
         return FFmpegPostProcessor.get_versions_and_features(downloader)[0]
 
     def _determine_executables(self):
+        if self._bridge:
+            return self._bridge.executable_names
+
         programs = ['ffmpeg', 'ffprobe']
 
         location = self.get_param('ffmpeg_location', self._ffmpeg_location.get())
@@ -131,6 +347,10 @@ class FFmpegPostProcessor(PostProcessor):
 
     def _get_ffmpeg_version(self, prog):
         path = self._paths.get(prog)
+        if self._bridge:
+            ver = self._bridge.version(prog)
+            features = self._bridge.features() if prog == 'ffmpeg' else {}
+            return ver, features
         if path in self._version_cache:
             return self._version_cache[path], self._features_cache.get(path, {})
         out = _get_exe_version_output(path, ['-bsfs'])
@@ -224,12 +444,29 @@ class FFmpegPostProcessor(PostProcessor):
         if not self.available:
             raise FFmpegPostProcessorError('ffmpeg not found. Please install or provide the path using --ffmpeg-location')
 
+        if self._bridge:
+            return
+
         required_version = '1.0'
         if is_outdated_version(self._version, required_version):
             self.report_warning(f'Your copy of {self.basename} is outdated, update {self.basename} '
                                 f'to version {required_version} or newer if you encounter any errors')
 
+    def _run_backend(self, cmd, *, expected_retcodes=(0,)):
+        if self._bridge:
+            self.write_debug(f'ffmpeg bridge command line: {shell_quote(cmd)}')
+            return self._bridge.run(cmd, expected_retcodes=expected_retcodes)
+        return Popen.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+
     def get_audio_codec(self, path):
+        if self._bridge:
+            try:
+                audio_codec = self._bridge.get_audio_codec(path)
+                if audio_codec is not None:
+                    return audio_codec
+            except FFmpegPostProcessorError:
+                return None
+
         if not self.probe_available and not self.available:
             raise PostProcessingError('ffprobe and ffmpeg not found. Please install or provide the path using --ffmpeg-location')
         try:
@@ -243,11 +480,12 @@ class FFmpegPostProcessor(PostProcessor):
                     encodeArgument('-i')]
             cmd.append(self._ffmpeg_filename_argument(path))
             self.write_debug(f'{self.basename} command line: {shell_quote(cmd)}')
-            stdout, stderr, returncode = Popen.run(
-                cmd, text=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr, returncode = self._run_backend(cmd, expected_retcodes=(0 if self.probe_available else 1,))
             if returncode != (0 if self.probe_available else 1):
                 return None
         except OSError:
+            return None
+        except FFmpegPostProcessorError:
             return None
         output = stdout if self.probe_available else stderr
         if self.probe_available:
@@ -267,6 +505,11 @@ class FFmpegPostProcessor(PostProcessor):
         return None
 
     def get_metadata_object(self, path, opts=[]):
+        if self._bridge:
+            metadata = self._bridge.probe(path, opts)
+            if metadata is not None:
+                return metadata
+
         if self.probe_basename != 'ffprobe':
             if self.probe_available:
                 self.report_warning('Only ffprobe is supported for metadata extraction')
@@ -285,7 +528,7 @@ class FFmpegPostProcessor(PostProcessor):
         cmd += opts
         cmd.append(self._ffmpeg_filename_argument(path))
         self.write_debug(f'ffprobe command line: {shell_quote(cmd)}')
-        stdout, _, _ = Popen.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        stdout, _, _ = self._run_backend(cmd)
         return json.loads(stdout)
 
     def get_stream_number(self, path, keys, value):
@@ -353,8 +596,11 @@ class FFmpegPostProcessor(PostProcessor):
                 for i, (path, opts) in enumerate(path_opts) if path)
 
         self.write_debug(f'ffmpeg command line: {shell_quote(cmd)}')
-        _, stderr, returncode = Popen.run(
-            cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        if self._bridge:
+            _, stderr, returncode = self._bridge.run_ffmpeg(
+                input_path_opts, output_path_opts, cmd, expected_retcodes=expected_retcodes)
+        else:
+            _, stderr, returncode = self._run_backend(cmd, expected_retcodes=expected_retcodes)
         if returncode not in variadic(expected_retcodes):
             self.write_debug(stderr)
             raise FFmpegPostProcessorError(stderr.strip().splitlines()[-1])
