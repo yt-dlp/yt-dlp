@@ -48,6 +48,13 @@ DEPENDENCIES: list[Dependency] = [
         project_url='https://sourceware.org/libffi/',
     ),
     Dependency(
+        name='OpenSSL 1.1.1t',
+        license='SSLeay',
+        license_url='https://raw.githubusercontent.com/openssl/openssl/refs/tags/OpenSSL_1_1_1t/LICENSE',
+        comment='Only included in `yt-dlp.exe` and `yt-dlp_x86.exe` Windows builds',
+        project_url='https://www.openssl.org/',
+    ),
+    Dependency(
         name='OpenSSL 3.0+',
         license='Apache-2.0',
         license_url='https://raw.githubusercontent.com/openssl/openssl/refs/heads/master/LICENSE.txt',
@@ -146,42 +153,42 @@ DEPENDENCIES: list[Dependency] = [
         name='curl-impersonate',
         license='MIT',
         license_url='https://raw.githubusercontent.com/lexiforest/curl-impersonate/refs/heads/main/LICENSE',
-        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://github.com/lexiforest/curl-impersonate',
     ),
     Dependency(
         name='curl',
         license='curl',
         license_url='https://raw.githubusercontent.com/curl/curl/refs/heads/master/LICENSES/curl.txt',
-        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://curl.se/',
     ),
     Dependency(
         name='BoringSSL',
         license='Apache-2.0',
         license_url='https://raw.githubusercontent.com/google/boringssl/refs/heads/main/LICENSE',
-        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://boringssl.googlesource.com/boringssl',
     ),
     Dependency(
         name='nghttp2',
         license='MIT',
         license_url='https://raw.githubusercontent.com/nghttp2/nghttp2/refs/heads/master/COPYING',
-        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://nghttp2.org/',
     ),
     Dependency(
         name='ngtcp2',
         license='MIT',
         license_url='https://raw.githubusercontent.com/ngtcp2/ngtcp2/refs/heads/main/COPYING',
-        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://nghttp2.org/ngtcp2/',
     ),
     Dependency(
         name='nghttp3',
         license='MIT',
         license_url='https://raw.githubusercontent.com/ngtcp2/nghttp3/refs/heads/main/COPYING',
-        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://nghttp2.org/nghttp3/',
     ),
     Dependency(
@@ -210,7 +217,7 @@ DEPENDENCIES: list[Dependency] = [
         name='curl_cffi',
         license='MIT',
         license_url='https://raw.githubusercontent.com/lexiforest/curl_cffi/refs/heads/main/LICENSE',
-        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://curl-cffi.readthedocs.io/',
     ),
     # Dependency of curl_cffi
@@ -218,7 +225,7 @@ DEPENDENCIES: list[Dependency] = [
         name='rich',
         license='MIT',
         license_url='https://raw.githubusercontent.com/Textualize/rich/refs/heads/main/LICENSE',
-        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://rich.readthedocs.io/',
     ),
     # Dependency of rich
@@ -226,7 +233,7 @@ DEPENDENCIES: list[Dependency] = [
         name='pygments',
         license='BSD-2-Clause',
         license_url='https://raw.githubusercontent.com/pygments/pygments/refs/heads/master/LICENSE',
-        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='http://pygments.org/',
     ),
     # Dependency of rich
@@ -234,7 +241,7 @@ DEPENDENCIES: list[Dependency] = [
         name='markdown-it-py',
         license='MIT',
         license_url='https://raw.githubusercontent.com/executablebooks/markdown-it-py/refs/heads/master/LICENSE',
-        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://markdown-it-py.readthedocs.io/',
     ),
     # Dependency of markdown-it-py
@@ -242,7 +249,7 @@ DEPENDENCIES: list[Dependency] = [
         name='mdurl',
         license='MIT',
         license_url='https://raw.githubusercontent.com/executablebooks/mdurl/refs/heads/master/LICENSE',
-        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://github.com/executablebooks/mdurl',
     ),
     # Dependency of cryptography and curl_cffi
@@ -250,7 +257,7 @@ DEPENDENCIES: list[Dependency] = [
         name='cffi',
         license='MIT-0',  # Technically does not need to be included
         license_url='https://raw.githubusercontent.com/python-cffi/cffi/refs/heads/main/LICENSE',
-        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://cffi.readthedocs.io/',
     ),
     # Dependency of cffi
@@ -258,7 +265,7 @@ DEPENDENCIES: list[Dependency] = [
         name='pycparser',
         license='BSD-3-Clause',
         license_url='https://raw.githubusercontent.com/eliben/pycparser/refs/heads/main/LICENSE',
-        comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://github.com/eliben/pycparser',
     ),
     Dependency(
