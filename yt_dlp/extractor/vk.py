@@ -674,15 +674,12 @@ class VKUserVideosIE(VKBaseIE):
                 is_community = mobj.group(1) != 'id'
             else:
                 webpage = self._download_webpage(f'https://vk.com/{u_id[1:]}', u_id)
-                prefetch = self._search_json(r'"apiPrefetchCache"\s*:',
-                                             webpage,
-                                             'API prefetch cache',
-                                             u_id,
-                                             contains_pattern=r'\[(?s:.+)\]')
-                resolved = traverse_obj(prefetch,
-                                        (lambda _, v: v['method'] == 'utils.resolveScreenName',
-                                         'response',
-                                         any)) or {}
+                prefetch = self._search_json(
+                    r'"apiPrefetchCache"\s*:', webpage, 'API prefetch cache', u_id,
+                    contains_pattern=r'\[(?s:.+)\]')
+                resolved = traverse_obj(
+                    prefetch,
+                    (lambda _, v: v['method'] == 'utils.resolveScreenName', 'response', any)) or {}
                 object_id = traverse_obj(resolved, ('object_id', {int}, {require('page id')}))
                 is_community = resolved.get('type') in ('group', 'page', 'event')
             page_id = str(-object_id if is_community else object_id)
