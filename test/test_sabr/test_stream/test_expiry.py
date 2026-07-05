@@ -4,7 +4,7 @@ import time
 from unittest.mock import MagicMock
 import pytest
 
-from test.test_sabr.test_stream.helpers import setup_sabr_stream_av, Respond403Processor, mock_time
+from test.test_sabr.test_stream.helpers import setup_sabr_stream_av, Respond403Processor, mock_time, collect_parts
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import SabrUrlExpired, SabrStreamError
 from yt_dlp.extractor.youtube._streaming.sabr.models import ReloadConfigReason
 from yt_dlp.extractor.youtube._streaming.sabr.stream import ReloadConfigRequest
@@ -94,7 +94,7 @@ def test_no_expiry_in_url(logger, client_info, reload_callback_response):
         url='https://noexpire.googlevideo.com?sabr=1',
         reload_callback=reload_config_callback,
     )
-    list(sabr_stream.iter_parts())
+    collect_parts(sabr_stream)
     logger.warning.assert_called_with(
         'No expiry timestamp found in URL. Will not be able to refresh.', once=True)
     reload_config_callback.assert_not_called()
@@ -112,7 +112,7 @@ def test_not_expired(logger, client_info, reload_callback_response):
         url=f'https://expire.googlevideo.com/sabr?expire={int(expires_at)}&sabr=1',
         # By default, expiry threshold is 60 seconds
     )
-    list(sabr_stream.iter_parts())
+    collect_parts(sabr_stream)
     reload_config_callback.assert_not_called()
     logger.trace.assert_any_call('URL expires in 300 seconds')
 
@@ -132,7 +132,7 @@ def test_expired_403(logger, client_info):
         SabrUrlExpired,
         match=r'SABR URL has expired. The download will need to be restarted.',
     ):
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
 
     assert len(rh.request_history) == 1
     assert rh.request_history[0].response.status == 403
@@ -157,7 +157,7 @@ def test_non_expired_403(logger, client_info):
         SabrStreamError,
         match='HTTP Error: 403 - Forbidden',
     ):
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
 
     assert len(rh.request_history) == 1
     assert rh.request_history[0].response.status == 403
@@ -178,7 +178,7 @@ def test_no_expiry_403(logger, client_info):
         SabrStreamError,
         match='HTTP Error: 403 - Forbidden',
     ):
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
 
     assert len(rh.request_history) == 1
     assert rh.request_history[0].response.status == 403

@@ -11,6 +11,7 @@ from test.test_sabr.test_stream.helpers import (
     CustomAVProfile,
     assert_media_sequence_in_order,
     setup_sabr_stream_av,
+    collect_parts,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import (
     SabrStreamError,
@@ -39,7 +40,7 @@ def test_no_new_segments_default(logger, client_info):
         sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_func}),
     )
     with pytest.raises(StreamStallError, match=r'Stream stalled; no activity detected in 3 consecutive requests'):
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
 
     # Should have made 3 requests before failing
     assert len(rh.request_history) == 3
@@ -70,7 +71,7 @@ def test_no_new_segments_custom(logger, client_info):
         max_empty_requests=max_empty_requests,
     )
     with pytest.raises(StreamStallError, match=r'Stream stalled; no activity detected in 5 consecutive requests'):
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
 
     # Should have made 5 requests before failing
     assert len(rh.request_history) == 5
@@ -93,7 +94,7 @@ def test_no_new_segments_reset_on_new_segment(logger, client_info):
         max_empty_requests=max_empty_requests,
     )
     # Should complete successfully
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
     # Should have made 6 requests total (2 sets of 3)
     assert len(rh.request_history) == 6 * max_empty_requests
     audio_selector, video_selector = selectors
@@ -141,7 +142,7 @@ def test_no_new_segments_http_retry_then_segments(logger, client_info):
         max_empty_requests=max_empty_requests,
     )
     # Should complete successfully
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
     assert len(rh.request_history) == 6 + max_empty_requests
     audio_selector, video_selector = selectors
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
@@ -170,7 +171,7 @@ def test_no_new_segments_http_retry_no_segments(logger, client_info):
         max_empty_requests=max_empty_requests,
     )
     with pytest.raises(SabrStreamError, match=r'Stream stalled; no activity detected in 3 consecutive requests'):
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
 
     # Should have made 4 requests before failing (3 empty + 1 retried)
     assert len(rh.request_history) == max_empty_requests + 1
@@ -204,7 +205,7 @@ def test_no_new_segments_http_retry_with_segments_reset(logger, client_info):
         max_empty_requests=max_empty_requests,
     )
     # Should complete successfully
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
 
     audio_selector, video_selector = selectors
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
@@ -251,7 +252,7 @@ def test_consumed_segments_counted(logger, client_info):
         max_empty_requests=max_empty_requests,
     )
     with pytest.raises(SabrStreamError, match=r'Stream stalled; no activity detected in 3 consecutive requests'):
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
 
     # Should have made 5 requests before failing (2 normal + 3 empty)
     assert len(rh.request_history) == 2 + max_empty_requests

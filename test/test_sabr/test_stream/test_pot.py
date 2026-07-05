@@ -14,6 +14,8 @@ from test.test_sabr.test_stream.helpers import (
     PoTokenAVProfile,
     mock_time,
     setup_sabr_stream_av,
+    collect_parts,
+    handle_media_init_part,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import PoTokenError
 from yt_dlp.extractor.youtube._streaming.sabr.models import PoTokenStatus
@@ -38,7 +40,7 @@ def test_sps_ok(logger, client_info):
         po_token=base64.b64encode(b'valid-po-token'),
     )
     audio_selector, video_selector = selectors
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
     assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
     assert len(rh.request_history) == 6
@@ -60,7 +62,7 @@ def test_sps_not_required(logger, client_info):
         pot_callback=pot_callback,
     )
     audio_selector, video_selector = selectors
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
     assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
     assert len(rh.request_history) == 6
@@ -93,7 +95,7 @@ def test_sps_retry_on_required(logger, client_info):
         pot_callback=pot_callback,
     )
     audio_selector, video_selector = selectors
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
 
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
     assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
@@ -142,7 +144,7 @@ def test_sps_retry_on_invalid(logger, client_info):
         po_token=base64.b64encode(b'invalid').decode(),
     )
     audio_selector, video_selector = selectors
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
 
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
     assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
@@ -183,7 +185,7 @@ def test_no_retry_on_pending(logger, client_info):
         po_token=base64.b64encode(b'pending').decode(),
     )
 
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
     audio_selector, video_selector = selectors
 
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
@@ -214,7 +216,7 @@ def test_no_retry_on_pending_missing(logger, client_info):
         po_token=None,
     )
 
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
     audio_selector, video_selector = selectors
 
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
@@ -252,6 +254,7 @@ def test_pending_then_required_retry(logger, client_info):
                 sabr_stream.processor.po_token = None  # Simulate no token, will get REQUIRED
             if count == (pending_requests + DEFAULT_RETRIES):
                 sabr_stream.processor.po_token = base64.b64encode(b'simulated_po_token_data')
+        handle_media_init_part(part, parts)
         parts.append(part)
 
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
@@ -287,6 +290,7 @@ def test_sps_required_retries_exhausted(logger, client_info):
     parts = []
     with pytest.raises(PoTokenError, match='This stream requires a GVS PO Token to continue'):
         for part in sabr_stream.iter_parts():
+            handle_media_init_part(part, parts)
             parts.append(part)
 
     # Should have 6 PoTokenStatusSabrPart parts indicating missing
@@ -326,6 +330,7 @@ def test_sps_invalid_retries_exhausted(logger, client_info):
     with pytest.raises(PoTokenError,
                        match='This stream requires a GVS PO Token to continue and the one provided is invalid'):
         for part in sabr_stream.iter_parts():
+            handle_media_init_part(part, parts)
             parts.append(part)
 
     # Should have 6 PoTokenStatusSabrPart parts indicating invalid
@@ -363,6 +368,7 @@ def test_sps_retry_server_stops_sending_sps(logger, client_info):
     parts = []
     with pytest.raises(PoTokenError, match='This stream requires a GVS PO Token to continue'):
         for part in sabr_stream.iter_parts():
+            handle_media_init_part(part, parts)
             parts.append(part)
 
     # Should have 6 PoTokenStatusSabrPart parts indicating missing
@@ -393,7 +399,7 @@ def test_required_exceed_max_retries(logger, client_info):
     sabr_stream.processor.po_token = None  # No token supplied
 
     with pytest.raises(PoTokenError, match='This stream requires a GVS PO Token to continue'):
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
 
     # Should log each retry attempt
     for i in range(1, DEFAULT_RETRIES + 1):
@@ -416,7 +422,7 @@ def test_pot_retries_options(logger, client_info):
     sabr_stream.processor.po_token = None  # No token supplied
 
     with pytest.raises(PoTokenError, match='This stream requires a GVS PO Token to continue'):
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
 
     # Should log each retry attempt
     for i in range(1, 4):
@@ -441,7 +447,7 @@ def test_pot_retry_sleep_func(logger, client_info):
     sabr_stream.processor.po_token = None  # No token supplied
 
     with pytest.raises(PoTokenError, match='This stream requires a GVS PO Token to continue'):
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
 
     # sleep_mock should be called 3 times (for the three retries)
     assert sleep_mock.call_count == 3
@@ -488,7 +494,7 @@ def test_pot_http_retries(logger, client_info):
 
     # TransportError should win
     with pytest.raises(TransportError, match='simulated read error'):
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
 
     # There should be 3 http error requests recorded
     http_error_requests = [d for d in rh.request_history if isinstance(d.error, TransportError)]
@@ -540,7 +546,7 @@ def test_pot_http_retries_diff(logger, client_info):
 
     # PoTokenError should win
     with pytest.raises(PoTokenError, match='This stream requires a GVS PO Token to continue'):
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
 
     # There should be 3 http error requests recorded
     http_error_requests = [d for d in rh.request_history if isinstance(d.error, TransportError)]
@@ -581,6 +587,7 @@ def test_pot_callback_error(logger, client_info):
     parts = []
     with pytest.raises(PoTokenError, match='This stream requires a GVS PO Token to continue'):
         for part in sabr_stream.iter_parts():
+            handle_media_init_part(part, parts)
             parts.append(part)
 
     # Should have 6 PoTokenStatusSabrPart parts indicating missing
@@ -626,6 +633,7 @@ def test_pot_callback_invalid(logger, client_info):
     parts = []
     with pytest.raises(PoTokenError, match='This stream requires a GVS PO Token to continue'):
         for part in sabr_stream.iter_parts():
+            handle_media_init_part(part, parts)
             parts.append(part)
 
     # Should have 6 PoTokenStatusSabrPart parts indicating missing

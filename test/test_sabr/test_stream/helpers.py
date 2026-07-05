@@ -1046,3 +1046,31 @@ def setup_sabr_stream_av(
 class Respond403Processor(SabrResponseProcessor):
     def process_request(self, data: bytes, url: str, request_number: int) -> tuple[VideoPlaybackAbrRequest | None, list[UMPPart | Exception], int]:
         return None, [], 403
+
+
+def handle_media_init_part(part, parts, callback_state=None):
+    if not isinstance(part, MediaSegmentInitSabrPart):
+        return
+
+    # used to disable previous callbacks to ensure the correct one is called
+    callback_generation = None
+    if callback_state is not None:
+        callback_generation = callback_state.get('generation', 0) + 1
+        callback_state['generation'] = callback_generation
+
+    def data_callback(part):
+        if callback_state is not None and callback_generation != callback_state.get('generation'):
+            raise AssertionError('wrong callback called')
+        part.data.read()
+        parts.append(part)
+
+    part.register_data_callback(data_callback)
+
+
+def collect_parts(iterable):
+    parts = []
+    callback_state = {'generation': 0}
+    for part in iterable:
+        handle_media_init_part(part, parts, callback_state)
+        parts.append(part)
+    return parts

@@ -241,6 +241,13 @@ class SabrFdSession:
             self.fd.write_debug(f'[SABR Debug Info]: {self.stream.create_stats_str()}')
             raise DownloadError(str(e))
 
+    def _write_data_callback(self, part: MediaSegmentDataSabrPart):
+        writer = self.writers.get(part.format_selector.display_name)
+        if not writer:
+            self.fd.report_warning(f'Unknown data format selector: {part.format_selector}')
+            return
+        writer.write_segment_data(part)
+
     def _process_sabr_part(self, part) -> None:
         if isinstance(part, FormatInitializedSabrPart):
             writer = self.writers.get(part.format_selector.display_name)
@@ -274,13 +281,7 @@ class SabrFdSession:
                 self.fd.report_warning(f'Unknown init format selector: {part.format_selector}')
                 return
             writer.initialize_segment(part)
-
-        elif isinstance(part, MediaSegmentDataSabrPart):
-            writer = self.writers.get(part.format_selector.display_name)
-            if not writer:
-                self.fd.report_warning(f'Unknown data format selector: {part.format_selector}')
-                return
-            writer.write_segment_data(part)
+            part.register_data_callback(self._write_data_callback)
 
         elif isinstance(part, MediaSegmentEndSabrPart):
             writer = self.writers.get(part.format_selector.display_name)

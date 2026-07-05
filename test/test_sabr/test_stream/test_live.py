@@ -17,6 +17,8 @@ from test.test_sabr.test_stream.helpers import (
     DEFAULT_AUDIO_FORMAT,
     DEFAULT_VIDEO_FORMAT,
     VALID_LIVE_PREMIERE_URL,
+    collect_parts,
+    handle_media_init_part,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import (
     StreamStallError,
@@ -78,7 +80,7 @@ class TestLiveStreamStall:
         assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
         with pytest.raises(StreamStallError,
                            match=r'Stream stalled; no activity detected in 6 requests and 10.0 seconds and not near live head.'):
-            list(sabr_stream.iter_parts())
+            collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 9; registering stall (count: 6)')
         assert sabr_stream._stream_stall_tracker.stalled_requests == 6
@@ -127,7 +129,7 @@ class TestLiveStreamStall:
         assert sabr_stream.live_end_wait_sec == live_end_wait_sec
         with pytest.raises(StreamStallError,
                            match=r'Stream stalled; no activity detected in 10 requests and 18.0 seconds and not near live head.'):
-            list(sabr_stream.iter_parts())
+            collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 10)')
         assert sabr_stream._stream_stall_tracker.stalled_requests == 10
@@ -174,7 +176,7 @@ class TestLiveStreamStall:
 
         audio_selector, video_selector = selectors
         # Should complete successfully (no error)
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 9; registering stall (count: 6)')
         logger.debug.assert_any_call(
@@ -238,7 +240,7 @@ class TestLiveStreamStall:
 
         audio_selector, video_selector = selectors
         # Should complete successfully (no error)
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 9; registering stall (count: 6)')
         logger.debug.assert_any_call(
@@ -294,7 +296,7 @@ class TestLiveStreamStall:
             post_live=post_live,
         )
         audio_selector, video_selector = selectors
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         assert_media_sequence_in_order(parts, audio_selector, total_segments)
         assert_media_sequence_in_order(parts, video_selector, total_segments)
 
@@ -333,7 +335,7 @@ class TestLiveStreamStall:
         )
         audio_selector, video_selector = selectors
         assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
         if not post_live:
@@ -400,7 +402,7 @@ class TestLiveStreamStall:
             StreamStallError,
             match=r'Stream stalled; no activity detected in 6 requests and 10.0 seconds.',
         ):
-            list(sabr_stream.iter_parts())
+            collect_parts(sabr_stream)
 
         assert len(sabr_stream.processor.initialized_formats) == 1
 
@@ -451,7 +453,7 @@ class TestLiveStreamStall:
         )
         audio_selector, _ = selectors
         assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         assert_media_sequence_in_order(parts, audio_selector, 1, check_segment_total_segments=False)
 
         # Ensure we did not get any video segments
@@ -510,7 +512,7 @@ class TestLiveStreamStall:
         )
         audio_selector, video_selector = selectors
         assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
 
@@ -568,7 +570,7 @@ class TestLiveStreamStall:
         assert sabr_stream.processor.is_live is True
         audio_selector, video_selector = selectors
         assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
 
@@ -624,7 +626,7 @@ class TestLiveStreamStall:
         )
         audio_selector, video_selector = selectors
         assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
 
@@ -682,7 +684,7 @@ class TestLiveStreamStall:
         )
         audio_selector, video_selector = selectors
         assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
 
@@ -739,7 +741,7 @@ class TestLiveStreamStall:
         )
         audio_selector, video_selector = selectors
         assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
 
@@ -801,7 +803,7 @@ class TestLiveStreamStall:
             BroadcastIdChanged,
             match=rf'Broadcast ID changed from {LIVE_BROADCAST_ID} to 2.',
         ):
-            list(sabr_stream.iter_parts())
+            collect_parts(sabr_stream)
 
         heartbeat_callback.assert_called()
 
@@ -906,6 +908,7 @@ class TestLiveStreamStall:
             if stall_count == max_empty_requests and isinstance(part, PoTokenStatusSabrPart):
                 sabr_stream.processor.initialized_formats[
                     str(format_init_part.format_id)].consumed_ranges = consumed_ranges
+            handle_media_init_part(part, parts)
             parts.append(part)
 
         # Expect that the only media init parts we get is first 2 segments
@@ -963,7 +966,7 @@ class TestLiveStreamStall:
         _, video_selector = selectors
 
         assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         if not post_live:
             logger.trace.assert_any_call(
@@ -1025,7 +1028,7 @@ class TestLiveStreamStall:
         audio_selector, video_selector = selectors
         assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
         sabr_stream.live_head_tolerance_sec = live_head_tolerance_sec
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         if not post_live:
             logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
@@ -1101,7 +1104,7 @@ class TestLiveStreamStall:
         audio_selector, video_selector = selectors
         assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
         sabr_stream.live_head_tolerance_sec = live_head_tolerance_sec
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
         logger.trace.assert_any_call(
@@ -1160,7 +1163,7 @@ class TestLiveStreamStall:
 
         with pytest.raises(StreamStallError,
                            match=r'Stream stalled; no activity detected in 6 requests and 10.0 seconds and not near live head.'):
-            list(sabr_stream.iter_parts())
+            collect_parts(sabr_stream)
 
         assert sabr_stream._stream_stall_tracker.stalled_requests == 6
 
@@ -1193,7 +1196,7 @@ class TestLiveStreamStall:
             live_segment_target_duration_sec=segment_target_duration_ms // 1000,
         )
         audio_selector, video_selector = selectors
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 15; registering stall (count: 5)')
         logger.trace.assert_any_call(
@@ -1261,7 +1264,7 @@ class TestLiveStreamStall:
             post_live=post_live,
         )
 
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         audio_selector, video_selector = selectors
         assert_media_sequence_in_order(parts, audio_selector, total_segments - 1,
                                        check_segment_total_segments=False)
@@ -1327,7 +1330,7 @@ class TestLiveStreamStall:
             heartbeat_callback=heartbeat_callback,
         )
 
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         audio_selector, video_selector = selectors
         assert_media_sequence_in_order(parts, audio_selector, total_segments)
@@ -1399,7 +1402,7 @@ class TestLiveStreamStall:
             heartbeat_callback=heartbeat_callback,
         )
 
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         audio_selector, video_selector = selectors
         assert_media_sequence_in_order(parts, audio_selector, total_segments)
@@ -1444,7 +1447,7 @@ class TestPostLiveEnd:
             post_live=True,
         )
         audio_selector, video_selector = selectors
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         assert_media_sequence_in_order(parts, audio_selector, total_segments)
         assert_media_sequence_in_order(parts, video_selector, total_segments)
 
@@ -1482,7 +1485,7 @@ class TestPostLiveEnd:
             heartbeat_callback=heartbeat_callback,
         )
         audio_selector, video_selector = selectors
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         assert_media_sequence_in_order(parts, audio_selector, total_segments)
         assert_media_sequence_in_order(parts, video_selector, total_segments)
 
@@ -1523,7 +1526,7 @@ class TestPostLiveEnd:
             post_live=True,
         )
         audio_selector, video_selector = selectors
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         assert_media_sequence_in_order(parts, audio_selector, total_segments)
         assert_media_sequence_in_order(parts, video_selector, total_segments)
 
@@ -1570,7 +1573,7 @@ class TestLive:
         )
         audio_selector, video_selector = selectors
 
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         assert_media_sequence_in_order(parts, audio_selector, total_segments)
         assert_media_sequence_in_order(parts, video_selector, total_segments)
@@ -1614,7 +1617,7 @@ class TestLive:
         )
         audio_selector, video_selector = selectors
 
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         assert_media_sequence_in_order(parts, audio_selector, total_segments)
         assert_media_sequence_in_order(parts, video_selector, total_segments)
@@ -1659,7 +1662,7 @@ class TestLive:
         )
         audio_selector, video_selector = selectors
 
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         assert_media_sequence_in_order(parts, audio_selector, total_segments)
         assert_media_sequence_in_order(parts, video_selector, total_segments)
 
@@ -1691,7 +1694,7 @@ class TestLive:
         )
         audio_selector, video_selector = selectors
 
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         assert_media_sequence_in_order(parts, audio_selector, total_segments)
         assert_media_sequence_in_order(parts, video_selector, total_segments)
@@ -1741,7 +1744,7 @@ class TestLive:
         )
         audio_selector, video_selector = selectors
 
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         assert_media_sequence_in_order(parts, audio_selector, total_segments,
                                        start_sequence_number=segment_start_number)
@@ -1797,7 +1800,7 @@ class TestLive:
         )
         audio_selector, video_selector = selectors
 
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         # should start from segment 4 - max seekable to start with is for segment 3 which we should not get on the first request.
         assert_media_sequence_in_order(parts, audio_selector, 2, start_sequence_number=profile.live_head_segment() - 1)
@@ -1850,7 +1853,7 @@ class TestLive:
         )
         audio_selector, video_selector = selectors
 
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         # should start from segment 4 - max seekable to start with is for segment 3 which we should not get on the first request.
         assert_media_sequence_in_order(parts, audio_selector, 2, start_sequence_number=profile.live_head_segment() - 1)
@@ -1948,6 +1951,7 @@ class TestLive:
         parts = []
         # Inject consumed ranges when format is initialized
         for part in sabr_stream.iter_parts():
+            handle_media_init_part(part, parts)
             parts.append(part)
             if isinstance(part, FormatInitializedSabrPart) and part.format_selector is video_selector:
                 sabr_stream.processor.initialized_formats[str(part.format_id)].consumed_ranges = consumed_ranges
@@ -2013,7 +2017,7 @@ class TestLive:
         )
         audio_selector, video_selector = selectors
 
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         assert_media_sequence_in_order(parts, audio_selector, total_segments)
         assert_media_sequence_in_order(parts, video_selector, total_segments)
@@ -2048,7 +2052,7 @@ class TestLive:
         )
         audio_selector, video_selector = selectors
 
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         assert_media_sequence_in_order(parts, audio_selector, total_segments)
         assert_media_sequence_in_order(parts, video_selector, total_segments)
 
@@ -2095,7 +2099,7 @@ class TestLive:
             live_segment_target_duration_sec=segment_target_duration_ms // 1000,
             post_live=post_live,
         )
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
 
         assert len(rh.request_history) > 1
         first_request_vpabr = rh.request_history[0].vpabr
@@ -2141,7 +2145,7 @@ class TestLive:
         )
         assert sabr_stream.processor.is_live is True
         assert 'yt_premiere_broadcast' in sabr_stream.url
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
 
         assert len(rh.request_history) > 1
         first_request_vpabr = rh.request_history[0].vpabr
@@ -2195,7 +2199,7 @@ class TestLive:
             post_live=post_live,
         )
         audio_selector, video_selector = selectors
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         assert_media_sequence_in_order(parts, audio_selector, total_segments)
         assert_media_sequence_in_order(parts, video_selector, total_segments)
@@ -2273,6 +2277,7 @@ class TestLive:
                         duration_ms=segment_target_duration_ms * 2,
                     ),
                 )
+            handle_media_init_part(part, parts)
             parts.append(part)
 
         assert len(rh.request_history) > 1
@@ -2323,7 +2328,7 @@ class TestLive:
             select_with_format_id=True,
         )
         audio_selector, video_selector, captions_selector = selectors
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         assert_media_sequence_in_order(parts, audio_selector, total_segments)
         assert_media_sequence_in_order(parts, video_selector, total_segments)
         assert_media_sequence_in_order(parts, captions_selector, total_segments)
@@ -2363,7 +2368,7 @@ class TestLive:
             enable_video=False,
         )
         _, _, captions_selector = selectors
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         format_init_parts = [part for part in parts if isinstance(part, FormatInitializedSabrPart)]
         assert len(format_init_parts) == 1
         assert format_init_parts[0].format_id == DEFAULT_CAPTION_FORMAT
@@ -2438,7 +2443,7 @@ class TestLiveEndErrorRetriesExhausted:
         assert sabr_stream.http_retries == 10  # default of 10 retries
         audio_selector, video_selector = selectors
 
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         # It should get all but the last segment (9)
         assert_media_sequence_in_order(parts, audio_selector, total_segments - 1, check_segment_total_segments=False)
@@ -2505,7 +2510,7 @@ class TestLiveEndErrorRetriesExhausted:
         assert sabr_stream.http_retries == 10  # default of 10 retries
         audio_selector, video_selector = selectors
 
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         # It should get all but the last segment (9)
         assert_media_sequence_in_order(parts, audio_selector, total_segments - 1, check_segment_total_segments=False)
@@ -2576,7 +2581,7 @@ class TestLiveEndErrorRetriesExhausted:
         assert sabr_stream.http_retries == http_retries
         audio_selector, video_selector = selectors
 
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
 
         # It should get all but the last segment (9)
         assert_media_sequence_in_order(parts, audio_selector, total_segments - 1, check_segment_total_segments=False)
@@ -2642,6 +2647,7 @@ class TestLiveEndErrorRetriesExhausted:
 
         with pytest.raises(TransportError, match='simulated transport error'):
             for part in sabr_stream.iter_parts():
+                handle_media_init_part(part, parts)
                 parts.append(part)
 
         # It should get all but the last segment (9)
@@ -2704,6 +2710,7 @@ class TestLiveEndErrorRetriesExhausted:
 
         with pytest.raises(TransportError, match='simulated transport error'):
             for part in sabr_stream.iter_parts():
+                handle_media_init_part(part, parts)
                 parts.append(part)
 
         # It should get all but the last segment (9)
@@ -2768,6 +2775,7 @@ class TestLiveEndErrorRetriesExhausted:
 
         with pytest.raises(TransportError, match='simulated transport error'):
             for part in sabr_stream.iter_parts():
+                handle_media_init_part(part, parts)
                 parts.append(part)
 
         # It should get all but the last segment (9)
@@ -2844,6 +2852,7 @@ class TestLiveEndErrorRetriesExhausted:
 
         with pytest.raises(TransportError, match='simulated transport error'):
             for part in sabr_stream.iter_parts():
+                handle_media_init_part(part, parts)
                 parts.append(part)
 
         # It should get all but the last segment (9)
@@ -2911,6 +2920,7 @@ class TestLiveEndErrorRetriesExhausted:
 
         with pytest.raises(TransportError, match='simulated transport error'):
             for part in sabr_stream.iter_parts():
+                handle_media_init_part(part, parts)
                 parts.append(part)
 
         # It should the first segments
@@ -2980,6 +2990,7 @@ class TestLiveEndErrorRetriesExhausted:
 
         with pytest.raises(TransportError, match='simulated transport error'):
             for part in sabr_stream.iter_parts():
+                handle_media_init_part(part, parts)
                 parts.append(part)
 
         # It should get all but the last segment (9)
@@ -3058,6 +3069,7 @@ class TestLiveEndErrorRetriesExhausted:
 
         with pytest.raises(TransportError, match='simulated transport error'):
             for part in sabr_stream.iter_parts():
+                handle_media_init_part(part, parts)
                 parts.append(part)
 
         # It should get all but the last segment (1)

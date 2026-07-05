@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import dataclasses
 import enum
+import typing
+from io import BufferedIOBase
 
 from yt_dlp.extractor.youtube._proto.videostreaming import FormatId
 
@@ -27,6 +29,7 @@ class MediaSegmentInitSabrPart(SabrPart):
     start_bytes: int = None
     content_length: int = None
     content_length_estimated: bool = False
+    register_data_callback: typing.Callable[[typing.Callable[[MediaSegmentDataSabrPart], None]], None] | None = None
 
 
 @dataclasses.dataclass
@@ -36,7 +39,7 @@ class MediaSegmentDataSabrPart(SabrPart):
     sequence_number: int | None = None
     is_init_segment: bool = False
     total_segments: int | None = None
-    data: bytes = b''
+    data: bytes | BufferedIOBase = b''
     content_length: int | None = None
     segment_start_bytes: int | None = None
 

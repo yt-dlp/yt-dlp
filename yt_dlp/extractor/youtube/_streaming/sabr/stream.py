@@ -52,7 +52,6 @@ from .part import (
     FormatInitializedSabrPart,
     LiveStateSabrPart,
     MediaSeekSabrPart,
-    MediaSegmentDataSabrPart,
     MediaSegmentEndSabrPart,
     MediaSegmentInitSabrPart,
     PoTokenStatusSabrPart,
@@ -137,7 +136,7 @@ if typing.TYPE_CHECKING:
     ReloadCallback = typing.Callable[[ReloadConfigRequest], ReloadConfigResponse | None]
     PotCallback = typing.Callable[[PoTokenStatus], str | None]
     HeartbeatCallback = typing.Callable[[], Heartbeat | None]
-    SabrPartType = MediaSegmentInitSabrPart | MediaSegmentDataSabrPart | MediaSegmentEndSabrPart | FormatInitializedSabrPart | PoTokenStatusSabrPart | MediaSeekSabrPart | LiveStateSabrPart
+    SabrPartType = MediaSegmentInitSabrPart | MediaSegmentEndSabrPart | FormatInitializedSabrPart | PoTokenStatusSabrPart | MediaSeekSabrPart | LiveStateSabrPart
     IterPartsType = typing.Generator[SabrPartType, None, None]
 
 
@@ -160,6 +159,7 @@ class SabrStream:
     @param caption_selection: The caption format selector to use for captions.
     @param live_segment_target_duration_sec: The target duration of live segments in seconds.
     @param live_segment_target_duration_tolerance_ms: The tolerance to accept for estimated duration of live segment in milliseconds.
+    @param enable_live_deep_rewind: Enable experiemntal livestream deep rewind
     @param start_time_ms: The time in milliseconds to start playback from.
     @param po_token: Initial GVS PO Token.
     @param http_retries: The maximum number of times to retry a request before failing.
@@ -176,15 +176,16 @@ class SabrStream:
     @param pot_callback: A function called to retrieve a new PO Token.
     @param reload_callback: A function called to reload the SABR configuration, such as on SABR URL expiry.
 
-
     Yielded parts:
     - FormatInitializedSabrPart
     - MediaSegmentInitSabrPart
-    - MediaSegmentDataSabrPart
     - MediaSegmentEndSabrPart
     - PoTokenStatusSabrPart
     - MediaSeekSabrPart
     - LiveStateSabrPart
+
+    MediaSegmentDataSabrPart is provided via a callback registered from MediaSegmentInitSabrPart
+
     """
 
     # Parts to ignore from the state debug log
@@ -285,6 +286,8 @@ class SabrStream:
 
         # Buffered ranges to be injected in the next request
         self._injected_consumed_ranges = []
+
+        self._data_callbacks = {}
 
     def close(self):
         self._consumed = True
@@ -463,6 +466,7 @@ class SabrStream:
         )
         self.logger.debug(msg)
         self.processor.partial_segments.clear()
+        self._data_callbacks.clear()
 
     # region: UMP Part Processors
 
@@ -473,7 +477,7 @@ class SabrStream:
             if part.part_id == UMPPartId.MEDIA_HEADER:
                 yield from self._process_media_header(part)
             elif part.part_id == UMPPartId.MEDIA:
-                yield from self._process_media(part)
+                self._process_media(part)
             elif part.part_id == UMPPartId.MEDIA_END:
                 yield from self._process_media_end(part)
             elif part.part_id == UMPPartId.STREAM_PROTECTION_STATUS:
@@ -512,15 +516,34 @@ class SabrStream:
         media_header = protobug.load(part.data, MediaHeader)
         self._log_part(part=part, protobug_obj=media_header)
         result = self.processor.process_media_header(media_header)
+
+        # Require the data part to be delivered via a callback
+        # so network errors during the read are covered by the retry logic
+        rn = self._request_number
+
+        def register_data_callback(callback):
+            if rn != self._request_number:
+                self.logger.warning(
+                    f'Data callback registration called for a previous request {self._request_number} (expected {rn})')
+                raise ValueError('Data callback registration expired')
+            self._data_callbacks[f'{media_header.header_id}:{self._request_number}'] = callback
+            self.logger.trace(f'Registered data callback for header id {media_header.header_id}')
+
         if result.sabr_part:
+            result.sabr_part.register_data_callback = register_data_callback
             yield result.sabr_part
 
     def _process_media(self, part: UMPPart):
         header_id = read_varint(part.data)
         content_length = part.size - part.data.tell()
         result = self.processor.process_media(header_id, content_length, part.data)
-        if result.sabr_part:
-            yield result.sabr_part
+        if not result.sabr_part:
+            return
+        callback = self._data_callbacks.get(f'{header_id}:{self._request_number}')
+        if not callback:
+            self.logger.warning(f'No data callback registered for header ID {header_id}.')
+            return
+        callback(result.sabr_part)
 
     def _process_media_end(self, part: UMPPart):
         header_id = read_varint(part.data)
@@ -529,6 +552,8 @@ class SabrStream:
         result = self.processor.process_media_end(header_id)
         if result.is_new_segment:
             self._stream_stall_tracker.register_activity()
+
+        self._data_callbacks.pop(f'{header_id}:{self._request_number}', None)
 
         if result.sabr_part:
             yield result.sabr_part

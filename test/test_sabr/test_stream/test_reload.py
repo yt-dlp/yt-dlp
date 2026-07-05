@@ -11,6 +11,7 @@ from test.test_sabr.test_stream.helpers import (
     DEFAULT_NUM_VIDEO_SEGMENTS,
     VIDEO_ID,
     mock_time,
+    collect_parts,
 )
 from yt_dlp.extractor.youtube._proto.videostreaming import SabrContextUpdate, AdCuepointConfig
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import BroadcastIdChanged
@@ -33,7 +34,7 @@ def test_exception(logger, client_info):
     )
     audio_selector, video_selector = selectors
 
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
 
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
     assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
@@ -56,7 +57,7 @@ def test_no_response(logger, client_info):
     )
     audio_selector, video_selector = selectors
 
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
 
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
     assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
@@ -78,7 +79,7 @@ def test_invalid_response_object(logger, client_info):
     )
     audio_selector, video_selector = selectors
 
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
 
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
     assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
@@ -108,7 +109,7 @@ def test_invalid_response_value(logger, client_info, reload_callback_response, i
     )
     audio_selector, video_selector = selectors
 
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
 
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
     assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
@@ -137,7 +138,7 @@ def test_missing_client_info(logger, client_info, reload_callback_response):
     )
     audio_selector, video_selector = selectors
 
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
 
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
     assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
@@ -166,7 +167,7 @@ def test_invalid_client_info(logger, client_info, reload_callback_response):
     )
     audio_selector, video_selector = selectors
 
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
 
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
     assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
@@ -195,7 +196,7 @@ def test_client_info_client_name_mismatch(logger, client_info, reload_callback_r
     )
     audio_selector, video_selector = selectors
 
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
 
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
     assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
@@ -224,7 +225,7 @@ def test_video_id_mismatch(logger, client_info, reload_callback_response):
     )
     audio_selector, video_selector = selectors
 
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
 
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
     assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
@@ -252,7 +253,7 @@ def test_invalid_pot(logger, client_info, reload_callback_response):
     )
     audio_selector, video_selector = selectors
 
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
 
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
     assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
@@ -390,7 +391,7 @@ def test_live_error_on_broadcast_id_update(logger, client_info, post_live, reloa
 
     assert sabr_stream.processor.is_live is True
     with pytest.raises(BroadcastIdChanged, match=r'Broadcast ID changed from 1 to 2\.'):
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
 
     reload_config_callback.assert_called()
 
@@ -543,7 +544,7 @@ def test_invalid_callback_value(logger, client_info, reload_callback_response, i
     )
     audio_selector, video_selector = selectors
 
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
 
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
     assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)

@@ -10,7 +10,10 @@ from test.test_sabr.test_stream.helpers import (
     AdWaitAVProfile,
     SabrContextSendingPolicyAVProfile,
     mock_time,
-    setup_sabr_stream_av, LiveAVProfile, VALID_LIVE_URL,
+    setup_sabr_stream_av,
+    LiveAVProfile,
+    VALID_LIVE_URL,
+    collect_parts,
 )
 
 from yt_dlp.extractor.youtube._proto.videostreaming import (
@@ -34,7 +37,7 @@ def test_ad_wait(logger, client_info):
     )
     audio_selector, video_selector = selectors
 
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
     assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
 
@@ -66,7 +69,7 @@ def test_sending_policy(logger, client_info):
         logger=logger,
     )
     audio_selector, video_selector = selectors
-    parts = list(sabr_stream.iter_parts())
+    parts = collect_parts(sabr_stream)
     assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
     assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
 
@@ -175,7 +178,7 @@ class TestLiveCuepointAds:
 
         audio_selector, video_selector = selectors
 
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         assert_media_sequence_in_order(parts, audio_selector, total_segments)
         assert_media_sequence_in_order(parts, video_selector, total_segments)
 
@@ -251,7 +254,7 @@ class TestLiveCuepointAds:
             live_segment_target_duration_sec=segment_target_duration_ms // 1000,
         )
 
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
 
         # First request should not include cuepoint identifier
         first_request_vpabr = rh.request_history[0].vpabr
@@ -317,7 +320,7 @@ class TestLiveCuepointAds:
             live_segment_target_duration_sec=segment_target_duration_ms // 1000,
         )
 
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
 
         # First request should not include cuepoint identifier
         first_request_vpabr = rh.request_history[0].vpabr

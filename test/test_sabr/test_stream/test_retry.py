@@ -16,6 +16,8 @@ from test.test_sabr.test_stream.helpers import (
     create_inject_read_error,
     mock_time,
     setup_sabr_stream_av,
+    handle_media_init_part,
+    collect_parts,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import SabrStreamError
 from yt_dlp.extractor.youtube._streaming.ump import UMPPartId, UMPPart
@@ -35,7 +37,7 @@ class TestRequestRetries:
         audio_selector, video_selector = selectors
 
         # Should complete successfully
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
         assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
 
@@ -64,7 +66,7 @@ class TestRequestRetries:
             logger=logger,
         )
 
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         audio_selector, video_selector = selectors
         assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
         assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
@@ -93,7 +95,7 @@ class TestRequestRetries:
         )
 
         with pytest.raises(SabrStreamError, match=r'404'):
-            list(sabr_stream.iter_parts())
+            collect_parts(sabr_stream)
 
         # Ensure the failing request was recorded and no retry was attempted
         assert len(rh.request_history) >= 1
@@ -111,7 +113,7 @@ class TestRequestRetries:
         )
         # We don't currently wrap in SabrStreamError as could be client issue
         with pytest.raises(RequestError, match='simulated request error'):
-            list(sabr_stream.iter_parts())
+            collect_parts(sabr_stream)
 
         # Ensure the failing request was recorded and no retry was attempted
         assert len(rh.request_history) >= 1
@@ -129,7 +131,7 @@ class TestRequestRetries:
         audio_selector, video_selector = selectors
 
         # Should complete successfully
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
         assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
 
@@ -162,7 +164,7 @@ class TestRequestRetries:
         audio_selector, video_selector = selectors
 
         # Should complete successfully
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
         assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
 
@@ -194,7 +196,7 @@ class TestRequestRetries:
         )
 
         with pytest.raises(TransportError, match='simulated transport error'):
-            list(sabr_stream.iter_parts())
+            collect_parts(sabr_stream)
 
         # There should be max_retry + 1 error requests recorded
         error_requests = [d for d in rh.request_history if d.error is not None]
@@ -217,7 +219,7 @@ class TestRequestRetries:
         )
 
         with pytest.raises(TransportError, match='simulated transport error'):
-            list(sabr_stream.iter_parts())
+            collect_parts(sabr_stream)
 
         # There should be http_retries + 1 error requests recorded
         error_requests = [d for d in rh.request_history if d.error is not None]
@@ -244,7 +246,7 @@ class TestRequestRetries:
             retry_sleep_func=sleep_mock,
         )
         # Should complete successfully
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
         # sleep_mock should be called 2 times (for the two retries)
         assert sleep_mock.call_count == 2
         sleep_mock.assert_any_call(n=0)
@@ -277,6 +279,7 @@ class TestRequestRetries:
         parts = []
         with pytest.raises(TransportError, match='simulated transport error'):
             for part in sabr_stream.iter_parts():
+                handle_media_init_part(part, parts)
                 parts.append(part)
 
         # Should have called the callback 6 times
@@ -291,7 +294,7 @@ class TestRequestRetries:
         )
 
         # Should complete successfully
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
 
         # Find the requests that recorded errors
         error_requests = [d for d in rh.request_history if d.error is not None]
@@ -318,7 +321,7 @@ class TestResponseRetries:
         audio_selector, video_selector = selectors
 
         # Should complete successfully
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
         assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
 
@@ -343,8 +346,8 @@ class TestResponseRetries:
         # All responses should be closed
         assert all(request.response.closed for request in rh.request_history)
 
-    def test_retry_read_failure_media_part(self, logger, client_info):
-        # Should retry if a TransportError occurs while reading a media part
+    def test_retry_read_failure_media_part_stream_unread(self, logger, client_info):
+        # Should retry if a TransportError occurs while reading a media part internally if the file stream was not consumed
         inject_read_error = create_inject_read_error([2], part_id=UMPPartId.MEDIA)
 
         sabr_stream, rh, selectors = setup_sabr_stream_av(
@@ -355,7 +358,39 @@ class TestResponseRetries:
 
         audio_selector, video_selector = selectors
 
-        parts = list(sabr_stream.iter_parts())
+        # ump file streams are automatically consumed if not done manually
+        parts = collect_parts(sabr_stream)
+        assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1, allow_retry=True)
+        assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1, allow_retry=True)
+
+        # As this is the first MEDIA part in the response,
+        # the playback time should NOT have advanced, and buffered ranges should be the same.
+
+        request = rh.request_history[1]  # The request that had the read error
+        retried_request = rh.request_history[2]  # followup retried request
+        assert request.request.data == retried_request.request.data
+
+        logger.warning.assert_any_call('Got error: simulated read error. Retrying (1/10)...')
+
+        # All responses should be closed
+        assert all(request.response.closed for request in rh.request_history)
+
+    def test_retry_read_failure_media_part_data_stream(self, logger, client_info):
+        # Should retry if a TransportError occurs while streaming media part data
+        inject_read_error = create_inject_read_error([2], part_id=UMPPartId.MEDIA)
+
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=CustomAVProfile({'custom_parts_function': inject_read_error}),
+            client_info=client_info,
+            logger=logger,
+        )
+
+        audio_selector, video_selector = selectors
+        parts = []
+        callback_state = {'generation': 0}
+        for part in sabr_stream.iter_parts():
+            handle_media_init_part(part, parts, callback_state)
+            parts.append(part)
         assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1, allow_retry=True)
         assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1, allow_retry=True)
 
@@ -382,7 +417,7 @@ class TestResponseRetries:
             logger=logger,
         )
         audio_selector, video_selector = selectors
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1, allow_retry=True)
         assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1, allow_retry=True)
         # The playback time and buffered ranges should have advanced after the first media part
@@ -431,7 +466,7 @@ class TestResponseRetries:
             logger=logger,
         )
         audio_selector, video_selector = selectors
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         # Should not be getting any retried segments here as the error is after all media parts
         assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1, allow_retry=False)
         assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1, allow_retry=False)
@@ -481,7 +516,7 @@ class TestResponseRetries:
         )
 
         with pytest.raises(ValueError, match='non-transport read error'):
-            list(sabr_stream.iter_parts())
+            collect_parts(sabr_stream)
 
         # Only the original request should have been made (no retry)
         assert len(rh.request_history) == 1
@@ -515,7 +550,7 @@ class TestSabrErrorRetries:
         audio_selector, video_selector = selectors
 
         # Should complete successfully
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
         assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
         # xxx: not recorded as an error in the request history as SabrError is part of normal processing.
@@ -539,7 +574,7 @@ class TestGVSFallbackRetries:
         audio_selector, video_selector = selectors
 
         # Should complete successfully
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
         assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
 
@@ -578,7 +613,7 @@ class TestGVSFallbackRetries:
         audio_selector, video_selector = selectors
 
         # Should complete successfully
-        parts = list(sabr_stream.iter_parts())
+        parts = collect_parts(sabr_stream)
         assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1)
         assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1)
 
@@ -617,7 +652,7 @@ class TestGVSFallbackRetries:
         )
 
         with pytest.raises(TransportError, match='simulated transport error'):
-            list(sabr_stream.iter_parts())
+            collect_parts(sabr_stream)
 
         # There should be 11 error requests recorded
         error_requests = [d for d in rh.request_history if d.error is not None]
@@ -658,7 +693,7 @@ class TestGVSFallbackRetries:
         )
 
         # Should complete successfully
-        list(sabr_stream.iter_parts())
+        collect_parts(sabr_stream)
 
         # There should be 3 error requests recorded
         error_requests = [d for d in rh.request_history if d.error is not None]
@@ -694,7 +729,7 @@ class TestGVSFallbackRetries:
         )
 
         with pytest.raises(TransportError, match='simulated transport error'):
-            list(sabr_stream.iter_parts())
+            collect_parts(sabr_stream)
 
         # There should be 11 error requests recorded
         error_requests = [d for d in rh.request_history if d.error is not None]
@@ -734,7 +769,7 @@ class TestGVSFallbackRetries:
 
         expected_cause = r"SABR Protocol Error: SabrError\(type='simulated SABR error', action=1, error=None\)"
         with pytest.raises(SabrStreamError, match=expected_cause):
-            list(sabr_stream.iter_parts())
+            collect_parts(sabr_stream)
 
         # xxx: not recorded as an error in the request history as SabrError is part of normal processing.
         logger.warning.assert_any_call(
