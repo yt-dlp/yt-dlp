@@ -222,12 +222,10 @@ class SabrFdSession:
     # region: download
     def _download(self):
         try:
-            total_bytes = 0  # used for --test
             for part in self.stream:
-                if self.is_test and total_bytes >= self.fd._TEST_FILE_SIZE:
+                # check for --test
+                if self._should_stop():
                     break
-                if isinstance(part, MediaSegmentDataSabrPart) and not part.is_init_segment:
-                    total_bytes += part.content_length
                 self._process_sabr_part(part)
             self._finish_formats()
         except BroadcastIdChanged as e:
@@ -240,6 +238,12 @@ class SabrFdSession:
         except SabrStreamError as e:
             self.fd.write_debug(f'[SABR Debug Info]: {self.stream.create_stats_str()}')
             raise DownloadError(str(e))
+
+    def _should_stop(self):
+        # check for --test
+        if not self.is_test:
+            return False
+        return sum(writer.downloaded_bytes for writer in self.writers.values()) >= self.fd._TEST_FILE_SIZE
 
     def _write_data_callback(self, part: MediaSegmentDataSabrPart):
         writer = self.writers.get(part.format_selector.display_name)

@@ -40,7 +40,6 @@ class SabrFDFormatWriter:
         self.resume = resume
 
         self._progress = None
-        self._downloaded_bytes = 0
         self._state = {}
         self._format_id = None
         self._broadcast_id = None

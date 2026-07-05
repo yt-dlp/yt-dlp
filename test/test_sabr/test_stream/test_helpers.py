@@ -91,6 +91,22 @@ class TestAssertMediaSequence:
         ]
         assert_media_sequence_in_order(parts, audio_selector, expected_total_segments=1, allow_retry=True)
 
+    def test_retry_init_allowed(self):
+        # should allow a retry on the init segment
+        audio_selector = AudioSelector(display_name='audio')
+        fmt = FormatId(itag=140, lmt=123)
+        parts = [
+            MediaSegmentInitSabrPart(format_selector=audio_selector, format_id=fmt, sequence_number=None, is_init_segment=True, total_segments=1),
+            # Retried init for same sequence (simulates server resending); allowed when allow_retry=True
+            MediaSegmentInitSabrPart(format_selector=audio_selector, format_id=fmt, sequence_number=None, is_init_segment=True, total_segments=1),
+            MediaSegmentDataSabrPart(format_selector=audio_selector, format_id=fmt, sequence_number=None, is_init_segment=True, total_segments=1, data=b'd1'),
+            MediaSegmentEndSabrPart(format_selector=audio_selector, format_id=fmt, sequence_number=None, is_init_segment=True, total_segments=1),
+            MediaSegmentInitSabrPart(format_selector=audio_selector, format_id=fmt, sequence_number=1, total_segments=1),
+            MediaSegmentDataSabrPart(format_selector=audio_selector, format_id=fmt, sequence_number=1, data=b'd1'),
+            MediaSegmentEndSabrPart(format_selector=audio_selector, format_id=fmt, sequence_number=1),
+        ]
+        assert_media_sequence_in_order(parts, audio_selector, expected_total_segments=2, allow_retry=True)
+
     def test_retry_not_allowed_raises(self):
         # Disallow retry where an init with the same sequence_number appears again
         audio_selector = AudioSelector(display_name='audio')

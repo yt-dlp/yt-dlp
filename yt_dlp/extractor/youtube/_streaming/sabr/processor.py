@@ -848,7 +848,15 @@ def build_vpabr_request(processor: SabrProcessor):
         preferred_audio_format_ids=processor.preferred_audio_format_ids,
         preferred_caption_format_ids=processor.preferred_caption_format_ids,
         initialized_format_ids=[
+            # Only send initialized format ids if:
+            # - the init segment has been consumed (vod)
+            # - or it is a livestream (no init segment)
+            # Otherwise, for vods, if a retry occurs during the init segment, the server will not
+            # send it again if the format is marked as initialized.
+            # NOTE: if we want to allow many different formats to be selected in the future, this will need be integrated into SabrProcessor.
+            # Otherwise, on retry, a different FormatInitializationMetadata may be returned, resulting in a format changed error.
             initialized_format.format_id for initialized_format in processor.initialized_formats.values()
+            if processor.is_live or initialized_format.init_segment or initialized_format.previous_segment
         ],
         video_playback_ustreamer_config=base64.urlsafe_b64decode(processor.video_playback_ustreamer_config),
         streamer_context=StreamerContext(

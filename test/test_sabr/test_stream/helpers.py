@@ -193,7 +193,7 @@ class SabrResponseProcessor:
         audio_buffered_segments = self.buffered_segments(vpabr, total_audio_segments, audio_format_id)
         video_buffered_segments = self.buffered_segments(vpabr, total_video_segments, video_format_id)
 
-        if audio_format_id and not audio_buffered_segments:
+        if audio_format_id and not audio_buffered_segments and audio_format_id not in vpabr.initialized_format_ids:
             fim = protobug.dumps(FormatInitializationMetadata(
                 video_id=VIDEO_ID,
                 format_id=audio_format_id,
@@ -209,7 +209,7 @@ class SabrResponseProcessor:
                 data=io.BytesIO(fim),
             ))
 
-        if video_format_id and not video_buffered_segments:
+        if video_format_id and not video_buffered_segments and video_format_id not in vpabr.initialized_format_ids:
             fim = protobug.dumps(FormatInitializationMetadata(
                 video_id=VIDEO_ID,
                 format_id=video_format_id,
@@ -358,6 +358,7 @@ class BasicAudioVideoProfile(SabrResponseProcessor):
                 player_time_ms=vpabr.client_abr_state.player_time_ms,
                 start_header_id=next_header_id,
                 format_id=audio_format_id,
+                skip_init=audio_format_id in vpabr.initialized_format_ids,
             )
             parts.extend(audio_segment_parts)
 
@@ -369,6 +370,7 @@ class BasicAudioVideoProfile(SabrResponseProcessor):
                 player_time_ms=vpabr.client_abr_state.player_time_ms,
                 start_header_id=next_header_id,
                 format_id=video_format_id,
+                skip_init=video_format_id in vpabr.initialized_format_ids,
             )
             parts.extend(video_segment_parts)
 
@@ -913,7 +915,15 @@ def assert_media_sequence_in_order(parts, format_selector: AudioSelector | Video
                     if not allow_retry:
                         assert current_segment[2] is not None, 'Previous Media segment end part missing'
                     if current_segment[0].sequence_number is None:
-                        assert part.sequence_number == start_sequence_number, f'Segment after init part should be sequence number {start_sequence_number}'
+                        if allow_retry:
+                            assert (
+                                part.sequence_number == start_sequence_number
+                                or part.is_init_segment
+                            ), f'Segment after init part should be sequence number {start_sequence_number} or an init part on retry'
+                            if part.is_init_segment:
+                                total_retried_segments += 1
+                        else:
+                            assert part.sequence_number == start_sequence_number, f'Segment after init part should be sequence number {start_sequence_number}'
                     elif not allow_retry:
                         assert part.sequence_number == current_segment[0].sequence_number + 1, 'Media segment init part sequence number out of order'
                     else:

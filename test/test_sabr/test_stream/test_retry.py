@@ -18,6 +18,8 @@ from test.test_sabr.test_stream.helpers import (
     setup_sabr_stream_av,
     handle_media_init_part,
     collect_parts,
+    LiveAVProfile,
+    VALID_LIVE_URL,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import SabrStreamError
 from yt_dlp.extractor.youtube._streaming.ump import UMPPartId, UMPPart
@@ -443,6 +445,78 @@ class TestResponseRetries:
             if br_retried.end_segment_index == br.end_segment_index + 1:
                 matches += 1
         assert matches == 1, 'Expected one buffered range to be advanced by one segment after retrying Nth media part read failure'
+
+        logger.warning.assert_any_call('Got error: simulated read error. Retrying (1/10)...')
+
+        # All responses should be closed
+        assert all(request.response.closed for request in rh.request_history)
+
+    def test_retry_on_init_segment(self, logger, client_info):
+        # Should not advertise the format as initialized until init segment has been downloaded.
+        # Otherwise, on retry, the init segment will not be provided by the server
+        inject_read_error = create_inject_read_error([1], part_id=UMPPartId.MEDIA)
+
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=CustomAVProfile({'custom_parts_function': inject_read_error}),
+            client_info=client_info,
+            logger=logger,
+        )
+
+        audio_selector, video_selector = selectors
+        parts = []
+        callback_state = {'generation': 0}
+        for part in sabr_stream.iter_parts():
+            handle_media_init_part(part, parts, callback_state)
+            parts.append(part)
+        assert_media_sequence_in_order(parts, audio_selector, DEFAULT_NUM_AUDIO_SEGMENTS + 1, allow_retry=True)
+        assert_media_sequence_in_order(parts, video_selector, DEFAULT_NUM_VIDEO_SEGMENTS + 1, allow_retry=True)
+
+        retried_request = rh.request_history[1]  # followup retried request
+        # should not mark format as initialized until init segment has downloaded
+        assert len(retried_request.vpabr.initialized_format_ids) == 0
+
+        logger.warning.assert_any_call('Got error: simulated read error. Retrying (1/10)...')
+
+        # All responses should be closed
+        assert all(request.response.closed for request in rh.request_history)
+
+    @mock_time
+    @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
+    def test_retry_on_first_live_segment(self, logger, client_info, post_live):
+        # Should advertise the format as initialized for livestreams immediately
+        inject_read_error = create_inject_read_error([1], part_id=UMPPartId.MEDIA)
+
+        total_segments = 10
+        segment_target_duration_ms = 2000
+        dvr_segments = 7 if not post_live else 9
+        profile = LiveAVProfile({
+            'total_segments': total_segments,
+            'segment_target_duration_ms': segment_target_duration_ms,
+            'dvr_segments': dvr_segments,
+            'custom_parts_function': inject_read_error,
+        })
+
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
+            sabr_response_processor=profile,
+            client_info=client_info,
+            logger=logger,
+            url=VALID_LIVE_URL,
+            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            post_live=post_live,
+        )
+
+        audio_selector, video_selector = selectors
+        parts = []
+        callback_state = {'generation': 0}
+        for part in sabr_stream.iter_parts():
+            handle_media_init_part(part, parts, callback_state)
+            parts.append(part)
+        assert_media_sequence_in_order(parts, audio_selector, total_segments, allow_retry=True)
+        assert_media_sequence_in_order(parts, video_selector, total_segments, allow_retry=True)
+
+        retried_request = rh.request_history[1]  # followup retried request
+        # should mark format as initialized immediately
+        assert len(retried_request.vpabr.initialized_format_ids) == 2
 
         logger.warning.assert_any_call('Got error: simulated read error. Retrying (1/10)...')
 
