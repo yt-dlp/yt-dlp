@@ -225,7 +225,7 @@ DEPENDENCIES: list[Dependency] = [
         comment='Not included in `yt-dlp_x86` 32-bit Windows builds',
         project_url='https://cffi.readthedocs.io/',
     ),
-    # Dependecy of cffi
+    # Dependency of cffi
     Dependency(
         name='pycparser',
         license='BSD-3-Clause',
