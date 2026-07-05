@@ -666,18 +666,34 @@ class VKUserVideosIE(VKBaseIE):
 
     def _real_extract(self, url):
         u_id = self._match_id(url)
-        webpage = self._download_webpage(url, u_id)
 
         if u_id.startswith('@'):
-            page_id = traverse_obj(
-                self._search_json(r'\bvar newCur\s*=', webpage, 'cursor data', u_id),
-                ('oid', {int}, {str_or_none}, {require('page id')}))
+            mobj = re.fullmatch(r'@(id|club|public|event)(\d+)', u_id)
+            if mobj:
+                object_id = int(mobj.group(2))
+                is_community = mobj.group(1) != 'id'
+            else:
+                webpage = self._download_webpage(f'https://vk.com/{u_id[1:]}', u_id)
+                prefetch = self._search_json(r'"apiPrefetchCache"\s*:',
+                                             webpage,
+                                             'API prefetch cache',
+                                             u_id,
+                                             contains_pattern=r'\[(?s:.+)\]')
+                resolved = traverse_obj(prefetch,
+                                        (lambda _, v: v['method'] == 'utils.resolveScreenName',
+                                         'response',
+                                         any)) or {}
+                object_id = traverse_obj(resolved, ('object_id', {int}, {require('page id')}))
+                is_community = resolved.get('type') in ('group', 'page', 'event')
+            page_id = str(-object_id if is_community else object_id)
             section = traverse_obj(parse_qs(url), ('section', 0)) or 'all'
+            playlist_title = None
         else:
+            webpage = self._download_webpage(url, u_id)
             page_id, _, section = u_id.partition('_')
             section = f'playlist_{section}'
+            playlist_title = clean_html(get_element_by_class('VideoInfoPanel__title', webpage))
 
-        playlist_title = clean_html(get_element_by_class('VideoInfoPanel__title', webpage))
         return self.playlist_result(self._entries(page_id, section), f'{page_id}_{section}', playlist_title)
 
 
