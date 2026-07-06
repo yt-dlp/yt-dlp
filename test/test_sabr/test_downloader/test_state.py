@@ -23,20 +23,24 @@ def sabr_state():
             SabrStateSequence(
                 sequence_start_number=1,
                 sequence_content_length=4096,
-                first_segment=SabrStateSegment(
-                    sequence_number=1,
-                    start_time_ms=0,
-                    duration_ms=1000,
-                    duration_estimated=False,
-                    content_length=2048,
-                ),
-                last_segment=SabrStateSegment(
-                    sequence_number=2,
-                    start_time_ms=1000,
-                    duration_ms=1000,
-                    duration_estimated=True,
-                    content_length=2048,
-                ),
+                first_segments=[
+                    SabrStateSegment(
+                        sequence_number=1,
+                        start_time_ms=0,
+                        duration_ms=1000,
+                        duration_estimated=False,
+                        content_length=2048,
+                    ),
+                ],
+                last_segments=[
+                    SabrStateSegment(
+                        sequence_number=2,
+                        start_time_ms=1000,
+                        duration_ms=1000,
+                        duration_estimated=True,
+                        content_length=2048,
+                    ),
+                ],
             ),
         ],
         broadcast_id='broadcast-1',

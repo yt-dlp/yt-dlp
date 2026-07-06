@@ -20,8 +20,8 @@ class SabrStateSegment:
 class SabrStateSequence:
     sequence_start_number: protobug.Int32 = protobug.field(1)
     sequence_content_length: protobug.Int64 = protobug.field(2)
-    first_segment: SabrStateSegment = protobug.field(3)
-    last_segment: SabrStateSegment = protobug.field(4)
+    first_segments: list[SabrStateSegment] = protobug.field(3, default_factory=list)
+    last_segments: list[SabrStateSegment] = protobug.field(4, default_factory=list)
 
 
 @protobug.message

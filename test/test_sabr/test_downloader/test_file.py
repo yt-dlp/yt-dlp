@@ -1,10 +1,9 @@
-import dataclasses
 import io
 from pathlib import Path
 import pytest
 from yt_dlp.utils._utils import DownloadError
 from yt_dlp.downloader.sabr._io import MemoryFormatIOBackend, DiskFormatIOBackend
-from yt_dlp.downloader.sabr._file import SequenceFile, Sequence, Segment, SegmentFile
+from yt_dlp.downloader.sabr._file import DEFAULT_MAX_TRACKING_SEGMENTS, SequenceFile, Sequence, Segment, SegmentFile
 
 INIT_SEQUENCE_CONTENT_LENGTH = 1024
 INIT_SEGMENT_DATA = b'\x00' * INIT_SEQUENCE_CONTENT_LENGTH
@@ -108,6 +107,8 @@ class TestSequenceFile:
         assert sequence_file.sequence.sequence_content_length == GENERAL_SEGMENT_CONTENT_LENGTH
         assert sequence_file.sequence.first_segment == segment_one
         assert sequence_file.sequence.last_segment == segment_one
+        assert sequence_file.sequence.first_segments == [segment_one]
+        assert sequence_file.sequence.last_segments == [segment_one]
         # Segment two
         sequence_file.initialize_segment(segment_two)
         sequence_file.write_segment_data(GENERAL_SEGMENT_DATA, segment_two.segment_id)
@@ -115,6 +116,8 @@ class TestSequenceFile:
         assert sequence_file.sequence.sequence_content_length == 2 * GENERAL_SEGMENT_CONTENT_LENGTH
         assert sequence_file.sequence.first_segment == segment_one
         assert sequence_file.sequence.last_segment == segment_two
+        assert sequence_file.sequence.first_segments == [segment_one, segment_two]
+        assert sequence_file.sequence.last_segments == [segment_one, segment_two]
         # Read data
         sequence_file.close()
         backend.initialize_writer()
@@ -219,9 +222,10 @@ class TestSequenceFile:
         sequence_file.remove()
 
     def test_remove_existing_sequence_file_no_resume(self, fd, filename, general_sequence):
+        base_sequence = Sequence(sequence_id=general_sequence.sequence_id)
         sequence_file = SequenceFile(
             fd, format_filename=filename,
-            sequence=dataclasses.replace(general_sequence), segment_memory_file_limit=1)
+            sequence=base_sequence, segment_memory_file_limit=1)
         assert isinstance(sequence_file.file, DiskFormatIOBackend)
         segment_one = generate_segment(1)
         sequence_file.initialize_segment(segment_one)
@@ -233,8 +237,9 @@ class TestSequenceFile:
         sequence_file.close()
 
         # New sequence file for the same sequence should remove existing file
+        resume_sequence = Sequence(sequence_id=general_sequence.sequence_id)
         new_sequence_file = SequenceFile(
-            fd, format_filename=filename, sequence=dataclasses.replace(general_sequence),
+            fd, format_filename=filename, sequence=resume_sequence,
             segment_memory_file_limit=1, resume=False)
         assert new_sequence_file.file.exists() is False
         assert Path(new_sequence_file.file.filename).exists() is False
@@ -244,9 +249,10 @@ class TestSequenceFile:
     def test_remove_existing_sequence_file_missing_last_segment(self, fd, filename, general_sequence):
         # Should remove existing sequence file if last_segment info is missing
         # This should not raise an error even though resume is True (todo: confirm desired behavior)
+        base_sequence = Sequence(sequence_id=general_sequence.sequence_id)
         sequence_file = SequenceFile(
             fd, format_filename=filename,
-            sequence=dataclasses.replace(general_sequence), segment_memory_file_limit=1)
+            sequence=base_sequence, segment_memory_file_limit=1)
         assert isinstance(sequence_file.file, DiskFormatIOBackend)
         segment_one = generate_segment(1)
         sequence_file.initialize_segment(segment_one)
@@ -258,9 +264,10 @@ class TestSequenceFile:
         sequence_file.close()
 
         # New sequence file for the same sequence should remove existing file
-        assert general_sequence.last_segment is None
+        assert general_sequence.last_segments == []
+        resume_sequence = Sequence(sequence_id=general_sequence.sequence_id)
         new_sequence_file = SequenceFile(
-            fd, format_filename=filename, sequence=dataclasses.replace(general_sequence),
+            fd, format_filename=filename, sequence=resume_sequence,
             segment_memory_file_limit=1, resume=True)
         assert new_sequence_file.file.exists() is False
         assert Path(new_sequence_file.file.filename).exists() is False
@@ -270,7 +277,7 @@ class TestSequenceFile:
     def test_error_last_segment_provided_not_resuming(self, fd, filename, general_sequence):
         # Should raise an error if last_segment is provided but resume is False
         # TODO: error might not be correct behavior, confirm desired behavior
-        general_sequence.last_segment = generate_segment(1)
+        general_sequence.last_segments.append(generate_segment(1))
         with pytest.raises(DownloadError) as excinfo:
             SequenceFile(
                 fd, format_filename=filename, sequence=general_sequence,
@@ -279,7 +286,7 @@ class TestSequenceFile:
 
     def test_resume_no_sequence_file_found(self, fd, filename, general_sequence):
         # Should raise an error if resume is True but no existing sequence file is found
-        general_sequence.last_segment = generate_segment(1)
+        general_sequence.last_segments.append(generate_segment(1))
         with pytest.raises(DownloadError) as excinfo:
             SequenceFile(
                 fd, format_filename=filename, sequence=general_sequence,
@@ -288,9 +295,10 @@ class TestSequenceFile:
 
     def test_resume_no_content_length_provided(self, fd, filename, general_sequence):
         # Should raise an error if resume is True but no content length is provided (defaults to 0)
+        base_sequence = Sequence(sequence_id=general_sequence.sequence_id)
         sequence_file = SequenceFile(
             fd, format_filename=filename,
-            sequence=dataclasses.replace(general_sequence), segment_memory_file_limit=1)
+            sequence=base_sequence, segment_memory_file_limit=1)
         assert isinstance(sequence_file.file, DiskFormatIOBackend)
         segment_one = generate_segment(1)
         sequence_file.initialize_segment(segment_one)
@@ -302,10 +310,13 @@ class TestSequenceFile:
         sequence_file.close()
 
         # New sequence file for the same sequence should raise error due to invalid content length
-        general_sequence.last_segment = generate_segment(1, content_length=0)
+        resume_sequence = Sequence(
+            sequence_id=general_sequence.sequence_id,
+            last_segments=[generate_segment(1, content_length=0)],
+        )
         with pytest.raises(DownloadError) as excinfo:
             SequenceFile(
-                fd, format_filename=filename, sequence=general_sequence,
+                fd, format_filename=filename, sequence=resume_sequence,
                 segment_memory_file_limit=1, resume=True)
         assert 'Existing sequence 1 file is not valid; removing' in str(excinfo.value)
 
@@ -313,7 +324,7 @@ class TestSequenceFile:
         # Should raise an error if resume is True but content length does not match
         sequence_file = SequenceFile(
             fd, format_filename=filename,
-            sequence=dataclasses.replace(general_sequence), segment_memory_file_limit=1)
+            sequence=Sequence(sequence_id=general_sequence.sequence_id), segment_memory_file_limit=1)
         assert isinstance(sequence_file.file, DiskFormatIOBackend)
         segment_one = generate_segment(1)
         sequence_file.initialize_segment(segment_one)
@@ -325,10 +336,13 @@ class TestSequenceFile:
         sequence_file.close()
 
         # New sequence file for the same sequence should raise error due to invalid content length
-        general_sequence.last_segment = generate_segment(1, content_length=123)
+        resume_sequence = Sequence(
+            sequence_id=general_sequence.sequence_id,
+            last_segments=[generate_segment(1, content_length=123)],
+        )
         with pytest.raises(DownloadError) as excinfo:
             SequenceFile(
-                fd, format_filename=filename, sequence=general_sequence,
+                fd, format_filename=filename, sequence=resume_sequence,
                 segment_memory_file_limit=1, resume=True)
         assert 'Existing sequence 1 file is not valid; removing' in str(excinfo.value)
 
@@ -336,7 +350,7 @@ class TestSequenceFile:
         # Should successfully resume if content length matches
         sequence_file = SequenceFile(
             fd, format_filename=filename,
-            sequence=dataclasses.replace(general_sequence), segment_memory_file_limit=1)
+            sequence=Sequence(sequence_id=general_sequence.sequence_id), segment_memory_file_limit=1)
         assert isinstance(sequence_file.file, DiskFormatIOBackend)
         segment_one = generate_segment(1)
         assert sequence_file.is_next_segment(segment_one)
@@ -350,7 +364,12 @@ class TestSequenceFile:
         assert Path(sequence_file.file.filename).exists() is True
         sequence_file.close()
 
-        resume_sequence = dataclasses.replace(sequence_file.sequence)
+        resume_sequence = Sequence(
+            sequence_id=sequence_file.sequence.sequence_id,
+            sequence_content_length=sequence_file.sequence.sequence_content_length,
+            first_segments=list(sequence_file.sequence.first_segments),
+            last_segments=list(sequence_file.sequence.last_segments),
+        )
 
         # New sequence file for the same sequence should succeed in resuming
         resumed_sequence_file = SequenceFile(
@@ -361,6 +380,8 @@ class TestSequenceFile:
         assert resumed_sequence_file.current_length == GENERAL_SEGMENT_CONTENT_LENGTH
         assert resumed_sequence_file.sequence.first_segment == segment_one
         assert resumed_sequence_file.sequence.last_segment == segment_one
+        assert resumed_sequence_file.sequence.first_segments == [segment_one]
+        assert resumed_sequence_file.sequence.last_segments == [segment_one]
 
         # Resume: write segment two
         segment_two = generate_segment(2)
@@ -372,6 +393,8 @@ class TestSequenceFile:
         assert resumed_sequence_file.current_length == 2 * GENERAL_SEGMENT_CONTENT_LENGTH
         assert resumed_sequence_file.sequence.first_segment == segment_one
         assert resumed_sequence_file.sequence.last_segment == segment_two
+        assert resumed_sequence_file.sequence.first_segments == [segment_one, segment_two]
+        assert resumed_sequence_file.sequence.last_segments == [segment_one, segment_two]
         # Read data
         resumed_sequence_file.close()
         backend.initialize_writer()
@@ -535,6 +558,63 @@ class TestSequenceFile:
 
         sequence_file.remove()
 
+    def test_default_max_tracking_segments(self, fd, filename, general_sequence):
+        # Default tracking keeps the first 2 and last 2 segments
+        sequence_file = SequenceFile(fd, format_filename=filename, sequence=general_sequence)
+        segment_one = generate_segment(1)
+        segment_two = generate_segment(2)
+        segment_three = generate_segment(3)
+
+        for segment in (segment_one, segment_two, segment_three):
+            sequence_file.initialize_segment(segment)
+            sequence_file.write_segment_data(GENERAL_SEGMENT_DATA, segment.segment_id)
+            sequence_file.end_segment(segment.segment_id)
+
+        assert len(sequence_file.sequence.first_segments) == DEFAULT_MAX_TRACKING_SEGMENTS
+        assert len(sequence_file.sequence.last_segments) == DEFAULT_MAX_TRACKING_SEGMENTS
+        assert sequence_file.sequence.first_segments == [segment_one, segment_two]
+        assert sequence_file.sequence.last_segments == [segment_two, segment_three]
+        assert sequence_file.sequence.first_segment == segment_one
+        assert sequence_file.sequence.last_segment == segment_three
+
+        sequence_file.remove()
+
+    @pytest.mark.parametrize(
+        'max_tracking_segments,expected_first_segments,expected_last_segments',
+        [
+            (1, [1], [4]),
+            (3, [1, 2, 3], [2, 3, 4]),
+        ],
+    )
+    def test_non_default_max_tracking_segments(
+        self,
+        fd,
+        filename,
+        general_sequence,
+        max_tracking_segments,
+        expected_first_segments,
+        expected_last_segments,
+    ):
+        sequence_file = SequenceFile(
+            fd,
+            format_filename=filename,
+            sequence=general_sequence,
+            max_tracking_segments=max_tracking_segments,
+        )
+
+        segments = [generate_segment(i) for i in range(1, 5)]
+        for segment in segments:
+            sequence_file.initialize_segment(segment)
+            sequence_file.write_segment_data(GENERAL_SEGMENT_DATA, segment.segment_id)
+            sequence_file.end_segment(segment.segment_id)
+
+        assert [segment.sequence_number for segment in sequence_file.sequence.first_segments] == expected_first_segments
+        assert [segment.sequence_number for segment in sequence_file.sequence.last_segments] == expected_last_segments
+        assert sequence_file.sequence.first_segment == sequence_file.sequence.first_segments[0]
+        assert sequence_file.sequence.last_segment == sequence_file.sequence.last_segments[-1]
+
+        sequence_file.remove()
+
     def test_reinitialize_different_segment_error(self, fd, filename, general_sequence):
         # Should raise an error when trying to reinitialize a different segment
         sequence_file = SequenceFile(fd, format_filename=filename, sequence=general_sequence)
@@ -670,7 +750,7 @@ class TestSequenceFile:
         # This is for the case we get an error during segment download and want to clean up.
         sequence_file = SequenceFile(
             fd, format_filename=filename,
-            sequence=dataclasses.replace(general_sequence), segment_memory_file_limit=1)
+            sequence=Sequence(sequence_id=general_sequence.sequence_id), segment_memory_file_limit=1)
         assert isinstance(sequence_file.file, DiskFormatIOBackend)
         segment_one = generate_segment(1)
         sequence_file.initialize_segment(segment_one)

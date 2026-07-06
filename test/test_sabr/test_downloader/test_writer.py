@@ -92,6 +92,16 @@ def write_sequence_file(fd, filename, sequence, segment, data):
     return sequence_file
 
 
+def make_state_segment(segment: Segment):
+    return SabrStateSegment(
+        sequence_number=segment.sequence_number,
+        start_time_ms=segment.start_time_ms,
+        duration_ms=segment.duration_ms,
+        duration_estimated=segment.duration_estimated,
+        content_length=segment.content_length,
+    )
+
+
 class TestSabrFDFormatWriter:
     def test_write_and_finish(self, fd, filename, info_dict, format_id, format_selector):
         fd._hook_progress = MagicMock()
@@ -408,20 +418,8 @@ class TestSabrFDFormatWriter:
                 SabrStateSequence(
                     sequence_start_number=1,
                     sequence_content_length=len(SEGMENT_ONE_DATA),
-                    first_segment=SabrStateSegment(
-                        sequence_number=1,
-                        start_time_ms=0,
-                        duration_ms=1000,
-                        duration_estimated=False,
-                        content_length=len(SEGMENT_ONE_DATA),
-                    ),
-                    last_segment=SabrStateSegment(
-                        sequence_number=1,
-                        start_time_ms=0,
-                        duration_ms=1000,
-                        duration_estimated=False,
-                        content_length=len(SEGMENT_ONE_DATA),
-                    ),
+                    first_segments=[make_state_segment(media_segment)],
+                    last_segments=[make_state_segment(media_segment)],
                 ),
             ],
             broadcast_id=BROADCAST_ID_1,
@@ -437,6 +435,8 @@ class TestSabrFDFormatWriter:
         assert state.init_sequence.sequence_id == INIT_SEGMENT_ID
         assert len(state.sequences) == 1
         assert state.sequences[0].sequence_id == '1'
+        assert [segment.sequence_number for segment in state.sequences[0].first_segments] == [1]
+        assert [segment.sequence_number for segment in state.sequences[0].last_segments] == [1]
         assert writer.downloaded_bytes == len(INIT_DATA) + len(SEGMENT_ONE_DATA)
 
         writer.initialize_segment(make_init_part(
@@ -463,14 +463,14 @@ class TestSabrFDFormatWriter:
 
         resumed_state = writer.state
         assert len(resumed_state.sequences) == 1
-        assert resumed_state.sequences[0].first_segment.sequence_number == 1
-        assert resumed_state.sequences[0].last_segment.sequence_number == 2
+        assert [segment.sequence_number for segment in resumed_state.sequences[0].first_segments] == [1, 2]
+        assert [segment.sequence_number for segment in resumed_state.sequences[0].last_segments] == [1, 2]
         assert resumed_state.sequences[0].sequence_content_length == len(SEGMENT_ONE_DATA) + len(SEGMENT_TWO_DATA)
 
         persisted_state = SabrStateFile(filename, fd).retrieve()
         assert len(persisted_state.sequences) == 1
-        assert persisted_state.sequences[0].first_segment.sequence_number == 1
-        assert persisted_state.sequences[0].last_segment.sequence_number == 2
+        assert [segment.sequence_number for segment in persisted_state.sequences[0].first_segments] == [1, 2]
+        assert [segment.sequence_number for segment in persisted_state.sequences[0].last_segments] == [1, 2]
         assert persisted_state.sequences[0].sequence_content_length == len(SEGMENT_ONE_DATA) + len(SEGMENT_TWO_DATA)
 
         writer.finish()
@@ -686,6 +686,13 @@ class TestSabrFDFormatWriter:
         # Should warn and continue if fail to resume a sequence
 
         # sequence without an associated file
+        media_segment = Segment(
+            segment_id='1',
+            sequence_number=1,
+            start_time_ms=0,
+            duration_ms=1000,
+            content_length=len(SEGMENT_ONE_DATA),
+        )
         SabrStateFile(filename, fd).update(SabrState(
             format_id=format_id,
             broadcast_id=BROADCAST_ID_1,
@@ -693,20 +700,8 @@ class TestSabrFDFormatWriter:
                 SabrStateSequence(
                     sequence_start_number=1,
                     sequence_content_length=len(SEGMENT_ONE_DATA),
-                    first_segment=SabrStateSegment(
-                        sequence_number=1,
-                        start_time_ms=0,
-                        duration_ms=1000,
-                        duration_estimated=False,
-                        content_length=len(SEGMENT_ONE_DATA),
-                    ),
-                    last_segment=SabrStateSegment(
-                        sequence_number=1,
-                        start_time_ms=0,
-                        duration_ms=1000,
-                        duration_estimated=False,
-                        content_length=len(SEGMENT_ONE_DATA),
-                    ),
+                    first_segments=[make_state_segment(media_segment)],
+                    last_segments=[make_state_segment(media_segment)],
                 ),
             ],
         ))

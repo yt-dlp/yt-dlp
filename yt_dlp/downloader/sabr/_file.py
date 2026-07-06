@@ -4,6 +4,8 @@ import dataclasses
 from yt_dlp.utils import DownloadError
 from ._io import DiskFormatIOBackend, MemoryFormatIOBackend
 
+DEFAULT_MAX_TRACKING_SEGMENTS = 2
+
 
 @dataclasses.dataclass
 class Segment:
@@ -23,13 +25,38 @@ class Sequence:
     # The segments may not have a start byte range, so to keep it simple we will track
     # length of the sequence. We can infer from this and the segment's content_length where they should end and begin.
     sequence_content_length: int = 0
-    first_segment: Segment | None = None
-    last_segment: Segment | None = None
+    first_segments: list[Segment] = dataclasses.field(default_factory=list)
+    last_segments: list[Segment] = dataclasses.field(default_factory=list)
+
+    @property
+    def first_segment(self):
+        if not self.first_segments:
+            return None
+        return self.first_segments[0]
+
+    @property
+    def last_segment(self):
+        if not self.last_segments:
+            return None
+        return self.last_segments[-1]
 
 
 class SequenceFile:
+    """Sequence file containing consecutive segments
 
-    def __init__(self, fd, format_filename, sequence: Sequence, resume=False, max_segments=None, segment_memory_file_limit=None):
+    @param fd: FileDownloader instance
+    @param format_filename: Base format filename used to construct sequence and segment filenames.
+    @param sequence: Sequence object containing sequence metadata.
+    @param resume: If True, attempt to resume writing to an existing sequence file. Segment files are always overwritten.
+    @param max_segments: Optional maximum number of segments allowed in the sequence file.
+    @param segment_memory_file_limit: Optional threshold in bytes under which a segment is stored in memory.
+    @param max_tracking_segments: Optional maximum number of first and last segments to keep for state tracking.
+    """
+
+    def __init__(
+        self, fd, format_filename, sequence: Sequence,
+        resume=False, max_segments=None, segment_memory_file_limit=None, max_tracking_segments=None,
+    ):
         self.fd = fd
         self.format_filename = format_filename
         self.sequence = sequence
@@ -40,6 +67,7 @@ class SequenceFile:
         self.current_segment: SegmentFile | None = None
         self.resume = resume
         self.max_segments = max_segments
+        self.max_tracking_segments = max(1, max_tracking_segments or DEFAULT_MAX_TRACKING_SEGMENTS)
         self.segment_memory_file_limit = segment_memory_file_limit
 
         sequence_file_exists = self.file.exists()
@@ -47,13 +75,13 @@ class SequenceFile:
         if not resume and sequence_file_exists:
             self.file.remove()
 
-        elif not self.sequence.last_segment and sequence_file_exists:
+        elif not self.sequence.last_segments and sequence_file_exists:
             self.file.remove()
 
-        if self.sequence.last_segment and not sequence_file_exists:
+        if self.sequence.last_segments and not sequence_file_exists:
             raise DownloadError(f'Cannot find existing sequence {self.sequence_id} file')
 
-        if self.sequence.last_segment and not self.file.validate_length(self.sequence.sequence_content_length):
+        if self.sequence.last_segments and not self.file.validate_length(self.sequence.sequence_content_length):
             self.file.remove()
             raise DownloadError(f'Existing sequence {self.sequence_id} file is not valid; removing')
 
@@ -132,10 +160,13 @@ class SequenceFile:
         self.current_segment.segment.content_length = self.current_segment.current_length
         self.current_segment.segment.content_length_estimated = False
 
-        if not self.sequence.first_segment:
-            self.sequence.first_segment = self.current_segment.segment
+        if len(self.sequence.first_segments) < self.max_tracking_segments:
+            self.sequence.first_segments.append(self.current_segment.segment)
 
-        self.sequence.last_segment = self.current_segment.segment
+        self.sequence.last_segments.append(self.current_segment.segment)
+        while len(self.sequence.last_segments) > self.max_tracking_segments:
+            self.sequence.last_segments.pop(0)
+
         self.sequence.sequence_content_length += self.current_segment.current_length
 
         if not self.file.mode:

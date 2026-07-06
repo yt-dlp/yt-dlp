@@ -94,14 +94,36 @@ class SabrFDFormatWriter:
                     sequence=Sequence(
                         sequence_id=INIT_SEGMENT_ID,
                         sequence_content_length=init_segment.content_length,
-                        first_segment=init_segment,
-                        last_segment=init_segment,
+                        first_segments=[init_segment],
+                        last_segments=[init_segment],
                     ))
             except DownloadError as e:
                 self.fd.report_warning(f'Failed to resume init segment for format {self.info_dict.get("format_id")}: {e}')
 
         for sabr_sequence in list(document.sequences):
             try:
+                first_segments = [
+                    Segment(
+                        segment_id=str(segment.sequence_number),
+                        sequence_number=segment.sequence_number,
+                        content_length=segment.content_length,
+                        start_time_ms=segment.start_time_ms,
+                        duration_ms=segment.duration_ms,
+                        is_init_segment=False,
+                    )
+                    for segment in sabr_sequence.first_segments
+                ]
+                last_segments = [
+                    Segment(
+                        segment_id=str(segment.sequence_number),
+                        sequence_number=segment.sequence_number,
+                        content_length=segment.content_length,
+                        start_time_ms=segment.start_time_ms,
+                        duration_ms=segment.duration_ms,
+                        is_init_segment=False,
+                    )
+                    for segment in sabr_sequence.last_segments
+                ]
                 self._sequence_files.append(SequenceFile(
                     fd=self.fd,
                     format_filename=self.filename,
@@ -109,22 +131,8 @@ class SabrFDFormatWriter:
                     sequence=Sequence(
                         sequence_id=str(sabr_sequence.sequence_start_number),
                         sequence_content_length=sabr_sequence.sequence_content_length,
-                        first_segment=Segment(
-                            segment_id=str(sabr_sequence.first_segment.sequence_number),
-                            sequence_number=sabr_sequence.first_segment.sequence_number,
-                            content_length=sabr_sequence.first_segment.content_length,
-                            start_time_ms=sabr_sequence.first_segment.start_time_ms,
-                            duration_ms=sabr_sequence.first_segment.duration_ms,
-                            is_init_segment=False,
-                        ),
-                        last_segment=Segment(
-                            segment_id=str(sabr_sequence.last_segment.sequence_number),
-                            sequence_number=sabr_sequence.last_segment.sequence_number,
-                            content_length=sabr_sequence.last_segment.content_length,
-                            start_time_ms=sabr_sequence.last_segment.start_time_ms,
-                            duration_ms=sabr_sequence.last_segment.duration_ms,
-                            is_init_segment=False,
-                        ),
+                        first_segments=first_segments,
+                        last_segments=last_segments,
                     ),
                 ))
             except DownloadError as e:
@@ -305,25 +313,31 @@ class SabrFDFormatWriter:
         sabr_state.sequences = []
         for sequence_file in self._sequence_files:
             # Ignore partial sequences
-            if not sequence_file.sequence.first_segment or not sequence_file.sequence.last_segment:
+            if not sequence_file.sequence.first_segments or not sequence_file.sequence.last_segments:
                 continue
             sabr_state.sequences.append(SabrStateSequence(
                 sequence_start_number=sequence_file.sequence.first_segment.sequence_number,
                 sequence_content_length=sequence_file.sequence.sequence_content_length,
-                first_segment=SabrStateSegment(
-                    sequence_number=sequence_file.sequence.first_segment.sequence_number,
-                    start_time_ms=sequence_file.sequence.first_segment.start_time_ms,
-                    duration_ms=sequence_file.sequence.first_segment.duration_ms,
-                    duration_estimated=sequence_file.sequence.first_segment.duration_estimated,
-                    content_length=sequence_file.sequence.first_segment.content_length,
-                ),
-                last_segment=SabrStateSegment(
-                    sequence_number=sequence_file.sequence.last_segment.sequence_number,
-                    start_time_ms=sequence_file.sequence.last_segment.start_time_ms,
-                    duration_ms=sequence_file.sequence.last_segment.duration_ms,
-                    duration_estimated=sequence_file.sequence.last_segment.duration_estimated,
-                    content_length=sequence_file.sequence.last_segment.content_length,
-                ),
+                first_segments=[
+                    SabrStateSegment(
+                        sequence_number=segment.sequence_number,
+                        start_time_ms=segment.start_time_ms,
+                        duration_ms=segment.duration_ms,
+                        duration_estimated=segment.duration_estimated,
+                        content_length=segment.content_length,
+                    )
+                    for segment in sequence_file.sequence.first_segments
+                ],
+                last_segments=[
+                    SabrStateSegment(
+                        sequence_number=segment.sequence_number,
+                        start_time_ms=segment.start_time_ms,
+                        duration_ms=segment.duration_ms,
+                        duration_estimated=segment.duration_estimated,
+                        content_length=segment.content_length,
+                    )
+                    for segment in sequence_file.sequence.last_segments
+                ],
             ))
 
         self._sabr_state_file.update(sabr_state)
