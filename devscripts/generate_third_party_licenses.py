@@ -106,6 +106,20 @@ DEPENDENCIES: list[Dependency] = [
         project_url='https://www.gnu.org/software/readline/',
     ),
     Dependency(
+        name='libstdc++',
+        license='GPL-3.0-with-GCC-exception',
+        license_url='https://raw.githubusercontent.com/gcc-mirror/gcc/refs/heads/master/COPYING.RUNTIME',
+        comment='Only included in Linux builds',
+        project_url='https://gcc.gnu.org/onlinedocs/libstdc++/',
+    ),
+    Dependency(
+        name='libgcc',
+        license='GPL-3.0-with-GCC-exception',
+        license_url='https://raw.githubusercontent.com/gcc-mirror/gcc/refs/heads/master/COPYING.RUNTIME',
+        comment='Only included in Linux builds',
+        project_url='https://gcc.gnu.org/',
+    ),
+    Dependency(
         name='libuuid',
         license='BSD-3-Clause',
         license_url='https://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git/plain/lib/uuid/COPYING',
@@ -146,20 +160,6 @@ DEPENDENCIES: list[Dependency] = [
         license_url='https://raw.githubusercontent.com/facebook/zstd/refs/heads/dev/LICENSE',
         comment='Only included in macOS builds',
         project_url='https://facebook.github.io/zstd/',
-    ),
-    Dependency(
-        name='libstdc++',
-        license='GPL-3.0-with-GCC-exception',
-        license_url='https://raw.githubusercontent.com/gcc-mirror/gcc/refs/heads/master/COPYING.RUNTIME',
-        comment='Only included in Linux builds',
-        project_url='https://gcc.gnu.org/onlinedocs/libstdc++/',
-    ),
-    Dependency(
-        name='libgcc',
-        license='GPL-3.0-with-GCC-exception',
-        license_url='https://raw.githubusercontent.com/gcc-mirror/gcc/refs/heads/master/COPYING.RUNTIME',
-        comment='Only included in Linux builds',
-        project_url='https://gcc.gnu.org/',
     ),
 
     # Non-Python dependencies of curl_cffi
