@@ -176,18 +176,6 @@ def _get_system_deprecation():
     if sys.version_info < MIN_SUPPORTED:
         return f'Python version {major}.{minor} is no longer supported! {PYTHON_MSG}'
 
-    # Temporary until Windows builds use 3.14, which will drop support for Win8.x and 2012Server
-    if detect_variant() in ('win_exe', 'win_x86_exe'):
-        # Do not inappropriately warn for unofficial/third-party binaries
-        if not ORIGIN.startswith('yt-dlp/'):
-            return None
-        if platform.platform().startswith(('Windows-8', 'Windows-2012Server')):
-            return (
-                'Support for Windows 8.x and Windows Server 2012 has been deprecated. '
-                'See  https://github.com/yt-dlp/yt-dlp/issues/16917  for details.\n'
-                'You may stop receiving updates on this version at any time!')
-        return None
-
     return f'Support for Python version {major}.{minor} has been deprecated. {PYTHON_MSG}'
 
 
