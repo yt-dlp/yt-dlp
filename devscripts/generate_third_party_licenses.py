@@ -147,6 +147,20 @@ DEPENDENCIES: list[Dependency] = [
         comment='Only included in macOS builds',
         project_url='https://facebook.github.io/zstd/',
     ),
+    Dependency(
+        name='libstdc++',
+        license='GPL-3.0-with-GCC-exception',
+        license_url='https://raw.githubusercontent.com/gcc-mirror/gcc/refs/heads/master/COPYING.RUNTIME',
+        comment='Only included in Linux builds',
+        project_url='https://gcc.gnu.org/onlinedocs/libstdc++/',
+    ),
+    Dependency(
+        name='libgcc',
+        license='GPL-3.0-with-GCC-exception',
+        license_url='https://raw.githubusercontent.com/gcc-mirror/gcc/refs/heads/master/COPYING.RUNTIME',
+        comment='Only included in Linux builds',
+        project_url='https://gcc.gnu.org/',
+    ),
 
     # Non-Python dependencies of curl_cffi
     Dependency(
@@ -190,20 +204,6 @@ DEPENDENCIES: list[Dependency] = [
         license_url='https://raw.githubusercontent.com/ngtcp2/nghttp3/refs/heads/main/COPYING',
         comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://nghttp2.org/nghttp3/',
-    ),
-    Dependency(
-        name='libstdc++',
-        license='GPL-3.0-with-GCC-exception',
-        license_url='https://raw.githubusercontent.com/gcc-mirror/gcc/refs/heads/master/COPYING.RUNTIME',
-        comment='Only included in the `yt-dlp_musllinux` and `yt-dlp_musllinux_aarch64` Linux builds',
-        project_url='https://gcc.gnu.org/onlinedocs/libstdc++/',
-    ),
-    Dependency(
-        name='libgcc',
-        license='GPL-3.0-with-GCC-exception',
-        license_url='https://raw.githubusercontent.com/gcc-mirror/gcc/refs/heads/master/COPYING.RUNTIME',
-        comment='Only included in the `yt-dlp_musllinux` and `yt-dlp_musllinux_aarch64` Linux builds',
-        project_url='https://gcc.gnu.org/',
     ),
 
     # Python packages
