@@ -3491,7 +3491,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             def get_stream_id(fmt_stream):
                 return str_or_none(fmt_stream.get('itag')), traverse_obj(fmt_stream, 'audioTrack', 'id'), fmt_stream.get('isDrc')
 
-            def process_format_stream(fmt_stream, proto, missing_pot, super_resolution=False):
+            def process_format_stream(fmt_stream, proto, missing_pot, super_resolution=False, is_broken=False):
                 itag = str_or_none(fmt_stream.get('itag'))
                 audio_track = fmt_stream.get('audioTrack') or {}
                 quality = fmt_stream.get('quality')
@@ -3552,7 +3552,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         name, fmt_stream.get('isDrc') and 'DRC', super_resolution and 'AI-upscaled', fmt_stream.get('isVb') and 'AI-voice boosted',
                         try_get(fmt_stream, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                         try_get(fmt_stream, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
-                        is_damaged and 'DAMAGED', missing_pot and 'MISSING POT',
+                        is_damaged and 'DAMAGED', missing_pot and 'MISSING POT', is_broken and 'BROKEN',
                         (self.get_param('verbose') or all_formats) and short_client_name(client_name),
                         delim=', '),
                     # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
@@ -3567,8 +3567,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'width': int_or_none(fmt_stream.get('width')),
                     'language': language_code,
                     'language_preference': language_preference,
-                    # Strictly de-prioritize damaged and 3gp formats
-                    'preference': -10 if is_damaged else -2 if itag == '17' else None,
+                    # Strictly de-prioritize broken and damaged and 3gp formats
+                    'preference': -20 if is_broken else -10 if is_damaged else -2 if itag == '17' else None,
                 }
                 mime_mobj = re.match(
                     r'((?:[^/]+)/(?:[^;]+))(?:;\s*codecs="([^"]+)")?', fmt_stream.get('mimeType') or '')
@@ -3779,24 +3779,27 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             continue
 
                     xtags = fmt_stream.get('xtags')
+                    is_broken = False
+                    if (
+                       (fmt_stream.get('qualityOrdinal').endswith('_SAVER')
+                        or fmt_stream.get('audioQuality') == 'AUDIO_QUALITY_ULTRALOW')
+                       and client_name in ('android', 'android_vr', 'ios')
+                       ):
+                        # These formats are broken for SABR on these clients.
+                        # Probably requires some extra information in the sabr request to enable them.
+                        is_broken = True
+
+                    if is_broken and skip_bad_formats:
+                        continue
+
                     fmt = process_format_stream(
                         fmt_stream, proto, missing_pot=require_po_token and not po_token,
-                        super_resolution=is_super_resolution(b64_xtags=xtags))
+                        super_resolution=is_super_resolution(b64_xtags=xtags), is_broken=is_broken)
                     if not fmt:
                         continue
 
                     if fmt.get('acodec') != 'none' and fmt.get('vcodec') != 'none':
                         # SABR does not support combined formats
-                        continue
-
-                    # TODO: mark as broken and put behind formats extractor arg
-                    if (
-                        (fmt_stream.get('qualityOrdinal').endswith('_SAVER')
-                         or fmt_stream.get('audioQuality') == 'AUDIO_QUALITY_ULTRALOW')
-                        and client_name in ('android', 'android_vr', 'ios')
-                    ):
-                        # These formats are broken for SABR on these clients.
-                        # Probably requires some extra information in the sabr request to enable them.
                         continue
 
                     # TODO(future): extract SABR live caption tracks.
