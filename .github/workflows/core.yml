@@ -4,7 +4,7 @@ on:
     branches: ['master']
     paths:
       - pyproject.toml
-      - .github/workflows/**
+      - .github/workflows/core.yml
       - devscripts/run_tests.py
       - test/**
       - yt_dlp/**.py
@@ -17,7 +17,7 @@ on:
     branches: ['**']
     paths:
       - pyproject.toml
-      - .github/workflows/**
+      - .github/workflows/core.yml
       - devscripts/run_tests.py
       - test/**
       - yt_dlp/**.py
