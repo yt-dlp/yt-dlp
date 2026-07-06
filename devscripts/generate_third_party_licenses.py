@@ -154,13 +154,6 @@ DEPENDENCIES: list[Dependency] = [
         comment='Only included in Linux builds',
         project_url='https://www.gnu.org/software/libunistring/',
     ),
-    Dependency(
-        name='zstd',
-        license='BSD-3-Clause',
-        license_url='https://raw.githubusercontent.com/facebook/zstd/refs/heads/dev/LICENSE',
-        comment='Only included in macOS builds',
-        project_url='https://facebook.github.io/zstd/',
-    ),
 
     # Non-Python dependencies of curl_cffi
     Dependency(
@@ -204,6 +197,13 @@ DEPENDENCIES: list[Dependency] = [
         license_url='https://raw.githubusercontent.com/ngtcp2/nghttp3/refs/heads/main/COPYING',
         comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://nghttp2.org/nghttp3/',
+    ),
+    Dependency(
+        name='zstd',
+        license='BSD-3-Clause',
+        license_url='https://raw.githubusercontent.com/facebook/zstd/refs/heads/dev/LICENSE',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
+        project_url='https://facebook.github.io/zstd/',
     ),
 
     # Python packages
