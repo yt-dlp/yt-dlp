@@ -322,7 +322,7 @@ class SabrStream:
 
     def iter_parts(self) -> IterPartsType:
         if self._consumed:
-            raise SabrStreamConsumedError('SABR stream has already been consumed')
+            raise SabrStreamConsumedError
 
         self._http_retry_manager = None
         self._sps_retry_manager = None
