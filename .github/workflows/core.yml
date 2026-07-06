@@ -4,8 +4,8 @@ on:
     branches: ['master']
     paths:
       - pyproject.toml
-      - .github/**
-      - devscripts/**
+      - .github/workflows/**
+      - devscripts/run_tests.py
       - test/**
       - yt_dlp/**.py
       - '!yt_dlp/extractor/**.py'
@@ -17,8 +17,8 @@ on:
     branches: ['**']
     paths:
       - pyproject.toml
-      - .github/**
-      - devscripts/**
+      - .github/workflows/**
+      - devscripts/run_tests.py
       - test/**
       - yt_dlp/**.py
       - '!yt_dlp/extractor/**.py'
