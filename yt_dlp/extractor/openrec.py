@@ -339,7 +339,7 @@ class OpenRecIE(OpenRecBaseIE):
         if live_status == 'is_upcoming':
             if release_timestamp is not None:
                 start_time = dt.datetime.fromtimestamp(
-                    release_timestamp, dt.timezone.utc,
+                    release_timestamp, dt.UTC,
                 ).astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
                 msg = f'This livestream is scheduled to start at {start_time}'
             else:

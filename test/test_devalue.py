@@ -51,7 +51,7 @@ TEST_CASES_EQUALS = [{
 }, {
     'name': 'Date',
     'unparsed': [['Date', '2001-09-09T01:46:40.000Z']],
-    'parsed': dt.datetime.fromtimestamp(1e9, tz=dt.timezone.utc),
+    'parsed': dt.datetime.fromtimestamp(1e9, tz=dt.UTC),
 }, {
     'name': 'Array',
     'unparsed': [[1, 2, 3], 'a', 'b', 'c'],

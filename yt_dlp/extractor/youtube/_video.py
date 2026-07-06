@@ -4518,7 +4518,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or parse_iso8601(search_meta('uploadDate'), timezone=NO_DEFAULT)
         )
         upload_date = (
-            dt.datetime.fromtimestamp(timestamp, dt.timezone.utc).strftime('%Y%m%d') if timestamp else
+            dt.datetime.fromtimestamp(timestamp, dt.UTC).strftime('%Y%m%d') if timestamp else
             (
                 unified_strdate(get_first(microformats, 'uploadDate'))
                 or unified_strdate(search_meta('uploadDate'))
@@ -4538,7 +4538,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if upload_date and live_status not in ('is_live', 'post_live', 'is_upcoming'):
             # Newly uploaded videos' HLS formats are potentially problematic and need to be checked
-            upload_datetime = datetime_from_str(upload_date).replace(tzinfo=dt.timezone.utc)
+            upload_datetime = datetime_from_str(upload_date).replace(tzinfo=dt.UTC)
             if upload_datetime >= datetime_from_str('today-2days'):
                 for fmt in info['formats']:
                     if fmt.get('protocol') == 'm3u8_native':

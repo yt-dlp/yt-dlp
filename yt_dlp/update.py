@@ -186,7 +186,7 @@ def _get_outdated_warning():
 
     with contextlib.suppress(Exception):
         last_updated = dt.date(*version_tuple(__version__)[:3])
-        if last_updated < dt.datetime.now(dt.timezone.utc).date() - dt.timedelta(days=90):
+        if last_updated < dt.datetime.now(dt.UTC).date() - dt.timedelta(days=90):
             return ('\n         '.join((
                 f'Your yt-dlp version ({__version__}) is older than 90 days!',
                 'It is strongly recommended to always use the latest version.',

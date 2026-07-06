@@ -219,7 +219,7 @@ class PoTokenCache:
         cache_key = self._generate_key(self._generate_key_bindings(spec))
         self.logger.trace(f'Attempting to access PO Token cache using key: {cache_key}')
 
-        default_expires_at = int(dt.datetime.now(dt.timezone.utc).timestamp()) + spec.default_ttl
+        default_expires_at = int(dt.datetime.now(dt.UTC).timestamp()) + spec.default_ttl
         cache_response = dataclasses.replace(response, expires_at=response.expires_at or default_expires_at)
 
         write_policy = write_policy or spec.write_policy
@@ -463,7 +463,7 @@ def validate_response(response: PoTokenResponse | None):
     if not isinstance(response.expires_at, int):
         return response.expires_at is None
 
-    return response.expires_at <= 0 or response.expires_at > int(dt.datetime.now(dt.timezone.utc).timestamp())
+    return response.expires_at <= 0 or response.expires_at > int(dt.datetime.now(dt.UTC).timestamp())
 
 
 def validate_cache_spec(spec: PoTokenCacheSpec):
