@@ -547,6 +547,8 @@ jobs:
           lock 2025.08.11 darwin_legacy_exe .+
           lock 2025.08.27 linux_armv7l_exe .+
           lock 2025.10.14 zip Python 3\.9
+          lock 2026.10.XX zip Python 3\.10
+          lock 2026.10.XX win(?:_x86)?_exe Python .+ Windows-(?:8|2012Server)
           lockV2 yt-dlp/yt-dlp 2022.08.18.36 .+ Python 3\.6
           lockV2 yt-dlp/yt-dlp 2023.11.16 zip Python 3\.7
           lockV2 yt-dlp/yt-dlp 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
@@ -556,6 +558,8 @@ jobs:
           lockV2 yt-dlp/yt-dlp 2025.08.11 darwin_legacy_exe .+
           lockV2 yt-dlp/yt-dlp 2025.08.27 linux_armv7l_exe .+
           lockV2 yt-dlp/yt-dlp 2025.10.14 zip Python 3\.9
+          lockV2 yt-dlp/yt-dlp 2026.10.XX zip Python 3\.10
+          lockV2 yt-dlp/yt-dlp 2026.10.XX win(?:_x86)?_exe Python .+ Windows-(?:8|2012Server)
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 zip Python 3\.7
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 py2exe .+
@@ -564,6 +568,8 @@ jobs:
           lockV2 yt-dlp/yt-dlp-nightly-builds 2025.08.12.233030 darwin_legacy_exe .+
           lockV2 yt-dlp/yt-dlp-nightly-builds 2025.08.30.232839 linux_armv7l_exe .+
           lockV2 yt-dlp/yt-dlp-nightly-builds 2025.10.14.232845 zip Python 3\.9
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2026.10.XX.XXXXXX zip Python 3\.10
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2026.10.XX.XXXXXX win(?:_x86)?_exe Python .+ Windows-(?:8|2012Server)
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 zip Python 3\.7
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.045052 py2exe .+
@@ -572,6 +578,8 @@ jobs:
           lockV2 yt-dlp/yt-dlp-master-builds 2025.08.12.232447 darwin_legacy_exe .+
           lockV2 yt-dlp/yt-dlp-master-builds 2025.09.05.212910 linux_armv7l_exe .+
           lockV2 yt-dlp/yt-dlp-master-builds 2025.10.14.232330 zip Python 3\.9
+          lockV2 yt-dlp/yt-dlp-master-builds 2026.10.XX.XXXXXX zip Python 3\.10
+          lockV2 yt-dlp/yt-dlp-master-builds 2026.10.XX.XXXXXX win(?:_x86)?_exe Python .+ Windows-(?:8|2012Server)
           EOF
 
       - name: Sign checksum files
