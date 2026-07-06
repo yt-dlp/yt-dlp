@@ -220,6 +220,25 @@ DEPENDENCIES: list[Dependency] = [
         comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://curl-cffi.readthedocs.io/',
     ),
+    # curl_cffi vendored code:
+    # - https://github.com/lexiforest/curl_cffi/blob/v0.15.0/curl_cffi/_asyncio_selector.py
+    Dependency(
+        name='Tornado',
+        license='Apache-2.0',
+        license_url='https://raw.githubusercontent.com/tornadoweb/tornado/master/LICENSE',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
+        project_url='http://www.tornadoweb.org/',
+    ),
+    # curl_cffi vendored code:
+    # - https://github.com/lexiforest/curl_cffi/blob/v0.15.0/curl_cffi/requests/cookies.py
+    # - https://github.com/lexiforest/curl_cffi/blob/v0.15.0/curl_cffi/requests/headers.py
+    Dependency(
+        name='httpx',
+        license='BSD-3-Clause',
+        license_url='https://github.com/encode/httpx/raw/master/LICENSE.md',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
+        project_url='https://www.python-httpx.org/',
+    ),
     # Dependency of curl_cffi
     Dependency(
         name='rich',
