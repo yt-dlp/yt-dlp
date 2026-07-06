@@ -3712,6 +3712,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         only_once=True)
                     return
 
+                # TODO: enable this gate upon merge
+                if False and 'sabr_live' not in self._configuration_arg('formats') and live_status in ('is_live', 'post_live'):
+                    return
+
                 # web_creator client sometimes serves the url on c.youtube.com - SABR downloader only support googlevideo.com.
                 server_abr_streaming_url = server_abr_streaming_url.replace('.c.youtube.com/videoplayback', '.googlevideo.com/videoplayback')
                 query = parse_qs(server_abr_streaming_url)
