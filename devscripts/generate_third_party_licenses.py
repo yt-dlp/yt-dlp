@@ -48,8 +48,8 @@ DEPENDENCIES: list[Dependency] = [
         project_url='https://sourceware.org/libffi/',
     ),
     Dependency(
-        name='OpenSSL 1.1.1t',
-        license='SSLeay',
+        name='OpenSSL 1.x',
+        license='OpenSSL',
         license_url='https://raw.githubusercontent.com/openssl/openssl/refs/tags/OpenSSL_1_1_1t/LICENSE',
         comment='Only included in `yt-dlp.exe` and `yt-dlp_x86.exe` Windows builds',
         project_url='https://www.openssl.org/',
