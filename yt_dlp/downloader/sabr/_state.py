@@ -32,9 +32,10 @@ class SabrStateInitSegment:
 @protobug.message
 class SabrState:
     format_id: FormatId = protobug.field(1)
-    init_segment: SabrStateInitSegment | None = protobug.field(2, default=None)
-    sequences: list[SabrStateSequence] = protobug.field(3, default_factory=list)
-    broadcast_id: protobug.String | None = protobug.field(4, default=None)
+    video_id: protobug.String = protobug.field(2)
+    init_segment: SabrStateInitSegment | None = protobug.field(3, default=None)
+    sequences: list[SabrStateSequence] = protobug.field(4, default_factory=list)
+    broadcast_id: protobug.String | None = protobug.field(5, default=None)
 
 
 class SabrStateFile:

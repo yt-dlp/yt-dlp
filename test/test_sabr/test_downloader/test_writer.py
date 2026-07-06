@@ -29,6 +29,8 @@ SEGMENT_TWO_DATA = b'segment-two'
 SEGMENT_THREE_DATA = b'segment-three'
 BROADCAST_ID_1 = 'broadcast-1'
 BROADCAST_ID_2 = 'broadcast-2'
+VIDEO_ID = 'video_id'
+VIDEO_ID_2 = 'video_id_2'
 
 
 @pytest.fixture
@@ -50,7 +52,7 @@ def info_dict():
 
 
 def make_writer(fd, filename, info_dict, *, resume=False):
-    return SabrFDFormatWriter(fd=fd, filename=filename, infodict=info_dict, resume=resume)
+    return SabrFDFormatWriter(fd=fd, filename=filename, video_id=VIDEO_ID, infodict=info_dict, resume=resume)
 
 
 def make_init_part(format_selector, format_id, **kwargs):
@@ -413,6 +415,7 @@ class TestSabrFDFormatWriter:
 
         SabrStateFile(filename, fd).update(SabrState(
             format_id=format_id,
+            video_id=VIDEO_ID,
             init_segment=SabrStateInitSegment(content_length=len(INIT_DATA)),
             sequences=[
                 SabrStateSequence(
@@ -482,6 +485,7 @@ class TestSabrFDFormatWriter:
         SabrStateFile(filename, fd).update(SabrState(
             format_id=FormatId(itag=140),
             broadcast_id=BROADCAST_ID_1,
+            video_id=VIDEO_ID,
             init_segment=SabrStateInitSegment(content_length=len(INIT_DATA)),
         ))
         fd.report_warning = MagicMock()
@@ -525,6 +529,7 @@ class TestSabrFDFormatWriter:
         SabrStateFile(filename, fd).update(SabrState(
             format_id=format_id,
             broadcast_id=BROADCAST_ID_2,
+            video_id=VIDEO_ID,
             init_segment=SabrStateInitSegment(content_length=len(INIT_DATA)),
         ))
         fd.report_warning = MagicMock()
@@ -560,6 +565,50 @@ class TestSabrFDFormatWriter:
         reloaded_state = SabrStateFile(filename, fd).retrieve()
         assert reloaded_state.format_id == format_id
         assert reloaded_state.broadcast_id == BROADCAST_ID_1
+        assert len(reloaded_state.sequences) == 1
+
+        writer.close()
+
+    def test_resume_video_id_mismatch(self, fd, filename, info_dict, format_id):
+        SabrStateFile(filename, fd).update(SabrState(
+            format_id=format_id,
+            broadcast_id=BROADCAST_ID_1,
+            video_id=VIDEO_ID_2,
+            init_segment=SabrStateInitSegment(content_length=len(INIT_DATA)),
+        ))
+        fd.report_warning = MagicMock()
+
+        writer = make_writer(fd, filename, info_dict, resume=True)
+        writer.initialize_format(format_id, broadcast_id=BROADCAST_ID_1)
+
+        state = writer.state
+        assert state.format_id == format_id
+        assert state.init_sequence is None
+        assert len(state.sequences) == 0
+        fd.report_warning.assert_called_once()
+        assert 'Video ID mismatch in state file' in fd.report_warning.call_args.args[0]
+
+        writer.initialize_segment(make_init_part(
+            format_selector=AudioSelector(display_name='audio', format_ids=[format_id]),
+            format_id=format_id,
+            sequence_number=1,
+            content_length=len(SEGMENT_ONE_DATA),
+        ))
+        writer.write_segment_data(make_data_part(
+            format_selector=AudioSelector(display_name='audio', format_ids=[format_id]),
+            format_id=format_id,
+            sequence_number=1,
+            data=io.BytesIO(SEGMENT_ONE_DATA),
+        ))
+        writer.end_segment(make_end_part(
+            format_selector=AudioSelector(display_name='audio', format_ids=[format_id]),
+            format_id=format_id,
+            sequence_number=1,
+        ))
+
+        reloaded_state = SabrStateFile(filename, fd).retrieve()
+        assert reloaded_state.format_id == format_id
+        assert reloaded_state.video_id == VIDEO_ID
         assert len(reloaded_state.sequences) == 1
 
         writer.close()
@@ -653,7 +702,7 @@ class TestSabrFDFormatWriter:
     def test_remove_existing_state_not_resuming(self, fd, filename, info_dict, format_id):
         # Should remove existing state file when not resuming
         sabr_state_file = SabrStateFile(filename, fd)
-        sabr_state_file.update(SabrState(format_id=format_id, broadcast_id=BROADCAST_ID_1))
+        sabr_state_file.update(SabrState(format_id=format_id, broadcast_id=BROADCAST_ID_1, video_id=VIDEO_ID))
         assert sabr_state_file.exists is True
 
         writer = make_writer(fd, filename, info_dict, resume=False)
@@ -669,6 +718,7 @@ class TestSabrFDFormatWriter:
         SabrStateFile(filename, fd).update(SabrState(
             format_id=format_id,
             broadcast_id=BROADCAST_ID_1,
+            video_id=VIDEO_ID,
             init_segment=SabrStateInitSegment(content_length=len(INIT_DATA)),
         ))
         fd.report_warning = MagicMock()
@@ -696,6 +746,7 @@ class TestSabrFDFormatWriter:
         SabrStateFile(filename, fd).update(SabrState(
             format_id=format_id,
             broadcast_id=BROADCAST_ID_1,
+            video_id=VIDEO_ID,
             sequences=[
                 SabrStateSequence(
                     sequence_start_number=1,

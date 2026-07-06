@@ -196,7 +196,7 @@ class SabrFdSession:
             audio_selector = AudioSelector(
                 display_name=self.audio_format['display_name'], format_ids=[self.audio_format['format_id']])
             self.writers[audio_selector.display_name] = SabrFDFormatWriter(
-                self.fd, self.audio_format.get('filename'),
+                self.fd, self.audio_format.get('filename'), self.video_id,
                 self.audio_format['info_dict'], len(self.writers), resume=self.resume)
 
         if self.video_format:
@@ -206,7 +206,7 @@ class SabrFdSession:
                 # required for server to select hdr/non-hdr formats corrrectly for android/ios
                 prefer_hdr='HDR' in self.video_format['info_dict'].get('dynamic_range', 'SDR'))
             self.writers[video_selector.display_name] = SabrFDFormatWriter(
-                self.fd, self.video_format.get('filename'),
+                self.fd, self.video_format.get('filename'), self.video_id,
                 self.video_format['info_dict'], len(self.writers), resume=self.resume)
 
         if self.caption_format:

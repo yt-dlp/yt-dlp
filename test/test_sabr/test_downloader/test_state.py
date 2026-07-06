@@ -19,6 +19,7 @@ def sabr_state():
     return SabrState(
         format_id=FormatId(itag=251, lmt=123456789, xtags='dash'),
         init_segment=SabrStateInitSegment(content_length=1024),
+        video_id='video_id',
         sequences=[
             SabrStateSequence(
                 sequence_start_number=1,

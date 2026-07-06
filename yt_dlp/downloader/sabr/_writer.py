@@ -32,9 +32,10 @@ class SabrFormatState:
 
 
 class SabrFDFormatWriter:
-    def __init__(self, fd, filename, infodict, progress_idx=0, resume=False):
+    def __init__(self, fd, filename, video_id, infodict, progress_idx=0, resume=False):
         self.fd = fd
         self.info_dict = infodict
+        self.video_id = video_id
         self.filename = filename
         self.progress_idx = progress_idx
         self.resume = resume
@@ -286,6 +287,12 @@ class SabrFDFormatWriter:
                 self.fd.report_warning(
                     f'Format ID mismatch in state file for format {self.info_dict.get("format_id")}, restarting download')
                 sabr_state = None
+            elif sabr_state.video_id != self.video_id:
+                self.fd.report_warning(
+                    f'Video ID mismatch in state file for format {self.info_dict.get("format_id")}, restarting download '
+                    f'(expected {self.video_id}, got {sabr_state.video_id}).',
+                )
+                sabr_state = None
             elif sabr_state.broadcast_id != self._broadcast_id:
                 self.fd.report_warning(
                     f'Broadcast ID mismatch in state file for format {self.info_dict.get("format_id")}, restarting download '
@@ -298,7 +305,7 @@ class SabrFDFormatWriter:
         return sabr_state
 
     def _new_sabr_state(self):
-        return SabrState(format_id=self._format_id, broadcast_id=self._broadcast_id)
+        return SabrState(format_id=self._format_id, broadcast_id=self._broadcast_id, video_id=self.video_id)
 
     def _write_sabr_state(self):
         sabr_state = self._new_sabr_state()
