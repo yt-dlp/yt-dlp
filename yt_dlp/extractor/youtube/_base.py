@@ -1037,8 +1037,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             return next_continuation
 
         return traverse_obj(renderer, (
-            ('contents', 'items', 'rows', 'subThreads'), ..., 'continuationItemRenderer',
-            ('continuationEndpoint', ('button', 'buttonRenderer', 'command')),
+            ('contents', 'items', 'rows', 'subThreads'), ..., (
+                ('continuationItemRenderer', ('continuationEndpoint', ('button', 'buttonRenderer', 'command'))),
+                ('continuationItemViewModel', 'continuationCommand', 'innertubeCommand'),
+            ),
         ), get_all=False, expected_type=cls._extract_continuation_ep_data)
 
     @classmethod
@@ -1150,6 +1152,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _get_count(self, data, *path_list):
         count_text = self._get_text(data, *path_list) or ''
+        if count_text.lower().startswith('no '):
+            return 0
         count = parse_count(count_text)
         if count is None:
             count = str_to_int(
@@ -1180,8 +1184,20 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 })
         return thumbnails
 
-    @staticmethod
-    def extract_relative_time(relative_time_text):
+    # Map abbreviated relative-time units to the long-form unit names that
+    # datetime_from_str() understands.
+    _RELATIVE_TIME_UNIT_MAP = {
+        's': 'second', 'sec': 'second', 'second': 'second',
+        'min': 'minute', 'minute': 'minute',
+        'h': 'hour', 'hr': 'hour', 'hour': 'hour',
+        'd': 'day', 'day': 'day',
+        'w': 'week', 'wk': 'week', 'week': 'week',
+        'mo': 'month', 'month': 'month',
+        'y': 'year', 'yr': 'year', 'year': 'year',
+    }
+
+    @classmethod
+    def extract_relative_time(cls, relative_time_text):
         """
         Extracts a relative time from string and converts to dt object
         e.g. 'streamed 6 days ago', '5 seconds ago (edited)', 'updated today', '8 yr ago'
@@ -1191,15 +1207,19 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         # The relative time text strings are roughly the same as what
         # Javascript's Intl.RelativeTimeFormat function generates.
         # See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/RelativeTimeFormat
+        # Sort longest-first: regex alternation matches left-to-right, so short
+        # keys like 's' must come after 'sec'/'second' to avoid premature matches.
+        units = '|'.join(map(re.escape, sorted(cls._RELATIVE_TIME_UNIT_MAP, key=len, reverse=True)))
         mobj = re.search(
-            r'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>sec(?:ond)?|s|min(?:ute)?|h(?:our|r)?|d(?:ay)?|w(?:eek|k)?|mo(?:nth)?|y(?:ear|r)?)s?\s*ago',
+            rf'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>{units})s?\s*ago',
             relative_time_text)
         if mobj:
             start = mobj.group('start')
             if start:
                 return datetime_from_str(start)
+            unit = cls._RELATIVE_TIME_UNIT_MAP[mobj.group('unit')]
             try:
-                return datetime_from_str('now-{}{}'.format(mobj.group('time'), mobj.group('unit')))
+                return datetime_from_str(f'now-{mobj.group("time")}{unit}')
             except ValueError:
                 return None
 
