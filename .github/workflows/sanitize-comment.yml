@@ -1,0 +1,18 @@
+name: Sanitize comment
+
+on:
+  issue_comment:
+    types: [created, edited]
+
+permissions: {}
+
+jobs:
+  sanitize-comment:
+    name: Sanitize comment
+    if: vars.SANITIZE_COMMENT && !github.event.issue.pull_request
+    permissions:
+      issues: write  # Needed by yt-dlp/sanitize-comment to edit comments
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sanitize comment
+        uses: yt-dlp/sanitize-comment@4536c691101b89f5373d50fe8a7980cae146346b  # v1.0.0

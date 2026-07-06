@@ -24,7 +24,7 @@ try:
         from Crypto.Cipher import AES, PKCS1_OAEP, Blowfish, PKCS1_v1_5  # noqa: F401
         from Crypto.Hash import CMAC, SHA1  # noqa: F401
         from Crypto.PublicKey import RSA  # noqa: F401
-except ImportError:
+except (ImportError, OSError):
     __version__ = f'broken {__version__}'.strip()
 
 

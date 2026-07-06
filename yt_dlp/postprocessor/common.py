@@ -9,8 +9,8 @@ from ..utils import (
     RetryManager,
     _configuration_args,
     deprecation_warning,
-    encodeFilename,
 )
+from ..utils._utils import _ProgressState
 
 
 class PostProcessorMetaClass(type):
@@ -151,7 +151,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
 
     def try_utime(self, path, atime, mtime, errnote='Cannot update utime of file'):
         try:
-            os.utime(encodeFilename(path), (atime, mtime))
+            os.utime(path, (atime, mtime))
         except Exception:
             self.report_warning(errnote)
 
@@ -190,7 +190,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
 
         self._downloader.to_console_title(self._downloader.evaluate_outtmpl(
             progress_template.get('postprocess-title') or 'yt-dlp %(progress._default_template)s',
-            progress_dict))
+            progress_dict), _ProgressState.from_dict(s), s.get('_percent'))
 
     def _retry_download(self, err, count, retries):
         # While this is not an extractor, it behaves similar to one and

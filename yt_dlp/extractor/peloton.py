@@ -41,7 +41,7 @@ class PelotonIE(InfoExtractor):
         }, 'params': {
             'skip_download': 'm3u8',
         },
-        '_skip': 'Account needed',
+        'skip': 'Account needed',
     }, {
         'url': 'https://members.onepeloton.com/classes/player/26603d53d6bb4de1b340514864a6a6a8',
         'info_dict': {
@@ -61,7 +61,7 @@ class PelotonIE(InfoExtractor):
         }, 'params': {
             'skip_download': 'm3u8',
         },
-        '_skip': 'Account needed',
+        'skip': 'Account needed',
     }]
 
     _MANIFEST_URL_TEMPLATE = '%s?hdnea=%s'
@@ -199,7 +199,7 @@ class PelotonLiveIE(InfoExtractor):
         'params': {
             'skip_download': 'm3u8',
         },
-        '_skip': 'Account needed',
+        'skip': 'Account needed',
     }
 
     def _real_extract(self, url):

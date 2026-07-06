@@ -1,79 +1,47 @@
-from .mtv import MTVServicesInfoExtractor
-from ..utils import unified_strdate
+from .mtv import MTVServicesBaseIE
 
 
-class BetIE(MTVServicesInfoExtractor):
-    _WORKING = False
-    _VALID_URL = r'https?://(?:www\.)?bet\.com/(?:[^/]+/)+(?P<id>.+?)\.html'
-    _TESTS = [
-        {
-            'url': 'http://www.bet.com/news/politics/2014/12/08/in-bet-exclusive-obama-talks-race-and-racism.html',
-            'info_dict': {
-                'id': '07e96bd3-8850-3051-b856-271b457f0ab8',
-                'display_id': 'in-bet-exclusive-obama-talks-race-and-racism',
-                'ext': 'flv',
-                'title': 'A Conversation With President Obama',
-                'description': 'President Obama urges persistence in confronting racism and bias.',
-                'duration': 1534,
-                'upload_date': '20141208',
-                'thumbnail': r're:(?i)^https?://.*\.jpg$',
-                'subtitles': {
-                    'en': 'mincount:2',
-                },
-            },
-            'params': {
-                # rtmp download
-                'skip_download': True,
-            },
+class BetIE(MTVServicesBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?bet\.com/(?:video-clips|episodes)/(?P<id>[\da-z]{6})'
+    _TESTS = [{
+        'url': 'https://www.bet.com/video-clips/w9mk7v',
+        'info_dict': {
+            'id': '3022d121-d191-43fd-b5fb-b2c26f335497',
+            'ext': 'mp4',
+            'display_id': 'w9mk7v',
+            'title': 'New Normal',
+            'description': 'md5:d7898c124713b4646cecad9d16ff01f3',
+            'duration': 30.08,
+            'series': 'Tyler Perry\'s Sistas',
+            'season': 'Season 0',
+            'season_number': 0,
+            'episode': 'Episode 0',
+            'episode_number': 0,
+            'timestamp': 1755269073,
+            'upload_date': '20250815',
         },
-        {
-            'url': 'http://www.bet.com/video/news/national/2014/justice-for-ferguson-a-community-reacts.html',
-            'info_dict': {
-                'id': '9f516bf1-7543-39c4-8076-dd441b459ba9',
-                'display_id': 'justice-for-ferguson-a-community-reacts',
-                'ext': 'flv',
-                'title': 'Justice for Ferguson: A Community Reacts',
-                'description': 'A BET News special.',
-                'duration': 1696,
-                'upload_date': '20141125',
-                'thumbnail': r're:(?i)^https?://.*\.jpg$',
-                'subtitles': {
-                    'en': 'mincount:2',
-                },
-            },
-            'params': {
-                # rtmp download
-                'skip_download': True,
-            },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.bet.com/episodes/nmce72/tyler-perry-s-sistas-heavy-is-the-crown-season-9-ep-5',
+        'info_dict': {
+            'id': '6427562b-3029-11f0-b405-16fff45bc035',
+            'ext': 'mp4',
+            'display_id': 'nmce72',
+            'title': 'Heavy Is the Crown',
+            'description': 'md5:1ed345d3157a50572d2464afcc7a652a',
+            'channel': 'BET',
+            'duration': 2550.0,
+            'thumbnail': r're:https://images\.paramount\.tech/uri/mgid:arc:imageassetref',
+            'series': 'Tyler Perry\'s Sistas',
+            'season': 'Season 9',
+            'season_number': 9,
+            'episode': 'Episode 5',
+            'episode_number': 5,
+            'timestamp': 1755165600,
+            'upload_date': '20250814',
+            'release_timestamp': 1755129600,
+            'release_date': '20250814',
         },
-    ]
-
-    _FEED_URL = 'http://feeds.mtvnservices.com/od/feed/bet-mrss-player'
-
-    def _get_feed_query(self, uri):
-        return {
-            'uuid': uri,
-        }
-
-    def _extract_mgid(self, webpage):
-        return self._search_regex(r'data-uri="([^"]+)', webpage, 'mgid')
-
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-
-        webpage = self._download_webpage(url, display_id)
-        mgid = self._extract_mgid(webpage)
-        videos_info = self._get_videos_info(mgid)
-
-        info_dict = videos_info['entries'][0]
-
-        upload_date = unified_strdate(self._html_search_meta('date', webpage))
-        description = self._html_search_meta('description', webpage)
-
-        info_dict.update({
-            'display_id': display_id,
-            'description': description,
-            'upload_date': upload_date,
-        })
-
-        return info_dict
+        'params': {'skip_download': 'm3u8'},
+        'skip': 'Requires provider sign-in',
+    }]

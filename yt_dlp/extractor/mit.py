@@ -65,7 +65,7 @@ class TechTVMITIE(InfoExtractor):
 
 class OCWMITIE(InfoExtractor):
     IE_NAME = 'ocw.mit.edu'
-    _VALID_URL = r'^https?://ocw\.mit\.edu/courses/(?P<topic>[a-z0-9\-]+)'
+    _VALID_URL = r'https?://ocw\.mit\.edu/courses/(?P<topic>[a-z0-9\-]+)'
     _BASE_URL = 'http://ocw.mit.edu/'
 
     _TESTS = [

@@ -13,8 +13,8 @@ from ..utils import (
 
 
 class MDRIE(InfoExtractor):
-    IE_DESC = 'MDR.DE and KiKA'
-    _VALID_URL = r'https?://(?:www\.)?(?:mdr|kika)\.de/(?:.*)/[a-z-]+-?(?P<id>\d+)(?:_.+?)?\.html'
+    IE_DESC = 'MDR.DE'
+    _VALID_URL = r'https?://(?:www\.)?mdr\.de/(?:.*)/[a-z-]+-?(?P<id>\d+)(?:_.+?)?\.html'
 
     _GEO_COUNTRIES = ['DE']
 
@@ -35,30 +35,6 @@ class MDRIE(InfoExtractor):
         },
         'skip': '404 not found',
     }, {
-        'url': 'http://www.kika.de/baumhaus/videos/video19636.html',
-        'md5': '4930515e36b06c111213e80d1e4aad0e',
-        'info_dict': {
-            'id': '19636',
-            'ext': 'mp4',
-            'title': 'Baumhaus vom 30. Oktober 2015',
-            'duration': 134,
-            'uploader': 'KIKA',
-        },
-        'skip': '404 not found',
-    }, {
-        'url': 'http://www.kika.de/sendungen/einzelsendungen/weihnachtsprogramm/videos/video8182.html',
-        'md5': '5fe9c4dd7d71e3b238f04b8fdd588357',
-        'info_dict': {
-            'id': '8182',
-            'ext': 'mp4',
-            'title': 'Beutolomäus und der geheime Weihnachtswunsch',
-            'description': 'md5:b69d32d7b2c55cbe86945ab309d39bbd',
-            'timestamp': 1482541200,
-            'upload_date': '20161224',
-            'duration': 4628,
-            'uploader': 'KIKA',
-        },
-    }, {
         # audio with alternative playerURL pattern
         'url': 'http://www.mdr.de/kultur/videos-und-audios/audio-radio/operation-mindfuck-robert-wilson100.html',
         'info_dict': {
@@ -68,28 +44,7 @@ class MDRIE(InfoExtractor):
             'duration': 3239,
             'uploader': 'MITTELDEUTSCHER RUNDFUNK',
         },
-    }, {
-        # empty bitrateVideo and bitrateAudio
-        'url': 'https://www.kika.de/filme/sendung128372_zc-572e3f45_zs-1d9fb70e.html',
-        'info_dict': {
-            'id': '128372',
-            'ext': 'mp4',
-            'title': 'Der kleine Wichtel kehrt zurück',
-            'description': 'md5:f77fafdff90f7aa1e9dca14f662c052a',
-            'duration': 4876,
-            'timestamp': 1607823300,
-            'upload_date': '20201213',
-            'uploader': 'ZDF',
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        'url': 'http://www.kika.de/baumhaus/sendungen/video19636_zc-fea7f8a0_zs-4bf89c60.html',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.kika.de/sendungen/einzelsendungen/weihnachtsprogramm/einzelsendung2534.html',
-        'only_matching': True,
+        'skip': '404 not found',
     }, {
         'url': 'http://www.mdr.de/mediathek/mdr-videos/a/video-1334.html',
         'only_matching': True,

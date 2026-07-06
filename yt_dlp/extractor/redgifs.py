@@ -12,7 +12,7 @@ from ..utils import (
 )
 
 
-class RedGifsBaseInfoExtractor(InfoExtractor):
+class RedGifsBaseIE(InfoExtractor):
     _FORMATS = {
         'gif': 250,
         'sd': 480,
@@ -30,7 +30,7 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         quality = qualities(tuple(self._FORMATS.keys()))
 
         orig_height = int_or_none(gif_data.get('height'))
-        aspect_ratio = try_get(gif_data, lambda x: orig_height / x['width'])
+        aspect_ratio = try_get(gif_data, lambda x: x['width'] / orig_height)
 
         formats = []
         for format_id, height in self._FORMATS.items():
@@ -41,7 +41,7 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
             formats.append({
                 'url': video_url,
                 'format_id': format_id,
-                'width': height * aspect_ratio if aspect_ratio else None,
+                'width': int_or_none(height * aspect_ratio) if aspect_ratio else None,
                 'height': height,
                 'quality': quality(format_id),
             })
@@ -113,8 +113,8 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         return page_fetcher(page) if page else OnDemandPagedList(page_fetcher, self._PAGE_SIZE)
 
 
-class RedGifsIE(RedGifsBaseInfoExtractor):
-    _VALID_URL = r'https?://(?:(?:www\.)?redgifs\.com/watch/|thumbs2\.redgifs\.com/)(?P<id>[^-/?#\.]+)'
+class RedGifsIE(RedGifsBaseIE):
+    _VALID_URL = r'https?://(?:(?:www\.)?redgifs\.com/(?:watch|ifr)/|thumbs2\.redgifs\.com/)(?P<id>[^-/?#\.]+)'
     _TESTS = [{
         'url': 'https://www.redgifs.com/watch/squeakyhelplesswisent',
         'info_dict': {
@@ -147,6 +147,22 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
             'age_limit': 18,
             'tags': list,
         },
+    }, {
+        'url': 'https://www.redgifs.com/ifr/squeakyhelplesswisent',
+        'info_dict': {
+            'id': 'squeakyhelplesswisent',
+            'ext': 'mp4',
+            'title': 'Hotwife Legs Thick',
+            'timestamp': 1636287915,
+            'upload_date': '20211107',
+            'uploader': 'ignored52',
+            'duration': 16,
+            'view_count': int,
+            'like_count': int,
+            'categories': list,
+            'age_limit': 18,
+            'tags': list,
+        },
     }]
 
     def _real_extract(self, url):
@@ -156,7 +172,7 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
         return self._parse_gif_data(video_info['gif'])
 
 
-class RedGifsSearchIE(RedGifsBaseInfoExtractor):
+class RedGifsSearchIE(RedGifsBaseIE):
     IE_DESC = 'Redgifs search'
     _VALID_URL = r'https?://(?:www\.)?redgifs\.com/browse\?(?P<query>[^#]+)'
     _PAGE_SIZE = 80
@@ -210,10 +226,10 @@ class RedGifsSearchIE(RedGifsBaseInfoExtractor):
             entries, query_str, tags, f'RedGifs search for {tags}, ordered by {order}')
 
 
-class RedGifsUserIE(RedGifsBaseInfoExtractor):
+class RedGifsUserIE(RedGifsBaseIE):
     IE_DESC = 'Redgifs user'
     _VALID_URL = r'https?://(?:www\.)?redgifs\.com/users/(?P<username>[^/?#]+)(?:\?(?P<query>[^#]+))?'
-    _PAGE_SIZE = 30
+    _PAGE_SIZE = 80
     _TESTS = [
         {
             'url': 'https://www.redgifs.com/users/lamsinka89',
@@ -222,7 +238,7 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
                 'title': 'lamsinka89',
                 'description': 'RedGifs user lamsinka89, ordered by recent',
             },
-            'playlist_mincount': 100,
+            'playlist_mincount': 391,
         },
         {
             'url': 'https://www.redgifs.com/users/lamsinka89?page=3',
@@ -231,7 +247,7 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
                 'title': 'lamsinka89',
                 'description': 'RedGifs user lamsinka89, ordered by recent',
             },
-            'playlist_count': 30,
+            'playlist_count': 80,
         },
         {
             'url': 'https://www.redgifs.com/users/lamsinka89?order=best&type=g',
@@ -240,7 +256,17 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
                 'title': 'lamsinka89',
                 'description': 'RedGifs user lamsinka89, ordered by best',
             },
-            'playlist_mincount': 100,
+            'playlist_mincount': 391,
+        },
+        {
+            'url': 'https://www.redgifs.com/users/ignored52',
+            'note': 'https://github.com/yt-dlp/yt-dlp/issues/7382',
+            'info_dict': {
+                'id': 'ignored52',
+                'title': 'ignored52',
+                'description': 'RedGifs user ignored52, ordered by recent',
+            },
+            'playlist_mincount': 121,
         },
     ]
 

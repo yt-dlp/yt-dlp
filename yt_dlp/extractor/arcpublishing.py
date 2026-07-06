@@ -4,6 +4,7 @@ from .common import InfoExtractor
 from ..utils import (
     extract_attributes,
     int_or_none,
+    join_nonempty,
     parse_iso8601,
     try_get,
 )
@@ -60,6 +61,20 @@ class ArcPublishingIE(InfoExtractor):
         # https://www.pilotonline.com/460f2931-8130-4719-8ea1-ffcb2d7cb685-132.html
         'url': 'arcpublishing:tronc:460f2931-8130-4719-8ea1-ffcb2d7cb685',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.uppermichiganssource.com/2025/07/18/scattered-showers-storms-bring-heavy-rain-potential/',
+        'info_dict': {
+            'id': '508116f7-e999-48db-b7c2-60a04842679b',
+            'ext': 'mp4',
+            'title': 'Scattered showers & storms bring heavy rain potential',
+            'description': 'Scattered showers & storms bring heavy rain potential',
+            'duration': 2016,
+            'thumbnail': r're:https?://.+\.jpg',
+            'timestamp': 1752881287,
+            'upload_date': '20250718',
+        },
+        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
     }]
     _POWA_DEFAULTS = [
         (['cmg', 'prisa'], '%s-config-prod.api.cdn.arcpublishing.com/video'),
@@ -136,7 +151,7 @@ class ArcPublishingIE(InfoExtractor):
             else:
                 vbr = int_or_none(s.get('bitrate'))
                 formats.append({
-                    'format_id': f'{stream_type}-{vbr}' if vbr else stream_type,
+                    'format_id': join_nonempty(stream_type, vbr),
                     'vbr': vbr,
                     'width': int_or_none(s.get('width')),
                     'height': int_or_none(s.get('height')),

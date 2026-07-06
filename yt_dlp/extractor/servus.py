@@ -27,7 +27,7 @@ class ServusIE(InfoExtractor):
         'info_dict': {
             'id': 'AA-28BYCQNH92111',
             'ext': 'mp4',
-            'title': 'Klettersteige in den Alpen',
+            'title': 'Vie Ferrate - Klettersteige in den Alpen',
             'description': 'md5:25e47ddd83a009a0f9789ba18f2850ce',
             'thumbnail': r're:^https?://.*\.jpg',
             'duration': 2823,
@@ -38,6 +38,7 @@ class ServusIE(InfoExtractor):
             'season_number': 11,
             'episode': 'Episode 8 - Vie Ferrate – Klettersteige in den Alpen',
             'episode_number': 8,
+            'categories': ['Bergwelten'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -71,8 +72,11 @@ class ServusIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url).upper()
 
+        webpage = self._download_webpage(url, video_id)
+        next_data = self._search_nextjs_data(webpage, video_id, fatal=False)
+
         video = self._download_json(
-            'https://api-player.redbull.com/stv/servus-tv?timeZone=Europe/Berlin',
+            'https://api-player.redbull.com/stv/servus-tv-playnet',
             video_id, 'Downloading video JSON', query={'videoId': video_id})
         if not video.get('videoUrl'):
             self._report_errors(video)
@@ -89,7 +93,7 @@ class ServusIE(InfoExtractor):
         return {
             'id': video_id,
             'title': video.get('title'),
-            'description': self._get_description(video_id) or video.get('description'),
+            'description': self._get_description(next_data) or video.get('description'),
             'thumbnail': video.get('poster'),
             'duration': float_or_none(video.get('duration')),
             'timestamp': unified_timestamp(video.get('currentSunrise')),
@@ -100,16 +104,19 @@ class ServusIE(InfoExtractor):
             'episode_number': episode_number,
             'formats': formats,
             'subtitles': subtitles,
+            **traverse_obj(next_data, ('props', 'pageProps', 'data', {
+                'title': ('title', 'rendered', {str}),
+                'timestamp': ('stv_date', 'raw', {int}),
+                'duration': ('stv_duration', {float_or_none}),
+                'categories': ('category_names', ..., {str}),
+            })),
         }
 
-    def _get_description(self, video_id):
-        info = self._download_json(
-            f'https://backend.servustv.com/wp-json/rbmh/v2/media_asset/aa_id/{video_id}?fieldset=page',
-            video_id, fatal=False)
-
-        return join_nonempty(*traverse_obj(info, (
-            ('stv_short_description', 'stv_long_description'),
-            {lambda x: unescapeHTML(x.replace('\n\n', '\n'))})), delim='\n\n')
+    def _get_description(self, next_data):
+        return join_nonempty(*traverse_obj(next_data, (
+            'props', 'pageProps', 'data',
+            ('stv_short_description', 'stv_long_description'), {str},
+            {lambda x: x.replace('\n\n', '\n')}, {unescapeHTML})), delim='\n\n')
 
     def _report_errors(self, video):
         playability_errors = traverse_obj(video, ('playabilityErrors', ...))

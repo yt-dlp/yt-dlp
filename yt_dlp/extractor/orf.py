@@ -1,5 +1,4 @@
 import base64
-import functools
 import re
 
 from .common import InfoExtractor
@@ -192,7 +191,7 @@ class ORFPodcastIE(InfoExtractor):
                 'ext': ('enclosures', 0, 'type', {mimetype2ext}),
                 'title': 'title',
                 'description': ('description', {clean_html}),
-                'duration': ('duration', {functools.partial(float_or_none, scale=1000)}),
+                'duration': ('duration', {float_or_none(scale=1000)}),
                 'series': ('podcast', 'title'),
             })),
         }
@@ -494,7 +493,7 @@ class ORFONIE(InfoExtractor):
         return traverse_obj(api_json, {
             'id': ('id', {int}, {str_or_none}),
             'age_limit': ('age_classification', {parse_age_limit}),
-            'duration': ('exact_duration', {functools.partial(float_or_none, scale=1000)}),
+            'duration': ('exact_duration', {float_or_none(scale=1000)}),
             'title': (('title', 'headline'), {str}),
             'description': (('description', 'teaser_text'), {str}),
             'media_type': ('video_type', {str}),
@@ -550,7 +549,8 @@ class ORFONIE(InfoExtractor):
             return self._extract_video_info(segment_id, selected_segment)
 
         # Even some segmented videos have an unsegmented version available in API response root
-        if not traverse_obj(api_json, ('sources', ..., ..., 'src', {url_or_none})):
+        if (self._configuration_arg('prefer_segments_playlist')
+                or not traverse_obj(api_json, ('sources', ..., ..., 'src', {url_or_none}))):
             return self.playlist_result(
                 (self._extract_video_info(str(segment['id']), segment) for segment in segments),
                 video_id, **self._parse_metadata(api_json), multi_video=True)

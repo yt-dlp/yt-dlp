@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 # Allow direct execution
+import datetime as dt
 import os
 import sys
 import unittest
@@ -12,12 +13,7 @@ import struct
 
 from yt_dlp import compat
 from yt_dlp.compat import urllib  # isort: split
-from yt_dlp.compat import (
-    compat_etree_fromstring,
-    compat_expanduser,
-    compat_urllib_parse_unquote,  # noqa: TID251
-    compat_urllib_parse_urlencode,  # noqa: TID251
-)
+from yt_dlp.compat import compat_etree_fromstring, compat_expanduser, compat_datetime_from_timestamp
 from yt_dlp.compat.urllib.request import getproxies
 
 
@@ -25,9 +21,6 @@ class TestCompat(unittest.TestCase):
     def test_compat_passthrough(self):
         with self.assertWarns(DeprecationWarning):
             _ = compat.compat_basestring
-
-        with self.assertWarns(DeprecationWarning):
-            _ = compat.WINDOWS_VT_MODE
 
         self.assertEqual(urllib.request.getproxies, getproxies)
 
@@ -42,39 +35,6 @@ class TestCompat(unittest.TestCase):
             self.assertEqual(compat_expanduser('~'), test_str)
         finally:
             os.environ['HOME'] = old_home or ''
-
-    def test_compat_urllib_parse_unquote(self):
-        self.assertEqual(compat_urllib_parse_unquote('abc%20def'), 'abc def')
-        self.assertEqual(compat_urllib_parse_unquote('%7e/abc+def'), '~/abc+def')
-        self.assertEqual(compat_urllib_parse_unquote(''), '')
-        self.assertEqual(compat_urllib_parse_unquote('%'), '%')
-        self.assertEqual(compat_urllib_parse_unquote('%%'), '%%')
-        self.assertEqual(compat_urllib_parse_unquote('%%%'), '%%%')
-        self.assertEqual(compat_urllib_parse_unquote('%2F'), '/')
-        self.assertEqual(compat_urllib_parse_unquote('%2f'), '/')
-        self.assertEqual(compat_urllib_parse_unquote('%E6%B4%A5%E6%B3%A2'), '津波')
-        self.assertEqual(
-            compat_urllib_parse_unquote('''<meta property="og:description" content="%E2%96%81%E2%96%82%E2%96%83%E2%96%84%25%E2%96%85%E2%96%86%E2%96%87%E2%96%88" />
-%<a href="https://ar.wikipedia.org/wiki/%D8%AA%D8%B3%D9%88%D9%86%D8%A7%D9%85%D9%8A">%a'''),
-            '''<meta property="og:description" content="▁▂▃▄%▅▆▇█" />
-%<a href="https://ar.wikipedia.org/wiki/تسونامي">%a''')
-        self.assertEqual(
-            compat_urllib_parse_unquote('''%28%5E%E2%97%A3_%E2%97%A2%5E%29%E3%81%A3%EF%B8%BB%E3%83%87%E2%95%90%E4%B8%80    %E2%87%80    %E2%87%80    %E2%87%80    %E2%87%80    %E2%87%80    %E2%86%B6%I%Break%25Things%'''),
-            '''(^◣_◢^)っ︻デ═一    ⇀    ⇀    ⇀    ⇀    ⇀    ↶%I%Break%Things%''')
-
-    def test_compat_urllib_parse_unquote_plus(self):
-        self.assertEqual(urllib.parse.unquote_plus('abc%20def'), 'abc def')
-        self.assertEqual(urllib.parse.unquote_plus('%7e/abc+def'), '~/abc def')
-
-    def test_compat_urllib_parse_urlencode(self):
-        self.assertEqual(compat_urllib_parse_urlencode({'abc': 'def'}), 'abc=def')
-        self.assertEqual(compat_urllib_parse_urlencode({'abc': b'def'}), 'abc=def')
-        self.assertEqual(compat_urllib_parse_urlencode({b'abc': 'def'}), 'abc=def')
-        self.assertEqual(compat_urllib_parse_urlencode({b'abc': b'def'}), 'abc=def')
-        self.assertEqual(compat_urllib_parse_urlencode([('abc', 'def')]), 'abc=def')
-        self.assertEqual(compat_urllib_parse_urlencode([('abc', b'def')]), 'abc=def')
-        self.assertEqual(compat_urllib_parse_urlencode([(b'abc', 'def')]), 'abc=def')
-        self.assertEqual(compat_urllib_parse_urlencode([(b'abc', b'def')]), 'abc=def')
 
     def test_compat_etree_fromstring(self):
         xml = '''
@@ -99,6 +59,45 @@ class TestCompat(unittest.TestCase):
 
     def test_struct_unpack(self):
         self.assertEqual(struct.unpack('!B', b'\x00'), (0,))
+
+    def test_compat_datetime_from_timestamp(self):
+        self.assertEqual(
+            compat_datetime_from_timestamp(0),
+            dt.datetime(1970, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc))
+        self.assertEqual(
+            compat_datetime_from_timestamp(1),
+            dt.datetime(1970, 1, 1, 0, 0, 1, tzinfo=dt.timezone.utc))
+        self.assertEqual(
+            compat_datetime_from_timestamp(3600),
+            dt.datetime(1970, 1, 1, 1, 0, 0, tzinfo=dt.timezone.utc))
+
+        self.assertEqual(
+            compat_datetime_from_timestamp(-1),
+            dt.datetime(1969, 12, 31, 23, 59, 59, tzinfo=dt.timezone.utc))
+        self.assertEqual(
+            compat_datetime_from_timestamp(-86400),
+            dt.datetime(1969, 12, 31, 0, 0, 0, tzinfo=dt.timezone.utc))
+
+        self.assertEqual(
+            compat_datetime_from_timestamp(0.5),
+            dt.datetime(1970, 1, 1, 0, 0, 0, 500000, tzinfo=dt.timezone.utc))
+        self.assertEqual(
+            compat_datetime_from_timestamp(1.000001),
+            dt.datetime(1970, 1, 1, 0, 0, 1, 1, tzinfo=dt.timezone.utc))
+        self.assertEqual(
+            compat_datetime_from_timestamp(-1.25),
+            dt.datetime(1969, 12, 31, 23, 59, 58, 750000, tzinfo=dt.timezone.utc))
+
+        self.assertEqual(
+            compat_datetime_from_timestamp(-1577923200),
+            dt.datetime(1920, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc))
+        self.assertEqual(
+            compat_datetime_from_timestamp(4102444800),
+            dt.datetime(2100, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc))
+
+        self.assertEqual(
+            compat_datetime_from_timestamp(173568960000),
+            dt.datetime(7470, 3, 8, 0, 0, 0, tzinfo=dt.timezone.utc))
 
 
 if __name__ == '__main__':

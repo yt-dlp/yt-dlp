@@ -28,6 +28,15 @@ class YapFilesIE(InfoExtractor):
         'url': 'https://api.yapfiles.ru/get_player/?uid=video_player_1872528&plroll=1&adv=1&v=vMDE4NzI1Mjgt690b',
         'only_matching': True,
     }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Update _VALID_URL
+        'url': 'https://www.yapfiles.ru/show/3397030/e34b69aa03829d513d7dc3ace6ec9631.mp4.html',
+        'info_dict': {
+            'id': 'vMDE4NzI1Mjgt690b',
+            'ext': 'mp4',
+            'title': 'Котята',
+        },
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

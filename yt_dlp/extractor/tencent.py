@@ -1,4 +1,3 @@
-import functools
 import random
 import re
 import string
@@ -278,7 +277,7 @@ class VQQSeriesIE(VQQBaseIE):
             webpage)]
 
         return self.playlist_from_matches(
-            episode_paths, series_id, ie=VQQVideoIE, getter=functools.partial(urljoin, url),
+            episode_paths, series_id, ie=VQQVideoIE, getter=urljoin(url),
             title=self._get_clean_title(traverse_obj(webpage_metadata, ('coverInfo', 'title'))
                                         or self._og_search_title(webpage)),
             description=(traverse_obj(webpage_metadata, ('coverInfo', 'description'))
@@ -328,7 +327,7 @@ class WeTvBaseIE(TencentBaseIE):
                          or re.findall(r'<a[^>]+class="play-video__link"[^>]+href="(?P<path>[^"]+)', webpage))
 
         return self.playlist_from_matches(
-            episode_paths, series_id, ie=ie, getter=functools.partial(urljoin, url),
+            episode_paths, series_id, ie=ie, getter=urljoin(url),
             title=self._get_clean_title(traverse_obj(webpage_metadata, ('coverInfo', 'title'))
                                         or self._og_search_title(webpage)),
             description=(traverse_obj(webpage_metadata, ('coverInfo', 'description'))

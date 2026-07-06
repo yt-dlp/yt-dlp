@@ -216,7 +216,9 @@ class SocksWebSocketTestRequestHandler(SocksTestRequestHandler):
         protocol = websockets.ServerProtocol()
         connection = websockets.sync.server.ServerConnection(socket=self.request, protocol=protocol, close_timeout=0)
         connection.handshake()
-        connection.send(json.dumps(self.socks_info))
+        for message in connection:
+            if message == 'socks_info':
+                connection.send(json.dumps(self.socks_info))
         connection.close()
 
 
@@ -293,6 +295,7 @@ def ctx(request):
         ('Websockets', 'ws'),
         ('CurlCFFI', 'http'),
     ], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', reason='segfaults')
 class TestSocks4Proxy:
     def test_socks4_no_auth(self, handler, ctx):
         with handler() as rh:
@@ -368,6 +371,7 @@ class TestSocks4Proxy:
         ('Websockets', 'ws'),
         ('CurlCFFI', 'http'),
     ], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', reason='segfaults')
 class TestSocks5Proxy:
 
     def test_socks5_no_auth(self, handler, ctx):

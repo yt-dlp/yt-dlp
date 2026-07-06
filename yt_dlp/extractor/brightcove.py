@@ -18,6 +18,7 @@ from ..utils import (
     fix_xml_ampersands,
     float_or_none,
     int_or_none,
+    join_nonempty,
     js_to_json,
     mimetype2ext,
     parse_iso8601,
@@ -30,6 +31,7 @@ from ..utils import (
     update_url_query,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class BrightcoveLegacyIE(InfoExtractor):
@@ -493,8 +495,6 @@ class BrightcoveLegacyIE(InfoExtractor):
 
 class BrightcoveNewBaseIE(AdobePassIE):
     def _parse_brightcove_metadata(self, json_data, video_id, headers={}):
-        title = json_data['name'].strip()
-
         formats, subtitles = [], {}
         sources = json_data.get('sources') or []
         for source in sources:
@@ -538,12 +538,7 @@ class BrightcoveNewBaseIE(AdobePassIE):
                     })
 
                 def build_format_id(kind):
-                    format_id = kind
-                    if tbr:
-                        format_id += f'-{int(tbr)}k'
-                    if height:
-                        format_id += f'-{height}p'
-                    return format_id
+                    return join_nonempty(kind, tbr and f'{int(tbr)}k', height and f'{height}p')
 
                 if src or streaming_src:
                     f.update({
@@ -603,16 +598,18 @@ class BrightcoveNewBaseIE(AdobePassIE):
 
         return {
             'id': video_id,
-            'title': title,
-            'description': clean_html(json_data.get('description')),
             'thumbnails': thumbnails,
             'duration': duration,
-            'timestamp': parse_iso8601(json_data.get('published_at')),
-            'uploader_id': json_data.get('account_id'),
             'formats': formats,
             'subtitles': subtitles,
-            'tags': json_data.get('tags', []),
             'is_live': is_live,
+            **traverse_obj(json_data, {
+                'title': ('name', {clean_html}),
+                'description': ('description', {clean_html}),
+                'tags': ('tags', ..., {str}, filter, all, filter),
+                'timestamp': ('published_at', {parse_iso8601}),
+                'uploader_id': ('account_id', {str}),
+            }),
         }
 
 
@@ -648,10 +645,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
             'uploader_id': '4036320279001',
             'formats': 'mincount:39',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
+        'skip': '404 Not Found',
     }, {
         # playlist stream
         'url': 'https://players.brightcove.net/1752604059001/S13cJdUBz_default/index.html?playlistId=5718313430001',
@@ -712,7 +706,6 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
                 'ext': 'mp4',
                 'title': 'TGD_01-032_5',
                 'thumbnail': r're:^https?://.*\.jpg$',
-                'tags': [],
                 'timestamp': 1646078943,
                 'uploader_id': '1569565978001',
                 'upload_date': '20220228',
@@ -724,7 +717,6 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
                 'ext': 'mp4',
                 'title': 'TGD 01-087 (Airs 05.25.22)_Segment 5',
                 'thumbnail': r're:^https?://.*\.jpg$',
-                'tags': [],
                 'timestamp': 1651604591,
                 'uploader_id': '1569565978001',
                 'upload_date': '20220503',
@@ -926,10 +918,18 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
         errors = json_data.get('errors')
         if errors and errors[0].get('error_subcode') == 'TVE_AUTH':
             custom_fields = json_data['custom_fields']
+            missing_fields = ', '.join(
+                key for key in ('source_url', 'software_statement') if not smuggled_data.get(key))
+            if missing_fields:
+                raise ExtractorError(
+                    f'Missing fields in smuggled data: {missing_fields}. '
+                    f'This video can be only extracted from the webpage where it is embedded. '
+                    f'Pass the URL of the embedding webpage instead of the Brightcove URL', expected=True)
             tve_token = self._extract_mvpd_auth(
                 smuggled_data['source_url'], video_id,
                 custom_fields['bcadobepassrequestorid'],
-                custom_fields['bcadobepassresourceid'])
+                custom_fields['bcadobepassresourceid'],
+                smuggled_data['software_statement'])
             json_data = self._download_json(
                 api_url, video_id, headers={
                     'Accept': f'application/json;pk={policy_key}',
@@ -939,8 +939,8 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
 
         if content_type == 'playlist':
             return self.playlist_result(
-                [self._parse_brightcove_metadata(vid, vid.get('id'), headers)
-                 for vid in json_data.get('videos', []) if vid.get('id')],
+                (self._parse_brightcove_metadata(vid, vid['id'], headers)
+                 for vid in traverse_obj(json_data, ('videos', lambda _, v: v['id']))),
                 json_data.get('id'), json_data.get('name'),
                 json_data.get('description'))
 

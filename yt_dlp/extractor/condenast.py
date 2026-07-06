@@ -12,6 +12,7 @@ from ..utils import (
     parse_iso8601,
     strip_or_none,
     try_get,
+    urljoin,
 )
 
 
@@ -96,6 +97,24 @@ class CondeNastIE(InfoExtractor):
             'timestamp': 1442434920,
         },
     }, {
+        # FIXME: Subtitles
+        'url': 'https://www.vanityfair.com/video/watch/vf-quiz-show-squid-game-s3',
+        'info_dict': {
+            'id': '6862f999c1afbc5ff06b4803',
+            'ext': 'mp4',
+            'title': '\'Squid Game\' Cast Tests How Well They Know Each Other',
+            'categories': ['Arts & Culture', 'Hollywood'],
+            'description': 'md5:7a9c668a1fc87648e77da13842ec1534',
+            'duration': 955,
+            'season': 'Season 1',
+            'series': 'Quizzing Each Other',
+            'tags': 'count:2',
+            'thumbnail': r're:https?://dwgyu36up6iuz\.cloudfront\.net/.+\.jpg',
+            'timestamp': 1751341306,
+            'upload_date': '20250701',
+            'uploader': 'vanityfair',
+        },
+    }, {
         'url': 'https://player.cnevids.com/inline/video/59138decb57ac36b83000005.js?target=js-cne-player',
         'only_matching': True,
     }, {
@@ -112,8 +131,7 @@ class CondeNastIE(InfoExtractor):
         m_paths = re.finditer(
             r'(?s)<p class="cne-thumb-title">.*?<a href="(/watch/.+?)["\?]', webpage)
         paths = orderedSet(m.group(1) for m in m_paths)
-        build_url = lambda path: urllib.parse.urljoin(base_url, path)
-        entries = [self.url_result(build_url(path), 'CondeNast') for path in paths]
+        entries = [self.url_result(urljoin(base_url, path), 'CondeNast') for path in paths]
         return self.playlist_result(entries, playlist_title=title)
 
     def _extract_video_params(self, webpage, display_id):

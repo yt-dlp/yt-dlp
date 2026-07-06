@@ -37,10 +37,26 @@ class ImgurBaseIE(InfoExtractor):
 
 
 class ImgurIE(ImgurBaseIE):
-    _VALID_URL = r'https?://(?:i\.)?imgur\.com/(?!(?:a|gallery|t|topic|r)/)(?P<id>[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://(?:i\.)?imgur\.com/(?!(?:a|gallery|t|topic|r)/)(?:[^/?#]+-)?(?P<id>[a-zA-Z0-9]+)'
 
     _TESTS = [{
         'url': 'https://imgur.com/A61SaA1',
+        'info_dict': {
+            'id': 'A61SaA1',
+            'ext': 'mp4',
+            'title': 'MRW gifv is up and running without any bugs',
+            'timestamp': 1416446068,
+            'upload_date': '20141120',
+            'dislike_count': int,
+            'comment_count': int,
+            'release_timestamp': 1416446068,
+            'release_date': '20141120',
+            'like_count': int,
+            'thumbnail': 'https://i.imgur.com/A61SaA1h.jpg',
+        },
+    }, {
+        # Test with URL slug
+        'url': 'https://imgur.com/mrw-gifv-is-up-running-without-any-bugs-A61SaA1',
         'info_dict': {
             'id': 'A61SaA1',
             'ext': 'mp4',
@@ -92,6 +108,7 @@ class ImgurIE(ImgurBaseIE):
             'comment_count': int,
             'release_timestamp': 1710491255,
             'release_date': '20240315',
+            'thumbnail': 'https://i.imgur.com/zV03bd5h.jpg',
         },
     }]
 
@@ -208,7 +225,10 @@ class ImgurIE(ImgurBaseIE):
             }), get_all=False),
             'id': video_id,
             'formats': formats,
-            'thumbnail': url_or_none(search('thumbnailUrl')),
+            'thumbnails': [{
+                'url': thumbnail_url,
+                'http_headers': {'Accept': '*/*'},
+            }] if (thumbnail_url := search(['thumbnailUrl', 'twitter:image', 'og:image'])) else None,
             'http_headers': {'Accept': '*/*'},
         }
 
@@ -252,17 +272,9 @@ class ImgurGalleryBaseIE(ImgurBaseIE):
 
 class ImgurGalleryIE(ImgurGalleryBaseIE):
     IE_NAME = 'imgur:gallery'
-    _VALID_URL = r'https?://(?:i\.)?imgur\.com/(?:gallery|(?:t(?:opic)?|r)/[^/?#]+)/(?P<id>[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://(?:i\.)?imgur\.com/(?:gallery|(?:t(?:opic)?|r)/[^/?#]+)/(?:[^/?#]+-)?(?P<id>[a-zA-Z0-9]+)'
 
     _TESTS = [{
-        'url': 'http://imgur.com/gallery/Q95ko',
-        'info_dict': {
-            'id': 'Q95ko',
-            'title': 'Adding faces make every GIF better',
-        },
-        'playlist_count': 25,
-        'skip': 'Zoinks! You\'ve taken a wrong turn.',
-    }, {
         # TODO: static images - replace with animated/video gallery
         'url': 'http://imgur.com/topic/Aww/ll5Vk',
         'only_matching': True,
@@ -280,7 +292,27 @@ class ImgurGalleryIE(ImgurGalleryBaseIE):
             'release_timestamp': 1358554297,
             'thumbnail': 'https://i.imgur.com/YcAQlkxh.jpg',
             'release_date': '20130119',
-            'uploader_url': 'https://i.imgur.com/u3R4I2S_d.png?maxwidth=290&fidelity=grand',
+            'uploader_url': 'https://i.imgur.com/N5Flb2v_d.png?maxwidth=290&fidelity=grand',
+            'comment_count': int,
+            'dislike_count': int,
+            'like_count': int,
+        },
+    }, {
+        # Test with slug
+        'url': 'https://imgur.com/gallery/classic-steve-carell-gif-cracks-me-up-everytime-repost-downvotes-YcAQlkx',
+        'add_ies': ['Imgur'],
+        'info_dict': {
+            'id': 'YcAQlkx',
+            'ext': 'mp4',
+            'title': 'Classic Steve Carell gif...cracks me up everytime....damn the repost downvotes....',
+            'timestamp': 1358554297,
+            'upload_date': '20130119',
+            'uploader_id': '1648642',
+            'uploader': 'wittyusernamehere',
+            'release_timestamp': 1358554297,
+            'release_date': '20130119',
+            'thumbnail': 'https://i.imgur.com/YcAQlkxh.jpg',
+            'uploader_url': 'https://i.imgur.com/N5Flb2v_d.png?maxwidth=290&fidelity=grand',
             'comment_count': int,
             'dislike_count': int,
             'like_count': int,
@@ -312,6 +344,13 @@ class ImgurGalleryIE(ImgurGalleryBaseIE):
         # from https://github.com/ytdl-org/youtube-dl/pull/16674
         {
         'url': 'https://imgur.com/t/unmuted/6lAn9VQ',
+        'info_dict': {
+            'id': '6lAn9VQ',
+            'title': 'Penguins !',
+        },
+        'playlist_count': 3,
+    }, {
+        'url': 'https://imgur.com/t/unmuted/penguins-penguins-6lAn9VQ',
         'info_dict': {
             'id': '6lAn9VQ',
             'title': 'Penguins !',
@@ -357,7 +396,7 @@ class ImgurGalleryIE(ImgurGalleryBaseIE):
 
 class ImgurAlbumIE(ImgurGalleryBaseIE):
     IE_NAME = 'imgur:album'
-    _VALID_URL = r'https?://(?:i\.)?imgur\.com/a/(?P<id>[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://(?:i\.)?imgur\.com/a/(?:[^/?#]+-)?(?P<id>[a-zA-Z0-9]+)'
     _GALLERY = False
     _TESTS = [{
         # TODO: only static images - replace with animated/video gallery
@@ -367,6 +406,14 @@ class ImgurAlbumIE(ImgurGalleryBaseIE):
         # from https://github.com/ytdl-org/youtube-dl/pull/21693
         {
         'url': 'https://imgur.com/a/iX265HX',
+        'info_dict': {
+            'id': 'iX265HX',
+            'title': 'enen-no-shouboutai',
+        },
+        'playlist_count': 2,
+    }, {
+        # Test with URL slug
+        'url': 'https://imgur.com/a/enen-no-shouboutai-iX265HX',
         'info_dict': {
             'id': 'iX265HX',
             'title': 'enen-no-shouboutai',

@@ -3,8 +3,8 @@ from .dailymotion import DailymotionIE
 
 
 class MoviepilotIE(InfoExtractor):
-    _IE_NAME = 'moviepilot'
-    _IE_DESC = 'Moviepilot trailer'
+    IE_NAME = 'moviepilot'
+    IE_DESC = 'Moviepilot trailer'
     _VALID_URL = r'https?://(?:www\.)?moviepilot\.de/movies/(?P<id>[^/]+)'
 
     _TESTS = [{

@@ -1,9 +1,9 @@
 import datetime as dt
+import functools
 import json
 import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import functools
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -155,7 +155,7 @@ class Pr0grammIE(InfoExtractor):
         # Sorted by "confidence", higher confidence = earlier in list
         confidences = traverse_obj(metadata, ('tags', ..., 'confidence', ({int}, {float})))
         if confidences:
-            tags = [tag for _, tag in sorted(zip(confidences, tags), reverse=True)]
+            tags = [tag for _, tag in sorted(zip(confidences, tags), reverse=True)]  # noqa: B905
 
         formats = traverse_obj(video_info, ('variants', ..., {
             'format_id': ('name', {str}),
@@ -198,6 +198,6 @@ class Pr0grammIE(InfoExtractor):
                 'dislike_count': ('down', {int}),
                 'timestamp': ('created', {int}),
                 'upload_date': ('created', {int}, {dt.date.fromtimestamp}, {lambda x: x.strftime('%Y%m%d')}),
-                'thumbnail': ('thumb', {lambda x: urljoin('https://thumb.pr0gramm.com', x)}),
+                'thumbnail': ('thumb', {urljoin('https://thumb.pr0gramm.com')}),
             }),
         }

@@ -3,6 +3,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    clean_html,
     determine_ext,
     merge_dicts,
     parse_duration,
@@ -12,6 +13,7 @@ from ..utils import (
     urlencode_postdata,
     urljoin,
 )
+from ..utils.traversal import find_element, traverse_obj, trim_str
 
 
 class SpankBangIE(InfoExtractor):
@@ -71,9 +73,11 @@ class SpankBangIE(InfoExtractor):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id') or mobj.group('id_2')
+        country = self.get_param('geo_bypass_country') or 'US'
+        self._set_cookie('.spankbang.com', 'country', country.upper())
         webpage = self._download_webpage(
             url.replace(f'/{video_id}/embed', f'/{video_id}/video'),
-            video_id, headers={'Cookie': 'country=US'})
+            video_id, impersonate=True)
 
         if re.search(r'<[^>]+\b(?:id|class)=["\']video_removed', webpage):
             raise ExtractorError(
@@ -105,7 +109,7 @@ class SpankBangIE(InfoExtractor):
 
         for mobj in re.finditer(
                 rf'{STREAM_URL_PREFIX}(?P<id>[^\s=]+)\s*=\s*(["\'])(?P<url>(?:(?!\2).)+)\2', webpage):
-            extract_format(mobj.group('id', 'url'))
+            extract_format(*mobj.group('id', 'url'))
 
         if not formats:
             stream_key = self._search_regex(
@@ -120,7 +124,7 @@ class SpankBangIE(InfoExtractor):
                 }), headers={
                     'Referer': url,
                     'X-Requested-With': 'XMLHttpRequest',
-                })
+                }, impersonate=True)
 
             for format_id, format_url in stream.items():
                 if format_url and isinstance(format_url, list):
@@ -176,9 +180,9 @@ class SpankBangPlaylistIE(InfoExtractor):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         playlist_id = mobj.group('id')
-
-        webpage = self._download_webpage(
-            url, playlist_id, headers={'Cookie': 'country=US; mobile=on'})
+        country = self.get_param('geo_bypass_country') or 'US'
+        self._set_cookie('.spankbang.com', 'country', country.upper())
+        webpage = self._download_webpage(url, playlist_id, impersonate=True)
 
         entries = [self.url_result(
             urljoin(url, mobj.group('path')),
@@ -187,8 +191,8 @@ class SpankBangPlaylistIE(InfoExtractor):
                 r'<a[^>]+\bhref=(["\'])(?P<path>/?[\da-z]+-(?P<id>[\da-z]+)/playlist/[^"\'](?:(?!\1).)*)\1',
                 webpage)]
 
-        title = self._html_search_regex(
-            r'<em>([^<]+)</em>\s+playlist\s*<', webpage, 'playlist title',
-            fatal=False)
+        title = traverse_obj(webpage, (
+            {find_element(tag='h1', attr='data-testid', value='playlist-title')},
+            {clean_html}, {trim_str(end=' Playlist')}))
 
         return self.playlist_result(entries, playlist_id, title)

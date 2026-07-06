@@ -23,8 +23,9 @@ class VideoPressIE(InfoExtractor):
             'id': 'kUJmAcSf',
             'ext': 'mp4',
             'title': 'VideoPress Demo',
-            'thumbnail': r're:^https?://.*\.jpg',
-            'duration': 634.6,
+            'description': '',
+            'duration': 635.0,
+            'thumbnail': r're:https?://videos\.files\.wordpress\.com/.+\.jpg',
             'timestamp': 1434983935,
             'upload_date': '20150622',
             'age_limit': 0,
@@ -36,6 +37,20 @@ class VideoPressIE(InfoExtractor):
     }, {
         'url': 'https://video.wordpress.com/embed/kUJmAcSf',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://wordpress.com/support/videopress/',
+        'info_dict': {
+            'id': 'BZHMfMfN',
+            'ext': 'mp4',
+            'title': 'videopress example',
+            'age_limit': 0,
+            'description': '',
+            'duration': 19.796,
+            'thumbnail': r're:https?://videos\.files\.wordpress\.com/.+\.jpg',
+            'timestamp': 1748969554,
+            'upload_date': '20250603',
+        },
     }]
 
     def _real_extract(self, url):
