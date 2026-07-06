@@ -139,6 +139,7 @@ class SabrFdSession:
             post_live=self.is_post_live,
             video_id=self.video_id,
             retry_sleep_func=self.fd.params.get('retry_sleep_functions', {}).get('http'),
+            http_retries=self.fd.params.get('retries'),
             heartbeat_callback=self.heartbeat_callback,
             pot_callback=self.pot_callback,
             reload_callback=self.reload_callback,
