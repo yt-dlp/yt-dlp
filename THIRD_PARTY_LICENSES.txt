@@ -1899,7 +1899,7 @@ DAMAGE.
 
 --------------------------------------------------------------------------------
 libintl | LGPL-2.1-or-later
-Note: Only included in macOS builds
+Note: Only included in Linux builds
 URL: https://www.gnu.org/software/gettext/
 --------------------------------------------------------------------------------
                   GNU LESSER GENERAL PUBLIC LICENSE
@@ -2408,7 +2408,7 @@ That's all there is to it!
 
 --------------------------------------------------------------------------------
 libidn2 | LGPL-3.0-or-later
-Note: Only included in macOS builds
+Note: Only included in Linux builds
 URL: https://www.gnu.org/software/libidn/
 --------------------------------------------------------------------------------
                    GNU LESSER GENERAL PUBLIC LICENSE
@@ -2581,7 +2581,7 @@ Library.
 
 --------------------------------------------------------------------------------
 libidn2 (Unicode character data files) | Unicode-TOU AND Unicode-DFS-2016
-Note: Only included in macOS builds
+Note: Only included in Linux builds
 URL: https://www.gnu.org/software/libidn/
 --------------------------------------------------------------------------------
 A. Unicode Copyright.
@@ -2680,7 +2680,7 @@ written authorization of the copyright holder.
 
 --------------------------------------------------------------------------------
 libunistring | LGPL-3.0-or-later
-Note: Only included in macOS builds
+Note: Only included in Linux builds
 URL: https://www.gnu.org/software/libunistring/
 --------------------------------------------------------------------------------
 		   GNU LESSER GENERAL PUBLIC LICENSE
