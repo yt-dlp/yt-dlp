@@ -186,6 +186,13 @@ class TVPIE(InfoExtractor):
         }
 
     def _handle_vuejs_page(self, url, webpage, page_id):
+        # live transmission pages
+        transmission_video = traverse_obj(self._search_json(
+            r'window\.__transmissionData\s*=', webpage, 'transmission data', page_id,
+            default=None), ('epg_item', 'video', {dict}))
+        if transmission_video:
+            return self._extract_vue_video(transmission_video, page_id=page_id)
+
         # vue client-side rendered sites (all regional pages + tvp.info)
         video_data = self._search_regex([
             r'window\.__(?:news|video)Data\s*=\s*({(?:.|\s)+?})\s*;',
