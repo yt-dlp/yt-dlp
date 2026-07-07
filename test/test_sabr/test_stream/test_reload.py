@@ -389,7 +389,7 @@ def test_live_error_on_broadcast_id_update(logger, client_info, post_live, reloa
     assert sabr_stream.processor.client_info != reload_callback_response.client_info
     assert sabr_stream.processor.po_token != reload_callback_response.po_token
 
-    assert sabr_stream.processor.is_live is True
+    assert sabr_stream.processor.is_broadcast is True
     with pytest.raises(BroadcastIdChanged, match=r'Broadcast ID changed from 1 to 2\.'):
         collect_parts(sabr_stream)
 

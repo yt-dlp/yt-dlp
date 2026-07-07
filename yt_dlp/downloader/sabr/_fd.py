@@ -19,7 +19,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.part import (
     MediaSegmentDataSabrPart,
     MediaSegmentInitSabrPart,
     FormatInitializedSabrPart,
-    LiveStateSabrPart,
+    BroadcastStateSabrPart,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.stream import (
     SabrStream,
@@ -31,7 +31,8 @@ from yt_dlp.extractor.youtube._streaming.sabr.models import (
     AudioSelector,
     VideoSelector,
     CaptionSelector,
-    PoTokenStatus, ReloadConfigReason,
+    PoTokenStatus,
+    ReloadConfigReason,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import SabrStreamError, BroadcastIdChanged
 from yt_dlp.extractor.youtube._proto.innertube import ClientInfo, ClientName
@@ -86,10 +87,12 @@ class SabrFdSession:
         self.writers: dict[str, SabrFDFormatWriter] = {}
         self.stream = None
         self._logged_dvr_message = False
-        self._enable_live_deep_rewind = traverse_obj(
+        # TODO(live-deep-rewind): remove when implemented
+        self._enable_broadcast_deep_rewind = traverse_obj(
             self.fd.ydl.params, ('extractor_args', 'youtube', 'enable_live_deep_rewind', 0, {str}), get_all=False) == 'true'
 
         # NOTE: the below may become outdated once callbacks are used
+        # Consider them the initial values
         self.server_abr_streaming_url = server_abr_streaming_url
         self.video_playback_ustreamer_config = video_playback_ustreamer_config
         self.initial_po_token = initial_po_token
@@ -99,11 +102,12 @@ class SabrFdSession:
         self.client_info = client_info
 
     @property
-    def is_live(self):
-        # are we live? (excluding post_live)
+    def is_broadcast(self):
+        # is this a livestream broadcast (includes post_live and premieres)
         return (
             self.live_status == 'is_live'
-            or (self.stream and self.stream.processor.is_live and not self.stream.processor.post_live))
+            or (self.stream and self.stream.processor.is_broadcast)
+            or self.is_post_live)
 
     @property
     def is_post_live(self):
@@ -117,11 +121,13 @@ class SabrFdSession:
         for writer in self.writers.values():
             self.fd.report_destination(writer.filename)
 
-        start_time_ms = JS_MAX_SAFE_INTEGER if self.is_live and not self.live_from_start else 0
+        start_time_ms = 0
+        if self.is_broadcast and not self.is_post_live and not self.live_from_start:
+            start_time_ms = JS_MAX_SAFE_INTEGER
 
-        if self._enable_live_deep_rewind and self.is_live:
+        if self._enable_broadcast_deep_rewind and self.is_broadcast:
             self.fd.report_warning(
-                'Enabled live deep rewind. This feature is under development and experimental. '
+                'Enabled broadcast deep rewind. This feature is under development and experimental. '
                 'Unexpected behavior may occur and the integrity of the downloaded files cannot be guaranteed.')
 
         self.stream = SabrStream(
@@ -135,7 +141,7 @@ class SabrFdSession:
             caption_selection=caption_selector,
             start_time_ms=start_time_ms,
             client_info=self.client_info,
-            live_segment_target_duration_sec=self.target_duration_sec,
+            broadcast_segment_target_duration_sec=self.target_duration_sec,
             post_live=self.is_post_live,
             video_id=self.video_id,
             retry_sleep_func=self.fd.params.get('retry_sleep_functions', {}).get('http'),
@@ -143,7 +149,7 @@ class SabrFdSession:
             heartbeat_callback=self.heartbeat_callback,
             pot_callback=self.pot_callback,
             reload_callback=self.reload_callback,
-            enable_live_deep_rewind=self._enable_live_deep_rewind,
+            enable_broadcast_deep_rewind=self._enable_broadcast_deep_rewind,
         )
 
         self.fd._prepare_multiline_status(len(self.writers) + 1)
@@ -172,7 +178,7 @@ class SabrFdSession:
         last_interrupt_at = [0.0]
 
         def handler(signum, frame):
-            if not self.is_live:
+            if not self.is_broadcast or self.is_post_live:
                 raise KeyboardInterrupt
 
             current_time = time.monotonic()
@@ -260,7 +266,7 @@ class SabrFdSession:
                 self.fd.report_warning(f'Unknown format selector: {part.format_selector}')
                 return
 
-            writer.initialize_format(part.format_id, self.stream.broadcast_id if self.is_live else None)
+            writer.initialize_format(part.format_id, self.stream.broadcast_id if self.is_broadcast else None)
             initialized_format = self.stream.processor.initialized_formats[str(part.format_id)]
 
             # Resume format, if applicable
@@ -295,7 +301,7 @@ class SabrFdSession:
                 return
             writer.end_segment(part)
 
-        elif isinstance(part, LiveStateSabrPart):
+        elif isinstance(part, BroadcastStateSabrPart):
             if not part.full_stream_available:
                 self._log_dvr_window_availability(part.available_dvr_window_ms)
 
@@ -310,10 +316,10 @@ class SabrFdSession:
             else:
                 self.fd.to_screen(
                     f'[download] Downloading the past {hours} hour(s) of the live stream; full stream is not available')
-            # TODO: proper logging
-            if self._enable_live_deep_rewind:
+            # TODO(deep-rewind): proper logging
+            if self._enable_broadcast_deep_rewind:
                 self.fd.to_screen(
-                    '[download] Live deep rewind is enabled, will attempt to download as early as possible')
+                    '[download] Broadcast deep rewind is enabled, will attempt to download as early as possible')
         else:
             self.fd.to_screen(
                 '[download] Downloading from the live edge; pass --live-from-start to download from the beginning of the stream')
@@ -333,7 +339,7 @@ class SabrFdSession:
         # This usually only happens on resuming a livestream download, such as:
         # - when the stream has no DVR
         # - downloading from the start on a 12+ hour stream.
-        if len(self.writers) > 1 and (self.is_live or self.is_post_live):
+        if len(self.writers) > 1 and self.is_broadcast:
             expected_segment_count = None
             for writer in self.writers.values():
                 segment_count = self._count_writer_segments(writer)

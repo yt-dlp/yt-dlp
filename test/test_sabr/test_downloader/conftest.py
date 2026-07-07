@@ -14,6 +14,5 @@ def fd(logger):
 
 @pytest.fixture
 def filename():
-    # use tmp file module to generate a temporary filename
     with tempfile.TemporaryDirectory() as tmp:
         yield str(Path(tmp) / f'{uuid.uuid4()}.mp4')

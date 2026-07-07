@@ -22,7 +22,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.processor import (
     ProcessMediaHeaderResult,
     ProcessMediaResult,
     ProcessMediaEndResult,
-    LiveState,
+    BroadcastState,
     build_vpabr_request,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.models import (
@@ -360,13 +360,13 @@ class TestSabrProcessorInitialization:
     def test_override_defaults(self, base_args):
         processor = SabrProcessor(
             **base_args,
-            live_segment_target_duration_sec=8,
-            live_segment_target_duration_tolerance_ms=42,
+            broadcast_segment_target_duration_sec=8,
+            broadcast_segment_target_duration_tolerance_ms=42,
             start_time_ms=123,
             post_live=True,
         )
-        assert processor.live_segment_target_duration_sec == 8
-        assert processor.live_segment_target_duration_tolerance_ms == 42
+        assert processor.broadcast_segment_target_duration_sec == 8
+        assert processor.broadcast_segment_target_duration_tolerance_ms == 42
         assert processor.start_time_ms == 123
         assert processor.post_live is True
 
@@ -856,7 +856,7 @@ class TestFormatInitialization:
             duration_timescale=1000,
         )
 
-        processor.live_state = LiveState(head_sequence_number=10)
+        processor.broadcast_state = BroadcastState(head_sequence_number=10)
         processor.process_format_initialization_metadata(format_init_metadata_part)
         assert str(audio_format_id) in processor.initialized_formats
         assert processor.initialized_formats[str(audio_format_id)].last_segment_number == 10
@@ -884,7 +884,7 @@ class TestFormatInitialization:
         assert str(video_format_id) in processor.initialized_formats
         assert processor.initialized_formats[str(video_format_id)].last_segment_number == 9
 
-    def test_set_expected_start_segment_nonlive(self, logger, base_args):
+    def test_set_expected_start_segment_vod(self, logger, base_args):
         # Should set the expected_start_sequence_number to 1 when:
         # 1. start_time_ms and player_time_ms are 0
         # 2. Not live or post_live
@@ -911,11 +911,11 @@ class TestFormatInitialization:
         initialized_format = processor.initialized_formats[str(format_id)]
         assert initialized_format.expected_start_sequence_number == 1
 
-    def test_set_expected_start_segment_nonlive_different_player_time(self, logger, base_args):
+    def test_set_expected_start_segment_vod_different_player_time(self, logger, base_args):
         # Should set the expected_start_sequence_number to 1 when:
         # 1. start_time_ms is 0
         # 2. player_time_ms is > 0
-        # 3. Not live or post_live
+        # 3. is a vod
         selector = make_selector('audio')
         format_id = selector.format_ids[0]
         processor = SabrProcessor(
@@ -941,7 +941,7 @@ class TestFormatInitialization:
         assert initialized_format.expected_start_sequence_number == 1
 
     def test_not_set_expected_start_segment_live(self, logger, base_args):
-        # Should NOT set the expected_start_sequence_number when stream is live
+        # Should NOT set the expected_start_sequence_number when broadcast is live
         selector = make_selector('audio')
         format_id = selector.format_ids[0]
         processor = SabrProcessor(
@@ -950,7 +950,7 @@ class TestFormatInitialization:
             video_id=example_video_id,
             start_time_ms=0,
         )
-        processor.is_live = True
+        processor.is_broadcast = True
 
         format_init_metadata_part = FormatInitializationMetadata(
             video_id=example_video_id,
@@ -1022,7 +1022,7 @@ class TestLiveMetadata:
 
     def test_live_metadata_initialization(self, base_args):
         processor = SabrProcessor(**base_args)
-        assert processor.live_state is None
+        assert processor.broadcast_state is None
 
     def test_live_metadata_update(self, base_args):
         processor = SabrProcessor(**base_args)
@@ -1032,10 +1032,10 @@ class TestLiveMetadata:
         assert isinstance(result, ProcessLiveMetadataResult)
         assert len(result.seek_sabr_parts) == 0
         # No min/max available to calculate
-        assert result.live_state_part is None
-        first_live_state = processor.live_state
-        assert isinstance(processor.live_state, LiveState)
-        assert processor.live_state.head_sequence_number == live_metadata.head_sequence_number
+        assert result.broadcast_state_part is None
+        first_live_state = processor.broadcast_state
+        assert isinstance(processor.broadcast_state, BroadcastState)
+        assert processor.broadcast_state.head_sequence_number == live_metadata.head_sequence_number
 
         # Ensure new live_metadata replaces the old one
         live_metadata = dataclasses.replace(live_metadata, head_sequence_number=20)
@@ -1043,29 +1043,29 @@ class TestLiveMetadata:
 
         assert isinstance(result, ProcessLiveMetadataResult)
         assert len(result.seek_sabr_parts) == 0
-        assert isinstance(processor.live_state, LiveState)
-        assert processor.live_state is not first_live_state
-        assert processor.live_state.head_sequence_number == live_metadata.head_sequence_number
+        assert isinstance(processor.broadcast_state, BroadcastState)
+        assert processor.broadcast_state is not first_live_state
+        assert processor.broadcast_state.head_sequence_number == live_metadata.head_sequence_number
         # No min/max available to calculate
-        assert result.live_state_part is None
+        assert result.broadcast_state_part is None
 
     def test_live_metadata_no_head_sequence_time_ms(self, base_args):
         processor = SabrProcessor(**base_args)
         live_metadata = LiveMetadata(head_sequence_number=10, head_sequence_time_ms=None)
 
         processor.process_live_metadata(live_metadata)
-        assert isinstance(processor.live_state, LiveState)
-        assert processor.live_state.head_sequence_number == live_metadata.head_sequence_number
-        assert processor.live_state.head_sequence_time_ms == live_metadata.head_sequence_time_ms
+        assert isinstance(processor.broadcast_state, BroadcastState)
+        assert processor.broadcast_state.head_sequence_number == live_metadata.head_sequence_number
+        assert processor.broadcast_state.head_sequence_time_ms == live_metadata.head_sequence_time_ms
 
     def test_live_metadata_with_head_sequence_time_ms(self, base_args):
         processor = SabrProcessor(**base_args)
         live_metadata = LiveMetadata(head_sequence_number=10, head_sequence_time_ms=5000)
 
         processor.process_live_metadata(live_metadata)
-        assert isinstance(processor.live_state, LiveState)
-        assert processor.live_state.head_sequence_number == live_metadata.head_sequence_number
-        assert processor.live_state.head_sequence_time_ms == live_metadata.head_sequence_time_ms
+        assert isinstance(processor.broadcast_state, BroadcastState)
+        assert processor.broadcast_state.head_sequence_number == live_metadata.head_sequence_number
+        assert processor.broadcast_state.head_sequence_time_ms == live_metadata.head_sequence_time_ms
 
     def test_live_metadata_with_min_max_seekable(self, base_args):
         processor = SabrProcessor(**base_args)
@@ -1079,11 +1079,11 @@ class TestLiveMetadata:
         )
 
         processor.process_live_metadata(live_metadata)
-        assert isinstance(processor.live_state, LiveState)
-        assert processor.live_state.head_sequence_number == live_metadata.head_sequence_number
-        assert processor.live_state.head_sequence_time_ms == live_metadata.head_sequence_time_ms
-        assert processor.live_state.min_seekable_time_ms == 10000
-        assert processor.live_state.max_seekable_time_ms == 1000000
+        assert isinstance(processor.broadcast_state, BroadcastState)
+        assert processor.broadcast_state.head_sequence_number == live_metadata.head_sequence_number
+        assert processor.broadcast_state.head_sequence_time_ms == live_metadata.head_sequence_time_ms
+        assert processor.broadcast_state.min_seekable_time_ms == 10000
+        assert processor.broadcast_state.max_seekable_time_ms == 1000000
 
     def test_update_izf_total_segments(self, base_args):
 
@@ -1118,7 +1118,7 @@ class TestLiveMetadata:
 
         # Process live metadata
         processor.process_live_metadata(live_metadata)
-        assert processor.live_state
+        assert processor.broadcast_state
 
         # Check that total_segments is updated in both formats
         assert processor.initialized_formats[str(audio_format_id)].last_segment_number == 10
@@ -1167,7 +1167,7 @@ class TestLiveMetadata:
         result = processor.process_live_metadata(live_metadata)
         assert isinstance(result, ProcessLiveMetadataResult)
         assert len(result.seek_sabr_parts) == 0
-        assert processor.live_state
+        assert processor.broadcast_state
         assert processor.client_abr_state.player_time_ms == 5001
 
         for izf in processor.initialized_formats.values():
@@ -1223,7 +1223,7 @@ class TestLiveMetadata:
         result = processor.process_live_metadata(live_metadata)
         assert isinstance(result, ProcessLiveMetadataResult)
         assert len(result.seek_sabr_parts) == 2
-        assert processor.live_state
+        assert processor.broadcast_state
         assert processor.client_abr_state.player_time_ms == 5000
 
         for seek_part in result.seek_sabr_parts:
@@ -1287,7 +1287,7 @@ class TestLiveMetadata:
         result = processor.process_live_metadata(live_metadata)
         assert isinstance(result, ProcessLiveMetadataResult)
         assert len(result.seek_sabr_parts) == 2
-        assert processor.live_state
+        assert processor.broadcast_state
         assert processor.client_abr_state.player_time_ms == 5000
 
         # Ad cue points should be cleared on seek
@@ -1313,9 +1313,9 @@ class TestLiveMetadata:
 
         result = processor.process_live_metadata(live_metadata)
         assert isinstance(result, ProcessLiveMetadataResult)
-        assert result.live_state_part is not None
-        assert result.live_state_part.full_stream_available is True
-        assert result.live_state_part.available_dvr_window_ms == 20000000
+        assert result.broadcast_state_part is not None
+        assert result.broadcast_state_part.full_stream_available is True
+        assert result.broadcast_state_part.available_dvr_window_ms == 20000000
         logger.trace.assert_any_call('Available DVR window: 20000000ms')
 
     def test_live_sabr_part_full_stream_unavailable(self, logger, base_args):
@@ -1335,9 +1335,9 @@ class TestLiveMetadata:
         )
         result = processor.process_live_metadata(live_metadata)
         assert isinstance(result, ProcessLiveMetadataResult)
-        assert result.live_state_part is not None
-        assert result.live_state_part.full_stream_available is False
-        assert result.live_state_part.available_dvr_window_ms == 995000
+        assert result.broadcast_state_part is not None
+        assert result.broadcast_state_part.full_stream_available is False
+        assert result.broadcast_state_part.available_dvr_window_ms == 995000
         logger.trace.assert_any_call('Available DVR window: 995000ms')
 
     def test_live_sabr_part_min_seekable_time_ms_none(self, logger, base_args):
@@ -1357,7 +1357,7 @@ class TestLiveMetadata:
         )
         result = processor.process_live_metadata(live_metadata)
         assert isinstance(result, ProcessLiveMetadataResult)
-        assert result.live_state_part is None
+        assert result.broadcast_state_part is None
 
     def test_live_sabr_part_max_seekable_time_ms_none(self, logger, base_args):
         # If max_seekable_time_ms is None, cannot calculate LiveSabrPart
@@ -1376,7 +1376,7 @@ class TestLiveMetadata:
         )
         result = processor.process_live_metadata(live_metadata)
         assert isinstance(result, ProcessLiveMetadataResult)
-        assert result.live_state_part is None
+        assert result.broadcast_state_part is None
 
 
 class TestSabrContextUpdate:
@@ -1766,7 +1766,7 @@ class TestCuepointList:
 class TestSabrSeek:
     def test_invalid_sabr_seek(self, logger, base_args):
         processor = SabrProcessor(**base_args)
-        processor.is_live = True
+        processor.is_broadcast = True
         invalid_seek = SabrSeek(seek_time_ticks=100, timescale=None)
         with pytest.raises(SabrStreamError, match='Server sent a SabrSeek part that is missing required seek data'):
             processor.process_sabr_seek(invalid_seek)
@@ -1782,7 +1782,7 @@ class TestSabrSeek:
             audio_selection=audio_selector,
             video_selection=video_selector,
             video_id=example_video_id)
-        processor.is_live = True
+        processor.is_broadcast = True
         assert processor.client_abr_state.player_time_ms == 0
 
         audio_format_init_metadata = FormatInitializationMetadata(
@@ -1829,7 +1829,7 @@ class TestSabrSeek:
 
     def test_sabr_seek_clears_ad_cuepoints(self, logger, base_args):
         processor = SabrProcessor(**base_args)
-        processor.is_live = True
+        processor.is_broadcast = True
         processor.process_cuepoint_list(CuepointList(cuepoint_info=[make_cuepoint_info(identifier='test_identifier')]))
         assert set(processor.ad_cuepoints) == {'test_identifier'}
 
@@ -1857,7 +1857,7 @@ class TestSabrSeek:
             audio_selection=audio_selector,
             video_selection=video_selector,
             video_id=example_video_id)
-        processor.is_live = False
+        processor.is_broadcast = False
 
         assert processor.client_abr_state.player_time_ms == 0
 
@@ -2110,15 +2110,15 @@ class TestMediaHeader:
     # init segment duration_ms default to 0 tested in test_media_header_init_segment
 
     def test_media_header_estimated_duration(self, base_args):
-        # Should estimate the duration for livestreams
+        # Should estimate the duration for broadcasts
         selector = make_selector('audio')
         processor = SabrProcessor(
             **base_args,
             audio_selection=selector,
-            live_segment_target_duration_sec=5,
-            live_segment_target_duration_tolerance_ms=200,
+            broadcast_segment_target_duration_sec=5,
+            broadcast_segment_target_duration_tolerance_ms=200,
         )
-        processor.is_live = True
+        processor.is_broadcast = True
         fim = make_format_im(selector)
         processor.process_format_initialization_metadata(fim)
         media_header = make_media_header(selector, sequence_no=1)
@@ -2138,10 +2138,10 @@ class TestMediaHeader:
         processor = SabrProcessor(
             **base_args,
             audio_selection=selector,
-            live_segment_target_duration_sec=5,
-            live_segment_target_duration_tolerance_ms=200,
+            broadcast_segment_target_duration_sec=5,
+            broadcast_segment_target_duration_tolerance_ms=200,
         )
-        processor.is_live = True
+        processor.is_broadcast = True
         fim = make_format_im(selector)
         processor.process_format_initialization_metadata(fim)
         media_header = make_media_header(selector, sequence_no=1)
@@ -2160,10 +2160,10 @@ class TestMediaHeader:
         processor = SabrProcessor(
             **base_args,
             audio_selection=selector,
-            live_segment_target_duration_sec=5,
-            live_segment_target_duration_tolerance_ms=200,
+            broadcast_segment_target_duration_sec=5,
+            broadcast_segment_target_duration_tolerance_ms=200,
         )
-        processor.is_live = True
+        processor.is_broadcast = True
         fim = make_format_im(selector)
         processor.process_format_initialization_metadata(fim)
         media_header = make_media_header(selector, sequence_no=1)
@@ -2184,10 +2184,10 @@ class TestMediaHeader:
         processor = SabrProcessor(
             **base_args,
             audio_selection=selector,
-            live_segment_target_duration_sec=5,
-            live_segment_target_duration_tolerance_ms=200,
+            broadcast_segment_target_duration_sec=5,
+            broadcast_segment_target_duration_tolerance_ms=200,
         )
-        processor.is_live = True
+        processor.is_broadcast = True
         fim = make_format_im(selector)
         processor.process_format_initialization_metadata(fim)
         media_header = make_media_header(selector, sequence_no=1)
@@ -2208,10 +2208,10 @@ class TestMediaHeader:
         processor = SabrProcessor(
             **base_args,
             audio_selection=selector,
-            live_segment_target_duration_sec=5,
-            live_segment_target_duration_tolerance_ms=200,
+            broadcast_segment_target_duration_sec=5,
+            broadcast_segment_target_duration_tolerance_ms=200,
         )
-        processor.is_live = True
+        processor.is_broadcast = True
         fim = make_format_im(selector)
         processor.process_format_initialization_metadata(fim)
         media_header = make_media_header(selector, sequence_no=1)
@@ -2232,10 +2232,10 @@ class TestMediaHeader:
         processor = SabrProcessor(
             **base_args,
             audio_selection=selector,
-            live_segment_target_duration_sec=5,
-            live_segment_target_duration_tolerance_ms=200,
+            broadcast_segment_target_duration_sec=5,
+            broadcast_segment_target_duration_tolerance_ms=200,
         )
-        processor.is_live = True
+        processor.is_broadcast = True
         fim = make_format_im(selector)
         processor.process_format_initialization_metadata(fim)
         media_header = make_media_header(selector, sequence_no=1)
@@ -2250,8 +2250,8 @@ class TestMediaHeader:
         assert processor.partial_segments[media_header.header_id].content_length is None
         assert processor.partial_segments[media_header.header_id].content_length_estimated is False
 
-    def test_media_header_non_live_no_estimated_content_length(self, base_args):
-        # Should not estimate content length for non-live streams
+    def test_media_header_vod_no_estimated_content_length(self, base_args):
+        # Should not estimate content length for vod streams
         selector = make_selector('audio')
         processor = SabrProcessor(
             **base_args,
@@ -2846,7 +2846,7 @@ class TestMediaHeader:
         # Should raise mismatch error if:
         # 1. Previous segment does not exist
         # 2. player_time_ms is 0
-        # 3. non-live
+        # 3. vod
         # 4. New segment sequence number is not 1
         selector = make_selector('audio')
         processor = SabrProcessor(
@@ -2866,7 +2866,7 @@ class TestMediaHeader:
         # Should NOT raise mismatch error if:
         # 1. Previous segment does not exist
         # 2. player_time_ms is 0
-        # 3. non-live
+        # 3. vod
         # 4. New segment sequence number is not 1
         # 5. First segment is already consumed
         selector = make_selector('audio')
@@ -2901,7 +2901,7 @@ class TestMediaHeader:
         # Should raise mismatch error if:
         # 1. Previous segment does not exist
         # 2. expected segment start is after consumed segments
-        # 3. non-live
+        # 3. vod
         # 4. Expected start segment is NOT consumed
         # 5. New segment sequence number is AFTER the expected segment start
         selector = make_selector('audio')
@@ -2941,7 +2941,7 @@ class TestMediaHeader:
         # Should NOT raise mismatch error if:
         # 1. Previous segment does not exist
         # 2. expected segment start is after consumed segments
-        # 3. non-live
+        # 3. vod
         # 4. Expected start segment is NOT consumed
         # 5. New segment sequence number is the expected segment start
         selector = make_selector('audio')
@@ -2981,7 +2981,7 @@ class TestMediaHeader:
         # Should NOT raise mismatch error if:
         # 1. Previous segment does not exist
         # 2. expected segment start is after consumed segments
-        # 3. non-live
+        # 3. vod
         # 4. Expected start segment is NOT consumed
         # 5. New segment sequence number one of the already consumed segments before expected start
         selector = make_selector('audio')
@@ -3019,7 +3019,7 @@ class TestMediaHeader:
         # Should NOT raise mismatch error if:
         # 1. Previous segment does not exist
         # 2. expected segment start is after consumed segments
-        # 3. non-live
+        # 3. vod
         # 4. Expected start segment IS consumed
         # 5. New segment sequence number one of the already consumed segments before expected start
         selector = make_selector('audio')
@@ -3080,7 +3080,7 @@ class TestMediaHeader:
         # Should NOT raise mismatch error if:
         # 1. Previous segment does not exist
         # 2. No expected segment start
-        # 3. non-live
+        # 3. vod
         # 4. New segment sequence number is not 1 and already consumed
         selector = make_selector('audio')
         processor = SabrProcessor(
@@ -3119,7 +3119,7 @@ class TestMediaHeader:
             **base_args,
             audio_selection=selector,
         )
-        processor.is_live = True
+        processor.is_broadcast = True
         fim = make_format_im(selector)
         processor.process_format_initialization_metadata(fim)
         assert processor.client_abr_state.player_time_ms == 0
@@ -3128,7 +3128,7 @@ class TestMediaHeader:
         assert isinstance(result, ProcessMediaHeaderResult)
         assert isinstance(result.sabr_part, MediaSegmentInitSabrPart)
 
-    def test_no_error_mismatch_not_start_at_one_postlive(self, base_args):
+    def test_no_error_mismatch_not_start_at_one_post_live(self, base_args):
         # Should NOT raise mismatch error if:
         # 1. Previous segment does not exist
         # 2. player_time_ms is 0
@@ -3671,7 +3671,7 @@ class TestMediaEnd:
             **base_args,
             audio_selection=selector,
         )
-        processor.is_live = True
+        processor.is_broadcast = True
         fim = make_format_im(selector)
         processor.process_format_initialization_metadata(fim)
         media_header = make_media_header(selector, sequence_no=1)

@@ -31,7 +31,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.part import (
     FormatInitializedSabrPart,
     MediaSegmentInitSabrPart,
     MediaSeekSabrPart,
-    LiveStateSabrPart,
+    BroadcastStateSabrPart,
     PoTokenStatusSabrPart,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.stream import Heartbeat
@@ -46,12 +46,12 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
 from yt_dlp.networking.exceptions import TransportError, HTTPError
 
 
-class TestLiveStreamStall:
+class TestBroadcastStall:
     @mock_time
     @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
     def test_stream_stall_midway_defaults(self, logger, client_info, post_live):
         # Should raise SabrStreamError if no new segments are received midway through the stream
-        # This should calculate a default live_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
+        # This should calculate a default broadcast_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
         total_segments = 10
         segment_target_duration_ms = 2000
         dvr_segments = 7 if not post_live else 9
@@ -74,12 +74,12 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             post_live=post_live,
         )
-        assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+        assert sabr_stream.broadcast_end_wait_sec == 10.0  # Default calculated
         with pytest.raises(StreamStallError,
-                           match=r'Stream stalled; no activity detected in 6 requests and 10.0 seconds and not near live head.'):
+                           match=r'Stream stalled; no activity detected in 6 requests and 10.0 seconds and not near broadcast head.'):
             collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 9; registering stall (count: 6)')
@@ -100,7 +100,7 @@ class TestLiveStreamStall:
         total_segments = 10
         dvr_segments = 7 if not post_live else 9
         max_empty_requests = 10
-        live_end_wait_sec = 5
+        broadcast_end_wait_sec = 5
         segment_target_duration_ms = 2000
 
         def no_new_segments_func(parts, vpabr, url, request_number):
@@ -121,14 +121,14 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
-            live_end_wait_sec=live_end_wait_sec,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_end_wait_sec=broadcast_end_wait_sec,
             max_empty_requests=max_empty_requests,
             post_live=post_live,
         )
-        assert sabr_stream.live_end_wait_sec == live_end_wait_sec
+        assert sabr_stream.broadcast_end_wait_sec == broadcast_end_wait_sec
         with pytest.raises(StreamStallError,
-                           match=r'Stream stalled; no activity detected in 10 requests and 18.0 seconds and not near live head.'):
+                           match=r'Stream stalled; no activity detected in 10 requests and 18.0 seconds and not near broadcast head.'):
             collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 10)')
@@ -169,10 +169,10 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             post_live=post_live,
         )
-        assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+        assert sabr_stream.broadcast_end_wait_sec == 10.0  # Default calculated
 
         audio_selector, video_selector = selectors
         # Should complete successfully (no error)
@@ -181,7 +181,7 @@ class TestLiveStreamStall:
         logger.debug.assert_any_call('No activity detected in request 9; registering stall (count: 6)')
         logger.debug.assert_any_call(
             'No activity detected in 6 requests and 10.0 seconds. '
-            'No live metadata available and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+            'No live metadata available and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
 
         # We will only get the first few segments
         assert_media_sequence_in_order(parts, audio_selector, 3)
@@ -232,11 +232,11 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             post_live=post_live,
             heartbeat_callback=heartbeat_callback,
         )
-        assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+        assert sabr_stream.broadcast_end_wait_sec == 10.0  # Default calculated
 
         audio_selector, video_selector = selectors
         # Should complete successfully (no error)
@@ -245,7 +245,7 @@ class TestLiveStreamStall:
         logger.debug.assert_any_call('No activity detected in request 9; registering stall (count: 6)')
         logger.debug.assert_any_call(
             'No activity detected in 6 requests and 10.0 seconds. '
-            'No live metadata available and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+            'No live metadata available and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
 
         # We will only get the first few segments
         assert_media_sequence_in_order(parts, audio_selector, 3)
@@ -263,7 +263,7 @@ class TestLiveStreamStall:
     @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
     def test_stream_stall_wait_next_request_backoff(self, logger, client_info, post_live):
         # Should backoff max_request_backoff seconds on first empty request
-        # If max_request_backoff is greater than live_segment_target_duration_sec
+        # If max_request_backoff is greater than broadcast_segment_target_duration_sec
         total_segments = 10
         segment_target_duration_ms = 2000
         dvr_segments = 7 if not post_live else 9
@@ -292,7 +292,7 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             post_live=post_live,
         )
         audio_selector, video_selector = selectors
@@ -307,7 +307,7 @@ class TestLiveStreamStall:
     @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
     def test_stream_stall_head_consumed_ranges(self, logger, client_info, post_live):
         # Should consider near live head based on consumed ranges and finish stream on stall
-        # This should calculate a default live_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
+        # This should calculate a default broadcast_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
         total_segments = 10
         segment_target_duration_ms = 2000
         dvr_segments = 7 if not post_live else 9
@@ -330,27 +330,27 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             post_live=post_live,
         )
         audio_selector, video_selector = selectors
-        assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+        assert sabr_stream.broadcast_end_wait_sec == 10.0  # Default calculated
         parts = collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
         if not post_live:
             logger.trace.assert_any_call(
-                'Near live stream head detected based on consumed ranges of active formats: head seq (8) - tolerance (4)')
+                'Near broadcast head detected based on consumed ranges of active formats: head seq (8) - tolerance (4)')
             logger.debug.assert_any_call(
-                'No activity detected in 5 requests and 10.0 seconds. Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+                'No activity detected in 5 requests and 10.0 seconds. Near broadcast head and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
             assert sabr_stream._stream_stall_tracker.stalled_requests == 5
             # No callback registered, should check for live
             logger.debug.assert_any_call('No heartbeat callback provided, skipping heartbeat check')
         else:
             logger.trace.assert_any_call(
-                'Near live stream head detected based on consumed ranges of active formats: head seq (10) - tolerance (4)')
+                'Near broadcast head detected based on consumed ranges of active formats: head seq (10) - tolerance (4)')
             logger.debug.assert_any_call(
-                'No activity detected in 6 requests and 10.0 seconds. Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+                'No activity detected in 6 requests and 10.0 seconds. Near broadcast head and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
             assert sabr_stream._stream_stall_tracker.stalled_requests == 6
             # No callback registered, and should not try to call heartbeat for post-live
             with pytest.raises(AssertionError):
@@ -394,10 +394,10 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             post_live=post_live,
         )
-        assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+        assert sabr_stream.broadcast_end_wait_sec == 10.0  # Default calculated
         with pytest.raises(
             StreamStallError,
             match=r'Stream stalled; no activity detected in 6 requests and 10.0 seconds.',
@@ -409,7 +409,7 @@ class TestLiveStreamStall:
         # All responses should be closed
         assert all(request.response.closed for request in rh.request_history)
 
-        logger.debug.assert_any_call('Skipping end of live stream check; not all enabled format selectors have an initialized format yet')
+        logger.debug.assert_any_call('Skipping end of broadcast check; not all enabled format selectors have an initialized format yet')
 
     @mock_time
     def test_stream_stall_head_missing_izf_heartbeat_stream_ended(self, logger, client_info):
@@ -448,11 +448,11 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             heartbeat_callback=heartbeat_callback,
         )
         audio_selector, _ = selectors
-        assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+        assert sabr_stream.broadcast_end_wait_sec == 10.0  # Default calculated
         parts = collect_parts(sabr_stream)
         assert_media_sequence_in_order(parts, audio_selector, 1, check_segment_total_segments=False)
 
@@ -466,11 +466,11 @@ class TestLiveStreamStall:
         assert all(request.response.closed for request in rh.request_history)
 
         with pytest.raises(AssertionError):
-            logger.debug.assert_any_call('Skipping end of live stream check; not all enabled format selectors have an initialized format yet')
+            logger.debug.assert_any_call('Skipping end of broadcast check; not all enabled format selectors have an initialized format yet')
 
         logger.debug.assert_any_call(
             'No activity detected in 6 requests and 10.0 seconds. '
-            'Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+            'Near broadcast head and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
 
         # Heartbeat should have been called at least once
         heartbeat_callback.assert_called()
@@ -478,7 +478,7 @@ class TestLiveStreamStall:
     @mock_time
     def test_stream_stall_head_consumed_ranges_with_heartbeat(self, logger, client_info):
         # Should consider near live head based on consumed ranges and finish stream on stall
-        # This should calculate a default live_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
+        # This should calculate a default broadcast_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
         # Same as test_stream_stall_head_consumed_ranges but with heartbeat indicating stream is not live,
         # should still finish stream on stall
         total_segments = 10
@@ -507,19 +507,19 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             heartbeat_callback=heartbeat_callback,
         )
         audio_selector, video_selector = selectors
-        assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+        assert sabr_stream.broadcast_end_wait_sec == 10.0  # Default calculated
         parts = collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
 
         logger.trace.assert_any_call(
-            'Near live stream head detected based on consumed ranges of active formats: head seq (8) - tolerance (4)')
+            'Near broadcast head detected based on consumed ranges of active formats: head seq (8) - tolerance (4)')
         logger.debug.assert_any_call(
-            'No activity detected in 5 requests and 10.0 seconds. Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+            'No activity detected in 5 requests and 10.0 seconds. Near broadcast head and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
         assert sabr_stream._stream_stall_tracker.stalled_requests == 5
 
         # We will get all but the last 2 segments in this example
@@ -534,7 +534,7 @@ class TestLiveStreamStall:
     @mock_time
     def test_stream_stall_head_consumed_ranges_with_heartbeat_premiere(self, logger, client_info):
         # Should consider near live head based on consumed ranges and finish stream on stall
-        # This should calculate a default live_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
+        # This should calculate a default broadcast_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
         # Same as test_stream_stall_head_consumed_ranges but with heartbeat indicating stream is not live.
         # Sanity check case for premieres: The broadcast id in the url is 0, whereas it doesn't exist in the heartbeat
         # should still finish stream on stall
@@ -564,20 +564,20 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url='https://live.googlevideo.com/sabr_live?id=test.0&source=yt_premiere_broadcast&sabr=1',
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             heartbeat_callback=heartbeat_callback,
         )
-        assert sabr_stream.processor.is_live is True
+        assert sabr_stream.processor.is_broadcast is True
         audio_selector, video_selector = selectors
-        assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+        assert sabr_stream.broadcast_end_wait_sec == 10.0  # Default calculated
         parts = collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
 
         logger.trace.assert_any_call(
-            'Near live stream head detected based on consumed ranges of active formats: head seq (8) - tolerance (4)')
+            'Near broadcast head detected based on consumed ranges of active formats: head seq (8) - tolerance (4)')
         logger.debug.assert_any_call(
-            'No activity detected in 5 requests and 10.0 seconds. Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+            'No activity detected in 5 requests and 10.0 seconds. Near broadcast head and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
         assert sabr_stream._stream_stall_tracker.stalled_requests == 5
 
         # We will get all but the last 2 segments in this example
@@ -592,7 +592,7 @@ class TestLiveStreamStall:
     @mock_time
     def test_stream_stall_head_consumed_ranges_with_heartbeat_error(self, logger, client_info):
         # Should consider near live head based on consumed ranges and finish stream on stall
-        # This should calculate a default live_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
+        # This should calculate a default broadcast_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
         # Same as test_stream_stall_head_consumed_ranges but with heartbeat raising an error (should be ignored)
         # should still finish stream on stall
         total_segments = 10
@@ -621,19 +621,19 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             heartbeat_callback=heartbeat_callback,
         )
         audio_selector, video_selector = selectors
-        assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+        assert sabr_stream.broadcast_end_wait_sec == 10.0  # Default calculated
         parts = collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
 
         logger.trace.assert_any_call(
-            'Near live stream head detected based on consumed ranges of active formats: head seq (8) - tolerance (4)')
+            'Near broadcast head detected based on consumed ranges of active formats: head seq (8) - tolerance (4)')
         logger.debug.assert_any_call(
-            'No activity detected in 5 requests and 10.0 seconds. Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+            'No activity detected in 5 requests and 10.0 seconds. Near broadcast head and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
         assert sabr_stream._stream_stall_tracker.stalled_requests == 5
 
         # We will get all but the last 2 segments in this example
@@ -650,7 +650,7 @@ class TestLiveStreamStall:
     @mock_time
     def test_stream_stall_head_consumed_ranges_with_heartbeat_invalid_response(self, logger, client_info):
         # Should consider near live head based on consumed ranges and finish stream on stall
-        # This should calculate a default live_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
+        # This should calculate a default broadcast_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
         # Same as test_stream_stall_head_consumed_ranges but with heartbeat returning an invalid response
         # should still finish stream on stall
         total_segments = 10
@@ -679,19 +679,19 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             heartbeat_callback=heartbeat_callback,
         )
         audio_selector, video_selector = selectors
-        assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+        assert sabr_stream.broadcast_end_wait_sec == 10.0  # Default calculated
         parts = collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
 
         logger.trace.assert_any_call(
-            'Near live stream head detected based on consumed ranges of active formats: head seq (8) - tolerance (4)')
+            'Near broadcast head detected based on consumed ranges of active formats: head seq (8) - tolerance (4)')
         logger.debug.assert_any_call(
-            'No activity detected in 5 requests and 10.0 seconds. Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+            'No activity detected in 5 requests and 10.0 seconds. Near broadcast head and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
         assert sabr_stream._stream_stall_tracker.stalled_requests == 5
 
         # We will get all but the last 2 segments in this example
@@ -707,7 +707,7 @@ class TestLiveStreamStall:
     @mock_time
     def test_stream_stall_head_consumed_ranges_with_heartbeat_no_response(self, logger, client_info):
         # Should consider near live head based on consumed ranges and finish stream on stall
-        # This should calculate a default live_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
+        # This should calculate a default broadcast_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
         # Same as test_stream_stall_head_consumed_ranges but with heartbeat returning no response
         # should still finish stream on stall
         total_segments = 10
@@ -736,19 +736,19 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             heartbeat_callback=heartbeat_callback,
         )
         audio_selector, video_selector = selectors
-        assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+        assert sabr_stream.broadcast_end_wait_sec == 10.0  # Default calculated
         parts = collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
 
         logger.trace.assert_any_call(
-            'Near live stream head detected based on consumed ranges of active formats: head seq (8) - tolerance (4)')
+            'Near broadcast head detected based on consumed ranges of active formats: head seq (8) - tolerance (4)')
         logger.debug.assert_any_call(
-            'No activity detected in 5 requests and 10.0 seconds. Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+            'No activity detected in 5 requests and 10.0 seconds. Near broadcast head and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
         assert sabr_stream._stream_stall_tracker.stalled_requests == 5
 
         # We will get all but the last 2 segments in this example
@@ -764,7 +764,7 @@ class TestLiveStreamStall:
     @mock_time
     def test_stream_stall_head_consumed_ranges_with_heartbeat_broadcast_id_change(self, logger, client_info):
         # Should consider near live head based on consumed ranges and finish stream on stall
-        # This should calculate a default live_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
+        # This should calculate a default broadcast_end_wait_sec of 10 seconds (as segment target duration * max_empty_requests = 2s * 3 = 6s))
         # Same as test_stream_stall_head_consumed_ranges but with heartbeat returning a different broadcast_id
         # This could happen if the broadcast ended and a new one started with the same video_id.
         # The BroadcastIdChange error should be raised in this case
@@ -794,10 +794,10 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             heartbeat_callback=heartbeat_callback,
         )
-        assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+        assert sabr_stream.broadcast_end_wait_sec == 10.0  # Default calculated
 
         with pytest.raises(
             BroadcastIdChanged,
@@ -821,7 +821,7 @@ class TestLiveStreamStall:
 
         # So we know the exact number of stalls
         max_empty_requests = 10
-        live_end_wait_sec = 5
+        broadcast_end_wait_sec = 5
 
         # First pass to collect segment information to generate consumed ranges
         profile = LiveAVProfile({
@@ -834,10 +834,10 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             enable_audio=False,
             max_empty_requests=max_empty_requests,
-            live_end_wait_sec=live_end_wait_sec,
+            broadcast_end_wait_sec=broadcast_end_wait_sec,
         )
         iter_parts = sabr_stream.iter_parts()
         format_init_part = next((p for p in iter_parts if isinstance(p, FormatInitializedSabrPart)), None)
@@ -893,10 +893,10 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             enable_audio=False,
             max_empty_requests=max_empty_requests,
-            live_end_wait_sec=live_end_wait_sec,
+            broadcast_end_wait_sec=broadcast_end_wait_sec,
         )
 
         # Stream until stall_count reaches 2, then we'll add the consumed ranges.
@@ -919,9 +919,9 @@ class TestLiveStreamStall:
 
         logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 10)')
         logger.trace.assert_any_call(
-            'Near live stream head detected based on consumed ranges of active formats: head seq (10) - tolerance (4)')
+            'Near broadcast head detected based on consumed ranges of active formats: head seq (10) - tolerance (4)')
         logger.debug.assert_any_call(
-            'No activity detected in 10 requests and 18.0 seconds. Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+            'No activity detected in 10 requests and 18.0 seconds. Near broadcast head and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
         assert sabr_stream._stream_stall_tracker.stalled_requests == 10
 
         # Last request player_time_ms should be around the start of the added consumed range
@@ -959,28 +959,28 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             enable_audio=False,
             post_live=post_live,
         )
         _, video_selector = selectors
 
-        assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+        assert sabr_stream.broadcast_end_wait_sec == 10.0  # Default calculated
         parts = collect_parts(sabr_stream)
 
         if not post_live:
             logger.trace.assert_any_call(
-                'Near live stream head detected based on consumed ranges of active formats: head seq (8) - tolerance (4)')
+                'Near broadcast head detected based on consumed ranges of active formats: head seq (8) - tolerance (4)')
             logger.debug.assert_any_call(
                 'No activity detected in 5 requests and 10.0 seconds. '
-                'Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+                'Near broadcast head and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
             assert sabr_stream._stream_stall_tracker.stalled_requests == 5
         else:
             logger.trace.assert_any_call(
-                'Near live stream head detected based on consumed ranges of active formats: head seq (10) - tolerance (4)')
+                'Near broadcast head detected based on consumed ranges of active formats: head seq (10) - tolerance (4)')
             logger.debug.assert_any_call(
                 'No activity detected in 6 requests and 10.0 seconds. '
-                'Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+                'Near broadcast head and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
             assert sabr_stream._stream_stall_tracker.stalled_requests == 6
 
         # We will get all but the last 2 segments in this example
@@ -1022,21 +1022,21 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             post_live=post_live,
         )
         audio_selector, video_selector = selectors
-        assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+        assert sabr_stream.broadcast_end_wait_sec == 10.0  # Default calculated
         sabr_stream.live_head_tolerance_sec = live_head_tolerance_sec
         parts = collect_parts(sabr_stream)
 
         if not post_live:
             logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
             logger.trace.assert_any_call(
-                'Near or at live stream head detected based on player time and head sequence end time with tolerance (ms): 15900 >= 15900 - 8000')
+                'Near or at broadcast head detected based on player time and head sequence end time with tolerance (ms): 15900 >= 15900 - 8000')
             logger.debug.assert_any_call(
                 'No activity detected in 5 requests and 10.0 seconds. '
-                'Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+                'Near broadcast head and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
             assert sabr_stream._stream_stall_tracker.stalled_requests == 5
             # No callback registered, should check for live
             logger.debug.assert_any_call('No heartbeat callback provided, skipping heartbeat check')
@@ -1044,10 +1044,10 @@ class TestLiveStreamStall:
         else:
             logger.debug.assert_any_call('No activity detected in request 14; registering stall (count: 6)')
             logger.trace.assert_any_call(
-                'Near or at live stream head detected based on player time and head sequence end time with tolerance (ms): 15900 >= 19900 - 8000')
+                'Near or at broadcast head detected based on player time and head sequence end time with tolerance (ms): 15900 >= 19900 - 8000')
             logger.debug.assert_any_call(
                 'No activity detected in 6 requests and 10.0 seconds. '
-                'Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+                'Near broadcast head and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
             assert sabr_stream._stream_stall_tracker.stalled_requests == 6
             # No callback registered, and should not try to call heartbeat for post-live
             with pytest.raises(AssertionError):
@@ -1098,20 +1098,20 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             heartbeat_callback=heartbeat_callback,
         )
         audio_selector, video_selector = selectors
-        assert sabr_stream.live_end_wait_sec == 10.0  # Default calculated
+        assert sabr_stream.broadcast_end_wait_sec == 10.0  # Default calculated
         sabr_stream.live_head_tolerance_sec = live_head_tolerance_sec
         parts = collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 13; registering stall (count: 5)')
         logger.trace.assert_any_call(
-            'Near or at live stream head detected based on player time and head sequence end time with tolerance (ms): 15900 >= 15900 - 8000')
+            'Near or at broadcast head detected based on player time and head sequence end time with tolerance (ms): 15900 >= 15900 - 8000')
         logger.debug.assert_any_call(
             'No activity detected in 5 requests and 10.0 seconds. '
-            'Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+            'Near broadcast head and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
         assert sabr_stream._stream_stall_tracker.stalled_requests == 5
         # Heartbeat should have been called at least once
         heartbeat_callback.assert_called()
@@ -1158,11 +1158,11 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
         )
 
         with pytest.raises(StreamStallError,
-                           match=r'Stream stalled; no activity detected in 6 requests and 10.0 seconds and not near live head.'):
+                           match=r'Stream stalled; no activity detected in 6 requests and 10.0 seconds and not near broadcast head.'):
             collect_parts(sabr_stream)
 
         assert sabr_stream._stream_stall_tracker.stalled_requests == 6
@@ -1193,17 +1193,17 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
         )
         audio_selector, video_selector = selectors
         parts = collect_parts(sabr_stream)
 
         logger.debug.assert_any_call('No activity detected in request 15; registering stall (count: 5)')
         logger.trace.assert_any_call(
-            'Near live stream head detected based on consumed ranges of active formats: head seq (10) - tolerance (4)')
+            'Near broadcast head detected based on consumed ranges of active formats: head seq (10) - tolerance (4)')
         logger.debug.assert_any_call(
             'No activity detected in 5 requests and 10.0 seconds. '
-            'Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+            'Near broadcast head and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
 
         assert sabr_stream._stream_stall_tracker.stalled_requests == 5
         # We will get all segments in this example
@@ -1260,7 +1260,7 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             post_live=post_live,
         )
 
@@ -1275,10 +1275,10 @@ class TestLiveStreamStall:
         assert any(isinstance(part, MediaSeekSabrPart) for part in parts)
 
         logger.trace.assert_any_call(
-            'Near or at live stream head detected based on player time and head sequence end time with tolerance (ms): 19000 >= 19900 - 8000')
+            'Near or at broadcast head detected based on player time and head sequence end time with tolerance (ms): 19000 >= 19900 - 8000')
         logger.debug.assert_any_call(
             'No activity detected in 6 requests and 10.0 seconds. '
-            'Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+            'Near broadcast head and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
 
     @mock_time
     def test_live_stall_heartbeat_allows_resume(self, logger, client_info):
@@ -1325,7 +1325,7 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             max_empty_requests=max_empty_requests,
             heartbeat_callback=heartbeat_callback,
         )
@@ -1347,11 +1347,11 @@ class TestLiveStreamStall:
 
         logger.debug.assert_any_call(
             'No activity detected in 9 requests and 10.0 seconds. '
-            'Near live stream head but heartbeat indicates stream is still live; continuing to wait for segments.')
+            'Near broadcast head but heartbeat indicates broadcast is still live; continuing to wait for segments.')
 
         logger.debug.assert_any_call(
             'No activity detected in 5 requests and 10.0 seconds. '
-            'Near live stream head and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+            'Near broadcast head and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
 
     @mock_time
     def test_live_stall_no_live_metadata_heartbeat_allows_resume(self, logger, client_info):
@@ -1397,7 +1397,7 @@ class TestLiveStreamStall:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             max_empty_requests=max_empty_requests,
             heartbeat_callback=heartbeat_callback,
         )
@@ -1419,11 +1419,11 @@ class TestLiveStreamStall:
         heartbeat_callback.assert_called()
         logger.debug.assert_any_call(
             'No activity detected in 9 requests and 10.0 seconds. '
-            'No live metadata available but heartbeat indicates stream is still live; continuing to wait for segments.')
+            'No live metadata available but heartbeat indicates broadcast is still live; continuing to wait for segments.')
 
         logger.debug.assert_any_call(
             'No activity detected in 6 requests and 10.0 seconds. '
-            'No live metadata available and heartbeat indicates stream may no longer be live; assuming livestream has ended.')
+            'No live metadata available and heartbeat indicates broadcast may no longer be live; assuming broadcast has ended.')
 
 
 class TestPostLiveEnd:
@@ -1443,7 +1443,7 @@ class TestPostLiveEnd:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             post_live=True,
         )
         audio_selector, video_selector = selectors
@@ -1480,7 +1480,7 @@ class TestPostLiveEnd:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             post_live=True,
             heartbeat_callback=heartbeat_callback,
         )
@@ -1522,7 +1522,7 @@ class TestPostLiveEnd:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             post_live=True,
         )
         audio_selector, video_selector = selectors
@@ -1536,12 +1536,12 @@ class TestPostLiveEnd:
         # Should be no waiting for post_live
         assert rh.request_history[-1].time == 0.0
 
-        live_end_tolerance = sabr_stream.processor.live_segment_target_duration_tolerance_ms
+        live_end_tolerance = sabr_stream.processor.broadcast_segment_target_duration_tolerance_ms
         assert live_end_tolerance == 100  # default
         estimated_end_time = (total_segments * segment_target_duration_ms) - live_end_tolerance
         # Should NOT use any tolerance when checking for immediate post live end based on player time
         logger.trace.assert_any_call(
-            'Near or at live stream head detected based on player time '
+            'Near or at broadcast head detected based on player time '
             f'and head sequence end time with tolerance (ms): {estimated_end_time} >= {estimated_end_time} - 0')
 
         # Should not try to check heartbeat for post-live end detection
@@ -1569,7 +1569,7 @@ class TestLive:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
         )
         audio_selector, video_selector = selectors
 
@@ -1579,7 +1579,7 @@ class TestLive:
         assert_media_sequence_in_order(parts, video_selector, total_segments)
 
         # Should receive live state parts with full_stream_available=True
-        live_state_parts = [part for part in parts if isinstance(part, LiveStateSabrPart)]
+        live_state_parts = [part for part in parts if isinstance(part, BroadcastStateSabrPart)]
         assert all(part.full_stream_available is True for part in live_state_parts)
 
         # For each request, compare the live metadata max seekable time
@@ -1593,7 +1593,7 @@ class TestLive:
                     live_metadata = protobug.loads(part.data.read(), LiveMetadata)
             max_seekable_time_ms = (
                 live_metadata.max_seekable_time_ticks * 1000) // live_metadata.max_seekable_timescale
-            estimated_segment_duration = segment_target_duration_ms - sabr_stream.processor.live_segment_target_duration_tolerance_ms
+            estimated_segment_duration = segment_target_duration_ms - sabr_stream.processor.broadcast_segment_target_duration_tolerance_ms
             player_time_ms = request.vpabr.client_abr_state.player_time_ms
             gate = max_seekable_time_ms + estimated_segment_duration + segment_target_duration_ms  # twice due to max_seekable_before_head
             assert player_time_ms <= gate, f'Requested player time {player_time_ms} ms exceeds max seekable time {gate} ms in live metadata'
@@ -1613,7 +1613,7 @@ class TestLive:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
         )
         audio_selector, video_selector = selectors
 
@@ -1658,7 +1658,7 @@ class TestLive:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
         )
         audio_selector, video_selector = selectors
 
@@ -1690,7 +1690,7 @@ class TestLive:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
         )
         audio_selector, video_selector = selectors
 
@@ -1740,7 +1740,7 @@ class TestLive:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
         )
         audio_selector, video_selector = selectors
 
@@ -1752,7 +1752,7 @@ class TestLive:
                                        start_sequence_number=segment_start_number)
 
         # Should receive live state parts with full_stream_available=False
-        live_state_parts = [part for part in parts if isinstance(part, LiveStateSabrPart)]
+        live_state_parts = [part for part in parts if isinstance(part, BroadcastStateSabrPart)]
         assert all(part.full_stream_available is False for part in live_state_parts)
 
         # First request: should start from 0
@@ -1794,9 +1794,9 @@ class TestLive:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             start_time_ms=start_time_ms,
-            live_segment_target_duration_tolerance_ms=target_tolerance_ms,
+            broadcast_segment_target_duration_tolerance_ms=target_tolerance_ms,
         )
         audio_selector, video_selector = selectors
 
@@ -1847,9 +1847,9 @@ class TestLive:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             start_time_ms=start_time_ms,
-            live_segment_target_duration_tolerance_ms=target_tolerance_ms,
+            broadcast_segment_target_duration_tolerance_ms=target_tolerance_ms,
         )
         audio_selector, video_selector = selectors
 
@@ -1902,7 +1902,7 @@ class TestLive:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             enable_audio=False,
         )
         iter_parts = sabr_stream.iter_parts()
@@ -1940,9 +1940,9 @@ class TestLive:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             start_time_ms=start_time_ms,
-            live_segment_target_duration_tolerance_ms=target_tolerance_ms,
+            broadcast_segment_target_duration_tolerance_ms=target_tolerance_ms,
             enable_audio=False,
         )
 
@@ -2013,7 +2013,7 @@ class TestLive:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
         )
         audio_selector, video_selector = selectors
 
@@ -2048,7 +2048,7 @@ class TestLive:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
         )
         audio_selector, video_selector = selectors
 
@@ -2096,7 +2096,7 @@ class TestLive:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             post_live=post_live,
         )
         collect_parts(sabr_stream)
@@ -2140,10 +2140,10 @@ class TestLive:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_PREMIERE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             post_live=post_live,
         )
-        assert sabr_stream.processor.is_live is True
+        assert sabr_stream.processor.is_broadcast is True
         assert 'yt_premiere_broadcast' in sabr_stream.url
         collect_parts(sabr_stream)
 
@@ -2195,7 +2195,7 @@ class TestLive:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             post_live=post_live,
         )
         audio_selector, video_selector = selectors
@@ -2211,7 +2211,7 @@ class TestLive:
         second_request_vpabr = rh.request_history[1].vpabr
         # Player time should increment to the end of the first segment which is segment_target_duration_ms
         assert second_request_vpabr.client_abr_state.player_time_ms != seek_ms
-        live_end_tolerance = sabr_stream.processor.live_segment_target_duration_tolerance_ms
+        live_end_tolerance = sabr_stream.processor.broadcast_segment_target_duration_tolerance_ms
         assert second_request_vpabr.client_abr_state.player_time_ms == segment_target_duration_ms - live_end_tolerance
 
         # Should not skip player time increment as both formats are consumed at the seeked player time
@@ -2260,7 +2260,7 @@ class TestLive:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             post_live=post_live,
             start_time_ms=start_player_time_ms,
         )
@@ -2321,7 +2321,7 @@ class TestLive:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             enable_captions=True,
             enable_audio=True,
             enable_video=True,
@@ -2362,7 +2362,7 @@ class TestLive:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             enable_captions=True,
             enable_audio=False,
             enable_video=False,
@@ -2408,7 +2408,7 @@ class TestLive:
         assert video_buffered_range in rh.request_history[1].vpabr.buffered_ranges
 
 
-class TestLiveEndErrorRetriesExhausted:
+class TestBroadcastEndErrorRetriesExhausted:
     @mock_time
     @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
     def test_transport_error_at_end_consumed(self, logger, client_info, post_live):
@@ -2436,7 +2436,7 @@ class TestLiveEndErrorRetriesExhausted:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             heartbeat_callback=heartbeat_callback,
             post_live=post_live,
         )
@@ -2470,7 +2470,7 @@ class TestLiveEndErrorRetriesExhausted:
             heartbeat_callback.assert_not_called()
 
         logger.debug.assert_any_call(
-            'Retry attempts exceeded, but near the live stream head and live stream has ended. '
+            'Retry attempts exceeded, but near the broadcast head and broadcast has ended. '
             'Assuming reached end of stream.')
 
         # All responses should be closed
@@ -2503,7 +2503,7 @@ class TestLiveEndErrorRetriesExhausted:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             heartbeat_callback=heartbeat_callback,
             post_live=post_live,
         )
@@ -2537,7 +2537,7 @@ class TestLiveEndErrorRetriesExhausted:
             heartbeat_callback.assert_not_called()
 
         logger.debug.assert_any_call(
-            'Retry attempts exceeded, but near the live stream head and live stream has ended. '
+            'Retry attempts exceeded, but near the broadcast head and broadcast has ended. '
             'Assuming reached end of stream.')
 
         # All responses should be closed
@@ -2573,7 +2573,7 @@ class TestLiveEndErrorRetriesExhausted:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             heartbeat_callback=heartbeat_callback,
             post_live=post_live,
             http_retries=http_retries,
@@ -2608,7 +2608,7 @@ class TestLiveEndErrorRetriesExhausted:
             heartbeat_callback.assert_not_called()
 
         logger.debug.assert_any_call(
-            'Retry attempts exceeded, but near the live stream head and live stream has ended. '
+            'Retry attempts exceeded, but near the broadcast head and broadcast has ended. '
             'Assuming reached end of stream.')
 
         # All responses should be closed
@@ -2637,7 +2637,7 @@ class TestLiveEndErrorRetriesExhausted:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             heartbeat_callback=None,  # no heartbeat configured
         )
         assert sabr_stream.http_retries == 10  # default of 10 retries
@@ -2669,7 +2669,7 @@ class TestLiveEndErrorRetriesExhausted:
         assert len(sabr_stream.processor.initialized_formats) == 2
 
         logger.debug.assert_any_call('No heartbeat callback provided, skipping heartbeat check')
-        logger.debug.assert_any_call('Heartbeat does not indicate stream has finished; not marking stream as consumed on last retry')
+        logger.debug.assert_any_call('Heartbeat does not indicate live broadcast has ended; not marking stream as consumed on last retry')
 
         # All responses should be closed
         assert all(request.response.closed for request in rh.request_history if request.response)
@@ -2700,7 +2700,7 @@ class TestLiveEndErrorRetriesExhausted:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             heartbeat_callback=heartbeat_callback,
         )
         assert sabr_stream.http_retries == 10  # default of 10 retries
@@ -2734,7 +2734,7 @@ class TestLiveEndErrorRetriesExhausted:
         # Heartbeat should have been called at least once
         heartbeat_callback.assert_called()
         logger.debug.assert_any_call('Heartbeat callback returned no response, skipping heartbeat check')
-        logger.debug.assert_any_call('Heartbeat does not indicate stream has finished; not marking stream as consumed on last retry')
+        logger.debug.assert_any_call('Heartbeat does not indicate live broadcast has ended; not marking stream as consumed on last retry')
 
         # All responses should be closed
         assert all(request.response.closed for request in rh.request_history if request.response)
@@ -2765,7 +2765,7 @@ class TestLiveEndErrorRetriesExhausted:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             heartbeat_callback=heartbeat_callback,
         )
         assert sabr_stream.http_retries == 10  # default of 10 retries
@@ -2800,7 +2800,7 @@ class TestLiveEndErrorRetriesExhausted:
         heartbeat_callback.assert_called()
         logger.warning.assert_any_call(
             'Error occurred while calling heartbeat callback, skipping heartbeat check: heartbeat error')
-        logger.debug.assert_any_call('Heartbeat does not indicate stream has finished; not marking stream as consumed on last retry')
+        logger.debug.assert_any_call('Heartbeat does not indicate live broadcast has ended; not marking stream as consumed on last retry')
 
         # All responses should be closed
         assert all(request.response.closed for request in rh.request_history if request.response)
@@ -2810,7 +2810,7 @@ class TestLiveEndErrorRetriesExhausted:
         # Should NOT mark the stream as consumed and safely exit when:
         # - On last retry of transport error
         # - near the head of the stream
-        # - heartbeat STRICTLY INDICATES STREAM IS STILL LIVE
+        # - heartbeat STRICTLY indicates broadcast is still live
         # - all formats have been initialized
         total_segments = 10
         segment_target_duration_ms = 2000
@@ -2842,7 +2842,7 @@ class TestLiveEndErrorRetriesExhausted:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             heartbeat_callback=heartbeat_callback,
         )
         assert sabr_stream.http_retries == 10  # default of 10 retries
@@ -2876,7 +2876,7 @@ class TestLiveEndErrorRetriesExhausted:
         # Heartbeat should have been called at least once
         heartbeat_callback.assert_called()
         logger.debug.assert_any_call(
-            'Heartbeat does not indicate stream has finished; not marking stream as consumed on last retry')
+            'Heartbeat does not indicate live broadcast has ended; not marking stream as consumed on last retry')
 
         # All responses should be closed
         assert all(request.response.closed for request in rh.request_history if request.response)
@@ -2909,7 +2909,7 @@ class TestLiveEndErrorRetriesExhausted:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             heartbeat_callback=heartbeat_callback,
             post_live=post_live,
         )
@@ -2944,7 +2944,7 @@ class TestLiveEndErrorRetriesExhausted:
         # Callback should not have been called - check for near head should happen before heartbeat check
         heartbeat_callback.assert_not_called()
 
-        logger.debug.assert_any_call('Not near live stream head; not marking stream as consumed on last retry')
+        logger.debug.assert_any_call('Not near broadcast head; not marking stream as consumed on last retry')
 
         # All responses should be closed
         assert all(request.response.closed for request in rh.request_history if request.response)
@@ -2979,7 +2979,7 @@ class TestLiveEndErrorRetriesExhausted:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             heartbeat_callback=heartbeat_callback,
             post_live=post_live,
         )
@@ -3015,7 +3015,7 @@ class TestLiveEndErrorRetriesExhausted:
         heartbeat_callback.assert_not_called()
 
         # No live metadata should available
-        assert sabr_stream.processor.live_state is None
+        assert sabr_stream.processor.broadcast_state is None
 
         logger.debug.assert_any_call('No live metadata available; not marking stream as consumed on last retry')
 
@@ -3058,7 +3058,7 @@ class TestLiveEndErrorRetriesExhausted:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             heartbeat_callback=heartbeat_callback,
             post_live=post_live,
         )

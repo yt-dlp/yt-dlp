@@ -173,7 +173,7 @@ class TestLiveCuepointAds:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
         )
 
         audio_selector, video_selector = selectors
@@ -251,7 +251,7 @@ class TestLiveCuepointAds:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
         )
 
         collect_parts(sabr_stream)
@@ -317,7 +317,7 @@ class TestLiveCuepointAds:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
         )
 
         collect_parts(sabr_stream)

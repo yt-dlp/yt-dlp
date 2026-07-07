@@ -501,7 +501,7 @@ class TestResponseRetries:
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            live_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
             post_live=post_live,
         )
 
@@ -739,7 +739,6 @@ class TestGVSFallbackRetries:
             assert request.error.cause == 'simulated transport error'
         # Check that the host was switched after each fallback threshold
 
-        # TODO: fix these hosts, gvs fallback function needs fixing
         retry_request_one = error_requests[8]  # first fallback
         retry_request_one_url = urllib.parse.urlparse(retry_request_one.request.url)
         assert retry_request_one_url.netloc == 'rr3---sn-7654321.googlevideo.com'

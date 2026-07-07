@@ -77,6 +77,6 @@ class MediaSeekSabrPart(SabrPart):
 
 
 @dataclasses.dataclass
-class LiveStateSabrPart(SabrPart):
+class BroadcastStateSabrPart(SabrPart):
     available_dvr_window_ms: int
     full_stream_available: bool

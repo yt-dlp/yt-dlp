@@ -906,7 +906,7 @@ class TestStream:
             url=valid_live_url_with_source,
         )
         assert sabr_stream.url == valid_live_url_with_source
-        assert sabr_stream.processor.is_live is True
+        assert sabr_stream.processor.is_broadcast is True
 
     def test_not_set_live_from_url_no_source(self, logger, client_info):
         valid_live_url_without_source = 'https://live.googlevideo.com/sabr?source=another_source&sabr=1'
@@ -916,7 +916,7 @@ class TestStream:
             url=valid_live_url_without_source,
         )
         assert sabr_stream.url == valid_live_url_without_source
-        assert sabr_stream.processor.is_live is False
+        assert sabr_stream.processor.is_broadcast is False
 
     def test_nonlive_ignore_broadcast_id_update(self, logger, client_info):
         # Should ignore broadcast_id updates in URL when non-live
@@ -926,9 +926,9 @@ class TestStream:
             url=VALID_SABR_URL + '&id=1',
         )
 
-        assert sabr_stream.processor.is_live is False
+        assert sabr_stream.processor.is_broadcast is False
         sabr_stream.url = VALID_SABR_URL + '&id=2'
-        assert sabr_stream.processor.is_live is False
+        assert sabr_stream.processor.is_broadcast is False
         assert sabr_stream.url == VALID_SABR_URL + '&id=2'
 
     @pytest.mark.parametrize('post_live', [True, False], ids=['post_live=True', 'post_live=False'])
@@ -941,7 +941,7 @@ class TestStream:
             post_live=post_live,
         )
 
-        assert sabr_stream.processor.is_live is True
+        assert sabr_stream.processor.is_broadcast is True
         with pytest.raises(BroadcastIdChanged, match=r'Broadcast ID changed from 1 to 2\.'):
             sabr_stream.url = 'https://live.googlevideo.com/sabr?sabr=1&source=yt_live_broadcast&id=xyz.2'
 
