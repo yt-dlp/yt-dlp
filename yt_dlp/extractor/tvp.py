@@ -164,10 +164,19 @@ class TVPIE(InfoExtractor):
         if image:
             for thumb in (image if isinstance(image, list) else [image]):
                 thmb_url = str_or_none(thumb.get('url'))
-                if thmb_url:
-                    thumbnails.append({
-                        'url': thmb_url,
-                    })
+                if not thmb_url:
+                    continue
+                width = int_or_none(thumb.get('width'))
+                height = int_or_none(thumb.get('height'))
+                if width and height:
+                    thmb_url = thmb_url.replace('{width}', str(width)).replace('{height}', str(height))
+                elif '{width}' in thmb_url or '{height}' in thmb_url:
+                    continue
+                thumbnails.append({
+                    'url': thmb_url,
+                    'width': width,
+                    'height': height,
+                })
         is_website = video_data.get('type') == 'website'
         if is_website:
             url = video_data['url']
