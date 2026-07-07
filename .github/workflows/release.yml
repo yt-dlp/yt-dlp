@@ -90,7 +90,7 @@ jobs:
           persist-credentials: true  # Needed to git-push the release commit
           ssh-key: ${{ secrets.RELEASE_KEY }}
 
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
         with:
           python-version: "3.13"  # Keep this in sync with test-workflows.yml
 
@@ -178,7 +178,7 @@ jobs:
         with:
           fetch-depth: 0  # Needed for changelog
           persist-credentials: false
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
         with:
           python-version: "3.13"
 
@@ -250,7 +250,7 @@ jobs:
           path: artifact
           pattern: build-*
           merge-multiple: true
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
         with:
           python-version: "3.13"
 
@@ -280,7 +280,7 @@ jobs:
           fi
           printf '\n\n%s\n\n%s%s%s\n\n---\n' \
             "#### A description of the various files is in the [README](https://github.com/${REPOSITORY}#release-files)" \
-            "The zipimport Unix executable contains code licensed under ISC and MIT. " \
+            "The zipimport Unix executable and release tarball contain code licensed under ISC and MIT. " \
             "The PyInstaller-bundled executables are subject to these and other licenses, all of which are compiled in " \
             "[THIRD_PARTY_LICENSES.txt](https://github.com/${BASE_REPO}/blob/${HEAD_SHA}/THIRD_PARTY_LICENSES.txt)" >> ./RELEASE_NOTES
           python ./devscripts/make_changelog.py -vv --collapsible >> ./RELEASE_NOTES
