@@ -1125,10 +1125,7 @@ class TestBroadcastStall:
     @mock_time
     @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
     def test_stream_stall_no_live_metadata_head_details(self, logger, client_info, post_live):
-        # If get a stream through a live stream with no live metadata head details - should fail
-        # TODO: should this gracefully exit instead similar to having no live_metadata?
-        # TODO: should we consider falling back to max_seekable?
-        # TODO: this is an unlikely case, as live streams either have live_metadata with all fields or no live_metadata
+        # If get a stream through a live stream with no live metadata head details - should not fail
         total_segments = 10
         segment_target_duration_ms = 2000
         dvr_segments = 7 if not post_live else 9
@@ -1153,23 +1150,24 @@ class TestBroadcastStall:
             'custom_parts_function': no_new_segments_func,
         })
 
-        sabr_stream, rh, _ = setup_sabr_stream_av(
+        sabr_stream, rh, selectors = setup_sabr_stream_av(
             sabr_response_processor=profile,
             client_info=client_info,
             logger=logger,
             url=VALID_LIVE_URL,
-            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
-        )
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000)
 
-        with pytest.raises(StreamStallError,
-                           match=r'Stream stalled; no activity detected in 6 requests and 10.0 seconds and not near broadcast head.'):
-            collect_parts(sabr_stream)
+        audio_selector, video_selector = selectors
+
+        parts = collect_parts(sabr_stream)
 
         assert sabr_stream._stream_stall_tracker.stalled_requests == 6
+        # We will get only 3 segments before the stall. We cannot tell what the HEAD is so guessing this is the end.
+        assert_media_sequence_in_order(parts, audio_selector, 3)
+        assert_media_sequence_in_order(parts, video_selector, 3)
 
-        # Should not have tried to check heartbeat callback
-        with pytest.raises(AssertionError):
-            logger.debug.assert_any_call('No heartbeat callback provided, skipping heartbeat check')
+        # Should have tried heartbeat but skipped due to no heartbeat callback provided
+        logger.debug.assert_any_call('No heartbeat callback provided, skipping heartbeat check')
 
         # All responses should be closed
         assert all(request.response.closed for request in rh.request_history)

@@ -939,6 +939,7 @@ class SabrStream:
             return
 
         last_retry_msg = '; not marking stream as consumed on last retry'
+        # Note: fail if required LIVE_METADATA details is not available
         is_near_broadcast_head = self._is_near_head_of_broadcast()
         if not is_near_broadcast_head:
             context_msg = 'Not near broadcast head' if self.processor.broadcast_state else 'No live metadata available'
@@ -1021,11 +1022,11 @@ class SabrStream:
                 self._wait_for(max(self._next_request_backoff_ms() // 1000, self.processor.broadcast_segment_target_duration_sec))
             return
 
-        # If LIVE_METADATA is not provided, we cannot be sure if we are at the head of the stream.
+        # If LIVE_METADATA is never provided, or is missing required values, we cannot be sure if we are at the head of the stream.
         # To allow the stream to end, consider it as near broadcast head in this case.
-        # This has been seen on ANDROID_VR client.
+        # This has been seen on ANDROID_VR client in the past.
         is_near_broadcast_head = self._is_near_head_of_broadcast()
-        if is_near_broadcast_head or not self.processor.broadcast_state:
+        if is_near_broadcast_head or is_near_broadcast_head is None:
             context_msg = 'Near broadcast head' if is_near_broadcast_head else 'No live metadata available'
 
             # TODO: add a timeout on how long heartbeat can indicate it is still live
@@ -1081,9 +1082,10 @@ class SabrStream:
         return min(
             consumed_ranges, key=lambda pair: pair[1].start_time_ms + pair[1].duration_ms)
 
-    def _is_near_head_of_broadcast(self):
+    def _is_near_head_of_broadcast(self) -> bool | None:
         # 1. Check if near head segment based on consumed segments
         head_sequence_number = self._broadcast_state_value('head_sequence_number')
+
         if head_sequence_number is not None:
             if all(
                 cr is not None and (head_sequence_number - cr.end_sequence_number) <= self.broadcast_end_segment_tolerance
@@ -1208,12 +1210,14 @@ class SabrStream:
 
         return True
 
-    def _player_time_near_broadcast_head(self, tolerant=False) -> bool:
+    def _player_time_near_broadcast_head(self, tolerant=False) -> bool | None:
         # Check if the current player time is near or at the broadcast head based on head sequence time
         # with an optional tolerance for considering "near" the head
 
         player_time_ms = self.processor.player_time_ms
         head_sequence_time_ms = self._broadcast_state_value('head_sequence_time_ms')
+        if head_sequence_time_ms is None:
+            return None
         segment_target_dur_sec = self.processor.broadcast_segment_target_duration_sec * 1000
         est_head_segment_duration = self.processor.broadcast_est_segment_duration
 
@@ -1221,13 +1225,12 @@ class SabrStream:
         if tolerant:
             broadcast_end_tolerance_ms = segment_target_dur_sec * self.broadcast_end_segment_tolerance
 
-        if head_sequence_time_ms is not None:
-            if player_time_ms >= head_sequence_time_ms + est_head_segment_duration - broadcast_end_tolerance_ms:
-                self.logger.trace(
-                    f'Near or at broadcast head detected based on player time '
-                    f'and head sequence end time with tolerance (ms): '
-                    f'{player_time_ms} >= {head_sequence_time_ms + est_head_segment_duration} - {broadcast_end_tolerance_ms}')
-                return True
+        if player_time_ms >= head_sequence_time_ms + est_head_segment_duration - broadcast_end_tolerance_ms:
+            self.logger.trace(
+                f'Near or at broadcast head detected based on player time '
+                f'and head sequence end time with tolerance (ms): '
+                f'{player_time_ms} >= {head_sequence_time_ms + est_head_segment_duration} - {broadcast_end_tolerance_ms}')
+            return True
         return False
 
     def _missing_initialized_format(self):
