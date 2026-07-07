@@ -61,9 +61,7 @@ class SequenceFile:
         self.format_filename = format_filename
         self.sequence = sequence
         self.file = DiskFormatIOBackend(
-            fd=self.fd,
-            filename=self.format_filename + f'.sq{self.sequence_id}.part',
-        )
+            fd=self.fd, filename=self.format_filename + f'.sq{self.sequence_id}.part')
         self.current_segment: SegmentFile | None = None
         self.resume = resume
         self.max_segments = max_segments
@@ -130,11 +128,8 @@ class SequenceFile:
             self.current_segment.close()
 
         self.current_segment = SegmentFile(
-            fd=self.fd,
-            format_filename=self.format_filename,
-            segment=segment,
-            memory_file_limit=self.segment_memory_file_limit,
-        )
+            fd=self.fd, format_filename=self.format_filename,
+            segment=segment, memory_file_limit=self.segment_memory_file_limit)
 
     def write_segment_data(self, data, segment_id: str):
         if not self.is_current_segment(segment_id):
@@ -210,15 +205,9 @@ class SegmentFile:
         filename = format_filename + f'.sg{segment.segment_id}.part'
         # Store the segment in memory if it is small enough
         if segment.content_length and segment.content_length <= memory_file_limit:
-            self.file = MemoryFormatIOBackend(
-                fd=self.fd,
-                filename=filename,
-            )
+            self.file = MemoryFormatIOBackend(fd=self.fd, filename=filename)
         else:
-            self.file = DiskFormatIOBackend(
-                fd=self.fd,
-                filename=filename,
-            )
+            self.file = DiskFormatIOBackend(fd=self.fd, filename=filename)
 
         # Never resume a segment
         exists = self.file.exists()

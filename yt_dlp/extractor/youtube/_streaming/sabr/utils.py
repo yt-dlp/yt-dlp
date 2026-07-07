@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import dataclasses
 import math
+import time
 import urllib.parse
 
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import InvalidSabrUrl
@@ -134,3 +136,24 @@ def validate_sabr_url(url):
         raise InvalidSabrUrl('missing sabr=1 parameter', url)
 
     return url
+
+
+@dataclasses.dataclass
+class StreamStallTracker:
+    stalled_requests: int = 0
+    # note: lambda to allow mocking of time in tests
+    last_active_time: float = dataclasses.field(default_factory=lambda: time.time())  # noqa: PLW0108
+    # Whether the last request resulted in any activity (new segments)
+    activity_detected: bool = False
+
+    def register_activity(self):
+        self.stalled_requests = 0
+        self.last_active_time = time.time()
+        self.activity_detected = True
+
+    def register_stall(self):
+        if not self.activity_detected:
+            self.stalled_requests += 1
+
+    def next_request(self):
+        self.activity_detected = False

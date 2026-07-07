@@ -58,6 +58,7 @@ from .part import (
 )
 from .processor import SabrProcessor, build_vpabr_request
 from .utils import (
+    StreamStallTracker,
     broadcast_id_from_url,
     fallback_gvs_url,
     find_consumed_range_by_time,
@@ -84,27 +85,6 @@ DEFAULT_EXPIRY_THRESHOLD_SEC = 60
 # YouTube allows retrieval of segments max 7 days.
 # -1 hour leeway added for stability
 DEFAULT_MAX_REWIND_TIME_MS = (7 * 24 * 3600 * 1000) - 3600
-
-
-@dataclasses.dataclass
-class StreamStallTracker:
-    stalled_requests: int = 0
-    # note: lambda to allow mocking of time in tests
-    last_active_time: float = dataclasses.field(default_factory=lambda: time.time())  # noqa: PLW0108
-    # Whether the last request resulted in any activity (new segments)
-    activity_detected: bool = False
-
-    def register_activity(self):
-        self.stalled_requests = 0
-        self.last_active_time = time.time()
-        self.activity_detected = True
-
-    def register_stall(self):
-        if not self.activity_detected:
-            self.stalled_requests += 1
-
-    def next_request(self):
-        self.activity_detected = False
 
 
 @dataclasses.dataclass
@@ -257,7 +237,10 @@ class SabrStream:
         self.pot_retries = pot_retries or DEFAULT_POT_RETRIES
         self.host_fallback_threshold = host_fallback_threshold or DEFAULT_HOST_FALLBACK_THRESHOLD
         self.max_empty_requests = max_empty_requests or DEFAULT_MAX_EMPTY_REQUESTS
-        self.broadcast_end_wait_sec = broadcast_end_wait_sec or max(DEFAULT_MIN_BROADCAST_END_WAIT_SEC, self.max_empty_requests * self.processor.broadcast_segment_target_duration_sec)
+        default_broadcast_end_wait_sec = max(
+            DEFAULT_MIN_BROADCAST_END_WAIT_SEC,
+            self.max_empty_requests * self.processor.broadcast_segment_target_duration_sec)
+        self.broadcast_end_wait_sec = broadcast_end_wait_sec or default_broadcast_end_wait_sec
         self.broadcast_end_segment_tolerance = broadcast_end_segment_tolerance or DEFAULT_BROADCAST_END_SEGMENT_TOLERANCE
         self.enable_broadcast_deep_rewind = enable_broadcast_deep_rewind or False
         self.expiry_threshold_sec = expiry_threshold_sec or DEFAULT_EXPIRY_THRESHOLD_SEC
@@ -305,7 +288,8 @@ class SabrStream:
         if hasattr(self, '_url'):
             self._process_broadcast_id(broadcast_id_from_url(url))
         self._url = url
-        if str_or_none(parse_qs(url).get('source', [None])[0]) in ('yt_live_broadcast', 'yt_premiere_broadcast'):
+        source = str_or_none(parse_qs(url).get('source', [None])[0])
+        if source in ('yt_live_broadcast', 'yt_premiere_broadcast'):
             self.processor.is_broadcast = True
 
     @property
@@ -334,16 +318,14 @@ class SabrStream:
                 err, count, retries, info=self.logger.info,
                 warn=lambda msg: self.logger.warning(f'Got error: {msg}'),
                 error=None if fatal else lambda msg: self.logger.warning(f'Got error: {msg}'),
-                sleep_func=self.retry_sleep_func,
-            )
+                sleep_func=self.retry_sleep_func)
 
         def report_sps_retry(err, count, retries, fatal=True):
             RetryManager.report_retry(
                 err, count, retries, info=self.logger.info,
                 warn=lambda msg: self.logger.warning(f'Got error: {msg}'),
                 error=None if fatal else lambda msg: self.logger.warning(f'Got error: {msg}'),
-                sleep_func=self.retry_sleep_func,
-            )
+                sleep_func=self.retry_sleep_func)
 
         while not self._consumed:
             if self._http_retry_manager is None:
@@ -373,17 +355,13 @@ class SabrStream:
                 self._request_number += 1
                 response = self._urlopen(
                     Request(
-                        url=self.url,
-                        method='POST',
-                        data=payload,
+                        url=self.url, method='POST', data=payload,
                         query={'rn': self._request_number},
                         headers={
                             'content-type': 'application/x-protobuf',
                             'accept-encoding': 'identity',
                             'accept': 'application/vnd.yt-ump',
-                        },
-                    ),
-                )
+                        }))
             except TransportError as e:
                 self._current_http_retry.error = e
             except HTTPError as e:
@@ -462,8 +440,7 @@ class SabrStream:
             return
         msg = 'Received partial segments: ' + ', '.join(
             f'{seg.format_id}: {seg.sequence_number}'
-            for seg in self.processor.partial_segments.values()
-        )
+            for seg in self.processor.partial_segments.values())
         self.logger.debug(msg)
         self.processor.partial_segments.clear()
         self._data_callbacks.clear()
@@ -748,7 +725,8 @@ class SabrStream:
     def _process_broadcast_deep_rewind(self):
         # EXPERIMENTAL
         # BEWARE: super janky code
-        # TODO: check how post_live behaves
+        # TODO(deep-rewind): check how post_live behaves
+        # TODO(deep-rewind): merge as much as possible into processor
         if (
             not self.processor.is_broadcast
             or not self.enable_broadcast_deep_rewind
@@ -756,23 +734,23 @@ class SabrStream:
         ):
             return
 
-        max_seekable_time_ms: int | None = getattr(self.processor.broadcast_state, 'max_seekable_time_ms', None)
-        min_seekable_time_ms: int | None = getattr(self.processor.broadcast_state, 'min_seekable_time_ms', None)
-        # TODO: for non-DVR, min seekable ends up being the first-deep reminded segment, so this detection doesn't work
+        max_seekable_time_ms: int | None = self._broadcast_state_value('max_seekable_time_ms')
+        min_seekable_time_ms: int | None = self._broadcast_state_value('min_seekable_time_ms')
+        # TODO(deep-rewind): for non-DVR, min seekable ends up being the first-deep reminded segment, so this detection doesn't work
         if max_seekable_time_ms is None or min_seekable_time_ms is None:
             self.logger.debug('cannot deep rewind: max_seekable_time_ms/min_seekable_time_ms is unavailable')
-            # TODO: seek to an expected segment and ensure that is validated
+            # TODO(deep-rewind): seek to an expected segment and ensure that is validated
             for izf in self._active_initialized_formats():
                 izf.seek_ms = 0
             return
 
-        # TODO: temp solution to constant seeking and creating lots of new buffered ranges due to our anchor lagging behind DVR lower bound.
+        # TODO(deep-rewind): temp solution to constant seeking and creating lots of new buffered ranges due to our anchor lagging behind DVR lower bound.
         #  Should probably allow anchor to catch up by multiple segments at a time?
         max_buffer_size = max_seekable_time_ms - min_seekable_time_ms
         buffer = min(max_buffer_size, 20 * (self.processor.broadcast_segment_target_duration_sec * 1000))
         if min_seekable_time_ms is not None and self.processor.player_time_ms < min_seekable_time_ms + buffer:
             self.logger.debug(f'deep rewind skipped: allowing player time to get ahead of the lower bound by {buffer}ms')
-            # TODO: seek to an expected segment and ensure that is validated
+            # TODO(deep-rewind): seek to an expected segment and ensure that is validated
             for izf in self._active_initialized_formats():
                 izf.seek_ms = 0
             return
@@ -796,7 +774,7 @@ class SabrStream:
                 tolerance_ms=tolerance_ms)
 
             # If cannot find by time, try by the estimated segment:
-            # TODO: maybe use a bigger tolerance when trying to rewind as the estimate could be quite far off
+            # TODO(deep-rewind): maybe use a bigger tolerance when trying to rewind as the estimate could be quite far off
             if not rewind_cr:
                 chains = find_consumed_range_chain(estimated_rewind_segment + 1, izf.consumed_ranges)
                 if chains:
@@ -806,14 +784,11 @@ class SabrStream:
             # The start_time_ms MUST be the same as player_time_ms
             self.logger.trace(f'rewind cr: {rewind_cr}, est rewind segment: {estimated_rewind_segment}')
             injected_ranges.append((izf.format_id, ConsumedRange(
-                start_time_ms=self.processor.player_time_ms,
-                duration_ms=0,
-                start_sequence_number=None,
-                end_sequence_number=estimated_rewind_segment if rewind_cr is None else rewind_cr.end_sequence_number,
-            )))
+                start_time_ms=self.processor.player_time_ms, duration_ms=0, start_sequence_number=None,
+                end_sequence_number=estimated_rewind_segment if rewind_cr is None else rewind_cr.end_sequence_number)))
 
             # Must mark format as seeking backwards otherwise will get segment mismatch error
-            # TODO: add validation whether we got next segment at the player time OR at the rewind target CR.
+            # TODO(deep-rewind): add validation whether we got next segment at the player time OR at the rewind target CR.
             izf.seek_ms = 0
 
         # Store injected ranges for the next request
@@ -821,7 +796,7 @@ class SabrStream:
             self._injected_consumed_ranges.extend(injected_ranges)
             # Calculate hours from rewind_time_ms
             hours = (max_seekable_time_ms - rewind_time_ms) // 3600000
-            # TODO: once=true is not sufficient here, as the hours will change.
+            # TODO(deep-rewind): once=true is not sufficient here, as the hours will change.
             #  An event should be pushed up to the FD and logged there.
             self.logger.warning(f'Attempting to deep-rewind up to {hours} hour(s)', once=True)
 
@@ -840,16 +815,14 @@ class SabrStream:
                     time_range=TimeRange(
                         start_ticks=cr.start_time_ms,
                         duration_ticks=cr.duration_ms,
-                        timescale=1000,
-                    ),
-                ))
+                        timescale=1000)))
 
         self.logger.trace(f'Injected {len(self._injected_consumed_ranges)} consumed ranges into vpabr')
         if self.logger.log_level == self.logger.LogLevel.TRACE:
             self.logger.trace(f'Injected consumed ranges: {self._injected_consumed_ranges}')
 
-        # TODO: clear here or after successful request?
-        # Could be useful to clear on bad request to try recover the stream
+        # TODO(deep-rewind): clear here or after successful request?
+        #  Could be useful to clear on bad request to try recover the stream
         self._injected_consumed_ranges = []
         return vpabr
     # endregion
@@ -859,11 +832,11 @@ class SabrStream:
             # Does not apply for post-live as not expecting any new segments
             return
 
-        max_seekable_time_ms = getattr(self.processor.broadcast_state, 'max_seekable_time_ms', None)
+        max_seekable_time_ms = self._broadcast_state_value('max_seekable_time_ms')
 
         if max_seekable_time_ms is None:
             # fallback to broadcast head
-            max_seekable_time_ms = getattr(self.processor.broadcast_state, 'head_sequence_time_ms', None)
+            max_seekable_time_ms = self._broadcast_state_value('head_sequence_time_ms')
 
         if max_seekable_time_ms is not None and self.processor.player_time_ms >= max_seekable_time_ms:
             # If we are far past the max seekable time ms, move the player time backwards.
@@ -882,7 +855,9 @@ class SabrStream:
 
             new_time = max(
                 min_consumed_time_ms,
-                min(self.processor.player_time_ms, max_seekable_time_ms + (self.processor.broadcast_segment_target_duration_sec * 1000) - self.processor.broadcast_segment_target_duration_tolerance_ms))
+                min(
+                    self.processor.player_time_ms,
+                    max_seekable_time_ms + self.processor.broadcast_est_segment_duration))
 
             if new_time != self.processor.player_time_ms:
                 self.logger.trace(
@@ -1015,7 +990,7 @@ class SabrStream:
             and any(t in self.processor.sabr_contexts_to_send for t in self.processor.sabr_context_updates)
         ):
             wait_seconds = math.ceil(self.processor.next_request_policy.backoff_time_ms / 1000)
-            # TODO: consider logging this in the FD
+            # TODO: yield a part and log at the FD layer
             self.logger.info(f'Sleeping {wait_seconds:.2f} seconds as required by the server')
             self._wait_for(wait_seconds)
 
@@ -1082,10 +1057,7 @@ class SabrStream:
     # endregion
 
     def _active_initialized_formats(self):
-        return (
-            izf for izf in self.processor.initialized_formats.values()
-            if not izf.discard
-        )
+        return (izf for izf in self.processor.initialized_formats.values() if not izf.discard)
 
     def _next_request_backoff_ms(self):
         backoff_ms = 0
@@ -1098,10 +1070,7 @@ class SabrStream:
         tolerance = self.processor.broadcast_segment_target_duration_tolerance_ms if self.processor.is_broadcast else 0
         for izf in self._active_initialized_formats():
             cr = find_consumed_range_by_time(
-                self.processor.player_time_ms,
-                izf.consumed_ranges,
-                tolerance_ms=tolerance,
-            )
+                self.processor.player_time_ms, izf.consumed_ranges, tolerance_ms=tolerance)
             current.append((izf, cr))
         return current
 
@@ -1114,7 +1083,7 @@ class SabrStream:
 
     def _is_near_head_of_broadcast(self):
         # 1. Check if near head segment based on consumed segments
-        head_sequence_number = getattr(self.processor.broadcast_state, 'head_sequence_number', None)
+        head_sequence_number = self._broadcast_state_value('head_sequence_number')
         if head_sequence_number is not None:
             if all(
                 cr is not None and (head_sequence_number - cr.end_sequence_number) <= self.broadcast_end_segment_tolerance
@@ -1244,28 +1213,32 @@ class SabrStream:
         # with an optional tolerance for considering "near" the head
 
         player_time_ms = self.processor.player_time_ms
-        head_sequence_time_ms = getattr(self.processor.broadcast_state, 'head_sequence_time_ms', None)
-        broadcast_segment_target_duration_ms = self.processor.broadcast_segment_target_duration_sec * 1000
-        broadcast_segment_duration_tolerance_ms = self.processor.broadcast_segment_target_duration_tolerance_ms
-        estimated_head_duration_ms = broadcast_segment_target_duration_ms - broadcast_segment_duration_tolerance_ms
+        head_sequence_time_ms = self._broadcast_state_value('head_sequence_time_ms')
+        segment_target_dur_sec = self.processor.broadcast_segment_target_duration_sec * 1000
+        est_head_segment_duration = self.processor.broadcast_est_segment_duration
+
         broadcast_end_tolerance_ms = 0
         if tolerant:
-            broadcast_end_tolerance_ms = broadcast_segment_target_duration_ms * self.broadcast_end_segment_tolerance
+            broadcast_end_tolerance_ms = segment_target_dur_sec * self.broadcast_end_segment_tolerance
 
         if head_sequence_time_ms is not None:
-            if player_time_ms >= head_sequence_time_ms + estimated_head_duration_ms - broadcast_end_tolerance_ms:
+            if player_time_ms >= head_sequence_time_ms + est_head_segment_duration - broadcast_end_tolerance_ms:
                 self.logger.trace(
                     f'Near or at broadcast head detected based on player time '
                     f'and head sequence end time with tolerance (ms): '
-                    f'{player_time_ms} >= {head_sequence_time_ms + estimated_head_duration_ms} - {broadcast_end_tolerance_ms}')
+                    f'{player_time_ms} >= {head_sequence_time_ms + est_head_segment_duration} - {broadcast_end_tolerance_ms}')
                 return True
         return False
 
     def _missing_initialized_format(self):
         return not all(
             any(izf.format_selector is selector for izf in self.processor.initialized_formats.values())
-            for selector in self.processor.format_selectors() if not selector.discard_media
-        )
+            for selector in self.processor.format_selectors() if not selector.discard_media)
+
+    def _broadcast_state_value(self, attr: str):
+        if not self.processor.broadcast_state:
+            return None
+        return getattr(self.processor.broadcast_state, attr, None)
 
     # region: logging
     def _log_part(self, part: UMPPart, msg=None, protobug_obj=None, data=None):
@@ -1324,9 +1297,6 @@ class SabrStream:
             p = []
             if izf.last_segment_number:
                 p.append(f'{izf.last_segment_number}')
-            # TODO: what is sequence_lmt?
-            if izf.sequence_lmt is not None:
-                p.append(f'lmt={izf.sequence_lmt}')
             if p:
                 s += '(' + ','.join(p) + ')'
             parts.append(s)
@@ -1364,7 +1334,8 @@ class SabrStream:
     def _stats_stall_parts(self):
         return [
             f'sr:{self._stream_stall_tracker.stalled_requests}',
-            f'act:{"Y" if self._stream_stall_tracker.activity_detected else "N"}']
+            f'act:{"Y" if self._stream_stall_tracker.activity_detected else "N"}',
+        ]
 
     def _stats_exp_part(self):
         expires_at = self._gvs_expiry()

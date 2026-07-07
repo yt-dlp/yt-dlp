@@ -87,7 +87,7 @@ class SabrFdSession:
         self.writers: dict[str, SabrFDFormatWriter] = {}
         self.stream = None
         self._logged_dvr_message = False
-        # TODO(live-deep-rewind): remove when implemented
+        # TODO(deep-rewind): remove when implemented
         self._enable_broadcast_deep_rewind = traverse_obj(
             self.fd.ydl.params, ('extractor_args', 'youtube', 'enable_live_deep_rewind', 0, {str}), get_all=False) == 'true'
 
@@ -149,8 +149,7 @@ class SabrFdSession:
             heartbeat_callback=self.heartbeat_callback,
             pot_callback=self.pot_callback,
             reload_callback=self.reload_callback,
-            enable_broadcast_deep_rewind=self._enable_broadcast_deep_rewind,
-        )
+            enable_broadcast_deep_rewind=self._enable_broadcast_deep_rewind)
 
         self.fd._prepare_multiline_status(len(self.writers) + 1)
 
@@ -316,7 +315,8 @@ class SabrFdSession:
             else:
                 self.fd.to_screen(
                     f'[download] Downloading the past {hours} hour(s) of the live stream; full stream is not available')
-            # TODO(deep-rewind): proper logging
+
+            # TODO(deep-rewind): proper logging, should not give DVR disabled message if can get segments
             if self._enable_broadcast_deep_rewind:
                 self.fd.to_screen(
                     '[download] Broadcast deep rewind is enabled, will attempt to download as early as possible')
@@ -435,8 +435,7 @@ class SabrFD(FileDownloader):
                 'quality': sabr_config.get('quality'),
                 'height': sabr_config.get('height'),
                 'filename': f.get('filepath', filename),
-                'info_dict': f,
-            })
+                'info_dict': f})
 
         return format_groups
 
@@ -475,8 +474,7 @@ class SabrFD(FileDownloader):
                     client_info=format_group['client_info'],
                     live_from_start=format_group['live_from_start'],
                     target_duration_sec=format_group.get('target_duration_sec', None),
-                    live_status=format_group.get('live_status'),
-                )
+                    live_status=format_group.get('live_status'))
                 session.run()
         return True
 
@@ -516,7 +514,7 @@ class SabrFD(FileDownloader):
                 if offline_slate and not display_endscreen and not offline_slate_actions:
                     logger.debug(
                         'Streamer disconnected - live stream is offline. '
-                        'Considering as live until terminal status is reached. ')
+                        'Considering as live until terminal status is reached.')
                     return Heartbeat(is_live=True, broadcast_id=broadcast_id, video_id=video_id)
                 elif lsr and (display_endscreen or offline_slate_actions):
                     # Otherwise, consider live stream offline
@@ -536,7 +534,6 @@ class SabrFD(FileDownloader):
                 return None
 
             # Cannot determine live status from heartbeat
-            # TODO(future): consider returning a heartbeat anyways with the broadcast id if we can extract it.
             logger.debug('Unknown status, not returning a heartbeat')
             return None
 
@@ -561,8 +558,7 @@ class SabrFD(FileDownloader):
                 client_info=self._client_info_from_json(sabr_config.get('client_info')),
                 pot_callback=self._create_pot_callback(sabr_config.get('fetch_po_token_fn')),
                 heartbeat_callback=self._create_heartbeat_callback(sabr_config.get('extract_heartbeat_fn')),
-                reload_callback=self._create_reload_callback(sabr_config.get('reload_config_fn')),
-            )
+                reload_callback=self._create_reload_callback(sabr_config.get('reload_config_fn')))
         return callback
 
     def _create_pot_callback(self, fetch_po_token_fn) -> PotCallback | None:
@@ -599,8 +595,7 @@ class SabrFD(FileDownloader):
 
     @contextlib.contextmanager
     def break_multiline(self):
-        # TODO: do we have a core solution to this?
-        # TODO: apply this to every log message that could occur during the multi-line print.
+        # TODO: implement proper multiline-break solution for all logs
         # Temporary suppress the multiline status while printing other messages,
         # to avoid messing up the display or losing the message
         lines = self._multiline.maximum + 1

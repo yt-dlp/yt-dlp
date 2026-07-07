@@ -22,7 +22,6 @@ from yt_dlp.extractor.youtube._streaming.sabr.processor import (
     ProcessMediaHeaderResult,
     ProcessMediaResult,
     ProcessMediaEndResult,
-    BroadcastState,
     build_vpabr_request,
 )
 from yt_dlp.extractor.youtube._streaming.sabr.models import (
@@ -33,6 +32,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.models import (
     Segment,
     ConsumedRange,
     PoTokenStatus,
+    BroadcastState,
 )
 from yt_dlp.extractor.youtube._proto.videostreaming import (
     FormatId,
@@ -853,19 +853,14 @@ class TestFormatInitialization:
             end_time_ms=10000,
             mime_type='audio/mp4',
             duration_ticks=10000,
-            duration_timescale=1000,
-        )
+            duration_timescale=1000)
 
         processor.broadcast_state = BroadcastState(head_sequence_number=10)
         processor.process_format_initialization_metadata(format_init_metadata_part)
         assert str(audio_format_id) in processor.initialized_formats
         assert processor.initialized_formats[str(audio_format_id)].last_segment_number == 10
 
-        # But live metadata should not override total_segments if it is present
-        # XXX: when live metadata is updated, it will update the total_segments.
-        # However, we can consider the total_segments
-        # from the format initialization metadata as the most-up-to-date value until then.
-
+        # Live metadata should not override total_segments if it is present
         video_format_init_metadata_part = FormatInitializationMetadata(
             video_id=example_video_id,
             format_id=video_format_id,
@@ -873,7 +868,6 @@ class TestFormatInitialization:
             # This should take precedence over live_metadata.
             # Generally, this should only ever be greater than the live_metadata value.
             # Never seen this be present for livestreams at this time.
-            # TODO: add a guard to ensure total segments is > live_metadata.head_sequence_number?
             total_segments=9,
             mime_type='video/mp4',
             duration_ticks=10000,
@@ -1900,7 +1894,8 @@ class TestMediaHeader:
         assert isinstance(result, ProcessMediaHeaderResult)
         assert isinstance(result.sabr_part, MediaSegmentInitSabrPart)
         part = result.sabr_part
-        # TODO: confirm expected duration/start_ms settings for init segments
+        # NOTE: duration fields not relevant for init segments.
+        # Behavior can be considered undefined.
         assert part == MediaSegmentInitSabrPart(
             format_selector=selector,
             format_id=selector.format_ids[0],
@@ -1911,12 +1906,11 @@ class TestMediaHeader:
             content_length=501,
             start_time_ms=0,
             duration_ms=0,
-            duration_estimated=True,  # TODO: confirm expected behavior
+            duration_estimated=True,
             start_bytes=0,
         )
         assert media_header.header_id in processor.partial_segments
         segment = processor.partial_segments[media_header.header_id]
-        # TODO: confirm expected duration/start_ms settings for init segments
         assert segment == Segment(
             format_id=selector.format_ids[0],
             is_init_segment=True,

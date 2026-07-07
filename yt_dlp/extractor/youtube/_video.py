@@ -2970,19 +2970,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_heartbeat(self, *, client, video_id, webpage_ytcfg, player_ytcfg, initial_pr, visitor_data, data_sync_id, heartbeat_token, quiet=True):
         headers = self.generate_api_headers(
-            ytcfg=player_ytcfg,
-            default_client=client,
-            visitor_data=visitor_data,
+            ytcfg=player_ytcfg, default_client=client, visitor_data=visitor_data,
             session_index=self._extract_session_index(webpage_ytcfg, player_ytcfg),
             delegated_session_id=(
                 self._parse_data_sync_id(data_sync_id)[0]
-                or self._extract_delegated_session_id(webpage_ytcfg, initial_pr, player_ytcfg)
-            ),
+                or self._extract_delegated_session_id(webpage_ytcfg, initial_pr, player_ytcfg)),
             user_session_id=(
                 self._parse_data_sync_id(data_sync_id)[1]
-                or self._extract_user_session_id(webpage_ytcfg, initial_pr, player_ytcfg)
-            ),
-        )
+                or self._extract_user_session_id(webpage_ytcfg, initial_pr, player_ytcfg)))
 
         payload = {
             'videoId': video_id,
@@ -3174,8 +3169,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     visitor_data=visitor_data,
                     data_sync_id=data_sync_id,
                     # Required for members-only streams
-                    heartbeat_token=traverse_obj(pr, ('heartbeatParams', 'heartbeatToken', {str})),
-                )
+                    heartbeat_token=traverse_obj(pr, ('heartbeatParams', 'heartbeatToken', {str})))
 
                 # Save client details for introspection later
                 innertube_context = traverse_obj(player_ytcfg or self._get_default_ytcfg(client), 'INNERTUBE_CONTEXT')
@@ -3757,8 +3751,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'os_name': 'osName',
                         'device_model': 'deviceModel',
                         'device_make': 'deviceMake',
-                        'android_sdk_version': 'androidSdkVersion',
-                    }))
+                        'android_sdk_version': 'androidSdkVersion'}))
 
                 sabr_config = {
                     'video_playback_ustreamer_config': video_playback_ustreamer_config,

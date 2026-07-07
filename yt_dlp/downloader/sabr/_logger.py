@@ -4,9 +4,6 @@ from yt_dlp.utils import format_field, traverse_obj
 from yt_dlp.extractor.youtube._streaming.sabr.models import SabrLogger
 from yt_dlp.utils._utils import _YDLLogger
 
-# TODO: create a logger that logs to a file rather than the console.
-#  Might be useful for debugging SABR issues from users.
-
 
 class SabrFDLogger(SabrLogger):
     def __init__(self, ydl, prefix, log_level: SabrLogger.LogLevel | None = None):

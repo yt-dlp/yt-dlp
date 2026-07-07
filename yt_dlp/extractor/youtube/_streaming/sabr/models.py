@@ -3,8 +3,10 @@ from __future__ import annotations
 import dataclasses
 import enum
 
-from yt_dlp.extractor.youtube._proto.videostreaming import FormatId
+from yt_dlp.extractor.youtube._proto.videostreaming import AdCuepointConfig, FormatId
 from yt_dlp.extractor.youtube.pot._provider import IEContentProviderLogger
+
+SabrLogger = IEContentProviderLogger
 
 
 @dataclasses.dataclass
@@ -28,7 +30,7 @@ class Segment:
 
 @dataclasses.dataclass
 class ConsumedRange:
-    start_sequence_number: int
+    start_sequence_number: int | None
     end_sequence_number: int
     start_time_ms: int
     duration_ms: int
@@ -53,9 +55,6 @@ class InitializedFormat:
     discard: bool = False
     sequence_lmt: int | None = None
     expected_start_sequence_number: int | None = None
-
-
-SabrLogger = IEContentProviderLogger
 
 
 @dataclasses.dataclass
@@ -102,3 +101,17 @@ class PoTokenStatus(enum.Enum):
 class ReloadConfigReason(enum.Enum):
     SABR_URL_EXPIRY = enum.auto()
     SABR_RELOAD_PLAYER_RESPONSE = enum.auto()
+
+
+@dataclasses.dataclass
+class BroadcastState:
+    head_sequence_number: int = None
+    head_sequence_time_ms: int = None
+    min_seekable_time_ms: int = None
+    max_seekable_time_ms: int = None
+
+
+@dataclasses.dataclass
+class AdCuepoint:
+    cuepoint_config: AdCuepointConfig
+    cuepoint_end_ms: int | None
