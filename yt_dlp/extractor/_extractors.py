@@ -106,7 +106,6 @@ from .archiveorg import (
 )
 from .arcpublishing import ArcPublishingIE
 from .ard import (
-    ARDIE,
     ARDAudiothekIE,
     ARDAudiothekPlaylistIE,
     ARDBetaMediathekIE,
@@ -359,7 +358,6 @@ from .commonmistakes import (
     UnicodeBOMIE,
 )
 from .commonprotocols import (
-    MmsIE,
     RtmpIE,
     ViewSourceIE,
 )
