@@ -63,8 +63,7 @@ def make_init_part(format_selector, format_id, **kwargs):
         start_time_ms=kwargs.pop('start_time_ms', 0),
         duration_ms=kwargs.pop('duration_ms', 1000),
         start_bytes=kwargs.pop('start_bytes', 0),
-        **kwargs,
-    )
+        **kwargs)
 
 
 def make_data_part(format_selector, format_id, **kwargs):
@@ -72,8 +71,7 @@ def make_data_part(format_selector, format_id, **kwargs):
         format_selector=format_selector,
         format_id=format_id,
         total_segments=kwargs.pop('total_segments', 2),
-        **kwargs,
-    )
+        **kwargs)
 
 
 def make_end_part(format_selector, format_id, **kwargs):
@@ -81,8 +79,7 @@ def make_end_part(format_selector, format_id, **kwargs):
         format_selector=format_selector,
         format_id=format_id,
         total_segments=kwargs.pop('total_segments', 2),
-        **kwargs,
-    )
+        **kwargs)
 
 
 def write_sequence_file(fd, filename, sequence, segment, data):
@@ -100,8 +97,7 @@ def make_state_segment(segment: Segment):
         start_time_ms=segment.start_time_ms,
         duration_ms=segment.duration_ms,
         duration_estimated=segment.duration_estimated,
-        content_length=segment.content_length,
-    )
+        content_length=segment.content_length)
 
 
 class TestSabrFDFormatWriter:
@@ -114,15 +110,13 @@ class TestSabrFDFormatWriter:
             format_selector,
             format_id,
             is_init_segment=True,
-            content_length=len(INIT_DATA),
-        ))
+            content_length=len(INIT_DATA)))
         writer.write_segment_data(make_data_part(
             format_selector,
             format_id,
             is_init_segment=True,
             total_segments=2,
-            data=io.BytesIO(INIT_DATA),
-        ))
+            data=io.BytesIO(INIT_DATA)))
         writer.end_segment(make_end_part(format_selector, format_id, is_init_segment=True, total_segments=2))
 
         writer.initialize_segment(make_init_part(
@@ -131,15 +125,13 @@ class TestSabrFDFormatWriter:
             sequence_number=1,
             start_time_ms=0,
             duration_ms=1000,
-            content_length=len(SEGMENT_ONE_DATA),
-        ))
+            content_length=len(SEGMENT_ONE_DATA)))
         writer.write_segment_data(make_data_part(
             format_selector,
             format_id,
             sequence_number=1,
             total_segments=2,
-            data=io.BytesIO(SEGMENT_ONE_DATA),
-        ))
+            data=io.BytesIO(SEGMENT_ONE_DATA)))
         writer.end_segment(make_end_part(format_selector, format_id, sequence_number=1, total_segments=2))
 
         writer.initialize_segment(make_init_part(
@@ -148,15 +140,13 @@ class TestSabrFDFormatWriter:
             sequence_number=2,
             start_time_ms=1000,
             duration_ms=1000,
-            content_length=len(SEGMENT_TWO_DATA),
-        ))
+            content_length=len(SEGMENT_TWO_DATA)))
         writer.write_segment_data(make_data_part(
             format_selector,
             format_id,
             sequence_number=2,
             total_segments=2,
-            data=io.BytesIO(SEGMENT_TWO_DATA),
-        ))
+            data=io.BytesIO(SEGMENT_TWO_DATA)))
         writer.end_segment(make_end_part(format_selector, format_id, sequence_number=2, total_segments=2))
 
         assert Path(writer.file.filename).exists() is False
@@ -177,57 +167,54 @@ class TestSabrFDFormatWriter:
         assert fd._hook_progress.call_args_list[-1].args[0]['status'] == 'finished'
 
     def test_e2e_no_init_sequence(self, fd, filename, info_dict, format_id, format_selector):
+        # Livestreams do not have an init segment, and their sequence numbers start at 0
         fd._hook_progress = MagicMock()
         writer = make_writer(fd, filename, info_dict)
         writer.initialize_format(format_id, broadcast_id=BROADCAST_ID_1)
         writer.initialize_segment(make_init_part(
             format_selector,
             format_id,
-            sequence_number=1,
+            sequence_number=0,
             start_time_ms=0,
             duration_ms=1000,
-            content_length=len(SEGMENT_ONE_DATA),
-        ))
+            content_length=len(SEGMENT_ONE_DATA)))
         writer.write_segment_data(make_data_part(
             format_selector,
             format_id,
-            sequence_number=1,
+            sequence_number=0,
             total_segments=2,
-            data=io.BytesIO(SEGMENT_ONE_DATA),
-        ))
-        writer.end_segment(make_end_part(format_selector, format_id, sequence_number=1, total_segments=2))
+            data=io.BytesIO(SEGMENT_ONE_DATA)))
+        writer.end_segment(make_end_part(format_selector, format_id, sequence_number=0, total_segments=2))
 
         writer.initialize_segment(make_init_part(
             format_selector,
             format_id,
-            sequence_number=2,
+            sequence_number=1,
             start_time_ms=1000,
             duration_ms=1000,
-            content_length=len(SEGMENT_TWO_DATA),
-        ))
+            content_length=len(SEGMENT_TWO_DATA)))
         writer.write_segment_data(make_data_part(
             format_selector,
             format_id,
-            sequence_number=2,
+            sequence_number=1,
             total_segments=2,
-            data=io.BytesIO(SEGMENT_TWO_DATA),
-        ))
-        writer.end_segment(make_end_part(format_selector, format_id, sequence_number=2, total_segments=2))
+            data=io.BytesIO(SEGMENT_TWO_DATA)))
+        writer.end_segment(make_end_part(format_selector, format_id, sequence_number=1, total_segments=2))
 
         assert Path(writer.file.filename).exists() is False
         assert writer._sabr_state_file.exists is True
         # no init sequence should exist
         assert Path(filename + '.sqi.part').exists() is False
         assert writer.state.init_sequence is None
-        assert Path(filename + '.sq1.part').exists() is True
+        assert Path(filename + '.sq0.part').exists() is True
 
         writer.finish()
 
         assert Path(filename).read_bytes() == SEGMENT_ONE_DATA + SEGMENT_TWO_DATA
         assert Path(filename + '.part').exists() is False
         assert writer._sabr_state_file.exists is False
+        assert Path(filename + '.sq0.part').exists() is False
         assert Path(filename + '.sq1.part').exists() is False
-        assert Path(filename + '.sq2.part').exists() is False
         assert writer.state.sequences == []
         assert writer.state.init_sequence is None
         assert fd._hook_progress.call_args_list[-1].args[0]['status'] == 'finished'
@@ -242,14 +229,12 @@ class TestSabrFDFormatWriter:
             format_selector,
             format_id,
             sequence_number=1,
-            content_length=len(SEGMENT_ONE_DATA),
-        ))
+            content_length=len(SEGMENT_ONE_DATA)))
         writer.write_segment_data(make_data_part(
             format_selector,
             format_id,
             sequence_number=1,
-            data=io.BytesIO(SEGMENT_ONE_DATA),
-        ))
+            data=io.BytesIO(SEGMENT_ONE_DATA)))
         writer.end_segment(make_end_part(format_selector, format_id, sequence_number=1))
 
         original_try_rename = fd.try_rename
@@ -271,6 +256,75 @@ class TestSabrFDFormatWriter:
         assert Path(filename + '.sq1.part').exists() is False
         assert Path(filename + '.part').exists() is False
 
+    def test_final_file_excludes_partial_sequences(self, fd, filename, info_dict, format_id, format_selector):
+        # Should not write partial sequences to the final file
+        fd._hook_progress = MagicMock()
+        fd.report_warning = MagicMock()
+
+        writer = make_writer(fd, filename, info_dict)
+        writer.initialize_format(format_id, broadcast_id=BROADCAST_ID_1)
+
+        writer.initialize_segment(
+            make_init_part(
+                format_selector,
+                format_id,
+                sequence_number=1,
+                content_length=len(SEGMENT_ONE_DATA)))
+        writer.write_segment_data(
+            make_data_part(
+                format_selector,
+                format_id,
+                sequence_number=1,
+                data=io.BytesIO(SEGMENT_ONE_DATA)))
+
+        assert Path(writer.file.filename).exists() is False
+        # no sequence file should have been written as no segment completed
+        assert Path(filename + '.sq1.part').exists() is False
+        assert writer.state.sequences[0].sequence_id == '1'
+
+        writer.finish()
+
+        assert Path(filename).exists() is True
+        # should not have written anything
+        assert Path(filename).read_bytes() == b''
+        assert Path(filename + '.part').exists() is False
+        assert writer._sabr_state_file.exists is False
+        assert writer.state.sequences == []
+        assert writer.state.init_sequence is None
+        assert fd._hook_progress.call_args_list[-1].args[0]['status'] == 'finished'
+
+    def test_final_file_excludes_partial_init_sequences(self, fd, filename, info_dict, format_id, format_selector):
+        # Should not write a partial init sequence to the final file
+        fd._hook_progress = MagicMock()
+        fd.report_warning = MagicMock()
+
+        writer = make_writer(fd, filename, info_dict)
+        writer.initialize_format(format_id, broadcast_id=BROADCAST_ID_1)
+
+        # partial init sequence
+        writer.initialize_segment(
+            make_init_part(format_selector, format_id, is_init_segment=True, content_length=len(INIT_DATA)))
+        writer.write_segment_data(
+            make_data_part(
+                format_selector, format_id, is_init_segment=True, total_segments=2, data=io.BytesIO(INIT_DATA)))
+
+        assert Path(writer.file.filename).exists() is False
+        # no sequence file should have been written as no segment completed
+        assert Path(filename + '.sqi.part').exists() is False
+        assert writer.state.init_sequence
+
+        writer.finish()
+
+        assert Path(filename).exists() is True
+        # should not have written anything
+        assert Path(filename).read_bytes() == b''
+        assert Path(filename + '.part').exists() is False
+        assert writer._sabr_state_file.exists is False
+        assert writer.state.sequences == []
+        assert writer.state.init_sequence is None
+        assert fd._hook_progress.call_args_list[-1].args[0]['status'] == 'finished'
+        assert 'Initialization sequence download is incomplete; it will not be written to the final file' in fd.report_warning.call_args.args[0]
+
     def test_e2e_multiple_disjointed_sequence_files(self, fd, filename, info_dict, format_id, format_selector):
         fd._hook_progress = MagicMock()
         fd.report_warning = MagicMock()
@@ -291,8 +345,7 @@ class TestSabrFDFormatWriter:
             format_id,
             sequence_number=1,
             total_segments=3,
-            data=io.BytesIO(SEGMENT_ONE_DATA),
-        ))
+            data=io.BytesIO(SEGMENT_ONE_DATA)))
         writer.end_segment(make_end_part(format_selector, format_id, sequence_number=1, total_segments=3))
 
         # Segment 3 creates another sequence file (disjoint from sequence 1)
@@ -303,8 +356,7 @@ class TestSabrFDFormatWriter:
             start_time_ms=2000,
             duration_ms=1000,
             content_length=len(SEGMENT_THREE_DATA),
-            total_segments=3,
-        ))
+            total_segments=3))
         writer.write_segment_data(make_data_part(
             format_selector,
             format_id,
@@ -334,8 +386,7 @@ class TestSabrFDFormatWriter:
                 format_selector,
                 format_id,
                 sequence_number=1,
-                data=io.BytesIO(SEGMENT_ONE_DATA),
-            ))
+                data=io.BytesIO(SEGMENT_ONE_DATA)))
 
         writer.close()
 
@@ -348,8 +399,7 @@ class TestSabrFDFormatWriter:
             writer.end_segment(make_end_part(
                 format_selector,
                 format_id,
-                sequence_number=1,
-            ))
+                sequence_number=1))
 
         writer.close()
 
@@ -361,8 +411,7 @@ class TestSabrFDFormatWriter:
             writer.initialize_segment(make_init_part(
                 format_selector,
                 format_id,
-                sequence_number=1,
-            ))
+                sequence_number=1))
 
         writer.close()
 
@@ -377,8 +426,7 @@ class TestSabrFDFormatWriter:
             sequence_number=1,
             start_time_ms=0,
             duration_ms=1000,
-            content_length=len(SEGMENT_ONE_DATA),
-        )
+            content_length=len(SEGMENT_ONE_DATA))
         sequence_file_a = SequenceFile(fd=fd, format_filename=filename, sequence=Sequence(sequence_id='a'))
         sequence_file_a.initialize_segment(segment)
         sequence_file_b = SequenceFile(fd=fd, format_filename=filename, sequence=Sequence(sequence_id='b'))
@@ -390,8 +438,7 @@ class TestSabrFDFormatWriter:
                 format_selector,
                 format_id,
                 sequence_number=1,
-                data=io.BytesIO(SEGMENT_ONE_DATA),
-            ))
+                data=io.BytesIO(SEGMENT_ONE_DATA)))
 
         writer.close()
 
@@ -401,15 +448,13 @@ class TestSabrFDFormatWriter:
         init_segment = Segment(
             segment_id=INIT_SEGMENT_ID,
             content_length=len(INIT_DATA),
-            is_init_segment=True,
-        )
+            is_init_segment=True)
         media_segment = Segment(
             segment_id='1',
             sequence_number=1,
             start_time_ms=0,
             duration_ms=1000,
-            content_length=len(SEGMENT_ONE_DATA),
-        )
+            content_length=len(SEGMENT_ONE_DATA))
         write_sequence_file(fd, filename, Sequence(sequence_id=INIT_SEGMENT_ID), init_segment, INIT_DATA)
         write_sequence_file(fd, filename, Sequence(sequence_id='1'), media_segment, SEGMENT_ONE_DATA)
 
@@ -422,11 +467,9 @@ class TestSabrFDFormatWriter:
                     sequence_start_number=1,
                     sequence_content_length=len(SEGMENT_ONE_DATA),
                     first_segments=[make_state_segment(media_segment)],
-                    last_segments=[make_state_segment(media_segment)],
-                ),
+                    last_segments=[make_state_segment(media_segment)]),
             ],
-            broadcast_id=BROADCAST_ID_1,
-        ))
+            broadcast_id=BROADCAST_ID_1))
 
         writer = make_writer(fd, filename, info_dict, resume=True)
         writer.initialize_format(format_id, broadcast_id=BROADCAST_ID_1)
@@ -448,21 +491,18 @@ class TestSabrFDFormatWriter:
             sequence_number=2,
             start_time_ms=1000,
             duration_ms=1000,
-            content_length=len(SEGMENT_TWO_DATA),
-        ))
+            content_length=len(SEGMENT_TWO_DATA)))
         writer.write_segment_data(make_data_part(
             format_selector=AudioSelector(display_name='audio', format_ids=[format_id]),
             format_id=format_id,
             sequence_number=2,
             total_segments=2,
-            data=io.BytesIO(SEGMENT_TWO_DATA),
-        ))
+            data=io.BytesIO(SEGMENT_TWO_DATA)))
         writer.end_segment(make_end_part(
             format_selector=AudioSelector(display_name='audio', format_ids=[format_id]),
             format_id=format_id,
             sequence_number=2,
-            total_segments=2,
-        ))
+            total_segments=2))
 
         resumed_state = writer.state
         assert len(resumed_state.sequences) == 1
@@ -486,8 +526,7 @@ class TestSabrFDFormatWriter:
             format_id=FormatId(itag=140),
             broadcast_id=BROADCAST_ID_1,
             video_id=VIDEO_ID,
-            init_segment=SabrStateInitSegment(content_length=len(INIT_DATA)),
-        ))
+            init_segment=SabrStateInitSegment(content_length=len(INIT_DATA))))
         fd.report_warning = MagicMock()
 
         writer = make_writer(fd, filename, info_dict, resume=True)
@@ -504,19 +543,16 @@ class TestSabrFDFormatWriter:
             format_selector=AudioSelector(display_name='audio', format_ids=[format_id]),
             format_id=format_id,
             sequence_number=1,
-            content_length=len(SEGMENT_ONE_DATA),
-        ))
+            content_length=len(SEGMENT_ONE_DATA)))
         writer.write_segment_data(make_data_part(
             format_selector=AudioSelector(display_name='audio', format_ids=[format_id]),
             format_id=format_id,
             sequence_number=1,
-            data=io.BytesIO(SEGMENT_ONE_DATA),
-        ))
+            data=io.BytesIO(SEGMENT_ONE_DATA)))
         writer.end_segment(make_end_part(
             format_selector=AudioSelector(display_name='audio', format_ids=[format_id]),
             format_id=format_id,
-            sequence_number=1,
-        ))
+            sequence_number=1))
 
         reloaded_state = SabrStateFile(filename, fd).retrieve()
         assert reloaded_state.format_id == format_id
@@ -530,8 +566,7 @@ class TestSabrFDFormatWriter:
             format_id=format_id,
             broadcast_id=BROADCAST_ID_2,
             video_id=VIDEO_ID,
-            init_segment=SabrStateInitSegment(content_length=len(INIT_DATA)),
-        ))
+            init_segment=SabrStateInitSegment(content_length=len(INIT_DATA))))
         fd.report_warning = MagicMock()
 
         writer = make_writer(fd, filename, info_dict, resume=True)
@@ -548,19 +583,16 @@ class TestSabrFDFormatWriter:
             format_selector=AudioSelector(display_name='audio', format_ids=[format_id]),
             format_id=format_id,
             sequence_number=1,
-            content_length=len(SEGMENT_ONE_DATA),
-        ))
+            content_length=len(SEGMENT_ONE_DATA)))
         writer.write_segment_data(make_data_part(
             format_selector=AudioSelector(display_name='audio', format_ids=[format_id]),
             format_id=format_id,
             sequence_number=1,
-            data=io.BytesIO(SEGMENT_ONE_DATA),
-        ))
+            data=io.BytesIO(SEGMENT_ONE_DATA)))
         writer.end_segment(make_end_part(
             format_selector=AudioSelector(display_name='audio', format_ids=[format_id]),
             format_id=format_id,
-            sequence_number=1,
-        ))
+            sequence_number=1))
 
         reloaded_state = SabrStateFile(filename, fd).retrieve()
         assert reloaded_state.format_id == format_id
@@ -574,8 +606,7 @@ class TestSabrFDFormatWriter:
             format_id=format_id,
             broadcast_id=BROADCAST_ID_1,
             video_id=VIDEO_ID_2,
-            init_segment=SabrStateInitSegment(content_length=len(INIT_DATA)),
-        ))
+            init_segment=SabrStateInitSegment(content_length=len(INIT_DATA))))
         fd.report_warning = MagicMock()
 
         writer = make_writer(fd, filename, info_dict, resume=True)
@@ -592,19 +623,16 @@ class TestSabrFDFormatWriter:
             format_selector=AudioSelector(display_name='audio', format_ids=[format_id]),
             format_id=format_id,
             sequence_number=1,
-            content_length=len(SEGMENT_ONE_DATA),
-        ))
+            content_length=len(SEGMENT_ONE_DATA)))
         writer.write_segment_data(make_data_part(
             format_selector=AudioSelector(display_name='audio', format_ids=[format_id]),
             format_id=format_id,
             sequence_number=1,
-            data=io.BytesIO(SEGMENT_ONE_DATA),
-        ))
+            data=io.BytesIO(SEGMENT_ONE_DATA)))
         writer.end_segment(make_end_part(
             format_selector=AudioSelector(display_name='audio', format_ids=[format_id]),
             format_id=format_id,
-            sequence_number=1,
-        ))
+            sequence_number=1))
 
         reloaded_state = SabrStateFile(filename, fd).retrieve()
         assert reloaded_state.format_id == format_id
@@ -630,19 +658,16 @@ class TestSabrFDFormatWriter:
             format_selector=AudioSelector(display_name='audio', format_ids=[format_id]),
             format_id=format_id,
             sequence_number=1,
-            content_length=len(SEGMENT_ONE_DATA),
-        ))
+            content_length=len(SEGMENT_ONE_DATA)))
         writer.write_segment_data(make_data_part(
             format_selector=AudioSelector(display_name='audio', format_ids=[format_id]),
             format_id=format_id,
             sequence_number=1,
-            data=io.BytesIO(SEGMENT_ONE_DATA),
-        ))
+            data=io.BytesIO(SEGMENT_ONE_DATA)))
         writer.end_segment(make_end_part(
             format_selector=AudioSelector(display_name='audio', format_ids=[format_id]),
             format_id=format_id,
-            sequence_number=1,
-        ))
+            sequence_number=1))
 
         reloaded_state = SabrStateFile(filename, fd).retrieve()
         assert reloaded_state.format_id == format_id
@@ -659,15 +684,13 @@ class TestSabrFDFormatWriter:
             format_selector,
             format_id,
             sequence_number=1,
-            content_length=len(SEGMENT_ONE_DATA),
-        ))
+            content_length=len(SEGMENT_ONE_DATA)))
         writer.write_segment_data(make_data_part(
             format_selector,
             format_id,
             sequence_number=1,
             total_segments=3,
-            data=io.BytesIO(SEGMENT_ONE_DATA),
-        ))
+            data=io.BytesIO(SEGMENT_ONE_DATA)))
 
         progress_state, progress_info = fd._hook_progress.call_args.args
         assert progress_info == info_dict
@@ -719,8 +742,7 @@ class TestSabrFDFormatWriter:
             format_id=format_id,
             broadcast_id=BROADCAST_ID_1,
             video_id=VIDEO_ID,
-            init_segment=SabrStateInitSegment(content_length=len(INIT_DATA)),
-        ))
+            init_segment=SabrStateInitSegment(content_length=len(INIT_DATA))))
         fd.report_warning = MagicMock()
 
         writer = make_writer(fd, filename, info_dict, resume=True)
@@ -741,8 +763,7 @@ class TestSabrFDFormatWriter:
             sequence_number=1,
             start_time_ms=0,
             duration_ms=1000,
-            content_length=len(SEGMENT_ONE_DATA),
-        )
+            content_length=len(SEGMENT_ONE_DATA))
         SabrStateFile(filename, fd).update(SabrState(
             format_id=format_id,
             broadcast_id=BROADCAST_ID_1,
@@ -752,10 +773,8 @@ class TestSabrFDFormatWriter:
                     sequence_start_number=1,
                     sequence_content_length=len(SEGMENT_ONE_DATA),
                     first_segments=[make_state_segment(media_segment)],
-                    last_segments=[make_state_segment(media_segment)],
-                ),
-            ],
-        ))
+                    last_segments=[make_state_segment(media_segment)]),
+            ]))
         fd.report_warning = MagicMock()
 
         writer = make_writer(fd, filename, info_dict, resume=True)
@@ -784,14 +803,12 @@ class TestSabrFDFormatWriter:
             sequence_number=10,
             start_time_ms=0,
             duration_ms=1000,
-            content_length=len(SEGMENT_ONE_DATA),
-        ))
+            content_length=len(SEGMENT_ONE_DATA)))
         writer.write_segment_data(make_data_part(
             format_selector,
             format_id,
             sequence_number=10,
-            data=io.BytesIO(SEGMENT_ONE_DATA),
-        ))
+            data=io.BytesIO(SEGMENT_ONE_DATA)))
         writer.end_segment(make_end_part(format_selector, format_id, sequence_number=10))
 
         # partial sequence
@@ -801,14 +818,12 @@ class TestSabrFDFormatWriter:
             sequence_number=12,
             start_time_ms=2000,
             duration_ms=1000,
-            content_length=len(SEGMENT_TWO_DATA),
-        ))
+            content_length=len(SEGMENT_TWO_DATA)))
         writer.write_segment_data(make_data_part(
             format_selector,
             format_id,
             sequence_number=12,
-            data=io.BytesIO(SEGMENT_TWO_DATA[:4]),
-        ))
+            data=io.BytesIO(SEGMENT_TWO_DATA[:4])))
 
         writer.initialize_segment(make_init_part(
             format_selector,
@@ -816,8 +831,7 @@ class TestSabrFDFormatWriter:
             sequence_number=14,
             start_time_ms=4000,
             duration_ms=1000,
-            content_length=len(SEGMENT_THREE_DATA),
-        ))
+            content_length=len(SEGMENT_THREE_DATA)))
 
         assert sorted(sf.sequence_id for sf in writer.state.sequences) == ['10', '12', '14']
         partial_sequences = [sf for sf in writer.state.sequences if sf.sequence_id in ['12', '14']]
@@ -834,6 +848,38 @@ class TestSabrFDFormatWriter:
         assert state.sequences[0].sequence_content_length == len(SEGMENT_ONE_DATA)
         writer.close()
 
+    def test_write_state_ignores_partial_init_sequence(self, fd, filename, info_dict, format_id, format_selector):
+        # should not write partial init sequences to the state file
+        writer = make_writer(fd, filename, info_dict)
+        writer.initialize_format(format_id, broadcast_id=BROADCAST_ID_1)
+
+        # partial init sequence
+        writer.initialize_segment(make_init_part(
+            format_selector,
+            format_id,
+            is_init_segment=True,
+            content_length=len(INIT_DATA)))
+        writer.write_segment_data(make_data_part(
+            format_selector,
+            format_id,
+            is_init_segment=True,
+            total_segments=2,
+            data=io.BytesIO(INIT_DATA)))
+
+        assert writer.state.sequences == []
+        assert writer.state.init_sequence
+        assert writer.state.init_sequence.first_segment is None
+        assert writer.state.init_sequence.last_segment is None
+
+        writer._write_sabr_state()
+        state = SabrStateFile(filename, fd).retrieve()
+
+        # Should not write the partial init segment
+        assert state.broadcast_id == BROADCAST_ID_1
+        assert len(state.sequences) == 0
+        assert state.init_segment is None
+        writer.close()
+
     def test_reinitialize_incomplete_segment(self, fd, filename, info_dict, format_id, format_selector):
         # Should handle reinitializing a segment that was partially written
         # This can occur if SabrStream retries during segment read
@@ -847,15 +893,13 @@ class TestSabrFDFormatWriter:
             sequence_number=1,
             start_time_ms=0,
             duration_ms=1000,
-            content_length=len(SEGMENT_ONE_DATA),
-        ))
+            content_length=len(SEGMENT_ONE_DATA)))
         writer.write_segment_data(make_data_part(
             format_selector,
             format_id,
             sequence_number=1,
             total_segments=1,
-            data=io.BytesIO(SEGMENT_ONE_DATA[:4]),
-        ))
+            data=io.BytesIO(SEGMENT_ONE_DATA[:4])))
 
         assert writer.downloaded_bytes == 4
         assert len(writer.state.sequences) == 1
@@ -869,8 +913,7 @@ class TestSabrFDFormatWriter:
             sequence_number=1,
             start_time_ms=0,
             duration_ms=1000,
-            content_length=len(SEGMENT_ONE_DATA),
-        ))
+            content_length=len(SEGMENT_ONE_DATA)))
 
         assert writer.downloaded_bytes == 0
         assert writer.state.sequences[0].first_segment is None
@@ -881,8 +924,7 @@ class TestSabrFDFormatWriter:
             format_id,
             sequence_number=1,
             total_segments=1,
-            data=io.BytesIO(SEGMENT_ONE_DATA),
-        ))
+            data=io.BytesIO(SEGMENT_ONE_DATA)))
         writer.end_segment(make_end_part(format_selector, format_id, sequence_number=1, total_segments=1))
 
         state = writer.state
@@ -912,15 +954,13 @@ class TestSabrFDFormatWriter:
             sequence_number=1,
             start_time_ms=0,
             duration_ms=1000,
-            content_length=len(SEGMENT_ONE_DATA),
-        ))
+            content_length=len(SEGMENT_ONE_DATA)))
         writer.write_segment_data(make_data_part(
             format_selector,
             format_id,
             sequence_number=1,
             total_segments=1,
-            data=io.BytesIO(SEGMENT_ONE_DATA),
-        ))
+            data=io.BytesIO(SEGMENT_ONE_DATA)))
         writer.end_segment(make_end_part(format_selector, format_id, sequence_number=1, total_segments=1))
 
         initial_state = writer.state

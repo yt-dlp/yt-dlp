@@ -47,8 +47,7 @@ class SabrFDFormatWriter:
 
         self.file = DiskFormatIOBackend(
             fd=self.fd,
-            filename=self.fd.temp_name(filename),
-        )
+            filename=self.fd.temp_name(filename))
         self._sabr_state_file = SabrStateFile(format_filename=self.filename, fd=fd)
         self._sequence_files: list[SequenceFile] = []
         self._init_sequence: SequenceFile | None = None
@@ -294,7 +293,7 @@ class SabrFDFormatWriter:
     def _write_sabr_state(self):
         sabr_state = self._new_sabr_state()
 
-        if not self._init_sequence:
+        if not self._init_sequence or not self._init_sequence.sequence.first_segment:
             sabr_state.init_segment = None
         else:
             sabr_state.init_segment = SabrStateInitSegment(
@@ -344,8 +343,13 @@ class SabrFDFormatWriter:
 
         # Note: May not always be an init segment, e.g for live streams
         if self._init_sequence:
-            self._init_sequence.read_into(self.file)
-            self._init_sequence.close()
+            if self._init_sequence.sequence.first_segment:
+                self._init_sequence.read_into(self.file)
+                self._init_sequence.close()
+            else:
+                # this should not happen (except for in --test)
+                self.fd.report_warning(
+                    'Initialization sequence download is incomplete; it will not be written to the final file')
 
         previous_seq_number = None
         for sequence_file in sorted(
