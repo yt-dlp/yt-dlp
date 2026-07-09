@@ -270,6 +270,7 @@ INNERTUBE_CLIENTS = {
         'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
         'REQUIRE_JS_PLAYER': False,
     },
+    # "Made for kids" videos aren't available with this client
     'visionos': {
         'INNERTUBE_CONTEXT': {
             'client': {
