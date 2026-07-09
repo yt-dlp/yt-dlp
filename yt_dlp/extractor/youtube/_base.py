@@ -270,6 +270,22 @@ INNERTUBE_CLIENTS = {
         'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
         'REQUIRE_JS_PLAYER': False,
     },
+    # "Made for kids" videos aren't available with this client
+    'visionos': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'VISIONOS',
+                'clientVersion': '1.02',
+                'deviceMake': 'Apple',
+                'deviceModel': 'RealityDevice17,1',
+                'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
+                'osName': 'visionOS',
+                'osVersion': '26.5.23O471',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 101,
+        'REQUIRE_JS_PLAYER': False,
+    },
     # mweb has 'ultralow' formats
     # See: https://github.com/yt-dlp/yt-dlp/pull/557
     'mweb': {

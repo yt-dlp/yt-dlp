@@ -3132,8 +3132,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     prs.append(pr)
 
             if (
-                # Is this a "made for kids" video that can't be downloaded with android_vr?
-                client == 'android_vr' and self._is_unplayable(pr)
+                # Is this a "made for kids" video that can't be downloaded with android_vr/visionos?
+                client in {'android_vr', 'visionos'} and self._is_unplayable(pr)
                 and webpage and 'made for kids' in webpage
                 # ...and is a JS runtime is available?
                 and any(p.is_available() for p in self._jsc_director.providers.values())
