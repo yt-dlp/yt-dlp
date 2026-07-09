@@ -229,7 +229,8 @@ class SabrProcessor:
 
         # WEB-based clients do not use MediaCapabilities. If MediaCapabilities is supplied,
         # the preferred format ids appears to be ignored, causing other formats to be returned.
-        if self.client_info.client_name not in (ClientName.ANDROID_VR, ClientName.ANDROID, ClientName.IOS):
+        clients = (ClientName.ANDROID_VR, ClientName.ANDROID, ClientName.IOS, ClientName.VISIONOS)
+        if self.client_info.client_name not in clients:
             return None
 
         hdr_mode_bitmask = BITFIELD_HDR_MODE_DISABLED

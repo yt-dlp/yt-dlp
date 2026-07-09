@@ -303,7 +303,7 @@ class TestSabrProcessorInitialization:
 
     @pytest.mark.parametrize('client_name', [
         client_name for client_name in ClientName
-        if client_name not in (ClientName.ANDROID, ClientName.IOS, ClientName.ANDROID_VR)
+        if client_name not in (ClientName.ANDROID, ClientName.IOS, ClientName.ANDROID_VR, ClientName.VISIONOS)
     ])
     def test_cabr_state_not_set_media_capabilities(self, base_args, client_name):
         # Should not set media_capabilities in client_abr_state for non-android/ios clients'
@@ -313,7 +313,7 @@ class TestSabrProcessorInitialization:
         assert processor.client_abr_state.media_capabilities is None
 
     @pytest.mark.parametrize('client_name', [
-        ClientName.ANDROID, ClientName.IOS, ClientName.ANDROID_VR,
+        ClientName.ANDROID, ClientName.IOS, ClientName.ANDROID_VR, ClientName.VISIONOS,
     ])
     @pytest.mark.parametrize('hdr_enabled', [
         True, False,
