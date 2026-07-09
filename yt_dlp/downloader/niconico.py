@@ -78,7 +78,7 @@ class NiconicoLiveFD(FileDownloader):
                         return
                 except BaseException as e:
                     self.to_screen(
-                        f'[niconico:live] {video_id}: Connection error occured, reconnecting after 10 seconds: {e}')
+                        f'[niconico:live] {video_id}: Connection error occurred, reconnecting after 10 seconds: {e}')
                     time.sleep(10)
                     continue
                 finally:

@@ -211,7 +211,7 @@ class RequestHandler(abc.ABC):
 
     Apart from the url protocol, proxies dict may contain the following keys:
     - `all`: proxy to use for all protocols. Used as a fallback if no proxy is set for a specific protocol.
-    - `no`: comma seperated list of hostnames (optionally with port) to not use a proxy for.
+    - `no`: comma-separated list of hostnames (optionally with port) to not use a proxy for.
     Note: a RequestHandler may not support these, as defined in `_SUPPORTED_FEATURES`.
 
     """
@@ -568,7 +568,7 @@ class Response(io.IOBase):
 
     def get_header(self, name, default=None):
         """Get header for name.
-        If there are multiple matching headers, return all seperated by comma."""
+        If there are multiple matching headers, return all separated by commas."""
         headers = self.headers.get_all(name)
         if not headers:
             return default
