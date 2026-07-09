@@ -650,8 +650,8 @@ def update_requirements(
     modify_and_write_pyproject(pyproject_text, table_name=EXTRAS_TABLE, table=extras)
 
     # Generate/upgrade final lockfile that includes pinned extras
-    print(f'Running: uv lock {upgrade_arg}', file=sys.stderr)
-    run_process('uv', 'lock', upgrade_arg, env=env)
+    print('Running: uv lock', file=sys.stderr)
+    run_process('uv', 'lock', env=env)
 
     # Export bundle requirements; any updates to these are already recorded w/ uv.lock package diff
     for target_suffix, target in BUNDLE_TARGETS.items():
