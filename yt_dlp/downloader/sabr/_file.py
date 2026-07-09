@@ -144,7 +144,7 @@ class SequenceFile:
         self.current_segment.finish_write()
 
         if (
-            self.current_segment.segment.content_length
+            self.current_segment.segment.content_length is not None
             and not self.current_segment.segment.content_length_estimated
             and self.current_segment.current_length != self.current_segment.segment.content_length
         ):
