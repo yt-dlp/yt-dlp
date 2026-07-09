@@ -687,7 +687,12 @@ class SabrStream:
                 'Skipping player time increment; not all enabled format selectors have an initialized format yet')
             return
 
-        # 2. If the format is seeking, skip as player time should not progress while seeking
+        # 2. If there are no enabled formats, skip
+        if self._no_enabled_formats():
+            self.logger.debug('Skipping player time increment; no enabled formats')
+            return
+
+        # 3. If the format is seeking, skip as player time should not progress while seeking
         # NOTE: excluding if seek_ms is within a consumed range chain for the initialized format,
         #  otherwise stream can get stuck in some circumstances
         broadcast_tolerance_ms = self.processor.broadcast_segment_target_duration_tolerance_ms if self.processor.is_broadcast else 0
@@ -700,7 +705,7 @@ class SabrStream:
                 'Skipping player time increment; one or more initialized formats are currently seeking')
             return
 
-        # 3. If missing a consumed range for the current player time, skip
+        # 4. If missing a consumed range for the current player time, skip
         current_consumed_ranges = self._current_consumed_ranges()
         if any(
             cr is None for _, cr in current_consumed_ranges
@@ -710,7 +715,7 @@ class SabrStream:
                 'is missing a consumed range for current player time')
             return
 
-        # 4. Update player time to the lowest end time of consumed ranges that match the current player time
+        # 5. Update player time to the lowest end time of consumed ranges that match the current player time
         min_izf, min_cr = self._get_min_consumed_range(current_consumed_ranges)
         min_consumed_time_ms = min_cr.start_time_ms + min_cr.duration_ms
         self.logger.trace(f'Lowest consumed range: format={min_izf.format_id}, cr={min_cr} (end={min_consumed_time_ms}ms)')
@@ -878,6 +883,11 @@ class SabrStream:
     # region: End of stream detection
 
     def _check_end_of_stream(self):
+        if self._no_enabled_formats():
+            self.logger.debug('End of stream (no enabled formats)')
+            self._consumed = True
+            return
+
         if self.processor.is_broadcast and not self.processor.post_live:
             # Live broadcast end detection handled as part of stream stall detection
             # Post-live is handled by both - depending on if we can get the final segments or not
@@ -1237,6 +1247,9 @@ class SabrStream:
         return not all(
             any(izf.format_selector is selector for izf in self.processor.initialized_formats.values())
             for selector in self.processor.format_selectors() if not selector.discard_media)
+
+    def _no_enabled_formats(self):
+        return all(selector.discard_media for selector in self.processor.format_selectors())
 
     def _broadcast_state_value(self, attr: str):
         if not self.processor.broadcast_state:

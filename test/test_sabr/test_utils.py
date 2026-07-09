@@ -5,7 +5,12 @@ import re
 import pytest
 
 from yt_dlp.extractor.youtube._streaming.sabr.exceptions import InvalidSabrUrl
-from yt_dlp.extractor.youtube._streaming.sabr.utils import ticks_to_ms, broadcast_id_from_url, validate_sabr_url, fallback_gvs_url
+from yt_dlp.extractor.youtube._streaming.sabr.utils import (
+    ticks_to_ms,
+    broadcast_id_from_url,
+    validate_sabr_url,
+    fallback_gvs_url,
+)
 from yt_dlp.extractor.youtube._streaming.sabr.utils import (
     get_cr_chain,
     find_consumed_range,

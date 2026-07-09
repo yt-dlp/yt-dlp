@@ -2405,6 +2405,39 @@ class TestLive:
 
         assert video_buffered_range in rh.request_history[1].vpabr.buffered_ranges
 
+    @mock_time
+    @pytest.mark.parametrize('post_live', [False, True], ids=['live', 'post_live'])
+    def test_all_formats_discarded(self, logger, client_info, post_live):
+        # Should end the stream after single successful request if all formats are marked as discarded
+        total_segments = 10
+        segment_target_duration_ms = 2000
+        dvr_segments = 9
+        profile = LiveAVProfile({
+            'total_segments': total_segments,
+            'segment_target_duration_ms': segment_target_duration_ms,
+            'dvr_segments': dvr_segments,
+        })
+        sabr_stream, rh, _ = setup_sabr_stream_av(
+            sabr_response_processor=profile,
+            client_info=client_info,
+            logger=logger,
+            url=VALID_LIVE_URL,
+            broadcast_segment_target_duration_sec=segment_target_duration_ms // 1000,
+            enable_audio=False,
+            enable_video=False,
+            enable_captions=False,
+            post_live=post_live,
+        )
+        parts = collect_parts(sabr_stream)
+        assert len(parts) == 1
+        assert isinstance(parts[0], BroadcastStateSabrPart)
+
+        assert sabr_stream.processor.player_time_ms == 0
+        logger.debug.assert_any_call('Skipping player time increment; no enabled formats')
+        logger.debug.assert_any_call('End of stream (no enabled formats)')
+
+        assert len(rh.request_history) == 1
+
 
 class TestBroadcastEndErrorRetriesExhausted:
     @mock_time

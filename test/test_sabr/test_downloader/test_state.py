@@ -20,6 +20,7 @@ def sabr_state():
         format_id=FormatId(itag=251, lmt=123456789, xtags='dash'),
         init_segment=SabrStateInitSegment(content_length=1024),
         video_id='video_id',
+        broadcast_id='broadcast-1',
         sequences=[
             SabrStateSequence(
                 sequence_start_number=1,
@@ -30,8 +31,7 @@ def sabr_state():
                         start_time_ms=0,
                         duration_ms=1000,
                         duration_estimated=False,
-                        content_length=2048,
-                    ),
+                        content_length=2048),
                 ],
                 last_segments=[
                     SabrStateSegment(
@@ -39,13 +39,9 @@ def sabr_state():
                         start_time_ms=1000,
                         duration_ms=1000,
                         duration_estimated=True,
-                        content_length=2048,
-                    ),
-                ],
-            ),
-        ],
-        broadcast_id='broadcast-1',
-    )
+                        content_length=2048),
+                ]),
+        ])
 
 
 class TestSabrStateFile:

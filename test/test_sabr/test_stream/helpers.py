@@ -619,11 +619,9 @@ class LiveAVProfile(BasicAudioVideoProfile):
         return self.options.get('live_head_always_available', self.DEFAULT_LIVE_HEAD_ALWAYS_AVAILABLE)
 
     def segment_duration_ms(self, segment_number):
-        # variation = 270 if segment_number % 2 == 0 else -256
         return self.segment_target_duration_ms
 
     def segment_length(self, segment_number):
-        # variation = 256 if segment_number % 2 == 0 else -512
         return self.DEFAULT_TARGET_SEGMENT_LENGTH + 0
 
     @property

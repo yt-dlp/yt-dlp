@@ -338,8 +338,7 @@ class TestSabrFDFormatWriter:
             start_time_ms=0,
             duration_ms=1000,
             content_length=len(SEGMENT_ONE_DATA),
-            total_segments=3,
-        ))
+            total_segments=3))
         writer.write_segment_data(make_data_part(
             format_selector,
             format_id,
@@ -362,8 +361,7 @@ class TestSabrFDFormatWriter:
             format_id,
             sequence_number=3,
             total_segments=3,
-            data=SEGMENT_THREE_DATA,
-        ))
+            data=SEGMENT_THREE_DATA))
         writer.end_segment(make_end_part(format_selector, format_id, sequence_number=3, total_segments=3))
 
         assert sorted(sf.sequence_id for sf in writer.state.sequences) == ['1', '3']
@@ -773,8 +771,7 @@ class TestSabrFDFormatWriter:
                     sequence_start_number=1,
                     sequence_content_length=len(SEGMENT_ONE_DATA),
                     first_segments=[make_state_segment(media_segment)],
-                    last_segments=[make_state_segment(media_segment)]),
-            ]))
+                    last_segments=[make_state_segment(media_segment)])]))
         fd.report_warning = MagicMock()
 
         writer = make_writer(fd, filename, info_dict, resume=True)
@@ -975,8 +972,7 @@ class TestSabrFDFormatWriter:
                 sequence_number=1,
                 start_time_ms=0,
                 duration_ms=1000,
-                content_length=len(SEGMENT_ONE_DATA),
-            ))
+                content_length=len(SEGMENT_ONE_DATA)))
 
         assert len(writer.state.sequences) == 1
         assert writer.state.sequences[0].sequence_id == '1'

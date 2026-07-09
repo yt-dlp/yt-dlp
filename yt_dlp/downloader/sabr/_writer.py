@@ -272,8 +272,7 @@ class SabrFDFormatWriter:
             elif sabr_state.video_id != self.video_id:
                 self.fd.report_warning(
                     f'Video ID mismatch in state file for format {self.info_dict.get("format_id")}, restarting download '
-                    f'(expected {self.video_id}, got {sabr_state.video_id}).',
-                )
+                    f'(expected {self.video_id}, got {sabr_state.video_id}).')
                 sabr_state = None
             elif sabr_state.broadcast_id != self._broadcast_id:
                 self.fd.report_warning(

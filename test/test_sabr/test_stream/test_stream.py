@@ -159,6 +159,24 @@ class TestStream:
         logger.trace.assert_any_call(
             'All enabled formats have reached their last expected segment at player time 10001 ms, assuming end of vod.')
 
+    def test_all_formats_discarded(self, logger, client_info):
+        # Should end the stream after single successful request if all formats are marked as discarded
+        sabr_stream, rh, _ = setup_sabr_stream_av(
+            sabr_response_processor=BasicAudioVideoProfile(),
+            client_info=client_info,
+            logger=logger,
+            enable_audio=False,
+            enable_video=False,
+        )
+        parts = collect_parts(sabr_stream)
+        assert parts == []
+
+        assert sabr_stream.processor.player_time_ms == 0
+        logger.debug.assert_any_call('Skipping player time increment; no enabled formats')
+        logger.debug.assert_any_call('End of stream (no enabled formats)')
+
+        assert len(rh.request_history) == 1
+
     def test_media_no_data_callback_registered(self, logger, client_info):
         # should raise a warning when receive data for a header that has no data callback registered
         sabr_stream, _, _ = setup_sabr_stream_av(

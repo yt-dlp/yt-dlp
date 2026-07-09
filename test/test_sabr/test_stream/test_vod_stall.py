@@ -1,13 +1,10 @@
 from __future__ import annotations
 import io
-import protobug
 import pytest
 
 from test.test_sabr.test_stream.helpers import (
-    VIDEO_PLAYBACK_USTREAMER_CONFIG,
     DEFAULT_NUM_AUDIO_SEGMENTS,
     DEFAULT_NUM_VIDEO_SEGMENTS,
-    SabrRequestHandler,
     CustomAVProfile,
     assert_media_sequence_in_order,
     setup_sabr_stream_av,
@@ -19,11 +16,6 @@ from yt_dlp.extractor.youtube._streaming.sabr.exceptions import (
 )
 from yt_dlp.extractor.youtube._streaming.ump import UMPPartId, UMPPart
 from yt_dlp.networking.exceptions import TransportError
-
-from yt_dlp.extractor.youtube._streaming.sabr.models import AudioSelector
-from yt_dlp.extractor.youtube._streaming.sabr.part import PoTokenStatusSabrPart
-from yt_dlp.extractor.youtube._streaming.sabr.stream import SabrStream
-from yt_dlp.extractor.youtube._proto.videostreaming import StreamProtectionStatus
 
 
 def test_no_new_segments_default(logger, client_info):
@@ -260,55 +252,43 @@ def test_consumed_segments_counted(logger, client_info):
     logger.debug.assert_any_call('No activity detected in request 4; registering stall (count: 2)')
 
 
-@pytest.mark.skip(reason='todo')
-def test_discarded_segments_not_counted(logger, client_info):
-    # Requests with NEW segments marked as discarded (but no consumed) should NOT count towards empty requests
-    # Set up a audio-only stream with discard=True in the selector
+def test_no_segments_after_initialization(logger, client_info):
+    # Should stall if no media segments were provided after format initialization
+    max_empty_requests = 3
 
-    # Create a custom function that will return a reload player response on the 1st request.
-    # This allows us to catch the iterator before going onto the next request so we can clear consumed ranges.
-    # (Format parts will NOT be returned as the format is marked to discard)
-    def no_new_segments_discarded_func(parts, vpabr, url, request_number):
-        # On 1st request, inject in SPS so we can update consumed ranges
-        # (these tests do not use SPS elsewhere)
-        if request_number == 1:
-            payload = protobug.dumps(StreamProtectionStatus(
-                status=StreamProtectionStatus.Status.OK,
-            ))
-            return [
-                parts[0],  # Format init part
-                UMPPart(
-                    part_id=UMPPartId.STREAM_PROTECTION_STATUS,
-                    size=len(payload),
-                    data=io.BytesIO(payload),
-                ),
-                *parts[1:],  # Media parts. Needs to be after reload part so new buffered ranges created
-            ]
-        return parts
+    def only_format_init_part(parts, vpabr, url, request_number):
+        return [part for part in parts if part.part_id == UMPPartId.FORMAT_INITIALIZATION_METADATA]
 
-    rh = SabrRequestHandler(
-        sabr_response_processor=CustomAVProfile({'custom_parts_function': no_new_segments_discarded_func}))
-    audio_selector = AudioSelector(display_name='audio', discard_media=True)
-    sabr_stream = SabrStream(
-        urlopen=rh.send,
-        server_abr_streaming_url='https://example.com/sabr',
-        logger=logger,
-        video_playback_ustreamer_config=VIDEO_PLAYBACK_USTREAMER_CONFIG,
+    sabr_stream, rh, _ = setup_sabr_stream_av(
         client_info=client_info,
-        audio_selection=audio_selector,
-    )
+        logger=logger,
+        sabr_response_processor=CustomAVProfile({'custom_parts_function': only_format_init_part}),
+        max_empty_requests=max_empty_requests)
 
-    # Clear the buffered ranges of the format (which will be set to fully buffered)
-    parts_iter = sabr_stream.iter_parts()
+    with pytest.raises(SabrStreamError, match=r'Stream stalled; no activity detected in 3 consecutive requests'):
+        collect_parts(sabr_stream)
 
-    reload_player_response_part = next(parts_iter)
-    assert isinstance(reload_player_response_part, PoTokenStatusSabrPart)
-    for format_init_part in sabr_stream.processor.initialized_formats.values():
-        format_init_part.consumed_ranges.clear()
+    assert len(rh.request_history) == max_empty_requests
+    logger.debug.assert_any_call('No activity detected in request 3; registering stall (count: 3)')
+    logger.debug.assert_any_call(
+        'Skipping player time increment; one or more initialized formats is missing a consumed range for current player time')
 
-    # Get rest of parts, should not error or get any segments
-    # TODO: this fails as we do not increment player_time_ms for discarded formats
-    #  (so the server does not respond with any) - even if discarded formats are the only ones available?
-    #  Technically this should never be a valid use case.
-    # We could alternatively test this by having an enabled format that we withold segments
-    # parts = list(parts_iter)
+
+def test_no_parts(logger, client_info):
+    # Should stall if no parts whatsoever were returned
+    max_empty_requests = 3
+
+    def no_parts_func(parts, vpabr, url, request_number):
+        return []
+
+    sabr_stream, rh, _ = setup_sabr_stream_av(
+        client_info=client_info,
+        logger=logger,
+        sabr_response_processor=CustomAVProfile({'custom_parts_function': no_parts_func}),
+        max_empty_requests=max_empty_requests)
+
+    with pytest.raises(SabrStreamError, match=r'Stream stalled; no activity detected in 3 consecutive requests'):
+        collect_parts(sabr_stream)
+
+    assert len(rh.request_history) == max_empty_requests
+    logger.debug.assert_any_call('No activity detected in request 3; registering stall (count: 3)')

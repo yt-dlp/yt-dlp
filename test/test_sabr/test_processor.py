@@ -3,7 +3,11 @@ import io
 
 import pytest
 
-from yt_dlp.extractor.youtube._streaming.sabr.exceptions import SabrStreamError, MediaSegmentMismatchError, UnexpectedConsumedMediaSegment
+from yt_dlp.extractor.youtube._streaming.sabr.exceptions import (
+    SabrStreamError,
+    MediaSegmentMismatchError,
+    UnexpectedConsumedMediaSegment,
+)
 from yt_dlp.extractor.youtube._streaming.sabr.part import (
     PoTokenStatusSabrPart,
     FormatInitializedSabrPart,
@@ -80,20 +84,17 @@ def make_selector(selector_type, *, discard_media=False, format_ids=None):
         return AudioSelector(
             display_name='audio',
             format_ids=format_ids if format_ids is not None else [FormatId(itag=140)],
-            discard_media=discard_media,
-        )
+            discard_media=discard_media)
     elif selector_type == 'video':
         return VideoSelector(
             display_name='video',
             format_ids=format_ids if format_ids is not None else [FormatId(itag=248)],
-            discard_media=discard_media,
-        )
+            discard_media=discard_media)
     elif selector_type == 'caption':
         return CaptionSelector(
             display_name='caption',
             format_ids=format_ids if format_ids is not None else [FormatId(itag=386)],
-            discard_media=discard_media,
-        )
+            discard_media=discard_media)
     raise ValueError(f'Unknown selector_type: {selector_type}')
 
 
@@ -111,8 +112,7 @@ def make_format_im(selector=None, video_id=None):
         total_segments=5,
         mime_type=(selector.mime_prefix + '/mp4') if selector else 'audio/mp4',
         duration_ticks=10000,
-        duration_timescale=1000,
-    )
+        duration_timescale=1000)
 
 
 def make_init_header(selector=None, video_id=None):
@@ -122,8 +122,7 @@ def make_init_header(selector=None, video_id=None):
         header_id=0,
         is_init_segment=True,
         start_data_range=0,
-        content_length=501,
-    )
+        content_length=501)
 
 
 def make_media_header(selector=None, video_id=None, sequence_no=None, header_id=0):
@@ -136,8 +135,7 @@ def make_media_header(selector=None, video_id=None, sequence_no=None, header_id=
         sequence_number=sequence_no,
         is_init_segment=False,
         duration_ms=2300,
-        start_ms=0,
-    )
+        start_ms=0)
 
 
 def make_cuepoint_info(
@@ -157,11 +155,9 @@ def make_cuepoint_info(
             type=CuepointType.AD,
             event=event,
             identifier=identifier,
-            duration_sec=duration_ms // 1000 if duration_ms else None,
-        ),
+            duration_sec=duration_ms // 1000 if duration_ms else None),
         track_type=track_type,
-        time_range=time_range,
-    )
+        time_range=time_range)
 
 
 class TestSabrProcessorInitialization:
@@ -220,8 +216,7 @@ class TestSabrProcessorInitialization:
             **base_args,
             audio_selection=audio_sel() if audio_sel else None,
             video_selection=video_sel() if video_sel else None,
-            caption_selection=caption_sel() if caption_sel else None,
-        )
+            caption_selection=caption_sel() if caption_sel else None)
         assert processor.client_abr_state.enabled_track_types_bitfield == expected_bitfield
 
     @pytest.mark.parametrize(
@@ -261,8 +256,7 @@ class TestSabrProcessorInitialization:
                 [FormatId(itag=248), FormatId(itag=249)],
                 [FormatId(itag=386), FormatId(itag=387)],
             ),
-        ],
-    )
+        ])
     def test_selected_format_ids(
         self, base_args, audio_sel, video_sel, caption_sel,
         expected_audio_ids, expected_video_ids, expected_caption_ids,
@@ -271,8 +265,7 @@ class TestSabrProcessorInitialization:
             **base_args,
             audio_selection=audio_sel() if audio_sel else None,
             video_selection=video_sel() if video_sel else None,
-            caption_selection=caption_sel() if caption_sel else None,
-        )
+            caption_selection=caption_sel() if caption_sel else None)
         assert processor.preferred_audio_format_ids == expected_audio_ids
         assert processor.preferred_video_format_ids == expected_video_ids
         assert processor.preferred_caption_format_ids == expected_caption_ids
@@ -286,10 +279,7 @@ class TestSabrProcessorInitialization:
         ],
     )
     def test_start_time_ms_initialization(self, base_args, start_time_ms, expected):
-        processor = SabrProcessor(
-            **base_args,
-            start_time_ms=start_time_ms,
-        )
+        processor = SabrProcessor(**base_args, start_time_ms=start_time_ms)
         assert processor.start_time_ms == expected
         assert processor.client_abr_state.player_time_ms == expected
 
@@ -301,8 +291,7 @@ class TestSabrProcessorInitialization:
                 audio_selection=selector_factory('audio')(),
                 video_selection=selector_factory('video')(),
                 caption_selection=None,
-                start_time_ms=invalid_start_time_ms,
-            )
+                start_time_ms=invalid_start_time_ms)
 
     def test_client_abr_state_defaults(self, base_args):
         processor = SabrProcessor(**base_args)
@@ -320,9 +309,7 @@ class TestSabrProcessorInitialization:
         # Should not set media_capabilities in client_abr_state for non-android/ios clients'
         base_args.pop('client_info', None)
         processor = SabrProcessor(
-            **base_args,
-            client_info=ClientInfo(client_name=client_name),
-        )
+            **base_args, client_info=ClientInfo(client_name=client_name))
         assert processor.client_abr_state.media_capabilities is None
 
     @pytest.mark.parametrize('client_name', [

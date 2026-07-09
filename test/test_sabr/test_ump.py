@@ -104,7 +104,8 @@ class TestUMPDecoder:
         },
     ]
 
-    COMBINED_PART_DATA = b''.join(part['part_type_bytes'] + part['part_size_bytes'] + part['part_data_bytes'] for part in EXAMPLE_PART_DATA)
+    COMBINED_PART_DATA = b''.join(
+        part['part_type_bytes'] + part['part_size_bytes'] + part['part_data_bytes'] for part in EXAMPLE_PART_DATA)
 
     def test_iter_parts(self):
         mock_file = io.BytesIO(self.COMBINED_PART_DATA)
@@ -286,8 +287,7 @@ class TestUMPDecoder:
         mock_file = _UnexpectedEOFBytesIO(
             self.COMBINED_PART_DATA,
             max_read=len(
-                self.EXAMPLE_PART_DATA[0]['part_type_bytes']
-                + self.EXAMPLE_PART_DATA[0]['part_size_bytes']) + 3)
+                self.EXAMPLE_PART_DATA[0]['part_type_bytes'] + self.EXAMPLE_PART_DATA[0]['part_size_bytes']) + 3)
 
         decoder = UMPDecoder(mock_file)
         part_iter = decoder.iter_parts()
@@ -298,8 +298,7 @@ class TestUMPDecoder:
 
         assert part1.data.tell() == 2
         assert mock_file.tell() == len(
-            self.EXAMPLE_PART_DATA[0]['part_type_bytes']
-            + self.EXAMPLE_PART_DATA[0]['part_size_bytes']) + 2
+            self.EXAMPLE_PART_DATA[0]['part_type_bytes'] + self.EXAMPLE_PART_DATA[0]['part_size_bytes']) + 2
 
         with pytest.raises(EOFError, match=r'Unexpected EOF while reading part data \(expected 125, got 5\)'):
             next(part_iter)

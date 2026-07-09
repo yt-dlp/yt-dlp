@@ -84,7 +84,7 @@ class TestFormatIOBackend:
         backend = backend_cls(fd, filename)
         backend.initialize_writer()
         with pytest.raises(TypeError, match='Data must be bytes or a BufferedIOBase object'):
-            backend.write('this is a string, not bytes or a file-like object')
+            backend.write('this is a string')
         backend.close()
         backend.remove()
 
