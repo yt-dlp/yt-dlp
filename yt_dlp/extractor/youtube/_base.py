@@ -280,7 +280,7 @@ INNERTUBE_CLIENTS = {
                 'deviceModel': 'RealityDevice17,1',
                 'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
                 'osName': 'visionOS',
-                'osVersion': '1.3.21O771',
+                'osVersion': '26.5.23O471',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 101,
