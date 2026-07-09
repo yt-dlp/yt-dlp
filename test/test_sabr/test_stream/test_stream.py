@@ -1039,9 +1039,6 @@ class TestStream:
         # All responses should be closed
         assert all(request.response.closed for request in rh.request_history)
 
-    # TODO: should consider more tests where selectors are not matched / used
-    #  In particular, a test where audio+video selectors provided but only one format is returned
-    #  In this case, it should error (could be due to missing new segments due to not incrementing player time)
     def test_briefly_missing_initialized_format(self, logger, client_info):
         # Should not increment player_time_ms if one of the initialized formats is missing when the other has received a segment.
         # This can happen in the case we get first IF with a segment, then get a read error, then on next request is a redirect.

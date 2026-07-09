@@ -376,7 +376,8 @@ class SabrProcessor:
 
         if initialized_format.init_segment and is_init_segment:
             self.logger.debug(
-                f'Init segment {sequence_number} already seen for format {initialized_format.format_id}, marking segment as consumed')
+                f'Init segment {sequence_number} already seen for format {initialized_format.format_id}, '
+                f'marking segment as consumed')
             consumed = True
 
         time_range = media_header.time_range
@@ -473,7 +474,8 @@ class SabrProcessor:
             raise SabrStreamError(f'Header ID {header_id} not found in partial segments')
 
         self.logger.trace(
-            f'MediaEnd for {segment.format_id} (sequence {segment.sequence_number}, data length = {segment.received_data_length})')
+            f'MediaEnd for {segment.format_id} (sequence {segment.sequence_number}, '
+            f'data length = {segment.received_data_length})')
 
         if segment.content_length is not None and segment.received_data_length != segment.content_length:
             if segment.content_length_estimated:
@@ -490,9 +492,6 @@ class SabrProcessor:
         if not segment.consumed:
             result.is_new_segment = True
 
-        # Return the segment here instead of during MEDIA part(s) because:
-        # 1. We can validate that we received the correct data length
-        # 2. In the case of a retry during segment media, the partial data is not sent to the consumer
         if not (segment.consumed or segment.initialized_format.discard):
             # This needs to be yielded AFTER we have processed the segment
             # So the consumer can see the updated consumed ranges and use them for e.g. syncing between concurrent streams
@@ -533,8 +532,8 @@ class SabrProcessor:
 
         # Try to find a consumed range for this segment in sequence
         consumed_range = next(
-            (cr for cr in segment.initialized_format.consumed_ranges if cr.end_sequence_number == segment.sequence_number - 1),
-            None)
+            (cr for cr in segment.initialized_format.consumed_ranges
+             if cr.end_sequence_number == segment.sequence_number - 1), None)
 
         if not consumed_range:
             # Create a new consumed range starting from this segment
@@ -544,7 +543,8 @@ class SabrProcessor:
                 start_sequence_number=segment.sequence_number,
                 end_sequence_number=segment.sequence_number))
             self.logger.debug(
-                f'Created new consumed range for {segment.initialized_format.format_id} {segment.initialized_format.consumed_ranges[-1]}')
+                f'Created new consumed range for {segment.initialized_format.format_id} '
+                f'{segment.initialized_format.consumed_ranges[-1]}')
             return result
 
         # Update the existing consumed range to include this segment
@@ -581,7 +581,8 @@ class SabrProcessor:
         # The server SHOULD NOT send us segments before the min dvr time, so we should assume that the player time is correct.
         if self.broadcast_state.min_seekable_time_ms is not None and self.player_time_ms < self.broadcast_state.min_seekable_time_ms:
             self.logger.debug(
-                f'Player time {self.player_time_ms} is less than min seekable time {self.broadcast_state.min_seekable_time_ms}, simulating server seek')
+                f'Player time {self.player_time_ms} is less than '
+                f'min seekable time {self.broadcast_state.min_seekable_time_ms}, simulating server seek')
             self.player_time_ms = self.broadcast_state.min_seekable_time_ms
 
             for izf in self.initialized_formats.values():
