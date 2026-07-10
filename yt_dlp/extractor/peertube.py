@@ -1686,7 +1686,7 @@ class PeerTubePlaylistIE(InfoExtractor):
             'description': 'Diversas palestras do Richard Stallman no Brasil.',
             'title': 'Richard Stallman no Brasil',
             'channel': 'debianbrazilteam',
-            'channel_id': 1522,
+            'channel_id': '1522',
             'thumbnail': r're:https?://peertube\.debian\.social/lazy-static/thumbnails/.+\.jpg',
             'timestamp': 1599676222,
             'upload_date': '20200909',
@@ -1698,7 +1698,7 @@ class PeerTubePlaylistIE(InfoExtractor):
             'id': 'chocobozzz',
             'title': 'chocobozzz',
             'channel': 'chocobozzz',
-            'channel_id': 37855,
+            'channel_id': '37855',
             'thumbnail': '',
             'timestamp': 1553874564,
             'upload_date': '20190329',
@@ -1710,7 +1710,7 @@ class PeerTubePlaylistIE(InfoExtractor):
             'id': 'bf54d359-cfad-4935-9d45-9d6be93f63e8',
             'title': 'Les vidéos de Framasoft',
             'channel': 'framasoft',
-            'channel_id': 3,
+            'channel_id': '3',
             'thumbnail': '',
             'timestamp': 1519917377,
             'upload_date': '20180301',
@@ -1720,9 +1720,10 @@ class PeerTubePlaylistIE(InfoExtractor):
         'url': 'https://peertube2.cpy.re/c/blender_open_movies@video.blender.org/videos',
         'info_dict': {
             'id': 'blender_open_movies@video.blender.org',
-            'title': 'Official Blender Open Movies',
+            'title': 'Blender Open Movies',
+            'description': 'md5:3dfabff00857fe3896fb222eb2cb1b80',
             'channel': 'blender',
-            'channel_id': 1926,
+            'channel_id': '1926',
             'thumbnail': '',
             'timestamp': 1540472902,
             'upload_date': '20181025',
@@ -1756,7 +1757,7 @@ class PeerTubePlaylistIE(InfoExtractor):
         playlist_description = info.get('description')
         playlist_timestamp = unified_timestamp(info.get('createdAt'))
         channel = try_get(info, lambda x: x['ownerAccount']['name']) or info.get('displayName')
-        channel_id = try_get(info, lambda x: x['ownerAccount']['id']) or info.get('id')
+        channel_id = str_or_none(try_get(info, lambda x: x['ownerAccount']['id']) or info.get('id'))
         thumbnail = format_field(info, 'thumbnailPath', f'https://{host}%s')
 
         entries = OnDemandPagedList(functools.partial(
