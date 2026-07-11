@@ -5,6 +5,7 @@ from yt_dlp.utils import DownloadError
 from ._io import DiskFormatIOBackend, MemoryFormatIOBackend
 
 DEFAULT_MAX_TRACKING_SEGMENTS = 2
+DEFAULT_SEGMENT_MEMORY_FILE_LIMIT = 2 * 1024 * 1024  # 2 MB
 
 
 @dataclasses.dataclass
@@ -79,6 +80,8 @@ class SequenceFile:
         if self.sequence.last_segments and not sequence_file_exists:
             raise DownloadError(f'Cannot find existing sequence {self.sequence_id} file')
 
+        # TODO(future): support basic recovery for when sequence is longer than expected.
+        #  this can happen if the download was stopped before the state file could be updated.
         if self.sequence.last_segments and not self.file.validate_length(self.sequence.sequence_content_length):
             self.file.remove()
             raise DownloadError(f'Existing sequence {self.sequence_id} file is not valid; removing')
@@ -200,7 +203,7 @@ class SegmentFile:
         self.segment: Segment = segment
         self.current_length = 0
 
-        memory_file_limit = memory_file_limit if memory_file_limit is not None else 2 * 1024 * 1024  # Default to 2 MB
+        memory_file_limit = memory_file_limit if memory_file_limit is not None else DEFAULT_SEGMENT_MEMORY_FILE_LIMIT
 
         filename = format_filename + f'.sg{segment.segment_id}.part'
         # Store the segment in memory if it is small enough

@@ -1940,7 +1940,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _prepare_live_from_start_formats(self, formats, video_id, live_start_time, url, webpage_url, smuggled_data, is_live):
         lock = threading.Lock()
         start_time = time.time()
-        # TODO: only include dash formats
         formats = [f for f in formats if f.get('is_from_start') and f.get('protocol') != 'sabr']
         adaptive_last_seq_cache = {}
 

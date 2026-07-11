@@ -340,7 +340,7 @@ class SabrFDFormatWriter:
         # Now merge all the sequences together
         self.file.initialize_writer(resume=False)
 
-        # Note: May not always be an init segment, e.g for live streams
+        # Note: There may not always be an init segment, e.g for live streams
         if self._init_sequence:
             if self._init_sequence.sequence.first_segment:
                 self._init_sequence.read_into(self.file)
