@@ -534,6 +534,8 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'age_limit': 0,
             'series': 'Laboratorium alchemika',
             'thumbnail': 're:https?://.+',
+            'timestamp': 1655635200,
+            'upload_date': '20220619',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -547,6 +549,8 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'duration': 3051,
             'thumbnail': 're:https?://.+',
             'subtitles': 'count:2',
+            'timestamp': 1609776960,
+            'upload_date': '20210104',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
