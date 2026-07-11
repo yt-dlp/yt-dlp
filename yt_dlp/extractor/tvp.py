@@ -10,6 +10,7 @@ from ..utils import (
     dict_get,
     int_or_none,
     js_to_json,
+    parse_iso8601,
     str_or_none,
     strip_or_none,
     traverse_obj,
@@ -507,6 +508,11 @@ class TVPVODBaseIE(InfoExtractor):
                 '_type': 'url',
                 'url': video['webUrl'],
                 'ie_key': TVPVODVideoIE.ie_key(),
+            })
+        timestamp = parse_iso8601(video.get('since'))
+        if timestamp:
+            info_dict.update({
+                'timestamp': timestamp,
             })
         return info_dict
 
