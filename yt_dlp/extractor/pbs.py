@@ -470,6 +470,24 @@ class PBSIE(InfoExtractor):
                 'skip_download': True,
             },
         },
+        {
+            # Next.js App Router RSC fallback; player subpages return video-error for
+            # videos not yet in the old COVE system, see https://github.com/yt-dlp/yt-dlp/issues/2606
+            'url': 'https://www.pbs.org/video/episode-8-hoeote/',
+            'info_dict': {
+                'id': '3110798764',
+                'ext': 'mp4',
+                'title': 'Grantchester - Episode 8',
+                'description': str,
+                'display_id': 'episode-8-hoeote',
+                'duration': 3165,
+                'thumbnail': 'https://image.pbs.org/video-assets/ikMBy8k-asset-mezzanine-16x9-r40IqzW.jpg',
+                'chapters': [],
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
     ]
     _ERRORS = {
         101: 'We\'re sorry, but this video is not yet available.',
@@ -653,6 +671,46 @@ class PBSIE(InfoExtractor):
                             'title': chapter.get('title'),
                         })
 
+        if not redirects:
+            # PBS migrated to Next.js App Router (RSC streaming); the old player subpages
+            # no longer serve video data for all videos. Encoding URLs are now embedded as
+            # escaped JSON in the RSC payload of the main page (hls_videos/mp4_videos arrays).
+            # The X-Forwarded-For geo-bypass header must be suppressed for this request:
+            # PBS binds session tokens to the IP seen on the page request, and urs.pbs.org
+            # validates tokens against the actual TCP connection IP (ignoring X-Forwarded-For),
+            # so a spoofed IP in X-Forwarded-For causes every token to return 404.
+            saved_xff = self._x_forwarded_for_ip
+            try:
+                self._x_forwarded_for_ip = None
+                main_page = self._download_webpage(
+                    url, display_id, fatal=False, note='Downloading Next.js RSC video data')
+            finally:
+                self._x_forwarded_for_ip = saved_xff
+            if main_page:
+                for rsc_url in orderedSet(re.findall(
+                        r'\\"url\\":\\"(https://urs\.pbs\.org/redirect/[a-f0-9]+/p/pbs-cs/)\\"',
+                        main_page)):
+                    if rsc_url not in redirect_urls:
+                        redirects.append({'url': rsc_url})
+                        redirect_urls.add(rsc_url)
+                if not info:
+                    ep_title = self._search_regex(
+                        r'\\"videoTitle\\":\\"([^\\"]+)\\"', main_page, 'title', default=None)
+                    show_title = self._search_regex(
+                        r'\\"showTitle\\":\\"([^\\"]+)\\"', main_page, 'show title', default=None)
+                    if ep_title or show_title:
+                        info['title'] = ep_title or ''
+                        if show_title:
+                            info.setdefault('program', {})['title'] = show_title
+                    rsc_duration = self._search_regex(
+                        r'\\"duration\\":([0-9]+)', main_page, 'duration', default=None)
+                    if rsc_duration:
+                        info['duration'] = int(rsc_duration)
+                    rsc_thumbnail = self._search_regex(
+                        r'\\"asset-mezzanine-16x9\\":\\"(https://image\.pbs\.org/[^\\"]+)\\"', main_page, 'thumbnail', default=None)
+                    if rsc_thumbnail:
+                        info['image_url'] = rsc_thumbnail
+
         formats = []
         http_url = None
         hls_subs = {}
@@ -736,7 +794,7 @@ class PBSIE(InfoExtractor):
         # Try turning it to 'program - title' naming scheme if possible
         alt_title = info.get('program', {}).get('title')
         if alt_title:
-            info['title'] = alt_title + ' - ' + re.sub(r'^' + alt_title + r'[\s\-:]+', '', info['title'])
+            info['title'] = alt_title + ' - ' + re.sub(r'^' + alt_title + r'[\s\-:]+', '', info.get('title') or '')
 
         description = info.get('description') or info.get(
             'program', {}).get('description') or description
@@ -744,7 +802,7 @@ class PBSIE(InfoExtractor):
         return {
             'id': video_id,
             'display_id': display_id,
-            'title': info['title'],
+            'title': info.get('title') or alt_title or display_id,
             'description': description,
             'thumbnail': info.get('image_url'),
             'duration': int_or_none(info.get('duration')),
