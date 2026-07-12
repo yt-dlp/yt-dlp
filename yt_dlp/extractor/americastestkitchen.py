@@ -216,7 +216,7 @@ class AmericasTestKitchenSeasonIE(InfoExtractor):
             return
         seen = set()
         for episode in re.finditer(
-                r'<a[^>]+\bhref="(?P<path>/(?:cookscountry/|cooksillustrated/)?episode/(?P<id>\d+)-[^"]+)"[^>]*>\s*<h3[^>]*>(?P<title>[^<]+)</h3>',
+                r'<a [^>]*\bhref="(?P<path>/(?:cookscountry/|cooksillustrated/)?episode/(?P<id>\d+)-[^"]+)"[^>]*>\s*<h3[^>]*>(?P<title>[^<]+)</h3>',
                 webpage):
             path = episode.group('path')
             if path in seen:
