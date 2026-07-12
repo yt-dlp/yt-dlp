@@ -215,8 +215,6 @@ class AmericasTestKitchenSeasonIE(InfoExtractor):
         if not webpage:
             return
         seen = set()
-        # Match the episode heading anchors on a season page, e.g.
-        # <a ... href="/episode/1096-make-ahead-masterclass"><h3 ...>Make-Ahead Masterclass</h3></a>
         for episode in re.finditer(
                 r'<a[^>]+\bhref="(?P<path>/(?:cookscountry/|cooksillustrated/)?episode/(?P<id>\d+)-[^"]+)"[^>]*>\s*<h3[^>]*>(?P<title>[^<]+)</h3>',
                 webpage):
