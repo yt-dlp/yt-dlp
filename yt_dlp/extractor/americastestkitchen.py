@@ -181,9 +181,8 @@ class AmericasTestKitchenSeasonIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        domain, path_show, season = self._match_valid_url(url).group('domain', 'path_show', 'season')
-        show = path_show or domain
-        show_path, title = self._SHOWS[show]
+        domain, url_path, season = self._match_valid_url(url).group('domain', 'path', 'season')
+        show_path, title = self._SHOWS[url_path or domain]
         season = int_or_none(season)
 
         if season:
