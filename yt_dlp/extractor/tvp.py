@@ -19,6 +19,12 @@ from ..utils import (
 )
 
 
+def posint_or_none(value):
+    if value <= 0:
+        return None
+    return int_or_none(value)
+
+
 class TVPIE(InfoExtractor):
     IE_NAME = 'tvp'
     IE_DESC = 'Telewizja Polska'
@@ -497,6 +503,7 @@ class TVPVODBaseIE(InfoExtractor):
             'id': ('id', {str_or_none}),
             'title': 'title',
             'timestamp': ('since', {parse_iso8601}),
+            'release_year': ('year', {posint_or_none}),
             'age_limit': ('rating', {int_or_none}),
             'duration': ('duration', {int_or_none}),
             'episode_number': ('number', {int_or_none}),
@@ -647,4 +654,5 @@ class TVPVODSeriesIE(TVPVODBaseIE):
             clean_html(traverse_obj(metadata, ('description', 'lead'), expected_type=strip_or_none)),
             categories=[traverse_obj(metadata, ('mainCategory', 'name'))],
             age_limit=int_or_none(metadata.get('rating')),
+            release_year=posint_or_none(metadata.get('year')),
         )
