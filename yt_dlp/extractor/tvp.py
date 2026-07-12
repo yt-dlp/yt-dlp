@@ -496,6 +496,7 @@ class TVPVODBaseIE(InfoExtractor):
         info_dict = traverse_obj(video, {
             'id': ('id', {str_or_none}),
             'title': 'title',
+            'timestamp': ('since', {parse_iso8601}),
             'age_limit': ('rating', {int_or_none}),
             'duration': ('duration', {int_or_none}),
             'episode_number': ('number', {int_or_none}),
@@ -508,11 +509,6 @@ class TVPVODBaseIE(InfoExtractor):
                 '_type': 'url',
                 'url': video['webUrl'],
                 'ie_key': TVPVODVideoIE.ie_key(),
-            })
-        timestamp = parse_iso8601(video.get('since'))
-        if timestamp:
-            info_dict.update({
-                'timestamp': timestamp,
             })
         return info_dict
 
