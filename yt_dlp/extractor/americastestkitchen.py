@@ -2,11 +2,12 @@ import itertools
 import re
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     clean_html,
     int_or_none,
     try_get,
-    unescapeHTML,
     unified_strdate,
     unified_timestamp,
     urljoin,
@@ -192,28 +193,25 @@ class AmericasTestKitchenSeasonIE(InfoExtractor):
             def entries():
                 yield from self._season_entries(show_path, season)
         else:
-            playlist_id = show
+            playlist_id = url_path or domain
             playlist_title = title
 
             def entries():
                 for season_number in itertools.count(1):
-                    got = False
-                    for entry in self._season_entries(show_path, season_number, fatal=False):
-                        got = True
-                        yield entry
-                    if not got:
-                        break
+                    try:
+                        yield from self._season_entries(show_path, season_number)
+                    except ExtractorError as e:
+                        if isinstance(e.cause, HTTPError) and e.cause.status == 404:
+                            break
+                        raise
 
         return self.playlist_result(
             entries(), playlist_id, playlist_title)
 
-    def _season_entries(self, show_path, season_number, fatal=True):
+    def _season_entries(self, show_path, season_number):
         webpage = self._download_webpage(
             f'https://www.americastestkitchen.com{show_path}/episodes/season-{season_number}',
-            f'season-{season_number}', f'Downloading season {season_number} webpage',
-            fatal=fatal)
-        if not webpage:
-            return
+            f'season-{season_number}', f'Downloading season {season_number} webpage')
         seen = set()
         for episode in re.finditer(
                 r'<a [^>]*\bhref="(?P<path>/(?:cookscountry/|cooksillustrated/)?episode/(?P<id>\d+)-[^"]+)"[^>]*>\s*<h3[^>]*>(?P<title>[^<]+)</h3>',
