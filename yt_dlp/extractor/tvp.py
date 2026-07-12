@@ -20,9 +20,10 @@ from ..utils import (
 
 
 def posint_or_none(value):
-    if value <= 0:
-        return None
-    return int_or_none(value)
+    retval = int_or_none(value)
+    if retval and retval > 0:
+        return retval
+    return None
 
 
 class TVPIE(InfoExtractor):
