@@ -1000,132 +1000,131 @@ class TestFormatInitialization:
 
 
 class TestFormatResume:
-    class TestFormatResume:
-        def test_resume_both(self, logger, base_args):
-            selector = make_selector('audio')
-            processor = SabrProcessor(**base_args, audio_selection=selector)
-            fim = make_format_im(selector)
-            processor.process_format_initialization_metadata(fim)
-            consumed_ranges = [
-                ConsumedRange(
-                    start_sequence_number=1, end_sequence_number=1,
-                    start_time_ms=0, duration_ms=1000),
-            ]
+    def test_resume_both(self, logger, base_args):
+        selector = make_selector('audio')
+        processor = SabrProcessor(**base_args, audio_selection=selector)
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        consumed_ranges = [
+            ConsumedRange(
+                start_sequence_number=1, end_sequence_number=1,
+                start_time_ms=0, duration_ms=1000),
+        ]
 
-            processor.resume_format(fim.format_id, has_init_segment=True, consumed_ranges=consumed_ranges)
+        processor.resume_format(fim.format_id, has_init_segment=True, consumed_ranges=consumed_ranges)
 
-            initialized_format = processor.initialized_formats[str(fim.format_id)]
-            assert initialized_format.init_segment is True
-            assert initialized_format.consumed_ranges == consumed_ranges
+        initialized_format = processor.initialized_formats[str(fim.format_id)]
+        assert initialized_format.init_segment is True
+        assert initialized_format.consumed_ranges == consumed_ranges
 
-        def test_resume_nothing(self, logger, base_args):
-            selector = make_selector('audio')
-            processor = SabrProcessor(**base_args, audio_selection=selector)
-            fim = make_format_im(selector)
-            processor.process_format_initialization_metadata(fim)
+    def test_resume_nothing(self, logger, base_args):
+        selector = make_selector('audio')
+        processor = SabrProcessor(**base_args, audio_selection=selector)
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
 
-            processor.resume_format(fim.format_id)
+        processor.resume_format(fim.format_id)
 
-            initialized_format = processor.initialized_formats[str(fim.format_id)]
-            assert initialized_format.init_segment is None
-            assert initialized_format.consumed_ranges == []
+        initialized_format = processor.initialized_formats[str(fim.format_id)]
+        assert initialized_format.init_segment is None
+        assert initialized_format.consumed_ranges == []
 
-        def test_resume_only_init_segment(self, logger, base_args):
-            selector = make_selector('audio')
-            processor = SabrProcessor(**base_args, audio_selection=selector)
-            fim = make_format_im(selector)
-            processor.process_format_initialization_metadata(fim)
+    def test_resume_only_init_segment(self, logger, base_args):
+        selector = make_selector('audio')
+        processor = SabrProcessor(**base_args, audio_selection=selector)
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
 
-            processor.resume_format(fim.format_id, has_init_segment=True)
+        processor.resume_format(fim.format_id, has_init_segment=True)
 
-            initialized_format = processor.initialized_formats[str(fim.format_id)]
-            assert initialized_format.init_segment is True
-            assert initialized_format.consumed_ranges == []
+        initialized_format = processor.initialized_formats[str(fim.format_id)]
+        assert initialized_format.init_segment is True
+        assert initialized_format.consumed_ranges == []
 
-        def test_resume_only_consumed_ranges(self, logger, base_args):
-            selector = make_selector('audio')
-            processor = SabrProcessor(**base_args, audio_selection=selector)
-            fim = make_format_im(selector)
-            processor.process_format_initialization_metadata(fim)
-            consumed_ranges = [
-                ConsumedRange(
-                    start_sequence_number=1, end_sequence_number=1,
-                    start_time_ms=0, duration_ms=1000),
-            ]
+    def test_resume_only_consumed_ranges(self, logger, base_args):
+        selector = make_selector('audio')
+        processor = SabrProcessor(**base_args, audio_selection=selector)
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        consumed_ranges = [
+            ConsumedRange(
+                start_sequence_number=1, end_sequence_number=1,
+                start_time_ms=0, duration_ms=1000),
+        ]
 
+        processor.resume_format(fim.format_id, consumed_ranges=consumed_ranges)
+
+        initialized_format = processor.initialized_formats[str(fim.format_id)]
+        assert initialized_format.init_segment is None
+        assert initialized_format.consumed_ranges == consumed_ranges
+
+    def test_resume_fails_after_init_segment_received(self, logger, base_args):
+        selector = make_selector('audio')
+        processor = SabrProcessor(**base_args, audio_selection=selector)
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        initialized_format = processor.initialized_formats[str(fim.format_id)]
+        initialized_format.init_segment = True
+
+        consumed_ranges = [
+            ConsumedRange(
+                start_sequence_number=1, end_sequence_number=1,
+                start_time_ms=0, duration_ms=1000),
+        ]
+        with pytest.raises(ValueError) as exc_info:
             processor.resume_format(fim.format_id, consumed_ranges=consumed_ranges)
+        assert str(exc_info.value) == f'Unable to resume format {fim.format_id}: must be resumed before receiving data'
 
-            initialized_format = processor.initialized_formats[str(fim.format_id)]
-            assert initialized_format.init_segment is None
-            assert initialized_format.consumed_ranges == consumed_ranges
+    def test_resume_fails_after_data_received(self, logger, base_args):
+        selector = make_selector('audio')
+        processor = SabrProcessor(**base_args, audio_selection=selector)
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        initialized_format = processor.initialized_formats[str(fim.format_id)]
+        initialized_format.consumed_ranges.extend([
+            ConsumedRange(
+                start_sequence_number=1, end_sequence_number=1,
+                start_time_ms=0, duration_ms=1000),
+        ])
 
-        def test_resume_fails_after_init_segment_received(self, logger, base_args):
-            selector = make_selector('audio')
-            processor = SabrProcessor(**base_args, audio_selection=selector)
-            fim = make_format_im(selector)
-            processor.process_format_initialization_metadata(fim)
-            initialized_format = processor.initialized_formats[str(fim.format_id)]
-            initialized_format.init_segment = True
+        with pytest.raises(ValueError) as exc_info:
+            processor.resume_format(fim.format_id, has_init_segment=True)
+        assert str(exc_info.value) == f'Unable to resume format {fim.format_id}: must be resumed before receiving data'
 
-            consumed_ranges = [
-                ConsumedRange(
-                    start_sequence_number=1, end_sequence_number=1,
-                    start_time_ms=0, duration_ms=1000),
-            ]
-            with pytest.raises(ValueError) as exc_info:
-                processor.resume_format(fim.format_id, consumed_ranges=consumed_ranges)
-            assert str(exc_info.value) == f'Unable to resume format {fim.format_id}: must be resumed before receiving data'
+    def test_resume_requires_initialized_format(self, logger, base_args):
+        selector = make_selector('audio')
+        format_id = selector.format_ids[0]
+        processor = SabrProcessor(**base_args, audio_selection=selector, video_id=example_video_id)
 
-        def test_resume_fails_after_data_received(self, logger, base_args):
-            selector = make_selector('audio')
-            processor = SabrProcessor(**base_args, audio_selection=selector)
-            fim = make_format_im(selector)
-            processor.process_format_initialization_metadata(fim)
-            initialized_format = processor.initialized_formats[str(fim.format_id)]
-            initialized_format.consumed_ranges.extend([
-                ConsumedRange(
-                    start_sequence_number=1, end_sequence_number=1,
-                    start_time_ms=0, duration_ms=1000),
-            ])
+        with pytest.raises(ValueError) as exc_info:
+            processor.resume_format(format_id, has_init_segment=True)
+        assert str(exc_info.value) == f'Unable to resume format {format_id}: format not yet initialized'
 
-            with pytest.raises(ValueError) as exc_info:
-                processor.resume_format(fim.format_id, has_init_segment=True)
-            assert str(exc_info.value) == f'Unable to resume format {fim.format_id}: must be resumed before receiving data'
+    def test_resume_fails_partial_segment_present(self, logger, base_args):
+        selector = make_selector('audio')
+        processor = SabrProcessor(**base_args, audio_selection=selector)
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+        processor.process_media_header(make_media_header(selector, sequence_no=1))
 
-        def test_resume_requires_initialized_format(self, logger, base_args):
-            selector = make_selector('audio')
-            format_id = selector.format_ids[0]
-            processor = SabrProcessor(**base_args, audio_selection=selector, video_id=example_video_id)
-
-            with pytest.raises(ValueError) as exc_info:
-                processor.resume_format(format_id, has_init_segment=True)
-            assert str(exc_info.value) == f'Unable to resume format {format_id}: format not yet initialized'
-
-        def test_resume_fails_partial_segment_present(self, logger, base_args):
-            selector = make_selector('audio')
-            processor = SabrProcessor(**base_args, audio_selection=selector)
-            fim = make_format_im(selector)
-            processor.process_format_initialization_metadata(fim)
-            processor.process_media_header(make_media_header(selector, sequence_no=1))
-
-            with pytest.raises(
-                ValueError,
-            ) as exc_info:
-                processor.resume_format(fim.format_id, has_init_segment=True)
-
-            assert str(exc_info.value) == f'Unable to resume format {fim.format_id}: must be resumed before receiving data'
-
-        def test_multiple_resume_fails(self, logger, base_args):
-            selector = make_selector('audio')
-            processor = SabrProcessor(**base_args, audio_selection=selector)
-            fim = make_format_im(selector)
-            processor.process_format_initialization_metadata(fim)
-
+        with pytest.raises(
+            ValueError,
+        ) as exc_info:
             processor.resume_format(fim.format_id, has_init_segment=True)
 
-            with pytest.raises(ValueError) as exc_info:
-                processor.resume_format(fim.format_id, has_init_segment=True)
-            assert str(exc_info.value) == f'Unable to resume format {fim.format_id}: must be resumed before receiving data'
+        assert str(exc_info.value) == f'Unable to resume format {fim.format_id}: must be resumed before receiving data'
+
+    def test_multiple_resume_fails(self, logger, base_args):
+        selector = make_selector('audio')
+        processor = SabrProcessor(**base_args, audio_selection=selector)
+        fim = make_format_im(selector)
+        processor.process_format_initialization_metadata(fim)
+
+        processor.resume_format(fim.format_id, has_init_segment=True)
+
+        with pytest.raises(ValueError) as exc_info:
+            processor.resume_format(fim.format_id, has_init_segment=True)
+        assert str(exc_info.value) == f'Unable to resume format {fim.format_id}: must be resumed before receiving data'
 
 
 class TestLiveMetadata:
