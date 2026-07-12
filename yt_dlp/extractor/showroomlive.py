@@ -76,7 +76,7 @@ class ShowRoomLiveIE(InfoExtractor):
             'channel_id': broadcaster_id,
             'formats': self._extract_m3u8_formats(m3u8_url, broadcaster_id, 'mp4'),
             'is_live': is_live,
-            'timestamp': start_timestamp,
+            'release_timestamp': start_timestamp,
             **traverse_obj(room_profile, {
                 'id': ('live_id', {str_or_none}),
                 'channel_follower_count': ('follower_num', {int_or_none}),
