@@ -227,5 +227,5 @@ class AmericasTestKitchenSeasonIE(InfoExtractor):
             yield self.url_result(
                 urljoin('https://www.americastestkitchen.com', path),
                 AmericasTestKitchenIE, episode.group('id'),
-                unescapeHTML(episode.group('title')),
+                clean_html(episode.group('title')),
                 season_number=season_number)
