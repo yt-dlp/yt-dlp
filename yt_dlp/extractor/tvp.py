@@ -539,6 +539,7 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'thumbnail': 're:https?://.+',
             'timestamp': 1655635200,
             'upload_date': '20220619',
+            'release_year': 2022,
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -554,6 +555,7 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'subtitles': 'count:2',
             'timestamp': 1609776960,
             'upload_date': '20210104',
+            'release_year': 2020,
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -624,8 +626,19 @@ class TVPVODSeriesIE(TVPVODBaseIE):
             'title': 'Ranczo',
             'age_limit': 12,
             'categories': ['seriale'],
+            'release_year': 2006,
         },
         'playlist_count': 130,
+    }, {
+        'url': 'https://vod.tvp.pl/seriale,18/klan-odcinki,273586',
+        'info_dict': {
+            'id': '273586',
+            'title': 'Klan',
+            'age_limit': 12,
+            'categories': ['seriale'],
+            'release_year': None,
+        },
+        'playlist_count': 4726,
     }, {
         'url': 'https://vod.tvp.pl/programy,88/rolnik-szuka-zony-odcinki,284514',
         'only_matching': True,
