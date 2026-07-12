@@ -111,7 +111,7 @@ class AmericasTestKitchenIE(InfoExtractor):
 class AmericasTestKitchenSeasonIE(InfoExtractor):
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?(?P<domain>americastestkitchen|cookscountry|cooksillustrated)\.com
-        (?:/(?P<path_show>cookscountry|cooksillustrated))?
+        (?:/(?P<path>cookscountry|cooksillustrated))?
         (?:/episodes(?:/browse)?/season[-_](?P<season>\d+))?
         /?(?:[?#]|$)'''
     _SHOWS = {
