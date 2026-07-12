@@ -897,7 +897,10 @@ class SkipSegmentProfile(BasicAudioVideoProfile):
         return init_segments + segments, start_header_id
 
 
-def assert_media_sequence_in_order(parts, format_selector: AudioSelector | VideoSelector, expected_total_segments: int, allow_retry=False, start_sequence_number=1, check_segment_total_segments=True):
+def assert_media_sequence_in_order(
+        parts, format_selector: AudioSelector | VideoSelector,
+        expected_total_segments: int, allow_retry=False, start_sequence_number=1,
+        check_segment_total_segments=True):
     # Checks that for the given format_selector, the media segments are in order:
     # MediaSegmentInitSabrPart -> MediaSegmentDataSabrPart* -> MediaSegmentEndSabrPart
 

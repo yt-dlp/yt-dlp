@@ -249,6 +249,8 @@ class SabrFdSession:
         # check for --test
         if not self.is_test:
             return False
+        # TODO: this may be less than the first segment (partially for live) which means no segment available for ffmpeg merge
+        #  consider checking we get at least one segment of each enabled format?
         return sum(writer.downloaded_bytes for writer in self.writers.values()) >= self.fd._TEST_FILE_SIZE
 
     def _write_data_callback(self, part: MediaSegmentDataSabrPart):
@@ -266,23 +268,20 @@ class SabrFdSession:
                 return
 
             writer.initialize_format(part.format_id, self.stream.broadcast_id if self.is_broadcast else None)
-            initialized_format = self.stream.processor.initialized_formats[str(part.format_id)]
 
             # Resume format, if applicable
-            if writer.state.init_sequence:
-                initialized_format.init_segment = True
-
-            # Build consumed ranges from the sequences
+            resume_state = writer.state
             consumed_ranges = []
-            for sequence in writer.state.sequences:
+            for sequence in resume_state.sequences:
                 consumed_ranges.append(ConsumedRange(
                     start_time_ms=sequence.first_segment.start_time_ms,
                     duration_ms=(sequence.last_segment.start_time_ms + sequence.last_segment.duration_ms) - sequence.first_segment.start_time_ms,
                     start_sequence_number=sequence.first_segment.sequence_number,
-                    end_sequence_number=sequence.last_segment.sequence_number,
-                ))
-            if consumed_ranges:
-                initialized_format.consumed_ranges = consumed_ranges
+                    end_sequence_number=sequence.last_segment.sequence_number))
+            if resume_state.init_sequence or consumed_ranges:
+                self.stream.resume_format(
+                    part.format_id, consumed_ranges=consumed_ranges,
+                    has_init_segment=resume_state.init_sequence)
                 self.fd.to_screen(f'[download] Resuming download for format {part.format_selector.display_name}')
 
         elif isinstance(part, MediaSegmentInitSabrPart):
@@ -331,6 +330,7 @@ class SabrFdSession:
     def _count_writer_segments(self, writer):
         return sum(
             sequence.last_segment.sequence_number - sequence.first_segment.sequence_number + 1
+            if sequence.last_segment else 0
             for sequence in writer.state.sequences)
 
     def _finish_formats(self):

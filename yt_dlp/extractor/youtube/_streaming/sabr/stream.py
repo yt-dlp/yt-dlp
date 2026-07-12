@@ -14,6 +14,7 @@ from yt_dlp.extractor.youtube._proto.innertube import ClientInfo, NextRequestPol
 from yt_dlp.extractor.youtube._proto.videostreaming import (
     BufferedRange,
     CuepointList,
+    FormatId,
     FormatInitializationMetadata,
     LiveMetadata,
     MediaHeader,
@@ -345,8 +346,9 @@ class SabrStream:
             self._last_vpabr = vpabr
 
             payload = protobug.dumps(vpabr)
-            self.logger.trace(f'Ustreamer Config: {self.processor.video_playback_ustreamer_config}')
-            self.logger.trace(f'Sending SABR request: {vpabr}')
+            if self.logger.log_level == self.logger.LogLevel.TRACE:
+                self.logger.trace(f'Ustreamer Config: {self.processor.video_playback_ustreamer_config}')
+                self.logger.trace(f'Sending SABR request: {vpabr}')
 
             self._stream_stall_tracker.next_request()
 
@@ -444,6 +446,11 @@ class SabrStream:
         self.logger.debug(msg)
         self.processor.partial_segments.clear()
         self._data_callbacks.clear()
+
+    def resume_format(self, format_id: FormatId, has_init_segment: bool = False, consumed_ranges: list[ConsumedRange] | None = None):
+        # Applied a resume state to a format.
+        # This can only be called immediately after a format initialization part.
+        self.processor.resume_format(format_id, has_init_segment, consumed_ranges)
 
     # region: UMP Part Processors
 

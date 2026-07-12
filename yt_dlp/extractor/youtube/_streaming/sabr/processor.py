@@ -12,6 +12,7 @@ from yt_dlp.extractor.youtube._proto.videostreaming import (
     ClientAbrState,
     CuepointEvent,
     CuepointList,
+    FormatId,
     FormatInitializationMetadata,
     LiveMetadata,
     MediaCapabilities,
@@ -246,6 +247,29 @@ class SabrProcessor:
                     is_10_bit_supported=True,
                 ) for codec in VideoFormatCapability.VideoCodec])
 
+    def resume_format(self, format_id: FormatId, has_init_segment: bool = False, consumed_ranges: list[ConsumedRange] | None = None):
+        # Applied a resume state to an initialized format.
+        # This can only be called immediately after a format initialization part.
+        initialized_format = self.initialized_formats.get(str(format_id))
+        if not initialized_format:
+            raise ValueError(f'Unable to resume format {format_id}: format not yet initialized')
+
+        # We can only allow consumed ranges to be updated before any MEDIA_HEADER is received,
+        # as the MEDIA and MEDIA_END processor logic assumes they are not modified for the format.
+        if (
+            initialized_format.init_segment is not None
+            or initialized_format.consumed_ranges
+            or any(seg.format_id == format_id for seg in self.partial_segments.values())
+        ):
+            raise ValueError(f'Unable to resume format {format_id}: must be resumed before receiving data')
+
+        if has_init_segment:
+            initialized_format.init_segment = True
+            self.logger.debug(f'Marked init segment as consumed for resumed format {format_id}')
+        if isinstance(consumed_ranges, list):
+            initialized_format.consumed_ranges = consumed_ranges
+            self.logger.debug(f'Applied consumed ranges for resumed format {format_id}: {consumed_ranges}')
+
     def format_selectors(self):
         yield from (
             self._video_format_selector,
@@ -376,7 +400,7 @@ class SabrProcessor:
 
         if initialized_format.init_segment and is_init_segment:
             self.logger.debug(
-                f'Init segment {sequence_number} already seen for format {initialized_format.format_id}, '
+                f'Init segment already seen for format {initialized_format.format_id}, '
                 f'marking segment as consumed')
             consumed = True
 
