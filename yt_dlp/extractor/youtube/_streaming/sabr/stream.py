@@ -1002,7 +1002,7 @@ class SabrStream:
                 f'Stream stalled; no activity detected in {self.max_empty_requests} consecutive requests')
 
     def _check_vod_ad_wait(self):
-        # xxx: this logic is fairly loose, could do with some tightening
+        # TODO: This logic can trip on a stall not related to the ad-wait
         if (
             self.processor.next_request_policy and self.processor.next_request_policy.backoff_time_ms
             and any(t in self.processor.sabr_contexts_to_send for t in self.processor.sabr_context_updates)
@@ -1036,7 +1036,9 @@ class SabrStream:
             if empty_requests >= 1:
                 # Sometimes we can't get the head segment - rather tend to sit behind the head segment for the duration of the live broadcast.
                 # We should also slow down and wait if getting empty requests midway through.
-                self._wait_for(max(self._next_request_backoff_ms() // 1000, self.processor.broadcast_segment_target_duration_sec))
+                self._wait_for(max(
+                    self._next_request_backoff_ms() // 1000,
+                    self.processor.broadcast_segment_target_duration_sec))
             return
 
         # If LIVE_METADATA is never provided, or is missing required values, we cannot be sure if we are at the head of the stream.

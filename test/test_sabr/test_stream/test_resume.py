@@ -20,7 +20,7 @@ from yt_dlp.extractor.youtube._streaming.sabr.part import (
 )
 
 
-class TestStream:
+class TestResume:
     def test_resume_both(self, logger, client_info):
         # 1. Get real segments so we can resume some
         init_sabr_stream, _, _ = setup_sabr_stream_av(

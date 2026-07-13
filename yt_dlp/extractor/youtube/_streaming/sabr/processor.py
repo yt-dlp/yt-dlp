@@ -329,6 +329,7 @@ class SabrProcessor:
 
         return consumed_ranges[-1].end_sequence_number + 1
 
+    # region: SABR Part Processors
     def process_media_header(self, media_header: MediaHeader) -> ProcessMediaHeaderResult:
         if media_header.video_id and self.video_id and media_header.video_id != self.video_id:
             raise SabrStreamError(
@@ -833,6 +834,7 @@ class SabrProcessor:
                 self.logger.trace(
                     f'Registered ad cuepoint {cuepoint_identifier} due to {cuepoint.event.name} event: {self.ad_cuepoints[cuepoint_identifier]}')
 
+    # endregion
     def clear_old_cuepoints(self):
         # Clean up cuepoints that have ended based on the current player time.
         # Sometimes the server does not send a STOP event so we need to do this.
