@@ -14,7 +14,7 @@ class SportDeutschlandIE(InfoExtractor):
         'url': 'https://sporteurope.tv/rostock-griffins/gfl2-rostock-griffins-vs-elmshorn-fighting-pirates',
         'md5': '35c11a19395c938cdd076b93bda54cde',
         'info_dict': {
-            'id': '9f27a97d-1544-4d0b-aa03-48d92d17a03a',
+            'id': '9e9619c4-7d77-43c4-926d-49fb57dc06dc',
             'ext': 'mp4',
             'title': 'GFL2: Rostock Griffins vs. Elmshorn Fighting Pirates',
             'display_id': 'rostock-griffins/gfl2-rostock-griffins-vs-elmshorn-fighting-pirates',
@@ -23,15 +23,13 @@ class SportDeutschlandIE(InfoExtractor):
             'live_status': 'was_live',
             'description': r're:Video-Livestream des Spiels Rostock Griffins vs\. Elmshorn Fighting Pirates.+',
             'channel_id': '9635f21c-3f67-4584-9ce4-796e9a47276b',
-            'timestamp': 1749913117,
-            'upload_date': '20250614',
             'duration': 12287.0,
         },
     }, {
         # Single-part video, embedded player link
         'url': 'https://player.sporteurope.tv/9e9619c4-7d77-43c4-926d-49fb57dc06dc',
         'info_dict': {
-            'id': '9f27a97d-1544-4d0b-aa03-48d92d17a03a',
+            'id': '9e9619c4-7d77-43c4-926d-49fb57dc06dc',
             'ext': 'mp4',
             'title': 'GFL2: Rostock Griffins vs. Elmshorn Fighting Pirates',
             'display_id': '9e9619c4-7d77-43c4-926d-49fb57dc06dc',
@@ -40,8 +38,6 @@ class SportDeutschlandIE(InfoExtractor):
             'live_status': 'was_live',
             'description': r're:Video-Livestream des Spiels Rostock Griffins vs\. Elmshorn Fighting Pirates.+',
             'channel_id': '9635f21c-3f67-4584-9ce4-796e9a47276b',
-            'timestamp': 1749913117,
-            'upload_date': '20250614',
             'duration': 12287.0,
         },
         'params': {'skip_download': True},
@@ -50,6 +46,8 @@ class SportDeutschlandIE(InfoExtractor):
         'url': 'https://sporteurope.tv/en/deutsche-turnliga/2025-iwa-nachwuchsbundesliga-dtl-finale-turnen-heidelberg',
         'info_dict': {
             'id': 'a0731851-5ac2-4024-a20f-20c5fc1655de',
+            'title': '2025 | IWA-Nachwuchsbundesliga | DTL-Finale Turnen | Heidelberg',
+            'ext': 'mp4',
             'display_id': 'deutsche-turnliga/2025-iwa-nachwuchsbundesliga-dtl-finale-turnen-heidelberg',
             'channel': 'Deutsche Turnligaaaa',
             'channel_id': '936ed054-572c-48a6-8132-4a20ea81bbca',
