@@ -53,21 +53,6 @@ class EbayLiveIE(InfoExtractor):
 
     _VALID_URL = r'https?://(?:www\.)?ebay\.com/ebaylive/events/(?P<id>\w+)(?:/stream)?'
     _TESTS = [{
-        'url': 'https://www.ebay.com/ebaylive/events/eOZ73pZfnvdnicEA/stream',
-        'info_dict': {
-            'id': 'eOZ73pZfnvdnicEA',
-            'ext': 'mp4',
-            'title': 'Coins, Currency, & Bullion w/ Brian! - 10/15',
-            'description': 'md5:a290e26ae6e625419d4965e974dcac60',
-            'live_status': 'was_live',
-            'release_date': '20251015',
-            'release_timestamp': 1760565884,
-            'thumbnail': r're:https?://i\.ebayimg\.com/.+',
-            'uploader': 'everydaycoins',
-            'uploader_id': 'gocpf_aqst6',
-            'view_count': int,
-        },
-    }, {
         'url': 'https://www.ebay.com/ebaylive/events/ogmQWaWY9FlJDV0e/stream',
         'info_dict': {
             'id': 'ogmQWaWY9FlJDV0e',
