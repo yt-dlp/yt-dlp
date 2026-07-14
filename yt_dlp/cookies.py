@@ -46,7 +46,7 @@ from .utils import (
 from .utils._utils import _YDLLogger
 from .utils.networking import normalize_url
 
-CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'tron', 'vivaldi', 'whale'}
+CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'tronbrowser', 'vivaldi', 'whale'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
 
 
@@ -242,7 +242,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'chromium': os.path.join(appdata_local, R'Chromium\User Data'),
             'edge': os.path.join(appdata_local, R'Microsoft\Edge\User Data'),
             'opera': os.path.join(appdata_roaming, R'Opera Software\Opera Stable'),
-            'tron': os.path.join(appdata_local, R'TronBrowser\User Data'),
+            'tronbrowser': os.path.join(appdata_local, R'TronBrowser\User Data'),
             'vivaldi': os.path.join(appdata_local, R'Vivaldi\User Data'),
             'whale': os.path.join(appdata_local, R'Naver\Naver Whale\User Data'),
         }[browser_name]
@@ -255,7 +255,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'chromium': os.path.join(appdata, 'Chromium'),
             'edge': os.path.join(appdata, 'Microsoft Edge'),
             'opera': os.path.join(appdata, 'com.operasoftware.Opera'),
-            'tron': os.path.join(appdata, 'TronBrowser'),
+            'tronbrowser': os.path.join(appdata, 'TronBrowser'),
             'vivaldi': os.path.join(appdata, 'Vivaldi'),
             'whale': os.path.join(appdata, 'Naver/Whale'),
         }[browser_name]
@@ -268,7 +268,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'chromium': os.path.join(config, 'chromium'),
             'edge': os.path.join(config, 'microsoft-edge'),
             'opera': os.path.join(config, 'opera'),
-            'tron': os.path.join(config, 'TronBrowser'),
+            'tronbrowser': os.path.join(config, 'tronbrowser'),
             'vivaldi': os.path.join(config, 'vivaldi'),
             'whale': os.path.join(config, 'naver-whale'),
         }[browser_name]
@@ -281,7 +281,7 @@ def _get_chromium_based_browser_settings(browser_name):
         'chromium': 'Chromium',
         'edge': 'Microsoft Edge' if sys.platform == 'darwin' else 'Chromium',
         'opera': 'Opera' if sys.platform == 'darwin' else 'Chromium',
-        'tron': 'Tron',
+        'tronbrowser': 'TronBrowser',
         'vivaldi': 'Vivaldi' if sys.platform == 'darwin' else 'Chrome',
         'whale': 'Whale',
     }[browser_name]
