@@ -219,9 +219,12 @@ class GlobalPlayerAudioEpisodeIE(GlobalPlayerBaseIE):
         video_id, podcast = self._match_valid_url(url).group('id', 'podcast')
         props = self._get_page_props(url, video_id)
         episode = props['podcastEpisode'] if podcast else props['catchupEpisode']
-
-        return self._extract_audio(
-            episode, traverse_obj(episode, 'podcast', 'show', expected_type=dict) or {})
+        return {
+            **self._extract_audio(
+            episode, traverse_obj(episode, 'podcast', 'show', expected_type=dict) or {}),
+            'id': video_id,
+        }
+        
 
 
 class GlobalPlayerVideoIE(GlobalPlayerBaseIE):
