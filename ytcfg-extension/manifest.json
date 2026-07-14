@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "ytcfg Extractor",
+  "version": "1.0.0",
+  "description": "Adds a button on top of YouTube videos that re-downloads the watch page, extracts the ytcfg.set({...}) JSON and logs it to the console",
+  "content_scripts": [
+    {
+      "matches": ["*://www.youtube.com/*", "*://m.youtube.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
