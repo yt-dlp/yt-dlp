@@ -1,5 +1,8 @@
+import datetime as dt
+
 from .common import InfoExtractor
 from ..utils import (
+    UserNotLive,
     clean_html,
     int_or_none,
     parse_iso8601,
@@ -57,13 +60,30 @@ class EbayLiveIE(InfoExtractor):
             'title': 'Coins, Currency, & Bullion w/ Brian! - 10/15',
             'description': 'md5:a290e26ae6e625419d4965e974dcac60',
             'live_status': 'was_live',
+            'release_date': '20251015',
+            'release_timestamp': 1760565884,
             'thumbnail': r're:https?://i\.ebayimg\.com/.+',
-            'timestamp': 1760565884,
-            'upload_date': '20251015',
             'uploader': 'everydaycoins',
             'uploader_id': 'gocpf_aqst6',
             'view_count': int,
         },
+    }, {
+        'url': 'https://www.ebay.com/ebaylive/events/ogmQWaWY9FlJDV0e/stream',
+        'info_dict': {
+            'id': 'ogmQWaWY9FlJDV0e',
+            'ext': 'mp4',
+            'title': 'Messsive sale and 1$ Acution for LV , Gucci and more Pre-Owned Luxury Bran',
+            'description': 'md5:9bacc85c46bc781ba509428af724221d',
+            'live_status': 'was_live',
+            'release_date': '20260713',
+            'release_timestamp': 1783946947,
+            'tags': 'count:3',
+            'thumbnail': r're:https?://i\.ebayimg\.com/.+',
+            'uploader': 'ever_luxe',
+            'uploader_id': 'rdgnistjtza',
+            'view_count': int,
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
@@ -73,23 +93,27 @@ class EbayLiveIE(InfoExtractor):
             r'window\.__APOLLO_DATA__\s*=', webpage, 'apollo data', video_id)
         live_event = traverse_obj(apollo_data, (f'LiveEvent:{video_id}', {dict}))
 
-        start_timestamp_str = traverse_obj(live_event, ('startTime', {str}))
-        start_timestamp = parse_iso8601(start_timestamp_str)
         live_status = {
             'LIVE': 'is_live',
             'RECORDED': 'was_live',
             'UPCOMING': 'is_upcoming',
         }.get(live_event.get('state'))
+        start_timestamp = traverse_obj(live_event, ('startTime', {parse_iso8601}))
 
         if live_status == 'is_upcoming':
-            self.raise_no_formats(
-                f'This livestream is scheduled to start at {start_timestamp_str}', expected=True)
+            if start_timestamp:
+                start_time = dt.datetime.fromtimestamp(
+                    start_timestamp, dt.timezone.utc,
+                ).astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
+                self.raise_no_formats(
+                    f'This livestream is scheduled to start at {start_time}', expected=True)
 
-            return {
-                'id': video_id,
-                'live_status': live_status,
-                'release_timestamp': start_timestamp,
-            }
+                return {
+                    'id': video_id,
+                    'live_status': live_status,
+                    'release_timestamp': start_timestamp,
+                }
+            raise UserNotLive(video_id=video_id)
         elif live_status == 'was_live':
             m3u8_url = traverse_obj(live_event, (
                 'replay', 'replayUrl', {url_or_none}, {require('m3u8 URL')}))
@@ -112,17 +136,16 @@ class EbayLiveIE(InfoExtractor):
             'id': video_id,
             'formats': self._extract_m3u8_formats(m3u8_url, video_id, 'mp4'),
             'live_status': live_status,
-            'timestamp': start_timestamp,
+            'release_timestamp': start_timestamp,
             'uploader_id': remove_start(host_key, 'User:'),
             **traverse_obj(apollo_data, {
-                'tags': (tag_keys, 'name', {clean_html}, filter),
+                'tags': (tag_keys, 'name', {clean_html}, filter, all, filter),
                 'thumbnail': (thumbnail_key, 'url', {url_or_none}),
                 'uploader': (host_key, 'userAccountName', {clean_html}, filter),
             }),
             **traverse_obj(live_event, {
                 'title': ('title', {clean_html}, filter),
                 'description': ('description', {clean_html}, filter),
-                'timestamp': ('startTime', {parse_iso8601}),
                 'view_count': ('watchedCount', {int_or_none}),
             }),
         }
