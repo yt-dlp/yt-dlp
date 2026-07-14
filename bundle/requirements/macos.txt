@@ -217,6 +217,10 @@ pefile==2024.8.26 ; sys_platform == 'win32' \
     --hash=sha256:3ff6c5d8b43e8c37bb6e6dd5085658d658a7a0bdcd20b6a07b1fcfc1c4e9d632 \
     --hash=sha256:76f8b485dcd3b1bb8166f1128d395fa3d87af26360c2358fb75b80019b957c6f
     # via pyinstaller
+protobug==1.0.0 \
+    --hash=sha256:8b1b5cb3f4b2dd4fa0a6219ca770f687d0af32606d344ac7acedf00943f220c3 \
+    --hash=sha256:d6ea277e83e1a468b1c75a928fbba97e0cb10743df5558e8f326170984364fbb
+    # via yt-dlp
 pycparser==3.0 ; implementation_name != 'PyPy' \
     --hash=sha256:600f49d217304a5902ac3c37e1281c9fe94e4d0489de643a9504c5cdfdfc6b29 \
     --hash=sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992
