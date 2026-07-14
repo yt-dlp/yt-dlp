@@ -465,9 +465,9 @@ class VrtNUIE(VRTBaseIE):
             'thumbnail': url_or_none(streaming_info.get('posterImageUrl')),
             **self._json_ld(traverse_obj(metadata, ('ldjson', ..., {json.loads})), video_id, fatal=False),
             **traverse_obj(metadata, ({
-                'title': ('title', {str_or_none}),
-                'full_title': ('seo', 'title', {str_or_none}),
-                'description': ('description', {str_or_none}),
+                'title': ('title', {str}),
+                'alt_title': ('seo', 'title', {str}),
+                'description': ('description', {str}),
                 'timestamp': ('player', 'modes', 0, 'cimMediaTrackingData', 'publicationDate', {parse_iso8601}),
                 'age_limit': ('ageRaw', {parse_age_limit}),
                 'channel': ('brand', {str}),
