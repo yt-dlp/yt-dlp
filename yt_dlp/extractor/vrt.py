@@ -470,7 +470,7 @@ class VrtNUIE(VRTBaseIE):
                 'description': ('description', {str_or_none}),
                 'timestamp': ('player', 'modes', 0, 'cimMediaTrackingData', 'publicationDate', {parse_iso8601}),
                 'age_limit': ('ageRaw', {parse_age_limit}),
-                'channel': ('brand', {str_or_none}),
+                'channel': ('brand', {str}),
                 'duration': ('player', 'modes', 0, 'programDuration', {parse_duration}),
             })),
             **self._parse_secondarymeta(metadata),
