@@ -9,7 +9,7 @@ import tempfile
 import time
 
 from .fragment import FragmentFD
-from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
+from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor, FFmpegPostProcessorError
 from ..utils import (
     DownloadError,
     Popen,
@@ -424,13 +424,12 @@ class FFmpegFD(ExternalFD):
                     f'{self.get_basename()} does not support SOCKS proxies. Downloading is likely to fail. '
                     'Consider adding --hls-prefer-native to your command.')
 
-            # Since December 2015 ffmpeg supports -http_proxy option (see
-            # http://git.videolan.org/?p=ffmpeg.git;a=commit;h=b4eb1f29ebddd60c41a2eb39f5af701e38e0d3fd)
-            # We could switch to the following code if we are able to detect version properly
-            # args += ['-http_proxy', proxy]
-            env = os.environ.copy()
-            env['HTTP_PROXY'] = proxy
-            env['http_proxy'] = proxy
+            if ffpp._bridge:
+                args += ['-http_proxy', proxy]
+            else:
+                env = os.environ.copy()
+                env['HTTP_PROXY'] = proxy
+                env['http_proxy'] = proxy
 
         start_time, end_time = info_dict.get('section_start') or 0, info_dict.get('section_end')
 
@@ -557,6 +556,19 @@ class FFmpegFD(ExternalFD):
         self._debug_cmd(args)
 
         piped = any(fmt['url'] in ('-', 'pipe:') for fmt in selected_formats)
+        if ffpp._bridge:
+            if piped:
+                self.report_error('ffmpeg bridge downloader does not support piped input')
+                return 1
+            try:
+                _, stderr, retval = ffpp._bridge.run(args, expected_retcodes=range(256))
+            except FFmpegPostProcessorError as err:
+                self.report_error(f'ffmpeg bridge downloader failed: {err}')
+                return 1
+            if retval and stderr:
+                self.to_stderr(stderr)
+            return retval
+
         with Popen(args, stdin=subprocess.PIPE, env=env) as proc:
             if piped:
                 self.on_process_started(proc, proc.stdin)
