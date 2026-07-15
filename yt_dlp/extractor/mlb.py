@@ -105,89 +105,85 @@ class MLBIE(MLBBaseIE):
         r'<iframe[^>]+?src=(["\'])(?P<url>https?://m(?:lb)?\.mlb\.com/shared/video/embed/embed\.html\?.+?)\1',
         r'data-video-link=["\'](?P<url>http://m\.mlb\.com/video/[^"\']+)',
     ]
-    _TESTS = [
-        {
-            'url': 'https://www.mlb.com/mariners/video/ackleys-spectacular-catch/c-34698933',
-            'md5': '632358dacfceec06bad823b83d21df2d',
-            'info_dict': {
-                'id': '34698933',
-                'ext': 'mp4',
-                'title': "Ackley's spectacular catch",
-                'description': 'md5:7f5a981eb4f3cbc8daf2aeffa2215bf0',
-                'duration': 66,
-                'timestamp': 1405995000,
-                'upload_date': '20140722',
-                'thumbnail': r're:^https?://.*\.jpg$',
-            },
+    _TESTS = [{
+        'url': 'https://www.mlb.com/mariners/video/ackleys-spectacular-catch/c-34698933',
+        'info_dict': {
+            'id': '34698933',
+            'ext': 'mp4',
+            'title': 'Ackley\'s spectacular catch',
+            'description': 'md5:7f5a981eb4f3cbc8daf2aeffa2215bf0',
+            'duration': 66,
+            'timestamp': 1405995000,
+            'upload_date': '20140722',
+            'thumbnail': r're:https?://.+\.jpg',
         },
-        {
-            'url': 'https://www.mlb.com/video/stanton-prepares-for-derby/c-34496663',
-            'md5': 'bf2619bf9cacc0a564fc35e6aeb9219f',
-            'info_dict': {
-                'id': '34496663',
-                'ext': 'mp4',
-                'title': 'Stanton prepares for Derby',
-                'description': 'md5:d00ce1e5fd9c9069e9c13ab4faedfa57',
-                'duration': 46,
-                'timestamp': 1405120200,
-                'upload_date': '20140711',
-                'thumbnail': r're:^https?://.*\.jpg$',
-            },
+    }, {
+        'url': 'https://www.mlb.com/video/stanton-prepares-for-derby/c-34496663',
+        'info_dict': {
+            'id': '34496663',
+            'ext': 'mp4',
+            'title': 'Stanton prepares for Derby',
+            'description': 'md5:d00ce1e5fd9c9069e9c13ab4faedfa57',
+            'duration': 46,
+            'timestamp': 1405120200,
+            'upload_date': '20140711',
+            'thumbnail': r're:https?://.+\.jpg',
         },
-        {
-            'url': 'https://www.mlb.com/video/cespedes-repeats-as-derby-champ/c-34578115',
-            'md5': '99bb9176531adc600b90880fb8be9328',
-            'info_dict': {
-                'id': '34578115',
-                'ext': 'mp4',
-                'title': 'Cespedes repeats as Derby champ',
-                'description': 'md5:08df253ce265d4cf6fb09f581fafad07',
-                'duration': 488,
-                'timestamp': 1405414336,
-                'upload_date': '20140715',
-                'thumbnail': r're:^https?://.*\.jpg$',
-            },
+    }, {
+        'url': 'https://www.mlb.com/video/cespedes-repeats-as-derby-champ/c-34578115',
+        'info_dict': {
+            'id': '34578115',
+            'ext': 'mp4',
+            'title': 'Cespedes repeats as Derby champ',
+            'description': 'md5:08df253ce265d4cf6fb09f581fafad07',
+            'duration': 488,
+            'timestamp': 1405414336,
+            'upload_date': '20140715',
+            'thumbnail': r're:https?://.+\.jpg',
         },
-        {
-            'url': 'https://www.mlb.com/video/bautista-on-home-run-derby/c-34577915',
-            'md5': 'da8b57a12b060e7663ee1eebd6f330ec',
-            'info_dict': {
-                'id': '34577915',
-                'ext': 'mp4',
-                'title': 'Bautista on Home Run Derby',
-                'description': 'md5:b80b34031143d0986dddc64a8839f0fb',
-                'duration': 52,
-                'timestamp': 1405405122,
-                'upload_date': '20140715',
-                'thumbnail': r're:^https?://.*\.jpg$',
-            },
+    }, {
+        'url': 'https://www.mlb.com/video/bautista-on-home-run-derby/c-34577915',
+        'info_dict': {
+            'id': '34577915',
+            'ext': 'mp4',
+            'title': 'Bautista on Home Run Derby',
+            'description': 'md5:b80b34031143d0986dddc64a8839f0fb',
+            'duration': 52,
+            'timestamp': 1405405122,
+            'upload_date': '20140715',
+            'thumbnail': r're:https?://.+\.jpg',
         },
-        {
-            'url': 'https://www.mlb.com/video/hargrove-homers-off-caldwell/c-1352023483?tid=67793694',
-            'only_matching': True,
+    }, {
+        'url': 'https://www.mlb.com/video/hargrove-homers-off-caldwell/c-1352023483?tid=67793694',
+        'only_matching': True,
+    }, {
+        'url': 'http://m.mlb.com/shared/video/embed/embed.html?content_id=35692085&topic_id=6479266&width=400&height=224&property=mlb',
+        'only_matching': True,
+    }, {
+        'url': 'http://mlb.mlb.com/shared/video/embed/embed.html?content_id=36599553',
+        'only_matching': True,
+    }, {
+        'url': 'http://mlb.mlb.com/es/video/play.jsp?content_id=36599553',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.mlb.com/cardinals/video/piscottys-great-sliding-catch/c-51175783',
+        'only_matching': True,
+    }, {
+        # From http://m.mlb.com/news/article/118550098/blue-jays-kevin-pillar-goes-spidey-up-the-wall-to-rob-tim-beckham-of-a-homer
+        'url': 'http://mlb.mlb.com/shared/video/embed/m-internal-embed.html?content_id=75609783&property=mlb&autoplay=true&hashmode=false&siteSection=mlb/multimedia/article_118550098/article_embed&club=mlb',
+        'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.mlbdailydish.com/2013/2/25/4028804/mlb-classic-video-vault-open-watch-embed-share',
+        'info_dict': {
+            'id': 'mlb-classic-video-vault-open-watch-embed-share',
+            'title': 'MLB Classic vault is open! Don\'t avert your eyes!',
+            'age_limit': 0,
+            'description': 'All the video needed to hold you over until real baseball starts next month.',
+            'thumbnail': r're:https?://cdn\.vox-cdn\.com/thumbor/.+\.jpg',
         },
-        {
-            'url': 'http://m.mlb.com/shared/video/embed/embed.html?content_id=35692085&topic_id=6479266&width=400&height=224&property=mlb',
-            'only_matching': True,
-        },
-        {
-            'url': 'http://mlb.mlb.com/shared/video/embed/embed.html?content_id=36599553',
-            'only_matching': True,
-        },
-        {
-            'url': 'http://mlb.mlb.com/es/video/play.jsp?content_id=36599553',
-            'only_matching': True,
-        },
-        {
-            'url': 'https://www.mlb.com/cardinals/video/piscottys-great-sliding-catch/c-51175783',
-            'only_matching': True,
-        },
-        {
-            # From http://m.mlb.com/news/article/118550098/blue-jays-kevin-pillar-goes-spidey-up-the-wall-to-rob-tim-beckham-of-a-homer
-            'url': 'http://mlb.mlb.com/shared/video/embed/m-internal-embed.html?content_id=75609783&property=mlb&autoplay=true&hashmode=false&siteSection=mlb/multimedia/article_118550098/article_embed&club=mlb',
-            'only_matching': True,
-        },
-    ]
+        'playlist_count': 3,
+    }]
     _TIMESTAMP_KEY = 'date'
 
     @staticmethod
@@ -215,20 +211,19 @@ class MLBIE(MLBBaseIE):
 
 class MLBVideoIE(MLBBaseIE):
     _VALID_URL = r'https?://(?:www\.)?mlb\.com/(?:[^/]+/)*video/(?P<id>[^/?&#]+)'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://www.mlb.com/mariners/video/ackley-s-spectacular-catch-c34698933',
-        'md5': '632358dacfceec06bad823b83d21df2d',
         'info_dict': {
             'id': 'c04a8863-f569-42e6-9f87-992393657614',
             'ext': 'mp4',
-            'title': "Ackley's spectacular catch",
+            'title': 'Ackley\'s spectacular catch',
             'description': 'md5:7f5a981eb4f3cbc8daf2aeffa2215bf0',
             'duration': 66,
             'timestamp': 1405995000,
             'upload_date': '20140722',
-            'thumbnail': r're:^https?://.+',
+            'thumbnail': r're:https?://.+',
         },
-    }
+    }]
     _TIMESTAMP_KEY = 'timestamp'
 
     @classmethod
@@ -457,12 +452,9 @@ mutation initPlaybackSession(
                 self.report_warning(f'No formats available for {format_id} broadcast; skipping')
             return [], {}
 
-        cdn_headers = {'x-cdn-token': token}
         fmts, subs = self._extract_m3u8_formats_and_subtitles(
-            m3u8_url.replace(f'/{token}/', '/'), video_id, 'mp4',
-            m3u8_id=format_id, fatal=False, headers=cdn_headers)
+            m3u8_url, video_id, 'mp4', m3u8_id=format_id, fatal=False)
         for fmt in fmts:
-            fmt['http_headers'] = cdn_headers
             fmt.setdefault('format_note', join_nonempty(feed, medium, delim=' '))
             fmt.setdefault('language', language)
             if fmt.get('vcodec') == 'none' and fmt['language'] == 'en':

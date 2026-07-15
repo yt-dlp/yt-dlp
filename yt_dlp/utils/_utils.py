@@ -28,6 +28,7 @@ import os
 import platform
 import random
 import re
+import secrets
 import shlex
 import socket
 import ssl
@@ -47,12 +48,13 @@ import xml.etree.ElementTree
 from . import traversal
 
 from ..compat import (
+    compat_datetime_from_timestamp,
     compat_etree_fromstring,
     compat_expanduser,
     compat_HTMLParseError,
 )
 from ..dependencies import xattr
-from ..globals import IN_CLI
+from ..globals import IN_CLI, WINDOWS_VT_MODE
 
 __name__ = __name__.rsplit('.', 1)[0]  # noqa: A001 # Pretend to be the parent module
 
@@ -74,6 +76,9 @@ MONTH_NAMES = {
     'fr': [
         'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
         'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'],
+    'is': [
+        'janúar', 'febrúar', 'mars', 'apríl', 'maí', 'júní',
+        'júlí', 'ágúst', 'september', 'október', 'nóvember', 'desember'],
     # these follow the genitive grammatical case (dopełniacz)
     # some websites might be using nominative, which will require another month list
     # https://en.wikibooks.org/wiki/Polish/Noun_cases
@@ -94,7 +99,7 @@ TIMEZONE_NAMES = {
 # needed for sanitizing filenames in restricted mode
 ACCENT_CHARS = dict(zip('ÂÃÄÀÁÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖŐØŒÙÚÛÜŰÝÞßàáâãäåæçèéêëìíîïðñòóôõöőøœùúûüűýþÿ',
                         itertools.chain('AAAAAA', ['AE'], 'CEEEEIIIIDNOOOOOOO', ['OE'], 'UUUUUY', ['TH', 'ss'],
-                                        'aaaaaa', ['ae'], 'ceeeeiiiionooooooo', ['oe'], 'uuuuuy', ['th'], 'y')))
+                                        'aaaaaa', ['ae'], 'ceeeeiiiionooooooo', ['oe'], 'uuuuuy', ['th'], 'y'), strict=True))
 
 DATE_FORMATS = (
     '%d %B %Y',
@@ -875,13 +880,19 @@ class Popen(subprocess.Popen):
             kwargs.setdefault('encoding', 'utf-8')
             kwargs.setdefault('errors', 'replace')
 
-        if shell and os.name == 'nt' and kwargs.get('executable') is None:
-            if not isinstance(args, str):
-                args = shell_quote(args, shell=True)
-            shell = False
-            # Set variable for `cmd.exe` newline escaping (see `utils.shell_quote`)
-            env['='] = '"^\n\n"'
-            args = f'{self.__comspec()} /Q /S /D /V:OFF /E:ON /C "{args}"'
+        if os.name == 'nt' and kwargs.get('executable') is None:
+            # Must apply shell escaping if we are trying to run a batch file
+            # These conditions should be very specific to limit impact
+            if not shell and isinstance(args, list) and args and args[0].lower().endswith(('.bat', '.cmd')):
+                shell = True
+
+            if shell:
+                if not isinstance(args, str):
+                    args = shell_quote(args, shell=True)
+                shell = False
+                # Set variable for `cmd.exe` newline escaping (see `utils.shell_quote`)
+                env['='] = '"^\n\n"'
+                args = f'{self.__comspec()} /Q /S /D /V:OFF /E:ON /C "{args}"'
 
         super().__init__(args, *remaining, env=env, shell=shell, **kwargs, startupinfo=self._startupinfo)
 
@@ -905,10 +916,12 @@ class Popen(subprocess.Popen):
             self.wait(timeout=timeout)
 
     @classmethod
-    def run(cls, *args, timeout=None, **kwargs):
+    def run(cls, *args, timeout=None, input=None, **kwargs):
+        if input is not None and kwargs.get('stdin') is None:
+            kwargs['stdin'] = subprocess.PIPE
         with cls(*args, **kwargs) as proc:
             default = '' if proc.__text_mode else b''
-            stdout, stderr = proc.communicate_or_kill(timeout=timeout)
+            stdout, stderr = proc.communicate_or_kill(input=input, timeout=timeout)
             return stdout or default, stderr or default, proc.returncode
 
 
@@ -1172,6 +1185,10 @@ class XAttrUnavailableError(YoutubeDLError):
     pass
 
 
+class UnsafeExecExpansionError(YoutubeDLError):
+    pass
+
+
 def is_path_like(f):
     return isinstance(f, (str, bytes, os.PathLike))
 
@@ -1255,7 +1272,8 @@ def unified_strdate(date_str, day_first=True):
         return str(upload_date)
 
 
-def unified_timestamp(date_str, day_first=True):
+@partial_application
+def unified_timestamp(date_str, day_first=True, tz_offset=0):
     if not isinstance(date_str, str):
         return None
 
@@ -1263,7 +1281,8 @@ def unified_timestamp(date_str, day_first=True):
         r'(?i)[,|]|(mon|tues?|wed(nes)?|thu(rs)?|fri|sat(ur)?|sun)(day)?', '', date_str))
 
     pm_delta = 12 if re.search(r'(?i)PM', date_str) else 0
-    timezone, date_str = extract_timezone(date_str)
+    timezone, date_str = extract_timezone(
+        date_str, default=dt.timedelta(hours=tz_offset) if tz_offset else None)
 
     # Remove AM/PM + timezone
     date_str = re.sub(r'(?i)\s*(?:AM|PM)(?:\s+[A-Z]+)?', '', date_str)
@@ -1285,7 +1304,7 @@ def unified_timestamp(date_str, day_first=True):
 
     timetuple = email.utils.parsedate_tz(date_str)
     if timetuple:
-        return calendar.timegm(timetuple) + pm_delta * 3600 - timezone.total_seconds()
+        return calendar.timegm(timetuple) + pm_delta * 3600 - int(timezone.total_seconds())
 
 
 @partial_application
@@ -1376,6 +1395,7 @@ def datetime_round(dt_, precision='day'):
     if precision == 'microsecond':
         return dt_
 
+    time_scale = 1_000_000
     unit_seconds = {
         'day': 86400,
         'hour': 3600,
@@ -1383,8 +1403,8 @@ def datetime_round(dt_, precision='day'):
         'second': 1,
     }
     roundto = lambda x, n: ((x + n / 2) // n) * n
-    timestamp = roundto(calendar.timegm(dt_.timetuple()), unit_seconds[precision])
-    return dt.datetime.fromtimestamp(timestamp, dt.timezone.utc)
+    timestamp = roundto(calendar.timegm(dt_.timetuple()) + dt_.microsecond / time_scale, unit_seconds[precision])
+    return compat_datetime_from_timestamp(timestamp)
 
 
 def hyphenate_date(date_str):
@@ -1853,7 +1873,8 @@ def parse_count(s):
         return str_to_int(mobj.group(1))
 
 
-def parse_resolution(s, *, lenient=False):
+@partial_application
+def parse_resolution(s, *, lenient=False, parse_fps=False):
     if s is None:
         return {}
 
@@ -1867,13 +1888,24 @@ def parse_resolution(s, *, lenient=False):
             'height': int(mobj.group('h')),
         }
 
-    mobj = re.search(r'(?<![a-zA-Z0-9])(\d+)[pPiI](?![a-zA-Z0-9])', s)
+    fps_suffix = r'(?P<fps>\d{2,3})?'
+    mobj = re.search(rf'(?<![a-zA-Z0-9])(?P<height>\d+)[pPiI]{fps_suffix}(?![a-zA-Z0-9])', s)
+    scale = 1
+    if not mobj:
+        mobj = re.search(rf'\b(?P<height>[48])[kK]{fps_suffix}\b', s)
+        scale = 540
     if mobj:
-        return {'height': int(mobj.group(1))}
+        res = {'height': int(mobj.group('height')) * scale}
+        if parse_fps:
+            if fps := mobj.group('fps'):
+                res['fps'] = int(fps)
 
-    mobj = re.search(r'\b([48])[kK]\b', s)
-    if mobj:
-        return {'height': int(mobj.group(1)) * 540}
+        return res
+
+    if lenient:
+        mobj = re.search(r'(?<!\d)(\d{2,5})w(?![a-zA-Z0-9])', s)
+        if mobj:
+            return {'width': int(mobj.group(1))}
 
     return {}
 
@@ -2044,25 +2076,20 @@ def url_or_none(url):
     if not url or not isinstance(url, str):
         return None
     url = url.strip()
-    return url if re.match(r'(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?|wss?):)?//', url) else None
+    return url if re.match(r'(?:(?:https?|rtm(?:pt?[es]?|fp)|ftps?|wss?):)?//', url) else None
 
 
 def strftime_or_none(timestamp, date_format='%Y%m%d', default=None):
     datetime_object = None
     try:
         if isinstance(timestamp, (int, float)):  # unix timestamp
-            # Using naive datetime here can break timestamp() in Windows
-            # Ref: https://github.com/yt-dlp/yt-dlp/issues/5185, https://github.com/python/cpython/issues/94414
-            # Also, dt.datetime.fromtimestamp breaks for negative timestamps
-            # Ref: https://github.com/yt-dlp/yt-dlp/issues/6706#issuecomment-1496842642
-            datetime_object = (dt.datetime.fromtimestamp(0, dt.timezone.utc)
-                               + dt.timedelta(seconds=timestamp))
+            datetime_object = compat_datetime_from_timestamp(timestamp)
         elif isinstance(timestamp, str):  # assume YYYYMMDD
             datetime_object = dt.datetime.strptime(timestamp, '%Y%m%d')
         date_format = re.sub(  # Support %s on windows
             r'(?<!%)(%%)*%s', rf'\g<1>{int(datetime_object.timestamp())}', date_format)
         return datetime_object.strftime(date_format)
-    except (ValueError, TypeError, AttributeError):
+    except (ValueError, TypeError, AttributeError, OverflowError, OSError):
         return default
 
 
@@ -2118,20 +2145,22 @@ def parse_duration(s):
 
     if ms:
         ms = ms.replace(':', '.')
-    return sum(float(part or 0) * mult for part, mult in (
+    total = sum(float(part or 0) * mult for part, mult in (
         (days, 86400), (hours, 3600), (mins, 60), (secs, 1), (ms, 1)))
 
+    return int(total) if total.is_integer() else total
 
-def _change_extension(prepend, filename, ext, expected_real_ext=None):
+
+def _change_extension(prepend, filename, ext, expected_real_ext=None, *, _allowed_exts=()):
     name, real_ext = os.path.splitext(filename)
 
     if not expected_real_ext or real_ext[1:] == expected_real_ext:
         filename = name
         if prepend and real_ext:
-            _UnsafeExtensionError.sanitize_extension(ext, prepend=True)
+            _UnsafeExtensionError.sanitize_extension(ext, prepend=True, _allowed_exts=_allowed_exts)
             return f'{filename}.{ext}{real_ext}'
 
-    return f'{filename}.{_UnsafeExtensionError.sanitize_extension(ext)}'
+    return f'{filename}.{_UnsafeExtensionError.sanitize_extension(ext, _allowed_exts=_allowed_exts)}'
 
 
 prepend_extension = functools.partial(_change_extension, True)
@@ -2148,14 +2177,14 @@ def check_executable(exe, args=[]):
     return exe
 
 
-def _get_exe_version_output(exe, args):
+def _get_exe_version_output(exe, args, ignore_return_code=False):
     try:
         # STDIN should be redirected too. On UNIX-like systems, ffmpeg triggers
         # SIGTTOU if yt-dlp is run in the background.
         # See https://github.com/ytdl-org/youtube-dl/issues/955#issuecomment-209789656
         stdout, _, ret = Popen.run([encodeArgument(exe), *args], text=True,
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        if ret:
+        if not ignore_return_code and ret:
             return None
     except OSError:
         return False
@@ -2413,7 +2442,7 @@ class PlaylistEntries:
         if self.is_incomplete:
             assert self.is_exhausted
             self._entries = [self.MissingEntry] * max(requested_entries or [0])
-            for i, entry in zip(requested_entries, entries):
+            for i, entry in zip(requested_entries, entries):  # noqa: B905
                 self._entries[i - 1] = entry
         elif isinstance(entries, (list, PagedList, LazyList)):
             self._entries = entries
@@ -2820,7 +2849,7 @@ def js_to_json(code, vars={}, *, strict=False):
         {STRING_RE}|
         {COMMENT_RE}|,(?={SKIP_RE}[\]}}])|
         void\s0|(?:(?<![0-9])[eE]|[a-df-zA-DF-Z_$])[.a-zA-Z_$0-9]*|
-        \b(?:0[xX][0-9a-fA-F]+|0+[0-7]+)(?:{SKIP_RE}:)?|
+        \b(?:0[xX][0-9a-fA-F]+|(?<!\.)0+[0-7]+)(?:{SKIP_RE}:)?|
         [0-9]+(?={SKIP_RE}:)|
         !+
         ''', fix_kv, code)
@@ -2828,11 +2857,13 @@ def js_to_json(code, vars={}, *, strict=False):
 
 def qualities(quality_ids):
     """ Get a numeric quality value out of a list of possible values """
+    quality_map = {}
+    for index, quality_id in enumerate(quality_ids):
+        quality_map.setdefault(quality_id, index)
+
     def q(qid):
-        try:
-            return quality_ids.index(qid)
-        except ValueError:
-            return -1
+        return quality_map.get(qid, -1)
+
     return q
 
 
@@ -2887,8 +2918,9 @@ def limit_length(s, length):
     return s
 
 
-def version_tuple(v):
-    return tuple(int(e) for e in re.split(r'[-.]', v))
+def version_tuple(v, *, lenient=False):
+    parse = int_or_none(default=-1) if lenient else int
+    return tuple(parse(e) for e in re.split(r'[-.]', v))
 
 
 def is_outdated_version(version, limit, assume_new=True):
@@ -2943,6 +2975,7 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'x-ms-asf': 'asf',
         'x-ms-wmv': 'wmv',
         'x-msvideo': 'avi',
+        'vnd.dlna.mpeg-tts': 'mpeg',
 
         # application (streaming playlists)
         'dash+xml': 'mpd',
@@ -2961,6 +2994,7 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'audio/x-matroska': 'mka',
         'audio/x-mpegurl': 'm3u',
         'aacp': 'aac',
+        'flac': 'flac',
         'midi': 'mid',
         'ogg': 'ogg',
         'wav': 'wav',
@@ -2991,6 +3025,8 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'ttaf+xml': 'dfxp',
         'ttml+xml': 'ttml',
         'x-ms-sami': 'sami',
+        'x-subrip': 'srt',
+        'x-srt': 'srt',
 
         # misc
         'gzip': 'gz',
@@ -3105,21 +3141,15 @@ def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, preferences=None):
 def urlhandle_detect_ext(url_handle, default=NO_DEFAULT):
     getheader = url_handle.headers.get
 
-    cd = getheader('Content-Disposition')
-    if cd:
-        m = re.match(r'attachment;\s*filename="(?P<filename>[^"]+)"', cd)
-        if m:
-            e = determine_ext(m.group('filename'), default_ext=None)
-            if e:
-                return e
+    if cd := getheader('Content-Disposition'):
+        if m := re.match(r'attachment;\s*filename="(?P<filename>[^"]+)"', cd):
+            if ext := determine_ext(m.group('filename'), default_ext=None):
+                return ext
 
-    meta_ext = getheader('x-amz-meta-name')
-    if meta_ext:
-        e = meta_ext.rpartition('.')[2]
-        if e:
-            return e
-
-    return mimetype2ext(getheader('Content-Type'), default=default)
+    return (
+        determine_ext(getheader('x-amz-meta-name'), default_ext=None)
+        or getheader('x-amz-meta-file-type')
+        or mimetype2ext(getheader('Content-Type'), default=default))
 
 
 def encode_data_uri(data, mime_type):
@@ -3165,10 +3195,6 @@ def determine_protocol(info_dict):
     url = sanitize_url(info_dict['url'])
     if url.startswith('rtmp'):
         return 'rtmp'
-    elif url.startswith('mms'):
-        return 'mms'
-    elif url.startswith('rtsp'):
-        return 'rtsp'
 
     ext = determine_ext(url)
     if ext == 'm3u8':
@@ -3186,7 +3212,7 @@ def render_table(header_row, data, delim=False, extra_gap=0, hide_empty=False):
         return len(remove_terminal_sequences(string).replace('\t', ''))
 
     def get_max_lens(table):
-        return [max(width(str(v)) for v in col) for col in zip(*table)]
+        return [max(width(str(v)) for v in col) for col in zip(*table, strict=True)]
 
     def filter_using_list(row, filter_array):
         return [col for take, col in itertools.zip_longest(filter_array, row, fillvalue=True) if take]
@@ -3542,7 +3568,7 @@ def dfxp2srt(dfxp_data):
             continue
         default_style.update(style)
 
-    for para, index in zip(paras, itertools.count(1)):
+    for para, index in zip(paras, itertools.count(1), strict=False):
         begin_time = parse_dfxp_time_expr(para.attrib.get('begin'))
         end_time = parse_dfxp_time_expr(para.attrib.get('end'))
         dur = parse_dfxp_time_expr(para.attrib.get('dur'))
@@ -4410,16 +4436,16 @@ def ohdave_rsa_encrypt(data, exponent, modulus):
 
 def pkcs1pad(data, length):
     """
-    Padding input data with PKCS#1 scheme
+    Pad input data using EME-PKCS1-v1_5 encoding
 
     @param {int[]} data        input data
     @param {int}   length      target length
     @returns {int[]}           padded data
     """
     if len(data) > length - 11:
-        raise ValueError('Input data too long for PKCS#1 padding')
+        raise ValueError('Input data too long for EME-PKCS1-v1_5 encoding')
 
-    pseudo_random = [random.randint(0, 254) for _ in range(length - len(data) - 3)]
+    pseudo_random = [secrets.randbelow(255) + 1 for _ in range(length - len(data) - 3)]
     return [0, 2, *pseudo_random, 0, *data]
 
 
@@ -4469,7 +4495,7 @@ def decode_packed_codes(code):
         symbol_table[base_n_count] = symbols[count] or base_n_count
 
     return re.sub(
-        r'\b(\w+)\b', lambda mobj: symbol_table[mobj.group(0)],
+        r'\b(\w+)\b', lambda m: symbol_table.get(m.group(0), m.group(0)),
         obfuscated_code)
 
 
@@ -4605,8 +4631,21 @@ LINK_TEMPLATES = {
     'webloc': DOT_WEBLOC_LINK_TEMPLATE,
 }
 
+# Ref: https://specifications.freedesktop.org/desktop-entry/latest/value-types.html
+_DESKTOP_ENTRY_TRANS = str.maketrans({
+    ' ': R'\s',
+    '\n': R'\n',
+    '\t': R'\t',
+    '\r': R'\r',
+    '\\': R'\\',
+})
 
-def iri_to_uri(iri):
+
+def _desktop_entry_localestring(s):
+    return s.translate(_DESKTOP_ENTRY_TRANS)
+
+
+def iri_to_uri(iri, *, allowed_schemes=('http', 'https')):
     """
     Converts an IRI (Internationalized Resource Identifier, allowing Unicode characters) to a URI (Uniform Resource Identifier, ASCII-only).
 
@@ -4614,6 +4653,9 @@ def iri_to_uri(iri):
     """
 
     iri_parts = urllib.parse.urlparse(iri)
+
+    if iri_parts.scheme not in allowed_schemes:
+        raise ValueError(f'"{iri_parts.scheme}" is not in allowed_schemes: {", ".join(allowed_schemes)}')
 
     if '[' in iri_parts.netloc:
         raise ValueError('IPv6 URIs are not, yet, supported.')
@@ -4695,16 +4737,9 @@ def random_uuidv4():
     return re.sub(r'[xy]', lambda x: _HEX_TABLE[random.randint(0, 15)], 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx')
 
 
-def make_dir(path, to_screen=None):
-    try:
-        dn = os.path.dirname(path)
-        if dn:
-            os.makedirs(dn, exist_ok=True)
-        return True
-    except OSError as err:
-        if callable(to_screen) is not None:
-            to_screen(f'unable to create directory {err}')
-        return False
+def make_parent_dirs(path):
+    if dir_name := os.path.dirname(path):
+        os.makedirs(dir_name, exist_ok=True)
 
 
 def get_executable_path():
@@ -4739,38 +4774,49 @@ def time_seconds(**kwargs):
     return time.time() + dt.timedelta(**kwargs).total_seconds()
 
 
-# create a JSON Web Signature (jws) with HS256 algorithm
-# the resulting format is in JWS Compact Serialization
 # implemented following JWT https://www.rfc-editor.org/rfc/rfc7519.html
 # implemented following JWS https://www.rfc-editor.org/rfc/rfc7515.html
-def jwt_encode_hs256(payload_data, key, headers={}):
+def jwt_encode(payload_data, key, *, alg='HS256', headers=None):
+    assert alg in ('HS256',), f'Unsupported algorithm "{alg}"'
+
+    def jwt_json_bytes(obj):
+        return json.dumps(obj, separators=(',', ':')).encode()
+
+    def jwt_b64encode(bytestring):
+        return base64.urlsafe_b64encode(bytestring).rstrip(b'=')
+
     header_data = {
-        'alg': 'HS256',
+        'alg': alg,
         'typ': 'JWT',
     }
     if headers:
-        header_data.update(headers)
-    header_b64 = base64.b64encode(json.dumps(header_data).encode())
-    payload_b64 = base64.b64encode(json.dumps(payload_data).encode())
+        # Allow re-ordering of keys if both 'alg' and 'typ' are present
+        if 'alg' in headers and 'typ' in headers:
+            header_data = headers
+        else:
+            header_data.update(headers)
+
+    header_b64 = jwt_b64encode(jwt_json_bytes(header_data))
+    payload_b64 = jwt_b64encode(jwt_json_bytes(payload_data))
+
+    # HS256 is the only algorithm currently supported
     h = hmac.new(key.encode(), header_b64 + b'.' + payload_b64, hashlib.sha256)
-    signature_b64 = base64.b64encode(h.digest())
-    return header_b64 + b'.' + payload_b64 + b'.' + signature_b64
+    signature_b64 = jwt_b64encode(h.digest())
+
+    return (header_b64 + b'.' + payload_b64 + b'.' + signature_b64).decode()
 
 
 # can be extended in future to verify the signature and parse header and return the algorithm used if it's not HS256
 def jwt_decode_hs256(jwt):
-    header_b64, payload_b64, signature_b64 = jwt.split('.')
+    _header_b64, payload_b64, _signature_b64 = jwt.split('.')
     # add trailing ='s that may have been stripped, superfluous ='s are ignored
     return json.loads(base64.urlsafe_b64decode(f'{payload_b64}==='))
-
-
-WINDOWS_VT_MODE = False if os.name == 'nt' else None
 
 
 @functools.cache
 def supports_terminal_sequences(stream):
     if os.name == 'nt':
-        if not WINDOWS_VT_MODE:
+        if not WINDOWS_VT_MODE.value:
             return False
     elif not os.getenv('TERM'):
         return False
@@ -4807,8 +4853,7 @@ def windows_enable_vt_mode():
     finally:
         os.close(handle)
 
-    global WINDOWS_VT_MODE
-    WINDOWS_VT_MODE = True
+    WINDOWS_VT_MODE.value = True
     supports_terminal_sequences.cache_clear()
 
 
@@ -4846,7 +4891,7 @@ def scale_thumbnails_to_max_format_width(formats, thumbnails, url_width_re):
     return [
         merge_dicts(
             {'url': re.sub(url_width_re, str(max_dimensions[0]), thumbnail['url'])},
-            dict(zip(_keys, max_dimensions)), thumbnail)
+            dict(zip(_keys, max_dimensions, strict=True)), thumbnail)
         for thumbnail in thumbnails
     ]
 
@@ -5185,20 +5230,22 @@ class _UnsafeExtensionError(Exception):
         # others
         *MEDIA_EXTENSIONS.manifests,
         *MEDIA_EXTENSIONS.storyboards,
-        'desktop',
         'ism',
         'm3u',
         'sbv',
-        'url',
-        'webloc',
     ])
+
+    _enabled = True
 
     def __init__(self, extension, /):
         super().__init__(f'unsafe file extension: {extension!r}')
         self.extension = extension
 
     @classmethod
-    def sanitize_extension(cls, extension, /, *, prepend=False):
+    def sanitize_extension(cls, extension, /, *, prepend=False, _allowed_exts=()):
+        if not cls._enabled:
+            return extension
+
         if extension is None:
             return None
 
@@ -5209,7 +5256,8 @@ class _UnsafeExtensionError(Exception):
             _, _, last = extension.rpartition('.')
             if last == 'bin':
                 extension = last = 'unknown_video'
-            if last.lower() not in cls.ALLOWED_EXTENSIONS:
+            allowed = _allowed_exts or cls.ALLOWED_EXTENSIONS
+            if last.lower() not in allowed:
                 raise cls(extension)
 
         return extension
@@ -5337,7 +5385,7 @@ class FormatSorter:
         'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
                 'order': ['dv', '(hdr)?12', r'(hdr)?10\+', '(hdr)?10', 'hlg', '', 'sdr', None]},
         'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',
-                  'order': ['(ht|f)tps', '(ht|f)tp$', 'm3u8.*', '.*dash', 'websocket_frag', 'rtmpe?', '', 'mms|rtsp', 'ws|websocket', 'f4']},
+                  'order': ['(ht|f)tps', '(ht|f)tp$', 'm3u8.*', '.*dash', 'websocket_frag', 'rtmpe?', '', 'ws|websocket', 'f4']},
         'vext': {'type': 'ordered', 'field': 'video_ext',
                  'order': ('mp4', 'mov', 'webm', 'flv', '', 'none'),
                  'order_free': ('webm', 'mp4', 'mov', 'flv', '', 'none')},

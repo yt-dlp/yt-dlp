@@ -435,7 +435,7 @@ def sub_bytes_inv(data):
 
 
 def rotate(data):
-    return data[1:] + [data[0]]
+    return [*data[1:], data[0]]
 
 
 def key_schedule_core(data, rcon_iteration):
@@ -447,7 +447,7 @@ def key_schedule_core(data, rcon_iteration):
 
 
 def xor(data1, data2):
-    return [x ^ y for x, y in zip(data1, data2)]
+    return [x ^ y for x, y in zip(data1, data2, strict=False)]
 
 
 def iter_mix_columns(data, matrix):

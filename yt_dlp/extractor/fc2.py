@@ -5,6 +5,7 @@ from .common import InfoExtractor
 from ..networking import Request
 from ..utils import (
     ExtractorError,
+    UserNotLive,
     js_to_json,
     traverse_obj,
     update_url_query,
@@ -22,8 +23,23 @@ class FC2IE(InfoExtractor):
         'md5': 'a6ebe8ebe0396518689d963774a54eb7',
         'info_dict': {
             'id': '20121103kUan1KHs',
-            'ext': 'flv',
             'title': 'Boxing again with Puff',
+            'ext': 'mp4',
+            'thumbnail': r're:https?://.+\.jpe?g',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
+        # Direct video url
+        'url': 'https://video.fc2.com/content/20121209FP73fxDx',
+        'md5': '066bdb9b3a56a97f49cbf0d0b8a75a1f',
+        'info_dict': {
+            'id': '20121209FP73fxDx',
+            'title': 'Farewelling The Wiggles Live in Sydney Dec 8 2012',
+            'ext': 'mp4',
+            'thumbnail': r're:https?://.+\.jpe?g',
+            'description': 'Saying goodbye to the Wiggles at their Celebration Concert in Sydney, and what a concert that was!',
         },
     }, {
         'url': 'http://video.fc2.com/en/content/20150125cEva0hDn/',
@@ -104,7 +120,7 @@ class FC2IE(InfoExtractor):
             'title': title,
             'url': vid_url,
             'ext': 'mp4',
-            'protocol': 'm3u8_native',
+            'protocol': 'm3u8_native' if vidplaylist.get('type') == 2 else 'https',
             'description': description,
             'thumbnail': thumbnail,
         }
@@ -190,6 +206,9 @@ class FC2LiveIE(InfoExtractor):
                 'client_app': 'browser_hls',
                 'ipv6': '',
             }), headers={'X-Requested-With': 'XMLHttpRequest'})
+        # A non-zero 'status' indicates the stream is not live, so check truthiness
+        if traverse_obj(control_server, ('status', {int})) and 'control_token' not in control_server:
+            raise UserNotLive(video_id=video_id)
         self._set_cookie('live.fc2.com', 'l_ortkn', control_server['orz_raw'])
 
         ws_url = update_url_query(control_server['url'], {'control_token': control_server['control_token']})

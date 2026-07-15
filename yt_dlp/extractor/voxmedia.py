@@ -72,6 +72,7 @@ class VoxMediaIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(?:(?:theverge|vox|sbnation|eater|polygon|curbed|racked|funnyordie)\.com|recode\.net)/(?:[^/]+/)*(?P<id>[^/?]+)'
     _EMBED_REGEX = [r'<iframe[^>]+?src="(?P<url>https?://(?:www\.)?funnyordie\.com/embed/[^"]+)"']
     _TESTS = [{
+        # FIXME: Unsupported iframe embed
         # Volume embed, Youtube
         'url': 'http://www.theverge.com/2014/6/27/5849272/material-world-how-google-discovered-what-software-is-made-of',
         'info_dict': {
@@ -155,6 +156,15 @@ class VoxMediaIE(InfoExtractor):
             },
         }],
         'skip': 'Page no longer contain videos',
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'http://www.theguardian.com/world/2014/mar/11/obama-zach-galifianakis-between-two-ferns',
+        'info_dict': {
+            'id': '18e820ec3f',
+            'ext': 'mp4',
+            'title': 'Between Two Ferns with Zach Galifianakis: President Barack Obama',
+        },
+        'skip': 'Invalid URL',
     }]
 
     def _real_extract(self, url):

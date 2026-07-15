@@ -4,6 +4,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     OnDemandPagedList,
+    filter_dict,
     format_field,
     int_or_none,
     parse_resolution,
@@ -1322,7 +1323,7 @@ class PeerTubeIE(InfoExtractor):
                     )
                     (?P<id>{_UUID_RE})
                     '''
-    _EMBED_REGEX = [r'''(?x)<iframe[^>]+\bsrc=["\'](?P<url>(?:https?:)?//{_INSTANCES_RE}/videos/embed/{cls._UUID_RE})''']
+    _EMBED_REGEX = [rf'''(?x)<iframe[^>]+\bsrc=["\'](?P<url>(?:https?:)?//{_INSTANCES_RE}/videos/embed/{_UUID_RE})''']
     _TESTS = [{
         'url': 'https://framatube.org/videos/watch/9c9de5e8-0a1e-484a-b099-e80766180a6d',
         'md5': '8563064d245a4be5705bddb22bb00a28',
@@ -1331,7 +1332,7 @@ class PeerTubeIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'What is PeerTube?',
             'description': 'md5:3fefb8dde2b189186ce0719fda6f7b10',
-            'thumbnail': r're:https?://.*\.(?:jpg|png)',
+            'thumbnail': r're:https?://framatube\.org/lazy-static/thumbnails/.+\.jpg',
             'timestamp': 1538391166,
             'upload_date': '20181001',
             'uploader': 'Framasoft',
@@ -1346,19 +1347,34 @@ class PeerTubeIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'dislike_count': int,
-            'tags': ['framasoft', 'peertube'],
+            'tags': 'count:2',
             'categories': ['Science & Technology'],
         },
+        'expected_warnings': ['HTTP Error 400: Bad Request'],
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://peertube2.cpy.re/w/122d093a-1ede-43bd-bd34-59d2931ffc5e',
         'info_dict': {
             'id': '122d093a-1ede-43bd-bd34-59d2931ffc5e',
             'ext': 'mp4',
             'title': 'E2E tests',
-            'uploader_id': '37855',
+            'categories': ['Unknown'],
+            'channel': 'Chocobozzz test channel',
+            'channel_id': '5187',
+            'channel_url': 'https://peertube2.cpy.re/video-channels/chocobozzz_channel',
+            'description': 'md5:67daf92c833c41c95db874e18fcb2786',
+            'dislike_count': int,
+            'duration': 52,
+            'license': 'Unknown',
+            'like_count': int,
+            'tags': [],
+            'thumbnail': r're:https?://peertube2\.cpy\.re/lazy-static/thumbnails/.+\.jpg',
             'timestamp': 1589276219,
             'upload_date': '20200512',
             'uploader': 'chocobozzz',
+            'uploader_id': '37855',
+            'uploader_url': 'https://peertube2.cpy.re/accounts/chocobozzz',
+            'view_count': int,
         },
     }, {
         'url': 'https://peertube2.cpy.re/w/3fbif9S3WmtTP8gGsC5HBd',
@@ -1366,10 +1382,23 @@ class PeerTubeIE(InfoExtractor):
             'id': '3fbif9S3WmtTP8gGsC5HBd',
             'ext': 'mp4',
             'title': 'E2E tests',
-            'uploader_id': '37855',
+            'categories': ['Unknown'],
+            'channel': 'Chocobozzz test channel',
+            'channel_id': '5187',
+            'channel_url': 'https://peertube2.cpy.re/video-channels/chocobozzz_channel',
+            'description': 'md5:67daf92c833c41c95db874e18fcb2786',
+            'dislike_count': int,
+            'duration': 52,
+            'license': 'Unknown',
+            'like_count': int,
+            'tags': [],
+            'thumbnail': r're:https?://peertube2\.cpy\.re/lazy-static/thumbnails/.+\.jpg',
             'timestamp': 1589276219,
             'upload_date': '20200512',
             'uploader': 'chocobozzz',
+            'uploader_id': '37855',
+            'uploader_url': 'https://peertube2.cpy.re/accounts/chocobozzz',
+            'view_count': int,
         },
     }, {
         'url': 'https://peertube2.cpy.re/api/v1/videos/3fbif9S3WmtTP8gGsC5HBd',
@@ -1377,13 +1406,26 @@ class PeerTubeIE(InfoExtractor):
             'id': '3fbif9S3WmtTP8gGsC5HBd',
             'ext': 'mp4',
             'title': 'E2E tests',
-            'uploader_id': '37855',
+            'categories': ['Unknown'],
+            'channel': 'Chocobozzz test channel',
+            'channel_id': '5187',
+            'channel_url': 'https://peertube2.cpy.re/video-channels/chocobozzz_channel',
+            'description': 'md5:67daf92c833c41c95db874e18fcb2786',
+            'dislike_count': int,
+            'duration': 52,
+            'license': 'Unknown',
+            'like_count': int,
+            'tags': [],
+            'thumbnail': r're:https?://peertube2\.cpy\.re/lazy-static/thumbnails/.+\.jpg',
             'timestamp': 1589276219,
             'upload_date': '20200512',
             'uploader': 'chocobozzz',
+            'uploader_id': '37855',
+            'uploader_url': 'https://peertube2.cpy.re/accounts/chocobozzz',
+            'view_count': int,
         },
     }, {
-        # Issue #26002
+        # https://github.com/ytdl-org/youtube-dl/issues/26002
         'url': 'peertube:spacepub.space:d8943b2d-8280-497b-85ec-bc282ec2afdc',
         'info_dict': {
             'id': 'd8943b2d-8280-497b-85ec-bc282ec2afdc',
@@ -1394,6 +1436,7 @@ class PeerTubeIE(InfoExtractor):
             'upload_date': '20200420',
             'uploader': 'Drew DeVault',
         },
+        'skip': 'Invalid URL',
     }, {
         'url': 'https://peertube.debian.social/videos/watch/0b04f13d-1e18-4f1d-814e-4979aa7c9c44',
         'only_matching': True,
@@ -1410,6 +1453,63 @@ class PeerTubeIE(InfoExtractor):
     }, {
         'url': 'peertube:framatube.org:b37a5b9f-e6b5-415c-b700-04a5cd6ec205',
         'only_matching': True,
+    }, {
+        'url': 'https://videos.john-livingston.fr/w/mna1A6SxZ94cra4hMtjRQm',
+        'md5': '6a5faad22916e41ba4078ef59c33bc9f',
+        'info_dict': {
+            'id': 'mna1A6SxZ94cra4hMtjRQm',
+            'ext': 'mp4',
+            'title': 'test yt-dlp',
+            'description': 'md5:d8556ee790ad9b3fac6f0bb3eb5b67bd',
+            'thumbnail': r're:https?://videos.john-livingston\.fr/lazy-static/thumbnails/.+\.jpg',
+            'timestamp': 1780645286,
+            'upload_date': '20260605',
+            'uploader': 'John Livingston',
+            'uploader_id': '5',
+            'uploader_url': 'https://videos.john-livingston.fr/accounts/john',
+            'channel': 'john_livingston',
+            'channel_id': '4',
+            'channel_url': 'https://videos.john-livingston.fr/video-channels/john_livingston',
+            'license': 'Unknown',
+            'duration': 16,
+            'view_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'tags': 'count:0',
+            'categories': ['Unknown'],
+        },
+        'params': {
+            'videopassword': 'thepassword',
+            'format': '600p',
+        },
+        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://video.macver.org/w/6gvhZpUGQVd4SQ6oYDc9pC',
+        'info_dict': {
+            'id': '6gvhZpUGQVd4SQ6oYDc9pC',
+            'ext': 'mp4',
+            'title': 'Minecraft, but if you say a block, it gets deleted',
+            'categories': ['Gaming'],
+            'channel': 'Waffle Irons Gaming',
+            'channel_id': '4',
+            'channel_url': 'https://video.macver.org/video-channels/waffle_irons',
+            'description': 'md5:eda8daf64b0dadd00cc248f28eef213c',
+            'dislike_count': int,
+            'duration': 1643,
+            'license': 'Attribution - Non Commercial',
+            'like_count': int,
+            'tags': 'count:1',
+            'thumbnail': r're:https?://video\.macver\.org/lazy-static/thumbnails/.+\.jpg',
+            'timestamp': 1751142352,
+            'upload_date': '20250628',
+            'uploader': 'Bog',
+            'uploader_id': '3',
+            'uploader_url': 'https://video.macver.org/accounts/bog',
+            'view_count': int,
+        },
+        'expected_warnings': ['HTTP Error 400: Bad Request', 'Ignoring subtitle tracks found in the HLS manifest'],
+        'params': {'skip_download': 'm3u8'},
     }]
 
     @staticmethod
@@ -1422,6 +1522,9 @@ class PeerTubeIE(InfoExtractor):
                 'There will be other non JS-based clients to access PeerTube',
                 '>We are sorry but it seems that PeerTube is not compatible with your web browser.<')):
             return 'peertube:{}:{}'.format(*mobj.group('host', 'id'))
+
+    def _get_headers(self):
+        return filter_dict({'x-peertube-video-password': self.get_param('videopassword')})
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
@@ -1436,7 +1539,7 @@ class PeerTubeIE(InfoExtractor):
     def _call_api(self, host, video_id, path, note=None, errnote=None, fatal=True):
         return self._download_json(
             self._API_BASE % (host, video_id, path), video_id,
-            note=note, errnote=errnote, fatal=fatal)
+            note=note, errnote=errnote, fatal=fatal, headers=self._get_headers())
 
     def _get_subtitles(self, host, video_id):
         captions = self._call_api(
@@ -1476,7 +1579,7 @@ class PeerTubeIE(InfoExtractor):
             if playlist_url := url_or_none(playlist.get('playlistUrl')):
                 is_live = True
                 formats.extend(self._extract_m3u8_formats(
-                    playlist_url, video_id, fatal=False, live=True))
+                    playlist_url, video_id, fatal=False, live=True, headers=self._get_headers()))
             playlist_files = playlist.get('files')
             if not (playlist_files and isinstance(playlist_files, list)):
                 continue
@@ -1560,6 +1663,8 @@ class PeerTubeIE(InfoExtractor):
             'subtitles': subtitles,
             'is_live': is_live,
             'webpage_url': webpage_url,
+            # Headers are needed for ALL format requests, but not thumbnails
+            'http_headers': self._get_headers(),
         }
 
 
@@ -1580,31 +1685,48 @@ class PeerTubePlaylistIE(InfoExtractor):
             'id': 'hFdJoTuyhNJVa1cDWd1d12',
             'description': 'Diversas palestras do Richard Stallman no Brasil.',
             'title': 'Richard Stallman no Brasil',
+            'channel': 'debianbrazilteam',
+            'channel_id': '1522',
+            'thumbnail': r're:https?://peertube\.debian\.social/lazy-static/thumbnails/.+\.jpg',
             'timestamp': 1599676222,
+            'upload_date': '20200909',
         },
         'playlist_mincount': 9,
     }, {
         'url': 'https://peertube2.cpy.re/a/chocobozzz/videos',
         'info_dict': {
             'id': 'chocobozzz',
-            'timestamp': 1553874564,
             'title': 'chocobozzz',
+            'channel': 'chocobozzz',
+            'channel_id': '37855',
+            'thumbnail': '',
+            'timestamp': 1553874564,
+            'upload_date': '20190329',
         },
         'playlist_mincount': 2,
     }, {
         'url': 'https://framatube.org/c/bf54d359-cfad-4935-9d45-9d6be93f63e8/videos',
         'info_dict': {
             'id': 'bf54d359-cfad-4935-9d45-9d6be93f63e8',
-            'timestamp': 1519917377,
             'title': 'Les vidéos de Framasoft',
+            'channel': 'framasoft',
+            'channel_id': '3',
+            'thumbnail': '',
+            'timestamp': 1519917377,
+            'upload_date': '20180301',
         },
         'playlist_mincount': 345,
     }, {
         'url': 'https://peertube2.cpy.re/c/blender_open_movies@video.blender.org/videos',
         'info_dict': {
             'id': 'blender_open_movies@video.blender.org',
-            'timestamp': 1542287810,
-            'title': 'Official Blender Open Movies',
+            'title': 'Blender Open Movies',
+            'description': 'md5:3dfabff00857fe3896fb222eb2cb1b80',
+            'channel': 'blender',
+            'channel_id': '1926',
+            'thumbnail': '',
+            'timestamp': 1540472902,
+            'upload_date': '20181025',
         },
         'playlist_mincount': 11,
     }]
@@ -1635,7 +1757,7 @@ class PeerTubePlaylistIE(InfoExtractor):
         playlist_description = info.get('description')
         playlist_timestamp = unified_timestamp(info.get('createdAt'))
         channel = try_get(info, lambda x: x['ownerAccount']['name']) or info.get('displayName')
-        channel_id = try_get(info, lambda x: x['ownerAccount']['id']) or info.get('id')
+        channel_id = str_or_none(try_get(info, lambda x: x['ownerAccount']['id']) or info.get('id'))
         thumbnail = format_field(info, 'thumbnailPath', f'https://{host}%s')
 
         entries = OnDemandPagedList(functools.partial(
