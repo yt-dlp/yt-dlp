@@ -1718,7 +1718,10 @@ from .shahid import (
 from .sharepoint import SharePointIE
 from .shemaroome import ShemarooMeIE
 from .shiey import ShieyIE
-from .showroomlive import ShowRoomLiveIE
+from .showroomlive import (
+    ShowRoomLiveIE,
+    ShowRoomVodIE,
+)
 from .sibnet import SibnetEmbedIE
 from .simplecast import (
     SimplecastEpisodeIE,
