@@ -132,3 +132,7 @@ yt-dlp-plugins
 
 # Packages
 yt_dlp_ejs/
+
+# C extension build
+/build/
+*.cpython-*.so

@@ -4,23 +4,29 @@ from math import ceil
 from .compat import compat_ord
 from .dependencies import Cryptodome
 
-if Cryptodome.AES:
-    def aes_cbc_decrypt_bytes(data, key, iv):
-        """ Decrypt bytes with AES-CBC using pycryptodome """
-        return Cryptodome.AES.new(key, Cryptodome.AES.MODE_CBC, iv).decrypt(data)
+try:
+    from ._aes_native import (
+        aes_cbc_decrypt_bytes,
+        aes_gcm_decrypt_and_verify_bytes,
+    )
+except ImportError:
+    if Cryptodome.AES:
+        def aes_cbc_decrypt_bytes(data, key, iv):
+            """ Decrypt bytes with AES-CBC using pycryptodome """
+            return Cryptodome.AES.new(key, Cryptodome.AES.MODE_CBC, iv).decrypt(data)
 
-    def aes_gcm_decrypt_and_verify_bytes(data, key, tag, nonce):
-        """ Decrypt bytes with AES-GCM using pycryptodome """
-        return Cryptodome.AES.new(key, Cryptodome.AES.MODE_GCM, nonce).decrypt_and_verify(data, tag)
+        def aes_gcm_decrypt_and_verify_bytes(data, key, tag, nonce):
+            """ Decrypt bytes with AES-GCM using pycryptodome """
+            return Cryptodome.AES.new(key, Cryptodome.AES.MODE_GCM, nonce).decrypt_and_verify(data, tag)
 
-else:
-    def aes_cbc_decrypt_bytes(data, key, iv):
-        """ Decrypt bytes with AES-CBC using native implementation since pycryptodome is unavailable """
-        return bytes(aes_cbc_decrypt(*map(list, (data, key, iv))))
+    else:
+        def aes_cbc_decrypt_bytes(data, key, iv):
+            """ Decrypt bytes with AES-CBC using native implementation since pycryptodome is unavailable """
+            return bytes(aes_cbc_decrypt(*map(list, (data, key, iv))))
 
-    def aes_gcm_decrypt_and_verify_bytes(data, key, tag, nonce):
-        """ Decrypt bytes with AES-GCM using native implementation since pycryptodome is unavailable """
-        return bytes(aes_gcm_decrypt_and_verify(*map(list, (data, key, tag, nonce))))
+        def aes_gcm_decrypt_and_verify_bytes(data, key, tag, nonce):
+            """ Decrypt bytes with AES-GCM using native implementation since pycryptodome is unavailable """
+            return bytes(aes_gcm_decrypt_and_verify(*map(list, (data, key, tag, nonce))))
 
 
 def aes_cbc_encrypt_bytes(data, key, iv, **kwargs):

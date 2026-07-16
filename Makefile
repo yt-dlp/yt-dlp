@@ -235,6 +235,9 @@ yt-dlp-extra: current-ejs-version .ejs-$(EJS_VERSION) $(EJS_PY_FILES) $(EJS_JS_F
 	unzip -o build/$(EJS_WHEEL_NAME) "yt_dlp_ejs/*"
 	@touch .ejs-$(EJS_VERSION)
 
+native-aes:
+	$(PYTHON) devscripts/build_aes_c.py
+
 current-ejs-version:
 	rm -rf .ejs-*
 	touch .ejs-$$($(PYTHON) -c 'import sys; sys.path = [""]; from yt_dlp_ejs import version; print(version)' 2>/dev/null)
