@@ -10,7 +10,7 @@ HEADER = '''THIRD-PARTY LICENSES
 This file aggregates license texts of third-party components included with the yt-dlp PyInstaller-bundled executables.
 yt-dlp itself is licensed under the Unlicense (see LICENSE file).
 Source code for bundled third-party components is available from the original projects.
-If you cannot obtain it, the maintainers will provide it as per license obligation; maintainer emails are listed in pyproject.toml.'''
+If you cannot obtain it, the maintainers will provide it as per license obligation: email maintainers@yt-dlp.org'''
 
 
 @dataclass(frozen=True)
@@ -46,6 +46,13 @@ DEPENDENCIES: list[Dependency] = [
         license='MIT',
         license_url='https://raw.githubusercontent.com/libffi/libffi/refs/heads/master/LICENSE',
         project_url='https://sourceware.org/libffi/',
+    ),
+    Dependency(
+        name='OpenSSL 1.x',
+        license='OpenSSL',
+        license_url='https://raw.githubusercontent.com/openssl/openssl/refs/tags/OpenSSL_1_1_1t/LICENSE',
+        comment='Only included in `yt-dlp.exe` and `yt-dlp_x86.exe` Windows builds',
+        project_url='https://www.openssl.org/',
     ),
     Dependency(
         name='OpenSSL 3.0+',
@@ -123,43 +130,79 @@ DEPENDENCIES: list[Dependency] = [
         name='libintl',
         license='LGPL-2.1-or-later',
         license_url='https://raw.githubusercontent.com/autotools-mirror/gettext/refs/heads/master/gettext-runtime/intl/COPYING.LIB',
-        comment='Only included in macOS builds',
+        comment='Only included in Linux builds',
         project_url='https://www.gnu.org/software/gettext/',
     ),
     Dependency(
         name='libidn2',
         license='LGPL-3.0-or-later',
         license_url='https://gitlab.com/libidn/libidn2/-/raw/master/COPYING.LESSERv3',
-        comment='Only included in macOS builds',
+        comment='Only included in Linux builds',
         project_url='https://www.gnu.org/software/libidn/',
     ),
     Dependency(
         name='libidn2 (Unicode character data files)',
         license='Unicode-TOU AND Unicode-DFS-2016',
         license_url='https://gitlab.com/libidn/libidn2/-/raw/master/COPYING.unicode',
-        comment='Only included in macOS builds',
+        comment='Only included in Linux builds',
         project_url='https://www.gnu.org/software/libidn/',
     ),
     Dependency(
         name='libunistring',
         license='LGPL-3.0-or-later',
         license_url='https://gitweb.git.savannah.gnu.org/gitweb/?p=libunistring.git;a=blob_plain;f=COPYING.LIB;hb=HEAD',
-        comment='Only included in macOS builds',
+        comment='Only included in Linux builds',
         project_url='https://www.gnu.org/software/libunistring/',
     ),
+
+    # Non-Python dependencies of curl_cffi
     Dependency(
-        name='librtmp',
-        license='LGPL-2.1-or-later',
-        # No official repo URL
-        license_url='https://gist.githubusercontent.com/seproDev/31d8c691ccddebe37b8b379307cb232d/raw/053408e98547ea8c7d9ba3a80c965f33e163b881/librtmp_COPYING.txt',
-        comment='Only included in macOS builds',
-        project_url='https://rtmpdump.mplayerhq.hu/',
+        name='curl-impersonate',
+        license='MIT',
+        license_url='https://raw.githubusercontent.com/lexiforest/curl-impersonate/refs/heads/main/LICENSE',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
+        project_url='https://github.com/lexiforest/curl-impersonate',
+    ),
+    Dependency(
+        name='curl',
+        license='curl',
+        license_url='https://raw.githubusercontent.com/curl/curl/refs/heads/master/LICENSES/curl.txt',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
+        project_url='https://curl.se/',
+    ),
+    Dependency(
+        name='BoringSSL',
+        license='Apache-2.0',
+        license_url='https://raw.githubusercontent.com/google/boringssl/refs/heads/main/LICENSE',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
+        project_url='https://boringssl.googlesource.com/boringssl',
+    ),
+    Dependency(
+        name='nghttp2',
+        license='MIT',
+        license_url='https://raw.githubusercontent.com/nghttp2/nghttp2/refs/heads/master/COPYING',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
+        project_url='https://nghttp2.org/',
+    ),
+    Dependency(
+        name='ngtcp2',
+        license='MIT',
+        license_url='https://raw.githubusercontent.com/ngtcp2/ngtcp2/refs/heads/main/COPYING',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
+        project_url='https://nghttp2.org/ngtcp2/',
+    ),
+    Dependency(
+        name='nghttp3',
+        license='MIT',
+        license_url='https://raw.githubusercontent.com/ngtcp2/nghttp3/refs/heads/main/COPYING',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
+        project_url='https://nghttp2.org/nghttp3/',
     ),
     Dependency(
         name='zstd',
         license='BSD-3-Clause',
         license_url='https://raw.githubusercontent.com/facebook/zstd/refs/heads/dev/LICENSE',
-        comment='Only included in macOS builds',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://facebook.github.io/zstd/',
     ),
 
@@ -174,28 +217,74 @@ DEPENDENCIES: list[Dependency] = [
         name='curl_cffi',
         license='MIT',
         license_url='https://raw.githubusercontent.com/lexiforest/curl_cffi/refs/heads/main/LICENSE',
-        comment='Not included in `yt-dlp_x86` and `yt-dlp_musllinux_aarch64` builds',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://curl-cffi.readthedocs.io/',
+    ),
+    # curl_cffi vendored code:
+    # - https://github.com/lexiforest/curl_cffi/blob/v0.15.0/curl_cffi/_asyncio_selector.py
+    Dependency(
+        name='Tornado',
+        license='Apache-2.0',
+        license_url='https://raw.githubusercontent.com/tornadoweb/tornado/master/LICENSE',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
+        project_url='http://www.tornadoweb.org/',
+    ),
+    # curl_cffi vendored code:
+    # - https://github.com/lexiforest/curl_cffi/blob/v0.15.0/curl_cffi/requests/cookies.py
+    # - https://github.com/lexiforest/curl_cffi/blob/v0.15.0/curl_cffi/requests/headers.py
+    Dependency(
+        name='httpx',
+        license='BSD-3-Clause',
+        license_url='https://github.com/encode/httpx/raw/master/LICENSE.md',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
+        project_url='https://www.python-httpx.org/',
     ),
     # Dependency of curl_cffi
     Dependency(
-        name='curl-impersonate',
+        name='rich',
         license='MIT',
-        license_url='https://raw.githubusercontent.com/lexiforest/curl-impersonate/refs/heads/main/LICENSE',
-        comment='Not included in `yt-dlp_x86` and `yt-dlp_musllinux_aarch64` builds',
-        project_url='https://github.com/lexiforest/curl-impersonate',
+        license_url='https://raw.githubusercontent.com/Textualize/rich/refs/heads/main/LICENSE',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
+        project_url='https://rich.readthedocs.io/',
     ),
+    # Dependency of rich
+    Dependency(
+        name='pygments',
+        license='BSD-2-Clause',
+        license_url='https://raw.githubusercontent.com/pygments/pygments/refs/heads/master/LICENSE',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
+        project_url='http://pygments.org/',
+    ),
+    # Dependency of rich
+    Dependency(
+        name='markdown-it-py',
+        license='MIT',
+        license_url='https://raw.githubusercontent.com/executablebooks/markdown-it-py/refs/heads/master/LICENSE',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
+        project_url='https://markdown-it-py.readthedocs.io/',
+    ),
+    # Dependency of markdown-it-py
+    Dependency(
+        name='mdurl',
+        license='MIT',
+        license_url='https://raw.githubusercontent.com/executablebooks/mdurl/refs/heads/master/LICENSE',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
+        project_url='https://github.com/executablebooks/mdurl',
+    ),
+    # Dependency of cryptography and curl_cffi
     Dependency(
         name='cffi',
         license='MIT-0',  # Technically does not need to be included
         license_url='https://raw.githubusercontent.com/python-cffi/cffi/refs/heads/main/LICENSE',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://cffi.readthedocs.io/',
     ),
-    # Dependecy of cffi
+    # Dependency of cffi
     Dependency(
         name='pycparser',
         license='BSD-3-Clause',
         license_url='https://raw.githubusercontent.com/eliben/pycparser/refs/heads/main/LICENSE',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://github.com/eliben/pycparser',
     ),
     Dependency(
@@ -276,12 +365,14 @@ DEPENDENCIES: list[Dependency] = [
         name='Meriyah',
         license='ISC',
         license_url='https://raw.githubusercontent.com/meriyah/meriyah/refs/heads/main/LICENSE.md',
+        comment='Also included in `yt-dlp` zipimport Unix executables and `yt-dlp.tar.gz` release tarballs',
         project_url='https://github.com/meriyah/meriyah',
     ),
     Dependency(
         name='Astring',
         license='MIT',
         license_url='https://raw.githubusercontent.com/davidbonnet/astring/refs/heads/main/LICENSE',
+        comment='Also included in `yt-dlp` zipimport Unix executables and `yt-dlp.tar.gz` release tarballs',
         project_url='https://github.com/davidbonnet/astring/',
     ),
 ]
