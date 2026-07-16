@@ -1,12 +1,16 @@
-import json
+import itertools
+import re
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     clean_html,
     int_or_none,
     try_get,
     unified_strdate,
     unified_timestamp,
+    urljoin,
 )
 
 
@@ -17,7 +21,7 @@ class AmericasTestKitchenIE(InfoExtractor):
         'md5': 'b861c3e365ac38ad319cfd509c30577f',
         'info_dict': {
             'id': '5b400b9ee338f922cb06450c',
-            'title': 'Japanese Suppers',
+            'title': 'Weeknight Japanese Suppers',
             'ext': 'mp4',
             'display_id': 'weeknight-japanese-suppers',
             'description': 'md5:64e606bfee910627efc4b5f050de92b3',
@@ -106,23 +110,44 @@ class AmericasTestKitchenIE(InfoExtractor):
 
 
 class AmericasTestKitchenSeasonIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?(?P<show>americastestkitchen|(?P<cooks>cooks(?:country|illustrated)))\.com(?:(?:/(?P<show2>cooks(?:country|illustrated)))?(?:/?$|(?<!ated)(?<!ated\.com)/episodes/browse/season_(?P<season>\d+)))'
+    _VALID_URL = r'''(?x)
+        https?://(?:www\.)?(?P<domain>americastestkitchen|cookscountry|cooksillustrated)\.com
+        (?:/(?P<path>cookscountry|cooksillustrated))?
+        (?:/episodes(?:/browse)?/season[-_](?P<season>\d+))?
+        /?(?:[?#]|$)'''
+    _SHOWS = {
+        'americastestkitchen': ('', 'America\'s Test Kitchen'),
+        'cookscountry': ('/cookscountry', 'Cook\'s Country'),
+        'cooksillustrated': ('/cooksillustrated', 'Cook\'s Illustrated'),
+    }
     _TESTS = [{
         # ATK Season
-        'url': 'https://www.americastestkitchen.com/episodes/browse/season_1',
+        'url': 'https://www.americastestkitchen.com/episodes/season-1',
         'info_dict': {
             'id': 'season_1',
             'title': 'Season 1',
         },
-        'playlist_count': 13,
+        'playlist_mincount': 13,
+    }, {
+        # Latest ATK Season (new URL scheme)
+        'url': 'https://www.americastestkitchen.com/episodes/season-26',
+        'info_dict': {
+            'id': 'season_26',
+            'title': 'Season 26',
+        },
+        'playlist_count': 26,
     }, {
         # Cooks Country Season
-        'url': 'https://www.americastestkitchen.com/cookscountry/episodes/browse/season_12',
+        'url': 'https://www.americastestkitchen.com/cookscountry/episodes/season-12',
         'info_dict': {
             'id': 'season_12',
             'title': 'Season 12',
         },
-        'playlist_count': 13,
+        'playlist_mincount': 13,
+    }, {
+        # Old-style URL (redirects to the new season page)
+        'url': 'https://www.americastestkitchen.com/episodes/browse/season_1',
+        'only_matching': True,
     }, {
         # America's Test Kitchen Series
         'url': 'https://www.americastestkitchen.com/',
@@ -130,7 +155,7 @@ class AmericasTestKitchenSeasonIE(InfoExtractor):
             'id': 'americastestkitchen',
             'title': 'America\'s Test Kitchen',
         },
-        'playlist_count': 558,
+        'playlist_mincount': 558,
     }, {
         # Cooks Country Series
         'url': 'https://www.americastestkitchen.com/cookscountry',
@@ -138,7 +163,7 @@ class AmericasTestKitchenSeasonIE(InfoExtractor):
             'id': 'cookscountry',
             'title': 'Cook\'s Country',
         },
-        'playlist_count': 199,
+        'playlist_mincount': 199,
     }, {
         'url': 'https://www.americastestkitchen.com/cookscountry/',
         'only_matching': True,
@@ -157,59 +182,46 @@ class AmericasTestKitchenSeasonIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        season_number, show1, show = self._match_valid_url(url).group('season', 'show', 'show2')
-        show_path = ('/' + show) if show else ''
-        show = show or show1
-        season_number = int_or_none(season_number)
+        domain, url_path, season = self._match_valid_url(url).group('domain', 'path', 'season')
+        show_path, title = self._SHOWS[url_path or domain]
+        season = int_or_none(season)
 
-        slug, title = {
-            'americastestkitchen': ('atk', 'America\'s Test Kitchen'),
-            'cookscountry': ('cco', 'Cook\'s Country'),
-            'cooksillustrated': ('cio', 'Cook\'s Illustrated'),
-        }[show]
+        if season:
+            playlist_id = f'season_{season}'
+            playlist_title = f'Season {season}'
 
-        facet_filters = [
-            'search_document_klass:episode',
-            'search_show_slug:' + slug,
-        ]
-
-        if season_number:
-            playlist_id = f'season_{season_number}'
-            playlist_title = f'Season {season_number}'
-            facet_filters.append('search_season_list:' + playlist_title)
+            def entries():
+                yield from self._season_entries(show_path, season)
         else:
-            playlist_id = show
+            playlist_id = url_path or domain
             playlist_title = title
 
-        season_search = self._download_json(
-            f'https://y1fnzxui30-dsn.algolia.net/1/indexes/everest_search_{slug}_season_desc_production',
-            playlist_id, headers={
-                'Origin': 'https://www.americastestkitchen.com',
-                'X-Algolia-API-Key': '8d504d0099ed27c1b73708d22871d805',
-                'X-Algolia-Application-Id': 'Y1FNZXUI30',
-            }, query={
-                'facetFilters': json.dumps(facet_filters),
-                'attributesToRetrieve': f'description,search_{slug}_episode_number,search_document_date,search_url,title,search_atk_episode_season',
-                'attributesToHighlight': '',
-                'hitsPerPage': 1000,
-            })
-
-        def entries():
-            for episode in (season_search.get('hits') or []):
-                search_url = episode.get('search_url')  # always formatted like '/episode/123-title-of-episode'
-                if not search_url:
-                    continue
-                yield {
-                    '_type': 'url',
-                    'url': f'https://www.americastestkitchen.com{show_path or ""}{search_url}',
-                    'id': try_get(episode, lambda e: e['objectID'].split('_')[-1]),
-                    'title': episode.get('title'),
-                    'description': episode.get('description'),
-                    'timestamp': unified_timestamp(episode.get('search_document_date')),
-                    'season_number': season_number,
-                    'episode_number': int_or_none(episode.get(f'search_{slug}_episode_number')),
-                    'ie_key': AmericasTestKitchenIE.ie_key(),
-                }
+            def entries():
+                for season_number in itertools.count(1):
+                    try:
+                        yield from self._season_entries(show_path, season_number)
+                    except ExtractorError as e:
+                        if isinstance(e.cause, HTTPError) and e.cause.status == 404:
+                            break
+                        raise
 
         return self.playlist_result(
             entries(), playlist_id, playlist_title)
+
+    def _season_entries(self, show_path, season_number):
+        webpage = self._download_webpage(
+            f'https://www.americastestkitchen.com{show_path}/episodes/season-{season_number}',
+            f'season-{season_number}', f'Downloading season {season_number} webpage')
+        seen = set()
+        for episode in re.finditer(
+                r'<a [^>]*\bhref="(?P<path>/(?:cookscountry/|cooksillustrated/)?episode/(?P<id>\d+)-[^"]+)"[^>]*>\s*<h3[^>]*>(?P<title>[^<]+)</h3>',
+                webpage):
+            path = episode.group('path')
+            if path in seen:
+                continue
+            seen.add(path)
+            yield self.url_result(
+                urljoin('https://www.americastestkitchen.com', path),
+                AmericasTestKitchenIE, episode.group('id'),
+                clean_html(episode.group('title')),
+                season_number=season_number)
