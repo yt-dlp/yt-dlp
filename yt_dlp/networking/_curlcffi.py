@@ -92,7 +92,8 @@ class CurlCFFIResponseAdapter(Response):
             fp=CurlCFFIResponseReader(response),
             headers=response.headers,
             url=response.url,
-            status=response.status_code)
+            status=response.status_code,
+            reason=response.reason)
 
     def read(self, amt=None):
         try:
