@@ -1,9 +1,9 @@
 import functools
-import hashlib
 import itertools
 import json
 import re
 import urllib.parse
+import uuid
 
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
@@ -59,7 +59,6 @@ class InstagramBaseIE(InfoExtractor):
         'instagram.com',
         '.instagram.com',
     )
-    _GRAPHQL_API = 'https://www.instagram.com/api/graphql'
     _lsd_token = None
     _fb_dtsg = None
     _home_page = None
@@ -126,11 +125,9 @@ class InstagramBaseIE(InfoExtractor):
             media, (kind, 'count'), *((f'edge_media_{key}', 'count') for key in keys),
             expected_type=int_or_none)
 
-    def _get_dimension(self, name, media, webpage=None):
-        return (
-            traverse_obj(media, ('dimensions', name), expected_type=int_or_none)
-            or int_or_none(self._html_search_meta(
-                (f'og:video:{name}', f'video:{name}'), webpage or '', default=None)))
+    @staticmethod
+    def _get_dimension(name, media):
+        return traverse_obj(media, ('dimensions', name, {int_or_none}))
 
     def _call_rest(self, video_id, path, headers=None, impersonate=True, **kwargs):
         headers = filter_dict({**self._api_headers, **(headers or {})})
@@ -140,23 +137,21 @@ class InstagramBaseIE(InfoExtractor):
                       variables, doc_id, fb_friendly_name=None,
                       headers=None, data=None, impersonate=True,
                       require_impersonation=True,
+                      is_graphql_query=False,
                       **kwargs,
                       ):
         if self._is_logged_in and not self._fb_dtsg:
-            self._fb_dtsg = self._extract_authenticate_token('f', 'DTSGInitData', video_id=video_id, note='Fetching Fb Dtsg Token')
+            self._fb_dtsg = self._extract_token('f', 'DTSGInitData', video_id=video_id, note='Fetching Fb Dtsg Token')
 
         headers = filter_dict({
             'Content-Type': 'application/x-www-form-urlencoded',
             'X-Requested-With': 'XMLHttpRequest',
             'X-FB-Friendly-Name': fb_friendly_name,
+            'X-CSRFTOKEN': self._get_cookie('csrftoken'),
             **self._api_headers,
             **(headers or {})},
         )
         data = urlencode_postdata(filter_dict({
-            'av': '0',
-            '__d': 'www',
-            '__user': '0',
-            'dpr': '1',
             'lsd': self._lsd_token,
             'server_timestamps': 'true',
             'fb_dtsg': self._fb_dtsg,
@@ -166,8 +161,10 @@ class InstagramBaseIE(InfoExtractor):
             'doc_id': str(doc_id),
             **(data or {}),
         }))
-        return self._download_json(
-            self._GRAPHQL_API,
+
+        endpoint = 'api/graphql' if is_graphql_query is False else 'graphql/query'
+        response = self._download_json(
+            urljoin(self._BASE_URL, endpoint),
             video_id, data=data,
             headers=headers,
             impersonate=impersonate,
@@ -175,45 +172,21 @@ class InstagramBaseIE(InfoExtractor):
             **kwargs,
         )
 
-    def _extract_nodes(self, nodes, is_direct=False):
-        for idx, node in enumerate(nodes, start=1):
-            if node.get('__typename') != 'GraphVideo' and node.get('is_video') is not True:
-                continue
+        error = traverse_obj(response, ('errors', ..., 'message', {str}, any), default='')
+        if 'logged out' in error:
+            self.raise_login_required()
 
-            video_id = node.get('shortcode')
+        return response
 
-            if is_direct:
-                info = {
-                    'id': video_id or node['id'],
-                    'url': node.get('video_url'),
-                    'width': self._get_dimension('width', node),
-                    'height': self._get_dimension('height', node),
-                    'http_headers': {
-                        'Referer': 'https://www.instagram.com/',
-                    },
-                }
-            elif not video_id:
-                continue
-            else:
-                info = {
-                    '_type': 'url',
-                    'ie_key': 'Instagram',
-                    'id': video_id,
-                    'url': f'https://instagram.com/p/{video_id}',
-                }
-
+    def _extract_nodes(self, nodes):
+        # media_type 1 is for photo/post.
+        # media_type 2 is for video/reel.
+        # media_type 8 is for carousel media.
+        for node in traverse_obj(nodes, (lambda _, x: x['media_type'] < 2)):
             yield {
-                **info,
-                'title': node.get('title') or (f'Video {idx}' if is_direct else None),
-                'description': traverse_obj(
-                    node, ('edge_media_to_caption', 'edges', 0, 'node', 'text'), expected_type=str),
-                'thumbnail': traverse_obj(
-                    node, 'display_url', 'thumbnail_src', 'display_src', expected_type=url_or_none),
-                'duration': float_or_none(node.get('video_duration')),
-                'timestamp': int_or_none(node.get('taken_at_timestamp')),
-                'view_count': int_or_none(node.get('video_view_count')),
-                'comment_count': self._get_count(node, 'comments', 'preview_comment', 'to_comment', 'to_parent_comment'),
-                'like_count': self._get_count(node, 'likes', 'preview_like'),
+                **self._extract_product(node),
+                'extractor': self.IE_NAME,
+                'extractor_key': self.ie_key(),
             }
 
     def _extract_product_media(self, product_media):
@@ -332,13 +305,14 @@ class InstagramBaseIE(InfoExtractor):
     def _graphql_pagination(self, video_id, variables, doc_id, keys, cursor_data=None, **kwargs):
         cursor_data = cursor_data or {}
         cursor = None
+        note = kwargs.get('note')
+
         for page_num in itertools.count(1):
-            note = kwargs.get('note') or ''
-            if '{page_num}' in note:
-                note = note.format(page_num=page_num)
-            elif not note:
-                note = f'Downloading page {page_num}'
-            kwargs['note'] = note
+            if note:
+                kwargs['note'] = note.format(page_num=page_num)
+            else:
+                kwargs['note'] = f'Downloading page {page_num}'
+
             page = traverse_obj(
                 self._call_graphql(
                     video_id,
@@ -349,10 +323,22 @@ class InstagramBaseIE(InfoExtractor):
             if not page:
                 break
             yield page
+
             page_info = page.get('page_info') or {}
             if not page_info.get('has_next_page'):
                 break
             cursor = page_info.get('end_cursor')
+
+    # ( removed in next commit ) Can be used in Instagram Live Extractor
+    def _get_user_info(self, username):
+        return traverse_obj(
+            self._call_rest(
+                username,
+                'users/web_profile_info',
+                note='Fetching user info',
+                query={'username': username},
+            ), ('data', 'user', {dict}),
+        ) or {}
 
 
 class InstagramIOSIE(InfoExtractor):
@@ -563,12 +549,12 @@ class InstagramIE(InstagramBaseIE):
         if self._is_logged_in:
             try:
                 return self._extract_product(
-                      self._call_rest(
-                              video_id, f'media/{media_id}/info/',
-                              note='Downloading video info',
-                              errnote='Video info extraction failed',
-                              impersonate=self._is_web_app,
-                     )['items'][0]
+                    self._call_rest(
+                        video_id, f'media/{media_id}/info/',
+                        note='Downloading video info',
+                        errnote='Video info extraction failed',
+                        impersonate=self._is_web_app,
+                    )['items'][0],
                 )
             except ExtractorError as e:
                 if not (isinstance(e.cause, HTTPError) and self._is_login_redirect(e.cause.response.url)):
@@ -586,8 +572,8 @@ class InstagramIE(InstagramBaseIE):
             note='Checking post accessibility',
             errnote=False, fatal=False,
             require_impersonation=True,
-            query={'content_type': 'MEDIA', 'target_id': media_id
-        }) or {}
+            query={'content_type': 'MEDIA', 'target_id': media_id,
+                   }) or {}
         csrf_token = self._get_cookie('csrftoken')
         if not csrf_token:
             self.report_warning('No CSRF token set by Instagram API', video_id)
@@ -600,17 +586,7 @@ class InstagramIE(InstagramBaseIE):
             video_id, variables={'media_id': media_id},
             doc_id=27130156389949648,
             fb_friendly_name='PolarisLoggedOutDesktopWWWPostRootContentQuery',
-            headers={
-                'X-CSRFToken': csrf_token,
-                'Referer': url,
-            }), data=urlencode_postdata({
-                'lsd': self._lsd_token,
-                'fb_api_caller_class': 'RelayModern',
-                'fb_api_req_friendly_name': 'PolarisLoggedOutDesktopWWWPostRootContentQuery',
-                'server_timestamps': 'true',
-                'variables': json.dumps({'media_id': media_id}, separators=(',', ':')),
-                'doc_id': '27130156389949648',
-         })) if self._can_impersonate else None
+            headers={'Referer': url}) if self._can_impersonate else None
 
         media = traverse_obj(response, ('data', 'xig_polaris_media', {dict}))
         product_info = traverse_obj(media, ('if_not_gated_logged_out', {dict}))
@@ -654,7 +630,7 @@ class InstagramIE(InstagramBaseIE):
         if not (is_playlist or info_dict.get('formats')):
             self.raise_no_formats('There is no video in this post', expected=True)
 
-        comments = list(self._parse_comments(media))
+        comments = list(self._parse_comments(media, ('comments_connection', 'edges', lambda _, v: v['node']['text'], 'node', {dict})))
         if is_playlist:
             for entry in info_dict['entries']:
                 entry['comments'] = comments
@@ -665,88 +641,27 @@ class InstagramIE(InstagramBaseIE):
 
 
 class InstagramPlaylistBaseIE(InstagramBaseIE):
-    _gis_tmpl = None  # used to cache GIS request type
-
-    def _parse_graphql(self, webpage, item_id):
-        # Reads a webpage and returns its GraphQL data.
-        return self._parse_json(
-            self._search_regex(
-                r'sharedData\s*=\s*({.+?})\s*;\s*[<\n]', webpage, 'data'),
-            item_id)
-
-    def _extract_graphql(self, data, url):
-        # Parses GraphQL queries containing videos and generates a playlist.
-        uploader_id = self._match_id(url)
-        csrf_token = data['config']['csrf_token']
-        rhx_gis = data.get('rhx_gis') or '3c7ca9dcefcf966d11dacf1f151335e8'
-
-        cursor = ''
-        for page_num in itertools.count(1):
-            variables = {
-                'first': 12,
-                'after': cursor,
-            }
-            variables.update(self._query_vars_for(data))
-            variables = json.dumps(variables)
-
-            if self._gis_tmpl:
-                gis_tmpls = [self._gis_tmpl]
-            else:
-                gis_tmpls = [
-                    f'{rhx_gis}',
-                    '',
-                    f'{rhx_gis}:{csrf_token}',
-                    '{}:{}:{}'.format(rhx_gis, csrf_token, self.get_param('http_headers')['User-Agent']),
-                ]
-
-            # try all of the ways to generate a GIS query, and not only use the
-            # first one that works, but cache it for future requests
-            for gis_tmpl in gis_tmpls:
-                try:
-                    json_data = self._download_json(
-                        'https://www.instagram.com/graphql/query/', uploader_id,
-                        f'Downloading JSON page {page_num}', headers={
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-Instagram-GIS': hashlib.md5(
-                                (f'{gis_tmpl}:{variables}').encode()).hexdigest(),
-                        }, query={
-                            'query_hash': self._QUERY_HASH,
-                            'variables': variables,
-                        })
-                    media = self._parse_timeline_from(json_data)
-                    self._gis_tmpl = gis_tmpl
-                    break
-                except ExtractorError as e:
-                    # if it's an error caused by a bad query, and there are
-                    # more GIS templates to try, ignore it and keep trying
-                    if isinstance(e.cause, HTTPError) and e.cause.status == 403:
-                        if gis_tmpl != gis_tmpls[-1]:
-                            continue
-                    raise
-
-            nodes = traverse_obj(media, ('edges', ..., 'node'), expected_type=dict) or []
+    def entries(self, username_or_tag):
+        for data in self._graphql_pagination(
+            video_id=username_or_tag,
+            variables=self._variables(username_or_tag),
+            doc_id=self._DOC_ID,
+            keys=('data', self._DATA_KEY),
+            fb_friendly_name=self._FB_FRIENDLY_NAME,
+            is_graphql_query=self.__class__ == InstagramUserIE,
+        ):
+            nodes = traverse_obj(data, ('edges', ..., 'node', (('items', ...), {dict}))) or []
             if not nodes:
-                break
-            yield from self._extract_nodes(nodes)
+                self.raise_login_required()
 
-            has_next_page = traverse_obj(media, ('page_info', 'has_next_page'))
-            cursor = traverse_obj(media, ('page_info', 'end_cursor'), expected_type=str)
-            if not has_next_page or not cursor:
-                break
+            yield from self._extract_nodes(nodes)
 
     def _real_extract(self, url):
         user_or_tag = self._match_id(url)
-        webpage = self._download_webpage(url, user_or_tag)
-        data = self._parse_graphql(webpage, user_or_tag)
-
-        self._set_cookie('instagram.com', 'ig_pr', '1')
-
-        return self.playlist_result(
-            self._extract_graphql(data, url), user_or_tag, user_or_tag)
+        return self.playlist_result(self.entries(user_or_tag), user_or_tag, user_or_tag)
 
 
 class InstagramUserIE(InstagramPlaylistBaseIE):
-    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?instagram\.com/(?P<id>[^/]{2,})/?(?:$|[?#])'
     IE_DESC = 'Instagram user profile'
     IE_NAME = 'instagram:user'
@@ -764,19 +679,28 @@ class InstagramUserIE(InstagramPlaylistBaseIE):
         },
     }]
 
-    _QUERY_HASH = ('42323d64886122307be10013ad2dcc44',)
+    _DOC_ID = 27839684308962379
+    _FB_FRIENDLY_NAME = 'PolarisProfilePostsTabContentQuery_connection'
+    _DATA_KEY = 'xdt_api__v1__feed__user_timeline_graphql_connection'
 
     @staticmethod
-    def _parse_timeline_from(data):
-        # extracts the media timeline data from a GraphQL result
-        return data['data']['user']['edge_owner_to_timeline_media']
-
-    @staticmethod
-    def _query_vars_for(data):
-        # returns a dictionary of variables to add to the timeline query based
-        # on the GraphQL of the original page
+    def _variables(username):
         return {
-            'id': data['entry_data']['ProfilePage'][0]['graphql']['user']['id'],
+            'data': {
+                'count': 25,
+                'include_reel_media_seen_timestamp': True,
+                'include_relationship_info': True,
+                'latest_besties_reel_media': True,
+                'latest_reel_media': True,
+            },
+            'before': None,
+            'last': None,
+            'first': 25,
+            'username': username,
+            '__relay_internal__pv__PolarisImmersiveFeedChainingEnabledrelayprovider': True,
+            '__relay_internal__pv__PolarisAIGMMediaWebLabelEnabledrelayprovider': True,
+            '__relay_internal__pv__PolarisAIGMAccountLabelEnabledrelayprovider': False,
+            '__relay_internal__pv__PolarisReelsRecoDebugOverlayEnabledrelayprovider': False,
         }
 
 
@@ -799,20 +723,16 @@ class InstagramTagIE(InstagramPlaylistBaseIE):
         },
     }]
 
-    _QUERY_HASH = ('f92f56d47dc7a55b606908374b43a314',)
+    _DOC_ID = 27261995973455813
+    _FB_FRIENDLY_NAME = 'PolarisKeywordSearchExplorePageRelayQuery'
+    _DATA_KEY = 'xdt_fbsearch__top_serp_graphql'
 
     @staticmethod
-    def _parse_timeline_from(data):
-        # extracts the media timeline data from a GraphQL result
-        return data['data']['hashtag']['edge_hashtag_to_media']
-
-    @staticmethod
-    def _query_vars_for(data):
-        # returns a dictionary of variables to add to the timeline query based
-        # on the GraphQL of the original page
+    def _variables(query):
         return {
-            'tag_name':
-                data['entry_data']['TagPage'][0]['graphql']['hashtag']['name'],
+            'query': f'#{query}',
+            'search_session_id': str(uuid.uuid4()),
+            'serp_session_id': str(uuid.uuid4()),
         }
 
 
@@ -841,25 +761,21 @@ class InstagramStoryIE(InstagramBaseIE):
             raise ExtractorError('Input URL is missing a highlight ID', expected=True)
         display_id = story_id or username
 
+        user_id = None
+        user_info = {}
+        videos = []
         if username == 'highlights':
-            videos = traverse_obj(self._call_rest(
-                display_id, 'feed/reels_media',
-                query={'reel_ids': f'highlight:{story_id}'},
-                errnote=False, fatal=False, impersonate=self._is_web_app), 'reels')
-            user_id = None
-            user_info = {}
-        else:
-            user_info = traverse_obj(
+            videos = traverse_obj(
                 self._call_rest(
-                    username,
-                    'users/web_profile_info',
-                    note='Fetching user info',
-                    query={'username': username,
-                           }), ('data', 'user', {dict}))
+                    display_id, 'feed/reels_media',
+                    query={'reel_ids': f'highlight:{story_id}'},
+                    errnote=False, fatal=False, impersonate=self._is_web_app,
+                ), 'reels')
+        else:
+            user_info = self._get_user_info(username)
             user_id = user_info.get('id')
             if not user_id:  # user id is only mandatory for non-highlights
                 raise ExtractorError('Unable to extract user id')
-            videos = []
             for data in self._graphql_pagination(
                 username,
                 variables={
@@ -884,8 +800,8 @@ class InstagramStoryIE(InstagramBaseIE):
             story_title = f'Story by {username}'
 
         info_data = []
-        for highlight in traverse_obj(videos, (f'highlight:{story_id}', 'items', {list}), default=videos) or []:
-            highlight.setdefault('user', {}).update(user_info)
+        for highlight in traverse_obj(videos, (f'highlight:{story_id}', 'items', {list})) or videos:
+            highlight.setdefault('user', {}).update(user_info)  # XXX: I guess `user` is not a valid key.
             highlight_data = self._extract_product(highlight)
             if highlight_data.get('formats'):
                 info_data.append({
@@ -893,6 +809,7 @@ class InstagramStoryIE(InstagramBaseIE):
                     'uploader_id': user_id,
                     **filter_dict(highlight_data),
                 })
+
         if username != 'highlights' and story_id and not self._yes_playlist(username, story_id):
             return traverse_obj(info_data, (lambda _, v: v['id'] == _pk_to_id(story_id), any))
 
