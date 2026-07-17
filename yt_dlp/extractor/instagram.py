@@ -3,9 +3,11 @@ import hashlib
 import itertools
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
+from ..networking.impersonate import ImpersonateTarget
 from ..utils import (
     ExtractorError,
     bug_reports_message,
@@ -41,13 +43,22 @@ def _id_to_pk(shortcode):
 
 
 class InstagramBaseIE(InfoExtractor):
-    _API_BASE_URL = 'https://i.instagram.com/api/v1/'
-    _BASE_URL = 'https://www.instagram.com'
+    _API_BASE_URL = 'https://i.instagram.com/api/v1'
+    _BASE_URL = 'https://www.instagram.com/'
     _APP_IDS = {
         'web': '936619743392459',  # default
         'ios': '124024574287414',
         'android': '567067343352427',
     }
+    _AUTH_COOKIE_NAME = 'sessionid'
+    _COOKIE_DOMAINS = (
+        'i.instagram.com',
+        '.i.instagram.com',
+        'www.instagram.com',
+        '.www.instagram.com',
+        'instagram.com',
+        '.instagram.com',
+    )
     _GRAPHQL_API = 'https://www.instagram.com/api/graphql'
     _lsd_token = None
     _fb_dtsg = None
@@ -74,7 +85,11 @@ class InstagramBaseIE(InfoExtractor):
 
     @property
     def _is_logged_in(self):
-        return bool(self._get_cookie('sessionid'))
+        return bool(self._get_cookie(self._AUTH_COOKIE_NAME))
+
+    @functools.cached_property
+    def _can_impersonate(self):
+        return self._downloader._impersonate_target_available(ImpersonateTarget())
 
     @functools.cached_property
     def _app_id(self):
@@ -100,6 +115,10 @@ class InstagramBaseIE(InfoExtractor):
             'Origin': self._BASE_URL,
             'Accept': '*/*',
         })
+
+    @staticmethod
+    def _is_login_redirect(url):
+        return urllib.parse.urlparse(url).path.startswith('/accounts/login')
 
     @staticmethod
     def _get_count(media, kind, *keys):
@@ -524,6 +543,7 @@ class InstagramIE(InstagramBaseIE):
             'upload_date': '20250414',
         },
     }]
+    _SJS_RE = re.compile(r'<script\b[^>]+\bdata-sjs>(\{.+?\})</script>')
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
@@ -541,21 +561,33 @@ class InstagramIE(InstagramBaseIE):
         media_id = str(_id_to_pk(video_id))
 
         if self._is_logged_in:
-            return self._extract_product(
-                self._call_rest(
-                    video_id, f'media/{media_id}/info/',
-                    note='Downloading video info',
-                    errnote='Video info extraction failed',
-                    impersonate=self._is_web_app,
-                )['items'][0],
-            )
+            try:
+                return self._extract_product(
+                      self._call_rest(
+                              video_id, f'media/{media_id}/info/',
+                              note='Downloading video info',
+                              errnote='Video info extraction failed',
+                              impersonate=self._is_web_app,
+                     )['items'][0]
+                )
+            except ExtractorError as e:
+                if not (isinstance(e.cause, HTTPError) and self._is_login_redirect(e.cause.response.url)):
+                    raise
+
+            self.report_warning('The provided Instagram account cookies are no longer valid')
+            # XXX: With curl-cffi, the error response may not invalidate the cookie in our jar
+            for domain in self._COOKIE_DOMAINS:
+                self.cookiejar.clear(domain=domain, path='/', name=self._AUTH_COOKIE_NAME)
+            # Re-initialize to set lsd token for logged-out extraction
+            self._real_initialize()
 
         api_check = self._call_rest(
             video_id, 'web/get_ruling_for_content/',
             note='Checking post accessibility',
             errnote=False, fatal=False,
             require_impersonation=True,
-            query={'content_type': 'MEDIA', 'target_id': media_id}) or {}
+            query={'content_type': 'MEDIA', 'target_id': media_id
+        }) or {}
         csrf_token = self._get_cookie('csrftoken')
         if not csrf_token:
             self.report_warning('No CSRF token set by Instagram API', video_id)
@@ -571,10 +603,18 @@ class InstagramIE(InstagramBaseIE):
             headers={
                 'X-CSRFToken': csrf_token,
                 'Referer': url,
-            })
+            }), data=urlencode_postdata({
+                'lsd': self._lsd_token,
+                'fb_api_caller_class': 'RelayModern',
+                'fb_api_req_friendly_name': 'PolarisLoggedOutDesktopWWWPostRootContentQuery',
+                'server_timestamps': 'true',
+                'variables': json.dumps({'media_id': media_id}, separators=(',', ':')),
+                'doc_id': '27130156389949648',
+         })) if self._can_impersonate else None
 
         media = traverse_obj(response, ('data', 'xig_polaris_media', {dict}))
         product_info = traverse_obj(media, ('if_not_gated_logged_out', {dict}))
+
         if not product_info:
             error = join_nonempty('title', 'description', delim=': ', from_dict=api_check)
             if 'Restricted Video' in error:
@@ -586,6 +626,23 @@ class InstagramIE(InstagramBaseIE):
                 # Only raise after getting empty response; sometimes "long"-shortcode posts are public
                 self.raise_login_required(
                     'This content is only available for registered users who follow this account')
+
+            webpage, urlh = self._download_webpage_handle(
+                f'https://www.instagram.com/p/{video_id}', video_id, impersonate=self._can_impersonate)
+            if self._is_login_redirect(urlh.url):
+                self.raise_login_required(
+                    'The webpage request was redirected to the login page. '
+                    'You have exceeded the rate-limit for accessing posts anonymously')
+
+            media = traverse_obj(webpage, (
+                {self._SJS_RE.findall}, ..., {json.loads},
+                'require', ..., ..., ..., '__bbox', 'require',
+                lambda _, v: v[0] == 'RelayPrefetchedStreamCache', ...,
+                lambda _, v: v['__bbox']['result']['data']['xig_polaris_media'],
+                '__bbox', 'result', 'data', 'xig_polaris_media', {dict}, any))
+            product_info = traverse_obj(media, ('if_not_gated_logged_out', {dict}))
+
+        if not product_info:
             raise ExtractorError(
                 'Instagram sent an empty media response. Check if this post is accessible in your '
                 f'browser without being logged-in. If it is not, then u{self._login_hint()[1:]}. '
