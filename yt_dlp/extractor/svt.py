@@ -6,6 +6,8 @@ from ..utils import (
     determine_ext,
     dict_get,
     int_or_none,
+    js_to_json,
+    str_or_none,
     try_get,
     unified_timestamp,
 )
@@ -17,6 +19,7 @@ from ..utils.traversal import (
 
 class SVTBaseIE(InfoExtractor):
     _GEO_COUNTRIES = ['SE']
+    _GEO_BYPASS = False
 
     def _extract_video(self, video_info, video_id):
         is_live = dict_get(video_info, ('live', 'simulcast'), default=False)
@@ -252,32 +255,21 @@ class SVTPlayIE(SVTBaseIE):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         svt_id = mobj.group('svt_id') or mobj.group('modal_id')
-        if svt_id:
-            return self._extract_by_video_id(svt_id)
+        webpage = self._download_webpage(url, video_id, fatal=not svt_id) or ''
 
-        webpage = self._download_webpage(url, video_id)
-
-        data = traverse_obj(self._search_nextjs_data(webpage, video_id), (
-            'props', 'urqlState', ..., 'data', {json.loads},
-            'detailsPageByPath', {dict}, any, {require('video data')}))
-        details = traverse_obj(data, (
-            'modules', lambda _, v: v['details']['smartStart']['item']['videos'], 'details', any))
-        svt_id = traverse_obj(details, (
-            'smartStart', 'item', 'videos',
-            # There can be 'AudioDescribed' and 'SignInterpreted' variants; try 'Default' or else get first
-            (lambda _, v: v['accessibility'] == 'Default', 0),
-            'svtId', {str}, any))
         if not svt_id:
-            svt_id = traverse_obj(data, ('video', 'svtId', {str}, {require('SVT ID')}))
-
+            data = self._search_json(
+                r'(?<=[\s.])URQL_DATA\s*=', webpage, 'json data', video_id,
+                transform_source=js_to_json)
+            svt_id = traverse_obj(data, (
+                {dict.values}, ..., 'data', {json.loads}, 'detailsPageByPath',
+                'smartStart', 'videoSvtId', {str_or_none}, any, {require('SVT ID')}))
         info_dict = self._extract_by_video_id(svt_id)
-
         if not info_dict.get('title'):
             info_dict['title'] = re.sub(r'\s*\|\s*.+?$', '', self._og_search_title(webpage))
-        if not info_dict.get('thumbnail'):
-            info_dict['thumbnail'] = self._og_search_thumbnail(webpage)
         if not info_dict.get('description'):
-            info_dict['description'] = traverse_obj(details, ('description', {str}))
+            info_dict['description'] = self._og_search_description(webpage, default=None)
+        info_dict['thumbnail'] = self._og_search_thumbnail(webpage)
 
         return info_dict
 
