@@ -106,6 +106,7 @@ from .archiveorg import (
 )
 from .arcpublishing import ArcPublishingIE
 from .ard import (
+    ARDIE,
     ARDAudiothekIE,
     ARDAudiothekPlaylistIE,
     ARDBetaMediathekIE,
@@ -371,6 +372,7 @@ from .cpac import (
 )
 from .cracked import CrackedIE
 from .craftsy import CraftsyIE
+from .crazygames import CrazyGamesIE
 from .croatianfilm import CroatianFilmIE
 from .crooksandliars import CrooksAndLiarsIE
 from .crowdbunker import (
@@ -1718,10 +1720,7 @@ from .shahid import (
 from .sharepoint import SharePointIE
 from .shemaroome import ShemarooMeIE
 from .shiey import ShieyIE
-from .showroomlive import (
-    ShowRoomLiveIE,
-    ShowRoomVodIE,
-)
+from .showroomlive import ShowRoomLiveIE
 from .sibnet import SibnetEmbedIE
 from .simplecast import (
     SimplecastEpisodeIE,
