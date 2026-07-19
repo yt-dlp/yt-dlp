@@ -38,7 +38,7 @@ def compat_datetime_from_timestamp(timestamp):
 # Python 3.8+ does not honor %HOME% on windows, but this breaks compatibility with youtube-dl
 # See https://github.com/yt-dlp/yt-dlp/issues/792
 # https://docs.python.org/3/library/os.path.html#os.path.expanduser
-if os.name in ('nt', 'ce'):
+if os.name == 'nt':
     def compat_expanduser(path):
         HOME = os.environ.get('HOME')
         if not HOME:
