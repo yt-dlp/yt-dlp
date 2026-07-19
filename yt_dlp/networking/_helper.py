@@ -87,13 +87,13 @@ def get_redirect_method(method, status):
     # A 303 must either use GET or HEAD for subsequent request
     # https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.4
     if status == 303 and method != 'HEAD':
-        method = 'GET'
+        return 'GET'
     # 301 and 302 redirects are commonly turned into a GET from a POST
     # for subsequent requests by browsers, so we'll do the same.
     # https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.2
     # https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.3
     if status in (301, 302) and method == 'POST':
-        method = 'GET'
+        return 'GET'
     return method
 
 
