@@ -272,12 +272,9 @@ class FileDownloader:
             return
         if not os.path.isfile(filename):
             return
-        timestr = last_modified_hdr
-        if timestr is None:
-            return
-        filetime = timeconvert(timestr)
+        filetime = timeconvert(last_modified_hdr)
         if filetime is None:
-            return filetime
+            return
         # Ignore obviously invalid dates
         if filetime == 0:
             return
