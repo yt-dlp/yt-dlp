@@ -28,6 +28,7 @@ from .jsc._director import initialize_jsc_director
 from .jsc.provider import JsChallengeRequest, JsChallengeType, NChallengeInput, SigChallengeInput
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
+from ...networking import HEADRequest
 from ...utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -2036,8 +2037,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 last_seq = last_seq_cache[cache_key]
             else:
                 try:
-                    urlh = self._request_webpage(base_url, None, note=False, errnote=False, fatal=False)
-                except ExtractorError:
+                    urlh = self._request_webpage(
+                        HEADRequest(base_url), None,
+                        note=False, errnote='Fragment request failed')
+                except ExtractorError as e:
+                    self.write_debug(e.msg)
                     urlh = None
                 last_seq = try_get(urlh, lambda x: int_or_none(x.headers['X-Head-Seqnum']))
                 if urlh:
