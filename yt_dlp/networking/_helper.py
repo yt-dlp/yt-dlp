@@ -68,9 +68,7 @@ def make_socks_proxy_opts(socks_proxy):
         raise ValueError(f'Unknown SOCKS proxy version: {url_components.scheme.lower()}')
 
     def unquote_if_non_empty(s):
-        if not s:
-            return s
-        return urllib.parse.unquote_plus(s)
+        return urllib.parse.unquote_plus(s) if s else s
     return {
         'proxytype': socks_type,
         'addr': url_components.hostname,
