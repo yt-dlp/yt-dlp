@@ -223,6 +223,7 @@ INNERTUBE_CLIENTS = {
     },
     # "Made for kids" videos aren't available with this client
     # Using a clientVersion>1.65 may return SABR streams only
+    # Since 2026.07, intermittent/selective POT enforcement has been observed for non-HLS formats
     'android_vr': {
         'INNERTUBE_CONTEXT': {
             'client': {
@@ -238,6 +239,24 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 28,
         'REQUIRE_JS_PLAYER': False,
+        'GVS_PO_TOKEN_POLICY': {
+            StreamingProtocol.HTTPS: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
+            StreamingProtocol.DASH: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
+            StreamingProtocol.HLS: GvsPoTokenPolicy(
+                required=False,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
+        },
+        'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
     },
     # iOS clients have HLS live streams. Setting device model to get 60fps formats.
     # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680#issuecomment-1002724558
