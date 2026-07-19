@@ -622,11 +622,8 @@ def sanitize_open(filename, open_mode):
 
 def timeconvert(timestr):
     """Convert RFC 2822 defined time string into system timestamp"""
-    timestamp = None
     timetuple = email.utils.parsedate_tz(timestr)
-    if timetuple is not None:
-        timestamp = email.utils.mktime_tz(timetuple)
-    return timestamp
+    return None if timetuple is None else email.utils.mktime_tz(timetuple)
 
 
 def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
