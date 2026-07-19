@@ -2582,8 +2582,7 @@ def read_batch_urls(batch_fd):
             url = url.decode('utf-8', 'replace')
         BOM_UTF8 = ('\xef\xbb\xbf', '\ufeff')
         for bom in BOM_UTF8:
-            if url.startswith(bom):
-                url = url[len(bom):]
+            url = url.removeprefix(bom)
         url = url.lstrip()
         if not url or url.startswith(('#', ';', ']')):
             return False
