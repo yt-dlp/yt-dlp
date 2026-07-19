@@ -107,6 +107,7 @@ INNERTUBE_CLIENTS = {
         **WEB_PO_TOKEN_POLICIES,
     },
     # Safari UA returns pre-merged video+audio 144p/240p/360p/720p/1080p HLS formats
+    # Since 2026.07, HLS formats are only returned with some logged-in or "trusted" sessions
     'web_safari': {
         'INNERTUBE_CONTEXT': {
             'client': {
@@ -359,7 +360,6 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
-        'REQUIRE_AUTH': True,
         'SUPPORTS_COOKIES': True,
     },
     'tv_simply': {
