@@ -263,9 +263,8 @@ class FileDownloader:
 
     @wrap_file_access('rename')
     def try_rename(self, old_filename, new_filename):
-        if old_filename == new_filename:
-            return
-        os.replace(old_filename, new_filename)
+        if old_filename != new_filename:
+            os.replace(old_filename, new_filename)
 
     def try_utime(self, filename, last_modified_hdr):
         """Try to set the last-modified time of the given file."""
