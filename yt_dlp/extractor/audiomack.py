@@ -56,8 +56,8 @@ class AudiomackBaseIE(InfoExtractor):
     def _get_next_data(self, webpage):
         return merge_dicts(
             *traverse_obj(
-                self._search_nextjs_v13_data(webpage, None), (..., 'data', {dict})
-            )
+                self._search_nextjs_v13_data(webpage, None), (..., 'data', {dict}),
+            ),
         )
 
     def _parse_metadata(self, data, display_id=None):
@@ -102,7 +102,7 @@ class AudiomackBaseIE(InfoExtractor):
                     'section': f'/{remove_start(slug, "/")}',
                 }, api_url),
                 errnote=False, fatal=False,
-            ), ('signedUrl', {url_or_none})
+            ), ('signedUrl', {url_or_none}),
         )
 
         if not audio_url:
