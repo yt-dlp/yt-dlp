@@ -389,10 +389,16 @@ class JSInterpreter:
                     return '' if in_array else 'null'
                 if v is JS_Undefined:
                     return '' if in_array else 'undefined'
-                if isinstance(v, float) and math.isinf(v):
-                    return 'Infinity'
-                if isinstance(v, float) and math.isnan(v):
-                    return 'NaN'
+                if isinstance(v, (int, float)):
+                    if v != v:
+                        return 'NaN'
+                    if v == float('inf'):
+                        return 'Infinity'
+                    if v == float('-inf'):
+                        return '-Infinity'
+                    if isinstance(v, float) and v.is_integer():
+                        return str(int(v))
+                    return str(v)
                 if isinstance(v, list):
                     return ','.join(string_coerce(x, True) for x in v)
                 if isinstance(v, dict):
