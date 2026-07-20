@@ -376,9 +376,41 @@ class JSInterpreter:
         if not _OPERATORS.get(op):
             return right_val
 
-        # TODO: This is only correct for str+str and str+number; fix for str+array, str+object, etc
-        if op == '+' and (isinstance(left_val, str) or isinstance(right_val, str)):
-            return f'{left_val}{right_val}'
+        # This is correct for str+str, str+number, str+array, str+object, str+boolean, etc.
+        if op == '+':
+            def string_coerce(v, in_array=False):
+                if isinstance(v, str):
+                    return v
+                if v is True:
+                    return 'true'
+                if v is False:
+                    return 'false'
+                if v is None:
+                    return '' if in_array else 'null'
+                if v is JS_Undefined:
+                    return '' if in_array else 'undefined'
+                if isinstance(v, float) and math.isinf(v):
+                    return 'Infinity'
+                if isinstance(v, float) and math.isnan(v):
+                    return 'NaN'
+                if isinstance(v, list):
+                    return ','.join(string_coerce(x, True) for x in v)
+                if isinstance(v, dict):
+                    return '[object Object]'
+                return str(v)
+
+            if isinstance(left_val, (str, list, dict)) or isinstance(right_val, (str, list, dict)):
+                return string_coerce(left_val) + string_coerce(right_val)
+
+            if left_val is JS_Undefined or right_val is JS_Undefined:
+                return float('nan')
+
+            if left_val is None:
+                left_val = 0
+            if right_val is None:
+                right_val = 0
+
+            return left_val + right_val
 
         try:
             return _OPERATORS[op](left_val, right_val)
@@ -677,6 +709,8 @@ class JSInterpreter:
             raise JS_Continue
         elif expr == 'undefined':
             return JS_Undefined, should_return
+        elif expr == 'Infinity':
+            return float('inf'), should_return
         elif expr == 'NaN':
             return float('NaN'), should_return
 
