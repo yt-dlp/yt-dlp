@@ -39,10 +39,9 @@ class HollywoodReporterIE(InfoExtractor):
 
         if showcase_type == 'jwplayer':
             return self.url_result(f'jwplatform:{video_id}', JWPlatformIE)
-        elif showcase_type == 'youtube':
+        if showcase_type == 'youtube':
             return self.url_result(video_id, 'Youtube')
-        else:
-            raise ExtractorError(f'Unsupported showcase type "{showcase_type}"')
+        raise ExtractorError(f'Unsupported showcase type "{showcase_type}"')
 
 
 class HollywoodReporterPlaylistIE(InfoExtractor):

@@ -184,8 +184,7 @@ class CDAIE(InfoExtractor):
 
         if 'Authorization' in self._API_HEADERS:
             return self._api_extract(video_id)
-        else:
-            return self._web_extract(video_id)
+        return self._web_extract(video_id)
 
     def _api_extract(self, video_id):
         meta = self._download_json(

@@ -11,11 +11,11 @@ def get_suitable_downloader(info_dict, params={}, default=NO_DEFAULT, protocol=N
 
     if set(downloaders) == {FFmpegFD} and FFmpegFD.can_merge_formats(info_copy, params):
         return FFmpegFD
-    elif (set(downloaders) == {DashSegmentsFD}
+    if (set(downloaders) == {DashSegmentsFD}
           and not (to_stdout and len(protocols) > 1)
           and set(protocols) == {'http_dash_segments_generator'}):
         return DashSegmentsFD
-    elif len(downloaders) == 1:
+    if len(downloaders) == 1:
         return downloaders[0]
     return None
 
@@ -110,14 +110,14 @@ def _get_suitable_downloader(info_dict, protocol, params, default):
     if protocol in ('m3u8', 'm3u8_native'):
         if info_dict.get('is_live'):
             return FFmpegFD
-        elif (external_downloader or '').lower() == 'native':
+        if (external_downloader or '').lower() == 'native':
             return HlsFD
-        elif protocol == 'm3u8_native' and get_suitable_downloader(
+        if protocol == 'm3u8_native' and get_suitable_downloader(
                 info_dict, params, None, protocol='m3u8_frag_urls', to_stdout=info_dict['to_stdout']):
             return HlsFD
-        elif params.get('hls_prefer_native') is True:
+        if params.get('hls_prefer_native') is True:
             return HlsFD
-        elif params.get('hls_prefer_native') is False:
+        if params.get('hls_prefer_native') is False:
             return FFmpegFD
 
     return PROTOCOL_MAP.get(protocol, default)

@@ -264,7 +264,7 @@ class NaverLiveIE(NaverBaseIE):
         status = traverse_obj(data, ('live', 'liveStatus'))
         if status == 'CLOSED':
             raise ExtractorError('Stream is offline.', expected=True)
-        elif status != 'OPENED':
+        if status != 'OPENED':
             raise ExtractorError(f'Unknown status {status!r}')
 
         return {

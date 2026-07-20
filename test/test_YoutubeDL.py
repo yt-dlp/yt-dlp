@@ -944,8 +944,7 @@ class TestYoutubeDL(unittest.TestCase):
         def f(v, incomplete):
             if v['id'] == '1':
                 return None
-            else:
-                return 'Video id is not 1'
+            return 'Video id is not 1'
         res = get_videos(f)
         self.assertEqual(res, ['1'])
 

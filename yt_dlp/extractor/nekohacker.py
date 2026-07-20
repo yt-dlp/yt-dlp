@@ -183,7 +183,7 @@ class NekoHackerIE(InfoExtractor):
                 {find_element(tag='iframe', html=True)}, {extract_attributes}, 'src', {url_or_none}))
             if not iframe_src:
                 raise ExtractorError('No playlist or embed found in webpage')
-            elif re.match(r'https?://(?:\w+\.)?spotify\.com/', iframe_src):
+            if re.match(r'https?://(?:\w+\.)?spotify\.com/', iframe_src):
                 raise ExtractorError('Spotify embeds are not supported', expected=True)
             return self.url_result(url, 'Generic')
 

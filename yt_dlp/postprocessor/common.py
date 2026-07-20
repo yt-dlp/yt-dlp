@@ -126,9 +126,8 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
                     else 'images')
                 if allowed[format_type]:
                     return func(self, info)
-                else:
-                    self.to_screen(f'Skipping {format_type}')
-                    return [], info
+                self.to_screen(f'Skipping {format_type}')
+                return [], info
             return wrapper
         return decorator
 

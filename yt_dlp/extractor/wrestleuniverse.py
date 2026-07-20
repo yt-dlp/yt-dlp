@@ -177,7 +177,7 @@ class WrestleUniverseBaseIE(InfoExtractor):
                     'iv': traverse_obj(video_data, ('hls', 'iv', {decrypt})),
                 },
             }
-        elif traverse_obj(video_data, ('hls', 'encryptType', {int})):
+        if traverse_obj(video_data, ('hls', 'encryptType', {int})):
             self.report_warning('HLS AES-128 key was not found in API response')
 
         return {}

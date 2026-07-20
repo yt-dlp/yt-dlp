@@ -87,8 +87,7 @@ class PelotonIE(InfoExtractor):
                 json_string = self._webpage_read_content(e.cause.response, None, video_id)
                 res = self._parse_json(json_string, video_id)
                 raise ExtractorError(res['message'], expected=res['message'] == 'Login failed')
-            else:
-                raise
+            raise
 
     def _get_token(self, video_id):
         try:
@@ -100,8 +99,7 @@ class PelotonIE(InfoExtractor):
                 json_string = self._webpage_read_content(e.cause.response, None, video_id)
                 res = self._parse_json(json_string, video_id)
                 raise ExtractorError(res['message'], expected=res['message'] == 'Stream limit reached')
-            else:
-                raise
+            raise
         return subscription['token']
 
     def _real_extract(self, url):
@@ -209,7 +207,5 @@ class PelotonLiveIE(InfoExtractor):
         if peloton.get('ride_id'):
             if not peloton.get('is_live') or peloton.get('is_encore') or peloton.get('status') != 'PRE_START':
                 return self.url_result('https://members.onepeloton.com/classes/player/{}'.format(peloton['ride_id']))
-            else:
-                raise ExtractorError('Ride has not started', expected=True)
-        else:
-            raise ExtractorError('Missing video ID')
+            raise ExtractorError('Ride has not started', expected=True)
+        raise ExtractorError('Missing video ID')

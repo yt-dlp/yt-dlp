@@ -148,7 +148,7 @@ class SoundcloudBaseIE(InfoExtractor):
                     self._store_client_id(None)
                     self._update_client_id()
                     continue
-                elif non_fatal:
+                if non_fatal:
                     self.report_warning(str(e))
                     return False
                 raise

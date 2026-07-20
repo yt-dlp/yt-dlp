@@ -68,7 +68,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):  # noq
         """ Adds config and returns whether to continue """
         if root.parse_known_args()[0].ignoreconfig:
             return False
-        elif func:
+        if func:
             assert path is None
             args, current_path = next(
                 filter(None, _load_from_config_dirs(func(PACKAGE_NAME))), (None, None))
@@ -188,7 +188,7 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
                 if arg == '--':
                     del self.rargs[0]
                     break
-                elif arg.startswith('--'):
+                if arg.startswith('--'):
                     self._process_long_opt(self.rargs, self.values)
                 elif arg.startswith('-') and arg != '-':
                     self._process_short_opts(self.rargs, self.values)

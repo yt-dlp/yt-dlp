@@ -226,9 +226,9 @@ def sanitize_got_info_dict(got_dict):
     def sanitize(key, value):
         if isinstance(value, str) and len(value) > 100 and key != 'thumbnail':
             return f'md5:{md5(value)}'
-        elif isinstance(value, list) and len(value) > 10:
+        if isinstance(value, list) and len(value) > 10:
             return f'count:{len(value)}'
-        elif key.endswith('_count') and isinstance(value, int):
+        if key.endswith('_count') and isinstance(value, int):
             return int
         return value
 
@@ -299,10 +299,9 @@ def expect_info_dict(self, got_dict, expected_dict):
         def _repr(v):
             if isinstance(v, str):
                 return "'{}'".format(v.replace('\\', '\\\\').replace("'", "\\'").replace('\n', '\\n'))
-            elif isinstance(v, type):
+            if isinstance(v, type):
                 return v.__name__
-            else:
-                return repr(v)
+            return repr(v)
         info_dict_str = ''.join(
             f'    {_repr(k)}: {_repr(v)},\n'
             for k, v in test_info_dict.items() if k not in missing_keys)
@@ -321,17 +320,16 @@ def expect_info_dict(self, got_dict, expected_dict):
 def assertRegexpMatches(self, text, regexp, msg=None):
     if hasattr(self, 'assertRegexp'):
         return self.assertRegexp(text, regexp, msg)
-    else:
-        m = re.match(regexp, text)
-        if not m:
-            note = f'Regexp didn\'t match: {regexp!r} not found'
-            if len(text) < 1000:
-                note += f' in {text!r}'
-            if msg is None:
-                msg = note
-            else:
-                msg = note + ', ' + msg
-            self.assertTrue(m, msg)
+    m = re.match(regexp, text)
+    if not m:
+        note = f'Regexp didn\'t match: {regexp!r} not found'
+        if len(text) < 1000:
+            note += f' in {text!r}'
+        if msg is None:
+            msg = note
+        else:
+            msg = note + ', ' + msg
+        self.assertTrue(m, msg)
 
 
 def assertGreaterEqual(self, got, expected, msg=None):

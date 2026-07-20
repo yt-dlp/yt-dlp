@@ -124,7 +124,7 @@ class BunnyCdnIE(InfoExtractor):
             raise ExtractorError(
                 'This video is inaccessible. Setting a Referer header '
                 'might be required to access the video', expected=True)
-        elif html_title == '404':
+        if html_title == '404':
             raise ExtractorError('This video does not exist', expected=True)
 
         headers = {'Referer': url}

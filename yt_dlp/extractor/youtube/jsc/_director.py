@@ -258,8 +258,7 @@ def validate_response(response: JsChallengeResponse, request: JsChallengeRequest
         return 'Response is not a JsChallengeResponse'
     if request.type == JsChallengeType.N:
         return validate_nsig_challenge_output(response.output, request.input)
-    else:
-        return validate_sig_challenge_output(response.output, request.input)
+    return validate_sig_challenge_output(response.output, request.input)
 
 
 def validate_nsig_challenge_output(challenge_output: NChallengeOutput, challenge_input: NChallengeInput) -> bool | str:

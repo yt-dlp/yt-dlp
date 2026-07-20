@@ -109,7 +109,7 @@ class DacastVODIE(DacastBaseIE):
         error = access.get('error')
         if error in ('Broadcaster has been blocked', 'Content is offline'):
             raise ExtractorError(error, expected=True)
-        elif error:
+        if error:
             raise ExtractorError(f'Dacast API says "{error}"')
 
         hls_url = access['hls']

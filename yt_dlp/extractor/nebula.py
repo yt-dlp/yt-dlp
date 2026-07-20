@@ -328,7 +328,7 @@ class NebulaClassIE(NebulaBaseIE):
                 **self._extract_video_metadata(metadata),
                 **self._extract_formats(metadata['id'], slug),
             }
-        elif content_type == 'podcast_episode':
+        if content_type == 'podcast_episode':
             episode_url = metadata['episode_url']
             if not episode_url and metadata.get('premium'):
                 self.raise_login_required()

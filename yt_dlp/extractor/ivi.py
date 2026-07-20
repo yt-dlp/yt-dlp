@@ -131,8 +131,7 @@ class IviIE(InfoExtractor):
                 elif message:
                     extractor_msg += ': ' + message
                 raise ExtractorError(extractor_msg % video_id, expected=True)
-            else:
-                break
+            break
 
         result = video_json['result']
         title = result['title']

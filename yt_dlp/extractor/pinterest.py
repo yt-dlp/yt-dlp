@@ -70,7 +70,7 @@ class PinterestBaseIE(InfoExtractor):
                 **info,
             }
 
-        elif extract_formats:
+        if extract_formats:
             video_list = traverse_obj(
                 data, ('videos', 'video_list'),
                 ('story_pin_data', 'pages', ..., 'blocks', ..., 'video', 'video_list'),

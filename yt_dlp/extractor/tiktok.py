@@ -185,9 +185,8 @@ class TikTokBaseIE(InfoExtractor):
             message = 'No working app info is available'
             if fatal:
                 raise ExtractorError(message, expected=True)
-            else:
-                self.report_warning(message)
-                return
+            self.report_warning(message)
+            return
 
         max_tries = len(self._APP_INFO_POOL) + 1  # _APP_INFO_POOL + _APP_INFO
         for count in itertools.count(1):
@@ -203,9 +202,8 @@ class TikTokBaseIE(InfoExtractor):
                     if not self._get_next_app_info():
                         if fatal:
                             raise
-                        else:
-                            self.report_warning(message)
-                            return
+                        self.report_warning(message)
+                        return
                     self.report_warning(f'{message}. Retrying... (attempt {count} of {max_tries})')
                     continue
                 raise
@@ -986,7 +984,7 @@ class TikTokIE(TikTokBaseIE):
 
         if video_data and status == 0:
             return self._parse_aweme_video_web(video_data, url, video_id)
-        elif status in (10216, 10222):
+        if status in (10216, 10222):
             # 10216: private post; 10222: private account
             self.raise_login_required(
                 'You do not have permission to view this post. Log into an account that has access')
@@ -1605,7 +1603,7 @@ class TikTokLiveIE(TikTokBaseIE):
         if int_or_none(response.get('status')) == 2:
             return response
         # If room_id is obtained via mobile share URL and cannot be refreshed, do not wait for live
-        elif not uploader:
+        if not uploader:
             raise ExtractorError('This livestream has ended', expected=True)
         raise UserNotLive(video_id=uploader)
 

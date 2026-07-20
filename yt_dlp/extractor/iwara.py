@@ -53,8 +53,7 @@ class IwaraBaseIE(InfoExtractor):
                 error = traverse_obj(response, ('message', {str}))
                 if 'invalidLogin' in error:
                     raise ExtractorError('Invalid login credentials', expected=True)
-                else:
-                    raise ExtractorError(f'Iwara API said: {error or "nothing"}')
+                raise ExtractorError(f'Iwara API said: {error or "nothing"}')
 
             self.cache.store(self._NETRC_MACHINE, username, user_token)
 

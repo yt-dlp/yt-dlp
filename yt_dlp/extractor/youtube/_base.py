@@ -631,7 +631,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             raise ExtractorError(
                 f'Unsupported language code: {preferred_lang}. Supported language codes (case-sensitive): {join_nonempty(*self._SUPPORTED_LANG_CODES, delim=", ")}.',
                 expected=True)
-        elif preferred_lang != 'en':
+        if preferred_lang != 'en':
             self.report_warning(
                 f'Preferring "{preferred_lang}" translated fields. Note that some metadata extraction may fail or be incorrect.')
         return preferred_lang
@@ -1281,7 +1281,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             except ExtractorError as e:
                 if not isinstance(e.cause, network_exceptions):
                     return self._error_or_warning(e, fatal=fatal)
-                elif not isinstance(e.cause, HTTPError):
+                if not isinstance(e.cause, HTTPError):
                     main_rm.error = e
                     next(main_retries)
                     continue

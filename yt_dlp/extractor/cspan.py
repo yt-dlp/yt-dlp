@@ -239,13 +239,12 @@ class CSpanIE(InfoExtractor):
             entry = dict(entries[0])
             entry['id'] = 'c' + video_id if video_type == 'clip' else video_id
             return entry
-        else:
-            return {
-                '_type': 'playlist',
-                'entries': entries,
-                'title': title,
-                'id': 'c' + video_id if video_type == 'clip' else video_id,
-            }
+        return {
+            '_type': 'playlist',
+            'entries': entries,
+            'title': title,
+            'id': 'c' + video_id if video_type == 'clip' else video_id,
+        }
 
 
 class CSpanCongressIE(InfoExtractor):

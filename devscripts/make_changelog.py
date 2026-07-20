@@ -306,7 +306,7 @@ class CommitRange:
             if skip and (self._start or not i):
                 logger.debug(f'Skipped commit: {commit}')
                 continue
-            elif skip:
+            if skip:
                 logger.debug(f'Reached Release commit, breaking: {commit}')
                 break
 

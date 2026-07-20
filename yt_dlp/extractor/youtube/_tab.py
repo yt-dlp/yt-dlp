@@ -68,9 +68,9 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         for key, renderer in item.items():
             if not isinstance(renderer, dict):
                 continue
-            elif key in known_basic_renderers:
+            if key in known_basic_renderers:
                 return renderer
-            elif key.startswith('grid') and key.endswith('Renderer'):
+            if key.startswith('grid') and key.endswith('Renderer'):
                 return renderer
 
     def _extract_video(self, renderer):
@@ -2252,7 +2252,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             if item_id[:2] == 'VL':  # Youtube music VL channels have an equivalent playlist
                 return self.url_result(
                     f'https://music.youtube.com/playlist?list={item_id[2:]}', YoutubeTabIE, item_id[2:])
-            elif item_id[:2] == 'MP':  # Resolve albums (/[channel/browse]/MP...) to their equivalent playlist
+            if item_id[:2] == 'MP':  # Resolve albums (/[channel/browse]/MP...) to their equivalent playlist
                 mdata = self._extract_tab_endpoint(
                     f'https://music.youtube.com/browse/{item_id}', item_id, default_client='web_music')
                 murl = traverse_obj(mdata, ('microformat', 'microformatDataRenderer', 'urlCanonical'),
@@ -2260,7 +2260,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 if not murl:
                     raise ExtractorError('Failed to resolve album to playlist')
                 return self.url_result(murl, YoutubeTabIE)
-            elif mobj['channel_type'] == 'browse':  # Youtube music /browse/ should be changed to /channel/
+            if mobj['channel_type'] == 'browse':  # Youtube music /browse/ should be changed to /channel/
                 return self.url_result(
                     f'https://music.youtube.com/channel/{item_id}{tab}{post}', YoutubeTabIE, item_id)
 
@@ -2344,7 +2344,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                     # Except in the case the channel has an actual live tab
                     # Example: https://www.youtube.com/channel/UCEH7P7kyJIkS_gJf93VYbmg/live
                     raise UserNotLive(video_id=item_id)
-                elif selected_tab_name:
+                if selected_tab_name:
                     raise ExtractorError(f'This channel does not have a {original_tab_id} tab', expected=True)
 
                 # For channels such as https://www.youtube.com/channel/UCtFRv9O2AHqOZjjynzrv-xg
@@ -2370,7 +2370,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
 
         if len(entries) == 1:
             return entries[0]
-        elif entries:
+        if entries:
             metadata = self._extract_metadata_from_tabs(item_id, data)
             uploads_url = 'the Uploads (UU) playlist URL'
             if try_get(metadata, lambda x: x['channel_id'].startswith('UC')):

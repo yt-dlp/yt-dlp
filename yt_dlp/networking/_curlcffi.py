@@ -318,10 +318,10 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
             if e.code == CurlECode.PEER_FAILED_VERIFICATION:
                 raise CertificateVerifyError(cause=e) from e
 
-            elif e.code == CurlECode.SSL_CONNECT_ERROR:
+            if e.code == CurlECode.SSL_CONNECT_ERROR:
                 raise SSLError(cause=e) from e
 
-            elif e.code == CurlECode.TOO_MANY_REDIRECTS:
+            if e.code == CurlECode.TOO_MANY_REDIRECTS:
                 max_redirects_exceeded = True
                 curl_response = e.response
 

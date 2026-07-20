@@ -97,38 +97,37 @@ class TeamTreeHouseIE(InfoExtractor):
                 'duration': duration,
             })
             return info
+        def extract_urls(html, extract_info=None):
+            for path in re.findall(r'<a[^>]+href="([^"]+)"', html):
+                page_url = urljoin(url, path)
+                entry = {
+                    '_type': 'url_transparent',
+                    'id': self._match_id(page_url),
+                    'url': page_url,
+                    'ie_key': self.ie_key(),
+                }
+                if extract_info:
+                    entry.update(extract_info)
+                entries.append(entry)
+
+        workshop_videos = self._search_regex(
+            r'(?s)<ul[^>]+id="workshop-videos"[^>]*>(.+?)</ul>',
+            webpage, 'workshop videos', default=None)
+        if workshop_videos:
+            extract_urls(workshop_videos)
         else:
-            def extract_urls(html, extract_info=None):
-                for path in re.findall(r'<a[^>]+href="([^"]+)"', html):
-                    page_url = urljoin(url, path)
-                    entry = {
-                        '_type': 'url_transparent',
-                        'id': self._match_id(page_url),
-                        'url': page_url,
-                        'ie_key': self.ie_key(),
-                    }
-                    if extract_info:
-                        entry.update(extract_info)
-                    entries.append(entry)
+            stages_path = self._search_regex(
+                r'(?s)<div[^>]+id="syllabus-stages"[^>]+data-url="([^"]+)"',
+                webpage, 'stages path')
+            if stages_path:
+                stages_page = self._download_webpage(
+                    urljoin(url, stages_path), display_id, 'Downloading stages page')
+                for chapter_number, (chapter, steps_list) in enumerate(re.findall(r'(?s)<h2[^>]*>\s*(.+?)\s*</h2>.+?<ul[^>]*>(.+?)</ul>', stages_page), 1):
+                    extract_urls(steps_list, {
+                        'chapter': chapter,
+                        'chapter_number': chapter_number,
+                    })
+                title = remove_end(title, ' Course')
 
-            workshop_videos = self._search_regex(
-                r'(?s)<ul[^>]+id="workshop-videos"[^>]*>(.+?)</ul>',
-                webpage, 'workshop videos', default=None)
-            if workshop_videos:
-                extract_urls(workshop_videos)
-            else:
-                stages_path = self._search_regex(
-                    r'(?s)<div[^>]+id="syllabus-stages"[^>]+data-url="([^"]+)"',
-                    webpage, 'stages path')
-                if stages_path:
-                    stages_page = self._download_webpage(
-                        urljoin(url, stages_path), display_id, 'Downloading stages page')
-                    for chapter_number, (chapter, steps_list) in enumerate(re.findall(r'(?s)<h2[^>]*>\s*(.+?)\s*</h2>.+?<ul[^>]*>(.+?)</ul>', stages_page), 1):
-                        extract_urls(steps_list, {
-                            'chapter': chapter,
-                            'chapter_number': chapter_number,
-                        })
-                    title = remove_end(title, ' Course')
-
-            return self.playlist_result(
-                entries, display_id, title, description)
+        return self.playlist_result(
+            entries, display_id, title, description)

@@ -299,7 +299,7 @@ class FragmentFD(FileDownloader):
                 self.try_remove(ctx['tmpfilename'])
             self.report_error('The downloaded file is empty')
             return False
-        elif to_file:
+        if to_file:
             self.try_rename(ctx['tmpfilename'], ctx['filename'])
             filetime = ctx.get('fragment_filetime')
             if self.params.get('updatetime') and filetime:

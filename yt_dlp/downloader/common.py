@@ -511,6 +511,6 @@ class FileDownloader:
         available_target, requested_targets = self.ydl._parse_impersonate_targets(impersonate)
         if available_target:
             return available_target
-        elif requested_targets:
+        if requested_targets:
             self.report_warning(self.ydl._unavailable_targets_message(requested_targets))
         return None

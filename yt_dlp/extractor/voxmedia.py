@@ -58,12 +58,11 @@ class VoxMediaVolumeIE(InfoExtractor):
             if provider_video_type == 'brightcove':
                 # TODO: Find embed example or confirm that Vox has stopped using Brightcove
                 raise ExtractorError('Vox Brightcove embeds are currently unsupported')
-            else:
-                info.update({
-                    '_type': 'url_transparent',
-                    'url': provider_video_id if provider_video_type == 'youtube' else f'{provider_video_type}:{provider_video_id}',
-                    'ie_key': provider_video_type.capitalize(),
-                })
+            info.update({
+                '_type': 'url_transparent',
+                'url': provider_video_id if provider_video_type == 'youtube' else f'{provider_video_type}:{provider_video_id}',
+                'ie_key': provider_video_type.capitalize(),
+            })
             return info
         raise ExtractorError('Unable to find provider video id')
 
@@ -208,5 +207,4 @@ class VoxMediaIE(InfoExtractor):
 
         if len(entries) == 1:
             return entries[0]
-        else:
-            return self.playlist_result(entries, display_id, self._og_search_title(webpage), self._og_search_description(webpage))
+        return self.playlist_result(entries, display_id, self._og_search_title(webpage), self._og_search_description(webpage))

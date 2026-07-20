@@ -22,8 +22,7 @@ def bytes_to_intlist(bs):
         return []
     if isinstance(bs[0], int):  # Python 3
         return list(bs)
-    else:
-        return [ord(c) for c in bs]
+    return [ord(c) for c in bs]
 
 
 def intlist_to_bytes(xs):

@@ -110,7 +110,7 @@ class FFmpegPostProcessor(PostProcessor):
             self.report_warning(
                 f'ffmpeg-location {location} does not exist! Continuing without ffmpeg', only_once=True)
             return {}
-        elif os.path.isdir(location):
+        if os.path.isdir(location):
             dirname, basename, filename = location, None, None
         else:
             filename = os.path.basename(location)
@@ -443,7 +443,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
     def _quality_args(self, codec):
         if self._preferredquality is None:
             return []
-        elif self._preferredquality > 10:
+        if self._preferredquality > 10:
             return ['-b:a', f'{self._preferredquality}k']
 
         limits = {
@@ -962,7 +962,7 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
             if ext == new_ext:
                 self.to_screen(f'Subtitle file for {new_ext} is already in the requested format')
                 continue
-            elif ext == 'json':
+            if ext == 'json':
                 self.to_screen(
                     'You have requested to convert json subtitles into another format, '
                     'which is currently not possible')
@@ -994,8 +994,7 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
 
                 if new_ext == 'srt':
                     continue
-                else:
-                    sub_filenames.append(srt_file)
+                sub_filenames.append(srt_file)
 
             self.run_ffmpeg(old_file, new_file, ['-f', new_format])
 
@@ -1161,7 +1160,7 @@ class FFmpegConcatPP(FFmpegPostProcessor):
         entries = info.get('entries') or []
         if not any(entries) or (self._only_multi_video and info['_type'] != 'multi_video'):
             return [], info
-        elif traverse_obj(entries, (..., lambda k, v: k == 'requested_downloads' and len(v) > 1)):
+        if traverse_obj(entries, (..., lambda k, v: k == 'requested_downloads' and len(v) > 1)):
             raise PostProcessingError('Concatenation is not supported when downloading multiple separate formats')
 
         in_files = traverse_obj(entries, (..., 'requested_downloads', 0, 'filepath')) or []

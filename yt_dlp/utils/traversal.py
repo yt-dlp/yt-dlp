@@ -406,14 +406,14 @@ def find_element(*, tag=None, id=None, cls=None, attr=None, value=None, html=Fal
         func = get_element_html_by_attribute if html else get_element_by_attribute
         return functools.partial(func, attr, value, tag=tag or ANY_TAG, escape_value=not regex)
 
-    elif cls:
+    if cls:
         assert not id, 'Cannot match both cls and id'
         assert tag is None, 'Cannot match both cls and tag'
         assert not regex, 'Cannot use regex with cls'
         func = get_element_html_by_class if html else get_element_by_class
         return functools.partial(func, cls)
 
-    elif id:
+    if id:
         func = get_element_html_by_id if html else get_element_by_id
         return functools.partial(func, id, tag=tag or ANY_TAG, escape_value=not regex)
 

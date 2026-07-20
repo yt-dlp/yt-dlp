@@ -1279,7 +1279,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             if target := error.cause.response.extensions.get('impersonate'):
                 raise ExtractorError(
                     f'Got HTTP Error {status} when using impersonate target "{target}". {dcip_msg}')
-            elif not is_secure:
+            if not is_secure:
                 raise ExtractorError(f'Got HTTP Error {status}. {dcip_msg}', expected=True)
             raise ExtractorError(
                 'This request has been blocked due to its TLS fingerprint. Install a '

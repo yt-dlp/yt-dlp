@@ -113,7 +113,7 @@ class YandexVideoIE(InfoExtractor):
             ext = determine_ext(content_url)
             if ext == 'ismc':
                 continue
-            elif ext == 'm3u8':
+            if ext == 'm3u8':
                 formats.extend(self._extract_m3u8_formats(
                     content_url, video_id, 'mp4',
                     'm3u8_native', m3u8_id='hls', fatal=False))

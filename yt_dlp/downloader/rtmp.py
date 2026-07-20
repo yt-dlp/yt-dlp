@@ -206,7 +206,6 @@ class RtmpFD(FileDownloader):
                 'elapsed': time.time() - started,
             }, info_dict)
             return True
-        else:
-            self.to_stderr('\n')
-            self.report_error('rtmpdump exited with code %d' % retval)
-            return False
+        self.to_stderr('\n')
+        self.report_error('rtmpdump exited with code %d' % retval)
+        return False

@@ -235,7 +235,7 @@ class VevoIE(VevoBaseIE):
 
             if '.ism' in version_url:
                 continue
-            elif '.mpd' in version_url:
+            if '.mpd' in version_url:
                 formats.extend(self._extract_mpd_formats(
                     version_url, video_id, mpd_id=f'dash-{version}',
                     note=f'Downloading {version} MPD information',

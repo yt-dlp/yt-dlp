@@ -149,8 +149,7 @@ class InvalidPTP(BaseMockPoTokenProvider):
     def _real_request_pot(self, request: PoTokenRequest) -> PoTokenResponse:
         if request.video_id == 'invalid_type':
             return 'invalid-response'
-        else:
-            return PoTokenResponse('example-token?', expires_at='123')
+        return PoTokenResponse('example-token?', expires_at='123')
 
 
 class BaseMockCacheSpecProvider(PoTokenCacheSpecProvider, abc.ABC):

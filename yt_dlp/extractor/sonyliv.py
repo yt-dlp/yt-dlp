@@ -84,7 +84,7 @@ class SonyLIVIE(InfoExtractor):
             self._HEADERS['authorization'] = password
             self.report_login()
             return
-        elif len(username) != 10 or not username.isdigit():
+        if len(username) != 10 or not username.isdigit():
             raise ExtractorError(f'Invalid username/password; {self._LOGIN_HINT}')
 
         self.report_login()

@@ -346,7 +346,7 @@ class MujRozhlasIE(RozhlasBaseIE):
             return self._extract_audio_entry(self._call_api(
                 'episodes', info['contentId'], 'episode info API JSON'))
 
-        elif entity in ('show', 'serial'):
+        if entity in ('show', 'serial'):
             playlist_id = info['contentShow'].split(':')[0] if entity == 'show' else info['contentId']
             data = self._call_api(f'{entity}s', playlist_id, f'{entity} playlist JSON')
             api_url = data['relationships']['episodes']['links']['related']
@@ -357,7 +357,6 @@ class MujRozhlasIE(RozhlasBaseIE):
                     'description': 'description',
                 })))
 
-        else:
-            # `entity == 'person'` not implemented yet by API, ref:
-            # https://api.mujrozhlas.cz/persons/8367e456-2a57-379a-91bb-e699619bea49/participation
-            raise ExtractorError(f'Unsupported entity type "{entity}"')
+        # `entity == 'person'` not implemented yet by API, ref:
+        # https://api.mujrozhlas.cz/persons/8367e456-2a57-379a-91bb-e699619bea49/participation
+        raise ExtractorError(f'Unsupported entity type "{entity}"')

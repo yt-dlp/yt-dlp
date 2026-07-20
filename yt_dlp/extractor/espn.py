@@ -117,7 +117,7 @@ class ESPNIE(InfoExtractor):
             for src_id, src_item in source.items():
                 if src_id == 'alert':
                     continue
-                elif isinstance(src_item, str):
+                if isinstance(src_item, str):
                     extract_source(src_item, base_source_id)
                 elif isinstance(src_item, dict):
                     traverse_source(

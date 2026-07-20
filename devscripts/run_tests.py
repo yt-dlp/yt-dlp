@@ -72,7 +72,7 @@ def run_tests(*tests, pattern=None, ci=False, flaky: bool | None = None):
     if run_core:
         print('"pytest" needs to be installed to run core tests', file=sys.stderr, flush=True)
         return 1
-    elif run_download:
+    if run_download:
         arguments.append('test.test_download')
     else:
         arguments.extend(

@@ -66,7 +66,7 @@ def _js_mod(a, b):
 def _js_exp(a, b):
     if not b:
         return 1  # even 0 ** 0 !!
-    elif JS_Undefined in (a, b):
+    if JS_Undefined in (a, b):
         return float('nan')
     return (a or 0) ** b
 
@@ -472,16 +472,14 @@ class JSInterpreter:
             inner, should_abort = self.interpret_statement(inner, local_vars, allow_recursion)
             if not outer or should_abort:
                 return inner, should_abort or should_return
-            else:
-                expr = self._dump(inner, local_vars) + outer
+            expr = self._dump(inner, local_vars) + outer
 
         if expr.startswith('('):
             inner, outer = self._separate_at_paren(expr)
             inner, should_abort = self.interpret_statement(inner, local_vars, allow_recursion)
             if not outer or should_abort:
                 return inner, should_abort or should_return
-            else:
-                expr = self._dump(inner, local_vars) + outer
+            expr = self._dump(inner, local_vars) + outer
 
         if expr.startswith('['):
             inner, outer = self._separate_at_paren(expr)
@@ -629,7 +627,7 @@ class JSInterpreter:
                 else:
                     local_vars[m.group('out')] = eval_result
                 return local_vars[m.group('out')], should_return
-            elif left_val in (None, JS_Undefined):
+            if left_val in (None, JS_Undefined):
                 raise self.Exception(f'Cannot index undefined variable {m.group("out")}', expr)
 
             idx = self.interpret_expression(m.group('index'), local_vars, allow_recursion)
@@ -671,16 +669,16 @@ class JSInterpreter:
         if expr.isdigit():
             return int(expr), should_return
 
-        elif expr == 'break':
+        if expr == 'break':
             raise JS_Break
-        elif expr == 'continue':
+        if expr == 'continue':
             raise JS_Continue
-        elif expr == 'undefined':
+        if expr == 'undefined':
             return JS_Undefined, should_return
-        elif expr == 'NaN':
+        if expr == 'NaN':
             return float('NaN'), should_return
 
-        elif m and m.group('return'):
+        if m and m.group('return'):
             var = m.group('name')
             # Declared variables
             if _is_var_declaration:
@@ -789,7 +787,7 @@ class JSInterpreter:
                         assertion(argvals, 'takes one or more arguments')
                         return ''.join(map(chr, argvals))
                     raise self.Exception(f'Unsupported String method {member}', expr)
-                elif obj is float:
+                if obj is float:
                     if member == 'pow':
                         assertion(len(argvals) == 2, 'takes two arguments')
                         return argvals[0] ** argvals[1]
@@ -799,19 +797,19 @@ class JSInterpreter:
                     assertion(argvals, 'takes one or more arguments')
                     assertion(len(argvals) == 1, 'with limit argument is not implemented')
                     return obj.split(argvals[0]) if argvals[0] else list(obj)
-                elif member == 'join':
+                if member == 'join':
                     assertion(isinstance(obj, list), 'must be applied on a list')
                     assertion(len(argvals) == 1, 'takes exactly one argument')
                     return argvals[0].join(obj)
-                elif member == 'reverse':
+                if member == 'reverse':
                     assertion(not argvals, 'does not take any arguments')
                     obj.reverse()
                     return obj
-                elif member == 'slice':
+                if member == 'slice':
                     assertion(isinstance(obj, (list, str)), 'must be applied on a list or string')
                     assertion(len(argvals) <= 2, 'takes between 0 and 2 arguments')
                     return obj[slice(*argvals, None)]
-                elif member == 'splice':
+                if member == 'splice':
                     assertion(isinstance(obj, list), 'must be applied on a list')
                     assertion(argvals, 'takes one or more arguments')
                     index, how_many = map(int, ([*argvals, len(obj)])[:2])
@@ -824,28 +822,28 @@ class JSInterpreter:
                     for i, item in enumerate(add_items):
                         obj.insert(index + i, item)
                     return res
-                elif member == 'unshift':
+                if member == 'unshift':
                     assertion(isinstance(obj, list), 'must be applied on a list')
                     assertion(argvals, 'takes one or more arguments')
                     for item in reversed(argvals):
                         obj.insert(0, item)
                     return obj
-                elif member == 'pop':
+                if member == 'pop':
                     assertion(isinstance(obj, list), 'must be applied on a list')
                     assertion(not argvals, 'does not take any arguments')
                     if not obj:
                         return
                     return obj.pop()
-                elif member == 'push':
+                if member == 'push':
                     assertion(argvals, 'takes one or more arguments')
                     obj.extend(argvals)
                     return obj
-                elif member == 'forEach':
+                if member == 'forEach':
                     assertion(argvals, 'takes one or more arguments')
                     assertion(len(argvals) <= 2, 'takes at-most 2 arguments')
                     f, this = ([*argvals, ''])[:2]
                     return [f((item, idx, obj), {'this': this}, allow_recursion) for idx, item in enumerate(obj)]
-                elif member == 'indexOf':
+                if member == 'indexOf':
                     assertion(argvals, 'takes one or more arguments')
                     assertion(len(argvals) <= 2, 'takes at-most 2 arguments')
                     idx, start = ([*argvals, 0])[:2]
@@ -869,16 +867,15 @@ class JSInterpreter:
                     self._named_object(local_vars, eval_method()) + remaining,
                     local_vars, allow_recursion)
                 return ret, should_return or should_abort
-            else:
-                return eval_method(), should_return
+            return eval_method(), should_return
 
-        elif m and m.group('function'):
+        if m and m.group('function'):
             fname = m.group('fname')
             argvals = [self.interpret_expression(v, local_vars, allow_recursion)
                        for v in self._separate(m.group('args'))]
             if fname in local_vars:
                 return local_vars[fname](argvals, allow_recursion=allow_recursion), should_return
-            elif fname not in self._functions:
+            if fname not in self._functions:
                 self._functions[fname] = self.extract_function(fname)
             return self._functions[fname](argvals, allow_recursion=allow_recursion), should_return
 

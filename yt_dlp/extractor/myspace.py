@@ -116,12 +116,11 @@ class MySpaceIE(InfoExtractor):
                 if vevo_id:
                     self.to_screen(f'Vevo video detected: {vevo_id}')
                     return self.url_result(f'vevo:{vevo_id}', ie='Vevo')
-                elif youtube_id:
+                if youtube_id:
                     self.to_screen(f'Youtube video detected: {youtube_id}')
                     return self.url_result(youtube_id, ie='Youtube')
-                else:
-                    raise ExtractorError(
-                        'Found song but don\'t know how to download it')
+                raise ExtractorError(
+                    'Found song but don\'t know how to download it')
             return {
                 'id': video_id,
                 'title': self._og_search_title(webpage),
@@ -131,25 +130,24 @@ class MySpaceIE(InfoExtractor):
                 'duration': int_or_none(search_data('duration')),
                 'formats': formats,
             }
-        else:
-            video = self._parse_json(self._search_regex(
-                r'context = ({.*?});', webpage, 'context'),
-                video_id)['video']
-            formats = formats_from_stream_urls(
-                video.get('streamUrl'), video.get('hlsStreamUrl'),
-                video.get('mp4StreamUrl'), int_or_none(video.get('width')),
-                int_or_none(video.get('height')))
-            return {
-                'id': video_id,
-                'title': video['title'],
-                'description': video.get('description'),
-                'thumbnail': video.get('imageUrl'),
-                'uploader': video.get('artistName'),
-                'uploader_id': video.get('artistUsername'),
-                'duration': int_or_none(video.get('duration')),
-                'timestamp': parse_iso8601(video.get('dateAdded')),
-                'formats': formats,
-            }
+        video = self._parse_json(self._search_regex(
+            r'context = ({.*?});', webpage, 'context'),
+            video_id)['video']
+        formats = formats_from_stream_urls(
+            video.get('streamUrl'), video.get('hlsStreamUrl'),
+            video.get('mp4StreamUrl'), int_or_none(video.get('width')),
+            int_or_none(video.get('height')))
+        return {
+            'id': video_id,
+            'title': video['title'],
+            'description': video.get('description'),
+            'thumbnail': video.get('imageUrl'),
+            'uploader': video.get('artistName'),
+            'uploader_id': video.get('artistUsername'),
+            'duration': int_or_none(video.get('duration')),
+            'timestamp': parse_iso8601(video.get('dateAdded')),
+            'formats': formats,
+        }
 
 
 class MySpaceAlbumIE(InfoExtractor):

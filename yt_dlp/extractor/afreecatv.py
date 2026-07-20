@@ -181,7 +181,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
         error_code = traverse_obj(data, ('code', {int}))
         if error_code == -6221:
             raise ExtractorError('The VOD does not exist', expected=True)
-        elif error_code == -6205:
+        if error_code == -6205:
             raise ExtractorError('This VOD is private', expected=True)
 
         common_info = traverse_obj(data, {
@@ -372,7 +372,7 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
             result = channel_info.get('RESULT')
             if result == 0:
                 raise UserNotLive(video_id=broadcaster_id)
-            elif result == -6:
+            if result == -6:
                 self.raise_login_required(
                     'This channel is streaming for subscribers only', method='password')
             raise ExtractorError('Unable to extract broadcast number')
@@ -397,7 +397,7 @@ class AfreecaTVLiveIE(AfreecaTVBaseIE):
             result = token_info.get('RESULT')
             if result == 0:
                 raise ExtractorError('This livestream has ended', expected=True)
-            elif result == -6:
+            if result == -6:
                 self.raise_login_required('This livestream is for subscribers only', method='password')
             raise ExtractorError('Unable to extract access token')
 

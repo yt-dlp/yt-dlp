@@ -71,8 +71,7 @@ def format_text(text, f):
     if fg_color or bg_color:
         text = text.replace(CONTROL_SEQUENCES['RESET'], f'{fg_color}{bg_color}')
         return f'{fg_color}{bg_color}{text}{CONTROL_SEQUENCES["RESET"]}'
-    else:
-        return text
+    return text
 
 
 class MultilinePrinterBase:

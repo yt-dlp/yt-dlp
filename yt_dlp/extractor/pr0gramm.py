@@ -130,7 +130,7 @@ class Pr0grammIE(InfoExtractor):
             if not self._is_logged_in:
                 self.raise_login_required()
             raise ExtractorError(f'Unverified account cannot access NSFW/NSFL ({error})', expected=True)
-        elif error:
+        if error:
             message = traverse_obj(data, ('msg', {str})) or error
             raise ExtractorError(f'API returned error: {message}', expected=True)
 

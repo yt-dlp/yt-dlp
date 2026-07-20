@@ -320,6 +320,10 @@ select = [
     "T20",     # flake8-print
     "RSE",     # flake8-raise
     "RET504",  # unnecessary-assign
+    "RET505",  # superfluous-else-return
+    "RET506",  # superfluous-else-raise
+    "RET507",  # superfluous-else-continue
+    "RET508",  # superfluous-else-break
     "SIM",     # flake8-simplify
     "TID251",  # banned-api
     "TD",      # flake8-todos

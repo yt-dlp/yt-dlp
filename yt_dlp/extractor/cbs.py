@@ -150,7 +150,7 @@ class CBSIE(CBSBaseIE):
                 del query['assetTypes']
             if asset_type in asset_types:
                 continue
-            elif any(excluded in asset_type for excluded in ('HLS_FPS', 'DASH_CENC', 'OnceURL')):
+            if any(excluded in asset_type for excluded in ('HLS_FPS', 'DASH_CENC', 'OnceURL')):
                 if 'DASH_CENC' in asset_type:
                     has_drm = True
                 continue

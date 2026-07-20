@@ -1224,11 +1224,10 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                     'subtitles': subtitles,
                     'timestamp': traverse_obj(article, ('displayDate', {parse_iso8601})),
                 }
-            else:
-                return self.url_result(
-                    f'https://www.bbc.co.uk/programmes/{asset_id}', BBCCoUkIE,
-                    asset_id, playlist_title, display_id=playlist_id,
-                    description=playlist_description)
+            return self.url_result(
+                f'https://www.bbc.co.uk/programmes/{asset_id}', BBCCoUkIE,
+                asset_id, playlist_title, display_id=playlist_id,
+                description=playlist_description)
 
         bbc3_config = self._parse_json(
             self._search_regex(
