@@ -421,8 +421,12 @@ class JSInterpreter:
             return len(obj)
         try:
             if isinstance(obj, list):
-                if isinstance(idx, (int, float)) and int(idx) == idx:
-                    return obj[int(idx)] if int(idx) < len(obj) else JS_Undefined
+                if isinstance(idx, (int, float)):
+                    if not math.isfinite(idx):
+                        return JS_Undefined
+                    if int(idx) == idx:
+                        idx = int(idx)
+                        return obj[idx] if 0 <= idx < len(obj) else JS_Undefined
 
                 # property key coercion
                 if isinstance(idx, list):
