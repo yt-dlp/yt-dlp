@@ -475,6 +475,8 @@ class JSInterpreter:
                 raise JS_Throw(self.interpret_expression(expr, local_vars, allow_recursion))
             should_return = not m.group('var')
             _is_var_declaration = _is_var_declaration or bool(m.group('var'))
+            if should_return:
+                _is_expression = True
         if not expr:
             return None, should_return
 
