@@ -420,7 +420,24 @@ class JSInterpreter:
         if idx == 'length':
             return len(obj)
         try:
-            return obj[int(idx)] if isinstance(obj, list) else obj[str(idx)]
+            if isinstance(obj, list):
+                if isinstance(idx, (int, float)) and int(idx) == idx:
+                    return obj[int(idx)] if int(idx) < len(obj) else JS_Undefined
+
+                # property key coercion
+                if isinstance(idx, list):
+                    idx = ','.join(str(x) for x in idx)
+                elif isinstance(idx, dict):
+                    idx = '[object Object]'
+                elif idx is None:
+                    idx = 'null'
+                elif idx is JS_Undefined:
+                    idx = 'undefined'
+                else:
+                    idx = str(idx)
+
+                return JS_Undefined
+            return obj[str(idx)]
         except Exception as e:
             if allow_undefined:
                 return JS_Undefined
@@ -433,7 +450,7 @@ class JSInterpreter:
             return self._named_object(namespace, obj)
 
     @Debugger.wrap_interpreter
-    def interpret_statement(self, stmt, local_vars, allow_recursion=100, _is_var_declaration=False):
+    def interpret_statement(self, stmt, local_vars, allow_recursion=100, _is_var_declaration=False, _is_expression=False):
         if allow_recursion < 0:
             raise self.Exception('Recursion limit reached')
         allow_recursion -= 1
@@ -489,22 +506,42 @@ class JSInterpreter:
 
         if expr.startswith('{'):
             inner, outer = self._separate_at_paren(expr)
-            # try for object expression (Map)
-            sub_expressions = [list(self._separate(sub_expr.strip(), ':', 1)) for sub_expr in self._separate(inner)]
-            if all(len(sub_expr) == 2 for sub_expr in sub_expressions):
+            if _is_expression:
+                sub_expressions = [
+                    list(self._separate(sub_expr.strip(), ':', 1))
+                    for sub_expr in self._separate(inner)
+                    if sub_expr.strip()
+                ]
+
                 def dict_item(key, val):
                     val = self.interpret_expression(val, local_vars, allow_recursion)
                     if re.match(_NAME_RE, key):
                         return key, val
                     return self.interpret_expression(key, local_vars, allow_recursion), val
 
-                return dict(dict_item(k, v) for k, v in sub_expressions), should_return
+                obj = dict(dict_item(k, v) for k, v in sub_expressions)
 
-            inner, should_abort = self.interpret_statement(inner, local_vars, allow_recursion)
-            if not outer or should_abort:
-                return inner, should_abort or should_return
+                if not outer:
+                    return obj, should_return
+
+                expr = self._named_object(local_vars, obj) + outer
             else:
-                expr = self._dump(inner, local_vars) + outer
+                # try for object expression (Map)
+                sub_expressions = [list(self._separate(sub_expr.strip(), ':', 1)) for sub_expr in self._separate(inner)]
+                if all(len(sub_expr) == 2 for sub_expr in sub_expressions):
+                    def dict_item(key, val):
+                        val = self.interpret_expression(val, local_vars, allow_recursion)
+                        if re.match(_NAME_RE, key):
+                            return key, val
+                        return self.interpret_expression(key, local_vars, allow_recursion), val
+    
+                    return dict(dict_item(k, v) for k, v in sub_expressions), should_return
+    
+                inner, should_abort = self.interpret_statement(inner, local_vars, allow_recursion)
+                if not outer or should_abort:
+                    return inner, should_abort or should_return
+                else:
+                    expr = self._dump(inner, local_vars) + outer
 
         if expr.startswith('('):
             inner, outer = self._separate_at_paren(expr)
@@ -919,7 +956,7 @@ class JSInterpreter:
             f'Unsupported JS expression {truncate_string(expr, 20, 20) if expr != stmt else ""}', stmt)
 
     def interpret_expression(self, expr, local_vars, allow_recursion):
-        ret, should_return = self.interpret_statement(expr, local_vars, allow_recursion)
+        ret, should_return = self.interpret_statement(expr, local_vars, allow_recursion, _is_expression=True)
         if should_return:
             raise self.Exception('Cannot return from an expression', expr)
         return ret
