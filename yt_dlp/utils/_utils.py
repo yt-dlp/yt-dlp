@@ -2948,9 +2948,7 @@ def error_to_str(err):
 @partial_application
 def mimetype2ext(mt, default=NO_DEFAULT):
     if not isinstance(mt, str):
-        if default is not NO_DEFAULT:
-            return default
-        return None
+        return None if default is NO_DEFAULT else default
 
     MAP = {
         # video
