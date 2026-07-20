@@ -491,7 +491,10 @@ class NiconicoChannelPlusIE(NicoChannelBaseIE):
                                                  note='Downloading video info')['video_page']
 
         live_status, session_payload, timestamp = self._parse_live_status(video_id, video_info)
-        if video_info.get('video'):
+
+        if live_status == 'is_upcoming':
+            formats = []
+        elif video_info.get('video'):
             session_id = self._download_channel_data(
                 url, f'/video_pages/{video_id}/session_ids', video_id, data=json.dumps(session_payload).encode(),
                 headers={'content-type': 'application/json'}, note='Downloading video session')['session_id']
@@ -589,8 +592,7 @@ class NiconicoChannelPlusIE(NicoChannelBaseIE):
                 else:
                     msg = 'This event has not started yet'
                 self.raise_no_formats(msg, expected=True, video_id=video_id)
-
-            if not live_finished_at:
+            elif not live_finished_at:
                 live_status = 'is_live'
             else:
                 live_status = 'was_live'
