@@ -512,6 +512,7 @@ class JSInterpreter:
 
         if expr.startswith('{'):
             inner, outer = self._separate_at_paren(expr)
+
             def dict_item(key, val):
                 val = self.interpret_expression(val, local_vars, allow_recursion)
                 if re.match(_NAME_RE, key):
