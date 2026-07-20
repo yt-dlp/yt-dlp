@@ -95,7 +95,7 @@ class TurnerBaseIE(AdobePassIE):
                 # if not token:
                 #     continue
                 # video_url = rtmp_src + video_url + '?' + token
-            elif video_url.startswith('/secure/'): # noqa: RET507
+            elif video_url.startswith('/secure/'):  # noqa: RET507
                 secure_path_data = path_data.get('secure')
                 if not secure_path_data:
                     continue

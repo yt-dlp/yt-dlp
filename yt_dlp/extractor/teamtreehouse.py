@@ -97,6 +97,7 @@ class TeamTreeHouseIE(InfoExtractor):
                 'duration': duration,
             })
             return info
+
         def extract_urls(html, extract_info=None):
             for path in re.findall(r'<a[^>]+href="([^"]+)"', html):
                 page_url = urljoin(url, path)
