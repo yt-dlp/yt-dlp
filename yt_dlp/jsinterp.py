@@ -506,37 +506,21 @@ class JSInterpreter:
 
         if expr.startswith('{'):
             inner, outer = self._separate_at_paren(expr)
+            def dict_item(key, val):
+                val = self.interpret_expression(val, local_vars, allow_recursion)
+                if re.match(_NAME_RE, key):
+                    return key, val
+                return self.interpret_expression(key, local_vars, allow_recursion), val
+            sub_expressions = [list(self._separate(sub_expr.strip(), ':', 1)) for sub_expr in self._separate(inner)]
+
             if _is_expression:
-                sub_expressions = [
-                    list(self._separate(sub_expr.strip(), ':', 1))
-                    for sub_expr in self._separate(inner)
-                    if sub_expr.strip()
-                ]
-
-                def dict_item(key, val):
-                    val = self.interpret_expression(val, local_vars, allow_recursion)
-                    if re.match(_NAME_RE, key):
-                        return key, val
-                    return self.interpret_expression(key, local_vars, allow_recursion), val
-
                 obj = dict(dict_item(k, v) for k, v in sub_expressions)
-
                 if not outer:
                     return obj, should_return
-
                 expr = self._named_object(local_vars, obj) + outer
             else:
-                # try for object expression (Map)
-                sub_expressions = [list(self._separate(sub_expr.strip(), ':', 1)) for sub_expr in self._separate(inner)]
                 if all(len(sub_expr) == 2 for sub_expr in sub_expressions):
-                    def dict_item(key, val):
-                        val = self.interpret_expression(val, local_vars, allow_recursion)
-                        if re.match(_NAME_RE, key):
-                            return key, val
-                        return self.interpret_expression(key, local_vars, allow_recursion), val
-    
                     return dict(dict_item(k, v) for k, v in sub_expressions), should_return
-    
                 inner, should_abort = self.interpret_statement(inner, local_vars, allow_recursion)
                 if not outer or should_abort:
                     return inner, should_abort or should_return
