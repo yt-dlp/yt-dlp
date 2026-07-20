@@ -158,6 +158,26 @@ def js_number_to_string(val: float, radix: int = 10):
     return bytes(ALPHABET[digit] for digit in result).decode('ascii')
 
 
+def js_string_coerce(v, in_array=False):
+    if isinstance(v, str):
+        return v
+    if v is True:
+        return 'true'
+    if v is False:
+        return 'false'
+    if v is None:
+        return '' if in_array else 'null'
+    if v is JS_Undefined:
+        return '' if in_array else 'undefined'
+    if isinstance(v, (int, float)):
+        return js_number_to_string(v)
+    if isinstance(v, list):
+        return ','.join(js_string_coerce(x, True) for x in v)
+    if isinstance(v, dict):
+        return '[object Object]'
+    return str(v)
+
+
 # Ref: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence
 _OPERATORS = {  # None => Defined in JSInterpreter._operator
     '?': None,
@@ -378,35 +398,8 @@ class JSInterpreter:
 
         # This is correct for str+str, str+number, str+array, str+object, str+boolean, etc.
         if op == '+':
-            def string_coerce(v, in_array=False):
-                if isinstance(v, str):
-                    return v
-                if v is True:
-                    return 'true'
-                if v is False:
-                    return 'false'
-                if v is None:
-                    return '' if in_array else 'null'
-                if v is JS_Undefined:
-                    return '' if in_array else 'undefined'
-                if isinstance(v, (int, float)):
-                    if v != v:
-                        return 'NaN'
-                    if v == float('inf'):
-                        return 'Infinity'
-                    if v == float('-inf'):
-                        return '-Infinity'
-                    if isinstance(v, float) and v.is_integer():
-                        return str(int(v))
-                    return str(v)
-                if isinstance(v, list):
-                    return ','.join(string_coerce(x, True) for x in v)
-                if isinstance(v, dict):
-                    return '[object Object]'
-                return str(v)
-
             if isinstance(left_val, (str, list, dict)) or isinstance(right_val, (str, list, dict)):
-                return string_coerce(left_val) + string_coerce(right_val)
+                return js_string_coerce(left_val) + js_string_coerce(right_val)
 
             if left_val is JS_Undefined or right_val is JS_Undefined:
                 return float('nan')
