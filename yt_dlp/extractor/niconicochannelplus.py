@@ -20,31 +20,12 @@ from ..utils import (
     parse_qs,
     str_or_none,
     traverse_obj,
+    try_get,
     unified_timestamp,
     url_or_none,
     urlencode_postdata,
     urljoin,
 )
-
-
-class LocalStorageBaseIE(InfoExtractor):
-    @staticmethod
-    def __make_storage_domain(url: str):
-        parsed = urllib.parse.urlparse(url)
-        return f'{parsed.scheme}.{parsed.hostname}.{parsed.port}.localstorage'.lower()
-
-    def _set_local_storage(self, url: str, name: str, value: str | None):
-        if value is None:
-            self.cookiejar.clear(self.__make_storage_domain(url), '/', name)
-        else:
-            cookie = http.cookiejar.Cookie(
-                0, name, str(value), None, False, self.__make_storage_domain(url), True,
-                False, '/', True, False, None, False, None, None, {})
-            self.cookiejar.set_cookie(cookie)
-
-    def _get_local_storages(self, url: str):
-        return {key: item.value for key, item in LenientSimpleCookie(
-            self.cookiejar.get_cookie_header(f'http://{self.__make_storage_domain(url)}/')).items()}
 
 
 class SiteContext:
@@ -63,20 +44,39 @@ class SiteContext:
         self._perform_login()
 
     @property
+    def _credential_domain(self):
+        parsed = urllib.parse.urlparse(self._site_url)
+        return f'{parsed.scheme}+{parsed.netloc.replace(":", "+")}.yt-dlp'
+
+    def _set_credential(self, name, value):
+        if value is None:
+            self._ie.cookiejar.clear(self._credential_domain, '/', name)
+        else:
+            cookie = http.cookiejar.Cookie(
+                0, name, str(value), None, False, self._credential_domain, True,
+                False, '/', True, False, None, False, None, None, {})
+            self._ie.cookiejar.set_cookie(cookie)
+
+    def _get_credential(self, name):
+        return try_get(LenientSimpleCookie(
+            self._ie.cookiejar.get_cookie_header(f'http://{self._credential_domain}/')),
+            lambda x: x[name].value)
+
+    @property
     def _access_token(self):
-        return self._ie._get_local_storages(self._site_url).get('access_token')
+        return self._get_credential('access_token')
 
     @_access_token.setter
     def _access_token(self, value):
-        self._ie._set_local_storage(self._site_url, 'access_token', value)
+        self._set_credential('access_token', value)
 
     @property
     def _refresh_token(self):
-        return self._ie._get_local_storages(self._site_url).get('refresh_token')
+        return self._get_credential('refresh_token')
 
     @_refresh_token.setter
     def _refresh_token(self, value):
-        self._ie._set_local_storage(self._site_url, 'refresh_token', value)
+        self._set_credential('refresh_token', value)
 
     @property
     def _netrc(self):
@@ -88,7 +88,7 @@ class SiteContext:
         return (f'Use --username and --password, --netrc-cmd, or --netrc ({self._netrc}) to provide '
                 'account credentials. For third-party login, use --username jwt_token --password <token> '
                 'or --username refresh_token --password <token> to provide auth token. When using --username '
-                'refresh_token, use --cookies cookies.txt as a WORKAROUND to store NON-COOKIE credential. '
+                'refresh_token, use --cookies cookies.txt as a WORKAROUND to persist NON-COOKIE credential. '
                 'You can use --cookies cookies.txt alone after a valid refresh_token is stored inside')
 
     def _parse_jwt_timeout(self, access_token):
@@ -108,6 +108,8 @@ class SiteContext:
 
     @property
     def _jwt_token(self):
+        if self._refresh_token and not self._access_token:
+            self._perform_jwt_refresh()
         if self._access_token:
             if self._parse_jwt_timeout(self._access_token) < self._REFRESH_TIMEOUT_THRES:
                 self._perform_jwt_refresh()
@@ -116,22 +118,8 @@ class SiteContext:
                 self._access_token = None
         return self._access_token
 
-    def _deprecated_load_args_tokens(self):
-        if refresh := self._ie._configuration_arg('refresh_token', ie_key='niconicochannelplus', casesense=True):
-            self._ie.report_warning('niconicochannelplus:refresh_token is deprecated in favor of using'
-                                    '--username refresh_token --password <token> instead', only_once=True)
-            return 'refresh_token', refresh[0]
-        if jwt := self._ie._configuration_arg('jwt_token', ie_key='niconicochannelplus', casesense=True):
-            self._ie.report_warning('niconicochannelplus:jwt_token is deprecated in favor of using'
-                                    '--username jwt_token --password <token> instead', only_once=True)
-            return 'jwt_token', jwt[0]
-        return None, None
-
     def _perform_login(self):
         username, password = self._ie._get_login_info(netrc_machine=self._netrc)
-        if not username:
-            username, password = self._deprecated_load_args_tokens()
-
         if username == 'jwt_token':
             try:
                 self._parse_jwt_timeout(password)
@@ -255,7 +243,7 @@ class SiteContext:
         return data
 
 
-class NicoChannelBaseIE(LocalStorageBaseIE):
+class NicoChannelBaseIE(InfoExtractor):
     _NETRC_MACHINE = False
 
     _SITE_CONTEXTS = {}
@@ -280,8 +268,8 @@ class NicoChannelBaseIE(LocalStorageBaseIE):
     def _get_site_settings(self, url, video_id=None):
         return self._get_context(url, video_id).settings
 
-    def _download_api_json(self, url, path, video_id, **kwargs):
-        return self._get_context(url, video_id).download_api_json(path, video_id, **kwargs)
+    def _download_api_json(self, site_url, api_path, video_id, **kwargs):
+        return self._get_context(site_url, video_id).download_api_json(api_path, video_id, **kwargs)
 
     def _make_channel_id(self, url):
         parsed = urllib.parse.urlparse(url)
@@ -349,7 +337,7 @@ class NiconicoChannelPlusIE(NicoChannelBaseIE):
             'channel_id': 'renge',
             'channel_url': 'https://nicochannel.jp/renge',
             'live_status': 'not_live',
-            'thumbnail': 'https://nicochannel.jp/public_html/contents/video_pages/35690/thumbnail_path?time=1722439868',
+            'thumbnail': r're:https://cdn\.nicochannel\.jp/public_html/.*',
             'description': 'お耳が癒されて疲れもヌケる♡\n本多ぽこちゃんとの2024年7月24日の耳舐めコラボアーカイブです。',
             'timestamp': 1722439866,
             'duration': 2698,
@@ -412,7 +400,7 @@ class NiconicoChannelPlusIE(NicoChannelBaseIE):
             'channel_url': 'https://tenshi-nano.com',
             'age_limit': 15,
             'live_status': 'was_live',
-            'thumbnail': r're:https://tenshi-nano\.com/public_html/.*',
+            'thumbnail': r're:https://cdn\.tenshi-nano\.com/public_html/.*',
             'timestamp': 1717260361,
             'upload_date': '20240601',
             'release_timestamp': 1717423200,
@@ -434,7 +422,7 @@ class NiconicoChannelPlusIE(NicoChannelBaseIE):
             'channel_id': 'qlover_jp_bokuao',
             'channel_url': 'https://qlover.jp/bokuao',
             'live_status': 'not_live',
-            'thumbnail': r're:https://qlover\.jp/public_html/.*',
+            'thumbnail': r're:https://cdn\.qlover\.jp/public_html/.*',
             'timestamp': 1703226426,
             'upload_date': '20231222',
             'duration': 67,
@@ -453,7 +441,7 @@ class NiconicoChannelPlusIE(NicoChannelBaseIE):
             'channel_id': 'audee-membership_jp_hanamiya-nina',
             'channel_url': 'https://audee-membership.jp/hanamiya-nina',
             'live_status': 'not_live',
-            'thumbnail': r're:https://audee-membership\.jp/public_html/.*',
+            'thumbnail': r're:https://cdn\.audee-membership\.jp/public_html/.*',
             'timestamp': 1711698600,
             'upload_date': '20240329',
             'duration': 523,
