@@ -77,7 +77,7 @@ class Rule34VideoIE(InfoExtractor):
             formats.append({
                 'url': url,
                 'ext': ext.lower(),
-                'quality': quality,
+                'quality': int_or_none(quality),
             })
 
         categories, creators, uploader, uploader_url = [None] * 4

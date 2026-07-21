@@ -41,14 +41,6 @@ Core Maintainers are responsible for reviewing and merging contributions, publis
 * Improved/fixed/added Bundestag, crunchyroll, pr0gramm, Twitter, WrestleUniverse etc
 
 
-### [sepro](https://github.com/seproDev)
-
-* UX improvements: Warn when ffmpeg is missing, warn when double-clicking exe
-* Helped in implementing support for external JavaScript runtimes/engines
-* Code cleanup: Remove dead extractors, mark extractors as broken, enable/apply ruff rules
-* Improved/fixed/added ArdMediathek, DRTV, Floatplane, MagentaMusik, Naver, Nebula, OnDemandKorea, Vbox7 etc
-
-
 ## Inactive Core Maintainers
 
 ### [pukkandan](https://github.com/pukkandan)
@@ -77,6 +69,22 @@ Core Maintainers are responsible for reviewing and merging contributions, publis
 * Added playlist/series downloads for Hotstar, ParamountPlus, Rumble, SonyLIV, Trovo, TubiTv, Voot etc
 * Improved/fixed support for HiDive, HotStar, Hungama, LBRY, LinkedInLearning, Mxplayer, SonyLiv, TV2, Vimeo, VLive etc
 
+
+### [sepro](https://github.com/seproDev)
+
+* UX improvements: Warn when ffmpeg is missing, warn when double-clicking exe
+* Helped in implementing support for external JavaScript runtimes/engines
+* Code cleanup: Remove dead extractors, mark extractors as broken, enable/apply ruff rules
+* Improved/fixed/added ArdMediathek, DRTV, Floatplane, MagentaMusik, Naver, Nebula, OnDemandKorea, Vbox7 etc
+
+
+## Maintainers
+
+Maintainers are stewards of the project's codebase who can review and merge pull requests.
+
+- [doe1080](https://github.com/doe1080)
+
+
 ## Triage Maintainers
 
 Triage Maintainers are frequent contributors who can manage issues and pull requests.
@@ -85,5 +93,4 @@ Triage Maintainers are frequent contributors who can manage issues and pull requ
 - [garret1317](https://github.com/garret1317)
 - [pzhlkj6612](https://github.com/pzhlkj6612)
 - [DTrombett](https://github.com/dtrombett)
-- [doe1080](https://github.com/doe1080)
 - [grqz](https://github.com/grqz)
