@@ -312,8 +312,8 @@ class Aria2cFD(ExternalFD):
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '--no-conf', '--auto-save-interval=10',
                '--console-log-level=warn', '--summary-interval=0', '--download-result=hide',
-               '--http-accept-gzip=true', '--file-allocation=none', '-x16', '-j16', '-s16',
-               '--min-split-size', '1M']
+               '--http-accept-gzip=true', '--lowest-speed-limit=2', '--max-connection-per-server=2',
+               '--min-split-size=5M']
 
         cmd += [f'--load-cookies={self._write_cookies()}']
         if info_dict.get('http_headers') is not None:
