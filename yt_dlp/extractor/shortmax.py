@@ -44,26 +44,27 @@ class ShortMaxIE(InfoExtractor):
         title = self._html_extract_title(webpage)
         thumbnail_url = update_url(self._html_search_meta('og:image', webpage), query='')
 
-        nuxt_data = self._search_json(
-            r'<script[^>]+\bid=["\']__NUXT_DATA__["\'][^>]*>',
-            webpage, 'nuxt data', None, end_pattern=r'</script>', contains_pattern=r'\[(?s:.+)\]')
+        nuxt_json = self._search_nuxt_json(webpage, video_id)
+        episodes = nuxt_json['data'][[*nuxt_json['_errors'].keys()][-1]]['data']['episodeList']
 
         N = 0
-        for i, line in enumerate(nuxt_data):
-            if line == thumbnail_url:
-                N = i + 1
+        for i in range(len(episodes)):
+            if episodes[i]['frameExtractionCover'] == thumbnail_url:
+                N = i
                 break
 
-        vid_formats = self._parse_json(nuxt_data[N], video_id)
+        vid_formats = self._parse_json(episodes[N]['encryptedVideoUrl'], video_id)
         formats = [self._extract_m3u8_formats(vid_formats['video_480'], video_id, 'mp4', m3u8_id='hls')[0],
                    self._extract_m3u8_formats(vid_formats['video_720'], video_id, 'mp4', m3u8_id='hls')[0],
                    self._extract_m3u8_formats(vid_formats['video_1080'], video_id, 'mp4', m3u8_id='hls')[0]]
+
+        for fmt in formats:
+            fmt['protocol'] = 'm3u8_shortmax'
 
         return {
             'id': video_id,
             'ext': 'mp4',
             'formats': formats,
-            'hls_aes': {'shortmax': True},
             'thumbnail': thumbnail_url,
             'title': title,
         }
