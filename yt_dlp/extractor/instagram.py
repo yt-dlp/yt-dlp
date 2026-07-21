@@ -92,7 +92,8 @@ class InstagramBaseIE(InfoExtractor):
 
     @staticmethod
     def _is_login_redirect(url):
-        return urllib.parse.urlparse(url).path.startswith('/accounts/login')
+        path = urllib.parse.urlparse(url).path
+        return path.startswith('/accounts/login') or path == '/'
 
     def _get_count(self, media, kind, *keys):
         return traverse_obj(
