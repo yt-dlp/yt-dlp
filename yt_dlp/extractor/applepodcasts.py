@@ -98,7 +98,6 @@ class ApplePodcastsIE(AppleBaseIE):
             episode_id, headers={
                 'Authorization': f'Bearer {self._get_token(webpage, episode_id)}',
                 'Origin': self._BASE_URL,
-                'Referer': f'{self._BASE_URL}/',
             },
             query={
                 # XXX: if video is available, try adding the params 'with=entitlements,hlsVideo'
@@ -158,6 +157,7 @@ class ApplePodcastsIE(AppleBaseIE):
 
     def _real_extract(self, url):
         episode_id, country_code = self._match_valid_url(url).group('id', 'country')
+        # Webpage may be unavailable, see https://github.com/yt-dlp/yt-dlp/issues/17266
         webpage = self._download_webpage(url, episode_id, expected_status=500)
 
         return (
