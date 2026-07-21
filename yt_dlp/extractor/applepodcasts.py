@@ -46,6 +46,9 @@ class AppleBaseIE(InfoExtractor):
 
 
 class ApplePodcastsIE(AppleBaseIE):
+    IE_NAME = 'apple:podcasts'
+    IE_DESC = 'Apple Podcasts'
+
     _VALID_URL = r'https?://podcasts\.apple\.com/(?P<country>[^/?#]+/)?podcast(?:/[^/?#]+){1,2}/?\?(?:[^#]+&)?i=(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://podcasts.apple.com/us/podcast/urbana-podcast-724-by-david-penn/id1531349107?i=1000748574256',
