@@ -252,11 +252,10 @@ class InfoExtractor:
                                  used by the native HLS downloader to override the
                                  values in the media playlist when an '#EXT-X-KEY' tag
                                  is present in the playlist:
-                                 * uri      The URI from which the key will be downloaded
-                                 * key      The key (as hex) used to decrypt fragments.
-                                            If `key` is given, any key URI will be ignored
-                                 * iv       The IV (as hex) used to decrypt fragments
-                                 * shortmax True if fragments begin with ShortMax IV
+                                 * uri  The URI from which the key will be downloaded
+                                 * key  The key (as hex) used to decrypt fragments.
+                                        If `key` is given, any key URI will be ignored
+                                 * iv   The IV (as hex) used to decrypt fragments
                     * impersonate  Impersonate target(s). Can be any of the following entities:
                                 * an instance of yt_dlp.networking.impersonate.ImpersonateTarget
                                 * a string in the format of CLIENT[:OS]
