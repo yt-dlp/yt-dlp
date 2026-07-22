@@ -198,7 +198,7 @@ class ExternalFD(FragmentFD):
         if headers is None or not url:
             return False
         proxies = self.ydl.proxies.copy()
-        clean_proxies(proxies, headers)
+        clean_proxies(proxies, headers.copy())
         return select_proxy(url, proxies)
 
 
