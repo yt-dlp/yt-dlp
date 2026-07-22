@@ -322,7 +322,7 @@ class Wget2FD(ExternalFD):
         if not verbose:
             cmd += ['--no-verbose']
         cmd += self._valueless_option('--progress=none', 'noprogress')
-        cmd += ['--https-enforce=soft']
+        #cmd += ['--https-enforce=soft']
         cmd += [f'--load-cookies={self._write_cookies()}']
         chunk_size = self.params.get('http_chunk_size', False)
         if chunk_size is None:
