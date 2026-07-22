@@ -324,7 +324,7 @@ class Wget2FD(ExternalFD):
         cmd += self._valueless_option('--progress=none', 'noprogress')
         cmd += ['--https-enforce=soft']
         cmd += [f'--load-cookies={self._write_cookies()}']
-        chunk_size = self.params.get('http_chunk_size')
+        chunk_size = self.params.get('http_chunk_size', False)
         if chunk_size is None:
             chunk_size = info_dict.get('downloader_options', {}).get('http_chunk_size', self._DEFAULT_CHUNK_SIZE)
         if chunk_size:
