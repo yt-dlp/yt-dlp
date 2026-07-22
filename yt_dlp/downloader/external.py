@@ -301,6 +301,45 @@ class WgetFD(ExternalFD):
         return cmd
 
 
+class Wget2FD(ExternalFD):
+    AVAILABLE_OPT = '--version'
+    SUPPORTED_PROTOCOLS = ('http', 'https')
+    _DEFAULT_CHUNK_SIZE = 10 << 20
+
+
+    def _make_cmd(self, tmpfilename, info_dict):
+        cmd = [self.exe, '--no-config']
+        verbose = self._valueless_option('--verbose', 'verbose')
+        if not verbose:
+            cmd += ['--no-verbose']
+        cmd += self._valueless_option('--progress=none', 'noprogress')
+        cmd += ['--https-enforce=soft']
+        cmd += [f'--load-cookies={self._write_cookies()}']
+        chunk_size = self.params.get('http_chunk_size')
+        if chunk_size is None:
+            chunk_size = info_dict.get('downloader_options', {}).get('http_chunk_size', self._DEFAULT_CHUNK_SIZE)
+        if chunk_size:
+            cmd += [f'--chunk-size={chunk_size}']
+        if info_dict.get('http_headers') is not None:
+            for key, val in info_dict['http_headers'].items():
+                cmd += ['--header', f'{key}: {val}']
+        cmd += self._option('--limit-rate', 'ratelimit')
+        retry = self._option('--tries', 'retries')
+        if len(retry) == 2:
+            if retry[1] in ('inf', 'infinite'):
+                retry[1] = '0'
+            cmd += retry
+        cmd += self._option('--bind-address', 'source_address')
+        proxy = self.params.get('proxy')
+        if proxy:
+            cmd += [f'--http-proxy={proxy}', f'--https-proxy={proxy}']
+        cmd += self._valueless_option('--no-check-certificate', 'nocheckcertificate')
+        cmd += self._configuration_args()
+        cmd += ['--timestamping', '--unlink', f'--output-document={tmpfilename}']
+        cmd += ['--', info_dict['url']]
+        return cmd
+
+
 class Aria2cFD(ExternalFD):
     AVAILABLE_OPT = '-v'
     SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps')
