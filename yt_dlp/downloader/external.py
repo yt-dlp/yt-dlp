@@ -344,7 +344,7 @@ class Wget2FD(ExternalFD):
             cmd += [f'--http-proxy={proxy}', f'--https-proxy={proxy}']
         cmd += self._valueless_option('--no-check-certificate', 'nocheckcertificate')
         cmd += self._configuration_args()
-        cmd += ['--no-timestamping', '--unlink', f'--output-document={tmpfilename}']
+        cmd += ['--no-timestamping', '--no-content-disposition', '--unlink', f'--output-document={tmpfilename}']
         cmd += ['--', info_dict['url']]
         return cmd
 
