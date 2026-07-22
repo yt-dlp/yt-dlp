@@ -306,7 +306,6 @@ class Wget2FD(ExternalFD):
     SUPPORTED_PROTOCOLS = ('http', 'https')
     _DEFAULT_CHUNK_SIZE = 10 << 20
 
-
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '--no-config']
         verbose = self._valueless_option('--verbose', 'verbose')
