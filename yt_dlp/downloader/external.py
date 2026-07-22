@@ -27,6 +27,7 @@ from ..utils import (
     traverse_obj,
     version_tuple,
 )
+from ..utils.networking import clean_proxies, select_proxy
 
 
 class Features(enum.Enum):
@@ -191,6 +192,15 @@ class ExternalFD(FragmentFD):
     def _call_process(self, cmd, info_dict):
         return Popen.run(cmd, text=True, stderr=subprocess.PIPE if self._CAPTURE_STDERR else None)
 
+    def _select_proxy(self, info_dict):
+        url = info_dict.get('url')
+        headers = info_dict.get('http_headers')
+        if not all(url, headers):
+            return False
+        proxies = self.ydl.proxies.copy()
+        clean_proxies(proxies, headers)
+        return select_proxy(url, proxies)
+
 
 class CurlFD(ExternalFD):
     AVAILABLE_OPT = '-V'
@@ -291,7 +301,7 @@ class WgetFD(ExternalFD):
                 retry[1] = '0'
             cmd += retry
         cmd += self._option('--bind-address', 'source_address')
-        proxy = self.params.get('proxy')
+        proxy = self._select_proxy(info_dict)
         if proxy:
             for var in ('http_proxy', 'https_proxy'):
                 cmd += ['--execute', f'{var}={proxy}']
@@ -329,7 +339,7 @@ class Wget2FD(ExternalFD):
                 retry[1] = '0'
             cmd += retry
         cmd += self._option('--bind-address', 'source_address')
-        proxy = self.params.get('proxy')
+        proxy = self._select_proxy(info_dict)
         if proxy:
             cmd += [f'--http-proxy={proxy}', f'--https-proxy={proxy}']
         cmd += self._valueless_option('--no-check-certificate', 'nocheckcertificate')
