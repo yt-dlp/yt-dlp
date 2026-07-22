@@ -92,9 +92,9 @@ class TestWget2FD(unittest.TestCase):
         with FakeYDL() as ydl:
             downloader = Wget2FD(ydl, {})
             ydl.cookiejar.set_cookie(http.cookiejar.Cookie(**TEST_COOKIE))
-            assert '--load-cookies' in downloader._make_cmd('test', TEST_INFO)
-            
-            
+            assert '--unlink' in downloader._make_cmd('test', TEST_INFO)
+
+
 class HTTPTestHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self, /):
         if self.path.startswith('/redirect'):
