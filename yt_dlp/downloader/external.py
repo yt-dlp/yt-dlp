@@ -195,7 +195,7 @@ class ExternalFD(FragmentFD):
     def _select_proxy(self, info_dict):
         url = info_dict.get('url')
         headers = info_dict.get('http_headers')
-        if not all(url, headers):
+        if headers is None or not url:
             return False
         proxies = self.ydl.proxies.copy()
         clean_proxies(proxies, headers)
