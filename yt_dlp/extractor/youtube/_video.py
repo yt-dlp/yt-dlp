@@ -28,6 +28,7 @@ from .jsc._director import initialize_jsc_director
 from .jsc.provider import JsChallengeRequest, JsChallengeType, NChallengeInput, SigChallengeInput
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
+from ...networking import HEADRequest
 from ...utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -139,13 +140,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _RETURN_TYPE = 'video'  # XXX: How to handle multifeed?
 
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('android_vr', 'web_safari')
-    _DEFAULT_JSLESS_CLIENTS = ('android_vr',)
-    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web_safari')
+    _DEFAULT_CLIENTS = ('visionos', 'android_vr', 'web')
+    _DEFAULT_JSLESS_CLIENTS = ('visionos', 'android_vr')
+    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web')
     # Premium does not require POT (except for subtitles)
-    _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator')
+    _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator', 'web')
     _WEBPAGE_CLIENTS = ('web', 'web_safari')
-    _DEFAULT_WEBPAGE_CLIENT = 'web_safari'
+    _DEFAULT_WEBPAGE_CLIENT = 'web'
 
     _GEO_BYPASS = False
 
@@ -2036,8 +2037,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 last_seq = last_seq_cache[cache_key]
             else:
                 try:
-                    urlh = self._request_webpage(base_url, None, note=False, errnote=False, fatal=False)
-                except ExtractorError:
+                    urlh = self._request_webpage(
+                        HEADRequest(base_url), None,
+                        note=False, errnote='Fragment request failed')
+                except ExtractorError as e:
+                    self.write_debug(e.msg)
                     urlh = None
                 last_seq = try_get(urlh, lambda x: int_or_none(x.headers['X-Head-Seqnum']))
                 if urlh:
@@ -2900,6 +2904,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _is_unplayable(player_response):
         return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'UNPLAYABLE'
 
+    @staticmethod
+    def _is_error_response(player_response):
+        return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'ERROR'
+
     def _extract_player_response(self, client, video_id, webpage_ytcfg, player_ytcfg, player_url, initial_pr, visitor_data, data_sync_id, po_token):
         headers = self.generate_api_headers(
             ytcfg=player_ytcfg,
@@ -3133,12 +3141,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             if (
                 # Is this a "made for kids" video that can't be downloaded with android_vr/visionos?
-                client in {'android_vr', 'visionos'} and self._is_unplayable(pr)
+                client in {'android_vr', 'visionos'}
+                and (self._is_unplayable(pr) or self._is_error_response(pr))
                 and webpage and 'made for kids' in webpage
                 # ...and is a JS runtime is available?
                 and any(p.is_available() for p in self._jsc_director.providers.values())
             ):
-                append_client('web_embedded')
+                append_client('tv_downgraded')
 
             # web_embedded can work around age-gate and age-verification for some embeddable videos
             if self._is_agegated(pr) and variant != 'web_embedded':

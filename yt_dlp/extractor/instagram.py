@@ -43,7 +43,6 @@ def _id_to_pk(shortcode):
 
 
 class InstagramBaseIE(InfoExtractor):
-    _API_BASE_URL = 'https://i.instagram.com/api/v1'
     _BASE_URL = 'https://www.instagram.com/'
     _APP_IDS = {
         'web': '936619743392459',  # default
@@ -104,6 +103,12 @@ class InstagramBaseIE(InfoExtractor):
         return self._app_id == self._APP_IDS['web']
 
     @property
+    def _API_BASE_URL(self):
+        if not self._is_web_app:
+            return 'https://i.instagram.com/api/v1'
+        return 'https://www.instagram.com/api/v1'
+
+    @property
     def _api_headers(self):
         return filter_dict({
             'X-IG-App-ID': self._app_id,
@@ -117,7 +122,8 @@ class InstagramBaseIE(InfoExtractor):
 
     @staticmethod
     def _is_login_redirect(url):
-        return urllib.parse.urlparse(url).path.startswith('/accounts/login')
+        path = urllib.parse.urlparse(url).path
+        return path.startswith('/accounts/login') or path == '/'
 
     @staticmethod
     def _get_count(media, kind, *keys):

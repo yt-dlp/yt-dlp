@@ -49,7 +49,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         'Cannot download embed-only video without embedding URL. Please call yt-dlp '
         'with the URL of the page that embeds this video.')
 
-    _DEFAULT_CLIENT = 'macos'
+    _DEFAULT_CLIENT = 'web'
     _DEFAULT_AUTHED_CLIENT = 'web'
     _CLIENT_HEADERS = {
         'Accept': 'application/vnd.vimeo.*+json; version=3.4.10',
@@ -89,7 +89,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         },
         'macos': {
             'CACHE_KEY': 'oauth-token-macos',
-            'CACHE_ONLY': False,
+            'CACHE_ONLY': True,
             'VIEWER_JWT': False,
             'REQUIRES_AUTH': False,
             'AUTH': 'NDc1N2JlN2Y5ZjZmMjU3NzE3NTRkZTg1NmY2YzU2MTI0OTFlNjJiYjpwVUNDWUlBZmZqSHhQcndBYWxGMzgyYys2NkN5d1JrREJZZXdPcEdsU05tdjFlVVo2aE1lYk9GcWE3ZW9KVldlYnFlOWh5Vno5UWtpUGJ5empYZFBpYkFwV0FFTnB5VWV4ZEh3aHZnRUNEL0VySnBzTmFraDdNbS9nMXhWanhIcw==',
