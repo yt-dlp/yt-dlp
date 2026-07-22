@@ -159,8 +159,6 @@ class ExternalFD(FragmentFD):
             _, stderr, returncode = self._call_process(cmd, info_dict)
             if not returncode:
                 break
-            # TODO: Decide whether to retry based on error code
-            # https://aria2.github.io/manual/en/html/aria2c.html#exit-status
             if stderr:
                 self.to_stderr(stderr)
             retry.error = Exception()
@@ -185,7 +183,6 @@ class ExternalFD(FragmentFD):
             if not self.params.get('keep_fragments', False):
                 self.try_remove(fragment_filename)
         dest.close()
-        self.try_remove(f'{tmpfilename}.frag.urls')
         return 0
 
     def _call_process(self, cmd, info_dict):
