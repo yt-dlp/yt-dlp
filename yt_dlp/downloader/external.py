@@ -319,12 +319,13 @@ class Wget2FD(ExternalFD):
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '--no-config']
         verbose = self._valueless_option('--verbose', 'verbose')
-        if not verbose:
+        if False and not verbose:
             cmd += ['--no-verbose']
         cmd += self._valueless_option('--progress=none', 'noprogress')
-        #cmd += ['--https-enforce=soft']
+        # causes the test to fail with exit code 8
+        # cmd += ['--https-enforce=soft']
         cmd += [f'--load-cookies={self._write_cookies()}']
-        chunk_size = self.params.get('http_chunk_size', False)
+        chunk_size = self.params.get('http_chunk_size')
         if chunk_size is None:
             chunk_size = info_dict.get('downloader_options', {}).get('http_chunk_size', self._DEFAULT_CHUNK_SIZE)
         if chunk_size:
