@@ -92,7 +92,9 @@ class TestWget2FD(unittest.TestCase):
         with FakeYDL() as ydl:
             downloader = Wget2FD(ydl, {})
             ydl.cookiejar.set_cookie(http.cookiejar.Cookie(**TEST_COOKIE))
-            assert '--unlink' in downloader._make_cmd('test', TEST_INFO)
+            cmd = downloader._make_cmd('test', TEST_INFO)
+            assert f'--load-cookies={downloader._cookies_tempfile}' in cmd
+            assert '--unlink' in cmd
 
 
 class HTTPTestHandler(http.server.BaseHTTPRequestHandler):
@@ -144,7 +146,11 @@ class TestDownloaderCookieBehavior:
     ])
     def test_cookie_behavior(self, /, downloader_cls):
         with FakeYDL() as ydl:
-            downloader = downloader_cls(ydl, {})
+            params = {}
+            # TODO: add HEAD support
+            if Wget2FD == downloader_cls:
+                params.update({'http_chunk_size': False})
+            downloader = downloader_cls(ydl, params)
 
             with HTTPTestServer(('localhost', 0), HTTPTestHandler) as server_a:
                 second_addr = server_a.address + 1
