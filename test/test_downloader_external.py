@@ -12,7 +12,6 @@ import http.server
 import ipaddress
 import pytest
 import json
-import subprocess
 import tempfile
 import threading
 
@@ -148,12 +147,12 @@ class TestDownloaderCookieBehavior:
     def test_cookie_behavior(self, /, downloader_cls):
         with FakeYDL() as ydl:
             params = {}
-            # TODO: add HEAD support
+            # TODO: add HEAD support for http_chunk_size to work
             if Wget2FD == downloader_cls:
                 params.update({
                     'http_chunk_size': False,
                     'external_downloader_args': {
-                        'wget2': ['--https-enforce=none', '--debug'],
+                        'wget2': ['--https-enforce=none'],
                     },
                 })
             downloader = downloader_cls(ydl, params)
@@ -189,8 +188,6 @@ class TestDownloaderCookieBehavior:
 
                     with open(file.name, 'rb') as f:
                         data = HTTPHeaderDict(json.load(f))
-                    if not data.get('Cookie'):
-                        subprocess.check_call(['xxd', downloader._cookies_tempfile])
                     assert 'c=test' in data.get('Cookie', '').split(';'), 'Expected cookie to be set in initial request'
 
                     with HTTPTestServer((str(second_addr), 0), HTTPTestHandler) as server_b:
