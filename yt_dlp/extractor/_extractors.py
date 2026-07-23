@@ -1850,7 +1850,10 @@ from .subsplash import (
     SubsplashIE,
     SubsplashPlaylistIE,
 )
-from .substack import SubstackIE
+from .substack import (
+    SubstackIE,
+    SubstackLiveIE,
+)
 from .sunporno import SunPornoIE
 from .sverigesradio import (
     SverigesRadioEpisodeIE,
