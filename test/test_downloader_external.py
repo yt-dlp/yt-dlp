@@ -149,7 +149,12 @@ class TestDownloaderCookieBehavior:
             params = {}
             # TODO: add HEAD support
             if Wget2FD == downloader_cls:
-                params.update({'http_chunk_size': False})
+                params.update({
+                    'http_chunk_size': False,
+                    'external_downloader_args': {
+                        'wget2': ['--https-enforce=none', '--debug'],
+                    },
+                })
             downloader = downloader_cls(ydl, params)
 
             with HTTPTestServer(('localhost', 0), HTTPTestHandler) as server_a:
