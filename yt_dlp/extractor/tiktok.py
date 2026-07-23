@@ -1056,9 +1056,9 @@ class TikTokIE(TikTokBaseIE):
             for item in items:
                 if not item.get('id'):
                     continue
-                uid = traverse_obj(item, ('author', 'uniqueId', {str})) or traverse_obj(
-                    item, ('authorInfo', 'uniqueId', {str}))
-                entries.append(self._parse_aweme_video_web(item, self._create_url(uid, item['id']), item['id']))
+                entry = self._extract_drama_episode(item)
+                if entry:
+                    entries.append(entry)
             if not data.get('hasMore'):
                 break
             cursor = data.get('cursor') or (cursor + len(items))
@@ -1067,6 +1067,20 @@ class TikTokIE(TikTokBaseIE):
             self.raise_login_required(
                 'This drama requires login to list its episodes. Provide TikTok cookies (e.g. --cookies)')
         return self.playlist_result(entries, drama_id, drama_name)
+
+    def _extract_drama_episode(self, item):
+        video_id = str(item['id'])
+        uid = traverse_obj(item, ('author', 'uniqueId', {str})) or traverse_obj(
+            item, ('authorInfo', 'uniqueId', {str}))
+        url = self._create_url(uid, video_id)
+        # The drama/episode/item_list/ API returns itemStructs whose media URLs carry
+        # invalid CDN signatures (HTTP 403). Re-fetch each episode's own webpage to obtain
+        # properly signed playback URLs -- the same path a normal single-video download uses.
+        video_data, status = self._extract_web_data_and_status(url, video_id, fatal=False)
+        if video_data and status == 0:
+            return self._parse_aweme_video_web(video_data, url, video_id)
+        self.report_warning(f'Could not extract drama episode {video_id}', video_id=video_id)
+        return None
 
 
 class TikTokUserIE(TikTokBaseIE):
