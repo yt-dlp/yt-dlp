@@ -1971,9 +1971,6 @@ The following extractors use this feature:
 #### streaks
 * `api_key`: API key for the `X-Streaks-Api-Key` header
 
-#### tver
-* `backend`: Backend API to use for extraction - one of `streaks` (default) or `brightcove` (deprecated)
-
 #### vimeo
 * `client`: Client to extract video data from. The currently available clients are `android`, `macos_basic`, and `web`. Only one client can be used. The `macos_basic` client is used by default, but the `web` client is used when logged-in. The `web` client only works with account cookies or login credentials. The `android` client only works with previously cached OAuth tokens
 * `original_format_policy`: Policy for when to try extracting original formats. One of `always`, `never`, or `auto`. The default `auto` policy tries to avoid exceeding the web client's API rate-limit by only making an extra request when Vimeo publicizes the video's downloadability
