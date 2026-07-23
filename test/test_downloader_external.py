@@ -97,8 +97,8 @@ class TestWget2FD(unittest.TestCase):
             pp(cmd)
             assert (
                 '--load-cookies' in cmd or
-                f'--load-cookies={downloader._cookies_tempfile}' in cmd or
-                '--header' in cmd
+                '--header' in cmd or
+                f'--load-cookies={downloader._cookies_tempfile}' in cmd
             )
             assert '--unlink' in cmd
 
