@@ -73,7 +73,7 @@ class NiconicoBaseIE(InfoExtractor):
 
         if self.is_logged_in:
             return
-        elif err_msg := traverse_obj(webpage, (
+        if err_msg := traverse_obj(webpage, (
             {find_element(cls='notice error')}, {find_element(cls='notice__text')}, {clean_html},
         )):
             self._raise_login_error(err_msg or 'Invalid username or password')
@@ -89,7 +89,7 @@ class NiconicoBaseIE(InfoExtractor):
                 }))
             if self.is_logged_in:
                 return
-            elif 'error-code' in parse_qs(urlh.url):
+            if 'error-code' in parse_qs(urlh.url):
                 err_msg = traverse_obj(mfa, ({find_element(cls='pageMainMsg')}, {clean_html}))
                 self._raise_login_error(err_msg or 'MFA session expired')
             elif 'formError' in mfa:
@@ -1001,14 +1001,14 @@ class NiconicoLiveIE(NiconicoBaseIE):
                 qualities = data['data']['availableQualities']
                 cookies = data['data']['cookies']
                 break
-            elif data.get('type') == 'disconnect':
+            if data.get('type') == 'disconnect':
                 self.write_debug(recv)
                 raise ExtractorError('Disconnected at middle of extraction')
-            elif data.get('type') == 'error':
+            if data.get('type') == 'error':
                 self.write_debug(recv)
                 message = traverse_obj(data, ('body', 'code', {str_or_none}), default=recv)
                 raise ExtractorError(message)
-            elif self.get_param('verbose', False):
+            if self.get_param('verbose', False):
                 self.write_debug(f'Server response: {truncate_string(recv, 100)}')
 
         title = traverse_obj(embedded_data, ('program', 'title')) or self._html_search_meta(

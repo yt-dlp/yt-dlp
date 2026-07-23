@@ -324,7 +324,7 @@ class IGNArticleIE(IGNBaseIE):
                     raise ExtractorError(
                         'Content not found: expired?', cause=e.cause,
                         expected=True)
-                elif e.cause.status == 503:
+                if e.cause.status == 503:
                     self.report_warning(str(e.cause))
                     return
             raise

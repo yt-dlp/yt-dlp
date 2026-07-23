@@ -101,7 +101,7 @@ class ChilloutzoneIE(InfoExtractor):
             native_video_id = info['nativeVideoId']
             if native_platform == 'youtube':
                 return self.url_result(native_video_id, 'Youtube')
-            elif native_platform == 'vimeo':
+            if native_platform == 'vimeo':
                 return self.url_result(f'https://vimeo.com/{native_video_id}', 'Vimeo')
 
         elif not video_url:

@@ -63,7 +63,7 @@ def pad_block(block, padding_mode):
 
     if padding_size < 0:
         raise ValueError('Block size exceeded')
-    elif padding_mode not in PADDING_BYTE:
+    if padding_mode not in PADDING_BYTE:
         raise NotImplementedError(f'Padding mode {padding_mode} is not implemented')
 
     if padding_mode == 'iso7816' and padding_size:

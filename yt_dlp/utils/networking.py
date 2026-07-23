@@ -214,7 +214,7 @@ def remove_dot_segments(path):
     for s in segments:
         if s == '.':
             continue
-        elif s == '..':
+        if s == '..':
             if output:
                 output.pop()
         else:
@@ -250,7 +250,7 @@ def select_proxy(url, proxies):
         hostport = url_components.hostname + format_field(url_components.port, None, ':%s')
         if urllib.request.proxy_bypass_environment(hostport, {'no': proxies['no']}):
             return
-        elif urllib.request.proxy_bypass(hostport):  # check system settings
+        if urllib.request.proxy_bypass(hostport):  # check system settings
             return
 
     return traverse_obj(proxies, url_components.scheme or 'http', 'all')

@@ -31,7 +31,7 @@ class VideoKenPlayerIE(InfoExtractor):
     def _create_slideslive_url(self, video_url, video_id, referer):
         if not video_url and not video_id:
             return
-        elif not video_url or 'embed/sign-in' in video_url:
+        if not video_url or 'embed/sign-in' in video_url:
             video_url = f'https://slideslive.com/embed/{remove_start(video_id, "slideslive-")}'
         if url_or_none(referer):
             return update_url_query(video_url, {

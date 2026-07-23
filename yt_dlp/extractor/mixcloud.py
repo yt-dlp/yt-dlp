@@ -147,9 +147,9 @@ class MixcloudIE(MixcloudBaseIE):
         reason = cloudcast.get('restrictedReason')
         if reason == 'tracklist':
             raise ExtractorError('Track unavailable in your country due to licensing restrictions', expected=True)
-        elif reason == 'repeat_play':
+        if reason == 'repeat_play':
             raise ExtractorError('You have reached your play limit for this track', expected=True)
-        elif reason:
+        if reason:
             raise ExtractorError('Track is restricted', expected=True)
 
         stream_info = cloudcast['streamInfo']

@@ -303,7 +303,7 @@ class YahooJapanNewsIE(InfoExtractor):
             url = url_or_none(vid.get('Url'))
             if not delivery or not url:
                 continue
-            elif delivery == 'hls':
+            if delivery == 'hls':
                 formats.extend(
                     self._extract_m3u8_formats(
                         url, content_id, 'mp4', 'm3u8_native',

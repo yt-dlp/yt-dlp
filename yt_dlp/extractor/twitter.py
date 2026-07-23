@@ -43,7 +43,7 @@ class TwitterBaseIE(InfoExtractor):
         variant_url = variant.get('url')
         if not variant_url:
             return [], {}
-        elif '.m3u8' in variant_url:
+        if '.m3u8' in variant_url:
             fmts, subs = self._extract_m3u8_formats_and_subtitles(
                 variant_url, video_id, 'mp4', 'm3u8_native',
                 m3u8_id='hls', fatal=False)
@@ -51,15 +51,14 @@ class TwitterBaseIE(InfoExtractor):
                 if mobj := re.match(r'hls-[Aa]udio-(?P<bitrate>\d{4,})', f['format_id']):
                     f['tbr'] = int_or_none(mobj.group('bitrate'), 1000)
             return fmts, subs
-        else:
-            tbr = int_or_none(dict_get(variant, ('bitrate', 'bit_rate')), 1000) or None
-            f = {
-                'url': variant_url,
-                'format_id': join_nonempty('http', tbr),
-                'tbr': tbr,
-            }
-            self._search_dimensions_in_video_url(f, variant_url)
-            return [f], {}
+        tbr = int_or_none(dict_get(variant, ('bitrate', 'bit_rate')), 1000) or None
+        f = {
+            'url': variant_url,
+            'format_id': join_nonempty('http', tbr),
+            'tbr': tbr,
+        }
+        self._search_dimensions_in_video_url(f, variant_url)
+        return [f], {}
 
     def _extract_formats_from_vmap_url(self, vmap_url, video_id):
         vmap_url = url_or_none(vmap_url)
@@ -1084,7 +1083,7 @@ class TwitterIE(TwitterBaseIE):
         if 'tombstone' in result:
             cause = remove_end(traverse_obj(result, ('tombstone', 'text', 'text', {str})), '. Learn more')
             raise ExtractorError(f'Twitter API says: {cause or "Unknown error"}', expected=True)
-        elif typename == 'TweetUnavailable':
+        if typename == 'TweetUnavailable':
             reason = result.get('reason')
             if reason in ('NsfwLoggedOut', 'NsfwViewerHasNoStatedAge'):
                 self.raise_login_required('NSFW tweet requires authentication')
@@ -1092,7 +1091,7 @@ class TwitterIE(TwitterBaseIE):
                 self.raise_login_required('You are not authorized to view this protected tweet')
             raise ExtractorError(reason or 'Requested tweet is unavailable', expected=True)
         # Result for "stale tweet" needs additional transformation
-        elif typename == 'TweetWithVisibilityResults':
+        if typename == 'TweetWithVisibilityResults':
             result = traverse_obj(result, ('tweet', {dict})) or {}
 
         status = result.get('legacy', {})
@@ -1355,7 +1354,7 @@ class TwitterIE(TwitterBaseIE):
                 (None, 'quoted_status'), 'extended_entities', 'media', int(selected_index) - 1, {dict}), get_all=False)
             if not desired_obj:
                 raise ExtractorError(f'Video #{selected_index} is unavailable', expected=True)
-            elif desired_obj.get('type') != 'video':
+            if desired_obj.get('type') != 'video':
                 raise ExtractorError(f'Media #{selected_index} is not a video', expected=True)
 
             # Restore original archive id and video index in title

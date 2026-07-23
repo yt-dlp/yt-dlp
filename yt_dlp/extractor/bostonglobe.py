@@ -61,7 +61,6 @@ class BostonGlobeIE(InfoExtractor):
 
         if len(entries) == 0:
             return self.url_result(url, 'Generic')
-        elif len(entries) == 1:
+        if len(entries) == 1:
             return self.url_result(entries[0], 'BrightcoveNew')
-        else:
-            return self.playlist_from_matches(entries, page_id, page_title, ie='BrightcoveNew')
+        return self.playlist_from_matches(entries, page_id, page_title, ie='BrightcoveNew')

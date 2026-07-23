@@ -49,7 +49,7 @@ class VidioBaseIE(InfoExtractor):
                 raise ExtractorError(
                     'Unable to log in: Your account is linked to a social media account. '
                     'Use --cookies to provide account credentials instead', expected=True)
-            elif reason:
+            if reason:
                 subreason = get_element_by_class('onboarding-modal__description-text', login_post) or ''
                 raise ExtractorError(
                     f'Unable to log in: {reason}. {clean_html(subreason)}', expected=True)

@@ -201,11 +201,11 @@ class MSNIE(InfoExtractor):
                 'subtitles': subtitles,
                 **common_metadata,
             }
-        elif page_type == 'webcontent':
+        if page_type == 'webcontent':
             if not source_url:
                 raise ExtractorError('Could not find source URL')
             return self.url_result(source_url)
-        elif page_type == 'article':
+        if page_type == 'article':
             entries = []
             for embed_url in traverse_obj(json_data, ('socialEmbeds', ..., 'postUrl', {url_or_none})):
                 entries.append(self.url_result(embed_url))

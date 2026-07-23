@@ -429,7 +429,7 @@ class Request:
     def url(self, url):
         if not isinstance(url, str):
             raise TypeError('url must be a string')
-        elif url.startswith('//'):
+        if url.startswith('//'):
             url = 'http:' + url
         self._url = normalize_url(url)
 

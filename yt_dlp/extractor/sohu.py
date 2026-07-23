@@ -132,9 +132,8 @@ class SohuIE(InfoExtractor):
                 raise ExtractorError(
                     f'{self.IE_NAME} said: There\'s something wrong in the video.',
                     expected=True)
-            else:
-                self.raise_geo_restricted(
-                    f'{self.IE_NAME} said: The video is only licensed to users in Mainland China.')
+            self.raise_geo_restricted(
+                f'{self.IE_NAME} said: The video is only licensed to users in Mainland China.')
 
         formats_json = {}
         for format_id in ('nor', 'high', 'super', 'ori', 'h2644k', 'h2654k'):

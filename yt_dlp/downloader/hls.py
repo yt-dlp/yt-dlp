@@ -124,7 +124,7 @@ class HlsFD(FragmentFD):
             fd = FFmpegFD(self.ydl, self.params)
             self.report_warning(f'{message}; extraction will be delegated to {fd.get_basename()}')
             return fd.real_download(filename, info_dict)
-        elif message:
+        if message:
             self.report_warning(message)
 
         is_webvtt = info_dict['ext'] == 'vtt'
@@ -355,7 +355,7 @@ class HlsFD(FragmentFD):
 
                         # we only emit cues once they fall out of the duplicate window
                         continue
-                    elif isinstance(block, webvtt.Magic):
+                    if isinstance(block, webvtt.Magic):
                         # take care of MPEG PES timestamp overflow
                         if block.mpegts is None:
                             block.mpegts = 0

@@ -38,7 +38,7 @@ class TeamcocoBaseIE(TurnerBaseIE):
 
             if not format_id or not src_url:
                 continue
-            elif format_id == 'hls' or ext == 'm3u8':
+            if format_id == 'hls' or ext == 'm3u8':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     src_url, video_id, 'mp4', m3u8_id=format_id, fatal=False)
                 formats.extend(fmts)

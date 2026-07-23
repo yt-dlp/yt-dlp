@@ -79,5 +79,4 @@ class GMANetworkVideoIE(InfoExtractor):
         json_data = self._download_json(f'{network_url}api/data/content/video/{content_id}', display_id)
         if json_data.get('video_file'):
             return self.url_result(json_data['video_file'], YoutubeIE, json_data['video_file'])
-        else:
-            return self.url_result(json_data['dailymotion_file'], DailymotionIE, json_data['dailymotion_file'])
+        return self.url_result(json_data['dailymotion_file'], DailymotionIE, json_data['dailymotion_file'])

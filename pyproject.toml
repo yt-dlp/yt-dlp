@@ -301,32 +301,37 @@ ignore = [
     "RUF100",  # unused-noqa (flake8 has slightly different behavior)
 ]
 select = [
-    "E",      # pycodestyle Error
-    "W",      # pycodestyle Warning
-    "F",      # Pyflakes
-    "I",      # isort
-    "Q",      # flake8-quotes
-    "N803",   # invalid-argument-name
-    "N804",   # invalid-first-argument-name-for-class-method
-    "UP",     # pyupgrade
-    "B",      # flake8-bugbear
-    "A",      # flake8-builtins
-    "COM",    # flake8-commas
-    "C4",     # flake8-comprehensions
-    "FA",     # flake8-future-annotations
-    "ISC",    # flake8-implicit-str-concat
-    "ICN003", # banned-import-from
-    "PIE",    # flake8-pie
-    "T20",    # flake8-print
-    "RSE",    # flake8-raise
-    "RET504", # unnecessary-assign
-    "SIM",    # flake8-simplify
-    "TID251", # banned-api
-    "TD",     # flake8-todos
-    "PLC",    # Pylint Convention
-    "PLE",    # Pylint Error
-    "PLW",    # Pylint Warning
-    "RUF",    # Ruff-specific rules
+    "E",       # pycodestyle Error
+    "W",       # pycodestyle Warning
+    "F",       # Pyflakes
+    "I",       # isort
+    "Q",       # flake8-quotes
+    "N803",    # invalid-argument-name
+    "N804",    # invalid-first-argument-name-for-class-method
+    "UP",      # pyupgrade
+    "B",       # flake8-bugbear
+    "A",       # flake8-builtins
+    "COM",     # flake8-commas
+    "C4",      # flake8-comprehensions
+    "FA",      # flake8-future-annotations
+    "ISC",     # flake8-implicit-str-concat
+    "ICN003",  # banned-import-from
+    "PIE",     # flake8-pie
+    "T20",     # flake8-print
+    "RSE",     # flake8-raise
+    "RET504",  # unnecessary-assign
+    "RET505",  # superfluous-else-return
+    "RET506",  # superfluous-else-raise
+    "RET507",  # superfluous-else-continue
+    "RET508",  # superfluous-else-break
+    "SIM",     # flake8-simplify
+    "TID251",  # banned-api
+    "TD",      # flake8-todos
+    "PLC",     # Pylint Convention
+    "PLE",     # Pylint Error
+    "PLW",     # Pylint Warning
+    "RUF",     # Ruff-specific rules
+    "FURB188", # slice-to-remove-prefix-or-suffix
 ]
 
 [tool.ruff.lint.per-file-ignores]

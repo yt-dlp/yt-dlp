@@ -58,7 +58,7 @@ class VidlyIE(InfoExtractor):
         player_type = player.get('player') or ''
         if player_type.startswith('jwplayer'):
             return self._parse_jwplayer_data(player['config'], video_id)
-        elif not player_type.startswith('vidly'):
+        if not player_type.startswith('vidly'):
             raise ExtractorError(f'Unknown player type {player_type!r}')
 
         formats = []

@@ -38,7 +38,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         info['chapters'], cuts = self._remove_marked_arrange_sponsors(chapters + sponsor_chapters)
         if not cuts:
             return [], info
-        elif not info['chapters']:
+        if not info['chapters']:
             self.report_warning('You have requested to remove the entire video, which is not possible')
             return [], info
 
@@ -50,8 +50,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             if not info.get('__real_download'):
                 raise PostProcessingError('Cannot cut video since the real and expected durations mismatch. '
                                           'Different chapters may have already been removed')
-            else:
-                self.write_debug('Expected and actual durations mismatch')
+            self.write_debug('Expected and actual durations mismatch')
 
         concat_opts = self._make_concat_opts(cuts, real_duration)
         self.write_debug('Concat spec = {}'.format(', '.join(f'{c.get("inpoint", 0.0)}-{c.get("outpoint", "inf")}' for c in concat_opts)))

@@ -490,10 +490,10 @@ class TumblrIE(InfoExtractor):
                         media_json.get('height') or self._og_search_property('video:height', webpage, default=None)),
                 }
                 continue
-            elif provider in self._unsupported_providers:
+            if provider in self._unsupported_providers:
                 ignored_providers.add(provider)
                 continue
-            elif provider and provider not in self._providers:
+            if provider and provider not in self._providers:
                 unknown_providers.add(provider)
             if video_json.get('url'):
                 # external video host
@@ -555,8 +555,7 @@ class TumblrIE(InfoExtractor):
         if ignored_providers:
             if not entries:
                 raise ExtractorError(f'None of embed providers are supported: {", ".join(ignored_providers)!s}', video_id=video_id, expected=True)
-            else:
-                self.report_warning(f'Skipped embeds from unsupported providers: {", ".join(ignored_providers)!s}', video_id)
+            self.report_warning(f'Skipped embeds from unsupported providers: {", ".join(ignored_providers)!s}', video_id)
         if unknown_providers:
             self.report_warning(f'Unrecognized providers, please report: {", ".join(unknown_providers)!s}', video_id)
 

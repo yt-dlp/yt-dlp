@@ -774,23 +774,21 @@ class GenericIE(InfoExtractor):
                 if re.match(r'[^\s/]+\.[^\s/]+/', url):
                     self.report_warning('The url doesn\'t specify the protocol, trying with https')
                     return self.url_result('https://' + url)
-                elif default_search != 'fixup_error':
+                if default_search != 'fixup_error':
                     if default_search == 'auto_warning':
                         if re.match(r'^(?:url|URL)$', url):
                             raise ExtractorError(
                                 f'Invalid URL:  {url!r} . Call yt-dlp like this:  yt-dlp -v "https://www.youtube.com/watch?v=YE7VzlLtp-4"  ',
                                 expected=True)
-                        else:
-                            self.report_warning(
-                                f'Falling back to youtube search for  {url} . Set --default-search "auto" to suppress this warning.')
+                        self.report_warning(
+                            f'Falling back to youtube search for  {url} . Set --default-search "auto" to suppress this warning.')
                     return self.url_result('ytsearch:' + url)
 
             if default_search in ('error', 'fixup_error'):
                 raise ExtractorError(f'{url!r} is not a valid URL', expected=True)
-            else:
-                if ':' not in default_search:
-                    default_search += ':'
-                return self.url_result(default_search + url)
+            if ':' not in default_search:
+                default_search += ':'
+            return self.url_result(default_search + url)
 
         original_url = url
         url, smuggled_data = unsmuggle_url(url, {})
@@ -930,22 +928,22 @@ class GenericIE(InfoExtractor):
             if doc.tag == 'rss':
                 self.report_detected('RSS feed')
                 return self._extract_rss(url, video_id, doc)
-            elif doc.tag == 'SmoothStreamingMedia':
+            if doc.tag == 'SmoothStreamingMedia':
                 info_dict['formats'], info_dict['subtitles'] = self._parse_ism_formats_and_subtitles(doc, url)
                 self.report_detected('ISM manifest')
                 return info_dict
-            elif re.match(r'^(?:{[^}]+})?smil$', doc.tag):
+            if re.match(r'^(?:{[^}]+})?smil$', doc.tag):
                 smil = self._parse_smil(doc, url, video_id)
                 self.report_detected('SMIL file')
                 return smil
-            elif doc.tag == '{http://xspf.org/ns/0/}playlist':
+            if doc.tag == '{http://xspf.org/ns/0/}playlist':
                 self.report_detected('XSPF playlist')
                 return self.playlist_result(
                     self._parse_xspf(
                         doc, video_id, xspf_url=url,
                         xspf_base_url=new_url),
                     video_id)
-            elif re.match(r'(?i)^(?:{[^}]+})?MPD$', doc.tag):
+            if re.match(r'(?i)^(?:{[^}]+})?MPD$', doc.tag):
                 info_dict['formats'], info_dict['subtitles'] = self._parse_mpd_formats_and_subtitles(
                     doc,
                     # Do not use yt_dlp.utils.base_url here since it will raise on file:// URLs
@@ -955,7 +953,7 @@ class GenericIE(InfoExtractor):
                 self._extra_manifest_info(info_dict, url)
                 self.report_detected('DASH manifest')
                 return info_dict
-            elif re.match(r'^{http://ns\.adobe\.com/f4m/[12]\.0}manifest$', doc.tag):
+            if re.match(r'^{http://ns\.adobe\.com/f4m/[12]\.0}manifest$', doc.tag):
                 info_dict['formats'] = self._parse_f4m_formats(doc, url, video_id)
                 self.report_detected('F4M manifest')
                 return info_dict
@@ -979,7 +977,7 @@ class GenericIE(InfoExtractor):
         embeds = list(self._extract_embeds(original_url, webpage, urlh=full_response, info_dict=info_dict))
         if len(embeds) == 1:
             return merge_dicts(embeds[0], info_dict)
-        elif embeds:
+        if embeds:
             return self.playlist_result(embeds, **info_dict)
         raise UnsupportedError(url)
 
@@ -1210,8 +1208,7 @@ class GenericIE(InfoExtractor):
                 if new_url != url:
                     self.report_following_redirect(new_url)
                     return [self.url_result(new_url)]
-                else:
-                    found = None
+                found = None
 
         if not found:
             # twitter:player is a https URL to iframe player that may or may not

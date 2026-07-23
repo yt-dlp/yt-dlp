@@ -127,7 +127,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     type_ = imghdr.what(h=thumb_data)
                     if not type_:
                         raise ValueError('could not determine image type')
-                    elif type_ not in f:
+                    if type_ not in f:
                         raise ValueError(f'incompatible image type: {type_}')
 
                     meta = MP4(filename)

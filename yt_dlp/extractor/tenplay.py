@@ -202,7 +202,7 @@ class TenPlayIE(InfoExtractor):
                         self.to_screen('Access token has expired; refreshing')
                         self._refresh_access_token()
                         continue
-                    elif not self._get_login_info()[0]:
+                    if not self._get_login_info()[0]:
                         self.raise_login_required('Login required to access this video', method='password')
                 raise
 

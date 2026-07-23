@@ -227,10 +227,10 @@ class WeverseBaseIE(InfoExtractor):
             except ExtractorError as e:
                 if is_retry or not isinstance(e.cause, HTTPError):
                     raise
-                elif self._is_logged_in and e.cause.status == 401:
+                if self._is_logged_in and e.cause.status == 401:
                     self._refresh_access_token()
                     continue
-                elif e.cause.status == 403:
+                if e.cause.status == 403:
                     if self._is_logged_in:
                         raise ExtractorError(
                             'Your account does not have access to this content', expected=True)
@@ -546,9 +546,9 @@ class WeverseMediaIE(WeverseBaseIE):
 
         if media_type == 'vod':
             return self.url_result(f'https://weverse.io/{channel}/live/{video_id}', WeverseIE)
-        elif media_type == 'youtube' and youtube_id:
+        if media_type == 'youtube' and youtube_id:
             return self.url_result(youtube_id, YoutubeIE)
-        elif media_type == 'image':
+        if media_type == 'image':
             self.raise_no_formats('No video content found in webpage', expected=True)
         elif media_type:
             raise ExtractorError(f'Unsupported media type "{media_type}"')

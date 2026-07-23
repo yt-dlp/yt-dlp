@@ -249,17 +249,16 @@ class CondeNastIE(InfoExtractor):
 
         if url_type == 'series':
             return self._extract_series(url, webpage)
+        video = try_get(self._parse_json(self._search_regex(
+            r'__PRELOADED_STATE__\s*=\s*({.+?});', webpage,
+            'preload state', '{}'), display_id),
+            lambda x: x['transformed']['video'])
+        if video:
+            params = {'videoId': video['id']}
+            info = {'description': strip_or_none(video.get('description'))}
         else:
-            video = try_get(self._parse_json(self._search_regex(
-                r'__PRELOADED_STATE__\s*=\s*({.+?});', webpage,
-                'preload state', '{}'), display_id),
-                lambda x: x['transformed']['video'])
-            if video:
-                params = {'videoId': video['id']}
-                info = {'description': strip_or_none(video.get('description'))}
-            else:
-                params = self._extract_video_params(webpage, display_id)
-                info = self._search_json_ld(
-                    webpage, display_id, fatal=False)
-            info.update(self._extract_video(params))
-            return info
+            params = self._extract_video_params(webpage, display_id)
+            info = self._search_json_ld(
+                webpage, display_id, fatal=False)
+        info.update(self._extract_video(params))
+        return info

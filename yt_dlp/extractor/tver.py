@@ -331,7 +331,7 @@ class TVerOlympicIE(StreaksBaseIE):
                     'live_status': 'is_upcoming',
                     'release_timestamp': start_timestamp,
                 }
-            elif start_timestamp <= now < end_timestamp:
+            if start_timestamp <= now < end_timestamp:
                 live_status = 'is_live'
                 if live_from_start:
                     media_id += '_dvr'

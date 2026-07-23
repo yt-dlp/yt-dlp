@@ -144,11 +144,10 @@ def set_compat_opts(opts):
             if attr is None:
                 setattr(opts, opt_name, not default)
                 return True
-            else:
-                if remove_compat:
-                    _unused_compat_opt(compat_name)
-                return False
-        elif attr is None:
+            if remove_compat:
+                _unused_compat_opt(compat_name)
+            return False
+        if attr is None:
             setattr(opts, opt_name, default)
         return None
 
@@ -269,7 +268,7 @@ def validate_options(opts):
     def parse_retries(name, value):
         if value is None:
             return None
-        elif value in ('inf', 'infinite'):
+        if value in ('inf', 'infinite'):
             return float('inf')
         try:
             int_value = int(value)
@@ -292,9 +291,8 @@ def validate_options(opts):
 
         if op == 'exp':
             return lambda n: min(float(start) * (float(step or 2) ** n), float(limit or 'inf'))
-        else:
-            default_step = start if op or limit else 0
-            return lambda n: min(float(start) + float(step or default_step) * n, float(limit or 'inf'))
+        default_step = start if op or limit else 0
+        return lambda n: min(float(start) + float(step or default_step) * n, float(limit or 'inf'))
 
     for key, expr in list(opts.retry_sleep.items()):
         if not expr:
@@ -360,7 +358,7 @@ def validate_options(opts):
             if advanced and regex == '*from-url':
                 from_url = True
                 continue
-            elif not regex.startswith('*'):
+            if not regex.startswith('*'):
                 try:
                     chapters.append(re.compile(regex))
                 except re.error as err:
@@ -490,7 +488,7 @@ def validate_options(opts):
         if ed is None:
             raise ValueError(
                 f'No such {format_field(proto, None, "%s ", ignore="default")}external downloader "{path}"')
-        elif ed and proto == 'default':
+        if ed and proto == 'default':
             default_downloader = ed.get_basename()
 
     for policy in opts.color.values():
@@ -1067,8 +1065,7 @@ def _real_main(argv=None):
                 if all_urls:
                     ydl.report_warning('URLs are ignored due to --load-info-json')
                 return ydl.download_with_info_file(expand_path(opts.load_info_filename))
-            else:
-                return ydl.download(all_urls)
+            return ydl.download(all_urls)
         except DownloadCancelled:
             ydl.to_screen('Aborting remaining downloads')
             return 101

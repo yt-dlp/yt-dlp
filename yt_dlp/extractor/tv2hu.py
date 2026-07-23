@@ -51,7 +51,7 @@ class TV2HuIE(InfoExtractor):
             entries = [self.url_result(f'https://tv2play.hu/szalag/{ribbon_id}',
                                        ie=TV2HuSeriesIE.ie_key(), video_id=ribbon_id) for ribbon_id in ribbon_ids]
             return self.playlist_result(entries, playlist_id=video_id)
-        elif json_data['contentType'] != 'video':
+        if json_data['contentType'] != 'video':
             raise UnsupportedError(url)
 
         video_id = str(json_data['id'])

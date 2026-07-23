@@ -72,7 +72,7 @@ class WistiaBaseIE(InfoExtractor):
             atype = a.get('type')
             if (astatus is not None and astatus != 2) or atype in ('preview', 'storyboard'):
                 continue
-            elif atype in ('still', 'still_image'):
+            if atype in ('still', 'still_image'):
                 thumbnails.append({
                     'url': aurl.replace('.bin', f'.{self._get_real_ext(aurl)}'),
                     'width': int_or_none(a.get('width')),

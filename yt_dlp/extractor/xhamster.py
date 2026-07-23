@@ -228,7 +228,7 @@ class XHamsterIE(InfoExtractor):
         # format_url can be hex ciphertext or a URL with a hex ciphertext segment
         if re.fullmatch(self._VALID_HEX_RE, format_url):
             return self._decipher_hex_string(format_url, format_id)
-        elif not url_or_none(format_url):
+        if not url_or_none(format_url):
             if re.fullmatch(r'[0-9a-fA-F]+', format_url):
                 # Hex strings that are too short are expected, so we don't want to warn
                 self.write_debug(f'Skipping dummy ciphertext for "{format_id}": {format_url}')

@@ -461,17 +461,16 @@ class ZingMp3UserIE(ZingMp3BaseIE):
             _id = f'{alias}-{url_type}'
             return self.playlist_result(self._parse_items(
                 self._call_api('new-release', params={'type': url_type}, display_id=_id)), _id)
+        # Handle for user/artist
+        if url_type in ('bai-hat', 'video'):
+            entries = self._paged_list(user_info['id'], url_type)
         else:
-            # Handle for user/artist
-            if url_type in ('bai-hat', 'video'):
-                entries = self._paged_list(user_info['id'], url_type)
-            else:
-                section_id = 'aAlbum' if url_type == 'album' else 'aSingle'
-                entries = self._parse_items(traverse_obj(user_info, (
-                    'sections', lambda _, v: v['sectionId'] == section_id, 'items', ...)))
-            return self.playlist_result(
-                entries, user_info['id'], join_nonempty(user_info.get('name'), url_type, delim=' - '),
-                user_info.get('biography'))
+            section_id = 'aAlbum' if url_type == 'album' else 'aSingle'
+            entries = self._parse_items(traverse_obj(user_info, (
+                'sections', lambda _, v: v['sectionId'] == section_id, 'items', ...)))
+        return self.playlist_result(
+            entries, user_info['id'], join_nonempty(user_info.get('name'), url_type, delim=' - '),
+            user_info.get('biography'))
 
 
 class ZingMp3HubIE(ZingMp3BaseIE):

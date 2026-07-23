@@ -269,11 +269,10 @@ def xpath_element(node, xpath, name=None, fatal=False, default=NO_DEFAULT):
     if n is None:
         if default is not NO_DEFAULT:
             return default
-        elif fatal:
+        if fatal:
             name = xpath if name is None else name
             raise ExtractorError(f'Could not find XML element {name}')
-        else:
-            return None
+        return None
     return n
 
 
@@ -284,11 +283,10 @@ def xpath_text(node, xpath, name=None, fatal=False, default=NO_DEFAULT):
     if n.text is None:
         if default is not NO_DEFAULT:
             return default
-        elif fatal:
+        if fatal:
             name = xpath if name is None else name
             raise ExtractorError(f'Could not find XML element\'s text {name}')
-        else:
-            return None
+        return None
     return n.text
 
 
@@ -297,11 +295,10 @@ def xpath_attr(node, xpath, key, name=None, fatal=False, default=NO_DEFAULT):
     if n is None:
         if default is not NO_DEFAULT:
             return default
-        elif fatal:
+        if fatal:
             name = f'{xpath}[@{key}]' if name is None else name
             raise ExtractorError(f'Could not find XML attribute {name}')
-        else:
-            return None
+        return None
     return n.attrib[key]
 
 
@@ -554,12 +551,12 @@ class LenientJSONDecoder(json.JSONDecoder):
         # We need to add comma first to get the correct error message
         if err.msg.startswith('Expecting \',\''):
             return doc + ','
-        elif not doc.endswith(','):
+        if not doc.endswith(','):
             return
 
         if err.msg.startswith('Expecting property name'):
             return doc[:-1] + '}'
-        elif err.msg.startswith('Expecting value'):
+        if err.msg.startswith('Expecting value'):
             return doc[:-1] + ']'
 
     def decode(self, s):
@@ -573,7 +570,7 @@ class LenientJSONDecoder(json.JSONDecoder):
             except json.JSONDecodeError as e:
                 if e.pos is None:
                     raise
-                elif attempt < self._close_attempts:
+                if attempt < self._close_attempts:
                     s = self._close_object(e)
                     if s is not None:
                         continue
@@ -622,11 +619,8 @@ def sanitize_open(filename, open_mode):
 
 def timeconvert(timestr):
     """Convert RFC 2822 defined time string into system timestamp"""
-    timestamp = None
     timetuple = email.utils.parsedate_tz(timestr)
-    if timetuple is not None:
-        timestamp = email.utils.mktime_tz(timetuple)
-    return timestamp
+    return None if timetuple is None else email.utils.mktime_tz(timetuple)
 
 
 def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
@@ -641,18 +635,18 @@ def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
     def replace_insane(char):
         if restricted and char in ACCENT_CHARS:
             return ACCENT_CHARS[char]
-        elif not restricted and char == '\n':
+        if not restricted and char == '\n':
             return '\0 '
-        elif is_id is NO_DEFAULT and not restricted and char in '"*:<>?|/\\':
+        if is_id is NO_DEFAULT and not restricted and char in '"*:<>?|/\\':
             # Replace with their full-width unicode counterparts
             return {'/': '\u29F8', '\\': '\u29f9'}.get(char, chr(ord(char) + 0xfee0))
-        elif char == '?' or ord(char) < 32 or ord(char) == 127:
+        if char == '?' or ord(char) < 32 or ord(char) == 127:
             return ''
-        elif char == '"':
+        if char == '"':
             return '' if restricted else '\''
-        elif char == ':':
+        if char == ':':
             return '\0_\0-' if restricted else '\0 \0-'
-        elif char in '\\/|*<>':
+        if char in '\\/|*<>':
             return '\0_'
         if restricted and (char in '!&\'()[]{}$;`^,#' or char.isspace() or ord(char) > 127):
             return '' if unicodedata.category(char)[0] in 'CM' else '\0_'
@@ -689,7 +683,7 @@ def _sanitize_path_parts(parts):
     for part in parts:
         if not part or part == '.':
             continue
-        elif part == '..':
+        if part == '..':
             if sanitized_parts and sanitized_parts[-1] != '..':
                 sanitized_parts.pop()
             else:
@@ -739,7 +733,7 @@ def sanitize_url(url, *, scheme='http'):
     # the number of unwanted failures due to missing protocol
     if url is None:
         return
-    elif url.startswith('//'):
+    if url.startswith('//'):
         return f'{scheme}:{url}'
     # Fix some common typos seen so far
     COMMON_TYPOS = (
@@ -1315,10 +1309,9 @@ def determine_ext(url, default_ext='unknown_video'):
     if re.match(r'^[A-Za-z0-9]+$', guess):
         return guess
     # Try extract ext from URLs like http://example.com/foo/bar.mp4/?download
-    elif guess.rstrip('/') in KNOWN_EXTENSIONS:
+    if guess.rstrip('/') in KNOWN_EXTENSIONS:
         return guess.rstrip('/')
-    else:
-        return default_ext
+    return default_ext
 
 
 def subtitles_filename(filename, sub_lang, sub_format, expected_real_ext=None):
@@ -1413,8 +1406,7 @@ def hyphenate_date(date_str):
     match = re.match(r'^(\d\d\d\d)(\d\d)(\d\d)$', date_str)
     if match is not None:
         return '-'.join(match.groups())
-    else:
-        return date_str
+    return date_str
 
 
 class DateRange:
@@ -1480,8 +1472,7 @@ def get_windows_version():
     """ Get Windows version. returns () if it's not running on Windows """
     if os.name == 'nt':
         return version_tuple(platform.win32_ver()[1])
-    else:
-        return ()
+    return ()
 
 
 def write_string(s, out=None, encoding=None):
@@ -1515,9 +1506,8 @@ def deprecation_warning(msg, *, printer=None, stacklevel=0, **kwargs):
         if printer:
             return printer(f'{msg}{bug_reports_message()}', **kwargs)
         return write_string(f'ERROR: {msg}{bug_reports_message()}\n', **kwargs)
-    else:
-        import warnings
-        warnings.warn(DeprecationWarning(msg), stacklevel=stacklevel + 3)
+    import warnings
+    warnings.warn(DeprecationWarning(msg), stacklevel=stacklevel + 3)
 
 
 deprecation_warning._cache = set()
@@ -2046,7 +2036,7 @@ def str_to_int(int_str):
     """ A more relaxed version of int_or_none """
     if isinstance(int_str, int):
         return int_str
-    elif isinstance(int_str, str):
+    if isinstance(int_str, str):
         int_str = re.sub(r'[,\.\+]', '', int_str)
         return int_or_none(int_str)
 
@@ -2198,8 +2188,7 @@ def detect_exe_version(output, version_re=None, unrecognized='present'):
     m = re.search(version_re, output)
     if m:
         return m.group(1)
-    else:
-        return unrecognized
+    return unrecognized
 
 
 def get_exe_version(exe, args=['--version'],
@@ -2434,7 +2423,7 @@ class PlaylistEntries:
         entries = info_dict.get('entries')
         if entries is None:
             raise EntryNotInPlaylist('There are no entries')
-        elif isinstance(entries, list):
+        if isinstance(entries, list):
             self.is_exhausted = True
 
         requested_entries = info_dict.get('requested_entries')
@@ -2497,7 +2486,7 @@ class PlaylistEntries:
     def get_full_count(self):
         if self.is_exhausted and not self.is_incomplete:
             return len(self)
-        elif isinstance(self._entries, InAdvancePagedList):
+        if isinstance(self._entries, InAdvancePagedList):
             if self._entries._pagesize == 1:
                 return self._entries._pagecount
 
@@ -2585,8 +2574,7 @@ def read_batch_urls(batch_fd):
             url = url.decode('utf-8', 'replace')
         BOM_UTF8 = ('\xef\xbb\xbf', '\ufeff')
         for bom in BOM_UTF8:
-            if url.startswith(bom):
-                url = url[len(bom):]
+            url = url.removeprefix(bom)
         url = url.lstrip()
         if not url or url.startswith(('#', ';', ']')):
             return False
@@ -2612,8 +2600,7 @@ def update_url(url, *, query_update=None, **kwargs):
     if isinstance(url, str):
         if not kwargs and not query_update:
             return url
-        else:
-            url = urllib.parse.urlparse(url)
+        url = urllib.parse.urlparse(url)
     if query_update:
         assert 'query' not in kwargs, 'query_update and query cannot be specified at the same time'
         kwargs['query'] = urllib.parse.urlencode({
@@ -2749,7 +2736,7 @@ def parse_age_limit(s):
     # isinstance(False, int) is True. So type() must be used instead
     if type(s) is int:  # noqa: E721
         return s if 0 <= s <= 21 else None
-    elif not isinstance(s, str):
+    if not isinstance(s, str):
         return None
     m = re.match(r'^(?P<age>\d{1,2})\+?$', s)
     if m:
@@ -2804,9 +2791,9 @@ def js_to_json(code, vars={}, *, strict=False):
         v = m.group(0)
         if v in ('true', 'false', 'null'):
             return v
-        elif v in ('undefined', 'void 0'):
+        if v in ('undefined', 'void 0'):
             return 'null'
-        elif v.startswith(('/*', '//', '!')) or v == ',':
+        if v.startswith(('/*', '//', '!')) or v == ',':
             return ''
 
         if v[0] in STRING_QUOTES:
@@ -2952,9 +2939,7 @@ def error_to_str(err):
 @partial_application
 def mimetype2ext(mt, default=NO_DEFAULT):
     if not isinstance(mt, str):
-        if default is not NO_DEFAULT:
-            return default
-        return None
+        return None if default is NO_DEFAULT else default
 
     MAP = {
         # video
@@ -3041,7 +3026,7 @@ def mimetype2ext(mt, default=NO_DEFAULT):
     ext = traversal.traverse_obj(MAP, mimetype, subtype, subtype.rsplit('+')[-1])
     if ext:
         return ext
-    elif default is not NO_DEFAULT:
+    if default is not NO_DEFAULT:
         return default
     return subtype.replace('+', '.')
 
@@ -3089,7 +3074,7 @@ def parse_codecs(codecs_str):
             'dynamic_range': hdr,
             **({'scodec': scodec} if scodec is not None else {}),
         }
-    elif len(split_codecs) == 2:
+    if len(split_codecs) == 2:
         return {
             'vcodec': split_codecs[0],
             'acodec': split_codecs[1],
@@ -3199,7 +3184,7 @@ def determine_protocol(info_dict):
     ext = determine_ext(url)
     if ext == 'm3u8':
         return 'm3u8' if info_dict.get('is_live') else 'm3u8_native'
-    elif ext == 'f4m':
+    if ext == 'f4m':
         return 'f4m'
 
     return urllib.parse.urlparse(url).scheme
@@ -3348,10 +3333,9 @@ def match_filter_func(filters, breaking_filters=None):
 
         if not filters or any(match_str(f, info_dict, incomplete) for f in filters):
             return NO_DEFAULT if interactive and not incomplete else None
-        else:
-            video_title = info_dict.get('title') or info_dict.get('id') or 'entry'
-            filter_str = ') | ('.join(map(str.strip, filters))
-            return f'{video_title} does not pass filter ({filter_str}), skipping ..'
+        video_title = info_dict.get('title') or info_dict.get('id') or 'entry'
+        filter_str = ') | ('.join(map(str.strip, filters))
+        return f'{video_title} does not pass filter ({filter_str}), skipping ..'
     return _match_func
 
 
@@ -3608,8 +3592,7 @@ def cli_configuration_args(argdict, keys, default=[], use_compat=True):
     if isinstance(argdict, (list, tuple)):  # for backward compatibility
         if use_compat:
             return argdict
-        else:
-            argdict = None
+        argdict = None
     if argdict is None:
         return default
     assert isinstance(argdict, dict)
@@ -5012,8 +4995,7 @@ class Config:
             m = eqre.match(o)
             if m:
                 return m.group('key') + '=PRIVATE'
-            else:
-                return o
+            return o
 
         opts = list(map(_scrub_eq, opts))
         for idx, opt in enumerate(opts):
@@ -5077,7 +5059,7 @@ class classproperty:
     def __get__(self, _, cls):
         if self._cache is None:
             return self.func(cls)
-        elif cls not in self._cache:
+        if cls not in self._cache:
             self._cache[cls] = self.func(cls)
         return self._cache[cls]
 
@@ -5309,7 +5291,7 @@ class RetryManager:
 
         if not count:
             return warn(e)
-        elif isinstance(e, ExtractorError):
+        if isinstance(e, ExtractorError):
             e = remove_end(str_or_none(e.cause) or e.orig_msg, '.')
         warn(f'{e}. Retrying{format_field(suffix, None, " %s")} ({count}/{retries})...')
 
@@ -5492,11 +5474,11 @@ class FormatSorter:
             return None
         if conversion == 'string':
             return value
-        elif conversion == 'float_none':
+        if conversion == 'float_none':
             return float_or_none(value)
-        elif conversion == 'bytes':
+        if conversion == 'bytes':
             return parse_bytes(value)
-        elif conversion == 'order':
+        if conversion == 'order':
             order_list = (self._use_free_order and self._get_field_setting(field, 'order_free')) or self._get_field_setting(field, 'order')
             use_regex = self._get_field_setting(field, 'regex')
             list_length = len(order_list)
@@ -5506,14 +5488,12 @@ class FormatSorter:
                     if regex and re.match(regex, value):
                         return list_length - i
                 return list_length - empty_pos  # not in list
-            else:  # not regex or  value = None
-                return list_length - (order_list.index(value) if value in order_list else empty_pos)
-        else:
-            if value.isnumeric():
-                return float(value)
-            else:
-                self.settings[field]['convert'] = 'string'
-                return value
+            # not regex or  value = None
+            return list_length - (order_list.index(value) if value in order_list else empty_pos)
+        if value.isnumeric():
+            return float(value)
+        self.settings[field]['convert'] = 'string'
+        return value
 
     def evaluate_params(self, params, sort_extractor):
         self._use_free_order = params.get('prefer_free_formats', False)

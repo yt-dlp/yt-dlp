@@ -35,7 +35,7 @@ class AmazonMiniTVBaseIE(InfoExtractor):
 
         if resp.get('errors'):
             raise ExtractorError(f'MiniTV said: {resp["errors"][0]["message"]}')
-        elif not data:
+        if not data:
             return resp
         return resp['data'][data['operationName']]
 

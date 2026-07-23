@@ -263,9 +263,8 @@ class FileDownloader:
 
     @wrap_file_access('rename')
     def try_rename(self, old_filename, new_filename):
-        if old_filename == new_filename:
-            return
-        os.replace(old_filename, new_filename)
+        if old_filename != new_filename:
+            os.replace(old_filename, new_filename)
 
     def try_utime(self, filename, last_modified_hdr):
         """Try to set the last-modified time of the given file."""
@@ -273,12 +272,9 @@ class FileDownloader:
             return
         if not os.path.isfile(filename):
             return
-        timestr = last_modified_hdr
-        if timestr is None:
-            return
-        filetime = timeconvert(timestr)
+        filetime = timeconvert(last_modified_hdr)
         if filetime is None:
-            return filetime
+            return
         # Ignore obviously invalid dates
         if filetime == 0:
             return
@@ -515,6 +511,6 @@ class FileDownloader:
         available_target, requested_targets = self.ydl._parse_impersonate_targets(impersonate)
         if available_target:
             return available_target
-        elif requested_targets:
+        if requested_targets:
             self.report_warning(self.ydl._unavailable_targets_message(requested_targets))
         return None

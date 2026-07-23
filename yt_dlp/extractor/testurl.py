@@ -22,7 +22,7 @@ class TestURLIE(InfoExtractor):
 
         if len(matching_extractors) == 0:
             raise ExtractorError(f'No extractors matching {extractor_id!r} found', expected=True)
-        elif len(matching_extractors) > 1:
+        if len(matching_extractors) > 1:
             extractor = next((  # Check for exact match
                 ie for ie in matching_extractors if ie.IE_NAME.lower() == extractor_id.lower()
             ), None) or next((  # Check for exact match without plugin suffix

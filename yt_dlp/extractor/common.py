@@ -845,10 +845,9 @@ class InfoExtractor:
         assert isinstance(err, HTTPError)
         if expected_status is None:
             return False
-        elif callable(expected_status):
+        if callable(expected_status):
             return expected_status(err.status) is True
-        else:
-            return err.status in variadic(expected_status)
+        return err.status in variadic(expected_status)
 
     def _create_request(self, url_or_request, data=None, headers=None, query=None, extensions=None):
         if isinstance(url_or_request, urllib.request.Request):
@@ -918,9 +917,8 @@ class InfoExtractor:
             errmsg = f'{errnote}: {err}'
             if fatal:
                 raise ExtractorError(errmsg, cause=err, video_id=video_id)
-            else:
-                self.report_warning(errmsg, video_id=video_id)
-                return False
+            self.report_warning(errmsg, video_id=video_id)
+            return False
 
     def _download_webpage_handle(self, url_or_request, video_id, note=None, errnote=None, fatal=True,
                                  encoding=None, data=None, headers={}, query={}, expected_status=None,
@@ -1069,7 +1067,7 @@ class InfoExtractor:
     def __print_error(self, errnote, fatal, video_id, err):
         if fatal:
             raise ExtractorError(f'{errnote}', cause=err, video_id=video_id)
-        elif errnote:
+        if errnote:
             self.report_warning(f'{errnote}: {err}', video_id=video_id)
 
     def _parse_xml(self, xml_string, video_id, transform_source=None, fatal=True, errnote=None):
@@ -1332,17 +1330,15 @@ class InfoExtractor:
             if group is None:
                 # return the first matching group
                 return next(g for g in mobj.groups() if g is not None)
-            elif isinstance(group, (list, tuple)):
+            if isinstance(group, (list, tuple)):
                 return tuple(mobj.group(g) for g in group)
-            else:
-                return mobj.group(group)
-        elif default is not NO_DEFAULT:
+            return mobj.group(group)
+        if default is not NO_DEFAULT:
             return default
-        elif fatal:
+        if fatal:
             raise RegexNotFoundError(f'Unable to extract {_name}')
-        else:
-            self.report_warning(f'unable to extract {_name}' + bug_reports_message())
-            return None
+        self.report_warning(f'unable to extract {_name}' + bug_reports_message())
+        return None
 
     def _search_json(self, start_pattern, string, name, video_id, *, end_pattern='',
                      contains_pattern=r'{(?s:.+)}', fatal=True, default=NO_DEFAULT, **kwargs):
@@ -1366,7 +1362,7 @@ class InfoExtractor:
             if fatal:
                 raise ExtractorError(
                     f'Unable to extract {_name} - Failed to parse JSON', cause=e.cause, video_id=video_id)
-            elif not has_default:
+            if not has_default:
                 self.report_warning(
                     f'Unable to extract {_name} - Failed to parse JSON: {e}', video_id=video_id)
         return default
@@ -1599,11 +1595,10 @@ class InfoExtractor:
             return info
         if default is not NO_DEFAULT:
             return default
-        elif fatal:
+        if fatal:
             raise RegexNotFoundError('Unable to extract JSON-LD')
-        else:
-            self.report_warning(f'unable to extract JSON-LD {bug_reports_message()}')
-            return {}
+        self.report_warning(f'unable to extract JSON-LD {bug_reports_message()}')
+        return {}
 
     def _json_ld(self, json_ld, video_id, fatal=True, expected_type=None):
         if isinstance(json_ld, str):
@@ -1762,15 +1757,13 @@ class InfoExtractor:
                     extract_video_object(e)
                     if expected_type is None:
                         continue
-                    else:
-                        break
+                    break
                 video = e.get('video')
                 if is_type(video, 'VideoObject'):
                     extract_video_object(video)
                 if expected_type is None:
                     continue
-                else:
-                    break
+                break
 
         traverse_json_ld(json_ld)
         return filter_dict(info)
@@ -1867,7 +1860,7 @@ class InfoExtractor:
             error_msg = 'Unable to resolve Nuxt JSON data: invalid input'
             if fatal:
                 raise ExtractorError(error_msg, video_id=video_id)
-            elif default is NO_DEFAULT:
+            if default is NO_DEFAULT:
                 self.report_warning(error_msg, video_id=video_id)
             return {} if default is NO_DEFAULT else default
 
@@ -1893,7 +1886,7 @@ class InfoExtractor:
                 error_msg = f'Error resolving Nuxt JSON: {gen.send(None)}'
                 if fatal:
                     raise ExtractorError(error_msg, video_id=video_id)
-                elif default is NO_DEFAULT:
+                if default is NO_DEFAULT:
                     self.report_warning(error_msg, video_id=video_id, only_once=True)
                 else:
                     self.write_debug(f'{video_id}: {error_msg}', only_once=True)
@@ -2127,7 +2120,7 @@ class InfoExtractor:
                         })
                     formats.extend(f4m_formats)
                     continue
-                elif ext == 'm3u8':
+                if ext == 'm3u8':
                     formats.extend(self._extract_m3u8_formats(
                         manifest_url, video_id, 'mp4', preference=preference,
                         quality=quality, m3u8_id=m3u8_id, fatal=fatal))
@@ -3657,8 +3650,7 @@ class InfoExtractor:
             entries.append(entry)
         if len(entries) == 1:
             return entries[0]
-        else:
-            return self.playlist_result(entries)
+        return self.playlist_result(entries)
 
     def _parse_jwplayer_formats(self, jwplayer_sources_data, video_id=None,
                                 m3u8_id=None, mpd_id=None, rtmp_params=None, base_url=None):
@@ -3735,8 +3727,7 @@ class InfoExtractor:
             msg = f'Failed to extract {name}: Could not parse value {v!r}'
             if fatal:
                 raise ExtractorError(msg)
-            else:
-                self.report_warning(msg)
+            self.report_warning(msg)
         return res
 
     def _float(self, v, name, fatal=False, **kwargs):
@@ -3745,8 +3736,7 @@ class InfoExtractor:
             msg = f'Failed to extract {name}: Could not parse value {v!r}'
             if fatal:
                 raise ExtractorError(msg)
-            else:
-                self.report_warning(msg)
+            self.report_warning(msg)
         return res
 
     def _set_cookie(self, domain, name, value, expire_time=None, port=None,
@@ -3825,9 +3815,9 @@ class InfoExtractor:
         tests = tuple(cls.get_testcases(include_onlymatching=False))
         if not tests:
             return None
-        elif not any(k.startswith('playlist') for test in tests for k in test):
+        if not any(k.startswith('playlist') for test in tests for k in test):
             return 'video'
-        elif all(any(k.startswith('playlist') for k in test) for test in tests):
+        if all(any(k.startswith('playlist') for k in test) for test in tests):
             return 'playlist'
         return 'any'
 
@@ -4140,16 +4130,15 @@ class SearchInfoExtractor(InfoExtractor):
         prefix, query = self._match_valid_url(query).group('prefix', 'query')
         if prefix == '':
             return self._get_n_results(query, 1)
-        elif prefix == 'all':
+        if prefix == 'all':
             return self._get_n_results(query, self._MAX_RESULTS)
-        else:
-            n = int(prefix)
-            if n <= 0:
-                raise ExtractorError(f'invalid download number {n} for query "{query}"')
-            elif n > self._MAX_RESULTS:
-                self.report_warning('%s returns max %i results (you requested %i)' % (self._SEARCH_KEY, self._MAX_RESULTS, n))
-                n = self._MAX_RESULTS
-            return self._get_n_results(query, n)
+        n = int(prefix)
+        if n <= 0:
+            raise ExtractorError(f'invalid download number {n} for query "{query}"')
+        if n > self._MAX_RESULTS:
+            self.report_warning('%s returns max %i results (you requested %i)' % (self._SEARCH_KEY, self._MAX_RESULTS, n))
+            n = self._MAX_RESULTS
+        return self._get_n_results(query, n)
 
     def _get_n_results(self, query, n):
         """Get a specified number of results for a query.

@@ -354,5 +354,4 @@ class MicrosoftBuildIE(InfoExtractor):
         ]
         if video_id == 'sessions':
             return self.playlist_result(entries, video_id)
-        else:
-            return traverse_obj(entries, (lambda _, v: v['id'] == video_id), get_all=False)
+        return traverse_obj(entries, (lambda _, v: v['id'] == video_id), get_all=False)

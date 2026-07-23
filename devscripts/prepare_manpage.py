@@ -77,7 +77,7 @@ def move_sections(readme):
         sections = re.findall(rf'(?sm)(^# {re.escape(section_name)}.+?)(?=^# )', readme)
         if len(sections) < 1:
             raise Exception(f'The section {section_name} does not exist')
-        elif len(sections) > 1:
+        if len(sections) > 1:
             raise Exception(f'There are multiple occurrences of section {section_name}, this is unhandled')
 
         readme = readme.replace(sections[0], '', 1).replace(move_tag, sections[0], 1)

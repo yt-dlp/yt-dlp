@@ -61,8 +61,7 @@ class PanoptoBaseIE(InfoExtractor):
             msg = f'Panopto said: {response.get("ErrorMessage")}'
             if fatal:
                 raise ExtractorError(msg, video_id=video_id, expected=True)
-            else:
-                self.report_warning(msg, video_id=video_id)
+            self.report_warning(msg, video_id=video_id)
         return response
 
     @staticmethod
@@ -485,8 +484,7 @@ class PanoptoPlaylistIE(PanoptoBaseIE):
             if self.get_param('noplaylist'):
                 self.to_screen(f'Downloading just video {video_id} because of --no-playlist')
                 return self.url_result(base_url + f'/Pages/Viewer.aspx?id={video_id}', ie_key=PanoptoIE.ie_key(), video_id=video_id)
-            else:
-                self.to_screen(f'Downloading playlist {playlist_id}; add --no-playlist to just download video {video_id}')
+            self.to_screen(f'Downloading playlist {playlist_id}; add --no-playlist to just download video {video_id}')
 
         playlist_info = self._call_api(base_url, f'/Api/Playlists/{playlist_id}', playlist_id)
         return self.playlist_result(

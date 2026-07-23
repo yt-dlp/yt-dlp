@@ -185,16 +185,15 @@ class AdultSwimIE(TurnerBaseIE):
                         })
 
             return info
-        else:
-            entries = []
-            for edge in show_data.get('videos', {}).get('edges', []):
-                video = edge.get('node') or {}
-                slug = video.get('slug')
-                if not slug:
-                    continue
-                entries.append(self.url_result(
-                    f'http://adultswim.com/videos/{show_path}/{slug}',
-                    'AdultSwim', video.get('_id')))
-            return self.playlist_result(
-                entries, show_path, show_data.get('title'),
-                strip_or_none(show_data.get('metaDescription')))
+        entries = []
+        for edge in show_data.get('videos', {}).get('edges', []):
+            video = edge.get('node') or {}
+            slug = video.get('slug')
+            if not slug:
+                continue
+            entries.append(self.url_result(
+                f'http://adultswim.com/videos/{show_path}/{slug}',
+                'AdultSwim', video.get('_id')))
+        return self.playlist_result(
+            entries, show_path, show_data.get('title'),
+            strip_or_none(show_data.get('metaDescription')))

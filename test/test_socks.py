@@ -94,7 +94,7 @@ class Socks5ProxyHandler(StreamRequestHandler, SocksProxyHandler):
             self.server.close_request(self.request)
             return
 
-        elif Socks5Auth.AUTH_USER_PASS in methods:
+        if Socks5Auth.AUTH_USER_PASS in methods:
             self.connection.sendall(struct.pack('!BB', SOCKS5_VERSION, Socks5Auth.AUTH_USER_PASS))
 
             _, user_len = struct.unpack('!BB', self.connection.recv(2))

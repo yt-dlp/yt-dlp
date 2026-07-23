@@ -194,8 +194,7 @@ def handle_youtubedl_headers(headers):
 def request_to_url(req):
     if isinstance(req, urllib.request.Request):
         return req.get_full_url()
-    else:
-        return req
+    return req
 
 
 def sanitized_Request(url, *args, **kwargs):

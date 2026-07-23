@@ -116,10 +116,9 @@ class DropoutIE(InfoExtractor):
             r'user_has_subscription:\s*["\'](.+?)["\']', response, 'subscription status', default='none')
         if user_has_subscription.lower() == 'true':
             return
-        elif user_has_subscription.lower() == 'false':
+        if user_has_subscription.lower() == 'false':
             return 'Account is not subscribed'
-        else:
-            return 'Incorrect username/password'
+        return 'Incorrect username/password'
 
     def _real_extract(self, url):
         display_id = self._match_id(url)

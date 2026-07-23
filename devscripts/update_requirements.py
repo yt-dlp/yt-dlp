@@ -811,7 +811,7 @@ def main():
 
     if all_updates is None:
         return 1
-    elif not all_updates:
+    if not all_updates:
         print('All requirements are up-to-date', file=sys.stderr)
         return 0
 
@@ -824,11 +824,10 @@ def main():
             print(row)
         return 1
 
-    else:
-        if not args.no_markdown_reports:
-            print(make_pull_request_description(all_updates))
-        print(make_commit_message(all_updates))
-        return 0
+    if not args.no_markdown_reports:
+        print(make_pull_request_description(all_updates))
+    print(make_commit_message(all_updates))
+    return 0
 
 
 if __name__ == '__main__':

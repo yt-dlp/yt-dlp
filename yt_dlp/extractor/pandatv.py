@@ -45,7 +45,7 @@ class PandaTvIE(InfoExtractor):
         if error_code := traverse_obj(video_meta, ('errorData', 'code', {str})):
             if error_code == 'castEnd':
                 raise UserNotLive(video_id=channel_id)
-            elif error_code == 'needAdult':
+            if error_code == 'needAdult':
                 self.raise_login_required('Adult verification is required for this stream')
             elif error_code == 'needLogin':
                 self.raise_login_required('Login is required for this stream')

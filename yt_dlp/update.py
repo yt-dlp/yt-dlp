@@ -106,8 +106,8 @@ def _get_variant_and_executable_path():
     path = os.path.dirname(__file__)
     if isinstance(__loader__, zipimporter):
         return 'zip', os.path.join(path, '..')
-    elif (os.path.basename(sys.argv[0]) in ('__main__.py', '-m')
-          and os.path.exists(os.path.join(path, '../.git/HEAD'))):
+    if (os.path.basename(sys.argv[0]) in ('__main__.py', '-m')
+            and os.path.exists(os.path.join(path, '../.git/HEAD'))):
         return 'source', path
     return 'unknown', path
 
@@ -386,7 +386,7 @@ class Updater:
                 if _VERSION_RE.fullmatch(tag):
                     if not self._exact:
                         return tag
-                    elif self._version_compare(tag, resolved_tag):
+                    if self._version_compare(tag, resolved_tag):
                         return resolved_tag
                 elif tag != resolved_tag:
                     continue
@@ -450,7 +450,7 @@ class Updater:
         result_tag = self._process_update_spec(update_spec, resolved_tag)
         if not result_tag or result_tag == self.current_version:
             return None
-        elif result_tag == resolved_tag:
+        if result_tag == resolved_tag:
             result_version = requested_version
         elif _VERSION_RE.fullmatch(result_tag):
             result_version = result_tag
@@ -510,7 +510,7 @@ class Updater:
         directory = os.path.dirname(self.filename)
         if not os.access(self.filename, os.W_OK):
             return self._report_permission_error(self.filename)
-        elif not os.access(directory, os.W_OK):
+        if not os.access(directory, os.W_OK):
             return self._report_permission_error(directory)
 
         new_filename, old_filename = f'{self.filename}.new', f'{self.filename}.old'
