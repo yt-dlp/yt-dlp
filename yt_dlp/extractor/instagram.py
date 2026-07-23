@@ -699,6 +699,66 @@ class InstagramTagIE(InstagramPlaylistBaseIE):
         }
 
 
+class InstagramSavedIE(InstagramBaseIE):
+    _VALID_URL = r'''(?x)
+                https?://
+                    (?:www\.)?instagram\.com/
+                    (?P<id>[^/?#]+)/saved
+                    (?:/
+                        (?:all-posts|
+                            (?:
+                                (?P<collection_name>[^/&]+)/(?P<collection_id>[^/?&#]+)
+                            )
+                        )?
+                    )?
+                    (?:[/?#]|$)
+    '''
+    IE_DESC = 'Instagram saved posts of the logged in user'
+    IE_NAME = 'instagram:saved'
+    _TESTS = [{
+        'url': 'https://www.instagram.com/username/saved/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.instagram.com/username/saved/all-posts/',
+        'only_matching': True,
+    }]
+
+    def _entries(self, display_id, collection_name, collection_id):
+        collection_name = collection_name or 'saved'
+        base_api_url = 'https://www.instagram.com/api/v1/feed'
+        api_url = f'{base_api_url}/saved/posts'
+        if collection_name and collection_id:
+            api_url = f'{base_api_url}/collection/{collection_id}/posts'
+
+        max_id = None
+        for page_num in itertools.count(1):
+            csrf_token = self._get_cookies('https://www.instagram.com').get('csrftoken')
+            headers = {
+                **self._api_headers,
+                'X-CSRFToken': csrf_token.value if csrf_token else '',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Referer': f'https://www.instagram.com/{display_id}/saved/',
+            }
+            page = self._download_json(
+                api_url, display_id, note=f'Downloading {collection_name} posts page {page_num}',
+                headers=headers, query=filter_dict({'max_id': max_id}))
+            for item in traverse_obj(page, ('items', ..., 'media', {dict})):
+                if item.get('media_type') == 1:
+                    continue
+                yield self._extract_product(item)
+            if not page.get('more_available'):
+                break
+            max_id = page.get('next_max_id')
+            if not max_id:
+                break
+
+    def _real_extract(self, url):
+        display_id, collection_name, collection_id = self._match_valid_url(url).group('id', 'collection_name', 'collection_id')
+        if not self._get_cookies('https://www.instagram.com').get('sessionid'):
+            self.raise_login_required('Instagram saved posts require an authenticated session')
+        return self.playlist_result(self._entries(display_id, collection_name, collection_id), display_id, display_id)
+
+
 class InstagramStoryIE(InstagramBaseIE):
     _VALID_URL = r'https?://(?:www\.)?instagram\.com/stories/(?P<user>[^/?#]+)(?:/(?P<id>\d+))?'
     IE_NAME = 'instagram:story'
