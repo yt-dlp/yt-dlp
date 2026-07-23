@@ -94,9 +94,9 @@ class TestWget2FD(unittest.TestCase):
             ydl.cookiejar.set_cookie(http.cookiejar.Cookie(**TEST_COOKIE))
             cmd = downloader._make_cmd('test', TEST_INFO)
             assert (
-                '--load-cookies' in cmd or
-                '--header' in cmd or
-                f'--load-cookies={downloader._cookies_tempfile}' in cmd
+                '--load-cookies' in cmd
+                or '--header' in cmd
+                or f'--load-cookies={downloader._cookies_tempfile}' in cmd
             )
             assert '--unlink' in cmd
 
