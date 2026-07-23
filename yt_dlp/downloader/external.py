@@ -318,9 +318,7 @@ class Wget2FD(ExternalFD):
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '--no-config']
-        verbose = self._valueless_option('--verbose', 'verbose')
-        if not verbose:
-            cmd += ['--no-verbose']
+        cmd += self._bool_option('--verbose', 'verbose', 'on', 'off', '=')
         cmd += self._valueless_option('--progress=none', 'noprogress')
         cmd += ['--https-enforce=soft']
         cmd += ['--keep-session-cookies', '--load-cookies', self._write_cookies()]
