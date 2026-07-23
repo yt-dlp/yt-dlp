@@ -94,3 +94,4 @@ Triage Maintainers are frequent contributors who can manage issues and pull requ
 - [pzhlkj6612](https://github.com/pzhlkj6612)
 - [DTrombett](https://github.com/dtrombett)
 - [grqz](https://github.com/grqz)
+- [InvalidUsernameException](https://github.com/InvalidUsernameException)
