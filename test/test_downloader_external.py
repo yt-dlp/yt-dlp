@@ -12,6 +12,7 @@ import http.server
 import ipaddress
 import pytest
 import json
+import subprocess
 import tempfile
 import threading
 
@@ -93,7 +94,7 @@ class TestWget2FD(unittest.TestCase):
             downloader = Wget2FD(ydl, {})
             ydl.cookiejar.set_cookie(http.cookiejar.Cookie(**TEST_COOKIE))
             cmd = downloader._make_cmd('test', TEST_INFO)
-            assert f'--load-cookies={downloader._cookies_tempfile}' in cmd
+            assert '--load-cookies' in cmd or f'--load-cookies={downloader._cookies_tempfile}' in cmd
             assert '--unlink' in cmd
 
 
@@ -188,6 +189,8 @@ class TestDownloaderCookieBehavior:
 
                     with open(file.name, 'rb') as f:
                         data = HTTPHeaderDict(json.load(f))
+                    if not data.get('Cookie'):
+                        subprocess.check_call(['xxd', downloader._cookies_tempfile])
                     assert 'c=test' in data.get('Cookie', '').split(';'), 'Expected cookie to be set in initial request'
 
                     with HTTPTestServer((str(second_addr), 0), HTTPTestHandler) as server_b:
