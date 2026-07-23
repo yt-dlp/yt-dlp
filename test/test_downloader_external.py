@@ -90,11 +90,9 @@ class TestWgetFD(unittest.TestCase):
 class TestWget2FD(unittest.TestCase):
     def test_make_cmd(self):
         with FakeYDL() as ydl:
-            downloader = Wget2FD(ydl, {})
+            downloader = Wget2FD(ydl, {'verbose': True})
             ydl.cookiejar.set_cookie(http.cookiejar.Cookie(**TEST_COOKIE))
             cmd = downloader._make_cmd('test', TEST_INFO)
-            from pprint import pp
-            pp(cmd)
             assert (
                 '--load-cookies' in cmd or
                 '--header' in cmd or
@@ -160,6 +158,7 @@ class TestDownloaderCookieBehavior:
                     'external_downloader_args': {
                         'wget2': ['--https-enforce=none'],
                     },
+                    'verbose': True,
                 })
             downloader = downloader_cls(ydl, params)
 
