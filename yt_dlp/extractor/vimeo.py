@@ -348,13 +348,11 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         }
 
     def _fetch_oauth_token(self, client):
-        client_config = self._CLIENT_CONFIGS[client]
-
         base_client, _, variant = client.partition('_')
-
         if base_client == 'web':
             return f'jwt {self._fetch_viewer_info()["jwt"]}'
 
+        client_config = self._CLIENT_CONFIGS[client]
         if variant == 'basic':
             return f'Basic {client_config["AUTH"]}'
 
