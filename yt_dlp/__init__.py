@@ -887,6 +887,7 @@ def parse_options(argv=None):
         'max_downloads': opts.max_downloads,
         'prefer_free_formats': opts.prefer_free_formats,
         'trim_file_name': opts.trim_file_name,
+        'smart_trimming': opts.smart_trimming,
         'verbose': opts.verbose,
         'dump_intermediate_pages': opts.dump_intermediate_pages,
         'write_pages': opts.write_pages,

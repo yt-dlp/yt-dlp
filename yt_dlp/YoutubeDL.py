@@ -656,6 +656,7 @@ class YoutubeDL:
         self._playlist_urls = set()
         self.cache = Cache(self)
         self.__header_cookies = []
+        self._vfs_staging_dir = None
 
         # compat for API: load plugins if they have not already
         if not all_plugins_loaded.value:
@@ -1523,6 +1524,390 @@ class YoutubeDL:
         outtmpl, info_dict = self.prepare_outtmpl(outtmpl, info_dict, *args, **kwargs)
         return self.escape_outtmpl(outtmpl) % info_dict
 
+    def _extract_trimmable_fields(self, outtmpl):
+        marker_prefix = ''.join(random.choices(string.ascii_letters, k=32))
+        non_trimmable_fields = {'id', 'ext', 'format_id'}
+        format_re = re.compile(STR_FORMAT_RE_TMPL.format('[^)]*', f'[{STR_FORMAT_TYPES}ljhqBUDS]'))
+        outtmpl_parts = []
+        trimmable_markers = []
+        pos = 0
+        marker_id = 0
+        for mobj in format_re.finditer(outtmpl):
+            outtmpl_parts.append(outtmpl[pos:mobj.end()])
+            pos = mobj.end()
+            if pos >= len(outtmpl) or outtmpl[pos] != '+':
+                continue
+            field = mobj.group('key') or ''
+            if any(part in non_trimmable_fields for part in field.split(',')):
+                pos += 1
+                continue
+            start = f'{marker_prefix}_s{marker_id}_'
+            end = f'{marker_prefix}_e{marker_id}_'
+            trimmable_markers.append((start, end))
+            outtmpl_parts[-1] = f'{start}{outtmpl_parts[-1]}{end}'
+            pos += 1
+            marker_id += 1
+        outtmpl_parts.append(outtmpl[pos:])
+        return ''.join(outtmpl_parts), trimmable_markers
+
+    def _strip_trim_markers(self, filename, trimmable_markers):
+        for start, end in trimmable_markers:
+            filename = filename.replace(start, '').replace(end, '')
+        return filename
+
+    def _truncate_trimmable_fields(self, filename, trimmable_markers, overflow):
+        if overflow <= 0:
+            return filename
+        values = []
+        total_len = 0
+        for start, end in trimmable_markers:
+            mark_re = re.escape(start) + r'(.*?)' + re.escape(end)
+            mobj = re.search(mark_re, filename, flags=re.DOTALL)
+            values.append(mobj.group(1) if mobj else None)
+        
+        total_len += sum(len(v) for v in values if v is not None)
+        if not total_len:
+            return filename
+
+        remaining = min(overflow, total_len)
+        cuts = []
+        for v in values:
+            if v is None:
+                cuts.append(0)
+            else:
+                cuts.append(min(len(v), int(remaining * len(v) / total_len)))
+        remaining -= sum(cuts)
+        if remaining > 0:
+            for idx, value in enumerate(values):
+                if value is None:
+                    continue
+                capacity = len(value) - cuts[idx]
+                if capacity <= 0:
+                    continue
+                give = min(remaining, capacity)
+                cuts[idx] += give
+                remaining -= give
+                if remaining <= 0:
+                    break
+
+        for (start, end), value, cut in zip(trimmable_markers, values, cuts):
+            if value is None or cut <= 0:
+                continue
+            trimmed = value[:-cut] if cut < len(value) else ''
+            filename = filename.replace(f'{start}{value}{end}', f'{start}{trimmed}{end}', 1)
+        return filename
+
+    def _get_filesystem_path_limit(self, path):
+        if os.name == 'nt':
+            return 259
+        directory = os.path.dirname(path) or '.'
+        with contextlib.suppress(OSError, AttributeError, ValueError):
+            path_max = os.pathconf(directory, 'PC_PATH_MAX')
+            if path_max and path_max > 0:
+                return path_max - 1
+        return 4095
+
+    def _vfs_get_name_max(self, path):
+        """ Maximum byte length for a single filename component on the filesystem.
+        """
+        if os.name == 'nt':
+            return 255
+        directory = os.path.dirname(os.path.abspath(path)) or '.'
+        with contextlib.suppress(OSError, AttributeError, ValueError):
+            name_max = os.pathconf(directory, 'PC_NAME_MAX')
+            if name_max and name_max > 0:
+                return name_max
+        return 255
+
+    def _vfs_get_or_create_staging_dir(self):
+        """ Creates a temporary directory so
+        that the OS generates a unique name.
+        The directory is placed as close to the filesystem root as possible to
+        minimise the length of the staging path.
+        """
+        if self._vfs_staging_dir is not None and os.path.isdir(self._vfs_staging_dir):
+            return self._vfs_staging_dir
+
+        if os.name == 'nt':
+            drive = os.path.splitdrive(os.path.abspath('.'))[0] or 'C:'
+            preferred_base = drive + '\\'
+        else:
+            preferred_base = '/tmp'
+
+        try:
+            staging = tempfile.mkdtemp(prefix='yt_dlp_', dir=preferred_base)
+        except (OSError, PermissionError) as first_err:
+            self.report_warning(
+                f'Cannot create VFS staging directory in {preferred_base!r} '
+                f'({first_err}); falling back to system temp directory.')
+            staging = tempfile.mkdtemp(prefix='yt_dlp_')
+
+        self._vfs_staging_dir = staging
+        self.add_close_hook(self._vfs_cleanup_staging)
+        self.write_debug(f'[smart-trimming] Staging directory created: {staging!r}')
+        return staging
+
+    def _vfs_cleanup_staging(self):
+        """Permanently remove the VFS staging directory and all its contents.
+        """
+        staging = self._vfs_staging_dir
+        if not staging:
+            return
+        self._vfs_staging_dir = None
+
+        if not os.path.exists(staging):
+            return
+
+        leftover = set()
+        try:
+            leftover = set(os.listdir(staging))
+        except OSError:
+            pass
+
+        shutil.rmtree(staging, ignore_errors=True)
+
+        if os.path.exists(staging):
+            self.report_warning(
+                f'Could not fully remove VFS staging directory {staging!r}. '
+                f'Leftover files: {sorted(leftover)}')
+        else:
+            self.write_debug(f'[smart-trimming] Staging directory removed: {staging!r}')
+
+    def _vfs_to_extended_path(self, path):
+        """Apply the Windows extended-length path prefix ``\\\\?\\`` if needed, original path on POSIX.
+        """
+        if os.name != 'nt':
+            return path
+        abs_path = os.path.abspath(path)
+        if abs_path.startswith('\\\\?\\'):
+            return abs_path
+        if abs_path.startswith('\\\\'):
+            return '\\\\?\\UNC\\' + abs_path[2:]
+        return '\\\\?\\' + abs_path
+
+    def _vfs_verify_move(self, source, target):
+        """Verify that a file move completed successfully.
+        """
+        target_exists = os.path.exists(target)
+        source_gone = not os.path.exists(source)
+        if target_exists and source_gone:
+            return True
+        if not target_exists:
+            self.write_debug(
+                f'[smart-trimming] Move verification failed – target absent: {target!r}')
+        if not source_gone:
+            self.write_debug(
+                f'[smart-trimming] Move verification warning – source still present: {source!r}')
+        return target_exists
+
+    def _vfs_move_atomic(self, source, target):
+        """Move a file from the VFS staging area to its final destination.
+        """
+        if not os.path.exists(source):
+            self.write_debug(
+                f'[smart-trimming] Move skipped – source not found: {source!r}')
+            return False
+
+        abs_target = os.path.abspath(target)
+        target_dir = os.path.dirname(abs_target)
+
+        try:
+            os.makedirs(target_dir, exist_ok=True)
+        except OSError as exc:
+            self.report_error(
+                f'Cannot create destination directory {target_dir!r}: {exc}')
+            return False
+
+        src_ext = self._vfs_to_extended_path(os.path.abspath(source))
+        dst_ext = self._vfs_to_extended_path(abs_target)
+
+        try:
+            os.replace(src_ext, dst_ext)
+            if self._vfs_verify_move(source, abs_target):
+                self.write_debug(
+                    f'[smart-trimming] os.replace: {os.path.basename(source)!r}'
+                    f' → {abs_target!r}')
+                return True
+        except OSError as exc:
+            self.write_debug(
+                f'[smart-trimming] os.replace failed ({exc}), trying shutil.move')
+
+        try:
+            shutil.move(src_ext, dst_ext)
+            if self._vfs_verify_move(source, abs_target):
+                self.write_debug(
+                    f'[smart-trimming] shutil.move: {os.path.basename(source)!r}'
+                    f' → {abs_target!r}')
+                return True
+        except Exception as exc:
+            self.report_error(
+                f'Failed to move {source!r} → {abs_target!r}: {exc}')
+
+        return False
+
+    def _truncate_trimmable_fields_bytes(self, filename, trimmable_markers, overflow_bytes):
+        """Byte proportional truncation of ``+``-marked template fields.
+        """
+        if overflow_bytes <= 0 or not trimmable_markers:
+            return filename
+
+        def byte_len(s):
+            return len(s.encode('utf-8', errors='ignore')) if s else 0
+
+        # Phase 1 – extract current value for every marked field
+        values = []
+        for start, end in trimmable_markers:
+            pattern = re.escape(start) + r'(.*?)' + re.escape(end)
+            m = re.search(pattern, filename, flags=re.DOTALL)
+            values.append(m.group(1) if m else None)
+
+        total_bytes = sum(byte_len(v) for v in values if v is not None)
+        if total_bytes == 0:
+            return filename
+
+        bytes_to_cut = min(overflow_bytes, total_bytes)
+
+        # Phase 2 – proportional cut allocation
+        cuts = []
+        for v in values:
+            if v is None:
+                cuts.append(0)
+            else:
+                share = int(bytes_to_cut * byte_len(v) / total_bytes)
+                cuts.append(share)
+
+        # Distribute integer-rounding remainder from largest field to smallest
+        remainder = bytes_to_cut - sum(cuts)
+        if remainder > 0:
+            order = sorted(
+                range(len(values)),
+                key=lambda i: byte_len(values[i]) if values[i] else 0,
+                reverse=True,
+            )
+            for i in order:
+                if values[i] and byte_len(values[i]) > cuts[i]:
+                    cuts[i] += 1
+                    remainder -= 1
+                    if remainder <= 0:
+                        break
+
+        # Phase 3 – byte-level truncation with safe UTF-8 boundary handling
+        result = filename
+        for (start, end), value, cut_b in zip(trimmable_markers, values, cuts):
+            if value is None or cut_b <= 0:
+                continue
+            raw = value.encode('utf-8', errors='ignore')
+            trimmed = raw[:max(0, len(raw) - cut_b)].decode('utf-8', errors='ignore')
+            result = result.replace(f'{start}{value}{end}', f'{start}{trimmed}{end}', 1)
+            self.write_debug(
+                f'[smart-trimming] Trimmed {cut_b} B from field '
+                f'"{value[:25]}…" → "{trimmed[:25]}…"')
+
+        return result
+
+    def _vfs_trim_filename_to_name_max(self, filename, trimmable_markers, staging_path=None):
+        """Ensure the byte length of a filename component does not exceed NAME_MAX.
+        """
+        name_max = self._vfs_get_name_max(staging_path) if staging_path else 255
+
+        clean_node = self._strip_trim_markers(filename, trimmable_markers)
+        node_bytes = len(clean_node.encode('utf-8', errors='ignore'))
+
+        if node_bytes <= name_max:
+            return filename
+
+        overflow = node_bytes - name_max
+        self.write_debug(
+            f'[smart-trimming] Filename is {node_bytes} B; '
+            f'NAME_MAX is {name_max} B (overflow {overflow} B).')
+        return self._truncate_trimmable_fields_bytes(filename, trimmable_markers, overflow)
+
+    def _vfs_prepare_path(self, info_dict, dir_type, filename, full_filename, trimmable_markers):
+        """Compute the write path for a single filename request in VFS mode.
+        """
+        clean_path = self._strip_trim_markers(full_filename, trimmable_markers)
+        abs_path = os.path.abspath(clean_path)
+
+        path_limit = self._get_filesystem_path_limit(abs_path)
+        path_too_long = len(abs_path) > path_limit
+        in_vfs_mode = info_dict.get('__vfs_target') is not None
+
+        if path_too_long or in_vfs_mode:
+            staging = self._vfs_get_or_create_staging_dir()
+
+            if dir_type == '':
+                if path_too_long and trimmable_markers:
+                    overflow = len(abs_path) - path_limit
+                    trimmed_fn = self._truncate_trimmable_fields(filename, trimmable_markers, overflow)
+                    trimmed_full = self.get_output_path(dir_type, trimmed_fn)
+                    target = os.path.abspath(self._strip_trim_markers(trimmed_full, trimmable_markers))
+                else:
+                    target = abs_path
+                if not in_vfs_mode:
+                    self.write_debug(
+                        f'[smart-trimming] Path length {len(abs_path)} exceeds limit '
+                        f'{path_limit}; activating VFS staging.')
+                info_dict['__vfs_target'] = target
+
+            basename_with_markers = os.path.basename(full_filename)
+            staging_hint = os.path.join(staging, 'x')
+            basename_trimmed = self._vfs_trim_filename_to_name_max(
+                basename_with_markers, trimmable_markers, staging_hint)
+            clean_basename = self._strip_trim_markers(basename_trimmed, trimmable_markers)
+            return os.path.join(staging, clean_basename)
+
+        if trimmable_markers:
+            overflow = len(abs_path) - path_limit
+            if overflow > 0:
+                filename = self._truncate_trimmable_fields(filename, trimmable_markers, overflow)
+                full_filename = self.get_output_path(dir_type, filename)
+        return self._strip_trim_markers(full_filename, trimmable_markers)
+
+    def _vfs_consolidate(self, info_dict):
+        """Move all staged files to their final destinations and remove the staging dir.
+        """
+        target_path = info_dict.get('__vfs_target')
+        if not target_path:
+            return
+
+        staging_dir = self._vfs_staging_dir
+        if not staging_dir or not os.path.isdir(staging_dir):
+            self.write_debug(
+                '[smart-trimming] Staging directory unavailable; skipping consolidation.')
+            return
+
+        self.to_screen('[smart-trimming] Moving files to final destination…')
+
+        # 1. Main video/audio file
+        current_path = info_dict.get('filepath', '')
+        if current_path and os.path.exists(current_path):
+            if self._vfs_move_atomic(current_path, target_path):
+                info_dict['filepath'] = target_path
+                self.to_screen(f'[smart-trimming] Saved: {target_path}')
+            else:
+                self.report_error(
+                    f'Could not consolidate main file to {target_path!r}; '
+                    f'file remains at {current_path!r}')
+                return
+
+        # 2. Auxiliary files (subtitles, thumbnails, metadata, …)
+        files_to_move = info_dict.get('__files_to_move', {})
+        target_dir = os.path.dirname(target_path)
+        staging_abs = os.path.abspath(staging_dir)
+
+        for src in list(files_to_move.keys()):
+            if not os.path.exists(src):
+                continue
+            if not os.path.abspath(src).startswith(staging_abs):
+                continue
+            dest = os.path.join(target_dir, os.path.basename(src))
+            if self._vfs_move_atomic(src, dest):
+                files_to_move[dest] = files_to_move.pop(src)
+
+        # 3. Remove the temporary staging directory
+        self._vfs_cleanup_staging()
+        self.write_debug('[smart-trimming] Consolidation complete.')
+
     @_catch_unsafe_extension_error
     def _prepare_filename(self, info_dict, *, outtmpl=None, tmpl_type=None):
         assert None in (outtmpl, tmpl_type), 'outtmpl and tmpl_type are mutually exclusive'
@@ -1530,6 +1915,7 @@ class YoutubeDL:
             outtmpl = self.params['outtmpl'].get(tmpl_type or 'default', self.params['outtmpl']['default'])
         try:
             outtmpl = self._outtmpl_expandpath(outtmpl)
+            outtmpl, trimmable_markers = self._extract_trimmable_fields(outtmpl)
             filename = self.evaluate_outtmpl(outtmpl, info_dict, True)
             if not filename:
                 return None
@@ -1549,7 +1935,7 @@ class YoutubeDL:
                 no_ext, *ext = filename.rsplit('.', 2)
                 filename = join_nonempty(no_ext[:trim_file_name], *ext, delim='.')
 
-            return filename
+            return filename, trimmable_markers
         except ValueError as err:
             self.report_error('Error in output template: ' + str(err) + ' (encoding: ' + repr(preferredencoding()) + ')')
             return None
@@ -1559,7 +1945,11 @@ class YoutubeDL:
         if outtmpl:
             assert not dir_type, 'outtmpl and dir_type are mutually exclusive'
             dir_type = None
-        filename = self._prepare_filename(info_dict, tmpl_type=dir_type, outtmpl=outtmpl)
+        prepared = self._prepare_filename(info_dict, tmpl_type=dir_type, outtmpl=outtmpl)
+        if prepared is None:
+            filename, trimmable_markers = None, ()
+        else:
+            filename, trimmable_markers = prepared
         if not filename and dir_type not in ('', 'temp'):
             return ''
 
@@ -1573,7 +1963,19 @@ class YoutubeDL:
         if filename == '-' or not filename:
             return filename
 
-        return self.get_output_path(dir_type, filename)
+        full_filename = self.get_output_path(dir_type, filename)
+        if full_filename == '-':
+            return full_filename
+        if self.params.get('smart_trimming'):
+            return self._vfs_prepare_path(
+                info_dict, dir_type, filename, full_filename, trimmable_markers)
+        if trimmable_markers:
+            clean_filename = self._strip_trim_markers(full_filename, trimmable_markers)
+            overflow = len(clean_filename) - self._get_filesystem_path_limit(full_filename)
+            if overflow > 0:
+                filename = self._truncate_trimmable_fields(filename, trimmable_markers, overflow)
+                full_filename = self.get_output_path(dir_type, filename)
+        return self._strip_trim_markers(full_filename, trimmable_markers)
 
     def _match_entry(self, info_dict, incomplete=False, silent=False):
         """Returns None if the file should be downloaded"""
@@ -3852,6 +4254,8 @@ class YoutubeDL:
         info['__files_to_move'] = files_to_move or {}
         info = self.run_all_pps('post_process', info, additional_pps=info.get('__postprocessors'))
         info = self.run_pp(MoveFilesAfterDownloadPP(self), info)
+        if self.params.get('smart_trimming') and info.get('__vfs_target'):
+            self._vfs_consolidate(info)
         del info['__files_to_move']
         return self.run_all_pps('after_move', info)
 
