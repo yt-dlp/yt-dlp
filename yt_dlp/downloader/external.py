@@ -348,6 +348,7 @@ class Wget2FD(ExternalFD):
         cmd += self._configuration_args()
         cmd += ['--unlink', f'--output-document={tmpfilename}']
         cmd += ['--', info_dict['url']]
+        subprocess.check_call(['xxd', self._cookies_tempfile])
         return cmd
 
 
