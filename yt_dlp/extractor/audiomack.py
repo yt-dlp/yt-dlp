@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import hmac
+import operator
 import random
 import time
 import urllib.parse
@@ -16,7 +17,7 @@ from ..utils import (
     str_or_none,
     url_or_none,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import require, traverse_obj
 
 
 class AudiomackBaseIE(InfoExtractor):
@@ -24,7 +25,9 @@ class AudiomackBaseIE(InfoExtractor):
 
     @staticmethod
     def rfc3986(x):
-        return urllib.parse.quote(x or '', safe='~')
+        if x is None:
+            return x
+        return urllib.parse.quote(str(x), safe='~')
 
     # Source https://audiomack.com/_next/static/chunks/9129-2b9faedd600665e1.js
     # Source https://audiomack.com/_next/static/chunks/1762-d25c1c603d5950c7.js
@@ -53,10 +56,22 @@ class AudiomackBaseIE(InfoExtractor):
 
         return params
 
+    # Func name can be change
+    @staticmethod
+    def is_available(*keys, obj, types=None):
+        if types is None:
+            return any(obj.get(key) is not None for key in keys)
+
+        return any(
+            isinstance(obj.get(key), types)
+            for key in keys
+        )
+
     def _get_next_data(self, webpage):
         return merge_dicts(
             *traverse_obj(
-                self._search_nextjs_v13_data(webpage, None), (..., 'data', {dict}),
+                self._search_nextjs_v13_data(webpage, None),
+                (..., lambda _, x: self.is_available('uploader', 'artist', obj=x, types=dict), {dict}),
             ),
         )
 
@@ -86,10 +101,10 @@ class AudiomackBaseIE(InfoExtractor):
         song_id = traverse_obj(data, 'id', 'song_id')
         slug = slug or traverse_obj(data, ('links', 'self', {lambda x: urllib.parse.urlparse(x).path}, {str}))
         if not slug:
-            uploader_slug, song_slug = traverse_obj(data, (('uploader_url_slug', 'url_slug'), {str}), default=[None, None])
-            if not (uploader_slug and song_slug):
-                raise ExtractorError('Unable to find Song slug')
-            slug = f'/{uploader_slug}/song/{song_slug}'
+            slug = traverse_obj(data, (
+                {operator.itemgetter('uploader_url_slug', 'url_slug')},
+                {lambda ss: f'/{ss[0]}/song/{ss[1]}'}, {require('Song slug')},
+            ))
 
         api_url = f'https://api.audiomack.com/v1/music/play/{song_id}'
         audio_url = traverse_obj(
@@ -120,7 +135,7 @@ class AudiomackIE(AudiomackBaseIE):
     _TESTS = [
         # hosted on audiomack
         {
-            'url': 'http://www.audiomack.com/roosh-williams/song/extraordinary',
+            'url': 'https://www.audiomack.com/roosh-williams/song/extraordinary',
             'info_dict':
             {
                 'id': '310086',
@@ -149,7 +164,7 @@ class AudiomackIE(AudiomackBaseIE):
         # Needs new test URL.
         {
             'add_ie': ['Soundcloud'],
-            'url': 'http://www.audiomack.com/song/hip-hop-daily/black-mamba-freestyle',
+            'url': 'https://www.audiomack.com/song/hip-hop-daily/black-mamba-freestyle',
             'info_dict': {
                 'id': '258901379',
                 'ext': 'mp3',
@@ -176,12 +191,12 @@ class AudiomackIE(AudiomackBaseIE):
 
 
 class AudiomackAlbumIE(AudiomackBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?audiomack\.com/(?!(?:[^/]+/)?song)(?P<id>[\w/-]+)'
+    _VALID_URL = r'https?://(?:www\.)?audiomack\.com/(?!.+/song.)(?P<id>[\w/-]+)'
     IE_NAME = 'audiomack:album'
     _TESTS = [
         # Standard album playlist
         {
-            'url': 'http://www.audiomack.com/album/flytunezcom/tha-tour-part-2-mixtape',
+            'url': 'https://www.audiomack.com/album/flytunezcom/tha-tour-part-2-mixtape',
             'playlist_count': 11,
             'info_dict':
             {
@@ -192,7 +207,7 @@ class AudiomackAlbumIE(AudiomackBaseIE):
         },
         # Album playlist ripped from fakeshoredrive with no metadata
         {
-            'url': 'http://www.audiomack.com/album/fakeshoredrive/ppp-pistol-p-project',
+            'url': 'https://www.audiomack.com/album/fakeshoredrive/ppp-pistol-p-project',
             'info_dict': {
                 'title': 'PPP (Pistol P Project)',
                 'id': '837572',
@@ -264,7 +279,7 @@ class AudiomackAlbumIE(AudiomackBaseIE):
         data = self._get_next_data(self._download_webpage(url, playlist_id))
 
         def entries(data):
-            for track in traverse_obj(data, ('tracks', lambda _, x: x['id'])) or []:
+            for track in traverse_obj(data, ('tracks', lambda _, x: self.is_available('song_id', 'id', obj=x))) or []:
                 yield {
                     **self._parse_metadata(track),
                     **self._get_audio_info(track),
