@@ -319,12 +319,12 @@ class Wget2FD(ExternalFD):
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '--no-config']
         verbose = self._valueless_option('--verbose', 'verbose')
-        # TODO: be less verbose by default again
-        if False and not verbose:
+        if not verbose:
             cmd += ['--no-verbose']
         cmd += self._valueless_option('--progress=none', 'noprogress')
         cmd += ['--https-enforce=soft']
-        cmd += ['--load-cookies', self._write_cookies()]
+        # TODO: determine why the test fails with this approach
+        # cmd += ['--load-cookies', self._write_cookies()]
         chunk_size = self.params.get('http_chunk_size')
         if chunk_size is None:
             chunk_size = info_dict.get('downloader_options', {}).get('http_chunk_size', self._DEFAULT_CHUNK_SIZE)
@@ -344,11 +344,12 @@ class Wget2FD(ExternalFD):
         if proxy:
             cmd += [f'--http-proxy={proxy}', f'--https-proxy={proxy}']
         cmd += self._valueless_option('--no-check-certificate', 'nocheckcertificate')
-        cmd += ['--timestamping']
         cmd += self._configuration_args()
-        cmd += ['--unlink', f'--output-document={tmpfilename}']
+        cookie_header = self.ydl.cookiejar.get_cookie_header(info_dict['url'])
+        if cookie_header:
+            cmd += ['--header', f'Cookie: {cookie_header}']
+        cmd += ['--timestamping', '--unlink', f'--output-document={tmpfilename}']
         cmd += ['--', info_dict['url']]
-        subprocess.check_call(['xxd', self._cookies_tempfile])
         return cmd
 
 
