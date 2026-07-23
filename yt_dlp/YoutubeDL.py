@@ -766,6 +766,11 @@ class YoutubeDL:
             self.deprecated_feature(msg)
 
         if impersonate_target := self.params.get('impersonate'):
+            if not isinstance(impersonate_target, ImpersonateTarget):
+                impersonate_target = (
+                    ImpersonateTarget() if impersonate_target is True
+                    else ImpersonateTarget.from_str(impersonate_target))
+                self.params['impersonate'] = impersonate_target
             if not self._impersonate_target_available(impersonate_target):
                 raise YoutubeDLError(
                     f'Impersonate target "{impersonate_target}" is not available. '
