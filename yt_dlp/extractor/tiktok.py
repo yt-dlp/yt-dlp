@@ -969,6 +969,21 @@ class TikTokIE(TikTokBaseIE):
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
         'only_matching': True,
+    }, {
+        # Short drama (series) — requires login cookies to list episodes
+        'url': 'https://www.tiktok.com/@shortdramatime/video/7652801981827796225',
+        'info_dict': {
+            '_type': 'playlist',
+            'id': '7652801954799997969',
+            'title': 'Captain, They Beg Your Forgiveness',
+            'playlist_count': 58,
+        },
+        'params': {
+            'extractor_args': {
+                'tiktok': {'download_drama': ['true']},
+            },
+        },
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -985,6 +1000,9 @@ class TikTokIE(TikTokBaseIE):
         video_data, status = self._extract_web_data_and_status(url, video_id)
 
         if video_data and status == 0:
+            if self._download_drama and (drama_id := traverse_obj(video_data, ('dramaInfo', 'dramaID', {str}))):
+                return self._extract_drama_playlist(
+                    drama_id, traverse_obj(video_data, ('dramaInfo', 'dramaName', {str})) or drama_id, url, video_id)
             return self._parse_aweme_video_web(video_data, url, video_id)
         elif status in (10216, 10222):
             # 10216: private post; 10222: private account
@@ -993,6 +1011,62 @@ class TikTokIE(TikTokBaseIE):
         elif status == 10204:
             raise ExtractorError('Your IP address is blocked from accessing this post', expected=True)
         raise ExtractorError(f'Video not available, status code {status}', video_id=video_id)
+
+    @functools.cached_property
+    def _download_drama(self):
+        val = self._configuration_arg('download_drama', [False], ie_key=TikTokIE)[0]
+        return val is True or (isinstance(val, str) and val.lower() in ('true', '1', 'yes'))
+
+    def _extract_drama_playlist(self, drama_id, drama_name, referer_url, referer_id):
+        device_id = str(random.randint(7250000000000000000, 7325099899999994577))
+        odin_id = str(random.randint(7250000000000000000, 7325099899999994577))
+        verify_fp = 'verify_' + ''.join(random.choices(string.hexdigits, k=7))
+
+        def build_query(cursor):
+            return {
+                'aid': '1988', 'app_language': 'en', 'app_name': 'tiktok_web',
+                'browser_language': 'en', 'browser_name': 'Mozilla', 'browser_online': 'true',
+                'browser_platform': 'Linux x86_64',
+                'browser_version': '5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36',
+                'channel': 'tiktok_web', 'cookie_enabled': 'true', 'count': '24',
+                'cursor': str(cursor), 'data_collection_enabled': 'true', 'device_id': device_id,
+                'device_platform': 'web_pc', 'dramaID': drama_id, 'focus_state': 'false',
+                'from_page': 'video', 'history_len': '4', 'is_fullscreen': 'false', 'is_page_visible': 'true',
+                'language': 'en', 'odinId': odin_id, 'os': 'linux', 'priority_region': 'SG',
+                'referer': '', 'region': 'SG', 'screen_height': '1080', 'screen_width': '1920',
+                'tz_name': 'Asia/Taipei', 'user_is_login': 'true', 'verifyFp': verify_fp,
+                'webcast_language': 'en',
+            }
+
+        headers = {
+            'referer': referer_url,
+            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36',
+            'accept': '*/*',
+        }
+        api_url = 'https://www.tiktok.com/api/drama/episode/item_list/'
+        entries = []
+        cursor = 0
+        while True:
+            data = self._download_json(
+                api_url, drama_id, note=f'Downloading episode list (cursor={cursor})',
+                query=build_query(cursor), headers=headers, impersonate='chrome')
+            items = traverse_obj(data, ('itemList', ...)) or []
+            if not items:
+                break
+            for item in items:
+                if not item.get('id'):
+                    continue
+                uid = traverse_obj(item, ('author', 'uniqueId', {str})) or traverse_obj(
+                    item, ('authorInfo', 'uniqueId', {str}))
+                entries.append(self._parse_aweme_video_web(item, self._create_url(uid, item['id']), item['id']))
+            if not data.get('hasMore'):
+                break
+            cursor = data.get('cursor') or (cursor + len(items))
+
+        if not entries:
+            self.raise_login_required(
+                'This drama requires login to list its episodes. Provide TikTok cookies (e.g. --cookies)')
+        return self.playlist_result(entries, drama_id, drama_name)
 
 
 class TikTokUserIE(TikTokBaseIE):
