@@ -345,9 +345,11 @@ class Wget2FD(ExternalFD):
             cmd += [f'--http-proxy={proxy}', f'--https-proxy={proxy}']
         cmd += self._valueless_option('--no-check-certificate', 'nocheckcertificate')
         cmd += self._configuration_args()
+        import http.cookiejar
+        _prev_value = http.cookiejar.debug
+        http.cookiejar.debug = True
         cookie_header = self.ydl.cookiejar.get_cookie_header(info_dict['url'])
-        from pprint import pp
-        pp( cookie_header )
+        http.cookiejar.debug = _prev_value
         if cookie_header:
             cmd += [f'--header=Cookie: {cookie_header}']
         cmd += ['--timestamping', '--unlink', f'--output-document={tmpfilename}']
