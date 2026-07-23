@@ -1816,7 +1816,10 @@ from .sproutvideo import (
     SproutVideoIE,
     VidsIoIE,
 )
-from .spwn import SPWNIE
+from .spwn import (
+    SPWNIE,
+    SPWNCrewIE,
+)
 from .srgssr import (
     SRGSSRIE,
     SRGSSRPlayIE,
