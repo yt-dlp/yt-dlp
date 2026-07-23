@@ -15,13 +15,83 @@ from ..utils import (
     unified_timestamp,
     url_or_none,
     urlencode_postdata,
-    urljoin,
 )
 from ..utils.traversal import traverse_obj
 
 
-class NewgroundsIE(InfoExtractor):
+class NewgroundsBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'newgrounds'
+    _LOGIN_URL = 'https://www.newgrounds.com/login'
+
+    def _call_login_api(self, login_url, login_webpage, data, note='Downloading JSON metadata', **kwargs):
+        username, password = self._get_login_info()
+        return self._download_json(login_url, None, note=note, headers={
+            'Accept': 'application/json',
+            'content-type': 'application/x-www-form-urlencoded',
+            'Referer': self._LOGIN_URL,
+            'X-Requested-With': 'XMLHttpRequest',
+        }, data=urlencode_postdata({
+            'identity': username,
+            'password': password,
+            **self._hidden_inputs(login_webpage), **data,
+        }), **kwargs)
+
+    def _get_cookie(self, name):
+        cookie = self._get_cookies('https://www.newgrounds.com').get(name)
+        return cookie.value if cookie else None
+
+    def _perform_login(self, username, password):
+        if self._get_cookie('ng_session') or self._get_cookie('ng_remember'):
+            return
+        login_webpage = self._download_webpage(self._LOGIN_URL, None, 'Downloading login page')
+        login = self._call_login_api(self._LOGIN_URL, login_webpage, note='Logging in', data={'remember': 1}, expected_status=(422, 429))
+
+        if login.get('redirect_url'):
+            return
+        elif error_message := login.get('message'):
+            raise ExtractorError((error_message or 'Invalid Username/password'), expected=True)
+
+        if bool(login.get('two_factor')):
+            email = login.get('obfuscated_email')
+            if bool(login.get('qr_code')):
+                tfa_msg = 'Please enter the code from your authenticator app'
+            else:
+                tfa_msg = f'A one-time login code was sent to {email} please enter it here'
+
+            verification_code = self._get_tfa_info(tfa_msg)
+            tfa_info = self._call_login_api(
+                f'{self._LOGIN_URL}/two-factor',
+                login_webpage,
+                note='Submiting T2F code',
+                data={
+                    'code': verification_code,
+                    'codehint': '______',
+                    'recovery_code': verification_code,
+                }, expected_status=(422, 429))
+            if tfa_info.get('redirect_url'):
+                return
+            elif error_message := tfa_info.get('message'):
+                raise ExtractorError((error_message or 'Invalid verification code'), expected='code was invalid' in error_message)
+        raise ExtractorError('Unable to login')
+
+    def _perform_adult_challange(self, url, video_id, webpage):
+        csrf = self._search_regex(
+            r'<meta\s*name\s*=\s*"csrf-token"\s*content\s*="([^"]+)"',
+            webpage, 'csrf token')
+        headers = {
+            'x-csrf-token': csrf,
+            'origin': 'https://www.newgrounds.com',
+            'referer': url,
+        }
+        self._request_webpage(
+            'https://www.newgrounds.com/age-verification/ignore-filter',
+            video_id, 'Performing adult challange',
+            headers=headers, data=urlencode_postdata({'url': url}),
+        )
+        return self._real_extract(url)
+
+
+class NewgroundsIE(NewgroundsBaseIE):
     _VALID_URL = r'https?://(?:www\.)?newgrounds\.com/(?:audio/listen|portal/view)/(?P<id>\d+)(?:/format/flash)?'
     _TESTS = [{
         'url': 'https://www.newgrounds.com/audio/listen/549479',
@@ -123,32 +193,24 @@ class NewgroundsIE(InfoExtractor):
         'm': 17,
         'a': 18,
     }
-    _LOGIN_URL = 'https://www.newgrounds.com/passport'
-
-    def _perform_login(self, username, password):
-        login_webpage = self._download_webpage(self._LOGIN_URL, None, 'Downloading login page')
-        login_url = urljoin(self._LOGIN_URL, self._search_regex(
-            r'<form action="([^"]+)"', login_webpage, 'login endpoint', default=None))
-        result = self._download_json(login_url, None, 'Logging in', headers={
-            'Accept': 'application/json',
-            'Referer': self._LOGIN_URL,
-            'X-Requested-With': 'XMLHttpRequest',
-        }, data=urlencode_postdata({
-            **self._hidden_inputs(login_webpage),
-            'username': username,
-            'password': password,
-        }))
-        if errors := traverse_obj(result, ('errors', ..., {str})):
-            raise ExtractorError(', '.join(errors) or 'Unknown Error', expected=True)
 
     def _real_extract(self, url):
         media_id = self._match_id(url)
+
         try:
-            webpage = self._download_webpage(url, media_id)
+            webpage, urlh = self._download_webpage_handle(
+                url, media_id, expected_status=403)
         except ExtractorError as error:
             if isinstance(error.cause, HTTPError) and error.cause.status == 401:
                 self.raise_login_required()
             raise
+
+        if self._search_regex(
+                r'([^>]+\/login[^>]+)', webpage, 'login message', default=None):
+            self.raise_login_required()
+        elif self._search_regex(
+                r'([^>]+age-verification[^>]+)', webpage, 'adult msg', default=None) and urlh.status == 403:
+            return self._perform_adult_challange(url, media_id, webpage)
 
         media_url_string = self._search_regex(
             r'embedController\(\[{"url"\s*:\s*("[^"]+"),', webpage, 'media url', default=None)
@@ -203,10 +265,10 @@ class NewgroundsIE(InfoExtractor):
             'duration': parse_duration(self._html_search_regex(
                 r'"duration"\s*:\s*["\']?(\d+)["\']?', webpage, 'duration', default=None)),
             'formats': formats,
-            'thumbnail': self._og_search_thumbnail(webpage),
+            'thumbnail': self._html_search_meta(('image', 'twitter:image'), webpage),
             'description': (
                 clean_html(get_element_by_id('author_comments', webpage))
-                or self._og_search_description(webpage)),
+                or self._html_search_meta(('description', 'twitter:description'), webpage)),
             'age_limit': self._AGE_LIMIT.get(self._html_search_regex(
                 r'<h2\s+class=["\']rated-([etma])["\']', webpage, 'age_limit', default='e')),
             'view_count': parse_count(self._html_search_regex(
