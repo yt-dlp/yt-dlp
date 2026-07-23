@@ -1594,53 +1594,18 @@ class TikTokLiveIE(TikTokBaseIE):
         'only_matching': True,
     }]
 
-    def _call_api(self, url, param, room_id, uploader, key=None):
+    def _call_api(self, url, room_id, query, key, status_path):
         response = traverse_obj(self._download_json(
-            url, room_id, fatal=False, query={
-                'aid': '1988',
-                param: room_id,
-            }), (key, {dict}), default={})
+            url, room_id, fatal=False, query=query), (key, {dict}), default={})
+        # status == 2 if live, else 4.
+        status = traverse_obj(response, status_path, default=None)
+        return (int_or_none(status), response)
 
-        # status == 2 if live else 4
-        if int_or_none(response.get('status')) == 2:
-            return response
-        # If room_id is obtained via mobile share URL and cannot be refreshed, do not wait for live
-        elif not uploader:
-            raise ExtractorError('This livestream has ended', expected=True)
-        raise UserNotLive(video_id=uploader)
-
-    def _real_extract(self, url):
-        uploader, room_id = self._match_valid_url(url).group('uploader', 'id')
-        if not room_id:
-            webpage = self._download_webpage(
-                format_field(uploader, None, self._UPLOADER_URL_FORMAT), uploader, impersonate=True)
-            room_id = traverse_obj(
-                self._get_universal_data(webpage, uploader),
-                ('webapp.user-detail', 'userInfo', 'user', 'roomId', {str}))
-
-        if not uploader or not room_id:
-            webpage = self._download_webpage(url, uploader or room_id, fatal=not room_id)
-            data = self._get_sigi_state(webpage, uploader or room_id)
-            room_id = room_id or traverse_obj(data, ((
-                ('LiveRoom', 'liveRoomUserInfo', 'user'),
-                ('UserModule', 'users', ...)), 'roomId', {str}, any))
-            uploader = uploader or traverse_obj(data, ((
-                ('LiveRoom', 'liveRoomUserInfo', 'user'),
-                ('UserModule', 'users', ...)), 'uniqueId', {str}, any))
-
-        if not room_id:
-            raise UserNotLive(video_id=uploader)
-
+    def _extract_formats(self, live_info, path_to_stream_data, get_quality):
         formats = []
-        live_info = self._call_api(
-            'https://webcast.tiktok.com/webcast/room/info', 'room_id', room_id, uploader, key='data')
-
-        get_quality = qualities(('SD1', 'ld', 'SD2', 'sd', 'HD1', 'hd', 'FULL_HD1', 'uhd', 'ORIGION', 'origin'))
         parse_inner = lambda x: self._parse_json(x, None)
 
-        for quality, stream in traverse_obj(live_info, (
-                'stream_url', 'live_core_sdk_data', 'pull_data', 'stream_data',
-                {parse_inner}, 'data', {dict}), default={}).items():
+        for quality, stream in traverse_obj(live_info, (*path_to_stream_data, {parse_inner}, 'data', {dict}), default={}).items():
 
             sdk_params = traverse_obj(stream, ('main', 'sdk_params', {parse_inner}, {
                 'vcodec': ('VCodec', {str}),
@@ -1696,10 +1661,66 @@ class TikTokLiveIE(TikTokBaseIE):
                 'quality': get_quality(f_id),
             })
 
-        # If uploader is a guest on another's livestream, primary endpoint will not have m3u8 URLs
+        return formats
+
+    def _real_extract(self, url):
+        uploader, room_id = self._match_valid_url(url).group('uploader', 'id')
+        if not room_id:
+            webpage = self._download_webpage(
+                format_field(uploader, None, self._UPLOADER_URL_FORMAT), uploader, impersonate=True)
+            room_id = traverse_obj(
+                self._get_universal_data(webpage, uploader),
+                ('webapp.user-detail', 'userInfo', 'user', 'roomId', {str}))
+
+        if not uploader or not room_id:
+            webpage = self._download_webpage(url, uploader or room_id, fatal=not room_id)
+            data = self._get_sigi_state(webpage, uploader or room_id)
+            room_id = room_id or traverse_obj(data, ((
+                ('LiveRoom', 'liveRoomUserInfo', 'user'),
+                ('UserModule', 'users', ...)), 'roomId', {str}, any))
+            uploader = uploader or traverse_obj(data, ((
+                ('LiveRoom', 'liveRoomUserInfo', 'user'),
+                ('UserModule', 'users', ...)), 'uniqueId', {str}, any))
+
+        if not room_id:
+            raise UserNotLive(video_id=uploader)
+
+        get_quality = qualities(('SD1', 'ld', 'SD2', 'sd', 'HD1', 'hd', 'FULL_HD1', 'uhd', 'ORIGION', 'origin'))
+
+        # Endpoint #1: api-live/user/room
+        statuses = []
+        status, live_info = self._call_api('https://www.tiktok.com/api-live/user/room', room_id, {
+            'aid': '1988',
+            'sourceType': '54',
+            'uniqueId': uploader,
+        }, 'data', ('user', 'status'))
+        statuses.append(status)
+
+        formats = self._extract_formats(live_info, ('liveRoom', 'streamData', 'pull_data', 'stream_data'), get_quality)
+        formats += self._extract_formats(live_info, ('liveRoom', 'hevcStreamData', 'pull_data', 'stream_data'), get_quality)
+
+        if not formats:
+            self.report_warning('Could not extract any formats from api-live/user/room, attempting alternate endpoint')
+
+            # Endpoint #2: webcast/room/info
+            status, live_info = self._call_api('https://webcast.tiktok.com/webcast/room/info', room_id, {
+                'aid': '1988',
+                'room_id': room_id,
+            }, 'data', ('status',))
+            statuses.append(status)
+
+            formats = self._extract_formats(live_info, ('stream_url', 'live_core_sdk_data', 'pull_data', 'stream_data'), get_quality)
+
+        # If uploader is a guest on another's livestream, [second] endpoint will not have m3u8 URLs
         if not traverse_obj(formats, lambda _, v: v['ext'] == 'mp4'):
-            live_info = merge_dicts(live_info, self._call_api(
-                'https://www.tiktok.com/api/live/detail/', 'roomID', room_id, uploader, key='LiveRoomInfo'))
+            # Endpoint #3: api/live/detail
+            status, live_info_to_merge = self._call_api('https://www.tiktok.com/api/live/detail/', room_id, {
+                'aid': '1988',
+                'roomID': room_id,
+            }, 'LiveRoomInfo', ('status',))
+            statuses.append(status)
+            live_info = merge_dicts(live_info, live_info_to_merge)
+
             if url_or_none(live_info.get('liveUrl')):
                 formats.append({
                     'url': live_info['liveUrl'],
@@ -1710,7 +1731,15 @@ class TikTokLiveIE(TikTokBaseIE):
                     'quality': get_quality('origin'),
                 })
 
-        uploader = uploader or traverse_obj(live_info, ('ownerInfo', 'uniqueId'), ('owner', 'display_id'))
+        # Check statuses. If even one endpoint reports a code of 2, we should assume the user is live.
+        if all(status != 2 for status in statuses):
+            if not uploader:
+                # If room_id is obtained via mobile share URL and cannot be refreshed, do not wait for live
+                raise ExtractorError('This livestream has ended', expected=True)
+            else:
+                raise UserNotLive(video_id=uploader)
+
+        uploader = uploader or traverse_obj(live_info, ('user', 'uniqueId'), ('ownerInfo', 'uniqueId'), ('owner', 'display_id'))
 
         return {
             'id': room_id,
@@ -1720,9 +1749,9 @@ class TikTokLiveIE(TikTokBaseIE):
             'formats': formats,
             '_format_sort_fields': ('quality', 'ext'),
             **traverse_obj(live_info, {
-                'title': 'title',
-                'uploader_id': (('ownerInfo', 'owner'), 'id', {str_or_none}),
-                'creator': (('ownerInfo', 'owner'), 'nickname'),
-                'concurrent_view_count': (('user_count', ('liveRoomStats', 'userCount')), {int_or_none}),
+                'title': [('liveRoom', 'title'), 'title'],
+                'uploader_id': (('user', 'ownerInfo', 'owner'), 'id', {str_or_none}),
+                'creator': (('user', 'ownerInfo', 'owner'), 'nickname'),
+                'concurrent_view_count': ((('liveRoom', 'liveRoomStats', 'userCount'), 'user_count', ('liveRoomStats', 'userCount')), {int_or_none}),
             }, get_all=False),
         }
