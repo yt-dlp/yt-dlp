@@ -191,7 +191,7 @@ class AudiomackIE(AudiomackBaseIE):
 
 
 class AudiomackAlbumIE(AudiomackBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?audiomack\.com/(?!.+/song.)(?P<id>[\w/-]+)'
+    _VALID_URL = r'https?://(?:www\.)?audiomack\.com/(?!.*/?song.+)(?P<id>[\w/-]+)'
     IE_NAME = 'audiomack:album'
     _TESTS = [
         # Standard album playlist
