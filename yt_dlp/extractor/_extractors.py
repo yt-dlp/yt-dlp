@@ -170,6 +170,7 @@ from .bbc import (
     BBCCoUkIPlayerGroupIE,
     BBCCoUkPlaylistIE,
 )
+from .bbcmaestro import BBCMaestroComIE
 from .beacon import BeaconTvIE
 from .beatport import BeatportIE
 from .beeg import BeegIE
