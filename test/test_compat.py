@@ -63,41 +63,41 @@ class TestCompat(unittest.TestCase):
     def test_compat_datetime_from_timestamp(self):
         self.assertEqual(
             compat_datetime_from_timestamp(0),
-            dt.datetime(1970, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc))
+            dt.datetime(1970, 1, 1, 0, 0, 0, tzinfo=dt.UTC))
         self.assertEqual(
             compat_datetime_from_timestamp(1),
-            dt.datetime(1970, 1, 1, 0, 0, 1, tzinfo=dt.timezone.utc))
+            dt.datetime(1970, 1, 1, 0, 0, 1, tzinfo=dt.UTC))
         self.assertEqual(
             compat_datetime_from_timestamp(3600),
-            dt.datetime(1970, 1, 1, 1, 0, 0, tzinfo=dt.timezone.utc))
+            dt.datetime(1970, 1, 1, 1, 0, 0, tzinfo=dt.UTC))
 
         self.assertEqual(
             compat_datetime_from_timestamp(-1),
-            dt.datetime(1969, 12, 31, 23, 59, 59, tzinfo=dt.timezone.utc))
+            dt.datetime(1969, 12, 31, 23, 59, 59, tzinfo=dt.UTC))
         self.assertEqual(
             compat_datetime_from_timestamp(-86400),
-            dt.datetime(1969, 12, 31, 0, 0, 0, tzinfo=dt.timezone.utc))
+            dt.datetime(1969, 12, 31, 0, 0, 0, tzinfo=dt.UTC))
 
         self.assertEqual(
             compat_datetime_from_timestamp(0.5),
-            dt.datetime(1970, 1, 1, 0, 0, 0, 500000, tzinfo=dt.timezone.utc))
+            dt.datetime(1970, 1, 1, 0, 0, 0, 500000, tzinfo=dt.UTC))
         self.assertEqual(
             compat_datetime_from_timestamp(1.000001),
-            dt.datetime(1970, 1, 1, 0, 0, 1, 1, tzinfo=dt.timezone.utc))
+            dt.datetime(1970, 1, 1, 0, 0, 1, 1, tzinfo=dt.UTC))
         self.assertEqual(
             compat_datetime_from_timestamp(-1.25),
-            dt.datetime(1969, 12, 31, 23, 59, 58, 750000, tzinfo=dt.timezone.utc))
+            dt.datetime(1969, 12, 31, 23, 59, 58, 750000, tzinfo=dt.UTC))
 
         self.assertEqual(
             compat_datetime_from_timestamp(-1577923200),
-            dt.datetime(1920, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc))
+            dt.datetime(1920, 1, 1, 0, 0, 0, tzinfo=dt.UTC))
         self.assertEqual(
             compat_datetime_from_timestamp(4102444800),
-            dt.datetime(2100, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc))
+            dt.datetime(2100, 1, 1, 0, 0, 0, tzinfo=dt.UTC))
 
         self.assertEqual(
             compat_datetime_from_timestamp(173568960000),
-            dt.datetime(7470, 3, 8, 0, 0, 0, tzinfo=dt.timezone.utc))
+            dt.datetime(7470, 3, 8, 0, 0, 0, tzinfo=dt.UTC))
 
 
 if __name__ == '__main__':

@@ -422,15 +422,15 @@ class TestUtil(unittest.TestCase):
 
     def test_datetime_round(self):
         self.assertEqual(datetime_round(dt.datetime.strptime('1820-05-12T01:23:45Z', '%Y-%m-%dT%H:%M:%SZ')),
-                         dt.datetime(1820, 5, 12, tzinfo=dt.timezone.utc))
+                         dt.datetime(1820, 5, 12, tzinfo=dt.UTC))
         self.assertEqual(datetime_round(dt.datetime.strptime('1969-12-31T23:34:45Z', '%Y-%m-%dT%H:%M:%SZ'), 'hour'),
-                         dt.datetime(1970, 1, 1, 0, tzinfo=dt.timezone.utc))
+                         dt.datetime(1970, 1, 1, 0, tzinfo=dt.UTC))
         self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45Z', '%Y-%m-%dT%H:%M:%SZ'), 'minute'),
-                         dt.datetime(2024, 12, 25, 1, 24, tzinfo=dt.timezone.utc))
+                         dt.datetime(2024, 12, 25, 1, 24, tzinfo=dt.UTC))
         self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45.123Z', '%Y-%m-%dT%H:%M:%S.%fZ'), 'second'),
-                         dt.datetime(2024, 12, 25, 1, 23, 45, tzinfo=dt.timezone.utc))
+                         dt.datetime(2024, 12, 25, 1, 23, 45, tzinfo=dt.UTC))
         self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45.678Z', '%Y-%m-%dT%H:%M:%S.%fZ'), 'second'),
-                         dt.datetime(2024, 12, 25, 1, 23, 46, tzinfo=dt.timezone.utc))
+                         dt.datetime(2024, 12, 25, 1, 23, 46, tzinfo=dt.UTC))
 
     def test_strftime_or_none(self):
         self.assertEqual(strftime_or_none(-4722192000), '18200512')
