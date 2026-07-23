@@ -324,7 +324,7 @@ class Wget2FD(ExternalFD):
         cmd += self._valueless_option('--progress=none', 'noprogress')
         cmd += ['--https-enforce=soft']
         # TODO: determine why the test fails with this approach
-        # cmd += ['--load-cookies', self._write_cookies()]
+        cmd += ['--load-cookies', self._write_cookies()]
         chunk_size = self.params.get('http_chunk_size')
         if chunk_size is None:
             chunk_size = info_dict.get('downloader_options', {}).get('http_chunk_size', self._DEFAULT_CHUNK_SIZE)
@@ -332,7 +332,7 @@ class Wget2FD(ExternalFD):
             cmd += [f'--chunk-size={chunk_size}']
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
-                cmd += ['--header', f'{key}: {val}']
+                cmd += [f'--header={key}: {val}']
         cmd += self._option('--limit-rate', 'ratelimit')
         retry = self._option('--tries', 'retries')
         if len(retry) == 2:
@@ -346,8 +346,10 @@ class Wget2FD(ExternalFD):
         cmd += self._valueless_option('--no-check-certificate', 'nocheckcertificate')
         cmd += self._configuration_args()
         cookie_header = self.ydl.cookiejar.get_cookie_header(info_dict['url'])
+        from pprint import pp
+        pp( cookie_header )
         if cookie_header:
-            cmd += ['--header', f'Cookie: {cookie_header}']
+            cmd += [f'--header=Cookie: {cookie_header}']
         cmd += ['--timestamping', '--unlink', f'--output-document={tmpfilename}']
         cmd += ['--', info_dict['url']]
         return cmd
