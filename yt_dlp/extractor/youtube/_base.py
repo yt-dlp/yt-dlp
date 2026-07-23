@@ -99,7 +99,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20260114.08.00',
+                'clientVersion': '2.20260708.00.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
@@ -107,11 +107,12 @@ INNERTUBE_CLIENTS = {
         **WEB_PO_TOKEN_POLICIES,
     },
     # Safari UA returns pre-merged video+audio 144p/240p/360p/720p/1080p HLS formats
+    # Since 2026.07, HLS formats are only returned with some logged-in or "trusted" sessions
     'web_safari': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20260114.08.00',
+                'clientVersion': '2.20260708.00.00',
                 'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15,gzip(gfe)',
             },
         },
@@ -123,7 +124,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_EMBEDDED_PLAYER',
-                'clientVersion': '1.20260115.01.00',
+                'clientVersion': '2.20260708.00.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 56,
@@ -134,7 +135,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_REMIX',
-                'clientVersion': '1.20260114.03.00',
+                'clientVersion': '1.20260707.12.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
@@ -164,7 +165,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_CREATOR',
-                'clientVersion': '1.20260114.05.00',
+                'clientVersion': '1.20260708.06.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
@@ -193,9 +194,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '21.02.35',
+                'clientVersion': '21.26.364',
                 'androidSdkVersion': 30,
-                'userAgent': 'com.google.android.youtube/21.02.35 (Linux; U; Android 11) gzip',
+                'userAgent': 'com.google.android.youtube/21.26.364 (Linux; U; Android 11) gzip',
                 'osName': 'Android',
                 'osVersion': '11',
             },
@@ -223,6 +224,7 @@ INNERTUBE_CLIENTS = {
     },
     # "Made for kids" videos aren't available with this client
     # Using a clientVersion>1.65 may return SABR streams only
+    # Since 2026.07, intermittent/selective POT enforcement has been observed for non-HLS formats
     'android_vr': {
         'INNERTUBE_CONTEXT': {
             'client': {
@@ -238,6 +240,24 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 28,
         'REQUIRE_JS_PLAYER': False,
+        'GVS_PO_TOKEN_POLICY': {
+            StreamingProtocol.HTTPS: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
+            StreamingProtocol.DASH: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
+            StreamingProtocol.HLS: GvsPoTokenPolicy(
+                required=False,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
+        },
+        'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
     },
     # iOS clients have HLS live streams. Setting device model to get 60fps formats.
     # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680#issuecomment-1002724558
@@ -245,10 +265,10 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS',
-                'clientVersion': '21.02.3',
+                'clientVersion': '21.26.4',
                 'deviceMake': 'Apple',
                 'deviceModel': 'iPhone16,2',
-                'userAgent': 'com.google.ios.youtube/21.02.3 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)',
+                'userAgent': 'com.google.ios.youtube/21.26.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)',
                 'osName': 'iPhone',
                 'osVersion': '18.3.2.22D82',
             },
@@ -270,13 +290,29 @@ INNERTUBE_CLIENTS = {
         'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
         'REQUIRE_JS_PLAYER': False,
     },
+    # "Made for kids" videos aren't available with this client
+    'visionos': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'VISIONOS',
+                'clientVersion': '1.02',
+                'deviceMake': 'Apple',
+                'deviceModel': 'RealityDevice17,1',
+                'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
+                'osName': 'visionOS',
+                'osVersion': '26.5.23O471',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 101,
+        'REQUIRE_JS_PLAYER': False,
+    },
     # mweb has 'ultralow' formats
     # See: https://github.com/yt-dlp/yt-dlp/pull/557
     'mweb': {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'MWEB',
-                'clientVersion': '2.20260115.01.00',
+                'clientVersion': '2.20260708.05.00',
                 # mweb previously did not require PO Token with this UA
                 'userAgent': 'Mozilla/5.0 (iPad; CPU OS 16_7_10 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1,gzip(gfe)',
             },
@@ -307,7 +343,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'TVHTML5',
-                'clientVersion': '7.20260114.12.00',
+                'clientVersion': '7.20260707.07.00',
                 # See: https://github.com/youtube/cobalt/blob/main/cobalt/browser/user_agent/user_agent_platform_info.cc#L506
                 'userAgent': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/25.lts.30.1034943-gold (unlike Gecko), Unknown_TV_Unknown_0/Unknown (Unknown, Unknown)',
             },
@@ -319,12 +355,11 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'TVHTML5',
-                'clientVersion': '5.20260114',
+                'clientVersion': '5.20260707',
                 'userAgent': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
-        'REQUIRE_AUTH': True,
         'SUPPORTS_COOKIES': True,
     },
     'tv_simply': {
@@ -1184,8 +1219,20 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 })
         return thumbnails
 
-    @staticmethod
-    def extract_relative_time(relative_time_text):
+    # Map abbreviated relative-time units to the long-form unit names that
+    # datetime_from_str() understands.
+    _RELATIVE_TIME_UNIT_MAP = {
+        's': 'second', 'sec': 'second', 'second': 'second',
+        'min': 'minute', 'minute': 'minute',
+        'h': 'hour', 'hr': 'hour', 'hour': 'hour',
+        'd': 'day', 'day': 'day',
+        'w': 'week', 'wk': 'week', 'week': 'week',
+        'mo': 'month', 'month': 'month',
+        'y': 'year', 'yr': 'year', 'year': 'year',
+    }
+
+    @classmethod
+    def extract_relative_time(cls, relative_time_text):
         """
         Extracts a relative time from string and converts to dt object
         e.g. 'streamed 6 days ago', '5 seconds ago (edited)', 'updated today', '8 yr ago'
@@ -1195,15 +1242,19 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         # The relative time text strings are roughly the same as what
         # Javascript's Intl.RelativeTimeFormat function generates.
         # See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/RelativeTimeFormat
+        # Sort longest-first: regex alternation matches left-to-right, so short
+        # keys like 's' must come after 'sec'/'second' to avoid premature matches.
+        units = '|'.join(map(re.escape, sorted(cls._RELATIVE_TIME_UNIT_MAP, key=len, reverse=True)))
         mobj = re.search(
-            r'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>sec(?:ond)?|s|min(?:ute)?|h(?:our|r)?|d(?:ay)?|w(?:eek|k)?|mo(?:nth)?|y(?:ear|r)?)s?\s*ago',
+            rf'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>{units})s?\s*ago',
             relative_time_text)
         if mobj:
             start = mobj.group('start')
             if start:
                 return datetime_from_str(start)
+            unit = cls._RELATIVE_TIME_UNIT_MAP[mobj.group('unit')]
             try:
-                return datetime_from_str('now-{}{}'.format(mobj.group('time'), mobj.group('unit')))
+                return datetime_from_str(f'now-{mobj.group("time")}{unit}')
             except ValueError:
                 return None
 
