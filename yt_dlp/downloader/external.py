@@ -115,8 +115,8 @@ class ExternalFD(FragmentFD):
     def can_download(cls, info_dict, path=None):
         return cls.available(path) and cls.supports(info_dict)
 
-    def _option(self, command_option, param):
-        return cli_option(self.params, command_option, param)
+    def _option(self, command_option, param, separator=None):
+        return cli_option(self.params, command_option, param, separator)
 
     def _bool_option(self, command_option, param, true_value='true', false_value='false', separator=None):
         return cli_bool_option(self.params, command_option, param, true_value, false_value, separator)
@@ -159,8 +159,6 @@ class ExternalFD(FragmentFD):
             _, stderr, returncode = self._call_process(cmd, info_dict)
             if not returncode:
                 break
-            # TODO: Decide whether to retry based on error code
-            # https://aria2.github.io/manual/en/html/aria2c.html#exit-status
             if stderr:
                 self.to_stderr(stderr)
             retry.error = Exception()
@@ -185,7 +183,6 @@ class ExternalFD(FragmentFD):
             if not self.params.get('keep_fragments', False):
                 self.try_remove(fragment_filename)
         dest.close()
-        self.try_remove(f'{tmpfilename}.frag.urls')
         return 0
 
     def _call_process(self, cmd, info_dict):
@@ -312,18 +309,18 @@ class Aria2cFD(ExternalFD):
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '--no-conf', '--auto-save-interval=10',
                '--console-log-level=warn', '--summary-interval=0', '--download-result=hide',
-               '--http-accept-gzip=true', '--file-allocation=none', '-x16', '-j16', '-s16',
-               '--min-split-size', '1M']
+               '--http-accept-gzip=true', '--lowest-speed-limit=2', '--max-connection-per-server=2',
+               '--min-split-size=5M']
 
         cmd += [f'--load-cookies={self._write_cookies()}']
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
-                cmd += ['--header', f'{key}: {val}']
-        cmd += self._option('--max-overall-download-limit', 'ratelimit')
-        cmd += self._option('--interface', 'source_address')
-        cmd += self._option('--all-proxy', 'proxy')
+                cmd += [f'--header={key}: {val}']
+        cmd += self._option('--max-overall-download-limit', 'ratelimit', '=')
+        cmd += self._option('--interface', 'source_address', '=')
+        cmd += self._option('--all-proxy', 'proxy', '=')
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
-        cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
+        cmd += self._bool_option('--remote-time', 'updatetime', separator='=')
         cmd += self._bool_option('--show-console-readout', 'noprogress', 'false', 'true', '=')
         cmd += self._bool_option('--remove-control-file', 'continuedl', 'false', 'true', '=')
         cmd += self._configuration_args()
@@ -339,6 +336,12 @@ class Aria2cFD(ExternalFD):
         # See: https://github.com/yt-dlp/yt-dlp/issues/276
         # https://github.com/ytdl-org/youtube-dl/issues/20312
         # https://github.com/aria2/aria2/issues/1373
+        #
+        # --dir and --out do not require the use of '=' as a separator.
+        # Despite what the documentation shows `getopt_long` is used,
+        # so these being marked as required means we can use space instead.
+        # https://github.com/aria2/aria2/blob/9e7273583f83e881e3ec067b523ba88724088d2f/src/OptionHandlerImpl.cc#L532-L542
+        #
         dn = os.path.dirname(tmpfilename)
         if dn:
             cmd += ['--dir', self._aria2c_filename(dn) + os.path.sep]
