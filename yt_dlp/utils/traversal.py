@@ -380,68 +380,72 @@ def subs_list_to_dict(subs: list[dict] | None = None, /, *, lang='und', ext=None
 
 
 @typing.overload
-def find_element(*, attr: str, value: str, tag: str | None = None, html=False, regex=False): ...
+def find_element(*, attr: str, value: str | None, tag: str | None = None, html=False, attr_regex=False, regex=False, require_value=True, quoted=True): ...
 
 
 @typing.overload
-def find_element(*, cls: str, html=False): ...
+def find_element(*, cls: str, html=False, regex=False, quoted=True): ...
 
 
 @typing.overload
-def find_element(*, id: str, tag: str | None = None, html=False, regex=False): ...
+def find_element(*, id: str, tag: str | None = None, html=False, regex=False, quoted=True): ...
 
 
 @typing.overload
 def find_element(*, tag: str, html=False, regex=False): ...
 
 
-def find_element(*, tag=None, id=None, cls=None, attr=None, value=None, html=False, regex=False):
+def find_element(*, tag=None, id=None, cls=None, attr=None, value=None, html=False, attr_regex=False, regex=False, require_value=True, quoted=True):
     # deliberately using `id=` and `cls=` for ease of readability
-    assert tag or id or cls or (attr and value), 'One of tag, id, cls or (attr AND value) is required'
+    if id is not None:
+        assert id, 'id must not be empty'
+    if attr is not None:
+        assert attr, 'attr must not be empty'
+    assert tag or id or cls is not None or attr is not None, 'One of tag, id, cls or (attr AND value) is required'
     ANY_TAG = r'[\w:.-]+'
 
-    if attr and value:
-        assert not cls, 'Cannot match both attr and cls'
-        assert not id, 'Cannot match both attr and id'
+    if attr is not None:
+        assert cls is None, 'Cannot match both attr and cls'
+        assert id is None, 'Cannot match both attr and id'
         func = get_element_html_by_attribute if html else get_element_by_attribute
-        return functools.partial(func, attr, value, tag=tag or ANY_TAG, escape_value=not regex)
+        return functools.partial(func, attr, value, tag=tag or ANY_TAG, escape_attr=not attr_regex, escape_value=not regex, require_value=require_value, quoted=quoted)
 
-    elif cls:
-        assert not id, 'Cannot match both cls and id'
+    elif cls is not None:
+        assert id is None, 'Cannot match both cls and id'
         assert tag is None, 'Cannot match both cls and tag'
-        assert not regex, 'Cannot use regex with cls'
         func = get_element_html_by_class if html else get_element_by_class
-        return functools.partial(func, cls)
+        return functools.partial(func, cls, escape_value=not regex, quoted=quoted)
 
     elif id:
         func = get_element_html_by_id if html else get_element_by_id
-        return functools.partial(func, id, tag=tag or ANY_TAG, escape_value=not regex)
+        return functools.partial(func, id, tag=tag or ANY_TAG, escape_value=not regex, quoted=quoted)
 
     index = int(bool(html))
     return lambda html: get_element_text_and_html_by_tag(tag, html)[index]
 
 
 @typing.overload
-def find_elements(*, cls: str, html=False): ...
+def find_elements(*, cls: str, html=False, regex=False, quoted=True): ...
 
 
 @typing.overload
-def find_elements(*, attr: str, value: str, tag: str | None = None, html=False, regex=False): ...
+def find_elements(*, attr: str, value: str | None, tag: str | None = None, html=False, attr_regex=False, regex=False, require_value=True, quoted=True): ...
 
 
-def find_elements(*, tag=None, cls=None, attr=None, value=None, html=False, regex=False):
+def find_elements(*, tag=None, cls=None, attr=None, value=None, html=False, attr_regex=False, regex=False, require_value=True, quoted=True):
     # deliberately using `cls=` for ease of readability
-    assert cls or (attr and value), 'One of cls or (attr AND value) is required'
+    if attr is not None:
+        assert attr, 'attr must not be empty'
+    assert cls is not None or attr is not None, 'One of cls or (attr AND value) is required'
 
-    if attr and value:
-        assert not cls, 'Cannot match both attr and cls'
+    if attr is not None:
+        assert cls is None, 'Cannot match both attr and cls'
         func = get_elements_html_by_attribute if html else get_elements_by_attribute
-        return functools.partial(func, attr, value, tag=tag or r'[\w:.-]+', escape_value=not regex)
+        return functools.partial(func, attr, value, tag=tag or r'[\w:.-]+', escape_attr=not attr_regex, escape_value=not regex, require_value=require_value, quoted=quoted)
 
-    assert not tag, 'Cannot match both cls and tag'
-    assert not regex, 'Cannot use regex with cls'
+    assert tag is None, 'Cannot match both cls and tag'
     func = get_elements_html_by_class if html else get_elements_by_class
-    return functools.partial(func, cls)
+    return functools.partial(func, cls, escape_value=not regex, quoted=quoted)
 
 
 def trim_str(*, start=None, end=None):
