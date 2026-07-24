@@ -1549,6 +1549,16 @@ class YoutubeDL:
                 no_ext, *ext = filename.rsplit('.', 2)
                 filename = join_nonempty(no_ext[:trim_file_name], *ext, delim='.')
 
+            # Prevent ENAMETOOLONG (errno 63) errors on Unix/macOS
+            # NAME_MAX is 255 bytes; leave room for extension + '.part' suffix
+            if filename and filename != '-':
+                no_ext, *ext = filename.rsplit('.', 2)
+                MAX_FILENAME_BYTES = 200
+                no_ext_bytes = no_ext.encode('utf-8')
+                if len(no_ext_bytes) > MAX_FILENAME_BYTES:
+                    no_ext = no_ext_bytes[:MAX_FILENAME_BYTES].decode('utf-8', errors='ignore')
+                    filename = join_nonempty(no_ext, *ext, delim='.')
+
             return filename
         except ValueError as err:
             self.report_error('Error in output template: ' + str(err) + ' (encoding: ' + repr(preferredencoding()) + ')')
