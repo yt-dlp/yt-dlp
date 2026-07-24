@@ -417,7 +417,7 @@ class TumblrIE(InfoExtractor):
         blog_1, blog_2, video_id = self._match_valid_url(url).groups()
         blog = blog_2 or blog_1
 
-        url = f'http://{blog}.tumblr.com/post/{video_id}'
+        url = f'https://www.tumblr.com/{blog}/post/{video_id}'
         webpage, urlh = self._download_webpage_handle(
             url, video_id, headers={'User-Agent': 'WhatsApp/2.0'})  # whatsapp ua bypasses problems
 
