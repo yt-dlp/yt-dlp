@@ -23,6 +23,8 @@ from ..utils.traversal import require, traverse_obj
 class AudiomackBaseIE(InfoExtractor):
     _CONSUMER_KEY = 'bd8a07e9f23fbe9d808646b730f89b8e'
 
+    # utils.escape_rfc3986 preserve %/;:@&=+$,!~*'()?#[]
+    # Here we only preserve ~
     @staticmethod
     def rfc3986(x):
         if x is None:
