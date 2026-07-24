@@ -1,6 +1,5 @@
 import itertools
 import random
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -21,23 +20,35 @@ from ..utils import (
 class TVPIE(InfoExtractor):
     IE_NAME = 'tvp'
     IE_DESC = 'Telewizja Polska'
-    _VALID_URL = r'https?://(?:[^/]+\.)?(?:tvp(?:parlament)?\.(?:pl|info)|tvpworld\.com|swipeto\.pl)/(?:(?!\d+/)[^/]+/)*(?P<id>\d+)(?:[/?#]|$)'
+    _VALID_URL = r'https?://(?:[^/]+\.)?(?:tvp(?:parlament)?\.(?:pl|info)|tvpworld\.com|belsat\.eu)/(?:(?!\d+/)[^/]+/)*(?P<id>\d+)(?:[/?#]|$)'
 
     _TESTS = [{
-        # TVPlayer 2 in js wrapper
-        'url': 'https://swipeto.pl/64095316/uliczny-foxtrot-wypozyczalnia-kaset-kto-pamieta-dvdvideo',
+        # TVPlayer 3
+        'url': 'https://wilno.tvp.pl/75865949/rozmowa-tygodnia-z-andriusem-vainysem-o-wizycie-s-holowni',
         'info_dict': {
-            'id': '64095316',
+            'id': '75866176',
             'ext': 'mp4',
-            'title': 'Uliczny Foxtrot — Wypożyczalnia kaset. Kto pamięta DVD-Video?',
+            'title': 'Rozmowa tygodnia z Andriusem Vaišnysem o wizycie S. Hołowni',
+            'alt_title': 'md5:51cc9faf4623ba33aa5191bb83f3f76a',
+            'duration': 169,
             'age_limit': 0,
-            'duration': 374,
+            'release_timestamp': 1707591120,
+            'release_date': '20240210',
             'thumbnail': r're:https://.+',
         },
-        'expected_warnings': [
-            'Failed to download ISM manifest: HTTP Error 404: Not Found',
-            'Failed to download m3u8 information: HTTP Error 404: Not Found',
-        ],
+    }, {
+        # TVPlayer 2 (JSON)
+        'url': 'https://jp2.tvp.pl/48566934/o-suwerennosci-narodu-i-upadku-totalitaryzmu-przemowienie-powitalne',
+        'info_dict': {
+            'id': '48566934',
+            'ext': 'mp4',
+            'title': 'O suwerenności narodu i upadku totalitaryzmu. Przemówienie powitalne',
+            'duration': 527,
+            'age_limit': 0,
+            'release_timestamp': 1592388480,
+            'release_date': '20200617',
+            'thumbnail': r're:https://.+',
+        },
     }, {
         # TVPlayer legacy
         'url': 'https://www.tvp.pl/polska-press-video-uploader/wideo/62042351',
@@ -51,48 +62,11 @@ class TVPIE(InfoExtractor):
             'thumbnail': r're:https://.+',
         },
     }, {
-        # TVPlayer 2 in iframe
-        'url': 'https://wiadomosci.tvp.pl/50725617/dzieci-na-sprzedaz-dla-homoseksualistow',
-        'info_dict': {
-            'id': '50725617',
-            'ext': 'mp4',
-            'title': 'Dzieci na sprzedaż dla homoseksualistów',
-            'description': 'md5:7d318eef04e55ddd9f87a8488ac7d590',
-            'age_limit': 12,
-            'duration': 259,
-            'thumbnail': r're:https://.+',
-        },
-    }, {
-        # TVPlayer 2 in client-side rendered website (regional; window.__newsData)
-        'url': 'https://warszawa.tvp.pl/25804446/studio-yayo',
-        'info_dict': {
-            'id': '25804446',
-            'ext': 'mp4',
-            'title': 'Studio Yayo',
-            'upload_date': '20160616',
-            'timestamp': 1466075700,
-            'age_limit': 0,
-            'duration': 20,
-            'thumbnail': r're:https://.+',
-        },
-        'skip': 'Geo-blocked outside PL',
-    }, {
-        # TVPlayer 2 in client-side rendered website (tvp.info; window.__videoData)
-        'url': 'https://www.tvp.info/52880236/09042021-0800',
-        'info_dict': {
-            'id': '52880236',
-            'ext': 'mp4',
-            'title': '09.04.2021, 08:00',
-            'age_limit': 0,
-            'thumbnail': r're:https://.+',
-        },
-        'skip': 'Geo-blocked outside PL',
-    }, {
         # client-side rendered (regional) program (playlist) page
         'url': 'https://opole.tvp.pl/9660819/rozmowa-dnia',
         'info_dict': {
             'id': '9660819',
-            'description': 'Od poniedziałku do piątku o 18:55',
+            'description': 'Od poniedziałku do piątku o 19:00.',
             'title': 'Rozmowa dnia',
         },
         'playlist_mincount': 1800,
@@ -100,35 +74,13 @@ class TVPIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
-        # ABC-specific video embeding
-        # moved to https://bajkowakraina.tvp.pl/wideo/50981130,teleranek,51027049,zubr,51116450
-        'url': 'https://abc.tvp.pl/48636269/zubry-odc-124',
-        'info_dict': {
-            'id': '48320456',
-            'ext': 'mp4',
-            'title': 'Teleranek, Żubr',
-        },
-        'skip': 'unavailable',
-    }, {
         # yet another vue page
         'url': 'https://jp2.tvp.pl/46925618/filmy',
         'info_dict': {
             'id': '46925618',
             'title': 'Filmy',
         },
-        'playlist_mincount': 19,
-    }, {
-        'url': 'http://vod.tvp.pl/seriale/obyczajowe/na-sygnale/sezon-2-27-/odc-39/17834272',
-        'only_matching': True,
-    }, {
-        'url': 'http://wiadomosci.tvp.pl/25169746/24052016-1200',
-        'only_matching': True,
-    }, {
-        'url': 'http://krakow.tvp.pl/25511623/25lecie-mck-wyjatkowe-miejsce-na-mapie-krakowa',
-        'only_matching': True,
-    }, {
-        'url': 'http://teleexpress.tvp.pl/25522307/wierni-wzieli-udzial-w-procesjach',
-        'only_matching': True,
+        'playlist_mincount': 27,
     }, {
         'url': 'http://sport.tvp.pl/25522165/krychowiak-uspokaja-w-sprawie-kontuzji-dwa-tygodnie-to-maksimum',
         'only_matching': True,
@@ -139,94 +91,100 @@ class TVPIE(InfoExtractor):
         'url': 'https://tvp.info/49193823/teczowe-flagi-na-pomnikach-prokuratura-wszczela-postepowanie-wieszwiecej',
         'only_matching': True,
     }, {
-        'url': 'https://www.tvpparlament.pl/retransmisje-vod/inne/wizyta-premiera-mateusza-morawieckiego-w-firmie-berotu-sp-z-oo/48857277',
+        'url': 'https://tvpworld.com/48583640/tescos-polish-business-bought-by-danish-chain-netto',
         'only_matching': True,
     }, {
-        'url': 'https://tvpworld.com/48583640/tescos-polish-business-bought-by-danish-chain-netto',
+        'url': 'https://belsat.eu/83193018/vybary-jak-castka-hibrydnaj-vajny',
         'only_matching': True,
     }]
 
-    def _parse_vue_website_data(self, webpage, page_id):
-        website_data = self._search_regex([
-            # website - regiony, tvp.info
-            # directory - jp2.tvp.pl
-            r'window\.__(?:website|directory)Data\s*=\s*({(?:.|\s)+?});',
-        ], webpage, 'website data')
-        if not website_data:
-            return None
-        return self._parse_json(website_data, page_id, transform_source=js_to_json)
-
-    def _extract_vue_video(self, video_data, page_id=None):
-        if isinstance(video_data, str):
-            video_data = self._parse_json(video_data, page_id, transform_source=js_to_json)
-        thumbnails = []
-        image = video_data.get('image')
-        if image:
-            for thumb in (image if isinstance(image, list) else [image]):
-                thmb_url = str_or_none(thumb.get('url'))
-                if thmb_url:
-                    thumbnails.append({
-                        'url': thmb_url,
-                    })
-        is_website = video_data.get('type') == 'website'
-        if is_website:
-            url = video_data['url']
-        else:
-            url = 'tvp:' + str_or_none(video_data.get('_id') or page_id)
+    def _parse_video(self, url, video_data, page_id):
+        video_id = str(video_data.get('_id'))
         return {
             '_type': 'url_transparent',
-            'id': str_or_none(video_data.get('_id') or page_id),
-            'url': url,
-            'ie_key': (TVPIE if is_website else TVPEmbedIE).ie_key(),
-            'title': str_or_none(video_data.get('title')),
-            'description': str_or_none(video_data.get('lead')),
-            'timestamp': int_or_none(video_data.get('release_date_long')),
-            'duration': int_or_none(video_data.get('duration')),
-            'thumbnails': thumbnails,
+            'url': f'tvp:{video_id}',
+            'ie_key': TVPEmbedIE.ie_key(),
+            'id': video_id,
+            **traverse_obj(video_data, {
+                'title': 'title',
+                'duration': 'duration',
+                'is_live': 'is_live',
+                'release_timestamp': ('release_date', {int_or_none(scale=1000)}),
+            }),
         }
 
-    def _handle_vuejs_page(self, url, webpage, page_id):
-        # vue client-side rendered sites (all regional pages + tvp.info)
-        video_data = self._search_regex([
-            r'window\.__(?:news|video)Data\s*=\s*({(?:.|\s)+?})\s*;',
-        ], webpage, 'video data', default=None)
-        if video_data:
-            return self._extract_vue_video(video_data, page_id=page_id)
-        # paged playlists
-        website_data = self._parse_vue_website_data(webpage, page_id)
-        if website_data:
-            entries = self._vuejs_entries(url, website_data, page_id)
+    def _parse_news(self, url, news_data, page_id):
+        videos = [self._parse_video(url, video_data, page_id) for video_data in traverse_obj(news_data, ('video', 'items'))]
+        info_dict = {
+            'id': str_or_none(news_data.get('id')) or page_id,
+            'title': news_data['title'],
+            'alt_title': news_data.get('lead'),
+            'description': news_data.get('description'),
+        }
+        if len(videos) == 1:
+            return {**info_dict, **videos[0]}
+        return {
+            **info_dict,
+            '_type': 'playlist',
+            'entries': videos,
+        }
 
-            return {
-                '_type': 'playlist',
-                'id': page_id,
-                'title': str_or_none(website_data.get('title')),
-                'description': str_or_none(website_data.get('lead')),
-                'entries': entries,
-            }
-        raise ExtractorError('Could not extract video/website data')
-
-    def _vuejs_entries(self, url, website_data, page_id):
+    def _get_website_entries(self, url, website_data, page_id, data_type='website'):
+        parser = self._parse_video
+        if data_type == 'directory':
+            parser = self._parse_directory_website
 
         def extract_videos(wd):
             if wd.get('latestVideo'):
-                yield self._extract_vue_video(wd['latestVideo'])
+                yield parser(url, wd['latestVideo'], page_id)
             for video in wd.get('videos') or []:
-                yield self._extract_vue_video(video)
+                yield parser(url, video, page_id)
             for video in wd.get('items') or []:
-                yield self._extract_vue_video(video)
+                yield parser(url, video, page_id)
 
         yield from extract_videos(website_data)
 
         if website_data.get('items_total_count') > website_data.get('items_per_page'):
             for page in itertools.count(2):
-                page_website_data = self._parse_vue_website_data(
-                    self._download_webpage(url, page_id, note=f'Downloading page #{page}',
-                                           query={'page': page}),
-                    page_id)
+                page_website_data = self._find_data(data_type, self._download_webpage(
+                    url, page_id, note=f'Downloading {data_type} page #{page}',
+                    query={'page': page}), page_id)
                 if not page_website_data.get('videos') and not page_website_data.get('items'):
                     break
                 yield from extract_videos(page_website_data)
+
+    def _parse_website(self, url, website_data, page_id):
+        return {
+            '_type': 'playlist',
+            'entries': self._get_website_entries(url, website_data, page_id),
+            'id': page_id,
+            'title': website_data.get('title'),
+            'description': website_data.get('lead'),
+        }
+
+    def _parse_directory_website(self, url, website_data, page_id):
+        website_id = str_or_none(website_data.get('_id'))
+        return {
+            '_type': 'url_transparent',
+            'url': website_data['url'],
+            'id': website_id,
+            'title': website_data.get('title'),
+            'description': website_data.get('lead'),
+        }
+
+    def _parse_directory(self, url, directory_data, page_id):
+        return {
+            '_type': 'playlist',
+            'entries': self._get_website_entries(url, directory_data, page_id, data_type='directory'),
+            'id': page_id,
+            'title': directory_data.get('title'),
+            'description': directory_data.get('lead'),
+        }
+
+    def _find_data(self, data_type, webpage, video_id, **kwargs):
+        return self._search_json(
+            rf'window\.__{data_type}Data\s*=', webpage, f'{data_type} data', video_id,
+            transform_source=js_to_json, **kwargs)
 
     def _real_extract(self, url):
         page_id = self._match_id(url)
@@ -238,10 +196,15 @@ class TVPIE(InfoExtractor):
             if ie_cls.suitable(urlh.url):
                 return self.url_result(urlh.url, ie=ie_cls.ie_key(), video_id=page_id)
 
-        if re.search(
-                r'window\.__(?:video|news|website|directory)Data\s*=',
-                webpage):
-            return self._handle_vuejs_page(url, webpage, page_id)
+        for (dt, parse) in (
+            ('news', self._parse_news),
+            ('video', self._parse_video),
+            ('website', self._parse_website),
+            ('directory', self._parse_directory),
+        ):
+            data = self._find_data(dt, webpage, page_id, default=None)
+            if data:
+                return parse(url, data, page_id)
 
         # classic server-side rendered sites
         video_id = self._search_regex([
@@ -249,10 +212,6 @@ class TVPIE(InfoExtractor):
             r'<iframe[^>]+src="[^"]*?object_id=(\d+)',
             r"object_id\s*:\s*'(\d+)'",
             r'data-video-id="(\d+)"',
-
-            # abc.tvp.pl - somehow there are more than one video IDs that seem to be the same video?
-            # the first one is referenced to as "copyid", and seems to be unused by the website
-            r'<script>\s*tvpabc\.video\.init\(\s*\d+,\s*(\d+)\s*\)\s*</script>',
         ], webpage, 'video id', default=page_id)
         return {
             '_type': 'url_transparent',
