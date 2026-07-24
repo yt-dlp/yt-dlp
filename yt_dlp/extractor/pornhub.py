@@ -21,6 +21,7 @@ from ..utils import (
     remove_quotes,
     remove_start,
     str_to_int,
+    traverse_obj,
     update_url_query,
     url_or_none,
     urlencode_postdata,
@@ -341,6 +342,12 @@ class PornHubIE(PornHubBaseIE):
                 })
             thumbnail = flashvars.get('image_url')
             duration = int_or_none(flashvars.get('video_duration'))
+            chapters = traverse_obj(flashvars, (
+                'actionTags', {lambda x: x.split(',')}, ..., {lambda x: x.split(':', 1)},
+                all, lambda _, v: int_or_none(v[1]) is not None, {
+                    'title': (0, {str.strip}),
+                    'start_time': (1, {int_or_none}),
+                })) or None
             media_definitions = flashvars.get('mediaDefinitions')
             if isinstance(media_definitions, list):
                 for definition in media_definitions:
@@ -355,7 +362,7 @@ class PornHubIE(PornHubBaseIE):
                     video_urls.append(
                         (video_url, int_or_none(definition.get('quality'))))
         else:
-            thumbnail, duration = [None] * 2
+            thumbnail, duration, chapters = [None] * 3
 
         def extract_js_vars(webpage, pattern, default=NO_DEFAULT):
             assignments = self._search_regex(
@@ -509,6 +516,7 @@ class PornHubIE(PornHubBaseIE):
             'title': title,
             'thumbnail': thumbnail,
             'duration': duration,
+            'chapters': chapters,
             'view_count': view_count,
             'like_count': like_count,
             'dislike_count': dislike_count,
