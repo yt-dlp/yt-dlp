@@ -115,8 +115,8 @@ class ExternalFD(FragmentFD):
     def can_download(cls, info_dict, path=None):
         return cls.available(path) and cls.supports(info_dict)
 
-    def _option(self, command_option, param):
-        return cli_option(self.params, command_option, param)
+    def _option(self, command_option, param, separator=None):
+        return cli_option(self.params, command_option, param, separator)
 
     def _bool_option(self, command_option, param, true_value='true', false_value='false', separator=None):
         return cli_bool_option(self.params, command_option, param, true_value, false_value, separator)
