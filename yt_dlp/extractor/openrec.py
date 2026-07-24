@@ -129,9 +129,7 @@ class OpenRecBaseIE(InfoExtractor):
                 'description': ('introduction', {clean_html}, filter),
                 'duration': ('playTime', 'value', {int_or_none(scale=1000)}),
                 'thumbnail': (('lThumbnailUrl', 'thumbnailUrl'), {url_or_none}, any),
-                'timestamp': (
-                    ('startedAt', 'publishedAt'), 'time',
-                    {int_or_none(scale=1000)}, any),
+                'timestamp': (('startedAt', 'publishedAt'), 'time', {int_or_none(scale=1000)}, any),
                 'view_count': ('totalViews', {int_or_none}),
             }),
             **traverse_obj(info, ('channel', 'user', {
@@ -473,6 +471,8 @@ class OpenRecMovieIE(OpenRecBaseIE):
             'duration': 771,
             'tags': ['雑談'],
             'thumbnail': r're:https?://.+',
+            'timestamp': 1750676400,
+            'upload_date': '20250623',
             'view_count': int,
         },
     }, {
@@ -492,6 +492,8 @@ class OpenRecMovieIE(OpenRecBaseIE):
             'duration': 1800,
             'tags': ['声優'],
             'thumbnail': r're:https?://.+',
+            'timestamp': 1724250600,
+            'upload_date': '20240821',
             'view_count': int,
         },
         'skip': 'Subscribers only',
@@ -512,6 +514,8 @@ class OpenRecMovieIE(OpenRecBaseIE):
             'duration': 2002,
             'tags': ['アイドル'],
             'thumbnail': r're:https?://.+',
+            'timestamp': 1753354800,
+            'upload_date': '20250724',
             'view_count': int,
         },
         'skip': 'Paid video',
