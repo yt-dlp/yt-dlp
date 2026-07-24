@@ -1829,7 +1829,10 @@ from .stacommu import (
 )
 from .stageplus import StagePlusVODConcertIE
 from .startrek import StarTrekIE
-from .startv import StarTVIE
+from .startv import (
+    StarTVIE,
+    StarTVSeriesIE,
+)
 from .steam import (
     SteamCommunityBroadcastIE,
     SteamCommunityIE,
