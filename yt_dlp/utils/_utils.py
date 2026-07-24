@@ -4864,10 +4864,6 @@ def remove_terminal_sequences(string):
     return _terminal_sequences_re.sub('', string)
 
 
-def number_of_digits(number):
-    return len('%d' % number)
-
-
 def join_nonempty(*values, delim='-', from_dict=None):
     if from_dict is not None:
         values = (traversal.traverse_obj(from_dict, variadic(v)) for v in values)

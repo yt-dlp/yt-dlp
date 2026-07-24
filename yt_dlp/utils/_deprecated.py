@@ -58,4 +58,8 @@ def make_dir(path, to_screen=None):
         return False
 
 
+def number_of_digits(number):
+    return len('%d' % number)
+
+
 compiled_regex_type = type(re.compile(''))
