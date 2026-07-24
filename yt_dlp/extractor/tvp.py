@@ -10,12 +10,20 @@ from ..utils import (
     dict_get,
     int_or_none,
     js_to_json,
+    parse_iso8601,
     str_or_none,
     strip_or_none,
     traverse_obj,
     try_get,
     url_or_none,
 )
+
+
+def posint_or_none(value):
+    retval = int_or_none(value)
+    if retval and retval > 0:
+        return retval
+    return None
 
 
 class TVPIE(InfoExtractor):
@@ -495,6 +503,8 @@ class TVPVODBaseIE(InfoExtractor):
         info_dict = traverse_obj(video, {
             'id': ('id', {str_or_none}),
             'title': 'title',
+            'timestamp': ('since', {parse_iso8601}),
+            'release_year': ('year', {posint_or_none}),
             'age_limit': ('rating', {int_or_none}),
             'duration': ('duration', {int_or_none}),
             'episode_number': ('number', {int_or_none}),
@@ -528,6 +538,9 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'age_limit': 0,
             'series': 'Laboratorium alchemika',
             'thumbnail': 're:https?://.+',
+            'timestamp': 1655635200,
+            'upload_date': '20220619',
+            'release_year': 2022,
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -541,6 +554,9 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'duration': 3051,
             'thumbnail': 're:https?://.+',
             'subtitles': 'count:2',
+            'timestamp': 1609776960,
+            'upload_date': '20210104',
+            'release_year': 2020,
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -611,8 +627,19 @@ class TVPVODSeriesIE(TVPVODBaseIE):
             'title': 'Ranczo',
             'age_limit': 12,
             'categories': ['seriale'],
+            'release_year': 2006,
         },
         'playlist_count': 130,
+    }, {
+        'url': 'https://vod.tvp.pl/seriale,18/klan-odcinki,273586',
+        'info_dict': {
+            'id': '273586',
+            'title': 'Klan',
+            'age_limit': 12,
+            'categories': ['seriale'],
+            'release_year': None,
+        },
+        'playlist_count': 4726,
     }, {
         'url': 'https://vod.tvp.pl/programy,88/rolnik-szuka-zony-odcinki,284514',
         'only_matching': True,
@@ -641,4 +668,5 @@ class TVPVODSeriesIE(TVPVODBaseIE):
             clean_html(traverse_obj(metadata, ('description', 'lead'), expected_type=strip_or_none)),
             categories=[traverse_obj(metadata, ('mainCategory', 'name'))],
             age_limit=int_or_none(metadata.get('rating')),
+            release_year=posint_or_none(metadata.get('year')),
         )
