@@ -79,32 +79,16 @@ class SPWNBaseIE(WrestleUniverseBaseIE):
         else:
             raise ExtractorError(f'Unsupported content type: {content_type}')
 
-        key_pair_id = traverse_obj(cookies, (
-            'CloudFront-Key-Pair-Id', (None, 'value'),
-            {str}, any, {require('CloudFront Key-Pair-Id')}))
-        policy = traverse_obj(cookies, (
-            'CloudFront-Policy', (None, 'value'),
-            {str}, any, {require('CloudFront Policy')}))
-        signature = traverse_obj(cookies, (
-            'CloudFront-Signature', (None, 'value'),
-            {str}, any, {require('CloudFront Signature')}))
+        for name in (
+            'CloudFront-Key-Pair-Id',
+            'CloudFront-Policy',
+            'CloudFront-Signature',
+        ):
+            value = traverse_obj(cookies, (
+                name, (None, 'value'), {str}, any, {require(name)}))
+            self._set_cookie('.spwn.jp', name, value, secure=True)
 
-        auth_query = {
-            'Key-Pair-Id': key_pair_id,
-            'Policy': policy,
-            'Signature': signature,
-        }
-        auth_query_string = urllib.parse.urlencode(auth_query)
-
-        formats = self._extract_m3u8_formats(
-            m3u8_url, video_id, 'mp4', query=auth_query)
-        for fmt in formats:
-            fmt.update({
-                'extra_param_to_segment_url': auth_query_string,
-                'url': update_url_query(fmt['url'], auth_query),
-            })
-
-        return formats
+        return self._extract_m3u8_formats(m3u8_url, video_id, 'mp4')
 
 
 class SPWNIE(SPWNBaseIE):
@@ -285,19 +269,20 @@ class SPWNCrewIE(SPWNBaseIE):
             }.get(streaming_status)
             metadata['live_status'] = live_status
 
-            release_timestamp = metadata.get('release_timestamp')
-            if release_timestamp and time.time() < release_timestamp:
-                start_time = dt.datetime.fromtimestamp(
-                    release_timestamp, dt.timezone.utc,
-                ).astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
-                self.raise_no_formats(
-                    f'This livestream is scheduled to start at {start_time}', expected=True)
+            if live_status == 'is_upcoming':
+                release_timestamp = metadata.get('release_timestamp')
+                if release_timestamp and time.time() < release_timestamp:
+                    start_time = dt.datetime.fromtimestamp(
+                        release_timestamp, dt.timezone.utc,
+                    ).astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
+                    self.raise_no_formats(
+                        f'This livestream is scheduled to start at {start_time}', expected=True)
 
-                return {
-                    'id': plan_content_id,
-                    'live_status': live_status,
-                    'release_timestamp': release_timestamp,
-                }
+                    return {
+                        'id': plan_content_id,
+                        'live_status': live_status,
+                        'release_timestamp': release_timestamp,
+                    }
 
         return {
             'id': plan_content_id,
