@@ -8,6 +8,9 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+import contextlib
+import io
+
 from test.helper import FakeYDL, report_warning
 from yt_dlp.update import UpdateInfo, Updater, UPDATE_SOURCES, _make_label
 
@@ -73,6 +76,12 @@ TEST_API_DATA = {
         'target_commitish': 'master',
         'name': 'pr987',
         'body': 'Generated from: https://github.com/yt-dlp/yt-dlp/commit/2222222222222222222222222222222222222222',
+    },
+    'fork/yt-dlp/tags/broken': {
+        'tag_name': 'broken',
+        'target_commitish': '',
+        'name': 'broken',
+        'body': 'Irrelevant text',
     },
 }
 
@@ -279,6 +288,11 @@ class TestUpdate(unittest.TestCase):
             '2023.12.31.987654', version='2023.12.31.987654', requested_version='2023.12.31.987654', commit='d' * 40))
         test('testing', None, current_commit='9' * 40)
         test('testing', UpdateInfo('testing', commit='9' * 40))
+
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            test('fork/yt-dlp@broken', UpdateInfo('broken'))
+        self.assertIn('One of either version or commit hash must be available on the release', stderr.getvalue())
 
     def test_make_label(self):
         STABLE_REPO = UPDATE_SOURCES['stable']
