@@ -161,13 +161,14 @@ class YoukuIE(InfoExtractor):
             if error_note is not None and '因版权原因无法观看此视频' in error_note:
                 raise ExtractorError(
                     'Youku said: Sorry, this video is available in China only', expected=True)
-            if error_note and '该视频被设为私密' in error_note:
+            elif error_note and '该视频被设为私密' in error_note:
                 raise ExtractorError(
                     'Youku said: Sorry, this video is private', expected=True)
-            msg = 'Youku server reported error %i' % error.get('code')
-            if error_note is not None:
-                msg += ': ' + clean_html(error_note)
-            raise ExtractorError(msg)
+            else:
+                msg = 'Youku server reported error %i' % error.get('code')
+                if error_note is not None:
+                    msg += ': ' + clean_html(error_note)
+                raise ExtractorError(msg)
 
         # get video title
         video_data = data['video']

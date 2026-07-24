@@ -231,16 +231,18 @@ class BilibiliBaseIE(InfoExtractor):
         code = traverse_obj(playurl_raw, ('code', {lambda x: x * -1}))
         if code == 0:
             return playurl_raw['data']
-        msg = join_nonempty(
-            'Unable to download video info', code,
-            traverse_obj(playurl_raw, ('message', {str})),
-            delim=': ')
-        expected = code in (401, 352)
-        if expected:
-            msg += ', please wait and try later'
-        if fatal:
-            raise ExtractorError(msg, expected=expected)
-        self.report_warning(msg)
+        else:
+            msg = join_nonempty(
+                'Unable to download video info', code,
+                traverse_obj(playurl_raw, ('message', {str})),
+                delim=': ')
+            expected = code in (401, 352)
+            if expected:
+                msg += ', please wait and try later'
+            if fatal:
+                raise ExtractorError(msg, expected=expected)
+            else:
+                self.report_warning(msg)
 
     def json2srt(self, json_data):
         srt_data = ''
@@ -988,7 +990,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
 
         if '您所在的地区无法观看本片' in webpage:
             raise GeoRestrictedError('This video is restricted')
-        if '正在观看预览，大会员免费看全片' in webpage:
+        elif '正在观看预览，大会员免费看全片' in webpage:
             self.raise_login_required('This video is for premium members only')
 
         headers['Referer'] = url
@@ -1408,9 +1410,9 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             if status_code == -401:
                 raise ExtractorError(
                     'Request is blocked by server (401), please wait and try later.', expected=True)
-            if status_code == -352:
+            elif status_code == -352:
                 raise ExtractorError('Request is rejected by server (352)', expected=True)
-            if status_code != 0:
+            elif status_code != 0:
                 raise ExtractorError(f'Request failed ({status_code}): {response.get("message") or "Unknown error"}')
             return response['data']
 
@@ -2127,7 +2129,8 @@ class BiliIntlBaseIE(InfoExtractor):
                     errmsg = kwargs.get('errnote', 'Unable to download JSON metadata')
                 if kwargs.get('fatal'):
                     raise ExtractorError(errmsg)
-                self.report_warning(errmsg)
+                else:
+                    self.report_warning(errmsg)
         return json.get('data')
 
     def json2srt(self, json):
@@ -2249,7 +2252,8 @@ class BiliIntlBaseIE(InfoExtractor):
         if login_post.get('code'):
             if login_post.get('message'):
                 raise ExtractorError(f'Unable to log in: {self.IE_NAME} said: {login_post["message"]}', expected=True)
-            raise ExtractorError('Unable to log in')
+            else:
+                raise ExtractorError('Unable to log in')
 
 
 class BiliIntlIE(BiliIntlBaseIE):

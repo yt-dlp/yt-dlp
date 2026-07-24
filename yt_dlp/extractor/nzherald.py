@@ -112,7 +112,8 @@ class NZHeraldIE(InfoExtractor):
             if not bc_video_id:
                 if isinstance(video_metadata, dict) and len(video_metadata) == 0:
                     raise ExtractorError('This article does not have a video.', expected=True)
-                raise ExtractorError('Failed to extract brightcove video id')
+                else:
+                    raise ExtractorError('Failed to extract brightcove video id')
             bc_url = self.BRIGHTCOVE_URL_TEMPLATE % bc_video_id
 
         return self.url_result(bc_url, 'BrightcoveNew')

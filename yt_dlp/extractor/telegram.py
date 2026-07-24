@@ -132,4 +132,5 @@ class TelegramEmbedIE(InfoExtractor):
         if self._yes_playlist(playlist_id, msg_id):
             return self.playlist_result(
                 videos, playlist_id, format_field(message, 'channel', f'%s {msg_id}'), description)
-        return traverse_obj(videos, lambda _, x: x['id'] == msg_id, get_all=False)
+        else:
+            return traverse_obj(videos, lambda _, x: x['id'] == msg_id, get_all=False)

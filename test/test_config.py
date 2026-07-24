@@ -172,7 +172,7 @@ class TestConfig(unittest.TestCase):
 
             if index > start_index:
                 return ['-o', 'fail']
-            if index == start_index:
+            elif index == start_index:
                 return ['-o', 'pass']
 
         with ConfigMock(read_file):

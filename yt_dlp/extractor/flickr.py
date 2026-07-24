@@ -108,4 +108,5 @@ class FlickrIE(InfoExtractor):
                 'tags': [tag.get('_content') for tag in video_info.get('tags', {}).get('tag', [])],
                 'license': self._LICENSES.get(video_info.get('license')),
             }
-        raise ExtractorError('not a video', expected=True)
+        else:
+            raise ExtractorError('not a video', expected=True)

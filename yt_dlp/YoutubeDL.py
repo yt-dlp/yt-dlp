@@ -846,7 +846,7 @@ class YoutubeDL:
             archive = set()
             if fn is None:
                 return archive
-            if not is_path_like(fn):
+            elif not is_path_like(fn):
                 return fn
 
             self.write_debug(f'Loading archive file {fn!r}')
@@ -1196,7 +1196,8 @@ class YoutubeDL:
         if forced or not ignored:
             raise ExtractorError(msg, video_id=info['id'], ie=info['extractor'],
                                  expected=has_drm or ignored or expected)
-        self.report_warning(msg)
+        else:
+            self.report_warning(msg)
 
     def parse_outtmpl(self):
         self.deprecation_warning('"YoutubeDL.parse_outtmpl" is deprecated and may be removed in a future version')
@@ -1323,9 +1324,9 @@ class YoutubeDL:
         def _from_user_input(field):
             if field == ':':
                 return ...
-            if ':' in field:
+            elif ':' in field:
                 return slice(*map(int_or_none, field.split(':')))
-            if int_or_none(field) is not None:
+            elif int_or_none(field) is not None:
                 return int(field)
             return field
 
@@ -1450,16 +1451,17 @@ class YoutubeDL:
                         f'Unsafe conversion(s) in exec command: {outtmpl!r}\n'
                         f'Conversions such as %()s are too dangerous to be used in '
                         f'--exec command templates; use %()q instead. {EXEC_ADVISORY_MSG}')
-                if any(unsafe_char in default for unsafe_char in UNSAFE_DEFAULT_CHARS):
+                elif any(unsafe_char in default for unsafe_char in UNSAFE_DEFAULT_CHARS):
                     if default == na:
                         raise UnsafeExecExpansionError(
                             f'Unsafe placeholder for exec command: {na!r}\n'
                             f'The --output-na-placeholder argument also applies to '
                             f'--exec command templates. {EXEC_ADVISORY_MSG}')
-                    raise UnsafeExecExpansionError(
-                        f'Unsafe default(s) in exec command: {outtmpl!r}\n'
-                        f'Conversions are not applied to --exec command template defaults, '
-                        f'e.g. %(...|DEFAULT;)q. {EXEC_ADVISORY_MSG}')
+                    else:
+                        raise UnsafeExecExpansionError(
+                            f'Unsafe default(s) in exec command: {outtmpl!r}\n'
+                            f'Conversions are not applied to --exec command template defaults, '
+                            f'e.g. %(...|DEFAULT;)q. {EXEC_ADVISORY_MSG}')
 
             flags = outer_mobj.group('conversion') or ''
             str_fmt = f'{fmt[:-1]}s'
@@ -1583,7 +1585,7 @@ class YoutubeDL:
         def check_filter():
             if _type in ('playlist', 'multi_video'):
                 return
-            if _type in ('url', 'url_transparent') and not try_call(
+            elif _type in ('url', 'url_transparent') and not try_call(
                     lambda: self.get_info_extractor(info_dict['ie_key']).is_single_video(info_dict['url'])):
                 return
 
@@ -1640,7 +1642,7 @@ class YoutubeDL:
                     reply = input().lower().strip()
                     if reply in {'y', ''}:
                         return None
-                    if reply == 'n':
+                    elif reply == 'n':
                         if cancelled:
                             raise type(cancelled)(f'Skipping {video_title}')
                         return f'Skipping {video_title}'
@@ -1884,7 +1886,8 @@ class YoutubeDL:
         if process:
             self._wait_for_video(ie_result)
             return self.process_ie_result(ie_result, download, extra_info)
-        return ie_result
+        else:
+            return ie_result
 
     def add_default_extra_info(self, ie_result, ie, url):
         if url is not None:
@@ -1958,14 +1961,14 @@ class YoutubeDL:
                     for url in additional_urls
                 ]
             return ie_result
-        if result_type == 'url':
+        elif result_type == 'url':
             # We have to add extra_info to the results because it may be
             # contained in a playlist
             return self.extract_info(
                 ie_result['url'], download,
                 ie_key=ie_result.get('ie_key'),
                 extra_info=extra_info)
-        if result_type == 'url_transparent':
+        elif result_type == 'url_transparent':
             # Use the information from the embedding page
             info = self.extract_info(
                 ie_result['url'], ie_key=ie_result.get('ie_key'),
@@ -1996,7 +1999,7 @@ class YoutubeDL:
 
             return self.process_ie_result(
                 new_result, download=download, extra_info=extra_info)
-        if result_type in ('playlist', 'multi_video'):
+        elif result_type in ('playlist', 'multi_video'):
             # Protect from infinite recursion due to recursively nested playlists
             # (see https://github.com/ytdl-org/youtube-dl/issues/27833)
             webpage_url = ie_result.get('webpage_url')  # Playlists maynot have webpage_url
@@ -2358,7 +2361,8 @@ class YoutubeDL:
             for type_, string_, _start, _, _ in tokens:
                 if type_ == tokenize.OP and string_ == ']':
                     return ''.join(filter_parts)
-                filter_parts.append(string_)
+                else:
+                    filter_parts.append(string_)
 
         def _remove_unused_ops(tokens):
             # Remove operators that we don't use and join them with the surrounding strings.
@@ -2398,7 +2402,7 @@ class YoutubeDL:
                 # ENCODING is only defined in Python 3.x
                 if type_ == getattr(tokenize, 'ENCODING', None):
                     continue
-                if type_ in [tokenize.NAME, tokenize.NUMBER]:
+                elif type_ in [tokenize.NAME, tokenize.NUMBER]:
                     current_selector = FormatSelector(SINGLE, string_, [])
                 elif type_ == tokenize.OP:
                     if string_ == ')':
@@ -2406,13 +2410,13 @@ class YoutubeDL:
                             # ')' will be handled by the parentheses group
                             tokens.restore_last_token()
                         break
-                    if inside_merge and string_ in ['/', ',']:
+                    elif inside_merge and string_ in ['/', ',']:
                         tokens.restore_last_token()
                         break
-                    if inside_choice and string_ == ',':
+                    elif inside_choice and string_ == ',':
                         tokens.restore_last_token()
                         break
-                    if string_ == ',':
+                    elif string_ == ',':
                         if not current_selector:
                             raise syntax_error('"," must follow a format selector', start)
                         selectors.append(current_selector)
@@ -2547,7 +2551,7 @@ class YoutubeDL:
                         yield from f(ctx)
                 return selector_function
 
-            if selector.type == GROUP:  # ()
+            elif selector.type == GROUP:  # ()
                 selector_function = _build_selector_function(selector.selector)
 
             elif selector.type == PICKFIRST:  # /
@@ -2837,7 +2841,7 @@ class YoutubeDL:
 
         if 'id' not in info_dict:
             raise ExtractorError('Missing "id" field in extractor result', ie=info_dict['extractor'])
-        if not info_dict.get('id'):
+        elif not info_dict.get('id'):
             raise ExtractorError('Extractor failed to obtain "id"', ie=info_dict['extractor'])
 
         def report_force_conversion(field, field_not, conversion):
@@ -3609,7 +3613,7 @@ class YoutubeDL:
 
                     if fixup_policy in ('ignore', 'never'):
                         return
-                    if fixup_policy == 'warn':
+                    elif fixup_policy == 'warn':
                         do_fixup = 'warn'
                     elif fixup_policy != 'force':
                         assert fixup_policy in ('detect_or_warn', None)
@@ -3619,7 +3623,7 @@ class YoutubeDL:
                     def ffmpeg_fixup(cndn, msg, cls):
                         if not (do_fixup and cndn):
                             return
-                        if do_fixup == 'warn':
+                        elif do_fixup == 'warn':
                             self.report_warning(f'{vid}: {msg}')
                             return
                         pp = cls(self)
@@ -3761,13 +3765,14 @@ class YoutubeDL:
         def filter_fn(obj):
             if isinstance(obj, dict):
                 return {k: filter_fn(v) for k, v in obj.items() if not reject(k, v)}
-            if isinstance(obj, (list, tuple, set, LazyList)):
+            elif isinstance(obj, (list, tuple, set, LazyList)):
                 return list(map(filter_fn, obj))
-            if isinstance(obj, ImpersonateTarget):
+            elif isinstance(obj, ImpersonateTarget):
                 return str(obj)
-            if obj is None or isinstance(obj, (str, int, float, bool)):
+            elif obj is None or isinstance(obj, (str, int, float, bool)):
                 return obj
-            return repr(obj)
+            else:
+                return repr(obj)
 
         return filter_fn(info_dict)
 
@@ -3899,9 +3904,9 @@ class YoutubeDL:
             return format['resolution']
         if format.get('width') and format.get('height'):
             return '%dx%d' % (format['width'], format['height'])
-        if format.get('height'):
+        elif format.get('height'):
             return '{}p'.format(format['height'])
-        if format.get('width'):
+        elif format.get('width'):
             return '%dx?' % format['width']
         return default
 
@@ -3996,12 +4001,12 @@ class YoutubeDL:
             codec = f.get(field)
             if not codec:
                 return 'unknown'
-            if codec != 'none':
+            elif codec != 'none':
                 return '.'.join(codec.split('.')[:4])
 
             if field == 'vcodec' and f.get('acodec') == 'none':
                 return 'images'
-            if field == 'acodec' and f.get('vcodec') == 'none':
+            elif field == 'acodec' and f.get('vcodec') == 'none':
                 return ''
             return self._format_out('audio only' if field == 'vcodec' else 'video only',
                                     self.Styles.SUPPRESS)
@@ -4315,7 +4320,7 @@ class YoutubeDL:
                     raise RequestError(
                         'To use an HTTPS proxy for this request, one of the following dependencies needs to be installed: requests, curl_cffi')
 
-                if (
+                elif (
                     re.match(r'unsupported url scheme: "wss?"', ue.msg.lower())
                     and 'websockets' not in self._request_director.handlers
                 ):
@@ -4324,7 +4329,7 @@ class YoutubeDL:
                         'Ensure one of the following dependencies are installed: websockets',
                         cause=ue) from ue
 
-                if re.match(r'unsupported (?:extensions: impersonate|impersonate target)', ue.msg.lower()):
+                elif re.match(r'unsupported (?:extensions: impersonate|impersonate target)', ue.msg.lower()):
                     raise RequestError(
                         f'Impersonate target "{req.extensions["impersonate"]}" is not available.'
                         f' See --list-impersonate-targets for available targets.'
@@ -4334,7 +4339,7 @@ class YoutubeDL:
         except SSLError as e:
             if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
                 raise RequestError('UNSAFE_LEGACY_RENEGOTIATION_DISABLED: Try using --legacy-server-connect', cause=e) from e
-            if 'SSLV3_ALERT_HANDSHAKE_FAILURE' in str(e):
+            elif 'SSLV3_ALERT_HANDSHAKE_FAILURE' in str(e):
                 raise RequestError(
                     'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. '
                     'Try using --legacy-server-connect', cause=e) from e
@@ -4401,12 +4406,12 @@ class YoutubeDL:
             overwrite = self.params.get('overwrites', True)
         if not self.params.get('writeinfojson'):
             return False
-        if not infofn:
+        elif not infofn:
             self.write_debug(f'Skipping writing {label} infojson')
             return False
-        if not self._ensure_dir_exists(infofn):
+        elif not self._ensure_dir_exists(infofn):
             return None
-        if not overwrite and os.path.exists(infofn):
+        elif not overwrite and os.path.exists(infofn):
             self.to_screen(f'[info] {label.title()} metadata is already present')
             return 'exists'
 
@@ -4422,12 +4427,12 @@ class YoutubeDL:
         """ Write description and returns True = written, False = skip, None = error """
         if not self.params.get('writedescription'):
             return False
-        if not descfn:
+        elif not descfn:
             self.write_debug(f'Skipping writing {label} description')
             return False
-        if not self._ensure_dir_exists(descfn):
+        elif not self._ensure_dir_exists(descfn):
             return None
-        if not self.params.get('overwrites', True) and os.path.exists(descfn):
+        elif not self.params.get('overwrites', True) and os.path.exists(descfn):
             self.to_screen(f'[info] {label.title()} description is already present')
         elif ie_result.get('description') is None:
             self.to_screen(f'[info] There\'s no {label} description to write')
@@ -4450,7 +4455,7 @@ class YoutubeDL:
             # subtitles download errors are already managed as troubles in relevant IE
             # that way it will silently go on when used with unsupporting IE
             return ret
-        if not subtitles:
+        elif not subtitles:
             self.to_screen('[info] There are no subtitles for the requested languages')
             return ret
         sub_filename_base = self.prepare_filename(info_dict, 'subtitle')

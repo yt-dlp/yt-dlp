@@ -29,9 +29,9 @@ class CamsodaIE(InfoExtractor):
             headers=self.geo_verification_headers())
         if not data:
             raise ExtractorError('Unable to find configuration for stream.')
-        if data.get('private_servers'):
+        elif data.get('private_servers'):
             raise ExtractorError('Model is in private show.', expected=True)
-        if not data.get('stream_name'):
+        elif not data.get('stream_name'):
             raise ExtractorError('Model is offline.', expected=True)
 
         stream_name = traverse_obj(data, 'stream_name', expected_type=str)

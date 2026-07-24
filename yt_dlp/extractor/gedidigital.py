@@ -146,7 +146,7 @@ class GediDigitalIE(InfoExtractor):
             if t == 'format':
                 if n in ('video-hds-vod-ec', 'video-hls-vod-ec', 'video-viralize', 'video-youtube-pfp'):
                     continue
-                if n.endswith('-vod-ak'):
+                elif n.endswith('-vod-ak'):
                     formats.extend(self._extract_akamai_formats(
                         v, video_id, {'http': 'media.gedidigital.it'}))
                 else:

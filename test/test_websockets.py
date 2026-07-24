@@ -53,11 +53,11 @@ def websocket_handler(websocket):
         elif isinstance(message, str):
             if message == 'headers':
                 return websocket.send(json.dumps(dict(websocket.request.headers.raw_items())))
-            if message == 'path':
+            elif message == 'path':
                 return websocket.send(websocket.request.path)
-            if message == 'source_address':
+            elif message == 'source_address':
                 return websocket.send(websocket.remote_address[0])
-            if message == 'str':
+            elif message == 'str':
                 return websocket.send('1')
         return websocket.send(message)
 
@@ -69,7 +69,7 @@ def process_request(self, request):
             return websockets.http11.Response(
                 status.value, status.phrase, websockets.datastructures.Headers([('Location', '/')]), b'')
         return self.protocol.reject(status.value, status.phrase)
-    if request.path.startswith('/get_cookie'):
+    elif request.path.startswith('/get_cookie'):
         response = self.protocol.accept(request)
         response.headers['Set-Cookie'] = 'test=ytdlp'
         return response

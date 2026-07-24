@@ -65,11 +65,12 @@ class ToonGogglesIE(InfoExtractor):
                 'id': episode_id,
             })['objects'][0]
             return self._parse_episode_data(episode_data)
-        show_data = self._call_api('getepisodesbyshow', show_id, {
-            'max': 1000000000,
-            'showid': show_id,
-        })
-        entries = []
-        for episode_data in show_data.get('objects', []):
-            entries.append(self._parse_episode_data(episode_data))
-        return self.playlist_result(entries, show_id, show_data.get('show_name'))
+        else:
+            show_data = self._call_api('getepisodesbyshow', show_id, {
+                'max': 1000000000,
+                'showid': show_id,
+            })
+            entries = []
+            for episode_data in show_data.get('objects', []):
+                entries.append(self._parse_episode_data(episode_data))
+            return self.playlist_result(entries, show_id, show_data.get('show_name'))

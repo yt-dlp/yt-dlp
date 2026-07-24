@@ -116,11 +116,12 @@ def load_cookies(cookie_file, browser_specification, ydl):
 def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(), *, keyring=None, container=None):
     if browser_name == 'firefox':
         return _extract_firefox_cookies(profile, container, logger)
-    if browser_name == 'safari':
+    elif browser_name == 'safari':
         return _extract_safari_cookies(profile, logger)
-    if browser_name in CHROMIUM_BASED_BROWSERS:
+    elif browser_name in CHROMIUM_BASED_BROWSERS:
         return _extract_chrome_cookies(browser_name, profile, keyring, logger)
-    raise ValueError(f'unknown browser: {browser_name}')
+    else:
+        raise ValueError(f'unknown browser: {browser_name}')
 
 
 def _extract_firefox_cookies(profile, container, logger):
@@ -345,7 +346,7 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
                     if not cookie:
                         failed_cookies += 1
                         continue
-                    if not is_encrypted:
+                    elif not is_encrypted:
                         unencrypted_cookies += 1
                     jar.set_cookie(cookie)
             if failed_cookies > 0:
@@ -429,7 +430,7 @@ class ChromeCookieDecryptor:
 def get_cookie_decryptor(browser_root, browser_keyring_name, logger, *, keyring=None, meta_version=None):
     if sys.platform == 'darwin':
         return MacChromeCookieDecryptor(browser_keyring_name, logger, meta_version=meta_version)
-    if sys.platform in ('win32', 'cygwin'):
+    elif sys.platform in ('win32', 'cygwin'):
         return WindowsChromeCookieDecryptor(browser_root, logger, meta_version=meta_version)
     return LinuxChromeCookieDecryptor(browser_keyring_name, logger, keyring=keyring, meta_version=meta_version)
 
@@ -475,7 +476,7 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
                 ciphertext, (self._v10_key, self._empty_key), self._logger,
                 hash_prefix=self._meta_version >= 24)
 
-        if version == b'v11':
+        elif version == b'v11':
             self._cookie_counts['v11'] += 1
             if self._v11_key is None:
                 self._logger.warning('cannot decrypt v11 cookies: no key found', only_once=True)
@@ -484,9 +485,10 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
                 ciphertext, (self._v11_key, self._empty_key), self._logger,
                 hash_prefix=self._meta_version >= 24)
 
-        self._logger.warning(f'unknown cookie version: "{version}"', only_once=True)
-        self._cookie_counts['other'] += 1
-        return None
+        else:
+            self._logger.warning(f'unknown cookie version: "{version}"', only_once=True)
+            self._cookie_counts['other'] += 1
+            return None
 
 
 class MacChromeCookieDecryptor(ChromeCookieDecryptor):
@@ -516,10 +518,11 @@ class MacChromeCookieDecryptor(ChromeCookieDecryptor):
             return _decrypt_aes_cbc_multi(
                 ciphertext, (self._v10_key,), self._logger, hash_prefix=self._meta_version >= 24)
 
-        self._cookie_counts['other'] += 1
-        # other prefixes are considered 'old data' which were stored as plaintext
-        # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/os_crypt_mac.mm
-        return encrypted_value
+        else:
+            self._cookie_counts['other'] += 1
+            # other prefixes are considered 'old data' which were stored as plaintext
+            # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/os_crypt_mac.mm
+            return encrypted_value
 
 
 class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
@@ -555,10 +558,11 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
                 ciphertext, self._v10_key, nonce, authentication_tag, self._logger,
                 hash_prefix=self._meta_version >= 24)
 
-        self._cookie_counts['other'] += 1
-        # any other prefix means the data is DPAPI encrypted
-        # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/os_crypt_win.cc
-        return _decrypt_windows_dpapi(encrypted_value, self._logger).decode()
+        else:
+            self._cookie_counts['other'] += 1
+            # any other prefix means the data is DPAPI encrypted
+            # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/os_crypt_win.cc
+            return _decrypt_windows_dpapi(encrypted_value, self._logger).decode()
 
 
 def _extract_safari_cookies(profile, logger):
@@ -626,7 +630,8 @@ class DataParser:
             c = self.read_bytes(1)
             if c == b'\x00':
                 return b''.join(buffer).decode()
-            buffer.append(c)
+            else:
+                buffer.append(c)
 
     def skip(self, num_bytes, description='unknown'):
         if num_bytes > 0:
@@ -779,55 +784,60 @@ def _get_linux_desktop_environment(env, logger):
             if part == 'Unity':
                 if 'gnome-fallback' in desktop_session:
                     return _LinuxDesktopEnvironment.GNOME
-                return _LinuxDesktopEnvironment.UNITY
-            if part == 'Deepin':
+                else:
+                    return _LinuxDesktopEnvironment.UNITY
+            elif part == 'Deepin':
                 return _LinuxDesktopEnvironment.DEEPIN
-            if part == 'GNOME':
+            elif part == 'GNOME':
                 return _LinuxDesktopEnvironment.GNOME
-            if part == 'X-Cinnamon':
+            elif part == 'X-Cinnamon':
                 return _LinuxDesktopEnvironment.CINNAMON
-            if part == 'KDE':
+            elif part == 'KDE':
                 kde_version = env.get('KDE_SESSION_VERSION', None)
                 if kde_version == '5':
                     return _LinuxDesktopEnvironment.KDE5
-                if kde_version == '6':
+                elif kde_version == '6':
                     return _LinuxDesktopEnvironment.KDE6
-                if kde_version == '4':
+                elif kde_version == '4':
                     return _LinuxDesktopEnvironment.KDE4
-                logger.info(f'unknown KDE version: "{kde_version}". Assuming KDE4')
-                return _LinuxDesktopEnvironment.KDE4
-            if part == 'Pantheon':
+                else:
+                    logger.info(f'unknown KDE version: "{kde_version}". Assuming KDE4')
+                    return _LinuxDesktopEnvironment.KDE4
+            elif part == 'Pantheon':
                 return _LinuxDesktopEnvironment.PANTHEON
-            if part == 'XFCE':
+            elif part == 'XFCE':
                 return _LinuxDesktopEnvironment.XFCE
-            if part == 'UKUI':
+            elif part == 'UKUI':
                 return _LinuxDesktopEnvironment.UKUI
-            if part == 'LXQt':
+            elif part == 'LXQt':
                 return _LinuxDesktopEnvironment.LXQT
         logger.debug(f'XDG_CURRENT_DESKTOP is set to an unknown value: "{xdg_current_desktop}"')
 
     if desktop_session == 'deepin':
         return _LinuxDesktopEnvironment.DEEPIN
-    if desktop_session in ('mate', 'gnome'):
+    elif desktop_session in ('mate', 'gnome'):
         return _LinuxDesktopEnvironment.GNOME
-    if desktop_session in ('kde4', 'kde-plasma'):
+    elif desktop_session in ('kde4', 'kde-plasma'):
         return _LinuxDesktopEnvironment.KDE4
-    if desktop_session == 'kde':
+    elif desktop_session == 'kde':
         if 'KDE_SESSION_VERSION' in env:
             return _LinuxDesktopEnvironment.KDE4
-        return _LinuxDesktopEnvironment.KDE3
-    if 'xfce' in desktop_session or desktop_session == 'xubuntu':
+        else:
+            return _LinuxDesktopEnvironment.KDE3
+    elif 'xfce' in desktop_session or desktop_session == 'xubuntu':
         return _LinuxDesktopEnvironment.XFCE
-    if desktop_session == 'ukui':
+    elif desktop_session == 'ukui':
         return _LinuxDesktopEnvironment.UKUI
-    logger.debug(f'DESKTOP_SESSION is set to an unknown value: "{desktop_session}"')
+    else:
+        logger.debug(f'DESKTOP_SESSION is set to an unknown value: "{desktop_session}"')
 
     if 'GNOME_DESKTOP_SESSION_ID' in env:
         return _LinuxDesktopEnvironment.GNOME
-    if 'KDE_FULL_SESSION' in env:
+    elif 'KDE_FULL_SESSION' in env:
         if 'KDE_SESSION_VERSION' in env:
             return _LinuxDesktopEnvironment.KDE4
-        return _LinuxDesktopEnvironment.KDE3
+        else:
+            return _LinuxDesktopEnvironment.KDE3
 
     return _LinuxDesktopEnvironment.OTHER
 
@@ -894,8 +904,9 @@ def _get_kwallet_network_wallet(keyring, logger):
         if returncode:
             logger.warning('failed to read NetworkWallet')
             return default_wallet
-        logger.debug(f'NetworkWallet = "{stdout.strip()}"')
-        return stdout.strip()
+        else:
+            logger.debug(f'NetworkWallet = "{stdout.strip()}"')
+            return stdout.strip()
     except Exception as e:
         logger.warning(f'exception while obtaining NetworkWallet: {e}')
         return default_wallet
@@ -924,19 +935,21 @@ def _get_kwallet_password(browser_keyring_name, keyring, logger):
             logger.error(f'kwallet-query failed with return code {returncode}. '
                          'Please consult the kwallet-query man page for details')
             return b''
-        if stdout.lower().startswith(b'failed to read'):
-            logger.debug('failed to read password from kwallet. Using empty string instead')
-            # this sometimes occurs in KDE because chrome does not check hasEntry and instead
-            # just tries to read the value (which kwallet returns "") whereas kwallet-query
-            # checks hasEntry. To verify this:
-            # dbus-monitor "interface='org.kde.KWallet'" "type=method_return"
-            # while starting chrome.
-            # this was identified as a bug later and fixed in
-            # https://chromium.googlesource.com/chromium/src/+/bbd54702284caca1f92d656fdcadf2ccca6f4165%5E%21/#F0
-            # https://chromium.googlesource.com/chromium/src/+/5463af3c39d7f5b6d11db7fbd51e38cc1974d764
-            return b''
-        logger.debug('password found')
-        return stdout.rstrip(b'\n')
+        else:
+            if stdout.lower().startswith(b'failed to read'):
+                logger.debug('failed to read password from kwallet. Using empty string instead')
+                # this sometimes occurs in KDE because chrome does not check hasEntry and instead
+                # just tries to read the value (which kwallet returns "") whereas kwallet-query
+                # checks hasEntry. To verify this:
+                # dbus-monitor "interface='org.kde.KWallet'" "type=method_return"
+                # while starting chrome.
+                # this was identified as a bug later and fixed in
+                # https://chromium.googlesource.com/chromium/src/+/bbd54702284caca1f92d656fdcadf2ccca6f4165%5E%21/#F0
+                # https://chromium.googlesource.com/chromium/src/+/5463af3c39d7f5b6d11db7fbd51e38cc1974d764
+                return b''
+            else:
+                logger.debug('password found')
+                return stdout.rstrip(b'\n')
     except Exception as e:
         logger.warning(f'exception running kwallet-query: {error_to_str(e)}')
         return b''
@@ -971,9 +984,9 @@ def _get_linux_keyring_password(browser_keyring_name, keyring, logger):
 
     if keyring in (_LinuxKeyring.KWALLET, _LinuxKeyring.KWALLET5, _LinuxKeyring.KWALLET6):
         return _get_kwallet_password(browser_keyring_name, keyring, logger)
-    if keyring == _LinuxKeyring.GNOMEKEYRING:
+    elif keyring == _LinuxKeyring.GNOMEKEYRING:
         return _get_gnome_keyring_password(browser_keyring_name, logger)
-    if keyring == _LinuxKeyring.BASICTEXT:
+    elif keyring == _LinuxKeyring.BASICTEXT:
         # when basic text is chosen, all cookies are stored as v10 (so no keyring password is required)
         return None
     assert False, f'Unknown keyring {keyring}'

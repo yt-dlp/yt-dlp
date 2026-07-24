@@ -79,7 +79,8 @@ class BleacherReportIE(InfoExtractor):
             else:
                 info['url'] = video_type + video['id']
             return info
-        raise ExtractorError('no video in the article', expected=True)
+        else:
+            raise ExtractorError('no video in the article', expected=True)
 
 
 class BleacherReportCMSIE(AMPIE):

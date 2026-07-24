@@ -43,7 +43,7 @@ if os.name == 'nt':
         HOME = os.environ.get('HOME')
         if not HOME:
             return os.path.expanduser(path)
-        if not path.startswith('~'):
+        elif not path.startswith('~'):
             return path
         i = path.replace('\\', '/', 1).find('/')  # ~user
         if i < 0:

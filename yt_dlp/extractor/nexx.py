@@ -353,7 +353,7 @@ class NexxIE(InfoExtractor):
         def find_video(result):
             if isinstance(result, dict):
                 return result
-            if isinstance(result, list):
+            elif isinstance(result, list):
                 vid = int(video_id)
                 for v in result:
                     if try_get(v, lambda x: x['general']['ID'], int) == vid:

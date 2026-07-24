@@ -93,9 +93,10 @@ class GettrIE(GettrBaseIE):
 
             if embed_url:
                 return self.url_result(embed_url)
-            if shared_post_id:
+            elif shared_post_id:
                 return self.url_result(f'https://gettr.com/post/{shared_post_id}', ie='Gettr', video_id=shared_post_id)
-            raise ExtractorError('There\'s no video in this post.')
+            else:
+                raise ExtractorError('There\'s no video in this post.')
 
         title = description = str_or_none(
             post_data.get('txt') or self._og_search_description(webpage))

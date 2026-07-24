@@ -26,11 +26,11 @@ class NownessBaseIE(InfoExtractor):
                         if bc_url:
                             return self.url_result(bc_url, BrightcoveNewIE.ie_key())
                         raise ExtractorError('Could not find player definition')
-                    if source == 'vimeo':
+                    elif source == 'vimeo':
                         return self.url_result(f'http://vimeo.com/{video_id}', 'Vimeo')
-                    if source == 'youtube':
+                    elif source == 'youtube':
                         return self.url_result(video_id, 'Youtube')
-                    if source == 'cinematique':
+                    elif source == 'cinematique':
                         # yt-dlp currently doesn't support cinematique
                         # return self.url_result('http://cinematique.com/embed/%s' % video_id, 'Cinematique')
                         pass

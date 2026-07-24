@@ -755,7 +755,7 @@ class FacebookIE(InfoExtractor):
                 raise ExtractorError(
                     f'The video is not available, Facebook said: "{m_msg.group(1)}"',
                     expected=True)
-            if any(p in webpage for p in (
+            elif any(p in webpage for p in (
                     '>You must log in to continue',
                     'id="login_form"',
                     'id="loginbutton"')):

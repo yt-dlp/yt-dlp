@@ -140,7 +140,7 @@ class HttpFD(FileDownloader):
                     # Content-Range is either not present or invalid. Assuming remote webserver is
                     # trying to send the whole file, resume is not possible, so wiping the local file
                     # and performing entire redownload
-                    if range_start > 0:
+                    elif range_start > 0:
                         self.report_unable_to_resume()
                     ctx.resume_len = 0
                     ctx.open_mode = 'wb'
@@ -176,11 +176,12 @@ class HttpFD(FileDownloader):
                                 'total_bytes': ctx.resume_len,
                             }, info_dict)
                             raise SucceedDownload
-                        # The length does not match, we start the download over
-                        self.report_unable_to_resume()
-                        ctx.resume_len = 0
-                        ctx.open_mode = 'wb'
-                        return
+                        else:
+                            # The length does not match, we start the download over
+                            self.report_unable_to_resume()
+                            ctx.resume_len = 0
+                            ctx.open_mode = 'wb'
+                            return
                 elif err.status < 500 or err.status >= 600:
                     # Unexpected HTTP error
                     raise

@@ -74,10 +74,11 @@ class ExternalFD(FragmentFD):
                 })
             self._hook_progress(status, info_dict)
             return True
-        self.to_stderr('\n')
-        self.report_error('%s exited with code %d' % (
-            self.get_basename(), retval))
-        return False
+        else:
+            self.to_stderr('\n')
+            self.report_error('%s exited with code %d' % (
+                self.get_basename(), retval))
+            return False
 
     @classmethod
     def get_basename(cls):

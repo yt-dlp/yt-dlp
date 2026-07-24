@@ -109,7 +109,8 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
     def _read_data(self):
         if 'Content-Length' in self.headers:
             return self.rfile.read(int(self.headers['Content-Length']))
-        return b''
+        else:
+            return b''
 
     def do_POST(self):
         data = self._read_data() + str(self.headers).encode()
