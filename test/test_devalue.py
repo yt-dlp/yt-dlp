@@ -7,10 +7,12 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+import base64
 import datetime as dt
 import json
 import math
 import re
+import struct
 import unittest
 
 from yt_dlp.utils.jslib import devalue
@@ -85,9 +87,60 @@ TEST_CASES_EQUALS = [{
     'unparsed': [['Uint8Array', 'AQID']],
     'parsed': [1, 2, 3],
 }, {
+    'name': 'Uint8Array with ArrayBuffer reference',
+    'unparsed': [['Uint8Array', 1], ['ArrayBuffer', 'AQID']],
+    'parsed': [1, 2, 3],
+}, {
+    'name': 'Uint8Array with byte offset and element length',
+    'unparsed': [['Uint8Array', 1, 1, 2], ['ArrayBuffer', 'AQIDBAU=']],
+    'parsed': [2, 3],
+}, {
+    'name': 'Uint16Array with byte offset and element length',
+    'unparsed': [
+        ['Uint16Array', 1, 2, 2],
+        ['ArrayBuffer', base64.b64encode(struct.pack('=4H', 1, 2, 3, 4)).decode()],
+    ],
+    'parsed': [2, 3],
+}, {
+    'name': 'DataView with byte offset and byte length',
+    'unparsed': [['DataView', 1, 1, 2], ['ArrayBuffer', 'AQIDBAU=']],
+    'parsed': b'\x02\x03',
+}, {
+    'name': 'DataView with byte offset',
+    'unparsed': [['DataView', 1, 2], ['ArrayBuffer', 'AQIDBAU=']],
+    'parsed': b'\x03\x04\x05',
+}, {
+    'name': 'Float16Array',
+    'unparsed': [[
+        'Float16Array',
+        base64.b64encode(struct.pack('=2e', -2.0, 1.5)).decode(),
+    ]],
+    'parsed': [-2.0, 1.5],
+}, {
+    'name': 'Uint32Array',
+    'unparsed': [[
+        'Uint32Array',
+        base64.b64encode(struct.pack('=2I', 12345, 12345678)).decode(),
+    ]],
+    'parsed': [12345, 12345678],
+}, {
+    'name': 'BigInt64Array',
+    'unparsed': [[
+        'BigInt64Array',
+        base64.b64encode(struct.pack('=2q', -1, 2)).decode(),
+    ]],
+    'parsed': [-1, 2],
+}, {
+    'name': 'BigUint64Array',
+    'unparsed': [[
+        'BigUint64Array',
+        base64.b64encode(struct.pack('=2Q', 1, 2)).decode(),
+    ]],
+    'parsed': [1, 2],
+}, {
     'name': 'ArrayBuffer',
     'unparsed': [['ArrayBuffer', 'AQID']],
-    'parsed': [1, 2, 3],
+    'parsed': b'\x01\x02\x03',
 }, {
     'name': 'str (repetition)',
     'unparsed': [[1, 1], 'a string'],
