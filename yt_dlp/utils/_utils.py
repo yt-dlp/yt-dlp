@@ -2060,7 +2060,7 @@ def float_or_none(v, scale=1, invscale=1, default=None):
         scale = 1
     try:
         return float(v) * invscale / scale
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, OverflowError):
         return default
 
 
