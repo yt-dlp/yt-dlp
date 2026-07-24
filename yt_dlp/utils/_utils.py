@@ -3391,10 +3391,15 @@ class download_range_func:
 
     def __eq__(self, other):
         return (isinstance(other, download_range_func)
-                and self.chapters == other.chapters and self.ranges == other.ranges)
+                and self.chapters == other.chapters
+                and self.ranges == other.ranges
+                and self.from_info == other.from_info)
 
     def __repr__(self):
-        return f'{__name__}.{type(self).__name__}({self.chapters}, {self.ranges})'
+        args = [repr(self.chapters), repr(self.ranges)]
+        if self.from_info:
+            args.append('from_info=True')
+        return f'{__name__}.{type(self).__name__}({", ".join(args)})'
 
 
 def parse_dfxp_time_expr(time_expr):
