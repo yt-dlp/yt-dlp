@@ -398,9 +398,58 @@ class TikTokBaseIE(InfoExtractor):
             'quality': qualities(self.QUALITIES)(res),
         }, res
 
+    def _build_image_post(self, aweme_id, images, base_info, audio_url=None):
+        entries = []
+        for index, image in enumerate(images):
+            urls = [self._proto_relative_url(url) for url in image['urls'] if url_or_none(url)]
+            if not urls:
+                continue
+            entries.append({
+                **base_info,
+                'id': f'{aweme_id}_{index}',
+                'formats': [{
+                    'format_id': f'image-{index}',
+                    'url': url,
+                    'ext': 'jpg',
+                    'width': int_or_none(image.get('width')),
+                    'height': int_or_none(image.get('height')),
+                } for url in urls],
+                'thumbnails': [{'url': url} for url in urls],
+                'duration': None,
+            })
+
+        if url_or_none(audio_url):
+            audio_url = self._proto_relative_url(audio_url)
+            ext = traverse_obj(parse_qs(audio_url), (
+                'mime_type', -1, {lambda x: x.replace('_', '/')}, {mimetype2ext})) or determine_ext(audio_url, 'm4a')
+            entries.append({
+                **base_info,
+                'id': f'{aweme_id}_audio',
+                'formats': [{
+                    'format_id': 'audio',
+                    'url': audio_url,
+                    'ext': ext,
+                    'acodec': 'aac' if ext == 'm4a' else ext,
+                    'vcodec': 'none',
+                }],
+                'thumbnails': [],
+            })
+
+        return self.playlist_result(
+            entries, aweme_id, base_info.get('title'), base_info.get('description'),
+            **traverse_obj(base_info, {
+                'uploader': 'uploader',
+                'uploader_id': 'uploader_id',
+                'uploader_url': 'uploader_url',
+                'channel': 'channel',
+                'channel_id': 'channel_id',
+                'channel_url': 'channel_url',
+                'timestamp': 'timestamp',
+            }))
+
     def _parse_aweme_video_app(self, aweme_detail):
         aweme_id = aweme_detail['aweme_id']
-        video_info = aweme_detail['video']
+        video_info = aweme_detail.get('video') or {}
         known_resolutions = {}
 
         def audio_meta(url):
@@ -514,7 +563,7 @@ class TikTokBaseIE(InfoExtractor):
             'channel_id': ('sec_uid', {str}),
         }))
 
-        return {
+        info = {
             'id': aweme_id,
             **traverse_obj(aweme_detail, {
                 'title': ('desc', {truncate_string(left=72)}),
@@ -558,6 +607,19 @@ class TikTokBaseIE(InfoExtractor):
                 is_unlisted='Followers only' in labels),
             '_format_sort_fields': ('quality', 'codec', 'size', 'br'),
         }
+
+        images = traverse_obj(aweme_detail, (
+            'image_post_info', 'images', lambda _, v: v['display_image']['url_list']))
+        if images:
+            return self._build_image_post(
+                aweme_id, [{
+                    'urls': traverse_obj(image, ('display_image', 'url_list')),
+                    'width': traverse_obj(image, ('display_image', 'width')),
+                    'height': traverse_obj(image, ('display_image', 'height')),
+                } for image in images],
+                info, traverse_obj(music_info, ('play_url', 'url_list', 0)))
+
+        return info
 
     def _extract_web_formats(self, aweme_detail):
         COMMON_FORMAT_INFO = {
@@ -653,7 +715,7 @@ class TikTokBaseIE(InfoExtractor):
             'uploader_id': (('authorId', 'uid', 'id'), {str_or_none}),
         }), get_all=False)
 
-        return {
+        info = {
             'id': video_id,
             'formats': None if extract_flat else self._extract_web_formats(aweme_detail),
             'subtitles': None if extract_flat else self.extract_subtitles(aweme_detail, video_id, None),
@@ -693,9 +755,22 @@ class TikTokBaseIE(InfoExtractor):
             ],
         }
 
+        images = traverse_obj(aweme_detail, (
+            'imagePost', 'images', lambda _, v: v['imageURL']['urlList']))
+        if images and not extract_flat:
+            return self._build_image_post(
+                video_id, [{
+                    'urls': traverse_obj(image, ('imageURL', 'urlList')),
+                    'width': image.get('imageWidth'),
+                    'height': image.get('imageHeight'),
+                } for image in images],
+                info, traverse_obj(aweme_detail, ('music', 'playUrl', {url_or_none})))
+
+        return info
+
 
 class TikTokIE(TikTokBaseIE):
-    _VALID_URL = r'https?://www\.tiktok\.com/(?:embed|@(?P<user_id>[\w\.-]+)?/video)/(?P<id>\d+)'
+    _VALID_URL = r'https?://www\.tiktok\.com/(?:embed|@(?P<user_id>[\w\.-]+)?/(?:video|photo))/(?P<id>\d+)'
     _EMBED_REGEX = [rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{_VALID_URL})']
 
     _TESTS = [{
@@ -881,6 +956,47 @@ class TikTokIE(TikTokBaseIE):
             'save_count': int,
             'thumbnail': r're:^https://.+\.(?:webp|jpe?g)',
         },
+    }, {
+        # image slideshow / photo post (multiple images + audio track)
+        'url': 'https://www.tiktok.com/@pheangseve/photo/7632417672004717844',
+        'playlist_count': 3,
+        'info_dict': {
+            'id': '7632417672004717844',
+            'title': 'md5:9151de331b0a743915df56d027858dbe',
+            'description': 'md5:128a6a35e255ca7e8880e6af87ae07fa',
+            'uploader': 'pheangseve',
+            'uploader_id': '6845094679143728130',
+            'uploader_url': 'https://www.tiktok.com/@pheangseve',
+            'channel': 'Yuu Eii🎀',
+            'channel_id': 'MS4wLjABAAAA5tO4qaNCuFwC7ToxFj4YnvVE1do5nvPix2sc54Zah308kutf04kbGmpWm7zaH0-a',
+            'channel_url': 'https://www.tiktok.com/@MS4wLjABAAAA5tO4qaNCuFwC7ToxFj4YnvVE1do5nvPix2sc54Zah308kutf04kbGmpWm7zaH0-a',
+            'timestamp': 1777060730,
+            'upload_date': '20260424',
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': '7632417672004717844_0',
+                'ext': 'jpg',
+                'title': 'md5:9151de331b0a743915df56d027858dbe',
+                'description': 'md5:128a6a35e255ca7e8880e6af87ae07fa',
+                'uploader': 'pheangseve',
+                'uploader_id': '6845094679143728130',
+                'uploader_url': 'https://www.tiktok.com/@pheangseve',
+                'channel': 'Yuu Eii🎀',
+                'channel_id': 'MS4wLjABAAAA5tO4qaNCuFwC7ToxFj4YnvVE1do5nvPix2sc54Zah308kutf04kbGmpWm7zaH0-a',
+                'channel_url': 'https://www.tiktok.com/@MS4wLjABAAAA5tO4qaNCuFwC7ToxFj4YnvVE1do5nvPix2sc54Zah308kutf04kbGmpWm7zaH0-a',
+                'track': 'nhạc nền - TThinh_Bike',
+                'artists': ['cycly'],
+                'timestamp': 1777060730,
+                'upload_date': '20260424',
+                'view_count': int,
+                'like_count': int,
+                'repost_count': int,
+                'comment_count': int,
+                'save_count': int,
+                'thumbnail': r're:^https://.+\.jpeg',
+            },
+        }],
     }, {
         # only available via web
         'url': 'https://www.tiktok.com/@moxypatch/video/7206382937372134662',
