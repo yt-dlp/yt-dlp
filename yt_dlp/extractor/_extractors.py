@@ -1576,6 +1576,7 @@ from .redgifs import (
     RedGifsUserIE,
 )
 from .redtube import RedTubeIE
+from .redzidzirdilatviju import RedzidzirdilatvijuIE
 from .rentv import (
     RENTVIE,
     RENTVArticleIE,
