@@ -46,6 +46,7 @@ import urllib.request
 import xml.etree.ElementTree
 
 from . import traversal
+# from .progress import sleep
 
 from ..compat import (
     compat_datetime_from_timestamp,
@@ -5316,7 +5317,7 @@ class RetryManager:
         delay = float_or_none(sleep_func(n=count - 1)) if callable(sleep_func) else sleep_func
         if delay:
             info(f'Sleeping {delay:.2f} seconds ...')
-            time.sleep(delay)
+            time.sleep(delay)  # TODO: Use .progress.sleep
 
 
 @partial_application

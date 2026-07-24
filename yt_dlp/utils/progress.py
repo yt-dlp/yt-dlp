@@ -107,3 +107,15 @@ class SmoothValue:
 
     def reset(self):
         self.value = self.smooth = self._initial
+
+
+def sleep(ydl, seconds: float, msg='Sleeping', interval=.1):
+    end = time.monotonic() + seconds
+
+    from ..downloader import FileDownloader
+    print_at_line = FileDownloader(ydl, ydl.params)._multiline.print_at_line
+
+    while (remaining := end - time.monotonic()) > 0:
+        print_at_line('[sleep] ' + msg + f': {remaining:.1f}s remaining ...', 0)
+        time.sleep(min(interval, remaining))
+    print_at_line('', 0)
