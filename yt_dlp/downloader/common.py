@@ -301,8 +301,12 @@ class FileDownloader:
             self._multiline = MultilinePrinter(self.ydl._out_files.out, lines, not self.params.get('quiet'))
         self._multiline.allow_colors = self.ydl._allow_colors.out and self.ydl._allow_colors.out != 'no_color'
         self._multiline._HAVE_FULLCAP = self.ydl._allow_colors.out
+        if not isinstance(self._multiline, QuietMultilinePrinter) or getattr(self.ydl, '_progress_printer', None) is None:
+            self.ydl._progress_printer = self._multiline
 
     def _finish_multiline_status(self):
+        if getattr(self.ydl, '_progress_printer', None) is self._multiline:
+            self.ydl._progress_printer = None
         self._multiline.end()
 
     ProgressStyles = Namespace(
@@ -413,7 +417,7 @@ class FileDownloader:
         RetryManager.report_retry(
             err, count, retries, info=self.__to_screen,
             warn=lambda msg: self.__to_screen(f'[download] Got error: {msg}'),
-            error=IDENTITY if not fatal else lambda e: self.report_error(f'\r[download] Got error: {e}'),
+            error=IDENTITY if not fatal else lambda e: self.report_error(f'[download] Got error: {e}'),
             sleep_func=self.params.get('retry_sleep_functions', {}).get(is_frag or 'http'),
             suffix=f'fragment{"s" if frag_index is None else f" {frag_index}"}' if is_frag else None)
 
