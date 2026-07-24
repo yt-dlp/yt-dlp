@@ -2,11 +2,13 @@ import json
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     determine_ext,
     float_or_none,
     int_or_none,
     join_nonempty,
     mimetype2ext,
+    traverse_obj,
     try_get,
     urljoin,
 )
@@ -58,39 +60,66 @@ class YandexDiskIE(InfoExtractor):
 
     def _real_extract(self, url):
         domain, video_id = self._match_valid_url(url).groups()
+        password = None
+        source_url = None
 
         webpage = self._download_webpage(url, video_id)
         store = self._parse_json(self._search_regex(
             r'<script[^>]+id="store-prefetch"[^>]*>\s*({.+?})\s*</script>',
             webpage, 'store'), video_id)
-        resource = store['resources'][store['rootResourceId']]
+        resource = traverse_obj(store, ('resources', store.get('rootResourceId')))
 
-        title = resource['name']
+        video_streams = resource.get('videoStreams') or {}
+        video_hash = resource.get('hash') or url
+        environment = store.get('environment') or {}
+        sk = environment.get('sk')
+        yandexuid = environment.get('yandexuid')
+
+        def call_api(action, password=None):
+            payload = {
+                'hash': video_hash,
+                'sk': sk,
+                'short_url': traverse_obj(store, ('url', 'pathname')),
+            }
+            if password is not None:
+                payload['password'] = password
+
+            resp = self._download_json(
+                urljoin(url, '/public/api/') + action, video_id if not password else "", data=json.dumps(payload).encode(), headers={
+                    'Content-Type': 'text/plain',
+                }, fatal=False) or {}
+
+            return resp.get('token') or resp.get('data') or {}
+
+        if resource.get('id') == 'password-protected':
+            password = self.get_param('videopassword')
+            if not password:
+                raise ExtractorError('Password protected video, use --video-password <password>', expected=True)
+
+            token = call_api('check-password', password)
+            self._set_cookie(domain, 'passToken', token)
+
+        webpage = self._download_webpage(url, video_id)
+        store = self._parse_json(self._search_regex(
+            r'<script[^>]+id="store-prefetch"[^>]*>\s*({.+?})\s*</script>',
+            webpage, 'store'), video_id)
+        resource = traverse_obj(store, ('resources', store.get('rootResourceId')))
+
+        title = resource.get('name')
         meta = resource.get('meta') or {}
 
         public_url = meta.get('short_url')
         if public_url:
             video_id = self._match_id(public_url)
 
-        source_url = (self._download_json(
-            'https://cloud-api.yandex.net/v1/disk/public/resources/download',
-            video_id, query={'public_key': url}, fatal=False) or {}).get('href')
-        video_streams = resource.get('videoStreams') or {}
-        video_hash = resource.get('hash') or url
-        environment = store.get('environment') or {}
-        sk = environment.get('sk')
-        yandexuid = environment.get('yandexuid')
+        if not password:
+            source_url = (self._download_json(
+                'https://cloud-api.yandex.net/v1/disk/public/resources/download',
+                video_id, query={'public_key': url}, fatal=False) or {}).get('href')
+
         if sk and yandexuid and not (source_url and video_streams):
             self._set_cookie(domain, 'yandexuid', yandexuid)
 
-            def call_api(action):
-                return (self._download_json(
-                    urljoin(url, '/public/api/') + action, video_id, data=json.dumps({
-                        'hash': video_hash,
-                        'sk': sk,
-                    }).encode(), headers={
-                        'Content-Type': 'text/plain',
-                    }, fatal=False) or {}).get('data') or {}
             if not source_url:
                 # TODO: figure out how to detect if download limit has
                 # been reached and then avoid unnecessary source format
