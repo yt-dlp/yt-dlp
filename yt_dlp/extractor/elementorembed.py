@@ -3,7 +3,7 @@ import re
 from .common import InfoExtractor
 from .vimeo import VimeoIE
 from .youtube import YoutubeIE
-from ..utils import unescapeHTML, url_or_none
+from ..utils import smuggle_url, unescapeHTML, url_or_none
 from ..utils.traversal import traverse_obj
 
 
@@ -52,6 +52,7 @@ class ElementorEmbedIE(InfoExtractor):
         },
     }]
     _WIDGET_REGEX = r'<div[^>]+class="[^"]*elementor-widget-video(?:-playlist)?[^"]*"[^>]*data-settings="([^"]*)"'
+    _LIGHTBOX_REGEX = r'data-elementor-lightbox="([^"]*)"'
 
     def _extract_from_webpage(self, url, webpage):
         for data_settings in re.findall(self._WIDGET_REGEX, webpage):
@@ -70,3 +71,19 @@ class ElementorEmbedIE(InfoExtractor):
                         'url': direct_url,
                         'title': video.get('title'),
                     }
+
+        for lightbox_settings in re.findall(self._LIGHTBOX_REGEX, webpage):
+            data = self._parse_json(lightbox_settings, None, fatal=False, transform_source=unescapeHTML)
+            if not data or data.get('type') != 'video':
+                continue
+            video_url = traverse_obj(data, ('url', {url_or_none}))
+            if not video_url:
+                continue
+            video_type = data.get('videoType', '')
+            if video_type == 'youtube':
+                yield self.url_result(video_url, ie=YoutubeIE)
+            elif video_type == 'vimeo':
+                yield self.url_result(
+                    smuggle_url(video_url, {'referer': url}), ie=VimeoIE)
+            else:
+                yield self.url_result(video_url)
