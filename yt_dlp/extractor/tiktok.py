@@ -41,6 +41,7 @@ class TikTokBaseIE(InfoExtractor):
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p', '1080p')
+    _LOGIN_REQUIRED = False
 
     _APP_INFO_DEFAULTS = {
         # unique "install id"
@@ -102,6 +103,10 @@ class TikTokBaseIE(InfoExtractor):
         self._APP_USER_AGENT = f'{package} (Linux; U; Android 13; en_US; Pixel 7; Build/TD1A.220804.031; Cronet/58.0.2991.0)'
 
         return True
+
+    def _real_initialize(self):
+        if self._LOGIN_REQUIRED and not self._get_cookies(self._WEBPAGE_HOST):
+            self.raise_login_required('You need to log in to access this content')
 
     @staticmethod
     def _create_url(user_id, video_id):
@@ -272,11 +277,9 @@ class TikTokBaseIE(InfoExtractor):
 
         return wci_cookie_name, rci_cookie_name
 
-    def _extract_web_data_and_status(self, url, video_id, fatal=True):
-        video_data, status = {}, -1
-
-        def get_webpage(note='Downloading webpage'):
-            res = self._download_webpage_handle(url, video_id, note, fatal=fatal, impersonate=True)
+    def _extract_universal_data(self, url, display_id=None, fatal=True):
+        def get_webpage(note):
+            res = self._download_webpage_handle(url, display_id, note, fatal=fatal, impersonate=True)
             if res is False:
                 return False
 
@@ -285,38 +288,46 @@ class TikTokBaseIE(InfoExtractor):
                 message = 'TikTok is requiring login for access to this content'
                 if fatal:
                     self.raise_login_required(message)
-                self.report_warning(f'{message}. {self._login_hint()}', video_id=video_id)
+                self.report_warning(f'{message}. {self._login_hint()}', video_id=display_id)
                 return False
 
             return webpage
 
-        webpage = get_webpage()
+        webpage = get_webpage(note='Downloading webpage')
         if webpage is False:
-            return video_data, status
+            return None
 
-        universal_data = self._get_universal_data(webpage, video_id)
+        universal_data = self._get_universal_data(webpage, display_id)
         if not universal_data:
             try:
                 cookie_names = self._solve_challenge_and_set_cookies(webpage)
             except ExtractorError as e:
                 if fatal:
                     raise
-                self.report_warning(e.orig_msg, video_id=video_id)
-                return video_data, status
+                self.report_warning(e.orig_msg, video_id=display_id)
+                return None
 
             webpage = get_webpage(note='Downloading webpage with challenge cookie')
             # Manually clear challenge cookies that should expire immediately after webpage request
             for cookie_name in filter(None, cookie_names):
                 self.cookiejar.clear(domain='.tiktok.com', path='/', name=cookie_name)
             if webpage is False:
-                return video_data, status
-            universal_data = self._get_universal_data(webpage, video_id)
+                return None
+            universal_data = self._get_universal_data(webpage, display_id)
 
         if not universal_data:
             message = 'Unable to extract universal data for rehydration'
             if fatal:
                 raise ExtractorError(message)
-            self.report_warning(message, video_id=video_id)
+            self.report_warning(message, video_id=display_id)
+            return None
+        return universal_data
+
+    def _extract_web_data_and_status(self, url, video_id, fatal=True):
+        video_data, status = {}, -1
+
+        universal_data = self._extract_universal_data(url, video_id, fatal)
+        if not universal_data:
             return video_data, status
 
         status = traverse_obj(universal_data, ('webapp.video-detail', 'statusCode', {int})) or 0
@@ -995,46 +1006,12 @@ class TikTokIE(TikTokBaseIE):
         raise ExtractorError(f'Video not available, status code {status}', video_id=video_id)
 
 
-class TikTokUserIE(TikTokBaseIE):
-    IE_NAME = 'tiktok:user'
-    _VALID_URL = r'(?:tiktokuser:|https?://(?:www\.)?tiktok\.com/@)(?P<id>[\w.-]+)/?(?:$|[#?])'
-    _TESTS = [{
-        'url': 'https://tiktok.com/@corgibobaa?lang=en',
-        'playlist_mincount': 45,
-        'info_dict': {
-            'id': 'MS4wLjABAAAAepiJKgwWhulvCpSuUVsp7sgVVsFJbbNaLeQ6OQ0oAJERGDUIXhb2yxxHZedsItgT',
-            'title': 'corgibobaa',
-        },
-        'expected_warnings': ['TikTok API keeps sending the same page'],
-        'params': {'extractor_retries': 10},
-    }, {
-        'url': 'https://www.tiktok.com/@6820838815978423302',
-        'playlist_mincount': 5,
-        'info_dict': {
-            'id': 'MS4wLjABAAAA0tF1nBwQVVMyrGu3CqttkNgM68Do1OXUFuCY0CRQk8fEtSVDj89HqoqvbSTmUP2W',
-            'title': '6820838815978423302',
-        },
-        'expected_warnings': ['TikTok API keeps sending the same page'],
-        'params': {'extractor_retries': 10},
-    }, {
-        'url': 'https://www.tiktok.com/@meme',
-        'playlist_mincount': 593,
-        'info_dict': {
-            'id': 'MS4wLjABAAAAiKfaDWeCsT3IHwY77zqWGtVRIy9v4ws1HbVi7auP1Vx7dJysU_hc5yRiGywojRD6',
-            'title': 'meme',
-        },
-        'expected_warnings': ['TikTok API keeps sending the same page'],
-        'params': {'extractor_retries': 10},
-    }, {
-        'url': 'tiktokuser:MS4wLjABAAAAM3R2BtjzVT-uAtstkl2iugMzC6AtnpkojJbjiOdDDrdsTiTR75-8lyWJCY5VvDrZ',
-        'playlist_mincount': 31,
-        'info_dict': {
-            'id': 'MS4wLjABAAAAM3R2BtjzVT-uAtstkl2iugMzC6AtnpkojJbjiOdDDrdsTiTR75-8lyWJCY5VvDrZ',
-        },
-        'expected_warnings': ['TikTok API keeps sending the same page'],
-        'params': {'extractor_retries': 10},
-    }]
-    _API_BASE_URL = 'https://www.tiktok.com/api/creator/item_list/'
+class TikTokUserBaseIE(TikTokBaseIE):
+    _CURSOR_SCALE = 1000  # cursor is in milliseconds
+    _FAIL_EARLY_MESSAGE = (
+        'This user\'s account is likely either private or all of their videos are private. '
+        'Log into an account that has access'
+    )
 
     def _build_web_query(self, sec_uid, cursor):
         return {
@@ -1075,7 +1052,7 @@ class TikTokUserIE(TikTokBaseIE):
         display_id = user_name or sec_uid
         seen_ids = set()
 
-        cursor = int(time.time() * 1E3)
+        cursor = int(time.time() * self._CURSOR_SCALE)
         for page in itertools.count(1):
             for retry in self.RetryManager():
                 response = self._download_json(
@@ -1100,28 +1077,25 @@ class TikTokUserIE(TikTokBaseIE):
                 if video_id in seen_ids:
                     continue
                 seen_ids.add(video_id)
-                webpage_url = self._create_url(display_id, video_id)
+                author = traverse_obj(video, ('author', ('uniqueId', 'secUid', 'id'), {str}, any)) or '_'
+                webpage_url = self._create_url(author, video_id)
                 yield self.url_result(
                     webpage_url, TikTokIE,
                     **self._parse_aweme_video_web(video, webpage_url, video_id, extract_flat=True))
 
-            old_cursor = cursor
-            cursor = traverse_obj(
-                response, ('itemList', -1, 'createTime', {lambda x: int(x * 1E3)}))
-            if not cursor or old_cursor == cursor:
-                # User may not have posted within this ~1 week lookback, so manually adjust cursor
-                cursor = old_cursor - 7 * 86_400_000
-            # In case 'hasMorePrevious' is wrong, break if we have gone back before TikTok existed
-            if cursor < 1472706000000 or not traverse_obj(response, 'hasMorePrevious'):
+            cursor = self._get_cursor(response, cursor)
+            if not cursor:
+                return
+
+            if not traverse_obj(response, (('hasMore', 'hasMorePrevious'), {bool}, any)):
                 return
 
             # This code path is ideally only reached when one of the following is true:
-            # 1. TikTok profile is private and webpage detection was bypassed due to a tiktokuser:sec_uid URL
+            # 1. TikTok profile is private or has likes closed and webpage detection
+            #    was bypassed due to a tiktokuser:sec_uid or tiktokliked:sec_uid URL
             # 2. TikTok profile is *not* private but all of their videos are private
             if fail_early and not seen_ids:
-                self.raise_login_required(
-                    'This user\'s account is likely either private or all of their videos are private. '
-                    'Log into an account that has access')
+                self.raise_login_required(self._FAIL_EARLY_MESSAGE)
 
     def _extract_sec_uid_from_embed(self, user_name):
         webpage = self._download_webpage(
@@ -1146,6 +1120,69 @@ class TikTokUserIE(TikTokBaseIE):
 
         return None
 
+    def _get_cursor(self, response, old_cursor):
+        cursor = int_or_none(response.get('cursor'))
+        if not cursor or old_cursor == cursor:
+            # User may not have posted within this ~1 week lookback, so manually adjust cursor
+            cursor = old_cursor - 7 * 86_400 * self._CURSOR_SCALE
+        # In case 'hasMore/hasMorePrevious' is wrong, break if we have gone back before TikTok existed
+        if cursor < 1472706000 * self._CURSOR_SCALE:
+            return None
+        return cursor
+
+
+class TikTokUserIE(TikTokUserBaseIE):
+    IE_NAME = 'tiktok:user'
+    _VALID_URL = r'(?:tiktokuser:|https?://(?:www\.)?tiktok\.com/@)(?P<id>[\w.-]+)/?(?:$|[#?])'
+    _TESTS = [{
+        'url': 'https://tiktok.com/@corgibobaa?lang=en',
+        'playlist_mincount': 45,
+        'info_dict': {
+            'id': 'MS4wLjABAAAAepiJKgwWhulvCpSuUVsp7sgVVsFJbbNaLeQ6OQ0oAJERGDUIXhb2yxxHZedsItgT',
+            'title': 'corgibobaa',
+        },
+        'expected_warnings': ['TikTok API keeps sending the same page'],
+        'params': {'extractor_retries': 10},
+    }, {
+        'url': 'https://www.tiktok.com/@6820838815978423302',
+        'playlist_mincount': 5,
+        'info_dict': {
+            'id': 'MS4wLjABAAAA0tF1nBwQVVMyrGu3CqttkNgM68Do1OXUFuCY0CRQk8fEtSVDj89HqoqvbSTmUP2W',
+            'title': '6820838815978423302',
+        },
+        'expected_warnings': ['TikTok API keeps sending the same page'],
+        'params': {'extractor_retries': 10},
+    }, {
+        'url': 'https://www.tiktok.com/@meme',
+        'playlist_mincount': 593,
+        'info_dict': {
+            'id': 'MS4wLjABAAAAiKfaDWeCsT3IHwY77zqWGtVRIy9v4ws1HbVi7auP1Vx7dJysU_hc5yRiGywojRD6',
+            'title': 'meme',
+        },
+        'expected_warnings': ['TikTok API keeps sending the same page'],
+        'params': {'extractor_retries': 10},
+    }, {
+        'url': 'tiktokuser:MS4wLjABAAAAM3R2BtjzVT-uAtstkl2iugMzC6AtnpkojJbjiOdDDrdsTiTR75-8lyWJCY5VvDrZ',
+        'playlist_mincount': 31,
+        'info_dict': {
+            'id': 'MS4wLjABAAAAM3R2BtjzVT-uAtstkl2iugMzC6AtnpkojJbjiOdDDrdsTiTR75-8lyWJCY5VvDrZ',
+        },
+        'expected_warnings': ['TikTok API keeps sending the same page'],
+        'params': {'extractor_retries': 10},
+    }]
+    _API_BASE_URL = 'https://www.tiktok.com/api/creator/item_list/'
+
+    def _get_cursor(self, response, old_cursor):
+        cursor = traverse_obj(
+            response, ('itemList', -1, 'createTime', {lambda x: int(x * self._CURSOR_SCALE)}))
+        if not cursor or old_cursor == cursor:
+            # User may not have posted within this ~1 week lookback, so manually adjust cursor
+            cursor = old_cursor - 7 * 86_400 * self._CURSOR_SCALE
+        # In case 'hasMore/hasMorePrevious' is wrong, break if we have gone back before TikTok existed
+        if cursor < 1472706000 * self._CURSOR_SCALE:
+            return None
+        return cursor
+
     def _real_extract(self, url):
         user_name, sec_uid = self._match_id(url), None
         if re.fullmatch(r'MS4wLjABAAAA[\w-]{64}', user_name):
@@ -1158,7 +1195,7 @@ class TikTokUserIE(TikTokBaseIE):
                 fatal=False, impersonate=True) or ''
             detail = traverse_obj(
                 self._get_universal_data(webpage, user_name), ('webapp.user-detail', {dict})) or {}
-            video_count = traverse_obj(detail, ('userInfo', ('stats', 'statsV2'), 'videoCount', {int}, any))
+            video_count = traverse_obj(detail, ('userInfo', ('stats', 'statsV2'), 'videoCount', {int_or_none}, any))
             if not video_count and detail.get('statusCode') == 10222:
                 self.raise_login_required(
                     'This user\'s account is private. Log into an account that has access')
@@ -1178,6 +1215,88 @@ class TikTokUserIE(TikTokBaseIE):
                 'input URL (replacing `channel_id` with its actual value)', expected=True)
 
         return self.playlist_result(self._entries(sec_uid, user_name, fail_early), sec_uid, user_name)
+
+
+class TikTokLikedIE(TikTokUserBaseIE):
+    IE_NAME = 'tiktok:liked'
+    _VALID_URL = r'tiktokliked:(?P<username>[\w.-]+)|https?://(?:www\.)?tiktok\.com/@(?P<username2>[\w.-]+)/liked/?'
+    _FAIL_EARLY_MESSAGE = (
+        'This user\'s account is likely private, has likes hidden, or all of their likes are private. '
+        'Open likes to the public or log into this account'
+    )
+    _TESTS = [{
+        'url': 'https://www.tiktok.com/@gandopers/liked/',
+        'playlist_mincount': 25,
+        'info_dict': {
+            'id': 'MS4wLjABAAAAVuPEj9VE4rd0gzbC6dJpamyDDjBGYEq57gT4MuGVG1Q6fNnNQtg3cDmBBx-r8hNy',
+            'title': 'gandopers',
+        },
+        'expected_warnings': ['TikTok API keeps sending the same page'],
+        'params': {'extractor_retries': 10},
+    }, {
+        'url': 'tiktokliked:gandopers',
+        'only_matching': True,
+    }]
+    _API_BASE_URL = 'https://www.tiktok.com/api/favorite/item_list/'
+
+    def _real_extract(self, url):
+        user_name, user_name2 = self._match_valid_url(url).group('username', 'username2')
+        user_name, sec_uid = user_name or user_name2, None
+        if re.fullmatch(r'MS4wLjABAAAA[\w-]{64}', user_name):
+            user_name, sec_uid = None, user_name
+            fail_early = True
+        else:
+            fail_early = False
+            universal_data = self._extract_universal_data(
+                self._UPLOADER_URL_FORMAT % user_name, user_name, fatal=False) or {}
+            detail = traverse_obj(universal_data, ('webapp.user-detail', {dict})) or {}
+            likes_count = traverse_obj(detail, ('userInfo', ('stats', 'statsV2'), 'diggCount', {int_or_none}, any))
+            if not likes_count and detail.get('statusCode') == 10222:
+                self.raise_login_required(
+                    'This user\'s account is private. Log into an account that has access')
+            elif likes_count == 0:
+                self.raise_login_required(
+                    'This user\'s liked videos are private. '
+                    'Open likes to the public or log into this account',
+                )
+            sec_uid = traverse_obj(detail, ('userInfo', 'user', 'secUid', {str}))
+            if not sec_uid:
+                sec_uid = self._extract_sec_uid_from_embed(user_name)
+
+        if not sec_uid:
+            raise ExtractorError(
+                'Unable to extract secondary user ID. If you are able to get the channel_id '
+                'from a video posted by this user, try using "tiktokliked:channel_id" as the '
+                'input URL (replacing `channel_id` with its actual value)', expected=True)
+
+        return self.playlist_result(self._entries(sec_uid, user_name, fail_early), sec_uid, user_name)
+
+
+class TikTokSavedIE(TikTokUserBaseIE):
+    IE_NAME = 'tiktok:saved'
+    _VALID_URL = r'https?://(?:www\.)?tiktok\.com/saved/?|:tiktoksaved'
+    _LOGIN_REQUIRED = True
+    _CURSOR_SCALE = 1  # cursor is in seconds
+    _TESTS = [{
+        'url': 'https://www.tiktok.com/saved/',
+        'only_matching': True,
+    }, {
+        'url': ':tiktoksaved',
+        'only_matching': True,
+    }]
+    _API_BASE_URL = 'https://www.tiktok.com/api/user/collect/item_list/'
+
+    def _real_extract(self, url):
+        universal_data = self._extract_universal_data(self._WEBPAGE_HOST, fatal=False) or {}
+
+        user_name = traverse_obj(universal_data, ('webapp.app-context', 'user', 'uniqueId', {str}))
+        sec_uid = traverse_obj(universal_data, ('webapp.app-context', 'user', 'secUid', {str}))
+
+        if not (user_name or sec_uid):
+            self.raise_login_required(
+                'You are not logged in. Log into an account that has access')
+
+        return self.playlist_result(self._entries(sec_uid, user_name, fail_early=True), sec_uid, user_name)
 
 
 class TikTokBaseListIE(TikTokBaseIE):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
