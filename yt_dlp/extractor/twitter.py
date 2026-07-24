@@ -1209,10 +1209,9 @@ class TwitterIE(TwitterBaseIE):
         twid, selected_index = self._match_valid_url(url).group('id', 'index')
         status = self._extract_status(twid)
 
-        title = description = traverse_obj(
-            status, (('full_text', 'text'), {lambda x: x.replace('\n', ' ')}), get_all=False) or ''
+        description = traverse_obj(status, (('full_text', 'text'), {str}), get_all=False) or ''
         # strip  'https -_t.co_BJYgOjSeGA' junk from filenames
-        title = truncate_string(re.sub(r'\s+(https?://[^ ]+)', '', title), left=72)
+        title = truncate_string(re.sub(r'\s+(https?://[^ ]+)', '', description.replace('\n', ' ')), left=72)
         user = status.get('user') or {}
         uploader = user.get('name')
         if uploader:
