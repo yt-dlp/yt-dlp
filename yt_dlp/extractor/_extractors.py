@@ -616,6 +616,7 @@ from .francaisfacile import FrancaisFacileIE
 from .francetv import (
     FranceTVIE,
     FranceTVInfoIE,
+    FranceTVInfoLa1ereAudioIE,
     FranceTVSiteIE,
 )
 from .freesound import FreesoundIE
