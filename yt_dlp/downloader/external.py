@@ -336,6 +336,12 @@ class Aria2cFD(ExternalFD):
         # See: https://github.com/yt-dlp/yt-dlp/issues/276
         # https://github.com/ytdl-org/youtube-dl/issues/20312
         # https://github.com/aria2/aria2/issues/1373
+        #
+        # --dir and --out do not require the use of '=' as a separator.
+        # Despite what the documentation shows `getopt_long` is used,
+        # so these being marked as required means we can use space instead.
+        # https://github.com/aria2/aria2/blob/9e7273583f83e881e3ec067b523ba88724088d2f/src/OptionHandlerImpl.cc#L532-L542
+        #
         dn = os.path.dirname(tmpfilename)
         if dn:
             cmd += ['--dir', self._aria2c_filename(dn) + os.path.sep]
