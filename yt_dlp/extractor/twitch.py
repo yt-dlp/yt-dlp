@@ -43,6 +43,7 @@ class TwitchBaseIE(InfoExtractor):
     _OPERATION_HASHES = {
         'CollectionSideBar': '016e1e4ccee0eb4698eb3bf1a04dc1c077fb746c78c82bac9a8f0289658fbd1a',
         'FilterableVideoTower_Videos': '67004f7881e65c297936f32c75246470629557a393788fb5a69d6d9a25a8fd5f',
+        'ClipsCards__Game': 'cc14976959c8f31c617e956a7c4c32216c3e04f6b586088b7bf49561c35e841b',
         'ClipsCards__User': '1cd671bfa12cec480499c087319f26d21925e9695d1f80225aae6a4354f23088',
         'ShareClipRenderStatus': '0a02bb974443b576f5579aab0fef1d4b7f44e58a8a256f0c5adfead0db70640f',
         'ChannelCollectionsContent': '5247910a19b1cd2b760939bf4cba4dcbd3d13bdf8c266decd16956f6ef814077',
@@ -652,11 +653,12 @@ class TwitchPlaylistBaseIE(TwitchBaseIE):
     def _entries(self, channel_name, *args):
         """
         Subclasses must define _make_variables() and _extract_entry(),
-        as well as set _OPERATION_NAME, _ENTRY_KIND, _EDGE_KIND, and _NODE_KIND
+        as well as set _OPERATION_NAME, _ENTRY_KIND, _DATA_KIND, _EDGE_KIND, and _NODE_KIND
         """
         cursor = None
         variables_common = self._make_variables(channel_name, *args)
         entries_key = f'{self._ENTRY_KIND}s'
+        data_key = self._DATA_KIND
         for page_num in itertools.count(1):
             variables = variables_common.copy()
             variables['limit'] = self._PAGE_LIMIT
@@ -676,7 +678,7 @@ class TwitchPlaylistBaseIE(TwitchBaseIE):
             if not page:
                 break
             edges = try_get(
-                page, lambda x: x[0]['data']['user'][entries_key]['edges'], list)
+                page, lambda x: x[0]['data'][data_key][entries_key]['edges'], list)
             if not edges:
                 break
             for edge in edges:
@@ -799,6 +801,7 @@ class TwitchVideosIE(TwitchVideosBaseIE):
         return (False
                 if any(ie.suitable(url) for ie in (
                     TwitchVideosClipsIE,
+                    TwitchDirectoryClipsIE,
                     TwitchVideosCollectionsIE))
                 else super().suitable(url))
 
@@ -818,6 +821,87 @@ class TwitchVideosIE(TwitchVideosBaseIE):
             playlist_title=(
                 f'{channel_name} - {broadcast.label} '
                 f'sorted by {self._SORTED_BY.get(sort, self._DEFAULT_SORTED_BY)}'))
+
+
+class TwitchDirectoryClipsIE(TwitchPlaylistBaseIE):
+    _VALID_URL = r'https?://(?:(?:www|go|m)\.)?twitch\.tv/directory/category/(?P<id>[^/]+)/(?:clips|videos/*?\?.*?)'
+
+    _TESTS = [{
+        # Clips (defaults to 7d)
+        'url': 'https://www.twitch.tv/directory/category/starcraft/clips?range=7d',
+        'info_dict': {
+            'id': 'starcraft',
+            'title': 'starcraft - Clips Top 7D',
+        },
+        'playlist_mincount': 3,
+    }, {
+        'url': 'https://www.twitch.tv/directory/category/minecraft/clips?range=30d',
+        'info_dict': {
+            'id': 'minecraft',
+            'title': 'minecraft - Clips Top 30D',
+        },
+        'playlist_mincount': 3,
+    }]
+
+    Clip = collections.namedtuple('Clip', ['filter', 'label'])
+
+    _DEFAULT_CLIP = Clip('LAST_WEEK', 'Top 7D')
+    _RANGE = {
+        '24hr': Clip('LAST_DAY', 'Top 24H'),
+        '7d': _DEFAULT_CLIP,
+        '30d': Clip('LAST_MONTH', 'Top 30D'),
+        'all': Clip('ALL_TIME', 'Top All'),
+    }
+
+    _PAGE_LIMIT = 20
+
+    _OPERATION_NAME = 'ClipsCards__Game'
+    _ENTRY_KIND = 'clip'
+    _DATA_KIND = 'game'
+    _EDGE_KIND = 'ClipEdge'
+    _NODE_KIND = 'Clip'
+
+    @staticmethod
+    def _make_variables(game_name, channel_filter):
+        return {
+            'categorySlug': game_name,
+            'limit': 20,
+            'criteria': {
+                'filter': channel_filter,
+            },
+        }
+
+    @staticmethod
+    def _extract_entry(node):
+        assert isinstance(node, dict)
+        slug = node.get('slug')
+        broadcaster_name = traverse_obj(node, ('broadcaster', 'login'))
+        clip_url = f'https://www.twitch.tv/{broadcaster_name}/clip/{slug}'
+        if not clip_url:
+            return
+        return {
+            '_type': 'url_transparent',
+            'ie_key': TwitchClipsIE.ie_key(),
+            'id': node.get('id'),
+            'url': clip_url,
+            'title': node.get('title'),
+            'thumbnail': node.get('thumbnailURL'),
+            'duration': float_or_none(node.get('durationSeconds')),
+            'timestamp': unified_timestamp(node.get('createdAt')),
+            'view_count': int_or_none(node.get('viewCount')),
+            'language': node.get('language'),
+        }
+
+    def _real_extract(self, url):
+        game_name = self._match_id(url)
+        qs = parse_qs(url)
+        date_range = qs.get('range', ['7d'])[0]
+        clip = self._RANGE.get(date_range, self._DEFAULT_CLIP)
+
+        return self.playlist_result(
+            self._entries(game_name, clip.filter),
+            playlist_id=game_name,
+            playlist_title=f'{game_name} - Clips {clip.label}')
 
 
 class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
@@ -851,6 +935,7 @@ class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
 
     _OPERATION_NAME = 'ClipsCards__User'
     _ENTRY_KIND = 'clip'
+    _DATA_KIND = 'user'
     _EDGE_KIND = 'ClipEdge'
     _NODE_KIND = 'Clip'
 
@@ -915,6 +1000,7 @@ class TwitchVideosCollectionsIE(TwitchPlaylistBaseIE):
 
     _OPERATION_NAME = 'ChannelCollectionsContent'
     _ENTRY_KIND = 'collection'
+    _DATA_KIND = 'user'
     _EDGE_KIND = 'CollectionsItemEdge'
     _NODE_KIND = 'Collection'
 
@@ -954,7 +1040,7 @@ class TwitchStreamIE(TwitchVideosBaseIE):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
-                            (?:(?:www|go|m)\.)?twitch\.tv/|
+                            (?:(?:www|go|m)\.)?twitch\.tv/(?!directory/category/)|
                             player\.twitch\.tv/\?.*?\bchannel=
                         )
                         (?P<id>[^/#?]+)
