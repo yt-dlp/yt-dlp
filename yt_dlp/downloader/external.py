@@ -315,12 +315,12 @@ class Aria2cFD(ExternalFD):
         cmd += [f'--load-cookies={self._write_cookies()}']
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
-                cmd += ['--header', f'{key}: {val}']
-        cmd += self._option('--max-overall-download-limit', 'ratelimit')
-        cmd += self._option('--interface', 'source_address')
-        cmd += self._option('--all-proxy', 'proxy')
+                cmd += [f'--header={key}: {val}']
+        cmd += self._option('--max-overall-download-limit', 'ratelimit', '=')
+        cmd += self._option('--interface', 'source_address', '=')
+        cmd += self._option('--all-proxy', 'proxy', '=')
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
-        cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
+        cmd += self._bool_option('--remote-time', 'updatetime', separator='=')
         cmd += self._bool_option('--show-console-readout', 'noprogress', 'false', 'true', '=')
         cmd += self._bool_option('--remove-control-file', 'continuedl', 'false', 'true', '=')
         cmd += self._configuration_args()
