@@ -8,6 +8,7 @@ from ..utils import (
     determine_ext,
     float_or_none,
     int_or_none,
+    join_nonempty,
     remove_start,
     strip_or_none,
     try_get,
@@ -65,7 +66,7 @@ class DPlayBaseIE(InfoExtractor):
             })
         return streaming_list
 
-    def _get_disco_api_info(self, url, display_id, disco_host, realm, country, domain=''):
+    def _get_disco_api_info(self, url, display_id, disco_host, realm, country, domain='', *args, **kwargs):
         country = self.get_param('geo_bypass_country') or country
         geo_countries = [country.upper()]
         self._initialize_geo_bypass({
@@ -346,45 +347,6 @@ class DiscoveryPlusBaseIE(DPlayBaseIE):
 
     def _real_extract(self, url):
         return self._get_disco_api_info(url, self._match_id(url), **self._DISCO_API_PARAMS)
-
-
-class HGTVDeIE(DiscoveryPlusBaseIE):
-    _VALID_URL = r'https?://de\.hgtv\.com/sendungen' + DPlayBaseIE._PATH_REGEX
-    _TESTS = [{
-        'url': 'https://de.hgtv.com/sendungen/mein-kleinstadt-traumhaus/vom-landleben-ins-loft',
-        'info_dict': {
-            'id': '7332936',
-            'ext': 'mp4',
-            'display_id': 'mein-kleinstadt-traumhaus/vom-landleben-ins-loft',
-            'title': 'Vom Landleben ins Loft',
-            'description': 'md5:e5f72c02c853970796dd3818f2e25745',
-            'episode': 'Episode 7',
-            'episode_number': 7,
-            'season': 'Season 7',
-            'season_number': 7,
-            'series': 'Mein Kleinstadt-Traumhaus',
-            'duration': 2645.0,
-            'timestamp': 1725998100,
-            'upload_date': '20240910',
-            'creators': ['HGTV'],
-            'tags': [],
-            'thumbnail': 'https://eu1-prod-images.disco-api.com/2024/08/09/82a386b9-c688-32c7-b9ff-0b13865f0bae.jpeg',
-        },
-    }]
-
-    _PRODUCT = 'hgtv'
-    _DISCO_API_PARAMS = {
-        'disco_host': 'eu1-prod.disco-api.com',
-        'realm': 'hgtv',
-        'country': 'de',
-    }
-
-    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
-        headers.update({
-            'x-disco-params': f'realm={realm}',
-            'x-disco-client': 'Alps:HyogaPlayer:0.0.0',
-            'Authorization': self._get_auth(disco_base, display_id, realm),
-        })
 
 
 class GoDiscoveryIE(DiscoveryPlusBaseIE):
@@ -1054,7 +1016,13 @@ class DiscoveryPlusIndiaIE(DiscoveryPlusBaseIE):
 
 
 class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?P<domain>(?:tlc|dmax)\.de)/(?:programme|show|sendungen)/(?P<programme>[^/?#]+)/(?:video/)?(?P<alternate_id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?P<channel>dmax\.de|tele5\.de|tlc\.de|de\.hgtv\.com)/(?:(?P<parent_slug>sendungen|mediathek)/)?(?P<slug_a>[\w-]+)(?:/(?P<slug_b>[\w-]+))?'
+
+    _DISCO_API_PARAMS = {
+        'disco_host': 'public.aurora.enhanced.live',
+        'realm': 'de',
+        'country': 'DE',
+    }
 
     _TESTS = [{
         'url': 'https://dmax.de/sendungen/goldrausch-in-australien/german-gold',
@@ -1078,6 +1046,7 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
             'categories': ['Gold', 'Schatzsucher'],
         },
         'params': {'skip_download': 'm3u8'},
+        'skip': '404 Not Found',
     }, {
         'url': 'https://www.tlc.de/programme/breaking-amish/video/die-welt-da-drauen/DCB331270001100',
         'info_dict': {
@@ -1102,103 +1071,345 @@ class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
     }, {
         'url': 'https://www.dmax.de/programme/dmax-highlights/video/tuning-star-sidney-hoffmann-exklusiv-bei-dmax/191023082312316',
         'only_matching': True,
+        'skip': '404 Not Found',
     }, {
         'url': 'https://tlc.de/sendungen/breaking-amish/die-welt-da-drauen/',
         'only_matching': True,
+        'skip': '404 Not Found',
     }, {
-        'url': 'https://dmax.de/sendungen/feuerwache-3-alarm-in-muenchen/24-stunden-auf-der-feuerwache-3',
+        'url': 'https://dmax.de/sendungen/feuerwache-3-alarm-in-muenchen/season-1-episode-10',
         'info_dict': {
-            'id': '8873549',
+            'id': '18584',
             'ext': 'mp4',
-            'title': '24 Stunden auf der Feuerwache 3',
-            'description': 'md5:f3084ef6170bfb79f9a6e0c030e09330',
-            'display_id': 'feuerwache-3-alarm-in-muenchen/24-stunden-auf-der-feuerwache-3',
-            'episode': 'Episode 1',
-            'episode_number': 1,
+            'title': 'Höhenrettung in der Fußball-Arena',
+            'description': 'md5:9f4b41b411b093f4c8ee42906f4aa44d',
+            'display_id': '18584',
+            'episode': 'Episode 10',
+            'episode_number': 10,
             'season': 'Season 1',
             'season_number': 1,
             'series': 'Feuerwache 3 - Alarm in München',
-            'duration': 2632.0,
-            'upload_date': '20251016',
-            'timestamp': 1760645100,
+            'duration': 2653.04,
+            'upload_date': '20251218',
+            'timestamp': 1766091900,
             'creators': ['DMAX'],
-            'thumbnail': 'https://eu1-prod-images.disco-api.com/2025/10/14/0bdee68c-a8d8-33d9-9204-16eb61108552.jpeg',
+            'thumbnail': 'https://images.aurora.enhanced.live/de/images/video/DCB862460010100310001/default.jpg',
             'tags': [],
-            'categories': ['DMAX Originals', 'Jobs', 'Blaulicht'],
+            'categories': ['Blaulicht', 'DMAX Originals', 'Jobs'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
-        'url': 'https://tlc.de/sendungen/ghost-adventures/der-poltergeist-im-kostumladen',
+        'url': 'https://dmax.de/sendungen/feuerwache-3-alarm-in-muenchen/videos',
+        'playlist_mincount': 1,
+        'info_dict': {'id': 'sendungen-feuerwache-3-alarm-in-muenchen'},
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://tlc.de/sendungen/ghost-adventures/season-28-episode-1',
         'info_dict': {
-            'id': '4550602',
+            'id': '19515',
             'ext': 'mp4',
-            'title': 'Der Poltergeist im Kostümladen',
-            'description': 'md5:20b52b9736a0a3a7873d19a238fad7fc',
-            'display_id': 'ghost-adventures/der-poltergeist-im-kostumladen',
+            'title': 'Spuk im Bordell',
+            'description': 'md5:88e393ad6f48e94b5c97b7a87ff76555',
+            'display_id': '19515',
             'episode': 'Episode 1',
             'episode_number': 1,
-            'season': 'Season 25',
-            'season_number': 25,
+            'season': 'Season 28',
+            'season_number': 28,
             'series': 'Ghost Adventures',
-            'duration': 2493.0,
-            'upload_date': '20241223',
-            'timestamp': 1734948900,
+            'duration': 2646.0,
+            'upload_date': '20260321',
+            'timestamp': 1774130700,
             'creators': ['TLC'],
-            'thumbnail': 'https://eu1-prod-images.disco-api.com/2023/04/05/59941d26-a81b-365f-829f-69d8cd81fd0f.jpeg',
+            'thumbnail': 'https://images.aurora.enhanced.live/de/images/video/DCB759260023100310001/default.jpg',
             'tags': [],
-            'categories': ['Paranormal', 'Gruselig!'],
+            'categories': ['Gruselig!', 'Paranormal'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
-        'url': 'https://tlc.de/sendungen/evil-gesichter-des-boesen/das-geheimnis-meines-bruders',
+        'url': 'https://tlc.de/sendungen/evil-gesichter-des-boesen/season-11-episode-5',
         'info_dict': {
-            'id': '7792288',
+            'id': '21360',
             'ext': 'mp4',
-            'title': 'Das Geheimnis meines Bruders',
-            'description': 'md5:3167550bb582eb9c92875c86a0a20882',
-            'display_id': 'evil-gesichter-des-boesen/das-geheimnis-meines-bruders',
+            'title': 'Prediger des Bösen',
+            'description': 'md5:c41e95cf2da2074d77c8cf78c113bad6',
+            'display_id': '21360',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'season': 'Season 7',
+            'season_number': 7,
+            'series': 'Evil - Gesichter des Bösen',
+            'duration': 2627.0,
+            'upload_date': '20260506',
+            'timestamp': 1778104800,
+            'creators': ['TLC'],
+            'thumbnail': 'https://images.aurora.enhanced.live/de/images/video/DCB863260001100310001/default.jpg',
+            'tags': [],
+            'categories': ['Mord', 'True Crime', 'evil'],
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://tlc.de/sendungen/evil-gesichter-des-boesen/videos',
+        'playlist_mincount': 3,
+        'info_dict': {'id': 'sendungen-evil-gesichter-des-boesen'},
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # slug_a and slug_b
+        'url': 'https://tele5.de/mediathek/star-trek-enterprise/season-3-episode-18',
+        'info_dict': {
+            'id': '22014',
+            'ext': 'mp4',
+            'title': 'Azati Prime',
+            'duration': 2447.36,
+            'thumbnail': 'https://images.aurora.enhanced.live/de/images/video/DCB547350071100330001/default.jpg',
+            'tags': [],
+            'creators': ['TELE 5'],
+            'series': 'Star Trek - Enterprise',
+            'season': 'Season 3',
+            'season_number': 3,
+            'episode': 'Episode 18',
+            'episode_number': 18,
+            'timestamp': 1777737300,
+            'upload_date': '20260502',
+            'categories': ['Derzeit nicht im Programm', 'Sci-Fi', 'Serien', 'Star Trek'],
+        },
+        'params': {'skip_download': 'm3u8'},
+        'skip': 'Video unavailable',
+    }, {
+        'url': 'https://tele5.de/mediathek/star-trek-enterprise/videos',
+        'playlist_mincount': 3,
+        'info_dict': {'id': 'mediathek-star-trek-enterprise'},
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://tele5.de/mediathek/splice-das-genexperiment',
+        'info_dict': {
+            'id': '22532',
+            'ext': 'mp4',
+            'title': 'Splice - Das Genexperiment',
+            'description': 'md5:f254fb2fbfcc62938780cf664ea5e6c3',
+            'duration': 6201.52,
+            'thumbnail': 'https://images.aurora.enhanced.live/de/images/video/DCA54519100330001/default.jpg',
+            'tags': [],
+            'creators': ['TELE 5'],
+            'series': 'Splice - Das Genexperiment',
+            'timestamp': 1778020200,
+            'upload_date': '20260505',
+            'season': 'Season 1',
+            'season_number': 1,
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'categories': ['Drama', 'Fantasy', 'Filme'],
+        },
+        'params': {'skip_download': 'm3u8'},
+        'skip': '404 Not Found',
+    }, {
+        # only slug_a
+        'url': 'https://tele5.de/mediathek/30-miles-from-nowhere-im-wald-hoert-dich-niemand-schreien',
+        'info_dict': {
+            'id': '4102641',
+            'ext': 'mp4',
+            'title': '30 Miles from Nowhere - Im Wald hört dich niemand schreien',
+            'description': 'md5:0b731539f39ee186ebcd9dd444a86fc2',
+            'duration': 4849.96,
+            'thumbnail': r're:https://[^/.]+\.disco-api\.com/.+\.jpe?g',
+            'tags': [],
+            'creators': ['Tele5'],
+            'series': '30 Miles from Nowhere - Im Wald hört dich niemand schreien',
+            'timestamp': 1770417300,
+            'upload_date': '20260206',
+        },
+        'skip': '404 Not Found',
+    }, {
+        # playlist
+        'url': 'https://tele5.de/mediathek/schlefaz',
+        'info_dict': {
+            'id': 'mediathek-schlefaz',
+        },
+        'playlist_mincount': 3,
+        'skip': '404 Not Found',
+    }, {
+        'url': 'https://tele5.de/die-piratenbraut',
+        'info_dict': {
+            'id': '22656',
+            'ext': 'mp4',
+            'title': 'Die Piratenbraut',
+            'description': 'md5:7910bc860c991442b78491cb90a8c473',
+            'duration': 7140.8,
+            'thumbnail': 'https://images.aurora.enhanced.live/de/images/video/DCA54497100330001/default.jpg',
+            'tags': [],
+            'creators': ['TELE 5'],
+            'series': 'Die Piratenbraut',
+            'timestamp': 1778358600,
+            'upload_date': '20260509',
+            'season': 'Season 1',
+            'season_number': 1,
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'categories': ['Abenteuer', 'Action', 'Filme'],
+        },
+        'params': {'skip_download': 'm3u8'},
+        'skip': '404 Not Found',
+    }, {
+        'url': 'https://de.hgtv.com/sendungen/mein-kleinstadt-traumhaus/vom-landleben-ins-loft',
+        'info_dict': {
+            'id': '7332936',
+            'ext': 'mp4',
+            'display_id': 'mein-kleinstadt-traumhaus/vom-landleben-ins-loft',
+            'title': 'Vom Landleben ins Loft',
+            'description': 'md5:e5f72c02c853970796dd3818f2e25745',
+            'episode': 'Episode 7',
+            'episode_number': 7,
+            'season': 'Season 7',
+            'season_number': 7,
+            'series': 'Mein Kleinstadt-Traumhaus',
+            'duration': 2645.0,
+            'timestamp': 1725998100,
+            'upload_date': '20240910',
+            'creators': ['HGTV'],
+            'tags': [],
+            'thumbnail': 'https://eu1-prod-images.disco-api.com/2024/08/09/82a386b9-c688-32c7-b9ff-0b13865f0bae.jpeg',
+        },
+        'skip': '500 Internal Server Error',
+    }, {
+        'url': 'https://de.hgtv.com/sendungen/mein-kleinstadt-traumhaus/season-9-episode-14',
+        'info_dict': {
+            'id': '19122',
+            'ext': 'mp4',
+            'display_id': '19122',
+            'title': 'Musik im Blut',
+            'description': 'md5:05249f7f0e9db86e8dee01585d148da4',
+            'episode': 'Episode 14',
+            'episode_number': 14,
+            'season': 'Season 9',
+            'season_number': 9,
+            'series': 'Mein Kleinstadt-Traumhaus',
+            'duration': 2631.0,
+            'timestamp': 1773172500,
+            'upload_date': '20260310',
+            'creators': ['HGTV'],
+            'tags': [],
+            'categories': ['Haus Makeover', 'Wohnträume'],
+            'thumbnail': 'https://images.aurora.enhanced.live/de/images/video/DCB853090020100310001/default.jpg',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://de.hgtv.com/sendungen/mein-kleinstadt-traumhaus/videos',
+        'playlist_mincount': 3,
+        'info_dict': {'id': 'sendungen-mein-kleinstadt-traumhaus'},
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # no category topic
+        'url': 'https://dmax.de/sendungen/mike-brewer-born-car-dealer/season-1-episode-1',
+        'info_dict': {
+            'id': '23843',
+            'ext': 'mp4',
+            'title': 'Marktlücke gesucht',
+            'description': 'md5:9647b4ecbf69b35e97b578152c34a68e',
+            'display_id': '23843',
             'episode': 'Episode 1',
             'episode_number': 1,
             'season': 'Season 1',
             'season_number': 1,
-            'series': 'Evil - Gesichter des Bösen',
-            'duration': 2626.0,
-            'upload_date': '20240926',
-            'timestamp': 1727388000,
-            'creators': ['TLC'],
-            'thumbnail': 'https://eu1-prod-images.disco-api.com/2024/11/29/e9f3e3ae-74ec-3631-81b7-fc7bbe844741.jpeg',
-            'tags': 'count:13',
-            'categories': ['True Crime', 'Mord'],
+            'series': 'Mike Brewer: Born Car Dealer',
+            'duration': 2664.0,
+            'upload_date': '20260608',
+            'timestamp': 1780949100,
+            'creators': ['DMAX'],
+            'thumbnail': 'https://images.aurora.enhanced.live/de/images/video/DCB880070001100310001/default.jpg',
+            'tags': [],
+            'categories': ['motor'],
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # empty taxonomie
+        'url': 'https://tele5.de/mediathek/der-graf-von-monte-christo/season-1-episode-1',
+        'info_dict': {
+            'id': '22823',
+            'ext': 'mp4',
+            'title': 'Der Brief',
+            'description': 'md5:4caa468caed172235d3363ecfd685b24',
+            'display_id': '22823',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'season': 'Season 1',
+            'season_number': 1,
+            'series': 'Der Graf von Monte Christo',
+            'duration': 2971.96,
+            'upload_date': '20260523',
+            'timestamp': 1779563100,
+            'creators': ['TELE 5'],
+            'thumbnail': 'https://images.aurora.enhanced.live/de/images/video/DCB898660001100310001/default.jpg',
+            'tags': [],
+            'categories': [],
         },
         'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
-        domain, programme, alternate_id = self._match_valid_url(url).groups()
-        display_id = f'{programme}/{alternate_id}'
-        meta = self._download_json(
-            f'https://de-api.loma-cms.com/feloma/videos/{alternate_id}/',
-            display_id, query={
-                'environment': domain.split('.')[0],
-                'v': '2',
-                'filter[show.slug]': programme,
-            }, fatal=False)
-        video_id = traverse_obj(meta, ('uid', {str}, {lambda s: s[-7:]})) or display_id
+        channel, parent_slug, slug_a, slug_b = self._match_valid_url(url).group('channel', 'parent_slug', 'slug_a', 'slug_b')
+        playlist_id = join_nonempty(parent_slug, slug_a, slug_b, delim='-')
+        list_path = ('blocks', ..., 'videoId', {str})
+        playlist = False
 
-        disco_api_info = self._get_disco_api_info(
-            url, video_id, 'eu1-prod.disco-api.com', domain.replace('.', ''), 'DE')
-        disco_api_info['display_id'] = display_id
-        disco_api_info['categories'] = traverse_obj(meta, (
-            'taxonomies', lambda _, v: v['category'] == 'genre', 'title', {str.strip}, filter, all, filter))
+        # mapping channel from url → environment
+        environment = {
+            'dmax.de': 'dmaxde',
+            'de.hgtv.com': 'hgtvde',
+            'tele5.de': 'tele5',
+            'tlc.de': 'tlcde',
+        }
 
-        return disco_api_info
+        query = {
+            'include': 'default',
+            'filter[environment]': environment.get(channel),
+            'v': '2',
+        }
+
+        if not slug_b or slug_b == 'videos':
+            endpoint = f'page/{slug_a}'
+            # some Tele5-movies doesn't have a parent_slug
+            if parent_slug:
+                query['parent_slug'] = parent_slug
+            playlist_id = join_nonempty(parent_slug, slug_a, delim='-')
+            # playlists
+            if slug_b == 'videos':
+                playlist = True
+                list_path = ('blocks', ..., 'items', ..., 'id')
+        else:
+            endpoint = f'shows/{slug_a}'
+            query['filter[video.slug]'] = slug_b
+
+        cms_data = self._download_json(f'https://public.aurora.enhanced.live/site/{endpoint}/', playlist_id, query=query)
+
+        video_ids = traverse_obj(cms_data, list_path)
+        if not isinstance(video_ids, list):
+            raise ExtractorError(f"Can't extract video_ids for {playlist_id} is unavailable")
+        if not playlist and (video_ids is None or len(video_ids) == 0):
+            raise ExtractorError(f'Video {playlist_id} is unavailable', expected=True)
+        if not playlist:
+            return {
+                '_type': 'video',
+                **self._get_disco_api_info(url, video_ids[0], **self._DISCO_API_PARAMS, cms_data=cms_data),
+            }
+
+        return self.playlist_result(
+            (self._get_disco_api_info(url, vid, **self._DISCO_API_PARAMS, cms_data=cms_data) for vid in reversed(video_ids)), playlist_id)
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
         headers.update({
             'x-disco-params': f'realm={realm}',
-            'x-disco-client': 'Alps:HyogaPlayer:0.0.0',
+            'x-disco-client': 'WEB:UNKNOWN:wbdatv:2.1.9',
             'Authorization': self._get_auth(disco_base, display_id, realm),
+            'Content-Type': 'application/json',
         })
+
+    def _get_disco_api_info(self, url, display_id, disco_host, realm, country, domain='', cms_data={}):
+        disco_api_info = super()._get_disco_api_info(url, display_id, disco_host, realm, country, domain)
+        disco_api_info['categories'] = sorted(
+            traverse_obj(
+                cms_data,
+                ('taxonomies', lambda _, v: v.get('category') in ['genre', 'topic'], 'title', {str.strip}, filter, all, filter))
+            or [])
+        return disco_api_info
 
 
 class DiscoveryPlusShowBaseIE(DPlayBaseIE):
