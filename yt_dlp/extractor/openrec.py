@@ -129,7 +129,9 @@ class OpenRecBaseIE(InfoExtractor):
                 'description': ('introduction', {clean_html}, filter),
                 'duration': ('playTime', 'value', {int_or_none(scale=1000)}),
                 'thumbnail': (('lThumbnailUrl', 'thumbnailUrl'), {url_or_none}, any),
-                'timestamp': ('startedAt', 'time', {int_or_none(scale=1000)}),
+                'timestamp': (
+                    ('startedAt', 'publishedAt'), 'time',
+                    {int_or_none(scale=1000)}, any),
                 'view_count': ('totalViews', {int_or_none}),
             }),
             **traverse_obj(info, ('channel', 'user', {
