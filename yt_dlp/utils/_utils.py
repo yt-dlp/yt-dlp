@@ -2237,7 +2237,6 @@ class LazyList(collections.abc.Sequence):
         if self._is_self:
             self._iterable = iterable._iterable
             self._cache = iterable._cache
-            self._reversed ^= iterable._reversed
         else:
             self._iterable = iter(iterable)
             self._cache = []
