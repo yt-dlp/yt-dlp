@@ -2258,7 +2258,10 @@ class LazyList(collections.abc.Sequence):
 
     def exhaust(self):
         """Evaluate the entire iterable"""
-        return list(iter(self))
+        l = self._exhaust().copy()
+        if self._reversed:
+            l.reverse()
+        return l
 
     @staticmethod
     def _reverse_index(x):
