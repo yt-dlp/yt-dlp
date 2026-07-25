@@ -2233,7 +2233,8 @@ class LazyList(collections.abc.Sequence):
 
     def __init__(self, iterable, *, reverse=False):
         self._reversed = reverse
-        if self._is_self := isinstance(iterable, type(self)):
+        self._is_self = isinstance(iterable, type(self))
+        if self._is_self:
             self._iterable = iterable._iterable
             self._cache = iterable._cache
             self._reversed ^= iterable._reversed
