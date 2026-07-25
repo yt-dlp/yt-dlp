@@ -2231,15 +2231,15 @@ class LazyList(collections.abc.Sequence):
     class IndexError(IndexError):  # noqa: A001
         pass
 
-    def __init__(self, iterable, *, reverse=False, _cache=None):
+    def __init__(self, iterable, *, reverse=False):
         self._iterable = iter(iterable)
-        self._cache = [] if _cache is None else _cache
+        self._cache = []
         self._reversed = reverse
 
     def __iter__(self):
         if self._reversed:
             # We need to consume the entire iterable to iterate in reverse
-            yield from self.exhaust()
+            yield from reversed(self._exhaust())
             return
         yield from self._cache
         for item in self._iterable:
@@ -2253,7 +2253,7 @@ class LazyList(collections.abc.Sequence):
 
     def exhaust(self):
         """Evaluate the entire iterable"""
-        return self._exhaust()[::-1 if self._reversed else 1]
+        return list(iter(self))
 
     @staticmethod
     def _reverse_index(x):
@@ -2276,13 +2276,10 @@ class LazyList(collections.abc.Sequence):
             # We need to consume the entire iterable to be able to slice from the end
             # Obviously, never use this with infinite iterables
             self._exhaust()
-            try:
-                return self._cache[idx]
-            except IndexError as e:
-                raise self.IndexError(e) from e
-        n = max(start or 0, stop or 0) - len(self._cache) + 1
-        if n > 0:
-            self._cache.extend(itertools.islice(self._iterable, n))
+        else:
+            n = max(start or 0, stop or 0) - len(self._cache) + 1
+            if n > 0:
+                self._cache.extend(itertools.islice(self._iterable, n))
         try:
             return self._cache[idx]
         except IndexError as e:
@@ -2290,20 +2287,25 @@ class LazyList(collections.abc.Sequence):
 
     def __bool__(self):
         try:
-            self[-1] if self._reversed else self[0]
+            self[-1 if self._reversed else 0]
         except self.IndexError:
             return False
         return True
 
     def __len__(self):
-        self._exhaust()
-        return len(self._cache)
+        return len(self._exhaust())
 
     def __reversed__(self):
-        return type(self)(self._iterable, reverse=not self._reversed, _cache=self._cache)
+        # fill the forward cache
+        l = self._exhaust()
+        # create an iterator for the opposite direction
+        i = iter(l) if self._reversed else reversed(l)
+        # use that iterator to create the new iterable
+        return type(self)(tuple(i))
 
     def __copy__(self):
-        return type(self)(self._iterable, reverse=self._reversed, _cache=self._cache)
+        # the direction is already adjusted as needed by our iterator
+        return type(self)(tuple(iter(self)))
 
     def __repr__(self):
         # repr and str should mimic a list. So we exhaust the iterable
