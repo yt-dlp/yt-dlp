@@ -2232,9 +2232,14 @@ class LazyList(collections.abc.Sequence):
         pass
 
     def __init__(self, iterable, *, reverse=False):
-        self._iterable = iter(iterable)
-        self._cache = []
         self._reversed = reverse
+        if self._is_self := isinstance(iterable, type(self)):
+            self._iterable = iterable._iterable
+            self._cache = iterable._cache
+            self._reversed ^= iterable._reversed
+        else:
+            self._iterable = iter(iterable)
+            self._cache = []
 
     def __iter__(self):
         if self._reversed:
@@ -2277,7 +2282,7 @@ class LazyList(collections.abc.Sequence):
             # Obviously, never use this with infinite iterables
             self._exhaust()
         else:
-            n = max(start or 0, stop or 0) - len(self._cache) + 1
+            n = 1 + max(start or 0, stop or 0) - len(self._cache)
             if n > 0:
                 self._cache.extend(itertools.islice(self._iterable, n))
         try:
@@ -2296,16 +2301,10 @@ class LazyList(collections.abc.Sequence):
         return len(self._exhaust())
 
     def __reversed__(self):
-        # fill the forward cache
-        l = self._exhaust()
-        # create an iterator for the opposite direction
-        i = iter(l) if self._reversed else reversed(l)
-        # use that iterator to create the new iterable
-        return type(self)(tuple(i))
+        return type(self)(self, reverse=not self._reversed)
 
     def __copy__(self):
-        # the direction is already adjusted as needed by our iterator
-        return type(self)(tuple(iter(self)))
+        return type(self)(self, reverse=self._reversed)
 
     def __repr__(self):
         # repr and str should mimic a list. So we exhaust the iterable
