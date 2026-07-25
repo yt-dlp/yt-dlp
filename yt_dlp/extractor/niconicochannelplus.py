@@ -17,21 +17,27 @@ from ..utils import (
 
 class NiconicoChannelPlusBaseIE(InfoExtractor):
     _WEBPAGE_BASE_URL = 'https://nicochannel.jp'
+    _API_BASE_URL = 'https://api.nicochannel.jp/fc'
+    _DEFAULT_FANCLUB_SITE_ID = '1'
 
     def _call_api(self, path, item_id, **kwargs):
+        headers = {
+            'fc_site_id': str(getattr(self, '_fanclub_site_id', self._DEFAULT_FANCLUB_SITE_ID)),
+            'fc_use_device': 'null',
+            **kwargs.pop('headers', {}),
+        }
         return self._download_json(
-            f'https://nfc-api.nicochannel.jp/fc/{path}', video_id=item_id, **kwargs)
+            f'{self._API_BASE_URL}/{path}', video_id=item_id, headers=headers, **kwargs)
 
     def _find_fanclub_site_id(self, channel_name):
-        fanclub_list_json = self._call_api(
-            'content_providers/channels', item_id=f'channels/{channel_name}',
-            note='Fetching channel list', errnote='Unable to fetch channel list',
-        )['data']['content_providers']
-        fanclub_id = traverse_obj(fanclub_list_json, (
-            lambda _, v: v['domain'] == f'{self._WEBPAGE_BASE_URL}/{channel_name}', 'id'),
-            get_all=False)
+        fanclub_id = traverse_obj(self._call_api(
+            'content_providers/channel_domain', item_id=f'channels/{channel_name}',
+            query={'current_site_domain': f'{self._WEBPAGE_BASE_URL}/{channel_name}'},
+            note='Fetching channel info', errnote='Unable to fetch channel info',
+        ), ('data', 'content_providers', 'fanclub_site', 'id', {int_or_none}))
         if not fanclub_id:
             raise ExtractorError(f'Channel {channel_name} does not exist', expected=True)
+        self._fanclub_site_id = fanclub_id
         return fanclub_id
 
     def _get_channel_base_info(self, fanclub_site_id):
