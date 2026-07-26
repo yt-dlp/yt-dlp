@@ -3,7 +3,6 @@ import hashlib
 import re
 import time
 import urllib.parse
-from email import message
 
 from .common import InfoExtractor
 from .dailymotion import DailymotionIE
@@ -110,7 +109,8 @@ class VKBaseIE(InfoExtractor):
                 'Unable to login, incorrect username and/or password', expected=True)
 
     def _download_payload(self, path, video_id, data, fatal=True):
-        endpoint = f'https://vk.com/{path}.php'
+        # vk.com redirect to login even with logged cookies
+        endpoint = f'https://vkvideo.ru/{path}.php'
         data['al'] = 1
         code, payload = self._download_json(
             endpoint, video_id, data=urlencode_postdata(data), fatal=fatal,
@@ -154,7 +154,7 @@ class VKBaseIE(InfoExtractor):
         if self._is_login_redirect(urlh.url) or 'wrong session' in error:
             raise ExtractorError('Cookies are Invalidate', expected=True)
         elif error:
-            raise ExtractorError(message)
+            raise ExtractorError(error)
 
         return data['access_token']
 
