@@ -49,7 +49,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         'Cannot download embed-only video without embedding URL. Please call yt-dlp '
         'with the URL of the page that embeds this video.')
 
-    _DEFAULT_CLIENT = 'web'
+    _DEFAULT_CLIENT = 'macos_basic'
     _DEFAULT_AUTHED_CLIENT = 'web'
     _CLIENT_HEADERS = {
         'Accept': 'application/vnd.vimeo.*+json; version=3.4.10',
@@ -59,7 +59,6 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         'android': {
             'CACHE_KEY': 'oauth-token-android',
             'CACHE_ONLY': True,
-            'VIEWER_JWT': False,
             'REQUIRES_AUTH': False,
             'AUTH': 'NzRmYTg5YjgxMWExY2JiNzUwZDg1MjhkMTYzZjQ4YWYyOGEyZGJlMTp4OGx2NFd3QnNvY1lkamI2UVZsdjdDYlNwSDUrdm50YzdNNThvWDcwN1JrenJGZC9tR1lReUNlRjRSVklZeWhYZVpRS0tBcU9YYzRoTGY2Z1dlVkJFYkdJc0dMRHpoZWFZbU0reDRqZ1dkZ1diZmdIdGUrNUM5RVBySlM0VG1qcw==',
             'USER_AGENT': 'com.vimeo.android.videoapp (OnePlus, ONEPLUS A6003, OnePlus, Android 14/34 Version 11.8.1) Kotlin VimeoNetworking/3.12.0',
@@ -71,26 +70,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 'resource_key', 'badge', 'upload', 'transcode', 'is_playable', 'has_audio',
             ),
         },
-        'ios': {
-            'CACHE_KEY': 'oauth-token-ios',
-            'CACHE_ONLY': True,
-            'VIEWER_JWT': False,
-            'REQUIRES_AUTH': False,
-            'AUTH': 'MTMxNzViY2Y0NDE0YTQ5YzhjZTc0YmU0NjVjNDQxYzNkYWVjOWRlOTpHKzRvMmgzVUh4UkxjdU5FRW80cDNDbDhDWGR5dVJLNUJZZ055dHBHTTB4V1VzaG41bEx1a2hiN0NWYWNUcldSSW53dzRUdFRYZlJEZmFoTTArOTBUZkJHS3R4V2llYU04Qnl1bERSWWxUdXRidjNqR2J4SHFpVmtFSUcyRktuQw==',
-            'USER_AGENT': 'Vimeo/11.10.0 (com.vimeo; build:250424.164813.0; iOS 18.4.1) Alamofire/5.9.0 VimeoNetworking/5.0.0',
-            'VIDEOS_FIELDS': (
-                'uri', 'name', 'description', 'type', 'link', 'player_embed_url', 'duration',
-                'width', 'language', 'height', 'embed', 'created_time', 'modified_time', 'release_time',
-                'content_rating', 'content_rating_class', 'rating_mod_locked', 'license', 'config_url',
-                'embed_player_config_url', 'privacy', 'pictures', 'tags', 'stats', 'categories', 'uploader',
-                'metadata', 'user', 'files', 'download', 'app', 'play', 'status', 'resource_key', 'badge',
-                'upload', 'transcode', 'is_playable', 'has_audio',
-            ),
-        },
-        'macos': {
-            'CACHE_KEY': 'oauth-token-macos',
-            'CACHE_ONLY': True,
-            'VIEWER_JWT': False,
+        'macos_basic': {
+            'CACHE_ONLY': False,
             'REQUIRES_AUTH': False,
             'AUTH': 'NDc1N2JlN2Y5ZjZmMjU3NzE3NTRkZTg1NmY2YzU2MTI0OTFlNjJiYjpwVUNDWUlBZmZqSHhQcndBYWxGMzgyYys2NkN5d1JrREJZZXdPcEdsU05tdjFlVVo2aE1lYk9GcWE3ZW9KVldlYnFlOWh5Vno5UWtpUGJ5empYZFBpYkFwV0FFTnB5VWV4ZEh3aHZnRUNEL0VySnBzTmFraDdNbS9nMXhWanhIcw==',
             'USER_AGENT': 'Vimeo/1.6.3 (com.vimeo.mac; build:251121.142637.0; macOS 13.7.8) Alamofire/5.9.0 VimeoNetworking/5.0.0',
@@ -104,7 +85,6 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         },
         'web': {
             'CACHE_ONLY': False,
-            'VIEWER_JWT': True,
             'REQUIRES_AUTH': True,
             'USER_AGENT': None,
             'VIDEOS_FIELDS': (
@@ -182,7 +162,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         if self._LOGIN_REQUIRED:
             self.raise_login_required()
 
-        if self._DEFAULT_CLIENT != 'web':
+        # Don't auto-load token from cache if the user has specified a client
+        if self._configuration_arg('client', [None], ie_key=VimeoIE)[0]:
             return
 
         for client_name, client_config in self._CLIENT_CONFIGS.items():
@@ -367,10 +348,13 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         }
 
     def _fetch_oauth_token(self, client):
-        client_config = self._CLIENT_CONFIGS[client]
-
-        if client_config['VIEWER_JWT']:
+        base_client, _, variant = client.partition('_')
+        if base_client == 'web':
             return f'jwt {self._fetch_viewer_info()["jwt"]}'
+
+        client_config = self._CLIENT_CONFIGS[client]
+        if variant == 'basic':
+            return f'Basic {client_config["AUTH"]}'
 
         cache_key = client_config['CACHE_KEY']
 
@@ -1213,6 +1197,9 @@ class VimeoIE(VimeoBaseInfoExtractor):
                         'If your IP address is located in Europe you could try using a VPN/proxy,',
                         f'or else u{self._login_hint()[1:]}',
                         delim=' '), method=None)
+                # XXX: Temporary while macos_basic is the default client
+                elif e.cause.status == 401 and self._get_requested_client() == 'macos_basic':
+                    self.raise_login_required('The Vimeo extractor only works when logged-in')
                 else:
                     raise
 
@@ -1220,6 +1207,10 @@ class VimeoIE(VimeoBaseInfoExtractor):
             info = self._parse_config(self._download_json(config_url, video_id), video_id)
         else:
             info = self._parse_api_response(video, video_id, unlisted_hash)
+
+        # XXX: Temporary while macos_basic is the default client
+        if not info.get('formats') and self._get_requested_client() == 'macos_basic':
+            self.raise_login_required('The Vimeo extractor only works when logged-in')
 
         source_format = self._extract_original_format(
             f'https://vimeo.com/{video_id}', video_id, unlisted_hash)
