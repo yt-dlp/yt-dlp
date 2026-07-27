@@ -1,6 +1,8 @@
 import functools
 import json
+from urllib.parse import urlencode
 
+from ..cookies import extract_firefox_nicochannel_auth0_tokens
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -20,12 +22,41 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
     _API_BASE_URL = 'https://api.nicochannel.jp/fc'
     _DEFAULT_FANCLUB_SITE_ID = '1'
 
+    def _get_auth0_access_token(self):
+        if not hasattr(self, '_auth0_tokens'):
+            browser_name, profile, *_ = self.get_param('cookiesfrombrowser') or (None, None)
+            self._auth0_tokens = extract_firefox_nicochannel_auth0_tokens(profile) if browser_name == 'firefox' else None
+        return self._auth0_tokens[0] if self._auth0_tokens else None
+
+    def _refresh_auth0_access_token(self):
+        if not self._auth0_tokens:
+            return False
+        _, refresh_token, client_id = self._auth0_tokens
+        access_token = self._download_json(
+            'https://auth.nicochannel.jp/oauth/token', video_id='auth',
+            data=urlencode({
+                'client_id': client_id,
+                'grant_type': 'refresh_token',
+                'refresh_token': refresh_token,
+            }).encode(),
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+            note='Refreshing Niconico Channel Plus login',
+            errnote='Unable to refresh Niconico Channel Plus login',
+        ).get('access_token')
+        if not isinstance(access_token, str):
+            return False
+        self._auth0_tokens = access_token, refresh_token, client_id
+        return True
+
     def _call_api(self, path, item_id, **kwargs):
+        auth = kwargs.pop('auth', False)
         headers = {
             'fc_site_id': str(getattr(self, '_fanclub_site_id', self._DEFAULT_FANCLUB_SITE_ID)),
             'fc_use_device': 'null',
             **kwargs.pop('headers', {}),
         }
+        if auth and (access_token := self._get_auth0_access_token()):
+            headers['Authorization'] = f'Bearer {access_token}'
         return self._download_json(
             f'{self._API_BASE_URL}/{path}', video_id=item_id, headers=headers, **kwargs)
 
@@ -106,6 +137,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
 
     def _real_extract(self, url):
         content_code, channel_id = self._match_valid_url(url).group('code', 'channel')
+        self._channel_id = channel_id
         fanclub_site_id = self._find_fanclub_site_id(channel_id)
 
         data_json = self._call_api(
@@ -223,14 +255,26 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
 
         self.write_debug(f'{content_code}: video_type={video_type}, live_status={live_status}')
 
-        session_id = self._call_api(
-            f'video_pages/{content_code}/session_ids', item_id=f'{content_code}/session',
-            data=json.dumps(payload).encode('ascii'), headers={
+        request = {
+            'path': f'video_pages/{content_code}/session_ids',
+            'item_id': f'{content_code}/session',
+            'data': json.dumps(payload).encode('ascii'),
+            'headers': {
                 'Content-Type': 'application/json',
                 'origin': 'https://nicochannel.jp',
+                'Referer': f'{self._WEBPAGE_BASE_URL}/{self._channel_id}/video/{content_code}',
             },
-            note='Getting session id', errnote='Unable to get session id',
-        )['data']['session_id']
+            'auth': True,
+            'note': 'Getting session id',
+            'errnote': 'Unable to get session id',
+        }
+        try:
+            response = self._call_api(**request)
+        except ExtractorError as error:
+            if getattr(error.cause, 'status', None) != 408 or not self._refresh_auth0_access_token():
+                raise
+            response = self._call_api(**request)
+        session_id = response['data']['session_id']
 
         return live_status, session_id
 

@@ -200,6 +200,104 @@ def _extract_firefox_cookies(profile, container, logger):
             return jar
 
 
+def extract_firefox_nicochannel_auth0_tokens(profile):
+    if not sqlite3:
+        return None
+
+    if profile is None:
+        search_roots = list(_firefox_browser_dirs())
+    elif _is_path(profile):
+        search_roots = [profile]
+    else:
+        search_roots = [os.path.join(path, profile) for path in _firefox_browser_dirs()]
+
+    database_path = _newest(_firefox_local_storage_dbs(search_roots, 'nicochannel.jp'))
+    if database_path is None:
+        return None
+
+    with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
+        cursor = _open_database_copy(database_path, tmpdir)
+        with contextlib.closing(cursor.connection):
+            row = cursor.execute(
+                'SELECT compression_type, value FROM data WHERE key = ?', ('persist:auth',)).fetchone()
+            if row is None:
+                return None
+            compression_type, value = row
+            try:
+                if compression_type == 1:
+                    value = _snappy_decompress(value)
+                user_information = json.loads(json.loads(value)['totalUserInformation'])['root']['userInformation']
+                access_token = user_information['accessToken']
+                key, compression_type, value = cursor.execute(
+                    'SELECT key, compression_type, value FROM data WHERE key LIKE ?',
+                    ('@@auth0spajs@@::%::api.nicochannel.jp::%',)).fetchone()
+                if compression_type == 1:
+                    value = _snappy_decompress(value)
+                refresh_token = json.loads(value)['body']['refresh_token']
+                client_id = key.split('::')[1]
+            except (KeyError, TypeError, UnicodeDecodeError, ValueError):
+                return None
+            if all(isinstance(value, str) for value in (access_token, refresh_token, client_id)):
+                return access_token, refresh_token, client_id
+
+
+def _snappy_decompress(data):
+    output_length = 0
+    shift = 0
+    for index, byte in enumerate(data):
+        output_length |= (byte & 0x7f) << shift
+        if not byte & 0x80:
+            data = data[index + 1:]
+            break
+        shift += 7
+    else:
+        raise ValueError('invalid snappy data')
+
+    output = bytearray()
+    index = 0
+    while index < len(data):
+        tag = data[index]
+        index += 1
+        tag_type = tag & 0x03
+        if tag_type == 0:
+            length = tag >> 2
+            if length < 60:
+                length += 1
+            else:
+                size = length - 59
+                if index + size > len(data):
+                    raise ValueError('invalid snappy data')
+                length = int.from_bytes(data[index:index + size], 'little') + 1
+                index += size
+            if index + length > len(data):
+                raise ValueError('invalid snappy data')
+            output.extend(data[index:index + length])
+            index += length
+            continue
+
+        if tag_type == 1:
+            length = ((tag >> 2) & 0x07) + 4
+            if index >= len(data):
+                raise ValueError('invalid snappy data')
+            offset = ((tag & 0xe0) << 3) | data[index]
+            index += 1
+        else:
+            length = (tag >> 2) + 1
+            size = 2 if tag_type == 2 else 4
+            if index + size > len(data):
+                raise ValueError('invalid snappy data')
+            offset = int.from_bytes(data[index:index + size], 'little')
+            index += size
+        if not offset or offset > len(output):
+            raise ValueError('invalid snappy data')
+        for _ in range(length):
+            output.append(output[-offset])
+
+    if len(output) != output_length:
+        raise ValueError('invalid snappy data')
+    return output.decode()
+
+
 def _firefox_browser_dirs():
     if sys.platform in ('cygwin', 'win32'):
         yield from map(os.path.expandvars, (
@@ -229,6 +327,13 @@ def _firefox_cookie_dbs(roots):
     for root in map(os.path.abspath, roots):
         for pattern in ('', '*/', 'Profiles/*/'):
             yield from glob.iglob(os.path.join(root, pattern, 'cookies.sqlite'))
+
+
+def _firefox_local_storage_dbs(roots, origin):
+    storage_path = os.path.join('storage', 'default', f'https+++{origin}', 'ls', 'data.sqlite')
+    for root in map(os.path.abspath, roots):
+        for pattern in ('', '*/', 'Profiles/*/'):
+            yield from glob.iglob(os.path.join(root, pattern, storage_path))
 
 
 def _get_chromium_based_browser_settings(browser_name):
