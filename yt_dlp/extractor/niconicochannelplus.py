@@ -109,7 +109,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
         fanclub_site_id = self._find_fanclub_site_id(channel_id)
 
         data_json = self._call_api(
-            f'video_pages/{content_code}', item_id=content_code, headers={'fc_use_device': 'null'},
+            f'video_pages/{content_code}', item_id=content_code,
             note='Fetching video page info', errnote='Unable to fetch video page info',
         )['data']['video_page']
 
@@ -227,7 +227,6 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             f'video_pages/{content_code}/session_ids', item_id=f'{content_code}/session',
             data=json.dumps(payload).encode('ascii'), headers={
                 'Content-Type': 'application/json',
-                'fc_use_device': 'null',
                 'origin': 'https://nicochannel.jp',
             },
             note='Getting session id', errnote='Unable to get session id',
@@ -246,7 +245,6 @@ class NiconicoChannelPlusChannelBaseIE(NiconicoChannelPlusBaseIE):
                 'page': (page + 1),
                 'per_page': self._PAGE_SIZE,
             },
-            headers={'fc_use_device': 'null'},
             note=f'Getting channel info (page {page + 1})',
             errnote=f'Unable to get channel info (page {page + 1})')
 
