@@ -54,10 +54,14 @@ with contextlib.suppress(Exception):
 class WebsocketsResponseAdapter(WebSocketResponse):
 
     def __init__(self, ws: websockets.sync.client.ClientConnection, url):
+        from email.message import Message
+        headers = Message()
+        for name, value in getattr(ws.response.headers, "raw_items", ws.response.headers.items)():
+            headers.add_header(name, value)
         super().__init__(
             fp=io.BytesIO(ws.response.body or b''),
             url=url,
-            headers=ws.response.headers,
+            headers=headers,
             status=ws.response.status_code,
             reason=ws.response.reason_phrase,
         )
