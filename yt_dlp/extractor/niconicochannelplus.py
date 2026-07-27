@@ -2,7 +2,11 @@ import functools
 import json
 from urllib.parse import urlencode
 
-from ..cookies import extract_firefox_nicochannel_auth0_tokens
+from ..cookies import (
+    can_update_firefox_nicochannel_auth0_tokens,
+    extract_firefox_nicochannel_auth0_tokens,
+    update_firefox_nicochannel_auth0_tokens,
+)
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -31,8 +35,11 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
     def _refresh_auth0_access_token(self):
         if not self._auth0_tokens:
             return False
-        _, refresh_token, client_id = self._auth0_tokens
-        access_token = self._download_json(
+        _, refresh_token, client_id, database_path = self._auth0_tokens
+        if not can_update_firefox_nicochannel_auth0_tokens(database_path):
+            self.report_warning('Close Firefox before downloading to refresh the Niconico Channel Plus login')
+            return False
+        response = self._download_json(
             'https://auth.nicochannel.jp/oauth/token', video_id='auth',
             data=urlencode({
                 'client_id': client_id,
@@ -42,10 +49,16 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
             headers={'Content-Type': 'application/x-www-form-urlencoded'},
             note='Refreshing Niconico Channel Plus login',
             errnote='Unable to refresh Niconico Channel Plus login',
-        ).get('access_token')
+        )
+        access_token = response.get('access_token')
         if not isinstance(access_token, str):
             return False
-        self._auth0_tokens = access_token, refresh_token, client_id
+        refresh_token = response.get('refresh_token', refresh_token)
+        if not isinstance(refresh_token, str):
+            return False
+        if not update_firefox_nicochannel_auth0_tokens(database_path, access_token, refresh_token):
+            self.report_warning('Unable to update the Firefox login; sign in to Firefox again before the next download')
+        self._auth0_tokens = access_token, refresh_token, client_id, database_path
         return True
 
     def _call_api(self, path, item_id, **kwargs):

@@ -238,7 +238,49 @@ def extract_firefox_nicochannel_auth0_tokens(profile):
             except (KeyError, TypeError, UnicodeDecodeError, ValueError):
                 return None
             if all(isinstance(value, str) for value in (access_token, refresh_token, client_id)):
-                return access_token, refresh_token, client_id
+                return access_token, refresh_token, client_id, database_path
+
+
+def update_firefox_nicochannel_auth0_tokens(database_path, access_token, refresh_token):
+    try:
+        with contextlib.closing(sqlite3.connect(database_path, timeout=0)) as connection:
+            cursor = connection.cursor()
+            compression_type, value = cursor.execute(
+                'SELECT compression_type, value FROM data WHERE key = ?', ('persist:auth',)).fetchone()
+            if compression_type == 1:
+                value = _snappy_decompress(value)
+            auth_state = json.loads(value)
+            user_information = json.loads(auth_state['totalUserInformation'])
+            user_information['root']['userInformation']['accessToken'] = access_token
+            auth_state['totalUserInformation'] = json.dumps(user_information, separators=(',', ':'))
+
+            key, compression_type, value = cursor.execute(
+                'SELECT key, compression_type, value FROM data WHERE key LIKE ?',
+                ('@@auth0spajs@@::%::api.nicochannel.jp::%',)).fetchone()
+            if compression_type == 1:
+                value = _snappy_decompress(value)
+            auth0_state = json.loads(value)
+            auth0_state['body']['access_token'] = access_token
+            auth0_state['body']['refresh_token'] = refresh_token
+
+            for key, value in (('persist:auth', auth_state), (key, auth0_state)):
+                value = json.dumps(value, separators=(',', ':'))
+                cursor.execute(
+                    'UPDATE data SET utf16_length = ?, conversion_type = 1, compression_type = 0, value = ? WHERE key = ?',
+                    (len(value.encode('utf-16-le')) // 2, value.encode(), key))
+            connection.commit()
+    except (KeyError, TypeError, UnicodeDecodeError, ValueError, sqlite3.Error):
+        return False
+    return True
+
+
+def can_update_firefox_nicochannel_auth0_tokens(database_path):
+    try:
+        with contextlib.closing(sqlite3.connect(database_path, timeout=0)) as connection:
+            connection.execute('BEGIN IMMEDIATE')
+    except sqlite3.Error:
+        return False
+    return True
 
 
 def _snappy_decompress(data):

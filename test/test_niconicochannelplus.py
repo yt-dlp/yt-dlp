@@ -9,7 +9,10 @@ from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from yt_dlp.cookies import extract_firefox_nicochannel_auth0_tokens
+from yt_dlp.cookies import (
+    extract_firefox_nicochannel_auth0_tokens,
+    update_firefox_nicochannel_auth0_tokens,
+)
 from yt_dlp.extractor.niconicochannelplus import NiconicoChannelPlusBaseIE
 
 
@@ -54,14 +57,24 @@ class TestNiconicoChannelPlusBaseIE(unittest.TestCase):
             with patch('yt_dlp.cookies._firefox_local_storage_dbs', return_value=[database_path]):
                 self.assertEqual(
                     extract_firefox_nicochannel_auth0_tokens(None),
-                    ('test-token', 'refresh-token', 'client-id'))
+                    ('test-token', 'refresh-token', 'client-id', database_path))
+                self.assertTrue(update_firefox_nicochannel_auth0_tokens(
+                    database_path, 'new-token', 'new-refresh-token'))
+                self.assertEqual(
+                    extract_firefox_nicochannel_auth0_tokens(None),
+                    ('new-token', 'new-refresh-token', 'client-id', database_path))
 
     def test_refreshes_auth0_access_token(self):
         ie = NiconicoChannelPlusBaseIE()
-        ie._auth0_tokens = ('old-token', 'refresh-token', 'client-id')
-        with patch.object(ie, '_download_json', return_value={'access_token': 'new-token'}) as download_json:
+        ie._auth0_tokens = ('old-token', 'refresh-token', 'client-id', 'data.sqlite')
+        with (
+            patch.object(ie, '_download_json', return_value={
+                'access_token': 'new-token', 'refresh_token': 'new-refresh-token'}) as download_json,
+            patch('yt_dlp.extractor.niconicochannelplus.can_update_firefox_nicochannel_auth0_tokens', return_value=True),
+            patch('yt_dlp.extractor.niconicochannelplus.update_firefox_nicochannel_auth0_tokens', return_value=True),
+        ):
             self.assertTrue(ie._refresh_auth0_access_token())
-        self.assertEqual(ie._auth0_tokens, ('new-token', 'refresh-token', 'client-id'))
+        self.assertEqual(ie._auth0_tokens, ('new-token', 'new-refresh-token', 'client-id', 'data.sqlite'))
         download_json.assert_called_once_with(
             'https://auth.nicochannel.jp/oauth/token', video_id='auth',
             data=b'client_id=client-id&grant_type=refresh_token&refresh_token=refresh-token',
