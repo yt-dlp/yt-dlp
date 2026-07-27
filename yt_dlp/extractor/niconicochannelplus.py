@@ -21,12 +21,9 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
     _DEFAULT_FANCLUB_SITE_ID = '1'
 
     def _call_api(self, path, item_id, **kwargs):
-        access_token = self._configuration_arg(
-            'access_token', [None], ie_key='NiconicoChannelPlus', casesense=True)[0]
         headers = {
             'fc_site_id': str(getattr(self, '_fanclub_site_id', self._DEFAULT_FANCLUB_SITE_ID)),
             'fc_use_device': 'null',
-            **({'Authorization': f'Bearer {access_token}'} if access_token else {}),
             **kwargs.pop('headers', {}),
         }
         return self._download_json(

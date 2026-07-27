@@ -6,7 +6,6 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from test.helper import FakeYDL
 from yt_dlp.extractor.niconicochannelplus import NiconicoChannelPlusBaseIE
 
 
@@ -17,13 +16,8 @@ class NiconicoChannelPlusBaseIETest(NiconicoChannelPlusBaseIE):
 
 
 class TestNiconicoChannelPlusBaseIE(unittest.TestCase):
-    def _make_ie(self, params=None):
-        ie = NiconicoChannelPlusBaseIETest()
-        FakeYDL(params).add_info_extractor(ie)
-        return ie
-
     def test_find_fanclub_site_id_uses_channel_domain_api(self):
-        ie = self._make_ie()
+        ie = NiconicoChannelPlusBaseIETest()
 
         self.assertEqual(ie._find_fanclub_site_id('okazuradio'), 815)
         self.assertEqual(ie.request, {
@@ -38,12 +32,3 @@ class TestNiconicoChannelPlusBaseIE(unittest.TestCase):
             'errnote': 'Unable to fetch channel info',
         })
         self.assertEqual(ie._fanclub_site_id, 815)
-
-    def test_call_api_uses_configured_access_token(self):
-        ie = self._make_ie({
-            'extractor_args': {'niconicochannelplus': {'access_token': ['token']}},
-        })
-
-        ie._call_api('video_pages/sm123', 'sm123')
-
-        self.assertEqual(ie.request['headers']['Authorization'], 'Bearer token')
