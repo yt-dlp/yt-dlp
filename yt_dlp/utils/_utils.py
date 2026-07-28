@@ -2255,8 +2255,11 @@ class LazyList(collections.abc.Sequence):
                 for i in range(cache_position, len(self._cache) - 1):
                     cache_position = 1 + i
                     yield self._cache[i]
-                cache_position = len(self._cache)
+                cache_position += 1
                 yield item
+            for i range(cache_position, len(self._cache)):
+                cache_position = 1 + i
+                yield self._cache[i]
 
         yield from itertools.chain(self._cache, populate_cache())
 
