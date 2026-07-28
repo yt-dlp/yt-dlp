@@ -2246,10 +2246,13 @@ class LazyList(collections.abc.Sequence):
             # We need to consume the entire iterable to iterate in reverse
             yield from reversed(self._exhaust())
             return
-        yield from self._cache
-        for item in self._iterable:
-            self._cache.append(item)
-            yield item
+
+        def populate_cache():
+            for item in self._iterable:
+                self._cache.append(item)
+                yield item
+
+        yield from itertools.chain(self._cache, populate_cache())
 
     def _exhaust(self):
         self._cache.extend(self._iterable)
@@ -2258,7 +2261,8 @@ class LazyList(collections.abc.Sequence):
 
     def exhaust(self):
         """Evaluate the entire iterable"""
-        l = self._exhaust().copy()
+        # guarantee a list is returned 
+        l = list(self._exhaust())
         if self._reversed:
             l.reverse()
         return l
