@@ -2006,13 +2006,13 @@ Line 1
 
         ll = LazyList(it)
         A = iter(ll)
-        self.assertEqual(next(A), 0)
+        self.assertEqual(next(A), it[0])
         B = iter(ll)
-        self.assertEqual(next(B), 0)
-        self.assertEqual(next(B), 1)
-        self.assertEqual(next(A), 1)
+        self.assertEqual(next(B), it[0])
+        self.assertEqual(next(B), it[1])
+        self.assertEqual(next(A), it[1])
         self.assertEqual(next(A), next(B))
-        self.assertEqual(ll[5], 5)
+        self.assertEqual(ll[5], it[5])
         # Reading from the cache now
         self.assertEqual(1 + next(A), next(B))
 
