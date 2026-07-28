@@ -2252,7 +2252,7 @@ class LazyList(collections.abc.Sequence):
             for item in self._iterable:
                 self._cache.append(item)
                 # catch-up to additional items from the cache
-                for i in range(cache_position, len(self._cache)):
+                for i in range(cache_position, len(self._cache) - 1):
                     cache_position = 1 + i
                     yield self._cache[i]
                 cache_position = len(self._cache)
