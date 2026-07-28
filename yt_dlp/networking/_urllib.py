@@ -226,6 +226,15 @@ class RedirectHandler(urllib.request.HTTPRedirectHandler):
         # We will remove it here to prevent any leaks.
         remove_headers = ['Cookie']
 
+        def origin(url):
+            parsed = urllib.parse.urlsplit(url)
+            scheme = parsed.scheme.lower()
+            return scheme, parsed.hostname, parsed.port or {'http': 80, 'https': 443}.get(scheme)
+
+        # Credentials must not be sent to a different origin after a redirect.
+        if origin(req.full_url) != origin(newurl):
+            remove_headers.extend(['Authorization', 'Proxy-Authorization'])
+
         new_method = get_redirect_method(req.get_method(), code)
         # only remove payload if method changed (e.g. POST to GET)
         if new_method != req.get_method():
