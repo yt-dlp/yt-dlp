@@ -26,6 +26,7 @@ from ..utils.traversal import require, traverse_obj
 
 class KickBaseIE(InfoExtractor):
     _BASE_URL = 'https://kick.com'
+    _subscription_cache = None
 
     @functools.cached_property
     def _api_headers(self):
@@ -44,9 +45,23 @@ class KickBaseIE(InfoExtractor):
             f'https://{api_domain}/api/{path}', display_id, note=note,
             headers={**self._api_headers, **headers}, impersonate=True, **kwargs)
 
+    def _is_subscribed(self, creator_id):
+        if self._subscription_cache is None:
+            self._subscription_cache = {}
+
+        if creator_id not in self._subscription_cache:
+            me = self._call_api(
+                f'v1/channels/{creator_id}/me',
+                creator_id, note='Checking subscription status')
+            self._subscription_cache[creator_id] = bool(
+                traverse_obj(me, ('data', 'subscription', {dict})))
+
+        return self._subscription_cache[creator_id]
+
     def _get_creator_info(self, channel_id):
         channel_data = self._call_api(
-            f'v2/channels/{channel_id}', channel_id, note='Downloading creator info')
+            f'v2/channels/{channel_id}',
+            channel_id, note='Downloading creator info')
         creator_id = traverse_obj(channel_data, (
             'id', {int}, {str_or_none}, {require('creator ID')}))
         username = traverse_obj(channel_data, ('user', 'username', {str}, filter))
@@ -159,6 +174,7 @@ class KickVODIE(KickBaseIE):
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
+
         playback = self._call_api(
             f'v1/stream/{video_id}/playback', video_id, headers={
                 'Content-Type': 'application/json',
@@ -174,27 +190,28 @@ class KickVODIE(KickBaseIE):
             raise ExtractorError(
                 err_msg or 'API returned an error response', expected=True)
 
+        creator_id = traverse_obj(playback, (
+            'video_session', 'creator_id', {str}, {require('creator ID')}))
         video_data = traverse_obj(smuggled_data, ('video_data', {dict}))
         if not video_data:
-            creator_id = traverse_obj(playback, (
-                'video_session', 'creator_id', {str}, {require('creator ID')}))
             videos = self._call_api(f'v1/channels/{creator_id}/videos', creator_id)
             video_data = traverse_obj(videos, (
                 'data', lambda _, v: v['id'] == video_id, {dict}, any))
 
-        vod_session_url = traverse_obj(playback, (
-            'playback_url', 'vod_session', {url_or_none}, {require('vod session URL')}))
-        vod_session = self._download_json(vod_session_url, video_id)
-        m3u8_url = traverse_obj(vod_session, (
-            'manifestUrl', {url_or_none}, {require('m3u8 URL')}))
+        availability = {
+            'sub_only': 'subscriber_only',
+            'private': 'private',
+            'public': 'public',
+        }.get(traverse_obj(video_data, ('status', {str})))
+        m3u8_url = traverse_obj(playback, ('playback_url', 'vod', {url_or_none}))
+        if not m3u8_url:
+            if availability == 'subscriber_only' and not self._is_subscribed(creator_id):
+                self.raise_login_required(
+                    'This video requires a channel subscription', metadata_available=True)
 
         return {
             'id': video_id,
-            'availability': {
-                'sub_only': 'subscriber_only',
-                'private': 'private',
-                'public': 'public',
-            }.get(traverse_obj(video_data, ('status', {str}))),
+            'availability': availability,
             'formats': self._extract_m3u8_formats(m3u8_url, video_id, 'mp4'),
             **traverse_obj(video_data, {
                 'title': ('title', {clean_html}, filter),
@@ -293,7 +310,12 @@ class KickClipIE(KickBaseIE):
 
         clip_data = traverse_obj(smuggled_data, ('clip_data', {dict}))
         if not clip_data:
-            clip = self._call_api(f'v2/clips/{clip_id}', clip_id)
+            clip = self._call_api(
+                f'v2/clips/{clip_id}', clip_id, expected_status=404)
+            if err_msg := traverse_obj(clip, (
+                'message', {clean_html}, filter,
+            )):
+                raise ExtractorError(err_msg, expected=True)
             clip_data = traverse_obj(clip, ('clip', {dict}))
 
         clip_url = traverse_obj(clip_data, (
