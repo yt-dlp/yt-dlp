@@ -2248,8 +2248,15 @@ class LazyList(collections.abc.Sequence):
             return
 
         def populate_cache():
+            cache_position = len(self._cache)
             for item in self._iterable:
+                # catch-up to additional items from the cache
+                for i in range(cache_position, len(self._cache)):
+                    cache_position = 1 + i
+                    yield self._cache[i]
+                # add the item to the cache and synchronize the position
                 self._cache.append(item)
+                cache_position = len(self._cache)
                 yield item
 
         yield from itertools.chain(self._cache, populate_cache())
