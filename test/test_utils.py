@@ -2004,6 +2004,16 @@ Line 1
         self.assertEqual(list(reversed(LazyList(it))[::-1]), it)
         self.assertEqual(list(reversed(LazyList(it))[1:3:7]), it[::-1][1:3:7])
 
+        ll = LazyList(it)
+        A = iter(ll)
+        self.assertEqual(next(A), 0)
+        B = iter(ll)
+        self.assertEqual(next(B), 0)
+        self.assertEqual(next(B), 1)
+        self.assertEqual(next(A), 1)
+        ll[5]
+        self.assertEqual(next(A), next(B))
+
     def test_LazyList_laziness(self):
 
         def test(ll, idx, val, cache):
