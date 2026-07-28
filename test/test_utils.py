@@ -2011,10 +2011,15 @@ Line 1
         self.assertEqual(next(B), it[0])
         self.assertEqual(next(B), it[1])
         self.assertEqual(next(A), it[1])
-        self.assertEqual(next(A), next(B))
-        self.assertEqual(ll[5], it[5])
+        self.assertEqual(next(B), next(A))
+        self.assertEqual(ll[7], it[7])
         # Reading from the cache now
         self.assertEqual(next(A), next(B))
+        self.assertEqual(next(B), it[4])
+        # Finish the B iterator
+        self.assertEqual(list(B), it[5:])
+        # Ensure the other iterator was not truncated
+        self.assertEqual(list(A), it[4:])
 
     def test_LazyList_laziness(self):
 
