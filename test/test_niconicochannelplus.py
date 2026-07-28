@@ -5,14 +5,12 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from yt_dlp.cookies import (
-    extract_firefox_nicochannel_auth0_tokens,
-    update_firefox_nicochannel_auth0_tokens,
-)
+from yt_dlp.cookies import extract_firefox_nicochannel_auth0_client
 from yt_dlp.extractor.niconicochannelplus import NiconicoChannelPlusBaseIE
 
 
@@ -40,7 +38,7 @@ class TestNiconicoChannelPlusBaseIE(unittest.TestCase):
         })
         self.assertEqual(ie._fanclub_site_id, 815)
 
-    def test_extracts_auth0_access_token_from_firefox_local_storage(self):
+    def test_extracts_auth0_client_from_firefox_local_storage(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             database_path = os.path.join(tmpdir, 'data.sqlite')
             with sqlite3.connect(database_path) as connection:
@@ -48,37 +46,26 @@ class TestNiconicoChannelPlusBaseIE(unittest.TestCase):
                     'CREATE TABLE data (key TEXT, compression_type INTEGER, value BLOB)')
                 connection.execute(
                     'INSERT INTO data VALUES (?, ?, ?)', (
-                        'persist:auth', 0,
-                        b'{"totalUserInformation":"{\\"root\\":{\\"userInformation\\":{\\"accessToken\\":\\"test-token\\"}}}"}'))
-                connection.execute(
-                    'INSERT INTO data VALUES (?, ?, ?)', (
                         '@@auth0spajs@@::client-id::api.nicochannel.jp::scope',
-                        0, b'{"body":{"refresh_token":"refresh-token"}}'))
+                        0, b''))
             with patch('yt_dlp.cookies._firefox_local_storage_dbs', return_value=[database_path]):
                 self.assertEqual(
-                    extract_firefox_nicochannel_auth0_tokens(None),
-                    ('test-token', 'refresh-token', 'client-id', database_path))
-                self.assertTrue(update_firefox_nicochannel_auth0_tokens(
-                    database_path, 'new-token', 'new-refresh-token'))
-                self.assertEqual(
-                    extract_firefox_nicochannel_auth0_tokens(None),
-                    ('new-token', 'new-refresh-token', 'client-id', database_path))
+                    extract_firefox_nicochannel_auth0_client(None), ('client-id', 'scope'))
 
     def test_refreshes_auth0_access_token(self):
         ie = NiconicoChannelPlusBaseIE()
-        ie._auth0_tokens = ('old-token', 'refresh-token', 'client-id', 'data.sqlite')
+        ie._auth0_client = ('client-id', 'scope')
         with (
-            patch.object(ie, '_download_json', return_value={
-                'access_token': 'new-token', 'refresh_token': 'new-refresh-token'}) as download_json,
-            patch('yt_dlp.extractor.niconicochannelplus.can_update_firefox_nicochannel_auth0_tokens', return_value=True),
-            patch('yt_dlp.extractor.niconicochannelplus.update_firefox_nicochannel_auth0_tokens', return_value=True),
+            patch('yt_dlp.extractor.niconicochannelplus.secrets.token_urlsafe', side_effect=('verifier', 'state')),
+            patch.object(ie, '_download_webpage_handle', return_value=(
+                '', SimpleNamespace(url='https://nicochannel.jp/login/login-redirect?code=code&state=state'))),
+            patch.object(ie, '_download_json', return_value={'access_token': 'new-token'}) as download_json,
         ):
-            self.assertTrue(ie._refresh_auth0_access_token())
-        self.assertEqual(ie._auth0_tokens, ('new-token', 'new-refresh-token', 'client-id', 'data.sqlite'))
+            self.assertEqual(ie._refresh_auth0_access_token(), 'new-token')
         download_json.assert_called_once_with(
             'https://auth.nicochannel.jp/oauth/token', video_id='auth',
-            data=b'client_id=client-id&grant_type=refresh_token&refresh_token=refresh-token',
+            data=b'client_id=client-id&code=code&code_verifier=verifier&grant_type=authorization_code&redirect_uri=https%3A%2F%2Fnicochannel.jp%2Flogin%2Flogin-redirect',
             headers={'Content-Type': 'application/x-www-form-urlencoded'},
-            note='Refreshing Niconico Channel Plus login',
-            errnote='Unable to refresh Niconico Channel Plus login',
+            note=False,
+            errnote='Unable to exchange Niconico Channel Plus login',
         )

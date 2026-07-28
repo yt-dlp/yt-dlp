@@ -200,7 +200,7 @@ def _extract_firefox_cookies(profile, container, logger):
             return jar
 
 
-def extract_firefox_nicochannel_auth0_tokens(profile):
+def extract_firefox_nicochannel_auth0_client(profile):
     if not sqlite3:
         return None
 
@@ -219,125 +219,13 @@ def extract_firefox_nicochannel_auth0_tokens(profile):
         cursor = _open_database_copy(database_path, tmpdir)
         with contextlib.closing(cursor.connection):
             row = cursor.execute(
-                'SELECT compression_type, value FROM data WHERE key = ?', ('persist:auth',)).fetchone()
-            if row is None:
-                return None
-            compression_type, value = row
-            try:
-                if compression_type == 1:
-                    value = _snappy_decompress(value)
-                user_information = json.loads(json.loads(value)['totalUserInformation'])['root']['userInformation']
-                access_token = user_information['accessToken']
-                key, compression_type, value = cursor.execute(
-                    'SELECT key, compression_type, value FROM data WHERE key LIKE ?',
-                    ('@@auth0spajs@@::%::api.nicochannel.jp::%',)).fetchone()
-                if compression_type == 1:
-                    value = _snappy_decompress(value)
-                refresh_token = json.loads(value)['body']['refresh_token']
-                client_id = key.split('::')[1]
-            except (KeyError, TypeError, UnicodeDecodeError, ValueError):
-                return None
-            if all(isinstance(value, str) for value in (access_token, refresh_token, client_id)):
-                return access_token, refresh_token, client_id, database_path
-
-
-def update_firefox_nicochannel_auth0_tokens(database_path, access_token, refresh_token):
-    try:
-        with contextlib.closing(sqlite3.connect(database_path, timeout=0)) as connection:
-            cursor = connection.cursor()
-            compression_type, value = cursor.execute(
-                'SELECT compression_type, value FROM data WHERE key = ?', ('persist:auth',)).fetchone()
-            if compression_type == 1:
-                value = _snappy_decompress(value)
-            auth_state = json.loads(value)
-            user_information = json.loads(auth_state['totalUserInformation'])
-            user_information['root']['userInformation']['accessToken'] = access_token
-            auth_state['totalUserInformation'] = json.dumps(user_information, separators=(',', ':'))
-
-            key, compression_type, value = cursor.execute(
                 'SELECT key, compression_type, value FROM data WHERE key LIKE ?',
                 ('@@auth0spajs@@::%::api.nicochannel.jp::%',)).fetchone()
-            if compression_type == 1:
-                value = _snappy_decompress(value)
-            auth0_state = json.loads(value)
-            auth0_state['body']['access_token'] = access_token
-            auth0_state['body']['refresh_token'] = refresh_token
-
-            for key, value in (('persist:auth', auth_state), (key, auth0_state)):
-                value = json.dumps(value, separators=(',', ':'))
-                cursor.execute(
-                    'UPDATE data SET utf16_length = ?, conversion_type = 1, compression_type = 0, value = ? WHERE key = ?',
-                    (len(value.encode('utf-16-le')) // 2, value.encode(), key))
-            connection.commit()
-    except (KeyError, TypeError, UnicodeDecodeError, ValueError, sqlite3.Error):
-        return False
-    return True
-
-
-def can_update_firefox_nicochannel_auth0_tokens(database_path):
-    try:
-        with contextlib.closing(sqlite3.connect(database_path, timeout=0)) as connection:
-            connection.execute('BEGIN IMMEDIATE')
-    except sqlite3.Error:
-        return False
-    return True
-
-
-def _snappy_decompress(data):
-    output_length = 0
-    shift = 0
-    for index, byte in enumerate(data):
-        output_length |= (byte & 0x7f) << shift
-        if not byte & 0x80:
-            data = data[index + 1:]
-            break
-        shift += 7
-    else:
-        raise ValueError('invalid snappy data')
-
-    output = bytearray()
-    index = 0
-    while index < len(data):
-        tag = data[index]
-        index += 1
-        tag_type = tag & 0x03
-        if tag_type == 0:
-            length = tag >> 2
-            if length < 60:
-                length += 1
-            else:
-                size = length - 59
-                if index + size > len(data):
-                    raise ValueError('invalid snappy data')
-                length = int.from_bytes(data[index:index + size], 'little') + 1
-                index += size
-            if index + length > len(data):
-                raise ValueError('invalid snappy data')
-            output.extend(data[index:index + length])
-            index += length
-            continue
-
-        if tag_type == 1:
-            length = ((tag >> 2) & 0x07) + 4
-            if index >= len(data):
-                raise ValueError('invalid snappy data')
-            offset = ((tag & 0xe0) << 3) | data[index]
-            index += 1
-        else:
-            length = (tag >> 2) + 1
-            size = 2 if tag_type == 2 else 4
-            if index + size > len(data):
-                raise ValueError('invalid snappy data')
-            offset = int.from_bytes(data[index:index + size], 'little')
-            index += size
-        if not offset or offset > len(output):
-            raise ValueError('invalid snappy data')
-        for _ in range(length):
-            output.append(output[-offset])
-
-    if len(output) != output_length:
-        raise ValueError('invalid snappy data')
-    return output.decode()
+            if row is None:
+                return None
+            key = row[0].split('::')
+            if len(key) == 4:
+                return key[1], key[3]
 
 
 def _firefox_browser_dirs():

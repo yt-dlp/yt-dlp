@@ -1,11 +1,12 @@
 import functools
 import json
-from urllib.parse import urlencode
+import base64
+import hashlib
+import secrets
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from ..cookies import (
-    can_update_firefox_nicochannel_auth0_tokens,
-    extract_firefox_nicochannel_auth0_tokens,
-    update_firefox_nicochannel_auth0_tokens,
+    extract_firefox_nicochannel_auth0_client,
 )
 from .common import InfoExtractor
 from ..utils import (
@@ -25,41 +26,59 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
     _WEBPAGE_BASE_URL = 'https://nicochannel.jp'
     _API_BASE_URL = 'https://api.nicochannel.jp/fc'
     _DEFAULT_FANCLUB_SITE_ID = '1'
+    _AUTH0_BASE_URL = 'https://auth.nicochannel.jp'
+    _AUTH0_REDIRECT_URI = 'https://nicochannel.jp/login/login-redirect'
 
     def _get_auth0_access_token(self):
-        if not hasattr(self, '_auth0_tokens'):
+        if not hasattr(self, '_auth0_access_token'):
             browser_name, profile, *_ = self.get_param('cookiesfrombrowser') or (None, None)
-            self._auth0_tokens = extract_firefox_nicochannel_auth0_tokens(profile) if browser_name == 'firefox' else None
-        return self._auth0_tokens[0] if self._auth0_tokens else None
+            self._auth0_client = extract_firefox_nicochannel_auth0_client(profile) if browser_name == 'firefox' else None
+            self._auth0_access_token = self._refresh_auth0_access_token()
+        return self._auth0_access_token
 
     def _refresh_auth0_access_token(self):
-        if not self._auth0_tokens:
-            return False
-        _, refresh_token, client_id, database_path = self._auth0_tokens
-        if not can_update_firefox_nicochannel_auth0_tokens(database_path):
-            self.report_warning('Close Firefox before downloading to refresh the Niconico Channel Plus login')
-            return False
-        response = self._download_json(
-            'https://auth.nicochannel.jp/oauth/token', video_id='auth',
-            data=urlencode({
+        if not self._auth0_client:
+            return None
+        client_id, scope = self._auth0_client
+        code_verifier = secrets.token_urlsafe(32)
+        code_challenge = base64.urlsafe_b64encode(
+            hashlib.sha256(code_verifier.encode()).digest()).decode().rstrip('=')
+        state = secrets.token_urlsafe(16)
+        _, urlh = self._download_webpage_handle(
+            f'{self._AUTH0_BASE_URL}/authorize', 'auth',
+            query={
+                'audience': 'api.nicochannel.jp',
                 'client_id': client_id,
-                'grant_type': 'refresh_token',
-                'refresh_token': refresh_token,
-            }).encode(),
-            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+                'code_challenge': code_challenge,
+                'code_challenge_method': 'S256',
+                'prompt': 'none',
+                'redirect_uri': self._AUTH0_REDIRECT_URI,
+                'response_type': 'code',
+                'scope': scope,
+                'state': state,
+            },
             note='Refreshing Niconico Channel Plus login',
             errnote='Unable to refresh Niconico Channel Plus login',
+            expected_status=404,
+        )
+        query = parse_qs(urlparse(urlh.url).query)
+        if query.get('state', [None])[0] != state or not isinstance(query.get('code', [None])[0], str):
+            return None
+        response = self._download_json(
+            f'{self._AUTH0_BASE_URL}/oauth/token', video_id='auth',
+            data=urlencode({
+                'client_id': client_id,
+                'code': query['code'][0],
+                'code_verifier': code_verifier,
+                'grant_type': 'authorization_code',
+                'redirect_uri': self._AUTH0_REDIRECT_URI,
+            }).encode(),
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+            note=False,
+            errnote='Unable to exchange Niconico Channel Plus login',
         )
         access_token = response.get('access_token')
-        if not isinstance(access_token, str):
-            return False
-        refresh_token = response.get('refresh_token', refresh_token)
-        if not isinstance(refresh_token, str):
-            return False
-        if not update_firefox_nicochannel_auth0_tokens(database_path, access_token, refresh_token):
-            self.report_warning('Unable to update the Firefox login; sign in to Firefox again before the next download')
-        self._auth0_tokens = access_token, refresh_token, client_id, database_path
-        return True
+        return access_token if isinstance(access_token, str) else None
 
     def _call_api(self, path, item_id, **kwargs):
         auth = kwargs.pop('auth', False)
@@ -284,8 +303,12 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
         try:
             response = self._call_api(**request)
         except ExtractorError as error:
-            if getattr(error.cause, 'status', None) != 408 or not self._refresh_auth0_access_token():
+            if getattr(error.cause, 'status', None) != 408:
                 raise
+            refreshed_token = self._refresh_auth0_access_token()
+            if not refreshed_token:
+                raise
+            self._auth0_access_token = refreshed_token
             response = self._call_api(**request)
         session_id = response['data']['session_id']
 
