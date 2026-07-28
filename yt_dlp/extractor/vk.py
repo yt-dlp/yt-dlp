@@ -686,7 +686,9 @@ class VKIE(VKBaseIE):
             else:
                 subtitles.setdefault(lang, []).append(sub_info)
 
-        thumbnails = traverse_obj(data, (('short_video_cover', 'jpg'), {url_or_none}))
+        thumbnails = traverse_obj(data, (('short_video_cover', 'jpg'), {
+            'url': {url_or_none},
+        }))
         if not thumbnails:
             thumbnails = traverse_obj(data, ('image', lambda _, x: x['url'], {'url': 'url', 'height': ('height', {int}), 'width': ('width', {int})}))
 
