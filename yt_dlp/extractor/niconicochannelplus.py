@@ -7,7 +7,7 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..cookies import (
-    extract_firefox_auth0_client,
+    extract_firefox_nicochannel_auth0_client,
 )
 from ..utils import (
     ExtractorError,
@@ -27,14 +27,12 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
     _API_BASE_URL = 'https://api.nicochannel.jp/fc'
     _DEFAULT_FANCLUB_SITE_ID = '1'
     _AUTH0_BASE_URL = 'https://auth.nicochannel.jp'
-    _AUTH0_AUDIENCE = 'api.nicochannel.jp'
     _AUTH0_REDIRECT_URI = 'https://nicochannel.jp/login/login-redirect'
 
     def _get_auth0_access_token(self):
         if not hasattr(self, '_auth0_access_token'):
             browser_name, profile, *_ = self.get_param('cookiesfrombrowser') or (None, None)
-            self._auth0_client = extract_firefox_auth0_client(
-                profile, 'nicochannel.jp', self._AUTH0_AUDIENCE) if browser_name == 'firefox' else None
+            self._auth0_client = extract_firefox_nicochannel_auth0_client(profile) if browser_name == 'firefox' else None
             self._auth0_access_token = self._refresh_auth0_access_token()
         return self._auth0_access_token
 
@@ -49,7 +47,7 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
         _, urlh = self._download_webpage_handle(
             f'{self._AUTH0_BASE_URL}/authorize', 'auth',
             query={
-                'audience': self._AUTH0_AUDIENCE,
+                'audience': 'api.nicochannel.jp',
                 'client_id': client_id,
                 'code_challenge': code_challenge,
                 'code_challenge_method': 'S256',

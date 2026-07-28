@@ -200,7 +200,7 @@ def _extract_firefox_cookies(profile, container, logger):
             return jar
 
 
-def extract_firefox_auth0_client(profile, origin, audience):
+def extract_firefox_nicochannel_auth0_client(profile):
     if not sqlite3:
         return None
 
@@ -211,7 +211,7 @@ def extract_firefox_auth0_client(profile, origin, audience):
     else:
         search_roots = [os.path.join(path, profile) for path in _firefox_browser_dirs()]
 
-    database_path = _newest(_firefox_local_storage_dbs(search_roots, origin))
+    database_path = _newest(_firefox_local_storage_dbs(search_roots, 'nicochannel.jp'))
     if database_path is None:
         return None
 
@@ -220,7 +220,7 @@ def extract_firefox_auth0_client(profile, origin, audience):
         with contextlib.closing(cursor.connection):
             row = cursor.execute(
                 'SELECT key FROM data WHERE key LIKE ?',
-                (f'@@auth0spajs@@::%::{audience}::%',)).fetchone()
+                ('@@auth0spajs@@::%::api.nicochannel.jp::%',)).fetchone()
             if row is None:
                 return None
             key = row[0].split('::')

@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from yt_dlp.cookies import extract_firefox_auth0_client
+from yt_dlp.cookies import extract_firefox_nicochannel_auth0_client
 from yt_dlp.extractor.niconicochannelplus import NiconicoChannelPlusBaseIE, NiconicoChannelPlusIE
 from yt_dlp.utils import ExtractorError
 
@@ -53,8 +53,7 @@ class TestNiconicoChannelPlusBaseIE(unittest.TestCase):
                             0, b''))
             with patch('yt_dlp.cookies._firefox_local_storage_dbs', return_value=[database_path]):
                 self.assertEqual(
-                    extract_firefox_auth0_client(None, 'nicochannel.jp', 'api.nicochannel.jp'),
-                    ('client-id', 'scope'))
+                    extract_firefox_nicochannel_auth0_client(None), ('client-id', 'scope'))
 
     def test_refreshes_auth0_access_token(self):
         ie = NiconicoChannelPlusBaseIE()
@@ -95,7 +94,7 @@ class TestNiconicoChannelPlusBaseIE(unittest.TestCase):
                 url=f'https://nicochannel.jp/login/login-redirect?code=code&state={kwargs["query"]["state"]}')
 
         with (
-            patch('yt_dlp.extractor.niconicochannelplus.extract_firefox_auth0_client', return_value=('client-id', 'scope')) as extract_client,
+            patch('yt_dlp.extractor.niconicochannelplus.extract_firefox_nicochannel_auth0_client', return_value=('client-id', 'scope')) as extract_client,
             patch.object(ie, 'get_param', return_value=('firefox', 'profile', None, None)),
             patch.object(ie, '_download_json', side_effect=download_json),
             patch.object(ie, '_download_webpage_handle', side_effect=download_webpage_handle),
@@ -103,7 +102,7 @@ class TestNiconicoChannelPlusBaseIE(unittest.TestCase):
         ):
             self.assertEqual(ie._get_live_status_and_session_id('content', {'type': 'vod'}), ('not_live', 'session-id'))
 
-        extract_client.assert_called_once_with('profile', 'nicochannel.jp', 'api.nicochannel.jp')
+        extract_client.assert_called_once_with('profile')
         self.assertEqual([
             request[2]['headers']['Authorization']
             for request in requests
