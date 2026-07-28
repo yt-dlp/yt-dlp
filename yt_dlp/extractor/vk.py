@@ -506,11 +506,11 @@ class VKIE(VKBaseIE):
         info_page = ''
         if video_id:
             mv_data = player = self._call_api(
-                    video_id, 'video.getByIds', data={
-                        'videos': video_id,
-                        'video_fields': 'added,episodes,files,image,is_favorite,subtitles,timeline_thumbs,trailer,volume_multiplier',
-                    },
-                )['items'][0]
+                video_id, 'video.getByIds', data={
+                    'videos': video_id,
+                    'video_fields': 'added,episodes,files,image,is_favorite,subtitles,timeline_thumbs,trailer,volume_multiplier',
+                },
+            )['items'][0]
         else:
             video_id = '{}_{}'.format(mobj.group('oid'), mobj.group('id'))
 
