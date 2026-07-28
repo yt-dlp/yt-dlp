@@ -1,14 +1,14 @@
-import functools
-import json
 import base64
+import functools
 import hashlib
+import json
 import secrets
-from urllib.parse import parse_qs, urlencode, urlparse
+import urllib.parse
 
-from ..cookies import (
-    extract_firefox_nicochannel_auth0_client,
-)
 from .common import InfoExtractor
+from ..cookies import (
+    extract_firefox_auth0_client,
+)
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -27,12 +27,14 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
     _API_BASE_URL = 'https://api.nicochannel.jp/fc'
     _DEFAULT_FANCLUB_SITE_ID = '1'
     _AUTH0_BASE_URL = 'https://auth.nicochannel.jp'
+    _AUTH0_AUDIENCE = 'api.nicochannel.jp'
     _AUTH0_REDIRECT_URI = 'https://nicochannel.jp/login/login-redirect'
 
     def _get_auth0_access_token(self):
         if not hasattr(self, '_auth0_access_token'):
             browser_name, profile, *_ = self.get_param('cookiesfrombrowser') or (None, None)
-            self._auth0_client = extract_firefox_nicochannel_auth0_client(profile) if browser_name == 'firefox' else None
+            self._auth0_client = extract_firefox_auth0_client(
+                profile, 'nicochannel.jp', self._AUTH0_AUDIENCE) if browser_name == 'firefox' else None
             self._auth0_access_token = self._refresh_auth0_access_token()
         return self._auth0_access_token
 
@@ -47,7 +49,7 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
         _, urlh = self._download_webpage_handle(
             f'{self._AUTH0_BASE_URL}/authorize', 'auth',
             query={
-                'audience': 'api.nicochannel.jp',
+                'audience': self._AUTH0_AUDIENCE,
                 'client_id': client_id,
                 'code_challenge': code_challenge,
                 'code_challenge_method': 'S256',
@@ -61,12 +63,12 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
             errnote='Unable to refresh Niconico Channel Plus login',
             expected_status=404,
         )
-        query = parse_qs(urlparse(urlh.url).query)
+        query = parse_qs(urlh.url)
         if query.get('state', [None])[0] != state or not isinstance(query.get('code', [None])[0], str):
             return None
         response = self._download_json(
             f'{self._AUTH0_BASE_URL}/oauth/token', video_id='auth',
-            data=urlencode({
+            data=urllib.parse.urlencode({
                 'client_id': client_id,
                 'code': query['code'][0],
                 'code_verifier': code_verifier,

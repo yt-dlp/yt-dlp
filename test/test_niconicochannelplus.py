@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import contextlib
 import os
 import sqlite3
 import sys
@@ -10,8 +11,9 @@ from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from yt_dlp.cookies import extract_firefox_nicochannel_auth0_client
-from yt_dlp.extractor.niconicochannelplus import NiconicoChannelPlusBaseIE
+from yt_dlp.cookies import extract_firefox_auth0_client
+from yt_dlp.extractor.niconicochannelplus import NiconicoChannelPlusBaseIE, NiconicoChannelPlusIE
+from yt_dlp.utils import ExtractorError
 
 
 class NiconicoChannelPlusBaseIETest(NiconicoChannelPlusBaseIE):
@@ -41,16 +43,18 @@ class TestNiconicoChannelPlusBaseIE(unittest.TestCase):
     def test_extracts_auth0_client_from_firefox_local_storage(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             database_path = os.path.join(tmpdir, 'data.sqlite')
-            with sqlite3.connect(database_path) as connection:
-                connection.execute(
-                    'CREATE TABLE data (key TEXT, compression_type INTEGER, value BLOB)')
-                connection.execute(
-                    'INSERT INTO data VALUES (?, ?, ?)', (
-                        '@@auth0spajs@@::client-id::api.nicochannel.jp::scope',
-                        0, b''))
+            with contextlib.closing(sqlite3.connect(database_path)) as connection:
+                with connection:
+                    connection.execute(
+                        'CREATE TABLE data (key TEXT, compression_type INTEGER, value BLOB)')
+                    connection.execute(
+                        'INSERT INTO data VALUES (?, ?, ?)', (
+                            '@@auth0spajs@@::client-id::api.nicochannel.jp::scope',
+                            0, b''))
             with patch('yt_dlp.cookies._firefox_local_storage_dbs', return_value=[database_path]):
                 self.assertEqual(
-                    extract_firefox_nicochannel_auth0_client(None), ('client-id', 'scope'))
+                    extract_firefox_auth0_client(None, 'nicochannel.jp', 'api.nicochannel.jp'),
+                    ('client-id', 'scope'))
 
     def test_refreshes_auth0_access_token(self):
         ie = NiconicoChannelPlusBaseIE()
@@ -69,3 +73,39 @@ class TestNiconicoChannelPlusBaseIE(unittest.TestCase):
             note=False,
             errnote='Unable to exchange Niconico Channel Plus login',
         )
+
+    def test_refreshes_auth0_access_token_after_session_timeout(self):
+        ie = NiconicoChannelPlusIE()
+        ie._channel_id = 'channel'
+        requests = []
+        session_requests = 0
+
+        def download_json(url, video_id, **kwargs):
+            nonlocal session_requests
+            requests.append((url, video_id, kwargs))
+            if url == 'https://auth.nicochannel.jp/oauth/token':
+                return {'access_token': f'token-{session_requests + 1}'}
+            session_requests += 1
+            if session_requests == 1:
+                raise ExtractorError('session timed out', cause=SimpleNamespace(status=408))
+            return {'data': {'session_id': 'session-id'}}
+
+        def download_webpage_handle(url, video_id, **kwargs):
+            return '', SimpleNamespace(
+                url=f'https://nicochannel.jp/login/login-redirect?code=code&state={kwargs["query"]["state"]}')
+
+        with (
+            patch('yt_dlp.extractor.niconicochannelplus.extract_firefox_auth0_client', return_value=('client-id', 'scope')) as extract_client,
+            patch.object(ie, 'get_param', return_value=('firefox', 'profile', None, None)),
+            patch.object(ie, '_download_json', side_effect=download_json),
+            patch.object(ie, '_download_webpage_handle', side_effect=download_webpage_handle),
+            patch.object(ie, 'write_debug'),
+        ):
+            self.assertEqual(ie._get_live_status_and_session_id('content', {'type': 'vod'}), ('not_live', 'session-id'))
+
+        extract_client.assert_called_once_with('profile', 'nicochannel.jp', 'api.nicochannel.jp')
+        self.assertEqual([
+            request[2]['headers']['Authorization']
+            for request in requests
+            if request[0] == 'https://api.nicochannel.jp/fc/video_pages/content/session_ids'
+        ], ['Bearer token-1', 'Bearer token-2'])
