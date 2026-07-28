@@ -505,28 +505,12 @@ class VKIE(VKBaseIE):
         mv_data = {}
         info_page = ''
         if video_id:
-            if self._is_logged_in:
-                payload = mv_data = player = self._call_api(
+            mv_data = player = self._call_api(
                     video_id, 'video.getByIds', data={
                         'videos': video_id,
                         'video_fields': 'added,episodes,files,image,is_favorite,subtitles,timeline_thumbs,trailer,volume_multiplier',
                     },
                 )['items'][0]
-            else:
-                data = {
-                    'act': 'show',
-                    'video': video_id,
-                }
-                # Some videos (removed?) can only be downloaded with list id specified
-                list_id = mobj.group('list_id')
-                if list_id:
-                    data['list'] = list_id
-
-                payload = self._download_payload('al_video', video_id, data)
-                info_page = payload[1]
-                opts = payload[-1]
-                mv_data = opts.get('mvData') or {}
-                player = opts.get('player') or {}
         else:
             video_id = '{}_{}'.format(mobj.group('oid'), mobj.group('id'))
 
