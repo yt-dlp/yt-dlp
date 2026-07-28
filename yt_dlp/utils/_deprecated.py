@@ -3,7 +3,7 @@ import base64
 import hashlib
 import hmac
 import json
-import random
+import uuid
 import warnings
 
 from ..compat.compat_utils import passthrough_module
@@ -59,11 +59,8 @@ def make_dir(path, to_screen=None):
         return False
 
 
-_HEX_TABLE = '0123456789abcdef'
-
-
 def random_uuidv4():
-    return re.sub(r'[xy]', lambda x: _HEX_TABLE[random.randint(0, 15)], 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx')
+    return str(uuid.uuid4())
 
 
 compiled_regex_type = type(re.compile(''))
