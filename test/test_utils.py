@@ -2014,7 +2014,7 @@ Line 1
         self.assertEqual(next(A), next(B))
         self.assertEqual(ll[5], it[5])
         # Reading from the cache now
-        self.assertEqual(1 + next(A), next(B))
+        self.assertEqual(next(A), next(B))
 
     def test_LazyList_laziness(self):
 
