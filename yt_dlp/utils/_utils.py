@@ -2261,7 +2261,7 @@ class LazyList(collections.abc.Sequence):
 
     def exhaust(self):
         """Evaluate the entire iterable"""
-        # guarantee a list is returned 
+        # guarantee a list is returned
         l = list(self._exhaust())
         if self._reversed:
             l.reverse()
