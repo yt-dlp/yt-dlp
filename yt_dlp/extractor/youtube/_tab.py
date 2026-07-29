@@ -2260,7 +2260,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                                     get_all=False, expected_type=str)
                 if not murl:
                     try:
-                        self.playlist_result([self._real_extract(i, {'is_music_url': True}) for i in yt_music_MPADUC_fix(item_id)])
+                        return self.playlist_result([self._real_extract(i) for i in yt_music_MPADUC_fix(item_id)])
                     except Exception:
                         raise ExtractorError('Failed to resolve album to playlist')
                 return self.url_result(murl, YoutubeTabIE)
