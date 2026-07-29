@@ -46,4 +46,16 @@ def jwt_encode_hs256(payload_data, key, headers={}):
     return header_b64 + b'.' + payload_b64 + b'.' + signature_b64
 
 
+def make_dir(path, to_screen=None):
+    from . import make_parent_dirs
+
+    try:
+        make_parent_dirs(path)
+        return True
+    except OSError as e:
+        if to_screen is not None:
+            to_screen(f'Unable to create directory: {e}')
+        return False
+
+
 compiled_regex_type = type(re.compile(''))

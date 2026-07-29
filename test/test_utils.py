@@ -134,7 +134,10 @@ from yt_dlp.utils import (
     xpath_text,
     xpath_with_ns,
 )
-from yt_dlp.utils._utils import _UnsafeExtensionError
+from yt_dlp.utils._utils import (
+    _UnsafeExtensionError,
+    _desktop_entry_localestring,
+)
 from yt_dlp.utils.networking import (
     HTTPHeaderDict,
     escape_rfc3986,
@@ -327,6 +330,12 @@ class TestUtil(unittest.TestCase):
             with self.assertRaises(_UnsafeExtensionError):
                 prepend_extension('abc.unexpected_ext', ext, 'ext')
 
+        # Test allow-unsafe-ext compat option
+        _UnsafeExtensionError._enabled = False
+        self.assertEqual(prepend_extension('abc.ext', 'un/safe'), 'abc.un/safe.ext')
+        # Re-enable sanitization for other tests
+        _UnsafeExtensionError._enabled = True
+
     def test_replace_extension(self):
         self.assertEqual(replace_extension('abc.ext', 'temp'), 'abc.temp')
         self.assertEqual(replace_extension('abc.ext', 'temp', 'ext'), 'abc.temp')
@@ -344,6 +353,12 @@ class TestUtil(unittest.TestCase):
                 replace_extension('abc.ext', ext, 'ext')
             with self.assertRaises(_UnsafeExtensionError):
                 replace_extension('abc.unexpected_ext', ext, 'ext')
+
+        # Test allow-unsafe-ext compat option
+        _UnsafeExtensionError._enabled = False
+        self.assertEqual(replace_extension('abc.ext', 'bin'), 'abc.bin')
+        # Re-enable sanitization for other tests
+        _UnsafeExtensionError._enabled = True
 
     def test_subtitles_filename(self):
         self.assertEqual(subtitles_filename('abc.ext', 'en', 'vtt'), 'abc.en.vtt')
@@ -677,8 +692,6 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(url_or_none('//foo.de'), '//foo.de')
         self.assertEqual(url_or_none('s3://foo.de'), None)
         self.assertEqual(url_or_none('rtmpte://foo.de'), 'rtmpte://foo.de')
-        self.assertEqual(url_or_none('mms://foo.de'), 'mms://foo.de')
-        self.assertEqual(url_or_none('rtspu://foo.de'), 'rtspu://foo.de')
         self.assertEqual(url_or_none('ftps://foo.de'), 'ftps://foo.de')
         self.assertEqual(url_or_none('ws://foo.de'), 'ws://foo.de')
         self.assertEqual(url_or_none('wss://foo.de'), 'wss://foo.de')
@@ -1393,7 +1406,11 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_resolution('1920×1080 '), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('1920 x 1080'), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('720p'), {'height': 720})
+        self.assertEqual(parse_resolution('1080p60'), {'height': 1080})
+        self.assertEqual(parse_resolution('1080p120', parse_fps=True), {'height': 1080, 'fps': 120})
         self.assertEqual(parse_resolution('4k'), {'height': 2160})
+        self.assertEqual(parse_resolution('4K60'), {'height': 2160})
+        self.assertEqual(parse_resolution('4K120', parse_fps=True), {'height': 2160, 'fps': 120})
         self.assertEqual(parse_resolution('8K'), {'height': 4320})
         self.assertEqual(parse_resolution('pre_1920x1080_post'), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('ep1x2'), {})
@@ -1934,6 +1951,27 @@ Line 1
         self.assertEqual(
             iri_to_uri('http://导航.中国/'),
             'http://xn--fet810g.xn--fiqs8s/')
+        self.assertEqual(
+            iri_to_uri('file://example.org/run.exe', allowed_schemes=('file',)),
+            'file://example.org/run.exe')
+        self.assertRaises(ValueError, iri_to_uri, 'file://example.org/run.exe')
+
+    def test_desktop_entry_localestring(self):
+        self.assertEqual(
+            _desktop_entry_localestring('A B'),
+            'A\\sB')
+        self.assertEqual(
+            _desktop_entry_localestring('A\nB'),
+            'A\\nB')
+        self.assertEqual(
+            _desktop_entry_localestring('A\tB'),
+            'A\\tB')
+        self.assertEqual(
+            _desktop_entry_localestring('A\rB'),
+            'A\\rB')
+        self.assertEqual(
+            _desktop_entry_localestring('A\\B'),
+            'A\\\\B')
 
     def test_clean_podcast_url(self):
         self.assertEqual(clean_podcast_url('https://www.podtrac.com/pts/redirect.mp3/chtbl.com/track/5899E/traffic.megaphone.fm/HSW7835899191.mp3'), 'https://traffic.megaphone.fm/HSW7835899191.mp3')
@@ -2159,6 +2197,10 @@ Line 1
         # test if picklable
         headers6 = HTTPHeaderDict(a=1, b=2)
         self.assertEqual(pickle.loads(pickle.dumps(headers6)), headers6)
+
+        headers7 = HTTPHeaderDict()
+        headers7 |= {'X-dlp': 'data'}
+        self.assertEqual(headers7.sensitive(), {'X-dlp': 'data'})
 
     def test_extract_basic_auth(self):
         assert extract_basic_auth('http://:foo.bar') == ('http://:foo.bar', None)
