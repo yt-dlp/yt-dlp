@@ -2,8 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..networking import Request
-from ..utils import base_url, parse_qs, remove_start, urlencode_postdata
-from ..utils.traversal import traverse_obj
+from ..utils import parse_qs, remove_start, urlencode_postdata
 
 
 class GDCVaultIE(InfoExtractor):
@@ -87,6 +86,9 @@ class GDCVaultIE(InfoExtractor):
         },
     ]
     _TITLE_RE = r'<[td]{2}[^>]*>\s*<strong>Session Name:?</strong>\s*</[td]{2}>\s*<[td]{2}[^>]*>(?s:([^<]*))</[td]{2}>'
+    # The CDN URL has been unchanged since at least 2023.
+    # By hard coding it we remove one additional web request as part of the download.
+    _BLAZE_URL_TMPL = 'https://cdn-a.blazestreaming.com/out/v1/{}/38549d9a185b445888c6fbc2e2e792e9/50413c5b8a95441e919f0a1579606e47/index.m3u8'
 
     def _login(self, webpage_url, display_id):
         username, password = self._get_login_info()
@@ -124,24 +126,15 @@ class GDCVaultIE(InfoExtractor):
 
         # query the iframe for the real video
         iframe_url = self._search_regex(
-            r'<iframe[^/]+src="(https://gdcvault\.blazestreaming\.com/\?id=[a-z0-9]+)"',
+            r'<iframe [^>]*\bsrc="(https://gdcvault\.blazestreaming\.com/\?(?:[^#"]+&)?\bid=[^"]+)"',
             start_page, 'iframe_url', default=None, fatal=False)
 
         if iframe_url:
-            # request the iframe webpage to get the "real" video url, walking to the
-            # javascript file defining the source URL
-            blaze_id = traverse_obj(parse_qs(iframe_url), ('id', -1))
-            player_baseurl = base_url(iframe_url)
+            # request the iframe webpage to get the "real" video url, used to query the HLS url(s)
+            blaze_id = parse_qs(iframe_url)['id'][-1]
 
-            js_url = f'{player_baseurl}script_VOD.js'
-            player_url_js = self._download_webpage(js_url, display_id)
-
-            cdn_url_js = self._search_regex(
-                r'PLAYBACK_URL[\s]*=[\s]*\'(https://[^\']+\'\+videoId\+\'[a-z0-9/]+/index.m3u8)',
-                player_url_js, 'cdn_url_js')
-            cdn_url_real = cdn_url_js.replace("'+videoId+'", blaze_id)
-
-            m3u8_formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(cdn_url_real, video_id)
+            m3u8_formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
+                self._BLAZE_URL_TMPL.format(blaze_id), video_id, 'mp4', m3u8_id='hls')
 
             title = self._html_search_regex(self._TITLE_RE, start_page, 'title', fatal=False)
             if not title or title.strip() == '':
