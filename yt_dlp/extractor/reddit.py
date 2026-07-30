@@ -17,7 +17,7 @@ from ..utils import (
 
 
 class RedditIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:\w+\.)?reddit(?:media)?\.com/(?P<slug>(?:(?:r|user)/[^/]+/)?comments/(?P<id>[^/?#&]+))'
+    _VALID_URL = r'https?://(?:(?:(?:\w+\.)?reddit(?:media)?\.com|redlib\.catsearch\.com|ww1\.redlib\.org)/(?P<slug>(?:(?:r|user)/[^/]+/)?comments/(?P<id>[^/?#&]+)))'
     _TESTS = [{
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/',
         'info_dict': {
@@ -260,6 +260,9 @@ class RedditIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.redditmedia.com/r/serbia/comments/pu9wbx/ako_vu%C4%8Di%C4%87_izgubi_izbore_ja_%C4%87u_da_crknem/',
+        'only_matching': True,
+    }, {
+        'url': 'https://redlib.catsearch.com/r/Piracy/comments/1roj87c/this_is_some_next_level_propaganda/',
         'only_matching': True,
     }]
 
