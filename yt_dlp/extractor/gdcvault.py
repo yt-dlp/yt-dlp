@@ -133,11 +133,6 @@ class GDCVaultIE(InfoExtractor):
             blaze_id = traverse_obj(parse_qs(iframe_url), ('id', -1))
             player_baseurl = base_url(iframe_url)
 
-            # Unclear if this is required, as the javascript file appears to
-            # respond to some requests headers with dynamic content for the
-            # same requested URL later on.
-            _player_page = self._download_webpage(iframe_url, display_id)
-
             js_url = f'{player_baseurl}script_VOD.js'
             player_url_js = self._download_webpage(js_url, display_id)
 
@@ -164,7 +159,6 @@ class GDCVaultIE(InfoExtractor):
         # fallback to searching for a raw MP4 file for older webpages.
         self.to_screen('falling back to native HTML video')
         media_entries = self._parse_html5_media_entries(url, start_page, video_id)
-        assert len(self._parse_html5_media_entries(url, start_page, video_id)) == 1
 
         info = media_entries[0]
         info.update({
