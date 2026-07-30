@@ -7,7 +7,6 @@ from ..utils.traversal import traverse_obj
 
 
 class GDCVaultIE(InfoExtractor):
-    _WORKING = True
     _VALID_URL = r'https?://(?:www\.)?gdcvault\.com/play/(?P<id>\d+)(?:/(?P<name>[\w-]+))?'
     _NETRC_MACHINE = 'gdcvault'
     _TESTS = [
@@ -87,6 +86,7 @@ class GDCVaultIE(InfoExtractor):
             'only_matching': True,
         },
     ]
+    _TITLE_RE = r'<[td]{2}[^>]*>\s*<strong>Session Name:?</strong>\s*</[td]{2}>\s*<[td]{2}[^>]*>(?s:([^<]*))</[td]{2}>'
 
     def _login(self, webpage_url, display_id):
         username, password = self._get_login_info()
@@ -118,11 +118,9 @@ class GDCVaultIE(InfoExtractor):
         webpage_url = 'http://www.gdcvault.com/play/' + video_id
         start_page = self._download_webpage(webpage_url, display_id)
         title = remove_start(self._html_extract_title(start_page), 'GDC Vault - ')
-        rich_title = self._html_search_regex(
-            r'<[td]{2}[^>]*>\s*<strong>Session Name:?</strong>\s*</[td]{2}>\s*<[td]{2}[^>]*>\s*(.*?)\s*</[td]{2}>',
-            start_page, 'title', fatal=False)
-        if rich_title:
-            title = rich_title
+        if rich_title := self._html_search_regex(self._TITLE_RE, start_page, 'title', fatal=False):
+            if title := rich_title.strip():
+                pass
 
         # query the iframe for the real video
         iframe_url = self._search_regex(
@@ -150,10 +148,8 @@ class GDCVaultIE(InfoExtractor):
 
             m3u8_formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(cdn_url_real, video_id)
 
-            title = self._html_search_regex(
-                r'<[td]{2}[^>]*>\s*<strong>Session Name:?</strong>\s*</[td]{2}>\s*<[td]{2}[^>]*>\s*(.*?)\s*</[td]{2}>',
-                start_page, 'title', fatal=False)
-            if not title:
+            title = self._html_search_regex(self._TITLE_RE, start_page, 'title', fatal=False)
+            if not title or title.strip() == '':
                 title = remove_start(self._html_extract_title(start_page), 'GDC Vault - ')
 
             if m3u8_formats and title:
@@ -168,7 +164,7 @@ class GDCVaultIE(InfoExtractor):
         # fallback to searching for a raw MP4 file for older webpages.
         self.to_screen('falling back to native HTML video')
         media_entries = self._parse_html5_media_entries(url, start_page, video_id)
-        assert (len(self._parse_html5_media_entries(url, start_page, video_id)) == 1)
+        assert len(self._parse_html5_media_entries(url, start_page, video_id)) == 1
 
         info = media_entries[0]
         info.update({
