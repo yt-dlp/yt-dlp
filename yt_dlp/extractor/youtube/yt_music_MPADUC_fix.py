@@ -1,24 +1,17 @@
 import gzip
 import json
 
-import requests
 
-
-def yt_music_MPADUC_fix(browseid: str) -> list[str]:
+def yt_music_MPADUC_fix(self, browseid: str) -> list[str]:
     browseid = browseid.removeprefix('https://music.youtube.com/browse/')
-    cookies = {
-        'SOCS': 'CAI',
-    }
 
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        # 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
         'Content-Encoding': 'gzip',
+        'Content-Type': 'application/json',
     }
 
-    params = {
-        'prettyPrint': 'false',
-    }
-
+    # data = gzip.compress(
     data = gzip.compress(json.dumps({
         'context': {
             'client': {
@@ -29,8 +22,8 @@ def yt_music_MPADUC_fix(browseid: str) -> list[str]:
         'browseId': browseid,
     }).encode())
 
-    r2 = requests.post('https://music.youtube.com/youtubei/v1/browse', params=params, cookies=cookies, headers=headers, data=data)
-    items = r2.json()['contents']['singleColumnBrowseResultsRenderer']['tabs'][0]['tabRenderer']['content']['sectionListRenderer']['contents'][0]['gridRenderer']['items']
+    r2 = self._download_json('https://music.youtube.com/youtubei/v1/browse', browseid, headers=headers, data=data)
+    items = r2['contents']['singleColumnBrowseResultsRenderer']['tabs'][0]['tabRenderer']['content']['sectionListRenderer']['contents'][0]['gridRenderer']['items']
 
     results = []
     for item in items:
