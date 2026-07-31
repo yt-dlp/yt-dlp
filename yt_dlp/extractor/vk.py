@@ -190,9 +190,9 @@ class VKBaseIE(InfoExtractor):
         query = {'v': '5.282', 'client_id': '52461373', **(query or {})}
         headers = {'Accept': '*/*', 'Content-Type': 'application/x-www-form-urlencoded', **(headers or {})}
         data = urlencode_postdata({'access_token': self._get_access_token() or self._get_guest_access_token(), **(data or {})})
-        data = self._download_json(f'https://api.vk.com/method/{api_method}', video_id=video_id, headers=headers, query=query, data=data, **kwargs)
+        response = self._download_json(f'https://api.vk.com/method/{api_method}', video_id=video_id, headers=headers, query=query, data=data, **kwargs)
 
-        code, message = traverse_obj(data, ('error', ('error_code', 'error_msg')), default=[0, ''])
+        code, message = traverse_obj(response, ('error', ('error_code', 'error_msg')), default=[0, ''])
         if code == 5 or 'authorization failed' in message:
             if self._is_logged_in:
                 self._get_access_token()
@@ -202,7 +202,7 @@ class VKBaseIE(InfoExtractor):
         elif message:
             raise ExtractorError(message)
 
-        return data['response']
+        return response['response']
 
 
 class VKIE(VKBaseIE):
