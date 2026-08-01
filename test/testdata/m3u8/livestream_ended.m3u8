@@ -1,0 +1,11 @@
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:6
+#EXT-X-MEDIA-SEQUENCE:2000
+#EXTINF:6.0,
+https://cdn.example.com/live/segment2000.ts
+#EXTINF:6.0,
+https://cdn.example.com/live/segment2001.ts
+#EXTINF:4.5,
+https://cdn.example.com/live/segment2002.ts
+#EXT-X-ENDLIST

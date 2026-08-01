@@ -64,14 +64,148 @@ class HlsFD(FragmentFD):
             ]
 
         def check_results():
-            yield not info_dict.get('is_live')
+            # Allow live streams if using the generator protocol or hls_native_live option
+            # Note: hls_native_live is checked at routing time, not here
+            if info_dict.get('is_live') and info_dict.get('protocol') != 'm3u8_native_generator':
+                # Will be handled by real_download if hls_native_live is set
+                yield not info_dict.get('is_live')
             for feature in UNSUPPORTED_FEATURES:
                 yield not re.search(feature, manifest)
             if not allow_unplayable_formats:
                 yield not cls._has_drm(manifest)
         return all(check_results())
 
+    def _resolve_fragments(self, fragments, ctx):
+        """Resolve fragment source - handles both callables and iterables.
+
+        Following the DASH pattern from dash.py for generator-based live streams.
+        """
+        fragments = fragments(ctx) if callable(fragments) else fragments
+        return [next(iter(fragments))] if self.params.get('test') else fragments
+
+    def _create_live_fragment_generator(self, man_url, info_dict):
+        """Create a fragment generator for live HLS streams.
+
+        This is used when --hls-native-live is set and the extractor didn't
+        provide a fragment generator.
+        """
+        import time
+        from ..utils import HlsManifestParser
+
+        extra_segment_query = None
+        if extra_param := info_dict.get('extra_param_to_segment_url'):
+            extra_segment_query = urllib.parse.parse_qs(extra_param)
+        extra_key_query = None
+        if extra_param := info_dict.get('extra_param_to_key_url'):
+            extra_key_query = urllib.parse.parse_qs(extra_param)
+
+        def fragment_generator(ctx):
+            NO_NEW_SEGMENTS_THRESHOLD = 30
+            last_media_sequence = -1
+            init_segment_yielded = False
+            no_new_segments_count = 0
+            frag_index = 0
+            manifest_base_url = man_url
+
+            self.to_screen(f'[{self.FD_NAME}] Starting live HLS download with manifest polling')
+
+            while True:
+                fetch_time = time.time()
+
+                if no_new_segments_count > NO_NEW_SEGMENTS_THRESHOLD:
+                    self.to_screen(f'[{self.FD_NAME}] No new segments for too long, assuming stream ended')
+                    return
+
+                try:
+                    urlh = self.ydl.urlopen(self._prepare_url(info_dict, manifest_base_url))
+                    manifest_base_url = urlh.url
+                    manifest_content = urlh.read().decode('utf-8', 'ignore')
+                except Exception as e:
+                    self.report_warning(f'Failed to download manifest: {e}')
+                    no_new_segments_count += 2
+                    time.sleep(2)
+                    continue
+
+                parser = HlsManifestParser(
+                    manifest_content,
+                    manifest_base_url,
+                    extra_segment_query,
+                    extra_key_query,
+                )
+
+                poll_interval = parser.target_duration or 2
+
+                # Yield init segment once
+                for segment in parser.segments:
+                    if segment.get('is_init') and not init_segment_yielded:
+                        frag_index += 1
+                        yield {
+                            'frag_index': frag_index,
+                            'url': segment['url'],
+                            'decrypt_info': segment['decrypt_info'],
+                            'byte_range': segment['byte_range'],
+                            'media_sequence': segment['media_sequence'],
+                        }
+                        init_segment_yielded = True
+
+                new_segments = parser.get_new_segments_since(last_media_sequence)
+
+                if new_segments:
+                    no_new_segments_count = 0
+                    for segment in new_segments:
+                        frag_index += 1
+                        yield {
+                            'frag_index': frag_index,
+                            'url': segment['url'],
+                            'decrypt_info': segment['decrypt_info'],
+                            'byte_range': segment['byte_range'],
+                            'media_sequence': segment['media_sequence'],
+                        }
+                    last_media_sequence = parser.last_media_sequence
+                else:
+                    no_new_segments_count += 1
+
+                if parser.is_endlist:
+                    self.to_screen(f'[{self.FD_NAME}] Stream ended (EXT-X-ENDLIST found)')
+                    return
+
+                elapsed = time.time() - fetch_time
+                sleep_time = max(0, poll_interval - elapsed)
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
+
+        return fragment_generator
+
+    def _real_download_live(self, filename, info_dict, fragments_callable):
+        """Handle live HLS streams using the fragment generator pattern."""
+        self.to_screen(f'[{self.FD_NAME}] Downloading live HLS stream')
+
+        ctx = {
+            'filename': filename,
+            'total_frags': None,
+            'live': True,
+        }
+
+        self._prepare_and_start_frag_download(ctx, info_dict)
+        fragments = self._resolve_fragments(fragments_callable, ctx)
+
+        return self.download_and_append_fragments(ctx, fragments, info_dict)
+
     def real_download(self, filename, info_dict):
+        # Handle live HLS with generator protocol (extractor provided generator)
+        if info_dict.get('protocol') == 'm3u8_native_generator':
+            fragments_callable = info_dict.get('fragments')
+            if not callable(fragments_callable):
+                self.report_error('Live HLS with m3u8_native_generator protocol requires callable fragments')
+                return False
+            return self._real_download_live(filename, info_dict, fragments_callable)
+
+        # Handle live HLS with --hls-native-live option (create generator ourselves)
+        if info_dict.get('is_live') and self.params.get('hls_native_live'):
+            man_url = info_dict['url']
+            fragments_callable = self._create_live_fragment_generator(man_url, info_dict)
+            return self._real_download_live(filename, info_dict, fragments_callable)
+
         man_url = info_dict['url']
 
         s = info_dict.get('hls_media_playlist_data')

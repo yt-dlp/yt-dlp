@@ -1,0 +1,11 @@
+#EXTM3U
+#EXT-X-VERSION:7
+#EXT-X-TARGETDURATION:6
+#EXT-X-MEDIA-SEQUENCE:100
+#EXT-X-MAP:URI="https://cdn.example.com/live/init.mp4"
+#EXTINF:6.0,
+https://cdn.example.com/live/fmp4/segment100.m4s
+#EXTINF:6.0,
+https://cdn.example.com/live/fmp4/segment101.m4s
+#EXTINF:6.0,
+https://cdn.example.com/live/fmp4/segment102.m4s

@@ -1112,6 +1112,16 @@ def create_parser():
         dest='hls_prefer_native', action='store_false', default=None,
         help=optparse.SUPPRESS_HELP)
     downloader.add_option(
+        '--hls-native-live',
+        dest='hls_native_live', action='store_true', default=False,
+        help=(
+            'Use the native HLS downloader for live streams instead of ffmpeg. '
+            'This enables fragment retry and better error handling. (Experimental)'))
+    downloader.add_option(
+        '--no-hls-native-live',
+        dest='hls_native_live', action='store_false',
+        help='Use ffmpeg for live HLS streams (default)')
+    downloader.add_option(
         '--hls-use-mpegts',
         dest='hls_use_mpegts', action='store_true', default=None,
         help=(

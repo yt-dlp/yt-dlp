@@ -2491,6 +2491,140 @@ class InfoExtractor:
             float(line[len('#EXTINF:'):].split(',')[0])
             for line in m3u8_vod.splitlines() if line.startswith('#EXTINF:'))) or None
 
+    def _extract_m3u8_live_fragments(
+            self, m3u8_url, video_id, *,
+            poll_interval=None,
+            max_duration=None,
+            headers=None,
+            extra_param_to_segment_url=None,
+            extra_param_to_key_url=None):
+        """
+        Create a fragment generator for live HLS streams.
+
+        This method returns a callable that, when invoked with a context dict,
+        yields fragments by polling the HLS manifest for new segments.
+
+        Args:
+            m3u8_url: URL of the HLS media playlist
+            video_id: Video ID for logging
+            poll_interval: Seconds between manifest polls (default: auto from target duration)
+            max_duration: Maximum download duration in seconds (default: unlimited)
+            headers: HTTP headers for requests
+            extra_param_to_segment_url: Additional query params for segment URLs
+            extra_param_to_key_url: Additional query params for key URLs
+
+        Returns:
+            A callable(ctx) -> generator that yields fragment dicts
+        """
+        import functools
+        import urllib.parse
+
+        extra_segment_query = None
+        if extra_param_to_segment_url:
+            extra_segment_query = urllib.parse.parse_qs(extra_param_to_segment_url)
+
+        extra_key_query = None
+        if extra_param_to_key_url:
+            extra_key_query = urllib.parse.parse_qs(extra_param_to_key_url)
+
+        def fragment_generator(ctx):
+            from ..utils import HlsManifestParser
+
+            current_poll_interval = poll_interval
+            NO_NEW_SEGMENTS_THRESHOLD = 30  # Give up after 30 consecutive polls with no new segments
+
+            download_start_time = ctx.get('start') or time.time()
+            last_media_sequence = -1
+            init_segment_yielded = False
+            no_new_segments_count = 0
+            frag_index = 0
+            manifest_base_url = m3u8_url
+
+            self.write_debug(f'[{video_id}] Starting live HLS fragment generator')
+
+            while True:
+                fetch_time = time.time()
+
+                # Check max duration
+                if max_duration and (fetch_time - download_start_time) > max_duration:
+                    self.to_screen(f'[{video_id}] Maximum duration reached, stopping')
+                    return
+
+                # Check for too many failures
+                if no_new_segments_count > NO_NEW_SEGMENTS_THRESHOLD:
+                    self.to_screen(f'[{video_id}] No new segments for too long, assuming stream ended')
+                    return
+
+                # Fetch and parse manifest
+                try:
+                    urlh = self._request_webpage(
+                        manifest_base_url, video_id,
+                        note=False, errnote='Failed to download HLS manifest',
+                        headers=headers)
+                    manifest_base_url = urlh.url  # Handle redirects
+                    manifest_content = urlh.read().decode('utf-8', 'ignore')
+                except ExtractorError as e:
+                    self.write_debug(f'[{video_id}] Manifest fetch error: {e}')
+                    no_new_segments_count += 2
+                    time.sleep(current_poll_interval or 2)
+                    continue
+
+                parser = HlsManifestParser(
+                    manifest_content,
+                    manifest_base_url,
+                    extra_segment_query,
+                    extra_key_query,
+                )
+
+                # Auto-determine poll interval from target duration
+                if current_poll_interval is None:
+                    current_poll_interval = parser.target_duration or 2
+
+                # Yield init segment once
+                for segment in parser.segments:
+                    if segment.get('is_init') and not init_segment_yielded:
+                        frag_index += 1
+                        yield {
+                            'frag_index': frag_index,
+                            'url': segment['url'],
+                            'decrypt_info': segment['decrypt_info'],
+                            'byte_range': segment['byte_range'],
+                            'media_sequence': segment['media_sequence'],
+                        }
+                        init_segment_yielded = True
+
+                # Get new segments
+                new_segments = parser.get_new_segments_since(last_media_sequence)
+
+                if new_segments:
+                    no_new_segments_count = 0
+                    for segment in new_segments:
+                        frag_index += 1
+                        yield {
+                            'frag_index': frag_index,
+                            'url': segment['url'],
+                            'decrypt_info': segment['decrypt_info'],
+                            'byte_range': segment['byte_range'],
+                            'media_sequence': segment['media_sequence'],
+                            'fragment_count': None,  # Unknown for live
+                        }
+                    last_media_sequence = parser.last_media_sequence
+                else:
+                    no_new_segments_count += 1
+
+                # Check for end of stream
+                if parser.is_endlist:
+                    self.to_screen(f'[{video_id}] Stream ended (EXT-X-ENDLIST found)')
+                    return
+
+                # Wait before next poll
+                elapsed = time.time() - fetch_time
+                sleep_time = max(0, current_poll_interval - elapsed)
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
+
+        return functools.partial(fragment_generator)
+
     def _extract_mpd_vod_duration(
             self, mpd_url, video_id, note=None, errnote=None, data=None, headers={}, query={}):
 

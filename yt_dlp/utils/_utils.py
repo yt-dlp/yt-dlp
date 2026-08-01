@@ -4521,6 +4521,146 @@ def parse_m3u8_attributes(attrib):
     return info
 
 
+class HlsManifestParser:
+    """
+    Parser for HLS media playlists with live stream support.
+
+    Tracks media sequence numbers, detects stream end, and handles
+    the sliding window of segments in live playlists.
+    """
+
+    def __init__(self, manifest_content, base_url, extra_segment_query=None, extra_key_query=None):
+        self.base_url = base_url
+        self.extra_segment_query = extra_segment_query
+        self.extra_key_query = extra_key_query
+        self.is_endlist = '#EXT-X-ENDLIST' in manifest_content
+        self.target_duration = None
+        self.media_sequence = 0
+        self.segments = []
+        self._current_decrypt_info = {'METHOD': 'NONE'}
+        self._parse(manifest_content)
+
+    def _parse(self, content):
+        """Parse HLS manifest and extract segment information."""
+        import binascii
+
+        byte_range_offset = 0
+        current_byte_range = {}
+        current_duration = None
+        discontinuity_count = 0
+
+        for line in content.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+
+            if line.startswith('#EXT-X-TARGETDURATION:'):
+                self.target_duration = float(line.split(':', 1)[1])
+            elif line.startswith('#EXT-X-MEDIA-SEQUENCE:'):
+                self.media_sequence = int(line.split(':', 1)[1])
+            elif line.startswith('#EXTINF:'):
+                # Handle both "duration," and "duration,title" formats
+                duration_str = line.split(':', 1)[1].split(',')[0]
+                current_duration = float(duration_str)
+            elif line.startswith('#EXT-X-BYTERANGE:'):
+                parts = line[17:].split('@')
+                length = int(parts[0])
+                start = int(parts[1]) if len(parts) > 1 else byte_range_offset
+                current_byte_range = {'start': start, 'end': start + length}
+            elif line.startswith('#EXT-X-KEY:'):
+                self._parse_key(line[11:], binascii)
+            elif line.startswith('#EXT-X-MAP:'):
+                self._parse_map(line[11:])
+            elif line.startswith('#EXT-X-DISCONTINUITY'):
+                discontinuity_count += 1
+            elif not line.startswith('#'):
+                # Segment URL
+                segment_url = urljoin(self.base_url, line)
+                if self.extra_segment_query:
+                    segment_url = update_url_query(segment_url, self.extra_segment_query)
+
+                self.segments.append({
+                    'url': segment_url,
+                    'media_sequence': self.media_sequence + len([
+                        s for s in self.segments if not s.get('is_init')
+                    ]),
+                    'duration': current_duration,
+                    'decrypt_info': self._current_decrypt_info.copy(),
+                    'byte_range': current_byte_range.copy() if current_byte_range else {},
+                    'discontinuity_count': discontinuity_count,
+                })
+                current_duration = None
+                if current_byte_range:
+                    byte_range_offset = current_byte_range['end']
+                    current_byte_range = {}
+
+    def _parse_key(self, attrib, binascii):
+        """Parse #EXT-X-KEY directive."""
+        key_info = parse_m3u8_attributes(attrib)
+        method = key_info.get('METHOD', 'NONE')
+
+        if method == 'NONE':
+            self._current_decrypt_info = {'METHOD': 'NONE'}
+        elif method == 'AES-128':
+            uri = key_info.get('URI')
+            if uri:
+                uri = urljoin(self.base_url, uri)
+                if self.extra_key_query:
+                    uri = update_url_query(uri, self.extra_key_query)
+
+            iv = key_info.get('IV')
+            if iv:
+                iv = binascii.unhexlify(iv[2:].zfill(32))
+
+            self._current_decrypt_info = {
+                'METHOD': 'AES-128',
+                'URI': uri,
+                'IV': iv,
+                'KEY': None,  # Fetched on demand by downloader
+            }
+
+    def _parse_map(self, attrib):
+        """Parse #EXT-X-MAP directive for initialization segment."""
+        map_info = parse_m3u8_attributes(attrib)
+        uri = map_info.get('URI')
+        if not uri:
+            return
+
+        uri = urljoin(self.base_url, uri)
+        if self.extra_segment_query:
+            uri = update_url_query(uri, self.extra_segment_query)
+
+        byte_range = {}
+        if map_info.get('BYTERANGE'):
+            parts = map_info['BYTERANGE'].split('@')
+            length = int(parts[0])
+            start = int(parts[1]) if len(parts) > 1 else 0
+            byte_range = {'start': start, 'end': start + length}
+
+        # Insert init segment at beginning of segments list
+        self.segments.insert(0, {
+            'url': uri,
+            'media_sequence': self.media_sequence - 1,  # Before first segment
+            'duration': 0,
+            'decrypt_info': self._current_decrypt_info.copy(),
+            'byte_range': byte_range,
+            'is_init': True,
+        })
+
+    def get_new_segments_since(self, last_media_sequence):
+        """Return segments newer than the given media sequence number."""
+        return [s for s in self.segments
+                if s['media_sequence'] > last_media_sequence and not s.get('is_init')]
+
+    @property
+    def last_media_sequence(self):
+        """Return the media sequence of the last non-init segment."""
+        non_init_segments = [s for s in self.segments if not s.get('is_init')]
+        if not non_init_segments:
+            return self.media_sequence - 1
+        return max(s['media_sequence'] for s in non_init_segments)
+
+
 def urshift(val, n):
     return val >> n if val >= 0 else (val + 0x100000000) >> n
 

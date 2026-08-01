@@ -15,6 +15,10 @@ def get_suitable_downloader(info_dict, params={}, default=NO_DEFAULT, protocol=N
           and not (to_stdout and len(protocols) > 1)
           and set(protocols) == {'http_dash_segments_generator'}):
         return DashSegmentsFD
+    elif (set(downloaders) == {HlsFD}
+          and not (to_stdout and len(protocols) > 1)
+          and set(protocols) == {'m3u8_native_generator'}):
+        return HlsFD
     elif len(downloaders) == 1:
         return downloaders[0]
     return None
@@ -42,6 +46,7 @@ PROTOCOL_MAP = {
     'rtmpe': RtmpFD,
     'rtmp_ffmpeg': FFmpegFD,
     'm3u8_native': HlsFD,
+    'm3u8_native_generator': HlsFD,
     'm3u8': FFmpegFD,
     'f4m': F4mFD,
     'http_dash_segments': DashSegmentsFD,
@@ -61,6 +66,7 @@ PROTOCOL_MAP = {
 def shorten_protocol_name(proto, simplify=False):
     short_protocol_names = {
         'm3u8_native': 'm3u8',
+        'm3u8_native_generator': 'm3u8G',
         'm3u8': 'm3u8F',
         'rtmp_ffmpeg': 'rtmpF',
         'http_dash_segments': 'dash',
@@ -73,6 +79,7 @@ def shorten_protocol_name(proto, simplify=False):
             'ftps': 'ftp',
             'm3u8': 'm3u8',  # Reverse above m3u8 mapping
             'm3u8_native': 'm3u8',
+            'm3u8_native_generator': 'm3u8',
             'http_dash_segments_generator': 'dash',
             'rtmp_ffmpeg': 'rtmp',
             'm3u8_frag_urls': 'm3u8',
@@ -109,6 +116,9 @@ def _get_suitable_downloader(info_dict, protocol, params, default):
 
     if protocol in ('m3u8', 'm3u8_native'):
         if info_dict.get('is_live'):
+            # Use native HLS for live if --hls-native-live is set
+            if params.get('hls_native_live'):
+                return HlsFD
             return FFmpegFD
         elif (external_downloader or '').lower() == 'native':
             return HlsFD
@@ -119,6 +129,10 @@ def _get_suitable_downloader(info_dict, protocol, params, default):
             return HlsFD
         elif params.get('hls_prefer_native') is False:
             return FFmpegFD
+
+    # m3u8_native_generator is for live HLS with fragment generator pattern
+    if protocol == 'm3u8_native_generator':
+        return HlsFD
 
     return PROTOCOL_MAP.get(protocol, default)
 

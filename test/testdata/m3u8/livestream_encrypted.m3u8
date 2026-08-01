@@ -1,0 +1,12 @@
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:10
+#EXT-X-MEDIA-SEQUENCE:500
+#EXT-X-KEY:METHOD=AES-128,URI="https://keys.example.com/key1.bin",IV=0x00000000000000000000000000000001
+#EXTINF:10.0,
+https://cdn.example.com/live/encrypted/segment500.ts
+#EXTINF:10.0,
+https://cdn.example.com/live/encrypted/segment501.ts
+#EXT-X-KEY:METHOD=AES-128,URI="https://keys.example.com/key2.bin"
+#EXTINF:10.0,
+https://cdn.example.com/live/encrypted/segment502.ts
