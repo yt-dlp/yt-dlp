@@ -2262,7 +2262,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                     try:
                         return self.playlist_result([self._real_extract(i) for i in yt_music_MPADUC_fix(self, item_id)])
                     except Exception as e:
-                        raise e
                         raise ExtractorError('Failed to resolve album to playlist')
                 return self.url_result(murl, YoutubeTabIE)
             elif mobj['channel_type'] == 'browse':  # Youtube music /browse/ should be changed to /channel/
