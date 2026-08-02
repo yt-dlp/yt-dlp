@@ -189,7 +189,8 @@ class VKBaseIE(InfoExtractor):
     def _call_api(self, video_id, api_method, data=None, query=None, headers=None, **kwargs):
         query = {'v': '5.282', 'client_id': '52461373', **(query or {})}
         headers = {'Accept': '*/*', 'Content-Type': 'application/x-www-form-urlencoded', **(headers or {})}
-        data = urlencode_postdata({'access_token': self._get_access_token() or self._get_guest_access_token(), **(data or {})})
+        payload = {'access_token': self._get_access_token() or self._get_guest_access_token(), **(data or {})}
+        data = urlencode_postdata(payload)
         response = self._download_json(f'https://api.vk.com/method/{api_method}', video_id=video_id, headers=headers, query=query, data=data, **kwargs)
 
         code, message = traverse_obj(response, ('error', ('error_code', 'error_msg')), default=[0, ''])
@@ -198,7 +199,7 @@ class VKBaseIE(InfoExtractor):
                 self._get_access_token()
             else:
                 self._get_guest_access_token()
-            return self._call_api(video_id, api_method, data, query, headers, **kwargs)
+            return self._call_api(video_id, api_method, payload, query, headers, **kwargs)
         elif message:
             raise ExtractorError(message)
 
