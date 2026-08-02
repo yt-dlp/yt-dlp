@@ -7,7 +7,6 @@ import subprocess
 import sys
 import tempfile
 import time
-from shutil import which
 
 from .fragment import FragmentFD
 from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
@@ -418,8 +417,8 @@ class Aria2cFD(ExternalFD):
 
     def _call_process(self, cmd, info_dict):
         # Apply stdbuf if available to avoid chunked progress updates
-        if sys.platform != 'win32' and which('stdbuf'):
-            cmd = ['stdbuf', '-o0', *cmd]
+        if sys.platform != 'win32' and _get_exe_version_output('stdbuf', ['-oL', 'stdbuf', '--version']):
+            cmd = ['stdbuf', '-oL', *cmd]
 
         start_time = time.time()
         status = {
