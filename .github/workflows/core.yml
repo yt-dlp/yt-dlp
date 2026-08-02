@@ -85,6 +85,7 @@ jobs:
     - name: Install test requirements (PyPy)
       if: ${{ startsWith(matrix.python-version, 'pypy') }}
       run: |
+        # This is the problem
         python -m pip install -U --require-hashes -r "bundle/requirements/pip.txt"
         python -m pip install -U --require-hashes -r "bundle/requirements/test.txt"
         python -m pip install -U --require-hashes -r "bundle/requirements/default.txt"
