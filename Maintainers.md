@@ -78,6 +78,13 @@ Core Maintainers are responsible for reviewing and merging contributions, publis
 * Improved/fixed/added ArdMediathek, DRTV, Floatplane, MagentaMusik, Naver, Nebula, OnDemandKorea, Vbox7 etc
 
 
+## Maintainers
+
+Maintainers are stewards of the project's codebase who can review and merge pull requests.
+
+- [doe1080](https://github.com/doe1080)
+
+
 ## Triage Maintainers
 
 Triage Maintainers are frequent contributors who can manage issues and pull requests.
@@ -86,5 +93,4 @@ Triage Maintainers are frequent contributors who can manage issues and pull requ
 - [garret1317](https://github.com/garret1317)
 - [pzhlkj6612](https://github.com/pzhlkj6612)
 - [DTrombett](https://github.com/dtrombett)
-- [doe1080](https://github.com/doe1080)
 - [grqz](https://github.com/grqz)

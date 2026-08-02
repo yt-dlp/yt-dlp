@@ -457,12 +457,12 @@ class IqIE(InfoExtractor):
             if video_format.get('m3u8Url'):
                 extracted_formats.extend(self._extract_m3u8_formats(
                     urljoin(format_data.get('dm3u8', 'https://cache-m.iq.com/dc/dt/'), video_format['m3u8Url']),
-                    'mp4', m3u8_id=bid, fatal=False))
+                    video_id, 'mp4', m3u8_id=bid, fatal=False))
             if video_format.get('mpdUrl'):
                 # TODO: Properly extract mpd hostname
                 extracted_formats.extend(self._extract_mpd_formats(
                     urljoin(format_data.get('dm3u8', 'https://cache-m.iq.com/dc/dt/'), video_format['mpdUrl']),
-                    mpd_id=bid, fatal=False))
+                    video_id, mpd_id=bid, fatal=False))
             if video_format.get('m3u8'):
                 ff = video_format.get('ff', 'ts')
                 if ff == 'ts':

@@ -1,0 +1,92 @@
+name: Label Handler
+on:
+  issues:
+    types: [labeled]
+  pull_request_target:
+    types: [labeled]  # zizmor: ignore[dangerous-triggers]
+
+permissions: {}
+
+concurrency:
+  group: label
+  cancel-in-progress: false
+  queue: max
+
+env:
+  GH_TELEMETRY: "false"
+  LLM_MESSAGE: >-
+    This contribution has been determined to be in violation of yt-dlp's
+    [**NO AI / NO LLM POLICY**](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#no-ai--no-llm-policy).
+    Repeat or flagrant violations of this policy will result in a permanent ban from this repository.
+  BAD_MESSAGE: >-
+    This contribution has been determined to be in violation of yt-dlp's
+    [policy against supporting sites that are primarily used for
+    piracy](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#is-the-website-primarily-used-for-piracy).
+    Please consult the [yt-dlp wiki
+    FAQ](https://github.com/yt-dlp/yt-dlp/wiki/FAQ#why-is-there-a-rule-against-websites-primarily-used-for-piracy)
+    if you have questions.
+
+jobs:
+  issue-llm:
+    name: Issue (ai-policy-violation)
+    if: github.event.issue.state == 'open' && contains(github.event.issue.labels.*.name, 'ai-policy-violation')
+    permissions:
+      issues: write  # Needed to comment on, close, and lock issues
+    runs-on: ubuntu-slim
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+    steps:
+      - name: Comment, close and lock issue
+        run: |
+          gh issue unlock "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" || true
+          gh issue close "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --reason "not planned" --comment "${LLM_MESSAGE}"
+          gh issue lock "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}"
+
+  issue-bad:
+    name: Issue (piracy/illegal)
+    if: github.event.issue.state == 'open' && contains(github.event.issue.labels.*.name, 'piracy/illegal')
+    permissions:
+      issues: write  # Needed to comment on, close, and lock issues
+    runs-on: ubuntu-slim
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+    steps:
+      - name: Comment, close and lock issue
+        run: |
+          gh issue unlock "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" || true
+          gh issue close "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --reason "not planned" --comment "${BAD_MESSAGE}"
+          gh issue lock "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}"
+
+  pr-llm:
+    name: PR (ai-policy-violation)
+    if: github.event.pull_request.state == 'open' && contains(github.event.pull_request.labels.*.name, 'ai-policy-violation')
+    permissions:
+      pull-requests: write  # Needed to comment on, close, and lock PRs
+    runs-on: ubuntu-slim
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Comment, close and lock PR
+        run: |
+          gh pr unlock "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" || true
+          gh pr close "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --comment "${LLM_MESSAGE}"
+          gh pr lock "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}"
+
+  pr-bad:
+    name: PR (piracy/illegal)
+    if: github.event.pull_request.state == 'open' && contains(github.event.pull_request.labels.*.name, 'piracy/illegal')
+    permissions:
+      pull-requests: write  # Needed to comment on, close, and lock PRs
+    runs-on: ubuntu-slim
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Comment, close and lock PR
+        run: |
+          gh pr unlock "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" || true
+          gh pr close "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --comment "${BAD_MESSAGE}"
+          gh pr lock "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}"
