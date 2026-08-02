@@ -85,8 +85,7 @@ jobs:
     - name: Install test requirements (PyPy)
       if: ${{ startsWith(matrix.python-version, 'pypy') }}
       run: |
-        # This is the problem
-        python -m pip install -U --require-hashes -r "bundle/requirements/pip.txt"
+        # Installing a pinned version of pip on actions/setup-python's PyPy can lead to breakage
         python -m pip install -U --require-hashes -r "bundle/requirements/test.txt"
         python -m pip install -U --require-hashes -r "bundle/requirements/default.txt"
 
