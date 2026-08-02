@@ -1,0 +1,45 @@
+altgraph==0.17.5 \
+    --hash=sha256:c87b395dd12fabde9c99573a9749d67da8d29ef9de0125c7f536699b4a9bc9e7 \
+    --hash=sha256:f3a22400bce1b0c701683820ac4f3b159cd301acab067c51c653e06961600597
+    # via
+    #   macholib
+    #   pyinstaller
+macholib==1.16.4 ; sys_platform == 'darwin' \
+    --hash=sha256:da1a3fa8266e30f0ce7e97c6a54eefaae8edd1e5f86f3eb8b95457cae90265ea \
+    --hash=sha256:f408c93ab2e995cd2c46e34fe328b130404be143469e41bc366c807448979362
+    # via pyinstaller
+packaging==26.2 \
+    --hash=sha256:5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e \
+    --hash=sha256:ff452ff5a3e828ce110190feff1178bb1f2ea2281fa2075aadb987c2fb221661
+    # via
+    #   pyinstaller
+    #   pyinstaller-hooks-contrib
+pefile==2024.8.26 ; sys_platform == 'win32' \
+    --hash=sha256:3ff6c5d8b43e8c37bb6e6dd5085658d658a7a0bdcd20b6a07b1fcfc1c4e9d632 \
+    --hash=sha256:76f8b485dcd3b1bb8166f1128d395fa3d87af26360c2358fb75b80019b957c6f
+    # via pyinstaller
+pyinstaller==6.21.0 \
+    --hash=sha256:327d132389f37912609e01be62810cf96b5aa95b613903e4b8692e0d12fb0eda \
+    --hash=sha256:42395ec76df8e8120c36b13339d9db8cab83e316a12839ee303cc00fc941bb74 \
+    --hash=sha256:4e3108b3f02384560da70e39b8bf22b0ad597d02bd68a40d76ea91c1cfa00cad \
+    --hash=sha256:5fa56746c1e76f93634d018502301378a2d0c382553d37d8c3c34ff436c12dd1 \
+    --hash=sha256:605169523a6b5ace39f13dfbff21add9f2bc43df99c7daf9394fefb2c45e8b6f \
+    --hash=sha256:697532279f535ad572bda613db4f821540e235c7854ca6da4d3bf0373f4415ee \
+    --hash=sha256:6b6374d652107dd4a2eeece903ff82bb4045bb5e1006c5a158a6dcdbefe84bf2 \
+    --hash=sha256:7071d4b094d5b40deeef5fa3d3b98a1b846087f7562b49209663d5f9281fe251 \
+    --hash=sha256:7fae06c494ce0ebfe6bd3055c0e409def884f63af2e3705d06bd431ad9237fc7 \
+    --hash=sha256:bb9fab705983e393a2d1cac77d6972513057ad800215fd861dc15ff5272e98fd \
+    --hash=sha256:c6b28d30d8fd99ce162ff3aab5013ed44dbfb747566b1f01b9bed7964d7c14e9 \
+    --hash=sha256:f13c95c9c03fb567217135919f93815c305813126780b0ed6e0123cb8acaf025
+pyinstaller-hooks-contrib==2026.6 \
+    --hash=sha256:bef5002c32f4f50bd55b005da12cff64eca8783e7eaf86a06a62410164bab725 \
+    --hash=sha256:fd13b8ac126b35361175edacd41a0d97080b75dd5f4b594ecefefff969509dd3
+    # via pyinstaller
+pywin32-ctypes==0.2.3 ; sys_platform == 'win32' \
+    --hash=sha256:8a1513379d709975552d202d942d9837758905c8d01eb82b8bcc30918929e7b8 \
+    --hash=sha256:d162dc04946d704503b2edc4d55f3dba5c1d539ead017afa00142c38b9885755
+    # via pyinstaller
+setuptools==82.0.1 \
+    --hash=sha256:7d872682c5d01cfde07da7bccc7b65469d3dca203318515ada1de5eda35efbf9 \
+    --hash=sha256:a59e362652f08dcd477c78bb6e7bd9d80a7995bc73ce773050228a348ce2e5bb
+    # via pyinstaller

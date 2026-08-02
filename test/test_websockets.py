@@ -448,6 +448,7 @@ def create_fake_ws_connection(raised):
 
 @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
 class TestWebsocketsRequestHandler:
+    # ruff: disable[PLW0108] `websockets` may not be available
     @pytest.mark.parametrize('raised,expected', [
         # https://websockets.readthedocs.io/en/stable/reference/exceptions.html
         (lambda: websockets.exceptions.InvalidURI(msg='test', uri='test://'), RequestError),
@@ -459,13 +460,14 @@ class TestWebsocketsRequestHandler:
         (lambda: websockets.exceptions.NegotiationError(), TransportError),
         # Catch-all
         (lambda: websockets.exceptions.WebSocketException(), TransportError),
-        (lambda: TimeoutError(), TransportError),
+        (TimeoutError, TransportError),
         # These may be raised by our create_connection implementation, which should also be caught
-        (lambda: OSError(), TransportError),
-        (lambda: ssl.SSLError(), SSLError),
-        (lambda: ssl.SSLCertVerificationError(), CertificateVerifyError),
-        (lambda: socks.ProxyError(), ProxyError),
+        (OSError, TransportError),
+        (ssl.SSLError, SSLError),
+        (ssl.SSLCertVerificationError, CertificateVerifyError),
+        (socks.ProxyError, ProxyError),
     ])
+    # ruff: enable[PLW0108]
     def test_request_error_mapping(self, handler, monkeypatch, raised, expected):
         import websockets.sync.client
 
@@ -482,11 +484,12 @@ class TestWebsocketsRequestHandler:
     @pytest.mark.parametrize('raised,expected,match', [
         # https://websockets.readthedocs.io/en/stable/reference/sync/client.html#websockets.sync.client.ClientConnection.send
         (lambda: websockets.exceptions.ConnectionClosed(None, None), TransportError, None),
-        (lambda: RuntimeError(), TransportError, None),
-        (lambda: TimeoutError(), TransportError, None),
-        (lambda: TypeError(), RequestError, None),
-        (lambda: socks.ProxyError(), ProxyError, None),
+        (RuntimeError, TransportError, None),
+        (TimeoutError, TransportError, None),
+        (TypeError, RequestError, None),
+        (socks.ProxyError, ProxyError, None),
         # Catch-all
+        # ruff: noqa: PLW0108 `websockets` may not be available
         (lambda: websockets.exceptions.WebSocketException(), TransportError, None),
     ])
     def test_ws_send_error_mapping(self, handler, monkeypatch, raised, expected, match):
@@ -499,10 +502,11 @@ class TestWebsocketsRequestHandler:
     @pytest.mark.parametrize('raised,expected,match', [
         # https://websockets.readthedocs.io/en/stable/reference/sync/client.html#websockets.sync.client.ClientConnection.recv
         (lambda: websockets.exceptions.ConnectionClosed(None, None), TransportError, None),
-        (lambda: RuntimeError(), TransportError, None),
-        (lambda: TimeoutError(), TransportError, None),
-        (lambda: socks.ProxyError(), ProxyError, None),
+        (RuntimeError, TransportError, None),
+        (TimeoutError, TransportError, None),
+        (socks.ProxyError, ProxyError, None),
         # Catch-all
+        # ruff: noqa: PLW0108 `websockets` may not be available
         (lambda: websockets.exceptions.WebSocketException(), TransportError, None),
     ])
     def test_ws_recv_error_mapping(self, handler, monkeypatch, raised, expected, match):
