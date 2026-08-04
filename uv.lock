@@ -682,6 +682,15 @@ wheels = [
 ]
 
 [[package]]
+name = "protobug"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/fd/f7/3174903b46402b4bd8a2cce57d7b363dedde93ebcdbaf63a5a630d22fe3c/protobug-1.0.0.tar.gz", hash = "sha256:d6ea277e83e1a468b1c75a928fbba97e0cb10743df5558e8f326170984364fbb", size = 12884, upload-time = "2026-04-06T22:49:19.39Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/44/bb/02eccbae7de82571c9ca8ef0cca6d07dfd2cca2c1d7053cd0864f688af55/protobug-1.0.0-py3-none-any.whl", hash = "sha256:8b1b5cb3f4b2dd4fa0a6219ca770f687d0af32606d344ac7acedf00943f220c3", size = 10792, upload-time = "2026-04-06T22:49:17.986Z" },
+]
+
+[[package]]
 name = "pycodestyle"
 version = "2.14.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1197,6 +1206,7 @@ default = [
     { name = "brotlicffi", marker = "implementation_name != 'cpython'" },
     { name = "certifi" },
     { name = "mutagen" },
+    { name = "protobug" },
     { name = "pycryptodomex" },
     { name = "requests" },
     { name = "urllib3" },
@@ -1213,6 +1223,7 @@ pin = [
     { name = "charset-normalizer" },
     { name = "idna" },
     { name = "mutagen" },
+    { name = "protobug" },
     { name = "pycryptodomex" },
     { name = "requests" },
     { name = "urllib3" },
@@ -1303,6 +1314,8 @@ requires-dist = [
     { name = "mdurl", marker = "implementation_name == 'cpython' and extra == 'pin-curl-cffi'", specifier = "==0.1.2" },
     { name = "mutagen", marker = "extra == 'default'" },
     { name = "mutagen", marker = "extra == 'pin'", specifier = "==1.48.1" },
+    { name = "protobug", marker = "extra == 'default'", specifier = "==1.0.0" },
+    { name = "protobug", marker = "extra == 'pin'", specifier = "==1.0.0" },
     { name = "pycparser", marker = "implementation_name != 'PyPy' and platform_python_implementation != 'PyPy' and extra == 'pin-secretstorage'", specifier = "==3.0" },
     { name = "pycparser", marker = "implementation_name == 'cpython' and extra == 'pin-curl-cffi'", specifier = "==3.0" },
     { name = "pycryptodomex", marker = "extra == 'default'" },
