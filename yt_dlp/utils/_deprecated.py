@@ -3,6 +3,7 @@ import base64
 import hashlib
 import hmac
 import json
+import uuid
 import warnings
 
 from ..compat.compat_utils import passthrough_module
@@ -56,6 +57,10 @@ def make_dir(path, to_screen=None):
         if to_screen is not None:
             to_screen(f'Unable to create directory: {e}')
         return False
+
+
+def random_uuidv4():
+    return str(uuid.uuid4())
 
 
 compiled_regex_type = type(re.compile(''))
