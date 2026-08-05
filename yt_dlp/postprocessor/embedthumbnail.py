@@ -80,14 +80,15 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         # Convert unsupported thumbnail formats (see #25687, #25717)
         # PNG is preferred since JPEG is lossy
         thumbnail_ext = os.path.splitext(thumbnail_filename)[1][1:]
-        if info['ext'] not in ('mkv', 'mka') and thumbnail_ext not in ('jpg', 'jpeg', 'png'):
+        media_ext = info['ext'].lower()
+        if media_ext not in ('mkv', 'mka') and thumbnail_ext not in ('jpg', 'jpeg', 'png'):
             thumbnail_filename = convertor.convert_thumbnail(thumbnail_filename, 'png')
             thumbnail_ext = 'png'
 
         mtime = os.stat(filename).st_mtime
 
         success = True
-        if info['ext'] == 'mp3':
+        if media_ext == 'mp3':
             options = [
                 '-c', 'copy', '-map', '0:0', '-map', '1:0', '-write_id3v1', '1', '-id3v2_version', '3',
                 '-metadata:s:v', 'title=Album cover', '-metadata:s:v', 'comment=Cover (front)']
@@ -95,7 +96,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             self._report_run('ffmpeg', filename)
             self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
 
-        elif info['ext'] in ['mkv', 'mka']:
+        elif media_ext in ('mkv', 'mka'):
             options = list(self.stream_copy_opts())
 
             mimetype = f'image/{thumbnail_ext.replace("jpg", "jpeg")}'
@@ -112,7 +113,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             self._report_run('ffmpeg', filename)
             self.run_ffmpeg(filename, temp_filename, options)
 
-        elif info['ext'] in ['m4a', 'mp4', 'm4v', 'mov']:
+        elif media_ext in ('m4a', 'mp4', 'm4v', 'mov'):
             prefer_atomicparsley = 'embed-thumbnail-atomicparsley' in self.get_param('compat_opts', [])
             # Method 1: Use mutagen
             if not mutagen or prefer_atomicparsley:
@@ -194,12 +195,12 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     success = False
                     raise EmbedThumbnailPPError(f'Unable to embed using ffprobe & ffmpeg; {err}')
 
-        elif info['ext'] in ['ogg', 'opus', 'flac']:
+        elif media_ext in ('ogg', 'opus', 'flac'):
             if not mutagen:
                 raise EmbedThumbnailPPError('module mutagen was not found. Please install using `python3 -m pip install mutagen`')
 
             self._report_run('mutagen', filename)
-            f = {'opus': OggOpus, 'flac': FLAC, 'ogg': OggVorbis}[info['ext']](filename)
+            f = {'opus': OggOpus, 'flac': FLAC, 'ogg': OggVorbis}[media_ext](filename)
 
             pic = Picture()
             pic.mime = f'image/{imghdr.what(thumbnail_filename)}'
@@ -210,7 +211,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             if res is not None:
                 pic.width, pic.height = res
 
-            if info['ext'] == 'flac':
+            if media_ext == 'flac':
                 f.add_picture(pic)
             else:
                 # https://wiki.xiph.org/VorbisComment#METADATA_BLOCK_PICTURE
