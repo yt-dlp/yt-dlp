@@ -84,6 +84,10 @@ class TwitCastingIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+    }, {
+        'note': 'Membership required',
+        'url': 'https://twitcasting.tv/c:taidagmgm/movie/823879095',
+        'expected_exception': 'ExtractorError',
     }]
 
     def _parse_data_movie_playlist(self, dmp, video_id):
@@ -215,7 +219,11 @@ class TwitCastingIE(InfoExtractor):
                 '_format_sort_fields': ('source', ),
             }
         elif not m3u8_urls:
-            raise ExtractorError('Failed to get m3u8 playlist')
+            membership_gate = get_element_by_class('tw-membership-gate-title', webpage)
+            if membership_gate:
+                self.raise_login_required('This video is only available for members')
+            else:
+                raise ExtractorError('Failed to get m3u8 playlist')
         elif len(m3u8_urls) == 1:
             formats = self._extract_m3u8_formats(
                 m3u8_urls[0], video_id, 'mp4', headers=self._M3U8_HEADERS)
@@ -308,9 +316,13 @@ class TwitCastingUserIE(InfoExtractor):
             for mobj in matches:
                 yield self.url_result(urljoin(base_url, mobj.group('url')))
 
+            paging_section = get_element_by_class('tw-pager', webpage)
             next_url = self._search_regex(
-                r'<a href="(/%s/show/%d-\d+)[?"]' % (re.escape(uploader_id), page_num),
-                webpage, 'next url', default=None)
+                rf'<a href="([^"]+&page={page_num}-\d+)',
+                paging_section,
+                'next url',
+                default=None,
+            )
             next_url = urljoin(base_url, next_url)
             if not next_url:
                 return
