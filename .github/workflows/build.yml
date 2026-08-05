@@ -310,6 +310,9 @@ jobs:
       ORIGIN: ${{ needs.process.outputs.origin }}
       VERSION: ${{ needs.process.outputs.version }}
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
+      # Attempt reproducible builds by setting PYTHONHASHSEED
+      # Ref: https://pyinstaller.org/en/latest/advanced-topics.html#creating-a-reproducible-build
+      PYTHONHASHSEED: '1'
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
@@ -436,6 +439,9 @@ jobs:
       VERSION: ${{ needs.process.outputs.version }}
       SUFFIX: ${{ (matrix.arch != 'x64' && format('_{0}', matrix.arch)) || '' }}
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
+      # Attempt reproducible builds by setting PYTHONHASHSEED
+      # Ref: https://pyinstaller.org/en/latest/advanced-topics.html#creating-a-reproducible-build
+      PYTHONHASHSEED: '1'
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
