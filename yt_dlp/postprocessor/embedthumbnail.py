@@ -62,7 +62,10 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             self.to_screen('There aren\'t any thumbnails to embed')
             return [], info
 
-        idx = next((-i for i, t in enumerate(info['thumbnails'][::-1], 1) if t.get('filepath')), None)
+        if self._downloader and (fmt := self._downloader.params.get('thumbnail_format')):
+            idx = next((i for i, t in enumerate(info['thumbnails']) if t.get('id') == fmt and t.get('filepath')), None)
+        else:
+            idx = next((-i for i, t in enumerate(info['thumbnails'][::-1], 1) if t.get('filepath')), None)
         if idx is None:
             self.to_screen('There are no thumbnails on disk')
             return [], info
