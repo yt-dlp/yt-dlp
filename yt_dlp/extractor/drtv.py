@@ -234,7 +234,7 @@ class DRTVIE(InfoExtractor):
                 'alt_title': 'contextualTitle',
                 'description': 'description',
                 'thumbnail': ('images', 'wallpaper'),
-                'release_timestamp': ('customFields', 'BroadcastTimeDK', {parse_iso8601}),
+                'release_timestamp': ('customFields', 'AvailableFrom', {parse_iso8601}),
                 'duration': ('duration', {int_or_none}),
                 'series': ('season', 'show', 'title'),
                 'season': ('season', 'title'),
