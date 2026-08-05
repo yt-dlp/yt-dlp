@@ -174,7 +174,7 @@ class VGTVIE(InfoExtractor):
         vendor = self._APP_NAME_TO_VENDOR[appname]
 
         data = self._download_json(
-            f'http://svp.vg.no/svp/api/v1/{vendor}/assets/{video_id}?appName={appname}-website',
+            f'https://svp.vg.no/svp/api/v1/{vendor}/assets/{video_id}?appName={appname}-website',
             video_id, 'Downloading media JSON')
 
         if data.get('status') == 'inactive':
