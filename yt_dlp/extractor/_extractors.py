@@ -1845,6 +1845,7 @@ from .streamable import StreamableIE
 from .streamcz import StreamCZIE
 from .streetvoice import StreetVoiceIE
 from .stripchat import StripchatIE
+from .stuff import StuffIE
 from .stv import STVPlayerIE
 from .subsplash import (
     SubsplashIE,
