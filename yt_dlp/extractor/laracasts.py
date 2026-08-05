@@ -1,11 +1,7 @@
-import json
-
 from .common import InfoExtractor
 from .vimeo import VimeoIE
 from ..utils import (
     clean_html,
-    extract_attributes,
-    get_element_html_by_id,
     int_or_none,
     parse_duration,
     str_or_none,
@@ -19,9 +15,10 @@ from ..utils.traversal import traverse_obj
 class LaracastsBaseIE(InfoExtractor):
     def _get_prop_data(self, url, display_id):
         webpage = self._download_webpage(url, display_id)
-        return traverse_obj(
-            get_element_html_by_id('app', webpage),
-            ({extract_attributes}, 'data-page', {json.loads}, 'props'))
+        return self._search_json(
+            r'<script[^>]*\bdata-page="app"[^>]*>',
+            webpage, 'inertia data',
+            display_id, end_pattern=r'</script>').get('props')
 
     def _parse_episode(self, episode):
         if not traverse_obj(episode, 'vimeoId'):
