@@ -36,7 +36,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14', '3.15', pypy-3.11]
+        python-version: ['3.11', '3.12', '3.13', '3.14', '3.15', pypy-3.11]
     env:
       QJS_VERSION: '2025-04-26'  # Earliest version with rope strings
     steps:

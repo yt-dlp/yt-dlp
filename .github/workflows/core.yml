@@ -43,25 +43,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        # CPython 3.10 is in quick-test
-        python-version: ['3.11', '3.12', '3.13', '3.14', '3.15', pypy-3.11]
+        os: [ubuntu-latest, windows-latest]
+        # Linux CPython 3.11 is covered by quick-test.yml
+        python-version: ['3.12', '3.13', '3.14', '3.15', pypy-3.11]
         include:
-        # atleast one of each CPython/PyPy tests must be in windows
-        - os: windows-latest
-          python-version: '3.10'
         - os: windows-latest
           python-version: '3.11'
-        - os: windows-latest
-          python-version: '3.12'
-        - os: windows-latest
-          python-version: '3.13'
-        - os: windows-latest
-          python-version: '3.14'
-        - os: windows-latest
-          python-version: '3.15'
-        - os: windows-latest
-          python-version: pypy-3.11
 
     steps:
     - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
