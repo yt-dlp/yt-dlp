@@ -622,11 +622,8 @@ def sanitize_open(filename, open_mode):
 
 def timeconvert(timestr):
     """Convert RFC 2822 defined time string into system timestamp"""
-    timestamp = None
     timetuple = email.utils.parsedate_tz(timestr)
-    if timetuple is not None:
-        timestamp = email.utils.mktime_tz(timetuple)
-    return timestamp
+    return None if timetuple is None else email.utils.mktime_tz(timetuple)
 
 
 def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
@@ -2585,8 +2582,7 @@ def read_batch_urls(batch_fd):
             url = url.decode('utf-8', 'replace')
         BOM_UTF8 = ('\xef\xbb\xbf', '\ufeff')
         for bom in BOM_UTF8:
-            if url.startswith(bom):
-                url = url[len(bom):]
+            url = url.removeprefix(bom)
         url = url.lstrip()
         if not url or url.startswith(('#', ';', ']')):
             return False
@@ -2952,9 +2948,7 @@ def error_to_str(err):
 @partial_application
 def mimetype2ext(mt, default=NO_DEFAULT):
     if not isinstance(mt, str):
-        if default is not NO_DEFAULT:
-            return default
-        return None
+        return None if default is NO_DEFAULT else default
 
     MAP = {
         # video
