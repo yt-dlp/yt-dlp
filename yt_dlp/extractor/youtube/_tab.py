@@ -6,6 +6,7 @@ import urllib.parse
 
 from ._base import BadgeType, YoutubeBaseInfoExtractor
 from ._video import YoutubeIE
+from .yt_music_MPADUC_fix import yt_music_MPADUC_fix
 from ...networking.exceptions import HTTPError, network_exceptions
 from ...utils import (
     NO_DEFAULT,
@@ -2258,7 +2259,10 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 murl = traverse_obj(mdata, ('microformat', 'microformatDataRenderer', 'urlCanonical'),
                                     get_all=False, expected_type=str)
                 if not murl:
-                    raise ExtractorError('Failed to resolve album to playlist')
+                    try:
+                        return self.playlist_result([self._real_extract(i) for i in yt_music_MPADUC_fix(self, item_id)])
+                    except Exception as e:
+                        raise ExtractorError('Failed to resolve album to playlist')
                 return self.url_result(murl, YoutubeTabIE)
             elif mobj['channel_type'] == 'browse':  # Youtube music /browse/ should be changed to /channel/
                 return self.url_result(
