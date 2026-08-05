@@ -44,6 +44,7 @@ from yt_dlp.utils import (
     cli_valueless_option,
     date_from_str,
     datetime_from_str,
+    decode_lzstring,
     detect_exe_version,
     determine_ext,
     determine_file_encoding,
@@ -2284,6 +2285,20 @@ Line 1
         test(self._JWT_WITH_REORDERED_HEADERS)
         test(self._JWT_WITH_REORDERED_HEADERS_AND_RS256_ALG)
         test(self._JWT_WITH_EXTRA_HEADERS_AND_ES256_ALG)
+
+    def test_decode_lzstring(self):
+        for mode, compressed in (
+            ('base64', 'BYUwNmD2Q==='),
+            ('uri', 'BYUwNmD2Q'),
+            ('utf16', '\u02e2\u4c2d\u4c3e\u6420 '),
+            ('raw', '\u0585\u3036\u60f6\u4000'),
+            ('uint8array', b'\x05\x8506`\xf6@\x00'),
+        ):
+            self.assertEqual(decode_lzstring(compressed, mode), 'hello')
+
+        self.assertEqual(decode_lzstring('Q==='), '')
+        self.assertEqual(decode_lzstring('N4IghiBcCMC Q', 'uri'), '{"a":1}')
+        self.assertEqual(decode_lzstring(b'\x05\x8506`\xf6@', 'uint8array'), 'hello')
 
 
 if __name__ == '__main__':
