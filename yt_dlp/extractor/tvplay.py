@@ -216,72 +216,102 @@ class TVPlayHomeIE(InfoExtractor):
             https?://
             (?:tv3?)?
             play\.(?:tv3|skaties)\.(?P<country>lv|lt|ee)/
-            (?P<live>lives/)?
-            [^?#&]+(?:episode|programme|clip)-(?P<id>\d+)
+            [^?#&]+,(?P<category>episode|programme|clip|live)-(?P<id>\d+)
     '''
     _TESTS = [{
-        'url': 'https://play.tv3.lt/series/gauju-karai-karveliai,serial-2343791/serija-8,episode-2343828',
+        'url': 'https://play.tv3.lt/series/romeo-ir-dziuljeta,serial-7652008/serija-1,episode-7652164',
         'info_dict': {
-            'id': '2343828',
+            'id': '7652164',
             'ext': 'mp4',
-            'title': 'Gaujų karai. Karveliai (2021) | S01E08: Serija 8',
-            'description': 'md5:f6fcfbb236429f05531131640dfa7c81',
-            'duration': 2710,
-            'season': 'Gaujų karai. Karveliai',
-            'season_number': 1,
+            'season': 'Romeo ir Džiuljeta',
             'release_year': 2021,
-            'episode': 'Serija 8',
-            'episode_number': 8,
+            'thumbnail': 'https://static3.go3.tv/scale/go3/webuploads/rest/vod/screenshot/GM_89464288/preview_72.jpg?quality=65&srcmode=3&srcx=556&srcy=&srcw=810&srch=1080&type=&dstw=375&dsth=500',
+            'season_number': 1,
+            'duration': 1577,
+            'episode_number': 1,
+            'episode': 'Serija 1',
+            'title': 'Romeo ir Džiuljeta (2021) | S01E01: Serija 1',
         },
         'params': {
-            'skip_download': 'm3u8',
+            'skip_download': 'm3u8',  # drm stream
         },
     }, {
-        'url': 'https://play.tv3.lt/series/moterys-meluoja-geriau-n-7,serial-2574652/serija-25,episode-3284937',
+        'url': 'https://play.tv3.lv/news/neka-personiga,serial-2502901/16junijs,episode-7598931',
         'info_dict': {
-            'id': '3284937',
+            'id': '7598931',
             'ext': 'mp4',
-            'season': 'Moterys meluoja geriau [N-7]',
-            'season_number': 14,
-            'release_year': 2021,
-            'episode': 'Serija 25',
-            'episode_number': 25,
-            'title': 'Moterys meluoja geriau [N-7] (2021) | S14|E25: Serija 25',
-            'description': 'md5:c6926e9710f1a126f028fbe121eddb79',
-            'duration': 2440,
+            'thumbnail': 'https://static3.go3.tv/scale/go3/webuploads/rest/vod/screenshot/NP_16062024/preview_48.jpg?quality=65&srcmode=3&srcx=556&srcy=&srcw=810&srch=1080&type=&dstw=375&dsth=500',
+            'title': 'Nekā Personīga (2023) | S2024E24: 16.Jūnijs',
+            'description': 'md5:44f243be7a790195c99ceca9e57e3051',
+            'episode': '16.Jūnijs',
+            'release_year': 2023,
+            'season': 'Nekā Personīga',
+            'duration': 2336,
+            'season_number': 2024,
+            'episode_number': 24,
         },
-        'skip': '404',
+        'params': {
+            'skip_download': 'm3u8',  # drm stream
+        },
     }, {
-        'url': 'https://play.tv3.lt/lives/tv6-lt,live-2838694/optibet-a-lygos-rungtynes-marijampoles-suduva--vilniaus-riteriai,programme-3422014',
-        'only_matching': True,
+        'url': 'https://play.tv3.lt/clip/dalios-grybauskaites-sveikinimas-salies-zmonems-liepos-6-osios-proga,clip-7696980',
+        'info_dict': {
+            'id': '7696980',
+            'ext': 'mp4',
+            'thumbnail': 'https://static3.go3.tv/scale/go3/webuploads/rest/upload/clip/7696980/images/22862309?srcx=1&srcy=1&srcw=1439&srch=959&dstw=1439&dsth=959&srcmode=0&quality=65&type=1',
+            'episode': 'Dalios Grybauskaitės sveikinimas šalies žmonėms liepos 6-osios proga',
+            'description': 'md5:ceca4e1a2ea1d20c8cd03a8aad837e3c',
+            'duration': 36,
+            'title': 'Dalios Grybauskaitės sveikinimas šalies žmonėms liepos 6-osios proga',
+        },
+        'params': {
+            'skip_download': 'm3u8',  # drm stream
+        },
     }, {
-        'url': 'https://tv3play.skaties.lv/series/women-lie-better-lv,serial-1024464/women-lie-better-lv,episode-1038762',
-        'only_matching': True,
+        'url': 'https://play.tv3.lt/lives/tiesiogiai,live-4117109/futbolo-pulsas-die-mannschaft-ar-la-roja-mbappe-ar-ronaldo,programme-7702292',
+        'info_dict': {
+            'id': '7702292',
+            'ext': 'mp4',
+            'title': 'Futbolo pulsas: „Die Mannschaft“ ar „La Roja“? Mbappe ar Ronaldo?',
+            'episode': 'Futbolo pulsas: „Die Mannschaft“ ar „La Roja“? Mbappe ar Ronaldo?',
+            'description': 'md5:921386e9dfd90a82f2fd226e2468b142',
+            'thumbnail': 'https://static3.go3.tv/scale/go3/webuploads/rest/upload/programme/7702292/images/22869955?dsth=1080&dstw=1920&srcmode=0&quality=65&type=1&srcx=1&srcy=1&srcw=1/1&srch=1/1',
+        },
+        'params': {
+            'skip_download': 'm3u8',  # drm stream
+        },
     }, {
-        'url': 'https://play.tv3.ee/series/_,serial-2654462/_,episode-2654474',
-        'only_matching': True,
-    }, {
-        'url': 'https://tv3play.skaties.lv/clips/tv3-zinas-valsti-lidz-15novembrim-bus-majsede,clip-3464509',
-        'only_matching': True,
+        'url': 'https://play.tv3.lt/lives/power-hit-radio,live-4856680',
+        'info_dict': {
+            'id': '4856680',
+            'ext': 'mp4',
+            'title': 'Power Hit Radio',
+            'thumbnail': 'https://static3.go3.tv/scale/go3/webuploads/rest/upload/live/4856680/images/19296497?srcx=1&srcy=1&srcw=511&srch=287&dstw=1920&dsth=1078&srcmode=0&quality=65&type=0',
+            'episode': 'Power Hit Radio',
+        },
     }]
 
     def _real_extract(self, url):
-        country, is_live, video_id = self._match_valid_url(url).groups()
+        country, category, video_id = self._match_valid_url(url).group('country', 'category', 'id')
 
-        api_path = 'lives/programmes' if is_live else 'vods'
+        api_path = {
+            'live': 'lives',
+            'programme': 'lives/programmes',
+        }.get(category) or 'vods'
         data = self._download_json(
             urljoin(url, f'/api/products/{api_path}/{video_id}?platform=BROWSER&lang={country.upper()}'),
             video_id)
-
-        video_type = 'CATCHUP' if is_live else 'MOVIE'
-        stream_id = data['programRecordingId'] if is_live else video_id
+        video_type = 'MOVIE'
+        if category not in ('episode', 'clip'):
+            video_type = traverse_obj(data, ('mainCategory', 'categoryType')) or 'MOVIE'
+        stream_id = traverse_obj(data, ('live', 'id')) or data.get('programRecordingId') or video_id
         stream = self._download_json(
             urljoin(url, f'/api/products/{stream_id}/videos/playlist?videoType={video_type}&platform=BROWSER'), video_id)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             stream['sources']['HLS'][0]['src'], video_id, 'mp4', 'm3u8_native', m3u8_id='hls')
 
         thumbnails = set(traverse_obj(
-            data, (('galary', 'images', 'artworks'), ..., ..., ('miniUrl', 'mainUrl')), expected_type=url_or_none))
+            data, (('images', 'artworks'), ..., ..., ('miniUrl', 'mainUrl')), expected_type=url_or_none))
 
         return {
             'id': video_id,
@@ -293,7 +323,7 @@ class TVPlayHomeIE(InfoExtractor):
             'episode': data.get('title'),
             'episode_number': int_or_none(data.get('episode')),
             'release_year': int_or_none(traverse_obj(data, ('season', 'serial', 'year'))),
-            'thumbnails': [{'url': url, 'ext': 'jpg'} for url in thumbnails],
+            'thumbnails': [{'url': f'https:{url}', 'ext': 'jpg'} for url in thumbnails],
             'formats': formats,
             'subtitles': subtitles,
         }
