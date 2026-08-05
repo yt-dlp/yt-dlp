@@ -2329,6 +2329,7 @@ from .xminus import XMinusIE
 from .xnxx import XNXXIE
 from .xvideos import (
     XVideosIE,
+    XVideosChannelIE,
     XVideosQuickiesIE,
 )
 from .xxxymovies import XXXYMoviesIE
