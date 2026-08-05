@@ -991,7 +991,7 @@ class TikTokIE(TikTokBaseIE):
             self.raise_login_required(
                 'You do not have permission to view this post. Log into an account that has access')
         elif status == 10204:
-            raise ExtractorError('Your IP address is blocked from accessing this post', expected=True)
+            raise ExtractorError('Invalid URL or your IP address is blocked from accessing this post', expected=True)
         raise ExtractorError(f'Video not available, status code {status}', video_id=video_id)
 
 
