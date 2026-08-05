@@ -645,6 +645,7 @@ class YoutubeDL:
         self._pps = {k: [] for k in POSTPROCESS_WHEN}
         self._printed_messages = set()
         self._first_webpage_request = True
+        self._progress_printer = None
         self._post_hooks = []
         self._close_hooks = []
         self._progress_hooks = []
@@ -998,7 +999,14 @@ class YoutubeDL:
         if skip_eol is not False:
             self.deprecation_warning('"YoutubeDL.to_stdout" no longer accepts the argument skip_eol. '
                                      'Use "YoutubeDL.to_screen" instead')
-        self._write_string(f'{self._bidi_workaround(message)}\n', self._out_files.out)
+        pp = self._progress_printer
+        if pp is not None:
+            pp.pause()
+        try:
+            self._write_string(f'{self._bidi_workaround(message)}\n', self._out_files.out)
+        finally:
+            if pp is not None:
+                pp.resume()
 
     def to_screen(self, message, skip_eol=False, quiet=None, only_once=False):
         """Print message to screen if not in quiet mode"""
@@ -1007,17 +1015,33 @@ class YoutubeDL:
             return
         if (self.params.get('quiet') if quiet is None else quiet) and not self.params.get('verbose'):
             return
-        self._write_string(
-            '{}{}'.format(self._bidi_workaround(message), ('' if skip_eol else '\n')),
-            self._out_files.screen, only_once=only_once)
+        pp = self._progress_printer
+        if pp is not None:
+            pp.pause()
+        try:
+            self._write_string(
+                '{}{}'.format(self._bidi_workaround(message), ('' if skip_eol else '\n')),
+                self._out_files.screen, only_once=only_once)
+        finally:
+            if pp is not None:
+                pp.resume()
 
     def to_stderr(self, message, only_once=False):
         """Print message to stderr"""
         assert isinstance(message, str)
         if self.params.get('logger'):
             self.params['logger'].error(message)
-        else:
-            self._write_string(f'{self._bidi_workaround(message)}\n', self._out_files.error, only_once=only_once)
+            return
+        pp = self._progress_printer
+        if pp is not None:
+            pp.pause()
+        try:
+            self._write_string(
+                f'{self._bidi_workaround(message)}\n',
+                self._out_files.error, only_once=only_once)
+        finally:
+            if pp is not None:
+                pp.resume()
 
     def _send_console_code(self, code):
         if not supports_terminal_sequences(self._out_files.console):
@@ -4119,7 +4143,8 @@ class YoutubeDL:
             write_debug(encoding_str)
         else:
             write_string(f'[debug] {encoding_str}\n', encoding=None)
-            write_debug = lambda msg: self._write_string(f'[debug] {msg}\n')
+            def write_debug(msg):
+                self.to_stderr(f'[debug] {msg}')
 
         source = detect_variant()
         if VARIANT not in (None, 'pip'):
