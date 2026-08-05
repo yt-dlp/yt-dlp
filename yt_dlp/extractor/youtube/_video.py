@@ -1600,13 +1600,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'info_dict': {
             'id': 'brhfDfLdDZ8',
             'ext': 'mp4',
-            'title': 'This is the WORST Movie Science We\'ve Ever Seen',
+            'title': 'Scientists React to Terrible Movie Science | Moonfall (2021)',
             'description': 'md5:8afd0a3cd69ec63438fc573580436f92',
             'media_type': 'video',
-            'uploader': 'Open Sauce',
-            'uploader_id': '@opensaucelive',
-            'uploader_url': 'https://www.youtube.com/@opensaucelive',
-            'channel': 'Open Sauce',
+            'uploader': 'Sauce +',
+            'uploader_id': '@sauceplusofficial',
+            'uploader_url': 'https://www.youtube.com/@sauceplusofficial',
+            'channel': 'Sauce +',
             'channel_id': 'UC2EiGVmCeD79l_vZ204DUSw',
             'channel_url': 'https://www.youtube.com/channel/UC2EiGVmCeD79l_vZ204DUSw',
             'comment_count': int,
@@ -1614,15 +1614,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'like_count': int,
             'age_limit': 0,
             'duration': 1664,
-            'thumbnail': 'https://i.ytimg.com/vi/brhfDfLdDZ8/hqdefault.jpg',
+            'thumbnail': 'https://i.ytimg.com/vi/brhfDfLdDZ8/sddefault.jpg',
             'categories': ['Entertainment'],
             'tags': ['Moonfall', 'Bad Science', 'Open Sauce', 'Sauce+', 'The Backyard Scientist', 'William Osman', 'Allen Pan'],
-            'creators': ['Open Sauce', 'William Osman 2'],
+            'creators': ['Sauce +', 'William Osman 2'],
             'timestamp': 1759452918,
             'upload_date': '20251003',
             'playable_in_embed': True,
             'availability': 'public',
             'live_status': 'not_live',
+            'channel_follower_count': int,
+            'heatmap': 'count:100',
         },
         'params': {'skip_download': True},
     }, {
@@ -1656,6 +1658,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'playable_in_embed': True,
             'availability': 'public',
             'live_status': 'not_live',
+            'channel_follower_count': int,
         },
         'params': {'skip_download': True},
     }, {
@@ -4468,13 +4471,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         vsir = get_first(contents, 'videoSecondaryInfoRenderer')
         if vsir:
             vor = traverse_obj(vsir, ('owner', 'videoOwnerRenderer'))
-            collaborators = traverse_obj(vor, (
+            collab_view_models = traverse_obj(vor, (
                 'attributedTitle', 'commandRuns', ..., 'onTap', 'innertubeCommand', 'showDialogCommand',
                 'panelLoadingStrategy', 'inlineContent', 'dialogViewModel', 'customContent', 'listViewModel',
-                'listItems', ..., 'listItemViewModel', 'title', 'content', {str}))
+                'listItems', ..., 'listItemViewModel', {dict}))
+            collaborators = traverse_obj(collab_view_models, (..., 'title', 'content', {str}))
             info.update({
                 'channel': self._get_text(vor, 'title') or (collaborators[0] if collaborators else None),
-                'channel_follower_count': self._get_count(vor, 'subscriberCountText'),
+                'channel_follower_count': (
+                    self._get_count(vor, 'subscriberCountText')
+                    or traverse_obj(collab_view_models, (0, 'rendererContext', 'accessibilityContext', 'label', {parse_count}))),
                 'creators': collaborators if collaborators else None,
             })
 
