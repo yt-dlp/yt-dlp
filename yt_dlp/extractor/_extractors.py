@@ -1827,6 +1827,7 @@ from .stacommu import (
     TheaterComplexTownPPVIE,
     TheaterComplexTownVODIE,
 )
+from .stage import StageIE
 from .stageplus import StagePlusVODConcertIE
 from .startrek import StarTrekIE
 from .startv import StarTVIE
