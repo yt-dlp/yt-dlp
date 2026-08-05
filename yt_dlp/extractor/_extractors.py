@@ -2462,8 +2462,6 @@ from .zingmp3 import (
     ZingMp3HubIE,
     ZingMp3IE,
     ZingMp3LiveRadioIE,
-    ZingMp3PodcastEpisodeIE,
-    ZingMp3PodcastIE,
     ZingMp3UserIE,
     ZingMp3WeekChartIE,
 )
