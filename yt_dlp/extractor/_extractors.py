@@ -468,7 +468,6 @@ from .dplay import (
     DPlayIE,
     FoodNetworkIE,
     GoDiscoveryIE,
-    HGTVDeIE,
     HGTVUsaIE,
     InvestigationDiscoveryIE,
     ScienceChannelIE,
@@ -1901,7 +1900,6 @@ from .ted import (
     TedSeriesIE,
     TedTalkIE,
 )
-from .tele5 import Tele5IE
 from .tele13 import Tele13IE
 from .telebruxelles import TeleBruxellesIE
 from .telecaribe import TelecaribePlayIE
