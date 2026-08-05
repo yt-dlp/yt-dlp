@@ -171,6 +171,9 @@ class RTVEALaCartaIE(RTVEBaseIE):
         'url': 'http://www.rtve.es/filmoteca/no-do/not-1-introduccion-primer-noticiario-espanol/1465256/',
         'only_matching': True,
     }, {
+        'url': 'https://www.rtve.es/play/clan/casa-locos/casa-locos-carretera-manta/5664390/',
+        'only_matching': True,
+    }, {
         'url': 'https://www.rtve.es/play/videos/saber-vivir/07-07-24/16177116/',
         'md5': 'a5b24fcdfa3ff5cb7908aba53d22d4b6',
         'info_dict': {
