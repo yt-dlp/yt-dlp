@@ -580,6 +580,9 @@ class NiconicoPlaylistBaseIE(InfoExtractor):
             'page': page,
             'pageSize': self._PAGE_SIZE,
         })
+        yield from self._parse_videos(resp)
+
+    def _parse_videos(self, resp):
         # this is needed to support both mylist and user
         for video in traverse_obj(resp, ('items', ..., ('video', None))) or []:
             video_id = video.get('id')
@@ -693,11 +696,19 @@ class NiconicoSeriesIE(NiconicoPlaylistBaseIE):
 class NiconicoHistoryIE(NiconicoPlaylistBaseIE):
     IE_NAME = 'niconico:history'
     IE_DESC = 'NicoNico user history or likes. Requires cookies.'
-    _VALID_URL = r'https?://(?:www\.|sp\.)?nicovideo\.jp/my/(?P<id>history(?:/like)?)'
+    _VALID_URL = r'https?://(?:www\.|sp\.)?nicovideo\.jp/my/(?P<id>history(?:/(?:video(?:/(?:long|short))?|like))?)/?(?=$|[?#])'
 
     _TESTS = [{
         'note': 'PC page, with /video',
         'url': 'https://www.nicovideo.jp/my/history/video',
+        'only_matching': True,
+    }, {
+        'note': 'PC page, with /video/long',
+        'url': 'https://www.nicovideo.jp/my/history/video/long',
+        'only_matching': True,
+    }, {
+        'note': 'PC page, with /video/short',
+        'url': 'https://www.nicovideo.jp/my/history/video/short',
         'only_matching': True,
     }, {
         'note': 'PC page, without /video',
@@ -722,15 +733,39 @@ class NiconicoHistoryIE(NiconicoPlaylistBaseIE):
     }]
 
     def _call_api(self, list_id, resource, query):
-        path = 'likes' if list_id == 'history/like' else 'watch/history'
+        if list_id == 'history/like':
+            path = 'v1/users/me/likes'
+        else:
+            path = 'v2/users/me/watch/history'
+            query = {'selectContentType': 'short' if list_id.endswith('short') else 'long', **query}
         return self._download_json(
-            f'https://nvapi.nicovideo.jp/v1/users/me/{path}', list_id,
+            f'https://nvapi.nicovideo.jp/{path}', list_id,
             f'Downloading {resource}', query=query, headers=self._API_HEADERS)['data']
+
+    def _watch_history_entries(self, list_id):
+        cursor = None
+        for page in itertools.count(1):
+            query = {'limit': self._PAGE_SIZE}
+            if cursor:
+                query['cursor'] = cursor
+            resp = self._call_api(list_id, f'page {page}', query)
+            if not resp.get('items'):
+                break
+            yield from self._parse_videos(resp)
+            cursor = traverse_obj(resp, ('nextCursor', {str}))
+            if not cursor:
+                break
+
+    def _entries(self, list_id):
+        if list_id == 'history/like':
+            return super()._entries(list_id)
+        return self._watch_history_entries(list_id)
 
     def _real_extract(self, url):
         list_id = self._match_id(url)
         try:
-            mylist = self._call_api(list_id, 'list', {'pageSize': 1})
+            query = {'pageSize': 1} if list_id == 'history/like' else {'limit': 1}
+            mylist = self._call_api(list_id, 'list', query)
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                 self.raise_login_required('You have to be logged in to get your history')
