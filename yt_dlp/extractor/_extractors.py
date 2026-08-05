@@ -1843,6 +1843,7 @@ from .storyfire import (
 from .streaks import StreaksIE
 from .streamable import StreamableIE
 from .streamcz import StreamCZIE
+from .streamff import StreamffIE
 from .streetvoice import StreetVoiceIE
 from .stripchat import StripchatIE
 from .stv import STVPlayerIE
