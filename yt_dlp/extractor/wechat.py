@@ -48,7 +48,34 @@ class WeChatIE(InfoExtractor):
                 'thumbnail': r're:^https?://.*',
             },
         },
+        {
+            'url': 'https://weixin.qq.com/sph/AC9mJknlm4',
+            'md5': '673212f6184f861eb27865351c119a99',
+            'info_dict': {
+                'id': 'AC9mJknlm4',
+                'ext': 'mp4',
+                'title': '这个字化成灰你也认识。#手写 #解#书之手写#文具安利',
+                'description': '这个字化成灰你也认识。#手写 #解#书之手写#文具安利',
+                'uploader': '书之手写',
+                'uploader_id': '书之手写',
+                'timestamp': 1763797068,
+                'upload_date': '20251122',
+                'comment_count': int,
+                'like_count': int,
+                'repost_count': int,
+                'thumbnail': r're:^https?://.*',
+            },
+        },
     ]
+
+    def _parse_count(self, count_str):
+        if not count_str:
+            return None
+        count_str = count_str.strip()
+        if count_str.endswith('万'):
+            return int(float(count_str[:-1]) * 10000)
+        else:
+            return int_or_none(count_str)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -130,8 +157,8 @@ class WeChatIE(InfoExtractor):
             'uploader_id': author_info.get('nickname'),
             'timestamp': feed_info.get('createtime'),
             'thumbnail': feed_info.get('coverUrl'),
-            'like_count': int_or_none(feed_info.get('likeCountFmt')),
-            'repost_count': int_or_none(feed_info.get('forwardCountFmt')),
-            'comment_count': int_or_none(feed_info.get('commentCountFmt')),
+            'like_count': self._parse_count(feed_info.get('likeCountFmt')),
+            'repost_count': self._parse_count(feed_info.get('forwardCountFmt')),
+            'comment_count': self._parse_count(feed_info.get('commentCountFmt')),
             'formats': formats,
         }
