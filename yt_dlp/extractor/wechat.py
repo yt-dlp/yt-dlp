@@ -10,7 +10,7 @@ from ..utils import (
 
 
 class WeChatIE(InfoExtractor):
-    _VALID_URL = r'https?://weixin\.qq\.com/sph/(?P<id>[0-9A-Za-z]+)'
+    _VALID_URL = r'https?://(?:weixin\.qq\.com/sph|channels\.weixin\.qq\.com/finder-preview/pages/sph)\?id=(?P<id>[0-9A-Za-z]+)'
     _TESTS = [
         {
             'url': 'https://weixin.qq.com/sph/Axv548mzBF',
@@ -31,7 +31,7 @@ class WeChatIE(InfoExtractor):
             },
         },
         {
-            'url': 'https://weixin.qq.com/sph/AoSzkdlyu1',
+            'url': 'https://channels.weixin.qq.com/finder-preview/pages/sph?id=AoSzkdlyu1',
             'md5': '6e29ad0c58026ca2c1589b3fa5808246',
             'info_dict': {
                 'id': 'AoSzkdlyu1',
