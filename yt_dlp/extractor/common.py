@@ -432,29 +432,28 @@ class InfoExtractor:
 
     chapter:        Name or title of the chapter the video belongs to.
     chapter_number: Number of the chapter the video belongs to, as an integer.
-    chapter_id:     Id of the chapter the video belongs to, as a unicode string.
+    chapter_id:     Id of the chapter the video belongs to.
 
     The following fields should only be used when the video is an episode of some
     series, programme or podcast:
 
     series:         Title of the series or programme the video episode belongs to.
-    series_id:      Id of the series or programme the video episode belongs to, as a unicode string.
+    series_id:      Id of the series or programme the video episode belongs to.
     season:         Title of the season the video episode belongs to.
     season_number:  Number of the season the video episode belongs to, as an integer.
-    season_id:      Id of the season the video episode belongs to, as a unicode string.
+    season_id:      Id of the season the video episode belongs to.
     episode:        Title of the video episode. Unlike mandatory video title field,
                     this field should denote the exact title of the video episode
                     without any kind of decoration.
     episode_number: Number of the video episode within a season, as an integer.
-    episode_id:     Id of the video episode, as a unicode string.
+    episode_id:     Id of the video episode.
 
     The following fields should only be used when the media is a track or a part of
     a music album:
 
     track:          Title of the track.
     track_number:   Number of the track within an album or a disc, as an integer.
-    track_id:       Id of the track (useful in case of custom indexing, e.g. 6.iii),
-                    as a unicode string.
+    track_id:       Id of the track (useful for custom indexing, e.g. 6.iii).
     artists:        List of artists of the track.
     composers:      List of composers of the piece.
     genres:         List of genres of the track.
@@ -487,7 +486,7 @@ class InfoExtractor:
     creator:        Use "creators" instead.
                     The creator of the video.
 
-    Unless mentioned otherwise, the fields should be Unicode strings.
+    Unless mentioned otherwise, the fields should be strings.
 
     Unless mentioned otherwise, None is equivalent to absence of information.
 
