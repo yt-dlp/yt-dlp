@@ -137,7 +137,7 @@ class RTVEALaCartaIE(RTVEBaseIE):
             'title': 'En torno a la silla',
             'duration': 1216.981,
             'series': 'La aventura del Saber',
-            'thumbnail': 'https://img2.rtve.es/v/aventuraentornosilla_3088905.png',
+            'thumbnail': r're:https://img\d*\.rtve\.es/v/aventuraentornosilla_3088905\.png',
         },
     }, {
         'note': 'Live stream',
