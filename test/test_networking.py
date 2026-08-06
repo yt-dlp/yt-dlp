@@ -862,12 +862,12 @@ class TestRequestHandlerMisc:
         # Ensure any logging handlers, which may contain a YoutubeDL instance,
         # are removed when we close the request handler
         # See: https://github.com/yt-dlp/yt-dlp/issues/8922
-        logging_handlers = logging.getLogger(logger_name).handlers
-        before_count = len(logging_handlers)
+        logger = logging.getLogger(logger_name)
+        before_count = len(logger.handlers)
         rh = handler()
-        assert len(logging_handlers) == before_count + 1
+        assert len(logger.handlers) == before_count + 1
         rh.close()
-        assert len(logging_handlers) == before_count
+        assert len(logger.handlers) == before_count
 
     def test_wrap_request_errors(self):
         class TestRequestHandler(RequestHandler):
