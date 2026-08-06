@@ -124,7 +124,7 @@ class RTVEALaCartaIE(RTVEBaseIE):
     IE_NAME = 'rtve.es:alacarta'
     IE_DESC = 'RTVE a la carta and Play'
     _VALID_URL = [
-        r'https?://(?:www\.)?rtve\.es/(?:m/)?(?:(?:alacarta|play)/(videos|filmoteca|clan))/(?!directo)(?:[^/?#]+/){2}(?P<id>\d+)',
+        r'https?://(?:www\.)?rtve\.es/(?:m/)?(?:(?:alacarta|play)/(?:videos|clan)|filmoteca)/(?!directo)(?:[^/?#]+/){2}(?P<id>\d+)',
         r'https?://(?:www\.)?rtve\.es/infantil/serie/[^/?#]+/video/[^/?#]+/(?P<id>\d+)',
     ]
 
