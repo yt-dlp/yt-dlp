@@ -10,7 +10,7 @@ from ..utils import (
 
 
 class WeChatIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:weixin\.qq\.com/sph|channels\.weixin\.qq\.com/finder-preview/pages/sph)\?id=(?P<id>[0-9A-Za-z]+)'
+    _VALID_URL = r'https?://(?:weixin\.qq\.com/sph/|channels\.weixin\.qq\.com/finder-preview/pages/sph\?id=)(?P<id>[0-9A-Za-z]+)'
     _TESTS = [
         {
             'url': 'https://weixin.qq.com/sph/Axv548mzBF',
