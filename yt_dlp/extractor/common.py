@@ -453,8 +453,7 @@ class InfoExtractor:
 
     track:          Title of the track.
     track_number:   Number of the track within an album or a disc, as an integer.
-    track_id:       Id of the track (useful in case of custom indexing, e.g. 6.iii),
-                    as a string.
+    track_id:       Id of the track (useful for custom indexing, e.g. 6.iii).
     artists:        List of artists of the track.
     composers:      List of composers of the piece.
     genres:         List of genres of the track.
