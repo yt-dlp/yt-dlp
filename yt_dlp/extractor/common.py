@@ -432,16 +432,16 @@ class InfoExtractor:
 
     chapter:        Name or title of the chapter the video belongs to.
     chapter_number: Number of the chapter the video belongs to, as an integer.
-    chapter_id:     Id of the chapter.
+    chapter_id:     Id of the chapter the video belongs to.
 
     The following fields should only be used when the video is an episode of some
     series, programme or podcast:
 
     series:         Title of the series or programme the video episode belongs to.
-    series_id:      Id of the series or program.
+    series_id:      Id of the series or programme the video episode belongs to.
     season:         Title of the season the video episode belongs to.
     season_number:  Number of the season the video episode belongs to, as an integer.
-    season_id:      Id of the season.
+    season_id:      Id of the season the video episode belongs to.
     episode:        Title of the video episode. Unlike mandatory video title field,
                     this field should denote the exact title of the video episode
                     without any kind of decoration.
