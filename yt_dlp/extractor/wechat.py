@@ -10,7 +10,7 @@ from ..utils import (
 
 
 class WeChatIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:weixin\.qq\.com/sph/|channels\.weixin\.qq\.com/finder-preview/pages/sph\?id=)(?P<id>[0-9A-Za-z]+)'
+    _VALID_URL = r'https?://(?:weixin\.qq\.com/sph/|channels\.weixin\.qq\.com/finder-preview/pages/sph\?id=)(?P<id>[0-9A-Za-z]+)(?:[/?#&]|$)'
     _TESTS = [
         {
             'url': 'https://weixin.qq.com/sph/Axv548mzBF',
@@ -106,9 +106,9 @@ class WeChatIE(InfoExtractor):
 
         payload = {
             'baseReq': {
-                'generalToken': urllib.parse.unquote(token),
+                'generalToken': token,
             },
-            'exportId': urllib.parse.unquote(eid),
+            'exportId': eid,
         }
 
         feed_data = self._download_json(
@@ -118,7 +118,7 @@ class WeChatIE(InfoExtractor):
             headers={
                 'Content-Type': 'application/json',
                 'Origin': 'https://channels.weixin.qq.com',
-                'Referer': f'https://channels.weixin.qq.com/finder-preview/pages/feed?entry_card_type=48&comment_scene=39&appid=0&token={token}&entry_scene=0&eid={eid}',
+                'Referer': f'https://channels.weixin.qq.com/finder-preview/pages/feed?entry_card_type=48&comment_scene=39&appid=0&token={urllib.parse.quote(token, safe="")}&entry_scene=0&eid={urllib.parse.quote(eid, safe="")}',
             },
             note='Downloading metadata',
         )
