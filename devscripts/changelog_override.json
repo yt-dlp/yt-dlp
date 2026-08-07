@@ -382,5 +382,9 @@
         "action": "add",
         "when": "b6590aaa1e3808155d69c9a79a797ae484163789",
         "short": "[priority] Security: [[CVE-2026-55404](https://nvd.nist.gov/vuln/detail/CVE-2026-55404)] [Downstream command injection via improper sanitization of --write-link output](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-6v4j-43gg-vj32)\n        - Shortcut file data is now properly validated and sanitized when the `--write-link` options are used"
+    },
+    {
+        "action": "remove",
+        "when": "a8be438aac1b90c3888e974056d967b8be90fa7e"
     }
 ]
