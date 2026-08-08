@@ -9,7 +9,7 @@ import typing
 from yt_dlp.globals import IN_CLI
 
 from yt_dlp.utils import traverse_obj, int_or_none, DownloadError, join_nonempty
-from yt_dlp.downloader import FileDownloader
+from ._base import SabrFDBase
 
 from ._writer import SabrFDFormatWriter
 from ._logger import create_sabrfd_logger
@@ -365,14 +365,7 @@ class SabrFdSession:
     # endregion
 
 
-class SabrFD(FileDownloader):
-    @classmethod
-    def can_download(cls, info_dict):
-        return (
-            info_dict.get('requested_formats')
-            and all(
-                format_info.get('protocol') == 'sabr'
-                for format_info in info_dict['requested_formats']))
+class SabrFD(SabrFDBase):
 
     def _client_info_from_json(self, client_info_json):
         return ClientInfo(

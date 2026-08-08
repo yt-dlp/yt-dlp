@@ -7,9 +7,14 @@ from yt_dlp import YoutubeDL
 
 
 @pytest.fixture
-def fd(logger):
+def fd(ydl):
+    yield SabrFD(ydl, {})
+
+
+@pytest.fixture
+def ydl(logger):
     with YoutubeDL({'logger': logger}) as ydl:
-        yield SabrFD(ydl, {})
+        yield ydl
 
 
 @pytest.fixture
