@@ -15,7 +15,7 @@ def get_suitable_downloader(info_dict, params={}, default=NO_DEFAULT, protocol=N
           and not (to_stdout and len(protocols) > 1)
           and set(protocols) == {'http_dash_segments_generator'}):
         return DashSegmentsFD
-    elif SabrFD is not None and set(downloaders) == {SabrFD} and SabrFD.can_download(info_copy):
+    elif set(downloaders) == {SabrFD} and SabrFD.can_download(info_copy):
         # NOTE: there may be one or more SABR downloaders for this info_dict,
         # as SABR can download multiple formats at once.
         return SabrFD

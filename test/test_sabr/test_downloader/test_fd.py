@@ -3,31 +3,10 @@ from yt_dlp.downloader.sabr import SabrFD
 
 
 @pytest.mark.parametrize('requested_formats, expected', [
-    (
-        [
-            {'protocol': 'sabr'},
-            {'protocol': 'sabr'},
-        ],
-        True,
-    ),
-    (
-        [
-            {'protocol': 'http'},
-            {'protocol': 'https'},
-        ],
-        False,
-    ),
-    (
-        [
-            {'protocol': 'http'},
-            {'protocol': 'sabr'},
-        ],
-        False,
-    ),
-    (
-        None,
-        False,
-    ),
+    ([{'protocol': 'sabr'}, {'protocol': 'sabr'}], True),
+    ([{'protocol': 'http'}, {'protocol': 'https'}], False),
+    ([{'protocol': 'http'}, {'protocol': 'sabr'}], False),
+    (None, False),
 ], ids=['all sabr', 'no sabr', 'mixed protocols', 'none'])
 def test_can_download_requested_formats(ydl, requested_formats, expected):
     fd = SabrFD(ydl, {})
