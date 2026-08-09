@@ -240,7 +240,7 @@ def find_xpath_attr(node, xpath, key, val=None):
 
 
 def xpath_with_ns(path, ns_map):
-    """Expand namespace prefixes in an ElementTree path."""
+    """Expand namespace-prefixed names to Clark notation."""
     components = [c.split(':') for c in path.split('/')]
     replaced = []
     for c in components:
