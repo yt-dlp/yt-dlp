@@ -13,6 +13,7 @@ from ..utils import (
     parse_iso8601,
     str_or_none,
     unescapeHTML,
+    unified_strdate,
     url_or_none,
     urljoin,
 )
@@ -30,27 +31,28 @@ class SmotrimBaseIE(InfoExtractor):
     _GEO_COUNTRIES = ['RU']
 
     def _extract_from_smotrim_api(self, typ, item_id):
-        path = f'data{typ.replace("-", "")}/{"uid" if typ == "live" else "id"}'
         data = self._download_json(
-            f'https://player.smotrim.ru/iframe/{path}/{item_id}/sid/smotrim', item_id)
-        media = traverse_obj(data, ('data', 'playlist', 'medialist', -1, {dict}))
+            f'https://player-api.smotrim.ru/api/v1/{typ}/{item_id}', item_id)
+        media = traverse_obj(data, 'data')
+
         if traverse_obj(media, ('locked', {bool})):
             self.raise_login_required()
         if error_msg := traverse_obj(media, ('errors', {clean_html})):
             self.raise_geo_restricted(error_msg, countries=self._GEO_COUNTRIES)
 
-        webpage_url = traverse_obj(data, ('data', 'template', 'share_url', {url_or_none}))
+        webpage_url = f'{self._BASE_URL}/{typ}/{item_id}'
         webpage = self._download_webpage(webpage_url, item_id)
         common = {
             'thumbnail': self._html_search_meta(['og:image', 'twitter:image'], webpage, default=None),
             **traverse_obj(media, {
-                'id': ('id', {str_or_none}),
-                'title': (('episodeTitle', 'title'), {clean_html}, filter, any),
-                'channel_id': ('channelId', {str_or_none}),
-                'description': ('anons', {clean_html}, filter),
-                'season': ('season', {clean_html}, filter),
-                'series': (('brand_title', 'brandTitle'), {clean_html}, filter, any),
-                'series_id': ('brand_id', {str_or_none}),
+                'id': ('publicId', {str_or_none}, filter),
+                'title': ('episode', 'title', {clean_html}, filter),
+                'season_number': ('episode', 'season', 'number', {int_or_none}),
+                'series': ('brand', 'title', {clean_html}, filter),
+                'series_id': ('brand', 'id', {str_or_none}, filter),
+                'duration': ('duration', {int_or_none}),
+                'timestamp': ('episode', 'airDate', {parse_iso8601}),
+                'upload_date': ('episode', 'airDate', {unified_strdate}),
             }),
         }
 
@@ -63,9 +65,9 @@ class SmotrimBaseIE(InfoExtractor):
                 'vcodec': 'none',
                 **common,
                 **traverse_obj(media, {
-                    'ext': ('audio_url', {determine_ext(default_ext='mp3')}),
-                    'duration': ('duration', {int_or_none}),
-                    'url': ('audio_url', {url_or_none}),
+                    'ext': ('streams', 'mp3', {determine_ext(None, default_ext='mp3')}),
+                    'url': ('streams', 'mp3', {url_or_none}),
+                    'thumbnail': ('brand', 'poster', 'large', {url_or_none}),
                 }),
                 **traverse_obj(bookmark, {
                     'title': ('subtitle', {clean_html}),
@@ -81,13 +83,10 @@ class SmotrimBaseIE(InfoExtractor):
             }
         else:
             formats, subtitles = [], {}
-            for m3u8_url in traverse_obj(media, (
-                'sources', 'm3u8', {dict.values}, ..., {url_or_none},
-            )):
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+
+            if m3u8_url := traverse_obj(media, ('streams', 'm3u8', {url_or_none})):
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                     m3u8_url, item_id, 'mp4', m3u8_id='hls', fatal=False)
-                formats.extend(fmts)
-                self._merge_subtitles(subs, target=subtitles)
 
             metadata = {
                 'formats': formats,
@@ -97,7 +96,7 @@ class SmotrimBaseIE(InfoExtractor):
             }
 
         return {
-            'age_limit': traverse_obj(data, ('data', 'age_restrictions', {int_or_none})),
+            'age_limit': traverse_obj(media, ('ageRestriction', {int_or_none})),
             'is_live': typ in ('audio-live', 'live'),
             'tags': traverse_obj(webpage, (
                 {find_elements(cls='tags-list__link')}, ..., {clean_html}, filter, all, filter)),
@@ -119,29 +118,30 @@ class SmotrimIE(SmotrimBaseIE):
             'duration': 2631,
             'series': 'Полиглот. Китайский с нуля за 16 часов!',
             'series_id': '60562',
-            'tags': 'mincount:6',
-            'thumbnail': r're:https?://cdn-st\d+\.smotrim\.ru/.+\.(?:jpg|png)',
+            'thumbnail': r're:https?://cdn\.smotrim\.ru/.+\.(?:jpg|png)',
             'timestamp': 1466771100,
             'upload_date': '20160624',
-            'view_count': int,
+            'age_limit': 12,
+            'season': 'Season 2016',
+            'season_number': 2016,
         },
     }, {
-        'url': 'https://player.smotrim.ru/iframe/video/id/2988590',
+        'url': 'https://player.smotrim.ru/iframe/video/id/6057269',
         'info_dict': {
-            'id': '2988590',
+            'id': '6057269',
             'ext': 'mp4',
-            'title': 'Трейлер',
+            'title': '«На белом покрывале января»',
             'age_limit': 16,
-            'description': 'md5:6af7e68ecf4ed7b8ff6720d20c4da47b',
-            'duration': 30,
-            'series': 'Мы в разводе',
-            'series_id': '71624',
-            'tags': 'mincount:5',
-            'thumbnail': r're:https?://cdn-st\d+\.smotrim\.ru/.+\.(?:jpg|png)',
-            'timestamp': 1750670040,
-            'upload_date': '20250623',
-            'view_count': int,
-            'webpage_url': 'https://smotrim.ru/video/2988590',
+            'description': 'md5:5117191fe799a5844421aef14195f1cb',
+            'duration': 835,
+            'series': 'Вирус попсы',
+            'series_id': '75607',
+            'thumbnail': r're:https?://cdn\.smotrim\.ru/.+\.(?:jpg|png)',
+            'timestamp': 1786092300,
+            'upload_date': '20260807',
+            'webpage_url': 'https://smotrim.ru/video/6057269',
+            'season': 'Season 1',
+            'season_number': 1,
         },
     }]
     _WEBPAGE_TESTS = [{
@@ -154,11 +154,9 @@ class SmotrimIE(SmotrimBaseIE):
             'duration': 240,
             'series': 'Новости культуры',
             'series_id': '19725',
-            'tags': 'mincount:6',
-            'thumbnail': r're:https?://cdn-st\d+\.smotrim\.ru/.+\.(?:jpg|png)',
+            'thumbnail': r're:https?://cdn\.smotrim\.ru/.+\.(?:jpg|png)',
             'timestamp': 1656054443,
             'upload_date': '20220624',
-            'view_count': int,
             'webpage_url': 'https://smotrim.ru/video/2431846',
         },
     }, {
@@ -171,11 +169,9 @@ class SmotrimIE(SmotrimBaseIE):
             'duration': 265,
             'series': 'Вести. Дежурная часть',
             'series_id': '5204',
-            'tags': 'mincount:6',
-            'thumbnail': r're:https?://cdn-st\d+\.smotrim\.ru/.+\.(?:jpg|png)',
+            'thumbnail': r're:https?://cdn\.smotrim\.ru/.+\.(?:jpg|png)',
             'timestamp': 1754756280,
             'upload_date': '20250809',
-            'view_count': int,
             'webpage_url': 'https://smotrim.ru/video/3007209',
         },
     }]
@@ -196,14 +192,13 @@ class SmotrimAudioIE(SmotrimBaseIE):
             'id': '2573986',
             'ext': 'mp3',
             'title': 'Радиоспектакль',
-            'description': 'md5:4bcaaf7d532bc78f76e478fad944e388',
             'duration': 3072,
             'series': 'Морис Леблан. Арсен Люпен, джентльмен-грабитель',
             'series_id': '66461',
-            'tags': 'mincount:7',
-            'thumbnail': r're:https?://cdn-st\d+\.smotrim\.ru/.+\.(?:jpg|png)',
+            'thumbnail': r're:https?://cdn\.smotrim\.ru/.+\.(?:jpg|png)',
             'timestamp': 1624884358,
             'upload_date': '20210628',
+            'age_limit': 12,
         },
     }, {
         'url': 'https://player.smotrim.ru/iframe/audio/id/2860468',
@@ -213,13 +208,15 @@ class SmotrimAudioIE(SmotrimBaseIE):
             'ext': 'mp3',
             'title': 'Колобок и музыкальная игра "Терем-теремок"',
             'duration': 1501,
-            'series': 'Веселый колобок',
+            'series': 'Весёлый колобок',
             'series_id': '68880',
-            'tags': 'mincount:4',
-            'thumbnail': r're:https?://cdn-st\d+\.smotrim\.ru/.+\.(?:jpg|png)',
+            'thumbnail': r're:https?://cdn\.smotrim\.ru/.+\.(?:jpg|png)',
             'timestamp': 1755925800,
             'upload_date': '20250823',
             'webpage_url': 'https://smotrim.ru/audio/2860468',
+            'age_limit': 12,
+            'season': 'Season 2025',
+            'season_number': 2025,
         },
     }]
 
@@ -390,7 +387,7 @@ class SmotrimPlaylistIE(SmotrimBaseIE):
                 ..., {extract_attributes}, 'href', {str},
             )), playlist_id, playlist_title, season=traverse_obj(webpage, (
                 {find_element(cls='seasons__item seasons__item--selected')}, {clean_html},
-            )), ie=SmotrimIE, getter=urljoin(self._BASE_URL))
+            )), ie=SmotrimIE, getter=urljoin(self._BASE_URL, None))
 
         if traverse_obj(webpage, (
             {find_element(cls='brand-main-item__videos')}, {clean_html}, filter,
