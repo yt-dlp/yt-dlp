@@ -1,10 +1,13 @@
+import re
 
 from .common import InfoExtractor
 from ..utils import (
+    find_element,
     float_or_none,
     get_element_by_class,
     traverse_obj,
     unified_timestamp,
+    urlencode_postdata,
 )
 
 
@@ -13,6 +16,7 @@ class NRLTVIE(InfoExtractor):
     IE_DESC = 'NRL.com Watch'
     _VALID_URL = r'https?://(?:www\.)?nrl\.com/watch(?:/[^/?#]+)*/(?P<id>[^/?#]+)'
     _GEO_COUNTRIES = ['AU']
+    _SIGNIN_URL = 'https://www.nrl.com/account/signin-nrl'
     _TESTS = [{
         # Globally available video
         'url': 'https://www.nrl.com/watch/news/match-highlights-titans-v-knights-862805/',
@@ -63,6 +67,18 @@ class NRLTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
+
+        anon_login_form = traverse_obj(webpage, ({find_element(
+            tag='form', attr='action', value=self._SIGNIN_URL, html=True)}))
+        if anon_login_form:
+            matches = re.finditer(r'''(?x)<input
+                (?=[^>]*\sname\s*=\s*(?P<_q1>['"])(?P<name>(?:(?!(?P=_q1)).)+)(?P=_q1))
+                (?=[^>]*\svalue\s*=\s*(?P<_q2>['"])(?P<value>(?:(?!(?P=_q2)).)+)(?P=_q2))
+                [^>]*>''', anon_login_form)
+            webpage = self._download_webpage(
+                self._SIGNIN_URL, video_id,
+                data=urlencode_postdata({m.group('name'): m.group('value') for m in matches}),
+                note='Performing anonymous login', errnote='Failed to perform anonymous login')
 
         if get_element_by_class('locked-content-video-wrapper', webpage):
             self.raise_login_required(method='cookies')
