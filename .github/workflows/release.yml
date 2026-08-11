@@ -316,7 +316,7 @@ jobs:
         if: env.TARGET_REPO == github.repository
         run: |
           git tag "${TARGET_TAG}" "${HEAD_SHA}"
-          git push origin "${TARGET_TAG}"
+          git push origin "refs/tags/${TARGET_TAG}"
           sleep 5  # Enough time to cover git-push vs gh-release-create race condition
 
       - name: Publish release
