@@ -840,18 +840,10 @@ class FFmpegMergerPP(FFmpegPostProcessor):
         self.to_screen(f'Merging formats into "{filename}"')
         self.run_ffmpeg_multiple_files(info['__files_to_merge'], temp_filename, args)
 
-        for attempt in range(50):
-            try:
-                os.replace(temp_filename, filename)
-                break
-            except PermissionError as e:
-                if getattr(e, "winerror", None) != 32:
-                    raise
-
-                if attempt == 49:
-                    raise
-
-                time.sleep(0.1)
+        if self._downloader:
+            self._downloader.try_rename(temp_filename, filename)
+        else:
+            os.replace(temp_filename, filename)
 
         return info['__files_to_merge'], info
 
