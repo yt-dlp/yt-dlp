@@ -1,10 +1,9 @@
 import functools
-import json
 import re
-import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     OnDemandPagedList,
     clean_html,
     determine_ext,
@@ -20,7 +19,6 @@ from ..utils import (
 from ..utils.traversal import (
     find_element,
     find_elements,
-    require,
     traverse_obj,
 )
 
@@ -34,7 +32,6 @@ class SmotrimBaseIE(InfoExtractor):
         data = self._download_json(
             f'https://player-api.smotrim.ru/api/v1/{typ}/{item_id}', item_id)
         media = traverse_obj(data, 'data')
-
         if traverse_obj(media, ('locked', {bool})):
             self.raise_login_required()
         if error_msg := traverse_obj(media, ('errors', {clean_html})):
@@ -43,7 +40,8 @@ class SmotrimBaseIE(InfoExtractor):
         webpage_url = f'{self._BASE_URL}/{typ}/{item_id}'
         webpage = self._download_webpage(webpage_url, item_id)
         common = {
-            'thumbnail': self._html_search_meta(['og:image', 'twitter:image'], webpage, default=None),
+            'thumbnail': self._html_search_meta(
+                ['og:image', 'twitter:image'], webpage, default=None),
             **traverse_obj(media, {
                 'id': ('publicId', {str_or_none}, filter),
                 'title': ('episode', 'title', {clean_html}, filter),
@@ -65,13 +63,31 @@ class SmotrimBaseIE(InfoExtractor):
                 'vcodec': 'none',
                 **common,
                 **traverse_obj(media, {
-                    'ext': ('streams', 'mp3', {determine_ext(None, default_ext='mp3')}),
+                    'ext': ('streams', 'mp3', {determine_ext(default_ext='mp3')}),
                     'url': ('streams', 'mp3', {url_or_none}),
                     'thumbnail': ('brand', 'poster', 'large', {url_or_none}),
                 }),
                 **traverse_obj(bookmark, {
                     'title': ('subtitle', {clean_html}),
                     'timestamp': ('published', {parse_iso8601}),
+                }),
+            }
+        elif typ == 'channel':
+            formats, subtitles = [], {}
+            if m3u8_url := traverse_obj(media, ('streams', 'm3u8', {url_or_none})):
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                    m3u8_url, item_id, 'mp4', m3u8_id='hls', live=True, fatal=False)
+            metadata = {
+                'formats': formats,
+                'subtitles': subtitles,
+                **common,
+                **traverse_obj(media, {
+                    'id': ('id', {str_or_none}, filter),
+                    'title': ('title', {clean_html}, filter),
+                    'ext': ('streams', 'm3u8', {determine_ext(default_ext='m3u8')}),
+                    'url': ('streams', 'm3u8', {url_or_none}),
+                    'channel_id': ('id', {str_or_none}, filter),
+                    'thumbnail': ('splash', 'large', {url_or_none}),
                 }),
             }
         elif typ == 'audio-live':
@@ -97,7 +113,7 @@ class SmotrimBaseIE(InfoExtractor):
 
         return {
             'age_limit': traverse_obj(media, ('ageRestriction', {int_or_none})),
-            'is_live': typ in ('audio-live', 'live'),
+            'is_live': typ in ('audio-live', 'live', 'channel'),
             'tags': traverse_obj(webpage, (
                 {find_elements(cls='tags-list__link')}, ..., {clean_html}, filter, all, filter)),
             'webpage_url': webpage_url,
@@ -246,16 +262,13 @@ class SmotrimLiveIE(SmotrimBaseIE):
     _TESTS = [{
         'url': 'https://smotrim.ru/channel/76',
         'info_dict': {
-            'id': '1661',
+            'id': '76',
             'ext': 'mp4',
             'title': str,
             'channel_id': '76',
-            'description': 'Смотрим прямой эфир «Москва 24»',
             'display_id': '76',
             'live_status': 'is_live',
-            'thumbnail': r're:https?://cdn-st\d+\.smotrim\.ru/.+\.(?:jpg|png)',
-            'timestamp': int,
-            'upload_date': str,
+            'thumbnail': r're:https?://cdn\.smotrim\.ru/.+\.(?:jpg|png)',
         },
         'params': {'skip_download': 'Livestream'},
     }, {
@@ -263,27 +276,24 @@ class SmotrimLiveIE(SmotrimBaseIE):
         'url': 'https://smotrim.ru/channel/81',
         'info_dict': {
             'id': '81',
-            'ext': 'mp3',
+            'ext': 'mp4',
             'title': str,
             'channel_id': '81',
             'live_status': 'is_live',
-            'thumbnail': r're:https?://cdn-st\d+\.smotrim\.ru/.+\.(?:jpg|png)',
+            'thumbnail': r're:https?://cdn\.smotrim\.ru/.+\.(?:jpg|png)',
         },
         'params': {'skip_download': 'Livestream'},
     }, {
         # Sometimes geo-restricted to Russia
         'url': 'https://player.smotrim.ru/iframe/live/uid/381308c7-a066-4c4f-9656-83e2e792a7b4',
         'info_dict': {
-            'id': '19201',
+            'id': '4',
             'ext': 'mp4',
             'title': str,
             'channel_id': '4',
-            'description': 'Смотрим прямой эфир «Россия К»',
             'display_id': '381308c7-a066-4c4f-9656-83e2e792a7b4',
             'live_status': 'is_live',
-            'thumbnail': r're:https?://cdn-st\d+\.smotrim\.ru/.+\.(?:jpg|png)',
-            'timestamp': int,
-            'upload_date': str,
+            'thumbnail': r're:https?://cdn\.smotrim\.ru/.+\.(?:jpg|png)',
             'webpage_url': 'https://smotrim.ru/channel/4',
         },
         'params': {'skip_download': 'Livestream'},
@@ -300,21 +310,27 @@ class SmotrimLiveIE(SmotrimBaseIE):
 
     def _real_extract(self, url):
         typ, display_id = self._match_valid_url(url).group('type', 'id')
+        video_id = display_id
 
-        if typ == 'live' and re.fullmatch(r'[0-9]+', display_id):
-            url = self._request_webpage(url, display_id).url
-            typ = self._match_valid_url(url).group('type')
+        if typ == 'live':
+            if re.fullmatch(r'[0-9]+', display_id):
+                url = self._request_webpage(url, display_id).url
+                typ = self._match_valid_url(url).group('type')
+            else:
+                channel_map = self._download_json(
+                    'https://player.smotrim.ru/uuid_channel_map.json', display_id)
 
-        if typ == 'channel':
-            webpage = self._download_webpage(url, display_id)
-            src_url = traverse_obj(webpage, ((
-                ({find_element(cls='main-player__frame', html=True)}, {extract_attributes}, 'src'),
-                ({find_element(cls='audio-play-button', html=True)},
-                    {extract_attributes}, 'value', {urllib.parse.unquote}, {json.loads}, 'source'),
-            ), any, {self._proto_relative_url}, {url_or_none}, {require('src URL')}))
-            typ, video_id = self._match_valid_url(src_url).group('type', 'id')
-        else:
-            video_id = display_id
+                channel_id = None
+                for channel in channel_map:
+                    if channel.get('UUID') == display_id:
+                        channel_id = channel.get('CHANNEL_ID')
+                        break
+
+                if channel_id is None:
+                    raise ExtractorError('Unable to find channel ID', video_id=display_id)
+
+                video_id = str(channel_id)
+                typ = 'channel'
 
         return {
             'display_id': display_id,
