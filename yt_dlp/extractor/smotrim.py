@@ -1,10 +1,8 @@
-import functools
 import re
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    OnDemandPagedList,
     clean_html,
     determine_ext,
     extract_attributes,
@@ -161,34 +159,22 @@ class SmotrimIE(SmotrimBaseIE):
         },
     }]
     _WEBPAGE_TESTS = [{
-        'url': 'https://smotrim.ru/article/2813445',
-        'info_dict': {
-            'id': '2431846',
-            'ext': 'mp4',
-            'title': 'Съёмки первой программы "Большие и маленькие"',
-            'description': 'md5:446c9a5d334b995152a813946353f447',
-            'duration': 240,
-            'series': 'Новости культуры',
-            'series_id': '19725',
-            'thumbnail': r're:https?://cdn\.smotrim\.ru/.+\.(?:jpg|png)',
-            'timestamp': 1656054443,
-            'upload_date': '20220624',
-            'webpage_url': 'https://smotrim.ru/video/2431846',
-        },
-    }, {
         'url': 'https://www.vesti.ru/article/4642878',
         'info_dict': {
             'id': '3007209',
             'ext': 'mp4',
-            'title': 'Иностранные мессенджеры используют не только мошенники, но и вербовщики',
-            'description': 'md5:74ab625a0a89b87b2e0ed98d6391b182',
+            'title': 'Эфир от 08.08.2025',
+            'description': 'md5:3a7837c8b737a41aa148cb8df9e54e50',
             'duration': 265,
             'series': 'Вести. Дежурная часть',
             'series_id': '5204',
             'thumbnail': r're:https?://cdn\.smotrim\.ru/.+\.(?:jpg|png)',
-            'timestamp': 1754756280,
-            'upload_date': '20250809',
+            'timestamp': 1754677800,
+            'upload_date': '20250808',
             'webpage_url': 'https://smotrim.ru/video/3007209',
+            'age_limit': 12,
+            'season': 'Season 2025',
+            'season_number': 2025,
         },
     }]
 
@@ -352,65 +338,84 @@ class SmotrimPlaylistIE(SmotrimBaseIE):
         'playlist_mincount': 55,
     }, {
         # Video, season
-        'url': 'https://smotrim.ru/brand/65293/3-sezon',
+        'url': 'https://smotrim.ru/brand/57821/season-1',
         'info_dict': {
-            'id': '65293',
-            'title': 'Спасская',
-            'season': '3 сезон',
+            'id': '57821',
+            'title': 'Берега',
+            'season': 'Сезон 1',
         },
-        'playlist_count': 16,
+        'playlist_count': 2,
     }, {
         # Audio
         'url': 'https://smotrim.ru/brand/68880',
         'info_dict': {
             'id': '68880',
-            'title': 'Веселый колобок',
+            'title': 'Весёлый колобок',
         },
         'playlist_mincount': 156,
+        'params': {'skip_download': True},
     }, {
         # Podcast
-        'url': 'https://smotrim.ru/podcast/8021',
+        'url': 'https://smotrim.ru/brand/73223',
         'info_dict': {
-            'id': '8021',
-            'title': 'Сила звука',
+            'id': '73223',
+            'title': '100 минут',
         },
         'playlist_mincount': 27,
     }]
 
     def _fetch_page(self, endpoint, key, playlist_id, page):
         page += 1
-        items = self._download_json(
-            f'{self._BASE_URL}/api/{endpoint}', playlist_id,
-            f'Downloading page {page}', query={
-                key: playlist_id,
-                'limit': self._PAGE_SIZE,
-                'page': page,
-            },
-        )
+        query = {key: playlist_id, 'limit': self._PAGE_SIZE, 'page': page}
+        items = self._download_json(f'{self._BASE_URL}/api/{endpoint}', playlist_id, query=query)
 
         for link in traverse_obj(items, ('contents', -1, 'list', ..., 'link', {str})):
             yield self.url_result(urljoin(self._BASE_URL, link))
 
+    def _extract_episode_links(self, webpage):
+        return traverse_obj(webpage, (
+            {find_elements(attr='href', value=r'/(?:video|audio)/\d+', tag='a', html=True, regex=True)},
+            ...,
+            {extract_attributes},
+            'href',
+        ))
+
     def _real_extract(self, url):
-        playlist_type, playlist_id, season = self._match_valid_url(url).group('type', 'id', 'season')
-        key = 'rubricId' if playlist_type == 'podcast' else 'brandId'
+        _, playlist_id, season = self._match_valid_url(url).group('type', 'id', 'season')
+
         webpage = self._download_webpage(url, playlist_id)
-        playlist_title = self._html_search_meta(['og:title', 'twitter:title'], webpage, default=None)
+        playlist_title = traverse_obj(webpage, (
+            {find_element(cls='header__title_title')}, {clean_html},
+        )) or self._html_search_meta(['og:title', 'twitter:title'], webpage, default=None)
 
         if season:
-            return self.playlist_from_matches(traverse_obj(webpage, (
-                {find_elements(tag='a', attr='href', value=r'/video/\d+', html=True, regex=True)},
-                ..., {extract_attributes}, 'href', {str},
-            )), playlist_id, playlist_title, season=traverse_obj(webpage, (
-                {find_element(cls='seasons__item seasons__item--selected')}, {clean_html},
-            )), ie=SmotrimIE, getter=urljoin(self._BASE_URL, None))
+            links = self._extract_episode_links(webpage)
+            season_title = traverse_obj(webpage, ({find_element(cls='header__title_subtitle')}, {clean_html}))
+            entries = (self.url_result(urljoin(self._BASE_URL, link)) for link in links)
 
-        if traverse_obj(webpage, (
-            {find_element(cls='brand-main-item__videos')}, {clean_html}, filter,
-        )):
-            endpoint = 'videos'
-        else:
-            endpoint = 'audios'
+            return self.playlist_result(entries, playlist_id, playlist_title, season=season_title)
 
-        return self.playlist_result(OnDemandPagedList(
-            functools.partial(self._fetch_page, endpoint, key, playlist_id), self._PAGE_SIZE), playlist_id, playlist_title)
+        years = traverse_obj(webpage, (
+            {find_elements(cls='brand-episodes__badge')},
+            ...,
+            {find_element(tag='a')},
+            {clean_html},
+            filter,
+        ))
+
+        if years:
+            entries = []
+            for year in years:
+                year_page = self._download_webpage(f'{self._BASE_URL}/brand/{playlist_id}/year-{year}', playlist_id)
+                for link in self._extract_episode_links(year_page):
+                    entries.append(self.url_result(urljoin(self._BASE_URL, link)))
+
+            return self.playlist_result(entries, playlist_id, playlist_title)
+
+        # if 'years' is false, it's probably a podcast page, which isn't separated by year
+        links = self._extract_episode_links(webpage)
+        entries = []
+        for link in links:
+            entries.append(self.url_result(urljoin(self._BASE_URL, link)))
+
+        return self.playlist_result(entries, playlist_id, playlist_title)
