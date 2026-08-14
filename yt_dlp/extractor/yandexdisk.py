@@ -3,6 +3,7 @@ import json
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
+    ExtractorError,
     float_or_none,
     int_or_none,
     join_nonempty,
@@ -54,6 +55,9 @@ class YandexDiskIE(InfoExtractor):
     }, {
         'url': 'https://disk.360.yandex.ru/i/TM2xsIVsgjY4uw',
         'only_matching': True,
+    }, {
+        'url': 'https://disk.yandex.ru/i/Nawj6uOS9oUVaQ',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -64,6 +68,44 @@ class YandexDiskIE(InfoExtractor):
             r'<script[^>]+id="store-prefetch"[^>]*>\s*({.+?})\s*</script>',
             webpage, 'store'), video_id)
         resource = store['resources'][store['rootResourceId']]
+
+        if 'name' not in resource:
+            password = self.get_param('videopassword')
+            if not password:
+                raise ExtractorError(
+                    'This file is protected by a password, use the --video-password option',
+                    expected=True)
+            environment = store.get('environment') or {}
+            sk = environment.get('sk')
+            video_hash = resource.get('hash')
+            env_url = store.get('url') or {}
+            short_url = env_url.get('pathname')
+            if not sk or not video_hash:
+                raise ExtractorError('Unable to obtain password challenge data', expected=True)
+
+            data = self._download_json(
+                urljoin(url, '/public/api/check-password'), video_id,
+                'Submitting video password',
+                data=json.dumps({
+                    'hash': video_hash,
+                    'sk': sk,
+                    'password': password,
+                    'short_url': short_url,
+                }).encode(), headers={
+                    'Content-Type': 'text/plain',
+                }) or {}
+            token = data.get('token')
+            if not token:
+                raise ExtractorError('Invalid password', expected=True)
+
+            cookie_domain = env_url.get('host') or domain
+            self._set_cookie(cookie_domain, 'passToken', token)
+
+            webpage = self._download_webpage(url, video_id)
+            store = self._parse_json(self._search_regex(
+                r'<script[^>]+id="store-prefetch"[^>]*>\s*({.+?})\s*</script>',
+                webpage, 'store'), video_id)
+            resource = store['resources'][store['rootResourceId']]
 
         title = resource['name']
         meta = resource.get('meta') or {}
