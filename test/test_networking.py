@@ -391,6 +391,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
     def test_percent_encode_unicode(self, handler):
         # RFC 3986 §6.2.2.1 defines that percent-encoding SHOULD be normalized to uppercase.
         with handler() as rh:
+            # Unicode characters should be encoded with uppercase percent-encoding
             res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/中文.html'))
             assert res.status == 200
             res.close()
