@@ -96,6 +96,7 @@ BUNDLE_TARGETS = {
     'macos-curl_cffi': Target(
         extras=['curl-cffi'],
         # Only need curl-cffi+cffi in this requirements file; their deps are installed directly
+        # XXX: Try to keep these in sync with curl-cffi's and cffi's transitive dependencies
         omit_packages=['certifi', 'pycparser'],
     ),
 }
