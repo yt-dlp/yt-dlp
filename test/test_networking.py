@@ -859,15 +859,15 @@ class TestRequestHandlerMisc:
         ('Websockets', 'websockets.server'),
     ], indirect=['handler'])
     def test_remove_logging_handler(self, handler, logger_name):
-        # Ensure any logging handlers, which may contain a YoutubeDL instance,
-        # are removed when we close the request handler
+        # Ensure closing the request handler removes only its logging handlers,
+        # which may reference a YoutubeDL instance
         # See: https://github.com/yt-dlp/yt-dlp/issues/8922
-        logging_handlers = logging.getLogger(logger_name).handlers
-        before_count = len(logging_handlers)
+        logger = logging.getLogger(logger_name)
+        original_handlers = logger.handlers.copy()
         rh = handler()
-        assert len(logging_handlers) == before_count + 1
+        assert len(logger.handlers) == len(original_handlers) + 1
         rh.close()
-        assert len(logging_handlers) == before_count
+        assert logger.handlers == original_handlers
 
     def test_wrap_request_errors(self):
         class TestRequestHandler(RequestHandler):
