@@ -83,6 +83,12 @@ class HTTPProxyHandler(BaseHTTPRequestHandler, HTTPProxyAuthMixin):
 
         self.server.close_request(self.request)
 
+    def finish(self):
+        try:
+            super().finish()
+        finally:
+            self.server.close_request(self.request)
+
 
 if urllib3:
     import urllib3.util.ssltransport
@@ -166,6 +172,12 @@ class HTTPConnectProxyHandler(BaseHTTPRequestHandler, HTTPProxyAuthMixin):
         }
         self.request_handler(self.request, self.client_address, self.server, proxy_info=proxy_info)
         self.server.close_request(self.request)
+
+    def finish(self):
+        try:
+            super().finish()
+        finally:
+            self.server.close_request(self.request)
 
 
 class HTTPSConnectProxyHandler(HTTPConnectProxyHandler):
