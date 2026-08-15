@@ -330,7 +330,8 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
 
             elif (
                 e.code == CurlECode.PROXY
-                or (e.code == CurlECode.RECV_ERROR and 'CONNECT' in str(e))
+                # curl_cffi >= 0.16.0: changed to CurlECode.COULDNT_CONNECT https://github.com/curl/curl/pull/21084
+                or (e.code in (CurlECode.RECV_ERROR, CurlECode.COULDNT_CONNECT) and 'CONNECT' in str(e))
             ):
                 raise ProxyError(cause=e) from e
             else:
