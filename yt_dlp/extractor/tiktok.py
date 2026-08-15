@@ -274,9 +274,14 @@ class TikTokBaseIE(InfoExtractor):
 
     def _extract_web_data_and_status(self, url, video_id, fatal=True):
         video_data, status = {}, -1
+        # Akamai may block Chromium 140-149 UAs when no Referer is provided
+        webpage_headers = {
+            'Referer': self.get_param('http_headers', {}).get('Referer') or self._WEBPAGE_HOST,
+        }
 
         def get_webpage(note='Downloading webpage'):
-            res = self._download_webpage_handle(url, video_id, note, fatal=fatal, impersonate=True)
+            res = self._download_webpage_handle(
+                url, video_id, note, fatal=fatal, headers=webpage_headers, impersonate=True)
             if res is False:
                 return False
 
