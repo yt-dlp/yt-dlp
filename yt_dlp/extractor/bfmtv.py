@@ -8,7 +8,7 @@ class BFMTVBaseIE(InfoExtractor):
     _VALID_URL_BASE = r'https?://(?:www\.|rmc\.)?bfmtv\.com/'
     _VALID_URL_TMPL = _VALID_URL_BASE + r'(?:[^/]+/)*[^/?&#]+_%s[A-Z]-(?P<id>\d{12})\.html'
     _VIDEO_BLOCK_REGEX = r'(<div[^>]+class="video_block[^"]*"[^>]*>.*?</div>)'
-    _VIDEO_ELEMENT_REGEX = r'(<video-js[^>]+>)'
+    _VIDEO_ELEMENT_REGEX = r'(<div[^>]+class="bitmovin-player-container"[^>]+>)'
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/%s_default/index.html?videoId=%s'
 
     def _extract_video(self, video_block):
@@ -19,15 +19,10 @@ class BFMTVBaseIE(InfoExtractor):
             video_id = video_element_attrs.get('data-video-id')
             if not video_id:
                 return
-            account_id = video_element_attrs.get('data-account') or '876450610001'
-            player_id = video_element_attrs.get('adjustplayer') or '19dszYXgm'
+            account_id = video_element_attrs.get('data-account-id')
+            player_id = 'default'
         else:
-            video_block_attrs = extract_attributes(video_block)
-            video_id = video_block_attrs.get('videoid')
-            if not video_id:
-                return
-            account_id = video_block_attrs.get('accountid') or '876630703001'
-            player_id = video_block_attrs.get('playerid') or 'KbPwEbuHx'
+            return
         return self.url_result(
             self.BRIGHTCOVE_URL_TEMPLATE % (account_id, player_id, video_id),
             'BrightcoveNew', video_id)
