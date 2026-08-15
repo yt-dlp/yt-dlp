@@ -5,7 +5,6 @@ from ..utils import (
     parse_duration,
     str_or_none,
     traverse_obj,
-    unified_strdate,
     unified_timestamp,
     urlhandle_detect_ext,
 )
@@ -184,44 +183,43 @@ class GlobalPlayerAudioEpisodeIE(GlobalPlayerBaseIE):
     _VALID_URL = r'https?://www\.globalplayer\.com/(?:(?P<podcast>podcasts)|catchup/\w+/\w+)/episodes/(?P<id>\w+)/?(?:$|[?#])'
     _TESTS = [{
         # podcast
-        'url': 'https://www.globalplayer.com/podcasts/episodes/7DrfNnE/',
+        'url': 'https://www.globalplayer.com/podcasts/episodes/7DrorSc/',
         'info_dict': {
-            'id': '7DrfNnE',
+            'id': '7DrorSc',
             'ext': 'mp3',
-            'title': 'Filthy Ritual - Trailer',
-            'description': 'md5:1f1562fd0f01b4773b590984f94223e0',
             'thumbnail': 'md5:60286e7d12d795bd1bbc9efc6cee643e',
-            'duration': 225.0,
-            'timestamp': 1681254900,
-            'series': 'Filthy Ritual',
-            'series_id': '42KuaM',
-            'upload_date': '20230411',
-            'uploader': 'Global',
+            'description': 'md5:372e5aa2b531f9eba863dfc67d007c1c',
+            'title': 'Filthy Ritual - Trailer',
         },
     }, {
-        # radio catchup
-        'url': 'https://www.globalplayer.com/catchup/lbc/uk/episodes/2zGq26Vcv1fCWhddC4JAwETXWe/',
+        # radio catchup - test urls are removed after 7 days
+        'url': 'https://www.globalplayer.com/catchup/lbc/uk/episodes/2zGt5k1jDPUA13dZtsKZ6vrsHX/',
         'info_dict': {
-            'id': '2zGq26Vcv1fCWhddC4JAwETXWe',
+            'id': '2zGt5k1jDPUA13dZtsKZ6vrsHX',
             'ext': 'm4a',
-            'timestamp': 1682056800,
-            'series': 'Nick Ferrari',
-            'thumbnail': 'md5:4df24d8a226f5b2508efbcc6ae874ebf',
-            'upload_date': '20230421',
-            'series_id': '46vyD7z',
+            'thumbnail': 'md5:664ad62a8fb920a2b8e264ed780eee3d',
             'description': 'Nick Ferrari At Breakfast is Leading Britain\'s Conversation.',
             'title': 'Nick Ferrari',
-            'duration': 10800.0,
         },
     }]
 
     def _real_extract(self, url):
         video_id, podcast = self._match_valid_url(url).group('id', 'podcast')
         props = self._get_page_props(url, video_id)
-        episode = props['podcastEpisode'] if podcast else props['catchupEpisode']
+        meta = props['podcastEpisode']['metadata'] if podcast else props['catchupEpisode']['metadata']
+        data = self._download_json(f'https://bff-web-guacamole.musicradio.com/playables/{video_id}', video_id)
 
-        return self._extract_audio(
-            episode, traverse_obj(episode, 'podcast', 'show', expected_type=dict) or {})
+        return {
+            'id': video_id,
+            **traverse_obj(data, {
+                'url': ('playback', 0, 'url'),
+            }),
+            **traverse_obj(meta, {
+                'thumbnail': ('image', 'url'),
+                'description': 'description',
+                'title': 'title',
+            }),
+        }
 
 
 class GlobalPlayerVideoIE(GlobalPlayerBaseIE):
@@ -231,9 +229,8 @@ class GlobalPlayerVideoIE(GlobalPlayerBaseIE):
         'info_dict': {
             'id': '2JsSZ7Gm2uP',
             'ext': 'mp4',
-            'description': 'md5:6a9f063c67c42f218e42eee7d0298bfd',
             'thumbnail': 'md5:d4498af48e15aae4839ce77b97d39550',
-            'upload_date': '20230420',
+            'description': 'md5:6a9f063c67c42f218e42eee7d0298bfd',
             'title': 'Treble Malakai Bayoh sings a sublime Handel aria at Classic FM Live',
         },
     }]
@@ -247,8 +244,7 @@ class GlobalPlayerVideoIE(GlobalPlayerBaseIE):
             **traverse_obj(meta, {
                 'url': 'url',
                 'thumbnail': ('image', 'url'),
-                'title': 'title',
-                'upload_date': ('publish_date', {unified_strdate}),
                 'description': 'description',
+                'title': 'title',
             }),
         }
