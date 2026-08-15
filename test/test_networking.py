@@ -388,13 +388,23 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert res.status == 200
             res.close()
 
-    def test_percent_encode(self, handler):
+    def test_percent_encode_unicode(self, handler):
+        # RFC 3986 §6.2.2.1 defines that percent-encoding SHOULD be normalized to uppercase.
         with handler() as rh:
             # Unicode characters should be encoded with uppercase percent-encoding
             res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/中文.html'))
             assert res.status == 200
             res.close()
-            # don't normalize existing percent encodings
+
+    @pytest.mark.skip_handler('CurlCFFI', 'not supported by curl-cffi (non-standard)')
+    def test_percent_encode_keep_existing(self, handler):
+        # NOTE: RFC 3986 §6.2.2.1 defines that percent-encoding SHOULD be normalized to uppercase.
+        #  For compatibility with legacy sites (e.g., redirects using lowercase encodings and only accept that),
+        #  our default handlers (urllib/requests) preserve existing percent-encoding instead of normalizing it.
+        #
+        # CurlCFFI is excluded because it forces uppercase encodings and is hard to change. This is acceptable
+        # since CurlCFFI is used only for impersonation. https://github.com/curl/curl/pull/21592
+        with handler() as rh:
             res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/%c7%9f'))
             assert res.status == 200
             res.close()
