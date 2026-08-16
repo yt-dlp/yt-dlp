@@ -138,11 +138,9 @@ class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
         'playlist_mincount': 5,
         'info_dict': {
             'id': '42KuaM',
-            'title': 'Filthy Ritual',
             'thumbnail': 'md5:60286e7d12d795bd1bbc9efc6cee643e',
-            'categories': ['Society & Culture', 'True Crime'],
-            'uploader': 'Global',
-            'description': 'md5:da5b918eac9ae319454a10a563afacf9',
+            'description': 'md5:17b7b9e3c76b2f4d9e31ccc4f0b66e32',
+            'title': 'Filthy Ritual',
         },
     }, {
         # radio catchup
@@ -150,28 +148,38 @@ class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
         'playlist_mincount': 3,
         'info_dict': {
             'id': '46vyD7z',
+            'thumbnail': 'md5:664ad62a8fb920a2b8e264ed780eee3d',
             'description': 'Nick Ferrari At Breakfast is Leading Britain\'s Conversation.',
             'title': 'Nick Ferrari',
-            'thumbnail': 'md5:4df24d8a226f5b2508efbcc6ae874ebf',
         },
     }]
 
     def _real_extract(self, url):
         video_id, podcast = self._match_valid_url(url).group('id', 'podcast')
         props = self._get_page_props(url, video_id)
-        series = props['podcastInfo'] if podcast else props['catchupInfo']
+        meta = props['podcastInfo']['metadata'] if podcast else props['catchupInfo']['metadata']
+        blocks = props['podcastInfo']['blocks'][1]['items'] if podcast else props['catchupInfo']['blocks'][1]['items']
+
+        def _entries():
+            for block in blocks:
+                idd = block['id']
+                data = self._download_json(f'https://bff-web-guacamole.musicradio.com/playables/{idd}', idd)
+                yield {
+                    'url': traverse_obj(data, ('playback', 0, 'url')),
+                    'id': idd,
+                    'thumbnail': block['image']['url'],
+                    'description': block['description'],
+                    'title': block['title'],
+                }
 
         return {
             '_type': 'playlist',
             'id': video_id,
-            'entries': [self._extract_audio(ep, series) for ep in traverse_obj(
-                        series, ('episodes', lambda _, v: v['id'] and v['streamUrl']))],
-            'categories': traverse_obj(series, ('categories', ..., 'name')) or None,
-            **traverse_obj(series, {
+            'entries': _entries(),
+            **traverse_obj(meta, {
+                'thumbnail': ('image', 'url'),
                 'description': 'description',
-                'thumbnail': 'imageUrl',
                 'title': 'title',
-                'uploader': 'itunesAuthor',  # podcasts only
             }),
         }
 
