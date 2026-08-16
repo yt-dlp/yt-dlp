@@ -1,12 +1,6 @@
 from .common import InfoExtractor
 from ..utils import (
-    clean_html,
-    join_nonempty,
-    parse_duration,
-    str_or_none,
     traverse_obj,
-    unified_timestamp,
-    urlhandle_detect_ext,
 )
 
 
@@ -15,30 +9,6 @@ class GlobalPlayerBaseIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         return self._search_nextjs_data(webpage, video_id)['props']['pageProps']
 
-    def _request_ext(self, url, video_id):
-        return urlhandle_detect_ext(self._request_webpage(  # Server rejects HEAD requests
-            url, video_id, note='Determining source extension'))
-
-    def _extract_audio(self, episode, series):
-        return {
-            'vcodec': 'none',
-            **traverse_obj(series, {
-                'series': 'title',
-                'series_id': 'id',
-                'thumbnail': 'imageUrl',
-                'uploader': 'itunesAuthor',  # podcasts only
-            }),
-            **traverse_obj(episode, {
-                'id': 'id',
-                'description': ('description', {clean_html}),
-                'duration': ('duration', {parse_duration}),
-                'thumbnail': 'imageUrl',
-                'url': 'streamUrl',
-                'timestamp': (('pubDate', 'startDate'), {unified_timestamp}),
-                'title': 'title',
-            }, get_all=False),
-        }
-
 
 class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
     _VALID_URL = r'https?://www\.globalplayer\.com/live/(?P<id>\w+)/\w+'
@@ -46,56 +16,49 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
         'url': 'https://www.globalplayer.com/live/smoothchill/uk/',
         'info_dict': {
             'id': '2mx1E',
-            'ext': 'aac',
-            'display_id': 'smoothchill-uk',
-            'title': 're:^Smooth Chill.+$',
-            'thumbnail': 'https://herald.musicradio.com/media/f296ade8-50c9-4f60-911f-924e96873620.png',
-            'description': 'Music To Chill To',
+            'ext': 'unknown_video',
             'live_status': 'is_live',
+            'thumbnail': 'md5:d5040f26c7c4061014a44866129b900e',
+            'description': 'Music To Chill To',
+            'title': 're:^Smooth Chill.+$',
         },
     }, {
         # national station
         'url': 'https://www.globalplayer.com/live/heart/uk/',
         'info_dict': {
             'id': '2mwx4',
-            'ext': 'aac',
-            'description': 'turn up the feel good!',
-            'thumbnail': 'https://herald.musicradio.com/media/49b9e8cb-15bf-4bf2-8c28-a4850cc6b0f3.png',
+            'ext': 'unknown_video',
             'live_status': 'is_live',
+            'description': 'Turn Up the Feel Good!',
+            'thumbnail': 'md5:6f13378a53ce55bcf57365a654e1b490',
             'title': 're:^Heart UK.+$',
-            'display_id': 'heart-uk',
         },
     }, {
         # regional variation
         'url': 'https://www.globalplayer.com/live/heart/london/',
         'info_dict': {
             'id': 'AMqg',
-            'ext': 'aac',
-            'thumbnail': 'https://herald.musicradio.com/media/49b9e8cb-15bf-4bf2-8c28-a4850cc6b0f3.png',
-            'title': 're:^Heart London.+$',
+            'ext': 'unknown_video',
             'live_status': 'is_live',
-            'display_id': 'heart-london',
-            'description': 'turn up the feel good!',
+            'description': 'Turn Up the Feel Good!',
+            'thumbnail': 'md5:6f13378a53ce55bcf57365a654e1b490',
+            'title': 're:^Heart London.+$',
         },
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        station = self._get_page_props(url, video_id)['station']
-        stream_url = station['streamUrl']
+        meta = self._get_page_props(url, video_id)['station']
 
         return {
-            'id': station['id'],
-            'display_id': join_nonempty('brandSlug', 'slug', from_dict=station) or station.get('legacyStationPrefix'),
-            'url': stream_url,
-            'ext': self._request_ext(stream_url, video_id),
-            'vcodec': 'none',
             'is_live': True,
-            **traverse_obj(station, {
-                'title': (('name', 'brandName'), {str_or_none}),
-                'description': 'tagline',
+            **traverse_obj(meta, {
+                'url': 'streamUrl',
+                'id': 'id',
                 'thumbnail': 'brandLogo',
-            }, get_all=False),
+                'description': 'tagline',
+                'title': 'name',
+            }),
         }
 
 
@@ -122,7 +85,7 @@ class GlobalPlayerLivePlaylistIE(GlobalPlayerBaseIE):
             'id': video_id,
             'is_live': True,
             **traverse_obj(meta, {
-                'url': ('playback', 0, 'url'),
+                'url': 'streamUrl',
                 'thumbnail': 'image',
                 'description': 'description',
                 'title': 'title',
