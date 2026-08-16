@@ -557,8 +557,16 @@ class Updater:
 
         variant = detect_variant()
         if variant.startswith('win'):
-            atexit.register(Popen, f'ping 127.0.0.1 -n 5 -w 1000 & del /F "{old_filename}"',
-                            shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            # Delete the old executable after this process exits. A plain 'del'
+            # via cmd.exe would parse the filename: '%' would be expanded as an
+            # environment variable (e.g. a path like "C:\100% stuff") and the
+            # file would never be removed. PowerShell's -LiteralPath avoids any
+            # parsing; a single quote in the path is escaped by doubling it.
+            ps_command = (
+                'Start-Sleep -Seconds 5; '
+                f'Remove-Item -LiteralPath \'{old_filename.replace("\'", "\'\'")}\' -Force')
+            atexit.register(Popen, ['powershell', '-NoProfile', '-Command', ps_command],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         elif old_filename:
             try:
                 os.remove(old_filename)
