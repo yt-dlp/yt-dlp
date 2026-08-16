@@ -48,7 +48,7 @@ class InitializedFormat:
     seek_ms: int | None = None
     # Previous segment received for the format. If not seeking, this should be in order.
     previous_segment: Segment | None = None
-    init_segment: Segment | None | bool = None
+    init_segment: Segment | bool | None = None
     consumed_ranges: list[ConsumedRange] = dataclasses.field(default_factory=list)
     last_segment_number: int = None
     # Whether we should discard any data received for this format
