@@ -102,33 +102,30 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
 class GlobalPlayerLivePlaylistIE(GlobalPlayerBaseIE):
     _VALID_URL = r'https?://www\.globalplayer\.com/playlists/(?P<id>\w+)'
     _TESTS = [{
-        # "live playlist"
+        # live playlist
         'url': 'https://www.globalplayer.com/playlists/8bLk/',
         'info_dict': {
             'id': '8bLk',
-            'ext': 'aac',
+            'ext': 'unknown_video',
             'live_status': 'is_live',
-            'description': 'md5:e10f5e10b01a7f2c14ba815509fbb38d',
-            'thumbnail': 'https://images.globalplayer.com/images/551379?width=450&signature=oMLPZIoi5_dBSHnTMREW0Xg76mA=',
+            'thumbnail': 'md5:391a13cc087b42f626e9e65bbeaf0a11',
+            'description': 'md5:f015f2f6c6f6a807669ebcc9a0ca147c',
             'title': 're:^Classic FM Hall of Fame.+$',
         },
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        station = self._get_page_props(url, video_id)['playlistData']
-        stream_url = station['streamUrl']
+        meta = self._get_page_props(url, video_id)['playlistData']
 
         return {
             'id': video_id,
-            'url': stream_url,
-            'ext': self._request_ext(stream_url, video_id),
-            'vcodec': 'none',
             'is_live': True,
-            **traverse_obj(station, {
-                'title': 'title',
-                'description': 'description',
+            **traverse_obj(meta, {
+                'url': ('playback', 0, 'url'),
                 'thumbnail': 'image',
+                'description': 'description',
+                'title': 'title',
             }),
         }
 
