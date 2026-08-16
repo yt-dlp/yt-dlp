@@ -1,6 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
     traverse_obj,
+    urlhandle_detect_ext,
 )
 
 
@@ -9,6 +10,9 @@ class GlobalPlayerBaseIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         return self._search_nextjs_data(webpage, video_id)['props']['pageProps']
 
+    def _request_ext(self, url, video_id):
+        return urlhandle_detect_ext(self._request_webpage(url, video_id))
+
 
 class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
     _VALID_URL = r'https?://www\.globalplayer\.com/live/(?P<id>\w+)/\w+'
@@ -16,7 +20,7 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
         'url': 'https://www.globalplayer.com/live/smoothchill/uk/',
         'info_dict': {
             'id': '2mx1E',
-            'ext': 'unknown_video',
+            'ext': 'aac',
             'live_status': 'is_live',
             'thumbnail': 'md5:d5040f26c7c4061014a44866129b900e',
             'description': 'Music To Chill To',
@@ -27,7 +31,7 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
         'url': 'https://www.globalplayer.com/live/heart/uk/',
         'info_dict': {
             'id': '2mwx4',
-            'ext': 'unknown_video',
+            'ext': 'aac',
             'live_status': 'is_live',
             'description': 'Turn Up the Feel Good!',
             'thumbnail': 'md5:6f13378a53ce55bcf57365a654e1b490',
@@ -38,7 +42,7 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
         'url': 'https://www.globalplayer.com/live/heart/london/',
         'info_dict': {
             'id': 'AMqg',
-            'ext': 'unknown_video',
+            'ext': 'aac',
             'live_status': 'is_live',
             'description': 'Turn Up the Feel Good!',
             'thumbnail': 'md5:6f13378a53ce55bcf57365a654e1b490',
@@ -49,11 +53,13 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         meta = self._get_page_props(url, video_id)['station']
+        url = meta['streamUrl']
 
         return {
+            'url': url,
             'is_live': True,
+            'ext': self._request_ext(url, video_id),
             **traverse_obj(meta, {
-                'url': 'streamUrl',
                 'id': 'id',
                 'thumbnail': 'brandLogo',
                 'description': 'tagline',
@@ -69,7 +75,7 @@ class GlobalPlayerLivePlaylistIE(GlobalPlayerBaseIE):
         'url': 'https://www.globalplayer.com/playlists/8bLk/',
         'info_dict': {
             'id': '8bLk',
-            'ext': 'unknown_video',
+            'ext': 'aac',
             'live_status': 'is_live',
             'thumbnail': 'md5:391a13cc087b42f626e9e65bbeaf0a11',
             'description': 'md5:f015f2f6c6f6a807669ebcc9a0ca147c',
@@ -80,12 +86,14 @@ class GlobalPlayerLivePlaylistIE(GlobalPlayerBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         meta = self._get_page_props(url, video_id)['playlistData']
+        url = meta['streamUrl']
 
         return {
+            'url': url,
             'id': video_id,
             'is_live': True,
+            'ext': self._request_ext(url, video_id),
             **traverse_obj(meta, {
-                'url': 'streamUrl',
                 'thumbnail': 'image',
                 'description': 'description',
                 'title': 'title',
