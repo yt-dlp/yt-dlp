@@ -32,6 +32,7 @@ from yt_dlp.utils import (
     ExtractorError,
     UnavailableVideoError,
     YoutubeDLError,
+    filter_dict,
     format_bytes,
     join_nonempty,
 )
@@ -137,7 +138,9 @@ def generator(test_case, tname):
         expect_warnings(ydl, test_case.get('expected_warnings', []))
 
         def get_tc_filename(tc):
-            return ydl.prepare_filename(dict(tc.get('info_dict', {})))
+            # Filename is generated from expected info dict, so filter out type wildcard values
+            return ydl.prepare_filename(
+                filter_dict(tc.get('info_dict', {}), cndn=lambda _, v: type(v) is not type))
 
         res_dict = None
 
