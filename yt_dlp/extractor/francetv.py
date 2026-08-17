@@ -1,4 +1,3 @@
-import json
 import re
 import urllib.parse
 
@@ -19,7 +18,11 @@ from ..utils import (
     unsmuggle_url,
     url_or_none,
 )
-from ..utils.traversal import find_element, traverse_obj
+from ..utils.traversal import (
+    find_element,
+    get_first,
+    traverse_obj,
+)
 
 
 class FranceTVBaseInfoExtractor(InfoExtractor):
@@ -121,9 +124,10 @@ class FranceTVIE(InfoExtractor):
             elif code := traverse_obj(dinfo, ('code', {int})):
                 if code == 2009:
                     self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
-                elif code in (2015, 2017):
+                elif code in (2015, 2017, 2019):
                     # 2015: L'accès à cette vidéo est impossible. (DRM-only)
                     # 2017: Cette vidéo n'est pas disponible depuis le site web mobile (b/c DRM)
+                    # 2019: L'accès à cette vidéo est incompatible avec votre configuration. (DRM-only)
                     drm_formats = True
                     continue
                 self.report_warning(
@@ -258,7 +262,7 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
     _TESTS = [{
         'url': 'https://www.france.tv/france-2/13h15-le-dimanche/140921-les-mysteres-de-jesus.html',
         'info_dict': {
-            'id': 'ec217ecc-0733-48cf-ac06-af1347b849d1',  # old: c5bda21d-2c6f-4470-8849-3d8327adb2ba'
+            'id': 'b2cf9fd8-e971-4757-8651-848f2772df61',  # old: ec217ecc-0733-48cf-ac06-af1347b849d1
             'ext': 'mp4',
             'title': '13h15, le dimanche... - Les mystères de Jésus',
             'timestamp': 1502623500,
@@ -269,7 +273,7 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
         'params': {
             'skip_download': True,
         },
-        'add_ie': [FranceTVIE.ie_key()],
+        'skip': 'Unfortunately, this video is no longer available',
     }, {
         # geo-restricted
         'url': 'https://www.france.tv/enfants/six-huit-ans/foot2rue/saison-1/3066387-duel-au-vieux-port.html',
@@ -287,7 +291,7 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 1441,
         },
-        'skip': 'No longer available',
+        'skip': 'Unfortunately, this video is no longer available',
     }, {
         # geo-restricted livestream (workflow == 'token-akamai')
         'url': 'https://www.france.tv/france-4/direct.html',
@@ -308,6 +312,19 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
             'live_status': 'is_live',
         },
         'params': {'skip_download': 'livestream'},
+    }, {
+        # Not geo-restricted
+        'url': 'https://www.france.tv/france-2/la-maison-des-maternelles/5574051-nous-sommes-amis-et-nous-avons-fait-un-enfant-ensemble.html',
+        'info_dict': {
+            'id': 'b448bfe4-9fe7-11ee-97d8-2ba3426fa3df',
+            'ext': 'mp4',
+            'title': 'Nous sommes amis et nous avons fait un enfant ensemble - Émission du jeudi 21 décembre 2023',
+            'duration': 1065,
+            'thumbnail': r're:https?://.+/.+\.jpg',
+            'timestamp': 1703147921,
+            'upload_date': '20231221',
+        },
+        'params': {'skip_download': 'm3u8'},
     }, {
         # france3
         'url': 'https://www.france.tv/france-3/des-chiffres-et-des-lettres/139063-emission-du-mardi-9-mai-2017.html',
@@ -342,31 +359,11 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
         'only_matching': True,
     }]
 
-    # XXX: For parsing next.js v15+ data; see also yt_dlp.extractor.goplay
-    def _find_json(self, s):
-        return self._search_json(
-            r'\w+\s*:\s*', s, 'next js data', None, contains_pattern=r'\[(?s:.+)\]', default=None)
-
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-
-        nextjs_data = traverse_obj(
-            re.findall(r'<script[^>]*>\s*self\.__next_f\.push\(\s*(\[.+?\])\s*\);?\s*</script>', webpage),
-            (..., {json.loads}, ..., {self._find_json}, ..., 'children', ..., ..., 'children', ..., ..., 'children'))
-
-        if traverse_obj(nextjs_data, (..., ..., 'children', ..., 'isLive', {bool}, any)):
-            # For livestreams we need the id of the stream instead of the currently airing episode id
-            video_id = traverse_obj(nextjs_data, (
-                ..., ..., 'children', ..., 'children', ..., 'children', ..., 'children', ..., ...,
-                'children', ..., ..., 'children', ..., ..., 'children', (..., (..., ...)),
-                'options', 'id', {str}, any))
-        else:
-            video_id = traverse_obj(nextjs_data, (
-                ..., ..., ..., 'children',
-                lambda _, v: v['video']['url'] == urllib.parse.urlparse(url).path,
-                'video', ('playerReplayId', 'siId'), {str}, any))
-
+        nextjs_data = self._search_nextjs_v13_data(webpage, display_id)
+        video_id = get_first(nextjs_data, ('options', 'id', {str}))
         if not video_id:
             raise ExtractorError('Unable to extract video ID')
 
@@ -374,15 +371,16 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
 
 
 class FranceTVInfoIE(FranceTVBaseInfoExtractor):
-    IE_NAME = 'francetvinfo.fr'
-    _VALID_URL = r'https?://(?:www|mobile|france3-regions)\.francetvinfo\.fr/(?:[^/]+/)*(?P<id>[^/?#&.]+)'
+    IE_NAME = 'franceinfo'
+    IE_DESC = 'franceinfo.fr (formerly francetvinfo.fr)'
+    _VALID_URL = r'https?://(?:www|mobile|france3-regions)\.france(?:tv)?info.fr/(?:[^/?#]+/)*(?P<id>[^/?#&.]+)'
 
     _TESTS = [{
         'url': 'https://www.francetvinfo.fr/replay-jt/france-3/soir-3/jt-grand-soir-3-jeudi-22-aout-2019_3561461.html',
         'info_dict': {
             'id': 'd12458ee-5062-48fe-bfdd-a30d6a01b793',
             'ext': 'mp4',
-            'title': 'Soir 3',
+            'title': 'Soir 3 - Émission du jeudi 22 août 2019',
             'upload_date': '20190822',
             'timestamp': 1566510730,
             'thumbnail': r're:^https?://.*\.jpe?g$',
@@ -401,7 +399,7 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
         'info_dict': {
             'id': '7d204c9e-a2d3-11eb-9e4c-000d3a23d482',
             'ext': 'mp4',
-            'title': 'Covid-19 : une situation catastrophique à New Dehli - Édition du mercredi 21 avril 2021',
+            'title': 'Journal 20h00 - Covid-19 : une situation catastrophique à New Dehli',
             'thumbnail': r're:^https?://.*\.jpe?g$',
             'duration': 76,
             'timestamp': 1619028518,
@@ -441,12 +439,27 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
             'thumbnail': r're:https://[^/?#]+/v/[^/?#]+/x1080',
         },
         'add_ie': ['Dailymotion'],
+        'skip': 'Broken Dailymotion link',
+    }, {
+        'url': 'https://www.franceinfo.fr/monde/usa/presidentielle/donald-trump/etats-unis-un-risque-d-embrasement-apres-la-mort-d-un-manifestant_7764542.html',
+        'info_dict': {
+            'id': 'f920fcc2-fa20-11f0-ac98-57a09c50f7ce',
+            'ext': 'mp4',
+            'title': 'Affaires sensibles - Manifestant tué Le risque d\'embrasement',
+            'duration': 118,
+            'thumbnail': r're:https?://.+/.+\.jpg',
+            'timestamp': 1769367756,
+            'upload_date': '20260125',
+        },
     }, {
         'url': 'http://france3-regions.francetvinfo.fr/limousin/emissions/jt-1213-limousin',
         'only_matching': True,
     }, {
         # "<figure id=" pattern (#28792)
         'url': 'https://www.francetvinfo.fr/culture/patrimoine/incendie-de-notre-dame-de-paris/notre-dame-de-paris-de-l-incendie-de-la-cathedrale-a-sa-reconstruction_4372291.html',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.franceinfo.fr/replay-jt/france-2/20-heures/robert-de-niro-portrait-d-un-monument-du-cinema_7245456.html',
         'only_matching': True,
     }]
 
@@ -463,7 +476,7 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
 
         video_id = (
             traverse_obj(webpage, (
-                {find_element(tag='button', attr='data-cy', value='francetv-player-wrapper', html=True)},
+                {find_element(tag='(button|div)', attr='data-cy', value='francetv-player-wrapper', html=True, regex=True)},
                 {extract_attributes}, 'id'))
             or self._search_regex(
                 (r'player\.load[^;]+src:\s*["\']([^"\']+)',

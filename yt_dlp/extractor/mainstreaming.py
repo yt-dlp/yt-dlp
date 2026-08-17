@@ -16,91 +16,103 @@ class MainStreamingIE(InfoExtractor):
     _EMBED_REGEX = [rf'<iframe[^>]+?src=["\']?(?P<url>{_VALID_URL})["\']?']
     IE_DESC = 'MainStreaming Player'
 
-    _TESTS = [
-        {
-            # Live stream offline, has alternative content id
-            'url': 'https://webtools-e18da6642b684f8aa9ae449862783a56.msvdn.net/embed/53EN6GxbWaJC',
-            'info_dict': {
-                'id': '53EN6GxbWaJC',
-                'title': 'Diretta homepage 2021-12-31 12:00',
-                'description': '',
-                'live_status': 'was_live',
-                'ext': 'mp4',
-                'thumbnail': r're:https?://[A-Za-z0-9-]*\.msvdn.net/image/\w+/poster',
-            },
-            'expected_warnings': [
-                'Ignoring alternative content ID: WDAF1KOWUpH3',
-                'MainStreaming said: Live event is OFFLINE',
-            ],
-            'skip': 'live stream offline',
-        }, {
-            # playlist
-            'url': 'https://webtools-e18da6642b684f8aa9ae449862783a56.msvdn.net/embed/WDAF1KOWUpH3',
-            'info_dict': {
-                'id': 'WDAF1KOWUpH3',
-                'title': 'Playlist homepage',
-            },
-            'playlist_mincount': 2,
-        }, {
-            # livestream
-            'url': 'https://webtools-859c1818ed614cc5b0047439470927b0.msvdn.net/embed/tDoFkZD3T1Lw',
-            'info_dict': {
-                'id': 'tDoFkZD3T1Lw',
-                'title': r're:Class CNBC Live \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
-                'live_status': 'is_live',
-                'ext': 'mp4',
-                'thumbnail': r're:https?://[A-Za-z0-9-]*\.msvdn.net/image/\w+/poster',
-            },
-            'skip': 'live stream',
-        }, {
-            'url': 'https://webtools-f5842579ff984c1c98d63b8d789673eb.msvdn.net/embed/EUlZfGWkGpOd?autoPlay=false',
-            'info_dict': {
-                'id': 'EUlZfGWkGpOd',
-                'title': 'La Settimana ',
-                'description': '03 Ottobre ore 02:00',
-                'ext': 'mp4',
-                'live_status': 'not_live',
-                'thumbnail': r're:https?://[A-Za-z0-9-]*\.msvdn.net/image/\w+/poster',
-                'duration': 1512,
-            },
-        }, {
-            # video without webtools- prefix
-            'url': 'https://f5842579ff984c1c98d63b8d789673eb.msvdn.net/embed/MfuWmzL2lGkA?autoplay=false&T=1635860445',
-            'info_dict': {
-                'id': 'MfuWmzL2lGkA',
-                'title': 'TG Mattina',
-                'description': '06 Ottobre ore 08:00',
-                'ext': 'mp4',
-                'live_status': 'not_live',
-                'thumbnail': r're:https?://[A-Za-z0-9-]*\.msvdn.net/image/\w+/poster',
-                'duration': 789.04,
-            },
-        }, {
-            # always-on livestream with DVR
-            'url': 'https://webtools-f5842579ff984c1c98d63b8d789673eb.msvdn.net/embed/HVvPMzy',
-            'info_dict': {
-                'id': 'HVvPMzy',
-                'title': r're:^Diretta LaC News24 \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
-                'description': 'canale all news',
-                'live_status': 'is_live',
-                'ext': 'mp4',
-                'thumbnail': r're:https?://[A-Za-z0-9-]*\.msvdn.net/image/\w+/poster',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        }, {
-            # no host
-            'url': 'https://webtools.msvdn.net/embed/MfuWmzL2lGkA',
-            'only_matching': True,
-        }, {
-            'url': 'https://859c1818ed614cc5b0047439470927b0.msvdn.net/amp_embed/tDoFkZD3T1Lw',
-            'only_matching': True,
-        }, {
-            'url': 'https://859c1818ed614cc5b0047439470927b0.msvdn.net/content/tDoFkZD3T1Lw#',
-            'only_matching': True,
+    _TESTS = [{
+        # Live stream offline, has alternative content id
+        'url': 'https://webtools-e18da6642b684f8aa9ae449862783a56.msvdn.net/embed/53EN6GxbWaJC',
+        'info_dict': {
+            'id': '53EN6GxbWaJC',
+            'title': 'Diretta homepage 2021-12-31 12:00',
+            'description': '',
+            'live_status': 'was_live',
+            'ext': 'mp4',
+            'thumbnail': r're:https?://[\w-]+\.msvdn\.net/image/\w+/poster',
         },
-    ]
+        'expected_warnings': [
+            'Ignoring alternative content ID: WDAF1KOWUpH3',
+            'MainStreaming said: Live event is OFFLINE',
+        ],
+        'skip': 'live stream offline',
+    }, {
+        # playlist
+        'url': 'https://webtools-e18da6642b684f8aa9ae449862783a56.msvdn.net/embed/WDAF1KOWUpH3',
+        'info_dict': {
+            'id': 'WDAF1KOWUpH3',
+            'title': 'Playlist homepage',
+        },
+        'playlist_mincount': 2,
+    }, {
+        # livestream
+        'url': 'https://webtools-859c1818ed614cc5b0047439470927b0.msvdn.net/embed/tDoFkZD3T1Lw',
+        'info_dict': {
+            'id': 'tDoFkZD3T1Lw',
+            'title': str,
+            'live_status': 'is_live',
+            'ext': 'mp4',
+            'thumbnail': r're:https?://[\w-]+\.msvdn\.net/image/\w+/poster',
+        },
+        'skip': 'live stream',
+    }, {
+        'url': 'https://webtools-f5842579ff984c1c98d63b8d789673eb.msvdn.net/embed/EUlZfGWkGpOd?autoPlay=false',
+        'info_dict': {
+            'id': 'EUlZfGWkGpOd',
+            'title': 'La Settimana ',
+            'description': '03 Ottobre ore 02:00',
+            'ext': 'mp4',
+            'live_status': 'not_live',
+            'thumbnail': r're:https?://[\w-]+\.msvdn\.net/image/\w+/poster',
+            'duration': 1512,
+        },
+        'skip': 'Invalid URL',
+    }, {
+        # video without webtools- prefix
+        'url': 'https://f5842579ff984c1c98d63b8d789673eb.msvdn.net/embed/MfuWmzL2lGkA?autoplay=false&T=1635860445',
+        'info_dict': {
+            'id': 'MfuWmzL2lGkA',
+            'title': 'TG Mattina',
+            'description': '06 Ottobre ore 08:00',
+            'ext': 'mp4',
+            'live_status': 'not_live',
+            'thumbnail': r're:https?://[\w-]+\.msvdn\.net/image/\w+/poster',
+            'duration': 789.04,
+        },
+        'skip': 'Invalid URL',
+    }, {
+        # always-on livestream with DVR
+        'url': 'https://webtools-f5842579ff984c1c98d63b8d789673eb.msvdn.net/embed/HVvPMzy',
+        'info_dict': {
+            'id': 'HVvPMzy',
+            'title': str,
+            'description': 'canale all news',
+            'live_status': 'is_live',
+            'ext': 'mp4',
+            'thumbnail': r're:https?://[\w-]+\.msvdn\.net/image/\w+/poster',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # no host
+        'url': 'https://webtools.msvdn.net/embed/MfuWmzL2lGkA',
+        'only_matching': True,
+    }, {
+        'url': 'https://859c1818ed614cc5b0047439470927b0.msvdn.net/amp_embed/tDoFkZD3T1Lw',
+        'only_matching': True,
+    }, {
+        'url': 'https://859c1818ed614cc5b0047439470927b0.msvdn.net/content/tDoFkZD3T1Lw#',
+        'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
+        'url': 'https://www.lacplay.it/video/in-evidenza_728/lac-storie-p-250-i-santi-pietro-e-paolo_77297/',
+        'info_dict': {
+            'id': 'u7kiX5DUaHYr',
+            'ext': 'mp4',
+            'title': 'I Santi Pietro e Paolo',
+            'description': 'md5:ff6be24916ba6b9ae990bf5f3df4911e',
+            'duration': 1700.0,
+            'thumbnail': r're:https?://.+',
+            'tags': '06/07/2025',
+            'live_status': 'not_live',
+        },
+    }]
 
     def _playlist_entries(self, host, playlist_content):
         for entry in playlist_content:

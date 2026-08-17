@@ -48,7 +48,6 @@ MSO_INFO = {
         'username_field': 'user',
         'password_field': 'passwd',
         'login_hostname': 'login.xfinity.com',
-        'needs_newer_ua': True,
     },
     'TWC': {
         'name': 'Time Warner Cable | Spectrum',
@@ -1379,11 +1378,8 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
 
     @staticmethod
     def _get_mso_headers(mso_info):
-        # yt-dlp's default user-agent is usually too old for some MSO's like Comcast_SSO
-        # See: https://github.com/yt-dlp/yt-dlp/issues/10848
-        return {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:131.0) Gecko/20100101 Firefox/131.0',
-        } if mso_info.get('needs_newer_ua') else {}
+        # Not needed currently
+        return {}
 
     @staticmethod
     def _get_mvpd_resource(provider_id, title, guid, rating):
@@ -1574,18 +1570,29 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                             post_form(mvpd_confirm_page_res, 'Confirming Login')
                 elif mso_id == 'Philo':
                     # Philo has very unique authentication method
-                    self._download_webpage(
-                        'https://idp.philo.com/auth/init/login_code', video_id, 'Requesting auth code', data=urlencode_postdata({
+                    self._request_webpage(
+                        'https://idp.philo.com/auth/init/login_code', video_id,
+                        'Requesting Philo auth code', data=json.dumps({
                             'ident': username,
                             'device': 'web',
                             'send_confirm_link': False,
                             'send_token': True,
-                        }))
+                            'device_ident': f'web-{uuid.uuid4().hex}',
+                            'include_login_link': True,
+                        }).encode(), headers={
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        })
+
                     philo_code = getpass.getpass('Type auth code you have received [Return]: ')
-                    self._download_webpage(
-                        'https://idp.philo.com/auth/update/login_code', video_id, 'Submitting token', data=urlencode_postdata({
-                            'token': philo_code,
-                        }))
+                    self._request_webpage(
+                        'https://idp.philo.com/auth/update/login_code', video_id,
+                        'Submitting token', data=json.dumps({'token': philo_code}).encode(),
+                        headers={
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        })
+
                     mvpd_confirm_page_res = self._download_webpage_handle('https://idp.philo.com/idp/submit', video_id, 'Confirming Philo Login')
                     post_form(mvpd_confirm_page_res, 'Confirming Login')
                 elif mso_id == 'Verizon':
