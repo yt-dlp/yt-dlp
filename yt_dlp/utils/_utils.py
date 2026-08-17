@@ -2592,7 +2592,8 @@ def read_batch_urls(batch_fd):
             return False
         # "#" cannot be stripped out since it is part of the URI
         # However, it can be safely stripped out if following a whitespace
-        return re.split(r'\s#', url, maxsplit=1)[0].rstrip()
+        # Also strip "|" to support OneTab or similar exports
+        return re.split(r'\s[#|]', url, maxsplit=1)[0].rstrip()
 
     with contextlib.closing(batch_fd) as fd:
         return [url for url in map(fixup, fd) if url]
