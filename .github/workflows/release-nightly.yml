@@ -46,6 +46,7 @@ jobs:
             "bundle/*.py"
             "bundle/docker/compose.yml"
             "bundle/docker/linux/*"
+            "bundle/requirements/*"
             "pyproject.toml"
             "Makefile"
             ".github/workflows/build.yml"
