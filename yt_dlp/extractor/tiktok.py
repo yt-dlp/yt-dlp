@@ -633,6 +633,7 @@ class TikTokBaseIE(InfoExtractor):
                 'url': self._proto_relative_url(download_url),
                 'format_note': 'watermarked',
                 'preference': -2,
+                '__needs_testing': True,
             })
 
         self._remove_duplicate_formats(formats)
