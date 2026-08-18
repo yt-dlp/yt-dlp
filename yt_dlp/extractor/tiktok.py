@@ -604,6 +604,13 @@ class TikTokBaseIE(InfoExtractor):
                     **COMMON_FORMAT_INFO,
                     **format_info,
                     'url': self._proto_relative_url(video_url),
+                    # Some bytevc1 formats are video-only or may return HTTP Error 404
+                    # See: https://github.com/yt-dlp/yt-dlp/issues/16622
+                    #      https://github.com/yt-dlp/yt-dlp/issues/17372
+                    **({
+                        'acodec': 'none',
+                        '__needs_testing': True,
+                    } if urllib.parse.urlparse(video_url).path.endswith('/media-video-hvc1/') else {}),
                 })
 
         # We don't have res string for play formats, but need quality for sorting & de-duplication
@@ -626,13 +633,12 @@ class TikTokBaseIE(InfoExtractor):
                 'url': self._proto_relative_url(download_url),
                 'format_note': 'watermarked',
                 'preference': -2,
+                '__needs_testing': True,
             })
 
         self._remove_duplicate_formats(formats)
 
-        # Is it a slideshow with only audio for download?
-        if not formats and traverse_obj(aweme_detail, ('music', 'playUrl', {url_or_none})):
-            audio_url = aweme_detail['music']['playUrl']
+        if audio_url := traverse_obj(aweme_detail, ('music', 'playUrl', {url_or_none})):
             ext = traverse_obj(parse_qs(audio_url), (
                 'mime_type', -1, {lambda x: x.replace('_', '/')}, {mimetype2ext})) or 'm4a'
             formats.append({
