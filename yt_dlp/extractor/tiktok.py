@@ -604,7 +604,7 @@ class TikTokBaseIE(InfoExtractor):
                     **COMMON_FORMAT_INFO,
                     **format_info,
                     'url': self._proto_relative_url(video_url),
-                    # Some bytevc1 formats are audio-only or may return HTTP Error 404
+                    # Some bytevc1 formats are video-only or may return HTTP Error 404
                     # See: https://github.com/yt-dlp/yt-dlp/issues/16622
                     #      https://github.com/yt-dlp/yt-dlp/issues/17372
                     **({
