@@ -136,11 +136,13 @@ class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
                 idd = block['id']
                 data = self._download_json(f'https://bff-web-guacamole.musicradio.com/playables/{idd}', idd)
                 yield {
-                    'url': traverse_obj(data, ('playback', 0, 'url')),
                     'id': idd,
-                    'thumbnail': block['image']['url'],
-                    'description': block['description'],
-                    'title': block['title'],
+                    'url': traverse_obj(data, ('playback', 0, 'url')),
+                    **traverse_obj(block, {
+                        'thumbnail': ('image', 'url'),
+                        'description': 'description',
+                        'title': 'title',
+                    }),
                 }
 
         return {
