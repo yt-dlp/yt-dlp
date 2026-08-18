@@ -3150,7 +3150,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # ...and is a JS runtime is available?
                 and any(p.is_available() for p in self._jsc_director.providers.values())
             ):
-                append_client('web_embedded', 'tv_downgraded')
+                append_client('web_embedded')
+                append_client('tv_downgraded')
 
             # web_embedded can work around age-gate and age-verification for some embeddable videos
             if self._is_agegated(pr) and variant != 'web_embedded':
