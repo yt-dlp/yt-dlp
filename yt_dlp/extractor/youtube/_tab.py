@@ -2198,6 +2198,49 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'extract_flat': True,
             'playlist_items': '75',
         },
+    }, {
+        # YoutubeTab_52
+        # "UUMO" is a prefix that can be used for any channel to get a members-only playlist
+        'note': 'flat playlist entry of subscriber_only video',
+        'url': 'https://www.youtube.com/playlist?list=UUMOXuqSBlHAE6Xw-yeJA0Tunw',
+        'info_dict': {
+            'id': 'UUMOXuqSBlHAE6Xw-yeJA0Tunw',
+            'availability': 'public',
+            'title': 'Members-only videos',
+            'description': 'Videos available to members of this channel. Automatically updated.',
+            'tags': [],
+            'modified_date': r're:\d{8}',
+            'channel': 'Linus Tech Tips',
+            'view_count': int,
+            'channel_id': 'UCXuqSBlHAE6Xw-yeJA0Tunw',
+            'channel_url': 'https://www.youtube.com/channel/UCXuqSBlHAE6Xw-yeJA0Tunw',
+            'uploader_url': 'https://www.youtube.com/@LinusTechTips',
+            'uploader_id': '@LinusTechTips',
+            'uploader': 'Linus Tech Tips',
+        },
+        'playlist': [{
+            'info_dict': {
+                # availability is the only value we are testing for here
+                'availability': 'subscriber_only',
+                'id': str,
+                '_type': 'url',
+                'title': str,
+                'duration': int,
+                'url': str,
+                'uploader': str,
+                'uploader_id': str,
+                'uploader_url': str,
+                'channel': str,
+                'channel_id': str,
+                'channel_url': str,
+                'ie_key': 'Youtube',
+            },
+        }],
+        'playlist_mincount': 1,
+        'params': {
+            'extract_flat': True,
+            'playlist_items': '1',
+        },
     }]
 
     @classmethod
