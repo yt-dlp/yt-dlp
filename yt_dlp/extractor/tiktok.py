@@ -696,7 +696,7 @@ class TikTokBaseIE(InfoExtractor):
 
 
 class TikTokIE(TikTokBaseIE):
-    _VALID_URL = r'https?://www\.tiktok\.com/(?:embed|@(?P<user_id>[\w\.-]+)?/video)/(?P<id>\d+)'
+    _VALID_URL = r'https?://www\.tiktokv?\.com/(?:embed|(?:share|@(?P<user_id>[\w\.-]+)?)/video)/(?P<id>\d+)'
     _EMBED_REGEX = [rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{_VALID_URL})']
 
     _TESTS = [{
@@ -969,6 +969,15 @@ class TikTokIE(TikTokBaseIE):
     }, {
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.tiktokv.com/share/video/7668090902816017671/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.tiktok.com/share/video/7668090902816017671/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.tiktok.com/@/video/7668090902816017671/',
         'only_matching': True,
     }]
 
