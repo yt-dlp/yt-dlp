@@ -283,15 +283,15 @@ class TikTokBaseIE(InfoExtractor):
                 return False
 
             webpage, urlh = res
+            self.write_debug(f'Webpage size: {len(webpage)} bytes')
+            self.write_debug(f'Impersonation target: {urlh.extensions.get("impersonate")}')
+
             if urllib.parse.urlparse(urlh.url).path == '/login':
                 message = 'TikTok is requiring login for access to this content'
                 if fatal:
                     self.raise_login_required(message)
                 self.report_warning(f'{message}. {self._login_hint()}', video_id=video_id)
                 return False
-
-            self.write_debug(f'Webpage size: {len(webpage)} bytes')
-            self.write_debug(f'Impersonation target: {urlh.extensions.get("impersonate")}')
 
             return webpage
 
