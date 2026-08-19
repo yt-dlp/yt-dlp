@@ -2060,7 +2060,7 @@ def float_or_none(v, scale=1, invscale=1, default=None):
         scale = 1
     try:
         return float(v) * invscale / scale
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, OverflowError):
         return default
 
 
@@ -4730,13 +4730,6 @@ def clean_podcast_url(url):
     return re.sub(r'^\w+://(\w+://)', r'\1', url)
 
 
-_HEX_TABLE = '0123456789abcdef'
-
-
-def random_uuidv4():
-    return re.sub(r'[xy]', lambda x: _HEX_TABLE[random.randint(0, 15)], 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx')
-
-
 def make_parent_dirs(path):
     if dir_name := os.path.dirname(path):
         os.makedirs(dir_name, exist_ok=True)
@@ -4862,10 +4855,6 @@ _terminal_sequences_re = re.compile('\033\\[[^m]+m')
 
 def remove_terminal_sequences(string):
     return _terminal_sequences_re.sub('', string)
-
-
-def number_of_digits(number):
-    return len('%d' % number)
 
 
 def join_nonempty(*values, delim='-', from_dict=None):
