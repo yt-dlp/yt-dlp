@@ -7,7 +7,7 @@ from ..utils import ExtractorError, extract_attributes
 class BFMTVBaseIE(InfoExtractor):
     _VALID_URL_BASE = r'https?://(?:www\.|rmc\.)?bfmtv\.com/'
     _VALID_URL_TMPL = _VALID_URL_BASE + r'(?:[^/]+/)*[^/?&#]+_%s[A-Z]-(?P<id>\d{12})\.html'
-    _VIDEO_BLOCK_REGEX = r'(<div[^>]+class="video_block[^"]*"[^>]*>.*?</div>)'
+    _VIDEO_BLOCK_REGEX = r'(<div[^>]+data-video-id[^>]*>.*?</div>)'
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/%s_default/index.html?videoId=%s'
 
     def _extract_video(self, video_block, fatal=True):
