@@ -2341,6 +2341,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             self.to_screen(f'This playlist is likely not available in your region. Following conditional redirect to {redirect_url}')
             return self.url_result(redirect_url, YoutubeTabIE)
 
+        metadata = None
         tabs, extra_tabs = self._extract_tab_renderers(data), []
         if is_channel and tabs and 'no-youtube-channel-redirect' not in compat_opts:
             selected_tab = self._extract_selected_tab(tabs)
@@ -2379,6 +2380,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
 
                 elif extra_tabs and selected_tab_id != 'videos':
                     # When there are shorts/live tabs but not videos tab
+                    metadata = self._extract_metadata_from_tabs(item_id, data)
                     url, data = f'{pre}{post}', None
 
             elif (original_tab_id or 'videos') != selected_tab_id:
@@ -2414,7 +2416,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         if len(entries) == 1:
             return entries[0]
         elif entries:
-            metadata = self._extract_metadata_from_tabs(item_id, data)
+            metadata = metadata or self._extract_metadata_from_tabs(item_id, data)
             uploads_url = 'the Uploads (UU) playlist URL'
             if try_get(metadata, lambda x: x['channel_id'].startswith('UC')):
                 uploads_url = f'https://www.youtube.com/playlist?list=UU{metadata["channel_id"][2:]}'
