@@ -141,7 +141,7 @@ class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
             for block in blocks:
                 entry_id = block['id']
                 data = self._download_json(f'https://bff-web-guacamole.musicradio.com/playables/{entry_id}', video_id, f'Downloading metadata JSON for {entry_id}')
-                playback_url = traverse_obj(data, ('playback', lambda _, playable: playable['canUse'] == 'true', 'url', {url_or_none}), get_all=False)
+                playback_url = traverse_obj(data, ('playback', lambda _, playable: playable['canUse'] == 'true', 'url'), get_all=False)
                 handle_redirect = self._request_webpage(playback_url, video_id)
                 yield {
                     'id': entry_id,
@@ -195,7 +195,7 @@ class GlobalPlayerAudioEpisodeIE(GlobalPlayerBaseIE):
         meta = props['podcastEpisode']['metadata'] if podcast else props['catchupEpisode']['metadata']
 
         data = self._download_json(f'https://bff-web-guacamole.musicradio.com/playables/{video_id}', video_id)
-        playback_url = traverse_obj(data, ('playback', lambda _, playable: playable['canUse'] == 'true', 'url', {url_or_none}), get_all=False)
+        playback_url = traverse_obj(data, ('playback', lambda _, playable: playable['canUse'] == 'true', 'url'), get_all=False)
         handle_redirect = self._request_webpage(playback_url, video_id)
 
         return {
