@@ -60,11 +60,9 @@ class WhoWatchIE(InfoExtractor):
     }]
 
     def _call_api(self, video_id, endpoint=None, query=None):
-        api_url = f'{self._API_BASE}/{video_id}'
-        if endpoint:
-            api_url += f'/{endpoint}'
-
-        return self._download_json(api_url, video_id, query=query)
+        return self._download_json(
+            join_nonempty(self._API_BASE, video_id, endpoint, delim='/'),
+            video_id, query=query)
 
     def _real_extract(self, url):
         video_type, video_id = self._match_valid_url(url).group('type', 'id')
@@ -130,6 +128,6 @@ class WhoWatchIE(InfoExtractor):
             })),
             **traverse_obj(live_info, ('live', 'user', {
                 'uploader': ('name', {clean_html}, filter),
-                'uploader_id': ('account_name', {str}),
+                'uploader_id': ('account_name', {str}, filter),
             })),
         }
