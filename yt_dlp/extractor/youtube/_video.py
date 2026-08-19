@@ -140,11 +140,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _RETURN_TYPE = 'video'  # XXX: How to handle multifeed?
 
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('visionos', 'android_vr', 'web')
-    _DEFAULT_JSLESS_CLIENTS = ('visionos', 'android_vr')
-    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web')
+    _DEFAULT_CLIENTS = ('visionos', 'web')
+    _DEFAULT_JSLESS_CLIENTS = ('visionos',)
+    _DEFAULT_AUTHED_CLIENTS = ('web_embedded', 'tv_downgraded', 'web')
     # Premium does not require POT (except for subtitles)
-    _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator', 'web')
+    _DEFAULT_PREMIUM_CLIENTS = ('web_creator', 'tv_downgraded', 'web')
     _WEBPAGE_CLIENTS = ('web', 'web_safari')
     _DEFAULT_WEBPAGE_CLIENT = 'web'
 
@@ -3150,6 +3150,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # ...and is a JS runtime is available?
                 and any(p.is_available() for p in self._jsc_director.providers.values())
             ):
+                append_client('web_embedded')
                 append_client('tv_downgraded')
 
             # web_embedded can work around age-gate and age-verification for some embeddable videos
