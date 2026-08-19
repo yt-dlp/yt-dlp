@@ -59,6 +59,10 @@ def make_dir(path, to_screen=None):
         return False
 
 
+def number_of_digits(number):
+    return len('%d' % number)
+
+
 def random_uuidv4():
     return str(uuid.uuid4())
 

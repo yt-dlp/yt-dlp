@@ -2060,7 +2060,7 @@ def float_or_none(v, scale=1, invscale=1, default=None):
         scale = 1
     try:
         return float(v) * invscale / scale
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, OverflowError):
         return default
 
 
@@ -4855,10 +4855,6 @@ _terminal_sequences_re = re.compile('\033\\[[^m]+m')
 
 def remove_terminal_sequences(string):
     return _terminal_sequences_re.sub('', string)
-
-
-def number_of_digits(number):
-    return len('%d' % number)
 
 
 def join_nonempty(*values, delim='-', from_dict=None):
