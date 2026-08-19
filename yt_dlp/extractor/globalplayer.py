@@ -179,9 +179,9 @@ class GlobalPlayerAudioEpisodeIE(GlobalPlayerBaseIE):
         },
     }, {
         # radio catchup - test urls are removed after 7 days
-        'url': 'https://www.globalplayer.com/catchup/lbc/uk/episodes/2zGt5k1jDPUA13dZtsKZ6vrsHX/',
+        'url': 'https://www.globalplayer.com/catchup/lbc/uk/episodes/2zGtTwe5wouSEDNrCk29LkpsUC/',
         'info_dict': {
-            'id': '2zGt5k1jDPUA13dZtsKZ6vrsHX',
+            'id': '2zGtTwe5wouSEDNrCk29LkpsUC',
             'ext': 'm4a',
             'thumbnail': 'md5:664ad62a8fb920a2b8e264ed780eee3d',
             'description': 'Nick Ferrari At Breakfast is Leading Britain\'s Conversation.',
