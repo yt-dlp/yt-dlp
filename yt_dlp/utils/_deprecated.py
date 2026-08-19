@@ -3,6 +3,7 @@ import base64
 import hashlib
 import hmac
 import json
+import uuid
 import warnings
 
 from ..compat.compat_utils import passthrough_module
@@ -60,6 +61,10 @@ def make_dir(path, to_screen=None):
 
 def number_of_digits(number):
     return len('%d' % number)
+
+
+def random_uuidv4():
+    return str(uuid.uuid4())
 
 
 compiled_regex_type = type(re.compile(''))

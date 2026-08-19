@@ -4730,13 +4730,6 @@ def clean_podcast_url(url):
     return re.sub(r'^\w+://(\w+://)', r'\1', url)
 
 
-_HEX_TABLE = '0123456789abcdef'
-
-
-def random_uuidv4():
-    return re.sub(r'[xy]', lambda x: _HEX_TABLE[random.randint(0, 15)], 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx')
-
-
 def make_parent_dirs(path):
     if dir_name := os.path.dirname(path):
         os.makedirs(dir_name, exist_ok=True)
