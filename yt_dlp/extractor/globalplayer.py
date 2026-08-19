@@ -1,9 +1,9 @@
 from .common import InfoExtractor
 from ..utils import (
+    traverse_obj,
     url_or_none,
     urlhandle_detect_ext,
 )
-from ..utils.traversal import require, traverse_obj
 
 
 class GlobalPlayerBaseIE(InfoExtractor):
@@ -55,14 +55,18 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         meta = self._get_page_props(url, video_id)['station']
-        stream_url = meta['streamUrl']
+        station_id = meta['id']
+
+        data = self._download_json(f'https://bff-web-guacamole.musicradio.com/playables/{station_id}', video_id)
+        playback_url = traverse_obj(data, ('playback', lambda _, playable: playable['canUse'] == 'true', 'url'), get_all=False)
+        handle_redirect = self._request_webpage(playback_url, video_id)
 
         return {
-            'url': stream_url,
+            'id': station_id,
+            'url': handle_redirect.url,
             'is_live': True,
-            'ext': self._request_ext(stream_url, video_id),
+            'ext': self._request_ext(handle_redirect.url, video_id),
             **traverse_obj(meta, {
-                'id': ('id', {str}, {require('video ID')}),
                 'thumbnail': ('brandLogo', {url_or_none}),
                 'description': ('tagline', {str}),
                 'title': ('name', {str}),
