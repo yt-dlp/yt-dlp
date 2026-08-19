@@ -290,6 +290,9 @@ class TikTokBaseIE(InfoExtractor):
                 self.report_warning(f'{message}. {self._login_hint()}', video_id=video_id)
                 return False
 
+            self.write_debug(f'Webpage size: {len(webpage)} bytes')
+            self.write_debug(f'Impersonation target: {urlh.extensions.get("impersonate")}')
+
             return webpage
 
         webpage = get_webpage()
