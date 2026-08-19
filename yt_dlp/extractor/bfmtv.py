@@ -22,16 +22,8 @@ class BFMTVBaseIE(InfoExtractor):
 
         account_id = video_block_attrs.get('data-account-id') or '876450612001'
         player_id = video_block_attrs.get('playerid') or 'default'
-        fmts = []
-        if video_url := video_block_attrs.get('data-video-url'):
-            fmts = self._extract_m3u8_formats(video_url, video_id)
-        info = self.url_result(
-            self.BRIGHTCOVE_URL_TEMPLATE % (account_id, player_id, video_id),
-            'BrightcoveNew', video_id,
-        )
-        info.setdefault('formats', []).extend(fmts)
 
-        return info
+        return self.url_result(self.BRIGHTCOVE_URL_TEMPLATE % (account_id, player_id, video_id), 'BrightcoveNew', video_id)
 
 
 class BFMTVIE(BFMTVBaseIE):
