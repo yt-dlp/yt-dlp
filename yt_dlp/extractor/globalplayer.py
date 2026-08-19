@@ -140,12 +140,12 @@ class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
         def _entries():
             for block in blocks:
                 entry_id = block['id']
-                data = self._download_json(
-                    f'https://bff-web-guacamole.musicradio.com/playables/{entry_id}',
-                    video_id, f'Downloading metadata JSON for {entry_id}')
+                data = self._download_json(f'https://bff-web-guacamole.musicradio.com/playables/{entry_id}', video_id, f'Downloading metadata JSON for {entry_id}')
+                playback_url = traverse_obj(data, ('playback', lambda _, playable: playable['canUse'] == 'true', 'url', {url_or_none}), get_all=False)
+                handle_redirect = self._request_webpage(playback_url, video_id)
                 yield {
                     'id': entry_id,
-                    'url': traverse_obj(data, ('playback', 0, 'url')),
+                    'url': handle_redirect.url,
                     **traverse_obj(block, {
                         'thumbnail': ('image', 'url', {url_or_none}),
                         'description': ('description', {str}),
@@ -193,13 +193,14 @@ class GlobalPlayerAudioEpisodeIE(GlobalPlayerBaseIE):
         video_id, podcast = self._match_valid_url(url).group('id', 'podcast')
         props = self._get_page_props(url, video_id)
         meta = props['podcastEpisode']['metadata'] if podcast else props['catchupEpisode']['metadata']
+
         data = self._download_json(f'https://bff-web-guacamole.musicradio.com/playables/{video_id}', video_id)
+        playback_url = traverse_obj(data, ('playback', lambda _, playable: playable['canUse'] == 'true', 'url', {url_or_none}), get_all=False)
+        handle_redirect = self._request_webpage(playback_url, video_id)
 
         return {
+            'url': handle_redirect.url,
             'id': video_id,
-            **traverse_obj(data, {
-                'url': ('playback', 0, 'url', {url_or_none}),
-            }),
             **traverse_obj(meta, {
                 'thumbnail': ('image', 'url', {url_or_none}),
                 'description': ('description', {str}),
