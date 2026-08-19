@@ -11,6 +11,7 @@ class GlobalPlayerBaseIE(InfoExtractor):
         return self._search_nextjs_data(webpage, video_id)['props']['pageProps']
 
     def _request_ext(self, url, video_id):
+        # Server rejects HEAD requests
         return urlhandle_detect_ext(self._request_webpage(url, video_id))
 
 
@@ -53,17 +54,17 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         meta = self._get_page_props(url, video_id)['station']
-        url = meta['streamUrl']
+        stream_url = meta['streamUrl']
 
         return {
-            'url': url,
+            'url': stream_url,
             'is_live': True,
-            'ext': self._request_ext(url, video_id),
+            'ext': self._request_ext(stream_url, video_id),
             **traverse_obj(meta, {
-                'id': 'id',
-                'thumbnail': 'brandLogo',
-                'description': 'tagline',
-                'title': 'name',
+                'id': ('id', {str}, {require('video ID')}),
+                'thumbnail': ('brandLogo', {url_or_none}),
+                'description': ('tagline', {str}),
+                'title': ('name', {str}),
             }),
         }
 
@@ -86,17 +87,17 @@ class GlobalPlayerLivePlaylistIE(GlobalPlayerBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         meta = self._get_page_props(url, video_id)['playlistData']
-        url = meta['streamUrl']
+        stream_url = meta['streamUrl']
 
         return {
-            'url': url,
+            'url': stream_url,
             'id': video_id,
             'is_live': True,
-            'ext': self._request_ext(url, video_id),
+            'ext': self._request_ext(stream_url, video_id),
             **traverse_obj(meta, {
-                'thumbnail': 'image',
-                'description': 'description',
-                'title': 'title',
+                'thumbnail': ('image', {url_or_none}),
+                'description': ('description', {str}),
+                'title': ('title', {str}),
             }),
         }
 
@@ -128,20 +129,26 @@ class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
     def _real_extract(self, url):
         video_id, podcast = self._match_valid_url(url).group('id', 'podcast')
         props = self._get_page_props(url, video_id)
-        meta = props['podcastInfo']['metadata'] if podcast else props['catchupInfo']['metadata']
-        blocks = props['podcastInfo']['blocks'][1]['items'] if podcast else props['catchupInfo']['blocks'][1]['items']
+        if podcast:
+            meta = props['podcastInfo']['metadata']
+            blocks = props['podcastInfo']['blocks'][1]['items']
+        else:
+            meta = props['catchupInfo']['metadata']
+            blocks = props['catchupInfo']['blocks'][1]['items']
 
         def _entries():
             for block in blocks:
-                idd = block['id']
-                data = self._download_json(f'https://bff-web-guacamole.musicradio.com/playables/{idd}', idd)
+                entry_id = block['id']
+                data = self._download_json(
+                    f'https://bff-web-guacamole.musicradio.com/playables/{entry_id}',
+                    video_id, f'Downloading metadata JSON for {entry_id}')
                 yield {
-                    'id': idd,
+                    'id': entry_id,
                     'url': traverse_obj(data, ('playback', 0, 'url')),
                     **traverse_obj(block, {
-                        'thumbnail': ('image', 'url'),
-                        'description': 'description',
-                        'title': 'title',
+                        'thumbnail': ('image', 'url', {url_or_none}),
+                        'description': ('description', {str}),
+                        'title': ('title', {str}),
                     }),
                 }
 
@@ -150,9 +157,9 @@ class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
             'id': video_id,
             'entries': _entries(),
             **traverse_obj(meta, {
-                'thumbnail': ('image', 'url'),
-                'description': 'description',
-                'title': 'title',
+                'thumbnail': ('image', 'url', {url_or_none}),
+                'description': ('description', {str}),
+                'title': ('title', {str}),
             }),
         }
 
@@ -190,12 +197,12 @@ class GlobalPlayerAudioEpisodeIE(GlobalPlayerBaseIE):
         return {
             'id': video_id,
             **traverse_obj(data, {
-                'url': ('playback', 0, 'url'),
+                'url': ('playback', 0, 'url', {url_or_none}),
             }),
             **traverse_obj(meta, {
-                'thumbnail': ('image', 'url'),
-                'description': 'description',
-                'title': 'title',
+                'thumbnail': ('image', 'url', {url_or_none}),
+                'description': ('description', {str}),
+                'title': ('title', {str}),
             }),
         }
 
@@ -220,9 +227,9 @@ class GlobalPlayerVideoIE(GlobalPlayerBaseIE):
         return {
             'id': video_id,
             **traverse_obj(meta, {
-                'url': 'url',
-                'thumbnail': ('image', 'url'),
-                'description': 'description',
-                'title': 'title',
+                'url': ('url', {url_or_none}),
+                'thumbnail': ('image', 'url', {url_or_none}),
+                'description': ('description', {str}),
+                'title': ('title', {str}),
             }),
         }
