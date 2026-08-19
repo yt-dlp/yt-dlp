@@ -97,7 +97,7 @@ BUNDLE_TARGETS = {
         extras=['curl-cffi'],
         # Only need curl-cffi+cffi in this requirements file; their deps are installed directly
         # XXX: Try to keep these in sync with curl-cffi's and cffi's transitive dependencies
-        prune_packages=['rich'],
+        prune_packages=['typing-extensions'],
         omit_packages=['certifi', 'pycparser'],
     ),
 }
@@ -650,8 +650,8 @@ def update_requirements(
     modify_and_write_pyproject(pyproject_text, table_name=EXTRAS_TABLE, table=extras)
 
     # Generate/upgrade final lockfile that includes pinned extras
-    print(f'Running: uv lock {upgrade_arg}', file=sys.stderr)
-    run_process('uv', 'lock', upgrade_arg, env=env)
+    print('Running: uv lock', file=sys.stderr)
+    run_process('uv', 'lock', env=env)
 
     # Export bundle requirements; any updates to these are already recorded w/ uv.lock package diff
     for target_suffix, target in BUNDLE_TARGETS.items():
