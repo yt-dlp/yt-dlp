@@ -14,7 +14,7 @@ class BFMTVBaseIE(InfoExtractor):
         video_block_attrs = extract_attributes(video_block)
         video_id = video_block_attrs.get('data-video-id')
         if not video_id:
-            msg = 'Unable to extract Brightcover video id'
+            msg = 'Unable to extract Brightcove video id'
             if not fatal:
                 self.report_warning(msg)
                 return {}
