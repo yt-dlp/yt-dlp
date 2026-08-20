@@ -294,7 +294,10 @@ class XHamsterIE(InfoExtractor):
             formats = []
             format_urls = set()
             format_sizes = {}
-            sources = try_get(video, lambda x: x['sources'], dict) or {}
+            sources = (
+                try_get(video, lambda x: x['sources'], dict)
+                or try_get(initials, lambda x: x['downloadDropdownComponent']['sources'], dict)
+                or {})
             for format_id, formats_dict in sources.items():
                 if not isinstance(formats_dict, dict):
                     continue
