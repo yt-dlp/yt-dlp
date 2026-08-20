@@ -277,11 +277,15 @@ class TikTokBaseIE(InfoExtractor):
         headers = self._generate_blockbuster_headers()
 
         def get_webpage(note='Downloading webpage'):
-            res = self._download_webpage_handle(url, video_id, note, fatal=fatal, headers=headers)
+            res = self._download_webpage_handle(
+                url, video_id, note, fatal=fatal, headers=headers, impersonate=True)
             if res is False:
                 return False
 
             webpage, urlh = res
+            self.write_debug(f'Webpage size: {len(webpage)} bytes')
+            self.write_debug(f'Impersonation target: {urlh.extensions.get("impersonate")}')
+
             if urllib.parse.urlparse(urlh.url).path == '/login':
                 message = 'TikTok is requiring login for access to this content'
                 if fatal:
@@ -1171,7 +1175,7 @@ class TikTokUserIE(TikTokBaseIE):
             webpage = self._download_webpage(
                 self._UPLOADER_URL_FORMAT % user_name, user_name,
                 'Downloading user webpage', 'Unable to download user webpage',
-                fatal=False, headers=self._generate_blockbuster_headers()) or ''
+                impersonate=True, fatal=False, headers=self._generate_blockbuster_headers()) or ''
             detail = traverse_obj(
                 self._get_universal_data(webpage, user_name), ('webapp.user-detail', {dict})) or {}
             video_count = traverse_obj(detail, ('userInfo', ('stats', 'statsV2'), 'videoCount', {int}, any))
@@ -1630,7 +1634,7 @@ class TikTokLiveIE(TikTokBaseIE):
         if not room_id:
             webpage = self._download_webpage(
                 format_field(uploader, None, self._UPLOADER_URL_FORMAT), uploader,
-                headers=self._generate_blockbuster_headers())
+                impersonate=True, headers=self._generate_blockbuster_headers())
             room_id = traverse_obj(
                 self._get_universal_data(webpage, uploader),
                 ('webapp.user-detail', 'userInfo', 'user', 'roomId', {str}))
