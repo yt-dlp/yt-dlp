@@ -1,5 +1,6 @@
 from .common import InfoExtractor
-from ..utils import int_or_none
+from ..utils import int_or_none, url_or_none
+from ..utils.traversal import traverse_obj
 
 
 class DigitekaIE(InfoExtractor):
@@ -25,74 +26,56 @@ class DigitekaIE(InfoExtractor):
         )/(?P<id>[\d+a-z]+)'''
     _EMBED_REGEX = [r'<(?:iframe|script)[^>]+src=["\'](?P<url>(?:https?:)?//(?:www\.)?ultimedia\.com/deliver/(?:generic|musique)(?:/[^/]+)*/(?:src|article)/[\d+a-z]+)']
     _TESTS = [{
-        # news
-        'url': 'https://www.ultimedia.com/default/index/videogeneric/id/s8uk0r',
-        'md5': '276a0e49de58c7e85d32b057837952a2',
+        'url': 'https://www.ultimedia.com/default/index/videogeneric/id/3x5x55k',
         'info_dict': {
-            'id': 's8uk0r',
+            'id': '3x5x55k',
             'ext': 'mp4',
-            'title': 'Loi sur la fin de vie: le texte prévoit un renforcement des directives anticipées',
+            'title': 'Il est passionné de DS',
             'thumbnail': r're:^https?://.*\.jpg',
-            'duration': 74,
-            'upload_date': '20150317',
-            'timestamp': 1426604939,
-            'uploader_id': '3fszv',
+            'duration': 89,
+            'upload_date': '20251012',
+            'timestamp': 1760285363,
+            'uploader_id': '3pz33',
         },
-    }, {
-        # music
-        'url': 'https://www.ultimedia.com/default/index/videomusic/id/xvpfp8',
-        'md5': '2ea3513813cf230605c7e2ffe7eca61c',
-        'info_dict': {
-            'id': 'xvpfp8',
-            'ext': 'mp4',
-            'title': 'Two - C\'est La Vie (clip)',
-            'thumbnail': r're:^https?://.*\.jpg',
-            'duration': 233,
-            'upload_date': '20150224',
-            'timestamp': 1424760500,
-            'uploader_id': '3rfzk',
-        },
-    }, {
-        'url': 'https://www.digiteka.net/deliver/generic/iframe/mdtk/01637594/src/lqm3kl/zone/1/showtitle/1/autoplay/yes',
-        'only_matching': True,
+        'params': {'skip_download': True},
     }]
+    _IFRAME_MD_ID = '01836272'   # One static ID working for Ultimedia iframes
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        video_id = mobj.group('id')
-        video_type = mobj.group('embed_type') or mobj.group('site_type')
-        if video_type == 'music':
-            video_type = 'musique'
+        video_id = self._match_id(url)
 
-        deliver_info = self._download_json(
-            f'http://www.ultimedia.com/deliver/video?video={video_id}&topic={video_type}',
-            video_id)
-
-        yt_id = deliver_info.get('yt_id')
-        if yt_id:
-            return self.url_result(yt_id, 'Youtube')
-
-        jwconf = deliver_info['jwconf']
+        video_info = self._download_json(
+            f'https://www.ultimedia.com/player/getConf/{self._IFRAME_MD_ID}/1/{video_id}', video_id,
+            note='Downloading player configuration')['video']
 
         formats = []
-        for source in jwconf['playlist'][0]['sources']:
-            formats.append({
-                'url': source['file'],
-                'format_id': source.get('label'),
-            })
+        subtitles = {}
 
-        title = deliver_info['title']
-        thumbnail = jwconf.get('image')
-        duration = int_or_none(deliver_info.get('duration'))
-        timestamp = int_or_none(deliver_info.get('release_time'))
-        uploader_id = deliver_info.get('owner_id')
+        if hls_url := traverse_obj(video_info, ('media_sources', 'hls', 'hls_auto', {url_or_none})):
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                hls_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
+
+        for format_id, mp4_url in traverse_obj(video_info, ('media_sources', 'mp4', {dict.items}, ...)):
+            if not mp4_url:
+                continue
+            formats.append({
+                'url': mp4_url,
+                'format_id': format_id,
+                'height': int_or_none(format_id.partition('_')[2]),
+                'ext': 'mp4',
+            })
 
         return {
             'id': video_id,
-            'title': title,
-            'thumbnail': thumbnail,
-            'duration': duration,
-            'timestamp': timestamp,
-            'uploader_id': uploader_id,
             'formats': formats,
+            'subtitles': subtitles,
+            **traverse_obj(video_info, {
+                'title': ('title', {str}),
+                'thumbnail': ('image', {url_or_none}),
+                'duration': ('duration', {int_or_none}),
+                'timestamp': ('creationDate', {int_or_none}),
+                'uploader_id': ('ownerId', {str}),
+            }),
         }

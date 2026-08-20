@@ -200,7 +200,7 @@ def wrap_request_errors(func):
 
 
 def _socket_connect(ip_addr, timeout, source_address):
-    af, socktype, proto, canonname, sa = ip_addr
+    af, socktype, proto, _canonname, sa = ip_addr
     sock = socket.socket(af, socktype, proto)
     try:
         if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
@@ -215,7 +215,7 @@ def _socket_connect(ip_addr, timeout, source_address):
 
 
 def create_socks_proxy_socket(dest_addr, proxy_args, proxy_ip_addr, timeout, source_address):
-    af, socktype, proto, canonname, sa = proxy_ip_addr
+    af, socktype, proto, _canonname, sa = proxy_ip_addr
     sock = sockssocket(af, socktype, proto)
     try:
         connect_proxy_args = proxy_args.copy()

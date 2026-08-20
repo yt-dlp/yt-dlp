@@ -1,3 +1,4 @@
+import datetime as dt
 import os
 import xml.etree.ElementTree as etree
 
@@ -25,6 +26,13 @@ def compat_etree_fromstring(text):
 
 def compat_ord(c):
     return c if isinstance(c, int) else ord(c)
+
+
+def compat_datetime_from_timestamp(timestamp):
+    # Calling dt.datetime.fromtimestamp with negative timestamps throws error in Windows
+    # Ref: https://github.com/yt-dlp/yt-dlp/issues/5185, https://github.com/python/cpython/issues/81708,
+    # https://github.com/yt-dlp/yt-dlp/issues/6706#issuecomment-1496842642
+    return (dt.datetime.fromtimestamp(0, dt.timezone.utc) + dt.timedelta(seconds=timestamp))
 
 
 # Python 3.8+ does not honor %HOME% on windows, but this breaks compatibility with youtube-dl

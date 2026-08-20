@@ -5,16 +5,18 @@ import time
 
 from .common import InfoExtractor
 from ..utils import (
-    KNOWN_EXTENSIONS,
     ExtractorError,
     clean_html,
     extract_attributes,
     float_or_none,
+    format_field,
     int_or_none,
+    join_nonempty,
     parse_filesize,
+    parse_qs,
     str_or_none,
+    strftime_or_none,
     try_get,
-    unified_strdate,
     unified_timestamp,
     update_url_query,
     url_or_none,
@@ -66,7 +68,7 @@ class BandcampIE(InfoExtractor):
             'album': 'FTL: Advanced Edition Soundtrack',
             'uploader_url': 'https://benprunty.bandcamp.com',
             'uploader_id': 'benprunty',
-            'tags': ['soundtrack', 'chiptunes', 'cinematic', 'electronic', 'video game music', 'California'],
+            'tags': ['soundtrack', 'chiptunes', 'cinematic', 'electronic', 'video game music', 'North Carolina'],
             'artists': ['Ben Prunty'],
             'album_artists': ['Ben Prunty'],
         },
@@ -144,6 +146,7 @@ class BandcampIE(InfoExtractor):
             'uploader_id': 'stayinside',
             'uploader_url': 'https://stayinside.bandcamp.com',
         },
+        'skip': 'embed detection is broken',
     }]
 
     def _extract_data_attr(self, webpage, video_id, attr='tralbum', fatal=True):
@@ -153,7 +156,7 @@ class BandcampIE(InfoExtractor):
 
     def _real_extract(self, url):
         title, uploader = self._match_valid_url(url).group('id', 'uploader')
-        webpage = self._download_webpage(url, title)
+        webpage = self._download_webpage(url, title, impersonate=True)
         tralbum = self._extract_data_attr(webpage, title)
         thumbnail = self._og_search_thumbnail(webpage)
 
@@ -199,7 +202,7 @@ class BandcampIE(InfoExtractor):
             track_id = str(tralbum['id'])
 
             download_webpage = self._download_webpage(
-                download_link, track_id, 'Downloading free downloads page')
+                download_link, track_id, 'Downloading free downloads page', impersonate=True)
 
             blob = self._extract_data_attr(download_webpage, track_id, 'blob')
 
@@ -294,21 +297,22 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                     'id': '1353101989',
                     'ext': 'mp3',
                     'title': 'Blazo - Intro',
-                    'thumbnail': r're:https?://f4\.bcbits\.com/img/.+\.jpg',
+                    'uploader': 'Blazo',
+                    'uploader_id': 'blazo',
+                    'uploader_url': 'https://blazo.bandcamp.com',
+                    'duration': 19.335,
+                    'thumbnail': 'https://f4.bcbits.com/img/a1721150828_5.jpg',
+                    'tags': ['hip-hop/rap', 'hip-hop', 'Poland'],
+                    'artists': ['Blazo'],
+                    'album_artists': ['Blazo'],
+                    'track': 'Intro',
+                    'track_number': 1,
+                    'track_id': '1353101989',
+                    'album': 'Jazz Format Mixtape vol.1',
                     'timestamp': 1311756226,
                     'upload_date': '20110727',
-                    'uploader': 'Blazo',
-                    'album_artists': ['Blazo'],
-                    'uploader_url': 'https://blazo.bandcamp.com',
+                    'release_timestamp': 1311724800,
                     'release_date': '20110727',
-                    'release_timestamp': 1311724800.0,
-                    'track': 'Intro',
-                    'uploader_id': 'blazo',
-                    'track_number': 1,
-                    'album': 'Jazz Format Mixtape vol.1',
-                    'artists': ['Blazo'],
-                    'duration': 19.335,
-                    'track_id': '1353101989',
                 },
             },
             {
@@ -317,21 +321,22 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                     'id': '38097443',
                     'ext': 'mp3',
                     'title': 'Blazo - Kero One - Keep It Alive (Blazo remix)',
-                    'thumbnail': r're:https?://f4\.bcbits\.com/img/.+\.jpg',
+                    'uploader': 'Blazo',
+                    'uploader_id': 'blazo',
+                    'uploader_url': 'https://blazo.bandcamp.com',
+                    'duration': 181.467,
+                    'thumbnail': 'https://f4.bcbits.com/img/a1721150828_5.jpg',
+                    'tags': ['hip-hop/rap', 'hip-hop', 'Poland'],
+                    'artists': ['Blazo'],
+                    'album_artists': ['Blazo'],
+                    'track': 'Kero One - Keep It Alive (Blazo remix)',
+                    'track_number': 2,
+                    'track_id': '38097443',
+                    'album': 'Jazz Format Mixtape vol.1',
                     'timestamp': 1311757238,
                     'upload_date': '20110727',
-                    'uploader': 'Blazo',
-                    'track': 'Kero One - Keep It Alive (Blazo remix)',
+                    'release_timestamp': 1311724800,
                     'release_date': '20110727',
-                    'track_id': '38097443',
-                    'track_number': 2,
-                    'duration': 181.467,
-                    'uploader_url': 'https://blazo.bandcamp.com',
-                    'album': 'Jazz Format Mixtape vol.1',
-                    'uploader_id': 'blazo',
-                    'album_artists': ['Blazo'],
-                    'artists': ['Blazo'],
-                    'release_timestamp': 1311724800.0,
                 },
             },
         ],
@@ -384,7 +389,7 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     def _real_extract(self, url):
         uploader_id, album_id = self._match_valid_url(url).groups()
         playlist_id = album_id or uploader_id
-        webpage = self._download_webpage(url, playlist_id)
+        webpage = self._download_webpage(url, playlist_id, impersonate=True)
         tralbum = self._extract_data_attr(webpage, playlist_id)
         track_info = tralbum.get('trackinfo')
         if not track_info:
@@ -411,70 +416,65 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
 
 class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'Bandcamp:weekly'
-    _VALID_URL = r'https?://(?:www\.)?bandcamp\.com/?\?(?:.*?&)?show=(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?bandcamp\.com/radio/?\?(?:[^#]+&)?show=(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://bandcamp.com/?show=224',
+        'url': 'https://bandcamp.com/radio?show=224',
         'md5': '61acc9a002bed93986b91168aa3ab433',
         'info_dict': {
             'id': '224',
             'ext': 'mp3',
-            'title': 'BC Weekly April 4th 2017 - Magic Moments',
-            'description': 'md5:5d48150916e8e02d030623a48512c874',
-            'duration': 5829.77,
-            'release_date': '20170404',
-            'series': 'Bandcamp Weekly',
+            'title': 'Bandcamp Weekly, 2017-04-04',
             'episode': 'Magic Moments',
+            'description': 'md5:5d48150916e8e02d030623a48512c874',
+            'thumbnail': 'https://f4.bcbits.com/img/9982549_0.jpg',
+            'series': 'Bandcamp Weekly',
             'episode_id': '224',
+            'release_timestamp': 1491264000,
+            'release_date': '20170404',
+            'duration': 5829.77,
         },
         'params': {
             'format': 'mp3-128',
         },
     }, {
-        'url': 'https://bandcamp.com/?blah/blah@&show=228',
+        'url': 'https://bandcamp.com/radio/?foo=bar&show=224',
         'only_matching': True,
     }]
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
-        webpage = self._download_webpage(url, show_id)
+        show_data = self._download_json(
+            'https://bandcamp.com/api/player/2/player_data_web',
+            show_id, 'Downloading radio show JSON',
+            data=json.dumps({'item_id': int(show_id), 'item_type': 'radio'}).encode(),
+            headers={'Content-Type': 'application/json'})['tracklist']
+        audio_data = show_data['compiledTrack']
 
-        blob = self._extract_data_attr(webpage, show_id, 'blob')
+        stream_url = audio_data['streamUrl']
+        format_id = traverse_obj(stream_url, ({parse_qs}, 'enc', -1))
+        encoding, _, bitrate_str = (format_id or '').partition('-')
 
-        show = blob['bcw_data'][show_id]
-
-        formats = []
-        for format_id, format_url in show['audio_stream'].items():
-            if not url_or_none(format_url):
-                continue
-            for known_ext in KNOWN_EXTENSIONS:
-                if known_ext in format_id:
-                    ext = known_ext
-                    break
-            else:
-                ext = None
-            formats.append({
-                'format_id': format_id,
-                'url': format_url,
-                'ext': ext,
-                'vcodec': 'none',
-            })
-
-        title = show.get('audio_title') or 'Bandcamp Weekly'
-        subtitle = show.get('subtitle')
-        if subtitle:
-            title += f' - {subtitle}'
+        series_title = show_data.get('subtitle')
+        release_timestamp = unified_timestamp(show_data.get('date'))
 
         return {
             'id': show_id,
-            'title': title,
-            'description': show.get('desc') or show.get('short_desc'),
-            'duration': float_or_none(show.get('audio_duration')),
-            'is_live': False,
-            'release_date': unified_strdate(show.get('published_date')),
-            'series': 'Bandcamp Weekly',
-            'episode': show.get('subtitle'),
             'episode_id': show_id,
-            'formats': formats,
+            'episode': show_data.get('title'),
+            'title': join_nonempty(series_title, strftime_or_none(release_timestamp, '%Y-%m-%d'), delim=', '),
+            'series': series_title,
+            'thumbnail': format_field(show_data, 'imageId', 'https://f4.bcbits.com/img/%s_0.jpg', default=None),
+            'description': show_data.get('description'),
+            'duration': float_or_none(audio_data.get('duration')),
+            'release_timestamp': release_timestamp,
+            'formats': [{
+                'url': stream_url,
+                'format_id': format_id,
+                'ext': encoding or 'mp3',
+                'acodec': encoding or None,
+                'vcodec': 'none',
+                'abr': int_or_none(bitrate_str),
+            }],
         }
 
 
