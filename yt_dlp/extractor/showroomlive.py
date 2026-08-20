@@ -29,16 +29,12 @@ class ShowRoomLiveIE(InfoExtractor):
 
     def _real_extract(self, url):
         broadcaster_id = self._match_id(url)
-        webpage = self._download_webpage(
-            url, broadcaster_id, headers={'Accept-Language': 'ja'})
-        nuxt_data = self._search_nuxt_json(webpage, broadcaster_id)['data']
-
-        for key, value in nuxt_data.items():
-            if key.startswith(f'roomProfile-{broadcaster_id}'):
-                room_profile = value
-
-        start_timestamp = traverse_obj(room_profile, ('current_live_started_at', {int_or_none}))
-        is_live = traverse_obj(room_profile, ('is_onlive', {bool}))
+        room_status = self._download_json(
+            'https://www.showroom-live.com/api/room/status',
+            broadcaster_id, query={'room_url_key': broadcaster_id}
+        )
+        start_timestamp = traverse_obj(room_status, ('started_at', {int_or_none}))
+        is_live = traverse_obj(room_status, ('is_live', {bool}))
 
         if not is_live:
             if start_timestamp:
@@ -56,8 +52,8 @@ class ShowRoomLiveIE(InfoExtractor):
                 }
             raise UserNotLive(video_id=broadcaster_id)
 
-        room_id = traverse_obj(room_profile, ('room_id', {str_or_none}))
-        room_name = traverse_obj(room_profile, (
+        room_id = traverse_obj(room_status, ('room_id', {str_or_none}))
+        room_name = traverse_obj(room_status, (
             ('room_name', 'main_name'), {clean_html}, filter, any))
 
         streaming_url_list = self._download_json(
@@ -67,15 +63,17 @@ class ShowRoomLiveIE(InfoExtractor):
             'streaming_url_list', lambda _, v: v['type'] == 'hls_all',
             'url', {url_or_none}, any, {require('m3u8 URL')}))
 
-        info =  {
+        return {
             'title': room_name,
             'channel': room_name,
             'channel_id': broadcaster_id,
-            'room_id': room_id,
             'formats': self._extract_m3u8_formats(m3u8_url, broadcaster_id, 'mp4'),
             'is_live': is_live,
             'release_timestamp': start_timestamp,
-            **traverse_obj(room_profile, {
+            # Most of this isn't in /room/status
+            # if we really wanted it, we could get it from /room/profile?room_id=
+            # but it's not even used in any way so uh... why
+            **traverse_obj(room_status, {
                 'id': ('live_id', {str_or_none}),
                 'channel_follower_count': ('follower_num', {int_or_none}),
                 'channel_is_verified': ('is_official', {bool}),
@@ -86,8 +84,6 @@ class ShowRoomLiveIE(InfoExtractor):
                 'view_count': ('view_num', {int_or_none}),
             }),
         }
-        print(info)
-        return info
 
 
 class ShowRoomVodIE(InfoExtractor):
