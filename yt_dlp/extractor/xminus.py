@@ -18,8 +18,10 @@ from ..utils import (
 from ..utils.traversal import (
     find_element,
     find_elements,
+    require,
     traverse_obj,
     trim_str,
+    unpack,
 )
 
 
@@ -37,7 +39,7 @@ class XMinusIE(InfoExtractor):
             'alt_title': 'Instrumental #2',
             'artists': ['Леонид Агутин'],
             'description': 'md5:ed26c57333e7e6dc002ff118c5ac419a',
-            'duration': 156.0,
+            'duration': 156,
             'like_count': int,
             'upload_date': '20120906',
             'view_count': int,
@@ -51,7 +53,7 @@ class XMinusIE(InfoExtractor):
             'alt_title': 'Instrumental',
             'artists': ['Jamala'],
             'description': 'md5:c3a0029c81a71fad31d451f42e958768',
-            'duration': 263.0,
+            'duration': 263,
             'genres': ['arrangement'],
             'like_count': int,
             'tags': ['Pop songs', 'Pop'],
@@ -64,31 +66,41 @@ class XMinusIE(InfoExtractor):
 
     def _real_extract(self, url):
         track_id = self._match_id(url)
-        webpage = self._download_webpage(url, track_id)
+        webpage = self._download_webpage(
+            url, track_id, query={'locale': 'en_US'})
 
-        data_k, prefix = traverse_obj(webpage, ((
+        player_attrs = traverse_obj(webpage, (
+            {find_element(id=f'm{track_id}', html=True)}, {extract_attributes}))
+        prefix = traverse_obj(player_attrs, ('data-k', {str}, {require('data-k')}))
+        is_updated = bool(traverse_obj(player_attrs, ('data-updated', {str})))
+
+        data_k = traverse_obj(webpage, (
             {find_element(id='player-data', html=True)},
-            {find_element(id=f'm{track_id}', html=True)},
-        ), {extract_attributes}, 'data-k', {str}))
+            {extract_attributes}, 'data-k', {str}, {require('data-k')}))
         data_fn = traverse_obj(webpage, (
             {find_element(id=f'dw-link-m{track_id}')},
             {find_element(cls='no-ajax', html=True)},
-            {extract_attributes}, 'data-fn', {str}))
-        s = sum(map(ord, data_k)) + int(track_id) + 1004
-        c = (int(track_id) - 125_765) // 333
+            {extract_attributes}, 'data-fn', {str}, {require('data-fn')}))
+
+        track_id_int = int(track_id)
+        subdomain = 'm5' if is_updated or track_id_int >= 782_788 else 'm4'
+        s = sum(map(ord, data_k)) + track_id_int + 1004
+        c = int((track_id_int - 125_765) / 333)
+        query = {
+            't668': f'{s:x}zyxwz{track_id}.9z{prefix}z{c}',
+        }
+        if is_updated:
+            query['updated'] = '1'
 
         file_url = update_url_query(
-            f'https://m5.xmst.cc/dl/minus/{track_id}', {
-                't668': f'{s:x}zyxwz{track_id}.9z{prefix}z{c}',
-            })
-        file_url += f'&trackname={urllib.parse.quote(data_fn, safe="()")}'
+            f'https://{subdomain}.xmst.cc/dl/minus/{track_id}', query)
+        file_url += '&trackname=' + urllib.parse.quote(data_fn, safe="!'()*")
 
         info = traverse_obj(webpage, (
             {find_element(cls='minustrack-info', html=True)},
             {re.compile(r'<tr[^>]*>([\s\S]+?)</tr>').findall}, ...,
             {lambda x: dict([map(str.strip, clean_html(x).split(':', 1))])},
-            all, {lambda x: merge_dicts(*x)}))
-
+            all, {unpack(merge_dicts)}))
         filesize, bitrate = re.match(r'(.+)\s+(\d+\s*kbps)', info.get('File Size')).groups()
         date_str = info.get('Uploaded', '').split('@', 1)[-1].strip()
 
@@ -96,23 +108,26 @@ class XMinusIE(InfoExtractor):
             'id': track_id,
             'ext': 'mp3',
             'filesize_approx': parse_filesize(filesize),
-            'genre': traverse_obj(info, ('Type', {str_or_none}, filter)),
+            'genres': traverse_obj(info, ('Type', {str_or_none}, filter, all, filter)),
             'tbr': parse_bitrate(bitrate),
             'upload_date': unified_strdate(date_str) if date_str else None,
             'url': file_url,
             'vcodec': 'none',
             **traverse_obj(webpage, {
-                'title': ({find_element(cls='list in-tab tracklist', html=True)}, {extract_attributes}, 'data-tit', {clean_html}),
-                'alt_title': ({find_element(cls='minustrack-full-title')}, {find_element(cls='hide-mob')}, {clean_html}),
-                'artist': ({find_element(cls='card-tit notranslate')}, {find_element(tag='a')}, {clean_html}),
-                'description': ({find_element(cls='tab-lyrics notranslate')}, {clean_html}),
+                'title': ({find_element(cls='list in-tab tracklist', html=True)},
+                          {extract_attributes}, 'data-tit', {clean_html}, filter),
+                'alt_title': ({find_element(cls='minustrack-full-title')},
+                              {find_element(cls='hide-mob')}, {clean_html}, filter),
+                'artists': ({find_element(cls='card-tit notranslate')},
+                            {find_element(tag='a')}, {clean_html}, filter, all, filter),
+                'description': ({find_element(cls='tab-lyrics notranslate')}, {clean_html}, filter),
                 'duration': ({find_element(cls='player-duration')}, {parse_duration}),
                 'like_count': ({find_element(cls='button-like-value')}, {int_or_none}),
                 'tags': ({find_elements(cls='minustrack-info-tag')}, ..., {clean_html}, filter, all, filter),
                 'view_count': ({find_element(attr='data-tooltip', value='Track rating for all time')}, {clean_html}, {parse_count}),
             }),
             **traverse_obj(webpage, ({find_element(cls='minustrack-info-user', html=True)}, {
-                'uploader': {clean_html},
+                'uploader': ({clean_html}, filter),
                 'uploader_id': ({extract_attributes}, 'href', {trim_str(start='/user/')}),
             })),
         }
