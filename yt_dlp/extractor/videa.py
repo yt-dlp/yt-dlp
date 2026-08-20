@@ -73,6 +73,9 @@ class VideaIE(InfoExtractor):
         'url': 'https://videakid.hu/player?v=8YfIAjxwWGwT8HVQ',
         'only_matching': True,
     }, {
+        'url': 'https://videa.hu/player?f=6.198834.776849.0',
+        'only_matching': True,
+    }, {
         'url': 'https://videakid.hu/player/v/8YfIAjxwWGwT8HVQ?autoplay=1',
         'only_matching': True,
     }]
