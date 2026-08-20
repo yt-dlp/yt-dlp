@@ -1161,10 +1161,9 @@ class NiconicoChannelIE(NiconicoBaseIE):
             keyword = display_id
             page_size = self._SEARCH_PAGE_SIZE
         else:
-            if slug := mobj.group('slug'):
-                if slug.startswith('so'):
-                    return self.url_result(
-                        f'{self._BASE_URL}/watch/{slug}', NiconicoIE)
+            if (slug := mobj.group('slug')) and slug.startswith('so'):
+                return self.url_result(
+                    f'{self._BASE_URL}/watch/{slug}', NiconicoIE)
             keyword = None
             page_size = self._PAGE_SIZE
 
