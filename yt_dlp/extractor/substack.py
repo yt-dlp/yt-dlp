@@ -3,10 +3,14 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     determine_ext,
     js_to_json,
     str_or_none,
+    unified_strdate,
+    url_or_none,
 )
 from ..utils.traversal import traverse_obj
 
@@ -155,4 +159,124 @@ class SubstackIE(InfoExtractor):
             'uploader': traverse_obj(webpage_info, ('pub', 'name')),
             'uploader_id': str_or_none(traverse_obj(webpage_info, ('post', 'publication_id'))),
             'webpage_url': canonical_url,
+        }
+
+
+class SubstackLiveIE(InfoExtractor):
+    _VALID_URL = r'https?://[\w-]+\.substack.com/(?:publish/)?live-stream/(?P<id>[^/?#&]+)'
+    _TESTS = [{
+        # Public VOD
+        'url': 'https://open.substack.com/live-stream/224053',
+        'info_dict': {
+            'id': '224053',
+            'ext': 'mp4',
+            'title': 'Live with NAIEM AHEMAD',
+            'uploader': 'NAIEM AHEMAD',
+            'uploader_id': '370419928',
+            'upload_date': '20260601',
+            'availability': 'public',
+            'live_status': 'was_live',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # Live
+        'url': 'https://open.substack.com/live-stream/224089',
+        'info_dict': {
+            'id': '224089',
+            'ext': 'mp4',
+            'title': 'Live with NAIEM AHEMAD 2026-06-01 17:58',
+            'uploader': 'NAIEM AHEMAD',
+            'uploader_id': '370419928',
+            'upload_date': '20260601',
+            'availability': 'public',
+            'live_status': 'is_live',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # Subscribers_Only Live
+        'url': 'https://open.substack.com/live-stream/224078',
+        'info_dict': {
+            'id': '224078',
+            'ext': 'mp4',
+            'title': 'Live with NAIEM AHEMAD 2026-06-01 17:53',
+            'uploader': 'NAIEM AHEMAD',
+            'uploader_id': '370419928',
+            'upload_date': '20260601',
+            'live_status': 'is_live',
+        },
+        'params': {'skip_download': 'm3u8'},
+        'skip': 'Login required',
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        try:
+            live_data = self._download_json(
+                f'https://open.substack.com/api/v1/live_stream/{video_id}',
+                video_id)['activeLiveStream']
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status in (400, 404):
+                raise ExtractorError(f'Live stream not Found. {video_id}', expected=True)
+            raise
+
+        live_metadata = live_data['liveStream']
+
+        live_status = 'is_upcoming'
+        scheduled_at = live_metadata.get('scheduled_at')
+
+        _status = live_metadata.get('status')
+        if _status == 'scheduled':
+            self.raise_no_formats(
+                f'Live stream is scheduled {f"at {scheduled_at}" if scheduled_at else ""}', expected=True)
+        elif _status == 'pending':
+            self.raise_no_formats('User not stated yet', expected=True)
+        elif _status == 'idle':
+            if not live_metadata.get('started_streaming_at'):
+                self.raise_no_formats('Live stream will start soon', expected=True)
+            elif traverse_obj(live_data, ('liveStreamInformation', 'isReplayEligible', {bool})):
+                live_status = 'was_live'
+                self.to_screen('Live stream is ended, extracting replay')
+            else:
+                live_status = 'not_live'
+                self.raise_no_formats('Live stream is ended', expected=True)
+        elif _status == 'active':
+            live_status = 'is_live'
+        else:
+            self.raise_no_formats(f'Unkown status found {_status}', expected=True)
+
+        formats = []
+        for playback_url in traverse_obj(live_data, (
+            'liveStreamInformation', ('playbackUrl', 'desktopPlaybackUrl'), {url_or_none},
+        )):
+            ext = determine_ext(playback_url)
+            if ext == 'm3u8':
+                formats.extend(self._extract_m3u8_formats(playback_url, video_id, 'mp4', m3u8_id='hls', fatal=False))
+            elif ext == 'mpd':
+                formats.extend(self._extract_mpd_formats(playback_url, video_id, mpd_id='dash', fatal=False))
+            else:
+                self.report_warning(f'Skipping unsupported format: {ext}', video_id=video_id)
+
+        availablity = False
+        if not formats:
+            audience = live_metadata.get('audience')
+            if audience in ('only_founding', 'only_free'):
+                self.raise_login_required(f'This live stream is only for {"founding" if audience == "only_founding" else ""} subscribers', metadata_available=True)
+                availablity = True
+
+        return {
+            'id': video_id,
+            **traverse_obj(live_metadata, {
+                'title': ('title', {str}),
+                'upload_date': ('created_at', {unified_strdate}),
+                'description': ('description', {str}),
+                'uploader_id': ('user_id', {int}, {str_or_none}),
+            }),
+            'release_timestamp': scheduled_at,
+            'availability': self._availability(needs_subscription=availablity) or 'public',
+            'live_status': live_status,
+            **traverse_obj(live_data, ('user', {
+                'uploader': ('name', {str}),
+                'uploader_url': ('line', {url_or_none}),
+            })),
+            'formats': formats,
         }
