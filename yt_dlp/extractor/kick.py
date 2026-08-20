@@ -30,9 +30,10 @@ class KickBaseIE(InfoExtractor):
 
     @functools.cached_property
     def _api_headers(self):
-        cookies = self._get_cookies(self._BASE_URL)
-        token = traverse_obj(cookies, (
-            'session_token', 'value', {urllib.parse.unquote}))
+        token = traverse_obj(
+            self._get_cookies(self._BASE_URL),
+            ('session_token', 'value', {urllib.parse.unquote}))
+
         return {'Authorization': f'Bearer {token}'} if token else {}
 
     def _call_api(self, path, display_id, note='Downloading API JSON', headers={}, **kwargs):
@@ -74,8 +75,28 @@ class KickIE(KickBaseIE):
 
     _VALID_URL = r'https?://(?:www\.)?kick\.com/(?!(?:video|categories|search|auth)(?:[/?#]|$))(?P<id>[\w-]+)'
     _TESTS = [{
-        'url': 'https://kick.com/xqc',
-        'only_matching': True,
+        'url': 'https://kick.com/coringa',
+        'info_dict': {
+            'id': '123080397',
+            'ext': 'mp4',
+            'title': str,
+            'categories': 'count:1',
+            'channel': 'Coringa',
+            'channel_follower_count': int,
+            'channel_id': 'coringa',
+            'channel_is_verified': True,
+            'concurrent_view_count': int,
+            'description': str,
+            'live_status': 'is_live',
+            'release_date': r're:\d{8}',
+            'release_timestamp': int,
+            'thumbnail': r're:https?://.+',
+            'timestamp': int,
+            'upload_date': r're:\d{8}',
+            'uploader': 'Coringa',
+            'uploader_id': 'coringa',
+        },
+        'skip': 'Livestream',
     }]
 
     @classmethod
