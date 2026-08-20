@@ -43,6 +43,7 @@ class StreamingProtocol(enum.Enum):
     HTTPS = 'https'
     DASH = 'dash'
     HLS = 'hls'
+    SABR = 'sabr'
 
 
 @dataclasses.dataclass
@@ -71,6 +72,12 @@ class SubsPoTokenPolicy(BasePoTokenPolicy):
 WEB_PO_TOKEN_POLICIES = {
     'GVS_PO_TOKEN_POLICY': {
         StreamingProtocol.HTTPS: GvsPoTokenPolicy(
+            required=True,
+            recommended=True,
+            not_required_for_premium=True,
+            not_required_with_player_token=False,
+        ),
+        StreamingProtocol.SABR: GvsPoTokenPolicy(
             required=True,
             recommended=True,
             not_required_for_premium=True,
@@ -146,6 +153,12 @@ INNERTUBE_CLIENTS = {
                 not_required_for_premium=True,
                 not_required_with_player_token=False,
             ),
+            StreamingProtocol.SABR: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_for_premium=True,
+                not_required_with_player_token=False,
+            ),
             StreamingProtocol.DASH: GvsPoTokenPolicy(
                 required=True,
                 recommended=True,
@@ -171,6 +184,12 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
         'GVS_PO_TOKEN_POLICY': {
             StreamingProtocol.HTTPS: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_for_premium=True,
+                not_required_with_player_token=False,
+            ),
+            StreamingProtocol.SABR: GvsPoTokenPolicy(
                 required=True,
                 recommended=True,
                 not_required_for_premium=True,
@@ -205,6 +224,11 @@ INNERTUBE_CLIENTS = {
         'REQUIRE_JS_PLAYER': False,
         'GVS_PO_TOKEN_POLICY': {
             StreamingProtocol.HTTPS: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
+            StreamingProtocol.SABR: GvsPoTokenPolicy(
                 required=True,
                 recommended=True,
                 not_required_with_player_token=True,
@@ -281,6 +305,11 @@ INNERTUBE_CLIENTS = {
                 recommended=True,
                 not_required_with_player_token=True,
             ),
+            StreamingProtocol.SABR: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_with_player_token=True,
+            ),
             # HLS Livestreams require POT 30 seconds in
             StreamingProtocol.HLS: GvsPoTokenPolicy(
                 required=True,
@@ -321,6 +350,12 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 2,
         'GVS_PO_TOKEN_POLICY': {
             StreamingProtocol.HTTPS: GvsPoTokenPolicy(
+                required=True,
+                recommended=True,
+                not_required_for_premium=True,
+                not_required_with_player_token=False,
+            ),
+            StreamingProtocol.SABR: GvsPoTokenPolicy(
                 required=True,
                 recommended=True,
                 not_required_for_premium=True,
