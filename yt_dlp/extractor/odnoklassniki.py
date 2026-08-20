@@ -9,13 +9,13 @@ from ..utils import (
     int_or_none,
     qualities,
     smuggle_url,
-    traverse_obj,
     unescapeHTML,
     unified_strdate,
     unsmuggle_url,
     url_or_none,
     urlencode_postdata,
 )
+from ..utils.traversal import find_element, traverse_obj
 
 
 class OdnoklassnikiIE(InfoExtractor):
@@ -264,15 +264,15 @@ class OdnoklassnikiIE(InfoExtractor):
             note='Downloading desktop webpage',
             headers={'Referer': smuggled['referrer']} if smuggled.get('referrer') else {})
 
-        error = self._search_regex(
-            r'[^>]+class="vp_video_stub_txt"[^>]*>([^<]+)<',
-            webpage, 'error', default=None)
+        error = traverse_obj(webpage, {find_element(cls='vp_video_stub_txt')})
         # Direct link from boosty
         if (error == 'The author of this video has not been found or is blocked'
                 and not smuggled.get('referrer') and mode == 'videoembed'):
             return self._extract_desktop(smuggle_url(url, {'referrer': 'https://boosty.to'}))
         elif error:
             raise ExtractorError(error, expected=True)
+        elif '>Access to this video is restricted</div>' in webpage:
+            self.raise_login_required()
 
         player = self._parse_json(
             unescapeHTML(self._search_regex(
@@ -350,14 +350,6 @@ class OdnoklassnikiIE(InfoExtractor):
             'subtitles': subtitles,
         }
 
-        # pladform
-        if provider == 'OPEN_GRAPH':
-            info.update({
-                '_type': 'url_transparent',
-                'url': movie['contentId'],
-            })
-            return info
-
         if provider == 'USER_YOUTUBE':
             info.update({
                 '_type': 'url_transparent',
@@ -429,7 +421,7 @@ class OdnoklassnikiIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            f'http://m.ok.ru/video/{video_id}', video_id,
+            f'https://m.ok.ru/video/{video_id}', video_id,
             note='Downloading mobile webpage')
 
         error = self._search_regex(

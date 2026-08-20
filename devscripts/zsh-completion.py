@@ -18,9 +18,16 @@ def build_completion(opt_parser):
             for opt in group.option_list]
     opts_file = [opt for opt in opts if opt.metavar == 'FILE']
     opts_dir = [opt for opt in opts if opt.metavar == 'DIR']
+    opts_path = [opt for opt in opts if opt.metavar == 'PATH']
 
     fileopts = []
     for opt in opts_file:
+        if opt._short_opts:
+            fileopts.extend(opt._short_opts)
+        if opt._long_opts:
+            fileopts.extend(opt._long_opts)
+
+    for opt in opts_path:
         if opt._short_opts:
             fileopts.extend(opt._short_opts)
         if opt._long_opts:

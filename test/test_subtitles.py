@@ -14,10 +14,8 @@ from yt_dlp.extractor import (
     NRKTVIE,
     PBSIE,
     CeskaTelevizeIE,
-    ComedyCentralIE,
     DailymotionIE,
     DemocracynowIE,
-    LyndaIE,
     RaiPlayIE,
     RTVEALaCartaIE,
     TedTalkIE,
@@ -253,20 +251,6 @@ class TestCeskaTelevizeSubtitles(BaseTestSubtitles):
 
 @is_download_test
 @unittest.skip('IE broken')
-class TestLyndaSubtitles(BaseTestSubtitles):
-    url = 'http://www.lynda.com/Bootstrap-tutorials/Using-exercise-files/110885/114408-4.html'
-    IE = LyndaIE
-
-    def test_allsubtitles(self):
-        self.DL.params['writesubtitles'] = True
-        self.DL.params['allsubtitles'] = True
-        subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), {'en'})
-        self.assertEqual(md5(subtitles['en']), '09bbe67222259bed60deaa26997d73a7')
-
-
-@is_download_test
-@unittest.skip('IE broken')
 class TestNPOSubtitles(BaseTestSubtitles):
     url = 'http://www.npo.nl/nos-journaal/28-08-2014/POW_00722860'
     IE = NPOIE
@@ -277,23 +261,6 @@ class TestNPOSubtitles(BaseTestSubtitles):
         subtitles = self.getSubtitles()
         self.assertEqual(set(subtitles.keys()), {'nl'})
         self.assertEqual(md5(subtitles['nl']), 'fc6435027572b63fb4ab143abd5ad3f4')
-
-
-@is_download_test
-@unittest.skip('IE broken')
-class TestMTVSubtitles(BaseTestSubtitles):
-    url = 'http://www.cc.com/video-clips/p63lk0/adam-devine-s-house-party-chasing-white-swans'
-    IE = ComedyCentralIE
-
-    def getInfoDict(self):
-        return super().getInfoDict()['entries'][0]
-
-    def test_allsubtitles(self):
-        self.DL.params['writesubtitles'] = True
-        self.DL.params['allsubtitles'] = True
-        subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), {'en'})
-        self.assertEqual(md5(subtitles['en']), '78206b8d8a0cfa9da64dc026eea48961')
 
 
 @is_download_test

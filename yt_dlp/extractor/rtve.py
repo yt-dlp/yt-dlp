@@ -6,9 +6,11 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    InAdvancePagedList,
     clean_html,
     determine_ext,
     float_or_none,
+    int_or_none,
     make_archive_id,
     parse_iso8601,
     qualities,
@@ -371,3 +373,62 @@ class RTVETelevisionIE(InfoExtractor):
             raise ExtractorError('The webpage doesn\'t contain any video', expected=True)
 
         return self.url_result(play_url, ie=RTVEALaCartaIE.ie_key())
+
+
+class RTVEProgramIE(RTVEBaseIE):
+    IE_NAME = 'rtve.es:program'
+    IE_DESC = 'RTVE.es programs'
+    _VALID_URL = r'https?://(?:www\.)?rtve\.es/play/videos/(?P<id>[\w-]+)/?(?:[?#]|$)'
+    _TESTS = [{
+        'url': 'https://www.rtve.es/play/videos/saber-vivir/',
+        'info_dict': {
+            'id': '111570',
+            'title': 'Saber vivir - Programa de ciencia y futuro en RTVE Play',
+        },
+        'playlist_mincount': 400,
+    }]
+    _PAGE_SIZE = 60
+
+    def _fetch_page(self, program_id, page_num):
+        return self._download_json(
+            f'https://www.rtve.es/api/programas/{program_id}/videos',
+            program_id, note=f'Downloading page {page_num}',
+            query={
+                'type': 39816,
+                'page': page_num,
+                'size': 60,
+            })
+
+    def _entries(self, page_data):
+        for video in traverse_obj(page_data, ('page', 'items', lambda _, v: url_or_none(v['htmlUrl']))):
+            yield self.url_result(
+                video['htmlUrl'], RTVEALaCartaIE, url_transparent=True,
+                **traverse_obj(video, {
+                    'id': ('id', {str}),
+                    'title': ('longTitle', {str}),
+                    'description': ('shortDescription', {str}),
+                    'duration': ('duration', {float_or_none(scale=1000)}),
+                    'series': (('programInfo', 'title'), {str}, any),
+                    'season_number': ('temporadaOrden', {int_or_none}),
+                    'season_id': ('temporadaId', {str}),
+                    'season': ('temporada', {str}),
+                    'episode_number': ('episode', {int_or_none}),
+                    'episode': ('title', {str}),
+                    'thumbnail': ('thumbnail', {url_or_none}),
+                }),
+            )
+
+    def _real_extract(self, url):
+        program_slug = self._match_id(url)
+        program_page = self._download_webpage(url, program_slug)
+
+        program_id = self._html_search_meta('DC.identifier', program_page, 'Program ID', fatal=True)
+
+        first_page = self._fetch_page(program_id, 1)
+        page_count = traverse_obj(first_page, ('page', 'totalPages', {int})) or 1
+
+        entries = InAdvancePagedList(
+            lambda idx: self._entries(self._fetch_page(program_id, idx + 1) if idx else first_page),
+            page_count, self._PAGE_SIZE)
+
+        return self.playlist_result(entries, program_id, self._html_extract_title(program_page))

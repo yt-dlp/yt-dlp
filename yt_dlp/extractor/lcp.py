@@ -1,8 +1,8 @@
-from .arkena import ArkenaIE
 from .common import InfoExtractor
 
 
-class LcpPlayIE(ArkenaIE):  # XXX: Do not subclass from concrete IE
+class LcpPlayIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://play\.lcp\.fr/embed/(?P<id>[^/]+)/(?P<account_id>[^/]+)/[^/]+/[^/]+'
     _TESTS = [{
         'url': 'http://play.lcp.fr/embed/327336/131064/darkmatter/0',
@@ -21,24 +21,9 @@ class LcpPlayIE(ArkenaIE):  # XXX: Do not subclass from concrete IE
 
 
 class LcpIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?lcp\.fr/(?:[^/]+/)*(?P<id>[^/]+)'
-
     _TESTS = [{
-        # arkena embed
-        'url': 'http://www.lcp.fr/la-politique-en-video/schwartzenberg-prg-preconise-francois-hollande-de-participer-une-primaire',
-        'md5': 'b8bd9298542929c06c1c15788b1f277a',
-        'info_dict': {
-            'id': 'd56d03e9',
-            'ext': 'mp4',
-            'title': 'Schwartzenberg (PRG) préconise à François Hollande de participer à une primaire à gauche',
-            'description': 'md5:96ad55009548da9dea19f4120c6c16a8',
-            'timestamp': 1456488895,
-            'upload_date': '20160226',
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
         # dailymotion live stream
         'url': 'http://www.lcp.fr/le-direct',
         'info_dict': {

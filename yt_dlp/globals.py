@@ -1,3 +1,5 @@
+from __future__ import annotations
+import os
 from collections import defaultdict
 
 # Please Note: Due to necessary changes and the complex nature involved in the plugin/globals system,
@@ -28,3 +30,12 @@ plugin_ies_overrides = Indirect(defaultdict(list))
 # Misc
 IN_CLI = Indirect(False)
 LAZY_EXTRACTORS = Indirect(None)  # `False`=force, `None`=disabled, `True`=enabled
+WINDOWS_VT_MODE = Indirect(False if os.name == 'nt' else None)
+
+# JS Runtimes
+# If adding support for another runtime, register it here to allow `js_runtimes` option to accept it.
+# key is the runtime name, value a JsRuntime subclass (internal-only) or None
+supported_js_runtimes = Indirect({})
+
+# List of remote components supported with --remote-components option
+supported_remote_components = Indirect([])
