@@ -24,12 +24,12 @@ class VideaIE(InfoExtractor):
                         videa(?:kid)?\.hu/
                         (?:
                             videok/(?:[^/]+/)*[^?#&]+-|
-                            (?:videojs_)?player\?.*?\bv=|
+                            (?:videojs_)?player\?.*?\b(?:v|f)=|
                             player/v/
                         )
                         (?P<id>[^?#&]+)
                     '''
-    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//videa\.hu/player\?.*?\bv=.+?)\1']
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//videa\.hu/player\?.*?\b(?:v|f)=.+?)\1']
     _TESTS = [{
         'url': 'http://videa.hu/videok/allatok/az-orult-kigyasz-285-kigyot-kigyo-8YfIAjxwWGwT8HVQ',
         'md5': '97a7af41faeaffd9f1fc864a7c7e7603',
