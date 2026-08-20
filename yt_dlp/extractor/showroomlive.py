@@ -33,13 +33,10 @@ class ShowRoomLiveIE(InfoExtractor):
             url, broadcaster_id, headers={'Accept-Language': 'ja'})
         nuxt_data = self._search_nuxt_json(webpage, broadcaster_id)['data']
 
-        cookies = self._get_cookies(url)
-        sr_id = traverse_obj(cookies, ('sr_id', 'value', {str}, filter))
-        if not sr_id:
-            self.raise_login_required()
+        for key, value in nuxt_data.items():
+            if key.startswith(f'roomProfile-{broadcaster_id}'):
+                room_profile = value
 
-        room_profile = traverse_obj(nuxt_data, (
-            f'roomProfile-{broadcaster_id}-{sr_id}', {dict}))
         start_timestamp = traverse_obj(room_profile, ('current_live_started_at', {int_or_none}))
         is_live = traverse_obj(room_profile, ('is_onlive', {bool}))
 
@@ -70,10 +67,11 @@ class ShowRoomLiveIE(InfoExtractor):
             'streaming_url_list', lambda _, v: v['type'] == 'hls_all',
             'url', {url_or_none}, any, {require('m3u8 URL')}))
 
-        return {
+        info =  {
             'title': room_name,
             'channel': room_name,
             'channel_id': broadcaster_id,
+            'room_id': room_id,
             'formats': self._extract_m3u8_formats(m3u8_url, broadcaster_id, 'mp4'),
             'is_live': is_live,
             'release_timestamp': start_timestamp,
@@ -88,6 +86,8 @@ class ShowRoomLiveIE(InfoExtractor):
                 'view_count': ('view_num', {int_or_none}),
             }),
         }
+        print(info)
+        return info
 
 
 class ShowRoomVodIE(InfoExtractor):
