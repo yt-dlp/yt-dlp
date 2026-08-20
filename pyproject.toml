@@ -71,7 +71,7 @@ pin = [
     "brotli==1.2.0 ; implementation_name == 'cpython' and sys_platform != 'ios'",
     "brotlicffi==1.2.0.1 ; implementation_name != 'cpython'",
     "certifi==2026.7.22",
-    "charset-normalizer==3.4.9",
+    "charset-normalizer==3.5.0",
     "idna==3.18",
     "mutagen==1.48.1",
     "pycryptodomex==3.23.0",
@@ -119,7 +119,7 @@ dev = [
     {include-group = "test"},
 ]
 pyinstaller = [
-    "pyinstaller>=6.17.0",
+    "pyinstaller==6.22.0",
 ]
 delocate = [
     "delocate>=0.13.0 ; sys_platform == 'darwin'",
