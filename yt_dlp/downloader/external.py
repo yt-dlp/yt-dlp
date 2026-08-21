@@ -27,6 +27,7 @@ from ..utils import (
     traverse_obj,
     version_tuple,
 )
+from ..utils.networking import clean_proxies, select_proxy
 
 
 class Features(enum.Enum):
@@ -191,6 +192,15 @@ class ExternalFD(FragmentFD):
     def _call_process(self, cmd, info_dict):
         return Popen.run(cmd, text=True, stderr=subprocess.PIPE if self._CAPTURE_STDERR else None)
 
+    def _select_proxy(self, info_dict):
+        url = info_dict.get('url')
+        headers = info_dict.get('http_headers')
+        if headers is None or not url:
+            return False
+        proxies = self.ydl.proxies.copy()
+        clean_proxies(proxies, headers.copy())
+        return select_proxy(url, proxies)
+
 
 class CurlFD(ExternalFD):
     AVAILABLE_OPT = '-V'
@@ -291,12 +301,48 @@ class WgetFD(ExternalFD):
                 retry[1] = '0'
             cmd += retry
         cmd += self._option('--bind-address', 'source_address')
-        proxy = self.params.get('proxy')
+        proxy = self._select_proxy(info_dict)
         if proxy:
             for var in ('http_proxy', 'https_proxy'):
                 cmd += ['--execute', f'{var}={proxy}']
         cmd += self._valueless_option('--no-check-certificate', 'nocheckcertificate')
         cmd += self._configuration_args()
+        cmd += ['--', info_dict['url']]
+        return cmd
+
+
+class Wget2FD(ExternalFD):
+    AVAILABLE_OPT = '--version'
+    SUPPORTED_PROTOCOLS = ('http', 'https')
+    _DEFAULT_CHUNK_SIZE = 10 << 20
+
+    def _make_cmd(self, tmpfilename, info_dict):
+        cmd = [self.exe, '--no-config']
+        cmd += self._bool_option('--verbose', 'verbose', 'on', 'off', '=')
+        cmd += self._valueless_option('--progress=none', 'noprogress')
+        cmd += ['--https-enforce=soft']
+        cmd += ['--keep-session-cookies', '--load-cookies', self._write_cookies()]
+        chunk_size = self.params.get('http_chunk_size')
+        if chunk_size is None:
+            chunk_size = info_dict.get('downloader_options', {}).get('http_chunk_size', self._DEFAULT_CHUNK_SIZE)
+        if chunk_size:
+            cmd += [f'--chunk-size={chunk_size}']
+        if info_dict.get('http_headers') is not None:
+            for key, val in info_dict['http_headers'].items():
+                cmd += [f'--header={key}: {val}']
+        cmd += self._option('--limit-rate', 'ratelimit')
+        retry = self._option('--tries', 'retries')
+        if len(retry) == 2:
+            if retry[1] in ('inf', 'infinite'):
+                retry[1] = '0'
+            cmd += retry
+        cmd += self._option('--bind-address', 'source_address')
+        proxy = self._select_proxy(info_dict)
+        if proxy:
+            cmd += [f'--http-proxy={proxy}', f'--https-proxy={proxy}']
+        cmd += self._valueless_option('--no-check-certificate', 'nocheckcertificate')
+        cmd += self._configuration_args()
+        cmd += ['--timestamping', '--unlink', f'--output-document={tmpfilename}']
         cmd += ['--', info_dict['url']]
         return cmd
 
