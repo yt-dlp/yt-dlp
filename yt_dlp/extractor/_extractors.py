@@ -1222,6 +1222,7 @@ from .nhk import (
 from .nhl import NHLIE
 from .nick import NickIE
 from .niconico import (
+    NiconicoChannelIE,
     NiconicoHistoryIE,
     NiconicoIE,
     NiconicoLiveIE,
