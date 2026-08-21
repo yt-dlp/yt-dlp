@@ -15,6 +15,7 @@ import re
 import traceback
 
 from .cookies import CookieLoadError, parse_browser_specification_string
+from .utils._jsruntime import parse_js_runtimes
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
@@ -762,9 +763,7 @@ def parse_options(argv=None):
         else opts.audioformat if (opts.extractaudio and opts.audioformat in FFmpegExtractAudioPP.SUPPORTED_EXTS)
         else None)
 
-    js_runtimes = {
-        runtime.lower(): {'path': path} for runtime, path in (
-            [*arg.split(':', 1), None][:2] for arg in opts.js_runtimes)}
+    js_runtimes = parse_js_runtimes(opts.js_runtimes)
 
     return ParsedOptions(parser, opts, urls, {
         'usenetrc': opts.usenetrc,

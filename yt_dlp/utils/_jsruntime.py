@@ -13,6 +13,13 @@ from ._utils import _get_exe_version_output, detect_exe_version, version_tuple
 _FALLBACK_PATHEXT = ('.COM', '.EXE', '.BAT', '.CMD')
 
 
+def parse_js_runtimes(args):
+    """@returns the `js_runtimes` parameter for a sequence of RUNTIME[:PATH] arguments"""
+    return {
+        runtime.lower(): {'path': path} for runtime, path in (
+            [*arg.split(':', 1), None][:2] for arg in args)}
+
+
 def _find_exe(basename: str) -> str:
     # Check in Python "scripts" path, e.g. for pipx-installed binaries
     binary = os.path.join(
