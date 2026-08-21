@@ -6,6 +6,7 @@ import dataclasses
 import json
 import os
 
+from ..cookies import SUPPORTED_BROWSERS, parse_browser_specification_string
 from ..utils import get_user_config_dirs, parse_bytes
 
 SETTINGS_FILENAME = 'gui-settings.json'
@@ -14,7 +15,7 @@ DEFAULT_OUTPUT_TEMPLATE = '%(title)s [%(id)s].%(ext)s'
 QUALITY_CHOICES = ('best', '2160', '1440', '1080', '720', '480', '360')
 VIDEO_CONTAINERS = ('mp4', 'mkv', 'webm', 'best')
 AUDIO_FORMATS = ('mp3', 'm4a', 'opus', 'flac', 'wav', 'best')
-BROWSER_CHOICES = ('', 'brave', 'chrome', 'chromium', 'edge', 'firefox', 'opera', 'safari', 'vivaldi')
+BROWSER_CHOICES = ('', *sorted(SUPPORTED_BROWSERS))
 SPONSORBLOCK_CATEGORIES = ('sponsor', 'selfpromo', 'interaction')
 
 MODE_VIDEO = 'video'
@@ -167,8 +168,9 @@ class Settings:
                 lang.strip() for lang in self.subtitle_langs.split(',') if lang.strip()] or ['en']
         if self.embed_thumbnail:
             params['writethumbnail'] = True
-        if self.cookies_from_browser:
-            params['cookiesfrombrowser'] = (self.cookies_from_browser, None, None, None)
+        if self.cookies_from_browser.strip():
+            params['cookiesfrombrowser'] = parse_browser_specification_string(
+                self.cookies_from_browser.strip())
         if self.proxy.strip():
             params['proxy'] = self.proxy.strip()
         if self.use_archive:

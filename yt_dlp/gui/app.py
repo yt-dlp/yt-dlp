@@ -21,7 +21,7 @@ EVENT_BUDGET = 400
 LOG_LIMIT = 2000
 PROGRESS_WIDTH = 14
 
-ENTRY, COMBO, CHECK, SPIN = 'entry', 'combo', 'check', 'spin'
+ENTRY, COMBO, EDITABLE, CHECK, SPIN = 'entry', 'combo', 'editable', 'check', 'spin'
 
 FORMAT_FIELDS = (
     (COMBO, 'quality', 'Maximum height', config.QUALITY_CHOICES),
@@ -47,7 +47,7 @@ ADVANCED_FIELDS = (
     (CHECK, 'overwrite', 'Overwrite existing files'),
     (CHECK, 'use_archive', 'Keep a download archive'),
     (CHECK, 'verbose', 'Show debug messages in the log'),
-    (COMBO, 'cookies_from_browser', 'Cookies from browser', config.BROWSER_CHOICES),
+    (EDITABLE, 'cookies_from_browser', 'Cookies from browser', config.BROWSER_CHOICES),
     (ENTRY, 'proxy', 'Proxy'),
     (ENTRY, 'rate_limit', 'Rate limit'),
     (SPIN, 'concurrency', 'Simultaneous downloads', (1, 8)),
@@ -241,9 +241,10 @@ class YtDlpGUI:
                 continue
 
             ttk.Label(parent, text=label).grid(row=row, column=0, sticky='w', padx=(0, 8), pady=2)
-            if kind == COMBO:
+            if kind in (COMBO, EDITABLE):
                 widget = ttk.Combobox(
-                    parent, textvariable=variable, values=list(extra[0]), state='readonly')
+                    parent, textvariable=variable, values=list(extra[0]),
+                    state='readonly' if kind == COMBO else 'normal')
             elif kind == SPIN:
                 minimum, maximum = extra[0]
                 widget = ttk.Spinbox(parent, textvariable=variable, from_=minimum, to=maximum, width=6)
@@ -331,8 +332,14 @@ class YtDlpGUI:
             messagebox.showerror('yt-dlp', f'The download folder does not exist:\n{settings.output_dir}')
             return False
 
+        try:
+            params = settings.to_params()
+        except ValueError as error:
+            messagebox.showerror('yt-dlp', str(error))
+            return False
+
         self.manager.set_concurrency(settings.concurrency)
-        self.manager.submit(url, settings.to_params())
+        self.manager.submit(url, params)
         return True
 
     def _import_urls(self):
