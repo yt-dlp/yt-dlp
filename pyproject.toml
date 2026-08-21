@@ -142,6 +142,7 @@ Funding = "https://github.com/yt-dlp/yt-dlp/blob/master/Maintainers.md#maintaine
 
 [project.scripts]
 yt-dlp = "yt_dlp:main"
+yt-dlp-gui = "yt_dlp.gui:main"
 
 [project.entry-points.pyinstaller40]
 hook-dirs = "yt_dlp.__pyinstaller:get_hook_dirs"
