@@ -199,7 +199,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 raise EmbedThumbnailPPError('module mutagen was not found. Please install using `python3 -m pip install mutagen`')
 
             self._report_run('mutagen', filename)
-            f = {'opus': OggOpus, 'flac': FLAC, 'ogg': OggVorbis}[info['ext']](filename)
+            f = {'opus': OggOpus, 'flac': FLAC, 'ogg': OggVorbis}[info['acodec']](filename)
 
             pic = Picture()
             pic.mime = f'image/{imghdr.what(thumbnail_filename)}'
