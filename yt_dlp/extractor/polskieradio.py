@@ -1,13 +1,12 @@
 import itertools
 import json
-import math
 import re
 import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    InAdvancePagedList,
+    OnDemandPagedList,
     determine_ext,
     extract_attributes,
     int_or_none,
@@ -228,31 +227,13 @@ class PolskieRadioAuditionIE(InfoExtractor):
         'playlist_mincount': 38,
     }, {
         # episodes, PR1
-        'url': 'https://jedynka.polskieradio.pl/audycje/5769',
+        'url': 'https://jedynka.polskieradio.pl/audycje/4417',
         'info_dict': {
-            'id': '5769',
-            'title': 'AgroFakty',
+            'id': '4417',
+            'title': '100 sekund polszczyzny',
             'thumbnail': r're:https://static\.prsa\.pl/images/.+',
         },
-        'playlist_mincount': 269,
-    }, {
-        # both episodes and articles, PR3
-        'url': 'https://trojka.polskieradio.pl/audycja/8906',
-        'info_dict': {
-            'id': '8906',
-            'title': 'Trójka budzi',
-            'thumbnail': r're:https://static\.prsa\.pl/images/.+',
-        },
-        'playlist_mincount': 722,
-    }, {
-        # some articles were "promoted to main page" and thus link to old frontend
-        'url': 'https://trojka.polskieradio.pl/audycja/305',
-        'info_dict': {
-            'id': '305',
-            'title': 'Co w mowie piszczy?',
-            'thumbnail': r're:https://static\.prsa\.pl/images/.+',
-        },
-        'playlist_count': 1523,
+        'playlist_mincount': 400,
     }]
 
     def _call_lp3(self, path, query, video_id, note):
@@ -322,17 +303,17 @@ class PolskieRadioCategoryIE(InfoExtractor):
     IE_NAME = 'polskieradio:category'
     _VALID_URL = r'https?://(?:www\.)?polskieradio\.pl/(?:\d+(?:,[^/]+)?/|[^/]+/Tag)(?P<id>\d+)'
     _TESTS = [{
-        'url': 'http://www.polskieradio.pl/37,RedakcjaKatolicka/4143,Kierunek-Krakow',
+        'url': 'https://www.polskieradio.pl/37,RedakcjaKatolicka/4143,Kierunek-Krakow',
         'info_dict': {
             'id': '4143',
-            'title': 'Kierunek Kraków',
+            'title': 'Kierunek Kraków - Redakcja Programów Katolickich',
         },
         'playlist_mincount': 61,
     }, {
-        'url': 'http://www.polskieradio.pl/10,czworka/214,muzyka',
+        'url': 'https://www.polskieradio.pl/10,czworka/214,muzyka',
         'info_dict': {
             'id': '214',
-            'title': 'Muzyka',
+            'title': 'Muzyka - Czwórka',
         },
         'playlist_mincount': 61,
     }, {
@@ -340,14 +321,14 @@ class PolskieRadioCategoryIE(InfoExtractor):
         'url': 'https://www.polskieradio.pl/8/2385',
         'info_dict': {
             'id': '2385',
-            'title': 'Droga przez mąkę',
+            'title': 'Droga przez mąkę - Dwójka',
         },
-        'playlist_mincount': 111,
+        'playlist_mincount': 90,
     }, {
         'url': 'https://www.polskieradio.pl/10/4930',
         'info_dict': {
             'id': '4930',
-            'title': 'Teraz K-pop!',
+            'title': 'Teraz K-pop! - Czwórka',
         },
         'playlist_mincount': 392,
     }, {
@@ -355,18 +336,18 @@ class PolskieRadioCategoryIE(InfoExtractor):
         'url': 'https://www.polskieradio.pl/8,dwojka/7376,nowa-mowa',
         'info_dict': {
             'id': '7376',
-            'title': 'Nowa mowa',
+            'title': 'Nowa mowa - Dwójka',
         },
         'playlist_mincount': 244,
     }, {
         'url': 'https://www.polskieradio.pl/Krzysztof-Dziuba/Tag175458',
         'info_dict': {
             'id': '175458',
-            'title': 'Krzysztof Dziuba',
+            'title': 'Krzysztof Dziuba w PolskieRadio.pl',
         },
-        'playlist_mincount': 420,
+        'playlist_mincount': 330,
     }, {
-        'url': 'http://www.polskieradio.pl/8,Dwojka/196,Publicystyka',
+        'url': 'https://www.polskieradio.pl/8,Dwojka/196,Publicystyka',
         'only_matching': True,
     }]
 
@@ -437,9 +418,7 @@ class PolskieRadioCategoryIE(InfoExtractor):
         webpage, urlh = self._download_webpage_handle(url, category_id)
         if PolskieRadioAuditionIE.suitable(urlh.url):
             return self.url_result(urlh.url, PolskieRadioAuditionIE, category_id)
-        title = self._html_search_regex(
-            r'<title>([^<]+)(?: - [^<]+ - [^<]+| w [Pp]olskie[Rr]adio\.pl\s*)</title>',
-            webpage, 'title', fatal=False)
+        title = self._og_search_title(webpage)
         return self.playlist_result(
             self._entries(url, webpage, category_id),
             category_id, title)
@@ -447,7 +426,7 @@ class PolskieRadioCategoryIE(InfoExtractor):
 
 class PolskieRadioPlayerIE(InfoExtractor):
     IE_NAME = 'polskieradio:player'
-    _VALID_URL = r'https?://player\.polskieradio\.pl/anteny/(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?player\.polskieradio\.pl/anteny/(?P<id>[^/]+)'
 
     _BASE_URL = 'https://player.polskieradio.pl'
     _PLAYER_URL = 'https://player.polskieradio.pl/main.bundle.js'
@@ -458,7 +437,10 @@ class PolskieRadioPlayerIE(InfoExtractor):
         'info_dict': {
             'id': '3',
             'ext': 'm4a',
-            'title': 'Trójka',
+            'title': r're:^Trójka \d{4}-(?:1[0-2]|0\d)-[0-3]\d [0-2]\d:[0-6]\d$',
+            'display_id': 'trojka',
+            'live_status': 'is_live',
+            'thumbnail': 'https://player.polskieradio.pl/images/trojka-color-logo.png',
         },
         'params': {
             'format': 'bestaudio',
@@ -471,7 +453,7 @@ class PolskieRadioPlayerIE(InfoExtractor):
             self._PLAYER_URL, channel_url,
             note='Downloading js player')
         channel_list = js_to_json(self._search_regex(
-            r';var r="anteny",a=(\[.+?\])},', player_code, 'channel list'))
+            r';var n="anteny",o=(\[.+?\])},', player_code, 'channel list'))
         return self._parse_json(channel_list, channel_url)
 
     def _real_extract(self, url):
@@ -498,16 +480,9 @@ class PolskieRadioPlayerIE(InfoExtractor):
         formats = []
         for stream_url in station['Streams']:
             stream_url = self._proto_relative_url(stream_url)
+            stream_url = urllib.parse.urlparse(stream_url)._replace(scheme='https').geturl()
             if stream_url.endswith('/playlist.m3u8'):
                 formats.extend(self._extract_m3u8_formats(stream_url, channel_url, live=True))
-            elif stream_url.endswith('/manifest.f4m'):
-                formats.extend(self._extract_mpd_formats(stream_url, channel_url))
-            elif stream_url.endswith('/Manifest'):
-                formats.extend(self._extract_ism_formats(stream_url, channel_url))
-            else:
-                formats.append({
-                    'url': stream_url,
-                })
 
         return {
             'id': str(channel['id']),
@@ -520,90 +495,140 @@ class PolskieRadioPlayerIE(InfoExtractor):
 
 
 class PolskieRadioPodcastBaseIE(InfoExtractor):
-    _API_BASE = 'https://apipodcasts.polskieradio.pl/api'
+    _API_BASE = 'https://static.prsa.pl'
+    _BASE_URL = 'https://podcasty.polskieradio.pl'
 
-    def _parse_episode(self, data):
+    def _parse_episode(self, webpage, podcast_id):
         return {
-            'id': data['guid'],
-            'formats': [{
-                'url': data['url'],
-                'filesize': int_or_none(data.get('fileSize')),
-            }],
-            'title': data['title'],
-            'description': data.get('description'),
-            'duration': int_or_none(data.get('length')),
-            'timestamp': parse_iso8601(data.get('publishDate')),
-            'thumbnail': url_or_none(data.get('image')),
-            'series': data.get('podcastTitle'),
-            'episode': data['title'],
+            'id': podcast_id,
+            'url': f'{self._API_BASE}/{podcast_id}.mp3',
+            'ext': 'mp3',
+            'title': self._og_search_title(webpage),
+            # `default` is empty to avoid printing bug warning; episodes may not have descriptions
+            'description': self._og_search_description(webpage, default=''),
+            'thumbnail': url_or_none(self._og_search_thumbnail(webpage)),
+            'series': self._html_search_meta('author', webpage),
+            'episode': self._og_search_title(webpage),
         }
 
 
 class PolskieRadioPodcastListIE(PolskieRadioPodcastBaseIE):
     IE_NAME = 'polskieradio:podcast:list'
-    _VALID_URL = r'https?://podcasty\.polskieradio\.pl/podcast/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?podcasty\.polskieradio\.pl(?:/.+)+,(?P<id>\d+)(?=(\?page=\d+)?$)'
     _TESTS = [{
-        'url': 'https://podcasty.polskieradio.pl/podcast/8/',
+        'url': 'https://podcasty.polskieradio.pl/podcast/szalenstwa-panny-ewy-czii-kornel-makuszynski,642?page=2',
         'info_dict': {
-            'id': '8',
-            'title': 'Śniadanie w Trójce',
-            'description': 'md5:57abcc27bc4c6a6b25baa3061975b9ef',
-            'uploader': 'Beata Michniewicz',
+            'id': '642',
+            'title': 'Szaleństwa Panny Ewy cz.II - Kornel Makuszyński',
+            'description': '"Szaleństwa panny Ewy" - także dzięki wspaniałemu serialowi telewizyjnemu z 1985 r. - to jedna z najsłynniejszych powieści Makuszyńskiego. Powstawała w czasie II wojny światowej, jako remedium na mrok i okrucieństwa niemieckiej okupacji. Ukazała się dopiero w 1957 r. Tytułowa bohaterka to 16-letnia Ewa Tyszowska, córka znanego profesora mikrobiologii, która na swojej drodze spotyka mnóstwo beznadziejnych spraw, do ich rozwiązania przyczynia się dzięki swojemu urokowi i sprytowi.',
+            'thumbnail': 'https://static.prsa.pl/images/b7d258e6-07b4-413a-b7fe-276cc663ce55.jpg',
+            'series': 'Szaleństwa Panny Ewy cz.II - Kornel Makuszyński',
         },
-        'playlist_mincount': 714,
+        'playlist_mincount': 18,
+    }, {
+        'url': 'https://podcasty.polskieradio.pl/dla-zagranicy-west/podcasty/fakebusters-with-polish-radio-,519',
+        'info_dict': {
+            'id': '519',
+            'title': 'Fakebusters with Polish Radio ',
+            'description': 'Fakebusters with Polish Radio is our weekly program focusing on disinformation and cybersecurity in the modern world. Tune in to learn how to debunk fake news, explore the history of media propaganda, and discover strategies to combat Internet noise.',
+            'thumbnail': 'https://static.prsa.pl/images/35eb56d6-a151-4c22-a084-ed0dab47540f.jpg',
+            'series': 'Fakebusters with Polish Radio ',
+        },
+        'playlist_mincount': 45,
+    }, {
+        'url': 'https://www.podcasty.polskieradio.pl/jedynka/podcasty/polityka-w-skrocie-jacka-czarneckiego,706',
+        'info_dict': {
+            'id': '706',
+            'title': 'Polityka w skrócie Jacka Czarneckiego',
+            'description': 'Polska, świat, polityka. Bieżące komentarze o tym, co najważniejsze. W poniedziałki, środy i piątki zawsze po godz. 8.40. Zaprasza Jacek Czarnecki.',
+            'thumbnail': 'https://static.prsa.pl/images/eeb4cff9-8cf5-48c5-b525-6dbad75b441d.jpg',
+            'series': 'Polityka w skrócie Jacka Czarneckiego',
+        },
+        'playlist_mincount': 16,
+    }, {
+        'url': 'https://www.podcasty.polskieradio.pl/trojka/audycje/cos-mi-swita,10648',
+        'info_dict': {
+            'id': '10648',
+            'title': 'Coś Mi Świta - Trójka - Program Trzeci Polskiego Radia',
+            'description': '.',
+            'thumbnail': 'https://static.prsa.pl/images/b25aa587-40eb-4ae9-b742-88731683721e.file?format=700',
+            'series': 'Coś Mi Świta - Trójka - Program Trzeci Polskiego Radia',
+        },
+        'playlist_mincount': 160,
     }]
     _PAGE_SIZE = 10
 
-    def _call_api(self, podcast_id, page):
-        return self._download_json(
-            f'{self._API_BASE}/Podcasts/{podcast_id}/?pageSize={self._PAGE_SIZE}&page={page}',
-            podcast_id, f'Downloading page {page}')
-
     def _real_extract(self, url):
-        podcast_id = self._match_id(url)
-        data = self._call_api(podcast_id, 1)
+        def get_page_episodes(page_num):
+            page_data = self._download_webpage(page_url := f'{url}?page={page_num + 1}', page_url)
+            episode_urls = re.findall(r'(?<=<a href=\")(?P<url>/[^<>]+odcinek/[^<>]+,(?P<id>[a-f\d]{8}(?:-[a-f\d]{4}){4}[a-f\d]{8}))(?=\">)', page_data)
+            yield from (self._parse_episode(self._download_webpage(parsed_url := f'{self._BASE_URL}{ep_url}', parsed_url), ep_id)
+                        for ep_url, ep_id in episode_urls)
 
-        def get_page(page_num):
-            page_data = self._call_api(podcast_id, page_num + 1) if page_num else data
-            yield from (self._parse_episode(ep) for ep in page_data['items'])
-
+        list_id = self._match_id(url)
+        url = url.split('?page=')[0]
+        webpage = self._download_webpage(url, url)
         return {
             '_type': 'playlist',
-            'entries': InAdvancePagedList(
-                get_page, math.ceil(data['itemCount'] / self._PAGE_SIZE), self._PAGE_SIZE),
-            'id': str(data['id']),
-            'title': data.get('title'),
-            'description': data.get('description'),
-            'uploader': data.get('announcer'),
+            'id': list_id,
+            'title': self._og_search_title(webpage),
+            'description': self._og_search_description(webpage, default=''),
+            'thumbnail': url_or_none(self._og_search_thumbnail(webpage)),
+            'series': self._og_search_title(webpage),
+            'entries': OnDemandPagedList(
+                get_page_episodes, self._PAGE_SIZE),
         }
 
 
 class PolskieRadioPodcastIE(PolskieRadioPodcastBaseIE):
     IE_NAME = 'polskieradio:podcast'
-    _VALID_URL = r'https?://podcasty\.polskieradio\.pl/track/(?P<id>[a-f\d]{8}(?:-[a-f\d]{4}){4}[a-f\d]{8})'
+    _VALID_URL = r'https?://(?:www\.)?(?:podcasty\.)?polskieradio\.pl/.+,(?P<id>[a-f\d]{8}(?:-[a-f\d]{4}){4}[a-f\d]{8})$'
     _TESTS = [{
-        'url': 'https://podcasty.polskieradio.pl/track/6eafe403-cb8f-4756-b896-4455c3713c32',
+        'url': 'https://podcasty.polskieradio.pl/dwojka/audycje/natura-poezji,11604/odcinek/swiat-po-porannym-deszczu-i-granice-jabloni,0cdee2d7-b022-4564-9bc1-a9a02c48516a',
         'info_dict': {
-            'id': '6eafe403-cb8f-4756-b896-4455c3713c32',
+            'id': '0cdee2d7-b022-4564-9bc1-a9a02c48516a',
+            'title': 'Natura poezji - Dwojka - Program Drugi Polskiego Radia - Świat po porannym deszczu i granice jabłoni',
+            'description': 'Natura poezji - Dzika, wielojęzyczna, zmysłowa, niezrozumiała - jaka jest natura poezji? W cyklu pod takim właśnie tytułem poszukamy jej wspólnie z Julią Fiedorczuk - poetką, tłumaczką, proziczką, eseistką i profesorką literaturoznawstwa . Podstawowym tropem w tej wyprawie będą czytane z bliska wiersze, w których odbija się świat przyrody. Przyjrzymy się dopływom do polszczyzny, mającym źródła w literaturze anglosaskiej - sięgając między innymi po tomy Gary\'ego Snydera, Forresta Grandera i Alice Oswald, ale z też z kultur antycznych i rdzennych.\r\nZapraszam co drugą niedzielę o 14.00 - Katarzyna Hagmajer-Kwiatek',
             'ext': 'mp3',
-            'title': 'Theresa May rezygnuje. Co dalej z brexitem?',
-            'description': 'md5:e41c409a29d022b70ef0faa61dbded60',
-            'episode': 'Theresa May rezygnuje. Co dalej z brexitem?',
-            'duration': 2893,
-            'thumbnail': 'https://static.prsa.pl/images/58649376-c8a0-4ba2-a714-78b383285f5f.jpg',
-            'series': 'Raport o stanie świata',
+            'thumbnail': 'https://static.prsa.pl/images/df79c8a9-849e-406c-a19c-bbcf05f66a87.file?format=700',
+            'series': 'Natura poezji',
+            'episode': 'Natura poezji - Dwojka - Program Drugi Polskiego Radia - Świat po porannym deszczu i granice jabłoni',
+        },
+    }, {
+        'url': 'https://podcasty.polskieradio.pl/podcast/teatr-polskiego-radia-dramat,464/odcinek/kazdy-czlowiek-jest-wymyslony-malgorzaty-sikorskiej-miszczuk-w-rezyserii-katarzyny-leckiej,6bc0e4d8-68a0-4350-a5ff-4370f374f3ab',
+        'info_dict': {
+            'id': '6bc0e4d8-68a0-4350-a5ff-4370f374f3ab',
+            'title': '"Każdy człowiek jest wymyślony" Małgorzaty Sikorskiej-Miszczuk w reżyserii Katarzyny Łęckiej',
+            'description': 'Adam i Ida mają po czterdzieści kilka lat. Kiedyś byli parą. Po ich związku zostały wspomnienia, kilka niezabliźnionych ran i... suka rasy Akita, która do dziś przypomina im o tym, co było. Choć od rozstania minęło już sporo czasu, oboje wciąż noszą w sobie przekonanie, że to, co ich łączyło, było czymś wyjątkowym. Teraz spotykają się przypadkiem. Adam, lekarz, wykonuje testy na Covid. Ida, chora, trafia właśnie do niego. Od tej chwili zaczynają rozmawiać codziennie. Oficjalnie, jako pacjentka i jej lekarz rodzinny. Nieoficjalnie, jako ludzie, którzy kiedyś byli sobie bardzo bliscy. I może wciąż są. Reżyseria: Katarzyna Łęcka. Reżyseria dźwięku: Andrzej Brzoska. Muzyka: Szymon Burnos. Kierownictwo produkcji: Beata Jankowska. Obsada: Grażyna Wolszczak i Bartosz Opania',
+            'ext': 'mp3',
+            'thumbnail': 'https://static.prsa.pl/images/3cc73086-57f6-46c8-9ebb-714834723a35.jpg',
+            'series': 'Teatr Polskiego Radia: Najnowsze produkcje',
+            'episode': '"Każdy człowiek jest wymyślony" Małgorzaty Sikorskiej-Miszczuk w reżyserii Katarzyny Łęckiej',
+        },
+    }, {
+        'url': 'https://www.polskieradio.pl/dwojka/podcasty/rachunek-mysli,380/odcinek/losy-marka-aureliusza-gdy-mysliciel-zostaje-cesarzem-gosc-dr-hab-krzysztof-lapinski,04676fde-48e9-48ab-bb84-68a37e568898',
+        'info_dict': {
+            'id': '04676fde-48e9-48ab-bb84-68a37e568898',
+            'title': 'Losy Marka Aureliusza: gdy myśliciel zostaje cesarzem. Gość: dr hab. Krzysztof Łapiński',
+            'description': 'Choć kochał los, ten obszedł się z nim wyjątkowo okrutnie. Sprawił, że został cesarzem. Czy był także filozofem? Co rodzi się z mariażu władzy i stoicyzmu?',
+            'ext': 'mp3',
+            'thumbnail': 'https://static.prsa.pl/images/f63945f3-1a74-4461-8c54-15e6807f51d3.jpg',
+            'series': 'Rachunek myśli',
+            'episode': 'Losy Marka Aureliusza: gdy myśliciel zostaje cesarzem. Gość: dr hab. Krzysztof Łapiński',
+        },
+    }, {
+        'url': 'https://www.polskieradio.pl/dwojka/audycje/rachunek-mysli,5534/odcinek/losy-marka-aureliusza-gdy-mysliciel-zostaje-cesarzem-gosc-dr-hab-krzysztof-lapinski,04676fde-48e9-48ab-bb84-68a37e568898',
+        'info_dict': {
+            'id': '04676fde-48e9-48ab-bb84-68a37e568898',
+            'title': 'Rachunek myśli - Dwojka - Program Drugi Polskiego Radia - Losy Marka Aureliusza: gdy myśliciel zostaje cesarzem. Gość: dr hab. Krzysztof Łapiński',
+            'description': 'Rachunek myśli - Wieczorne spotkanie z filozofią i psychoanalizą.',
+            'ext': 'mp3',
+            'thumbnail': 'https://static.prsa.pl/images/c1235b65-154e-4603-bd32-103a74d9c99d.file?format=700',
+            'series': 'Rachunek myśli',
+            'episode': 'Rachunek myśli - Dwojka - Program Drugi Polskiego Radia - Losy Marka Aureliusza: gdy myśliciel zostaje cesarzem. Gość: dr hab. Krzysztof Łapiński',
         },
     }]
 
     def _real_extract(self, url):
         podcast_id = self._match_id(url)
-        data = self._download_json(
-            f'{self._API_BASE}/audio',
-            podcast_id, 'Downloading podcast metadata',
-            data=json.dumps({
-                'guids': [podcast_id],
-            }).encode(),
-            headers={
-                'Content-Type': 'application/json',
-            })
-        return self._parse_episode(data[0])
+        return self._parse_episode(self._download_webpage(url, url), podcast_id)
