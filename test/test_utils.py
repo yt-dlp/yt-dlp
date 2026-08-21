@@ -2005,6 +2005,23 @@ Line 1
         self.assertEqual(list(reversed(LazyList(it))[::-1]), it)
         self.assertEqual(list(reversed(LazyList(it))[1:3:7]), it[::-1][1:3:7])
 
+        ll = LazyList(it)
+        A = iter(ll)
+        self.assertEqual(next(A), it[0])
+        B = iter(ll)
+        self.assertEqual(next(B), it[0])
+        self.assertEqual(next(B), it[1])
+        self.assertEqual(next(A), it[1])
+        self.assertEqual(next(B), next(A))
+        self.assertEqual(ll[7], it[7])
+        # Reading from the cache now
+        self.assertEqual(next(A), next(B))
+        self.assertEqual(next(B), it[4])
+        # Finish the B iterator
+        self.assertEqual(list(B), it[5:])
+        # Ensure the other iterator was not truncated
+        self.assertEqual(list(A), it[4:])
+
     def test_LazyList_laziness(self):
 
         def test(ll, idx, val, cache):
