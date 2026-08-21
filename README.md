@@ -24,6 +24,9 @@ yt-dlp is a feature-rich command-line audio/video downloader with support for [t
     * [Update](#update)
     * [Dependencies](#dependencies)
     * [Compile](#compile)
+* [GRAPHICAL INTERFACE](#graphical-interface)
+    * [Running the interface](#running-the-interface)
+    * [Building the standalone bundles](#building-the-standalone-bundles)
 * [USAGE AND OPTIONS](#usage-and-options)
     * [General Options](#general-options)
     * [Network Options](#network-options)
@@ -293,6 +296,42 @@ Note: See their `--help` for more info.
 
 ### Forking the project
 If you fork the project on GitHub, you can run your fork's [build workflow](.github/workflows/build.yml) to automatically build the selected version(s) as artifacts. Alternatively, you can run the [release workflow](.github/workflows/release.yml) or enable the [nightly workflow](.github/workflows/release-nightly.yml) to create full (pre-)releases.
+
+# GRAPHICAL INTERFACE
+
+yt-dlp ships an optional desktop interface for users who would rather not open a terminal. It is written with `tkinter`, so it needs no dependency beyond the Tk bindings bundled with most Python installations, and it drives the very same `YoutubeDL` object as the command line.
+
+The window exposes the options that matter for everyday downloads: destination folder and output template, video or audio-only mode, quality cap and container, subtitles, thumbnail, metadata and chapter embedding, SponsorBlock removal, playlist handling, cookies from browser, proxy, rate limit and the number of simultaneous downloads. Anything more specific is still one `--custom-format` field away, and the full command line remains untouched.
+
+Downloads run on background threads, each queue entry showing its own progress, speed, ETA and size, and can be cancelled individually. Settings are remembered between sessions in `gui-settings.json`, stored next to the yt-dlp [configuration file](#configuration).
+
+## Running the interface
+
+```
+yt-dlp-gui [URL]...
+```
+
+The interface can also be started from a checkout or from an installed package with:
+
+```
+python3 -m yt_dlp.gui
+```
+
+Any URL given on the command line is queued as soon as the window opens.
+
+On Linux, some distributions ship Tk separately from Python; install `python3-tk` (Debian/Ubuntu), `python3-tkinter` (Fedora) or `tk` (Arch) if the interface reports that `tkinter` is missing. The standalone bundles below already contain it.
+
+## Building the standalone bundles
+
+The interface is bundled by the same tooling as the command line binary, in windowed mode:
+
+```
+python3 devscripts/install_deps.py --include pyinstaller
+python3 devscripts/make_lazy_extractors.py
+python3 -m bundle.pyinstaller_gui
+```
+
+The [GUI build workflow](.github/workflows/build-gui.yml) runs that on every supported platform and uploads the installers as artifacts: `yt-dlp-gui.exe` for Windows, `yt-dlp-gui_macos.dmg` for macOS and `yt-dlp-gui_linux.AppImage` (plus an unpackaged tarball) for Linux. Fork the project and run the workflow to produce them yourself.
 
 # USAGE AND OPTIONS
 
