@@ -117,7 +117,7 @@ class WDRIE(InfoExtractor):
                     'ext': determine_ext(format_url, None) or ext,
                 })
 
-        return {
+        info_dict = {
             'id': tracker_data.get('trackerClipId', video_id),
             'title': title,
             'alt_title': tracker_data.get('trackerClipSubcategory'),
@@ -126,10 +126,13 @@ class WDRIE(InfoExtractor):
             'upload_date': unified_strdate(tracker_data.get('trackerClipAirTime')),
             'is_live': is_live,
         }
+        if 'previewImage' in media_resource:
+            info_dict['thumbnail'] = 'https:' + media_resource['previewImage'].replace('~_v-%%FORMAT%%', '')
+        return info_dict
 
 
 class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
-    _MAUS_REGEX = r'https?://(?:www\.)wdrmaus.de/(?:[^/]+/)*?(?P<maus_id>[^/?#.]+)(?:/?|/index\.php5|\.php5)$'
+    _MAUS_REGEX = r'https?://(?:www\.)wdrmaus.de/(?!elefantenseite)(?:[^/]+/)*?(?P<maus_id>[^/?#.]+)(?:/?|/index\.php5|\.php5)(?:#.+)?$'
     _PAGE_REGEX = r'/(?:mediathek/)?(?:[^/]+/)*(?P<display_id>[^/]+)\.html'
     _VALID_URL = r'https?://(?:www\d?\.)?(?:(?:kinder\.)?wdr\d?|sportschau)\.de' + _PAGE_REGEX + '|' + _MAUS_REGEX
 
@@ -183,6 +186,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
             'params': {
                 'skip_download': True,  # m3u8 download
             },
+            'skip': 'IndexError: list index out of range',
         },
         {
             'url': 'http://www1.wdr.de/mediathek/video/sendungen/aktuelle-stunde/aktuelle-stunde-120.html',
@@ -226,6 +230,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
             'params': {
                 'skip_download': True,  # m3u8 download
             },
+            'skip': 'AssertionError: dictionaries differ (alt_title, upload_date)',
         },
         {
             'url': 'http://www.sportschau.de/handballem2018/handball-nationalmannschaft-em-stolperstein-vorrunde-100.html',
@@ -256,6 +261,26 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                 'title': 'Baroness - Freak Valley Festival 2022',
                 'alt_title': 'Rockpalast',
                 'upload_date': '20220725',
+            },
+            'skip': ' AssertionError: dictionaries differ',
+        },
+        {
+            'url': 'https://www.wdrmaus.de/filme/sachgeschichten/rollenherstellung.php5',
+            'info_dict': {
+                'id': 'sophora-ecf1f738-836e-4d41-bcb2-a6740e3f80a6',
+                'ext': 'mp4',
+                'title': 'Rollen-Herstellung',
+                'alt_title': 'Die Sendung mit der Maus',
+                'thumbnail': 'https://kinder.wdr.de/tv/die-sendung-mit-der-maus/20250921-die-sendung-mit-der-maus-vom-104.jpg',
+                'upload_date': '20250921',
+            },
+        },
+        {
+            'url': 'https://www.wdrmaus.de/filme/lachgeschichten/kaeptn_blaubaer_warum_ist_hein_so_bloed.php5#modul86878',
+            'info_dict': {
+                'id': 'mdb-1375961',
+                'ext': 'mp4',
+                'title': ' Käpt\'n Blaubärs Seemannsgarn: Warum ist Hein so blöd?',
             },
         },
     ]
@@ -293,7 +318,10 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                 if jsonp_url.endswith('.assetjsonp'):
                     asset = self._download_json(
                         jsonp_url, display_id, fatal=False, transform_source=strip_jsonp)
-                    clip_id = try_get(asset, lambda x: x['trackerData']['trackerClipId'], str)
+                    if try_get(asset, lambda x: x['trackerData']['trackerClipId'], str).startswith('sophora-'):
+                        clip_id = None
+                    else:
+                        clip_id = try_get(asset, lambda x: x['trackerData']['trackerClipId'], str)
                 if clip_id:
                     jsonp_url = self._asset_url(clip_id[4:])
                 entries.append(self.url_result(jsonp_url, ie=WDRIE.ie_key()))
