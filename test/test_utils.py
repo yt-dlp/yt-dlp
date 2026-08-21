@@ -626,6 +626,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(float_or_none(None), None)
         self.assertEqual(float_or_none([]), None)
         self.assertEqual(float_or_none(set()), None)
+        self.assertEqual(float_or_none(sys.float_info.radix ** sys.float_info.max_exp), None)
 
     def test_int_or_none(self):
         self.assertEqual(int_or_none('42'), 42)

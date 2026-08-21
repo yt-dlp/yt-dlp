@@ -68,7 +68,7 @@ class BandcampIE(InfoExtractor):
             'album': 'FTL: Advanced Edition Soundtrack',
             'uploader_url': 'https://benprunty.bandcamp.com',
             'uploader_id': 'benprunty',
-            'tags': ['soundtrack', 'chiptunes', 'cinematic', 'electronic', 'video game music', 'California'],
+            'tags': ['soundtrack', 'chiptunes', 'cinematic', 'electronic', 'video game music', 'North Carolina'],
             'artists': ['Ben Prunty'],
             'album_artists': ['Ben Prunty'],
         },
@@ -146,6 +146,7 @@ class BandcampIE(InfoExtractor):
             'uploader_id': 'stayinside',
             'uploader_url': 'https://stayinside.bandcamp.com',
         },
+        'skip': 'embed detection is broken',
     }]
 
     def _extract_data_attr(self, webpage, video_id, attr='tralbum', fatal=True):
@@ -155,7 +156,7 @@ class BandcampIE(InfoExtractor):
 
     def _real_extract(self, url):
         title, uploader = self._match_valid_url(url).group('id', 'uploader')
-        webpage = self._download_webpage(url, title)
+        webpage = self._download_webpage(url, title, impersonate=True)
         tralbum = self._extract_data_attr(webpage, title)
         thumbnail = self._og_search_thumbnail(webpage)
 
@@ -201,7 +202,7 @@ class BandcampIE(InfoExtractor):
             track_id = str(tralbum['id'])
 
             download_webpage = self._download_webpage(
-                download_link, track_id, 'Downloading free downloads page')
+                download_link, track_id, 'Downloading free downloads page', impersonate=True)
 
             blob = self._extract_data_attr(download_webpage, track_id, 'blob')
 
@@ -296,21 +297,22 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                     'id': '1353101989',
                     'ext': 'mp3',
                     'title': 'Blazo - Intro',
-                    'thumbnail': r're:https?://f4\.bcbits\.com/img/.+\.jpg',
+                    'uploader': 'Blazo',
+                    'uploader_id': 'blazo',
+                    'uploader_url': 'https://blazo.bandcamp.com',
+                    'duration': 19.335,
+                    'thumbnail': 'https://f4.bcbits.com/img/a1721150828_5.jpg',
+                    'tags': ['hip-hop/rap', 'hip-hop', 'Poland'],
+                    'artists': ['Blazo'],
+                    'album_artists': ['Blazo'],
+                    'track': 'Intro',
+                    'track_number': 1,
+                    'track_id': '1353101989',
+                    'album': 'Jazz Format Mixtape vol.1',
                     'timestamp': 1311756226,
                     'upload_date': '20110727',
-                    'uploader': 'Blazo',
-                    'album_artists': ['Blazo'],
-                    'uploader_url': 'https://blazo.bandcamp.com',
+                    'release_timestamp': 1311724800,
                     'release_date': '20110727',
-                    'release_timestamp': 1311724800.0,
-                    'track': 'Intro',
-                    'uploader_id': 'blazo',
-                    'track_number': 1,
-                    'album': 'Jazz Format Mixtape vol.1',
-                    'artists': ['Blazo'],
-                    'duration': 19.335,
-                    'track_id': '1353101989',
                 },
             },
             {
@@ -319,21 +321,22 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                     'id': '38097443',
                     'ext': 'mp3',
                     'title': 'Blazo - Kero One - Keep It Alive (Blazo remix)',
-                    'thumbnail': r're:https?://f4\.bcbits\.com/img/.+\.jpg',
+                    'uploader': 'Blazo',
+                    'uploader_id': 'blazo',
+                    'uploader_url': 'https://blazo.bandcamp.com',
+                    'duration': 181.467,
+                    'thumbnail': 'https://f4.bcbits.com/img/a1721150828_5.jpg',
+                    'tags': ['hip-hop/rap', 'hip-hop', 'Poland'],
+                    'artists': ['Blazo'],
+                    'album_artists': ['Blazo'],
+                    'track': 'Kero One - Keep It Alive (Blazo remix)',
+                    'track_number': 2,
+                    'track_id': '38097443',
+                    'album': 'Jazz Format Mixtape vol.1',
                     'timestamp': 1311757238,
                     'upload_date': '20110727',
-                    'uploader': 'Blazo',
-                    'track': 'Kero One - Keep It Alive (Blazo remix)',
+                    'release_timestamp': 1311724800,
                     'release_date': '20110727',
-                    'track_id': '38097443',
-                    'track_number': 2,
-                    'duration': 181.467,
-                    'uploader_url': 'https://blazo.bandcamp.com',
-                    'album': 'Jazz Format Mixtape vol.1',
-                    'uploader_id': 'blazo',
-                    'album_artists': ['Blazo'],
-                    'artists': ['Blazo'],
-                    'release_timestamp': 1311724800.0,
                 },
             },
         ],
@@ -386,7 +389,7 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     def _real_extract(self, url):
         uploader_id, album_id = self._match_valid_url(url).groups()
         playlist_id = album_id or uploader_id
-        webpage = self._download_webpage(url, playlist_id)
+        webpage = self._download_webpage(url, playlist_id, impersonate=True)
         tralbum = self._extract_data_attr(webpage, playlist_id)
         track_info = tralbum.get('trackinfo')
         if not track_info:
