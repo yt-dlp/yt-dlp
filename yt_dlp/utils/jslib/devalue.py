@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import array
 import base64
 import datetime as dt
 import math
 import re
+import struct
 
 from .._utils import parse_iso8601
 
@@ -22,13 +22,13 @@ _ARRAY_TYPE_LOOKUP = {
     'Uint8ClampedArray': 'B',
     'Int16Array': 'h',
     'Uint16Array': 'H',
+    'Float16Array': 'e',
     'Int32Array': 'i',
     'Uint32Array': 'I',
     'Float32Array': 'f',
     'Float64Array': 'd',
-    'BigInt64Array': 'l',
-    'BigUint64Array': 'L',
-    'ArrayBuffer': 'B',
+    'BigInt64Array': 'q',
+    'BigUint64Array': 'Q',
 }
 
 
@@ -85,30 +85,31 @@ def parse_iter(parsed: typing.Any, /, *, revivers: dict[str, collections.abc.Cal
 
         if isinstance(value, list):
             if value and isinstance(value[0], str):
+                type_name = value[0]
                 # TODO: implement zips `strict=True`
-                if reviver := revivers.get(value[0]):
+                if reviver := revivers.get(type_name):
                     if value[1] == source:
                         # XXX: avoid infinite loop
-                        yield IndexError(f'{value[0]!r} cannot point to itself (index: {source})')
+                        yield IndexError(f'{type_name!r} cannot point to itself (index: {source})')
                         continue
                     # inverse order: resolve index, revive value
-                    stack.append((target, index, (value[0], value[1], reviver)))
+                    stack.append((target, index, (type_name, value[1], reviver)))
                     stack.append((target, index, value[1]))
                     continue
 
-                elif value[0] == 'Date':
+                elif type_name == 'Date':
                     try:
                         result = dt.datetime.fromtimestamp(parse_iso8601(value[1]), tz=dt.timezone.utc)
                     except Exception:
                         yield ValueError(f'invalid date: {value[1]!r}')
                         result = None
 
-                elif value[0] == 'Set':
+                elif type_name == 'Set':
                     result = [None] * (len(value) - 1)
                     for offset, new_source in enumerate(value[1:]):
                         stack.append((result, offset, new_source))
 
-                elif value[0] == 'Map':
+                elif type_name == 'Map':
                     result = []
                     for key, new_source in zip(*(iter(value[1:]),) * 2, strict=True):
                         pair = [None, None]
@@ -116,29 +117,101 @@ def parse_iter(parsed: typing.Any, /, *, revivers: dict[str, collections.abc.Cal
                         stack.append((pair, 1, new_source))
                         result.append(pair)
 
-                elif value[0] == 'RegExp':
+                elif type_name == 'RegExp':
                     # XXX: use jsinterp to translate regex flags
                     #      currently ignores `value[2]`
                     result = re.compile(value[1])
 
-                elif value[0] == 'Object':
+                elif type_name == 'Object':
                     result = value[1]
 
-                elif value[0] == 'BigInt':
+                elif type_name == 'BigInt':
                     result = int(value[1])
 
-                elif value[0] == 'null':
+                elif type_name == 'null':
                     result = {}
                     for key, new_source in zip(*(iter(value[1:]),) * 2, strict=True):
                         stack.append((result, key, new_source))
 
-                elif value[0] in _ARRAY_TYPE_LOOKUP:
-                    typecode = _ARRAY_TYPE_LOOKUP[value[0]]
-                    data = base64.b64decode(value[1])
-                    result = array.array(typecode, data).tolist()
+                elif type_name == 'ArrayBuffer':
+                    try:
+                        if len(value) < 2 or not isinstance(value[1], str):
+                            raise TypeError(f'Invalid ArrayBuffer encoding: {value[1:]!r}')
+                        result = base64.b64decode(value[1])
+                    except Exception as error:
+                        yield ValueError(f'Invalid ArrayBuffer at {source}: {error}')
+                        result = None
+
+                elif type_name in _ARRAY_TYPE_LOOKUP or type_name == 'DataView':
+                    try:
+                        if len(value) < 2:
+                            raise TypeError('Missing ArrayBuffer reference')
+                        if isinstance(value[1], str):
+                            data = base64.b64decode(value[1])
+                        else:
+                            buffer_index = value[1]
+                            if (
+                                not isinstance(buffer_index, int)
+                                or isinstance(buffer_index, bool)
+                                or not 0 <= buffer_index < len(parsed)
+                            ):
+                                raise IndexError(f'Invalid ArrayBuffer index: {buffer_index!r}')
+
+                            if buffer_index in resolved:
+                                data = resolved[buffer_index]
+                                if not isinstance(data, bytes):
+                                    raise TypeError(f'Invalid ArrayBuffer reference: {buffer_index!r}')
+                            else:
+                                buffer = parsed[buffer_index]
+                                if not (
+                                    isinstance(buffer, list)
+                                    and len(buffer) >= 2
+                                    and buffer[0] == 'ArrayBuffer'
+                                    and isinstance(buffer[1], str)
+                                ):
+                                    raise TypeError(f'Invalid ArrayBuffer reference: {buffer_index!r}')
+                                data = resolved[buffer_index] = base64.b64decode(buffer[1])
+
+                        offset = value[2] if len(value) > 2 else 0
+                        if not isinstance(offset, int) or isinstance(offset, bool) or offset < 0:
+                            raise ValueError(f'Invalid byte offset: {offset!r}')
+
+                        length = value[3] if len(value) > 3 else None
+                        if length is not None and (
+                            not isinstance(length, int) or isinstance(length, bool) or length < 0
+                        ):
+                            raise ValueError(f'Invalid length: {length!r}')
+
+                        if type_name == 'DataView':
+                            end = len(data) if length is None else offset + length
+                            if offset > len(data) or end > len(data):
+                                raise ValueError('View exceeds ArrayBuffer length')
+                            result = data[offset:end]
+                        else:
+                            typecode = _ARRAY_TYPE_LOOKUP[type_name]
+                            itemsize = struct.calcsize(f'={typecode}')
+                            if offset % itemsize:
+                                raise ValueError(f'Byte offset {offset} is not aligned to {itemsize}-byte elements')
+                            if offset > len(data):
+                                raise ValueError('View exceeds ArrayBuffer length')
+
+                            if length is None:
+                                view = data[offset:]
+                                if len(view) % itemsize:
+                                    raise ValueError(f'Byte length is not a multiple of {itemsize}')
+                            else:
+                                end = offset + length * itemsize
+                                if end > len(data):
+                                    raise ValueError('View exceeds ArrayBuffer length')
+                                view = data[offset:end]
+
+                            result = [item[0] for item in struct.iter_unpack(f'={typecode}', view)]
+                    except Exception as error:
+                        yield ValueError(f'Invalid {type_name} at {source}: {error}')
+                        result = None
 
                 else:
-                    yield TypeError(f'invalid type at {source}: {value[0]!r}')
+                    yield TypeError(f'Invalid type at {source}: {type_name!r}')
                     result = None
             else:
                 result = len(value) * [None]
