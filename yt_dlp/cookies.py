@@ -1152,6 +1152,30 @@ def _is_path(value):
     return any(sep in value for sep in (os.path.sep, os.path.altsep) if sep)
 
 
+def parse_browser_specification_string(spec):
+    """Parse a BROWSER[+KEYRING][:PROFILE][::CONTAINER] string into its components"""
+    mobj = re.fullmatch(r'''(?x)
+        (?P<name>[^+:]+)
+        (?:\s*\+\s*(?P<keyring>[^:]+))?
+        (?:\s*:\s*(?!:)(?P<profile>.+?))?
+        (?:\s*::\s*(?P<container>.+))?
+    ''', spec)
+    if mobj is None:
+        raise ValueError(f'invalid cookies from browser arguments: {spec}')
+
+    browser_name, keyring, profile, container = mobj.group('name', 'keyring', 'profile', 'container')
+    browser_name = browser_name.lower()
+    if browser_name not in SUPPORTED_BROWSERS:
+        raise ValueError(f'unsupported browser specified for cookies: "{browser_name}". '
+                         f'Supported browsers are: {", ".join(sorted(SUPPORTED_BROWSERS))}')
+    if keyring is not None:
+        keyring = keyring.upper()
+        if keyring not in SUPPORTED_KEYRINGS:
+            raise ValueError(f'unsupported keyring specified for cookies: "{keyring}". '
+                             f'Supported keyrings are: {", ".join(sorted(SUPPORTED_KEYRINGS))}')
+    return browser_name, profile, keyring, container
+
+
 def _parse_browser_specification(browser_name, profile=None, keyring=None, container=None):
     if browser_name not in SUPPORTED_BROWSERS:
         raise ValueError(f'unsupported browser: "{browser_name}"')

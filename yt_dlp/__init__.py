@@ -14,7 +14,7 @@ import os
 import re
 import traceback
 
-from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS, CookieLoadError
+from .cookies import CookieLoadError, parse_browser_specification_string
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
@@ -393,26 +393,7 @@ def validate_options(opts):
 
     # Cookies from browser
     if opts.cookiesfrombrowser:
-        container = None
-        mobj = re.fullmatch(r'''(?x)
-            (?P<name>[^+:]+)
-            (?:\s*\+\s*(?P<keyring>[^:]+))?
-            (?:\s*:\s*(?!:)(?P<profile>.+?))?
-            (?:\s*::\s*(?P<container>.+))?
-        ''', opts.cookiesfrombrowser)
-        if mobj is None:
-            raise ValueError(f'invalid cookies from browser arguments: {opts.cookiesfrombrowser}')
-        browser_name, keyring, profile, container = mobj.group('name', 'keyring', 'profile', 'container')
-        browser_name = browser_name.lower()
-        if browser_name not in SUPPORTED_BROWSERS:
-            raise ValueError(f'unsupported browser specified for cookies: "{browser_name}". '
-                             f'Supported browsers are: {", ".join(sorted(SUPPORTED_BROWSERS))}')
-        if keyring is not None:
-            keyring = keyring.upper()
-            if keyring not in SUPPORTED_KEYRINGS:
-                raise ValueError(f'unsupported keyring specified for cookies: "{keyring}". '
-                                 f'Supported keyrings are: {", ".join(sorted(SUPPORTED_KEYRINGS))}')
-        opts.cookiesfrombrowser = (browser_name, profile, keyring, container)
+        opts.cookiesfrombrowser = parse_browser_specification_string(opts.cookiesfrombrowser)
 
     if opts.impersonate is not None:
         opts.impersonate = ImpersonateTarget.from_str(opts.impersonate.lower())
