@@ -60,6 +60,8 @@ class Settings:
     embed_chapters: bool = False
     remove_sponsor: bool = False
     cookies_from_browser: str = ''
+    cookies_file: str = ''
+    ffmpeg_location: str = ''
     js_runtimes: str = ''
     proxy: str = ''
     rate_limit: str = ''
@@ -180,6 +182,11 @@ class Settings:
                     f'unsupported JavaScript runtime: {", ".join(sorted(unsupported))}. '
                     f'Supported runtimes are: {", ".join(sorted(supported_js_runtimes.value))}')
             params['js_runtimes'] = parse_js_runtimes(['deno', *runtimes])
+
+        if self.cookies_file.strip():
+            params['cookiefile'] = os.path.expanduser(self.cookies_file.strip())
+        if self.ffmpeg_location.strip():
+            params['ffmpeg_location'] = os.path.expanduser(self.ffmpeg_location.strip())
 
         if self.cookies_from_browser.strip():
             params['cookiesfrombrowser'] = parse_browser_specification_string(

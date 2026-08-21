@@ -48,6 +48,8 @@ ADVANCED_FIELDS = (
     (CHECK, 'use_archive', 'Keep a download archive'),
     (CHECK, 'verbose', 'Show debug messages in the log'),
     (EDITABLE, 'cookies_from_browser', 'Cookies from browser', config.BROWSER_CHOICES),
+    (ENTRY, 'cookies_file', 'Cookies file'),
+    (ENTRY, 'ffmpeg_location', 'ffmpeg location'),
     (EDITABLE, 'js_runtimes', 'Extra JavaScript runtimes', config.JS_RUNTIME_CHOICES),
     (ENTRY, 'proxy', 'Proxy'),
     (ENTRY, 'rate_limit', 'Rate limit'),
