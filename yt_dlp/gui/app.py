@@ -423,8 +423,6 @@ class YtDlpGUI:
 
         if event['filepath']:
             self._filepaths[event['task_id']] = event['filepath']
-        if event['status'] == Status.ERROR and event['message']:
-            self._write_log('error', f'[{item}] {event["message"]}')
 
     def _handle_log(self, event):
         if event['level'] == 'debug' and not self.settings.verbose:

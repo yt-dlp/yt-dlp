@@ -8,7 +8,7 @@ import itertools
 import queue
 import threading
 
-from ..utils import DownloadCancelled, format_bytes
+from ..utils import DownloadCancelled, DownloadError, format_bytes
 from ..YoutubeDL import YoutubeDL
 
 
@@ -219,7 +219,10 @@ class DownloadManager:
                 ydl.download([task.url])
         except DownloadCancelled:
             self._update(task, status=Status.CANCELLED, message='Cancelled', speed='', eta='')
+        except DownloadError as error:
+            self._update(task, status=Status.ERROR, message=str(error), speed='', eta='')
         except Exception as error:
+            self._log(task, 'error', str(error))
             self._update(task, status=Status.ERROR, message=str(error), speed='', eta='')
         else:
             self._update(task, status=Status.FINISHED, progress=100.0, speed='', eta='', message='')
