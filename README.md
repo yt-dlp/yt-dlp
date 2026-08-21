@@ -303,7 +303,7 @@ yt-dlp ships an optional desktop interface for users who would rather not open a
 
 The window exposes the options that matter for everyday downloads: destination folder and output template, video or audio-only mode, quality cap and container, subtitles, thumbnail, metadata and chapter embedding, SponsorBlock removal, playlist handling, cookies from browser, proxy, rate limit and the number of simultaneous downloads. Anything more specific is still one `--custom-format` field away, and the full command line remains untouched. The cookies field takes the same `BROWSER[+KEYRING][:PROFILE][::CONTAINER]` specification as [`--cookies-from-browser`](#filesystem-options), so a non-default profile or an explicit profile directory can be given when the browser is not found in its usual location.
 
-YouTube needs a [JavaScript runtime](#dependencies) to be reachable, and only `deno` is enabled by default; without one, extraction falls back to a reduced set of clients and often fails the bot check. Install `deno` next to the interface or anywhere on `PATH`, or name an already installed runtime (optionally with its location) in the "Extra JavaScript runtimes" field.
+YouTube needs a [JavaScript runtime](#dependencies) to be reachable, and only `deno` is enabled by default; without one, extraction falls back to a reduced set of clients and often fails the bot check. The standalone bundles below ship `deno`, so they work as they are. When running from source, install `deno` next to the interface or anywhere on `PATH`, or name an already installed runtime (optionally with its location) in the "Extra JavaScript runtimes" field.
 
 Downloads run on background threads, each queue entry showing its own progress, speed, ETA and size, and can be cancelled individually. Settings are remembered between sessions in `gui-settings.json`, stored next to the yt-dlp [configuration file](#configuration).
 
@@ -328,7 +328,7 @@ On Linux, some distributions ship Tk separately from Python; install `python3-tk
 The interface is bundled by the same tooling as the command line binary, in windowed mode:
 
 ```
-python3 devscripts/install_deps.py --include pyinstaller
+python3 devscripts/install_deps.py --include pyinstaller --include deno
 python3 devscripts/make_lazy_extractors.py
 python3 -m bundle.pyinstaller_gui
 ```

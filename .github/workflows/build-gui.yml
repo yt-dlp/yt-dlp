@@ -35,7 +35,7 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           python -m venv /yt-dlp-build-venv
           /yt-dlp-build-venv/Scripts/Activate.ps1
-          python devscripts/install_deps.py --include pyinstaller
+          python devscripts/install_deps.py --include pyinstaller --include deno
           python -c "import tkinter"
 
       - name: Prepare
@@ -96,7 +96,7 @@ jobs:
       - name: Install Requirements
         run: |
           python3 -m venv "${HOME}/yt-dlp-build-venv"
-          "${HOME}/yt-dlp-build-venv/bin/python3" devscripts/install_deps.py --include pyinstaller
+          "${HOME}/yt-dlp-build-venv/bin/python3" devscripts/install_deps.py --include pyinstaller --include deno
           "${HOME}/yt-dlp-build-venv/bin/python3" -m pip install -U pillow
           "${HOME}/yt-dlp-build-venv/bin/python3" -c "import tkinter"
 
@@ -148,7 +148,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends desktop-file-utils python3-tk
           python3 -m venv "${HOME}/yt-dlp-build-venv"
-          "${HOME}/yt-dlp-build-venv/bin/python3" devscripts/install_deps.py --include pyinstaller
+          "${HOME}/yt-dlp-build-venv/bin/python3" devscripts/install_deps.py --include pyinstaller --include deno
           "${HOME}/yt-dlp-build-venv/bin/python3" -m pip install -U pillow
           "${HOME}/yt-dlp-build-venv/bin/python3" -c "import tkinter"
 
