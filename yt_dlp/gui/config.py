@@ -7,6 +7,8 @@ import json
 import os
 
 from ..cookies import SUPPORTED_BROWSERS, parse_browser_specification_string
+from ..globals import supported_js_runtimes
+from ..utils._jsruntime import parse_js_runtimes
 from ..utils import get_user_config_dirs, parse_bytes
 
 SETTINGS_FILENAME = 'gui-settings.json'
@@ -16,6 +18,7 @@ QUALITY_CHOICES = ('best', '2160', '1440', '1080', '720', '480', '360')
 VIDEO_CONTAINERS = ('mp4', 'mkv', 'webm', 'best')
 AUDIO_FORMATS = ('mp3', 'm4a', 'opus', 'flac', 'wav', 'best')
 BROWSER_CHOICES = ('', *sorted(SUPPORTED_BROWSERS))
+JS_RUNTIME_CHOICES = ('', 'node', 'quickjs', 'bun')
 SPONSORBLOCK_CATEGORIES = ('sponsor', 'selfpromo', 'interaction')
 
 MODE_VIDEO = 'video'
@@ -57,6 +60,7 @@ class Settings:
     embed_chapters: bool = False
     remove_sponsor: bool = False
     cookies_from_browser: str = ''
+    js_runtimes: str = ''
     proxy: str = ''
     rate_limit: str = ''
     concurrency: int = 2
@@ -168,6 +172,15 @@ class Settings:
                 lang.strip() for lang in self.subtitle_langs.split(',') if lang.strip()] or ['en']
         if self.embed_thumbnail:
             params['writethumbnail'] = True
+        runtimes = self.js_runtimes.split()
+        if runtimes:
+            unsupported = parse_js_runtimes(runtimes).keys() - supported_js_runtimes.value.keys()
+            if unsupported:
+                raise ValueError(
+                    f'unsupported JavaScript runtime: {", ".join(sorted(unsupported))}. '
+                    f'Supported runtimes are: {", ".join(sorted(supported_js_runtimes.value))}')
+            params['js_runtimes'] = parse_js_runtimes(['deno', *runtimes])
+
         if self.cookies_from_browser.strip():
             params['cookiesfrombrowser'] = parse_browser_specification_string(
                 self.cookies_from_browser.strip())
