@@ -1,0 +1,208 @@
+name: Build GUI
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-gui-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: '3.10'
+
+jobs:
+  windows:
+    name: windows (x64)
+    runs-on: windows-2025
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          architecture: x64
+
+      - name: Install Requirements
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
+          python -m venv /yt-dlp-build-venv
+          /yt-dlp-build-venv/Scripts/Activate.ps1
+          python devscripts/install_deps.py --include pyinstaller
+          python -c "import tkinter"
+
+      - name: Prepare
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
+          python devscripts/make_lazy_extractors.py
+
+      - name: Build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
+          /yt-dlp-build-venv/Scripts/Activate.ps1
+          python -m bundle.pyinstaller_gui
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $process = Start-Process -FilePath "./dist/yt-dlp-gui.exe" -ArgumentList "--version" -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            exit 1
+          }
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: build-gui-windows-x64
+          path: dist/yt-dlp-gui.exe
+          compression-level: 0
+
+  macos:
+    name: macos (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - arch: 'arm64'
+          runner: macos-14
+        - arch: 'x86_64'
+          runner: macos-15-intel
+    env:
+      ARCH: ${{ matrix.arch }}
+      APP: dist/yt-dlp-gui_macos.app
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Requirements
+        run: |
+          python3 -m venv "${HOME}/yt-dlp-build-venv"
+          "${HOME}/yt-dlp-build-venv/bin/python3" devscripts/install_deps.py --include pyinstaller
+          "${HOME}/yt-dlp-build-venv/bin/python3" -m pip install -U pillow
+          "${HOME}/yt-dlp-build-venv/bin/python3" -c "import tkinter"
+
+      - name: Prepare
+        run: python3 devscripts/make_lazy_extractors.py
+
+      - name: Build
+        run: |
+          "${HOME}/yt-dlp-build-venv/bin/python3" -m bundle.pyinstaller_gui --onedir
+
+      - name: Create disk image
+        run: |
+          rm -rf build/dmg
+          mkdir -p build/dmg
+          cp -R "${APP}" build/dmg/
+          ln -s /Applications build/dmg/Applications
+          hdiutil create -volname 'yt-dlp GUI' -srcfolder build/dmg \
+            -ov -format UDZO "dist/yt-dlp-gui_macos_${ARCH}.dmg"
+
+      - name: Verify application bundle
+        run: |
+          "${APP}/Contents/MacOS/yt-dlp-gui_macos" --version
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: build-gui-macos-${{ matrix.arch }}
+          path: dist/yt-dlp-gui_macos_${{ matrix.arch }}.dmg
+          compression-level: 0
+
+  linux:
+    name: linux (x86_64)
+    runs-on: ubuntu-22.04
+    env:
+      APPDIR: build/AppDir
+      APPIMAGETOOL: https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Requirements
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends desktop-file-utils python3-tk
+          python3 -m venv "${HOME}/yt-dlp-build-venv"
+          "${HOME}/yt-dlp-build-venv/bin/python3" devscripts/install_deps.py --include pyinstaller
+          "${HOME}/yt-dlp-build-venv/bin/python3" -m pip install -U pillow
+          "${HOME}/yt-dlp-build-venv/bin/python3" -c "import tkinter"
+
+      - name: Prepare
+        run: python3 devscripts/make_lazy_extractors.py
+
+      - name: Build
+        run: |
+          "${HOME}/yt-dlp-build-venv/bin/python3" -m bundle.pyinstaller_gui --onedir
+          tar -C dist -czf dist/yt-dlp-gui_linux.tar.gz yt-dlp-gui_linux
+
+      - name: Assemble AppDir
+        run: |
+          rm -rf "${APPDIR}"
+          mkdir -p "${APPDIR}/usr/bin"
+          cp -r dist/yt-dlp-gui_linux/. "${APPDIR}/usr/bin/"
+
+          "${HOME}/yt-dlp-build-venv/bin/python3" devscripts/make_gui_icons.py \
+            --png "${APPDIR}/yt-dlp-gui.png"
+
+          cat > "${APPDIR}/yt-dlp-gui.desktop" << 'DESKTOP'
+          [Desktop Entry]
+          Type=Application
+          Name=yt-dlp
+          GenericName=Media Downloader
+          Comment=Download audio and video from thousands of sites
+          Exec=yt-dlp-gui
+          Icon=yt-dlp-gui
+          Terminal=false
+          Categories=AudioVideo;Network;
+          DESKTOP
+          desktop-file-validate "${APPDIR}/yt-dlp-gui.desktop"
+
+          cat > "${APPDIR}/AppRun" << 'APPRUN'
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "$0")")"
+          exec "${HERE}/usr/bin/yt-dlp-gui_linux" "$@"
+          APPRUN
+          chmod +x "${APPDIR}/AppRun"
+
+      - name: Create AppImage
+        run: |
+          curl -sSfL -o build/appimagetool "${APPIMAGETOOL}"
+          chmod +x build/appimagetool
+          APPIMAGE_EXTRACT_AND_RUN=1 build/appimagetool "${APPDIR}" dist/yt-dlp-gui_linux.AppImage
+
+      - name: Verify AppImage
+        run: APPIMAGE_EXTRACT_AND_RUN=1 dist/yt-dlp-gui_linux.AppImage --version
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: build-gui-linux-x86_64
+          path: |
+            dist/yt-dlp-gui_linux.AppImage
+            dist/yt-dlp-gui_linux.tar.gz
+          compression-level: 0
