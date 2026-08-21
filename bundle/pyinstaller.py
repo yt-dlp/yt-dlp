@@ -21,22 +21,40 @@ if MACHINE in ('x86', 'x86_64', 'amd64', 'i386', 'i686'):
 
 def main():
     opts, version = parse_options(), read_version()
+    onedir = resolve_onedir(opts)
 
+    name, final_file = exe(onedir)
+    announce('yt-dlp', version, final_file, opts)
+
+    opts = [*base_options(name), *opts, 'yt_dlp/__main__.py']
+
+    print(f'Running PyInstaller with {opts}')
+    run_pyinstaller(opts)
+    set_version_info(final_file, version)
+
+
+def resolve_onedir(opts):
+    """@returns whether a directory bundle was requested, defaulting to onefile"""
     onedir = '--onedir' in opts or '-D' in opts
     if not onedir and '-F' not in opts and '--onefile' not in opts:
         opts.append('--onefile')
+    return onedir
 
-    name, final_file = exe(onedir)
-    print(f'Building yt-dlp v{version} for {OS_NAME} {platform.machine()} with options {opts}')
+
+def announce(base_name, version, final_file, opts):
+    print(f'Building {base_name} v{version} for {OS_NAME} {platform.machine()} with options {opts}')
     print('Remember to update the version using  "devscripts/update-version.py"')
     if not os.path.isfile('yt_dlp/extractor/lazy_extractors.py'):
         print('WARNING: Building without lazy_extractors. Run  '
               '"devscripts/make_lazy_extractors.py"  to build lazy extractors', file=sys.stderr)
     print(f'Destination: {final_file}\n')
 
-    opts = [
+
+def base_options(name, icon='devscripts/logo.ico'):
+    """@returns the PyInstaller options shared by every bundle"""
+    return [
         f'--name={name}',
-        '--icon=devscripts/logo.ico',
+        f'--icon={icon}',
         '--upx-exclude=vcruntime140.dll',
         # setuptools and packaging are PyInstaller runtime dependencies,
         # but would be collected due to cffi's imports if we don't exclude
@@ -48,13 +66,7 @@ def main():
         '--noconfirm',
         '--additional-hooks-dir=yt_dlp/__pyinstaller',
         '--add-data=THIRD_PARTY_LICENSES.txt:.',
-        *opts,
-        'yt_dlp/__main__.py',
     ]
-
-    print(f'Running PyInstaller with {opts}')
-    run_pyinstaller(opts)
-    set_version_info(final_file, version)
 
 
 def parse_options():
@@ -67,7 +79,7 @@ def parse_options():
     return opts
 
 
-def exe(onedir):
+def exe(onedir, base_name='yt-dlp'):
     """@returns (name, path)"""
     platform_name, machine, extension = {
         'win32': (None, MACHINE, '.exe'),
@@ -75,7 +87,7 @@ def exe(onedir):
     }.get(OS_NAME, (OS_NAME, MACHINE, None))
 
     name = '_'.join(filter(None, (
-        'yt-dlp',
+        base_name,
         platform_name,
         machine,
     )))
@@ -93,12 +105,12 @@ def version_to_list(version):
     return list(map(int, version_list)) + [0] * (4 - len(version_list))
 
 
-def set_version_info(exe, version):
+def set_version_info(exe, version, base_name='yt-dlp', description='Command Line Interface'):
     if OS_NAME == 'win32':
-        windows_set_version(exe, version)
+        windows_set_version(exe, version, base_name, description)
 
 
-def windows_set_version(exe, version):
+def windows_set_version(exe, version, base_name='yt-dlp', description='Command Line Interface'):
     from PyInstaller.utils.win32.versioninfo import (
         FixedFileInfo,
         StringFileInfo,
@@ -129,13 +141,13 @@ def windows_set_version(exe, version):
         ),
         kids=[
             StringFileInfo([StringTable('040904B0', [
-                StringStruct('Comments', f'yt-dlp{suffix} Command Line Interface'),
+                StringStruct('Comments', f'{base_name}{suffix} {description}'),
                 StringStruct('CompanyName', 'https://github.com/yt-dlp'),
-                StringStruct('FileDescription', 'yt-dlp%s' % (MACHINE and f' ({MACHINE})')),
+                StringStruct('FileDescription', '%s%s' % (base_name, MACHINE and f' ({MACHINE})')),
                 StringStruct('FileVersion', version),
-                StringStruct('InternalName', f'yt-dlp{suffix}'),
-                StringStruct('OriginalFilename', f'yt-dlp{suffix}.exe'),
-                StringStruct('ProductName', f'yt-dlp{suffix}'),
+                StringStruct('InternalName', f'{base_name}{suffix}'),
+                StringStruct('OriginalFilename', f'{base_name}{suffix}.exe'),
+                StringStruct('ProductName', f'{base_name}{suffix}'),
                 StringStruct(
                     'ProductVersion', f'{version}{suffix} on Python {platform.python_version()}'),
             ])]), VarFileInfo([VarStruct('Translation', [0, 1200])]),
