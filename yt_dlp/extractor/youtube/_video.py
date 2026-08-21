@@ -28,6 +28,7 @@ from .jsc._director import initialize_jsc_director
 from .jsc.provider import JsChallengeRequest, JsChallengeType, NChallengeInput, SigChallengeInput
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
+from ...networking import HEADRequest
 from ...utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -139,13 +140,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _RETURN_TYPE = 'video'  # XXX: How to handle multifeed?
 
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('android_vr', 'web_safari')
-    _DEFAULT_JSLESS_CLIENTS = ('android_vr',)
-    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web_safari')
+    _DEFAULT_CLIENTS = ('visionos', 'web')
+    _DEFAULT_JSLESS_CLIENTS = ('visionos',)
+    _DEFAULT_AUTHED_CLIENTS = ('web_embedded', 'tv_downgraded', 'web')
     # Premium does not require POT (except for subtitles)
-    _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator')
+    _DEFAULT_PREMIUM_CLIENTS = ('web_creator', 'tv_downgraded', 'web')
     _WEBPAGE_CLIENTS = ('web', 'web_safari')
-    _DEFAULT_WEBPAGE_CLIENT = 'web_safari'
+    _DEFAULT_WEBPAGE_CLIENT = 'web'
 
     _GEO_BYPASS = False
 
@@ -1599,13 +1600,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'info_dict': {
             'id': 'brhfDfLdDZ8',
             'ext': 'mp4',
-            'title': 'This is the WORST Movie Science We\'ve Ever Seen',
+            'title': 'Scientists React to Terrible Movie Science | Moonfall (2021)',
             'description': 'md5:8afd0a3cd69ec63438fc573580436f92',
             'media_type': 'video',
-            'uploader': 'Open Sauce',
-            'uploader_id': '@opensaucelive',
-            'uploader_url': 'https://www.youtube.com/@opensaucelive',
-            'channel': 'Open Sauce',
+            'uploader': 'Sauce +',
+            'uploader_id': '@sauceplusofficial',
+            'uploader_url': 'https://www.youtube.com/@sauceplusofficial',
+            'channel': 'Sauce +',
             'channel_id': 'UC2EiGVmCeD79l_vZ204DUSw',
             'channel_url': 'https://www.youtube.com/channel/UC2EiGVmCeD79l_vZ204DUSw',
             'comment_count': int,
@@ -1613,15 +1614,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'like_count': int,
             'age_limit': 0,
             'duration': 1664,
-            'thumbnail': 'https://i.ytimg.com/vi/brhfDfLdDZ8/hqdefault.jpg',
+            'thumbnail': 'https://i.ytimg.com/vi/brhfDfLdDZ8/sddefault.jpg',
             'categories': ['Entertainment'],
             'tags': ['Moonfall', 'Bad Science', 'Open Sauce', 'Sauce+', 'The Backyard Scientist', 'William Osman', 'Allen Pan'],
-            'creators': ['Open Sauce', 'William Osman 2'],
+            'creators': ['Sauce +', 'William Osman 2'],
             'timestamp': 1759452918,
             'upload_date': '20251003',
             'playable_in_embed': True,
             'availability': 'public',
             'live_status': 'not_live',
+            'channel_follower_count': int,
+            'heatmap': 'count:100',
         },
         'params': {'skip_download': True},
     }, {
@@ -1655,6 +1658,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'playable_in_embed': True,
             'availability': 'public',
             'live_status': 'not_live',
+            'channel_follower_count': int,
         },
         'params': {'skip_download': True},
     }, {
@@ -2036,8 +2040,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 last_seq = last_seq_cache[cache_key]
             else:
                 try:
-                    urlh = self._request_webpage(base_url, None, note=False, errnote=False, fatal=False)
-                except ExtractorError:
+                    urlh = self._request_webpage(
+                        HEADRequest(base_url), None,
+                        note=False, errnote='Fragment request failed')
+                except ExtractorError as e:
+                    self.write_debug(e.msg)
                     urlh = None
                 last_seq = try_get(urlh, lambda x: int_or_none(x.headers['X-Head-Seqnum']))
                 if urlh:
@@ -2900,6 +2907,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _is_unplayable(player_response):
         return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'UNPLAYABLE'
 
+    @staticmethod
+    def _is_error_response(player_response):
+        return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'ERROR'
+
     def _extract_player_response(self, client, video_id, webpage_ytcfg, player_ytcfg, player_url, initial_pr, visitor_data, data_sync_id, po_token):
         headers = self.generate_api_headers(
             ytcfg=player_ytcfg,
@@ -3132,13 +3143,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     prs.append(pr)
 
             if (
-                # Is this a "made for kids" video that can't be downloaded with android_vr?
-                client == 'android_vr' and self._is_unplayable(pr)
+                # Is this a "made for kids" video that can't be downloaded with android_vr/visionos?
+                client in {'android_vr', 'visionos'}
+                and (self._is_unplayable(pr) or self._is_error_response(pr))
                 and webpage and 'made for kids' in webpage
                 # ...and is a JS runtime is available?
                 and any(p.is_available() for p in self._jsc_director.providers.values())
             ):
                 append_client('web_embedded')
+                append_client('tv_downgraded')
 
             # web_embedded can work around age-gate and age-verification for some embeddable videos
             if self._is_agegated(pr) and variant != 'web_embedded':
@@ -4459,13 +4472,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         vsir = get_first(contents, 'videoSecondaryInfoRenderer')
         if vsir:
             vor = traverse_obj(vsir, ('owner', 'videoOwnerRenderer'))
-            collaborators = traverse_obj(vor, (
+            collab_view_models = traverse_obj(vor, (
                 'attributedTitle', 'commandRuns', ..., 'onTap', 'innertubeCommand', 'showDialogCommand',
                 'panelLoadingStrategy', 'inlineContent', 'dialogViewModel', 'customContent', 'listViewModel',
-                'listItems', ..., 'listItemViewModel', 'title', 'content', {str}))
+                'listItems', ..., 'listItemViewModel', {dict}))
+            collaborators = traverse_obj(collab_view_models, (..., 'title', 'content', {str}))
             info.update({
                 'channel': self._get_text(vor, 'title') or (collaborators[0] if collaborators else None),
-                'channel_follower_count': self._get_count(vor, 'subscriberCountText'),
+                'channel_follower_count': (
+                    self._get_count(vor, 'subscriberCountText')
+                    or traverse_obj(collab_view_models, (0, 'rendererContext', 'accessibilityContext', 'label', {parse_count}))),
                 'creators': collaborators if collaborators else None,
             })
 
