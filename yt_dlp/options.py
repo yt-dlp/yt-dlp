@@ -511,7 +511,9 @@ def create_parser():
     general.add_option(
         '--live-from-start',
         action='store_true', dest='live_from_start',
-        help='Download livestreams from the start. Currently experimental and only supported for YouTube, Twitch, TVer, mellow-fan, and WhoWatch')
+        help=(
+            'Download livestreams from the start. Currently experimental and '
+            'only supported for YouTube, Twitch, TVer, mellow-fan, and WhoWatch'))
     general.add_option(
         '--no-live-from-start',
         action='store_false', dest='live_from_start',
