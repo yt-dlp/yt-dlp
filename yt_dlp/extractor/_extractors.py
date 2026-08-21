@@ -1298,6 +1298,7 @@ from .nubilesporn import NubilesPornIE
 from .nuvid import NuvidIE
 from .nytimes import (
     NYTimesArticleIE,
+    NYTimesAudioIE,
     NYTimesCookingIE,
     NYTimesCookingRecipeIE,
     NYTimesIE,
