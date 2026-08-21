@@ -5,6 +5,7 @@ from ..utils import (
     determine_ext,
     int_or_none,
     join_nonempty,
+    traverse_obj,
     unified_strdate,
     update_url_query,
 )
@@ -22,6 +23,8 @@ class DisneyIE(InfoExtractor):
             'title': 'Moana - Trailer',
             'description': 'A fun adventure for the entire Family!  Bring home Moana on Digital HD Feb 21 & Blu-ray March 7',
             'upload_date': '20170112',
+            'duration': 95,
+            'thumbnail': r're:https?://lumiere-a.akamaihd.net/v1/images/.+',
         },
         'params': {
             # m3u8 download
@@ -36,6 +39,8 @@ class DisneyIE(InfoExtractor):
             'title': '"Intro" Featurette: Rogue One: A Star Wars Story',
             'upload_date': '20170104',
             'description': 'Go behind-the-scenes of Rogue One: A Star Wars Story in this featurette with Director Gareth Edwards and the cast of the film.',
+            'duration': 122,
+            'thumbnail': r're:https?://lumiere-a.akamaihd.net/v1/images/.+',
         },
         'params': {
             # m3u8 download
@@ -136,17 +141,22 @@ class DisneyIE(InfoExtractor):
                 expected=True)
 
         subtitles = {}
-        for caption in video_data.get('captions', []):
-            caption_url = caption.get('url')
-            caption_format = caption.get('format')
-            if not caption_url or caption_format.startswith('unknown'):
-                continue
-            subtitles.setdefault(caption.get('language', 'en'), []).append({
-                'url': caption_url,
-                'ext': {
-                    'webvtt': 'vtt',
-                }.get(caption_format, caption_format),
-            })
+        data_url = traverse_obj(video_data, ('externals', 0, 'data', 'dataUrl'))
+        if data_url:
+            # Transform the data URL into a m3u8 URL.
+            # Unsure if the bitrate or protocol matters; we're only using this for subtitles
+            # and all browser tests used these values despite what is listed in 'flavors' above.
+            #
+            # Previous code used the 'captions' property within the JSON. It still exists but returns
+            # KS error data and every tested site uses this m3u8 pattern for the subtitles.
+            #
+            #  IN: http://cdnapi.kaltura.com/p/1068292/sp/106829200/playManifest/entryId/1_1srb6k2z/format/url/protocol/http
+            # OUT: https://cdnapisec.kaltura.com/p/1068292/sp/0/playManifest/entryId/1_1srb6k2z/tags/mbr/preferredBitrate/1600/format/applehttp/protocol/https/video.m3u8
+            m = re.search(r'/p/([^/]+).+/entryId/([^/]+)', data_url)
+            if m:
+                data_url = f'https://cdnapisec.kaltura.com/p/{m.group(1)}/sp/0/playManifest/entryId/{m.group(2)}/tags/mbr/preferredBitrate/1600/format/applehttp/protocol/https/video.m3u8'
+                _, subtitles = self._extract_m3u8_formats_and_subtitles(
+                    data_url, video_id=video_id, fatal=False)
 
         return {
             'id': video_id,
