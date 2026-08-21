@@ -2198,6 +2198,49 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'extract_flat': True,
             'playlist_items': '75',
         },
+    }, {
+        # YoutubeTab_52
+        # "UUMO" is a prefix that can be used for any channel to get a members-only playlist
+        'note': 'flat playlist entry of subscriber_only video',
+        'url': 'https://www.youtube.com/playlist?list=UUMOXuqSBlHAE6Xw-yeJA0Tunw',
+        'info_dict': {
+            'id': 'UUMOXuqSBlHAE6Xw-yeJA0Tunw',
+            'availability': 'public',
+            'title': 'Members-only videos',
+            'description': 'Videos available to members of this channel. Automatically updated.',
+            'tags': [],
+            'modified_date': r're:\d{8}',
+            'channel': 'Linus Tech Tips',
+            'view_count': int,
+            'channel_id': 'UCXuqSBlHAE6Xw-yeJA0Tunw',
+            'channel_url': 'https://www.youtube.com/channel/UCXuqSBlHAE6Xw-yeJA0Tunw',
+            'uploader_url': 'https://www.youtube.com/@LinusTechTips',
+            'uploader_id': '@LinusTechTips',
+            'uploader': 'Linus Tech Tips',
+        },
+        'playlist': [{
+            'info_dict': {
+                # availability is the only value we are testing for here
+                'availability': 'subscriber_only',
+                'id': str,
+                '_type': 'url',
+                'title': str,
+                'duration': int,
+                'url': str,
+                'uploader': str,
+                'uploader_id': str,
+                'uploader_url': str,
+                'channel': str,
+                'channel_id': str,
+                'channel_url': str,
+                'ie_key': 'Youtube',
+            },
+        }],
+        'playlist_mincount': 1,
+        'params': {
+            'extract_flat': True,
+            'playlist_items': '1',
+        },
     }]
 
     @classmethod
@@ -2298,6 +2341,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             self.to_screen(f'This playlist is likely not available in your region. Following conditional redirect to {redirect_url}')
             return self.url_result(redirect_url, YoutubeTabIE)
 
+        metadata = None
         tabs, extra_tabs = self._extract_tab_renderers(data), []
         if is_channel and tabs and 'no-youtube-channel-redirect' not in compat_opts:
             selected_tab = self._extract_selected_tab(tabs)
@@ -2336,6 +2380,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
 
                 elif extra_tabs and selected_tab_id != 'videos':
                     # When there are shorts/live tabs but not videos tab
+                    metadata = self._extract_metadata_from_tabs(item_id, data)
                     url, data = f'{pre}{post}', None
 
             elif (original_tab_id or 'videos') != selected_tab_id:
@@ -2371,7 +2416,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         if len(entries) == 1:
             return entries[0]
         elif entries:
-            metadata = self._extract_metadata_from_tabs(item_id, data)
+            metadata = metadata or self._extract_metadata_from_tabs(item_id, data)
             uploads_url = 'the Uploads (UU) playlist URL'
             if try_get(metadata, lambda x: x['channel_id'].startswith('UC')):
                 uploads_url = f'https://www.youtube.com/playlist?list=UU{metadata["channel_id"][2:]}'

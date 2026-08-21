@@ -3961,6 +3961,19 @@ class InfoExtractor:
         return headers
 
     @staticmethod
+    def _generate_blockbuster_headers(*, min_headers=2, max_headers=8):
+        """Randomize our HTTP header fingerprint in an attempt to bust HTTP Error 403 blockage"""
+
+        def random_letters(minimum, maximum):
+            # Omit vowels so we don't generate valid header names like 'authorization', etc
+            return ''.join(random.choices('bcdfghjklmnpqrstvwxz', k=random.randint(minimum, maximum)))
+
+        return {
+            random_letters(8, 24): random_letters(16, 32)
+            for _ in range(random.randint(min_headers, max_headers))
+        }
+
+    @staticmethod
     def _generic_id(url):
         return urllib.parse.unquote(os.path.splitext(url.rstrip('/').split('/')[-1])[0])
 
