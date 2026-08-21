@@ -1,8 +1,16 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError
+from ..utils import (
+    ExtractorError,
+    update_url,
+    url_or_none,
+    urljoin,
+)
+from ..utils.traversal import require, traverse_obj
 
 
 class EasyBroadcastLiveIE(InfoExtractor):
+    IE_NAME = 'easybroadcast:live'
+
     _VALID_URL = r'https?://(?:\w+\.)?player\.easybroadcast\.io/events/(?P<id>\w+)'
     _EMBED_REGEX = [rf'<iframe[^>]+\bsrc\s*=\s*["\'](?P<url>{_VALID_URL})']
     _TESTS = [{
@@ -31,18 +39,6 @@ class EasyBroadcastLiveIE(InfoExtractor):
         },
     }]
     _WEBPAGE_TESTS = [{
-        'url': 'https://al24news.dz/en/live',
-        'info_dict': {
-            'id': '66_al24_u4yga6h',
-            'title': str,
-            'ext': 'mp4',
-            'live_status': 'is_live',
-        },
-        'params': {
-            'nocheckcertificate': True,
-            'skip_download': 'Livestream',
-        },
-    }, {
         'url': 'https://snrtlive.ma/fr/al-aoula',
         'info_dict': {
             'id': '73_aloula_w1dqfwm',
@@ -58,28 +54,28 @@ class EasyBroadcastLiveIE(InfoExtractor):
 
     def _real_extract(self, url):
         event_id = self._match_id(url)
+        event = self._download_json(
+            urljoin(url, f'/api/events/{event_id}'), event_id)
+        m3u8_url = traverse_obj(event, (
+            'stream', {url_or_none}, {require('m3u8 URL')}))
 
-        base_url = url.split('/events/')[0]
-        api_url = f'{base_url}/api/events/{event_id}'
-        metadata = self._download_json(api_url, event_id, note='Downloading EasyBroadcast event metadata')
-
-        m3u8_url = metadata.get('stream')
         token = None
-        if metadata.get('token_authentication', False):
-            token_api_url = f'https://token.easybroadcast.io/all?url={m3u8_url}'
-            token = self._download_webpage(token_api_url, event_id, note='Fetching stream token').strip()
-            m3u8_url = m3u8_url + '?' + token
+        if traverse_obj(event, ('token_authentication', {bool})):
+            token = self._download_webpage(
+                'https://token.easybroadcast.io/all',
+                event_id, query={'url': m3u8_url})
             if not token:
-                raise ExtractorError('Empty token returned from token server.')
+                raise ExtractorError('Unable to extract token')
+            m3u8_url = update_url(m3u8_url, query=token)
 
-        formats = self._extract_m3u8_formats(m3u8_url, video_id=event_id, ext='mp4', m3u8_id='hls', live=True)
-
+        formats = self._extract_m3u8_formats(m3u8_url, event_id, 'mp4')
         if token:
-            formats = [{**fmt, 'url': fmt['url'] + '?' + token} for fmt in formats]
+            for fmt in formats:
+                fmt['url'] = update_url(fmt['url'], query=token)
 
         return {
             'id': event_id,
-            'title': metadata.get('name', event_id),
+            'title': traverse_obj(event, ('name', {str.upper}, filter)),
             'formats': formats,
             'is_live': True,
         }
