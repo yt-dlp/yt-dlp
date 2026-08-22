@@ -11,11 +11,14 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
+    float_or_none,
     parse_qs,
     unescapeHTML,
     unified_timestamp,
+    update_url_query,
     urlencode_postdata,
 )
+from ..utils.traversal import require, traverse_obj
 
 MSO_INFO = {
     'DTV': {
@@ -1359,6 +1362,9 @@ MSO_INFO = {
         'username_field': 'j_username',
         'password_field': 'j_password',
     },
+    'YouTubeTV': {
+        'name': 'YouTube TV',
+    },
 }
 
 
@@ -1456,6 +1462,15 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                 redirect_url = urllib.parse.urljoin(url, unescapeHTML(redirect_url))
             return redirect_url
 
+        def retrieve_session(reg_code, note='Retrieving Session', **kwargs):
+            return self._download_webpage(
+                self._SERVICE_PROVIDER_TEMPLATE % 'session',
+                video_id, note=note, data=urlencode_postdata({
+                    '_method': 'GET',
+                    'reg_code': reg_code,
+                    'requestor_id': requestor_id,
+                }), headers=mvpd_headers, **kwargs)
+
         mvpd_headers = {
             'ap_42': 'anonymous',
             'ap_11': 'Linux i686',
@@ -1472,9 +1487,10 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
             if not authn_token:
                 if not mso_id:
                     raise_mvpd_required()
-                username, password = self._get_login_info('ap_username', 'ap_password', mso_id)
-                if not username or not password:
-                    raise_mvpd_required()
+                if mso_id != 'YouTubeTV':
+                    username, password = self._get_login_info('ap_username', 'ap_password', mso_id)
+                    if not username or not password:
+                        raise_mvpd_required()
 
                 device_info, urlh = self._download_json_handle(
                     'https://sp.auth.adobe.com/indiv/devices',
@@ -1504,7 +1520,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                     })['access_token']
                 mvpd_headers['Authorization'] = f'Bearer {access_token}'
 
-                reg_code = self._download_json(
+                reg_code_info = self._download_json(
                     f'https://sp.auth.adobe.com/reggie/v1/{requestor_id}/regcode',
                     video_id, 'Obtaining registration code',
                     data=urlencode_postdata({
@@ -1515,19 +1531,24 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                     headers={
                         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                         'Authorization': f'Bearer {access_token}',
-                    })['code']
+                    })
+                reg_code = traverse_obj(reg_code_info, (
+                    'code', {str}, {require('Adobe Pass registration code')}))
+                reg_code_expires = traverse_obj(reg_code_info, ('expires', {float_or_none(scale=1000)}))
 
-                provider_redirect_page_res = self._download_webpage_handle(
-                    self._SERVICE_PROVIDER_TEMPLATE % 'authenticate/saml', video_id,
-                    'Downloading Provider Redirect Page', query={
-                        'noflash': 'true',
-                        'mso_id': mso_id,
-                        'requestor_id': requestor_id,
-                        'no_iframe': 'false',
-                        'domain_name': 'adobe.com',
-                        'redirect_url': url,
-                        'reg_code': reg_code,
-                    }, headers=self._get_mso_headers(mso_info))
+                auth_url = update_url_query(self._SERVICE_PROVIDER_TEMPLATE % 'authenticate/saml', {
+                    'domain_name': 'adobe.com',
+                    'mso_id': mso_id,
+                    'no_iframe': 'false',
+                    'noflash': 'true',
+                    'redirect_url': url,
+                    'reg_code': reg_code,
+                    'requestor_id': requestor_id,
+                })
+                if mso_id != 'YouTubeTV':
+                    provider_redirect_page_res = self._download_webpage_handle(
+                        auth_url, video_id, 'Downloading Provider Redirect Page',
+                        headers=self._get_mso_headers(mso_info))
 
                 if mso_id == 'Comcast_SSO':
                     # Comcast page flow varies by video site and whether you
@@ -1795,6 +1816,27 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                             'code': fubo_response['code'],
                             'state': fubo_response['state'],
                         })
+                elif mso_id == 'YouTubeTV':
+                    self.to_screen(
+                        f'Open this URL in your browser to authenticate with YouTube TV\n{auth_url}')
+                    self.to_screen('Waiting for browser authentication')
+
+                    interval = 10
+                    expires_at = reg_code_expires or time.time() + 1800
+                    session = None
+
+                    while time.time() < expires_at:
+                        session = retrieve_session(
+                            reg_code, note=False, fatal=False, expected_status=401)
+                        if session and ('<authnToken>' in session or '<pendingLogout' in session):
+                            break
+
+                        remaining = expires_at - time.time()
+                        if remaining > 0:
+                            time.sleep(min(interval, remaining))
+                    else:
+                        raise ExtractorError(
+                            'Timed out waiting for browser authentication', expected=True)
                 else:
                     # Some providers (e.g. DIRECTV NOW) have another meta refresh
                     # based redirect that should be followed.
@@ -1818,18 +1860,13 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                     if mso_id != 'Rogers':
                         post_form(mvpd_confirm_page_res, 'Confirming Login')
 
-                try:
-                    session = self._download_webpage(
-                        self._SERVICE_PROVIDER_TEMPLATE % 'session', video_id,
-                        'Retrieving Session', data=urlencode_postdata({
-                            '_method': 'GET',
-                            'requestor_id': requestor_id,
-                            'reg_code': reg_code,
-                        }), headers=mvpd_headers)
-                except ExtractorError as e:
-                    if not mso_id and isinstance(e.cause, HTTPError) and e.cause.status == 401:
-                        raise_mvpd_required()
-                    raise
+                if mso_id != 'YouTubeTV':
+                    try:
+                        session = retrieve_session(reg_code)
+                    except ExtractorError as e:
+                        if not mso_id and isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                            raise_mvpd_required()
+                        raise
                 if '<pendingLogout' in session:
                     self.cache.store(self._MVPD_CACHE, requestor_id, {})
                     continue
