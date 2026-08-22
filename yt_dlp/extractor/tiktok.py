@@ -1022,8 +1022,10 @@ class TikTokUserIE(TikTokBaseIE):
         'url': 'https://tiktok.com/@corgibobaa?lang=en',
         'playlist_mincount': 45,
         'info_dict': {
+            'channel': str,
             'id': 'MS4wLjABAAAAepiJKgwWhulvCpSuUVsp7sgVVsFJbbNaLeQ6OQ0oAJERGDUIXhb2yxxHZedsItgT',
             'title': 'corgibobaa',
+            'description': str,
         },
         'expected_warnings': ['TikTok API keeps sending the same page'],
         'params': {'extractor_retries': 10},
@@ -1031,8 +1033,10 @@ class TikTokUserIE(TikTokBaseIE):
         'url': 'https://www.tiktok.com/@6820838815978423302',
         'playlist_mincount': 5,
         'info_dict': {
+            'channel': str,
             'id': 'MS4wLjABAAAA0tF1nBwQVVMyrGu3CqttkNgM68Do1OXUFuCY0CRQk8fEtSVDj89HqoqvbSTmUP2W',
             'title': '6820838815978423302',
+            'description': str,
         },
         'expected_warnings': ['TikTok API keeps sending the same page'],
         'params': {'extractor_retries': 10},
@@ -1040,8 +1044,10 @@ class TikTokUserIE(TikTokBaseIE):
         'url': 'https://www.tiktok.com/@meme',
         'playlist_mincount': 593,
         'info_dict': {
+            'channel': str,
             'id': 'MS4wLjABAAAAiKfaDWeCsT3IHwY77zqWGtVRIy9v4ws1HbVi7auP1Vx7dJysU_hc5yRiGywojRD6',
             'title': 'meme',
+            'description': str,
         },
         'expected_warnings': ['TikTok API keeps sending the same page'],
         'params': {'extractor_retries': 10},
@@ -1167,7 +1173,7 @@ class TikTokUserIE(TikTokBaseIE):
         return None
 
     def _real_extract(self, url):
-        user_name, sec_uid = self._match_id(url), None
+        user_name, sec_uid, signature, nickname = self._match_id(url), None, None, None
         if re.fullmatch(r'MS4wLjABAAAA[\w-]{64}', user_name):
             user_name, sec_uid = None, user_name
             fail_early = True
@@ -1190,6 +1196,8 @@ class TikTokUserIE(TikTokBaseIE):
             else:
                 sec_uid = self._extract_sec_uid_from_embed(user_name)
                 fail_early = False
+            signature = traverse_obj(detail, ('userInfo', 'user', 'signature', {str}))
+            nickname = traverse_obj(detail, ('userInfo', 'user', 'nickname', {str}))
 
         if not sec_uid:
             raise ExtractorError(
@@ -1197,7 +1205,7 @@ class TikTokUserIE(TikTokBaseIE):
                 'from a video posted by this user, try using "tiktokuser:channel_id" as the '
                 'input URL (replacing `channel_id` with its actual value)', expected=True)
 
-        return self.playlist_result(self._entries(sec_uid, user_name, fail_early), sec_uid, user_name)
+        return self.playlist_result(self._entries(sec_uid, user_name, fail_early), sec_uid, user_name, signature, channel=nickname)
 
 
 class TikTokBaseListIE(TikTokBaseIE):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
