@@ -8,6 +8,7 @@ from ..utils import (
     join_nonempty,
     mimetype2ext,
     parse_resolution,
+    qualities,
     str_or_none,
     unescapeHTML,
     url_or_none,
@@ -76,12 +77,32 @@ class VidyardBaseIE(InfoExtractor):
         return self._download_json(
             f'https://play.vidyard.com/player/{video_id}.json', video_id)['payload']
 
+    def _process_video_json_thumbnails(self, json_data):
+        _QUALITIES = ('small', 'normal')
+        preference = qualities(_QUALITIES)
+        thumbnails = []
+
+        for quality, url in traverse_obj(json_data, ('thumbnailUrls'), default={}).items():
+            if preference(quality) != -1:
+                thumbnails.append({
+                    'url': url_or_none(url),
+                    'preference': preference(quality),
+                })
+
+        if thumbnails:
+            return {
+                'thumbnails': thumbnails,
+            }
+
+        return {}
+
     def _process_video_json(self, json_data, video_id):
         formats, subtitles = self._get_formats_and_subtitles(json_data['sources'], video_id)
         self._merge_subtitles(self._get_direct_subtitles(json_data.get('captions')), target=subtitles)
 
         return {
             **self._get_additional_metadata(json_data['facadeUuid']),
+            **self._process_video_json_thumbnails(json_data),
             **traverse_obj(json_data, {
                 'id': ('facadeUuid', {str}),
                 'display_id': ('videoId', {int}, {str_or_none}),
@@ -90,7 +111,6 @@ class VidyardBaseIE(InfoExtractor):
                 'duration': ((
                     ('milliseconds', {float_or_none(scale=1000)}),
                     ('seconds', {int_or_none})), any),
-                'thumbnails': ('thumbnailUrls', ('small', 'normal'), {'url': {url_or_none}}),
                 'tags': ('tags', ..., 'name', {str}),
             }),
             'formats': formats,
@@ -114,7 +134,7 @@ class VidyardIE(VidyardBaseIE):
             'ext': 'mp4',
             'title': 'Homepage Video',
             'description': 'Look I changed the description.',
-            'thumbnail': 'https://cdn.vidyard.com/thumbnails/50347/OUPa5LTKV46849sLYngMqQ_small.jpg',
+            'thumbnail': 'https://cdn.vidyard.com/thumbnails/50347/OUPa5LTKV46849sLYngMqQ.jpg',
             'duration': 99,
             'tags': ['these', 'are', 'all', 'tags'],
         },
@@ -135,7 +155,7 @@ class VidyardIE(VidyardBaseIE):
             'display_id': '25926870',
             'ext': 'mp4',
             'title': 'Adding & Editing Video Chapters',
-            'thumbnail': 'https://cdn.vidyard.com/thumbnails/25926870/bvSEZS3dGY7DByQ_bzB57avIZ_hsvhr4_small.jpg',
+            'thumbnail': 'https://cdn.vidyard.com/thumbnails/25926870/bvSEZS3dGY7DByQ_bzB57avIZ_hsvhr4.jpg',
             'duration': 135.46,
             'chapters': [{
                 'title': 'Adding new chapters',
@@ -159,7 +179,7 @@ class VidyardIE(VidyardBaseIE):
             'ext': 'mp4',
             'title': 'Homepage Video',
             'description': 'Look I changed the description.',
-            'thumbnail': 'https://cdn.vidyard.com/thumbnails/50347/OUPa5LTKV46849sLYngMqQ_small.jpg',
+            'thumbnail': 'https://cdn.vidyard.com/thumbnails/50347/OUPa5LTKV46849sLYngMqQ.jpg',
             'duration': 99,
             'tags': ['these', 'are', 'all', 'tags'],
         },
@@ -172,7 +192,7 @@ class VidyardIE(VidyardBaseIE):
             'ext': 'mp4',
             'title': 'Install Palm Beach Shutters with a Bi-Fold Track System (Video 1 of 6)',
             'description': r're:In this video, you will learn the first step.+',
-            'thumbnail': 'https://cdn.vidyard.com/thumbnails/41974005/IJw7oCaJcF1h7WWu3OVZ8A_small.png',
+            'thumbnail': 'https://cdn.vidyard.com/thumbnails/41974005/IJw7oCaJcF1h7WWu3OVZ8A.png',
             'duration': 258.666,
         },
     }, {
@@ -186,42 +206,42 @@ class VidyardIE(VidyardBaseIE):
                 'display_id': '41974005',
                 'ext': 'mp4',
                 'title': 'Install Palm Beach Shutters with a Bi-Fold Track System (Video 1 of 6)',
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/41974005/IJw7oCaJcF1h7WWu3OVZ8A_small.png',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/41974005/IJw7oCaJcF1h7WWu3OVZ8A.png',
                 'duration': 258.666,
             }, {
                 'id': '1Fw4B84jZTXLXWqkE71RiM',
                 'display_id': '5861113',
                 'ext': 'mp4',
                 'title': 'Install Palm Beach Shutters with a Bi-Fold Track System (Video 2 of 6)',
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/5861113/29CJ54s5g1_aP38zkKLHew_small.jpg',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/5861113/29CJ54s5g1_aP38zkKLHew.jpg',
                 'duration': 167.858,
             }, {
                 'id': 'DqP3wBvLXSpxrcqpT5kEeo',
                 'display_id': '41976334',
                 'ext': 'mp4',
                 'title': 'Install Palm Beach Shutters with a Bi-Fold Track System (Video 3 of 6)',
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/5861090/RwG2VaTylUa6KhSTED1r1Q_small.png',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/5861090/RwG2VaTylUa6KhSTED1r1Q.png',
                 'duration': 94.229,
             }, {
                 'id': 'opfybfxpzQArxqtQYB6oBU',
                 'display_id': '41976364',
                 'ext': 'mp4',
                 'title': 'Install Palm Beach Shutters with a Bi-Fold Track System (Video 4 of 6)',
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/5860926/JIOaJR08dM4QgXi_iQ2zGA_small.png',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/5860926/JIOaJR08dM4QgXi_iQ2zGA.png',
                 'duration': 191.467,
             }, {
                 'id': 'rWrXvkbTNNaNqD6189HJya',
                 'display_id': '41976382',
                 'ext': 'mp4',
                 'title': 'Install Palm Beach Shutters with a Bi-Fold Track System (Video 5 of 6)',
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/5860687/CwHxBv4UudAhOh43FVB4tw_small.png',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/5860687/CwHxBv4UudAhOh43FVB4tw.png',
                 'duration': 138.155,
             }, {
                 'id': 'eYPTB521MZ9TPEArSethQ5',
                 'display_id': '41976409',
                 'ext': 'mp4',
                 'title': 'Install Palm Beach Shutters with a Bi-Fold Track System (Video 6 of 6)',
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/5861425/0y68qlMU4O5VKU7bJ8i_AA_small.png',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/5861425/0y68qlMU4O5VKU7bJ8i_AA.png',
                 'duration': 148.224,
             }],
         },
@@ -238,56 +258,56 @@ class VidyardIE(VidyardBaseIE):
                 'display_id': '29479036',
                 'ext': 'mp4',
                 'title': 'Welcome to this Expert Coaching Series',
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/ouyQi9WuwyiOupChUWNmjQ/7170d3485ba602e012df05_small.jpg',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/ouyQi9WuwyiOupChUWNmjQ/7170d3485ba602e012df05.jpg',
                 'duration': 38.205,
             }, {
                 'id': '84bPYwpg243G6xYEfJdYw9',
                 'display_id': '21820704',
                 'ext': 'mp4',
                 'title': 'Chapter 1 - Title + Agenda',
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/HFPN0ZgQq4Ow8BghGcQSow/bfaa30123c8f6601e7d7f2_small.jpg',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/HFPN0ZgQq4Ow8BghGcQSow/bfaa30123c8f6601e7d7f2.jpg',
                 'duration': 98.016,
             }, {
                 'id': 'nP17fMuvA66buVHUrzqjTi',
                 'display_id': '21820707',
                 'ext': 'mp4',
                 'title': 'Chapter 2 - Import Options',
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/rGRIF5nFjPI9OOA2qJ_Dbg/86a8d02bfec9a566845dd4_small.jpg',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/rGRIF5nFjPI9OOA2qJ_Dbg/86a8d02bfec9a566845dd4.jpg',
                 'duration': 199.136,
             }, {
                 'id': 'm54EcwXdpA5gDBH5rgCYoV',
                 'display_id': '21820710',
                 'ext': 'mp4',
                 'title': 'Chapter 3 - Importing Article Translations',
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/IVX4XR8zpSsiNIHx45kz-A/1ccbf8a29a33856d06b3ed_small.jpg',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/IVX4XR8zpSsiNIHx45kz-A/1ccbf8a29a33856d06b3ed.jpg',
                 'duration': 184.352,
             }, {
                 'id': 'j4nzS42oq4hE9oRV73w3eQ',
                 'display_id': '21820716',
                 'ext': 'mp4',
                 'title': 'Chapter 4 - Best Practices',
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/BtrRrQpRDLbA4AT95YQyog/1f1e6b8e7fdc3fa95ec8d3_small.jpg',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/BtrRrQpRDLbA4AT95YQyog/1f1e6b8e7fdc3fa95ec8d3.jpg',
                 'duration': 296.960,
             }, {
                 'id': 'y28PYfW5pftvers9PXzisC',
                 'display_id': '21820727',
                 'ext': 'mp4',
                 'title': 'Chapter 5 - Migration Steps',
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/K2CdQOXDfLcrVTF60r0bdw/a09239ada28b6ffce12b1f_small.jpg',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/K2CdQOXDfLcrVTF60r0bdw/a09239ada28b6ffce12b1f.jpg',
                 'duration': 620.640,
             }, {
                 'id': 'YWU1eQxYvhj29SjYoPw5jH',
                 'display_id': '21820733',
                 'ext': 'mp4',
                 'title': 'Chapter 6 - Demo',
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/rsmhP-cO8dAa8ilvFGCX0g/7911ef415167cd14032068_small.jpg',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/rsmhP-cO8dAa8ilvFGCX0g/7911ef415167cd14032068.jpg',
                 'duration': 631.456,
             }, {
                 'id': 'nmEvVqpwdJUgb74zKsLGxn',
                 'display_id': '29479037',
                 'ext': 'mp4',
                 'title': 'Schedule Your Follow-Up',
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/Rtwc7X4PEkF4Ae5kHi-Jvw/174ebed3f34227b1ffa1d0_small.jpg',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/Rtwc7X4PEkF4Ae5kHi-Jvw/174ebed3f34227b1ffa1d0.jpg',
                 'duration': 33.608,
             }],
         },
@@ -311,7 +331,7 @@ class VidyardIE(VidyardBaseIE):
             'display_id': '820026',
             'ext': 'mp4',
             'title': 'The Art of Storytelling: How to Deliver Your Brand Story with Content & Social',
-            'thumbnail': 'https://cdn.vidyard.com/thumbnails/MhbE-5sEFQu4x3fI6FkNlA/41eb5717c557cd19456910_small.jpg',
+            'thumbnail': 'https://cdn.vidyard.com/thumbnails/MhbE-5sEFQu4x3fI6FkNlA/41eb5717c557cd19456910.jpg',
             'duration': 2153.013,
             'tags': ['Summit2017'],
         },
@@ -333,7 +353,7 @@ class VidyardIE(VidyardBaseIE):
             'display_id': '3225198',
             'ext': 'mp4',
             'title': 'The Extreme Importance of PC Board Stack Up',
-            'thumbnail': 'https://cdn.vidyard.com/thumbnails/73_Q3_hBexWX7Og1sae6cg/9998fa4faec921439e2c04_small.jpg',
+            'thumbnail': 'https://cdn.vidyard.com/thumbnails/73_Q3_hBexWX7Og1sae6cg/9998fa4faec921439e2c04.jpg',
             'duration': 3422.742,
         },
     }, {
@@ -346,7 +366,7 @@ class VidyardIE(VidyardBaseIE):
             'ext': 'mp4',
             'title': 'How To Powercycle the Smart Hub Panel',
             'duration': 30.613,
-            'thumbnail': 'https://cdn.vidyard.com/thumbnails/_-6cw8xQUJ3qiCs_JENc_A/b21d7a5e47967f49399d30_small.jpg',
+            'thumbnail': 'https://cdn.vidyard.com/thumbnails/_-6cw8xQUJ3qiCs_JENc_A/b21d7a5e47967f49399d30.jpg',
         },
     }, {
         # <script id="vidyard_embed_code_MIBHhiLVTxga7wqLsuoDjQ" src="//embed.vidyard.com/embed/MIBHhiLVTxga7wqLsuoDjQ/inline?v=2.1">
@@ -358,7 +378,7 @@ class VidyardIE(VidyardBaseIE):
             'title': 'Lesson 1 - Opening an MT4 Account',
             'description': 'Never heard of MetaTrader4? Here\'s the 411 on the popular trading platform!',
             'duration': 168.16,
-            'thumbnail': 'https://cdn.vidyard.com/thumbnails/20291/IM-G2WXQR9VBLl2Cmzvftg_small.jpg',
+            'thumbnail': 'https://cdn.vidyard.com/thumbnails/20291/IM-G2WXQR9VBLl2Cmzvftg.jpg',
         },
     }, {
         # <iframe ... src="//play.vidyard.com/d61w8EQoZv1LDuPxDkQP2Q/type/background?preview=1"
@@ -381,7 +401,7 @@ class VidyardIE(VidyardBaseIE):
                 'ext': 'mp4',
                 'title': 'GettyImages-1027',
                 'duration': 6.0,
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/42061563/p6bY08d2N4e4IDz-7J4_wkgsPq3-qgcx_small.jpg',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/42061563/p6bY08d2N4e4IDz-7J4_wkgsPq3-qgcx.jpg',
             },
         }, {
             'info_dict': {
@@ -390,7 +410,7 @@ class VidyardIE(VidyardBaseIE):
                 'ext': 'mp4',
                 'title': 'GettyImages-1325598833',
                 'duration': 6.083,
-                'thumbnail': 'https://cdn.vidyard.com/thumbnails/42052358/y3qrbDpn_2quWr_5XBi7yzS3UvEI__ZM_small.jpg',
+                'thumbnail': 'https://cdn.vidyard.com/thumbnails/42052358/y3qrbDpn_2quWr_5XBi7yzS3UvEI__ZM.jpg',
             },
         }],
         'playlist_count': 2,
@@ -405,7 +425,7 @@ class VidyardIE(VidyardBaseIE):
             'title': 'Avaya Infinity Helps Redefine the Contact Center as Your Connection Center',
             'description': r're:Our mission is to help you turn single engagements.+',
             'duration': 81.55,
-            'thumbnail': 'https://cdn.vidyard.com/thumbnails/47074153/MZOLKhXdbiUWwp2ROnT5HaXL0oau6JtR_small.jpg',
+            'thumbnail': 'https://cdn.vidyard.com/thumbnails/47074153/MZOLKhXdbiUWwp2ROnT5HaXL0oau6JtR.jpg',
         },
     }]
 
