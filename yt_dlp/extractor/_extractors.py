@@ -1029,7 +1029,10 @@ from .mediastream import (
     WinSportsVideoIE,
 )
 from .mediaworksnz import MediaWorksNZVODIE
-from .medici import MediciIE
+from .medici import (
+    MediciEduIE,
+    MediciIE,
+)
 from .megaphone import MegaphoneIE
 from .megatvcom import (
     MegaTVComEmbedIE,
