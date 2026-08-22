@@ -65,6 +65,9 @@ class ThisVidIE(InfoExtractor):
         if '>This video is a private video' in video_holder:
             self.raise_login_required(
                 (clean_html(video_holder) or 'Private video').partition('\n')[0])
+        if 'belongs to a restricted category' in video_holder:
+            self.raise_login_required(
+                (clean_html(video_holder) or 'Restricted video').partition('\n')[0])
 
         uploader = self._html_search_regex(
             r'''(?s)<span\b[^>]*>Added by:\s*</span><a\b[^>]+\bclass\s*=\s*["']author\b[^>]+\bhref\s*=\s*["']https://thisvid\.com/members/([0-9]+/.{3,}?)\s*</a>''',
