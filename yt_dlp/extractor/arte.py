@@ -88,9 +88,7 @@ class ArteTVIE(ArteTVBaseIE):
         'es': 'E[ESP]',
         'it': 'E[ITA]',
         'pl': 'E[POL]',
-        # XXX: probably means mixed; <https://www.arte.tv/en/videos/107710-029-A/dispatches-from-ukraine-local-journalists-report/>
-        # uses this code for audio that happens to be in Ukrainian, but the manifest uses the ISO code 'mul' (mixed)
-        'mul': 'EU',
+        'mul': 'EU',  # multilingual OR language not matching Arte's official languages
     }
 
     _VERSION_CODE_RE = re.compile(r'''(?x)
@@ -185,7 +183,7 @@ class ArteTVIE(ArteTVBaseIE):
                     stream['url'], video_id=video_id, ext='mp4', m3u8_id=stream_version_code, fatal=False)
                 for fmt in fmts:
                     fmt.update({
-                        'format_note': f'{stream_version.get("label", "unknown")} [{short_label}]',
+                        'format_note': fmt.get('format_note', f'{stream_version.get("label", "unknown")} [{short_label}]'),
                         'language_preference': lang_pref,
                     })
                 if any(map(short_label.startswith, ('cc', 'OGsub'))):
