@@ -79,7 +79,9 @@ class HearThisAtIE(InfoExtractor):
     def _real_extract(self, url):
         m = self._match_valid_url(url)
         display_id = '{artist:s} - {title:s}'.format(**m.groupdict())
-        api_url = url.replace('www.', '').replace('hearthis.at', 'api-v2.hearthis.at')
+        import re
+        api_url = re.sub(r'^(https?://)(?:www\.)?hearthis\.at/', r'\1api-v2.hearthis.at/', url)
+
         data_json = self._download_json(api_url, display_id)
         track_id = data_json.get('id')
         artist_json = data_json.get('user')
