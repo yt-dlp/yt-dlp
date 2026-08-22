@@ -851,6 +851,7 @@ from .jiosaavn import (
 )
 from .joj import JojIE
 from .jove import JoveIE
+from .joysound import JoySoundCafeIE
 from .jstream import JStreamIE
 from .jtbc import (
     JTBCIE,
