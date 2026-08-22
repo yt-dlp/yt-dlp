@@ -133,6 +133,34 @@ class RTPIE(InfoExtractor):
             'modified_timestamp': 1758563110,
             'modified_date': '20250922',
         },
+    }, {
+        # Episode with subtitles, not geoblocked
+        'url': 'https://www.rtp.pt/play/p13974/e799689/irreversivel',
+        'md5': '8d52ac84fe13272a6b5b38cdd417c96e',
+        'info_dict': {
+            'id': '1276319',
+            'ext': 'mp4',
+            'title': 'Irreversível',
+            'description': 'md5:59d527e0dd44ea0a5be6d4cc39b94558',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'timestamp': 1728939755,
+            'duration': 2903.0,
+            'upload_date': '20241014',
+            'modified_timestamp': 1729034823,
+            'series': 'Irreversível',
+            'episode_number': 1,
+            'episode': 'Episode 1',
+            'modified_date': '20241015',
+            'episode_id': 'e799689',
+            'series_id': 'p13974',
+            '_old_archive_ids': ['rtp e799689'],
+            'subtitles': {
+                'PT': [{
+                    'ext': 'vtt',
+                    'name': 'Português adaptado',
+                }],
+            },
+        },
     }]
 
     _USER_AGENT = 'rtpplay/2.0.66 (pt.rtp.rtpplay; build:2066; iOS 15.8.3) Alamofire/5.9.1'
@@ -189,7 +217,7 @@ class RTPIE(InfoExtractor):
             ((('hls', 'dash'), 'stream_url'), ('multibitrate', ('url_hls', 'url_dash'))),))
         formats, subtitles = self._extract_formats(media_urls, asset_id)
 
-        for sub_data in traverse_obj(asset_urls, ('subtitles', 'vtt_list', lambda _, v: url_or_none(v['file']))):
+        for sub_data in traverse_obj(asset_data, ('subtitles', 'vtt_list', lambda _, v: url_or_none(v['file']))):
             subtitles.setdefault(sub_data.get('code') or 'pt', []).append({
                 'url': sub_data['file'],
                 'name': sub_data.get('language'),
@@ -311,6 +339,17 @@ class RTPIE(InfoExtractor):
         media_urls = traverse_obj(re.findall(r'(?:var\s+f\s*=|RTPPlayer\({[^}]+file:)\s*({[^}]+}|"[^"]+")', webpage), (
             -1, (({self.__unobfuscate}, {js_to_json}, {json.loads}, {dict.values}, ...), {json.loads})))
         formats, subtitles = self._extract_formats(media_urls, asset_id)
+
+        if not subtitles:
+            sub_data = traverse_obj(re.findall(r'RTPPlayer\({[^}]+vtt:\s*(\[\s*\[.*?\]\s*\])', webpage), (
+                -1, {js_to_json}, {json.loads}))
+
+            if sub_data:
+                sub_code, sub_language, sub_file = sub_data[0]
+                subtitles.setdefault(sub_code or 'pt', []).append({
+                    'url': sub_file,
+                    'name': sub_language,
+                })
 
         return {
             'id': asset_id,
