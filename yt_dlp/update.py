@@ -609,7 +609,7 @@ class Updater:
         self.ydl._download_retcode = 100
 
     def _report_permission_error(self, file):
-        self._report_error(f'Unable to write to {file}; try running as administrator', True)
+        self._report_error(f'Insufficient permissions to write to {file}', True)
 
     def _report_network_error(self, action, delim=';', tag=None):
         if not tag:
