@@ -92,7 +92,7 @@ jobs:
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
-          python-version: "3.13"  # Keep this in sync with test-workflows.yml
+          python-version: '3.14'  # Keep this in sync with test-workflows.yml
 
       - name: Process inputs
         id: process_inputs
@@ -180,7 +180,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
-          python-version: "3.13"
+          python-version: '3.14'
 
       - name: Install Requirements
         run: |
@@ -252,7 +252,7 @@ jobs:
           merge-multiple: true
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
-          python-version: "3.13"
+          python-version: '3.14'
 
       - name: Generate release notes
         env:

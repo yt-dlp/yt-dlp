@@ -163,7 +163,7 @@ class TestCookies(unittest.TestCase):
         self.assertEqual(cookie.name, 'foo')
         self.assertEqual(cookie.value, 'test%20%3Bcookie')
         self.assertFalse(cookie.secure)
-        expected_expiration = dt.datetime(2021, 6, 18, 21, 39, 19, tzinfo=dt.timezone.utc)
+        expected_expiration = dt.datetime(2021, 6, 18, 21, 39, 19, tzinfo=dt.UTC)
         self.assertEqual(cookie.expires, int(expected_expiration.timestamp()))
 
     def test_pbkdf2_sha1(self):
