@@ -1,4 +1,5 @@
 import functools
+import itertools
 import json
 import re
 import urllib.parse
@@ -135,6 +136,111 @@ class LBRYBaseIE(InfoExtractor):
                 'description': 'description',
             })))
 
+    def _call_comment_api(self, method, params, claim_id, info_string):
+        headers = {'Content-Type': 'application/json'}
+        response = self._download_json(
+            'https://comments.odysee.tv/api/v2',
+            claim_id, info_string,
+            headers=headers,
+            query={'m': method},        # for redundancy
+            data=json.dumps({
+                'jsonrpc': '2.0',
+                'id': 1,
+                'method': method,
+                'params': params,
+            }).encode())
+        err = response.get('error')
+        if err:
+            raise ExtractorError(
+                f'{self.IE_NAME} said: {err.get("code")} - {err.get("message")}', expected=True)
+        return response['result']
+
+    @staticmethod
+    def lbry_to_url(lbry_uri):
+        url = lbry_uri.removeprefix('lbry://')
+        url = url.replace('#', ':')
+        return f'https://odysee.com/{url}'
+
+    def _get_comments(self, claim_id):
+        current_count = 0
+        total_count = None
+        thumbnails = {}
+        processed_account_ids = set()
+        self.to_screen('Downloading comments')
+
+        for page_index in itertools.count(1):
+            params = {
+                'page': page_index,
+                'claim_id': claim_id,
+                'page_size': self._PAGE_SIZE,
+                'top_level': False,
+                'sort_by': 0,   # sort by newest
+            }
+            if total_count is None:
+                info_string = f'Downloading comment API JSON page {page_index} ({current_count}/?)'
+            else:
+                info_string = f'Downloading comment API JSON page {page_index} ({current_count}/~{total_count})'
+            response = self._call_comment_api('comment.List', params, claim_id, info_string)
+
+            if total_count is None:  # populate total counts on first pass
+                total_pages = response['total_pages']
+                total_count = response['total_items']
+            if total_count == 0:
+                self.to_screen(f'{claim_id} has no comments')
+                return
+            comments = response['items']
+
+            # get comment reactions
+            comment_ids = ','.join(traverse_obj(comments, (..., 'comment_id')))
+            info_string = 'Downloading reaction API JSON'
+            response = self._call_comment_api('reaction.List', {'comment_ids': comment_ids}, claim_id, info_string)
+            comment_reactions = response.get('others_reactions') or None
+
+            # get commenter account/channel info
+            channel_ids = traverse_obj(comments, (..., 'channel_id', {str}))
+            channel_ids = set(channel_ids)                          # remove duplicates
+            channel_ids.difference_update(processed_account_ids)    # remove processed accounts
+            channel_ids = list(channel_ids)
+            if len(channel_ids) > 0:                                # API call and modify thumbnail dict only if new found
+                params = {
+                    'claim_ids': channel_ids,
+                    'page': 1,
+                    'page_size': len(channel_ids),
+                    'no_totals': False,
+                }
+                accounts_response = self._call_api_proxy('claim_search', claim_id, params, 'accounts').get('items')
+                if accounts_response:
+                    for channel_id in channel_ids:
+                        thumbnail_url = traverse_obj(accounts_response, (any, lambda i, x: x.get('claim_id') == channel_id,
+                                                                         'value', 'thumbnail', 'url', {url_or_none}))
+                        if thumbnail_url is not None and len(thumbnail_url) == 1:
+                            thumbnails[channel_id] = thumbnail_url[0]
+                processed_account_ids.update(channel_ids)
+
+            comments_in_page = 0
+            for comment in comments:
+                yield {
+                    'author': comment['channel_name'],
+                    'author_id': comment['channel_id'],
+                    'author_thumbnail': thumbnails.get(comment['channel_id']),
+                    'author_url': self.lbry_to_url(comment['channel_url']),
+                    'id': comment['comment_id'],
+                    'text': comment['comment'],
+                    'like_count': traverse_obj(comment_reactions, (comment['comment_id'], 'like', {int})) or 0,
+                    'dislike_count': traverse_obj(comment_reactions, (comment['comment_id'], 'dislike', {int})) or 0,
+                    'is_pinned': comment['is_pinned'],
+                    'timestamp': comment['timestamp'],
+                    'parent': comment.get('parent_id') or 'root',
+                }
+                current_count += 1
+                comments_in_page += 1
+            if page_index == total_pages:
+                break
+
+            # reduce total_count if API returned less comments than page size
+            if comments_in_page < self._PAGE_SIZE:
+                total_count -= self._PAGE_SIZE - comments_in_page
+
 
 class LBRYIE(LBRYBaseIE):
     IE_NAME = 'lbry'
@@ -149,6 +255,7 @@ class LBRYIE(LBRYBaseIE):
         # Video
         'url': 'https://lbry.tv/@Mantega:1/First-day-LBRY:1',
         'md5': '65bd7ec1f6744ada55da8e4c48a2edf9',
+        'params': {'getcomments': True},
         'info_dict': {
             'id': '17f983b61f53091fb8ea58a9c56804e4ff8cff4d',
             'ext': 'mp4',
@@ -167,6 +274,7 @@ class LBRYIE(LBRYBaseIE):
             'channel': 'LBRY/Odysee rats united!!!',
             'channel_id': '1c8ad6a2ab4e889a71146ae4deeb23bb92dab627',
             'channel_url': 'https://lbry.tv/@Mantega:1c8ad6a2ab4e889a71146ae4deeb23bb92dab627',
+            'comment_count': int,
             'tags': [
                 'first day in lbry',
                 'lbc',
@@ -179,6 +287,7 @@ class LBRYIE(LBRYBaseIE):
         # Audio
         'url': 'https://lbry.tv/@LBRYFoundation:0/Episode-1:e',
         'md5': 'c94017d3eba9b49ce085a8fad6b98d00',
+        'params': {'getcomments': True},
         'info_dict': {
             'id': 'e7d93d772bd87e2b62d5ab993c1c3ced86ebb396',
             'ext': 'mp3',
@@ -193,6 +302,7 @@ class LBRYIE(LBRYBaseIE):
             'channel': 'The LBRY Foundation',
             'channel_id': '0ed629d2b9c601300cacf7eabe9da0be79010212',
             'channel_url': 'https://lbry.tv/@LBRYFoundation:0ed629d2b9c601300cacf7eabe9da0be79010212',
+            'comment_count': int,
             'vcodec': 'none',
             'thumbnail': 'https://spee.ch/d/0bc63b0e6bf1492d.png',
             'license': 'None',
@@ -201,6 +311,7 @@ class LBRYIE(LBRYBaseIE):
     }, {
         'url': 'https://odysee.com/@gardeningincanada:b/plants-i-will-never-grow-again.-the:e',
         'md5': 'c35fac796f62a14274b4dc2addb5d0ba',
+        'params': {'getcomments': True},
         'info_dict': {
             'id': 'e51671357333fe22ae88aad320bde2f6f96b1410',
             'ext': 'mp4',
@@ -215,6 +326,7 @@ class LBRYIE(LBRYBaseIE):
             'channel': 'Gardening In Canada',
             'channel_id': 'b8be0e93b423dad221abe29545fbe8ec36e806bc',
             'channel_url': 'https://odysee.com/@gardeningincanada:b8be0e93b423dad221abe29545fbe8ec36e806bc',
+            'comment_count': int,
             'uploader_id': '@gardeningincanada',
             'formats': 'mincount:3',
             'thumbnail': 'https://thumbnails.lbry.com/AgHSc_HzrrE',
@@ -247,6 +359,7 @@ class LBRYIE(LBRYBaseIE):
         # original quality format w/higher resolution than HLS formats
         'url': 'https://odysee.com/@wickedtruths:2/Biotechnological-Invasion-of-Skin-(April-2023):4',
         'md5': '305b0b3b369bde1b984961f005b67193',
+        'params': {'getcomments': True},
         'info_dict': {
             'id': '41fbfe805eb73c8d3012c0c49faa0f563274f634',
             'ext': 'mp4',
@@ -255,6 +368,7 @@ class LBRYIE(LBRYBaseIE):
             'channel': 'Wicked Truths',
             'channel_id': '23d2bbf856b0ceed5b1d7c5960bcc72da5a20cb0',
             'channel_url': 'https://odysee.com/@wickedtruths:23d2bbf856b0ceed5b1d7c5960bcc72da5a20cb0',
+            'comment_count': int,
             'uploader_id': '@wickedtruths',
             'timestamp': 1695114347,
             'upload_date': '20230919',
@@ -371,6 +485,7 @@ class LBRYIE(LBRYBaseIE):
             'formats': formats,
             'is_live': is_live,
             'http_headers': headers,
+            '__post_extractor': self.extract_comments(claim_id),
         }
 
 
