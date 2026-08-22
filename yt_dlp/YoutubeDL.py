@@ -3172,7 +3172,7 @@ class YoutubeDL:
                 and not self.params.get('writeautomaticsub')):
             return None
 
-        all_sub_langs = tuple(available_subs.keys())
+        all_sub_langs = tuple(sorted(available_subs.keys()))
         if self.params.get('allsubtitles', False):
             requested_langs = all_sub_langs
         elif self.params.get('subtitleslangs', False):
@@ -3214,7 +3214,27 @@ class YoutubeDL:
                     'No subtitle format found matching "{}" for language {}, '
                     'using {}. Use --list-subs for a list of available subtitles'.format(formats_query, lang, f['ext']))
             subs[lang] = f
-        return subs
+        return self._sort_subtitles(subs, all_sub_langs)
+
+    def _sort_subtitles(self, subs, all_sub_langs):
+        subtitleslangs = self.params.get('subtitleslangs', [])
+        if self.params.get('allsubtitles', False):
+            subtitleslangs = ['all']
+
+        all_pos = subtitleslangs.index('all') if 'all' in subtitleslangs else -1
+        sort_group = {}
+        for i, lang_opt in enumerate(subtitleslangs):
+            if lang_opt == 'all' or lang_opt.startswith('-'):
+                continue
+
+            for lang in orderedSet_from_options([lang_opt], {'all': all_sub_langs}, use_regex=True):
+                sort_group[lang] = i
+
+        def sort_fn(item):
+            lang, subtitle_format = item
+            return (sort_group.get(lang, all_pos), subtitle_format.get('name') or lang, lang)
+
+        return dict(sorted(subs.items(), key=sort_fn))
 
     def _forceprint(self, key, info_dict):
         if info_dict is None:
