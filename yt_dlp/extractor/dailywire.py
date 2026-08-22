@@ -1,28 +1,15 @@
+import json
+
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     float_or_none,
-    join_nonempty,
     traverse_obj,
-    url_or_none,
+    unified_timestamp,
 )
 
 
-class DailyWireBaseIE(InfoExtractor):
-    _JSON_PATH = {
-        'episode': ('props', 'pageProps', 'episodeData', 'episode'),
-        'videos': ('props', 'pageProps', 'videoData', 'video'),
-        'podcasts': ('props', 'pageProps', 'episode'),
-    }
-
-    def _get_json(self, url):
-        sites_type, slug = self._match_valid_url(url).group('sites_type', 'id')
-        json_data = self._search_nextjs_data(self._download_webpage(url, slug), slug)
-        return slug, traverse_obj(json_data, self._JSON_PATH[sites_type])
-
-
-class DailyWireIE(DailyWireBaseIE):
-    _VALID_URL = r'https?://(?:www\.)dailywire(?:\.com)/(?P<sites_type>episode|videos)/(?P<id>[\w-]+)'
+class DailyWireIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?dailywire\.com/episode/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.dailywire.com/episode/1-fauci',
         'info_dict': {
@@ -31,83 +18,132 @@ class DailyWireIE(DailyWireBaseIE):
             'display_id': '1-fauci',
             'title': '1. Fauci',
             'description': 'md5:9df630347ef85081b7e97dd30bc22853',
-            'thumbnail': 'https://daily-wire-production.imgix.net/episodes/ckzsl50xnqpy30850in3v4bu7/ckzsl50xnqpy30850in3v4bu7-1648237399554.jpg',
-            'creator': 'Caroline Roberts',
+            'thumbnail': r're:https://daily-wire-production\.imgix\.net/episodes/ckzsl50xnqpy30850in3v4bu7/.+\.jpg',
             'series_id': 'ckzplm0a097fn0826r2vc3j7h',
             'series': 'China: The Enemy Within',
+            'duration': 1391.681967,
+            'upload_date': '20220218',
+            'timestamp': 1645182003,
+            'uploader': 'China: The Enemy Within',
+            'uploader_id': 'china-the-enemy-within',
+            'uploader_url': 'https://www.dailywire.com/show/china-the-enemy-within',
+            'channel': 'China: The Enemy Within',
+            'channel_id': 'china-the-enemy-within',
+            'channel_url': 'https://www.dailywire.com/show/china-the-enemy-within',
+            'availability': 'public',
         },
     }, {
         'url': 'https://www.dailywire.com/episode/ep-124-bill-maher',
         'info_dict': {
             'id': 'cl0ngbaalplc80894sfdo9edf',
-            'ext': 'mp3',
+            'ext': 'mp4',
             'display_id': 'ep-124-bill-maher',
             'title': 'Ep. 124 - Bill Maher',
-            'thumbnail': 'https://daily-wire-production.imgix.net/episodes/cl0ngbaalplc80894sfdo9edf/cl0ngbaalplc80894sfdo9edf-1647065568518.jpg',
-            'creator': 'Caroline Roberts',
             'description': 'md5:adb0de584bcfa9c41374999d9e324e98',
+            'thumbnail': r're:https://daily-wire-production\.imgix\.net/episodes/.+\.jpg',
             'series_id': 'cjzvep7270hp00786l9hwccob',
             'series': 'The Sunday Special',
+            'duration': 3976.605967,
+            'upload_date': '20220312',
+            'timestamp': 1647065568,
+            'uploader': 'The Sunday Special',
+            'uploader_id': 'sunday-special',
+            'uploader_url': 'https://www.dailywire.com/show/sunday-special',
+            'channel': 'The Sunday Special',
+            'channel_id': 'sunday-special',
+            'channel_url': 'https://www.dailywire.com/show/sunday-special',
+            'availability': 'subscriber_only',
         },
-    }, {
-        'url': 'https://www.dailywire.com/videos/the-hyperions',
-        'only_matching': True,
+        'skip': 'requires subscription',
     }]
 
-    def _real_extract(self, url):
-        slug, episode_info = self._get_json(url)
-        urls = traverse_obj(
-            episode_info, (('segments', 'videoUrl'), ..., ('video', 'audio')), expected_type=url_or_none)
+    _GRAPHQL_QUERY = '''
+query getEpisodeBySlug($slug: String!) {
+  episode(where: {slug: $slug}) {
+    id
+    title
+    status
+    slug
+    isLive
+    description
+    createdAt
+    scheduleAt
+    image
+    show {
+      id
+      name
+      slug
+    }
+    segments {
+      id
+      title
+      video
+      duration
+      videoAccess
+    }
+  }
+}'''
 
-        formats, subtitles = [], {}
-        for url in urls:
-            if determine_ext(url) != 'm3u8':
-                formats.append({'url': url})
-                continue
-            format_, subs_ = self._extract_m3u8_formats_and_subtitles(url, slug)
-            formats.extend(format_)
-            self._merge_subtitles(subs_, target=subtitles)
+    def _real_extract(self, url):
+        slug = self._match_id(url)
+
+        # Get access token from cookies for authentication
+        access_token = self._get_cookies('https://www.dailywire.com').get('accessToken')
+        headers = {
+            'Content-Type': 'application/json',
+            'Origin': 'https://www.dailywire.com',
+            'Referer': 'https://www.dailywire.com/',
+            'apollographql-client-name': 'DW_WEBSITE',
+        }
+        if access_token:
+            headers['Authorization'] = f'Bearer {access_token.value}'
+
+        # Fetch episode data from GraphQL API (returns video URL with auth token for subscribers)
+        gql_response = self._download_json(
+            'https://v2server.dailywire.com/app/graphql', slug,
+            headers=headers,
+            data=json.dumps({
+                'query': self._GRAPHQL_QUERY,
+                'variables': {'slug': slug},
+                'operationName': 'getEpisodeBySlug',
+            }).encode())
+
+        episode_info = traverse_obj(gql_response, ('data', 'episode')) or {}
+        segment = traverse_obj(episode_info, ('segments', 0)) or {}
+
+        video_url = segment.get('video')
+        if not video_url or video_url == 'Access Denied':
+            self.raise_login_required('This content requires a subscription')
+
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            video_url, slug, 'mp4')
+
+        show_name = traverse_obj(episode_info, ('show', 'name'))
+        show_slug = traverse_obj(episode_info, ('show', 'slug'))
+
+        video_access = segment.get('videoAccess') or []
+        # Empty videoAccess means free/public content; non-empty means subscriber-only
+        availability = 'public' if not video_access else 'subscriber_only'
+
         return {
             'id': episode_info['id'],
             'display_id': slug,
-            'title': traverse_obj(episode_info, 'title', 'name'),
+            'title': episode_info.get('title'),
             'description': episode_info.get('description'),
-            'creator': join_nonempty(('createdBy', 'firstName'), ('createdBy', 'lastName'), from_dict=episode_info, delim=' '),
-            'duration': float_or_none(episode_info.get('duration')),
+            'duration': float_or_none(segment.get('duration')),
             'is_live': episode_info.get('isLive'),
-            'thumbnail': traverse_obj(episode_info, 'thumbnail', 'image', expected_type=url_or_none),
+            'thumbnail': episode_info.get('image'),
             'formats': formats,
             'subtitles': subtitles,
             'series_id': traverse_obj(episode_info, ('show', 'id')),
-            'series': traverse_obj(episode_info, ('show', 'name')),
-        }
-
-
-class DailyWirePodcastIE(DailyWireBaseIE):
-    _VALID_URL = r'https?://(?:www\.)dailywire(?:\.com)/(?P<sites_type>podcasts)/(?P<podcaster>[\w-]+/(?P<id>[\w-]+))'
-    _TESTS = [{
-        'url': 'https://www.dailywire.com/podcasts/morning-wire/get-ready-for-recession-6-15-22',
-        'info_dict': {
-            'id': 'cl4f01d0w8pbe0a98ydd0cfn1',
-            'ext': 'm4a',
-            'display_id': 'get-ready-for-recession-6-15-22',
-            'title': 'Get Ready for Recession | 6.15.22',
-            'description': 'md5:c4afbadda4e1c38a4496f6d62be55634',
-            'thumbnail': 'https://daily-wire-production.imgix.net/podcasts/ckx4otgd71jm508699tzb6hf4-1639506575562.jpg',
-            'duration': 900.117667,
-        },
-    }]
-
-    def _real_extract(self, url):
-        slug, episode_info = self._get_json(url)
-        audio_id = traverse_obj(episode_info, 'audioMuxPlaybackId', 'VUsAipTrBVSgzw73SpC2DAJD401TYYwEp')
-
-        return {
-            'id': episode_info['id'],
-            'url': f'https://stream.media.dailywire.com/{audio_id}/audio.m4a',
-            'display_id': slug,
-            'title': episode_info.get('title'),
-            'duration': float_or_none(episode_info.get('duration')),
-            'thumbnail': episode_info.get('thumbnail'),
-            'description': episode_info.get('description'),
+            'series': show_name,
+            'timestamp': unified_timestamp(episode_info.get('createdAt')),
+            'release_timestamp': unified_timestamp(episode_info.get('scheduleAt')),
+            'uploader': show_name,
+            'uploader_id': show_slug,
+            'uploader_url': f'https://www.dailywire.com/show/{show_slug}' if show_slug else None,
+            'channel': show_name,
+            'channel_id': show_slug,
+            'channel_url': f'https://www.dailywire.com/show/{show_slug}' if show_slug else None,
+            'availability': availability,
         }
