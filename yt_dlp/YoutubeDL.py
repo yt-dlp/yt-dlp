@@ -140,7 +140,6 @@ from .utils import (
     locked_file,
     make_archive_id,
     make_parent_dirs,
-    number_of_digits,
     orderedSet,
     orderedSet_from_options,
     parse_filesize,
@@ -1286,8 +1285,8 @@ class YoutubeDL:
         # For fields playlist_index, playlist_autonumber and autonumber convert all occurrences
         # of %(field)s to %(field)0Nd for backward compatibility
         field_size_compat_map = {
-            'playlist_index': number_of_digits(info_dict.get('__last_playlist_index') or 0),
-            'playlist_autonumber': number_of_digits(info_dict.get('n_entries') or 0),
+            'playlist_index': len(str(info_dict.get('__last_playlist_index') or 0)),
+            'playlist_autonumber': len(str(info_dict.get('n_entries') or 0)),
             'autonumber': self.params.get('autonumber_size') or 5,
         }
 

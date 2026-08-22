@@ -84,10 +84,9 @@ The only reliable way to check if a site is supported is to try it.
  - **APA**
  - **Aparat**
  - **apple:​music:connect**: Apple Music Connect
- - **ApplePodcasts**
+ - **apple:podcasts**: Apple Podcasts
  - **archive.org**: archive.org video and audio
  - **ArcPublishing**
- - **ARD**
  - **ARDAudiothek**
  - **ARDAudiothekPlaylist**
  - **ARDMediathek**
@@ -1237,7 +1236,8 @@ The only reliable way to check if a site is supported is to try it.
  - **SharePoint**
  - **ShemarooMe**
  - **Shiey**
- - **ShowRoomLive**: (**Currently broken**)
+ - **showroom:live**: SHOWROOM
+ - **showroom:vod**
  - **ShugiinItvLive**: 衆議院インターネット審議中継
  - **ShugiinItvLiveRoom**: 衆議院インターネット審議中継 (中継)
  - **ShugiinItvVod**: 衆議院インターネット審議中継 (ビデオライブラリ)
