@@ -310,7 +310,7 @@ class Aria2cFD(ExternalFD):
         cmd = [self.exe, '--no-conf', '--auto-save-interval=10',
                '--console-log-level=warn', '--summary-interval=0', '--download-result=hide',
                '--http-accept-gzip=true', '--lowest-speed-limit=2', '--max-connection-per-server=2',
-               '--min-split-size=5M']
+               '--split=256', '--min-split-size=5M']
 
         cmd += [f'--load-cookies={self._write_cookies()}']
         if info_dict.get('http_headers') is not None:
