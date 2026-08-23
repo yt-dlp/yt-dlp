@@ -278,12 +278,15 @@ class TikTokBaseIE(InfoExtractor):
         return wci_cookie_name, rci_cookie_name
 
     def _extract_universal_data(self, url, display_id=None, fatal=True):
-        def get_webpage(note):
+        def get_webpage(note='Downloading webpage'):
             res = self._download_webpage_handle(url, display_id, note, fatal=fatal, impersonate=True)
             if res is False:
                 return False
 
             webpage, urlh = res
+            self.write_debug(f'Webpage size: {len(webpage)} bytes')
+            self.write_debug(f'Impersonation target: {urlh.extensions.get("impersonate")}')
+
             if urllib.parse.urlparse(urlh.url).path == '/login':
                 message = 'TikTok is requiring login for access to this content'
                 if fatal:
@@ -293,7 +296,7 @@ class TikTokBaseIE(InfoExtractor):
 
             return webpage
 
-        webpage = get_webpage(note='Downloading webpage')
+        webpage = get_webpage()
         if webpage is False:
             return None
 
@@ -614,6 +617,13 @@ class TikTokBaseIE(InfoExtractor):
                     **COMMON_FORMAT_INFO,
                     **format_info,
                     'url': self._proto_relative_url(video_url),
+                    # Some bytevc1 formats are video-only or may return HTTP Error 404
+                    # See: https://github.com/yt-dlp/yt-dlp/issues/16622
+                    #      https://github.com/yt-dlp/yt-dlp/issues/17372
+                    **({
+                        'acodec': 'none',
+                        '__needs_testing': True,
+                    } if urllib.parse.urlparse(video_url).path.endswith('/media-video-hvc1/') else {}),
                 })
 
         # We don't have res string for play formats, but need quality for sorting & de-duplication
@@ -636,13 +646,12 @@ class TikTokBaseIE(InfoExtractor):
                 'url': self._proto_relative_url(download_url),
                 'format_note': 'watermarked',
                 'preference': -2,
+                '__needs_testing': True,
             })
 
         self._remove_duplicate_formats(formats)
 
-        # Is it a slideshow with only audio for download?
-        if not formats and traverse_obj(aweme_detail, ('music', 'playUrl', {url_or_none})):
-            audio_url = aweme_detail['music']['playUrl']
+        if audio_url := traverse_obj(aweme_detail, ('music', 'playUrl', {url_or_none})):
             ext = traverse_obj(parse_qs(audio_url), (
                 'mime_type', -1, {lambda x: x.replace('_', '/')}, {mimetype2ext})) or 'm4a'
             formats.append({
@@ -706,7 +715,7 @@ class TikTokBaseIE(InfoExtractor):
 
 
 class TikTokIE(TikTokBaseIE):
-    _VALID_URL = r'https?://www\.tiktok\.com/(?:embed|@(?P<user_id>[\w\.-]+)?/video)/(?P<id>\d+)'
+    _VALID_URL = r'https?://www\.tiktokv?\.com/(?:embed|(?:share|@(?P<user_id>[\w\.-]+)?)/video)/(?P<id>\d+)'
     _EMBED_REGEX = [rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{_VALID_URL})']
 
     _TESTS = [{
@@ -980,6 +989,15 @@ class TikTokIE(TikTokBaseIE):
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
         'only_matching': True,
+    }, {
+        'url': 'https://www.tiktokv.com/share/video/7668090902816017671/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.tiktok.com/share/video/7668090902816017671/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.tiktok.com/@/video/7668090902816017671/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -1192,7 +1210,7 @@ class TikTokUserIE(TikTokUserBaseIE):
             webpage = self._download_webpage(
                 self._UPLOADER_URL_FORMAT % user_name, user_name,
                 'Downloading user webpage', 'Unable to download user webpage',
-                fatal=False, impersonate=True) or ''
+                impersonate=True, fatal=False, headers=self._generate_blockbuster_headers()) or ''
             detail = traverse_obj(
                 self._get_universal_data(webpage, user_name), ('webapp.user-detail', {dict})) or {}
             video_count = traverse_obj(detail, ('userInfo', ('stats', 'statsV2'), 'videoCount', {int_or_none}, any))
@@ -1732,7 +1750,8 @@ class TikTokLiveIE(TikTokBaseIE):
         uploader, room_id = self._match_valid_url(url).group('uploader', 'id')
         if not room_id:
             webpage = self._download_webpage(
-                format_field(uploader, None, self._UPLOADER_URL_FORMAT), uploader, impersonate=True)
+                format_field(uploader, None, self._UPLOADER_URL_FORMAT), uploader,
+                impersonate=True, headers=self._generate_blockbuster_headers())
             room_id = traverse_obj(
                 self._get_universal_data(webpage, uploader),
                 ('webapp.user-detail', 'userInfo', 'user', 'roomId', {str}))

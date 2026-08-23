@@ -1,9 +1,6 @@
-import base64
 import datetime as dt
-import hashlib
 import re
 import time
-import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import compat_ord
@@ -14,8 +11,6 @@ from ..utils import (
     int_or_none,
     orderedSet,
     parse_iso8601,
-    str_or_none,
-    url_basename,
     urshift,
 )
 
@@ -248,114 +243,3 @@ class LePlaylistIE(InfoExtractor):
 
         return self.playlist_result(entries, playlist_id, playlist_title=title,
                                     playlist_description=description)
-
-
-class LetvCloudIE(InfoExtractor):
-    # Most of *.letv.com is changed to *.le.com on 2016/01/02
-    # but yuntv.letv.com is kept, so also keep the extractor name
-    IE_DESC = '乐视云'
-    _VALID_URL = r'https?://yuntv\.letv\.com/bcloud.html\?.+'
-
-    _TESTS = [{
-        'url': 'http://yuntv.letv.com/bcloud.html?uu=p7jnfw5hw9&vu=467623dedf',
-        'md5': '26450599afd64c513bc77030ad15db44',
-        'info_dict': {
-            'id': 'p7jnfw5hw9_467623dedf',
-            'ext': 'mp4',
-            'title': 'Video p7jnfw5hw9_467623dedf',
-        },
-    }, {
-        'url': 'http://yuntv.letv.com/bcloud.html?uu=p7jnfw5hw9&vu=ec93197892&pu=2c7cd40209&auto_play=1&gpcflag=1&width=640&height=360',
-        'md5': 'e03d9cc8d9c13191e1caf277e42dbd31',
-        'info_dict': {
-            'id': 'p7jnfw5hw9_ec93197892',
-            'ext': 'mp4',
-            'title': 'Video p7jnfw5hw9_ec93197892',
-        },
-    }, {
-        'url': 'http://yuntv.letv.com/bcloud.html?uu=p7jnfw5hw9&vu=187060b6fd',
-        'md5': 'cb988699a776b22d4a41b9d43acfb3ac',
-        'info_dict': {
-            'id': 'p7jnfw5hw9_187060b6fd',
-            'ext': 'mp4',
-            'title': 'Video p7jnfw5hw9_187060b6fd',
-        },
-    }]
-
-    @staticmethod
-    def sign_data(obj):
-        if obj['cf'] == 'flash':
-            salt = '2f9d6924b33a165a6d8b5d3d42f4f987'
-            items = ['cf', 'format', 'ran', 'uu', 'ver', 'vu']
-        elif obj['cf'] == 'html5':
-            salt = 'fbeh5player12c43eccf2bec3300344'
-            items = ['cf', 'ran', 'uu', 'bver', 'vu']
-        input_data = ''.join([item + obj[item] for item in items]) + salt
-        obj['sign'] = hashlib.md5(input_data.encode()).hexdigest()
-
-    def _get_formats(self, cf, uu, vu, media_id):
-        def get_play_json(cf, timestamp):
-            data = {
-                'cf': cf,
-                'ver': '2.2',
-                'bver': 'firefox44.0',
-                'format': 'json',
-                'uu': uu,
-                'vu': vu,
-                'ran': str(timestamp),
-            }
-            self.sign_data(data)
-            return self._download_json(
-                'http://api.letvcloud.com/gpc.php?' + urllib.parse.urlencode(data),
-                media_id, f'Downloading playJson data for type {cf}')
-
-        play_json = get_play_json(cf, time.time())
-        # The server time may be different from local time
-        if play_json.get('code') == 10071:
-            play_json = get_play_json(cf, play_json['timestamp'])
-
-        if not play_json.get('data'):
-            if play_json.get('message'):
-                raise ExtractorError('Letv cloud said: {}'.format(play_json['message']), expected=True)
-            elif play_json.get('code'):
-                raise ExtractorError('Letv cloud returned error %d' % play_json['code'], expected=True)
-            else:
-                raise ExtractorError('Letv cloud returned an unknown error')
-
-        def b64decode(s):
-            return base64.b64decode(s).decode('utf-8')
-
-        formats = []
-        for media in play_json['data']['video_info']['media'].values():
-            play_url = media['play_url']
-            url = b64decode(play_url['main_url'])
-            decoded_url = b64decode(url_basename(url))
-            formats.append({
-                'url': url,
-                'ext': determine_ext(decoded_url),
-                'format_id': str_or_none(play_url.get('vtype')),
-                'format_note': str_or_none(play_url.get('definition')),
-                'width': int_or_none(play_url.get('vwidth')),
-                'height': int_or_none(play_url.get('vheight')),
-            })
-
-        return formats
-
-    def _real_extract(self, url):
-        uu_mobj = re.search(r'uu=([\w]+)', url)
-        vu_mobj = re.search(r'vu=([\w]+)', url)
-
-        if not uu_mobj or not vu_mobj:
-            raise ExtractorError(f'Invalid URL: {url}', expected=True)
-
-        uu = uu_mobj.group(1)
-        vu = vu_mobj.group(1)
-        media_id = uu + '_' + vu
-
-        formats = self._get_formats('flash', uu, vu, media_id) + self._get_formats('html5', uu, vu, media_id)
-
-        return {
-            'id': media_id,
-            'title': f'Video {media_id}',
-            'formats': formats,
-        }

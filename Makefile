@@ -3,7 +3,7 @@ all-extra: lazy-extractors yt-dlp-extra doc pypi-files
 clean: clean-test clean-dist
 clean-all: clean clean-cache
 completions: completion-bash completion-fish completion-zsh
-doc: README.md CONTRIBUTING.md CONTRIBUTORS issuetemplates supportedsites
+doc: README.md CONTRIBUTORS issuetemplates supportedsites
 ot: offlinetest
 tar: yt-dlp.tar.gz
 
@@ -30,7 +30,7 @@ clean-test:
 	test/testdata/sigs/player-*.js test/testdata/thumbnails/empty.webp "test/testdata/thumbnails/foo %d bar/foo_%d."*
 clean-dist:
 	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ \
-	yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS \
+	yt_dlp/extractor/lazy_extractors.py *.spec yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS \
 	yt-dlp.zip .ejs-* yt_dlp_ejs/
 clean-cache:
 	find . \( \
@@ -131,9 +131,6 @@ yt-dlp: yt-dlp.zip
 
 README.md: $(PY_CODE_FILES) devscripts/make_readme.py
 	COLUMNS=80 $(PYTHON) yt_dlp/__main__.py --ignore-config --help | $(PYTHON) devscripts/make_readme.py
-
-CONTRIBUTING.md: README.md devscripts/make_contributing.py
-	$(PYTHON) devscripts/make_contributing.py README.md CONTRIBUTING.md
 
 issuetemplates: devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/1_broken_site.yml .github/ISSUE_TEMPLATE_tmpl/2_site_support_request.yml .github/ISSUE_TEMPLATE_tmpl/3_site_feature_request.yml .github/ISSUE_TEMPLATE_tmpl/4_bug_report.yml .github/ISSUE_TEMPLATE_tmpl/5_feature_request.yml yt_dlp/version.py
 	$(PYTHON) devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/1_broken_site.yml .github/ISSUE_TEMPLATE/1_broken_site.yml
