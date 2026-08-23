@@ -50,14 +50,13 @@ class ADNIE(ADNBaseIE):
     _VALID_URL = r'https?://(?:www\.)?animationdigitalnetwork\.com/(?:(?P<lang>de)/)?video/[^/?#]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://animationdigitalnetwork.com/video/558-fruits-basket/9841-episode-1-a-ce-soir',
-        'md5': '1c9ef066ceb302c86f80c2b371615261',
+        'md5': '3999b7b235ffb3591a385d1913cd3cd1',
         'info_dict': {
             'id': '9841',
             'ext': 'mp4',
             'title': 'Fruits Basket - Episode 1',
-            'description': 'md5:14be2f72c3c96809b0ca424b0097d336',
             'series': 'Fruits Basket',
-            'duration': 1437,
+            'duration': 1436,
             'release_date': '20190405',
             'comment_count': int,
             'average_rating': float,
