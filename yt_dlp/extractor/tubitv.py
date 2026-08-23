@@ -15,7 +15,7 @@ from ..utils import (
 
 class TubiTvIE(InfoExtractor):
     IE_NAME = 'tubitv'
-    _VALID_URL = r'https?://(?:www\.)?tubitv\.com/(?P<type>video|movies|tv-shows)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?tubitv\.com/(?:[a-z]{2}-[a-z]{2}/)?(?P<type>video|movies|tv-shows)/(?P<id>\d+)'
     _LOGIN_URL = 'http://tubitv.com/login'
     _NETRC_MACHINE = 'tubitv'
     _TESTS = [{
@@ -73,6 +73,9 @@ class TubiTvIE(InfoExtractor):
             'release_year': 1979,
         },
         'skip': 'Content Unavailable',
+    }, {
+        'url': 'https://tubitv.com/es-mx/tv-shows/477363/s01-e03-jacob-dos-dos-y-la-tarjets-de-hockey-robada',
+        'only_matching': True,
     }]
 
     # DRM formats are included only to raise appropriate error

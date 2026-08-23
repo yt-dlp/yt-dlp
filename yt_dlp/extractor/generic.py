@@ -778,7 +778,7 @@ class GenericIE(InfoExtractor):
                     if default_search == 'auto_warning':
                         if re.match(r'^(?:url|URL)$', url):
                             raise ExtractorError(
-                                f'Invalid URL:  {url!r} . Call yt-dlp like this:  yt-dlp -v "https://www.youtube.com/watch?v=BaW_jenozKc"  ',
+                                f'Invalid URL:  {url!r} . Call yt-dlp like this:  yt-dlp -v "https://www.youtube.com/watch?v=YE7VzlLtp-4"  ',
                                 expected=True)
                         else:
                             self.report_warning(
@@ -821,13 +821,17 @@ class GenericIE(InfoExtractor):
                 'Referer': smuggled_data.get('referer'),
             }), impersonate=impersonate)
         except ExtractorError as e:
-            if not (isinstance(e.cause, HTTPError) and e.cause.status == 403
-                    and e.cause.response.get_header('cf-mitigated') == 'challenge'
-                    and e.cause.response.extensions.get('impersonate') is None):
+            if not isinstance(e.cause, HTTPError) or e.cause.status != 403:
+                raise
+            res = e.cause.response
+            already_impersonating = res.extensions.get('impersonate') is not None
+            if already_impersonating or (
+                res.get_header('cf-mitigated') != 'challenge'
+                and b'<title>Attention Required! | Cloudflare</title>' not in res.read()
+            ):
                 raise
             cf_cookie_domain = traverse_obj(
-                LenientSimpleCookie(e.cause.response.get_header('set-cookie')),
-                ('__cf_bm', 'domain'))
+                LenientSimpleCookie(res.get_header('set-cookie')), ('__cf_bm', 'domain'))
             if cf_cookie_domain:
                 self.write_debug(f'Clearing __cf_bm cookie for {cf_cookie_domain}')
                 self.cookiejar.clear(domain=cf_cookie_domain, path='/', name='__cf_bm')

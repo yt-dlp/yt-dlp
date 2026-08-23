@@ -62,10 +62,10 @@ def parse_iter(parsed: typing.Any, /, *, revivers: dict[str, collections.abc.Cal
         if isinstance(source, tuple):
             name, source, reviver = source
             try:
-                resolved[source] = target[index] = reviver(target[index])
+                target[index] = reviver(target[index])
             except Exception as error:
                 yield TypeError(f'failed to parse {source} as {name!r}: {error}')
-                resolved[source] = target[index] = None
+                target[index] = None
             continue
 
         if source in resolved:

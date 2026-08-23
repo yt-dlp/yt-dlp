@@ -3,6 +3,7 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
+from ..jsinterp import int_to_int32
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -20,73 +21,69 @@ from ..utils import (
 )
 
 
-def to_signed_32(n):
-    return n % ((-1 if n < 0 else 1) * 2**32)
-
-
 class _ByteGenerator:
     def __init__(self, algo_id, seed):
         try:
             self._algorithm = getattr(self, f'_algo{algo_id}')
         except AttributeError:
             raise ExtractorError(f'Unknown algorithm ID "{algo_id}"')
-        self._s = to_signed_32(seed)
+        self._s = int_to_int32(seed)
 
     def _algo1(self, s):
         # LCG (a=1664525, c=1013904223, m=2^32)
         # Ref: https://en.wikipedia.org/wiki/Linear_congruential_generator
-        s = self._s = to_signed_32(s * 1664525 + 1013904223)
+        s = self._s = int_to_int32(s * 1664525 + 1013904223)
         return s
 
     def _algo2(self, s):
         # xorshift32
         # Ref: https://en.wikipedia.org/wiki/Xorshift
-        s = to_signed_32(s ^ (s << 13))
-        s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 17))
-        s = self._s = to_signed_32(s ^ (s << 5))
+        s = int_to_int32(s ^ (s << 13))
+        s = int_to_int32(s ^ ((s & 0xFFFFFFFF) >> 17))
+        s = self._s = int_to_int32(s ^ (s << 5))
         return s
 
     def _algo3(self, s):
         # Weyl Sequence (k≈2^32*φ, m=2^32) + MurmurHash3 (fmix32)
         # Ref: https://en.wikipedia.org/wiki/Weyl_sequence
         # https://commons.apache.org/proper/commons-codec/jacoco/org.apache.commons.codec.digest/MurmurHash3.java.html
-        s = self._s = to_signed_32(s + 0x9e3779b9)
-        s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 16))
-        s = to_signed_32(s * to_signed_32(0x85ebca77))
-        s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 13))
-        s = to_signed_32(s * to_signed_32(0xc2b2ae3d))
-        return to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 16))
+        s = self._s = int_to_int32(s + 0x9e3779b9)
+        s = int_to_int32(s ^ ((s & 0xFFFFFFFF) >> 16))
+        s = int_to_int32(s * int_to_int32(0x85ebca77))
+        s = int_to_int32(s ^ ((s & 0xFFFFFFFF) >> 13))
+        s = int_to_int32(s * int_to_int32(0xc2b2ae3d))
+        return int_to_int32(s ^ ((s & 0xFFFFFFFF) >> 16))
 
     def _algo4(self, s):
         # Custom scrambling function involving a left rotation (ROL)
-        s = self._s = to_signed_32(s + 0x6d2b79f5)
-        s = to_signed_32((s << 7) | ((s & 0xFFFFFFFF) >> 25))  # ROL 7
-        s = to_signed_32(s + 0x9e3779b9)
-        s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 11))
-        return to_signed_32(s * 0x27d4eb2d)
+        s = self._s = int_to_int32(s + 0x6d2b79f5)
+        s = int_to_int32((s << 7) | ((s & 0xFFFFFFFF) >> 25))  # ROL 7
+        s = int_to_int32(s + 0x9e3779b9)
+        s = int_to_int32(s ^ ((s & 0xFFFFFFFF) >> 11))
+        return int_to_int32(s * 0x27d4eb2d)
 
     def _algo5(self, s):
         # xorshift variant with a final addition
-        s = to_signed_32(s ^ (s << 7))
-        s = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 9))
-        s = to_signed_32(s ^ (s << 8))
-        s = self._s = to_signed_32(s + 0xa5a5a5a5)
+        s = int_to_int32(s ^ (s << 7))
+        s = int_to_int32(s ^ ((s & 0xFFFFFFFF) >> 9))
+        s = int_to_int32(s ^ (s << 8))
+        s = self._s = int_to_int32(s + 0xa5a5a5a5)
         return s
 
     def _algo6(self, s):
         # LCG (a=0x2c9277b5, c=0xac564b05) with a variable right shift scrambler
-        s = self._s = to_signed_32(s * to_signed_32(0x2c9277b5) + to_signed_32(0xac564b05))
-        s2 = to_signed_32(s ^ ((s & 0xFFFFFFFF) >> 18))
+        s = self._s = int_to_int32(s * int_to_int32(0x2c9277b5) + int_to_int32(0xac564b05))
+        s2 = int_to_int32(s ^ ((s & 0xFFFFFFFF) >> 18))
         shift = (s & 0xFFFFFFFF) >> 27 & 31
-        return to_signed_32((s2 & 0xFFFFFFFF) >> shift)
+        return int_to_int32((s2 & 0xFFFFFFFF) >> shift)
 
     def _algo7(self, s):
         # Weyl Sequence (k=0x9e3779b9) + custom multiply-xor-shift mixing function
-        s = self._s = to_signed_32(s + to_signed_32(0x9e3779b9))
-        e = to_signed_32(s ^ (s << 5))
-        e = to_signed_32(e * to_signed_32(0x7feb352d))
-        e = to_signed_32(e ^ ((e & 0xFFFFFFFF) >> 15))
-        return to_signed_32(e * to_signed_32(0x846ca68b))
+        s = self._s = int_to_int32(s + int_to_int32(0x9e3779b9))
+        e = int_to_int32(s ^ (s << 5))
+        e = int_to_int32(e * int_to_int32(0x7feb352d))
+        e = int_to_int32(e ^ ((e & 0xFFFFFFFF) >> 15))
+        return int_to_int32(e * int_to_int32(0x846ca68b))
 
     def __next__(self):
         return self._algorithm(self._s) & 0xFF
@@ -213,16 +210,9 @@ class XHamsterIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _decipher_format_url(self, format_url, format_id):
-        parsed_url = urllib.parse.urlparse(format_url)
+    _VALID_HEX_RE = r'[0-9a-fA-F]{12,}'
 
-        hex_string, path_remainder = self._search_regex(
-            r'^/(?P<hex>[0-9a-fA-F]{12,})(?P<rem>[/,].+)$', parsed_url.path, 'url components',
-            default=(None, None), group=('hex', 'rem'))
-        if not hex_string:
-            self.report_warning(f'Skipping format "{format_id}": unsupported URL format')
-            return None
-
+    def _decipher_hex_string(self, hex_string, format_id):
         byte_data = bytes.fromhex(hex_string)
         seed = int.from_bytes(byte_data[1:5], byteorder='little', signed=True)
 
@@ -232,7 +222,33 @@ class XHamsterIE(InfoExtractor):
             self.report_warning(f'Skipping format "{format_id}": {e.msg}')
             return None
 
-        deciphered = bytearray(byte ^ next(byte_gen) for byte in byte_data[5:]).decode('latin-1')
+        return bytearray(byte ^ next(byte_gen) for byte in byte_data[5:]).decode('latin-1')
+
+    def _decipher_format_url(self, format_url, format_id):
+        # format_url can be hex ciphertext or a URL with a hex ciphertext segment
+        if re.fullmatch(self._VALID_HEX_RE, format_url):
+            return self._decipher_hex_string(format_url, format_id)
+        elif not url_or_none(format_url):
+            if re.fullmatch(r'[0-9a-fA-F]+', format_url):
+                # Hex strings that are too short are expected, so we don't want to warn
+                self.write_debug(f'Skipping dummy ciphertext for "{format_id}": {format_url}')
+            else:
+                # Something has likely changed on the site's end, so we need to warn
+                self.report_warning(f'Skipping format "{format_id}": invalid ciphertext')
+            return None
+
+        parsed_url = urllib.parse.urlparse(format_url)
+
+        hex_string, path_remainder = self._search_regex(
+            rf'^/(?P<hex>{self._VALID_HEX_RE})(?P<rem>[/,].+)$', parsed_url.path, 'url components',
+            default=(None, None), group=('hex', 'rem'))
+        if not hex_string:
+            self.report_warning(f'Skipping format "{format_id}": unsupported URL format')
+            return None
+
+        deciphered = self._decipher_hex_string(hex_string, format_id)
+        if not deciphered:
+            return None
 
         return parsed_url._replace(path=f'/{deciphered}{path_remainder}').geturl()
 
@@ -252,7 +268,7 @@ class XHamsterIE(InfoExtractor):
         display_id = mobj.group('display_id') or mobj.group('display_id_2')
 
         desktop_url = re.sub(r'^(https?://(?:.+?\.)?)m\.', r'\1', url)
-        webpage, urlh = self._download_webpage_handle(desktop_url, video_id)
+        webpage, urlh = self._download_webpage_handle(desktop_url, video_id, impersonate=True)
 
         error = self._html_search_regex(
             r'<div[^>]+id=["\']videoClosed["\'][^>]*>(.+?)</div>',

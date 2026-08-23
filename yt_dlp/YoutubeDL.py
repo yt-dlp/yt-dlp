@@ -112,6 +112,7 @@ from .utils import (
     RejectedVideoReached,
     SameFileError,
     UnavailableVideoError,
+    UnsafeExecExpansionError,
     UserNotLive,
     YoutubeDLError,
     age_restricted,
@@ -138,8 +139,7 @@ from .utils import (
     join_nonempty,
     locked_file,
     make_archive_id,
-    make_dir,
-    number_of_digits,
+    make_parent_dirs,
     orderedSet,
     orderedSet_from_options,
     parse_filesize,
@@ -169,7 +169,12 @@ from .utils import (
     write_json_file,
     write_string,
 )
-from .utils._utils import _UnsafeExtensionError, _YDLLogger, _ProgressState
+from .utils._utils import (
+    _UnsafeExtensionError,
+    _YDLLogger,
+    _ProgressState,
+    _desktop_entry_localestring,
+)
 from .utils.networking import (
     HTTPHeaderDict,
     clean_headers,
@@ -479,7 +484,7 @@ class YoutubeDL:
                        geo_bypass_country
     external_downloader: A dictionary of protocol keys and the executable of the
                        external downloader to use for it. The allowed protocols
-                       are default|http|ftp|m3u8|dash|rtsp|rtmp|mms.
+                       are default|http|ftp|m3u8|dash|rtmp.
                        Set the value to 'native' to use the native downloader
     compat_opts:       Compatibility options. See "Differences in default behavior".
                        The following options do not work when used through the API:
@@ -595,7 +600,7 @@ class YoutubeDL:
         'width', 'height', 'asr', 'audio_channels', 'fps',
         'tbr', 'abr', 'vbr', 'filesize', 'filesize_approx',
         'timestamp', 'release_timestamp', 'available_at',
-        'duration', 'view_count', 'like_count', 'dislike_count', 'repost_count',
+        'duration', 'view_count', 'like_count', 'dislike_count', 'repost_count', 'save_count',
         'average_rating', 'comment_count', 'age_limit',
         'start_time', 'end_time',
         'chapter_number', 'season_number', 'episode_number',
@@ -826,9 +831,14 @@ class YoutubeDL:
         for pp_def_raw in self.params.get('postprocessors', []):
             pp_def = dict(pp_def_raw)
             when = pp_def.pop('when', 'post_process')
-            self.add_post_processor(
-                get_postprocessor(pp_def.pop('key'))(self, **pp_def),
-                when=when)
+            # Handle errors for ExecPP command validation
+            try:
+                self.add_post_processor(
+                    get_postprocessor(pp_def.pop('key'))(self, **pp_def),
+                    when=when)
+            except UnsafeExecExpansionError as e:
+                self.report_error(e)
+                raise
 
         def preload_download_archive(fn):
             """Preload the archive, if any is specified"""
@@ -1132,9 +1142,10 @@ class YoutubeDL:
         """
         if self.params.get('logger') is not None:
             self.params['logger'].warning(message)
+        elif self.params.get('no_warnings'):
+            if self.params.get('verbose'):
+                self.to_stderr(f'[debug] WARNING: {message}', only_once=only_once)
         else:
-            if self.params.get('no_warnings'):
-                return
             self.to_stderr(f'{self._format_err("WARNING:", self.Styles.WARNING)} {message}', only_once)
 
     def deprecation_warning(self, message, *, stacklevel=0):
@@ -1254,7 +1265,7 @@ class YoutubeDL:
         info_dict.pop('__pending_error', None)
         return info_dict
 
-    def prepare_outtmpl(self, outtmpl, info_dict, sanitize=False):
+    def prepare_outtmpl(self, outtmpl, info_dict, sanitize=False, *, _exec=False):
         """ Make the outtmpl and info_dict suitable for substitution: ydl.escape_outtmpl(outtmpl) % info_dict
         @param sanitize    Whether to sanitize the output as a filename
         """
@@ -1274,8 +1285,8 @@ class YoutubeDL:
         # For fields playlist_index, playlist_autonumber and autonumber convert all occurrences
         # of %(field)s to %(field)0Nd for backward compatibility
         field_size_compat_map = {
-            'playlist_index': number_of_digits(info_dict.get('__last_playlist_index') or 0),
-            'playlist_autonumber': number_of_digits(info_dict.get('n_entries') or 0),
+            'playlist_index': len(str(info_dict.get('__last_playlist_index') or 0)),
+            'playlist_autonumber': len(str(info_dict.get('n_entries') or 0)),
             'autonumber': self.params.get('autonumber_size') or 5,
         }
 
@@ -1305,6 +1316,9 @@ class YoutubeDL:
                 (?:&(?P<replacement>.*?))?
                 (?:\|(?P<default>.*?))?
             )$''')
+        SAFE_EXEC_CONVERSIONS = 'difq'
+        UNSAFE_DEFAULT_CHARS = '"\' \n\t;&|^$%*<>{}()[]`#\\'
+        EXEC_ADVISORY_MSG = 'See  https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-69qj-pvh9-c5wg  for details'
 
         def _from_user_input(field):
             if field == ':':
@@ -1428,6 +1442,25 @@ class YoutubeDL:
             fmt = outer_mobj.group('format')
             if fmt == 's' and last_field in field_size_compat_map and isinstance(value, int):
                 fmt = f'0{field_size_compat_map[last_field]:d}d'
+
+            # Validate safety of exec commands
+            if _exec:
+                if fmt[-1] not in SAFE_EXEC_CONVERSIONS:
+                    raise UnsafeExecExpansionError(
+                        f'Unsafe conversion(s) in exec command: {outtmpl!r}\n'
+                        f'Conversions such as %()s are too dangerous to be used in '
+                        f'--exec command templates; use %()q instead. {EXEC_ADVISORY_MSG}')
+                elif any(unsafe_char in default for unsafe_char in UNSAFE_DEFAULT_CHARS):
+                    if default == na:
+                        raise UnsafeExecExpansionError(
+                            f'Unsafe placeholder for exec command: {na!r}\n'
+                            f'The --output-na-placeholder argument also applies to '
+                            f'--exec command templates. {EXEC_ADVISORY_MSG}')
+                    else:
+                        raise UnsafeExecExpansionError(
+                            f'Unsafe default(s) in exec command: {outtmpl!r}\n'
+                            f'Conversions are not applied to --exec command template defaults, '
+                            f'e.g. %(...|DEFAULT;)q. {EXEC_ADVISORY_MSG}')
 
             flags = outer_mobj.group('conversion') or ''
             str_fmt = f'{fmt[:-1]}s'
@@ -1602,8 +1635,10 @@ class YoutubeDL:
             if ret is NO_DEFAULT:
                 while True:
                     filename = self._format_screen(self.prepare_filename(info_dict), self.Styles.FILENAME)
-                    reply = input(self._format_screen(
-                        f'Download "{filename}"? (Y/n): ', self.Styles.EMPHASIS)).lower().strip()
+                    self.to_screen(
+                        self._format_screen(f'Download "{filename}"? (Y/n): ', self.Styles.EMPHASIS),
+                        skip_eol=True)
+                    reply = input().lower().strip()
                     if reply in {'y', ''}:
                         return None
                     elif reply == 'n':
@@ -1970,7 +2005,7 @@ class YoutubeDL:
             if webpage_url and webpage_url in self._playlist_urls:
                 self.to_screen(
                     '[download] Skipping already downloaded playlist: {}'.format(
-                        ie_result.get('title')) or ie_result.get('id'))
+                        ie_result.get('title') or ie_result.get('id')))
                 return
 
             self._playlist_level += 1
@@ -2006,7 +2041,12 @@ class YoutubeDL:
             raise Exception(f'Invalid result type: {result_type}')
 
     def _ensure_dir_exists(self, path):
-        return make_dir(path, self.report_error)
+        try:
+            make_parent_dirs(path)
+            return True
+        except OSError as e:
+            self.report_error(f'Unable to create directory: {e}')
+            return False
 
     @staticmethod
     def _playlist_infodict(ie_result, strict=False, **kwargs):
@@ -3026,9 +3066,14 @@ class YoutubeDL:
         format_selector = self.format_selector
         while True:
             if interactive_format_selection:
-                req_format = input(self._format_screen('\nEnter format selector ', self.Styles.EMPHASIS)
-                                   + '(Press ENTER for default, or Ctrl+C to quit)'
-                                   + self._format_screen(': ', self.Styles.EMPHASIS))
+                if not formats:
+                    # Bypass interactive format selection if no formats & --ignore-no-formats-error
+                    formats_to_download = None
+                    break
+                self.to_screen(self._format_screen('\nEnter format selector ', self.Styles.EMPHASIS)
+                               + '(Press ENTER for default, or Ctrl+C to quit)'
+                               + self._format_screen(': ', self.Styles.EMPHASIS), skip_eol=True)
+                req_format = input()
                 try:
                     format_selector = self.build_format_selector(req_format) if req_format else None
                 except SyntaxError as err:
@@ -3365,12 +3410,17 @@ class YoutubeDL:
 
         # Write internet shortcut files
         def _write_link_file(link_type):
+            # iri_to_uri converts to ascii, percent-escapes unsafe characters & validates scheme
+            # See https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-6v4j-43gg-vj32
             url = try_get(info_dict['webpage_url'], iri_to_uri)
             if not url:
                 self.report_warning(
-                    f'Cannot write internet shortcut file because the actual URL of "{info_dict["webpage_url"]}" is unknown')
+                    f'Cannot write internet shortcut file because the actual URL '
+                    f'of "{info_dict["webpage_url"]}" is unknown or disallowed')
                 return True
-            linkfn = replace_extension(self.prepare_filename(info_dict, 'link'), link_type, info_dict.get('ext'))
+            linkfn = replace_extension(
+                self.prepare_filename(info_dict, 'link'), link_type,
+                info_dict.get('ext'), _allowed_exts=tuple(LINK_TEMPLATES))
             if not self._ensure_dir_exists(linkfn):
                 return False
             if self.params.get('overwrites', True) and os.path.exists(linkfn):
@@ -3382,7 +3432,8 @@ class YoutubeDL:
                           newline='\r\n' if link_type == 'url' else '\n') as linkfile:
                     template_vars = {'url': url}
                     if link_type == 'desktop':
-                        template_vars['filename'] = linkfn[:-(len(link_type) + 1)]
+                        # See https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-6v4j-43gg-vj32
+                        template_vars['filename'] = _desktop_entry_localestring(linkfn[:-(len(link_type) + 1)])
                     linkfile.write(LINK_TEMPLATES[link_type] % template_vars)
             except OSError:
                 self.report_error(f'Cannot write internet shortcut {linkfn}')
@@ -3474,11 +3525,12 @@ class YoutubeDL:
                     if dl_filename is not None:
                         self.report_file_already_downloaded(dl_filename)
                     elif fd:
-                        for f in info_dict['requested_formats'] if fd != FFmpegFD else []:
-                            f['filepath'] = fname = prepend_extension(
-                                correct_ext(temp_filename, info_dict['ext']),
-                                'f{}'.format(f['format_id']), info_dict['ext'])
-                            downloaded.append(fname)
+                        if fd != FFmpegFD and temp_filename != '-':
+                            for f in info_dict['requested_formats']:
+                                f['filepath'] = fname = prepend_extension(
+                                    correct_ext(temp_filename, info_dict['ext']),
+                                    'f{}'.format(f['format_id']), info_dict['ext'])
+                                downloaded.append(fname)
                         info_dict['url'] = '\n'.join(f['url'] for f in info_dict['requested_formats'])
                         success, real_download = self.dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download

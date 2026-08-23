@@ -14,6 +14,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import re
+import typing
 
 WS = r'(?:[\ \t]*)'
 STRING_RE = re.compile(r'"(?:\\.|[^\\"\n])*"|\'[^\'\n]*\'')
@@ -84,6 +85,8 @@ def parse_enclosed(data: str, index: int, end: str, ws_re: re.Pattern):
 
 
 def parse_value(data: str, index: int):
+    result: dict[str, typing.Any] | list[typing.Any]
+
     if data[index] == '[':
         result = []
 
@@ -121,7 +124,7 @@ def parse_value(data: str, index: int):
         {'true': True, 'false': False}.get,
     ]:
         try:
-            value = func(value)
+            value = func(value)  # type: ignore[operator]
             break
         except Exception:
             pass
@@ -146,7 +149,7 @@ def parse_kv_pair(data: str, index: int, target: dict):
 
 
 def parse_toml(data: str):
-    root = {}
+    root: dict[str, typing.Any] = {}
     target = root
 
     index = 0

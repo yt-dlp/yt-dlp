@@ -3,10 +3,12 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
+    float_or_none,
     int_or_none,
     join_nonempty,
     mimetype2ext,
     parse_qs,
+    unescapeHTML,
     unified_strdate,
     url_or_none,
 )
@@ -107,6 +109,11 @@ class FirstTVIE(InfoExtractor):
                     'timestamp': ('dvr_begin_at', {int_or_none}),
                     'upload_date': ('date_air', {unified_strdate}),
                     'duration': ('duration', {int_or_none}),
+                    'chapters': ('episodes', lambda _, v: float_or_none(v['from']) is not None, {
+                        'start_time': ('from', {float_or_none}),
+                        'title': ('name', {str}, {unescapeHTML}),
+                        'end_time': ('to', {float_or_none}),
+                    }),
                 }),
                 'id': video_id,
                 'formats': formats,
