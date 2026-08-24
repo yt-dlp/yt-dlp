@@ -181,8 +181,7 @@ def _get_system_deprecation():
         # Do not inappropriately warn for unofficial/third-party binaries
         if not ORIGIN.startswith('yt-dlp/'):
             return None
-        platform_name = platform.platform()
-        if any(platform_name.startswith(f'Windows-{name}') for name in ('8', '2012Server')):
+        if platform.platform().startswith(('Windows-8', 'Windows-2012Server')):
             return (
                 'Support for Windows 8.x and Windows Server 2012 has been deprecated. '
                 'See  https://github.com/yt-dlp/yt-dlp/issues/16917  for details.\n'
@@ -610,7 +609,7 @@ class Updater:
         self.ydl._download_retcode = 100
 
     def _report_permission_error(self, file):
-        self._report_error(f'Unable to write to {file}; try running as administrator', True)
+        self._report_error(f'Insufficient permissions to write to {file}', True)
 
     def _report_network_error(self, action, delim=';', tag=None):
         if not tag:

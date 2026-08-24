@@ -300,7 +300,7 @@ class HlsFD(FragmentFD):
 
         # We only download the first fragment during the test
         if self.params.get('test', False):
-            fragments = [fragments[0] if fragments else None]
+            fragments = fragments[:1]
 
         if real_downloader:
             info_dict['fragments'] = fragments

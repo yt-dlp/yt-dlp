@@ -11,15 +11,12 @@ from ..utils import (
     join_nonempty,
     jwt_decode_hs256,
     make_archive_id,
-    parse_duration,
     parse_iso8601,
     remove_start,
     str_or_none,
-    unified_strdate,
     update_url,
     update_url_query,
     url_or_none,
-    xpath_text,
 )
 from ..utils.traversal import traverse_obj, value
 
@@ -117,118 +114,6 @@ class ARDMediathekBaseIE(InfoExtractor):
                             f['vcodec'] = 'none'
                         formats.append(f)
         return formats
-
-
-class ARDIE(InfoExtractor):
-    _VALID_URL = r'(?P<mainurl>https?://(?:www\.)?daserste\.de/(?:[^/?#&]+/)+(?P<id>[^/?#&]+))\.html'
-    _TESTS = [{
-        # available till 7.12.2023
-        'url': 'https://www.daserste.de/information/talk/maischberger/videos/maischberger-video-424.html',
-        'md5': '94812e6438488fb923c361a44469614b',
-        'info_dict': {
-            'id': 'maischberger-video-424',
-            'display_id': 'maischberger-video-424',
-            'ext': 'mp4',
-            'duration': 4452.0,
-            'title': 'maischberger am 07.12.2022',
-            'upload_date': '20221207',
-            'thumbnail': r're:^https?://.*\.jpg$',
-        },
-    }, {
-        'url': 'https://www.daserste.de/information/politik-weltgeschehen/morgenmagazin/videosextern/dominik-kahun-aus-der-nhl-direkt-zur-weltmeisterschaft-100.html',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.daserste.de/information/nachrichten-wetter/tagesthemen/videosextern/tagesthemen-17736.html',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.daserste.de/unterhaltung/serie/in-aller-freundschaft-die-jungen-aerzte/videos/diversity-tag-sanam-afrashteh100.html',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.daserste.de/information/reportage-dokumentation/dokus/videos/die-story-im-ersten-mission-unter-falscher-flagge-100.html',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.daserste.de/unterhaltung/serie/in-aller-freundschaft-die-jungen-aerzte/Drehpause-100.html',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.daserste.de/unterhaltung/film/filmmittwoch-im-ersten/videos/making-ofwendezeit-video-100.html',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        display_id = mobj.group('id')
-
-        player_url = mobj.group('mainurl') + '~playerXml.xml'
-        doc = self._download_xml(player_url, display_id)
-        video_node = doc.find('./video')
-        upload_date = unified_strdate(xpath_text(
-            video_node, './broadcastDate'))
-        thumbnail = xpath_text(video_node, './/teaserImage//variant/url')
-
-        formats = []
-        for a in video_node.findall('.//asset'):
-            file_name = xpath_text(a, './fileName', default=None)
-            if not file_name:
-                continue
-            format_type = a.attrib.get('type')
-            format_url = url_or_none(file_name)
-            if format_url:
-                ext = determine_ext(file_name)
-                if ext == 'm3u8':
-                    formats.extend(self._extract_m3u8_formats(
-                        format_url, display_id, 'mp4', entry_protocol='m3u8_native',
-                        m3u8_id=format_type or 'hls', fatal=False))
-                    continue
-                elif ext == 'f4m':
-                    formats.extend(self._extract_f4m_formats(
-                        update_url_query(format_url, {'hdcore': '3.7.0'}),
-                        display_id, f4m_id=format_type or 'hds', fatal=False))
-                    continue
-            f = {
-                'format_id': format_type,
-                'width': int_or_none(xpath_text(a, './frameWidth')),
-                'height': int_or_none(xpath_text(a, './frameHeight')),
-                'vbr': int_or_none(xpath_text(a, './bitrateVideo')),
-                'abr': int_or_none(xpath_text(a, './bitrateAudio')),
-                'vcodec': xpath_text(a, './codecVideo'),
-                'tbr': int_or_none(xpath_text(a, './totalBitrate')),
-            }
-            server_prefix = xpath_text(a, './serverPrefix', default=None)
-            if server_prefix:
-                f.update({
-                    'url': server_prefix,
-                    'playpath': file_name,
-                })
-            else:
-                if not format_url:
-                    continue
-                f['url'] = format_url
-            formats.append(f)
-
-        _SUB_FORMATS = (
-            ('./dataTimedText', 'ttml'),
-            ('./dataTimedTextNoOffset', 'ttml'),
-            ('./dataTimedTextVtt', 'vtt'),
-        )
-
-        subtitles = {}
-        for subsel, subext in _SUB_FORMATS:
-            for node in video_node.findall(subsel):
-                subtitles.setdefault('de', []).append({
-                    'url': node.attrib['url'],
-                    'ext': subext,
-                })
-
-        return {
-            'id': xpath_text(video_node, './videoId', default=display_id),
-            'formats': formats,
-            'subtitles': subtitles,
-            'display_id': display_id,
-            'title': video_node.find('./title').text,
-            'duration': parse_duration(video_node.find('./duration').text),
-            'upload_date': upload_date,
-            'thumbnail': thumbnail,
-        }
 
 
 class ARDBetaMediathekIE(InfoExtractor):
