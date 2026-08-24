@@ -26,7 +26,6 @@ from ..utils.traversal import require, traverse_obj
 
 class KickBaseIE(InfoExtractor):
     _BASE_URL = 'https://kick.com'
-    _subscription_cache = None
 
     @functools.cached_property
     def _api_headers(self):
@@ -46,23 +45,10 @@ class KickBaseIE(InfoExtractor):
             f'https://{api_domain}/api/{path}', display_id, note=note,
             headers={**self._api_headers, **headers}, impersonate=True, **kwargs)
 
-    def _is_subscribed(self, creator_id):
-        if self._subscription_cache is None:
-            self._subscription_cache = {}
-
-        if creator_id not in self._subscription_cache:
-            me = self._call_api(
-                f'v1/channels/{creator_id}/me',
-                creator_id, note='Checking subscription status')
-            self._subscription_cache[creator_id] = bool(
-                traverse_obj(me, ('data', 'subscription', {dict})))
-
-        return self._subscription_cache[creator_id]
-
-    def _get_creator_info(self, channel_id):
+    def _get_creator_info(self, channel_slug):
         channel_data = self._call_api(
-            f'v2/channels/{channel_id}',
-            channel_id, note='Downloading creator info')
+            f'v2/channels/{channel_slug}',
+            channel_slug, note='Downloading creator info')
         creator_id = traverse_obj(channel_data, (
             'id', {int}, {str_or_none}, {require('creator ID')}))
         username = traverse_obj(channel_data, ('user', 'username', {str}, filter))
@@ -77,13 +63,13 @@ class KickIE(KickBaseIE):
     _TESTS = [{
         'url': 'https://kick.com/coringa',
         'info_dict': {
-            'id': '123080397',
+            'id': '123735729',
             'ext': 'mp4',
             'title': str,
             'categories': 'count:1',
             'channel': 'Coringa',
             'channel_follower_count': int,
-            'channel_id': 'coringa',
+            'channel_id': '4124791',
             'channel_is_verified': True,
             'concurrent_view_count': int,
             'description': str,
@@ -109,22 +95,22 @@ class KickIE(KickBaseIE):
         ) else super().suitable(url)
 
     def _real_extract(self, url):
-        channel_id = self._match_id(url).lower()
-        channel_data = self._call_api(f'v2/channels/{channel_id}', channel_id)
+        channel_slug = self._match_id(url).lower()
+        channel_data = self._call_api(f'v2/channels/{channel_slug}', channel_slug)
         if not traverse_obj(channel_data, ('livestream', {dict})):
-            raise UserNotLive(video_id=channel_id)
+            raise UserNotLive(video_id=channel_slug)
 
         m3u8_url = traverse_obj(channel_data, (
             'playback_url', {url_or_none}, {require('m3u8 URL')}))
 
         return {
-            'channel_id': channel_id,
-            'formats': self._extract_m3u8_formats(m3u8_url, channel_id, 'mp4'),
+            'formats': self._extract_m3u8_formats(m3u8_url, channel_slug, 'mp4'),
             'is_live': True,
+            'uploader_id': channel_slug,
             **traverse_obj(channel_data, {
                 'channel_follower_count': ('followers_count', {int_or_none}),
+                'channel_id': ('id', {int}, {str_or_none}),
                 'channel_is_verified': ('verified', {bool}),
-                'uploader_id': ('slug', {str}, filter),
             }),
             **traverse_obj(channel_data, ('livestream', {
                 'id': ('id', {str_or_none}),
@@ -150,20 +136,20 @@ class KickVODIE(KickBaseIE):
 
     _VALID_URL = r'https?://(?:www\.)?kick\.com/[\w-]+/videos/(?P<id>[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})'
     _TESTS = [{
-        'url': 'https://kick.com/xqc/videos/019f77a6-ec40-7e2d-b1fc-575b6801b20d',
+        'url': 'https://kick.com/xqc/videos/01a0251f-ef48-702d-9289-d66922da0e84',
         'info_dict': {
-            'id': '019f77a6-ec40-7e2d-b1fc-575b6801b20d',
+            'id': '01a0251f-ef48-702d-9289-d66922da0e84',
             'ext': 'mp4',
-            'title': 'md5:adc68f02c1f0b6cd9315831850e19d36',
+            'title': 'md5:03d5dbce5b2379d9c5e1229a8fb05e17',
             'age_limit': 18,
             'availability': 'public',
             'categories': ['Just Chatting'],
             'channel': 'xQc',
-            'channel_id': 'xqc',
-            'duration': 38674,
+            'channel_id': '668',
+            'duration': 42250,
             'thumbnail': r're:https?://.+',
-            'timestamp': 1784418856,
-            'upload_date': '20260718',
+            'timestamp': 1787329245,
+            'upload_date': '20260821',
             'uploader': 'xQc',
             'uploader_id': 'xqc',
             'view_count': int,
@@ -171,26 +157,40 @@ class KickVODIE(KickBaseIE):
         'params': {'skip_download': 'm3u8'},
     }, {
         # Ongoing livestream VOD
-        'url': 'https://kick.com/a-log-burner/videos/019f9c52-2528-75fd-a634-199577affa36',
+        'url': 'https://kick.com/a-log-burner/videos/01a02882-5428-7ea1-9237-97f070aab4cc',
         'info_dict': {
-            'id': '019f9c52-2528-75fd-a634-199577affa36',
+            'id': '01a02882-5428-7ea1-9237-97f070aab4cc',
             'ext': 'mp4',
             'title': str,
             'availability': 'public',
             'categories': ['Meditation & Mindfulness'],
             'channel': 'A_Log_Burner',
-            'channel_id': 'a-log-burner',
+            'channel_id': '63967687',
             'live_status': 'is_live',
             'tags': 'count:9',
             'thumbnail': r're:https?://.+',
-            'timestamp': 1785034057,
-            'upload_date': '20260726',
+            'timestamp': 1787386025,
+            'upload_date': '20260822',
             'uploader': 'A_Log_Burner',
             'uploader_id': 'a-log-burner',
             'view_count': int,
         },
         'skip': 'Livestream',
     }]
+    _subscription_cache = None
+
+    def _is_subscribed(self, creator_id):
+        if self._subscription_cache is None:
+            self._subscription_cache = {}
+
+        if creator_id not in self._subscription_cache:
+            me = self._call_api(
+                f'v1/channels/{creator_id}/me',
+                creator_id, note='Checking subscription status')
+            self._subscription_cache[creator_id] = bool(
+                traverse_obj(me, ('data', 'subscription', {dict})))
+
+        return self._subscription_cache[creator_id]
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
@@ -233,6 +233,7 @@ class KickVODIE(KickBaseIE):
         return {
             'id': video_id,
             'availability': availability,
+            'channel_id': creator_id,
             'formats': self._extract_m3u8_formats(m3u8_url, video_id, 'mp4'),
             **traverse_obj(video_data, {
                 'title': ('title', {clean_html}, filter),
@@ -254,7 +255,6 @@ class KickVODIE(KickBaseIE):
             }),
             **traverse_obj(video_data, ('channel', {
                 'channel': ('username', {str}, filter),
-                'channel_id': ('slug', {str}, filter),
                 'uploader': ('username', {str}, filter),
                 'uploader_id': ('slug', {str}, filter),
             })),
@@ -273,7 +273,7 @@ class KickClipIE(KickBaseIE):
             'ext': 'mp4',
             'title': 'Maddy detains Abd D:',
             'channel': 'Mxddy',
-            'channel_id': 'mxddy',
+            'channel_id': '133789',
             'uploader': 'Mxddy',
             'uploader_id': 'mxddy',
             'thumbnail': r're:https?://.+',
@@ -292,7 +292,7 @@ class KickClipIE(KickBaseIE):
             'title': 'W jews',
             'ext': 'mp4',
             'channel': 'Destiny',
-            'channel_id': 'destiny',
+            'channel_id': '1772249',
             'uploader': 'Destiny',
             'uploader_id': 'destiny',
             'duration': 49,
@@ -311,7 +311,7 @@ class KickClipIE(KickBaseIE):
             'ext': 'mp4',
             'title': 'KLJASLDJKLJKASDLJKDAS',
             'channel': 'Spreen',
-            'channel_id': 'spreen',
+            'channel_id': '5312671',
             'uploader': 'Spreen',
             'uploader_id': 'spreen',
             'duration': 43,
@@ -362,7 +362,7 @@ class KickClipIE(KickBaseIE):
             }),
             **traverse_obj(clip_data, ('channel', {
                 'channel': ('username', {str}, filter),
-                'channel_id': ('slug', {str}, filter),
+                'channel_id': ('id', {int}, {str_or_none}),
                 'uploader': ('username', {str}, filter),
                 'uploader_id': ('slug', {str}, filter),
             })),
@@ -389,8 +389,8 @@ class KickVideosIE(KickBaseIE):
         'playlist_mincount': 10,
     }]
 
-    def _entries(self, creator_id, channel_id, sort_param):
-        videos = self._call_api(f'v1/channels/{creator_id}/videos', channel_id)
+    def _entries(self, creator_id, channel_slug, sort_param):
+        videos = self._call_api(f'v1/channels/{creator_id}/videos', channel_slug)
         if sort_param == 'views':
             videos['data'].sort(key=lambda v: v['viewer_count'], reverse=True)
 
@@ -400,20 +400,20 @@ class KickVideosIE(KickBaseIE):
             video_id = video_data['id']
 
             yield self.url_result(smuggle_url(
-                f'{self._BASE_URL}/{channel_id}/videos/{video_id}',
+                f'{self._BASE_URL}/{channel_slug}/videos/{video_id}',
                 {'video_data': video_data},
             ), KickVODIE, video_id)
 
     def _real_extract(self, url):
-        channel_id = self._match_id(url).lower()
-        creator_id, username = self._get_creator_info(channel_id)
+        channel_slug = self._match_id(url).lower()
+        creator_id, username = self._get_creator_info(channel_slug)
 
         sort_param = traverse_obj(parse_qs(url), ('sort', -1, {str}, filter))
         sort_label = 'Views' if sort_param == 'views' else 'Date'
 
         return self.playlist_result(
-            self._entries(creator_id, channel_id, sort_param), channel_id,
-            f'{username or channel_id} - Videos sorted by {sort_label}')
+            self._entries(creator_id, channel_slug, sort_param), channel_slug,
+            f'{username or channel_slug} - Videos sorted by {sort_label}')
 
 
 class KickClipsIE(KickBaseIE):
@@ -436,14 +436,14 @@ class KickClipsIE(KickBaseIE):
         'playlist_mincount': 10,
     }]
 
-    def _entries(self, creator_id, channel_id, sort_param, range_param):
+    def _entries(self, creator_id, channel_slug, sort_param, range_param):
         query = {
             'sort': 'views' if sort_param == 'view' else 'date',
             'time': range_param,
         }
         for page in itertools.count(1):
             clips = self._call_api(
-                f'v1/channels/{creator_id}/clips', channel_id,
+                f'v1/channels/{creator_id}/clips', channel_slug,
                 note=f'Downloading page {page}', query=query)
 
             for clip_data in traverse_obj(clips, (
@@ -452,7 +452,7 @@ class KickClipsIE(KickBaseIE):
                 clip_id = clip_data['id']
 
                 yield self.url_result(smuggle_url(
-                    f'{self._BASE_URL}/{channel_id}/clips/{clip_id}',
+                    f'{self._BASE_URL}/{channel_slug}/clips/{clip_id}',
                     {'clip_data': clip_data},
                 ), KickClipIE, clip_id)
 
@@ -462,8 +462,8 @@ class KickClipsIE(KickBaseIE):
             query['cursor'] = cursor
 
     def _real_extract(self, url):
-        channel_id = self._match_id(url).lower()
-        creator_id, username = self._get_creator_info(channel_id)
+        channel_slug = self._match_id(url).lower()
+        creator_id, username = self._get_creator_info(channel_slug)
 
         query = parse_qs(url)
         sort_param = traverse_obj(query, ('sort', -1, {str}, filter))
@@ -481,5 +481,5 @@ class KickClipsIE(KickBaseIE):
         }.get(range_param, 'Last Week')
 
         return self.playlist_result(
-            self._entries(creator_id, channel_id, sort_param, range_param), channel_id,
-            f'{username or channel_id} - Clips sorted by {sort_label} ({range_label})')
+            self._entries(creator_id, channel_slug, sort_param, range_param), channel_slug,
+            f'{username or channel_slug} - Clips sorted by {sort_label} ({range_label})')
