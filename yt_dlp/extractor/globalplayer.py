@@ -25,7 +25,7 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
             'ext': 'aac',
             'live_status': 'is_live',
             'thumbnail': 'md5:d5040f26c7c4061014a44866129b900e',
-            'description': 'Music To Chill To',
+            'description': 'md5:6e183929da9001778895f32ae85124bc',
             'title': 're:^Smooth Chill.+$',
         },
     }, {
@@ -35,7 +35,7 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
             'id': '2mwx4',
             'ext': 'aac',
             'live_status': 'is_live',
-            'description': 'Turn Up the Feel Good!',
+            'description': 'md5:492d07dfea8addadd15650ef40c10d02',
             'thumbnail': 'md5:6f13378a53ce55bcf57365a654e1b490',
             'title': 're:^Heart UK.+$',
         },
@@ -46,7 +46,7 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
             'id': 'AMqg',
             'ext': 'aac',
             'live_status': 'is_live',
-            'description': 'Turn Up the Feel Good!',
+            'description': 'md5:492d07dfea8addadd15650ef40c10d02',
             'thumbnail': 'md5:6f13378a53ce55bcf57365a654e1b490',
             'title': 're:^Heart London.+$',
         },
@@ -126,7 +126,7 @@ class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
         'info_dict': {
             'id': '46vyD7z',
             'thumbnail': 'md5:664ad62a8fb920a2b8e264ed780eee3d',
-            'description': 'Nick Ferrari At Breakfast is Leading Britain\'s Conversation.',
+            'description': 'md5:53b6fa5ef71a3cff6628551bcc416384',
             'title': 'Nick Ferrari',
         },
     }]
@@ -188,7 +188,7 @@ class GlobalPlayerAudioEpisodeIE(GlobalPlayerBaseIE):
             'id': '2zGtTwe5wouSEDNrCk29LkpsUC',
             'ext': 'm4a',
             'thumbnail': 'md5:664ad62a8fb920a2b8e264ed780eee3d',
-            'description': 'Nick Ferrari At Breakfast is Leading Britain\'s Conversation.',
+            'description': 'md5:53b6fa5ef71a3cff6628551bcc416384',
             'title': 'Nick Ferrari',
         },
     }]
