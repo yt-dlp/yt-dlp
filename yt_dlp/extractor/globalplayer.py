@@ -183,9 +183,9 @@ class GlobalPlayerAudioEpisodeIE(GlobalPlayerBaseIE):
         },
     }, {
         # radio catchup - test urls are removed after 7 days
-        'url': 'https://www.globalplayer.com/catchup/lbc/uk/episodes/2zGtTwe5wouSEDNrCk29LkpsUC/',
+        'url': 'https://www.globalplayer.com/catchup/lbc/uk/episodes/2zGmrV6DnvogKkNCXkwkQ8HQTA/',
         'info_dict': {
-            'id': '2zGtTwe5wouSEDNrCk29LkpsUC',
+            'id': '2zGmrV6DnvogKkNCXkwkQ8HQTA',
             'ext': 'm4a',
             'thumbnail': 'md5:664ad62a8fb920a2b8e264ed780eee3d',
             'description': 'md5:53b6fa5ef71a3cff6628551bcc416384',
