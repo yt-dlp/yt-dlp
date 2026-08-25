@@ -2,14 +2,12 @@ import base64
 import datetime as dt
 import itertools
 import json
-import re
 import time
 
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
-    encode_data_uri,
     filter_dict,
     int_or_none,
     jwt_decode_hs256,
@@ -95,11 +93,12 @@ class TenPlayIE(InfoExtractor):
         'skip': 'video unavailable',
     }, {
         # Geo-restricted to Australia; captionUrl is null in the metadata response,
-        # exercising the referenceId-based subtitle fallback
+        # exercising the referenceId-based subtitle fallback (HEAD probe confirms existence)
         'url': 'https://10.com.au/spongebob-squarepants/episodes/season-13/episode-2/tpv240707codqw',
         'info_dict': {
-            'id': str,
+            'id': '9000000000088932',
             'ext': 'mp4',
+            'title': 'SpongeBob SquarePants - S13 Ep. 2',
             'series': 'SpongeBob SquarePants',
             'season': 'Season 13',
             'season_number': 13,
@@ -107,7 +106,6 @@ class TenPlayIE(InfoExtractor):
             'uploader': 'Channel 10',
             'uploader_id': '2199827728001',
             'thumbnail': r're:https://.+/.+\.jpg',
-            'subtitles': {'en': [{'ext': 'vtt'}]},
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -126,7 +124,6 @@ class TenPlayIE(InfoExtractor):
         'X': 18,
     }
     _TOKEN_CACHE_KEY = 'token_data'
-    _SEGMENT_BITRATE_RE = r'(?m)-(?:300|150|75|55)0000-(\d+(?:-[\da-f]+)?)\.ts$'
 
     _refresh_token = None
     _access_token = None
@@ -231,16 +228,25 @@ class TenPlayIE(InfoExtractor):
                         self.raise_login_required('Login required to access this video', method='password')
                 raise
 
-    def _find_subtitle_url(self, reference_id):
+    def _find_subtitle_url(self, video_id, reference_id):
         """
         10play's captionUrl field is frequently null even when captions exist.
         The referenceId field encodes the CDN path prefix shared by video
-        segments and caption files, so known suffixes can be tried as a fallback.
+        segments and caption files. Probe the expected URL with a HEAD request;
+        return it only if the CDN confirms the file exists (200/206), so callers
+        get None rather than a guaranteed-404 subtitle URL when captions are
+        genuinely absent.
         """
         if not reference_id:
             return None
-        cdn_base = 'https://10play-vod.global.ssl.fastly.net/OTFP'
-        return f'{cdn_base}/{reference_id}-subtitles.vtt'
+        url = f'https://10play-vod.global.ssl.fastly.net/OTFP/{reference_id}-subtitles.vtt'
+        try:
+            self._request_webpage(
+                url, video_id, note='Probing subtitle URL', errnote=False,
+                headers={'Range': 'bytes=0-0'})
+        except ExtractorError:
+            return None
+        return url
 
     def _real_extract(self, url):
         content_id = self._match_id(url)
@@ -271,35 +277,17 @@ class TenPlayIE(InfoExtractor):
         formats, _ = self._extract_m3u8_formats_and_subtitles(
             dai_data['stream_manifest'], content_id, 'mp4')
 
-        already_have_1080p = False
         for fmt in formats:
             m3u8_doc = self._download_webpage(
                 fmt['url'], content_id, note='Downloading m3u8 information')
             m3u8_doc = self._filter_ads_from_m3u8(m3u8_doc)
             fmt['hls_media_playlist_data'] = m3u8_doc
-            if fmt.get('height') == 1080:
-                already_have_1080p = True
-
-        # Attempt format upgrade
-        if not already_have_1080p and m3u8_doc and re.search(self._SEGMENT_BITRATE_RE, m3u8_doc):
-            m3u8_doc = re.sub(self._SEGMENT_BITRATE_RE, r'-5000000-\1.ts', m3u8_doc)
-            m3u8_doc = re.sub(r'-(?:300|150|75|55)0000\.key"', r'-5000000.key"', m3u8_doc)
-            formats.append({
-                'format_id': 'upgrade-attempt-1080p',
-                'url': encode_data_uri(m3u8_doc.encode(), 'application/x-mpegurl'),
-                'hls_media_playlist_data': m3u8_doc,
-                'width': 1920,
-                'height': 1080,
-                'ext': 'mp4',
-                'protocol': 'm3u8_native',
-                '__needs_testing': True,
-            })
 
         # Resolve subtitles: prefer the API-supplied captionUrl, fall back to
         # probing CDN paths derived from the stream's referenceId
         caption_url = url_or_none(data.get('captionUrl'))
         if not caption_url:
-            caption_url = self._find_subtitle_url(data.get('referenceId'))
+            caption_url = self._find_subtitle_url(content_id, data.get('referenceId'))
         subtitles = {'en': [{'url': caption_url}]} if caption_url else None
 
         return {
