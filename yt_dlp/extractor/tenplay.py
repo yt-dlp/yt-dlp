@@ -229,14 +229,6 @@ class TenPlayIE(InfoExtractor):
                 raise
 
     def _find_subtitle_url(self, video_id, reference_id):
-        """
-        10play's captionUrl field is frequently null even when captions exist.
-        The referenceId field encodes the CDN path prefix shared by video
-        segments and caption files. Probe the expected URL with a HEAD request;
-        return it only if the CDN confirms the file exists (200/206), so callers
-        get None rather than a guaranteed-404 subtitle URL when captions are
-        genuinely absent.
-        """
         if not reference_id:
             return None
         url = f'https://10play-vod.global.ssl.fastly.net/OTFP/{reference_id}-subtitles.vtt'
