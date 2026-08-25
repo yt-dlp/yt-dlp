@@ -70,7 +70,7 @@ class AdobeTVVideoIE(InfoExtractor):
             for fmt in fmts:
                 fmt.update(traverse_obj(source, {
                     'duration': ('duration', {float_or_none(scale=1000)}),
-                    'filesize': ('kilobytes', {float_or_none(invscale=1000)}),
+                    'filesize': ('kilobytes', {int_or_none(invscale=1000)}),
                     'format_id': (('format', 'label'), {str}, all, {lambda x: join_nonempty(*x)}),
                     'height': ('height', {int_or_none}),
                     'tbr': ('bitrate', {int_or_none}),

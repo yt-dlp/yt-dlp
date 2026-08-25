@@ -76,9 +76,9 @@ class BrainPOPBaseIE(InfoExtractor):
             }, note='Logging in', errnote='Unable to log in', expected_status=400)
         status_code = int_or_none(login_res['status_code'])
         if status_code != 1505:
+            message = self._LOGIN_ERRORS.get(status_code) or login_res.get('message')
             self.report_warning(
-                f'Unable to login: {self._LOGIN_ERRORS.get(status_code) or login_res.get("message")}'
-                or f'Got status code {status_code}')
+                f'Unable to login: {message}' if message else f'Got status code {status_code}')
 
 
 class BrainPOPIE(BrainPOPBaseIE):

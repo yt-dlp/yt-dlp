@@ -312,7 +312,7 @@ class TestRequestHandlerBase:
 
 
 @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
-@pytest.mark.handler_flaky('CurlCFFI', os.name == 'nt', reason='segfaults')
+@pytest.mark.handler_flaky('CurlCFFI', reason='segfaults')
 class TestHTTPRequestHandler(TestRequestHandlerBase):
 
     def test_verify_cert(self, handler):
@@ -338,7 +338,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
         https_server_thread.start()
 
         with handler(verify=False) as rh:
-            with pytest.raises(SSLError, match=r'(?i)ssl(?:v3|/tls).alert.handshake.failure') as exc_info:
+            with pytest.raises(SSLError, match=r'(?i)(?:sslv3|tls).alert.handshake.failure') as exc_info:
                 validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers'))
             assert not issubclass(exc_info.type, CertificateVerifyError)
 
@@ -388,13 +388,23 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert res.status == 200
             res.close()
 
-    def test_percent_encode(self, handler):
+    def test_percent_encode_unicode(self, handler):
+        # RFC 3986 §6.2.2.1 defines that percent-encoding SHOULD be normalized to uppercase.
         with handler() as rh:
             # Unicode characters should be encoded with uppercase percent-encoding
             res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/中文.html'))
             assert res.status == 200
             res.close()
-            # don't normalize existing percent encodings
+
+    @pytest.mark.skip_handler('CurlCFFI', 'not supported by curl-cffi (non-standard)')
+    def test_percent_encode_keep_existing(self, handler):
+        # NOTE: RFC 3986 §6.2.2.1 defines that percent-encoding SHOULD be normalized to uppercase.
+        #  For compatibility with legacy sites (e.g., redirects using lowercase encodings and only accept that),
+        #  our default handlers (urllib/requests) preserve existing percent-encoding instead of normalizing it.
+        #
+        # CurlCFFI is excluded because it forces uppercase encodings and is hard to change. This is acceptable
+        # since CurlCFFI is used only for impersonation. https://github.com/curl/curl/pull/21592
+        with handler() as rh:
             res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/%c7%9f'))
             assert res.status == 200
             res.close()
@@ -859,15 +869,15 @@ class TestRequestHandlerMisc:
         ('Websockets', 'websockets.server'),
     ], indirect=['handler'])
     def test_remove_logging_handler(self, handler, logger_name):
-        # Ensure any logging handlers, which may contain a YoutubeDL instance,
-        # are removed when we close the request handler
+        # Ensure closing the request handler removes only its logging handlers,
+        # which may reference a YoutubeDL instance
         # See: https://github.com/yt-dlp/yt-dlp/issues/8922
-        logging_handlers = logging.getLogger(logger_name).handlers
-        before_count = len(logging_handlers)
+        logger = logging.getLogger(logger_name)
+        original_handlers = logger.handlers.copy()
         rh = handler()
-        assert len(logging_handlers) == before_count + 1
+        assert len(logger.handlers) == len(original_handlers) + 1
         rh.close()
-        assert len(logging_handlers) == before_count
+        assert logger.handlers == original_handlers
 
     def test_wrap_request_errors(self):
         class TestRequestHandler(RequestHandler):
@@ -974,28 +984,15 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
             ):
                 validate_and_send(rh, Request(f'https://127.0.0.1:{self.https_port}/headers'))
 
-    @pytest.mark.parametrize('req,match,version_check', [
+    @pytest.mark.parametrize('req,match', [
         # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1256
-        # bpo-39603: Check implemented in 3.7.9+, 3.8.5+
-        (
-            Request('http://127.0.0.1', method='GET\n'),
-            'method can\'t contain control characters',
-            lambda v: v < (3, 7, 9) or (3, 8, 0) <= v < (3, 8, 5),
-        ),
+        (Request('http://127.0.0.1', method='GET\n'), 'method can\'t contain control characters'),
         # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1265
-        # bpo-38576: Check implemented in 3.7.8+, 3.8.3+
-        (
-            Request('http://127.0.0. 1', method='GET'),
-            'URL can\'t contain control characters',
-            lambda v: v < (3, 7, 8) or (3, 8, 0) <= v < (3, 8, 3),
-        ),
+        (Request('http://127.0.0. 1', method='GET'), 'URL can\'t contain control characters'),
         # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1288C31-L1288C50
-        (Request('http://127.0.0.1', headers={'foo\n': 'bar'}), 'Invalid header name', None),
+        (Request('http://127.0.0.1', headers={'foo\n': 'bar'}), 'Invalid header name'),
     ])
-    def test_httplib_validation_errors(self, handler, req, match, version_check):
-        if version_check and version_check(sys.version_info):
-            pytest.skip(f'Python {sys.version} version does not have the required validation for this test.')
-
+    def test_httplib_validation_errors(self, handler, req, match):
         with handler() as rh:
             with pytest.raises(RequestError, match=match) as exc_info:
                 validate_and_send(rh, req)
@@ -1004,6 +1001,7 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
 
 @pytest.mark.parametrize('handler', ['Requests'], indirect=True)
 class TestRequestsRequestHandler(TestRequestHandlerBase):
+    # ruff: disable[PLW0108] `requests` and/or `urllib3` may not be available
     @pytest.mark.parametrize('raised,expected', [
         (lambda: requests.exceptions.ConnectTimeout(), TransportError),
         (lambda: requests.exceptions.ReadTimeout(), TransportError),
@@ -1017,8 +1015,10 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
         # catch-all: https://github.com/psf/requests/blob/main/src/requests/adapters.py#L535
         (lambda: urllib3.exceptions.HTTPError(), TransportError),
         (lambda: requests.exceptions.RequestException(), RequestError),
-        #  (lambda: requests.exceptions.TooManyRedirects(), HTTPError) - Needs a response object
+        # Needs a response object
+        # (lambda: requests.exceptions.TooManyRedirects(), HTTPError),
     ])
+    # ruff: enable[PLW0108]
     def test_request_error_mapping(self, handler, monkeypatch, raised, expected):
         with handler() as rh:
             def mock_get_instance(*args, **kwargs):
@@ -1034,6 +1034,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
 
             assert exc_info.type is expected
 
+    # ruff: disable[PLW0108] `urllib3` may not be available
     @pytest.mark.parametrize('raised,expected,match', [
         (lambda: urllib3.exceptions.SSLError(), SSLError, None),
         (lambda: urllib3.exceptions.TimeoutError(), TransportError, None),
@@ -1052,6 +1053,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
             '3 bytes read, 5 more expected',
         ),
     ])
+    # ruff: enable[PLW0108]
     def test_response_error_mapping(self, handler, monkeypatch, raised, expected, match):
         from requests.models import Response as RequestsResponse
         from urllib3.response import HTTPResponse as Urllib3Response
@@ -1095,7 +1097,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
 
 
 @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
-@pytest.mark.handler_flaky('CurlCFFI', os.name == 'nt', reason='segfaults')
+@pytest.mark.handler_flaky('CurlCFFI', reason='segfaults')
 class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
 
     @pytest.mark.parametrize('params,extensions', [

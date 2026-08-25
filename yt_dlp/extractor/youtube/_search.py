@@ -28,21 +28,6 @@ class YoutubeSearchIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
     }]
 
 
-class YoutubeSearchDateIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
-    IE_NAME = YoutubeSearchIE.IE_NAME + ':date'
-    _SEARCH_KEY = 'ytsearchdate'
-    IE_DESC = 'YouTube search, newest videos first'
-    _SEARCH_PARAMS = 'CAISAhAB8AEB'  # Videos only, sorted by date
-    _TESTS = [{
-        'url': 'ytsearchdate5:youtube-dl test video',
-        'playlist_count': 5,
-        'info_dict': {
-            'id': 'youtube-dl test video',
-            'title': 'youtube-dl test video',
-        },
-    }]
-
-
 class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
     IE_DESC = 'YouTube search URLs with sorting and filter support'
     IE_NAME = YoutubeSearchIE.IE_NAME + '_url'

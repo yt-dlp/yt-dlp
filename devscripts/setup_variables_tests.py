@@ -27,7 +27,6 @@ def _test(github_repository, note, repo_vars, repo_secrets, inputs, expected, ig
         'INPUTS': json.dumps(inp),
         'PROCESSED': json.dumps(processed),
         'REPOSITORY': github_repository,
-        'PUSH_VERSION_COMMIT': variables.get('PUSH_VERSION_COMMIT') or '',
         'PYPI_PROJECT': variables.get('PYPI_PROJECT') or '',
         'SOURCE_PYPI_PROJECT': variables.get(f'{source_repo}_PYPI_PROJECT') or '',
         'SOURCE_PYPI_SUFFIX': variables.get(f'{source_repo}_PYPI_SUFFIX') or '',
@@ -36,6 +35,7 @@ def _test(github_repository, note, repo_vars, repo_secrets, inputs, expected, ig
         'SOURCE_ARCHIVE_REPO': variables.get(f'{source_repo}_ARCHIVE_REPO') or '',
         'TARGET_ARCHIVE_REPO': variables.get(f'{target_repo}_ARCHIVE_REPO') or '',
         'HAS_ARCHIVE_REPO_TOKEN': json.dumps(bool(secrets.get('ARCHIVE_REPO_TOKEN'))),
+        'HAS_RELEASE_KEY': json.dumps(bool(secrets.get('RELEASE_KEY'))),
     }
 
     result = setup_variables(env)
@@ -67,11 +67,11 @@ def test_setup_variables():
         'NIGHTLY_ARCHIVE_REPO': 'yt-dlp/yt-dlp-nightly-builds',
         'NIGHTLY_PYPI_PROJECT': 'yt-dlp',
         'NIGHTLY_PYPI_SUFFIX': 'dev',
-        'PUSH_VERSION_COMMIT': '1',
         'PYPI_PROJECT': 'yt-dlp',
     }
     BASE_REPO_SECRETS = {
         'ARCHIVE_REPO_TOKEN': '1',
+        'RELEASE_KEY': '1',
     }
     FORK_REPOSITORY = 'fork/yt-dlp'
     FORK_ORG = FORK_REPOSITORY.partition('/')[0]
@@ -227,8 +227,8 @@ def test_setup_variables():
         })
 
     _test(
-        FORK_REPOSITORY, 'fork w/ PUSH_VERSION_COMMIT, stable',
-        {'PUSH_VERSION_COMMIT': '1'}, {}, {}, {
+        FORK_REPOSITORY, 'fork w/ RELEASE_KEY, stable',
+        {}, {'RELEASE_KEY': '1'}, {}, {
             'channel': FORK_REPOSITORY,
             'version': DEFAULT_VERSION,
             'target_repo': FORK_REPOSITORY,
@@ -237,8 +237,8 @@ def test_setup_variables():
             'pypi_suffix': None,
         })
     _test(
-        FORK_REPOSITORY, 'fork w/ PUSH_VERSION_COMMIT, prerelease',
-        {'PUSH_VERSION_COMMIT': '1'}, {}, {'prerelease': True}, {
+        FORK_REPOSITORY, 'fork w/ RELEASE_KEY, prerelease',
+        {}, {'RELEASE_KEY': '1'}, {'prerelease': True}, {
             'channel': FORK_REPOSITORY,
             'version': DEFAULT_VERSION_WITH_REVISION,
             'target_repo': FORK_REPOSITORY,
