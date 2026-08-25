@@ -873,7 +873,15 @@ def create_parser():
         dest='client_certificate_password', metavar='PASSWORD',
         help='Password for client certificate private key, if encrypted. '
              'If not provided, and the key is encrypted, yt-dlp will ask interactively')
-
+    authentication.add_option(
+        '--gen-cookies',
+        action="store_true",dest='gcookie', default=False ,
+        help='Generate Netscape formatted cookies easily and securely without using your main browser profile')
+    authentication.add_option(
+        '--gen-cookies-proxy',
+        dest='gproxy', metavar='<type>://<host>:<port>/' ,
+        help='Proxy(SOCKS5 / HTTP / HTTPS) used for --gen-cookies flag')
+    
     video_format = optparse.OptionGroup(parser, 'Video Format Options')
     video_format.add_option(
         '-f', '--format',

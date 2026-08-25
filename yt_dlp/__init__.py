@@ -14,6 +14,7 @@ import os
 import re
 import traceback
 
+from .cookiesgen import GenerateCookies
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS, CookieLoadError
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
@@ -969,6 +970,10 @@ def _real_main(argv=None):
     if print_extractor_information(opts, all_urls):
         return
 
+    if opts.gcookie:
+        generate_cookies = GenerateCookies(proxy_string=opts.gproxy)
+        generate_cookies.start()
+        return
     # We may need ffmpeg_location without having access to the YoutubeDL instance
     # See https://github.com/yt-dlp/yt-dlp/issues/2191
     if opts.ffmpeg_location:

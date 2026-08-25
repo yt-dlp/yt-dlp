@@ -99,7 +99,9 @@ pin-secretstorage = [
 pin-deno = [
     "deno==2.9.5",
 ]
-
+selenium = [
+    "selenium>=4.46",
+]
 [dependency-groups]
 build = [
     "build",

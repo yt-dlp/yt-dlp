@@ -79,6 +79,11 @@ try:
 except ImportError:
     curl_cffi = None
 
+try:
+    import selenium
+except ImportError:
+    selenium = None
+
 from . import Cryptodome
 
 try:
