@@ -59,13 +59,12 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
 
         data = self._download_json(f'https://bff-web-guacamole.musicradio.com/playables/{station_id}', video_id)
         playback_url = traverse_obj(data, ('playback', lambda _, playable: playable['canUse'] == 'true', 'url'), get_all=False)
-        handle_redirect = self._request_webpage(playback_url, video_id)
 
         return {
             'id': station_id,
-            'url': handle_redirect.url,
+            'url': playback_url,
             'is_live': True,
-            'ext': self._request_ext(handle_redirect.url, video_id),
+            'ext': self._request_ext(playback_url, video_id),
             **traverse_obj(meta, {
                 'thumbnail': ('brandLogo', {url_or_none}),
                 'description': ('tagline', {str}),
