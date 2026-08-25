@@ -13,12 +13,10 @@ from ..utils import (
     unescapeHTML,
     update_url_query,
     url_or_none,
-    urlencode_postdata,
 )
 
 
 class RedditIE(InfoExtractor):
-    _NETRC_MACHINE = 'reddit'
     _VALID_URL = r'https?://(?:\w+\.)?reddit(?:media)?\.com/(?P<slug>(?:(?:r|user)/[^/]+/)?comments/(?P<id>[^/?#&]+))'
     _TESTS = [{
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/',
@@ -268,28 +266,6 @@ class RedditIE(InfoExtractor):
     @property
     def _is_logged_in(self):
         return bool(self._get_cookies('https://www.reddit.com/').get('reddit_session'))
-
-    def _perform_login(self, username, password):
-        if self._is_logged_in:
-            return
-
-        captcha = self._download_json(
-            'https://www.reddit.com/api/requires_captcha/login.json', None,
-            'Checking login requirement')['required']
-        if captcha:
-            raise ExtractorError('Reddit is requiring captcha before login', expected=True)
-        login = self._download_json(
-            f'https://www.reddit.com/api/login/{username}', None, data=urlencode_postdata({
-                'op': 'login-main',
-                'user': username,
-                'passwd': password,
-                'api_type': 'json',
-            }), note='Logging in', errnote='Login request failed')
-        errors = '; '.join(traverse_obj(login, ('json', 'errors', ..., 1)))
-        if errors:
-            raise ExtractorError(f'Unable to login, Reddit API says {errors}', expected=True)
-        elif not traverse_obj(login, ('json', 'data', 'cookie', {str})):
-            raise ExtractorError('Unable to login, no cookie was returned')
 
     def _real_initialize(self):
         if not self._is_logged_in:

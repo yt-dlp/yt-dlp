@@ -375,6 +375,8 @@ class InfoExtractor:
                                            favorite by the video uploader
                         * "is_pinned" - Whether the comment is pinned to
                                         the top of the comments
+                        * "start_time" - Start time (in seconds) for displaying the comment
+                        * "end_time" - End time (in seconds) for displaying the comment
     age_limit:      Age restriction for the video, as an integer (years)
     webpage_url:    The URL to the video webpage, if given to yt-dlp it
                     should allow to get the same result again. (It will be set
@@ -430,29 +432,28 @@ class InfoExtractor:
 
     chapter:        Name or title of the chapter the video belongs to.
     chapter_number: Number of the chapter the video belongs to, as an integer.
-    chapter_id:     Id of the chapter the video belongs to, as a unicode string.
+    chapter_id:     Id of the chapter the video belongs to.
 
     The following fields should only be used when the video is an episode of some
     series, programme or podcast:
 
     series:         Title of the series or programme the video episode belongs to.
-    series_id:      Id of the series or programme the video episode belongs to, as a unicode string.
+    series_id:      Id of the series or programme the video episode belongs to.
     season:         Title of the season the video episode belongs to.
     season_number:  Number of the season the video episode belongs to, as an integer.
-    season_id:      Id of the season the video episode belongs to, as a unicode string.
+    season_id:      Id of the season the video episode belongs to.
     episode:        Title of the video episode. Unlike mandatory video title field,
                     this field should denote the exact title of the video episode
                     without any kind of decoration.
     episode_number: Number of the video episode within a season, as an integer.
-    episode_id:     Id of the video episode, as a unicode string.
+    episode_id:     Id of the video episode.
 
     The following fields should only be used when the media is a track or a part of
     a music album:
 
     track:          Title of the track.
     track_number:   Number of the track within an album or a disc, as an integer.
-    track_id:       Id of the track (useful in case of custom indexing, e.g. 6.iii),
-                    as a unicode string.
+    track_id:       Id of the track (useful for custom indexing, e.g. 6.iii).
     artists:        List of artists of the track.
     composers:      List of composers of the piece.
     genres:         List of genres of the track.
@@ -485,7 +486,7 @@ class InfoExtractor:
     creator:        Use "creators" instead.
                     The creator of the video.
 
-    Unless mentioned otherwise, the fields should be Unicode strings.
+    Unless mentioned otherwise, the fields should be strings.
 
     Unless mentioned otherwise, None is equivalent to absence of information.
 
@@ -875,13 +876,8 @@ class InfoExtractor:
         else:
             self._downloader._first_webpage_request = False
 
-        if note is None:
-            self.report_download_webpage(video_id)
-        elif note is not False:
-            if video_id is None:
-                self.to_screen(str(note))
-            else:
-                self.to_screen(f'{video_id}: {note}')
+        if note is not False:
+            self.report_download_webpage(video_id, note=note)
 
         # Some sites check X-Forwarded-For HTTP header in order to figure out
         # the origin of the client behind proxy. This allows bypassing geo
@@ -920,9 +916,9 @@ class InfoExtractor:
 
             errmsg = f'{errnote}: {err}'
             if fatal:
-                raise ExtractorError(errmsg, cause=err)
+                raise ExtractorError(errmsg, cause=err, video_id=video_id)
             else:
-                self.report_warning(errmsg)
+                self.report_warning(errmsg, video_id=video_id)
                 return False
 
     def _download_webpage_handle(self, url_or_request, video_id, note=None, errnote=None, fatal=True,
@@ -1071,9 +1067,9 @@ class InfoExtractor:
 
     def __print_error(self, errnote, fatal, video_id, err):
         if fatal:
-            raise ExtractorError(f'{video_id}: {errnote}', cause=err)
+            raise ExtractorError(f'{errnote}', cause=err, video_id=video_id)
         elif errnote:
-            self.report_warning(f'{video_id}: {errnote}: {err}')
+            self.report_warning(f'{errnote}: {err}', video_id=video_id)
 
     def _parse_xml(self, xml_string, video_id, transform_source=None, fatal=True, errnote=None):
         if transform_source:
@@ -1234,9 +1230,9 @@ class InfoExtractor:
         """Report information extraction."""
         self.to_screen(f'{id_or_name}: Extracting information')
 
-    def report_download_webpage(self, video_id):
+    def report_download_webpage(self, video_id, *, note=None):
         """Report webpage download."""
-        self.to_screen(f'{video_id}: Downloading webpage')
+        self.to_screen(join_nonempty(video_id, note or 'Downloading webpage', delim=': '))
 
     def report_age_confirmation(self):
         """Report attempt to confirm age."""
@@ -3073,8 +3069,8 @@ class InfoExtractor:
                         # %(...) counterparts to be used with % operator
                         t = re.sub(r'\$({})\$'.format('|'.join(identifiers)), r'%(\1)d', t)
                         t = re.sub(r'\$({})%([^$]+)\$'.format('|'.join(identifiers)), r'%(\1)\2', t)
-                        t.replace('$$', '$')
-                        return t
+
+                        return t.replace('$$', '$')
 
                     # @initialization is a regular template like @media one
                     # so it should be handled just the same way (see
@@ -3545,7 +3541,7 @@ class InfoExtractor:
         query = urllib.parse.urlparse(url).query
         url = re.sub(r'/(?:manifest|playlist|jwplayer)\.(?:m3u8|f4m|mpd|smil)', '', url)
         mobj = re.search(
-            r'(?:(?:http|rtmp|rtsp)(?P<s>s)?:)?(?P<url>//[^?]+)', url)
+            r'(?:(?:http|rtmp)(?P<s>s)?:)?(?P<url>//[^?]+)', url)
         url_base = mobj.group('url')
         http_base_url = '{}{}:{}'.format('http', mobj.group('s') or '', url_base)
         formats = []
@@ -3570,28 +3566,16 @@ class InfoExtractor:
                 video_id, mpd_id='dash', fatal=False))
         if re.search(r'(?:/smil:|\.smil)', url_base):
             if 'smil' not in skip_protocols:
-                rtmp_formats = self._extract_smil_formats(
+                formats.extend(self._extract_smil_formats(
                     manifest_url('jwplayer.smil'),
-                    video_id, fatal=False)
-                for rtmp_format in rtmp_formats:
-                    rtsp_format = rtmp_format.copy()
-                    rtsp_format['url'] = '{}/{}'.format(rtmp_format['url'], rtmp_format['play_path'])
-                    del rtsp_format['play_path']
-                    del rtsp_format['ext']
-                    rtsp_format.update({
-                        'url': rtsp_format['url'].replace('rtmp://', 'rtsp://'),
-                        'format_id': rtmp_format['format_id'].replace('rtmp', 'rtsp'),
-                        'protocol': 'rtsp',
-                    })
-                    formats.extend([rtmp_format, rtsp_format])
+                    video_id, fatal=False))
         else:
-            for protocol in ('rtmp', 'rtsp'):
-                if protocol not in skip_protocols:
-                    formats.append({
-                        'url': f'{protocol}:{url_base}',
-                        'format_id': protocol,
-                        'protocol': protocol,
-                    })
+            if 'rtmp' not in skip_protocols:
+                formats.append({
+                    'url': f'rtmp:{url_base}',
+                    'format_id': 'rtmp',
+                    'protocol': 'rtmp',
+                })
         return formats
 
     def _find_jwplayer_data(self, webpage, video_id=None, transform_source=js_to_json):
@@ -3974,6 +3958,19 @@ class InfoExtractor:
         if geo_verification_proxy:
             headers['Ytdl-request-proxy'] = geo_verification_proxy
         return headers
+
+    @staticmethod
+    def _generate_blockbuster_headers(*, min_headers=2, max_headers=8):
+        """Randomize our HTTP header fingerprint in an attempt to bust HTTP Error 403 blockage"""
+
+        def random_letters(minimum, maximum):
+            # Omit vowels so we don't generate valid header names like 'authorization', etc
+            return ''.join(random.choices('bcdfghjklmnpqrstvwxz', k=random.randint(minimum, maximum)))
+
+        return {
+            random_letters(8, 24): random_letters(16, 32)
+            for _ in range(random.randint(min_headers, max_headers))
+        }
 
     @staticmethod
     def _generic_id(url):

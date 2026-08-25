@@ -296,7 +296,7 @@ def validate_options(opts):
             default_step = start if op or limit else 0
             return lambda n: min(float(start) + float(step or default_step) * n, float(limit or 'inf'))
 
-    for key, expr in opts.retry_sleep.items():
+    for key, expr in list(opts.retry_sleep.items()):
         if not expr:
             del opts.retry_sleep[key]
             continue
@@ -619,7 +619,7 @@ def validate_options(opts):
         warnings.append(
             'Using allow-unsafe-ext opens you up to potential attacks. '
             'Use with great care!')
-        _UnsafeExtensionError.sanitize_extension = lambda x, prepend=False: x
+        _UnsafeExtensionError._enabled = False
 
     return warnings, deprecation_warnings
 
