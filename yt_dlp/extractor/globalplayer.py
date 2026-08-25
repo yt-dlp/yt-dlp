@@ -145,10 +145,10 @@ class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
                 entry_id = block['id']
                 data = self._download_json(f'https://bff-web-guacamole.musicradio.com/playables/{entry_id}', video_id, f'Downloading metadata JSON for {entry_id}')
                 playback_url = traverse_obj(data, ('playback', lambda _, playable: playable['canUse'] == 'true', 'url'), get_all=False)
-                handle_redirect = self._request_webpage(playback_url, video_id)
+
                 yield {
                     'id': entry_id,
-                    'url': handle_redirect.url,
+                    'url': f'{playback_url}&listeningSessionID=00000000-0000-0000-0000-000000000000',
                     **traverse_obj(block, {
                         'thumbnail': ('image', 'url', {url_or_none}),
                         'description': ('description', {str}),
@@ -199,10 +199,9 @@ class GlobalPlayerAudioEpisodeIE(GlobalPlayerBaseIE):
 
         data = self._download_json(f'https://bff-web-guacamole.musicradio.com/playables/{video_id}', video_id)
         playback_url = traverse_obj(data, ('playback', lambda _, playable: playable['canUse'] == 'true', 'url'), get_all=False)
-        handle_redirect = self._request_webpage(playback_url, video_id)
 
         return {
-            'url': handle_redirect.url,
+            'url': f'{playback_url}&listeningSessionID=00000000-0000-0000-0000-000000000000',
             'id': video_id,
             **traverse_obj(meta, {
                 'thumbnail': ('image', 'url', {url_or_none}),
