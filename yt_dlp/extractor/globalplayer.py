@@ -149,10 +149,10 @@ class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
                     'id': entry_id,
                     **traverse_obj(data, {
                         'url': (
-                            ('playback',
-                             lambda _, playable: playable['canUse'] == 'true',
-                             'url',
-                             {url_or_none})
+                            'playback',
+                            lambda _, playable: playable['canUse'] == 'true',
+                            'url',
+                            {url_or_none},
                         ),
                     }, get_all=False),
                     **traverse_obj(block, {
@@ -208,10 +208,10 @@ class GlobalPlayerAudioEpisodeIE(GlobalPlayerBaseIE):
             'id': video_id,
             **traverse_obj(data, {
                 'url': (
-                    ('playback',
-                     lambda _, playable: playable['canUse'] == 'true',
-                     'url',
-                     {url_or_none})
+                    'playback',
+                    lambda _, playable: playable['canUse'] == 'true',
+                    'url',
+                    {url_or_none},
                 ),
             }, get_all=False),
             **traverse_obj(meta, {
