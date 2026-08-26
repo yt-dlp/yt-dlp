@@ -3,17 +3,13 @@ from ..utils import (
     url_or_none,
     urlhandle_detect_ext,
 )
-from ..utils.traversal import path, require, traverse_obj
+from ..utils.traversal import require, traverse_obj
 
 
 class GlobalPlayerBaseIE(InfoExtractor):
     def _get_page_props(self, url, video_id):
         webpage = self._download_webpage(url, video_id)
         return self._search_nextjs_data(webpage, video_id)['props']['pageProps']
-
-    def _request_ext(self, url, video_id):
-        # Server rejects HEAD requests
-        return urlhandle_detect_ext(self._request_webpage(url, video_id))
 
 
 class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
@@ -109,7 +105,7 @@ class GlobalPlayerLivePlaylistIE(GlobalPlayerBaseIE):
 
 
 class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
-    _VALID_URL = r'https?://www\.globalplayer\.com/(?:(?P<podcast>podcasts)/|catchup/\w+/\w+/)(?P<id>\w+)/?(?:$|[?#])'
+    _VALID_URL = r'https?://www\.globalplayer\.com/(?P<path>(?P<podcast>podcasts)/|catchup/\w+/\w+/)(?P<id>\w+)/?(?:$|[?#])'
     _TESTS = [{
         # podcast
         'url': 'https://www.globalplayer.com/podcasts/42KuaM/',
@@ -133,7 +129,7 @@ class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_id, podcast = self._match_valid_url(url).group('id', 'podcast')
+        video_id, path, podcast = self._match_valid_url(url).group('id', 'path', 'podcast')
         props = self._get_page_props(url, video_id)
         if podcast:
             meta = props['podcastInfo']['metadata']
