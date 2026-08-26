@@ -3,11 +3,10 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     js_to_json,
-    require,
     strip_or_none,
-    traverse_obj,
     url_or_none,
 )
+from ..utils.traversal import require, traverse_obj
 
 
 class TubiTvIE(InfoExtractor):
