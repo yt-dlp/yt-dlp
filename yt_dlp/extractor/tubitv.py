@@ -4,9 +4,9 @@ from ..utils import (
     int_or_none,
     js_to_json,
     strip_or_none,
-    traverse_obj,
     url_or_none,
 )
+from ..utils.traversal import require, traverse_obj
 
 
 class TubiTvIE(InfoExtractor):
@@ -159,7 +159,7 @@ class TubiTvShowIE(InfoExtractor):
             'id': 'the-saddle-club-season-2',
         },
     }, {
-        'url': 'https://tubitv.com/series/300000435/the-saddle-club',
+        'url': 'https://tubitv.com/series/300000435/the-saddle-club/',
         'playlist_mincount': 52,
         'info_dict': {
             'id': 'the-saddle-club',
@@ -169,9 +169,12 @@ class TubiTvShowIE(InfoExtractor):
     def _entries(self, show_url, playlist_id, selected_season):
         webpage = self._download_webpage(show_url, playlist_id, headers=self.geo_verification_headers())
 
-        data = self._search_json(
-            r'window\.__REACT_QUERY_STATE__\s*=', webpage, 'data', playlist_id,
-            transform_source=js_to_json)['queries'][0]['state']['data']
+        react_query_state = self._search_json(
+            r'window\.__REACT_QUERY_STATE__\s*=', webpage,
+            'react query state', playlist_id, transform_source=js_to_json)
+        data = traverse_obj(react_query_state, (
+            'queries', lambda _, v: v['state']['data']['seasons'][0],
+            'state', 'data', any, {require('season data')}))
 
         # v['number'] is already a decimal string, but stringify to protect against API changes
         path = [lambda _, v: str(v['number']) == selected_season] if selected_season else [..., {dict}]
