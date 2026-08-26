@@ -58,13 +58,15 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
         station_id = meta['id']
 
         data = self._download_json(f'https://bff-web-guacamole.musicradio.com/playables/{station_id}', video_id)
-        playback_url = traverse_obj(data, ('playback', lambda _, playable: playable['canUse'] == 'true', 'url'), get_all=False)
 
         return {
             'id': station_id,
-            'url': playback_url,
+            'url': traverse_obj(data, (
+                'playback', lambda _, playable: playable['canUse'] == 'true',
+                'url', {url_or_none}, any, {require('playback URL')})),
+            'ext': 'aac',
+            'vcodec': 'none',
             'is_live': True,
-            'ext': self._request_ext(playback_url, video_id),
             **traverse_obj(meta, {
                 'thumbnail': ('brandLogo', {url_or_none}),
                 'description': ('tagline', {str}),
@@ -91,13 +93,13 @@ class GlobalPlayerLivePlaylistIE(GlobalPlayerBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         meta = self._get_page_props(url, video_id)['playlistData']
-        stream_url = meta['streamUrl']
 
         return {
-            'url': stream_url,
+            'url': meta['streamUrl'],
+            'ext': 'aac',
+            'vcodec': 'none',
             'id': video_id,
             'is_live': True,
-            'ext': self._request_ext(stream_url, video_id),
             **traverse_obj(meta, {
                 'thumbnail': ('image', {url_or_none}),
                 'description': ('description', {str}),
@@ -143,18 +145,19 @@ class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
         def _entries():
             for block in blocks:
                 entry_id = block['id']
-                data = self._download_json(f'https://bff-web-guacamole.musicradio.com/playables/{entry_id}', video_id, f'Downloading metadata JSON for {entry_id}')
+                data = self._download_json(
+                    f'https://bff-web-guacamole.musicradio.com/playables/{entry_id}',
+                    video_id, f'Downloading metadata JSON for {entry_id}')
 
                 yield {
                     'id': entry_id,
-                    **traverse_obj(data, {
-                        'url': (
-                            'playback',
-                            lambda _, playable: playable['canUse'] == 'true',
-                            'url',
-                            {url_or_none},
-                        ),
-                    }, get_all=False),
+                    'url': traverse_obj(data, (
+                        'playback', lambda _, playable: playable['canUse'] == 'true',
+                        'url', {url_or_none}, any, {require('playback URL')})),
+                    'vcodec': 'none',
+                    'extractor': GlobalPlayerAudioEpisodeIE.IE_NAME,
+                    'extractor_key': GlobalPlayerAudioEpisodeIE.ie_key(),
+                    'webpage_url': f'https://www.globalplayer.com/{path}episodes/{entry_id}',
                     **traverse_obj(block, {
                         'thumbnail': ('image', 'url', {url_or_none}),
                         'description': ('description', {str}),
@@ -206,14 +209,10 @@ class GlobalPlayerAudioEpisodeIE(GlobalPlayerBaseIE):
 
         return {
             'id': video_id,
-            **traverse_obj(data, {
-                'url': (
-                    'playback',
-                    lambda _, playable: playable['canUse'] == 'true',
-                    'url',
-                    {url_or_none},
-                ),
-            }, get_all=False),
+            'url': traverse_obj(data, (
+                'playback', lambda _, playable: playable['canUse'] == 'true',
+                'url', {url_or_none}, any, {require('playback URL')})),
+            'vcodec': 'none',
             **traverse_obj(meta, {
                 'thumbnail': ('image', 'url', {url_or_none}),
                 'description': ('description', {str}),
