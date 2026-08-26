@@ -6,6 +6,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     js_to_json,
+    require,
     strip_or_none,
     traverse_obj,
     url_or_none,
@@ -162,20 +163,20 @@ class TubiTvShowIE(InfoExtractor):
             'id': 'the-joy-of-painting-with-bob-ross',
         },
     }, {
-        'url': 'https://tubitv.com/series/2311/the-saddle-club/season-1',
+        'url': 'https://tubitv.com/series/300000435/the-saddle-club/season-1',
         'playlist_count': 26,
         'info_dict': {
             'id': 'the-saddle-club-season-1',
         },
     }, {
-        'url': 'https://tubitv.com/series/2311/the-saddle-club/season-3',
-        'playlist_count': 19,
+        'url': 'https://tubitv.com/series/300000435/the-saddle-club/season-2',
+        'playlist_count': 26,
         'info_dict': {
-            'id': 'the-saddle-club-season-3',
+            'id': 'the-saddle-club-season-2',
         },
     }, {
-        'url': 'https://tubitv.com/series/2311/the-saddle-club/',
-        'playlist_mincount': 71,
+        'url': 'https://tubitv.com/series/300000435/the-saddle-club/',
+        'playlist_mincount': 52,
         'info_dict': {
             'id': 'the-saddle-club',
         },
@@ -184,14 +185,15 @@ class TubiTvShowIE(InfoExtractor):
     def _entries(self, show_url, playlist_id, selected_season):
         webpage = self._download_webpage(show_url, playlist_id)
 
-        data = self._search_json(
+        season_data = traverse_obj(self._search_json(
             r'window\.__REACT_QUERY_STATE__\s*=', webpage, 'data', playlist_id,
-            transform_source=js_to_json)['queries'][0]['state']['data']
+            transform_source=js_to_json), (
+                'queries', ..., 'state', 'data', 'seasons', {list}, any, {require('season data')}))
 
         # v['number'] is already a decimal string, but stringify to protect against API changes
         path = [lambda _, v: str(v['number']) == selected_season] if selected_season else [..., {dict}]
 
-        for season in traverse_obj(data, ('seasons', *path)):
+        for season in traverse_obj(season_data, path):
             season_number = int_or_none(season.get('number'))
             for episode in traverse_obj(season, ('episodes', lambda _, v: v['id'])):
                 episode_id = episode['id']
