@@ -34,8 +34,17 @@ class BandcampBaseIE(InfoExtractor):
             return webpage
 
         self.write_debug('Got client challenge webpage response')
-        return super()._download_webpage(
+        res = super()._download_webpage_handle(
             *args, impersonate=impersonate, require_impersonation=True, **kwargs)
+        if res is False:
+            return False
+
+        webpage, urlh = res
+        if self._html_extract_title(webpage) == 'Client Challenge':
+            raise ExtractorError(
+                f'Got client challenge webpage response with {urlh.extensions.get("impersonate")}')
+
+        return webpage
 
     def _extract_data_attr(self, webpage, video_id, attr='tralbum', fatal=True):
         return self._parse_json(self._html_search_regex(
