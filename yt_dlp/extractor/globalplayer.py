@@ -132,8 +132,9 @@ class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
             meta = props['podcastInfo']['metadata']
             blocks = props['podcastInfo']['blocks'][1]['items']
         else:
-            meta = props['catchupInfo']['metadata']
-            blocks = props['catchupInfo']['blocks'][1]['items']
+            catchup = props['catchupShow'] if 'catchupShow' in props else props['catchupInfo']
+            meta = catchup['metadata']
+            blocks = catchup['blocks'][1]['items']
 
         def _entries():
             for block in blocks:
