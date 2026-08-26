@@ -17,7 +17,11 @@ from ..utils.traversal import (
 )
 
 
-class ShowRoomLiveIE(InfoExtractor):
+class ShowRoomBaseIE(InfoExtractor):
+    _API_BASE = 'https://www.showroom-live.com/api'
+
+
+class ShowRoomLiveIE(ShowRoomBaseIE):
     IE_NAME = 'showroom:live'
     IE_DESC = 'SHOWROOM'
 
@@ -29,19 +33,11 @@ class ShowRoomLiveIE(InfoExtractor):
 
     def _real_extract(self, url):
         broadcaster_id = self._match_id(url)
-        webpage = self._download_webpage(
-            url, broadcaster_id, headers={'Accept-Language': 'ja'})
-        nuxt_data = self._search_nuxt_json(webpage, broadcaster_id)['data']
-
-        cookies = self._get_cookies(url)
-        sr_id = traverse_obj(cookies, ('sr_id', 'value', {str}, filter))
-        if not sr_id:
-            self.raise_login_required()
-
-        room_profile = traverse_obj(nuxt_data, (
-            f'roomProfile-{broadcaster_id}-{sr_id}', {dict}))
-        start_timestamp = traverse_obj(room_profile, ('current_live_started_at', {int_or_none}))
-        is_live = traverse_obj(room_profile, ('is_onlive', {bool}))
+        room_status = self._download_json(
+            f'{self._API_BASE}/room/status', broadcaster_id,
+            query={'room_url_key': broadcaster_id})
+        start_timestamp = traverse_obj(room_status, ('started_at', {int_or_none}))
+        is_live = traverse_obj(room_status, ('is_live', {bool}))
 
         if not is_live:
             if start_timestamp:
@@ -59,12 +55,15 @@ class ShowRoomLiveIE(InfoExtractor):
                 }
             raise UserNotLive(video_id=broadcaster_id)
 
-        room_id = traverse_obj(room_profile, ('room_id', {str_or_none}))
+        room_id = traverse_obj(room_status, ('room_id', {str_or_none}))
+        room_profile = self._download_json(
+            f'{self._API_BASE}/room/profile',
+            broadcaster_id, query={'room_id': room_id})
         room_name = traverse_obj(room_profile, (
             ('room_name', 'main_name'), {clean_html}, filter, any))
 
         streaming_url_list = self._download_json(
-            'https://www.showroom-live.com/api/live/streaming_url',
+            f'{self._API_BASE}/live/streaming_url',
             broadcaster_id, query={'room_id': room_id})
         m3u8_url = traverse_obj(streaming_url_list, (
             'streaming_url_list', lambda _, v: v['type'] == 'hls_all',
@@ -84,13 +83,13 @@ class ShowRoomLiveIE(InfoExtractor):
                 'description': ('description', {clean_html}, filter),
                 'genres': ('genre_name', {clean_html}, filter, all, filter),
                 'tags': ('live_tags', ..., 'name', {clean_html}, filter, all, filter),
-                'thumbnail': ('image_square', {url_or_none}),
+                'thumbnail': (('image_square', 'image'), {url_or_none}, any),
                 'view_count': ('view_num', {int_or_none}),
             }),
         }
 
 
-class ShowRoomVodIE(InfoExtractor):
+class ShowRoomVodIE(ShowRoomBaseIE):
     IE_NAME = 'showroom:vod'
 
     _VALID_URL = r'https?://(?:www\.)?showroom-live\.com/episode/watch\?(?:[^#]+&)?id=(?P<id>\w+)'
@@ -111,7 +110,7 @@ class ShowRoomVodIE(InfoExtractor):
             {extract_attributes}, 'data-episode', {json.loads}, {dict}))
 
         streaming_url_list = self._download_json(
-            'https://www.showroom-live.com/api/episode/streaming_url',
+            f'{self._API_BASE}/episode/streaming_url',
             episode_id, query={'episode_id': episode_id})
         m3u8_url = traverse_obj(streaming_url_list, (
             'streaming_url_list', 'hls_all',
