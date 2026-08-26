@@ -26,23 +26,24 @@ from ..utils.traversal import find_element, find_elements, traverse_obj
 
 
 class BandcampBaseIE(InfoExtractor):
+    # Initially try without impersonation, retry with impersonation
     def _download_webpage(self, *args, **kwargs):
         impersonate = kwargs.pop('impersonate', None) or True
         kwargs.pop('require_impersonation', None)
         webpage = super()._download_webpage(*args, **kwargs)
-        if webpage and self._html_extract_title(webpage) != 'Client Challenge':
-            return webpage
+        if webpage:
+            if self._html_extract_title(webpage) == 'Client Challenge':
+                self.write_debug('Got client challenge webpage response')
+            else:
+                return webpage
 
-        self.write_debug('Got client challenge webpage response')
-        res = super()._download_webpage_handle(
-            *args, impersonate=impersonate, require_impersonation=True, **kwargs)
+        res = super()._download_webpage_handle(*args, impersonate=impersonate, require_impersonation=True, **kwargs)
         if res is False:
             return False
 
         webpage, urlh = res
         if self._html_extract_title(webpage) == 'Client Challenge':
-            raise ExtractorError(
-                f'Got client challenge webpage response with {urlh.extensions.get("impersonate")}')
+            raise ExtractorError(f'Got client challenge webpage response with {urlh.extensions.get("impersonate")}')
 
         return webpage
 
