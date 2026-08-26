@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    url_or_none,
-    urlhandle_detect_ext,
-)
+from ..utils import url_or_none
 from ..utils.traversal import require, traverse_obj
 
 
