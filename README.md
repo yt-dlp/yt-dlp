@@ -1980,10 +1980,7 @@ The following extractors use this feature:
 
 #### adn
 
-- `profile_id`: The ID of the profile that will be used to download videos, default is to use the profile `1`. Profile is a feature of premium subscriber. Has no effect for not logged-in people and free or started subscribers.
-
-#
-
+- `profile_id`: The numeric ID of the premium account profile that will be used to download videos (default: `1`)
 #### zan
 * `split_angles`: Split multi-angle streams into separate angle formats. Forces re-encoding of the video stream during download, and requires ffmpeg. Either `true` or `false` (default)
 
