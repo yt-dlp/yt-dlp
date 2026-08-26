@@ -1,9 +1,9 @@
 from .common import InfoExtractor
 from ..utils import (
-    traverse_obj,
     url_or_none,
     urlhandle_detect_ext,
 )
+from ..utils.traversal import path, require, traverse_obj
 
 
 class GlobalPlayerBaseIE(InfoExtractor):
