@@ -1979,8 +1979,8 @@ The following extractors use this feature:
 * `original_format_policy`: Policy for when to try extracting original formats. One of `always`, `never`, or `auto`. The default `auto` policy tries to avoid exceeding the web client's API rate-limit by only making an extra request when Vimeo publicizes the video's downloadability
 
 #### adn
+* `profile_id`: The numeric ID of the premium account profile that will be used to download videos (default: `1`)
 
-- `profile_id`: The numeric ID of the premium account profile that will be used to download videos (default: `1`)
 #### zan
 * `split_angles`: Split multi-angle streams into separate angle formats. Forces re-encoding of the video stream during download, and requires ffmpeg. Either `true` or `false` (default)
 
