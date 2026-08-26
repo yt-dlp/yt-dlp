@@ -309,7 +309,6 @@ class ADNSeasonIE(ADNBaseIE):
     def _real_extract(self, url):
         lang, video_show_slug = self._match_valid_url(url).group('lang', 'id')
         self._HEADERS['X-Target-Distribution'] = lang or 'fr'
-        self._HEADERS['X-Profile-ID'] = 1
         show = self._download_json(
             f'{self._API_BASE_URL}show/{video_show_slug}/', video_show_slug,
             'Downloading show JSON metadata', headers=self._HEADERS)['show']
