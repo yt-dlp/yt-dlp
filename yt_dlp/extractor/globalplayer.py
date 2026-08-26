@@ -8,6 +8,12 @@ class GlobalPlayerBaseIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         return self._search_nextjs_data(webpage, video_id)['props']['pageProps']
 
+    @staticmethod
+    def _get_playback_url(data):
+        return traverse_obj(data, (
+            'playback', lambda _, v: v['canUse'] == 'true',
+            'url', {url_or_none}, any, {require('playback URL')}))
+
 
 class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
     _VALID_URL = r'https?://www\.globalplayer\.com/live/(?P<id>\w+)/\w+'
@@ -54,9 +60,7 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
 
         return {
             'id': station_id,
-            'url': traverse_obj(data, (
-                'playback', lambda _, playable: playable['canUse'] == 'true',
-                'url', {url_or_none}, any, {require('playback URL')})),
+            'url': self._get_playback_url(data),
             'ext': 'aac',
             'vcodec': 'none',
             'is_live': True,
@@ -145,9 +149,7 @@ class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
 
                 yield {
                     'id': entry_id,
-                    'url': traverse_obj(data, (
-                        'playback', lambda _, playable: playable['canUse'] == 'true',
-                        'url', {url_or_none}, any, {require('playback URL')})),
+                    'url': self._get_playback_url(data),
                     'vcodec': 'none',
                     'extractor': GlobalPlayerAudioEpisodeIE.IE_NAME,
                     'extractor_key': GlobalPlayerAudioEpisodeIE.ie_key(),
@@ -203,9 +205,7 @@ class GlobalPlayerAudioEpisodeIE(GlobalPlayerBaseIE):
 
         return {
             'id': video_id,
-            'url': traverse_obj(data, (
-                'playback', lambda _, playable: playable['canUse'] == 'true',
-                'url', {url_or_none}, any, {require('playback URL')})),
+            'url': self._get_playback_url(data),
             'vcodec': 'none',
             **traverse_obj(meta, {
                 'thumbnail': ('image', 'url', {url_or_none}),
