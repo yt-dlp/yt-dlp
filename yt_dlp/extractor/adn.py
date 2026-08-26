@@ -173,7 +173,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
     def _real_extract(self, url):
         lang, video_id = self._match_valid_url(url).group('lang', 'id')
         self._HEADERS['X-Target-Distribution'] = lang or 'fr'
-        self._HEADERS['X-Profile-ID'] = 1
+        self._HEADERS['X-Profile-ID'] = int_or_none(self._configuration_arg('profile', ['1'])[0], default=1)
         video_base_url = self._PLAYER_BASE_URL + f'video/{video_id}/'
         player = self._download_json(
             video_base_url + 'configuration', video_id,
