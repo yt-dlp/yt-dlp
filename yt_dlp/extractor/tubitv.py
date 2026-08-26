@@ -1,7 +1,4 @@
-import re
-
 from .common import InfoExtractor
-from ..networking import Request
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -10,15 +7,12 @@ from ..utils import (
     strip_or_none,
     traverse_obj,
     url_or_none,
-    urlencode_postdata,
 )
 
 
 class TubiTvIE(InfoExtractor):
     IE_NAME = 'tubitv'
     _VALID_URL = r'https?://(?:www\.)?tubitv\.com/(?:[a-z]{2}-[a-z]{2}/)?(?P<type>video|movies|tv-shows)/(?P<id>\d+)'
-    _LOGIN_URL = 'http://tubitv.com/login'
-    _NETRC_MACHINE = 'tubitv'
     _TESTS = [{
         'url': 'https://tubitv.com/movies/100004539/the-39-steps',
         'info_dict': {
@@ -28,7 +22,7 @@ class TubiTvIE(InfoExtractor):
             'description': 'md5:bb2f2dd337f0dc58c06cb509943f54c8',
             'uploader_id': 'abc2558d54505d4f0f32be94f2e7108c',
             'release_year': 1935,
-            'thumbnail': r're:^https?://.+\.(jpe?g|png)$',
+            'thumbnail': r're:^https?://canvas-lb\.tubitv\.com/.+',
             'duration': 5187,
         },
         'params': {'skip_download': 'm3u8'},
@@ -45,7 +39,7 @@ class TubiTvIE(InfoExtractor):
             'season_number': 1,
             'uploader_id': '2a9273e728c510d22aa5c57d0646810b',
             'release_year': 2011,
-            'thumbnail': r're:^https?://.+\.(jpe?g|png)$',
+            'thumbnail': r're:^https?://canvas-lb\.tubitv\.com/.+',
             'duration': 1376,
         },
         'params': {'skip_download': 'm3u8'},
@@ -83,24 +77,11 @@ class TubiTvIE(InfoExtractor):
     _UNPLAYABLE_FORMATS = ('hlsv6_widevine', 'hlsv6_widevine_nonclearlead', 'hlsv6_playready_psshv0',
                            'hlsv6_fairplay', 'dash_widevine', 'dash_widevine_nonclearlead')
 
-    def _perform_login(self, username, password):
-        self.report_login()
-        form_data = {
-            'username': username,
-            'password': password,
-        }
-        payload = urlencode_postdata(form_data)
-        request = Request(self._LOGIN_URL, payload)
-        request.headers['Content-Type'] = 'application/x-www-form-urlencoded'
-        login_page = self._download_webpage(
-            request, None, False, 'Wrong login info')
-        if not re.search(r'id="tubi-logout"', login_page):
-            raise ExtractorError(
-                'Login failed (invalid username/password)', expected=True)
-
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
-        webpage = self._download_webpage(f'https://tubitv.com/{video_type}/{video_id}/', video_id)
+        webpage = self._download_webpage(
+            f'https://tubitv.com/{video_type}/{video_id}/', video_id,
+            headers=self.geo_verification_headers())
         video_data = self._search_json(
             r'window\.__data\s*=', webpage, 'data', video_id,
             transform_source=js_to_json)['video']['byId'][video_id]
@@ -114,7 +95,11 @@ class TubiTvIE(InfoExtractor):
             if resource_type == 'dash':
                 formats.extend(self._extract_mpd_formats(manifest_url, video_id, mpd_id=resource_type, fatal=False))
             elif resource_type in ('hlsv3', 'hlsv6'):
-                formats.extend(self._extract_m3u8_formats(manifest_url, video_id, 'mp4', m3u8_id=resource_type, fatal=False))
+                fmts = self._extract_m3u8_formats(manifest_url, video_id, 'mp4', m3u8_id=resource_type, fatal=False)
+                for fmt in fmts:
+                    if 'Audio Description' in fmt.get('format_note', ''):
+                        fmt['language_preference'] = -10
+                formats.extend(fmts)
             elif resource_type in self._UNPLAYABLE_FORMATS:
                 drm_formats = True
             else:
@@ -183,7 +168,7 @@ class TubiTvShowIE(InfoExtractor):
     }]
 
     def _entries(self, show_url, playlist_id, selected_season):
-        webpage = self._download_webpage(show_url, playlist_id)
+        webpage = self._download_webpage(show_url, playlist_id, headers=self.geo_verification_headers())
 
         season_data = traverse_obj(self._search_json(
             r'window\.__REACT_QUERY_STATE__\s*=', webpage, 'data', playlist_id,
