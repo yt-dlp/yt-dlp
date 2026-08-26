@@ -37,7 +37,7 @@ class BandcampBaseIE(InfoExtractor):
             else:
                 return webpage
 
-        res = super()._download_webpage_handle(*args, impersonate=impersonate, require_impersonation=True, **kwargs)
+        res = self._download_webpage_handle(*args, impersonate=impersonate, require_impersonation=True, **kwargs)
         if res is False:
             return False
 
