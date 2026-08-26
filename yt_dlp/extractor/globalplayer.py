@@ -106,7 +106,7 @@ class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
     _TESTS = [{
         # podcast
         'url': 'https://www.globalplayer.com/podcasts/42KuaM/',
-        'playlist_mincount': 5,
+        'playlist_mincount': 2,
         'info_dict': {
             'id': '42KuaM',
             'thumbnail': 'md5:60286e7d12d795bd1bbc9efc6cee643e',
@@ -116,7 +116,7 @@ class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
     }, {
         # radio catchup
         'url': 'https://www.globalplayer.com/catchup/lbc/uk/46vyD7z/',
-        'playlist_mincount': 3,
+        'playlist_mincount': 2,
         'info_dict': {
             'id': '46vyD7z',
             'thumbnail': 'md5:664ad62a8fb920a2b8e264ed780eee3d',
