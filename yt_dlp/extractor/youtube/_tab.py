@@ -6,7 +6,6 @@ import urllib.parse
 
 from ._base import BadgeType, YoutubeBaseInfoExtractor
 from ._video import YoutubeIE
-from .yt_music_MPADUC_fix import yt_music_MPADUC_fix
 from ...networking.exceptions import HTTPError, network_exceptions
 from ...utils import (
     NO_DEFAULT,
@@ -2260,7 +2259,41 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                                     get_all=False, expected_type=str)
                 if not murl:
                     try:
-                        return self.playlist_result([self._real_extract(i) for i in yt_music_MPADUC_fix(self, item_id)])
+                        data = traverse_obj(mdata, (
+                            'contents',
+                            'singleColumnBrowseResultsRenderer', 
+                            'tabs', 
+                            0, 
+                            'tabRenderer', 
+                            'content', 
+                            'sectionListRenderer', 
+                            'contents', 
+                            0, 
+                            'gridRenderer', 
+                            'items',
+                            ...,
+                            'musicTwoRowItemRenderer',
+                            'title',
+                            'runs',
+                            0,
+                            'navigationEndpoint',
+                            'browseEndpoint',
+                            'browseId'
+                        ))
+                        title = traverse_obj(mdata, (
+                            'header',
+                            'musicHeaderRenderer',
+                            'title',
+                            'runs',
+                            ...,
+                            'text'
+                        ))
+                        return self.playlist_result([
+                            self.url_result(f'https://music.youtube.com/browse/{i}') for i in 
+                            data
+                        ], 
+                        playlist_id=item_id,
+                        playlist_title=''.join(title))
                     except Exception as e:
                         raise ExtractorError('Failed to resolve album to playlist')
                 return self.url_result(murl, YoutubeTabIE)
