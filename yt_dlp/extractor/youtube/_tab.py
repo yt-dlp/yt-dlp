@@ -2198,6 +2198,33 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'extract_flat': True,
             'playlist_items': '75',
         },
+    }, {
+        # this and the following 2 test artist pages on yt music
+        'url': 'https://music.youtube.com/browse/MPADUCkNNkuf7zltS7tG18GyOIMg',
+        'info_dict': {
+            'id': 'MPADUCkNNkuf7zltS7tG18GyOIMg',
+            'title': 'Leander Kills',
+            '_type': 'playlist',
+            'entries': list,  # idk how to say count>=47
+        },
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/13286
+        'url': 'https://music.youtube.com/browse/MPADUCKCkZieK-MP6hR9S2N7wfXQ',
+        'info_dict': {
+            'id': 'MPADUCKCkZieK-MP6hR9S2N7wfXQ',
+            'title': 'Sasuke Haraguchi',
+            '_type': 'playlist',
+            'entries': list,  # idk how to say count>=27
+        },
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/16241
+        'url': 'https://music.youtube.com/browse/MPADUC5xaQ6_dP7EGDmGLzVGZ1Ow',
+        'info_dict': {
+            'id': 'MPADUC5xaQ6_dP7EGDmGLzVGZ1Ow',
+            'title': 'Morgan Wallen',
+            '_type': 'playlist',
+            'entries': list,  # idk how to say count>=36
+        },
     }]
 
     @classmethod
@@ -2261,15 +2288,15 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                     try:
                         data = traverse_obj(mdata, (
                             'contents',
-                            'singleColumnBrowseResultsRenderer', 
-                            'tabs', 
-                            0, 
-                            'tabRenderer', 
-                            'content', 
-                            'sectionListRenderer', 
-                            'contents', 
-                            0, 
-                            'gridRenderer', 
+                            'singleColumnBrowseResultsRenderer',
+                            'tabs',
+                            0,
+                            'tabRenderer',
+                            'content',
+                            'sectionListRenderer',
+                            'contents',
+                            0,
+                            'gridRenderer',
                             'items',
                             ...,
                             'musicTwoRowItemRenderer',
@@ -2278,7 +2305,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                             0,
                             'navigationEndpoint',
                             'browseEndpoint',
-                            'browseId'
+                            'browseId',
                         ))
                         title = traverse_obj(mdata, (
                             'header',
@@ -2286,15 +2313,15 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                             'title',
                             'runs',
                             ...,
-                            'text'
+                            'text',
                         ))
                         return self.playlist_result([
-                            self.url_result(f'https://music.youtube.com/browse/{i}') for i in 
+                            self.url_result(f'https://music.youtube.com/browse/{i}') for i in
                             data
-                        ], 
-                        playlist_id=item_id,
-                        playlist_title=''.join(title))
-                    except Exception as e:
+                        ],
+                            playlist_id=item_id,
+                            playlist_title=''.join(title))
+                    except Exception:
                         raise ExtractorError('Failed to resolve album to playlist')
                 return self.url_result(murl, YoutubeTabIE)
             elif mobj['channel_type'] == 'browse':  # Youtube music /browse/ should be changed to /channel/
