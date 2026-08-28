@@ -13,12 +13,14 @@ from ..utils.traversal import get_first, traverse_obj
 
 
 class GoPlayIE(InfoExtractor):
-    _VALID_URL = r'https?://(www\.)?goplay\.be/video/([^/?#]+/[^/?#]+/|)(?P<id>[^/#]+)'
+    IE_NAME = 'play.tv'
+    IE_DESC = 'PLAY (formerly goplay.be)'
+    _VALID_URL = r'https?://(www\.)?play\.tv/video/([^/?#]+/[^/?#]+/|)(?P<id>[^/#]+)'
 
     _NETRC_MACHINE = 'goplay'
 
     _TESTS = [{
-        'url': 'https://www.goplay.be/video/de-slimste-mens-ter-wereld/de-slimste-mens-ter-wereld-s22/de-slimste-mens-ter-wereld-s22-aflevering-1',
+        'url': 'https://www.play.tv/video/de-slimste-mens-ter-wereld/de-slimste-mens-ter-wereld-s22/de-slimste-mens-ter-wereld-s22-aflevering-1',
         'info_dict': {
             'id': '2baa4560-87a0-421b-bffc-359914e3c387',
             'ext': 'mp4',
@@ -33,7 +35,7 @@ class GoPlayIE(InfoExtractor):
         'params': {'skip_download': True},
         'skip': 'This video is only available for registered users',
     }, {
-        'url': 'https://www.goplay.be/video/1917',
+        'url': 'https://www.play.tv/video/1917',
         'info_dict': {
             'id': '40cac41d-8d29-4ef5-aa11-75047b9f0907',
             'ext': 'mp4',
@@ -43,7 +45,7 @@ class GoPlayIE(InfoExtractor):
         'params': {'skip_download': True},
         'skip': 'This video is only available for registered users',
     }, {
-        'url': 'https://www.goplay.be/video/de-mol/de-mol-s11/de-mol-s11-aflevering-1#autoplay',
+        'url': 'https://www.play.tv/video/de-mol/de-mol-s11/de-mol-s11-aflevering-1#autoplay',
         'info_dict': {
             'id': 'ecb79672-92b9-4cd9-a0d7-e2f0250681ee',
             'ext': 'mp4',
@@ -101,7 +103,7 @@ class GoPlayIE(InfoExtractor):
                 break
 
         api = self._download_json(
-            f'https://api.goplay.be/web/v1/videos/long-form/{video_id}',
+            f'https://api.play.tv/web/v1/videos/long-form/{video_id}',
             video_id, headers={
                 'Authorization': f'Bearer {self._id_token}',
                 **self.geo_verification_headers(),

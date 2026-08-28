@@ -76,6 +76,8 @@ class TestInfoExtractor(unittest.TestCase):
             self.assertEqual(ie._get_netrc_login_info(netrc_machine='empty_pass'), ('user', ''))
             self.assertEqual(ie._get_netrc_login_info(netrc_machine='both_empty'), ('', ''))
             self.assertEqual(ie._get_netrc_login_info(netrc_machine='nonexistent'), (None, None))
+            with self.assertRaises(ExtractorError):
+                ie._get_netrc_login_info(netrc_machine=';echo rce')
 
     def test_html_search_regex(self):
         html = '<p id="foo">Watch this <a href="http://www.youtube.com/watch?v=BaW_jenozKc">video</a></p>'
@@ -1413,6 +1415,51 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         },
                     ],
                 },
+            ), (
+                # SCTE 214 supplemental codecs (e.g. Dolby AV1)
+                # Based on unfragmented.mpd with scte214:supplementalCodecs on VIDEO-1 only
+                'supplemental_codecs',
+                'https://v.redd.it/hw1x7rcg7zl21/DASHPlaylist.mpd',  # mpd_url
+                'https://v.redd.it/hw1x7rcg7zl21',  # mpd_base_url
+                [{
+                    'url': 'https://v.redd.it/hw1x7rcg7zl21/audio',
+                    'manifest_url': 'https://v.redd.it/hw1x7rcg7zl21/DASHPlaylist.mpd',
+                    'ext': 'm4a',
+                    'format_id': 'AUDIO-1',
+                    'format_note': 'DASH audio',
+                    'container': 'm4a_dash',
+                    'acodec': 'mp4a.40.2',
+                    'vcodec': 'none',
+                    'tbr': 129.87,
+                    'asr': 48000,
+                }, {
+                    'url': 'https://v.redd.it/hw1x7rcg7zl21/DASH_240',
+                    'manifest_url': 'https://v.redd.it/hw1x7rcg7zl21/DASHPlaylist.mpd',
+                    'ext': 'mp4',
+                    'format_id': 'VIDEO-2',
+                    'format_note': 'DASH video',
+                    'container': 'mp4_dash',
+                    'acodec': 'none',
+                    'vcodec': 'avc1.4d401e',
+                    'tbr': 608.0,
+                    'width': 240,
+                    'height': 240,
+                    'fps': 30,
+                }, {
+                    'url': 'https://v.redd.it/hw1x7rcg7zl21/DASH_360',
+                    'manifest_url': 'https://v.redd.it/hw1x7rcg7zl21/DASHPlaylist.mpd',
+                    'ext': 'mp4',
+                    'format_id': 'VIDEO-1',
+                    'format_note': 'DASH video, dav1.10.02',
+                    'container': 'mp4_dash',
+                    'acodec': 'none',
+                    'vcodec': 'avc1.4d401e',
+                    'tbr': 804.261,
+                    'width': 360,
+                    'height': 360,
+                    'fps': 30,
+                }],
+                {},
             ),
         ]
 
@@ -1945,7 +1992,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         server_thread.daemon = True
         server_thread.start()
 
-        (content, urlh) = self.ie._download_webpage_handle(
+        content, _ = self.ie._download_webpage_handle(
             f'http://127.0.0.1:{port}/teapot', None,
             expected_status=TEAPOT_RESPONSE_STATUS)
         self.assertEqual(content, TEAPOT_RESPONSE_BODY)

@@ -6,7 +6,7 @@ __yt_dlp()
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     opts="{{flags}}"
     keywords=":ytfavorites :ytrecommended :ytsubscriptions :ytwatchlater :ythistory"
-    fileopts="-a|--batch-file|--download-archive|--cookies|--load-info"
+    fileopts="-a|--batch-file|--download-archive|--cookies|--load-info-json"
     diropts="--cache-dir"
 
     if [[ ${prev} =~ ${fileopts} ]]; then

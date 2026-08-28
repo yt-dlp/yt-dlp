@@ -3,6 +3,7 @@ import functools
 import itertools
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..networking.exceptions import HTTPError
@@ -14,6 +15,7 @@ from ..utils import (
     extract_attributes,
     float_or_none,
     int_or_none,
+    join_nonempty,
     parse_bitrate,
     parse_iso8601,
     parse_qs,
@@ -31,8 +33,10 @@ from ..utils import (
 )
 from ..utils.traversal import (
     find_element,
+    find_elements,
     require,
     traverse_obj,
+    trim_str,
 )
 
 
@@ -104,7 +108,7 @@ class NiconicoIE(NiconicoBaseIE):
     IE_NAME = 'niconico'
     IE_DESC = 'ニコニコ動画'
 
-    _VALID_URL = r'https?://(?:(?:embed|sp|www)\.)?nicovideo\.jp/watch/(?P<id>(?:[a-z]{2})?\d+)'
+    _VALID_URL = r'https?://(?:(?:embed|sp|www)\.)?nicovideo\.jp/(?:shorts|watch)/(?P<id>(?:[a-z]{2})?\d+)'
     _ERROR_MAP = {
         'FORBIDDEN': {
             'ADMINISTRATOR_DELETE_VIDEO': 'Video unavailable, possibly removed by admins',
@@ -361,6 +365,29 @@ class NiconicoIE(NiconicoBaseIE):
         },
         'params': {'skip_download': 'm3u8'},
         'skip': 'Channel members only; specified continuous membership period required',
+    }, {
+        'url': 'https://www.nicovideo.jp/shorts/ss46441082',
+        'info_dict': {
+            'id': 'ss46441082',
+            'ext': 'mp4',
+            'title': '『超かぐや姫！』WEB予告 ＜ アクション編 ＞',
+            'availability': 'public',
+            'channel': '『超かぐや姫！』公式',
+            'channel_id': '141907929',
+            'comment_count': int,
+            'description': 'md5:86cd619f675377c7d77ddc13b4dda8bf',
+            'duration': 15,
+            'genres': ['アニメ'],
+            'like_count': int,
+            'tags': 'mincount:5',
+            'thumbnail': r're:https?://img\.cdn\.nimg\.jp/s/nicovideo/thumbnails/.+',
+            'timestamp': 1781600400,
+            'upload_date': '20260616',
+            'uploader': '『超かぐや姫！』公式',
+            'uploader_id': '141907929',
+            'view_count': int,
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _extract_formats(self, api_data, video_id):
@@ -428,7 +455,7 @@ class NiconicoIE(NiconicoBaseIE):
                 'actionTrackId': f'AAAAAAAAAA_{round(time_seconds() * 1000)}',
             }, expected_status=[400, 404])
 
-        api_data = api_resp['data']
+        api_data = traverse_obj(api_resp, ('data', {dict}))
         scheduled_time = traverse_obj(api_data, ('publishScheduledAt', {str}))
         status = traverse_obj(api_resp, ('meta', 'status', {int}))
 
@@ -465,7 +492,7 @@ class NiconicoIE(NiconicoBaseIE):
         if not formats and err_msg:
             self.raise_login_required(err_msg, metadata_available=True)
 
-        thumb_prefs = qualities(['url', 'middleUrl', 'largeUrl', 'player', 'ogp'])
+        thumb_prefs = qualities(['url', 'middleUrl', 'largeUrl', 'player', 'ogp', 'short'])
 
         return {
             'availability': availability,
@@ -482,7 +509,8 @@ class NiconicoIE(NiconicoBaseIE):
                 'url': url,
                 **parse_resolution(url, lenient=True),
             } for key, url in traverse_obj(api_data, (
-                'video', 'thumbnail', {dict}), default={}).items()],
+                'video', 'thumbnail', {dict.items}, lambda _, v: url_or_none(v[1])),
+            )],
             **traverse_obj(api_data, (('channel', 'owner'), any, {
                 'channel': (('name', 'nickname'), {str}, any),
                 'channel_id': ('id', {str_or_none}),
@@ -873,38 +901,66 @@ class NiconicoLiveIE(NiconicoBaseIE):
     IE_DESC = 'ニコニコ生放送'
     _VALID_URL = r'https?://(?:sp\.)?live2?\.nicovideo\.jp/(?:watch|gate)/(?P<id>lv\d+)'
     _TESTS = [{
-        'note': 'this test case includes invisible characters for title, pasting them as-is',
-        'url': 'https://live.nicovideo.jp/watch/lv339533123',
+        'url': 'https://live.nicovideo.jp/watch/lv329299587',
         'info_dict': {
-            'id': 'lv339533123',
-            'title': '激辛ペヤング食べます\u202a( ;ᯅ; )\u202c（歌枠オーディション参加中）',
-            'view_count': 1526,
-            'comment_count': 1772,
-            'description': '初めましてもかって言います❕\nのんびり自由に適当に暮らしてます',
-            'uploader': 'もか',
-            'channel': 'ゲストさんのコミュニティ',
-            'channel_id': 'co5776900',
-            'channel_url': 'https://com.nicovideo.jp/community/co5776900',
-            'timestamp': 1670677328,
-            'is_live': True,
+            'id': 'lv329299587',
+            'ext': 'mp4',
+            'title': str,
+            'channel': 'ニコニコエンタメチャンネル',
+            'channel_id': 'ch2640322',
+            'channel_url': 'https://ch.nicovideo.jp/channel/ch2640322',
+            'comment_count': int,
+            'description': 'md5:281edd7f00309e99ec46a87fb16d7033',
+            'live_status': 'is_live',
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1608803400,
+            'upload_date': '20201224',
+            'uploader': '株式会社ドワンゴ',
+            'view_count': int,
         },
-        'skip': 'livestream',
+        'params': {'skip_download': True},
     }, {
-        'url': 'https://live2.nicovideo.jp/watch/lv339533123',
-        'only_matching': True,
-    }, {
-        'url': 'https://sp.live.nicovideo.jp/watch/lv339533123',
-        'only_matching': True,
-    }, {
-        'url': 'https://sp.live2.nicovideo.jp/watch/lv339533123',
-        'only_matching': True,
+        'url': 'https://live.nicovideo.jp/watch/lv331050399',
+        'info_dict': {
+            'id': 'lv331050399',
+            'ext': 'mp4',
+            'title': str,
+            'age_limit': 18,
+            'channel': 'みんなのおもちゃ REBOOT',
+            'channel_id': 'ch2642088',
+            'channel_url': 'https://ch.nicovideo.jp/channel/ch2642088',
+            'comment_count': int,
+            'description': 'md5:8d0bb5beaca73b911725478a1e7c7b91',
+            'live_status': 'is_live',
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1617029400,
+            'upload_date': '20210329',
+            'uploader': '株式会社ドワンゴ',
+            'view_count': int,
+        },
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id, expected_status=404)
+        webpage, urlh = self._download_webpage_handle(url, video_id, expected_status=404)
         if err_msg := traverse_obj(webpage, ({find_element(cls='message')}, {clean_html})):
             raise ExtractorError(err_msg, expected=True)
+
+        age_limit = 18 if 'age_auth' in urlh.url else None
+        if age_limit:
+            if not self.is_logged_in:
+                self.raise_login_required('Login is required to access age-restricted content')
+
+            my = self._download_webpage('https://www.nicovideo.jp/my', None, 'Checking age verification')
+            if traverse_obj(my, (
+                {find_element(id='js-initial-userpage-data', html=True)}, {extract_attributes},
+                'data-environment', {json.loads}, 'allowSensitiveContents', {bool},
+            )):
+                self._set_cookie('.nicovideo.jp', 'age_auth', '1')
+                webpage = self._download_webpage(url, video_id)
+            else:
+                raise ExtractorError('Sensitive content setting must be enabled', expected=True)
 
         embedded_data = traverse_obj(webpage, (
             {find_element(tag='script', id='embedded-data', html=True)},
@@ -1008,6 +1064,7 @@ class NiconicoLiveIE(NiconicoBaseIE):
         return {
             'id': video_id,
             'title': title,
+            'age_limit': age_limit,
             'downloader_options': {
                 'max_quality': traverse_obj(embedded_data, ('program', 'stream', 'maxQuality', {str})) or 'normal',
                 'ws': ws,
@@ -1027,3 +1084,98 @@ class NiconicoLiveIE(NiconicoBaseIE):
             'thumbnails': thumbnails,
             'formats': formats,
         }
+
+
+class NiconicoChannelIE(NiconicoBaseIE):
+    IE_NAME = 'niconico:channel'
+
+    _PAGE_SIZE = 20
+    _SEARCH_PAGE_SIZE = 32
+    _VALID_URL = [
+        r'https?://ch\.nicovideo\.jp/(?P<id>[\w-]+)/(?P<type>video)/?(?P<slug>continuation|member|pay|so\d{8})?(?:[/?#]|$)',
+        r'https?://ch\.nicovideo\.jp/(?P<type>search)/(?P<id>[^/?#]+)',
+    ]
+    _TESTS = [{
+        'url': 'https://ch.nicovideo.jp/higurashianime/video',
+        'info_dict': {
+            'id': 'higurashianime',
+            'title': '「ひぐらしのなく頃に」オフィシャルチャンネル',
+        },
+        'playlist_mincount': 54,
+    }, {
+        'url': 'https://ch.nicovideo.jp/amiami-ssr/video?page=2',
+        'info_dict': {
+            'id': 'amiami-ssr',
+            'title': 'あみあみSSRチャンネル',
+        },
+        'playlist_count': 20,
+    }, {
+        'url': 'https://ch.nicovideo.jp/yukarisama/video/pay',
+        'info_dict': {
+            'id': 'yukarisama',
+            'title': '縁結びのゆかり様',
+        },
+        'playlist_mincount': 16,
+    }, {
+        'url': 'https://ch.nicovideo.jp/mokou1/video/member',
+        'info_dict': {
+            'id': 'mokou1',
+            'title': 'もこう。',
+        },
+        'playlist_mincount': 49,
+    }, {
+        'url': 'https://ch.nicovideo.jp/amiami-ch/video/continuation',
+        'info_dict': {
+            'id': 'amiami-ch',
+            'title': 'あみあみチャンネル',
+        },
+        'playlist_mincount': 1,
+    }, {
+        'url': 'https://ch.nicovideo.jp/search/%E3%81%AF%E3%81%AA%E3%81%BE%E3%81%8D%E3%81%93%E3%82%82%E3%81%A1%E3%81%83?channel_id=ch2585696&type=video',
+        'info_dict': {
+            'id': 'secondshot',
+            'title': 'セカンドショットちゃんねる - はなまきこもちぃ',
+        },
+        'playlist_mincount': 115,
+    }, {
+        'url': 'https://ch.nicovideo.jp/amiami-ch/video/so44060088',
+        'only_matching': True,
+    }]
+
+    def _fetch_page(self, url, playlist_id, page):
+        page += 1
+        webpage = self._download_webpage(
+            url, playlist_id, f'Downloading page {page}', query={'page': page})
+        for url in traverse_obj(webpage, (
+            {find_elements(cls='watchLink', html=True)},
+            ..., {extract_attributes}, 'href', {url_or_none},
+        )):
+            yield self.url_result(url, NiconicoIE)
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        display_id = urllib.parse.unquote(mobj.group('id'))
+        playlist_type = mobj.group('type')
+
+        if playlist_type == 'search':
+            keyword = display_id
+            page_size = self._SEARCH_PAGE_SIZE
+        else:
+            if (slug := mobj.group('slug')) and slug.startswith('so'):
+                return self.url_result(
+                    f'{self._BASE_URL}/watch/{slug}', NiconicoIE)
+            keyword = None
+            page_size = self._PAGE_SIZE
+
+        webpage = self._download_webpage(url, display_id)
+        channel_name = traverse_obj(webpage, (
+            {find_element(cls='channel_name')}, {find_element(tag='a', html=True)},
+            {extract_attributes}, 'href', {str}, {trim_str(start='/')}, filter))
+        site_name = self._og_search_property('site_name', webpage, default=None)
+
+        fetch_page = functools.partial(self._fetch_page, url, display_id)
+        page = traverse_obj(parse_qs(url), ('page', -1, {int_or_none}))
+        entries = fetch_page(page - 1) if page else OnDemandPagedList(fetch_page, page_size)
+
+        return self.playlist_result(
+            entries, channel_name, join_nonempty(site_name, keyword, delim=' - '))

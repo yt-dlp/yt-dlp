@@ -7,7 +7,7 @@ from ..utils import (
 
 
 class FifaIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.fifa\.com/fifaplus/(?P<locale>\w{2})/watch/([^#?]+/)?(?P<id>\w+)'
+    _VALID_URL = r'https?://www\.fifa\.com/fifaplus/\w{2}/watch/([^#?]+/)?(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.fifa.com/fifaplus/en/watch/7on10qPcnyLajDDU3ntg6y',
         'info_dict': {
@@ -51,7 +51,7 @@ class FifaIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id, locale = self._match_valid_url(url).group('id', 'locale')
+        video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
         preconnect_link = self._search_regex(

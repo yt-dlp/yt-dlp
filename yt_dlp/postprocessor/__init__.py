@@ -30,7 +30,6 @@ from .metadataparser import (
 )
 from .modify_chapters import ModifyChaptersPP
 from .movefilesafterdownload import MoveFilesAfterDownloadPP
-from .sponskrub import SponSkrubPP
 from .sponsorblock import SponsorBlockPP
 from .xattrpp import XAttrMetadataPP
 from ..globals import plugin_pps, postprocessors

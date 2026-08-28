@@ -1,3 +1,4 @@
+import datetime as dt
 import os
 import xml.etree.ElementTree as etree
 
@@ -7,9 +8,8 @@ passthrough_module(__name__, '._deprecated')
 del passthrough_module
 
 
-# HTMLParseError has been deprecated in Python 3.3 and removed in
-# Python 3.5. Introducing dummy exception for Python >3.5 for compatible
-# and uniform cross-version exception handling
+# HTMLParseError was deprecated in Python 3.3 and removed in Python 3.5.
+# Keep a replacement for API compatibility and uniform exception handling.
 class compat_HTMLParseError(ValueError):
     pass
 
@@ -25,6 +25,13 @@ def compat_etree_fromstring(text):
 
 def compat_ord(c):
     return c if isinstance(c, int) else ord(c)
+
+
+def compat_datetime_from_timestamp(timestamp):
+    # Calling dt.datetime.fromtimestamp with negative timestamps throws error in Windows
+    # Ref: https://github.com/yt-dlp/yt-dlp/issues/5185, https://github.com/python/cpython/issues/81708,
+    # https://github.com/yt-dlp/yt-dlp/issues/6706#issuecomment-1496842642
+    return (dt.datetime.fromtimestamp(0, dt.timezone.utc) + dt.timedelta(seconds=timestamp))
 
 
 # Python 3.8+ does not honor %HOME% on windows, but this breaks compatibility with youtube-dl

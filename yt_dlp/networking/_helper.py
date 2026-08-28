@@ -108,9 +108,7 @@ def make_ssl_context(
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = verify
     context.verify_mode = ssl.CERT_REQUIRED if verify else ssl.CERT_NONE
-    # OpenSSL 1.1.1+ Python 3.8+ keylog file
-    if hasattr(context, 'keylog_filename'):
-        context.keylog_filename = os.environ.get('SSLKEYLOGFILE') or None
+    context.keylog_filename = os.environ.get('SSLKEYLOGFILE') or None
 
     # Some servers may reject requests if ALPN extension is not sent. See:
     # https://github.com/python/cpython/issues/85140
@@ -200,7 +198,7 @@ def wrap_request_errors(func):
 
 
 def _socket_connect(ip_addr, timeout, source_address):
-    af, socktype, proto, canonname, sa = ip_addr
+    af, socktype, proto, _canonname, sa = ip_addr
     sock = socket.socket(af, socktype, proto)
     try:
         if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
@@ -215,7 +213,7 @@ def _socket_connect(ip_addr, timeout, source_address):
 
 
 def create_socks_proxy_socket(dest_addr, proxy_args, proxy_ip_addr, timeout, source_address):
-    af, socktype, proto, canonname, sa = proxy_ip_addr
+    af, socktype, proto, _canonname, sa = proxy_ip_addr
     sock = sockssocket(af, socktype, proto)
     try:
         connect_proxy_args = proxy_args.copy()

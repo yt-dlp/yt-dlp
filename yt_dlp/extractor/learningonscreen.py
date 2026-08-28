@@ -29,7 +29,7 @@ class LearningOnScreenIE(InfoExtractor):
     }]
 
     def _real_initialize(self):
-        if not self._get_cookies('https://learningonscreen.ac.uk/').get('PHPSESSID-BOB-LIVE'):
+        if not self._get_cookies('https://learningonscreen.ac.uk/').get('PHPSESSID-LOS-LIVE'):
             self.raise_login_required(method='session_cookies')
 
     def _real_extract(self, url):

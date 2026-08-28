@@ -13,11 +13,13 @@ from ..utils import (
     merge_dicts,
     parse_duration,
     smuggle_url,
+    str_or_none,
     try_get,
     url_basename,
     url_or_none,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class ITVIE(InfoExtractor):
@@ -112,7 +114,7 @@ class ITVIE(InfoExtractor):
         # See: https://github.com/yt-dlp/yt-dlp/issues/986
         platform_tag_subs, featureset_subs = next(
             ((platform_tag, featureset)
-             for platform_tag, featuresets in reversed(list(variants.items())) for featureset in featuresets
+             for platform_tag, featuresets in reversed(variants.items()) for featureset in featuresets
              if try_get(featureset, lambda x: x[2]) == 'outband-webvtt'),
             (None, None))
 
@@ -141,7 +143,7 @@ class ITVIE(InfoExtractor):
         # See: https://github.com/yt-dlp/yt-dlp/issues/986
         platform_tag_video, featureset_video = next(
             ((platform_tag, featureset)
-             for platform_tag, featuresets in reversed(list(variants.items())) for featureset in featuresets
+             for platform_tag, featuresets in reversed(variants.items()) for featureset in featuresets
              if set(try_get(featureset, lambda x: x[:2]) or []) == {'aes', 'hls'}),
             (None, None))
         if not platform_tag_video or not featureset_video:
@@ -223,6 +225,7 @@ class ITVBTCCIE(InfoExtractor):
         },
         'playlist_count': 12,
     }, {
+        # news page, can have absent `data` field
         'url': 'https://www.itv.com/news/2021-10-27/i-have-to-protect-the-country-says-rishi-sunak-as-uk-faces-interest-rate-hike',
         'info_dict': {
             'id': 'i-have-to-protect-the-country-says-rishi-sunak-as-uk-faces-interest-rate-hike',
@@ -243,9 +246,9 @@ class ITVBTCCIE(InfoExtractor):
 
         entries = []
         for video in json_map:
-            if not any(video['data'].get(attr) == 'Brightcove' for attr in ('name', 'type')):
+            if not any(traverse_obj(video, ('data', attr)) == 'Brightcove' for attr in ('name', 'type')):
                 continue
-            video_id = video['data']['id']
+            video_id = str_or_none(video['data']['id'])
             account_id = video['data']['accountId']
             player_id = video['data']['playerId']
             entries.append(self.url_result(

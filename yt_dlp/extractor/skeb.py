@@ -51,6 +51,20 @@ class SkebIE(InfoExtractor):
         },
         'playlist_count': 2,
         'expected_warnings': ['Skipping unsupported extension'],
+    }, {
+        'url': 'https://skeb.jp/@Yossshy_Music/works/13',
+        'info_dict': {
+            'ext': 'wav',
+            'id': '5566495',
+            'title': '13-1',
+            'description': 'md5:1026b8b9ae38c67c2d995970ec196550',
+            'uploader': 'Yossshy',
+            'uploader_id': 'Yossshy_Music',
+            'duration': 336,
+            'thumbnail': r're:https?://.+',
+            'tags': 'count:59',
+            'genres': ['music'],
+        },
     }]
 
     def _call_api(self, uploader_id, work_id):
@@ -87,7 +101,7 @@ class SkebIE(InfoExtractor):
         entries = []
         for idx, preview in enumerate(traverse_obj(works, ('previews', lambda _, v: url_or_none(v['url']))), 1):
             ext = traverse_obj(preview, ('information', 'extension', {str}))
-            if ext not in ('mp3', 'mp4'):
+            if ext not in ('mp3', 'mp4', 'wav'):
                 self.report_warning(f'Skipping unsupported extension "{ext}"')
                 continue
 
@@ -100,7 +114,7 @@ class SkebIE(InfoExtractor):
                         'url': preview['vtt_url'],
                     }],
                 } if url_or_none(preview.get('vtt_url')) else None,
-                'vcodec': 'none' if ext == 'mp3' else None,
+                'vcodec': 'none' if ext in ('mp3', 'wav') else None,
                 **info,
                 **traverse_obj(preview, {
                     'id': ('id', {str_or_none}),

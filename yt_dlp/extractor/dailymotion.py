@@ -172,17 +172,6 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         },
         'skip': 'video gone',
     }, {
-        # Vevo video
-        'url': 'http://www.dailymotion.com/video/x149uew_katy-perry-roar-official_musi',
-        'info_dict': {
-            'title': 'Roar (Official)',
-            'id': 'USUV71301934',
-            'ext': 'mp4',
-            'uploader': 'Katy Perry',
-            'upload_date': '20130905',
-        },
-        'skip': 'Invalid URL',
-    }, {
         # age-restricted video
         'url': 'http://www.dailymotion.com/video/xyh2zz_leanna-decker-cyber-girl-of-the-year-desires-nude-playboy-plus_redband',
         'md5': '0d667a7b9cebecc3c89ee93099c4159d',
@@ -374,6 +363,42 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                 continue
             yield update_url(player_url, query=query_string)
 
+    def _extract_dailymotion_m3u8_formats_and_subtitles(self, media_url, video_id, live=False):
+        """See https://github.com/yt-dlp/yt-dlp/issues/15526"""
+
+        ERROR_NOTE = 'Unable to download m3u8 information'
+        last_error = None
+
+        for note, kwargs in (
+            ('Downloading m3u8 information with randomized headers', {
+                'headers': self._generate_blockbuster_headers(),
+            }),
+            ('Retrying m3u8 download with Chrome impersonation', {
+                'impersonate': 'chrome',
+                'require_impersonation': True,
+            }),
+            ('Retrying m3u8 download with Firefox impersonation', {
+                'impersonate': 'firefox',
+                'require_impersonation': True,
+            }),
+        ):
+            try:
+                m3u8_doc = self._download_webpage(media_url, video_id, note, ERROR_NOTE, **kwargs)
+                break
+            except ExtractorError as e:
+                last_error = e.orig_msg
+                self.write_debug(f'{video_id}: {last_error}')
+        else:
+            if 'impersonation' not in last_error:
+                self.report_warning(last_error, video_id=video_id)
+                last_error = None
+            return [], {}, last_error
+
+        formats, subtitles = self._parse_m3u8_formats_and_subtitles(
+            m3u8_doc, media_url, 'mp4', m3u8_id='hls', live=live, fatal=False)
+
+        return formats, subtitles, last_error
+
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url)
         video_id, is_playlist, playlist_id = self._match_valid_url(url).group('id', 'is_playlist', 'playlist_id')
@@ -427,6 +452,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         is_live = media.get('isOnAir')
         formats = []
         subtitles = {}
+        expected_error = None
 
         for quality, media_list in metadata['qualities'].items():
             for m in media_list:
@@ -435,8 +461,8 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                 if not media_url or media_type == 'application/vnd.lumberjack.manifest':
                     continue
                 if media_type == 'application/x-mpegURL':
-                    fmt, subs = self._extract_m3u8_formats_and_subtitles(
-                        media_url, video_id, 'mp4', live=is_live, m3u8_id='hls', fatal=False)
+                    fmt, subs, expected_error = self._extract_dailymotion_m3u8_formats_and_subtitles(
+                        media_url, video_id, live=is_live)
                     formats.extend(fmt)
                     self._merge_subtitles(subs, target=subtitles)
                 else:
@@ -453,6 +479,10 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                             'width': width,
                         })
                     formats.append(f)
+
+        if not formats and expected_error:
+            self.raise_no_formats(expected_error, expected=True)
+
         for f in formats:
             f['url'] = f['url'].split('#')[0]
             if not f.get('fps') and f['format_id'].endswith('@60'):
