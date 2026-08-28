@@ -2200,31 +2200,40 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         },
     }, {
         # this and the following 2 test artist pages on yt music
+        'note': 'fix artists page downloads',
         'url': 'https://music.youtube.com/browse/MPADUCkNNkuf7zltS7tG18GyOIMg',
         'info_dict': {
             'id': 'MPADUCkNNkuf7zltS7tG18GyOIMg',
             'title': 'Leander Kills',
             '_type': 'playlist',
-            'entries': list,  # idk how to say count>=47
+            'entries': list,
         },
+        'playlist_mincount': 47,
+        'expected_warnings': [r'.*YouTube Music is not directly supported\..*'],
     }, {
         # https://github.com/yt-dlp/yt-dlp/issues/13286
+        'note': 'fix artists page downloads',
         'url': 'https://music.youtube.com/browse/MPADUCKCkZieK-MP6hR9S2N7wfXQ',
         'info_dict': {
             'id': 'MPADUCKCkZieK-MP6hR9S2N7wfXQ',
             'title': 'Sasuke Haraguchi',
             '_type': 'playlist',
-            'entries': list,  # idk how to say count>=27
+            'entries': list,
         },
+        'playlist_mincount': 27,
+        'expected_warnings': [r'.*YouTube Music is not directly supported\..*'],
     }, {
         # https://github.com/yt-dlp/yt-dlp/issues/16241
+        'note': 'fix artists page downloads',
         'url': 'https://music.youtube.com/browse/MPADUC5xaQ6_dP7EGDmGLzVGZ1Ow',
         'info_dict': {
             'id': 'MPADUC5xaQ6_dP7EGDmGLzVGZ1Ow',
             'title': 'Morgan Wallen',
             '_type': 'playlist',
-            'entries': list,  # idk how to say count>=36
+            'entries': list,
         },
+        'playlist_mincount': 36,
+        'expected_warnings': [r'.*YouTube Music is not directly supported\..*'],
     }]
 
     @classmethod
