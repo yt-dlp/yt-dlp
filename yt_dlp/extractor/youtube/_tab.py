@@ -2368,7 +2368,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                             'text',
                         ))
                         return self.playlist_result([
-                            self.url_result(f'https://music.youtube.com/browse/{i}') for i in
+                            self.url_result(f'https://music.youtube.com/browse/{i}', YoutubeTabIE, i) for i in
                             data
                         ],
                             playlist_id=item_id,
