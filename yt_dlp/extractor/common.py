@@ -1279,10 +1279,10 @@ class InfoExtractor:
     def url_result(url, ie=None, video_id=None, video_title=None, *, url_transparent=False, **kwargs):
         """Returns a URL that points to a page that should be processed"""
         if ie is not None:
-            key = ie if isinstance(ie, str) else ie.ie_key()
-            kwargs['ie_key'] = key
-            if key == 'Generic':
-                url = smuggle_url(url, {'to_generic': True})
+            kwargs['ie_key'] = ie if isinstance(ie, str) else ie.ie_key()
+        # Silence fallback warning if this is an intentional generic result
+        if kwargs.get('ie_key') == 'Generic':
+            url = smuggle_url(url, {'to_generic': True})
         if video_id is not None:
             kwargs['id'] = video_id
         if video_title is not None:
