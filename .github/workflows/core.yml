@@ -4,8 +4,8 @@ on:
     branches: ['master']
     paths:
       - pyproject.toml
-      - .github/**
-      - devscripts/**
+      - .github/workflows/core.yml
+      - devscripts/run_tests.py
       - test/**
       - yt_dlp/**.py
       - '!yt_dlp/extractor/**.py'
@@ -17,8 +17,8 @@ on:
     branches: ['**']
     paths:
       - pyproject.toml
-      - .github/**
-      - devscripts/**
+      - .github/workflows/core.yml
+      - devscripts/run_tests.py
       - test/**
       - yt_dlp/**.py
       - '!yt_dlp/extractor/**.py'
@@ -43,48 +43,40 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        # CPython 3.10 is in quick-test
-        python-version: ['3.11', '3.12', '3.13', '3.14', pypy-3.11]
+        os: [ubuntu-latest, windows-latest]
+        # Linux CPython 3.10 is covered by quick-test.yml
+        python-version: ['3.11', '3.12', '3.13', '3.14', '3.15', pypy-3.11]
         include:
-        # atleast one of each CPython/PyPy tests must be in windows
         - os: windows-latest
           python-version: '3.10'
-        - os: windows-latest
-          python-version: '3.11'
-        - os: windows-latest
-          python-version: '3.12'
-        - os: windows-latest
-          python-version: '3.13'
-        - os: windows-latest
-          python-version: '3.14'
-        - os: windows-latest
-          python-version: pypy-3.11
 
     steps:
-    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       with:
         fetch-depth: 0
         persist-credentials: false
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
       with:
         python-version: ${{ matrix.python-version }}
+        allow-prereleases: true
+        check-latest: true
 
     - name: Install test requirements (cpython)
       if: ${{ !startsWith(matrix.python-version, 'pypy') }}
       run: |
-        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
-        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-test.txt"
-        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-curl-cffi.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/pip.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/test.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/curl-cffi.txt"
 
     - name: Install test requirements (PyPy)
       if: ${{ startsWith(matrix.python-version, 'pypy') }}
       run: |
-        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
-        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-test.txt"
-        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-default.txt"
+        # Upgrading/downgrading pip on Windows with actions/setup-python's PyPy can cause breakage
+        # See https://github.com/actions/setup-python/issues/1348
+        python -m pip install -U --require-hashes -r "bundle/requirements/test.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/default.txt"
 
     - name: Run tests
       timeout-minutes: 15

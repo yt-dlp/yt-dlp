@@ -36,52 +36,68 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14', pypy-3.11]
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14', '3.15', pypy-3.11]
     env:
       QJS_VERSION: '2025-04-26'  # Earliest version with rope strings
     steps:
-    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       with:
         persist-credentials: false
+
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
       with:
         python-version: ${{ matrix.python-version }}
+        allow-prereleases: true
+
     - name: Install Deno
-      uses: denoland/setup-deno@e95548e56dfa95d4e1a28d6f422fafe75c4c26fb  # v2.0.3
+      uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed  # v2.0.5
       with:
-        deno-version: '2.0.0'  # minimum supported version
+        deno-version: '2.3.0'  # minimum supported version
+
     - name: Install Bun
       uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6  # v2.2.0
       with:
-        # minimum supported version is 1.0.31 but earliest available Windows version is 1.1.0
-        bun-version: ${{ (matrix.os == 'windows-latest' && '1.1.0') || '1.0.31' }}
+        bun-version: '1.2.11'  # minimum supported version
         no-cache: true
+
     - name: Install Node
-      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f  # v6.3.0
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
       with:
-        node-version: '20.0'  # minimum supported version
+        node-version: '22.0'  # minimum supported version
+
     - name: Install QuickJS (Linux)
       if: matrix.os == 'ubuntu-latest'
       shell: bash
       run: |
-          wget "https://bellard.org/quickjs/binary_releases/quickjs-linux-x86_64-${QJS_VERSION}.zip" -O quickjs.zip
-          unzip quickjs.zip qjs
-          sudo install qjs /usr/local/bin/qjs
+        wget "https://bellard.org/quickjs/binary_releases/quickjs-linux-x86_64-${QJS_VERSION}.zip" -O quickjs.zip
+        unzip quickjs.zip qjs
+        sudo install qjs /usr/local/bin/qjs
+
     - name: Install QuickJS (Windows)
       if: matrix.os == 'windows-latest'
       shell: pwsh
       run: |
-          $ErrorActionPreference = "Stop"
-          $PSNativeCommandUseErrorActionPreference = $true
-          Invoke-WebRequest "https://bellard.org/quickjs/binary_releases/quickjs-win-x86_64-${Env:QJS_VERSION}.zip" -OutFile quickjs.zip
-          unzip quickjs.zip
-    - name: Install test requirements
-      shell: bash
+        $ErrorActionPreference = "Stop"
+        $PSNativeCommandUseErrorActionPreference = $true
+        Invoke-WebRequest "https://bellard.org/quickjs/binary_releases/quickjs-win-x86_64-${Env:QJS_VERSION}.zip" -OutFile quickjs.zip
+        unzip quickjs.zip
+
+    - name: Install test requirements (cpython)
+      if: ${{ !startsWith(matrix.python-version, 'pypy') }}
       run: |
-        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
-        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-test.txt"
-        python -m pip install -U --require-hashes -r "bundle/requirements/requirements-default.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/pip.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/test.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/default.txt"
+
+    - name: Install test requirements (PyPy)
+      if: ${{ startsWith(matrix.python-version, 'pypy') }}
+      run: |
+        # Upgrading/downgrading pip on Windows with actions/setup-python's PyPy can cause breakage
+        # See https://github.com/actions/setup-python/issues/1348
+        python -m pip install -U --require-hashes -r "bundle/requirements/test.txt"
+        python -m pip install -U --require-hashes -r "bundle/requirements/default.txt"
+
     - name: Run tests
       timeout-minutes: 15
       shell: bash

@@ -165,7 +165,7 @@ def _get_binary_name():
 
 
 def _get_system_deprecation():
-    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 10), (3, 10)
+    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 10), (3, 11)
 
     if sys.version_info > MIN_RECOMMENDED:
         return None
@@ -175,6 +175,18 @@ def _get_system_deprecation():
 
     if sys.version_info < MIN_SUPPORTED:
         return f'Python version {major}.{minor} is no longer supported! {PYTHON_MSG}'
+
+    # Temporary until Windows builds use 3.14, which will drop support for Win8.x and 2012Server
+    if detect_variant() in ('win_exe', 'win_x86_exe'):
+        # Do not inappropriately warn for unofficial/third-party binaries
+        if not ORIGIN.startswith('yt-dlp/'):
+            return None
+        if platform.platform().startswith(('Windows-8', 'Windows-2012Server')):
+            return (
+                'Support for Windows 8.x and Windows Server 2012 has been deprecated. '
+                'See  https://github.com/yt-dlp/yt-dlp/issues/16917  for details.\n'
+                'You may stop receiving updates on this version at any time!')
+        return None
 
     return f'Support for Python version {major}.{minor} has been deprecated. {PYTHON_MSG}'
 
@@ -213,6 +225,10 @@ def _make_label(origin, tag, version=None):
     if channel := _INVERSE_UPDATE_SOURCES.get(origin):
         return f'{channel}@{tag} from {origin}'
     return f'{origin}@{tag}'
+
+
+class _GitHubError(Exception):
+    pass
 
 
 @dataclass
@@ -307,7 +323,14 @@ class Updater:
         path = 'latest/download' if tag == 'latest' else f'download/{tag}'
         url = f'https://github.com/{self.requested_repo}/releases/{path}/{name}'
         self.ydl.write_debug(f'Downloading {name} from {url}')
-        return self.ydl.urlopen(url).read()
+        response = self.ydl.urlopen(url)
+        # GitHub may send an error webpage response with HTTP status 200
+        # See https://github.com/yt-dlp/yt-dlp/issues/17550
+        prefix = response.read(512)
+        if b'<!DOCTYPE html>' in prefix:
+            raise _GitHubError('got error webpage instead of release asset')
+
+        return prefix + response.read()
 
     def _call_api(self, tag):
         tag = f'tags/{tag}' if tag != 'latest' else tag
@@ -346,7 +369,7 @@ class Updater:
         for tag in source_tags:
             try:
                 return self._download_asset('_update_spec', tag=tag).decode()
-            except network_exceptions as error:
+            except (_GitHubError, *network_exceptions) as error:
                 if isinstance(error, HTTPError) and error.status == 404:
                     continue
                 self._report_network_error(f'fetch update spec: {error}')
@@ -450,7 +473,7 @@ class Updater:
         if not is_non_updateable():
             try:
                 hashes = self._download_asset('SHA2-256SUMS', result_tag)
-            except network_exceptions as error:
+            except (_GitHubError, *network_exceptions) as error:
                 if not isinstance(error, HTTPError) or error.status != 404:
                     self._report_network_error(f'fetch checksums: {error}')
                     return None
@@ -513,7 +536,7 @@ class Updater:
 
         try:
             newcontent = self._download_asset(update_info.binary_name, update_info.tag)
-        except network_exceptions as e:
+        except (_GitHubError, *network_exceptions) as e:
             if isinstance(e, HTTPError) and e.status == 404:
                 return self._report_error(
                     f'The requested tag {self.requested_repo}@{update_info.tag} does not exist', True)
@@ -597,7 +620,7 @@ class Updater:
         self.ydl._download_retcode = 100
 
     def _report_permission_error(self, file):
-        self._report_error(f'Unable to write to {file}; try running as administrator', True)
+        self._report_error(f'Insufficient permissions to write to {file}', True)
 
     def _report_network_error(self, action, delim=';', tag=None):
         if not tag:

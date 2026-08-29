@@ -64,9 +64,9 @@ class YoutubeIEContentProviderLogger(IEContentProviderLogger):
         if self.log_level <= self.LogLevel.DEBUG:
             self.__ie.write_debug(self._format_msg(message), only_once=once)
 
-    def info(self, message: str):
+    def info(self, message: str, *, once=False):
         if self.log_level <= self.LogLevel.INFO:
-            self.__ie.to_screen(self._format_msg(message))
+            self.__ie.to_screen(self._format_msg(message), only_once=once)
 
     def warning(self, message: str, *, once=False):
         if self.log_level <= self.LogLevel.WARNING:
@@ -76,7 +76,7 @@ class YoutubeIEContentProviderLogger(IEContentProviderLogger):
         if self.log_level <= self.LogLevel.ERROR:
             self.__ie._downloader.report_error(
                 self._format_msg(message), is_error=False,
-                tb=''.join(traceback.format_exception(None, cause, cause.__traceback__)) if cause else None)
+                tb=''.join(traceback.format_exception(cause)) if cause else None)
 
 
 class PoTokenCache:
@@ -438,9 +438,11 @@ def clean_pot(po_token: str):
     if not mobj:
         raise ValueError('Invalid PO Token')
 
+    # compat: <=py3.14: padded was added in 3.15 and the default for urlsafe is false
+    data = mobj.group(1).translate(str.maketrans('-_', '+/'))
     try:
         return base64.urlsafe_b64encode(
-            base64.urlsafe_b64decode(mobj.group(1))).decode()
+            base64.b64decode(data)).decode()
     except (binascii.Error, ValueError):
         raise ValueError('Invalid PO Token')
 

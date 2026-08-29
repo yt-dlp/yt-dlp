@@ -109,7 +109,7 @@ class SpankBangIE(InfoExtractor):
 
         for mobj in re.finditer(
                 rf'{STREAM_URL_PREFIX}(?P<id>[^\s=]+)\s*=\s*(["\'])(?P<url>(?:(?!\2).)+)\2', webpage):
-            extract_format(mobj.group('id', 'url'))
+            extract_format(*mobj.group('id', 'url'))
 
         if not formats:
             stream_key = self._search_regex(

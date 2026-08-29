@@ -13,8 +13,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  ACTIONLINT_VERSION: "1.7.11"
-  ACTIONLINT_SHA256SUM: 900919a84f2229bac68ca9cd4103ea297abc35e9689ebb842c6e34a3d1b01b0a
+  ACTIONLINT_VERSION: "1.7.12"
+  ACTIONLINT_SHA256SUM: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
   ACTIONLINT_REPO: rhysd/actionlint
   GH_TELEMETRY: "false"
 
@@ -26,19 +26,19 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: "3.13"  # Keep this in sync with release.yml's prepare job
 
       - name: Install Python dependencies
         run: |
-          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pip.txt"
-          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-pyflakes.txt"
-          python -m pip install -U --require-hashes -r "bundle/requirements/requirements-test.txt"
+          python -m pip install -U --require-hashes -r "bundle/requirements/pip.txt"
+          python -m pip install -U --require-hashes -r "bundle/requirements/pyflakes.txt"
+          python -m pip install -U --require-hashes -r "bundle/requirements/test.txt"
 
       - name: Install requirements
         env:
@@ -78,12 +78,12 @@ jobs:
       actions: read  # Needed by zizmorcore/zizmor-action if repository is private
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
 
       - name: Run zizmor
-        uses: zizmorcore/zizmor-action@71321a20a9ded102f6e9ce5718a2fcec2c4f70d8  # v0.5.2
+        uses: zizmorcore/zizmor-action@3dc1ecc9bcb9e94e9b2c709687979e1298497054  # v0.6.2
         with:
           advanced-security: false
           persona: pedantic

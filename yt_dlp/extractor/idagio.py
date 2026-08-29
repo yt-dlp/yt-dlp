@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import int_or_none, unified_timestamp, url_or_none
+from ..utils import int_or_none, str_or_none, unified_timestamp, url_or_none
 from ..utils.traversal import traverse_obj
 
 
@@ -83,7 +83,7 @@ class IdagioPlaylistBaseIE(InfoExtractor):
             recording_id = track_data['recording']['id']
             yield self.url_result(
                 f'https://app.idagio.com/recordings/{recording_id}?trackId={track_id}',
-                ie=IdagioTrackIE, video_id=track_id)
+                ie=IdagioTrackIE, video_id=str_or_none(track_id))
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
