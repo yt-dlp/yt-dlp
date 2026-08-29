@@ -3,7 +3,6 @@ import hashlib
 import json
 import os.path
 import re
-import ssl
 import sys
 import types
 
@@ -176,7 +175,7 @@ def _iter_differences(got, expected, field):
             yield field, f'expected length of {len(expected)}, got {len(got)}'
             return
 
-        for index, (got_val, expected_val) in enumerate(zip(got, expected)):
+        for index, (got_val, expected_val) in enumerate(zip(got, expected, strict=True)):
             field_name = str(index) if field is None else f'{field}.{index}'
             yield from _iter_differences(got_val, expected_val, field_name)
         return
@@ -261,9 +260,9 @@ def sanitize_got_info_dict(got_dict):
 def expect_info_dict(self, got_dict, expected_dict):
     ALLOWED_KEYS_SORT_ORDER = (
         # NB: Keep in sync with the docstring of extractor/common.py
-        'id', 'ext', 'direct', 'display_id', 'title', 'alt_title', 'description', 'media_type',
+        'ie_key', 'url', 'id', 'ext', 'direct', 'display_id', 'title', 'alt_title', 'description', 'media_type',
         'uploader', 'uploader_id', 'uploader_url', 'channel', 'channel_id', 'channel_url', 'channel_is_verified',
-        'channel_follower_count', 'comment_count', 'view_count', 'concurrent_view_count',
+        'channel_follower_count', 'comment_count', 'view_count', 'concurrent_view_count', 'save_count',
         'like_count', 'dislike_count', 'repost_count', 'average_rating', 'age_limit', 'duration', 'thumbnail', 'heatmap',
         'chapters', 'chapter', 'chapter_number', 'chapter_id', 'start_time', 'end_time', 'section_start', 'section_end',
         'categories', 'tags', 'cast', 'composers', 'artists', 'album_artists', 'creators', 'genres',
@@ -294,7 +293,7 @@ def expect_info_dict(self, got_dict, expected_dict):
 
     missing_keys = sorted(
         test_info_dict.keys() - expected_dict.keys(),
-        key=lambda x: ALLOWED_KEYS_SORT_ORDER.index(x))
+        key=ALLOWED_KEYS_SORT_ORDER.index)
     if missing_keys:
         def _repr(v):
             if isinstance(v, str):
@@ -318,36 +317,6 @@ def expect_info_dict(self, got_dict, expected_dict):
             'Missing keys in test definition: {}'.format(', '.join(sorted(missing_keys))))
 
 
-def assertRegexpMatches(self, text, regexp, msg=None):
-    if hasattr(self, 'assertRegexp'):
-        return self.assertRegexp(text, regexp, msg)
-    else:
-        m = re.match(regexp, text)
-        if not m:
-            note = f'Regexp didn\'t match: {regexp!r} not found'
-            if len(text) < 1000:
-                note += f' in {text!r}'
-            if msg is None:
-                msg = note
-            else:
-                msg = note + ', ' + msg
-            self.assertTrue(m, msg)
-
-
-def assertGreaterEqual(self, got, expected, msg=None):
-    if not (got >= expected):
-        if msg is None:
-            msg = f'{got!r} not greater than or equal to {expected!r}'
-        self.assertTrue(got >= expected, msg)
-
-
-def assertLessEqual(self, got, expected, msg=None):
-    if not (got <= expected):
-        if msg is None:
-            msg = f'{got!r} not less than or equal to {expected!r}'
-        self.assertTrue(got <= expected, msg)
-
-
 def assertEqual(self, got, expected, msg=None):
     if got != expected:
         if msg is None:
@@ -366,12 +335,7 @@ def expect_warnings(ydl, warnings_re):
 
 
 def http_server_port(httpd):
-    if os.name == 'java' and isinstance(httpd.socket, ssl.SSLSocket):
-        # In Jython SSLSocket is not a subclass of socket.socket
-        sock = httpd.socket.sock
-    else:
-        sock = httpd.socket
-    return sock.getsockname()[1]
+    return httpd.server_address[1]
 
 
 def verify_address_availability(address):

@@ -45,3 +45,8 @@ class TestGetWebPoContentBinding:
     def test_invalid_base64(self, pot_request):
         pot_request.visitor_data = 'invalid-base64'
         assert get_webpo_content_binding(pot_request, bind_to_visitor_id=True) == (pot_request.visitor_data, ContentBindingType.VISITOR_DATA)
+
+    def test_gvs_video_id_binding_experiment(self, pot_request):
+        pot_request.context = PoTokenContext.GVS
+        pot_request._gvs_bind_to_video_id = True
+        assert get_webpo_content_binding(pot_request) == ('example-video-id', ContentBindingType.VIDEO_ID)

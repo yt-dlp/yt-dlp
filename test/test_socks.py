@@ -213,8 +213,13 @@ class SocksHTTPTestRequestHandler(http.server.BaseHTTPRequestHandler, SocksTestR
 class SocksWebSocketTestRequestHandler(SocksTestRequestHandler):
     def handle(self):
         import websockets.sync.server
+        import websockets.version
+
         protocol = websockets.ServerProtocol()
-        connection = websockets.sync.server.ServerConnection(socket=self.request, protocol=protocol, close_timeout=0)
+        connection_args = [self.request, protocol]
+        if int(websockets.version.version.partition('.')[0]) >= 17:
+            connection_args.append(self.server)
+        connection = websockets.sync.server.ServerConnection(*connection_args, close_timeout=0)
         connection.handshake()
         for message in connection:
             if message == 'socks_info':
@@ -230,6 +235,7 @@ def socks_server(socks_server_class, request_handler, bind_ip=None, **socks_serv
         server_type = ThreadingTCPServer if '.' in bind_address else IPv6ThreadingTCPServer
         server = server_type(
             (bind_address, 0), functools.partial(socks_server_class, request_handler, socks_server_kwargs))
+        server.socket_closed = threading.Event()
         server_port = http_server_port(server)
         server_thread = threading.Thread(target=server.serve_forever)
         server_thread.daemon = True
@@ -240,6 +246,7 @@ def socks_server(socks_server_class, request_handler, bind_ip=None, **socks_serv
             yield f'{bind_address}:{server_port}'
     finally:
         server.shutdown()
+        server.socket_closed.set()
         server.server_close()
         server_thread.join(2.0)
 
@@ -295,6 +302,7 @@ def ctx(request):
         ('Websockets', 'ws'),
         ('CurlCFFI', 'http'),
     ], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', reason='segfaults')
 class TestSocks4Proxy:
     def test_socks4_no_auth(self, handler, ctx):
         with handler() as rh:
@@ -370,6 +378,7 @@ class TestSocks4Proxy:
         ('Websockets', 'ws'),
         ('CurlCFFI', 'http'),
     ], indirect=True)
+@pytest.mark.handler_flaky('CurlCFFI', reason='segfaults')
 class TestSocks5Proxy:
 
     def test_socks5_no_auth(self, handler, ctx):
