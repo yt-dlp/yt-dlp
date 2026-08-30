@@ -49,11 +49,13 @@ SHAREDIR ?= $(PREFIX)/share
 PYTHON ?= /usr/bin/env python3
 GNUTAR ?= tar
 
-# set markdown input format to "markdown-smart" for pandoc version 2+ and to "markdown" for pandoc prior to version 2
+# set markdown input format to "markdown-smart-all_symbols_escapable" for pandoc version 2+ and to "markdown" for pandoc prior to version 2
+# The smart pandoc extension is is disabled to prevent -- in CLI options from being converted to dashes.
+# all_symbols_escapable is disabled to preserve raw backslashes in the --help output.
 PANDOC_VERSION_CMD = pandoc -v 2>/dev/null | head -n1 | cut -d' ' -f2 | head -c1
 PANDOC_VERSION != $(PANDOC_VERSION_CMD)
 PANDOC_VERSION ?= $(shell $(PANDOC_VERSION_CMD))
-MARKDOWN_CMD = if [ "$(PANDOC_VERSION)" = "1" -o "$(PANDOC_VERSION)" = "0" ]; then echo markdown; else echo markdown-smart; fi
+MARKDOWN_CMD = if [ "$(PANDOC_VERSION)" = "1" -o "$(PANDOC_VERSION)" = "0" ]; then echo markdown; else echo markdown-smart-all_symbols_escapable; fi
 MARKDOWN != $(MARKDOWN_CMD)
 MARKDOWN ?= $(shell $(MARKDOWN_CMD))
 
