@@ -73,10 +73,7 @@ class CanalAlphaIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-        data_json = self._parse_json(self._search_regex(
-            r'window\.__SERVER_STATE__\s?=\s?({(?:(?!};)[^"]|"([^"]|\\")*")+})\s?;',
-            webpage, 'data_json'), video_id)['1']['data']['data']
+        data_json = self._download_json(f'https://api.canalalpha.ch/v1/media/{video_id}', video_id)['data']
         manifests = try_get(data_json, lambda x: x['video']['manifests'], expected_type=dict) or {}
         subtitles = {}
         formats = [{
