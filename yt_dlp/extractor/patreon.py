@@ -25,6 +25,7 @@ from ..utils.traversal import (
     find_elements,
     require,
     traverse_obj,
+    trim_str,
     value,
 )
 
@@ -32,16 +33,15 @@ from ..utils.traversal import (
 class PatreonBaseIE(InfoExtractor):
     @functools.cached_property
     def patreon_user_agent(self):
-        # Patreon mobile UA is needed to avoid triggering Cloudflare anti-bot protection.
-        # Newer UA yields higher res m3u8 formats for locked posts, but gives 401 if not logged-in
+        # Patreon mobile UA yields higher res m3u8 for locked posts, but gives 401 if not logged-in
         if self._get_cookies('https://www.patreon.com/').get('session_id'):
-            return 'Patreon/72.2.28 (Android; Android 14; Scale/2.10)'
-        return 'Patreon/7.6.28 (Android; Android 11; Scale/2.10)'
+            return 'Patreon/126.9.0.15 (Android; Android 14; Scale/2.10)'
+        return None
 
     def _call_api(self, ep, item_id, query=None, headers=None, fatal=True, note=None):
         if headers is None:
             headers = {}
-        if 'User-Agent' not in headers:
+        if 'User-Agent' not in headers and self.patreon_user_agent:
             headers['User-Agent'] = self.patreon_user_agent
         if query:
             query.update({'json-api-version': 1.0})
@@ -50,7 +50,9 @@ class PatreonBaseIE(InfoExtractor):
             return self._download_json(
                 f'https://www.patreon.com/api/{ep}',
                 item_id, note=note if note else 'Downloading API JSON',
-                query=query, fatal=fatal, headers=headers)
+                query=query, fatal=fatal, headers=headers,
+                # If not using Patreon mobile UA, we need impersonation due to Cloudflare
+                impersonate=not self.patreon_user_agent)
         except ExtractorError as e:
             if not isinstance(e.cause, HTTPError) or mimetype2ext(e.cause.response.headers.get('Content-Type')) != 'json':
                 raise
@@ -63,8 +65,9 @@ class PatreonBaseIE(InfoExtractor):
 
 class PatreonIE(PatreonBaseIE):
     IE_NAME = 'patreon'
-    _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?:creation\?hid=|posts/(?:[\w-]+-)?)(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?:creation\?hid=|(?:[^/?#]+/)?posts/(?:[\w-]+-)?)(?P<id>\d+)'
     _TESTS = [{
+        # FIXME: Fails due to no description extracted
         'url': 'http://www.patreon.com/creation?hid=743933',
         'md5': 'e25505eec1053a6e6813b8ed369875cc',
         'info_dict': {
@@ -105,17 +108,17 @@ class PatreonIE(PatreonBaseIE):
             'id': 'SU4fj_aEMVw',
             'ext': 'mp4',
             'title': 'I\'m on Patreon!',
-            'uploader': 'TraciJHines',
+            'uploader': 'Traci Oden',
             'thumbnail': 're:^https?://.*$',
             'upload_date': '20150211',
             'description': 'md5:8af6425f50bd46fbf29f3db0fc3a8364',
-            'uploader_id': '@TraciHinesMusic',
+            'uploader_id': '@TraciOden',
             'categories': ['Entertainment'],
             'duration': 282,
             'view_count': int,
             'tags': 'count:39',
             'age_limit': 0,
-            'channel': 'TraciJHines',
+            'channel': 'Traci Oden',
             'channel_url': 'https://www.youtube.com/channel/UCGLim4T2loE5rwCMdpCIPVg',
             'live_status': 'not_live',
             'like_count': int,
@@ -123,7 +126,7 @@ class PatreonIE(PatreonBaseIE):
             'availability': 'public',
             'channel_follower_count': int,
             'playable_in_embed': True,
-            'uploader_url': 'https://www.youtube.com/@TraciHinesMusic',
+            'uploader_url': 'https://www.youtube.com/@TraciOden',
             'comment_count': int,
             'channel_is_verified': True,
             'chapters': 'count:4',
@@ -155,6 +158,7 @@ class PatreonIE(PatreonBaseIE):
         },
         'skip': 'Patron-only content',
     }, {
+        # FIXME: Fails due to no description extracted
         # m3u8 video (https://github.com/yt-dlp/yt-dlp/issues/2277)
         'url': 'https://www.patreon.com/posts/video-sketchbook-32452882',
         'info_dict': {
@@ -218,6 +222,7 @@ class PatreonIE(PatreonBaseIE):
             'channel_id': '2147162',
             'uploader_url': 'https://www.patreon.com/yaboyroshi',
         },
+        'skip': 'HTTP Error 401 for m3u8 request; site now requires login to play the video',
     }, {
         # NSFW vimeo embed URL
         'url': 'https://www.patreon.com/posts/4k-spiderman-4k-96414599',
@@ -240,6 +245,7 @@ class PatreonIE(PatreonBaseIE):
         },
         'params': {'skip_download': 'm3u8'},
         'expected_warnings': ['Failed to parse XML: not well-formed'],
+        'skip': 'Video removed',
     }, {
         # multiple attachments/embeds
         'url': 'https://www.patreon.com/posts/holy-wars-solos-100601977',
@@ -283,6 +289,7 @@ class PatreonIE(PatreonBaseIE):
         },
         'params': {'getcomments': True},
     }, {
+        # FIXME: Error: No supported media found in this post
         # Inlined media in post; uses _extract_from_media_api
         'url': 'https://www.patreon.com/posts/scottfalco-146966245',
         'info_dict': {
@@ -301,6 +308,26 @@ class PatreonIE(PatreonBaseIE):
             'duration': 7.833333,
             'timestamp': 1767061800,
             'upload_date': '20251230',
+        },
+    }, {
+        # FIXME: need to extract description
+        'url': 'https://www.patreon.com/Insanimate/posts/meatcanyon-in-142663524',
+        'md5': '132332e3bb345f75d8b471242346dee6',
+        'info_dict': {
+            'id': '142663524',
+            'ext': 'mp4',
+            'title': 'Meatcanyon in Playground',
+            'uploader': 'Insanimate',
+            'uploader_id': '2828146',
+            'uploader_url': 'https://www.patreon.com/Insanimate',
+            'channel_id': '6260877',
+            'channel_url': 'https://www.patreon.com/Insanimate',
+            'channel_follower_count': int,
+            'comment_count': int,
+            'like_count': int,
+            'thumbnail': 're:^https?://.*$',
+            'timestamp': 1762101034,
+            'upload_date': '20251102',
         },
     }]
     _RETURN_TYPE = 'video'
@@ -355,7 +382,7 @@ class PatreonIE(PatreonBaseIE):
         post = self._call_api(
             f'posts/{video_id}', video_id, query={
                 'fields[media]': 'download_url,mimetype,size_bytes,file_name',
-                'fields[post]': 'comment_count,content,embed,image,like_count,post_file,published_at,title,current_user_can_view',
+                'fields[post]': 'comment_count,content,content_teaser_text,cleaned_teaser_text,embed,image,like_count,post_file,published_at,title,current_user_can_view',
                 'fields[user]': 'full_name,url',
                 'fields[post_tag]': 'value',
                 'fields[campaign]': 'url,name,patron_count',
@@ -365,7 +392,7 @@ class PatreonIE(PatreonBaseIE):
         attributes = post['data']['attributes']
         info = traverse_obj(attributes, {
             'title': ('title', {str.strip}),
-            'description': ('content', {clean_html}),
+            'description': (('content', 'content_teaser_text', 'cleaned_teaser_text'), {clean_html}, any),
             'thumbnail': ('image', ('large_url', 'url'), {url_or_none}, any),
             'timestamp': ('published_at', {parse_iso8601}),
             'like_count': ('like_count', {int_or_none}),
@@ -623,14 +650,13 @@ class PatreonCampaignIE(PatreonBaseIE):
         'info_dict': {
             'id': '9631148',
             'title': 'Anything Else?',
-            'description': 'md5:2ee1db4aed2f9460c2b295825a24aa08',
+            'description': 'md5:b2f20eec4cb5520d9a4be4971f28add5',
             'uploader': 'dan ',
             'uploader_id': '13852412',
             'uploader_url': 'https://www.patreon.com/anythingelse',
             'channel': 'Anything Else?',
             'channel_id': '9631148',
             'channel_url': 'https://www.patreon.com/anythingelse',
-            'channel_follower_count': int,
             'age_limit': 0,
             'thumbnail': r're:https?://.+/.+',
         },
@@ -675,16 +701,15 @@ class PatreonCampaignIE(PatreonBaseIE):
                 break
 
     def _real_extract(self, url):
-
         campaign_id, vanity = self._match_valid_url(url).group('campaign_id', 'vanity')
         if campaign_id is None:
-            webpage = self._download_webpage(url, vanity, headers={'User-Agent': self.patreon_user_agent})
-            campaign_id = traverse_obj(self._search_nextjs_data(webpage, vanity, default=None), (
-                'props', 'pageProps', 'bootstrapEnvelope', 'pageBootstrap', 'campaign', 'data', 'id', {str}))
-            if not campaign_id:
-                campaign_id = traverse_obj(self._search_nextjs_v13_data(webpage, vanity), (
-                    ((..., 'value', 'campaign', 'data'), lambda _, v: v['type'] == 'campaign'),
-                    'id', {str}, any, {require('campaign ID')}))
+            results = self._call_api('search', vanity, query={
+                'q': vanity,
+                'page[size]': '5',
+            })['data']
+            campaign_id = traverse_obj(results, (
+                lambda _, v: v['type'] == 'campaign-document' and v['attributes']['url'].lower().endswith(f'/{vanity.lower()}'),
+                'id', {trim_str(start='campaign_')}, filter, any, {require('campaign ID')}))
 
         params = {
             'json-api-use-default-includes': 'false',

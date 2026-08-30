@@ -1,29 +1,55 @@
 from .common import InfoExtractor
-from ..utils import traverse_obj, url_or_none
+from ..utils import (
+    str_or_none,
+    unified_strdate,
+    url_or_none,
+)
+from ..utils.traversal import traverse_obj
 
 
 class S4CIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?s4c\.cymru/clic/programme/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://www.s4c.cymru/clic/programme/861362209',
+        'url': 'https://www.s4c.cymru/clic/programme/893068169',
         'info_dict': {
-            'id': '861362209',
+            'id': '893068169',
             'ext': 'mp4',
-            'title': 'Y Swn',
-            'description': 'md5:f7681a30e4955b250b3224aa9fe70cf0',
-            'duration': 5340,
-            'thumbnail': 'https://www.s4c.cymru/amg/1920x1080/Y_Swn_2023S4C_099_ii.jpg',
+            'title': 'Uchafbwyntiau',
+            'description': 'md5:5d7c0e28213d7e0871b8e9ef8a67a5fe',
+            'duration': 900,
+            'thumbnail': 'https://www.s4c.cymru/amg/1920x1080/Pride_2024S4C-P11_Uchafbwyntiau-0608.jpg',
+            'upload_date': '20240701',
+            'release_date': '20240717',
+            'series': 'Pride Cymru 2024',
+            'series_id': '893067960',
         },
     }, {
         # Geo restricted to the UK
-        'url': 'https://www.s4c.cymru/clic/programme/886303048',
+        'url': 'https://www.s4c.cymru/clic/programme/947426692',
         'info_dict': {
-            'id': '886303048',
+            'id': '947426692',
             'ext': 'mp4',
-            'title': 'Pennod 1',
-            'description': 'md5:7e3f364b70f61fcdaa8b4cb4a3eb3e7a',
-            'duration': 2880,
-            'thumbnail': 'https://www.s4c.cymru/amg/1920x1080/Stad_2025S4C_P1_210053.jpg',
+            'title': 'Bwyd a Diod',
+            'description': 'md5:9d33c3099b93884d946575f4b77fce27',
+            'duration': 1380,
+            'thumbnail': 'https://www.s4c.cymru/amg/1920x1080/3can_2026S4C_Brand_001.jpg',
+            'upload_date': '20260513',
+            'release_date': '20260521',
+            'series': '3 Can',
+            'series_id': '947426687',
+        },
+    }, {
+        # No series
+        'url': 'https://www.s4c.cymru/clic/programme/876045439',
+        'info_dict': {
+            'id': '876045439',
+            'ext': 'mp4',
+            'title': 'Ffa Coffi Pawb!',
+            'description': 'md5:d1ccbb61c4233b3a443cc092f45bc193',
+            'duration': 3240,
+            'thumbnail': 'https://www.s4c.cymru/amg/1920x1080/Ffa_Coffi_Pawb_2024S4C_001.jpg',
+            'upload_date': '20260131',
+            'release_date': '20260131',
         },
     }]
 
@@ -67,6 +93,10 @@ class S4CIE(InfoExtractor):
                 'title': (('programme_title', 'series_title'), {str}),
                 'description': ('full_billing', {str.strip}),
                 'duration': ('duration', {lambda x: int(x) * 60}),
+                'upload_date': ('clic_aired', {unified_strdate}),
+                'release_date': ('last_tx', {unified_strdate}),
+                'series': ('series_title', {str}, filter),
+                'series_id': ('series_id', {str_or_none}, filter),
             }), get_all=False),
         }
 
