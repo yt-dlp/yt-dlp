@@ -2337,44 +2337,34 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 murl = traverse_obj(mdata, ('microformat', 'microformatDataRenderer', 'urlCanonical'),
                                     get_all=False, expected_type=str)
                 if not murl:
-                    try:
-                        data = traverse_obj(mdata, (
-                            'contents',
-                            'singleColumnBrowseResultsRenderer',
-                            'tabs',
-                            0,
-                            'tabRenderer',
-                            'content',
-                            'sectionListRenderer',
-                            'contents',
-                            0,
-                            'gridRenderer',
-                            'items',
-                            ...,
-                            'musicTwoRowItemRenderer',
-                            'title',
-                            'runs',
-                            0,
-                            'navigationEndpoint',
-                            'browseEndpoint',
-                            'browseId',
-                        ))
-                        title = traverse_obj(mdata, (
-                            'header',
-                            'musicHeaderRenderer',
-                            'title',
-                            'runs',
-                            ...,
-                            'text',
-                        ))
-                        return self.playlist_result([
-                            self.url_result(f'https://music.youtube.com/browse/{i}', YoutubeTabIE, i) for i in
-                            data
-                        ],
-                            playlist_id=item_id,
-                            playlist_title=''.join(title))
-                    except Exception:
+                    data = traverse_obj(mdata, (
+                        'contents',
+                        'singleColumnBrowseResultsRenderer',
+                        'tabs',
+                        0,
+                        'tabRenderer',
+                        'content',
+                        'sectionListRenderer',
+                        'contents',
+                        0,
+                        'gridRenderer',
+                        'items',
+                        ...,
+                        'musicTwoRowItemRenderer',
+                        'title',
+                        'runs',
+                        0,
+                        'navigationEndpoint',
+                        'browseEndpoint',
+                        'browseId'))
+                    title = traverse_obj(mdata, ('header', 'musicHeaderRenderer', 'title', 'runs', ..., 'text'))
+                    if not isinstance(data, list):
                         raise ExtractorError('Failed to resolve album to playlist')
+                    return self.playlist_result(
+                        [self.url_result(f'https://music.youtube.com/browse/{i}', YoutubeTabIE, i) for i in data],
+                        playlist_id=item_id,
+                        playlist_title=''.join(title) if title else None)
+
                 return self.url_result(murl, YoutubeTabIE)
             elif mobj['channel_type'] == 'browse':  # Youtube music /browse/ should be changed to /channel/
                 return self.url_result(
