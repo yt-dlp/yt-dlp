@@ -20,6 +20,8 @@ body:
       description: |
         Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
       options:
+        - label: I've read the [**NO AI / NO LLM POLICY**](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#no-ai--no-llm-policy) and understand I may be blocked from the repository if it is violated
+          required: true
         - label: I'm asking a question and **not** reporting a bug or requesting a feature
           required: true
         - label: I've looked through the [README](https://github.com/yt-dlp/yt-dlp#readme)
@@ -27,8 +29,6 @@ body:
         - label: I've verified that I have **updated yt-dlp to nightly or master** ([update instructions](https://github.com/yt-dlp/yt-dlp#update-channels))
           required: true
         - label: I've searched [known issues](https://github.com/yt-dlp/yt-dlp/issues/3766), [the FAQ](https://github.com/yt-dlp/yt-dlp/wiki/FAQ), and the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=is%3Aissue%20-label%3Aspam%20%20) for similar questions **including closed ones**. DO NOT post duplicates
-          required: true
-        - label: I've read the [policy against AI/LLM contributions](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#automated-contributions-ai--llm-policy) and understand I may be blocked from the repository if it is violated
           required: true
   - type: textarea
     id: question
@@ -56,7 +56,7 @@ body:
       description: |
         It should start like this:
       placeholder: |
-        [debug] Command-line config: ['-vU', 'https://www.youtube.com/watch?v=BaW_jenozKc']
+        [debug] Command-line config: ['-vU', 'https://www.youtube.com/watch?v=YE7VzlLtp-4']
         [debug] Encodings: locale cp65001, fs utf-8, pref cp65001, out utf-8, error utf-8, screen utf-8
         [debug] yt-dlp version nightly@... from yt-dlp/yt-dlp-nightly-builds [1a176d874] (win_exe)
         [debug] Python 3.10.11 (CPython AMD64 64bit) - Windows-10-10.0.20348-SP0 (OpenSSL 1.1.1t  7 Feb 2023)
@@ -68,6 +68,6 @@ body:
         [debug] Fetching release info: https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest
         Latest version: nightly@... from yt-dlp/yt-dlp-nightly-builds
         yt-dlp is up to date (nightly@... from yt-dlp/yt-dlp-nightly-builds)
-        [youtube] Extracting URL: https://www.youtube.com/watch?v=BaW_jenozKc
+        [youtube] Extracting URL: https://www.youtube.com/watch?v=YE7VzlLtp-4
         <more lines>
       render: shell
