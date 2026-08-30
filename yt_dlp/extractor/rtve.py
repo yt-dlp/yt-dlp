@@ -124,7 +124,7 @@ class RTVEALaCartaIE(RTVEBaseIE):
     IE_NAME = 'rtve.es:alacarta'
     IE_DESC = 'RTVE a la carta and Play'
     _VALID_URL = [
-        r'https?://(?:www\.)?rtve\.es/(?:m/)?(?:(?:alacarta|play)/videos|filmoteca)/(?!directo)(?:[^/?#]+/){2}(?P<id>\d+)',
+        r'https?://(?:www\.)?rtve\.es/(?:m/)?(?:(?:alacarta|play)/(?:videos|clan)|filmoteca)/(?!directo)(?:[^/?#]+/){2}(?P<id>\d+)',
         r'https?://(?:www\.)?rtve\.es/infantil/serie/[^/?#]+/video/[^/?#]+/(?P<id>\d+)',
     ]
 
@@ -137,7 +137,7 @@ class RTVEALaCartaIE(RTVEBaseIE):
             'title': 'En torno a la silla',
             'duration': 1216.981,
             'series': 'La aventura del Saber',
-            'thumbnail': 'https://img2.rtve.es/v/aventuraentornosilla_3088905.png',
+            'thumbnail': r're:https://img\d*\.rtve\.es/v/aventuraentornosilla_3088905\.png',
         },
     }, {
         'note': 'Live stream',
@@ -169,6 +169,9 @@ class RTVEALaCartaIE(RTVEBaseIE):
         'only_matching': True,
     }, {
         'url': 'http://www.rtve.es/filmoteca/no-do/not-1-introduccion-primer-noticiario-espanol/1465256/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.rtve.es/play/clan/casa-locos/casa-locos-carretera-manta/5664390/',
         'only_matching': True,
     }, {
         'url': 'https://www.rtve.es/play/videos/saber-vivir/07-07-24/16177116/',
