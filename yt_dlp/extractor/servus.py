@@ -17,7 +17,7 @@ class ServusIE(InfoExtractor):
                         (?:www\.)?
                         (?:
                             servus\.com/(?:(?:at|de)/p/[^/]+|tv/videos)|
-                            (?:servustv|pm-wissen)\.com/(?:[^/]+/)?v(?:ideos)?
+                            (?:servustv|pm-wissen)\.com/(?:[^/]+/)?(?:v(?:ideos)?|(?:at|de)/page)
                         )
                         /(?P<id>[aA]{2}-?\w+|\d+-\d+)
                     '''
@@ -66,6 +66,10 @@ class ServusIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.pm-wissen.com/videos/aa-24mus4g2w2112/',
+        'only_matching': True,
+    }, {
+        # URL schema v4
+        'url': 'https://www.servustv.com/de/page/AAZLL2PEW7Z73ZC6W5W8',
         'only_matching': True,
     }]
 
