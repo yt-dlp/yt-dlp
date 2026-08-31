@@ -436,9 +436,12 @@ class VrtNUIE(VRTBaseIE):
                 'x-vrt-client-name': 'WEB',
                 'x-vrt-client-version': '1.5.15',
                 'x-vrt-zone': 'default',
-            }))['data']['page']
+            }))
+        if not metadata or not metadata.get('data') or not metadata['data'].get('page'):
+            self.raise_no_formats('Unable to download asset JSON: no page data', expected=True)
+        page = metadata['data']['page']
 
-        video_id = metadata['player']['modes'][0]['streamId']
+        video_id = page['player']['modes'][0]['streamId']
 
         try:
             streaming_info = self._call_api(video_id, 'vrtnu-web@PROD', id_token=video_token)
