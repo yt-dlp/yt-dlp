@@ -42,7 +42,7 @@ class ShowRoomLiveIE(ShowRoomBaseIE):
         if not is_live:
             if start_timestamp:
                 start_time = dt.datetime.fromtimestamp(
-                    start_timestamp, dt.timezone.utc,
+                    start_timestamp, dt.UTC,
                 ).astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
 
                 self.raise_no_formats(

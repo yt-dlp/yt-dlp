@@ -60,7 +60,7 @@ def _test(github_repository, note, repo_vars, repo_secrets, inputs, expected, ig
 
 
 def test_setup_variables():
-    DEFAULT_VERSION_WITH_REVISION = dt.datetime.now(tz=dt.timezone.utc).strftime('%Y.%m.%d.%H%M%S')
+    DEFAULT_VERSION_WITH_REVISION = dt.datetime.now(tz=dt.UTC).strftime('%Y.%m.%d.%H%M%S')
     DEFAULT_VERSION = calculate_version()
     BASE_REPO_VARS = {
         'MASTER_ARCHIVE_REPO': 'yt-dlp/yt-dlp-master-builds',
