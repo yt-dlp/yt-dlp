@@ -60,7 +60,7 @@ class YoutubeLiveChatFD(FragmentFD):
             self._append_fragment(ctx, processed_fragment)
             return continuation_id, offset, click_tracking_params
 
-        def try_refresh_replay_beginning(live_chat_continuation):
+        def try_refresh_beginning(live_chat_continuation):
             # choose the second option that contains the unfiltered live chat replay
             refresh_continuation = try_get(
                 live_chat_continuation,
@@ -72,7 +72,10 @@ class YoutubeLiveChatFD(FragmentFD):
                 offset = 0
                 click_tracking_params = refresh_continuation.get('trackingParams')
                 return refresh_continuation_id, offset, click_tracking_params
-            return parse_actions_replay(live_chat_continuation)
+            if info_dict['protocol'] == 'youtube_live_chat':
+                return parse_actions_live(live_chat_continuation)
+            else:
+                return parse_actions_replay(live_chat_continuation)
 
         live_offset = 0
 
@@ -123,8 +126,8 @@ class YoutubeLiveChatFD(FragmentFD):
                         data,
                         lambda x: x['continuationContents']['liveChatContinuation'], dict) or {}
 
-                    func = ((info_dict['protocol'] == 'youtube_live_chat' and parse_actions_live)
-                            or (frag_index == 1 and try_refresh_replay_beginning)
+                    func = ((frag_index == 1 and try_refresh_beginning)
+                            or (info_dict['protocol'] == 'youtube_live_chat' and parse_actions_live)
                             or parse_actions_replay)
                     return (True, *func(live_chat_continuation))
                 except HTTPError as err:
