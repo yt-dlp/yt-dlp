@@ -196,6 +196,37 @@ class ORFPodcastIE(InfoExtractor):
             })),
         }
 
+class ORFSendungIE(InfoExtractor):
+    IE_NAME = 'orf:sendung'
+    _STATION_RE = '|'.join(map(re.escape, (
+        'bgl', 'fm4', 'ktn', 'noe', 'oe1', 'oe3',
+        'ooe', 'sbg', 'stm', 'tir', 'tv', 'vbg', 'wie')))
+    _VALID_URL = rf'https?://sound\.orf\.at/radio/(?P<station>{_STATION_RE})/sendung/(?P<id>[\w-]+)/(?P<show>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://sound.orf.at/radio/oe1/sendung/234535/lebenskunst-begegnungen-am-sonntagmorgen',
+        'md5': 'd9a7911be6fa73dec68bf4beb2dc39b4',
+        'info_dict': {
+            'id': '234535',
+            'ext': 'mp3',
+            'title': 'Wärme und Licht',
+            'series': 'Lebenskunst - Begegnungen am Sonntagmorgen',
+        },
+        'skip': 'ORF podcasts are only available for a limited time',
+    }]
+
+    def _real_extract(self, url):
+        station, show, show_id = self._match_valid_url(url).group('station', 'show', 'id')
+        data = self._download_json(
+            f'https://audioapi.orf.at/{station}/api/json/5.0/broadcast/{show_id}', show_id)
+
+        return {
+            'id': show_id,
+            'ext': 'mp3',
+            'vcodec': 'none',
+            'url': traverse_obj(data, ('payload', 'streams', 0, 'urls', 'progressive')),
+            'title': traverse_obj(data, ('payload', 'title', {clean_html})),
+            'series': traverse_obj(data, ('payload', 'programTitle', {clean_html})),
+        }
 
 class ORFIPTVIE(InfoExtractor):
     IE_NAME = 'orf:iptv'
