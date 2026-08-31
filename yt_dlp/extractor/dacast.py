@@ -1,5 +1,6 @@
 import functools
 import hashlib
+import json
 import re
 import time
 
@@ -9,14 +10,21 @@ from ..utils import (
     ExtractorError,
     classproperty,
     float_or_none,
+    jwt_decode_hs256,
     parse_qs,
     traverse_obj,
     url_or_none,
+    urlencode_postdata,
 )
 
 
 class DacastBaseIE(InfoExtractor):
     _URL_TYPE = None
+    _NETRC_MACHINE = 'dacast'
+    _CLIENT_ID = '9d8c2e6e-9503-408e-8a09-bb12093e232a'
+
+    _access_token = None
+    _paywall_token = None
 
     @classproperty
     def _VALID_URL(cls):
@@ -27,6 +35,8 @@ class DacastBaseIE(InfoExtractor):
         return [rf'<iframe[^>]+\bsrc=["\'](?P<url>{cls._VALID_URL})']
 
     _API_INFO_URL = 'https://playback.dacast.com/content/info'
+    _AUTHENTICATE_URL = 'https://services.inplayer.com/v2/accounts/authenticate'
+    _ITEM_ACCESS_URL = 'https://services.inplayer.com/items/{asset_id}/access'
 
     @classmethod
     def _get_url_from_id(cls, content_id):
@@ -39,6 +49,50 @@ class DacastBaseIE(InfoExtractor):
         for content_id in re.findall(
                 rf'<script[^>]+\bsrc=["\']https://player\.dacast\.com/js/player\.js\?contentId=([\w-]+-{cls._URL_TYPE}-[\w-]+)["\']', webpage):
             yield cls._get_url_from_id(content_id)
+
+    def _is_jwt_expired(self, token):
+        return jwt_decode_hs256(token)['exp'] - time.time() < 300
+
+    def _perform_login(self, username, password):
+        try:
+            response = self._download_json(
+                self._AUTHENTICATE_URL, None, 'Logging in', data=urlencode_postdata({
+                    'client_id': self._CLIENT_ID,
+                    'grant_type': 'password',
+                    'username': username,
+                    'password': password,
+                }))
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 400:
+                raise ExtractorError('Invalid username and/or password', expected=True)
+            raise
+        else:
+            self._access_token = response['access_token']
+            self.cache.store(self._NETRC_MACHINE, 'token_data', self._access_token)
+
+    def _get_access_token(self):
+        if not self._access_token:
+            self._access_token = self.cache.load(
+                self._NETRC_MACHINE, 'token_data', default=None)
+
+        if not self._access_token or self._is_jwt_expired(self._access_token):
+            self._access_token = None
+            self.cache.store(self._NETRC_MACHINE, 'token_data', None)
+            self.report_warning('Refresh token has been invalidated; retrying with credentials')
+            self._perform_login(*self._get_login_info())
+
+        return self._access_token
+
+    def _get_paywall_token(self, asset_id):
+        if not self._get_login_info()[0]:
+            return None
+
+        self._get_access_token()
+        item_access = self._download_json(self._ITEM_ACCESS_URL.format(asset_id=asset_id),
+                                          None, 'Downloading claims token',
+                                          headers={'Authorization': f'Bearer {self._access_token}'})
+
+        return json.loads(item_access.get('item', {}).get('content', '{}')).get('token', None)
 
 
 class DacastVODIE(DacastBaseIE):
@@ -102,6 +156,11 @@ class DacastVODIE(DacastBaseIE):
             **traverse_obj(url, ({parse_qs}, 'uss_token', {'signedKey': -1})),
         }
         info = self._download_json(self._API_INFO_URL, video_id, query=query, fatal=False)
+
+        paywall_info = info.get('contentInfo', {}).get('features', {}).get('paywall', {})
+        if paywall_info.get('enabled', False):
+            query['paywallToken'] = self._get_paywall_token(paywall_info['assetId'])
+
         access = self._download_json(
             'https://playback.dacast.com/content/access', video_id,
             note='Downloading access JSON', query=query, expected_status=403)
