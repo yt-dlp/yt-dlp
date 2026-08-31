@@ -2225,20 +2225,37 @@ class LazyList(collections.abc.Sequence):
     class IndexError(IndexError):  # noqa: A001
         pass
 
-    def __init__(self, iterable, *, reverse=False, _cache=None):
-        self._iterable = iter(iterable)
-        self._cache = [] if _cache is None else _cache
+    def __init__(self, iterable, *, reverse=False):
         self._reversed = reverse
+        self._is_self = isinstance(iterable, type(self))
+        if self._is_self:
+            self._iterable = iterable._iterable
+            self._cache = iterable._cache
+        else:
+            self._iterable = iter(iterable)
+            self._cache = []
 
     def __iter__(self):
         if self._reversed:
             # We need to consume the entire iterable to iterate in reverse
-            yield from self.exhaust()
+            yield from reversed(self._exhaust())
             return
-        yield from self._cache
-        for item in self._iterable:
-            self._cache.append(item)
-            yield item
+
+        def populate_cache():
+            cache_position = len(self._cache)
+            for item in self._iterable:
+                self._cache.append(item)
+                # catch-up to additional items from the cache
+                for i in range(cache_position, len(self._cache) - 1):
+                    cache_position = 1 + i
+                    yield self._cache[i]
+                cache_position += 1
+                yield item
+            for i in range(cache_position, len(self._cache)):
+                cache_position = 1 + i
+                yield self._cache[i]
+
+        yield from itertools.chain(self._cache, populate_cache())
 
     def _exhaust(self):
         self._cache.extend(self._iterable)
@@ -2247,7 +2264,11 @@ class LazyList(collections.abc.Sequence):
 
     def exhaust(self):
         """Evaluate the entire iterable"""
-        return self._exhaust()[::-1 if self._reversed else 1]
+        # guarantee a list is returned
+        l = list(self._exhaust())
+        if self._reversed:
+            l.reverse()
+        return l
 
     @staticmethod
     def _reverse_index(x):
@@ -2270,13 +2291,10 @@ class LazyList(collections.abc.Sequence):
             # We need to consume the entire iterable to be able to slice from the end
             # Obviously, never use this with infinite iterables
             self._exhaust()
-            try:
-                return self._cache[idx]
-            except IndexError as e:
-                raise self.IndexError(e) from e
-        n = max(start or 0, stop or 0) - len(self._cache) + 1
-        if n > 0:
-            self._cache.extend(itertools.islice(self._iterable, n))
+        else:
+            n = 1 + max(start or 0, stop or 0) - len(self._cache)
+            if n > 0:
+                self._cache.extend(itertools.islice(self._iterable, n))
         try:
             return self._cache[idx]
         except IndexError as e:
@@ -2284,20 +2302,19 @@ class LazyList(collections.abc.Sequence):
 
     def __bool__(self):
         try:
-            self[-1] if self._reversed else self[0]
+            self[-1 if self._reversed else 0]
         except self.IndexError:
             return False
         return True
 
     def __len__(self):
-        self._exhaust()
-        return len(self._cache)
+        return len(self._exhaust())
 
     def __reversed__(self):
-        return type(self)(self._iterable, reverse=not self._reversed, _cache=self._cache)
+        return type(self)(self, reverse=not self._reversed)
 
     def __copy__(self):
-        return type(self)(self._iterable, reverse=self._reversed, _cache=self._cache)
+        return type(self)(self, reverse=self._reversed)
 
     def __repr__(self):
         # repr and str should mimic a list. So we exhaust the iterable
