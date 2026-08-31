@@ -5,6 +5,7 @@ from ..utils import (
     determine_ext,
     int_or_none,
     join_nonempty,
+    traverse_obj,
     unified_strdate,
     update_url_query,
 )
@@ -22,6 +23,8 @@ class DisneyIE(InfoExtractor):
             'title': 'Moana - Trailer',
             'description': 'A fun adventure for the entire Family!  Bring home Moana on Digital HD Feb 21 & Blu-ray March 7',
             'upload_date': '20170112',
+            'duration': 95,
+            'thumbnail': 'https://lumiere-a.akamaihd.net/v1/images/545ed1857afee5a0ec239977_84a55142.jpeg?height=354&region=0%2C144%2C1920%2C792&width=630',
         },
         'params': {
             # m3u8 download
@@ -36,6 +39,8 @@ class DisneyIE(InfoExtractor):
             'title': '"Intro" Featurette: Rogue One: A Star Wars Story',
             'upload_date': '20170104',
             'description': 'Go behind-the-scenes of Rogue One: A Star Wars Story in this featurette with Director Gareth Edwards and the cast of the film.',
+            'duration': 122,
+            'thumbnail': 'https://lumiere-a.akamaihd.net/v1/images/r1-featurette-11-17-yt_9b401d61.jpeg?height=354&region=0%2C0%2C1920%2C1080&width=630',
         },
         'params': {
             # m3u8 download
@@ -71,20 +76,38 @@ class DisneyIE(InfoExtractor):
     }, {
         'url': 'http://disneyjunior.disney.com/galactech-the-galactech-grab-galactech-an-admiral-rescue',
         'only_matching': True,
+    }, {
+        # Grill.burger
+        'url': 'http://kids.disney.co.jp/video/3178',
+        'info_dict': {
+            'id': '5e926e4097ecfebd6b4f2a72',
+            'ext': 'mp4',
+            'title': '本編第1話（ほんぺんだい1わ） マーベル アルティメット・スパイダーマン\u3000ウェブ・ウォーリアーズ',
+            'upload_date': '20221018',
+            'description': 'md5:7978279f5a9b79e350613b8e0a507c24',
+            'duration': 1320,
+            'thumbnail': 'https://lumiere-a.akamaihd.net/v1/images/26412_32232_31532_1_35441_12510_12540_12505_12523_12450_1e89505b.jpeg?region=0%2C0%2C1280%2C720',
+        },
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        },
     }]
+
+    # https://www.starwars.com times out with the default user-agent
+    _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0'
 
     def _real_extract(self, url):
         domain, video_id, display_id = self._match_valid_url(url).groups()
         if not video_id:
-            webpage = self._download_webpage(url, display_id)
+            webpage = self._download_webpage(url, display_id, headers={'user-agent': self._USER_AGENT})
             grill = re.sub(r'"\s*\+\s*"', '', self._search_regex(
                 r'Grill\.burger\s*=\s*({.+})\s*:',
                 webpage, 'grill data'))
-            page_data = next(s for s in self._parse_json(grill, display_id)['stack'] if s.get('type') == 'video')
-            video_data = page_data['data'][0]
+            video_data = next(traverse_obj(s, ('data', 0, 'video'), ('data', 0)) for s in self._parse_json(grill, display_id)['stack'] if s.get('type') in ('video', 'flexcontenthero'))
         else:
             webpage = self._download_webpage(
-                f'http://{domain}/embed/{video_id}', video_id)
+                f'http://{domain}/embed/{video_id}', video_id, headers={'user-agent': self._USER_AGENT})
             page_data = self._parse_json(self._search_regex(
                 r'Disney\.EmbedVideo\s*=\s*({.+});',
                 webpage, 'embed data'), video_id)
@@ -101,6 +124,9 @@ class DisneyIE(InfoExtractor):
         for flavor in video_data.get('flavors', []):
             flavor_format = flavor.get('format')
             flavor_url = flavor.get('url')
+            if '/emea-exit/' in flavor_url:
+                webpage = self._download_webpage(flavor_url, display_id, headers={'user-agent': self._USER_AGENT}, note=f"Resolving format URL redirect: {flavor_format} {flavor.get('height')}p")
+                flavor_url = self._search_regex(r'rel="canonical" href="([^"]+)', webpage, 'redirect url')
             if not flavor_url or not re.match(r'https?://', flavor_url) or flavor_format == 'mp4_access':
                 continue
             tbr = int_or_none(flavor.get('bitrate'))
@@ -154,7 +180,7 @@ class DisneyIE(InfoExtractor):
             'description': video_data.get('description') or video_data.get('short_desc'),
             'thumbnail': video_data.get('thumb') or video_data.get('thumb_secure'),
             'duration': int_or_none(video_data.get('duration_sec')),
-            'upload_date': unified_strdate(video_data.get('publish_date')),
+            'upload_date': unified_strdate(video_data.get('publish_date')) or re.sub(r'\D', '', video_data.get('content_date', '').split('T')[0]),
             'formats': formats,
             'subtitles': subtitles,
         }
