@@ -238,11 +238,9 @@ def find_xpath_attr(node, xpath, key, val=None):
     expr = xpath + (f'[@{key}]' if val is None else f"[@{key}='{val}']")
     return node.find(expr)
 
-# On python2.6 the xml.etree.ElementTree.Element methods don't support
-# the namespace parameter
-
 
 def xpath_with_ns(path, ns_map):
+    """Expand namespace-prefixed names to Clark notation."""
     components = [c.split(':') for c in path.split('/')]
     replaced = []
     for c in components:
@@ -876,7 +874,7 @@ class Popen(subprocess.Popen):
 
         self.__text_mode = kwargs.get('encoding') or kwargs.get('errors') or text or kwargs.get('universal_newlines')
         if text is True:
-            kwargs['universal_newlines'] = True  # For 3.6 compatibility
+            kwargs['text'] = True
             kwargs.setdefault('encoding', 'utf-8')
             kwargs.setdefault('errors', 'replace')
 
@@ -1012,7 +1010,7 @@ class ExtractorError(YoutubeDLError):
     def format_traceback(self):
         return join_nonempty(
             self.traceback and ''.join(traceback.format_tb(self.traceback)),
-            self.cause and ''.join(traceback.format_exception(None, self.cause, self.cause.__traceback__)[1:]),
+            self.cause and ''.join(traceback.format_exception(self.cause)[1:]),
             delim='\n') or None
 
     def __setattr__(self, name, value):
@@ -1960,11 +1958,7 @@ def setproctitle(title):
         libc = ctypes.cdll.LoadLibrary('libc.so.6')
     except OSError:
         return
-    except TypeError:
-        # LoadLibrary in Windows Python 2.7.13 only expects
-        # a bytestring, but since unicode_literals turns
-        # every string into a unicode string, it fails.
-        return
+
     title_bytes = title.encode()
     buf = ctypes.create_string_buffer(len(title_bytes))
     buf.value = title_bytes
@@ -2060,7 +2054,7 @@ def float_or_none(v, scale=1, invscale=1, default=None):
         scale = 1
     try:
         return float(v) * invscale / scale
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, OverflowError):
         return default
 
 
@@ -2076,7 +2070,7 @@ def url_or_none(url):
     if not url or not isinstance(url, str):
         return None
     url = url.strip()
-    return url if re.match(r'(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?|wss?):)?//', url) else None
+    return url if re.match(r'(?:(?:https?|rtm(?:pt?[es]?|fp)|ftps?|wss?):)?//', url) else None
 
 
 def strftime_or_none(timestamp, date_format='%Y%m%d', default=None):
@@ -2655,11 +2649,10 @@ def multipart_encode(data, boundary=None):
     Encode a dict to RFC 7578-compliant form-data
 
     data:
-        A dict where keys and values can be either Unicode or bytes-like
-        objects.
+        A dict where keys and values can be either str or bytes-like objects.
     boundary:
-        If specified a Unicode object, it's used as the boundary. Otherwise
-        a random boundary is generated.
+        An ASCII string to use as the boundary. If omitted, a random boundary
+        is generated.
 
     Reference: https://tools.ietf.org/html/rfc7578
     """
@@ -3195,10 +3188,6 @@ def determine_protocol(info_dict):
     url = sanitize_url(info_dict['url'])
     if url.startswith('rtmp'):
         return 'rtmp'
-    elif url.startswith('mms'):
-        return 'mms'
-    elif url.startswith('rtsp'):
-        return 'rtsp'
 
     ext = determine_ext(url)
     if ext == 'm3u8':
@@ -3395,10 +3384,15 @@ class download_range_func:
 
     def __eq__(self, other):
         return (isinstance(other, download_range_func)
-                and self.chapters == other.chapters and self.ranges == other.ranges)
+                and self.chapters == other.chapters
+                and self.ranges == other.ranges
+                and self.from_info == other.from_info)
 
     def __repr__(self):
-        return f'{__name__}.{type(self).__name__}({self.chapters}, {self.ranges})'
+        args = [repr(self.chapters), repr(self.ranges)]
+        if self.from_info:
+            args.append('from_info=True')
+        return f'{__name__}.{type(self).__name__}({", ".join(args)})'
 
 
 def parse_dfxp_time_expr(time_expr):
@@ -3426,7 +3420,7 @@ def ass_subtitles_timecode(seconds):
 def dfxp2srt(dfxp_data):
     """
     @param dfxp_data A bytes-like object containing DFXP data
-    @returns A unicode object containing converted SRT data
+    @returns A string containing the converted SRT data
     """
     LEGACY_NAMESPACES = (
         (b'http://www.w3.org/ns/ttml', [
@@ -4635,8 +4629,21 @@ LINK_TEMPLATES = {
     'webloc': DOT_WEBLOC_LINK_TEMPLATE,
 }
 
+# Ref: https://specifications.freedesktop.org/desktop-entry/latest/value-types.html
+_DESKTOP_ENTRY_TRANS = str.maketrans({
+    ' ': R'\s',
+    '\n': R'\n',
+    '\t': R'\t',
+    '\r': R'\r',
+    '\\': R'\\',
+})
 
-def iri_to_uri(iri):
+
+def _desktop_entry_localestring(s):
+    return s.translate(_DESKTOP_ENTRY_TRANS)
+
+
+def iri_to_uri(iri, *, allowed_schemes=('http', 'https')):
     """
     Converts an IRI (Internationalized Resource Identifier, allowing Unicode characters) to a URI (Uniform Resource Identifier, ASCII-only).
 
@@ -4644,6 +4651,9 @@ def iri_to_uri(iri):
     """
 
     iri_parts = urllib.parse.urlparse(iri)
+
+    if iri_parts.scheme not in allowed_schemes:
+        raise ValueError(f'"{iri_parts.scheme}" is not in allowed_schemes: {", ".join(allowed_schemes)}')
 
     if '[' in iri_parts.netloc:
         raise ValueError('IPv6 URIs are not, yet, supported.')
@@ -4716,13 +4726,6 @@ def clean_podcast_url(url):
             pscrb\.fm/rss/p
         )/''', '', url)
     return re.sub(r'^\w+://(\w+://)', r'\1', url)
-
-
-_HEX_TABLE = '0123456789abcdef'
-
-
-def random_uuidv4():
-    return re.sub(r'[xy]', lambda x: _HEX_TABLE[random.randint(0, 15)], 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx')
 
 
 def make_parent_dirs(path):
@@ -4850,10 +4853,6 @@ _terminal_sequences_re = re.compile('\033\\[[^m]+m')
 
 def remove_terminal_sequences(string):
     return _terminal_sequences_re.sub('', string)
-
-
-def number_of_digits(number):
-    return len('%d' % number)
 
 
 def join_nonempty(*values, delim='-', from_dict=None):
@@ -5089,7 +5088,7 @@ class function_with_repr:
 
 
 class Namespace(types.SimpleNamespace):
-    """Immutable namespace"""
+    """SimpleNamespace iterable over attribute values"""
 
     def __iter__(self):
         return iter(self.__dict__.values())
@@ -5373,7 +5372,7 @@ class FormatSorter:
         'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
                 'order': ['dv', '(hdr)?12', r'(hdr)?10\+', '(hdr)?10', 'hlg', '', 'sdr', None]},
         'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',
-                  'order': ['(ht|f)tps', '(ht|f)tp$', 'm3u8.*', '.*dash', 'websocket_frag', 'rtmpe?', '', 'mms|rtsp', 'ws|websocket', 'f4']},
+                  'order': ['(ht|f)tps', '(ht|f)tp$', 'm3u8.*', '.*dash', 'websocket_frag', 'rtmpe?', '', 'ws|websocket', 'f4']},
         'vext': {'type': 'ordered', 'field': 'video_ext',
                  'order': ('mp4', 'mov', 'webm', 'flv', '', 'none'),
                  'order_free': ('webm', 'mp4', 'mov', 'flv', '', 'none')},
