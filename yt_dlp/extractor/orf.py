@@ -6,6 +6,7 @@ from ..utils import (
     clean_html,
     determine_ext,
     float_or_none,
+    get_element_by_class,
     int_or_none,
     make_archive_id,
     mimetype2ext,
@@ -18,6 +19,7 @@ from ..utils import (
     try_call,
     unified_strdate,
     url_or_none,
+    urljoin,
 )
 from ..utils.traversal import traverse_obj
 
@@ -556,3 +558,52 @@ class ORFONIE(InfoExtractor):
                 video_id, **self._parse_metadata(api_json), multi_video=True)
 
         return self._extract_video_info(video_id, api_json)
+
+
+class ORFONSeriesIE(InfoExtractor):
+    IE_NAME = 'orf:on:series'
+    _VALID_URL = r'https?://on\.orf\.at/(?P<type>sendereihe|sammlung)/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://on.orf.at/sendereihe/1203',
+        'info_dict': {
+            'id': '1203',
+            'title': 'ZIB 1',
+            'description': 'Aktuelle Nachrichten aus aller Welt',
+        },
+        'playlist_mincount': 22,
+    }, {
+        'url': 'https://on.orf.at/sendereihe/1203?page=2',
+        'info_dict': {
+            'id': '1203',
+            'title': 'ZIB 1',
+            'description': 'Aktuelle Nachrichten aus aller Welt',
+        },
+        'playlist_mincount': 22,
+    }, {
+        'url': 'https://on.orf.at/sammlung/13870545/homestories-journalisten-besuchen-orte-der-kindheit',
+        'info_dict': {
+            'id': '13870545',
+            'title': 'Homestories: Journalisten besuchen Orte der Kindheit',
+            'description': 'Im Frühling 2017 entstand die Idee zu den ZIB2-Homestories: '
+                           'Neun Reporterinnen und Reporter erzählen von ihren Heimatorten '
+                           'und zeigen deren Wandel – politisch, wirtschaftlich und gesellschaftlich.',
+        },
+        'playlist_mincount': 10,
+    }]
+
+    def _real_extract(self, url):
+        series_id, series_type = self._match_valid_url(url).group('id', 'type')
+
+        # set page to a high number to include all episodes of the series in the document
+        # each page contains 20 episodes, in practice shows almost never have more than 100 episodes
+        series_url = f'https://on.orf.at/{series_type}/{series_id}?page=1000'
+        webpage = self._download_webpage(series_url, series_id)
+
+        video_ids = re.findall(r'<a[^>]+href=["\']/video/(?P<id>\d+)', webpage)
+        title = (
+            self._html_search_meta(['og:title', 'twitter:title'], webpage)
+            or self._html_extract_title(webpage))
+        description = clean_html(get_element_by_class('description', webpage))
+
+        return self.playlist_from_matches(video_ids, series_id, title, description=description,
+                                          getter=urljoin('https://on.orf.at/video/'))
