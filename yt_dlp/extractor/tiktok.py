@@ -11,6 +11,13 @@ import urllib.parse
 import uuid
 
 from .common import InfoExtractor
+from ._tiktok import (
+    get_tiktok_webpage_policy,
+    get_video_data,
+    get_video_detail,
+    get_video_status,
+    has_playable_video,
+)
 from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
@@ -41,7 +48,6 @@ class TikTokBaseIE(InfoExtractor):
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p', '1080p')
-
     _APP_INFO_DEFAULTS = {
         # unique "install id"
         'iid': None,
@@ -276,13 +282,19 @@ class TikTokBaseIE(InfoExtractor):
         video_data, status = {}, -1
         headers = self._generate_blockbuster_headers()
 
-        def get_webpage(note='Downloading webpage'):
-            res = self._download_webpage_handle(
-                url, video_id, note, fatal=fatal, headers=headers, impersonate=True)
-            if res is False:
+        policy = get_tiktok_webpage_policy(self._downloader)
+        last_error = None
+
+        def get_webpage(target, note='Downloading webpage'):
+            nonlocal last_error
+            try:
+                webpage, urlh = self._download_webpage_handle(
+                    url, video_id, note, headers=headers, impersonate=target)
+            except ExtractorError as e:
+                last_error = e
+                policy.failed(target)
                 return False
 
-            webpage, urlh = res
             self.write_debug(f'Webpage size: {len(webpage)} bytes')
             self.write_debug(f'Impersonation target: {urlh.extensions.get("impersonate")}')
 
@@ -295,37 +307,56 @@ class TikTokBaseIE(InfoExtractor):
 
             return webpage
 
-        webpage = get_webpage()
-        if webpage is False:
-            return video_data, status
+        def extract_web_data(target):
+            webpage = get_webpage(target)
+            if webpage is False:
+                return None
 
-        universal_data = self._get_universal_data(webpage, video_id)
-        if not universal_data:
+            universal_data = self._get_universal_data(webpage, video_id)
+            if universal_data:
+                return universal_data
+
             try:
                 cookie_names = self._solve_challenge_and_set_cookies(webpage)
             except ExtractorError as e:
-                if fatal:
-                    raise
-                self.report_warning(e.orig_msg, video_id=video_id)
-                return video_data, status
+                return None
 
-            webpage = get_webpage(note='Downloading webpage with challenge cookie')
+            webpage = get_webpage(target, note='Downloading webpage with challenge cookie')
             # Manually clear challenge cookies that should expire immediately after webpage request
             for cookie_name in filter(None, cookie_names):
                 self.cookiejar.clear(domain='.tiktok.com', path='/', name=cookie_name)
             if webpage is False:
-                return video_data, status
-            universal_data = self._get_universal_data(webpage, video_id)
+                return None
+            return self._get_universal_data(webpage, video_id)
+
+        universal_data = None
+        for target in policy.candidates():
+            candidate_data = extract_web_data(target)
+            video_detail = get_video_detail(candidate_data)
+            if get_video_status(video_detail) not in (None, 0):
+                universal_data = candidate_data
+                break
+            if has_playable_video(video_detail):
+                universal_data = candidate_data
+                policy.succeeded(target)
+                break
+            policy.failed(target)
 
         if not universal_data:
+            if last_error:
+                if fatal:
+                    raise last_error
+                self.report_warning(last_error.orig_msg, video_id=video_id)
+                return video_data, status
             message = 'Unable to extract universal data for rehydration'
             if fatal:
                 raise ExtractorError(message)
             self.report_warning(message, video_id=video_id)
             return video_data, status
 
-        status = traverse_obj(universal_data, ('webapp.video-detail', 'statusCode', {int})) or 0
-        video_data = traverse_obj(universal_data, ('webapp.video-detail', 'itemInfo', 'itemStruct', {dict}))
+        video_detail = get_video_detail(universal_data)
+        status = get_video_status(video_detail) or 0
+        video_data = get_video_data(video_detail)
 
         if not traverse_obj(video_data, ('video', {dict})) and traverse_obj(video_data, ('isContentClassified', {bool})):
             message = 'This post may not be comfortable for some audiences. Log in for access'
@@ -1175,7 +1206,8 @@ class TikTokUserIE(TikTokBaseIE):
             webpage = self._download_webpage(
                 self._UPLOADER_URL_FORMAT % user_name, user_name,
                 'Downloading user webpage', 'Unable to download user webpage',
-                impersonate=True, fatal=False, headers=self._generate_blockbuster_headers()) or ''
+                impersonate=get_tiktok_webpage_policy(self._downloader).candidates()[0], fatal=False,
+                headers=self._generate_blockbuster_headers()) or ''
             detail = traverse_obj(
                 self._get_universal_data(webpage, user_name), ('webapp.user-detail', {dict})) or {}
             video_count = traverse_obj(detail, ('userInfo', ('stats', 'statsV2'), 'videoCount', {int}, any))
@@ -1634,7 +1666,8 @@ class TikTokLiveIE(TikTokBaseIE):
         if not room_id:
             webpage = self._download_webpage(
                 format_field(uploader, None, self._UPLOADER_URL_FORMAT), uploader,
-                impersonate=True, headers=self._generate_blockbuster_headers())
+                impersonate=get_tiktok_webpage_policy(self._downloader).candidates()[0],
+                headers=self._generate_blockbuster_headers())
             room_id = traverse_obj(
                 self._get_universal_data(webpage, uploader),
                 ('webapp.user-detail', 'userInfo', 'user', 'roomId', {str}))
