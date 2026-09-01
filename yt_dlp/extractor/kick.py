@@ -55,6 +55,39 @@ class KickBaseIE(InfoExtractor):
 
         return creator_id, username
 
+    @staticmethod
+    def _extract_vod_metadata(video_data):
+        return {
+            'availability': {
+                'sub_only': 'subscriber_only',
+                'private': 'private',
+                'public': 'public',
+            }.get(traverse_obj(video_data, ('status', {str}))),
+            **traverse_obj(video_data, {
+                'title': ('title', {clean_html}, filter),
+                'age_limit': ('is_mature', {bool}, {lambda x: 18 if x else None}),
+                'categories': ('category', 'name', {clean_html}, filter, all, filter),
+                'duration': ('duration', {int_or_none}),
+                'is_live': ('is_live', {bool}),
+                'tags': ('tags', ..., {clean_html}, filter, all, filter),
+                'thumbnails': (
+                    'thumbnail', 'srcSet', {lambda x: x.split(',')}, ..., {str.strip},
+                    {lambda x: x.rsplit(maxsplit=1)}, {
+                        'url': (0, {url_or_none}),
+                        'width': (1, {parse_resolution(lenient=True)}, 'width'),
+                        'height': (0, {url_basename}, {lambda x: int_or_none(x.partition('.')[0])}),
+                    },
+                ),
+                'timestamp': ('start_time', {parse_iso8601}),
+                'view_count': ('viewer_count', {int_or_none}),
+            }),
+            **traverse_obj(video_data, ('channel', {
+                'channel': ('username', {str}, filter),
+                'uploader': ('username', {str}, filter),
+                'uploader_id': ('slug', {str}, filter),
+            })),
+        }
+
 
 class KickIE(KickBaseIE):
     IE_NAME = 'kick:live'
@@ -210,20 +243,19 @@ class KickVODIE(KickBaseIE):
             err_msg = join_nonempty('type', 'details', delim=': ', from_dict=data)
             raise ExtractorError(
                 err_msg or 'API returned an error response', expected=True)
-
         creator_id = traverse_obj(playback, (
             'video_session', 'creator_id', {str}, {require('creator ID')}))
-        video_data = traverse_obj(smuggled_data, ('video_data', {dict}))
-        if not video_data:
+
+        metadata = {}
+        if 'availability' in smuggled_data:
+            availability = smuggled_data['availability']
+        else:
             videos = self._call_api(f'v1/channels/{creator_id}/videos', creator_id)
             video_data = traverse_obj(videos, (
                 'data', lambda _, v: v['id'] == video_id, {dict}, any))
+            metadata = self._extract_vod_metadata(video_data)
+            availability = metadata['availability']
 
-        availability = {
-            'sub_only': 'subscriber_only',
-            'private': 'private',
-            'public': 'public',
-        }.get(traverse_obj(video_data, ('status', {str})))
         m3u8_url = traverse_obj(playback, ('playback_url', 'vod', {url_or_none}))
         if not m3u8_url:
             if availability == 'subscriber_only' and not self._is_subscribed(creator_id):
@@ -232,32 +264,9 @@ class KickVODIE(KickBaseIE):
 
         return {
             'id': video_id,
-            'availability': availability,
             'channel_id': creator_id,
             'formats': self._extract_m3u8_formats(m3u8_url, video_id, 'mp4'),
-            **traverse_obj(video_data, {
-                'title': ('title', {clean_html}, filter),
-                'age_limit': ('is_mature', {bool}, {lambda x: 18 if x else None}),
-                'categories': ('category', 'name', {clean_html}, filter, all, filter),
-                'duration': ('duration', {int_or_none}),
-                'is_live': ('is_live', {bool}),
-                'tags': ('tags', ..., {clean_html}, filter, all, filter),
-                'thumbnails': (
-                    'thumbnail', 'srcSet', {lambda x: x.split(',')}, ..., {str.strip},
-                    {lambda x: x.rsplit(maxsplit=1)}, {
-                        'url': (0, {url_or_none}),
-                        'width': (1, {parse_resolution(lenient=True)}, 'width'),
-                        'height': (0, {url_basename}, {lambda x: int_or_none(x.partition('.')[0])}),
-                    },
-                ),
-                'timestamp': ('start_time', {parse_iso8601}),
-                'view_count': ('viewer_count', {int_or_none}),
-            }),
-            **traverse_obj(video_data, ('channel', {
-                'channel': ('username', {str}, filter),
-                'uploader': ('username', {str}, filter),
-                'uploader_id': ('slug', {str}, filter),
-            })),
+            **metadata,
         }
 
 
@@ -398,11 +407,12 @@ class KickVideosIE(KickBaseIE):
             'data', lambda _, v: str_or_none(v['id']),
         )):
             video_id = video_data['id']
+            metadata = self._extract_vod_metadata(video_data)
 
             yield self.url_result(smuggle_url(
                 f'{self._BASE_URL}/{channel_slug}/videos/{video_id}',
-                {'video_data': video_data},
-            ), KickVODIE, video_id)
+                {'availability': metadata['availability']},
+            ), KickVODIE, video_id, url_transparent=True, **metadata)
 
     def _real_extract(self, url):
         channel_slug = self._match_id(url).lower()
