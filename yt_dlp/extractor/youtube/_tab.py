@@ -2338,25 +2338,11 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                                     get_all=False, expected_type=str)
                 if not murl:
                     data = traverse_obj(mdata, (
-                        'contents',
-                        'singleColumnBrowseResultsRenderer',
-                        'tabs',
-                        0,
-                        'tabRenderer',
-                        'content',
-                        'sectionListRenderer',
-                        'contents',
-                        0,
-                        'gridRenderer',
-                        'items',
-                        ...,
-                        'musicTwoRowItemRenderer',
-                        'title',
-                        'runs',
-                        0,
-                        'navigationEndpoint',
-                        'browseEndpoint',
-                        'browseId'))
+                        'contents', 'singleColumnBrowseResultsRenderer', 'tabs', 0,
+                        'tabRenderer', 'content', 'sectionListRenderer', 'contents', 0,
+                        'gridRenderer', 'items', ..., 'musicTwoRowItemRenderer', 'title', 'runs', 0,
+                        'navigationEndpoint', 'browseEndpoint', 'browseId'))
+
                     title = traverse_obj(mdata, ('header', 'musicHeaderRenderer', 'title', 'runs', ..., 'text'))
                     if not isinstance(data, list):
                         raise ExtractorError('Failed to resolve album to playlist')
