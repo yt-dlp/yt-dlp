@@ -10,6 +10,7 @@ import http.cookies
 import io
 import json
 import os
+import pathlib
 import re
 import shutil
 import struct
@@ -1112,9 +1113,37 @@ def _config_home():
 def _open_database_copy(database_path, tmpdir):
     # cannot open sqlite databases if they are already in use (e.g. by the browser)
     database_copy_path = os.path.join(tmpdir, 'temporary.sqlite')
-    shutil.copy(database_path, database_copy_path)
-    conn = sqlite3.connect(database_copy_path)
-    return conn.cursor()
+
+    # The database may be in WAL mode, in which case recently committed data lives in
+    # the -wal file and is missing from the main database until the next checkpoint.
+    # sqlite3's backup API is WAL-aware, so prefer it over copying the file directly.
+    destination = None
+    try:
+        source_uri = pathlib.Path(os.path.abspath(database_path)).as_uri()
+        source = sqlite3.connect(f'{source_uri}?mode=ro', uri=True, timeout=1)
+        try:
+            destination = sqlite3.connect(database_copy_path)
+            with destination:
+                source.backup(destination)
+        finally:
+            source.close()
+    except (sqlite3.Error, OSError, ValueError):
+        # Discard whatever the failed attempt left behind
+        if destination is not None:
+            destination.close()
+        with contextlib.suppress(OSError):
+            os.remove(database_copy_path)
+
+        # Fall back to copying the files. The main database must be copied before the
+        # -wal file: if a checkpoint happens in between, the stale -wal is rejected by
+        # its salt and simply ignored, whereas the reverse order can apply outdated
+        # frames over newer pages. The -shm file is rebuilt during recovery.
+        shutil.copy(database_path, database_copy_path)
+        with contextlib.suppress(FileNotFoundError):
+            shutil.copy(f'{database_path}-wal', f'{database_copy_path}-wal')
+        destination = sqlite3.connect(database_copy_path)
+
+    return destination.cursor()
 
 
 def _get_column_names(cursor, table_name):
