@@ -65,6 +65,7 @@ class KhanAcademyBaseIE(InfoExtractor):
         # recursively extract gql strings
         query = self._search_definition(src, query_name)
         fragments = {}
+
         def _search_fragments(definition):
             for frag_name in re.findall(r'\.\.\.(\w+)', definition):
                 if frag_name not in fragments:
