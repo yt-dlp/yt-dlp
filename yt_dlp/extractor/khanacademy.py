@@ -5,7 +5,6 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
-    js_to_json,
     make_archive_id,
     parse_iso8601,
     str_or_none,
@@ -16,47 +15,83 @@ from ..utils import (
 
 
 class KhanAcademyBaseIE(InfoExtractor):
-    _RUNTIME_JS_URL = None
-    _MAIN_JS_URL = None
+    _MAIN_JS_HASH = None
+    _RUNTIME_JS_HASH = None
+    _PCV = None
+    _CACHED_JS = {}
+    _QUERY_HASH = {}
     _VALID_URL_TEMPL = r'https?://(?:www\.)?khanacademy\.org/(?P<id>(?:[^/]+/){%s}%s[^?#/&]+)'
+    _QUERY_NAME: str
 
     def _load_script_src_urls(self, webpage):
-        search = lambda name: self._search_regex(
-            rf'<script src="(https://cdn\.kastatic\.org/khanacademy/{name}\.[0-9a-f]+\.js)">', webpage, name)
-        self._RUNTIME_JS_URL = search('runtime')
-        self._MAIN_JS_URL = search('khanacademy')
+        search_hash = lambda name: self._search_regex(
+            rf'https://cdn\.kastatic\.org/khanacademy/{name}\.([0-9a-f]+)\.js', webpage, f'{name}-hash')
+        self._MAIN_JS_HASH = search_hash('khanacademy')
+        self._RUNTIME_JS_HASH = search_hash('runtime')
+        self._PCV = self._search_json(
+            r'__KA_DATA__ \s*=', webpage, 'initial state', None)['KA-published-content-version']
 
-    def _extract_graphql(self, query_name):
-        main_js = self._download_webpage(self._MAIN_JS_URL, None, 'Downloading khanacademy.js')
+    def _get_js(self, js_name, js_hash, disk_cache=False):
+        if disk_cache and (cache := self.cache.load('khanacademy', f'{js_name}.js')):
+            if cache['js_hash'] == js_hash:
+                return cache['content']
+
+        filename = f'{js_name}.{js_hash}.js'
+        if filename not in self._CACHED_JS:
+            self._CACHED_JS[filename] = self._download_webpage(
+                f'https://cdn.kastatic.org/khanacademy/{filename}', None, f'Downloading {filename}')
+        if disk_cache:
+            self.cache.store('khanacademy', f'{js_name}.js', {'js_hash': js_hash, 'content': self._CACHED_JS[filename]})
+        return self._CACHED_JS[filename]
+
+    def _extract_query(self, query_name):
+        main_js = self._get_js('khanacademy', self._MAIN_JS_HASH, disk_cache=True)
         if f'query {query_name}' in main_js:
-            return self._parse_graphql_js(main_js)
+            return self._parse_graphql_js(main_js, query_name)
 
         # runtime.js contains hash version for each js file, which is needed for building js src url
-        runtime_js = self._download_webpage(self._RUNTIME_JS_URL, None, 'Downloading runtime.js')
+        runtime_js = self._get_js('runtime', self._RUNTIME_JS_HASH)
         version_hashes = self._search_json(
             r'""\+e\+"\."\+\(', runtime_js, 'js resources', None, end_pattern=r'\)\[e\]\+"\.js"',
             transform_source=lambda s: re.sub(r'([\da-f]+):', r'"\1":', s))  # cannot use js_to_json, due to #13621
 
-        # iterate all lazy-loaded js to find query-containing js file
-        for lazy_load in re.finditer(r'lazy\(function\(\)\{return Promise\.all\(\[(.+?)\]\)\.then', main_js):
-            for js_name in re.finditer(r'X.e\("([0-9a-f]+)"\)', lazy_load[1]):
-                if not (js_hash := version_hashes.get(js_name[1])):
-                    self.report_warning(f'{js_name[1]} has no hash record for it, skip')
-                    continue
-                url = f'https://cdn.kastatic.org/khanacademy/{js_name[1]}.{js_hash}.js'
-                js_src = self._download_webpage(url, None, f'Downloading {js_name[1]}.js')
-                if f'query {query_name}' in js_src:
-                    return self._parse_graphql_js(js_src)
-        raise ExtractorError('Failed to find query js')
+        for js_name, js_hash in version_hashes.items():
+            js_src = self._get_js(js_name, js_hash)
+            if f'query {query_name}' in js_src:
+                return self._parse_graphql_js(js_src, query_name)
+        raise ExtractorError(f'Failed to find query js for "{query_name}"')
 
-    def _parse_graphql_js(self, src):
-        # extract gql strings for each object
-        queries = [self._sanitize_query(''.join(json.loads(js_to_json(match['body'])))) for match in re.finditer(
-            r'function (?P<obj_id>_templateObject\d*).*?\((?P<body>\[.+?\])\);return', src)]
-        return {self._search_regex(r'^(?:fragment|query|mutation) (\w+)', query,
-                                   'query name', default=None): query for query in queries}
+    def _parse_graphql_js(self, src, query_name):
+        # recursively extract gql strings
+        query = self._search_definition(src, query_name)
+        fragments = {}
+        def _search_fragments(definition):
+            for frag_name in re.findall(r'\.\.\.(\w+)', definition):
+                if frag_name not in fragments:
+                    fragments[frag_name] = self._search_definition(src, frag_name)
+                    _search_fragments(fragments[frag_name])
+        _search_fragments(query)
+
+        return '\n\n'.join([query, *(fragments[name] for name in sorted(fragments))])
+
+    def _search_definition(self, src: str, name):
+        m = re.search(rf'(?:query {name}\s*\([^\)]*\)|fragment {name} on \w+)', src)
+        if not m:
+            raise ExtractorError(f'Failed to find {name}')
+        lines = []
+        depth = 0
+        for line in src[m.end(0):].splitlines():
+            lines.append(line)
+            depth += line.count('{') - line.count('}')
+            if depth == 0:
+                return self._sanitize_query(m[0] + '\n'.join(lines))
+        raise ExtractorError(f'Failed to extract definition for {name}')
 
     def _sanitize_query(self, query: str):
+        for inner in re.findall(r'\(([^\)]+)\)', query):
+            if '\n' in inner:  # convert params from newline-split to comma-split
+                new = ', '.join(l.strip() for l in inner.splitlines() if l.strip())
+                query = query.replace(inner, new)
         outlines = []
         indent = 0
         for line in query.splitlines():
@@ -74,20 +109,6 @@ class KhanAcademyBaseIE(InfoExtractor):
                 indent += 2
         return '\n'.join(outlines)
 
-    def _compose_query(self, query_objs, name):
-        fragments = {}
-
-        def _add_fragment(parent_name):
-            for frag_name in re.findall(r'\.\.\.(\w+)', query_objs[parent_name]):
-                if frag_name not in fragments:
-                    fragments[frag_name] = query_objs[frag_name]
-                    _add_fragment(frag_name)
-        try:
-            _add_fragment(name)
-            return '\n\n'.join([query_objs[name], *(fragments[name] for name in sorted(fragments))])
-        except KeyError as e:
-            raise ExtractorError(f'Failed to find query object for {name}->{e.args}')
-
     def _string_hash(self, input_str):
         str_hash = 5381
         for char in input_str[::-1]:
@@ -95,16 +116,9 @@ class KhanAcademyBaseIE(InfoExtractor):
         return str_hash
 
     def _get_query_hash(self, query_name):
-        # change in version hash may indicate change of graphql schema
-        #   consider cached hash as invalidated upon such change
-        js_version = f'{self._RUNTIME_JS_URL}{self._MAIN_JS_URL}'
-        if cache := self.cache.load('khanacademy', f'{query_name}-hash'):
-            if cache['js_version'] == js_version:
-                return cache['hash']
-
-        query_hash = self._string_hash(self._compose_query(self._extract_graphql(query_name), query_name))
-        self.cache.store('khanacademy', f'{query_name}-hash', {'hash': query_hash, 'js_version': js_version})
-        return query_hash
+        if query_name not in self._QUERY_HASH:
+            self._QUERY_HASH[query_name] = self._string_hash(self._extract_query(query_name))
+        return self._QUERY_HASH[query_name]
 
     def _parse_video(self, video):
         return {
@@ -126,13 +140,12 @@ class KhanAcademyBaseIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
         self._load_script_src_urls(webpage)
 
-        ka_data = self._search_json(r'__KA_DATA__ \s*=', webpage, 'initial state', display_id)
         data = self._download_json(
-            'https://www.khanacademy.org/api/internal/graphql/ContentForPath', display_id,
+            f'https://www.khanacademy.org/api/internal/graphql/{self._QUERY_NAME}', display_id,
             query={
                 'fastly_cacheable': 'persist_until_publish',
-                'pcv': ka_data['KA-published-content-version'],
-                'hash': self._get_query_hash('ContentForPath'),
+                'pcv': self._PCV,
+                'hash': self._get_query_hash(self._QUERY_NAME),
                 'variables': json.dumps({
                     'path': display_id,
                     'countryCode': 'US',
@@ -150,6 +163,8 @@ class KhanAcademyBaseIE(InfoExtractor):
 class KhanAcademyIE(KhanAcademyBaseIE):
     IE_NAME = 'khanacademy'
     _VALID_URL = KhanAcademyBaseIE._VALID_URL_TEMPL % ('4', 'v/')
+    _QUERY_NAME = 'ContentRouteLessonAndContentData'
+
     _TESTS = [{
         'url': 'https://www.khanacademy.org/computing/computer-science/cryptography/crypt/v/one-time-pad',
         'info_dict': {
@@ -234,6 +249,8 @@ class KhanAcademyIE(KhanAcademyBaseIE):
 class KhanAcademyUnitIE(KhanAcademyBaseIE):
     IE_NAME = 'khanacademy:unit'
     _VALID_URL = (KhanAcademyBaseIE._VALID_URL_TEMPL % ('1,2', '')) + '/?(?:[?#&]|$)'
+    _QUERY_NAME = 'ContentRouteCourseData'
+
     _TESTS = [{
         'url': 'https://www.khanacademy.org/computing/computer-science/cryptography',
         'info_dict': {
