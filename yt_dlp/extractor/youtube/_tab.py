@@ -2241,6 +2241,33 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'extract_flat': True,
             'playlist_items': '1',
         },
+    }, {
+        # this and the following 2 test artist pages on yt music
+        'note': 'fix artists page downloads',
+        'url': 'https://music.youtube.com/browse/MPADUCkNNkuf7zltS7tG18GyOIMg',
+        'info_dict': {
+            'id': 'MPADUCkNNkuf7zltS7tG18GyOIMg',
+            'title': 'Leander Kills',
+        },
+        'playlist_mincount': 47,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/13286
+        'note': 'fix artists page downloads',
+        'url': 'https://music.youtube.com/browse/MPADUCKCkZieK-MP6hR9S2N7wfXQ',
+        'info_dict': {
+            'id': 'MPADUCKCkZieK-MP6hR9S2N7wfXQ',
+            'title': 'Sasuke Haraguchi',
+        },
+        'playlist_mincount': 27,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/16241
+        'note': 'fix artists page downloads',
+        'url': 'https://music.youtube.com/browse/MPADUC5xaQ6_dP7EGDmGLzVGZ1Ow',
+        'info_dict': {
+            'id': 'MPADUC5xaQ6_dP7EGDmGLzVGZ1Ow',
+            'title': 'Morgan Wallen',
+        },
+        'playlist_mincount': 36,
     }]
 
     @classmethod
@@ -2301,7 +2328,20 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 murl = traverse_obj(mdata, ('microformat', 'microformatDataRenderer', 'urlCanonical'),
                                     get_all=False, expected_type=str)
                 if not murl:
-                    raise ExtractorError('Failed to resolve album to playlist')
+                    data = traverse_obj(mdata, (
+                        'contents', 'singleColumnBrowseResultsRenderer', 'tabs', 0,
+                        'tabRenderer', 'content', 'sectionListRenderer', 'contents', 0,
+                        'gridRenderer', 'items', ..., 'musicTwoRowItemRenderer', 'title', 'runs', 0,
+                        'navigationEndpoint', 'browseEndpoint', 'browseId'))
+
+                    title = traverse_obj(mdata, ('header', 'musicHeaderRenderer', 'title', 'runs', ..., 'text'))
+                    if not isinstance(data, list):
+                        raise ExtractorError('Failed to resolve album to playlist')
+                    return self.playlist_result(
+                        [self.url_result(f'https://music.youtube.com/browse/{i}', YoutubeTabIE, i) for i in data],
+                        playlist_id=item_id,
+                        playlist_title=''.join(title) if title else None)
+
                 return self.url_result(murl, YoutubeTabIE)
             elif mobj['channel_type'] == 'browse':  # Youtube music /browse/ should be changed to /channel/
                 return self.url_result(
