@@ -15,6 +15,7 @@ from ..utils import (
     join_nonempty,
     parse_duration,
     str_or_none,
+    traverse_obj,
     try_get,
     unified_strdate,
     url_or_none,
@@ -295,8 +296,8 @@ class XHamsterIE(InfoExtractor):
             format_urls = set()
             format_sizes = {}
             sources = (
-                try_get(video, lambda x: x['sources'], dict)
-                or try_get(initials, lambda x: x['downloadDropdownComponent']['sources'], dict)
+                traverse_obj(video, ('sources', {dict}))
+                or traverse_obj(initials, ('downloadDropdownComponent', 'sources', {dict}))
                 or {})
             for format_id, formats_dict in sources.items():
                 if not isinstance(formats_dict, dict):
