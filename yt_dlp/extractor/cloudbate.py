@@ -16,6 +16,7 @@ class CloudBateIE(InfoExtractor):
             'description': 'Ariannaxo_ blowjob on cam',
             'uploader': 'ariannaxo_',
             'height': 720,
+            'age_limit': 18,
         },
     }]
 
@@ -41,4 +42,5 @@ class CloudBateIE(InfoExtractor):
             'url': info['video_url'],
             'height': int(height),
             'ext': ext,
+            'age_limit': 18,
         }
