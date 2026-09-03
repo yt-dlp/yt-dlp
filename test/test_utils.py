@@ -1347,15 +1347,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(extract_attributes('<e _:funny-name1=1>'), {'_:funny-name1': '1'})
         self.assertEqual(extract_attributes('<e x="Fáilte 世界 \U0001f600">'), {'x': 'Fáilte 世界 \U0001f600'})
         self.assertEqual(extract_attributes('<e x="décompose&#769;">'), {'x': 'décompose\u0301'})
-        # "Narrow" Python builds don't support unicode code points outside BMP.
-        try:
-            chr(0x10000)
-            supports_outside_bmp = True
-        except ValueError:
-            supports_outside_bmp = False
-        if supports_outside_bmp:
-            self.assertEqual(extract_attributes('<e x="Smile &#128512;!">'), {'x': 'Smile \U0001f600!'})
-        # Malformed HTML should not break attributes extraction on older Python
+        self.assertEqual(extract_attributes('<e x="Smile &#128512;!">'), {'x': 'Smile \U0001f600!'})
+        # Malformed HTML should not break attribute extraction
         self.assertEqual(extract_attributes('<mal"formed/>'), {})
 
     def test_clean_html(self):
