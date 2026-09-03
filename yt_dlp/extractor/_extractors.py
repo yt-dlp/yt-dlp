@@ -342,6 +342,7 @@ from .cjsw import CJSWIE
 from .clipchamp import ClipchampIE
 from .cliprs import ClipRsIE
 from .closertotruth import CloserToTruthIE
+from .cloudbate import CloudBateIE
 from .cloudflarestream import CloudflareStreamIE
 from .cloudycdn import CloudyCDNIE
 from .clubic import ClubicIE
