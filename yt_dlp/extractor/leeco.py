@@ -3,7 +3,6 @@ import re
 import time
 
 from .common import InfoExtractor
-from ..compat import compat_ord
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -89,9 +88,8 @@ class LeIE(InfoExtractor):
 
         _loc4_ = bytearray(2 * len(encrypted_data))
         for idx, val in enumerate(encrypted_data):
-            b = compat_ord(val)
-            _loc4_[2 * idx] = b // 16
-            _loc4_[2 * idx + 1] = b % 16
+            _loc4_[2 * idx] = val // 16
+            _loc4_[2 * idx + 1] = val % 16
         idx = len(_loc4_) - 11
         _loc4_ = _loc4_[idx:] + _loc4_[:idx]
         _loc7_ = bytearray(len(encrypted_data))

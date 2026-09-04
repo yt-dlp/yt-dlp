@@ -16,6 +16,10 @@ compat_os_name = os.name
 compat_realpath = os.path.realpath
 
 
+def compat_ord(c):
+    return c if isinstance(c, int) else ord(c)
+
+
 def compat_shlex_quote(s):
     from ..utils import shell_quote
     return shell_quote(s)
