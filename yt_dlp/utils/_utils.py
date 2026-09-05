@@ -49,7 +49,6 @@ from . import traversal
 
 from ..compat import (
     compat_datetime_from_timestamp,
-    compat_etree_fromstring,
     compat_expanduser,
     compat_HTMLParseError,
 )
@@ -3529,7 +3528,7 @@ def dfxp2srt(dfxp_data):
         for ns in v:
             dfxp_data = dfxp_data.replace(ns, k)
 
-    dfxp = compat_etree_fromstring(dfxp_data)
+    dfxp = xml.etree.ElementTree.fromstring(dfxp_data)
     out = []
     paras = dfxp.findall(_x('.//ttml:p')) or dfxp.findall('.//p')
 
