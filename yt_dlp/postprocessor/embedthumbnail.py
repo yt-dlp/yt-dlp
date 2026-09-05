@@ -11,7 +11,6 @@ from ..utils import (
     Popen,
     PostProcessingError,
     check_executable,
-    encodeArgument,
     prepend_extension,
     shell_quote,
 )
@@ -155,11 +154,11 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                         self.to_screen('mutagen was not found. Falling back to AtomicParsley')
                     cmd = [atomicparsley,
                            filename,
-                           encodeArgument('--artwork'),
+                           '--artwork',
                            thumbnail_filename,
-                           encodeArgument('-o'),
+                           '-o',
                            temp_filename]
-                    cmd += [encodeArgument(o) for o in self._configuration_args('AtomicParsley')]
+                    cmd += self._configuration_args('AtomicParsley')
 
                     self._report_run('atomicparsley', filename)
                     self.write_debug(f'AtomicParsley command line: {shell_quote(cmd)}')

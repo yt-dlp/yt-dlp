@@ -20,7 +20,6 @@ from ..utils import (
     detect_exe_version,
     determine_ext,
     dfxp2srt,
-    encodeArgument,
     filter_dict,
     float_or_none,
     is_outdated_version,
@@ -234,13 +233,9 @@ class FFmpegPostProcessor(PostProcessor):
             raise PostProcessingError('ffprobe and ffmpeg not found. Please install or provide the path using --ffmpeg-location')
         try:
             if self.probe_available:
-                cmd = [
-                    self.probe_executable,
-                    encodeArgument('-show_streams')]
+                cmd = [self.probe_executable, '-show_streams']
             else:
-                cmd = [
-                    self.executable,
-                    encodeArgument('-i')]
+                cmd = [self.executable, '-i']
             cmd.append(self._ffmpeg_filename_argument(path))
             self.write_debug(f'{self.basename} command line: {shell_quote(cmd)}')
             stdout, stderr, returncode = Popen.run(
@@ -275,11 +270,11 @@ class FFmpegPostProcessor(PostProcessor):
 
         cmd = [
             self.probe_executable,
-            encodeArgument('-hide_banner'),
-            encodeArgument('-show_format'),
-            encodeArgument('-show_streams'),
-            encodeArgument('-print_format'),
-            encodeArgument('json'),
+            '-hide_banner',
+            '-show_format',
+            '-show_streams',
+            '-print_format',
+            'json',
         ]
 
         cmd += opts
@@ -329,10 +324,10 @@ class FFmpegPostProcessor(PostProcessor):
         oldest_mtime = min(
             os.stat(path).st_mtime for path, _ in input_path_opts if path)
 
-        cmd = [self.executable, encodeArgument('-y')]
+        cmd = [self.executable, '-y']
         # avconv does not have repeat option
         if self.basename == 'ffmpeg':
-            cmd += [encodeArgument('-loglevel'), encodeArgument('repeat+info')]
+            cmd += ['-loglevel', 'repeat+info']
 
         def make_args(file, args, name, number):
             keys = [f'_{name}{number}', f'_{name}']
@@ -343,9 +338,7 @@ class FFmpegPostProcessor(PostProcessor):
             args += self._configuration_args(self.basename, keys)
             if name == 'i':
                 args.append('-i')
-            return (
-                [encodeArgument(arg) for arg in args]
-                + [self._ffmpeg_filename_argument(file)])
+            return [*args, self._ffmpeg_filename_argument(file)]
 
         for arg_type, path_opts in (('i', input_path_opts), ('o', output_path_opts)):
             cmd += itertools.chain.from_iterable(
