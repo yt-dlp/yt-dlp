@@ -6,7 +6,6 @@ import xml.etree.ElementTree
 
 from .adobepass import AdobePassIE
 from .common import InfoExtractor
-from ..compat import compat_etree_fromstring
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -314,7 +313,7 @@ class BrightcoveLegacyIE(InfoExtractor):
         object_str = fix_xml_ampersands(object_str)
 
         try:
-            object_doc = compat_etree_fromstring(object_str.encode())
+            object_doc = xml.etree.ElementTree.fromstring(object_str)
         except xml.etree.ElementTree.ParseError:
             return
 

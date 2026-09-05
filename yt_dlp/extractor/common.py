@@ -20,11 +20,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
 
-from ..compat import (
-    compat_etree_fromstring,
-    compat_expanduser,
-    urllib_req_to_req,
-)
+from ..compat import compat_expanduser, urllib_req_to_req
 from ..cookies import LenientSimpleCookie
 from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..downloader.hls import HlsFD
@@ -1075,7 +1071,7 @@ class InfoExtractor:
         if transform_source:
             xml_string = transform_source(xml_string)
         try:
-            return compat_etree_fromstring(xml_string.encode())
+            return xml.etree.ElementTree.fromstring(xml_string)
         except xml.etree.ElementTree.ParseError as ve:
             self.__print_error('Failed to parse XML' if errnote is None else errnote, fatal, video_id, ve)
 

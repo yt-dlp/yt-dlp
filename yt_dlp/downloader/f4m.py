@@ -4,9 +4,9 @@ import itertools
 import struct
 import time
 import urllib.parse
+import xml.etree.ElementTree
 
 from .fragment import FragmentFD
-from ..compat import compat_etree_fromstring
 from ..networking.exceptions import HTTPError
 from ..utils import fix_xml_ampersands, xpath_text
 
@@ -318,7 +318,7 @@ class F4mFD(FragmentFD):
         # and https://github.com/ytdl-org/youtube-dl/issues/7823)
         manifest = fix_xml_ampersands(urlh.read().decode('utf-8', 'ignore')).strip()
 
-        doc = compat_etree_fromstring(manifest)
+        doc = xml.etree.ElementTree.fromstring(manifest)
         formats = [(int(f.attrib.get('bitrate', -1)), f)
                    for f in self._get_unencrypted_media(doc)]
         if requested_bitrate is None or len(formats) == 1:
