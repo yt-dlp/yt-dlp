@@ -2715,10 +2715,6 @@ def merge_dicts(*dicts):
     return merged
 
 
-def encode_compat_str(string, encoding=preferredencoding(), errors='strict'):
-    return string if isinstance(string, str) else str(string, encoding, errors)
-
-
 US_RATINGS = {
     'G': 0,
     'PG': 10,

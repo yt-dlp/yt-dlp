@@ -6,6 +6,7 @@ import json
 import uuid
 import warnings
 
+from ._utils import preferredencoding
 from ..compat.compat_utils import passthrough_module
 
 # XXX: Implement this the same way as other DeprecationWarnings without circular import
@@ -65,6 +66,10 @@ def number_of_digits(number):
 
 def random_uuidv4():
     return str(uuid.uuid4())
+
+
+def encode_compat_str(string, encoding=preferredencoding(), errors='strict'):
+    return string if isinstance(string, str) else str(string, encoding, errors)
 
 
 compiled_regex_type = type(re.compile(''))
