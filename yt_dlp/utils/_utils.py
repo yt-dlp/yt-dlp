@@ -923,13 +923,6 @@ class Popen(subprocess.Popen):
             return stdout or default, stderr or default, proc.returncode
 
 
-def encodeArgument(s):
-    # Legacy code that uses byte strings
-    # Uncomment the following line after fixing all post processors
-    # assert isinstance(s, str), 'Internal error: %r should be of type %r, is %r' % (s, str, type(s))
-    return s if isinstance(s, str) else s.decode('ascii')
-
-
 _timetuple = collections.namedtuple('Time', ('hours', 'minutes', 'seconds', 'milliseconds'))
 
 
@@ -2176,7 +2169,7 @@ def _get_exe_version_output(exe, args, ignore_return_code=False):
         # STDIN should be redirected too. On UNIX-like systems, ffmpeg triggers
         # SIGTTOU if yt-dlp is run in the background.
         # See https://github.com/ytdl-org/youtube-dl/issues/955#issuecomment-209789656
-        stdout, _, ret = Popen.run([encodeArgument(exe), *args], text=True,
+        stdout, _, ret = Popen.run([exe, *args], text=True,
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         if not ignore_return_code and ret:
             return None

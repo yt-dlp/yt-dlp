@@ -22,7 +22,6 @@ from ..utils import (
     cli_option,
     cli_valueless_option,
     determine_ext,
-    encodeArgument,
     remove_end,
     traverse_obj,
     version_tuple,
@@ -141,7 +140,7 @@ class ExternalFD(FragmentFD):
 
     def _call_downloader(self, tmpfilename, info_dict):
         """ Either overwrite this or implement _make_cmd """
-        cmd = [encodeArgument(a) for a in self._make_cmd(tmpfilename, info_dict)]
+        cmd = list(self._make_cmd(tmpfilename, info_dict))
 
         self._debug_cmd(cmd)
 
@@ -552,7 +551,6 @@ class FFmpegFD(ExternalFD):
 
         args += self._configuration_args(('_o1', '_o', ''))
 
-        args = [encodeArgument(opt) for opt in args]
         args.append(ffpp._ffmpeg_filename_argument(tmpfilename))
         self._debug_cmd(args)
 
