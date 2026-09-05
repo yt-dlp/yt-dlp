@@ -1215,8 +1215,6 @@ class TwitterIE(TwitterBaseIE):
         title = truncate_string(re.sub(r'\s+(https?://[^ ]+)', '', title), left=72)
         user = status.get('user') or {}
         uploader = user.get('name')
-        if uploader:
-            title = f'{uploader} - {title}'
         uploader_id = user.get('screen_name')
 
         info = {
