@@ -155,7 +155,7 @@ class AluraCourseIE(AluraIE):  # XXX: Do not subclass from concrete IE
                         '_type': 'url_transparent',
                         'id': self._match_id(video_url),
                         'url': video_url,
-                        'id_key': self.ie_key(),
+                        'ie_key': self.ie_key(),
                         'chapter': chapter,
                         'chapter_number': chapter_number,
                     }

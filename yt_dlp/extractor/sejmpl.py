@@ -1,7 +1,6 @@
 import datetime as dt
 
 from .common import InfoExtractor
-from .redge import RedCDNLivxIE
 from ..utils import (
     clean_html,
     join_nonempty,
@@ -27,6 +26,7 @@ def rfc3339_to_atende(date):
 
 
 class SejmIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = (
         r'https?://(?:www\.)?sejm\.gov\.pl/[Ss]ejm(?P<term>\d+)\.nsf/transmisje(?:_arch)?\.xsp(?:\?[^#]*)?#(?P<id>[\dA-F]+)',
         r'https?://(?:www\.)?sejm\.gov\.pl/[Ss]ejm(?P<term>\d+)\.nsf/transmisje(?:_arch)?\.xsp\?(?:[^#]+&)?unid=(?P<id>[\dA-F]+)',
@@ -185,7 +185,7 @@ class SejmIE(InfoExtractor):
                 entries.append({
                     **common_info,
                     '_type': 'url_transparent',
-                    'ie_key': RedCDNLivxIE.ie_key(),
+                    'ie_key': 'redcdnlivx',
                     'id': stream_id,
                     'title': join_nonempty(title, stream_id, delim=' - '),
                 })

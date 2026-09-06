@@ -69,7 +69,7 @@ class LibsynIE(InfoExtractor):
 
         episode_title = data.get('item_title') or get_element_by_class('episode-title', webpage)
         if not episode_title:
-            self._search_regex(
+            episode_title = self._search_regex(
                 [r'data-title="([^"]+)"', r'<title>(.+?)</title>'],
                 webpage, 'episode title')
         episode_title = episode_title.strip()

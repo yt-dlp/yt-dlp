@@ -11,6 +11,7 @@ from ..utils import (
 
 
 class DigitallySpeakingIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:s?evt\.dispeak|events\.digitallyspeaking)\.com/(?:[^/]+/)+xml/(?P<id>[^.]+)\.xml'
 
     _TESTS = [{

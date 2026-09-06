@@ -17,6 +17,7 @@ from ..utils import (
     int_or_none,
     merge_dicts,
     orderedSet,
+    parse_qs,
     remove_quotes,
     remove_start,
     str_to_int,
@@ -30,6 +31,14 @@ from ..utils.traversal import find_elements, traverse_obj
 class PornHubBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'pornhub'
     _PORNHUB_HOST_RE = r'(?:(?P<host>pornhub(?:premium)?\.(?:com|net|org))|pornhubvybmsymdol4iibwgwtkpwmeyd6luq2gxajgjzfjvotyt5zhyd\.onion)'
+
+    @staticmethod
+    def _get_headers(host):
+        return {
+            # Origin & Referer are needed for manifest requests to avoid HTTP Errror 412
+            'Origin': f'https://www.{host}',
+            'Referer': f'https://www.{host}/',
+        }
 
     def _download_webpage_handle(self, *args, **kwargs):
         def dl(*args, **kwargs):
@@ -61,7 +70,7 @@ class PornHubBaseIE(InfoExtractor):
 
     def _set_age_cookies(self, host):
         self._set_cookie(host, 'age_verified', '1')
-        self._set_cookie(host, 'accessAgeDisclaimerPH', '1')
+        self._set_cookie(host, 'accessAgeDisclaimerPH', '1')  # site sets '2'
         self._set_cookie(host, 'accessAgeDisclaimerUK', '1')
         self._set_cookie(host, 'accessPH', '1')
 
@@ -83,7 +92,7 @@ class PornHubBaseIE(InfoExtractor):
 
         login_url = 'https://www.{}/{}login'.format(host, 'premium/' if 'premium' in host else '')
         login_page = self._download_webpage(
-            login_url, None, f'Downloading {site} login page')
+            login_url, None, f'Downloading {site} login page', impersonate=True)
 
         def is_logged(webpage):
             return any(re.search(p, webpage) for p in (
@@ -109,7 +118,7 @@ class PornHubBaseIE(InfoExtractor):
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 'Referer': login_url,
                 'X-Requested-With': 'XMLHttpRequest',
-            })
+            }, impersonate=True)
 
         if response.get('success') == '1':
             self._logged_in = True
@@ -279,9 +288,14 @@ class PornHubIE(PornHubBaseIE):
 
         def dl_webpage(platform):
             self._set_cookie(host, 'platform', platform)
-            return self._download_webpage(
+            webpage, urlh = self._download_webpage_handle(
                 f'https://www.{host}/view_video.php?viewkey={video_id}',
-                video_id, f'Downloading {platform} webpage')
+                video_id, f'Downloading {platform} webpage',
+                impersonate=True)
+            if parse_qs(urlh.url).get('viewkey', [None])[-1] != video_id:
+                raise ExtractorError(
+                    'Redirection detected; the video may be deleted or require login', expected=True)
+            return webpage
 
         webpage = dl_webpage('pc')
 
@@ -423,15 +437,16 @@ class PornHubIE(PornHubBaseIE):
         formats = []
 
         def add_format(format_url, height=None):
+            headers = self._get_headers(host)
             ext = determine_ext(format_url)
             if ext == 'mpd':
                 formats.extend(self._extract_mpd_formats(
-                    format_url, video_id, mpd_id='dash', fatal=False))
+                    format_url, video_id, mpd_id='dash', fatal=False, headers=headers))
                 return
             if ext == 'm3u8':
                 formats.extend(self._extract_m3u8_formats(
                     format_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                    m3u8_id='hls', fatal=False))
+                    m3u8_id='hls', fatal=False, headers=headers))
                 return
             if not height:
                 height = int_or_none(self._search_regex(
@@ -450,7 +465,7 @@ class PornHubIE(PornHubBaseIE):
                 if upload_date:
                     upload_date = upload_date.replace('/', '')
             if '/video/get_media' in video_url:
-                medias = self._download_json(video_url, video_id, fatal=False)
+                medias = self._download_json(video_url, video_id, fatal=False, impersonate=True)
                 if isinstance(medias, list):
                     for media in medias:
                         if not isinstance(media, dict):
@@ -506,7 +521,7 @@ class PornHubIE(PornHubBaseIE):
                 'cast': ({find_elements(attr='data-label', value='pornstar')}, ..., {clean_html}),
             }),
             'subtitles': subtitles,
-            'http_headers': {'Referer': f'https://www.{host}/'},
+            'http_headers': self._get_headers(host),
         }, info)
 
 
@@ -598,7 +613,7 @@ class PornHubPagedPlaylistBaseIE(PornHubPlaylistBaseIE):
         def download_page(base_url, num, fallback=False):
             note = 'Downloading page {}{}'.format(num, ' (switch to fallback)' if fallback else '')
             return self._download_webpage(
-                base_url, item_id, note, query={'page': num})
+                base_url, item_id, note, query={'page': num}, impersonate=True)
 
         def is_404(e):
             return isinstance(e.cause, HTTPError) and e.cause.status == 404
@@ -799,7 +814,7 @@ class PornHubPlaylistIE(PornHubPlaylistBaseIE):
                 'id': playlist_id,
                 'page': page_num,
                 'token': token,
-            })
+            }, impersonate=True)
 
         for page_num in range(1, page_count + 1):
             if page_num > 1:

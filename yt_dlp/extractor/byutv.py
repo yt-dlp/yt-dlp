@@ -88,7 +88,7 @@ class BYUtvIE(InfoExtractor):
                     'url': video_url,
                     'format_id': format_id,
                 })
-            merge_dicts(info, {
+            info = merge_dicts(info, {
                 'title': ep.get('title'),
                 'description': ep.get('description'),
                 'thumbnail': ep.get('imageThumbnail'),
