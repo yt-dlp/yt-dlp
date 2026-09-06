@@ -36,16 +36,33 @@ class ZoomIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Prépa AF2023 - Séance 5 du 11 avril - R20/VM/GO',
         },
-    }, {
-        # share URL
-        'url': 'https://us02web.zoom.us/rec/share/hkUk5Zxcga0nkyNGhVCRfzkA2gX_mzgS3LpTxEEWJz9Y_QpIQ4mZFOUx7KZRZDQA.9LGQBdqmDAYgiZ_8',
-        'md5': '90fdc7cfcaee5d52d1c817fc03c43c9b',
-        'info_dict': {
-            'id': 'hkUk5Zxcga0nkyNGhVCRfzkA2gX_mzgS3LpTxEEWJz9Y_QpIQ4mZFOUx7KZRZDQA.9LGQBdqmDAYgiZ_8',
-            'ext': 'mp4',
-            'title': 'Timea Andrea Lelik\'s Personal Meeting Room',
-        },
         'skip': 'This recording has expired',
+    }, {
+        # share URL with password
+        'url': 'https://zoom.us/rec/share/BfYDK9KwcqUVsp_szMpkywfiLfllnzdikJ_09vgiWFnbvHsZK4sbydbYCpQ_yFwY.YW8AHjTIrFV48zhK',
+        'md5': '957699fc702ea07b8399803caeb8c66c',
+        'info_dict': {
+            'id': 'BfYDK9KwcqUVsp_szMpkywfiLfllnzdikJ_09vgiWFnbvHsZK4sbydbYCpQ_yFwY.YW8AHjTIrFV48zhK',
+            'ext': 'mp4',
+            'title': 'yt-dlp test meeting',
+            'duration': 21,
+        },
+        'params': {
+            'videopassword': 'yt-dlp-2026',
+        },
+    }, {
+        # play URL with password
+        'url': 'https://us02web.zoom.us/rec/play/x32Pf03n6zWUsEIQ00ocSanVsGL81WcRlG3RRtxyGyrhiBY4eIEHbc80D-3nG5FeK9tib6t4OVT7EFjh.IKIi0NuqvQZvNpzf',
+        'md5': '957699fc702ea07b8399803caeb8c66c',
+        'info_dict': {
+            'id': 'x32Pf03n6zWUsEIQ00ocSanVsGL81WcRlG3RRtxyGyrhiBY4eIEHbc80D-3nG5FeK9tib6t4OVT7EFjh.IKIi0NuqvQZvNpzf',
+            'ext': 'mp4',
+            'title': 'yt-dlp test meeting',
+            'duration': 21,
+        },
+        'params': {
+            'videopassword': 'yt-dlp-2026',
+        },
     }, {
         # view_with_share URL
         'url': 'https://cityofdetroit.zoom.us/rec/share/VjE-5kW3xmgbEYqR5KzRgZ1OFZvtMtiXk5HyRJo5kK4m5PYE6RF4rF_oiiO_9qaM.UTAg1MI7JSnF3ZjX',
@@ -56,60 +73,144 @@ class ZoomIE(InfoExtractor):
             'title': 'February 2022 Detroit Revenue Estimating Conference',
             'duration': 7299,
             'formats': 'mincount:3',
+            'subtitles': 'mincount:2',
         },
+    }, {
+        # play URL without password
+        'url': 'https://zoom.us/rec/play/PwINh_436YaRUJvmttj4sR0ChhoTkSCtSsmc1XdmlecrfT_YyzKpbAi2Ne0z-9eYqpvKEtB6qiuPhBeZ.TgTGV-F5AebxsiCh',
+        'md5': 'a8ac4cb7b9a1940ed6207670a6682e26',
+        'info_dict': {
+            'id': 'PwINh_436YaRUJvmttj4sR0ChhoTkSCtSsmc1XdmlecrfT_YyzKpbAi2Ne0z-9eYqpvKEtB6qiuPhBeZ.TgTGV-F5AebxsiCh',
+            'ext': 'mp4',
+            'title': 'yt-dlp test meeting 2',
+            'duration': 17,
+        },
+    }, {
+        # recording URL spelling
+        'url': 'https://zoom.us/recording/share/BfYDK9KwcqUVsp_szMpkywfiLfllnzdikJ_09vgiWFnbvHsZK4sbydbYCpQ_yFwY.YW8AHjTIrFV48zhK',
+        'only_matching': True,
     }]
 
     def _get_page_data(self, webpage, video_id):
         return self._search_json(
             r'window\.__data__\s*=', webpage, 'data', video_id, transform_source=js_to_json)
 
-    def _get_real_webpage(self, url, base_url, video_id, url_type):
-        webpage = self._download_webpage(url, video_id, note=f'Downloading {url_type} webpage')
-        try:
-            form = self._form_hidden_inputs('password_form', webpage)
-        except ExtractorError:
-            return webpage
-
+    def _validate_password(self, base_url, video_id, endpoint_type, validation_id, action):
         password = self.get_param('videopassword')
         if not password:
             raise ExtractorError(
                 'This video is protected by a passcode, use the --video-password option', expected=True)
-        is_meeting = form.get('useWhichPasswd') == 'meeting'
+
         validation = self._download_json(
-            base_url + 'rec/validate%s_passwd' % ('_meet' if is_meeting else ''),
-            video_id, 'Validating passcode', 'Wrong passcode', data=urlencode_postdata({
-                'id': form[('meet' if is_meeting else 'file') + 'Id'],
+            f'{base_url}nws/recording/1.0/validate-{endpoint_type or "meeting"}-passwd', video_id,
+            note='Validating passcode', errnote='Wrong passcode',
+            data=urlencode_postdata({
+                'id': validation_id,
                 'passwd': password,
-                'action': form.get('action'),
+                'action': action or 'viewdetailpage',
             }))
+
         if not validation.get('status'):
-            raise ExtractorError(validation['errorMessage'], expected=True)
-        return self._download_webpage(url, video_id, note=f'Re-downloading {url_type} webpage')
+            raise ExtractorError(validation.get('errorMessage') or 'Wrong passcode', expected=True)
+
+    def _check_component_error(self, result):
+        component_name = result.get('componentName')
+        if component_name:
+            message = result.get('message')
+            if component_name == 'vanity-url-check' and not message:
+                message = 'Recording requires email authentication to access'
+            raise ExtractorError(message or f'Zoom returned: {component_name}', expected=True)
 
     def _real_extract(self, url):
         base_url, url_type, video_id = self._match_valid_url(url).group('base_url', 'type', 'id')
-        query = {}
+        is_share = url_type == 'share'
         start_params = traverse_obj(url, {'startTime': ({parse_qs}, 'startTime', -1)})
+        share_data = {}
 
-        if url_type == 'share':
-            webpage = self._get_real_webpage(url, base_url, video_id, 'share')
-            meeting_id = self._get_page_data(webpage, video_id)['meetingId']
-            redirect_path = self._download_json(
-                f'{base_url}nws/recording/1.0/play/share-info/{meeting_id}',
-                video_id, note='Downloading share info JSON')['result']['redirectUrl']
-            url = update_url_query(urljoin(base_url, redirect_path), start_params)
-            query['continueMode'] = 'true'
+        webpage = self._download_webpage(url, video_id, note=f'Downloading {url_type} webpage')
+        data = self._get_page_data(webpage, video_id)
 
-        webpage = self._get_real_webpage(url, base_url, video_id, 'play')
-        file_id = self._get_page_data(webpage, video_id)['fileId']
+        if is_share:
+            share_data = data
+            meeting_id = data.get('meetingId')
+
+            if meeting_id:
+                share_info = self._download_json(
+                    f'{base_url}nws/recording/1.0/play/share-info/{meeting_id}', video_id,
+                    note='Downloading share info JSON',
+                    query={'originDomain': base_url.rstrip('/'), 'accessLevel': 'meeting'},
+                    fatal=False) or {}
+
+                result = share_info.get('result') or {}
+
+                if result.get('componentName') == 'need-password':
+                    self._validate_password(
+                        base_url, video_id, result.get('useWhichPasswd'),
+                        result.get('meetingId') or meeting_id, result.get('action'))
+
+                    # Authenticated, re-fetch the share-info payload to get real media data
+                    share_info = self._download_json(
+                        f'{base_url}nws/recording/1.0/play/share-info/{meeting_id}', video_id,
+                        note='Downloading share info JSON (authenticated)',
+                        query={'originDomain': base_url.rstrip('/'), 'accessLevel': 'meeting'},
+                        fatal=False) or {}
+                    result = share_info.get('result') or {}
+
+                share_data = result or share_data
+                redirect_path = result.get('redirectUrl')
+
+                if redirect_path:
+                    redirect_url = urljoin(base_url, redirect_path)
+                    parsed_url = self._match_valid_url(redirect_url)
+                    if parsed_url:
+                        url = update_url_query(redirect_url, start_params)
+                        base_url, url_type = parsed_url.group('base_url', 'type')
+                        # Do not overwrite video_id here, preserving the original share ID
+                        webpage = self._download_webpage(url, video_id, note=f'Downloading {url_type} webpage')
+                        data = self._get_page_data(webpage, video_id)
+                    else:
+                        self._check_component_error(result)
+
+        file_id = data.get('fileId') or share_data.get('fileId')
+
+        # When things go wrong, file_id can be empty string
         if not file_id:
-            # When things go wrong, file_id can be empty string
             raise ExtractorError('Unable to extract file ID')
 
-        query.update(start_params)
-        data = self._download_json(
-            f'{base_url}nws/recording/1.0/play/info/{file_id}', video_id, query=query,
-            note='Downloading play info JSON')['result']
+        query = start_params.copy()
+        if is_share:
+            query['continueMode'] = 'true'
+
+        play_info_response = self._download_json(
+            f'{base_url}nws/recording/1.0/play/info/{file_id}', video_id,
+            query=query, note='Downloading play info JSON')
+
+        # Detect the API-side password wall or unplayable component states
+        play_result = traverse_obj(play_info_response, ('result', {dict})) or {}
+        if play_result.get('componentName') == 'need-password':
+            validation_id = (
+                play_result.get('meetingId')
+                or play_result.get('fileId')
+                or data.get('meetingId')
+                or data.get('fileId')
+                or video_id)
+            endpoint_type = play_result.get('useWhichPasswd') or data.get('useWhichPasswd')
+            action = play_result.get('action') or data.get('action')
+
+            self._validate_password(base_url, video_id, endpoint_type, validation_id, action)
+
+            play_info_response = self._download_json(
+                f'{base_url}nws/recording/1.0/play/info/{file_id}', video_id,
+                query=query, note='Downloading play info JSON (authenticated)')
+            play_result = traverse_obj(play_info_response, ('result', {dict})) or {}
+
+        # Handle non-playable states by surfacing Zoom's human-readable message
+        self._check_component_error(play_result)
+
+        if play_info_response and play_info_response.get('errorMessage'):
+            raise ExtractorError(play_info_response['errorMessage'], expected=True)
+
+        data = play_result
 
         subtitles = {}
         for _type in ('transcript', 'cc', 'chapter'):
