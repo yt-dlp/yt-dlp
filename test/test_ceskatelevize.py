@@ -107,6 +107,30 @@ class TestCeskaTelevizeIE(unittest.TestCase):
         self.assertIsNone(result['thumbnail'])
         self.assertEqual(result['subtitles'], {})
 
+    def test_unescapes_api_urls(self):
+        api_data = {'response': 'escaped URLs'}
+        expected_stream_url = 'https://media.example.com/video.mpd?token=abc'
+        expected_subtitle_url = 'https://media.example.com/subtitles.vtt'
+        escaped_json = (
+            r'{"streamUrl":"https:\/\/media.example.com\/video.mpd?token=abc",'
+            r'"subtitleUrl":"https:\/\/media.example.com\/subtitles.vtt"}')
+
+        with (
+            mock.patch.object(self.ie, '_download_webpage', return_value=self.WEBPAGE),
+            mock.patch.object(self.ie, '_download_json', return_value=api_data),
+            mock.patch('yt_dlp.extractor.ceskatelevize.json.dumps', return_value=escaped_json),
+            mock.patch.object(
+                self.ie, '_extract_mpd_formats_and_subtitles',
+                return_value=([], {}),
+            ) as extract_mpd,
+        ):
+            result = self.ie._real_extract(self.URL)
+
+        self.assertEqual(extract_mpd.call_args.args[0], expected_stream_url)
+        self.assertEqual(result['subtitles'], {
+            'cs': [{'url': expected_subtitle_url, 'ext': 'vtt'}],
+        })
+
 
 if __name__ == '__main__':
     unittest.main()
