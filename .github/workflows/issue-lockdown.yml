@@ -5,9 +5,12 @@ on:
 
 permissions: {}
 
+env:
+  GH_TELEMETRY: "false"
+
 jobs:
   lockdown:
-    name: Issue Lockdown
+    name: Issue lockdown
     if: vars.ISSUE_LOCKDOWN
     permissions:
       issues: write  # Needed to lock issues
@@ -19,4 +22,4 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           REPOSITORY: ${{ github.repository }}
         run: |
-          gh issue lock "${ISSUE_NUMBER}" -R "${REPOSITORY}"
+          gh issue lock -R "${REPOSITORY}" "${ISSUE_NUMBER}"

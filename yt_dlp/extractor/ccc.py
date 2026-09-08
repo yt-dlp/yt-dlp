@@ -18,23 +18,41 @@ class CCCIE(InfoExtractor):
             'id': '1839',
             'ext': 'mp4',
             'title': 'Introduction to Processor Design',
-            'creator': 'byterazor',
+            'creators': ['byterazor'],
             'description': 'md5:df55f6d073d4ceae55aae6f2fd98a0ac',
             'thumbnail': r're:^https?://.*\.jpg$',
             'upload_date': '20131228',
             'timestamp': 1388188800,
             'duration': 3710,
             'tags': list,
+            'display_id': '30C3_-_5443_-_en_-_saal_g_-_201312281830_-_introduction_to_processor_design_-_byterazor',
+            'view_count': int,
         },
     }, {
         'url': 'https://media.ccc.de/v/32c3-7368-shopshifting#download',
         'only_matching': True,
+    }, {
+        'url': 'https://media.ccc.de/v/39c3-schlechte-karten-it-sicherheit-im-jahr-null-der-epa-fur-alle',
+        'info_dict': {
+            'id': '16261',
+            'ext': 'mp4',
+            'title': 'Schlechte Karten - IT-Sicherheit im Jahr null der ePA für alle',
+            'display_id': '39c3-schlechte-karten-it-sicherheit-im-jahr-null-der-epa-fur-alle',
+            'description': 'md5:719a5a9a52630249d606219c55056cbf',
+            'view_count': int,
+            'duration': 3619,
+            'thumbnail': 'https://static.media.ccc.de/media/congress/2025/2403-2b5a6a8e-327e-594d-8f92-b91201d18a02.jpg',
+            'tags': list,
+            'creators': ['Bianca Kastl'],
+            'timestamp': 1767024900,
+            'upload_date': '20251229',
+        },
     }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        event_id = self._search_regex(r"data-id='(\d+)'", webpage, 'event id')
+        event_id = self._search_regex(r"data-id=(['\"])(?P<event_id>\d+)\1", webpage, 'event id', group='event_id')
         event_data = self._download_json(f'https://media.ccc.de/public/events/{event_id}', event_id)
 
         formats = []

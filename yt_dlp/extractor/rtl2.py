@@ -5,6 +5,7 @@ from ..utils import int_or_none
 
 
 class RTL2IE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'rtl2'
     _VALID_URL = r'https?://(?:www\.)?rtl2\.de/sendung/[^/]+/(?:video/(?P<vico_id>\d+)[^/]+/(?P<vivi_id>\d+)-|folge/)(?P<id>[^/?#]+)'
     _TESTS = [{

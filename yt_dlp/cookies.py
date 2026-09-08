@@ -177,7 +177,7 @@ def _extract_firefox_cookies(profile, container, logger):
             elif container == 'none':
                 logger.debug('Only loading cookies not belonging to any container')
                 cursor.execute(
-                    'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE NOT INSTR(originAttributes,"userContextId=")')
+                    "SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE NOT INSTR(originAttributes,'userContextId=')")
             else:
                 cursor.execute('SELECT host, name, value, path, expiry, isSecure FROM moz_cookies')
             jar = YoutubeDLCookieJar()
@@ -330,7 +330,7 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
 
             # meta_version is necessary to determine if we need to trim the hash prefix from the cookies
             # Ref: https://chromium.googlesource.com/chromium/src/+/b02dcebd7cafab92770734dc2bc317bd07f1d891/net/extras/sqlite/sqlite_persistent_cookie_store.cc#223
-            meta_version = int(cursor.execute('SELECT value FROM meta WHERE key = "version"').fetchone()[0])
+            meta_version = int(cursor.execute("SELECT value FROM meta WHERE key = 'version'").fetchone()[0])
             decryptor = get_cookie_decryptor(
                 config['browser_dir'], config['keyring_name'], logger,
                 keyring=keyring, meta_version=meta_version)
@@ -1173,6 +1173,7 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
     # We use Morsel's legal key chars to avoid errors on setting values
     _LEGAL_KEY_CHARS = r'\w\d' + re.escape('!#$%&\'*+-.:^_`|~')
     _LEGAL_VALUE_CHARS = _LEGAL_KEY_CHARS + re.escape('(),/<=>?@[]{}')
+    _LEGAL_KEY_RE = re.compile(rf'[{_LEGAL_KEY_CHARS}]+', re.ASCII)
 
     _RESERVED = {
         'expires',
@@ -1190,17 +1191,17 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
 
     # Added 'bad' group to catch the remaining value
     _COOKIE_PATTERN = re.compile(r'''
-        \s*                            # Optional whitespace at start of cookie
+        [ ]*                           # Optional whitespace at start of cookie
         (?P<key>                       # Start of group 'key'
-        [''' + _LEGAL_KEY_CHARS + r''']+?# Any word of at least one letter
+        [^ =;]+                        # Match almost anything here for now and validate later
         )                              # End of group 'key'
         (                              # Optional group: there may not be a value.
-        \s*=\s*                          # Equal Sign
+        [ ]*=[ ]*                        # Equal Sign
         (                                # Start of potential value
         (?P<val>                           # Start of group 'val'
         "(?:[^\\"]|\\.)*"                    # Any doublequoted string
         |                                    # or
-        \w{3},\s[\w\d\s-]{9,11}\s[\d:]{8}\sGMT # Special case for "expires" attr
+        \w{3},\ [\w\d -]{9,11}\ [\d:]{8}\ GMT  # Special case for "expires" attr
         |                                    # or
         [''' + _LEGAL_VALUE_CHARS + r''']*     # Any word or empty string
         )                                  # End of group 'val'
@@ -1208,9 +1209,13 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
         (?P<bad>(?:\\;|[^;])*?)            # 'bad' group fallback for invalid values
         )                                # End of potential value
         )?                             # End of optional value group
-        \s*                            # Any number of spaces.
-        (\s+|;|$)                      # Ending either at space, semicolon, or EOS.
+        [ ]*                            # Any number of spaces.
+        ([ ]+|;|$)                      # Ending either at space, semicolon, or EOS.
         ''', re.ASCII | re.VERBOSE)
+
+    # http.cookies.Morsel raises on values w/ control characters in Python 3.14.3+ & 3.13.12+
+    # Ref: https://github.com/python/cpython/issues/143919
+    _CONTROL_CHARACTER_RE = re.compile(r'[\x00-\x1F\x7F]')
 
     def load(self, data):
         # Workaround for https://github.com/yt-dlp/yt-dlp/issues/4776
@@ -1224,6 +1229,9 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
                 continue
 
             key, value = match.group('key', 'val')
+            if not self._LEGAL_KEY_RE.fullmatch(key):
+                morsel = None
+                continue
 
             is_attribute = False
             if key.startswith('$'):
@@ -1242,6 +1250,14 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
                     value = True
                 else:
                     value, _ = self.value_decode(value)
+                    # Guard against control characters in quoted attribute values
+                    if self._CONTROL_CHARACTER_RE.search(value):
+                        # While discarding the entire morsel is not very lenient,
+                        # it's better than http.cookies.Morsel raising a CookieError
+                        # and it's probably better to err on the side of caution
+                        self.pop(morsel.key, None)
+                        morsel = None
+                        continue
 
                 morsel[key] = value
 
@@ -1251,6 +1267,10 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
             elif value is not None:
                 morsel = self.get(key, http.cookies.Morsel())
                 real_value, coded_value = self.value_decode(value)
+                # Guard against control characters in quoted cookie values
+                if self._CONTROL_CHARACTER_RE.search(real_value):
+                    morsel = None
+                    continue
                 morsel.set(key, real_value, coded_value)
                 self[key] = morsel
 

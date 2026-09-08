@@ -1,7 +1,7 @@
 import base64
 import urllib.parse
 
-from .bokecc import BokeCCBaseIE
+from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -10,7 +10,7 @@ from ..utils import (
 )
 
 
-class InfoQIE(BokeCCBaseIE):
+class InfoQIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?infoq\.com/(?:[^/]+/)+(?P<id>[^/]+)'
 
     _TESTS = [{
@@ -117,14 +117,10 @@ class InfoQIE(BokeCCBaseIE):
         video_title = self._html_extract_title(webpage)
         video_description = self._html_search_meta('description', webpage, 'description')
 
-        if '/cn/' in url:
-            # for China videos, HTTP video URL exists but always fails with 403
-            formats = self._extract_bokecc_formats(webpage, video_id)
-        else:
-            formats = (
-                self._extract_rtmp_video(webpage)
-                + self._extract_http_video(webpage)
-                + self._extract_http_audio(webpage, video_id))
+        formats = (
+            self._extract_rtmp_video(webpage)
+            + self._extract_http_video(webpage)
+            + self._extract_http_audio(webpage, video_id))
 
         return {
             'id': video_id,

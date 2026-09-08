@@ -94,7 +94,7 @@ class SonyLIVIE(InfoExtractor):
                 'mobileNumber': username,
                 'channelPartnerID': 'MSMIND',
                 'country': 'IN',
-                'timestamp': dt.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%MZ'),
+                'timestamp': dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
                 'otpSize': 6,
                 'loginType': 'REGISTERORSIGNIN',
                 'isMobileMandatory': True,
@@ -111,7 +111,7 @@ class SonyLIVIE(InfoExtractor):
                 'otp': self._get_tfa_info('OTP'),
                 'dmaId': 'IN',
                 'ageConfirmation': True,
-                'timestamp': dt.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%MZ'),
+                'timestamp': dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
                 'isMobileMandatory': True,
             }).encode())
         if otp_verify_json['resultCode'] == 'KO':

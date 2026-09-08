@@ -39,7 +39,7 @@ def _extract_episode(data, episode_id=None):
     return {
         'id': str(episode_id or data['episode_id']),
         'url': download_url,
-        'display_id': data.get('permalink'),
+        'display_id': str_or_none(data.get('permalink')),
         'title': title,
         'description': data.get('description'),
         'timestamp': unified_timestamp(data.get('published_at')),

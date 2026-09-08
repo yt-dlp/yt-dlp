@@ -9,6 +9,10 @@ rules:
   obfuscation:
     ignore:
       - release.yml  # Not actual obfuscation
+  secrets-outside-env:
+    ignore:
+      - build.yml
+      - release.yml
   unpinned-uses:
     config:
       policies:

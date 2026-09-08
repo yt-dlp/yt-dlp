@@ -293,7 +293,7 @@ def aes_decrypt_text(data, password, key_size_bytes):
     - Mode of operation is 'counter'
 
     @param {str} data                    Base64 encoded string
-    @param {str,unicode} password        Password (will be encoded with utf-8)
+    @param {str} password                Password (will be encoded with UTF-8)
     @param {int} key_size_bytes          Possible values: 16 for 128-Bit, 24 for 192-Bit or 32 for 256-Bit
     @returns {str}                       Decrypted data
     """

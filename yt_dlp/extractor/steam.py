@@ -8,15 +8,12 @@ from ..utils import (
     extract_attributes,
     join_nonempty,
     js_to_json,
+    parse_resolution,
     str_or_none,
+    url_basename,
     url_or_none,
 )
-from ..utils.traversal import (
-    find_element,
-    find_elements,
-    traverse_obj,
-    trim_str,
-)
+from ..utils.traversal import find_element, traverse_obj
 
 
 class SteamIE(InfoExtractor):
@@ -27,7 +24,7 @@ class SteamIE(InfoExtractor):
             'id': '105600',
             'title': 'Terraria',
         },
-        'playlist_mincount': 3,
+        'playlist_mincount': 5,
     }, {
         'url': 'https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/',
         'info_dict': {
@@ -37,6 +34,39 @@ class SteamIE(InfoExtractor):
         'playlist_mincount': 26,
     }]
 
+    def _entries(self, app_id, app_name, data_props):
+        for trailer in traverse_obj(data_props, (
+            'trailers', lambda _, v: str_or_none(v['id']),
+        )):
+            movie_id = str_or_none(trailer['id'])
+
+            thumbnails = []
+            for thumbnail_url in traverse_obj(trailer, (
+                ('poster', 'thumbnail'), {url_or_none},
+            )):
+                thumbnails.append({
+                    'url': thumbnail_url,
+                    **parse_resolution(url_basename(thumbnail_url)),
+                })
+
+            formats = []
+            if hls_manifest := traverse_obj(trailer, ('hlsManifest', {url_or_none})):
+                formats.extend(self._extract_m3u8_formats(
+                    hls_manifest, app_id, 'mp4', m3u8_id='hls', fatal=False))
+            for dash_manifest in traverse_obj(trailer, ('dashManifests', ..., {url_or_none})):
+                formats.extend(self._extract_mpd_formats(
+                    dash_manifest, app_id, mpd_id='dash', fatal=False))
+            self._remove_duplicate_formats(formats)
+
+            yield {
+                'id': join_nonempty(app_id, movie_id),
+                'title': join_nonempty(app_name, 'video', movie_id, delim=' '),
+                'formats': formats,
+                'series': app_name,
+                'series_id': app_id,
+                'thumbnails': thumbnails,
+            }
+
     def _real_extract(self, url):
         app_id = self._match_id(url)
 
@@ -45,32 +75,13 @@ class SteamIE(InfoExtractor):
         self._set_cookie('store.steampowered.com', 'lastagecheckage', '1-January-2000')
 
         webpage = self._download_webpage(url, app_id)
-        app_name = traverse_obj(webpage, ({find_element(cls='apphub_AppName')}, {clean_html}))
+        data_props = traverse_obj(webpage, (
+            {find_element(cls='gamehighlight_desktopcarousel', html=True)},
+            {extract_attributes}, 'data-props', {json.loads}, {dict}))
+        app_name = traverse_obj(data_props, ('appName', {clean_html}))
 
-        entries = []
-        for data_prop in traverse_obj(webpage, (
-            {find_elements(cls='highlight_player_item highlight_movie', html=True)},
-            ..., {extract_attributes}, 'data-props', {json.loads}, {dict},
-        )):
-            formats = []
-            if hls_manifest := traverse_obj(data_prop, ('hlsManifest', {url_or_none})):
-                formats.extend(self._extract_m3u8_formats(
-                    hls_manifest, app_id, 'mp4', m3u8_id='hls', fatal=False))
-            for dash_manifest in traverse_obj(data_prop, ('dashManifests', ..., {url_or_none})):
-                formats.extend(self._extract_mpd_formats(
-                    dash_manifest, app_id, mpd_id='dash', fatal=False))
-
-            movie_id = traverse_obj(data_prop, ('id', {trim_str(start='highlight_movie_')}))
-            entries.append({
-                'id': movie_id,
-                'title': join_nonempty(app_name, 'video', movie_id, delim=' '),
-                'formats': formats,
-                'series': app_name,
-                'series_id': app_id,
-                'thumbnail': traverse_obj(data_prop, ('screenshot', {url_or_none})),
-            })
-
-        return self.playlist_result(entries, app_id, app_name)
+        return self.playlist_result(
+            self._entries(app_id, app_name, data_props), app_id, app_name)
 
 
 class SteamCommunityIE(InfoExtractor):
