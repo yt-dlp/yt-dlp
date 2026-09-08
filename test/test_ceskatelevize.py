@@ -156,6 +156,33 @@ class TestCeskaTelevizeIE(unittest.TestCase):
         self.assertEqual(result['formats'], [{'format_id': 'dash'}])
         self.assertEqual(result['subtitles'], {})
 
+    def test_selects_mpd_url_and_preserves_existing_cs_subtitles(self):
+        api_data = {
+            'thumbnail': 'https://media.example.com/poster.jpg',
+            'stream': 'https://media.example.com/video.mpd',
+            'subtitle': 'https://media.example.com/direct.vtt',
+        }
+        extracted_subtitles = {
+            'cs': [{'url': 'https://media.example.com/manifest-cs.vtt'}],
+        }
+
+        with (
+            mock.patch.object(self.ie, '_download_webpage', return_value=self.WEBPAGE),
+            mock.patch.object(self.ie, '_download_json', return_value=api_data),
+            mock.patch.object(
+                self.ie, '_extract_mpd_formats_and_subtitles',
+                return_value=([], extracted_subtitles),
+            ) as extract_mpd,
+        ):
+            result = self.ie._real_extract(self.URL)
+
+        extract_mpd.assert_called_once_with(
+            'https://media.example.com/video.mpd', '567890', mpd_id='dash', fatal=False)
+        self.assertEqual(result['subtitles']['cs'], [
+            {'url': 'https://media.example.com/manifest-cs.vtt'},
+            {'url': 'https://media.example.com/direct.vtt', 'ext': 'vtt'},
+        ])
+
 
 if __name__ == '__main__':
     unittest.main()
