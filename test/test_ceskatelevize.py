@@ -31,6 +31,7 @@ class TestCeskaTelevizeIE(unittest.TestCase):
 
     def test_url_matching(self):
         self.assertTrue(self.ie.suitable(self.URL))
+        self.assertTrue(self.ie.suitable('http://ceskatelevize.cz/porady/1234-test-show/567890'))
         self.assertFalse(self.ie.suitable('https://www.ceskatelevize.cz/porady/1234-test-show'))
 
     @mock.patch('yt_dlp.extractor.ceskatelevize.uuid.uuid4', return_value='test-device-id')
@@ -60,7 +61,13 @@ class TestCeskaTelevizeIE(unittest.TestCase):
         download_json.assert_called_once()
         api_url = download_json.call_args.args[0]
         self.assertIn('/media/external/567890?', api_url)
+        self.assertIn('canPlayDrm=true', api_url)
+        self.assertIn('quality=web', api_url)
+        self.assertIn('streamType=dash', api_url)
         self.assertIn('deviceId=test-device-id', api_url)
+        self.assertIn('origin=ivysilani', api_url)
+        self.assertIn('client=iVysilaniWeb', api_url)
+        self.assertIn('clientVersion=0.37.8', api_url)
         self.assertEqual(download_json.call_args.kwargs['headers'], {
             'Accept': 'application/json',
             'User-Agent': 'Mozilla/5.0',
@@ -130,6 +137,24 @@ class TestCeskaTelevizeIE(unittest.TestCase):
         self.assertEqual(result['subtitles'], {
             'cs': [{'url': expected_subtitle_url, 'ext': 'vtt'}],
         })
+
+    @mock.patch('yt_dlp.extractor.ceskatelevize.uuid.uuid4', return_value='test-device-id')
+    def test_defaults_title_to_video_id(self, _uuid4):
+        api_data = {'stream': 'https://media.example.com/video.mpd?token=abc'}
+
+        with (
+            mock.patch.object(self.ie, '_download_webpage', return_value='<html></html>'),
+            mock.patch.object(self.ie, '_download_json', return_value=api_data),
+            mock.patch.object(
+                self.ie, '_extract_mpd_formats_and_subtitles',
+                return_value=([{'format_id': 'dash'}], {}),
+            ),
+        ):
+            result = self.ie._real_extract(self.URL)
+
+        self.assertEqual(result['title'], '567890')
+        self.assertEqual(result['formats'], [{'format_id': 'dash'}])
+        self.assertEqual(result['subtitles'], {})
 
 
 if __name__ == '__main__':
