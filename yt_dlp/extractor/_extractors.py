@@ -882,6 +882,11 @@ from .kika import (
     KikaPlaylistIE,
 )
 from .kinopoisk import KinoPoiskIE
+from .knowledgeca import (
+    KnowledgeCACollectionIE,
+    KnowledgeCAIE,
+    KnowledgeCAProgramIE,
+)
 from .kommunetv import KommunetvIE
 from .kompas import KompasVideoIE
 from .krasview import KrasViewIE
