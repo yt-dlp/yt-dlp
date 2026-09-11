@@ -225,6 +225,7 @@ INNERTUBE_CLIENTS = {
     # "Made for kids" videos aren't available with this client
     # Using a clientVersion>1.65 may return SABR streams only
     # Since 2026.07, intermittent/selective POT enforcement has been observed for non-HLS formats
+    # Since 2026.08.17, ALL formats (including live HLS and itag 18) are 403'd with version 1.65.10
     'android_vr': {
         'INNERTUBE_CONTEXT': {
             'client': {

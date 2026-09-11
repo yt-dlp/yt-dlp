@@ -4,8 +4,8 @@ on:
     branches: ['master']
     paths:
       - pyproject.toml
-      - .github/**
-      - devscripts/**
+      - .github/workflows/core.yml
+      - devscripts/run_tests.py
       - test/**
       - yt_dlp/**.py
       - '!yt_dlp/extractor/**.py'
@@ -17,8 +17,8 @@ on:
     branches: ['**']
     paths:
       - pyproject.toml
-      - .github/**
-      - devscripts/**
+      - .github/workflows/core.yml
+      - devscripts/run_tests.py
       - test/**
       - yt_dlp/**.py
       - '!yt_dlp/extractor/**.py'
@@ -43,37 +43,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        # CPython 3.10 is in quick-test
+        os: [ubuntu-latest, windows-latest]
+        # Linux CPython 3.10 is covered by quick-test.yml
         python-version: ['3.11', '3.12', '3.13', '3.14', '3.15', pypy-3.11]
         include:
-        # atleast one of each CPython/PyPy tests must be in windows
         - os: windows-latest
           python-version: '3.10'
-        - os: windows-latest
-          python-version: '3.11'
-        - os: windows-latest
-          python-version: '3.12'
-        - os: windows-latest
-          python-version: '3.13'
-        - os: windows-latest
-          python-version: '3.14'
-        - os: windows-latest
-          python-version: '3.15'
-        - os: windows-latest
-          python-version: pypy-3.11
 
     steps:
-    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       with:
         fetch-depth: 0
         persist-credentials: false
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
       with:
         python-version: ${{ matrix.python-version }}
         allow-prereleases: true
+        check-latest: true
 
     - name: Install test requirements (cpython)
       if: ${{ !startsWith(matrix.python-version, 'pypy') }}
