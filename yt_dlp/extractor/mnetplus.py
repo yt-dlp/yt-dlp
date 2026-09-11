@@ -1,3 +1,5 @@
+import re
+
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -31,6 +33,36 @@ class MnetPlusBaseIE(InfoExtractor):
                 cookie_name = value.split('=')[0]
                 cookie_value = value.split('=', 1)[1]
                 self._set_cookie(video_domain, cookie_name, cookie_value)
+
+    def _extract_higher_res_fallbacks(self, formats, video_id, resolutions):
+        # The master m3u8 is capped for non-premium accounts,
+        #  but the higher resolutions might still be available with free cookies
+        #  by just substituting the higher resolutions in the url
+
+        # pick a video variant
+        a_video_format_with_height = traverse_obj(
+            formats, (lambda _, f: f.get('vcodec') != 'none' and f.get('height'), any))
+        if not a_video_format_with_height:
+            return []
+
+        existing_resolutions = [f.get('height') for f in formats]
+        extra_resolutions = [r for r in resolutions if r not in existing_resolutions]
+        extra = []
+
+        for res in extra_resolutions:
+            guess, replaced = re.subn(
+                rf'(?<!\d){a_video_format_with_height["height"]}(?!\d)', str(res),
+                a_video_format_with_height['url'])
+            if not replaced:
+                continue
+            more, _ = self._extract_m3u8_formats_and_subtitles(
+                guess, video_id, 'mp4', m3u8_id=f'hls-{res}-fallback', fatal=False)
+            for f in more:
+                f.setdefault('height', res)
+                # mark video-only so selector merges a separate audio rendition.
+                f.setdefault('acodec', 'none')
+            extra.extend(more)
+        return extra
 
     def _get_subtitles(self, captions_domain, video_id, caption_id, duration, lang_configs, headers):
         return self._fetch_captions(
@@ -83,7 +115,7 @@ class MnetPlusBaseIE(InfoExtractor):
         # This is what the javascript seems to be doing too. I don't know if it's possible to get all subs at once.
         cues = []
         offset = 0
-        caption_interval = None
+        caption_interval = -1
 
         while offset < duration:
             cues_url = update_url_query(
@@ -98,14 +130,18 @@ class MnetPlusBaseIE(InfoExtractor):
             if not cues_data:
                 break
 
+            if caption_interval == -1:
+                caption_interval = int_or_none(cues_data.get('captionIntervalSecond'))
+                # bail on a missing or non-positive interval
+                if not caption_interval:
+                    break
+
             content_map = cues_data.get('contentMap') or {}
             if not content_map:
-                break
-
-            if caption_interval is None:
-                caption_interval = int_or_none(cues_data.get('captionIntervalSecond'))
-                if caption_interval is None:
-                    break
+                # Some languages return an empty page at offset 0 but have
+                # content at later offsets, so skip instead of stopping.
+                offset += caption_interval
+                continue
 
             for cue_key in sorted(content_map.keys(), key=int):
                 cue = content_map[cue_key]
@@ -197,7 +233,7 @@ class MnetPlusVideoIE(MnetPlusBaseIE):
                 'tha': 'mincount:1',
             },
         },
-       'skip': 'Requires authentication for subs',
+        'skip': 'Requires authentication for subs',
     }, {
         'url': 'https://www.mnetplus.world/media/en/videos/69eec9721d39e70911e5ad2c',
         'info_dict': {
@@ -218,7 +254,7 @@ class MnetPlusVideoIE(MnetPlusBaseIE):
                 'ja': 'mincount:1',
             },
         },
-       'skip': 'Requires authentication for subs',
+        'skip': 'Requires authentication for subs',
     }, {
         'url': 'https://www.mnetplus.world/media/en/videos/69f84e9b1511b17e55001e7b',
         'info_dict': {
@@ -261,7 +297,8 @@ class MnetPlusVideoIE(MnetPlusBaseIE):
 
         # Authenticated users get a m3u8 master url with /converted/.
         # Non-authenticated users get a m3u8 master url with /preview/ that only has a few seconds of playback at low quality.
-        if '/converted/' in video_master_url:
+        is_authenticated = '/converted/' in video_master_url
+        if is_authenticated:
             cloudfront = self._download_json(
                 self._COOKIES_DOMAIN.format(video_id=video_id), video_id,
                 errnote='Failed to download per-video cookie credentials',
@@ -283,9 +320,13 @@ class MnetPlusVideoIE(MnetPlusBaseIE):
         like_count = int_or_none(video_json.get('likeCount'))
         comment_count = int_or_none(video_json.get('commentCount'))
         tags = [t.lstrip('#') for t in traverse_obj(video_json, ('tags', ...)) or []]
+        resolutions = traverse_obj(video_json, ('profiles', ..., 'resolution'))
 
         formats, hls_subtitles = self._extract_m3u8_formats_and_subtitles(
             video_master_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+        if is_authenticated:
+            formats.extend(self._extract_higher_res_fallbacks(
+                formats, video_id, resolutions))
 
         video_caption = traverse_obj(video_json, ('videoCaption', {dict})) or {}
         caption_id = video_caption.get('videoCaptionId')
@@ -368,9 +409,12 @@ class MnetPlusLiveIE(MnetPlusBaseIE):
         description = video_json.get('description')
         thumbnail = traverse_obj(video_json, ('thumbnailUrl', {url_or_none}))
         view_count = int_or_none(video_json.get('viewCount'))
+        resolutions = traverse_obj(video_json, ('profiles', ..., 'resolution'))
 
         formats, hls_subtitles = self._extract_m3u8_formats_and_subtitles(
             live_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+        formats.extend(self._extract_higher_res_fallbacks(
+            formats, video_id, resolutions))
 
         subtitles = {}
         for lang, sub_entries in hls_subtitles.items():
