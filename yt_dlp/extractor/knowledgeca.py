@@ -8,7 +8,7 @@ from ..utils import (
     parse_iso8601,
     url_or_none,
 )
-from ..utils.traversal import require, traverse_obj
+from ..utils.traversal import require, subs_list_to_dict, traverse_obj
 
 
 class KnowledgeCABaseIE(InfoExtractor):
@@ -59,9 +59,9 @@ class KnowledgeCAIE(KnowledgeCABaseIE):
             'series': 'Silvicola',
             'series_id': '27459d3d-ade2-4c21-8179-d392a670a8bc',
             'subtitles': {'eng': 'mincount:1'},
+            'thumbnail': r're:https?://api\.knowledge\.ca/api/v1/media/[\da-f-]+',
             'timestamp': 1771976307,
             'upload_date': '20260224',
-            'thumbnail': r're:https?://api\.knowledge\.ca/api/v1/media/[\da-f-]+',
         },
     }, {
         'url': 'https://www.knowledge.ca/watch/d61b3183-e6c0-4537-ab53-a615199a9ca6',
@@ -78,9 +78,9 @@ class KnowledgeCAIE(KnowledgeCABaseIE):
             'series': 'Silvicola',
             'series_id': '27459d3d-ade2-4c21-8179-d392a670a8bc',
             'subtitles': {'eng': 'mincount:1'},
+            'thumbnail': r're:https?://api\.knowledge\.ca/api/v1/media/[\da-f-]+',
             'timestamp': 1784955301,
             'upload_date': '20260725',
-            'thumbnail': r're:https?://api\.knowledge\.ca/api/v1/media/[\da-f-]+',
         },
     }, {
         'url': 'https://www.knowledge.ca/watch/023c76f9-2253-4073-b5be-3a4a3db5d387',
@@ -100,24 +100,25 @@ class KnowledgeCAIE(KnowledgeCABaseIE):
             'series': 'Rebus',
             'series_id': '7643980d-4523-49b0-929a-7ce43ff3dd20',
             'subtitles': {'eng': 'mincount:1'},
+            'thumbnail': r're:https?://api\.knowledge\.ca/api/v1/media/[\da-f-]+',
             'timestamp': 1602025680,
             'upload_date': '20201006',
-            'thumbnail': r're:https?://api\.knowledge\.ca/api/v1/media/[\da-f-]+',
         },
     }]
 
     def _extract_jwplayer_media(self, jwplayer_id, video_id):
-        media = self._download_json(
+        media = traverse_obj(self._download_json(
             f'https://cdn.jwplayer.com/v2/media/{jwplayer_id}', video_id,
-            'Downloading JW Player media JSON')['playlist'][0]
+            'Downloading JW Player media JSON'), ('playlist', 0, {dict}, {require('media item')}))
 
         # Don't use `parse_jwplayer_data`, as it keys subtitles on `label` rather than `language`
-        formats, subtitles, manifest_subs = [], {}, {}
-        for track in traverse_obj(media, (
-                'tracks', lambda _, v: v['kind'] == 'captions' and url_or_none(v['file']))):
-            # `language` is often absent and `label` can be an asset ID, but this network is English-only
-            subtitles.setdefault(track.get('language') or 'eng', []).append({'url': track['file']})
+        # `language` is often absent and `label` can be an asset ID, but this network is English-only
+        subtitles = traverse_obj(media, ('tracks', lambda _, v: v['kind'] == 'captions', {
+            'url': ('file', {url_or_none}),
+            'id': ('language', {str}),
+        }, all, {subs_list_to_dict(lang='eng')}))
 
+        formats, manifest_subs = [], {}
         for source in traverse_obj(media, ('sources', lambda _, v: url_or_none(v['file']))):
             if determine_ext(source['file']) == 'm3u8':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
@@ -125,9 +126,8 @@ class KnowledgeCAIE(KnowledgeCABaseIE):
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=manifest_subs)
                 continue
-            formats.append({
+            fmt = {
                 'url': source['file'],
-                **({'vcodec': 'none'} if (source.get('type') or '').startswith('audio/') else {}),
                 **traverse_obj(source, {
                     'filesize': ('filesize', {int_or_none}),
                     'format_id': ('label', {str}),
@@ -136,7 +136,10 @@ class KnowledgeCAIE(KnowledgeCABaseIE):
                     'tbr': ('bitrate', {int_or_none(scale=1000)}),
                     'width': ('width', {int_or_none}),
                 }),
-            })
+            }
+            if (traverse_obj(source, ('type', {str})) or '').startswith('audio/'):
+                fmt['vcodec'] = 'none'
+            formats.append(fmt)
 
         return {
             'formats': formats,
@@ -144,9 +147,7 @@ class KnowledgeCAIE(KnowledgeCABaseIE):
             '_format_sort_fields': ('res', 'proto'),
             # The manifest carries the same captions, but chunked and inconsistently tagged
             'subtitles': subtitles or manifest_subs,
-            **traverse_obj(media, {
-                'timestamp': ('pubdate', {int_or_none}),
-            }),
+            'timestamp': traverse_obj(media, ('pubdate', {int_or_none})),
         }
 
     def _real_extract(self, url):
