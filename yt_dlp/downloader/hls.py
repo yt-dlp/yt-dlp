@@ -138,16 +138,6 @@ class HlsFD(FragmentFD):
         if real_downloader:
             self.to_screen(f'[{self.FD_NAME}] Fragment downloads will be delegated to {real_downloader.get_basename()}')
 
-        def is_ad_fragment_start(s):
-            return ((s.startswith('#ANVATO-SEGMENT-INFO') and 'type=ad' in s)
-                    or (s.startswith('#UPLYNK-SEGMENT') and s.endswith(',ad')))
-
-        def is_ad_fragment_end(s):
-            return ((s.startswith('#ANVATO-SEGMENT-INFO') and 'type=master' in s)
-                    or (s.startswith('#UPLYNK-SEGMENT') and s.endswith(',segment')))
-
-        fragments = []
-
         media_frags = 0
         ad_frags = 0
         ad_frag_next = False
@@ -156,9 +146,9 @@ class HlsFD(FragmentFD):
             if not line:
                 continue
             if line.startswith('#'):
-                if is_ad_fragment_start(line):
+                if self._is_ad_fragment_start(line):
                     ad_frag_next = True
-                elif is_ad_fragment_end(line):
+                elif self._is_ad_fragment_end(line):
                     ad_frag_next = False
                 continue
             if ad_frag_next:
@@ -177,8 +167,24 @@ class HlsFD(FragmentFD):
         else:
             self._prepare_and_start_frag_download(ctx, info_dict)
 
-        extra_state = ctx.setdefault('extra_state', {})
+        fragments = self._get_fragments(s, man_url, info_dict, ctx)
+        if fragments is False:
+            return False
 
+        return self._download_fragments(ctx, fragments, info_dict, real_downloader)
+
+    @staticmethod
+    def _is_ad_fragment_start(s):
+        return ((s.startswith('#ANVATO-SEGMENT-INFO') and 'type=ad' in s)
+                or (s.startswith('#UPLYNK-SEGMENT') and s.endswith(',ad')))
+
+    @staticmethod
+    def _is_ad_fragment_end(s):
+        return ((s.startswith('#ANVATO-SEGMENT-INFO') and 'type=master' in s)
+                or (s.startswith('#UPLYNK-SEGMENT') and s.endswith(',segment')))
+
+    def _get_fragments(self, s, man_url, info_dict, ctx):
+        fragments = []
         format_index = info_dict.get('format_index')
         extra_segment_query = None
         if extra_param_to_segment_url := info_dict.get('extra_param_to_segment_url'):
@@ -233,7 +239,8 @@ class HlsFD(FragmentFD):
                 elif line.startswith('#EXT-X-MAP'):
                     if format_index is not None and discontinuity_count != format_index:
                         continue
-                    if frag_index > 0:
+                    # Live playlists can switch initialization segments as the stream continues
+                    if frag_index > 0 and not ctx.get('live'):
                         self.report_error(
                             'Initialization fragment found after media fragments, unable to download')
                         return False
@@ -259,6 +266,7 @@ class HlsFD(FragmentFD):
                         'decrypt_info': decrypt_info,
                         'byte_range': map_byte_range,
                         'media_sequence': media_sequence,
+                        'is_map': True,
                     })
                     media_sequence += 1
 
@@ -290,14 +298,18 @@ class HlsFD(FragmentFD):
                         'start': sub_range_start,
                         'end': sub_range_start + int(splitted_byte_range[0]),
                     }
-                elif is_ad_fragment_start(line):
+                elif self._is_ad_fragment_start(line):
                     ad_frag_next = True
-                elif is_ad_fragment_end(line):
+                elif self._is_ad_fragment_end(line):
                     ad_frag_next = False
                 elif line.startswith('#EXT-X-DISCONTINUITY'):
                     discontinuity_count += 1
                 i += 1
 
+        return fragments
+
+    def _download_fragments(self, ctx, fragments, info_dict, real_downloader):
+        extra_state = ctx.setdefault('extra_state', {})
         # We only download the first fragment during the test
         if self.params.get('test', False):
             fragments = fragments[:1]
@@ -308,9 +320,9 @@ class HlsFD(FragmentFD):
             # TODO: Make progress updates work without hooking twice
             # for ph in self._progress_hooks:
             #     fd.add_progress_hook(ph)
-            return fd.real_download(filename, info_dict)
+            return fd.real_download(ctx['filename'], info_dict)
 
-        if is_webvtt:
+        if info_dict['ext'] == 'vtt':
             def pack_fragment(frag_content, frag_index):
                 output = io.StringIO()
                 adjust = 0
