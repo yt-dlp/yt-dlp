@@ -84,13 +84,13 @@ jobs:
       head_sha: ${{ steps.get_target.outputs.head_sha }}
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: true  # Needed to git-push the release commit
           ssh-key: ${{ secrets.RELEASE_KEY }}
 
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: "3.13"  # Keep this in sync with test-workflows.yml
 
@@ -174,11 +174,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0  # Needed for changelog
           persist-credentials: false
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: "3.13"
 
@@ -224,7 +224,7 @@ jobs:
 
       - name: Publish to PyPI
         if: github.event.workflow == '.github/workflows/release.yml'  # Direct workflow_dispatch
-        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # v1.14.0
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33  # v1.14.2
         with:
           verbose: true
 
@@ -240,7 +240,7 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
       HEAD_SHA: ${{ needs.prepare.outputs.head_sha }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: true  # Needed to git-push the release tag
@@ -250,7 +250,7 @@ jobs:
           path: artifact
           pattern: build-*
           merge-multiple: true
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: "3.13"
 
@@ -316,7 +316,7 @@ jobs:
         if: env.TARGET_REPO == github.repository
         run: |
           git tag "${TARGET_TAG}" "${HEAD_SHA}"
-          git push origin "${TARGET_TAG}"
+          git push origin "refs/tags/${TARGET_TAG}"
           sleep 5  # Enough time to cover git-push vs gh-release-create race condition
 
       - name: Publish release
