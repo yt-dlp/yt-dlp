@@ -17,6 +17,7 @@ from ...utils import (
     bug_reports_message,
     datetime_from_str,
     filter_dict,
+    get_element_by_id,
     get_first,
     int_or_none,
     is_html,
@@ -850,6 +851,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             }, cndn=lambda _, v: v))
 
     def extract_yt_initial_data(self, item_id, webpage, fatal=True):
+        if initial_data := get_element_by_id('yt-initial-data', webpage):
+            if parsed := self._parse_json(initial_data, item_id, fatal=False, errnote='Failed to parse yt initial data'):
+                return parsed
+
         return self._search_json(self._YT_INITIAL_DATA_RE, webpage, 'yt initial data', item_id, fatal=fatal)
 
     @staticmethod
