@@ -184,6 +184,9 @@ class MnetPlusVideoIE(MnetPlusBaseIE):
             'like_count': int,
             'comment_count': int,
             'tags': [],
+            'cast': ['KATSEYE'],
+            'series': 'STUDIO CHOOM',
+            'episode': '2026',
         },
         'params': {
             'skip_download': True,
@@ -320,6 +323,10 @@ class MnetPlusVideoIE(MnetPlusBaseIE):
         like_count = int_or_none(video_json.get('likeCount'))
         comment_count = int_or_none(video_json.get('commentCount'))
         tags = [t.lstrip('#') for t in traverse_obj(video_json, ('tags', ...)) or []]
+        cast = traverse_obj(video_json, ('artists', ..., 'name', {str}), default=None)
+        series = traverse_obj(video_json, ('mediaEvent', 'name', {str}))
+        episode = traverse_obj(video_json, (
+            'filterChips', lambda _, c: c.get('filterChipType') == 'EPISODE', 'name', {str}, any))
         resolutions = traverse_obj(video_json, ('profiles', ..., 'resolution'))
 
         formats, hls_subtitles = self._extract_m3u8_formats_and_subtitles(
@@ -353,6 +360,9 @@ class MnetPlusVideoIE(MnetPlusBaseIE):
             'like_count': like_count,
             'comment_count': comment_count,
             'tags': tags,
+            'cast': cast,
+            'series': series,
+            'episode': episode,
             'formats': formats,
             'subtitles': subtitles,
             'automatic_captions': automatic_captions,
