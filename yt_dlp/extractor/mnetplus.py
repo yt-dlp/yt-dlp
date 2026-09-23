@@ -113,6 +113,9 @@ class MnetPlusBaseIE(InfoExtractor):
         # - update start offset using captionIntervalSecond json field
         # - repeat until done
         # This is what the javascript seems to be doing too. I don't know if it's possible to get all subs at once.
+        if not duration:
+            return None
+
         cues = []
         offset = 0
         caption_interval = -1
@@ -347,8 +350,6 @@ class MnetPlusVideoIE(MnetPlusBaseIE):
         for lang, sub_entries in api_subtitles.items():
             subtitles.setdefault(lang, []).extend(sub_entries)
 
-        http_headers = {'Referer': 'https://www.mnetplus.world/'}
-
         return {
             'id': video_id,
             'title': title,
@@ -366,7 +367,6 @@ class MnetPlusVideoIE(MnetPlusBaseIE):
             'formats': formats,
             'subtitles': subtitles,
             'automatic_captions': automatic_captions,
-            'http_headers': http_headers,
         }
 
 
@@ -430,8 +430,6 @@ class MnetPlusLiveIE(MnetPlusBaseIE):
         for lang, sub_entries in hls_subtitles.items():
             subtitles.setdefault(lang, []).extend(sub_entries)
 
-        http_headers = {'Referer': 'https://www.mnetplus.world/'}
-
         return {
             'id': video_id,
             'title': title,
@@ -442,6 +440,60 @@ class MnetPlusLiveIE(MnetPlusBaseIE):
             'view_count': view_count,
             'formats': formats,
             'subtitles': subtitles,
-            'http_headers': http_headers,
             'is_live': video_json.get('status') == 'ON_AIR',
         }
+
+
+class MnetPlusShowIE(MnetPlusBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?mnetplus\.world/contents/(?P<lang>[a-zA-Z-]+)/shows/(?P<id>[0-9a-f]+)(?:/videos)?/?$'
+    _API_DOMAIN = 'https://api.mnetplus.world/media/v1/public'
+    _TESTS = [{
+        'url': 'https://www.mnetplus.world/contents/en/shows/675a9efcf350a1a1c97035af/videos',
+        'info_dict': {
+            'id': '675a9efcf350a1a1c97035af',
+            'title': 'KCON DAYS',
+            'description': 'md5:9f47f39a872be65cf2f02a3c3e286469',
+        },
+        'playlist_mincount': 7,
+    }]
+
+    def _fetch_pages(self, path, media_event_id, note, headers):
+        # The API paginates with a cursor: {content, hasNext, endCursor}
+        entries = []
+        cursor = None
+        while True:
+            data = self._download_json(
+                f'{self._API_DOMAIN}{path}', media_event_id, note=note,
+                query={'size': 100, **({'cursor': cursor} if cursor else {})},
+                headers=headers)
+            entries.extend(data.get('content') or [])
+            cursor = data.get('endCursor')
+            if not data.get('hasNext') or not cursor:
+                break
+        return entries
+
+    def _entries(self, lang, media_event_id, headers):
+        for episode in self._fetch_pages(
+                f'/media-events/{media_event_id}/episodes', media_event_id, 'Downloading episode list', headers):
+            episode_id = episode.get('episodeId')
+            if not episode_id:
+                continue
+            for video in self._fetch_pages(
+                    f'/videos/episodes/{episode_id}', media_event_id, 'Downloading episode videos', headers):
+                video_id = video.get('videoId')
+                if not video_id:
+                    continue
+                yield self.url_result(
+                    f'https://www.mnetplus.world/media/{lang}/videos/{video_id}',
+                    MnetPlusVideoIE, video_id, video.get('name'))
+
+    def _real_extract(self, url):
+        lang, media_event_id = self._match_valid_url(url).group('lang', 'id')
+        headers = self._get_auth_headers(url)
+        media_event = self._download_json(
+            f'{self._API_DOMAIN}/media-events/{media_event_id}', media_event_id,
+            note='Downloading show metadata', headers=headers)
+
+        return self.playlist_result(
+            self._entries(lang, media_event_id, headers),
+            media_event_id, media_event.get('name'), media_event.get('description'))
