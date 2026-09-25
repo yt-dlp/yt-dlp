@@ -1309,7 +1309,7 @@ def unified_timestamp(date_str, day_first=True, tz_offset=0):
 def determine_ext(url, default_ext='unknown_video'):
     if url is None or '.' not in url:
         return default_ext
-    guess = url.partition('?')[0].rpartition('.')[2]
+    guess = re.split(r'[?#]', url, maxsplit=1)[0].rpartition('.')[2]
     if re.match(r'^[A-Za-z0-9]+$', guess):
         return guess
     # Try extract ext from URLs like http://example.com/foo/bar.mp4/?download

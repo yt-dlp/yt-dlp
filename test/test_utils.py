@@ -510,6 +510,7 @@ class TestUtil(unittest.TestCase):
 
     def test_determine_ext(self):
         self.assertEqual(determine_ext('http://example.com/foo/bar.mp4/?download'), 'mp4')
+        self.assertEqual(determine_ext('http://example.com/foo/bar.mp4#fragment', None), 'mp4')
         self.assertEqual(determine_ext('http://example.com/foo/bar/?download', None), None)
         self.assertEqual(determine_ext('http://example.com/foo/bar.nonext/?download', None), None)
         self.assertEqual(determine_ext('http://example.com/foo/bar/mp4?download', None), None)
