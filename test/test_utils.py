@@ -687,6 +687,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(url_or_none(''), None)
         self.assertEqual(url_or_none('foo'), None)
         self.assertEqual(url_or_none('http://foo.de'), 'http://foo.de')
+        self.assertEqual(url_or_none('HTTP://foo.de'), 'HTTP://foo.de')
         self.assertEqual(url_or_none('https://foo.de'), 'https://foo.de')
         self.assertEqual(url_or_none('http$://foo.de'), None)
         self.assertEqual(url_or_none('http://foo.de'), 'http://foo.de')
