@@ -38,17 +38,17 @@ class OdnoklassnikiIE(InfoExtractor):
         'info_dict': {
             'id': '1keok9',
             'ext': 'mp4',
-            'timestamp': 1545580896,
-            'view_count': int,
-            'thumbnail': r're:^https?://.*\.jpg$',
             'title': 'Народная забава',
             'uploader': 'Nevata',
-            'upload_date': '20181223',
-            'age_limit': 0,
             'uploader_id': 'nevata.s',
+            'view_count': int,
             'like_count': int,
-            'duration': 8.08,
             'repost_count': int,
+            'age_limit': 0,
+            'duration': 8.08,
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'timestamp': 1545580896,
+            'upload_date': '20181223',
         },
     }, {
         'note': 'vk.com embedded',
@@ -66,24 +66,21 @@ class OdnoklassnikiIE(InfoExtractor):
         },
         'skip': 'vk extractor error',
     }, {
-        # metadata in JSON, webm_dash with Firefox UA
+        # metadataWebmUrl
         'url': 'http://ok.ru/video/20079905452',
         'md5': '8f477d8931c531374a3e36daec617b2c',
         'info_dict': {
             'id': '20079905452',
             'ext': 'webm',
             'title': 'Культура меняет нас (прекрасный ролик!))',
-            'thumbnail': str,
-            'duration': 100,
-            'upload_date': '20141207',
-            'uploader_id': '330537914540',
-            'uploader': 'Виталий Добровольский',
             'like_count': int,
             'age_limit': 0,
+            'duration': 100,
+            'thumbnail': 'https://iv.okcdn.ru/videoPreview?id=50132290220&type=37&idx=13&tkn=pYXx7IXsAq2kUf1W0PpYHMMAnF8&fn=external_8',
+            'upload_date': '20141207',
         },
         'params': {
             'format': 'bv[ext=webm]',
-            'http_headers': {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:102.0) Gecko/20100101 Firefox/102.0'},
         },
     }, {
         # metadataUrl
@@ -103,6 +100,7 @@ class OdnoklassnikiIE(InfoExtractor):
             'start_time': 5,
         },
         'params': {'skip_download': 'm3u8'},
+        'skip': 'Redirects to homepage',
     }, {
         # YouTube embed (metadataUrl, provider == USER_YOUTUBE)
         'url': 'https://ok.ru/video/3952212382174',
@@ -132,6 +130,7 @@ class OdnoklassnikiIE(InfoExtractor):
             'playable_in_embed': True,
             'channel': 'BornToReact',
         },
+        'skip': 'This video has been removed for violating YouTube\'s Community Guidelines',
     }, {
         # YouTube embed (metadata, provider == USER_YOUTUBE, no metadata.movie.title field)
         'url': 'http://ok.ru/video/62036049272859-0',
@@ -159,6 +158,7 @@ class OdnoklassnikiIE(InfoExtractor):
             'duration': 3038.181,
             'thumbnail': r're:^https?://i\.mycdn\.me/videoPreview\?.+',
         },
+        'skip': 'Video has not been found',
     }, {
         'note': 'subtitles',
         'url': 'https://ok.ru/video/4249587550747',
@@ -177,6 +177,18 @@ class OdnoklassnikiIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
+        },
+        'skip': 'Video has not been found',
+    }, {
+        'url': 'https://ok.ru/videoembed/9178551814752',
+        'md5': 'cf97450124817f122136ba09819a60c3',
+        'info_dict': {
+            'id': '9178551814752',
+            'ext': 'mp4',
+            'title': 'В ПАРКЕ ЧАИР - РЕТРО ХИТЫ - СОВЕТСКИЕ ПЕСНИ',
+            'like_count': int,
+            'duration': 3260,
+            'thumbnail': 'https://iv.okcdn.ru/videoPreview?id=8382455220832&type=32&idx=12&tkn=FpC95WqL8aCthA4GNKSHpoEMgg4&fn=external_8',
         },
     }, {
         'url': 'http://ok.ru/web-api/video/moviePlayer/20079905452',
@@ -203,31 +215,19 @@ class OdnoklassnikiIE(InfoExtractor):
         # Paid video
         'url': 'https://ok.ru/video/954886983203',
         'only_matching': True,
-    }, {
-        'url': 'https://ok.ru/videoembed/2932705602075',
-        'info_dict': {
-            'id': '2932705602075',
-            'ext': 'mp4',
-            'thumbnail': 'https://i.mycdn.me/videoPreview?id=1369902483995&type=37&idx=2&tkn=fqlnoQD_xwq5ovIlKfgNyU08qmM&fn=external_8',
-            'title': 'Boosty для тебя!',
-            'uploader_id': '597811038747',
-            'like_count': 0,
-            'duration': 35,
-        },
     }]
 
     _WEBPAGE_TESTS = [{
-        'url': 'https://boosty.to/ikakprosto/posts/56cedaca-b56a-4dfd-b3ed-98c79cfa0167',
+        'url': 'https://www.liveinternet.ru/users/5932706/post515277341/',
+        'md5': 'cf97450124817f122136ba09819a60c3',
         'info_dict': {
-            'id': '3950343629563',
+            'id': '9178551814752',
             'ext': 'mp4',
-            'thumbnail': 'https://i.mycdn.me/videoPreview?id=2776238394107&type=37&idx=11&tkn=F3ejkUFcpuI4DnMRxrDGcH5YcmM&fn=external_8',
-            'title': 'Заяц Бусти.mp4',
-            'uploader_id': '571368965883',
-            'like_count': 0,
-            'duration': 10444,
+            'title': 'В ПАРКЕ ЧАИР - РЕТРО ХИТЫ - СОВЕТСКИЕ ПЕСНИ',
+            'like_count': int,
+            'duration': 3260,
+            'thumbnail': 'https://iv.okcdn.ru/videoPreview?id=8382455220832&type=32&idx=12&tkn=FpC95WqL8aCthA4GNKSHpoEMgg4&fn=external_8',
         },
-        'skip': 'Site no longer embeds',
     }]
 
     def _clear_cookies(self, cdn_url):
