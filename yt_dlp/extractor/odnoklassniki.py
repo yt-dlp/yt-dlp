@@ -2,10 +2,8 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import compat_etree_fromstring
-from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
-    float_or_none,
     int_or_none,
     qualities,
     smuggle_url,
@@ -21,7 +19,7 @@ from ..utils.traversal import find_element, traverse_obj
 class OdnoklassnikiIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                 https?://
-                    (?:(?:www|m|mobile)\.)?
+                    (?:www\.)?
                     (?:odnoklassniki|ok)\.ru/
                     (?:
                         video(?P<embed>embed)?/|
@@ -149,17 +147,6 @@ class OdnoklassnikiIE(InfoExtractor):
         },
         'skip': 'Video has not been found',
     }, {
-        'note': 'Only available in mobile webpage',
-        'url': 'https://m.ok.ru/video/2361249957145',
-        'info_dict': {
-            'id': '2361249957145',
-            'ext': 'mp4',
-            'title': 'Быковское крещение',
-            'duration': 3038.181,
-            'thumbnail': r're:^https?://i\.mycdn\.me/videoPreview\?.+',
-        },
-        'skip': 'Video has not been found',
-    }, {
         'note': 'subtitles',
         'url': 'https://ok.ru/video/4249587550747',
         'info_dict': {
@@ -200,16 +187,7 @@ class OdnoklassnikiIE(InfoExtractor):
         'url': 'http://www.ok.ru/videoembed/20648036891',
         'only_matching': True,
     }, {
-        'url': 'http://m.ok.ru/video/20079905452',
-        'only_matching': True,
-    }, {
-        'url': 'http://mobile.ok.ru/video/20079905452',
-        'only_matching': True,
-    }, {
         'url': 'https://www.ok.ru/live/484531969818',
-        'only_matching': True,
-    }, {
-        'url': 'https://m.ok.ru/dk?st.cmd=movieLayer&st.discId=863789452017&st.retLoc=friend&st.rtu=%2Fdk%3Fst.cmd%3DfriendMovies%26st.mode%3Down%26st.mrkId%3D%257B%2522uploadedMovieMarker%2522%253A%257B%2522marker%2522%253A%25221519410114503%2522%252C%2522hasMore%2522%253Atrue%257D%252C%2522sharedMovieMarker%2522%253A%257B%2522marker%2522%253Anull%252C%2522hasMore%2522%253Afalse%257D%257D%26st.friendId%3D561722190321%26st.frwd%3Don%26_prevCmd%3DfriendMovies%26tkn%3D7257&st.discType=MOVIE&st.mvId=863789452017&_prevCmd=friendMovies&tkn=3648#lst#',
         'only_matching': True,
     }, {
         # Paid video
@@ -242,16 +220,6 @@ class OdnoklassnikiIE(InfoExtractor):
             yield smuggle_url(x, {'referrer': url})
 
     def _real_extract(self, url):
-        try:
-            return self._extract_desktop(url)
-        except ExtractorError as e:
-            try:
-                return self._extract_mobile(url)
-            except ExtractorError:
-                # error message of desktop webpage is in English
-                raise e
-
-    def _extract_desktop(self, url):
         start_time = int_or_none(urllib.parse.parse_qs(
             urllib.parse.urlparse(url).query).get('fromTime', [None])[0])
 
@@ -260,8 +228,7 @@ class OdnoklassnikiIE(InfoExtractor):
         mode = 'videoembed' if is_embed else 'video'
 
         webpage = self._download_webpage(
-            f'https://ok.ru/{mode}/{video_id}', video_id,
-            note='Downloading desktop webpage',
+            url, video_id,
             headers={'Referer': smuggled['referrer']} if smuggled.get('referrer') else {})
 
         error = traverse_obj(webpage, {find_element(cls='vp_video_stub_txt')})
@@ -414,36 +381,3 @@ class OdnoklassnikiIE(InfoExtractor):
 
         info['formats'] = formats
         return info
-
-    def _extract_mobile(self, url):
-        video_id = self._match_id(url)
-
-        webpage = self._download_webpage(
-            f'https://m.ok.ru/video/{video_id}', video_id,
-            note='Downloading mobile webpage')
-
-        error = self._search_regex(
-            r'видео</a>\s*<div\s+class="empty">(.+?)</div>',
-            webpage, 'error', default=None)
-        if error:
-            raise ExtractorError(error, expected=True)
-
-        json_data = self._search_regex(
-            r'data-video="(.+?)"', webpage, 'json data')
-        json_data = self._parse_json(unescapeHTML(json_data), video_id) or {}
-
-        redirect_url = self._request_webpage(HEADRequest(
-            json_data['videoSrc']), video_id, 'Requesting download URL').url
-        self._clear_cookies(redirect_url)
-
-        return {
-            'id': video_id,
-            'title': json_data.get('videoName'),
-            'duration': float_or_none(json_data.get('videoDuration'), scale=1000),
-            'thumbnail': json_data.get('videoPosterSrc'),
-            'formats': [{
-                'format_id': 'mobile',
-                'url': redirect_url,
-                'ext': 'mp4',
-            }],
-        }
