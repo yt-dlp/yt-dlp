@@ -296,13 +296,9 @@ class UrllibResponseAdapter(Response):
     """
 
     def __init__(self, res: http.client.HTTPResponse | urllib.response.addinfourl):
-        # addinfourl: In Python 3.9+, .status was introduced and .getcode() was deprecated [1]
-        # HTTPResponse: .getcode() was deprecated, .status always existed [2]
-        # 1. https://docs.python.org/3/library/urllib.request.html#urllib.response.addinfourl.getcode
-        # 2. https://docs.python.org/3.10/library/http.client.html#http.client.HTTPResponse.status
         super().__init__(
             fp=res, headers=res.headers, url=res.url,
-            status=getattr(res, 'status', None) or res.getcode(), reason=getattr(res, 'reason', None))
+            status=res.status, reason=getattr(res, 'reason', None))
 
     def read(self, amt=None):
         if self.closed:

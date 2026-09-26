@@ -138,7 +138,7 @@ class FilmOnChannelIE(InfoExtractor):
                 continue
             if not is_live:
                 formats.extend(self._extract_wowza_formats(
-                    stream_url, channel_id, skip_protocols=['dash', 'rtmp', 'rtsp']))
+                    stream_url, channel_id, skip_protocols=['dash', 'rtmp']))
                 continue
             quality = stream.get('quality')
             formats.append({

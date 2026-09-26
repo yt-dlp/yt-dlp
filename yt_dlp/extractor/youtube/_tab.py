@@ -344,15 +344,25 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         duration_text = traverse_obj(thumbnail_badge_view_models, (..., 'text', {str.lower}, any))
         thumbnail_badge_styles = traverse_obj(thumbnail_badge_view_models, (..., 'badgeStyle', {str}))
 
+        channel_traversal_dict = {
+            'channel': ('content', {str}),
+            'channel_id': ('commandRuns', 0, 'onTap', 'innertubeCommand', 'browseEndpoint', 'browseId', {self.ucid_or_none}),
+            'uploader': ('content', {str}),
+            'uploader_id': ('commandRuns', 0, 'onTap', 'innertubeCommand', 'browseEndpoint', 'canonicalBaseUrl', {self.handle_from_url}),
+        }
+
         channel_info = traverse_obj(content_mdvm, (
             'metadataRows', ..., 'metadataParts',
             lambda _, v: v['text']['commandRuns'][0]['onTap']['innertubeCommand']['browseEndpoint']['browseId'],
-            'text', any, {
-                'channel': ('content', {str}),
-                'channel_id': ('commandRuns', 0, 'onTap', 'innertubeCommand', 'browseEndpoint', 'browseId', {self.ucid_or_none}),
-                'uploader': ('content', {str}),
-                'uploader_id': ('commandRuns', 0, 'onTap', 'innertubeCommand', 'browseEndpoint', 'canonicalBaseUrl', {self.handle_from_url}),
-            }))
+            'text', any, channel_traversal_dict))
+
+        # For videos credited to multiple channels / "collaborators"
+        collaborator_data = traverse_obj(lockup_mdvm, (
+            'image', 'avatarStackViewModel', 'rendererContext', 'commandContext', 'onTap', 'innertubeCommand',
+            'showDialogCommand', 'panelLoadingStrategy', 'inlineContent', 'dialogViewModel', 'customContent',
+            'listViewModel', 'listItems', ..., 'listItemViewModel', 'title', {dict}))
+        if not channel_info:
+            channel_info = traverse_obj(collaborator_data, (0, channel_traversal_dict))
 
         views_and_time = traverse_obj(content_mdvm, (
             'metadataRows', lambda _, v: 'accessibilityLabel' in v['metadataParts'][-1],
@@ -384,6 +394,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             availability=self._availability(needs_subscription='BADGE_MEMBERS_ONLY' in badge_styles),
             channel_url=format_field(channel_info, 'channel_id', 'https://www.youtube.com/channel/%s', default=None),
             uploader_url=format_field(channel_info, 'uploader_id', 'https://www.youtube.com/%s', default=None),
+            creators=traverse_obj(collaborator_data, (..., 'content', {str}, all, filter)),
             **channel_info)
 
     def _rich_entries(self, rich_grid_renderer):
@@ -2145,6 +2156,91 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': [],
             'availability': 'public',
         },
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/17044
+        'note': 'flat playlist entry credited to multiple channels / "collaborators"',
+        'url': 'https://www.youtube.com/playlist?list=PLzMNc_TBkmzei1ejIkbjNUP9J7q0hmepM',
+        'info_dict': {
+            'id': 'PLzMNc_TBkmzei1ejIkbjNUP9J7q0hmepM',
+            'title': 'Music for Creating, Building, Imagining 1',
+            'description': 'md5:329cd827b1c70910e80c108cfefdb37d',
+            'uploader': 'Sebtt',
+            'uploader_id': '@Sebtt',
+            'uploader_url': 'https://www.youtube.com/@Sebtt',
+            'channel': 'Sebtt',
+            'channel_id': 'UC-EmUaZucfuL81RYKcKjpbw',
+            'channel_url': 'https://www.youtube.com/channel/UC-EmUaZucfuL81RYKcKjpbw',
+            'view_count': int,
+            'tags': [],
+            'modified_date': str,
+            'availability': 'public',
+        },
+        'playlist': [{
+            'info_dict': {
+                'title': 'Thomas Bergersen - Made of Fire',
+                'id': 'KUokLzs947k',
+                '_type': 'url',
+                'ie_key': 'Youtube',
+                'url': 'https://www.youtube.com/watch?v=KUokLzs947k',
+                'uploader': 'Two Steps From Hell',
+                'uploader_id': '@TwoStepsFromHell-Official',
+                'uploader_url': 'https://www.youtube.com/@TwoStepsFromHell-Official',
+                'channel': 'Two Steps From Hell',
+                'channel_id': 'UC3swwxiALG5c0Tvom83tPGg',
+                'channel_url': 'https://www.youtube.com/channel/UC3swwxiALG5c0Tvom83tPGg',
+                'view_count': int,
+                'duration': 341.0,
+                'creators': ['Two Steps From Hell', 'Thomas Bergersen'],
+            },
+        }],
+        'playlist_count': 1,
+        'params': {
+            'extract_flat': True,
+            'playlist_items': '75',
+        },
+    }, {
+        # YoutubeTab_52
+        # "UUMO" is a prefix that can be used for any channel to get a members-only playlist
+        'note': 'flat playlist entry of subscriber_only video',
+        'url': 'https://www.youtube.com/playlist?list=UUMOXuqSBlHAE6Xw-yeJA0Tunw',
+        'info_dict': {
+            'id': 'UUMOXuqSBlHAE6Xw-yeJA0Tunw',
+            'availability': 'public',
+            'title': 'Members-only videos',
+            'description': 'Videos available to members of this channel. Automatically updated.',
+            'tags': [],
+            'modified_date': r're:\d{8}',
+            'channel': 'Linus Tech Tips',
+            'view_count': int,
+            'channel_id': 'UCXuqSBlHAE6Xw-yeJA0Tunw',
+            'channel_url': 'https://www.youtube.com/channel/UCXuqSBlHAE6Xw-yeJA0Tunw',
+            'uploader_url': 'https://www.youtube.com/@LinusTechTips',
+            'uploader_id': '@LinusTechTips',
+            'uploader': 'Linus Tech Tips',
+        },
+        'playlist': [{
+            'info_dict': {
+                # availability is the only value we are testing for here
+                'availability': 'subscriber_only',
+                'id': str,
+                '_type': 'url',
+                'title': str,
+                'duration': int,
+                'url': str,
+                'uploader': str,
+                'uploader_id': str,
+                'uploader_url': str,
+                'channel': str,
+                'channel_id': str,
+                'channel_url': str,
+                'ie_key': 'Youtube',
+            },
+        }],
+        'playlist_mincount': 1,
+        'params': {
+            'extract_flat': True,
+            'playlist_items': '1',
+        },
     }]
 
     @classmethod
@@ -2245,6 +2341,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             self.to_screen(f'This playlist is likely not available in your region. Following conditional redirect to {redirect_url}')
             return self.url_result(redirect_url, YoutubeTabIE)
 
+        metadata = None
         tabs, extra_tabs = self._extract_tab_renderers(data), []
         if is_channel and tabs and 'no-youtube-channel-redirect' not in compat_opts:
             selected_tab = self._extract_selected_tab(tabs)
@@ -2283,6 +2380,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
 
                 elif extra_tabs and selected_tab_id != 'videos':
                     # When there are shorts/live tabs but not videos tab
+                    metadata = self._extract_metadata_from_tabs(item_id, data)
                     url, data = f'{pre}{post}', None
 
             elif (original_tab_id or 'videos') != selected_tab_id:
@@ -2318,7 +2416,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         if len(entries) == 1:
             return entries[0]
         elif entries:
-            metadata = self._extract_metadata_from_tabs(item_id, data)
+            metadata = metadata or self._extract_metadata_from_tabs(item_id, data)
             uploads_url = 'the Uploads (UU) playlist URL'
             if try_get(metadata, lambda x: x['channel_id'].startswith('UC')):
                 uploads_url = f'https://www.youtube.com/playlist?list=UU{metadata["channel_id"][2:]}'

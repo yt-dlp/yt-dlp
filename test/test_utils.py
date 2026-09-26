@@ -134,7 +134,10 @@ from yt_dlp.utils import (
     xpath_text,
     xpath_with_ns,
 )
-from yt_dlp.utils._utils import _UnsafeExtensionError
+from yt_dlp.utils._utils import (
+    _UnsafeExtensionError,
+    _desktop_entry_localestring,
+)
 from yt_dlp.utils.networking import (
     HTTPHeaderDict,
     escape_rfc3986,
@@ -623,6 +626,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(float_or_none(None), None)
         self.assertEqual(float_or_none([]), None)
         self.assertEqual(float_or_none(set()), None)
+        self.assertEqual(float_or_none(sys.float_info.radix ** sys.float_info.max_exp), None)
 
     def test_int_or_none(self):
         self.assertEqual(int_or_none('42'), 42)
@@ -689,8 +693,6 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(url_or_none('//foo.de'), '//foo.de')
         self.assertEqual(url_or_none('s3://foo.de'), None)
         self.assertEqual(url_or_none('rtmpte://foo.de'), 'rtmpte://foo.de')
-        self.assertEqual(url_or_none('mms://foo.de'), 'mms://foo.de')
-        self.assertEqual(url_or_none('rtspu://foo.de'), 'rtspu://foo.de')
         self.assertEqual(url_or_none('ftps://foo.de'), 'ftps://foo.de')
         self.assertEqual(url_or_none('ws://foo.de'), 'ws://foo.de')
         self.assertEqual(url_or_none('wss://foo.de'), 'wss://foo.de')
@@ -1345,15 +1347,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(extract_attributes('<e _:funny-name1=1>'), {'_:funny-name1': '1'})
         self.assertEqual(extract_attributes('<e x="Fáilte 世界 \U0001f600">'), {'x': 'Fáilte 世界 \U0001f600'})
         self.assertEqual(extract_attributes('<e x="décompose&#769;">'), {'x': 'décompose\u0301'})
-        # "Narrow" Python builds don't support unicode code points outside BMP.
-        try:
-            chr(0x10000)
-            supports_outside_bmp = True
-        except ValueError:
-            supports_outside_bmp = False
-        if supports_outside_bmp:
-            self.assertEqual(extract_attributes('<e x="Smile &#128512;!">'), {'x': 'Smile \U0001f600!'})
-        # Malformed HTML should not break attributes extraction on older Python
+        self.assertEqual(extract_attributes('<e x="Smile &#128512;!">'), {'x': 'Smile \U0001f600!'})
+        # Malformed HTML should not break attribute extraction
         self.assertEqual(extract_attributes('<mal"formed/>'), {})
 
     def test_clean_html(self):
@@ -1405,7 +1400,11 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_resolution('1920×1080 '), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('1920 x 1080'), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('720p'), {'height': 720})
+        self.assertEqual(parse_resolution('1080p60'), {'height': 1080})
+        self.assertEqual(parse_resolution('1080p120', parse_fps=True), {'height': 1080, 'fps': 120})
         self.assertEqual(parse_resolution('4k'), {'height': 2160})
+        self.assertEqual(parse_resolution('4K60'), {'height': 2160})
+        self.assertEqual(parse_resolution('4K120', parse_fps=True), {'height': 2160, 'fps': 120})
         self.assertEqual(parse_resolution('8K'), {'height': 4320})
         self.assertEqual(parse_resolution('pre_1920x1080_post'), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('ep1x2'), {})
@@ -1946,6 +1945,27 @@ Line 1
         self.assertEqual(
             iri_to_uri('http://导航.中国/'),
             'http://xn--fet810g.xn--fiqs8s/')
+        self.assertEqual(
+            iri_to_uri('file://example.org/run.exe', allowed_schemes=('file',)),
+            'file://example.org/run.exe')
+        self.assertRaises(ValueError, iri_to_uri, 'file://example.org/run.exe')
+
+    def test_desktop_entry_localestring(self):
+        self.assertEqual(
+            _desktop_entry_localestring('A B'),
+            'A\\sB')
+        self.assertEqual(
+            _desktop_entry_localestring('A\nB'),
+            'A\\nB')
+        self.assertEqual(
+            _desktop_entry_localestring('A\tB'),
+            'A\\tB')
+        self.assertEqual(
+            _desktop_entry_localestring('A\rB'),
+            'A\\rB')
+        self.assertEqual(
+            _desktop_entry_localestring('A\\B'),
+            'A\\\\B')
 
     def test_clean_podcast_url(self):
         self.assertEqual(clean_podcast_url('https://www.podtrac.com/pts/redirect.mp3/chtbl.com/track/5899E/traffic.megaphone.fm/HSW7835899191.mp3'), 'https://traffic.megaphone.fm/HSW7835899191.mp3')

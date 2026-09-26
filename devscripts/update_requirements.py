@@ -97,7 +97,7 @@ BUNDLE_TARGETS = {
         extras=['curl-cffi'],
         # Only need curl-cffi+cffi in this requirements file; their deps are installed directly
         # XXX: Try to keep these in sync with curl-cffi's and cffi's transitive dependencies
-        prune_packages=['rich'],
+        prune_packages=['typing-extensions'],
         omit_packages=['certifi', 'pycparser'],
     ),
 }

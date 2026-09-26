@@ -278,7 +278,7 @@ def validate_nsig_challenge_output(challenge_output: NChallengeOutput, challenge
     return True
 
 
-def validate_sig_challenge_output(challenge_output: SigChallengeOutput, challenge_input: SigChallengeInput) -> bool:
+def validate_sig_challenge_output(challenge_output: SigChallengeOutput, challenge_input: SigChallengeInput) -> bool | str:
     return (
         isinstance(challenge_output, SigChallengeOutput)
         and len(challenge_output.results) == len(challenge_input.challenges)
