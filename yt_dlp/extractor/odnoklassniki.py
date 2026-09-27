@@ -32,7 +32,7 @@ class OdnoklassnikiIE(InfoExtractor):
     _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//(?:odnoklassniki|ok)\.ru/videoembed/.+?)\1']
     _TESTS = [{
         'note': 'Coub embedded',
-        'url': 'http://ok.ru/video/1484130554189',
+        'url': 'https://ok.ru/video/1484130554189',
         'info_dict': {
             'id': '1keok9',
             'ext': 'mp4',
@@ -65,7 +65,7 @@ class OdnoklassnikiIE(InfoExtractor):
         'skip': 'vk extractor error',
     }, {
         # metadataWebmUrl
-        'url': 'http://ok.ru/video/20079905452',
+        'url': 'https://ok.ru/video/20079905452',
         'md5': '8f477d8931c531374a3e36daec617b2c',
         'info_dict': {
             'id': '20079905452',
@@ -82,7 +82,7 @@ class OdnoklassnikiIE(InfoExtractor):
         },
     }, {
         # metadataUrl
-        'url': 'http://ok.ru/video/63567059965189-0?fromTime=5',
+        'url': 'https://ok.ru/video/63567059965189-0?fromTime=5',
         'md5': '2bae2f58eefe1b3d26f3926c4a64d2f3',
         'info_dict': {
             'id': '63567059965189-0',
@@ -131,7 +131,7 @@ class OdnoklassnikiIE(InfoExtractor):
         'skip': 'This video has been removed for violating YouTube\'s Community Guidelines',
     }, {
         # YouTube embed (metadata, provider == USER_YOUTUBE, no metadata.movie.title field)
-        'url': 'http://ok.ru/video/62036049272859-0',
+        'url': 'https://ok.ru/video/62036049272859-0',
         'info_dict': {
             'id': '62036049272859-0',
             'ext': 'mp4',
@@ -178,13 +178,13 @@ class OdnoklassnikiIE(InfoExtractor):
             'thumbnail': 'https://iv.okcdn.ru/videoPreview?id=8382455220832&type=32&idx=12&tkn=FpC95WqL8aCthA4GNKSHpoEMgg4&fn=external_8',
         },
     }, {
-        'url': 'http://ok.ru/web-api/video/moviePlayer/20079905452',
+        'url': 'https://ok.ru/web-api/video/moviePlayer/20079905452',
         'only_matching': True,
     }, {
-        'url': 'http://www.ok.ru/video/20648036891',
+        'url': 'https://www.ok.ru/video/20648036891',
         'only_matching': True,
     }, {
-        'url': 'http://www.ok.ru/videoembed/20648036891',
+        'url': 'https://www.ok.ru/videoembed/20648036891',
         'only_matching': True,
     }, {
         'url': 'https://www.ok.ru/live/484531969818',
@@ -267,7 +267,7 @@ class OdnoklassnikiIE(InfoExtractor):
         movie = metadata['movie']
 
         # Some embedded videos may not contain title in movie dict (e.g.
-        # http://ok.ru/video/62036049272859-0) thus we allow missing title
+        # https://ok.ru/video/62036049272859-0) thus we allow missing title
         # here and it's going to be extracted later by an extractor that
         # will process the actual embed.
         provider = metadata.get('provider')
