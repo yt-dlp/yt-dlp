@@ -89,6 +89,7 @@ from ..utils import (
     unescapeHTML,
     unified_strdate,
     unified_timestamp,
+    update_url_query,
     url_basename,
     url_or_none,
     urlhandle_detect_ext,
@@ -2167,6 +2168,19 @@ class InfoExtractor:
             'if any subtitle tracks are missing,',
         ), only_once=True)
 
+    def _manifest_only_format(self, manifest_url, manifest_id, protocol, data, query, **format_fields):
+        if data or self.get_param('download_manifests', True):
+            return None
+        if query:
+            manifest_url = update_url_query(manifest_url, query)
+        return {
+            'format_id': manifest_id,
+            'url': manifest_url,
+            'manifest_url': manifest_url,
+            'protocol': protocol,
+            **format_fields,
+        }
+
     def _extract_m3u8_formats(self, *args, **kwargs):
         fmts, subs = self._extract_m3u8_formats_and_subtitles(*args, **kwargs)
         if subs:
@@ -2189,6 +2203,11 @@ class InfoExtractor:
                     raise ExtractorError(errnote, video_id=video_id)
                 self.report_warning(f'{errnote}{bug_reports_message()}')
             return [], {}
+        manifest_only = self._manifest_only_format(
+            m3u8_url, m3u8_id, entry_protocol, data, query,
+            ext=ext, preference=preference, quality=quality)
+        if manifest_only:
+            return [manifest_only], {}
         if note is None:
             note = 'Downloading m3u8 information'
         if errnote is None:
@@ -2802,8 +2821,16 @@ class InfoExtractor:
             self._report_ignoring_subs('DASH')
         return fmts
 
-    def _extract_mpd_formats_and_subtitles(self, *args, **kwargs):
-        periods = self._extract_mpd_periods(*args, **kwargs)
+    def _extract_mpd_formats_and_subtitles(
+            self, mpd_url, video_id, mpd_id=None, note=None, errnote=None,
+            fatal=True, data=None, headers={}, query={}):
+        manifest_only = self._manifest_only_format(
+            mpd_url, mpd_id, 'http_dash_segments', data, query)
+        if manifest_only:
+            return [manifest_only], {}
+        periods = self._extract_mpd_periods(
+            mpd_url, video_id, mpd_id, note=note, errnote=errnote,
+            fatal=fatal, data=data, headers=headers, query=query)
         return self._merge_mpd_periods(periods)
 
     def _extract_mpd_periods(
