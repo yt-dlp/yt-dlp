@@ -107,6 +107,7 @@ from yt_dlp.utils import (
     sanitize_filename,
     sanitize_path,
     sanitize_url,
+    setproctitle,
     shell_quote,
     strftime_or_none,
     smuggle_url,
@@ -612,6 +613,14 @@ class TestUtil(unittest.TestCase):
         res_url, res_data = unsmuggle_url(smug_smug_url)
         self.assertEqual(res_url, url)
         self.assertEqual(res_data, {'a': 'b', 'c': 'd'})
+
+    @unittest.mock.patch('ctypes.cdll.LoadLibrary')
+    def test_setproctitle(self, load_library):
+        for title in ('yt-dlp', 'café'):
+            with self.subTest(title=title):
+                setproctitle(title)
+                buf = load_library.return_value.prctl.call_args.args[1]
+                self.assertEqual(bytes(buf), title.encode() + b'\0')
 
     def test_shell_quote(self):
         args = ['ffmpeg', '-i', 'ñ€ß\'.mp4']
