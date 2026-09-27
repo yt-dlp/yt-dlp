@@ -401,6 +401,7 @@ class FileDownloader:
         msg_template += with_fields(
             ('fragment_index', 'fragment_count', ' (frag %(fragment_index)s/%(fragment_count)s)'),
             ('fragment_index', ' (frag %(fragment_index)s)'))
+        msg_template += with_fields(('_progress_type', ' (%(_progress_type)s)'))
         self._report_progress_status(s, msg_template)
 
     def report_resuming_byte(self, resume_len):

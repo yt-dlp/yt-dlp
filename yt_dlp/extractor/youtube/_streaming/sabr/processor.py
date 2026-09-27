@@ -1,0 +1,897 @@
+from __future__ import annotations
+
+import base64
+import dataclasses
+import io
+import math
+
+from yt_dlp.extractor.youtube._proto.innertube import ClientInfo, ClientName, NextRequestPolicy
+from yt_dlp.extractor.youtube._proto.videostreaming import (
+    AdCuepointConfig,
+    BufferedRange,
+    ClientAbrState,
+    CuepointEvent,
+    CuepointList,
+    FormatId,
+    FormatInitializationMetadata,
+    LiveMetadata,
+    MediaCapabilities,
+    MediaHeader,
+    SabrContext,
+    SabrContextSendingPolicy,
+    SabrContextUpdate,
+    SabrSeek,
+    StreamerContext,
+    StreamProtectionStatus,
+    TimeRange,
+    VideoFormatCapability,
+    VideoPlaybackAbrRequest,
+)
+
+from .exceptions import MediaSegmentMismatchError, SabrStreamError, UnexpectedConsumedMediaSegment
+from .models import (
+    AdCuepoint,
+    AudioSelector,
+    BroadcastState,
+    CaptionSelector,
+    ConsumedRange,
+    InitializedFormat,
+    PoTokenStatus,
+    SabrLogger,
+    Segment,
+    VideoSelector,
+)
+from .part import (
+    BroadcastStateSabrPart,
+    FormatInitializedSabrPart,
+    MediaSeekSabrPart,
+    MediaSegmentDataSabrPart,
+    MediaSegmentEndSabrPart,
+    MediaSegmentInitSabrPart,
+    PoTokenStatusSabrPart,
+)
+from .utils import find_consumed_range, find_consumed_range_chain, ticks_to_ms
+
+JS_MAX_SAFE_INTEGER = (2**53) - 1
+MIN_SEQUENCE_NUMBER = 1
+DEFAULT_BROADCAST_TARGET_DURATION_SEC = 5
+DEFAULT_BROADCAST_TARGET_DURATION_TOLERANCE_MS = 100
+
+BITFIELD_AUDIO = 1
+BITFIELD_AUDIO_VIDEO = 0
+BITFIELD_AUDIO_VIDEO_CAPTIONS = 7
+
+BITFIELD_HDR_MODE_ENABLED = 3
+BITFIELD_HDR_MODE_DISABLED = 0
+
+
+@dataclasses.dataclass
+class ProcessMediaEndResult:
+    sabr_part: MediaSegmentEndSabrPart | None = None
+    is_new_segment: bool = False
+
+
+@dataclasses.dataclass
+class ProcessMediaResult:
+    sabr_part: MediaSegmentDataSabrPart | None = None
+
+
+@dataclasses.dataclass
+class ProcessMediaHeaderResult:
+    sabr_part: MediaSegmentInitSabrPart | None = None
+
+
+@dataclasses.dataclass
+class ProcessLiveMetadataResult:
+    broadcast_state_part: BroadcastStateSabrPart | None = None
+    seek_sabr_parts: list[MediaSeekSabrPart] = dataclasses.field(default_factory=list)
+
+
+@dataclasses.dataclass
+class ProcessStreamProtectionStatusResult:
+    sabr_part: PoTokenStatusSabrPart | None = None
+
+
+@dataclasses.dataclass
+class ProcessFormatInitializationMetadataResult:
+    sabr_part: FormatInitializedSabrPart | None = None
+
+
+@dataclasses.dataclass
+class ProcessSabrSeekResult:
+    seek_sabr_parts: list[MediaSeekSabrPart] = dataclasses.field(default_factory=list)
+
+
+class SabrProcessor:
+    """
+    SABR Processor
+
+    This handles core SABR protocol logic, independent of requests.
+    """
+
+    def __init__(
+        self,
+        logger: SabrLogger,
+        video_playback_ustreamer_config: str,
+        client_info: ClientInfo,
+        audio_selection: AudioSelector | None = None,
+        video_selection: VideoSelector | None = None,
+        caption_selection: CaptionSelector | None = None,
+        broadcast_segment_target_duration_sec: int | None = None,
+        broadcast_segment_target_duration_tolerance_ms: int | None = None,
+        start_time_ms: int | None = None,
+        po_token: str | None = None,
+        post_live: bool = False,
+        video_id: str | None = None,
+    ):
+        self.logger = logger
+        self.video_playback_ustreamer_config = video_playback_ustreamer_config
+        self.po_token = po_token
+        self.client_info = client_info
+        self.broadcast_segment_target_duration_sec = broadcast_segment_target_duration_sec or DEFAULT_BROADCAST_TARGET_DURATION_SEC
+        self.broadcast_segment_target_duration_tolerance_ms = broadcast_segment_target_duration_tolerance_ms or DEFAULT_BROADCAST_TARGET_DURATION_TOLERANCE_MS
+        if self.broadcast_segment_target_duration_tolerance_ms >= (self.broadcast_segment_target_duration_sec * 1000) / 2:
+            raise ValueError(
+                'broadcast_segment_target_duration_tolerance_ms must be less than '
+                'half of broadcast_segment_target_duration_sec in milliseconds')
+        self.broadcast_est_segment_duration = (
+            (self.broadcast_segment_target_duration_sec * 1000) - self.broadcast_segment_target_duration_tolerance_ms)
+        self.start_time_ms = start_time_ms or 0
+        if self.start_time_ms < 0:
+            raise ValueError('start_time_ms must be greater than or equal to 0')
+
+        self.post_live = post_live
+        self._is_broadcast = False
+        self.video_id = video_id
+
+        self._audio_format_selector = audio_selection
+        self._video_format_selector = video_selection
+        self._caption_format_selector = caption_selection
+
+        # IMPORTANT: initialized formats is assumed to contain only ACTIVE formats
+        self.initialized_formats: dict[str, InitializedFormat] = {}
+        self.stream_protection_status: StreamProtectionStatus.Status | None = None
+
+        self.partial_segments: dict[int, Segment] = {}
+        self.preferred_audio_format_ids = []
+        self.preferred_video_format_ids = []
+        self.preferred_caption_format_ids = []
+        self.next_request_policy: NextRequestPolicy | None = None
+        self.broadcast_state: BroadcastState | None = None
+        self.client_abr_state: ClientAbrState
+        self.sabr_contexts_to_send: set[int] = set()
+        self.sabr_context_updates: dict[int, SabrContextUpdate] = {}
+        self.ad_cuepoints: dict[str, AdCuepoint] = {}
+        self._initialize_cabr_state()
+
+    @property
+    def is_broadcast(self):
+        return bool(
+            self._is_broadcast
+            or self.broadcast_state
+            or self.post_live)
+
+    @is_broadcast.setter
+    def is_broadcast(self, value: bool):
+        self._is_broadcast = value
+
+    @property
+    def player_time_ms(self) -> int:
+        return self.client_abr_state.player_time_ms or 0
+
+    @player_time_ms.setter
+    def player_time_ms(self, value: int):
+        self.client_abr_state.player_time_ms = value
+
+    def _initialize_cabr_state(self):
+        # SABR supports: audio+video, audio+video+captions or audio-only.
+        # For the other cases, we'll mark the tracks to be discarded (and fully buffered on initialization)
+
+        if not self._video_format_selector:
+            self._video_format_selector = VideoSelector(display_name='video_ignore', discard_media=True)
+
+        if not self._audio_format_selector:
+            self._audio_format_selector = AudioSelector(display_name='audio_ignore', discard_media=True)
+
+        if not self._caption_format_selector:
+            self._caption_format_selector = CaptionSelector(display_name='caption_ignore', discard_media=True)
+
+        enabled_track_types_bitfield = BITFIELD_AUDIO_VIDEO  # Audio+Video
+
+        if self._video_format_selector.discard_media:
+            enabled_track_types_bitfield = BITFIELD_AUDIO  # Audio only
+
+        if not self._caption_format_selector.discard_media:
+            # SABR does not support caption-only or audio+captions only - can only get audio+video with captions
+            # If audio or video is not selected, the tracks will be initialized but marked as buffered.
+            enabled_track_types_bitfield = BITFIELD_AUDIO_VIDEO_CAPTIONS
+
+        self.preferred_audio_format_ids = self._audio_format_selector.format_ids
+        self.preferred_video_format_ids = self._video_format_selector.format_ids
+        self.preferred_caption_format_ids = self._caption_format_selector.format_ids
+
+        self.logger.debug(f'Starting playback at: {self.start_time_ms}ms')
+        self.client_abr_state = ClientAbrState(
+            player_time_ms=self.start_time_ms,
+            enabled_track_types_bitfield=enabled_track_types_bitfield,
+            # Required to stream DRC formats
+            drc_enabled=True,
+            # Not currently required to stream voice boost (probably allow to auto-select)
+            enable_voice_boost=True,
+
+            media_capabilities=self._get_media_capabilities())
+
+    def _get_media_capabilities(self):
+        # For ANDROID / IOS based clients:
+        # - HDR and non-HDR formats cannot be enabled at the same time
+        # - to select HDR or non-HDR:
+        #    - the hdr_mode_bitmask must be set appropriately (3=hdr)
+        #    - AV1, H264 and VP9 codecs must be advertised with efficient=True to select HDR
+
+        # WEB-based clients do not use MediaCapabilities. If MediaCapabilities is supplied,
+        # the preferred format ids appears to be ignored, causing other formats to be returned.
+        clients = (ClientName.ANDROID_VR, ClientName.ANDROID, ClientName.IOS, ClientName.VISIONOS)
+        if self.client_info.client_name not in clients:
+            return None
+
+        hdr_mode_bitmask = BITFIELD_HDR_MODE_DISABLED
+        if self._video_format_selector.prefer_hdr:
+            hdr_mode_bitmask = BITFIELD_HDR_MODE_ENABLED
+
+        return MediaCapabilities(
+            hdr_mode_bitmask=hdr_mode_bitmask,
+            video_format_capabilities=[
+                VideoFormatCapability(
+                    video_codec=codec,
+                    efficient=True,
+                    is_10_bit_supported=True,
+                ) for codec in VideoFormatCapability.VideoCodec])
+
+    def resume_format(self, format_id: FormatId, has_init_segment: bool = False, consumed_ranges: list[ConsumedRange] | None = None):
+        # Applied a resume state to an initialized format.
+        # This can only be called immediately after a format initialization part.
+        initialized_format = self.initialized_formats.get(str(format_id))
+        if not initialized_format:
+            raise ValueError(f'Unable to resume format {format_id}: format not yet initialized')
+
+        # We can only allow consumed ranges to be updated before any MEDIA_HEADER is received,
+        # as the MEDIA and MEDIA_END processor logic assumes they are not modified for the format.
+        if (
+            initialized_format.init_segment is not None
+            or initialized_format.consumed_ranges
+            or any(seg.format_id == format_id for seg in self.partial_segments.values())
+        ):
+            raise ValueError(f'Unable to resume format {format_id}: must be resumed before receiving data')
+
+        if has_init_segment:
+            initialized_format.init_segment = True
+            self.logger.debug(f'Marked init segment as consumed for resumed format {format_id}')
+        if isinstance(consumed_ranges, list):
+            initialized_format.consumed_ranges = consumed_ranges
+            self.logger.debug(f'Applied consumed ranges for resumed format {format_id}: {consumed_ranges}')
+
+    def format_selectors(self):
+        yield from (
+            self._video_format_selector,
+            self._audio_format_selector,
+            self._caption_format_selector,
+        )
+
+    def match_format_selector(self, format_init_metadata):
+        for format_selector in self.format_selectors():
+            if not format_selector:
+                continue
+            if format_selector.match(format_id=format_init_metadata.format_id, mime_type=format_init_metadata.mime_type):
+                return format_selector
+        return None
+
+    def _consumed_segment_expected(self, initialized_format: InitializedFormat, sequence_number: int) -> bool:
+        # Check whether a consumed segment is expected based on the current consumed ranges
+        # It should be within the expected consumed range chain (if there is one)
+        reference_sequence_number = None
+        if initialized_format.previous_segment:
+            reference_sequence_number = initialized_format.previous_segment.sequence_number
+        elif initialized_format.expected_start_sequence_number is not None:
+            reference_sequence_number = max(
+                MIN_SEQUENCE_NUMBER,
+                initialized_format.expected_start_sequence_number - 1)
+
+        # Unbounded, so any consumed segment is allowed
+        if reference_sequence_number is None:
+            return True
+
+        consumed_range_chain = find_consumed_range_chain(
+            min(reference_sequence_number, sequence_number), initialized_format.consumed_ranges)
+        # Consumed segment may be before reference segment in the chain
+        includes_ref_seq = find_consumed_range(reference_sequence_number, consumed_range_chain) is not None
+        includes_seq_num = find_consumed_range(sequence_number, consumed_range_chain) is not None
+        return includes_ref_seq and includes_seq_num
+
+    def _next_expected_segment(self, initialized_format: InitializedFormat) -> int | None:
+        if not initialized_format.previous_segment:
+            if initialized_format.expected_start_sequence_number is None:
+                return None
+            expected_start_cr_chain = find_consumed_range_chain(
+                initialized_format.expected_start_sequence_number, initialized_format.consumed_ranges)
+            if not expected_start_cr_chain:
+                # No consumed ranges yet, so we expect the expected_start_sequence_number
+                return initialized_format.expected_start_sequence_number
+            return expected_start_cr_chain[-1].end_sequence_number + 1
+
+        # Try to find the consumed range chain the previous segment is part of
+        # + 1 from the end of the previous segment consumed range chain
+        consumed_ranges = find_consumed_range_chain(
+            initialized_format.previous_segment.sequence_number, initialized_format.consumed_ranges)
+        if not consumed_ranges:
+            # NOTE: for future, if we want to allow clearing consumed ranges while keeping segment order,
+            # we can return previous_segment.sequence_number + 1 here
+            raise SabrStreamError('Previous segment not part of any consumed range')
+
+        return consumed_ranges[-1].end_sequence_number + 1
+
+    # region: SABR Part Processors
+    def process_media_header(self, media_header: MediaHeader) -> ProcessMediaHeaderResult:
+        if media_header.video_id and self.video_id and media_header.video_id != self.video_id:
+            raise SabrStreamError(
+                f'Received unexpected MediaHeader for video'
+                f' {media_header.video_id} (expecting {self.video_id})')
+
+        if not media_header.format_id:
+            raise SabrStreamError(f'FormatId not found in MediaHeader (media_header={media_header})')
+
+        # Guard. This should not happen, except if we don't clear partial segments
+        if media_header.header_id in self.partial_segments:
+            raise SabrStreamError(f'Header ID {media_header.header_id} already exists')
+
+        result = ProcessMediaHeaderResult()
+
+        initialized_format = self.initialized_formats.get(str(media_header.format_id))
+        if not initialized_format:
+            self.logger.debug(f'Initialized format not found for {media_header.format_id}')
+            raise SabrStreamError(f'Initialized format not found for {media_header.format_id}')
+
+        if media_header.compression:
+            # Unknown when this is used, but it is not supported currently
+            raise SabrStreamError(f'Compression not supported in MediaHeader (media_header={media_header})')
+
+        sequence_number, is_init_segment = media_header.sequence_number, media_header.is_init_segment
+        if sequence_number is None and not media_header.is_init_segment:
+            raise SabrStreamError(f'Sequence number not found in MediaHeader (media_header={media_header})')
+
+        # Guard. There should only be one partial segment per format at a time.
+        if any(partial_segment.format_id == media_header.format_id for partial_segment in self.partial_segments.values()):
+            raise SabrStreamError(
+                f'Partial segment already exists for format {media_header.format_id}')
+
+        initialized_format.sequence_lmt = media_header.sequence_lmt
+
+        consumed = False
+        discard = initialized_format.discard
+
+        # Guard: Check if sequence number is within any existing consumed range
+        # The server should not send us any segments that are already consumed
+        # However, if retrying a request, or on initial resume, we may get the same segment again
+        if not is_init_segment and find_consumed_range(sequence_number, initialized_format.consumed_ranges):
+            self.logger.debug(
+                f'{initialized_format.format_id} segment {sequence_number} already consumed, marking segment as consumed')
+            consumed = True
+
+        # Validate this is the next expected segment.
+        # Note: If the format is to be discarded, we do not care about the order
+        #  and can expect unexpected seeks as the consumer does not know about it.
+        if (
+            initialized_format.seek_ms is None and not is_init_segment
+            and not discard
+        ):
+            if not consumed:
+                next_expected_segment = self._next_expected_segment(initialized_format)
+                if next_expected_segment is not None and sequence_number != next_expected_segment:
+                    # Bail out as the segment is not in order when it is expected to be
+                    raise MediaSegmentMismatchError(
+                        expected_sequence_number=next_expected_segment,
+                        received_sequence_number=sequence_number,
+                        format_id=media_header.format_id)
+            else:
+                # Check if segment is within the current consumed range chain.
+                # If it is not then fail, otherwise could allow an unexpected seek.
+                if not self._consumed_segment_expected(initialized_format, sequence_number):
+                    raise UnexpectedConsumedMediaSegment(
+                        format_id=media_header.format_id,
+                        sequence_number=sequence_number)
+
+        if initialized_format.init_segment and is_init_segment:
+            self.logger.debug(
+                f'Init segment already seen for format {initialized_format.format_id}, '
+                f'marking segment as consumed')
+            consumed = True
+
+        time_range = media_header.time_range
+        start_ms = media_header.start_ms or (time_range and ticks_to_ms(time_range.start_ticks, time_range.timescale)) or 0
+
+        # Calculate duration of this segment
+        # For videos, either duration_ms or time_range should be present
+        # For broadcasts, calculate segment duration based on broadcast target segment duration
+        actual_duration_ms = (
+            media_header.duration_ms
+            or (time_range is not None and ticks_to_ms(time_range.duration_ticks, time_range.timescale)))
+
+        estimated_duration_ms = None
+        if self.is_broadcast:
+            # Underestimate the duration of the segment slightly as
+            # the real duration may be slightly shorter than the target duration.
+            estimated_duration_ms = self.broadcast_est_segment_duration
+        elif is_init_segment:
+            estimated_duration_ms = 0
+
+        duration_ms = actual_duration_ms or estimated_duration_ms
+
+        # Guard: Bail out if we cannot determine the duration, which we need to progress.
+        if duration_ms is None:
+            raise SabrStreamError(f'Cannot determine duration of segment {sequence_number} (media_header={media_header})')
+
+        estimated_content_length = None
+        if self.is_broadcast and media_header.content_length is None and media_header.bitrate_bps is not None:
+            estimated_content_length = math.ceil(media_header.bitrate_bps * (duration_ms / 1000))
+
+        segment = Segment(
+            format_id=media_header.format_id,
+            is_init_segment=is_init_segment,
+            duration_ms=duration_ms,
+            start_data_range=media_header.start_data_range,
+            sequence_number=sequence_number,
+            content_length=media_header.content_length or estimated_content_length,
+            content_length_estimated=estimated_content_length is not None,
+            start_ms=start_ms,
+            initialized_format=initialized_format,
+            duration_estimated=not actual_duration_ms,
+            consumed=consumed,
+            sequence_lmt=media_header.sequence_lmt)
+
+        self.partial_segments[media_header.header_id] = segment
+
+        if not (discard or consumed):
+            result.sabr_part = MediaSegmentInitSabrPart(
+                format_selector=segment.initialized_format.format_selector,
+                format_id=segment.format_id,
+                player_time_ms=self.player_time_ms,
+                sequence_number=segment.sequence_number,
+                total_segments=segment.initialized_format.last_segment_number,
+                duration_ms=segment.duration_ms,
+                duration_estimated=segment.duration_estimated,
+                start_bytes=segment.start_data_range,
+                start_time_ms=segment.start_ms,
+                is_init_segment=segment.is_init_segment,
+                content_length=segment.content_length,
+                content_length_estimated=segment.content_length_estimated)
+
+        self.logger.trace(
+            f'Initialized Media Header {media_header.header_id} for sequence {sequence_number}. Segment: {segment}')
+
+        return result
+
+    def process_media(self, header_id: int, content_length: int, data: io.BufferedIOBase) -> ProcessMediaResult:
+        result = ProcessMediaResult()
+        segment = self.partial_segments.get(header_id)
+        if not segment:
+            self.logger.debug(f'Header ID {header_id} not found')
+            raise SabrStreamError(f'Header ID {header_id} not found in partial segments')
+
+        segment_start_bytes = segment.received_data_length
+        segment.received_data_length += content_length
+        if not (segment.consumed or segment.initialized_format.discard):
+            result.sabr_part = MediaSegmentDataSabrPart(
+                format_selector=segment.initialized_format.format_selector,
+                format_id=segment.format_id,
+                sequence_number=segment.sequence_number,
+                is_init_segment=segment.is_init_segment,
+                total_segments=segment.initialized_format.last_segment_number,
+                data=data,
+                content_length=content_length,
+                segment_start_bytes=segment_start_bytes)
+
+        return result
+
+    def process_media_end(self, header_id: int) -> ProcessMediaEndResult:
+        result = ProcessMediaEndResult()
+        segment = self.partial_segments.pop(header_id, None)
+        if not segment:
+            self.logger.debug(f'Header ID {header_id} not found')
+            raise SabrStreamError(f'Header ID {header_id} not found in partial segments')
+
+        self.logger.trace(
+            f'MediaEnd for {segment.format_id} (sequence {segment.sequence_number}, '
+            f'data length = {segment.received_data_length})')
+
+        if segment.content_length is not None and segment.received_data_length != segment.content_length:
+            if segment.content_length_estimated:
+                self.logger.trace(
+                    f'Content length for {segment.format_id} (sequence {segment.sequence_number}) was estimated, '
+                    f'estimated {segment.content_length} bytes, got {segment.received_data_length} bytes')
+            else:
+                raise SabrStreamError(
+                    f'Content length mismatch for {segment.format_id} (sequence {segment.sequence_number}): '
+                    f'expected {segment.content_length} bytes, got {segment.received_data_length} bytes')
+
+        # Only count received segments as new segments if they are not consumed.
+        # Discarded segments that are not consumed are considered new segments.
+        if not segment.consumed:
+            result.is_new_segment = True
+
+        if not (segment.consumed or segment.initialized_format.discard):
+            # This needs to be yielded AFTER we have processed the segment
+            # So the consumer can see the updated consumed ranges and use them for e.g. syncing between concurrent streams
+            result.sabr_part = MediaSegmentEndSabrPart(
+                format_selector=segment.initialized_format.format_selector,
+                format_id=segment.format_id,
+                sequence_number=segment.sequence_number,
+                is_init_segment=segment.is_init_segment,
+                total_segments=segment.initialized_format.last_segment_number)
+        else:
+            self.logger.trace(f'Discarding media for {segment.initialized_format.format_id}')
+
+        if segment.is_init_segment:
+            segment.initialized_format.init_segment = segment
+            # Do not create a consumed range for init segments
+            return result
+
+        if segment.initialized_format.previous_segment and self.is_broadcast and segment.initialized_format.seek_ms is None:
+            previous_segment = segment.initialized_format.previous_segment
+            self.logger.trace(
+                f'Previous segment {previous_segment.sequence_number} for format {segment.format_id} '
+                f'estimated duration difference from this segment ({segment.sequence_number}): '
+                f'{segment.start_ms - (previous_segment.start_ms + previous_segment.duration_ms)}ms')
+
+        segment.initialized_format.previous_segment = segment
+
+        # Clear seek_ms after receiving the first segment after a seek
+        segment.initialized_format.seek_ms = None
+
+        if segment.consumed:
+            # Segment is already consumed, do not create a new consumed range. It was probably discarded.
+            # This can be expected to happen in the case of video-only, where we discard the audio track (and mark it as entirely buffered)
+            # We still want to create/update consumed range for discarded media IF it is not already consumed
+            self.logger.debug(
+                f'{segment.format_id} segment {segment.sequence_number} already consumed, '
+                f'not creating or updating consumed range (discard={segment.initialized_format.discard})')
+            return result
+
+        # Try to find a consumed range for this segment in sequence
+        consumed_range = next(
+            (cr for cr in segment.initialized_format.consumed_ranges
+             if cr.end_sequence_number == segment.sequence_number - 1), None)
+
+        if not consumed_range:
+            # Create a new consumed range starting from this segment
+            segment.initialized_format.consumed_ranges.append(ConsumedRange(
+                start_time_ms=segment.start_ms,
+                duration_ms=segment.duration_ms,
+                start_sequence_number=segment.sequence_number,
+                end_sequence_number=segment.sequence_number))
+            self.logger.debug(
+                f'Created new consumed range for {segment.initialized_format.format_id} '
+                f'{segment.initialized_format.consumed_ranges[-1]}')
+            return result
+
+        # Update the existing consumed range to include this segment
+        consumed_range.end_sequence_number = segment.sequence_number
+        consumed_range.duration_ms = (segment.start_ms - consumed_range.start_time_ms) + segment.duration_ms
+
+        return result
+
+    def process_live_metadata(self, live_metadata: LiveMetadata) -> ProcessLiveMetadataResult:
+
+        self.broadcast_state = BroadcastState(
+            head_sequence_time_ms=live_metadata.head_sequence_time_ms,
+            head_sequence_number=live_metadata.head_sequence_number,
+            min_seekable_time_ms=ticks_to_ms(live_metadata.min_seekable_time_ticks, live_metadata.min_seekable_timescale),
+            max_seekable_time_ms=ticks_to_ms(live_metadata.max_seekable_time_ticks, live_metadata.max_seekable_timescale))
+
+        # If we have a head sequence number, we need to update the total sequences for each initialized format
+        # For broadcasts, it is not available in the format initialization metadata
+        if self.broadcast_state.head_sequence_number:
+            for izf in self.initialized_formats.values():
+                izf.last_segment_number = self.broadcast_state.head_sequence_number
+
+        result = ProcessLiveMetadataResult()
+
+        if self.broadcast_state.min_seekable_time_ms is not None and self.broadcast_state.max_seekable_time_ms is not None:
+            available_dvr_window_ms = self.broadcast_state.max_seekable_time_ms - self.broadcast_state.min_seekable_time_ms
+            result.broadcast_state_part = BroadcastStateSabrPart(
+                available_dvr_window_ms=available_dvr_window_ms,
+                full_stream_available=self.broadcast_state.min_seekable_time_ms == 0)
+            self.logger.trace(f'Available DVR window: {available_dvr_window_ms}ms')
+
+        # If the current player time is less than the min dvr time, simulate a server seek to the min dvr time.
+        # The server SHOULD send us a SABR_SEEK part in this case, but it does not always happen (e.g. ANDROID_VR)
+        # The server SHOULD NOT send us segments before the min dvr time, so we should assume that the player time is correct.
+        if self.broadcast_state.min_seekable_time_ms is not None and self.player_time_ms < self.broadcast_state.min_seekable_time_ms:
+            self.logger.debug(
+                f'Player time {self.player_time_ms} is less than '
+                f'min seekable time {self.broadcast_state.min_seekable_time_ms}, simulating server seek')
+            self.player_time_ms = self.broadcast_state.min_seekable_time_ms
+
+            for izf in self.initialized_formats.values():
+                izf.seek_ms = self.broadcast_state.min_seekable_time_ms
+                result.seek_sabr_parts.append(MediaSeekSabrPart(
+                    reason=MediaSeekSabrPart.Reason.SERVER_SEEK,
+                    format_id=izf.format_id,
+                    format_selector=izf.format_selector))
+
+            if self.ad_cuepoints:
+                self.logger.trace('Clearing all ad cuepoints due to simulated server seek')
+                self.ad_cuepoints.clear()
+
+        return result
+
+    def process_stream_protection_status(self, stream_protection_status: StreamProtectionStatus) -> ProcessStreamProtectionStatusResult:
+        self.stream_protection_status = stream_protection_status.status
+        status = stream_protection_status.status
+        po_token = self.po_token
+
+        if status == StreamProtectionStatus.Status.OK:
+            result_status = (
+                PoTokenStatus.OK if po_token
+                else PoTokenStatus.NOT_REQUIRED)
+        elif status == StreamProtectionStatus.Status.ATTESTATION_PENDING:
+            result_status = (
+                PoTokenStatus.PENDING if po_token
+                else PoTokenStatus.PENDING_MISSING)
+        elif status == StreamProtectionStatus.Status.ATTESTATION_REQUIRED:
+            result_status = (
+                PoTokenStatus.INVALID if po_token
+                else PoTokenStatus.MISSING)
+        else:
+            self.logger.warning(f'Received an unknown StreamProtectionStatus: {stream_protection_status}')
+            result_status = None
+
+        sabr_part = PoTokenStatusSabrPart(status=result_status) if result_status is not None else None
+        return ProcessStreamProtectionStatusResult(sabr_part)
+
+    def process_format_initialization_metadata(self, format_init_metadata: FormatInitializationMetadata) -> ProcessFormatInitializationMetadataResult:
+        result = ProcessFormatInitializationMetadataResult()
+        if str(format_init_metadata.format_id) in self.initialized_formats:
+            self.logger.trace(f'Format {format_init_metadata.format_id} already initialized')
+            return result
+
+        if format_init_metadata.video_id and self.video_id and format_init_metadata.video_id != self.video_id:
+            raise SabrStreamError(
+                f'Received unexpected Format Initialization Metadata for video'
+                f' {format_init_metadata.video_id} (expecting {self.video_id})')
+
+        format_selector = self.match_format_selector(format_init_metadata)
+        if not format_selector:
+            # Should not happen. If we ignored the format the server may refuse to send us any more data
+            raise SabrStreamError(
+                f'Received format {format_init_metadata.format_id} but it does not match any format selector')
+
+        # Guard: Check if the format selector is already in use by another initialized format.
+        # This can happen when the server changes the format to use (e.g. changing quality).
+        #
+        # We only allow changing format for discarded formats as the selectors are not bound to a specific format id.
+        #
+        # For other cases, given we only provide one FormatId currently, and this should not occur in this case,
+        # we will mark this as not currently supported and bail.
+        existing_izf = next(
+            (izf for izf in self.initialized_formats.values()
+             if izf.format_selector is format_selector),
+            None)
+        if existing_izf:
+            if existing_izf.discard and format_selector.discard_media:
+                self.logger.debug(
+                    f'Format selector {format_selector.display_name} is already in use by discarded format '
+                    f'{existing_izf.format_id}, allowing format change to {format_init_metadata.format_id}')
+                # Remove existing initialized format - currently only support active formats in initialized_formats
+                self.initialized_formats.pop(str(existing_izf.format_id))
+            else:
+                raise SabrStreamError('Server changed format. Changing formats is not currently supported')
+
+        duration_ms = ticks_to_ms(format_init_metadata.duration_ticks, format_init_metadata.duration_timescale)
+
+        total_segments = format_init_metadata.total_segments
+        if not total_segments and self.broadcast_state and self.broadcast_state.head_sequence_number:
+            total_segments = self.broadcast_state.head_sequence_number
+
+        initialized_format = InitializedFormat(
+            format_id=format_init_metadata.format_id,
+            duration_ms=duration_ms,
+            end_time_ms=format_init_metadata.end_time_ms,
+            mime_type=format_init_metadata.mime_type,
+            video_id=format_init_metadata.video_id,
+            format_selector=format_selector,
+            last_segment_number=total_segments,
+            discard=format_selector.discard_media)
+
+        if initialized_format.discard:
+            # Mark the entire format as buffered into oblivion if we plan to discard all media.
+            # This stops the server sending us any more data for this format.
+            # Note: Using JS_MAX_SAFE_INTEGER but could use any maximum value as long as the server accepts it.
+            initialized_format.consumed_ranges = [
+                ConsumedRange(
+                    start_time_ms=0, duration_ms=JS_MAX_SAFE_INTEGER,
+                    start_sequence_number=0, end_sequence_number=JS_MAX_SAFE_INTEGER)]
+
+        # Pin the expected start sequence number to 0
+        # if we are starting from the beginning of the stream for VODs.
+        if (
+            not self.is_broadcast
+            # Note: player_time_ms may be >0 if format was not initialized at time 0.
+            # Assuming server always starts from sequence 1 in this case.
+            and self.start_time_ms == 0
+        ):
+            initialized_format.expected_start_sequence_number = MIN_SEQUENCE_NUMBER
+
+        self.initialized_formats[str(format_init_metadata.format_id)] = initialized_format
+        self.logger.debug(f'Initialized Format: {initialized_format}')
+
+        if not initialized_format.discard:
+            result.sabr_part = FormatInitializedSabrPart(
+                format_id=format_init_metadata.format_id,
+                format_selector=format_selector)
+
+        return result
+
+    def process_next_request_policy(self, next_request_policy: NextRequestPolicy):
+        self.next_request_policy = next_request_policy
+
+    def process_sabr_seek(self, sabr_seek: SabrSeek) -> ProcessSabrSeekResult:
+        if not self.is_broadcast:
+            raise SabrStreamError(f'Unexpected SABR Seek received for a VOD stream: {sabr_seek}')
+
+        seek_to = ticks_to_ms(sabr_seek.seek_time_ticks, sabr_seek.timescale)
+        if seek_to is None:
+            raise SabrStreamError(f'Server sent a SabrSeek part that is missing required seek data: {sabr_seek}')
+        self.logger.debug(f'Seeking to {seek_to}ms')
+        self.player_time_ms = seek_to
+
+        result = ProcessSabrSeekResult()
+
+        # Clear latest segment of each initialized format
+        #  as we expect them to no longer be in order.
+        for initialized_format in self.initialized_formats.values():
+            initialized_format.seek_ms = seek_to
+            result.seek_sabr_parts.append(MediaSeekSabrPart(
+                reason=MediaSeekSabrPart.Reason.SERVER_SEEK,
+                format_id=initialized_format.format_id,
+                format_selector=initialized_format.format_selector))
+
+        if self.ad_cuepoints:
+            self.logger.trace('Clearing all ad cuepoints due to seek')
+            self.ad_cuepoints.clear()
+
+        return result
+
+    def process_sabr_context_update(self, sabr_ctx_update: SabrContextUpdate):
+        if not (sabr_ctx_update.type and sabr_ctx_update.value and sabr_ctx_update.write_policy):
+            self.logger.warning('Received an invalid SabrContextUpdate, ignoring')
+            return
+
+        if (
+            sabr_ctx_update.write_policy == SabrContextUpdate.SabrContextWritePolicy.KEEP_EXISTING
+            and sabr_ctx_update.type in self.sabr_context_updates
+        ):
+            self.logger.debug(
+                'Received a SABR Context Update with write_policy=KEEP_EXISTING '
+                'matching an existing SABR Context Update. Ignoring update')
+            return
+
+        self.sabr_context_updates[sabr_ctx_update.type] = sabr_ctx_update
+        if sabr_ctx_update.send_by_default:
+            self.sabr_contexts_to_send.add(sabr_ctx_update.type)
+        self.logger.debug(f'Registered SabrContextUpdate {sabr_ctx_update}')
+
+    def process_sabr_context_sending_policy(self, sabr_ctx_sending_policy: SabrContextSendingPolicy):
+        for start_type in sabr_ctx_sending_policy.start_policy:
+            if start_type not in self.sabr_contexts_to_send:
+                self.logger.debug(f'Server requested to enable SABR Context Update for type {start_type}')
+                self.sabr_contexts_to_send.add(start_type)
+
+        for stop_type in sabr_ctx_sending_policy.stop_policy:
+            if stop_type in self.sabr_contexts_to_send:
+                self.logger.debug(f'Server requested to disable SABR Context Update for type {stop_type}')
+                self.sabr_contexts_to_send.remove(stop_type)
+
+        for discard_type in sabr_ctx_sending_policy.discard_policy:
+            if discard_type in self.sabr_context_updates:
+                self.logger.debug(f'Server requested to discard SABR Context Update for type {discard_type}')
+                self.sabr_context_updates.pop(discard_type, None)
+
+    def process_cuepoint_list(self, cuepoint_list: CuepointList):
+        # NOTE: it is possible the cuepoints sent in the vpabr request may be bound to
+        #  each format/track in the future.
+        # As of writing, WEB receives a CUEPOINT_LIST part for each track, both with the same identifier.
+        #  Only one cuepoint identifier is sent in the request with the lowest video format quality itag.
+        # For now, we can get away with just sending the identifier+magic value, ignoring the track type.
+        for cuepoint_info in cuepoint_list.cuepoint_info:
+            cuepoint = cuepoint_info.cuepoint
+            if not cuepoint:
+                self.logger.warning(f'Received CuepointInfo without cuepoint, ignoring: {cuepoint_info}')
+                continue
+
+            cuepoint_identifier = cuepoint.identifier
+            if not cuepoint_identifier:
+                self.logger.warning(f'Received Cuepoint without identifier, ignoring: {cuepoint}')
+                continue
+
+            if cuepoint.event == CuepointEvent.STOP:
+                if cuepoint_identifier not in self.ad_cuepoints:
+                    self.logger.trace(f'Received ad cuepoint STOP event for unknown cuepoint identifier, ignoring: {cuepoint}')
+                    continue
+                self.ad_cuepoints.pop(cuepoint_identifier, None)
+                self.logger.trace(f'Cleared ad cuepoint {cuepoint_identifier} due to STOP event')
+            else:
+                if cuepoint_identifier in self.ad_cuepoints:
+                    self.logger.trace(
+                        f'Received ad cuepoint {cuepoint.event.name} event for existing cuepoint identifier, ignoring: {cuepoint}')
+                    continue
+                cuepoint_end_ms = None
+                if cuepoint_info.time_range is not None and cuepoint.duration_sec is not None:
+                    cuepoint_end_ms = (cuepoint.duration_sec * 1000) + ticks_to_ms(
+                        cuepoint_info.time_range.start_ticks, cuepoint_info.time_range.timescale)
+                # Not sure what the magic value is for yet, but 11 appears to be accepted (and required)
+                self.ad_cuepoints[cuepoint_identifier] = AdCuepoint(
+                    cuepoint_config=AdCuepointConfig(cuepoint_id=cuepoint_identifier, magic_value=11),
+                    cuepoint_end_ms=cuepoint_end_ms)
+                self.logger.trace(
+                    f'Registered ad cuepoint {cuepoint_identifier} due to {cuepoint.event.name} event: {self.ad_cuepoints[cuepoint_identifier]}')
+
+    # endregion
+    def clear_old_cuepoints(self):
+        # Clean up cuepoints that have ended based on the current player time.
+        # Sometimes the server does not send a STOP event so we need to do this.
+        for cuepoint_id, cuepoint in list(self.ad_cuepoints.items()):
+            if cuepoint.cuepoint_end_ms is None:
+                continue
+            if self.player_time_ms > cuepoint.cuepoint_end_ms:
+                self.ad_cuepoints.pop(cuepoint_id, None)
+                self.logger.trace(
+                    f'Removed ad cuepoint {cuepoint_id} because its end time '
+                    f'({cuepoint.cuepoint_end_ms}ms) is less than player time {self.player_time_ms}ms')
+
+
+def build_vpabr_request(processor: SabrProcessor):
+    return VideoPlaybackAbrRequest(
+        client_abr_state=processor.client_abr_state,
+        preferred_video_format_ids=processor.preferred_video_format_ids,
+        preferred_audio_format_ids=processor.preferred_audio_format_ids,
+        preferred_caption_format_ids=processor.preferred_caption_format_ids,
+        initialized_format_ids=[
+            # Only send initialized format ids if:
+            # - the init segment has been consumed (vod)
+            # - or it is a broadcast (no init segment)
+            # Otherwise, for vods, if a retry occurs during the init segment, the server will not
+            # send it again if the format is marked as initialized.
+            # NOTE: if we want to allow many different formats to be selected in the future, this will need be integrated into SabrProcessor.
+            # Otherwise, on retry, a different FormatInitializationMetadata may be returned, resulting in a format changed error.
+            initialized_format.format_id for initialized_format in processor.initialized_formats.values()
+            if processor.is_broadcast or initialized_format.init_segment or initialized_format.previous_segment
+        ],
+        video_playback_ustreamer_config=base64.urlsafe_b64decode(processor.video_playback_ustreamer_config),
+        streamer_context=StreamerContext(
+            po_token=base64.urlsafe_b64decode(processor.po_token) if processor.po_token is not None else None,
+            playback_cookie=processor.next_request_policy.playback_cookie if processor.next_request_policy is not None else None,
+            client_info=processor.client_info,
+            sabr_contexts=[
+                SabrContext(context.type, context.value)
+                for context in processor.sabr_context_updates.values()
+                if context.type in processor.sabr_contexts_to_send
+            ],
+            unsent_sabr_contexts=[
+                context_type for context_type in processor.sabr_contexts_to_send
+                if context_type not in processor.sabr_context_updates
+            ]),
+        buffered_ranges=[
+            BufferedRange(
+                format_id=initialized_format.format_id,
+                start_segment_index=cr.start_sequence_number,
+                end_segment_index=cr.end_sequence_number,
+                start_time_ms=cr.start_time_ms,
+                duration_ms=cr.duration_ms,
+                time_range=TimeRange(
+                    start_ticks=cr.start_time_ms,
+                    duration_ticks=cr.duration_ms,
+                    timescale=1000,
+                ),
+            ) for initialized_format in processor.initialized_formats.values()
+            for cr in initialized_format.consumed_ranges
+        ],
+        ad_cuepoints=[ad_cuepoint.cuepoint_config for ad_cuepoint in processor.ad_cuepoints.values()])
