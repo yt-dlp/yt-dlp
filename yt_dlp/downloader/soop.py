@@ -20,6 +20,11 @@ class SoopVodFD(FileDownloader):
         refresh_params = info_dict['_cookie_refresh_params']
         referer_url = info_dict['webpage_url']
 
+        self.ydl.urlopen(_cloudfront_auth_request(
+            refresh_params['m3u8_url'], refresh_params['strm_id'],
+            refresh_params['video_id'], referer_url)).read()
+        refresh_params['_last_refresh'] = time.time()
+
         stop_event = threading.Event()
         refresh_thread = threading.Thread(
             target=self._cookie_refresh_thread,
