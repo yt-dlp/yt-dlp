@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import functools
-import json
-import textwrap
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, format_field, int_or_none, parse_iso8601
+from ..utils import format_field, int_or_none, parse_iso8601
 from ..utils.traversal import traverse_obj
 
 
@@ -14,9 +12,9 @@ def _fmt_url(url):
 
 
 class TelewebionIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?telewebion\.ir/episode/(?P<id>(?:0x[a-fA-F\d]+|\d+))'
+    _VALID_URL = r'https?://(?:www\.)?telewebion\.(?P<ext>net|ir)/episode/(?P<id>(?:0x[a-fA-F\d]+|\d+))'
     _TESTS = [{
-        'url': 'http://www.telewebion.ir/episode/0x1b3139c/',
+        'url': 'http://www.telewebion.net/episode/0x1b3139c/',
         'info_dict': {
             'id': '0x1b3139c',
             'ext': 'mp4',
@@ -25,7 +23,7 @@ class TelewebionIE(InfoExtractor):
             'series_id': '0x1b2505c',
             'channel': 'شبکه 3',
             'channel_id': '0x1b1a761',
-            'channel_url': 'https://telewebion.ir/live/tv3',
+            'channel_url': 'https://telewebion.net/live/tv3',
             'timestamp': 1425522414,
             'upload_date': '20150305',
             'release_timestamp': 1425517020,
@@ -33,11 +31,11 @@ class TelewebionIE(InfoExtractor):
             'duration': 420,
             'view_count': int,
             'tags': ['ورزشی', 'لیگ اروپا', 'اروپا'],
-            'thumbnail': 'https://static.telewebion.ir/episodeImages/YjFhM2MxMDBkMDNiZTU0MjE5YjQ3ZDY0Mjk1ZDE0ZmUwZWU3OTE3OWRmMDAyODNhNzNkNjdmMWMzMWIyM2NmMA/default',
+            'thumbnail': 'https://static.telewebion.net/episodeImages/YjFhM2MxMDBkMDNiZTU0MjE5YjQ3ZDY0Mjk1ZDE0ZmUwZWU3OTE3OWRmMDAyODNhNzNkNjdmMWMzMWIyM2NmMA/default',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
-        'url': 'https://telewebion.ir/episode/162175536',
+        'url': 'https://telewebion.net/episode/162175536',
         'info_dict': {
             'id': '0x9aa9a30',
             'ext': 'mp4',
@@ -46,7 +44,7 @@ class TelewebionIE(InfoExtractor):
             'series_id': '0x29a7426',
             'channel': 'شبکه 2',
             'channel_id': '0x1b1a719',
-            'channel_url': 'https://telewebion.ir/live/tv2',
+            'channel_url': 'https://telewebion.net/live/tv2',
             'timestamp': 1699979968,
             'upload_date': '20231114',
             'release_timestamp': 1699991638,
@@ -54,64 +52,23 @@ class TelewebionIE(InfoExtractor):
             'duration': 78,
             'view_count': int,
             'tags': ['کلیپ های منتخب', ' کلیپ طنز ', ' کلیپ سیاست ', 'پاورقی', 'ویژه فلسطین'],
-            'thumbnail': 'https://static.telewebion.ir/episodeImages/871e9455-7567-49a5-9648-34c22c197f5f/default',
+            'thumbnail': 'https://static.telewebion.net/episodeImages/871e9455-7567-49a5-9648-34c22c197f5f/default',
         },
         'skip': 'Dead link',
     }]
 
-    def _call_graphql_api(
-        self, operation, video_id, query,
-        variables: dict[str, tuple[str, str]] | None = None,
-        note='Downloading GraphQL JSON metadata',
-    ):
-        parameters = ''
-        if variables:
-            parameters = ', '.join(f'${name}: {type_}' for name, (type_, _) in variables.items())
-            parameters = f'({parameters})'
-
-        result = self._download_json('https://graph.telewebion.ir/graphql', video_id, note, data=json.dumps({
-            'operationName': operation,
-            'query': f'query {operation}{parameters} @cacheControl(maxAge: 60) {{{query}\n}}\n',
-            'variables': {name: value for name, (_, value) in (variables or {}).items()},
-        }, separators=(',', ':')).encode(), headers={
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-        })
-        if not result or traverse_obj(result, 'errors'):
-            message = ', '.join(traverse_obj(result, ('errors', ..., 'message', {str})))
-            raise ExtractorError(message or 'Unknown GraphQL API error')
-
-        return result['data']
-
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        video_id, ext = self._match_valid_url(url).group('id', 'ext')
+        if ext == 'ir':
+            url = url.replace('.' + ext, '.net').replace('//www.', '//')
         if not video_id.startswith('0x'):
             video_id = hex(int(video_id))
 
-        episode_data = self._call_graphql_api('getEpisodeDetail', video_id, textwrap.dedent('''
-            queryEpisode(filter: {EpisodeID: $EpisodeId}, first: 1) {
-              title
-              program {
-                ProgramID
-                title
-              }
-              image
-              view_count
-              duration
-              started_at
-              created_at
-              channel {
-                ChannelID
-                name
-                descriptor
-              }
-              tags {
-                name
-              }
-            }
-        '''), {'EpisodeId': ('[ID!]', video_id)})
+        episode_data = self._download_json(
+            'https://gateway.telewebion.net/kandoo/episode/getEpisodeDetail/', video_id,
+            query={'EpisodeId': video_id})
 
-        info_dict = traverse_obj(episode_data, ('queryEpisode', 0, {
+        info_dict = traverse_obj(episode_data, ('body', 'queryEpisode', 0, {
             'title': ('title', {str}),
             'view_count': ('view_count', {int_or_none}),
             'duration': ('duration', {int_or_none}),
@@ -122,11 +79,11 @@ class TelewebionIE(InfoExtractor):
             'series_id': ('program', 'ProgramID', {str}),
             'channel': ('channel', 'name', {str}),
             'channel_id': ('channel', 'ChannelID', {str}),
-            'channel_url': ('channel', 'descriptor', {_fmt_url('https://telewebion.ir/live/%s')}),
-            'thumbnail': ('image', {_fmt_url('https://static.telewebion.ir/episodeImages/%s/default')}),
+            'channel_url': ('channel', 'descriptor', {_fmt_url('https://telewebion.net/live/%s')}),
+            'thumbnail': ('image', {_fmt_url('https://static.telewebion.net/episodeImages/%s/default')}),
             'formats': (
                 'channel', 'descriptor', {str},
-                {_fmt_url(f'https://cdna.telewebion.ir/%s/episode/{video_id}/playlist.m3u8')},
+                {_fmt_url(f'https://cdna.telewebion.net/%s/episode/{video_id}/playlist.m3u8')},
                 {functools.partial(self._extract_m3u8_formats, video_id=video_id, ext='mp4', m3u8_id='hls')}),
         }))
         info_dict['id'] = video_id
