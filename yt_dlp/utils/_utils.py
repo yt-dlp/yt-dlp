@@ -1959,9 +1959,7 @@ def setproctitle(title):
     except OSError:
         return
 
-    title_bytes = title.encode()
-    buf = ctypes.create_string_buffer(len(title_bytes))
-    buf.value = title_bytes
+    buf = ctypes.create_string_buffer(title.encode())
     try:
         # PR_SET_NAME = 15      Ref: /usr/include/linux/prctl.h
         libc.prctl(15, buf, 0, 0, 0)
