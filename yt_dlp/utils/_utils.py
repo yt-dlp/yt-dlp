@@ -3136,11 +3136,9 @@ def disposition_filename(headers):
     for name, value in headers.get_params(header='Content-Disposition') or ():
         if name.lower() != 'filename':
             continue
+        filename = value
         if isinstance(value, tuple):  # Prefer filename* over filename
-            filename = value
             break
-        if filename is None:
-            filename = value
 
     return email.utils.collapse_rfc2231_value(filename).strip() if filename is not None else None
 
