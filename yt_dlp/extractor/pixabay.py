@@ -4,7 +4,7 @@ from ..utils.traversal import traverse_obj
 
 
 class PixabayBaseIE(InfoExtractor):
-    # Cookie header is required or the request will 403
+    # Cookie header is required for the webpage request or it will 403
     _headers = {
         'Cookie': 'is_human=1;',
     }
