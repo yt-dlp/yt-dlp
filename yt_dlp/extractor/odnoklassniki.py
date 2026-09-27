@@ -1,7 +1,7 @@
 import urllib.parse
+import xml.etree.ElementTree
 
 from .common import InfoExtractor
-from ..compat import compat_etree_fromstring
 from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
@@ -386,7 +386,7 @@ class OdnoklassnikiIE(InfoExtractor):
         dash_manifest = metadata.get('metadataEmbedded')
         if dash_manifest:
             formats.extend(self._parse_mpd_formats(
-                compat_etree_fromstring(dash_manifest), 'mpd'))
+                xml.etree.ElementTree.fromstring(dash_manifest), 'mpd'))
 
         for fmt in formats:
             fmt_type = self._search_regex(

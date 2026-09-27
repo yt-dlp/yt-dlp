@@ -1,9 +1,9 @@
 import json
 import re
 import urllib.parse
+import xml.etree.ElementTree
 
 from .common import InfoExtractor
-from ..compat import compat_etree_fromstring
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -558,7 +558,7 @@ class FacebookIE(InfoExtractor):
                 vid_data, 'dash_manifest', 'playlist', 'dash_manifest_xml_string', 'manifest_xml', expected_type=str)
             if dash_manifest:
                 formats.extend(self._parse_mpd_formats(
-                    compat_etree_fromstring(urllib.parse.unquote_plus(dash_manifest)),
+                    xml.etree.ElementTree.fromstring(urllib.parse.unquote_plus(dash_manifest)),
                     mpd_url=url_or_none(vid_data.get('dash_manifest_url')) or mpd_url))
 
         def process_formats(info):

@@ -10,10 +10,12 @@ del passthrough_module
 
 import functools  # noqa: F401
 import os
+import xml.etree.ElementTree
 
 
 compat_os_name = os.name
 compat_realpath = os.path.realpath
+compat_etree_fromstring = xml.etree.ElementTree.fromstring
 
 
 def compat_shlex_quote(s):
