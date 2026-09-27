@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import contextlib
 import datetime as dt
+import email.message
 import io
 import itertools
 import json
@@ -48,6 +49,7 @@ from yt_dlp.utils import (
     determine_ext,
     determine_file_encoding,
     dfxp2srt,
+    disposition_filename,
     encode_base_n,
     encode_compat_str,
     expand_path,
@@ -126,6 +128,7 @@ from yt_dlp.utils import (
     url_basename,
     url_or_none,
     urlencode_postdata,
+    urlhandle_detect_ext,
     urljoin,
     urshift,
     variadic,
@@ -2122,6 +2125,32 @@ Line 1
             vcodecs=['vp9'], acodecs=['opus'], vexts=['webm'], aexts=['webm'], preferences=['flv', 'mp4']), 'mp4')
         self.assertEqual(get_compatible_ext(
             vcodecs=['av1'], acodecs=['mp4a'], vexts=['webm'], aexts=['m4a'], preferences=('webm', 'mkv')), 'mkv')
+
+    def test_disposition_filename(self):
+        test_cases = (
+            (None, None),
+            ('attachment', None),
+            ('attachment; filename="video.mp4"', 'video.mp4'),
+            ('attachment; FILENAME="video.mp4"', 'video.mp4'),
+            ('inline; filename=video.mp4', 'video.mp4'),
+            ('attachment; filename=" video.mp4 "', 'video.mp4'),
+            ("attachment; filename*=UTF-8''r%C3%A9sum%C3%A9.mp4", 'résumé.mp4'),
+            ("attachment; filename=fallback.mp4; filename*=UTF-8''actual.webm", 'actual.webm'),
+            ("attachment; filename*=UTF-8''actual.webm; filename=fallback.mp4", 'actual.webm'),
+        )
+
+        for content_disposition, expected in test_cases:
+            headers = email.message.Message()
+            if content_disposition is not None:
+                headers['Content-Disposition'] = content_disposition
+            with self.subTest(content_disposition=content_disposition):
+                self.assertEqual(disposition_filename(headers), expected)
+
+    def test_urlhandle_detect_ext(self):
+        headers = email.message.Message()
+        headers['Content-Disposition'] = "attachment; filename=fallback.mp4; filename*=UTF-8''actual.webm"
+        headers['Content-Type'] = 'video/mp4'
+        self.assertEqual(urlhandle_detect_ext(unittest.mock.Mock(headers=headers)), 'webm')
 
     def test_try_call(self):
         def total(*x, **kwargs):
