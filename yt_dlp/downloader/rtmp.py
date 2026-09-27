@@ -7,7 +7,6 @@ from .common import FileDownloader
 from ..utils import (
     Popen,
     check_executable,
-    encodeArgument,
     get_exe_version,
 )
 
@@ -154,8 +153,6 @@ class RtmpFD(FileDownloader):
         if not live and continue_dl:
             args += ['--skip', '1']
 
-        args = [encodeArgument(a) for a in args]
-
         self._debug_cmd(args, exe='rtmpdump')
 
         RD_SUCCESS = 0
@@ -184,7 +181,6 @@ class RtmpFD(FileDownloader):
             args = [*basic_args, '--resume']
             if retval == RD_FAILED:
                 args += ['--skip', '1']
-            args = [encodeArgument(a) for a in args]
             retval = run_rtmpdump(args)
             cursize = os.path.getsize(tmpfilename)
             if prevsize == cursize and retval == RD_FAILED:
