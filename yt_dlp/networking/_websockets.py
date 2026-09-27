@@ -164,6 +164,9 @@ class WebsocketsRH(WebSocketRequestHandler):
                 user_agent_header=None,
                 ssl=ssl_ctx if wsuri.secure else None,
                 close_timeout=0,  # not ideal, but prevents yt-dlp hanging
+                # Workaround for websockets>=17.1 support:
+                # connect() is intended to be used as a context manager and other usage has been deprecated.
+                # The `legacy` flag was added in 17.1 for backwards compat and has not yet been deprecated.
                 # Ref: https://github.com/python-websockets/websockets/commit/1f7f0e537233ac82e4ca51921678963c696c8c08
                 **({'legacy': True} if websockets_version >= (17, 1) else {}),
             )
