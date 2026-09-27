@@ -3136,7 +3136,7 @@ def disposition_filename(headers):
     for name, value in headers.get_params(header='Content-Disposition') or ():
         if name.lower() != 'filename':
             continue
-        if isinstance(value, tuple):
+        if isinstance(value, tuple):  # Prefer filename* over filename
             filename = value
             break
         if filename is None:

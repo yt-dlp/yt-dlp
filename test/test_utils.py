@@ -2122,6 +2122,7 @@ Line 1
             (None, None),
             ('attachment', None),
             ('attachment; filename="video.mp4"', 'video.mp4'),
+            ('attachment; FILENAME="video.mp4"', 'video.mp4'),
             ('inline; filename=video.mp4', 'video.mp4'),
             ('attachment; filename=" video.mp4 "', 'video.mp4'),
             ("attachment; filename*=UTF-8''r%C3%A9sum%C3%A9.mp4", 'résumé.mp4'),
