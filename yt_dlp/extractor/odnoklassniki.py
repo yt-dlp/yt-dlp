@@ -228,7 +228,7 @@ class OdnoklassnikiIE(InfoExtractor):
         mode = 'videoembed' if is_embed else 'video'
 
         webpage = self._download_webpage(
-            url, video_id,
+            f'https://ok.ru/{mode}/{video_id}', video_id,
             headers={'Referer': smuggled['referrer']} if smuggled.get('referrer') else {})
 
         error = traverse_obj(webpage, {find_element(cls='vp_video_stub_txt')})
