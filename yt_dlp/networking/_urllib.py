@@ -313,7 +313,9 @@ class UrllibResponseAdapter(Response):
                 # urllib's addinfourl does not close the underlying fp automatically when fully read
                 if isinstance(underlying, io.BytesIO):
                     # data URLs or in-memory responses (e.g. gzip/deflate/brotli decoded)
-                    if underlying.tell() >= len(underlying.getbuffer()):
+                    with underlying.getbuffer() as view:
+                        fully_read = underlying.tell() >= len(view)
+                    if fully_read:
                         self.close()
                 elif isinstance(underlying, io.BufferedReader) and amt is None:
                     # file URLs.
