@@ -33,8 +33,8 @@ class PixabaySoundMusicIE(PixabayBaseIE):
                 'ext': 'mp3',
                 'thumbnail': r're:^https?://.*\.(?:png|jpg)',
                 'view_count': int,
-                'description': 'md5:45435d2ca9aba2167f98c8ed61ec105a',
-                'title': 'No Copyright Music by SigmaMusicArt| Royalty-free Music',
+                'description': 'md5:08944ea4deb3e7eb34dee808ac6435e8',
+                'title': 'No Copyright Music by SigmaMusicArt | Royalty-free Music',
             },
         },
         # Sound Effect
@@ -45,8 +45,8 @@ class PixabaySoundMusicIE(PixabayBaseIE):
                 'ext': 'mp3',
                 'thumbnail': r're:^https?://.*\.(?:png|jpg)',
                 'view_count': int,
-                'description': 'md5:9d3ae9314a08fa7c1ebfef797abd5068',
-                'title': 'Calm Inspiring Technology Logo (Short Version) by AleXZavesa| Royalty-free Music',
+                'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
+                'title': 'Calm Inspiring Technology Logo (Short Version) by AleXZavesa | Royalty-free Music',
             },
         },
         # Sound Effect - no thumbnail
@@ -56,8 +56,8 @@ class PixabaySoundMusicIE(PixabayBaseIE):
                 'id': '245859',
                 'ext': 'mp3',
                 'view_count': int,
-                'description': 'md5:64136651e70263d7fc965fe8a0d61435',
-                'title': 'Relaxing Guitar Loop V5 by IdoBerg| Royalty-free Music',
+                'description': 'md5:a0ef48a42a6f1bb534b8478f4ca602eb',
+                'title': 'Relaxing Guitar Loop V5 by IdoBerg | Royalty-free Music',
             },
         }]
 
@@ -81,7 +81,7 @@ class PixabayVideosIE(PixabayBaseIE):
             'ext': 'mp4',
             'thumbnail': r're:^https?://.*\.(?:png|jpg)',
             'view_count': int,
-            'description': 'md5:52ab40c062e8787b95491d41fce8bd73',
+            'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
             'title': 'Geothermal, Iceland, Nature. Free Stock Video',
         },
     }]
