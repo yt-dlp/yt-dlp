@@ -5,9 +5,11 @@ import urllib.parse
 import uuid
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
+    merge_dicts,
     remove_end,
     smuggle_url,
     strip_or_none,
@@ -150,7 +152,7 @@ class ViuPlaylistIE(ViuBaseIE):
 class ViuOTTIE(InfoExtractor):
     IE_NAME = 'viu:ott'
     _NETRC_MACHINE = 'viu'
-    _VALID_URL = r'https?://(?:www\.)?viu\.com/ott/(?P<country_code>[a-z]{2})/(?P<lang_code>[a-z]{2}-[a-z]{2})/vod/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?viu\.com/ott/(?P<country_code>[a-z]{2})/(?P<lang_code>[a-z]{2}(?:-[a-z]{2})?)/vod/(?P<id>\d+)'
     _TESTS = [{
         'url': 'http://www.viu.com/ott/sg/en-us/vod/3421/The%20Prime%20Minister%20and%20I',
         'info_dict': {
@@ -195,6 +197,19 @@ class ViuOTTIE(InfoExtractor):
             'noplaylist': False,
         },
         'skip': 'Geo-restricted to Hong Kong',
+    }, {
+        'url': 'https://www.viu.com/ott/id/id/vod/2221644/Detective-Conan',
+        'info_dict': {
+            'id': '2221644',
+            'ext': 'mp4',
+            'description': 'md5:b199bcdb07b1e01a03529f155349ddd5',
+            'duration': 1425,
+            'series': 'Detective Conan',
+            'title': 'Detective Conan - Episode 1150',
+            'episode': 'Detective Conan - Episode 1150',
+            'episode_number': 1150,
+            'thumbnail': r're:https?://prod-images\.viu\.com/clip_asset_v6/\d+/\d+/[a-f0-9]+',
+        },
     }]
 
     _AREA_ID = {
@@ -270,27 +285,43 @@ class ViuOTTIE(InfoExtractor):
         url, idata = unsmuggle_url(url, {})
         country_code, lang_code, video_id = self._match_valid_url(url).groups()
 
+        webpage = self._download_webpage(url, video_id, fatal=False)
+        json_ld = self._search_json_ld(webpage, video_id, fatal=False)
+        next_js_data = (self._search_nextjs_data(webpage, video_id, fatal=False) or {}).get('props')
+        runtime_info = traverse_obj(next_js_data, ('initialState', 'app', 'runtimeInfo'))
+
         query = {
             'r': 'vod/ajax-detail',
             'platform_flag_label': 'web',
             'product_id': video_id,
         }
 
-        area_id = self._AREA_ID.get(country_code.upper())
+        area_id = self._AREA_ID.get(country_code.upper()) or runtime_info.get('areaId')
         if area_id:
             query['area_id'] = area_id
 
-        product_data = self._download_json(
-            f'http://www.viu.com/ott/{country_code}/index.php', video_id,
-            'Downloading video info', query=query)['data']
+        try:
+            product_data = self._download_json(
+                f'http://www.viu.com/ott/{country_code}/index.php', video_id,
+                'Downloading video info', query=query)['data']
+        # The `fatal` in `_download_json` didn't prevent json error
+        # FIXME: probably the error still too broad
+        except ExtractorError as e:
+            if not isinstance(e.cause, (json.JSONDecodeError, HTTPError)):
+                raise
+            # NOTE: some geo-blocked like https://www.viu.com/ott/sg/en/vod/108599/The-Beauty-Inside actually can bypassed
+            # on other region (like in ID)
+            product_data = traverse_obj(
+                next_js_data, ('pageProps', 'fallback', lambda k, v: v if re.match(r'@"PRODUCT_DETAIL"[^:]+', k) else None),
+                get_all=False)['data']
 
         video_data = product_data.get('current_product')
         if not video_data:
             self.raise_geo_restricted()
 
-        series_id = video_data.get('series_id')
+        series_id = video_data.get('series_id') or traverse_obj(product_data, ('series', 'series_id'))
         if self._yes_playlist(series_id, video_id, idata):
-            series = product_data.get('series') or {}
+            series = product_data.get('series') or traverse_obj(product_data, ('series', 'name')) or {}
             product = series.get('product')
             if product:
                 entries = []
@@ -308,7 +339,9 @@ class ViuOTTIE(InfoExtractor):
         duration_limit = False
         query = {
             'ccs_product_id': video_data['ccs_product_id'],
-            'language_flag_id': self._LANGUAGE_FLAG.get(lang_code.lower()) or '3',
+            'language_flag_id': self._LANGUAGE_FLAG.get(lang_code.lower()) or runtime_info.get('languageFlagId') or '3',
+            'platform_flag_label': 'web',
+            'countryCode': country_code.upper(),
         }
 
         def download_playback():
@@ -384,7 +417,7 @@ class ViuOTTIE(InfoExtractor):
                 })
 
         title = strip_or_none(video_data.get('synopsis'))
-        return {
+        return merge_dicts({
             'id': video_id,
             'title': title,
             'description': video_data.get('description'),
@@ -395,7 +428,12 @@ class ViuOTTIE(InfoExtractor):
             'thumbnail': url_or_none(video_data.get('cover_image_url')),
             'formats': formats,
             'subtitles': subtitles,
-        }
+        }, traverse_obj(json_ld, {
+            'thumbnails': 'thumbnails',
+            'title': 'title',
+            'episode': 'episode',
+            'episode_number': 'episode_number',
+        }))
 
 
 class ViuOTTIndonesiaBaseIE(InfoExtractor):
