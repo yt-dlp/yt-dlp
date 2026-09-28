@@ -1627,7 +1627,6 @@ from .rtnews import (
 )
 from .rtp import RTPIE
 from .rtrfm import RTRFMIE
-from .rts import RTSIE
 from .rtvcplay import (
     RTVCKalturaIE,
     RTVCPlayEmbedIE,
@@ -1819,6 +1818,7 @@ from .sproutvideo import (
 )
 from .srgssr import (
     SRGSSRIE,
+    SRGSSRArticleIE,
     SRGSSRPlayIE,
 )
 from .srmediathek import SRMediathekIE
