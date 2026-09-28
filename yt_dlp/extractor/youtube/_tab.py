@@ -2295,6 +2295,9 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             if item_id[:2] == 'VL':  # Youtube music VL channels have an equivalent playlist
                 return self.url_result(
                     f'https://music.youtube.com/playlist?list={item_id[2:]}', YoutubeTabIE, item_id[2:])
+            elif item_id[:6] == 'MPADUC':
+                return self.url_result(
+                    f'https://www.youtube.com/channel/{item_id[4:]}', YoutubeTabIE, item_id[4:])
             elif item_id[:2] == 'MP':  # Resolve albums (/[channel/browse]/MP...) to their equivalent playlist
                 mdata = self._extract_tab_endpoint(
                     f'https://music.youtube.com/browse/{item_id}', item_id, default_client='web_music')
