@@ -2265,6 +2265,7 @@ from .webofstories import (
     WebOfStoriesIE,
     WebOfStoriesPlaylistIE,
 )
+from .wechat import WeChatIE
 from .weibo import (
     WeiboIE,
     WeiboUserIE,
