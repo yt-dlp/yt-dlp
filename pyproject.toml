@@ -15,7 +15,7 @@ maintainers = [
 ]
 description = "A feature-rich command-line audio/video downloader"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 keywords = [
     "cli",
     "downloader",
@@ -32,7 +32,6 @@ classifiers = [
     "Environment :: Console",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -240,7 +239,6 @@ run-cov = "echo Code coverage not implemented && exit 1"
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = [
-    "3.10",
     "3.11",
     "3.12",
     "3.13",
