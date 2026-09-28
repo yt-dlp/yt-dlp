@@ -1,5 +1,7 @@
 import base64
+import itertools
 import random
+import re
 import string
 import struct
 
@@ -206,3 +208,55 @@ class VideaIE(InfoExtractor):
             'age_limit': age_limit,
             'formats': formats,
         }
+
+
+class VideaUserIE(InfoExtractor):
+    _VALID_URL = r'https?://videa(?:kid)?\.hu/tagok/(?P<id>[^/#?]+)'
+    IE_NAME = 'videa:user'
+    _TESTS = [{
+        'url': 'https://videa.hu/tagok/kripto-infok-kadi-levente-2456531',
+        'info_dict': {
+            'id': 'kripto-infok-kadi-levente-2456531',
+            'title': 'Kripto Inf\u00f3k - Kadi Levente',
+        },
+        'playlist_mincount': 100,
+    }, {
+        'url': 'https://videa.hu/tagok/kripto-infok-kadi-levente-2456531/videok',
+        'only_matching': True,
+    }, {
+        'url': 'https://videakid.hu/tagok/jordan123-2527390',
+        'info_dict': {
+            'id': 'jordan123-2527390',
+            'title': 'jordan123',
+        },
+        'playlist_mincount': 40,
+    }]
+
+    def _entries(self, user_id, base_url, first_page):
+        for page_num in itertools.count(1):
+            webpage = first_page if page_num == 1 else self._download_webpage(
+                base_url, user_id,
+                note=f'Downloading page {page_num}',
+                query={'page': page_num})
+
+            for video_url in re.findall(
+                    r'<a[^>]+\bclass=["\']video-link["\'][^>]+\bhref=["\']([^"\']+)',
+                    webpage):
+                yield self.url_result(urljoin(base_url, video_url), VideaIE)
+
+            if not re.search(r'<link[^>]+\brel=["\']next["\']', webpage):
+                break
+
+    def _real_extract(self, url):
+        user_id = self._match_id(url)
+        base_url = urljoin(url, f'/tagok/{user_id}/videok')
+
+        first_page = self._download_webpage(base_url, user_id)
+
+        user_name = self._html_search_regex(
+            r'<div[^>]+class=["\']profile-data-username["\'][^>]*>\s*<strong>([^<]+)</strong>',
+            first_page, 'user name', fatal=False)
+
+        return self.playlist_result(
+            self._entries(user_id, base_url, first_page),
+            user_id, user_name)
