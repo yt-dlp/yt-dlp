@@ -498,7 +498,10 @@ from .dw import (
     DWArticleIE,
 )
 from .ebaumsworld import EbaumsWorldIE
-from .ebay import EbayIE
+from .ebay import (
+    EbayIE,
+    EbayLiveIE,
+)
 from .egghead import (
     EggheadCourseIE,
     EggheadLessonIE,
