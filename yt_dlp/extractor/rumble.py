@@ -1,5 +1,6 @@
 import itertools
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
@@ -130,6 +131,24 @@ class RumbleEmbedIE(InfoExtractor):
         },
         'params': {'skip_download': True},
     }, {
+        'note': 'strip e9s tracking query parameter',
+        'url': 'https://rumble.com/embed/v5pv5f',
+        'info_dict': {
+            'id': 'v5pv5f',
+            'ext': 'mp4',
+            'title': 'WMAR 2 News Latest Headlines | October 20, 6pm',
+            'timestamp': 1571611968,
+            'upload_date': '20191020',
+            'channel_url': 'https://rumble.com/c/WMAR',
+            'channel': 'WMAR',
+            'thumbnail': r're:https://.+\.jpg',
+            'duration': 234,
+            'uploader': 'WMAR',
+            'live_status': 'not_live',
+            'url': r're:^https?://(?!.*(?:\?|&)e9s=).+',
+        },
+        'params': {'skip_download': True},
+    }, {
         'url': 'https://rumble.com/embed/ufe9n.v5pv5f',
         'only_matching': True,
     }]
@@ -163,7 +182,12 @@ class RumbleEmbedIE(InfoExtractor):
         return [f'https://rumble.com/embed/{mobj.group("id")}' for mobj in re.finditer(
             r'<script>[^<]*\bRumble\(\s*"play"\s*,\s*{[^}]*[\'"]?video[\'"]?\s*:\s*[\'"](?P<id>[0-9a-z]+)[\'"]', webpage)]
 
+    @staticmethod
+    def _remove_tracking_query_param(url):
+        return update_url_query(url, {'e9s': []})
+
     def _real_extract(self, url):
+        url = self._remove_tracking_query_param(url)
         video_id = self._match_id(url)
         video = self._download_json(
             'https://rumble.com/embedJS/u3/', video_id,
@@ -194,14 +218,14 @@ class RumbleEmbedIE(InfoExtractor):
                 meta = video_info.get('meta') or {}
                 if not video_info.get('url'):
                     continue
-                # With default query params returns m3u8 variants which are duplicates, without returns tar files
+                video_url = self._remove_tracking_query_param(video_info['url'])
                 if format_type == 'tar':
                     continue
                 if format_type == 'hls':
                     if meta.get('live') is True and video.get('live') == 1:
                         live_status = 'post_live'
                     formats.extend(self._extract_m3u8_formats(
-                        video_info['url'], video_id,
+                        video_url, video_id,
                         ext='mp4', m3u8_id='hls', fatal=False, live=live_status == 'is_live'))
                     continue
                 is_timeline = format_type == 'timeline'
@@ -209,7 +233,7 @@ class RumbleEmbedIE(InfoExtractor):
                 formats.append({
                     'acodec': 'none' if is_timeline else None,
                     'vcodec': 'none' if is_audio else None,
-                    'url': video_info['url'],
+                    'url': video_url,
                     'format_id': join_nonempty(format_type, format_field(meta, 'h', '%sp')),
                     'format_note': 'Timeline' if is_timeline else None,
                     'fps': None if is_timeline or is_audio else video.get('fps'),
@@ -325,6 +349,50 @@ class RumbleIE(InfoExtractor):
             'dislike_count': int,
             'view_count': int,
         },
+    }, {
+        'note': 'watch URL with e9s tracking query parameter',
+        'add_ie': ['RumbleEmbed'],
+        'url': 'https://rumble.com/vdmum1-moose-the-dog-helps-girls-dig-a-snow-fort.html?e9s=src_v1_ucp_a',
+        'md5': '53af34098a7f92c4e51cf0bd1c33f009',
+        'info_dict': {
+            'id': 'vb0ofn',
+            'ext': 'mp4',
+            'timestamp': 1612662578,
+            'uploader': 'LovingMontana',
+            'channel': 'LovingMontana',
+            'upload_date': '20210207',
+            'title': 'Winter-loving dog helps girls dig a snow fort ',
+            'description': 'Moose the dog is more than happy to help with digging out this epic snow fort. Great job, Moose!',
+            'channel_url': 'https://rumble.com/c/c-546523',
+            'thumbnail': r're:https://.+\.jpg',
+            'duration': 103,
+            'like_count': int,
+            'dislike_count': int,
+            'view_count': int,
+            'live_status': 'not_live',
+        },
+    }, {
+        'note': 'watch URL with multiple e9s tracking query parameters',
+        'add_ie': ['RumbleEmbed'],
+        'url': 'https://rumble.com/vdmum1-moose-the-dog-helps-girls-dig-a-snow-fort.html?e9s=src_v1_ucp_a&e9s=src_v1_cbl',
+        'md5': '53af34098a7f92c4e51cf0bd1c33f009',
+        'info_dict': {
+            'id': 'vb0ofn',
+            'ext': 'mp4',
+            'timestamp': 1612662578,
+            'uploader': 'LovingMontana',
+            'channel': 'LovingMontana',
+            'upload_date': '20210207',
+            'title': 'Winter-loving dog helps girls dig a snow fort ',
+            'description': 'Moose the dog is more than happy to help with digging out this epic snow fort. Great job, Moose!',
+            'channel_url': 'https://rumble.com/c/c-546523',
+            'thumbnail': r're:https://.+\.jpg',
+            'duration': 103,
+            'like_count': int,
+            'dislike_count': int,
+            'view_count': int,
+            'live_status': 'not_live',
+        },
     }]
 
     _WEBPAGE_TESTS = [{
@@ -355,6 +423,7 @@ class RumbleIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
+        url = RumbleEmbedIE._remove_tracking_query_param(url)
         page_id = self._match_id(url)
         webpage = self._download_webpage(url, page_id)
         url_info = next(RumbleEmbedIE.extract_from_webpage(self._downloader, url, webpage), None)
@@ -405,7 +474,7 @@ class RumbleChannelIE(InfoExtractor):
             for video_url in traverse_obj(
                 get_elements_html_by_class('videostream__link', webpage), (..., {extract_attributes}, 'href'),
             ):
-                yield self.url_result(urljoin('https://rumble.com', video_url), RumbleIE)
+                yield self.url_result(RumbleEmbedIE._remove_tracking_query_param(urljoin('https://rumble.com', video_url)), RumbleIE)
 
     def _real_extract(self, url):
         url, playlist_id = self._match_valid_url(url).groups()
