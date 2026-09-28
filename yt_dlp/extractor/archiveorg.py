@@ -255,7 +255,11 @@ class ArchiveOrgIE(InfoExtractor):
         # Archive.org metadata API doesn't clearly demarcate playlist entries
         # or subtitle tracks, so we get them from the embeddable player.
         embed_page = self._download_webpage(f'https://archive.org/embed/{identifier}', identifier)
-        playlist = self._playlist_data(embed_page)
+
+        try:
+            playlist = self._playlist_data(embed_page)
+        except ValueError:  # Fall back if there's no embedded player
+            playlist = []
 
         entries = {}
         for p in playlist:
@@ -299,6 +303,17 @@ class ArchiveOrgIE(InfoExtractor):
             'webpage_url': f'https://archive.org/details/{identifier}',
         })
 
+        # If the playlist didn't manage to download
+        if len(playlist) == 0:
+            entries['all_mixed'] = {
+                'formats': [],
+                'thumbnails': [],
+                'artist': m.get('creator') or None,
+                'track': m['title'],
+                'subtitles': {},
+                'url': info['webpage_url'],
+            }
+
         for f in metadata['files']:
             if f['name'] in entries:
                 entries[f['name']] = merge_dicts(entries[f['name']], {
@@ -318,6 +333,8 @@ class ArchiveOrgIE(InfoExtractor):
                 entry = entries[f['name']]
             elif traverse_obj(f, ('original', {str})) in entries:
                 entry = entries[f['original']]
+            elif 'all_mixed' in entries:  # If archive.org didn't provide embedded player (which means no playlist data)
+                entry = entries['all_mixed']
             else:
                 continue
 
