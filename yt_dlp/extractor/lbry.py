@@ -1,9 +1,12 @@
 import functools
+import itertools
 import json
+import os
 import re
 import urllib.parse
 
 from .common import InfoExtractor
+from .. import webvtt
 from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
@@ -295,6 +298,58 @@ class LBRYIE(LBRYBaseIE):
         'only_matching': True,
     }]
 
+    def _extract_storyboard(self, storyboard_base_url, display_id, headers={}):
+        storyboard_url = os.path.join(storyboard_base_url, 'stream_sprite.vtt')
+        storyboard_metadata = self._download_webpage(
+            storyboard_url, display_id, 'Downloading storyboard metadata',
+            headers=headers, fatal=False)
+        if not storyboard_metadata: return
+
+        fragments = []
+        width, height, rows, cols = 0, 0, 0, 0
+        for path, blocks in itertools.groupby(
+                (block.as_json for block in webvtt.parse_fragment(storyboard_metadata.encode())
+                    if isinstance(block, webvtt.CueBlock)),
+                lambda block: block['text'].split('#', 1)[0]):
+            blocks = list(blocks)
+            duration = blocks[-1]['end'] - blocks[0]['start']
+            fragments.append({
+                'url': os.path.join(storyboard_base_url, os.path.normpath(path)),
+                # This value has a resolution of 90 kHz
+                'duration': duration // 90_000,
+            })
+
+            if width and height and rows and cols: continue
+
+            x, y  = 0, 0
+            for block in blocks:
+                if match := re.search(r'#xywh=(\d+),(\d+),(\d+),(\d+)', block['text'], re.ASCII):
+                    x = max(x, int(match.group(1)))
+                    y = max(y, int(match.group(2)))
+                    # Assume same width and height across all thumbnails
+                    if not width or not height:
+                        width = int(match.group(3))
+                        height = int(match.group(4))
+            if width and height and x and y:
+                rows = y // height + 1
+                cols = x // width + 1
+
+        if fragments:
+            return [{
+                'format_id': 'sb0',
+                'format_note': 'storyboard',
+                'ext': 'mhtml',
+                'protocol': 'mhtml',
+                'acodec': 'none',
+                'vcodec': 'none',
+                'url': storyboard_url,
+                'width': width,
+                'height': height,
+                'rows': rows,
+                'columns': cols,
+                'fragments': fragments,
+            }]
+
     def _real_extract(self, url):
         display_id = self._match_id(url)
         if display_id.startswith('@'):
@@ -345,6 +400,8 @@ class LBRYIE(LBRYBaseIE):
                 note='Downloading streaming redirect url info', fatal=False)
             if urlh:
                 final_url = urlh.url
+                if determine_ext(final_url) == 'm3u8':
+                    formats.extend(self._extract_storyboard(os.path.dirname(final_url), display_id, headers=headers) or [])
 
         elif result.get('value_type') == 'stream' and stream_type not in self._UNSUPPORTED_STREAM_TYPES:
             claim_id, is_live = result['signing_channel']['claim_id'], True
