@@ -32,6 +32,7 @@ from ..utils import (
     try_call,
 )
 from ..utils._utils import _ProgressState
+from ..utils.progress import sleep
 
 
 class FileDownloader:
@@ -212,6 +213,8 @@ class FileDownloader:
         if speed > rate_limit:
             sleep_time = float(byte_counter) / rate_limit - elapsed
             if sleep_time > 0:
+                # utils.progress.sleep not used due to conflict with self FD
+                # sleep(self.ydl, sleep_time, 'Slow down')
                 time.sleep(sleep_time)
 
     def temp_name(self, filename):
@@ -475,7 +478,7 @@ class FileDownloader:
 
         if sleep_interval > 0:
             self.to_screen(f'[download] Sleeping {sleep_interval:.2f} seconds {sleep_note}...')
-            time.sleep(sleep_interval)
+            sleep(self.ydl, sleep_interval)
 
         ret = self.real_download(filename, info_dict)
         self._finish_multiline_status()
