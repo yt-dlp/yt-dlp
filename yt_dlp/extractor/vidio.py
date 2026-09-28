@@ -1,21 +1,34 @@
+import base64
+import datetime as dt
+import hashlib
+import hmac
+import json
+
 from .common import InfoExtractor
+from ..aes import aes_cbc_encrypt_bytes
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     clean_html,
-    format_field,
+    extract_attributes,
     get_element_by_class,
+    get_element_html_by_id,
     int_or_none,
     parse_iso8601,
+    remove_end,
     smuggle_url,
     str_or_none,
-    strip_or_none,
+    str_to_int,
     try_get,
     unsmuggle_url,
+    url_or_none,
     urlencode_postdata,
 )
+from ..utils.traversal import traverse_obj
 
 
 class VidioBaseIE(InfoExtractor):
+    _GEO_COUNTRIES = ['ID']
     _LOGIN_URL = 'https://www.vidio.com/users/login'
     _NETRC_MACHINE = 'vidio'
 
@@ -35,9 +48,10 @@ class VidioBaseIE(InfoExtractor):
         login_form.update({
             'user[login]': username,
             'user[password]': password,
+            'authenticity_token': self._html_search_meta('csrf-token', login_page, fatal=True),
         })
         login_post, login_post_urlh = self._download_webpage_handle(
-            self._LOGIN_URL, None, 'Logging in', data=urlencode_postdata(login_form), expected_status=[302, 401])
+            self._LOGIN_URL, None, 'Logging in', data=urlencode_postdata(login_form), expected_status=401)
 
         if login_post_urlh.status == 401:
             if get_element_by_class('onboarding-content-register-popup__title', login_post):
@@ -58,16 +72,19 @@ class VidioBaseIE(InfoExtractor):
     def _initialize_pre_login(self):
         self._api_key = self._download_json(
             'https://www.vidio.com/auth', None, data=b'')['api_key']
+        self._ua = self.get_param('http_headers')['User-Agent']
 
-    def _call_api(self, url, video_id, note=None):
-        return self._download_json(url, video_id, note=note, headers={
+    def _call_api(self, url, display_id, note=None, headers=None):
+        return self._download_json(url, display_id, note=note, headers={
             'Content-Type': 'application/vnd.api+json',
             'X-API-KEY': self._api_key,
+            **(headers or {}),
         })
 
 
 class VidioIE(VidioBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?vidio\.com/(watch|embed)/(?P<id>\d+)-(?P<display_id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?vidio\.com/(?:watch|embed)/(?P<id>\d+)-(?P<display_id>[^/?#&]+)'
+    _EMBED_REGEX = [rf'(?x)<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'http://www.vidio.com/watch/165683-dj_ambred-booyah-live-2015',
         'md5': 'abac81b1a205a8d94c609a473b5ea62a',
@@ -77,112 +94,330 @@ class VidioIE(VidioBaseIE):
             'ext': 'mp4',
             'title': 'DJ_AMBRED - Booyah (Live 2015)',
             'description': 'md5:27dc15f819b6a78a626490881adbadf8',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:^https?://thumbor\.prod\.vidiocdn\.com/.+\.jpg$',
             'duration': 149,
-            'like_count': int,
-            'uploader': 'TWELVE Pic',
-            'timestamp': 1444902800,
+            'uploader': 'twelvepictures',
+            'timestamp': 1444902960,
             'upload_date': '20151015',
-            'uploader_id': 'twelvepictures',
-            'channel': 'Cover Music Video',
+            'uploader_id': '270115',
+            'channel': 'cover-music-video',
             'channel_id': '280236',
-            'view_count': int,
-            'dislike_count': int,
-            'comment_count': int,
+            'channel_url': 'https://www.vidio.com/@twelvepictures/channels/280236-cover-music-video',
             'tags': 'count:3',
             'uploader_url': 'https://www.vidio.com/@twelvepictures',
+            'live_status': 'not_live',
+            'genres': ['vlog', 'comedy', 'edm'],
+            'season_id': '',
+            'season_name': '',
+            'age_limit': 13,
+            'comment_count': int,
+        },
+        'params': {
+            'getcomments': True,
         },
     }, {
+        # DRM protected
+        'url': 'https://www.vidio.com/watch/7095853-ep-04-sketch-book',
+        'md5': 'abac81b1a205a8d94c609a473b5ea62a',
+        'info_dict': {
+            'id': '7095853',
+            'display_id': 'ep-04-sketch-book',
+            'ext': 'mp4',
+            'title': 'Ep 04 - Sketch Book',
+            'description': 'md5:9e22b4b1dbd65209c143d7009e899830',
+            'thumbnail': r're:^https?://thumbor\.prod\.vidiocdn\.com/.+\.jpg$',
+            'duration': 2784,
+            'uploader': 'vidiooriginal',
+            'timestamp': 1658509200,
+            'upload_date': '20220722',
+            'uploader_id': '31052580',
+            'channel': 'cupcake-untuk-rain',
+            'channel_id': '52332655',
+            'channel_url': 'https://www.vidio.com/@vidiooriginal/channels/52332655-cupcake-untuk-rain',
+            'tags': [],
+            'uploader_url': 'https://www.vidio.com/@vidiooriginal',
+            'live_status': 'not_live',
+            'genres': ['romance', 'drama', 'comedy', 'Teen', 'love triangle', 'Female-Led'],
+            'season_id': '8220',
+            'season_name': 'Season 1',
+            'age_limit': 13,
+            'comment_count': int,
+        },
+        'expected_warnings': ['This video is DRM protected'],
+        'params': {
+            'getcomments': True,
+            'skip_download': True,
+            'ignore_no_formats_error': True,
+        },
+    }, {
+        'url': 'https://www.vidio.com/watch/7439193-episode-1-magic-5',
+        'md5': 'b1644c574aeb20c91503be367ac2d211',
+        'info_dict': {
+            'id': '7439193',
+            'display_id': 'episode-1-magic-5',
+            'ext': 'mp4',
+            'title': 'Episode 1 - Magic 5',
+            'description': 'md5:367255f9e8e7ad7192c26218f01b6260',
+            'thumbnail': r're:^https?://thumbor\.prod\.vidiocdn\.com/.+\.jpg$',
+            'duration': 6126,
+            'uploader': 'indosiar',
+            'timestamp': 1679315400,
+            'upload_date': '20230320',
+            'uploader_id': '12',
+            'channel': 'magic-5',
+            'channel_id': '52350795',
+            'channel_url': 'https://www.vidio.com/@indosiar/channels/52350795-magic-5',
+            'tags': ['basmalah', 'raden-rakha', 'eby-da-5', 'sinetron', 'afan-da-5', 'sridevi-da5'],
+            'uploader_url': 'https://www.vidio.com/@indosiar',
+            'live_status': 'not_live',
+            'genres': ['drama', 'fantasy', 'friendship'],
+            'season_id': '11017',
+            'season_name': 'Episode',
+            'age_limit': 13,
+        },
+    }, {
+        'url': 'https://www.vidio.com/watch/1716926-mas-suka-masukin-aja',
+        'info_dict': {
+            'id': '1716926',
+            'display_id': 'mas-suka-masukin-aja',
+            'title': 'Mas Suka, Masukin Aja',
+            'description': 'md5:667093b08e07b6fb92f68037f81f2267',
+            'thumbnail': r're:^https?://thumbor\.prod\.vidiocdn\.com/.+\.jpg$',
+            'duration': 5080,
+            'uploader': 'vidiopremier',
+            'timestamp': 1564735560,
+            'upload_date': '20190802',
+            'uploader_id': '26094842',
+            'channel': 'mas-suka-masukin-aja',
+            'channel_id': '34112289',
+            'channel_url': 'https://www.vidio.com/@vidiopremier/channels/34112289-mas-suka-masukin-aja',
+            'tags': [],
+            'uploader_url': 'https://www.vidio.com/@vidiopremier',
+            'live_status': 'not_live',
+            'genres': ['comedy', 'romance'],
+            'season_id': '663',
+            'season_name': '',
+            'age_limit': 18,
+            'availability': 'premium_only',
+        },
+        'params': {
+            'skip_download': True,
+            'ignore_no_formats_error': True,
+        },
+        'expected_warnings': [
+            'This video requires subscription',
+            'No video formats found!',
+            'Requested format is not available',
+        ],
+    }, {
+        'url': 'https://www.vidio.com/watch/2372948-first-day-of-school-kindergarten-life-song-beabeo-nursery-rhymes-kids-songs',
+        'md5': 'c6d1bde08eee88bea27cca9dc38bc3df',
+        'info_dict': {
+            'id': '2372948',
+            'display_id': 'first-day-of-school-kindergarten-life-song-beabeo-nursery-rhymes-kids-songs',
+            'ext': 'mp4',
+            'title': 'First Day of School | Kindergarten Life Song | BeaBeo Nursery Rhymes & Kids Songs',
+            'description': 'md5:d505486a67415903f7f3ab61adfd5a91',
+            'thumbnail': r're:^https?://thumbor\.prod\.vidiocdn\.com/.+\.jpg$',
+            'duration': 517,
+            'uploader': 'kidsstartv',
+            'timestamp': 1638518400,
+            'upload_date': '20211203',
+            'uploader_id': '38247189',
+            'channel': 'beabeo-school-series',
+            'channel_id': '52311987',
+            'channel_url': 'https://www.vidio.com/@kidsstartv/channels/52311987-beabeo-school-series',
+            'tags': [],
+            'uploader_url': 'https://www.vidio.com/@kidsstartv',
+            'live_status': 'not_live',
+            'genres': ['3D cartoon', 'kids music'],
+            'season_id': '6023',
+            'season_name': 'school series',
+        },
+    }, {
+        'url': 'https://www.vidio.com/watch/1550718-stand-by-me-doraemon',
+        'info_dict': {
+            'id': '1550718',
+            'display_id': 'stand-by-me-doraemon',
+            'title': 'Stand by Me Doraemon',
+            'description': 'md5:19b658efb7c609895ea5472daa76b645',
+            'thumbnail': r're:^https?://thumbor\.prod\.vidiocdn\.com/.+\.jpg$',
+            'duration': 5429,
+            'uploader': 'vidiopremier',
+            'timestamp': 1545815634,
+            'upload_date': '20181226',
+            'uploader_id': '26094842',
+            'channel': 'stand-by-me-doraemon',
+            'channel_id': '29750953',
+            'channel_url': 'https://www.vidio.com/@vidiopremier/channels/29750953-stand-by-me-doraemon',
+            'tags': ['anime-lucu', 'top-10-this-week', 'kids', 'stand-by-me-doraemon-2'],
+            'uploader_url': 'https://www.vidio.com/@vidiopremier',
+            'live_status': 'not_live',
+            'genres': 'count:11',
+            'season_id': '237',
+            'season_name': '',
+            'age_limit': 7,
+            'availability': 'premium_only',
+        },
+        'params': {
+            'skip_download': True,
+            'ignore_no_formats_error': True,
+        },
+        'expected_warnings': [
+            'This video requires subscription',
+            'No video formats found!',
+            'Requested format is not available',
+        ],
+    }, {
+        # 404 Not Found
         'url': 'https://www.vidio.com/watch/77949-south-korea-test-fires-missile-that-can-strike-all-of-the-north',
         'only_matching': True,
-    }, {
-        # Premier-exclusive video
-        'url': 'https://www.vidio.com/watch/1550718-stand-by-me-doraemon',
-        'only_matching': True,
-    }, {
-        # embed url from https://enamplus.liputan6.com/read/5033648/video-fakta-temuan-suspek-cacar-monyet-di-jawa-tengah
-        'url': 'https://www.vidio.com/embed/7115874-fakta-temuan-suspek-cacar-monyet-di-jawa-tengah',
+    }]
+    _WEBPAGE_TESTS = [{
+        # embed player: https://www.vidio.com/embed/7115874-fakta-temuan-suspek-cacar-monyet-di-jawa-tengah
+        'url': 'https://enamplus.liputan6.com/read/5033648/video-fakta-temuan-suspek-cacar-monyet-di-jawa-tengah',
         'info_dict': {
             'id': '7115874',
-            'ext': 'mp4',
-            'channel_id': '40172876',
-            'comment_count': int,
-            'uploader_id': 'liputan6',
-            'view_count': int,
-            'dislike_count': int,
-            'upload_date': '20220804',
-            'uploader': 'Liputan6.com',
             'display_id': 'fakta-temuan-suspek-cacar-monyet-di-jawa-tengah',
-            'channel': 'ENAM PLUS 165',
-            'timestamp': 1659605520,
+            'ext': 'mp4',
             'title': 'Fakta Temuan Suspek Cacar Monyet di Jawa Tengah',
-            'duration': 59,
-            'like_count': int,
-            'tags': ['monkeypox indonesia', 'cacar monyet menyebar', 'suspek cacar monyet di indonesia', 'fakta', 'hoax atau bukan?', 'jawa tengah'],
-            'thumbnail': 'https://thumbor.prod.vidiocdn.com/83PN-_BKm5sS7emLtRxl506MLqQ=/640x360/filters:quality(70)/vidio-web-prod-video/uploads/video/image/7115874/fakta-suspek-cacar-monyet-di-jawa-tengah-24555a.jpg',
-            'uploader_url': 'https://www.vidio.com/@liputan6',
             'description': 'md5:6d595a18d3b19ee378e335a6f288d5ac',
+            'thumbnail': r're:^https?://thumbor\.prod\.vidiocdn\.com/.+\.jpg$',
+            'duration': 59,
+            'uploader': 'liputan6',
+            'timestamp': 1659605693,
+            'upload_date': '20220804',
+            'uploader_id': '139',
+            'channel': 'enam-plus-165',
+            'channel_id': '40172876',
+            'channel_url': 'https://www.vidio.com/@liputan6/channels/40172876-enam-plus-165',
+            'tags': ['monkeypox-indonesia', 'cacar-monyet-menyebar', 'suspek-cacar-monyet-di-indonesia', 'fakta', 'hoax-atau-bukan', 'jawa-tengah'],
+            'uploader_url': 'https://www.vidio.com/@liputan6',
+            'live_status': 'not_live',
+            'genres': ['health'],
+            'season_id': '',
+            'season_name': '',
+            'age_limit': 13,
+            'comment_count': int,
+        },
+        'params': {
+            'getcomments': True,
         },
     }]
 
+    def _get_formats_and_subtitles(self, attrs, video_id, display_id):
+        interactions_stream = self._download_json(
+            'https://www.vidio.com/interactions_stream.json', display_id,
+            query={'video_id': video_id, 'type': 'videos'}, note='Downloading stream info',
+            errnote='Unable to download stream info')
+
+        subtitles = dict(traverse_obj(attrs, ('data-subtitles', {json.loads}, ..., {
+            lambda x: (x['language'], [{'url': x['file']['url']}]),
+        })))
+        formats = []
+
+        # There are time-based strings in the playlist URL,
+        # so try the other URL iff no formats extracted from the prior one.
+
+        for m3u8_url in traverse_obj(
+                [interactions_stream.get('source'), attrs.get('data-vjs-clip-hls-url')], (..., {url_or_none})):
+            fmt, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, display_id, ext='mp4', m3u8_id='hls', fatal=False)
+            if fmt:
+                formats.extend(fmt)
+                self._merge_subtitles(subs, target=subtitles)
+                break
+
+        for mpd_url in traverse_obj(
+                [interactions_stream.get('source_dash'), attrs.get('data-vjs-clip-dash-url')], (..., {url_or_none})):
+            fmt, subs = self._extract_mpd_formats_and_subtitles(mpd_url, display_id, mpd_id='dash', fatal=False)
+            if fmt:
+                formats.extend(fmt)
+                self._merge_subtitles(subs, target=subtitles)
+                break
+
+        # TODO: extract also short previews of premier-exclusive videos from "attrs['data-content-preview-url']".
+
+        return formats, subtitles
+
     def _real_extract(self, url):
-        match = self._match_valid_url(url).groupdict()
-        video_id, display_id = match.get('id'), match.get('display_id')
-        data = self._call_api('https://api.vidio.com/videos/' + video_id, display_id)
-        video = data['videos'][0]
-        title = video['title'].strip()
-        is_premium = video.get('is_premium')
+        video_id, display_id = self._match_valid_url(url).groups()
 
-        if is_premium:
-            sources = self._download_json(
-                f'https://www.vidio.com/interactions_stream.json?video_id={video_id}&type=videos',
-                display_id, note='Downloading premier API JSON')
-            if not (sources.get('source') or sources.get('source_dash')):
-                self.raise_login_required('This video is only available for registered users with the appropriate subscription')
+        webpage = self._download_webpage(url, display_id)
+        api_data = self._call_api(f'https://api.vidio.com/videos/{video_id}', display_id, 'Downloading API data')
 
-            formats, subs = [], {}
-            if sources.get('source'):
-                hls_formats, hls_subs = self._extract_m3u8_formats_and_subtitles(
-                    sources['source'], display_id, 'mp4', 'm3u8_native')
-                formats.extend(hls_formats)
-                subs.update(hls_subs)
-            if sources.get('source_dash'):  # TODO: Find video example with source_dash
-                dash_formats, dash_subs = self._extract_mpd_formats_and_subtitles(
-                    sources['source_dash'], display_id, 'dash')
-                formats.extend(dash_formats)
-                subs.update(dash_subs)
-        else:
-            hls_url = data['clips'][0]['hls_url']
-            formats, subs = self._extract_m3u8_formats_and_subtitles(
-                hls_url, display_id, 'mp4', 'm3u8_native')
+        attrs = extract_attributes(get_element_html_by_id(f'player-data-{video_id}', webpage))
 
-        get_first = lambda x: try_get(data, lambda y: y[x + 's'][0], dict) or {}
-        channel = get_first('channel')
-        user = get_first('user')
-        username = user.get('username')
-        get_count = lambda x: int_or_none(video.get('total_' + x))
+        availability = self._availability(needs_premium=(attrs.get('data-access-type') == 'premium'))
+
+        if traverse_obj(attrs, ('data-drm-enabled', {lambda x: x == 'true'})):
+            self.report_drm(display_id)
+
+        formats, subtitles = self._get_formats_and_subtitles(attrs, video_id, display_id)
+        if not formats:
+            if availability == 'premium_only':
+                self.raise_login_required('This video requires subscription', metadata_available=True)
+            elif traverse_obj(attrs, ('data-geoblock', {lambda x: x == 'true'})):
+                self.raise_geo_restricted(
+                    'This show isn\'t available in your country', countries=self._GEO_COUNTRIES, metadata_available=True)
+
+        uploader = attrs.get('data-video-username')
+        uploader_url = f'https://www.vidio.com/@{uploader}'
+        channel = attrs.get('data-video-channel')
+        channel_id = attrs.get('data-video-channel-id')
 
         return {
             'id': video_id,
             'display_id': display_id,
-            'title': title,
-            'description': strip_or_none(video.get('description')),
-            'thumbnail': video.get('image_url_medium'),
-            'duration': int_or_none(video.get('duration')),
-            'like_count': get_count('likes'),
+            'title': (traverse_obj(api_data, ('videos', 0, 'title'))
+                      or attrs.get('data-video-title')
+                      or self._html_extract_title(webpage)),
+            'live_status': 'not_live',
             'formats': formats,
-            'subtitles': subs,
-            'uploader': user.get('name'),
-            'timestamp': parse_iso8601(video.get('created_at')),
-            'uploader_id': username,
-            'uploader_url': format_field(username, None, 'https://www.vidio.com/@%s'),
-            'channel': channel.get('name'),
-            'channel_id': str_or_none(channel.get('id')),
-            'view_count': get_count('view_count'),
-            'dislike_count': get_count('dislikes'),
-            'comment_count': get_count('comments'),
-            'tags': video.get('tag_list'),
+            'subtitles': subtitles,
+            'channel': channel,
+            'channel_id': channel_id,
+            'channel_url': f'{uploader_url}/channels/{channel_id}-{channel}',
+            'genres': traverse_obj(attrs, ('data-genres', {str_or_none}, filter, {lambda x: x.split(',')}), default=[]),
+            'season_id': traverse_obj(attrs, ('data-season-id', {str_or_none})),
+            'season_name': traverse_obj(attrs, ('data-season-name', {str})),
+            'uploader': uploader,
+            'uploader_id': traverse_obj(attrs, ('data-video-user-id', {str_or_none})),
+            'uploader_url': uploader_url,
+            'thumbnail': traverse_obj(attrs, ('data-video-image-url', {url_or_none})),
+            'duration': traverse_obj(attrs, ('data-video-duration', {str_to_int})),
+            'description': traverse_obj(attrs, ('data-video-description', {str})),
+            'availability': availability,
+            'tags': traverse_obj(attrs, ('data-video-tags', {str_or_none}, filter, {lambda x: x.split(',')}), default=[]),
+            'timestamp': traverse_obj(attrs, ('data-video-publish-date', {parse_iso8601(delimiter=' ')})),
+            'age_limit': (traverse_obj(attrs, ('data-adult', {lambda x: 18 if x == 'true' else 0}))
+                          or traverse_obj(attrs, ('data-content-rating-option', {lambda x: remove_end(x, ' or more')}, {str_to_int}))),
+            '__post_extractor': self.extract_comments(video_id, display_id),
         }
+
+    def _get_comments(self, video_id, display_id):
+        # TODO: extract replies under comments
+
+        def extract_comments(comments_data):
+            users = dict(traverse_obj(comments_data, ('included', ..., {
+                lambda x: (x['id'], {
+                    'author': x['attributes']['username'],
+                    'author_thumbnail': url_or_none(x['attributes']['avatar_url_big'] or x['attributes']['avatar_url_small']),
+                    'author_url': url_or_none(x['links']['self']),
+                }),
+            })))
+            yield from traverse_obj(comments_data, ('data', ..., {
+                'id': 'id',
+                'text': ('attributes', 'content'),
+                'timestamp': ('attributes', 'created_at', {parse_iso8601}),
+                'like_count': ('attributes', 'likes'),
+                'author_id': ('attributes', 'user_id'),
+            }, {lambda x: {**x, **users.get(x['author_id'])}}))
+
+        comment_page_url = f'https://api.vidio.com/videos/{video_id}/comments'
+        while comment_page_url:
+            comments_data = self._call_api(comment_page_url, display_id, 'Downloading comments')
+            comment_page_url = traverse_obj(comments_data, ('links', 'next', {url_or_none}))
+            yield from extract_comments(comments_data)
 
 
 class VidioPremierIE(VidioBaseIE):
@@ -234,11 +469,27 @@ class VidioLiveIE(VidioBaseIE):
         'url': 'https://www.vidio.com/live/204-sctv',
         'info_dict': {
             'id': '204',
-            'title': 'SCTV',
-            'uploader': 'SCTV',
-            'uploader_id': 'sctv',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'ext': 'mp4',
+            'title': r're:SCTV \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+            'display_id': 'sctv',
+            'uploader': 'sctv',
+            'uploader_id': '4',
+            'uploader_url': 'https://www.vidio.com/@sctv',
+            'thumbnail': r're:^https?://thumbor\.prod\.vidiocdn\.com/.+\.jpg$',
+            'live_status': 'is_live',
+            'description': r're:^SCTV merupakan stasiun televisi nasional terkemuka di Indonesia.+',
+            'like_count': int,
+            'dislike_count': int,
+            'timestamp': 1461258000,
+            'upload_date': '20160421',
+            'tags': [],
+            'genres': [],
+            'age_limit': 13,
         },
+    }, {
+        # Premier-exclusive livestream
+        'url': 'https://vidio.com/live/733-trans-tv',
+        'only_matching': True,
     }, {
         # Premier-exclusive livestream
         'url': 'https://www.vidio.com/live/6362-tvn',
@@ -249,61 +500,66 @@ class VidioLiveIE(VidioBaseIE):
         'only_matching': True,
     }]
 
+    _WEB_CLIENT_SECRTE = b'dPr0QImQ7bc5o9LMntNba2DOsSbZcjUh'
+    _WEB_CLIENT_IV = b'C8RWsrtFsoeyCyPt'
+
+    def _yield_formats(self, url, video_id, display_id):
+        client_id = str(dt.datetime.now().timestamp())[:-3]
+        try:
+            stream_info = self._call_api(
+                f'https://api.vidio.com/livestreamings/{video_id}/stream?initialize=true', display_id,
+                headers={
+                    'X-API-KEY': base64.b64encode(aes_cbc_encrypt_bytes(
+                        self._api_key.encode(),
+                        self._WEB_CLIENT_SECRTE,
+                        self._WEB_CLIENT_IV,
+                    )),
+                    'X-API-Platform': 'web-desktop',
+                    'X-Client': client_id,
+                    'X-Request-From': url,
+                    'X-Secure-Level': 2,
+                    'X-Signature': hmac.new(f'V1d10D3v:{client_id}'.encode(), client_id.encode(), hashlib.sha256).hexdigest(),
+                },
+            )
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                self.raise_login_required('This show requires subscription', metadata_available=True)
+                return []
+            raise
+
+        if m3u8_url := traverse_obj(stream_info, ('data', 'attributes', 'hls', {url_or_none})):
+            yield from self._extract_m3u8_formats(m3u8_url, display_id, ext='mp4', m3u8_id='hls', fatal=False, live=True)
+        if mpd_url := traverse_obj(stream_info, ('data', 'attributes', 'dash', {url_or_none})):
+            yield from self._extract_mpd_formats(mpd_url, display_id, mpd_id='dash', fatal=False)
+
     def _real_extract(self, url):
         video_id, display_id = self._match_valid_url(url).groups()
-        stream_data = self._call_api(
-            f'https://www.vidio.com/api/livestreamings/{video_id}/detail', display_id)
-        stream_meta = stream_data['livestreamings'][0]
-        user = stream_data.get('users', [{}])[0]
 
-        title = stream_meta.get('title')
-        username = user.get('username')
-
-        formats = []
-        if stream_meta.get('is_drm'):
-            if not self.get_param('allow_unplayable_formats'):
-                self.report_drm(video_id)
-        if stream_meta.get('is_premium'):
-            sources = self._download_json(
-                f'https://www.vidio.com/interactions_stream.json?video_id={video_id}&type=livestreamings',
-                display_id, note='Downloading premier API JSON')
-            if not (sources.get('source') or sources.get('source_dash')):
-                self.raise_login_required('This video is only available for registered users with the appropriate subscription')
-
-            if str_or_none(sources.get('source')):
-                token_json = self._download_json(
-                    f'https://www.vidio.com/live/{video_id}/tokens',
-                    display_id, note='Downloading HLS token JSON', data=b'')
-                formats.extend(self._extract_m3u8_formats(
-                    sources['source'] + '?' + token_json.get('token', ''), display_id, 'mp4', 'm3u8_native'))
-            if str_or_none(sources.get('source_dash')):
-                pass
-        else:
-            if stream_meta.get('stream_token_url'):
-                token_json = self._download_json(
-                    f'https://www.vidio.com/live/{video_id}/tokens',
-                    display_id, note='Downloading HLS token JSON', data=b'')
-                formats.extend(self._extract_m3u8_formats(
-                    stream_meta['stream_token_url'] + '?' + token_json.get('token', ''),
-                    display_id, 'mp4', 'm3u8_native'))
-            if stream_meta.get('stream_dash_url'):
-                pass
-            if stream_meta.get('stream_url'):
-                formats.extend(self._extract_m3u8_formats(
-                    stream_meta['stream_url'], display_id, 'mp4', 'm3u8_native'))
+        attrs = extract_attributes(get_element_html_by_id(
+            f'player-data-{video_id}', self._download_webpage(url, display_id, fatal=False) or ''))
+        stream_meta = traverse_obj(self._call_api(
+            f'https://www.vidio.com/api/livestreamings/{video_id}/detail', display_id),
+            ('livestreamings', 0, {dict}), default={})
 
         return {
             'id': video_id,
             'display_id': display_id,
-            'title': title,
-            'is_live': True,
-            'description': strip_or_none(stream_meta.get('description')),
-            'thumbnail': stream_meta.get('image'),
+            'title': attrs.get('data-video-title'),
+            'live_status': 'is_live',
+            'formats': list(self._yield_formats(url, video_id, display_id)),
+            'genres': traverse_obj(attrs, ('data-genres', {str_or_none}, filter, {lambda x: x.split(',')}), default=[]),
+            'uploader_id': traverse_obj(attrs, ('data-video-user-id', {str_or_none})),
+            **traverse_obj(attrs, ('data-video-username', {lambda x: {
+                'uploader': x,
+                'uploader_url': f'https://www.vidio.com/@{x}',
+            }}), default={}),
+            'thumbnail': traverse_obj(attrs, ('data-video-image-url', {url_or_none})),
+            'description': traverse_obj(attrs, ('data-video-description', {str})),
+            'availability': self._availability(needs_premium=(attrs.get('data-access-type') == 'premium')),
+            'tags': traverse_obj(attrs, ('data-video-tags', {str_or_none}, filter, {lambda x: x.split(',')}), default=[]),
+            'age_limit': (traverse_obj(attrs, ('data-adult', {lambda x: 18 if x == 'true' else 0}))
+                          or traverse_obj(attrs, ('data-content-rating-option', {lambda x: remove_end(x, ' or more')}, {str_to_int}))),
             'like_count': int_or_none(stream_meta.get('like')),
             'dislike_count': int_or_none(stream_meta.get('dislike')),
-            'formats': formats,
-            'uploader': user.get('name'),
             'timestamp': parse_iso8601(stream_meta.get('start_time')),
-            'uploader_id': username,
-            'uploader_url': format_field(username, None, 'https://www.vidio.com/@%s'),
         }
