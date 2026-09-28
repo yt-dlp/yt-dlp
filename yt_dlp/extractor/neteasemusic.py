@@ -97,7 +97,7 @@ class NetEaseMusicBaseIE(InfoExtractor):
                 'format_id': level,
                 'vcodec': 'none',
                 **traverse_obj(song, {
-                    'ext': ('type', {str}),
+                    'ext': ('type', {str.lower}),
                     'abr': ('br', {int_or_none(scale=1000)}),
                     'filesize': ('size', {int_or_none}),
                 }),
