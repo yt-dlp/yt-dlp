@@ -44,27 +44,28 @@ class GronkhIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        data_json = self._download_json(f'https://api.gronkh.tv/v1/video/info?episode={video_id}', video_id)
-        m3u8_url = self._download_json(f'https://api.gronkh.tv/v1/video/playlist?episode={video_id}', video_id)['playlist_url']
+        data_json = self._download_json(f'https://backend.gronkh.tv/v3/videos/episode/{video_id}', video_id)['data']
+        m3u8_url = traverse_obj(data_json, ('urls', 'playlist'))
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id)
-        if data_json.get('vtt_url'):
+        vtt_url = traverse_obj(data_json, ('urls', 'vtt'))
+        if vtt_url:
             subtitles.setdefault('en', []).append({
-                'url': data_json['vtt_url'],
+                'url': vtt_url,
                 'ext': 'vtt',
             })
         return {
             'id': video_id,
             'title': data_json.get('title'),
             'view_count': data_json.get('views'),
-            'thumbnail': data_json.get('preview_url'),
+            'thumbnail': traverse_obj(data_json, ('urls', 'thumbnail')),
             'upload_date': unified_strdate(data_json.get('created_at')),
             'formats': formats,
             'subtitles': subtitles,
-            'duration': float_or_none(data_json.get('source_length')),
+            'duration': float_or_none(traverse_obj(data_json, ('meta', 'duration'))),
             'chapters': traverse_obj(data_json, (
-                'chapters', lambda _, v: float_or_none(v['offset']) is not None, {
-                    'title': 'title',
-                    'start_time': ('offset', {float_or_none}),
+                'chapters', lambda _, v: float_or_none(v['start_offset']) is not None, {
+                    'title': ('category', 'title'),
+                    'start_time': ('start_offset', {float_or_none}),
                 })) or None,
         }
 
