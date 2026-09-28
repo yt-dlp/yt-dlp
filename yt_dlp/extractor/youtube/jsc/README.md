@@ -115,7 +115,7 @@ class MyJsChallengeProviderJCP(JsChallengeProvider):  # Provider class name must
 # you can define a preference function to increase/decrease the priority of providers.
 
 @register_preference(MyJsChallengeProviderJCP)
-def my_provider_preference(provider: JsChallengeProvider, requests: list[JsChallengeRequest]) -> int:
+def my_provider_preference(provider: MyJsChallengeProviderJCP, requests: list[JsChallengeRequest]) -> int:
     return 50
 ```
 
