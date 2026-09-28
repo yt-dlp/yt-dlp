@@ -36,6 +36,7 @@ from .websocket import WebSocketFragmentFD
 from .youtube_live_chat import YoutubeLiveChatFD
 from .bunnycdn import BunnyCdnFD
 from .soop import SoopVodFD
+from .shortmax import ShortMaxFD
 
 PROTOCOL_MAP = {
     'rtmp': RtmpFD,
@@ -55,6 +56,7 @@ PROTOCOL_MAP = {
     'youtube_live_chat_replay': YoutubeLiveChatFD,
     'bunnycdn': BunnyCdnFD,
     'soopvod': SoopVodFD,
+    'm3u8_shortmax': ShortMaxFD,  # the prefix 'm3u8' is necessary for fixup
 }
 
 
@@ -119,7 +121,6 @@ def _get_suitable_downloader(info_dict, protocol, params, default):
             return HlsFD
         elif params.get('hls_prefer_native') is False:
             return FFmpegFD
-
     return PROTOCOL_MAP.get(protocol, default)
 
 
