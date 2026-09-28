@@ -24,12 +24,12 @@ class VideaIE(InfoExtractor):
                         videa(?:kid)?\.hu/
                         (?:
                             videok/(?:[^/]+/)*[^?#&]+-|
-                            (?:videojs_)?player\?.*?\bv=|
+                            (?:videojs_)?player\?.*?\b(?:v|f)=|
                             player/v/
                         )
                         (?P<id>[^?#&]+)
                     '''
-    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//videa\.hu/player\?.*?\bv=.+?)\1']
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//videa\.hu/player\?.*?\b(?:v|f)=.+?)\1']
     _TESTS = [{
         'url': 'http://videa.hu/videok/allatok/az-orult-kigyasz-285-kigyot-kigyo-8YfIAjxwWGwT8HVQ',
         'md5': '97a7af41faeaffd9f1fc864a7c7e7603',
@@ -71,6 +71,9 @@ class VideaIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://videakid.hu/player?v=8YfIAjxwWGwT8HVQ',
+        'only_matching': True,
+    }, {
+        'url': 'https://videa.hu/player?f=6.198834.776849.0',
         'only_matching': True,
     }, {
         'url': 'https://videakid.hu/player/v/8YfIAjxwWGwT8HVQ?autoplay=1',
