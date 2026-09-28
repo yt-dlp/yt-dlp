@@ -219,6 +219,8 @@ class MailRuMusicSearchBaseIE(InfoExtractor):
         audio_url = t['URL'] if fatal else t.get('URL')
         if not audio_url:
             return
+        if audio_url.startswith('//'):
+            audio_url = 'https:' + audio_url
 
         audio_id = t['File'] if fatal else t.get('File')
         if not audio_id:
