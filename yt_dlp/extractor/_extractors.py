@@ -960,6 +960,7 @@ from .listennotes import ListenNotesIE
 from .litv import LiTVIE
 from .livejournal import LiveJournalIE
 from .livestreamfails import LivestreamfailsIE
+from .livid import LividIE
 from .lnk import LnkIE
 from .locipo import (
     LocipoIE,
