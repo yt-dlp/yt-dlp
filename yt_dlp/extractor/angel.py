@@ -1,56 +1,93 @@
-import re
+import json
 
 from .common import InfoExtractor
-from ..utils import merge_dicts, url_or_none
+from ..utils import unified_strdate
+from ..utils.traversal import traverse_obj
 
 
 class AngelIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?angel\.com/watch/(?P<series>[^/?#]+)/episode/(?P<id>[\w-]+)/season-(?P<season_number>\d+)/episode-(?P<episode_number>\d+)/(?P<title>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?angel\.com/watch/(?P<series>[^/?#]+)/episode/(?P<id>[\w-]+)(?:/season-(?P<season_number>\d+)/episode-(?P<episode_number>\d+)/(?P<title>[^/?#]+))?'
     _TESTS = [{
-        'url': 'https://www.angel.com/watch/tuttle-twins/episode/2f3d0382-ea82-4cdc-958e-84fbadadc710/season-1/episode-1/when-laws-give-you-lemons',
-        'md5': '4734e5cfdd64a568e837246aa3eaa524',
+        'url': 'https://www.angel.com/watch/case-for-christ/episode/d427dcd9-2420-421c-9734-66672e67aa38',
+        'md5': 'e84b896b0bb31282c9abb6c71a109ddc',
         'info_dict': {
-            'id': '2f3d0382-ea82-4cdc-958e-84fbadadc710',
+            'id': 'd427dcd9-2420-421c-9734-66672e67aa38',
             'ext': 'mp4',
-            'title': 'Tuttle Twins Season 1, Episode 1: When Laws Give You Lemons',
-            'description': 'md5:73b704897c20ab59c433a9c0a8202d5e',
-            'thumbnail': r're:^https?://images.angelstudios.com/image/upload/angel-app/.*$',
-            'duration': 1359.0,
+            'title': 'The Case for Christ',
+            'description': 'md5:b1260a69567abdc396e5937073de2e48',
+            'thumbnail': 'https://images.angelstudios.com/image/upload/v1743632142/studio-app/catalog/8b48b47a-32e0-40dc-8d0b-c0ed9cd158ab',
+            'duration': 6815,
+            'release_date': '20250415',
         },
     }, {
-        'url': 'https://www.angel.com/watch/the-chosen/episode/8dfb714d-bca5-4812-8125-24fb9514cd10/season-1/episode-1/i-have-called-you-by-name',
-        'md5': 'e4774bad0a5f0ad2e90d175cafdb797d',
+        'url': 'https://www.angel.com/watch/young-david/episode/de35a3e3-8046-4476-bf29-4b7b414f7cd6/season-1/episode-2/king',
+        'md5': 'd56a2acce5b752093a059ee140f547a2',
         'info_dict': {
-            'id': '8dfb714d-bca5-4812-8125-24fb9514cd10',
+            'id': 'de35a3e3-8046-4476-bf29-4b7b414f7cd6',
             'ext': 'mp4',
-            'title': 'The Chosen Season 1, Episode 1: I Have Called You By Name',
-            'description': 'md5:aadfb4827a94415de5ff6426e6dee3be',
-            'thumbnail': r're:^https?://images.angelstudios.com/image/upload/angel-app/.*$',
-            'duration': 3276.0,
+            'title': 'King',
+            'description': 'md5:cefc5a6398385e2166bbb618036da99f',
+            'thumbnail': 'https://images.angelstudios.com/image/upload/v1701372336/studio-app/catalog/0a573fa6-8d9b-4ce0-b0a9-7bc6c8f97212',
+            'duration': 372,
+            'release_date': '20231130',
         },
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        slug, video_id = self._match_valid_url(url).group('series', 'id')
 
-        json_ld = self._search_json_ld(webpage, video_id)
+        auth_cookie = None
+        if (self._cookies_passed):
+            auth_cookie = self._get_cookies(url)['angel_jwt_v2'].value
 
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            json_ld.pop('url'), video_id, note='Downloading HD m3u8 information')
+        # DOWNLOADING METADATA
+        metadata = traverse_obj(self._download_json(
+            'https://api.angelstudios.com/graphql', video_id, data=json.dumps({
+                'operationName': 'getEpisodeAndUserWatchData',
+                'query': '''
+                        fragment EpisodeGuildEarlyAccess on Episode {
+                          isAngelGuildOnly, prereleaseAvailableFor, isTrailer, guildAvailableDate, publiclyAvailableDate, earlyAccessDate, unavailableReason, __typename
+                        }
 
-        info_dict = {
+                        query getEpisodeAndUserWatchData($guid: ID!) {
+                          episode(guid: $guid) {
+                            description, episodeNumber, guid, id, name, posterCloudinaryPath, posterLandscapeCloudinaryPath, projectSlug, releaseDate, seasonId, seasonNumber, slug, subtitle,
+                            source { credits, duration, skipsUrl: url(input: {segmentFormat: TS, muteAllSwears: true}), url(input: {segmentFormat: TS, maxH264Level: LEVEL_5_2}), __typename },
+                            unavailableReason,
+                            upNext { id, projectSlug, guid, seasonNumber, episodeNumber, subtitle, __typename },
+                            vmapUrl,
+                            watchPosition { position, __typename },
+                            ...EpisodeGuildEarlyAccess, __typename
+                          }
+                        }''',
+                'variables': {'authenticated': True,
+                              'guid': video_id,
+                              'includePrerelease': True,
+                              'projectSlug': slug,
+                              'reactionsRollupInterval': 4000,
+                              'skipsEnabled': False},
+            }).encode(), headers={
+                'content-type': 'application/json',
+                'authorization': auth_cookie,
+            }), ('data', 'episode'))
+
+        if (all(var is None for var in [metadata['guildAvailableDate'], metadata['publiclyAvailableDate'], metadata['earlyAccessDate']])):
+            self.raise_geo_restricted('This video is unavailable!')
+        elif (metadata['publiclyAvailableDate'] is None) and (traverse_obj(metadata, ('source', 'url')) is None):
+            self.raise_login_required('This is Members Only video (' + metadata['unavailableReason'] + '). Please log in with your Guild account!')
+
+        # DOWNLOADING LIST OF M3U8 FILES
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(traverse_obj(metadata, ('source', 'url')), video_id)
+
+        return {
             'id': video_id,
-            'title': self._og_search_title(webpage),
-            'description': self._og_search_description(webpage),
             'formats': formats,
             'subtitles': subtitles,
+            'thumbnail': 'https://images.angelstudios.com/image/upload/' + metadata['posterLandscapeCloudinaryPath'],
+            'duration': metadata['source']['duration'],
+            **traverse_obj(metadata, {
+                'title': 'subtitle',
+                'description': 'description',
+                'release_date': ('releaseDate', {unified_strdate}),
+            }),
         }
-
-        # Angel uses cloudinary in the background and supports image transformations.
-        # We remove these transformations and return the source file
-        base_thumbnail_url = url_or_none(self._og_search_thumbnail(webpage)) or json_ld.pop('thumbnails')
-        if base_thumbnail_url:
-            info_dict['thumbnail'] = re.sub(r'(/upload)/.+(/angel-app/.+)$', r'\1\2', base_thumbnail_url)
-
-        return merge_dicts(info_dict, json_ld)
