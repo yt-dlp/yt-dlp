@@ -1,10 +1,9 @@
 import random
-import re
-import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    UserNotLive,
     encode_data_uri,
     float_or_none,
     int_or_none,
@@ -12,6 +11,7 @@ from ..utils import (
     mimetype2ext,
     str_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class UstreamIE(InfoExtractor):
@@ -67,6 +67,10 @@ class UstreamIE(InfoExtractor):
     }, {
         'url': 'https://video.ibm.com/embed/recorded/128240221?&autoplay=true&controls=true&volume=100',
         'only_matching': True,
+    }, {
+        # video.ibm.com/recorded/ URL (non-embed)
+        'url': 'https://video.ibm.com/recorded/134734786',
+        'only_matching': True,
     }]
 
     def _get_stream_info(self, url, video_id, app_id_ver, extra_note=None):
@@ -104,8 +108,9 @@ class UstreamIE(InfoExtractor):
             stream_info = self._get_stream_info(
                 url, video_id, app_id_ver,
                 extra_note=f' (try {trial_count + 1})' if trial_count > 0 else '')
-            if 'stream' in stream_info[0]['args'][0]:
-                return stream_info[0]['args'][0]['stream']
+            stream = traverse_obj(stream_info, (0, 'args', 0, 'stream'))
+            if stream:
+                return stream
         return []
 
     def _parse_segmented_mp4(self, dash_stream_info):
@@ -235,15 +240,90 @@ class UstreamIE(InfoExtractor):
 
 
 class UstreamChannelIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?ustream\.tv/channel/(?P<slug>.+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:ustream\.tv/channel|video\.ibm\.com(?!/recorded|/embed))/(?P<slug>.+)'
     IE_NAME = 'ustream:channel'
-    _TEST = {
+    _TESTS = [{
         'url': 'http://www.ustream.tv/channel/channeljapan',
         'info_dict': {
             'id': '10874166',
         },
         'playlist_mincount': 17,
-    }
+        'skip': 'ustream.tv channel URLs no longer available',
+    }, {
+        'url': 'https://video.ibm.com/channel/5WmPJ7BdpAL',
+        'info_dict': {
+            'id': '23377754',
+            'display_id': 'channel/5WmPJ7BdpAL',
+            'ext': 'mp4',
+            'title': r're:.+',
+            'live_status': 'is_live',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # video.ibm.com/channel/ URL format
+        'url': 'https://video.ibm.com/channel/neemo-15',
+        'only_matching': True,
+    }, {
+        # video.ibm.com direct slug URL format (no /channel/)
+        'url': 'https://video.ibm.com/ohlonecollegetv',
+        'only_matching': True,
+    }]
+
+    def _get_live_stream_formats(self, channel_id, url):
+        rnd = random.randrange(int(1e8))
+        conn_url = (
+            f'http://r{rnd}-1-{channel_id}-channel-lp-live.ums.ustream.tv/1/ustream')
+        conn_info = self._download_json(
+            conn_url, channel_id, note='Downloading live connection info',
+            query={
+                'type': 'viewer',
+                'appId': 11,
+                'appVersion': 2,
+                'rsid': f'{random.randrange(int(1e8)):x}:{random.randrange(int(1e8)):x}',
+                'rpin': f'_rpin.{random.randrange(int(1e15))}',
+                'media': channel_id,
+                'application': 'channel',
+            },
+            headers={
+                'Referer': url,
+                'Origin': 'https://video.ibm.com',
+            },
+            fatal=False)
+        if not conn_info:
+            return []
+
+        host = conn_info[0]['args'][0]['host']
+        connection_id = conn_info[0]['args'][0]['connectionId']
+
+        stream_info = self._download_json(
+            f'http://{host}/1/ustream?connectionId={connection_id}',
+            channel_id, note='Downloading live stream info',
+            headers={
+                'Referer': url,
+                'Origin': 'https://video.ibm.com',
+            },
+            fatal=False)
+        if not stream_info:
+            return []
+
+        for item in stream_info:
+            cmd = item.get('cmd')
+            if cmd == 'reject':
+                self.report_warning('Stream rejected (possibly geo/referrer locked)')
+                return []
+            args = item.get('args', [{}])
+            if not args or not isinstance(args[0], dict):
+                continue
+            streams = args[0].get('stream', [])
+            if streams:
+                m3u8_url = streams[0].get('url')
+                if m3u8_url:
+                    return self._extract_m3u8_formats(
+                        m3u8_url, channel_id, ext='mp4', m3u8_id='hls',
+                        live=True, fatal=False)
+        return []
 
     def _real_extract(self, url):
         m = self._match_valid_url(url)
@@ -251,22 +331,21 @@ class UstreamChannelIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
         channel_id = self._html_search_meta('ustream:channel_id', webpage)
 
-        BASE = 'http://www.ustream.tv'
-        next_url = f'/ajax/socialstream/videos/{channel_id}/1.json'
-        video_ids = []
-        while next_url:
-            reply = self._download_json(
-                urllib.parse.urljoin(BASE, next_url), display_id,
-                note=f'Downloading video information (next: {len(video_ids) + 1})')
-            video_ids.extend(re.findall(r'data-content-id="(\d.*)"', reply['data']))
-            next_url = reply['nextUrl']
+        channel_data = self._search_json(
+            r'ustream\.vars\.channelData\s*=', webpage, 'channel data',
+            channel_id, default={})
+        title = channel_data.get('title') or display_id
 
-        entries = [
-            self.url_result('http://www.ustream.tv/recorded/' + vid, 'Ustream')
-            for vid in video_ids]
+        # Try to extract live HLS stream via UMS
+        formats = self._get_live_stream_formats(channel_id, url)
+
+        if not formats:
+            raise UserNotLive(video_id=channel_id)
+
         return {
-            '_type': 'playlist',
             'id': channel_id,
             'display_id': display_id,
-            'entries': entries,
+            'title': title,
+            'formats': formats,
+            'is_live': True,
         }
