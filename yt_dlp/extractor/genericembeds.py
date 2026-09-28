@@ -2,7 +2,7 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import make_archive_id, unescapeHTML
+from ..utils import make_archive_id, orderedSet, unescapeHTML
 
 
 class HTML5MediaEmbedIE(InfoExtractor):
@@ -21,16 +21,27 @@ class HTML5MediaEmbedIE(InfoExtractor):
 
     def _extract_from_webpage(self, url, webpage):
         video_id, title = self._generic_id(url), self._generic_title(url, webpage)
-        entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls') or []
-        for num, entry in enumerate(entries, start=1):
+        entries = orderedSet(self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')) or []
+        if len(entries) == 1:
+            entry = entries[0]
             entry.update({
-                'id': f'{video_id}-{num}',
-                'title': f'{title} ({num})',
+                'id': video_id,
+                'title': title,
                 '_old_archive_ids': [
-                    make_archive_id('generic', f'{video_id}-{num}' if len(entries) > 1 else video_id),
+                    video_id,
                 ],
             })
             yield entry
+        else:
+            for num, entry in enumerate(entries, start=1):
+                entry.update({
+                    'id': f'{video_id}-{num}',
+                    'title': f'{title} ({num})',
+                    '_old_archive_ids': [
+                        make_archive_id('generic', f'{video_id}-{num}'),
+                    ],
+                })
+                yield entry
 
 
 class QuotedHTMLIE(InfoExtractor):
