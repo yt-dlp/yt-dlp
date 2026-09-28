@@ -113,10 +113,11 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                             player(?:/[\da-z]+)?\.html\?(?:video|(?P<is_playlist>playlist))=
                         )
                     )
-                    (?P<id>[^/?_&#]+)(?:[\w-]*\?playlist=(?P<playlist_id>x[0-9a-z]+))?
+                    
+                    (?P<id>[^/?_&#"\'\s<>]+)(?:[\w-]*\?playlist=(?P<playlist_id>x[0-9a-z]+))?
     '''
     IE_NAME = 'dailymotion'
-    _EMBED_REGEX = [rf'(?ix)<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)["\'](?P<url>{_VALID_URL[5:]})']
+    _EMBED_REGEX = [rf'(?ix)<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)(?P<q>["\'])(?P<url>{_VALID_URL[5:]})(?P=q)']
     _TESTS = [{
         'url': 'http://www.dailymotion.com/video/x5kesuj_office-christmas-party-review-jason-bateman-olivia-munn-t-j-miller_news',
         'info_dict': {
