@@ -1,0 +1,1156 @@
+{
+  "$defs": {
+    "chapter": {
+      "properties": {
+        "end_time": {
+          "description": "The end time of the chapter in seconds (optional: core code can determine this value from the next chapter's start_time or the video's duration)",
+          "minimum": 0,
+          "type": ["number", "integer", "null"]
+        },
+        "start_time": {
+          "description": "The start time of the chapter in seconds",
+          "minimum": 0,
+          "type": ["number", "integer"]
+        },
+        "title": {
+          "description": "(optional, string)",
+          "type": ["string", "null"]
+        }
+      },
+      "required": ["start_time"],
+      "type": "object"
+    },
+    "comment": {
+      "anyOf": [
+        {
+          "required": ["text"]
+        },
+        {
+          "required": ["html"]
+        }
+      ],
+      "description": "A list of comments, each with one or more of the following properties (all but one of text or html optional):",
+      "properties": {
+        "author": {
+          "description": "human-readable name of the comment author",
+          "type": ["string", "null"]
+        },
+        "author_id": {
+          "description": "user ID of the comment author",
+          "type": ["string", "null"]
+        },
+        "author_is_uploader": {
+          "description": "Whether the comment is made by the video uploader",
+          "type": ["boolean", "null"]
+        },
+        "author_is_verified": {
+          "description": "Whether the author is verified on the platform",
+          "type": ["boolean", "null"]
+        },
+        "author_thumbnail": {
+          "description": "The thumbnail of the comment author",
+          "format": "uri",
+          "type": ["string", "null"]
+        },
+        "author_url": {
+          "description": "The url to the comment author's page",
+          "format": "uri",
+          "type": ["string", "null"]
+        },
+        "dislike_count": {
+          "description": "Number of negative ratings of the comment",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "html": {
+          "description": "Comment as HTML",
+          "type": ["string", "null"]
+        },
+        "id": {
+          "description": "Comment ID",
+          "type": ["string", "null"]
+        },
+        "is_favorited": {
+          "description": "Whether the comment is marked as favorite by the video uploader",
+          "type": ["boolean", "null"]
+        },
+        "is_pinned": {
+          "description": "Whether the comment is pinned to the top of the comments",
+          "type": ["boolean", "null"]
+        },
+        "like_count": {
+          "description": "Number of positive ratings of the comment",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "parent": {
+          "description": "ID of the comment this one is replying to. Set to \"root\" to indicate that this is a comment to the original video.",
+          "type": ["string", "null"]
+        },
+        "text": {
+          "description": "Plain text of the comment",
+          "type": ["string", "null"]
+        },
+        "timestamp": {
+          "description": "UNIX timestamp of comment",
+          "minimum": 0,
+          "type": ["number", "integer", "null"]
+        }
+      },
+      "type": "object"
+    },
+    "format": {
+      "properties": {
+        "abr": {
+          "description": "Average audio bitrate in kbps (1000 bits/sec)",
+          "minimum": 0,
+          "type": ["number", "null"]
+        },
+        "acodec": {
+          "description": "Name of the audio codec in use",
+          "type": ["string", "null"]
+        },
+        "app": {
+          "type": ["string", "null"]
+        },
+        "aspect_ratio": {
+          "description": "Aspect ratio of the video, if known. Automatically calculated from width and height",
+          "exclusiveMinimum": 0,
+          "type": ["number", "null"]
+        },
+        "asr": {
+          "description": "Audio sampling rate in Hertz",
+          "minimum": 0,
+          "type": ["number", "integer", "null"]
+        },
+        "audio_channels": {
+          "description": "Number of audio channels",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "available_at": {
+          "description": "Unix timestamp of when a format will be available to download",
+          "minimum": 0,
+          "type": ["integer", "number", "null"]
+        },
+        "container": {
+          "description": "Name of the container format",
+          "type": ["string", "null"]
+        },
+        "downloader_options": {
+          "description": "A dictionary of downloader options (For internal use only)",
+          "properties": {
+            "ffmpeg_args": {
+              "description": "Extra arguments for ffmpeg downloader (input)"
+            },
+            "ffmpeg_args_out": {
+              "description": "Extra arguments for ffmpeg downloader (output)"
+            },
+            "http_chunk_size": {
+              "description": "Chunk size for HTTP downloads",
+              "type": ["integer", "null"]
+            },
+            "max_quality": {
+              "description": "(NiconicoLiveFD only) Max stream quality string",
+              "type": ["string", "null"]
+            },
+            "ws": {
+              "description": "(NiconicoLiveFD only) WebSocketResponse"
+            },
+            "ws_url": {
+              "description": "(NiconicoLiveFD only) Websockets URL"
+            }
+          },
+          "type": ["object", "null"]
+        },
+        "dynamic_range": {
+          "description": "The dynamic range of the video. One of: \"SDR\" (None), \"HDR10\", \"HDR10+, \"HDR12\", \"HLG, \"DV\"",
+          "enum": [null, "SDR", "HDR10", "HDR10+", "HDR12", "HLG", "DV"],
+          "type": ["string", "null"]
+        },
+        "ext": {
+          "description": "Will be calculated from URL if missing",
+          "type": ["string", "null"]
+        },
+        "extra_param_to_key_url": {
+          "description": "A query string to append to the URL of the format's HLS AES-128 decryption key. Only applied by the native HLS downloader.",
+          "type": ["string", "null"]
+        },
+        "extra_param_to_segment_url": {
+          "description": "A query string to append to each fragment's URL, or to update each existing query string with. If it is an HLS stream with an AES-128 decryption key, the query parameters will be passed to the key URI as well, unless there is an `extra_param_to_key_url` given, or unless an external key URI is provided via `hls_aes`. Only applied by the native HLS/DASH downloaders.",
+          "type": ["string", "null"]
+        },
+        "filesize": {
+          "description": "The number of bytes, if known in advance",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "filesize_approx": {
+          "description": "An estimate for the number of bytes",
+          "minimum": 0,
+          "type": ["integer", "number", "null"]
+        },
+        "flash_version": {
+          "type": ["string", "null"]
+        },
+        "format": {
+          "description": "A human-readable description of the format (\"mp4 container with h264/opus\"). Calculated from the format_id, width, height. and format_note fields if missing.",
+          "type": ["string", "null"]
+        },
+        "format_id": {
+          "description": "A short description of the format (\"mp4_h264_opus\" or \"19\"). Technically optional, but strongly recommended.",
+          "type": ["string", "null"]
+        },
+        "format_note": {
+          "description": "Additional info about the format (\"3D\" or \"DASH video\")",
+          "type": ["string", "null"]
+        },
+        "fps": {
+          "description": "Frame rate",
+          "minimum": 0,
+          "type": ["number", "null"]
+        },
+        "fragment_base_url": {
+          "description": "Base URL for fragments. Each fragment's path value (if present) will be relative to this URL.",
+          "format": "uri",
+          "type": ["string", "null"]
+        },
+        "fragments": {
+          "description": "A list of fragments of a fragmented media. Each fragment entry must contain either an url or a path. If an url is present it should be considered by a client. Otherwise both path and fragment_base_url must be present.",
+          "items": {
+            "$ref": "#/$defs/fragment"
+          },
+          "type": ["array", "null"]
+        },
+        "has_drm": {
+          "description": "True if the format has DRM and cannot be downloaded. 'maybe' if the format may have DRM and has to be tested before download.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "const": "maybe"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "height": {
+          "description": "Height of the video, if known",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "hls_aes": {
+          "description": "A dictionary of HLS AES-128 decryption information used by the native HLS downloader to override the values in the media playlist when an '#EXT-X-KEY' tag is present in the playlist:",
+          "properties": {
+            "iv": {
+              "description": "The IV (as hex) used to decrypt fragments",
+              "pattern": "^[0-9a-fA-F]+$",
+              "type": ["string", "null"]
+            },
+            "key": {
+              "description": "The key (as hex) used to decrypt fragments. If `key` is given, any key URI will be ignored",
+              "pattern": "^[0-9a-fA-F]+$",
+              "type": ["string", "null"]
+            },
+            "uri": {
+              "description": "The URI from which the key will be downloaded",
+              "format": "uri",
+              "type": ["string", "null"]
+            }
+          },
+          "type": ["object", "null"]
+        },
+        "hls_media_playlist_data": {
+          "description": "The M3U8 media playlist data as a string. Only use if the data must be modified during extraction and the native HLS downloader should bypass requesting the URL. Does not apply if ffmpeg is used as external downloader",
+          "type": ["string", "null"]
+        },
+        "http_headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "A dictionary of additional HTTP headers to add to the request.",
+          "type": ["object", "null"]
+        },
+        "impersonate": {
+          "description": "Impersonate target(s). Can be any of the following entities: an instance of yt_dlp.networking.impersonate.ImpersonateTarget; a string in the format of CLIENT[:OS]; a list or a tuple of CLIENT[:OS] strings or ImpersonateTarget instances; a boolean value; True means any impersonate target is sufficient",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "is_dash_periods": {
+          "description": "Whether the format is a result of merging multiple DASH periods.",
+          "type": ["boolean", "null"]
+        },
+        "is_from_start": {
+          "description": "Is a live format that can be downloaded from the start. Boolean",
+          "type": ["boolean", "null"]
+        },
+        "language": {
+          "description": "Language code, e.g. \"de\" or \"en-US\".",
+          "pattern": "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]+)*$",
+          "type": ["string", "null"]
+        },
+        "language_preference": {
+          "description": "Is this in the language mentioned in the URL? 10 if it's what the URL is about, -1 for default (don't know), -10 otherwise, other values reserved for now.",
+          "type": ["integer", "null"]
+        },
+        "manifest_stream_number": {
+          "description": "(For internal use only) The index of the stream in the manifest file",
+          "type": ["integer", "null"]
+        },
+        "manifest_url": {
+          "description": "The URL of the manifest file in case of fragmented media: for HLS - URL of the M3U8 master playlist, for HDS - URL of the F4M manifest, for DASH - URL of the MPD manifest, for MSS - URL of the ISM manifest.",
+          "format": "uri",
+          "type": ["string", "null"]
+        },
+        "no_resume": {
+          "description": "The server does not support resuming the (HTTP or RTMP) download. Boolean.",
+          "type": ["boolean", "null"]
+        },
+        "page_url": {
+          "description": "RTMP formats can also have the additional fields: page_url, app, play_path, tc_url, flash_version, rtmp_live, rtmp_conn, rtmp_protocol, rtmp_real_time",
+          "format": "uri",
+          "type": ["string", "null"]
+        },
+        "play_path": {
+          "type": ["string", "null"]
+        },
+        "player_url": {
+          "description": "SWF Player URL (used for rtmpdump).",
+          "format": "uri",
+          "type": ["string", "null"]
+        },
+        "preference": {
+          "description": "Order number of this format. If this field is present and not None, the formats get sorted by this field, regardless of all other values. -1 for default (order by other properties), -2 or smaller for less than default. < -1000 to hide the format (if there is another one which is strictly better)",
+          "type": ["integer", "null"]
+        },
+        "protocol": {
+          "description": "The protocol that will be used for the actual download, lower-case. One of \"http\", \"https\" or one of the protocols defined in downloader.PROTOCOL_MAP",
+          "type": ["string", "null"]
+        },
+        "quality": {
+          "description": "Order number of the video quality of this format, irrespective of the file format. -1 for default (order by other properties), -2 or smaller for less than default.",
+          "type": ["integer", "number", "null"]
+        },
+        "request_data": {
+          "description": "Data to send in POST request to the URL"
+        },
+        "resolution": {
+          "description": "Textual description of width and height. Automatically calculated from width and height",
+          "pattern": "^\\d+x\\d+$",
+          "type": ["string", "null"]
+        },
+        "rtmp_conn": {},
+        "rtmp_live": {
+          "type": ["boolean", "null"]
+        },
+        "rtmp_protocol": {
+          "type": ["string", "null"]
+        },
+        "rtmp_real_time": {
+          "type": ["boolean", "null"]
+        },
+        "source_preference": {
+          "description": "Order number for this video source (quality takes higher priority). -1 for default (order by other properties), -2 or smaller for less than default.",
+          "type": ["integer", "null"]
+        },
+        "stretched_ratio": {
+          "description": "If given and not 1, indicates that the video's pixels are not square. width : height ratio as float.",
+          "exclusiveMinimum": 0,
+          "type": ["number", "null"]
+        },
+        "tbr": {
+          "description": "Average bitrate of audio and video in kbps (1000 bits/sec)",
+          "minimum": 0,
+          "type": ["number", "null"]
+        },
+        "tc_url": {
+          "format": "uri",
+          "type": ["string", "null"]
+        },
+        "url": {
+          "description": "The mandatory URL representing the media: for plain file media - HTTP URL of this file, for RTMP - RTMP URL, for HLS - URL of the M3U8 media playlist, for HDS - URL of the F4M manifest, for DASH - HTTP URL to plain file media (in case of unfragmented media) - URL of the MPD manifest or base URL representing the media if MPD manifest is parsed from a string (in case of fragmented media) for MSS - URL of the ISM manifest.",
+          "format": "uri",
+          "type": "string"
+        },
+        "vbr": {
+          "description": "Average video bitrate in kbps (1000 bits/sec)",
+          "minimum": 0,
+          "type": ["number", "null"]
+        },
+        "vcodec": {
+          "description": "Name of the video codec in use",
+          "type": ["string", "null"]
+        },
+        "width": {
+          "description": "Width of the video, if known",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        }
+      },
+      "required": ["url"],
+      "type": "object"
+    },
+    "fragment": {
+      "anyOf": [
+        {
+          "required": ["url"]
+        },
+        {
+          "required": ["path"]
+        }
+      ],
+      "description": "Each fragment entry must contain either an url or a path. If an url is present it should be considered by a client. Otherwise both path and fragment_base_url must be present.",
+      "properties": {
+        "duration": {
+          "description": "(optional, int or float)",
+          "minimum": 0,
+          "type": ["number", "integer", "null"]
+        },
+        "filesize": {
+          "description": "(optional, int)",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "path": {
+          "description": "fragment's path relative to fragment_base_url",
+          "type": "string"
+        },
+        "url": {
+          "description": "fragment's URL",
+          "format": "uri",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "heatmap_entry": {
+      "properties": {
+        "end_time": {
+          "description": "The end time of the data point in seconds",
+          "minimum": 0,
+          "type": ["number", "integer"]
+        },
+        "start_time": {
+          "description": "The start time of the data point in seconds",
+          "minimum": 0,
+          "type": ["number", "integer"]
+        },
+        "value": {
+          "description": "The normalized value of the data point (float between 0 and 1)",
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": ["start_time", "end_time", "value"],
+      "type": "object"
+    },
+    "multi_video": {
+      "anyOf": [
+        {
+          "required": ["formats"]
+        },
+        {
+          "required": ["url"]
+        }
+      ],
+      "description": "_type \"multi_video\" indicates that there are multiple videos that form a single show, for examples multiple acts of an opera or TV episode. It must have an entries key like a playlist and contain all the keys required for a video at the same time.",
+      "properties": {
+        "_type": {
+          "const": "multi_video"
+        },
+        "entries": {
+          "items": {
+            "$ref": "#"
+          },
+          "type": "array"
+        }
+      },
+      "required": ["_type", "id", "title"],
+      "type": "object"
+    },
+    "playlist": {
+      "description": "_type \"playlist\" indicates multiple videos. There must be a key \"entries\", which is a list, an iterable, or a PagedList object, each element of which is a valid dictionary by this specification. Additionally, playlists can have \"id\", \"title\", and any other relevant attributes with the same semantics as videos (see above).",
+      "properties": {
+        "_type": {
+          "const": "playlist"
+        },
+        "entries": {
+          "description": "A list, an iterable, or a PagedList object, each element of which is a valid dictionary by this specification.",
+          "items": {
+            "$ref": "#"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": ["string", "null"]
+        },
+        "playlist_count": {
+          "description": "The total number of videos in a playlist. If not given, YoutubeDL tries to calculate it from \"entries\"",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "title": {
+          "type": ["string", "null"]
+        }
+      },
+      "required": ["_type"],
+      "type": "object"
+    },
+    "subtitle_format": {
+      "anyOf": [
+        {
+          "required": ["data"]
+        },
+        {
+          "required": ["url"]
+        }
+      ],
+      "description": "each element is a dictionary with the \"ext\" entry and one of: \"data\": The subtitles file contents; \"url\": A URL pointing to the subtitles file. It can optionally also have: \"name\": Name or description of the subtitles; \"http_headers\": A dictionary of additional HTTP headers to add to the request; \"impersonate\": Impersonate target(s); same as the \"formats\" field. \"ext\" will be calculated from URL if missing",
+      "properties": {
+        "data": {
+          "description": "The subtitles file contents",
+          "type": "string"
+        },
+        "ext": {
+          "description": "\"ext\" will be calculated from URL if missing",
+          "type": ["string", "null"]
+        },
+        "http_headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "A dictionary of additional HTTP headers to add to the request.",
+          "type": ["object", "null"]
+        },
+        "impersonate": {
+          "description": "Impersonate target(s); same as the \"formats\" field"
+        },
+        "name": {
+          "description": "Name or description of the subtitles",
+          "type": ["string", "null"]
+        },
+        "url": {
+          "description": "A URL pointing to the subtitles file",
+          "format": "uri",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "thumbnail": {
+      "properties": {
+        "ext": {
+          "description": "(optional, string) - actual image extension if not given in URL",
+          "type": ["string", "null"]
+        },
+        "filesize": {
+          "description": "(optional, int)",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "height": {
+          "description": "(optional, int)",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "http_headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "(dict) - HTTP headers for the request",
+          "type": "object"
+        },
+        "id": {
+          "description": "(optional, string) - Thumbnail format ID",
+          "type": ["string", "null"]
+        },
+        "preference": {
+          "description": "(optional, int) - quality of the image",
+          "type": ["integer", "null"]
+        },
+        "resolution": {
+          "deprecated": true,
+          "description": "(optional, string \"{width}x{height}\", deprecated)",
+          "pattern": "^\\d+x\\d+$",
+          "type": ["string", "null"]
+        },
+        "url": {
+          "format": "uri",
+          "type": "string"
+        },
+        "width": {
+          "description": "(optional, int)",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        }
+      },
+      "required": ["url"],
+      "type": "object"
+    },
+    "url": {
+      "description": "_type \"url\" indicates that the video must be extracted from another location, possibly by a different extractor. Its only required key is: \"url\" - the next URL to extract. The key \"ie_key\" can be set to the class name (minus the trailing \"IE\", e.g. \"Youtube\") if the extractor class is known in advance. Additionally, the dictionary may have any properties of the resolved entity known in advance, for example \"title\" if the title of the referred video is known ahead of time.",
+      "properties": {
+        "_type": {
+          "const": "url"
+        },
+        "ie_key": {
+          "description": "Can be set to the class name (minus the trailing \"IE\", e.g. \"Youtube\") if the extractor class is known in advance.",
+          "type": ["string", "null"]
+        },
+        "url": {
+          "description": "the next URL to extract.",
+          "format": "uri",
+          "type": "string"
+        }
+      },
+      "required": ["_type", "url"],
+      "type": "object"
+    },
+    "url_transparent": {
+      "description": "_type \"url_transparent\" entities have the same specification as \"url\", but indicate that the given additional information is more precise than the one associated with the resolved URL. This is useful when a site employs a video service that hosts the video and its technical metadata, but that video service does not embed a useful title, description etc.",
+      "properties": {
+        "_type": {
+          "const": "url_transparent"
+        },
+        "ie_key": {
+          "type": ["string", "null"]
+        },
+        "url": {
+          "format": "uri",
+          "type": "string"
+        }
+      },
+      "required": ["_type", "url"],
+      "type": "object"
+    },
+    "video": {
+      "anyOf": [
+        {
+          "required": ["formats"]
+        },
+        {
+          "required": ["url"]
+        }
+      ],
+      "properties": {
+        "_format_sort_fields": {
+          "description": "A list of fields to use for sorting formats",
+          "items": {
+            "type": "string"
+          },
+          "type": ["array", "null"]
+        },
+        "_old_archive_ids": {
+          "description": "A list of old archive ids needed for backward compatibility. Use yt_dlp.utils.make_archive_id to generate ids",
+          "items": {
+            "type": "string"
+          },
+          "type": ["array", "null"]
+        },
+        "_type": {
+          "const": "video"
+        },
+        "age_limit": {
+          "description": "Age restriction for the video, as an integer (years)",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "album": {
+          "description": "Title of the album the track belongs to.",
+          "type": ["string", "null"]
+        },
+        "album_artist": {
+          "deprecated": true,
+          "description": "Use \"album_artists\" instead. All artists appeared on the album, comma-separated.",
+          "type": ["string", "null"]
+        },
+        "album_artists": {
+          "description": "List of all artists appeared on the album. E.g. [\"Ash Borer\", \"Fell Voices\"] or [\"Various Artists\"]. Useful for splits and compilations.",
+          "items": {
+            "type": "string"
+          },
+          "type": ["array", "null"]
+        },
+        "album_type": {
+          "description": "Type of the album (e.g. \"Demo\", \"Full-length\", \"Split\", \"Compilation\", etc).",
+          "type": ["string", "null"]
+        },
+        "alt_title": {
+          "description": "A secondary title of the video.",
+          "type": ["string", "null"]
+        },
+        "artist": {
+          "deprecated": true,
+          "description": "Use \"artists\" instead. Artist(s) of the track, comma-separated.",
+          "type": ["string", "null"]
+        },
+        "artists": {
+          "description": "List of artists of the track.",
+          "items": {
+            "type": "string"
+          },
+          "type": ["array", "null"]
+        },
+        "automatic_captions": {
+          "additionalProperties": {
+            "items": {
+              "$ref": "#/$defs/subtitle_format"
+            },
+            "type": "array"
+          },
+          "description": "Like 'subtitles'; contains automatically generated captions instead of normal subtitles",
+          "type": ["object", "null"]
+        },
+        "availability": {
+          "description": "Under what condition the video is available. One of 'private', 'premium_only', 'subscriber_only', 'needs_auth', 'unlisted' or 'public'. Use 'InfoExtractor._availability' to set it",
+          "enum": [
+            null,
+            "private",
+            "premium_only",
+            "subscriber_only",
+            "needs_auth",
+            "unlisted",
+            "public"
+          ],
+          "type": ["string", "null"]
+        },
+        "average_rating": {
+          "description": "Average rating given by users, the scale used depends on the webpage",
+          "type": ["number", "null"]
+        },
+        "cast": {
+          "description": "A list of the video cast",
+          "items": {
+            "type": "string"
+          },
+          "type": ["array", "null"]
+        },
+        "categories": {
+          "description": "A list of categories that the video falls in, for example [\"Sports\", \"Berlin\"]",
+          "items": {
+            "type": "string"
+          },
+          "type": ["array", "null"]
+        },
+        "channel": {
+          "description": "Full name of the channel the video is uploaded on. Note that channel fields may or may not repeat uploader fields. This depends on a particular extractor.",
+          "type": ["string", "null"]
+        },
+        "channel_follower_count": {
+          "description": "Number of followers of the channel.",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "channel_id": {
+          "description": "Id of the channel.",
+          "type": ["string", "null"]
+        },
+        "channel_is_verified": {
+          "description": "Whether the channel is verified on the platform.",
+          "type": ["boolean", "null"]
+        },
+        "channel_url": {
+          "description": "Full URL to a channel webpage.",
+          "format": "uri",
+          "type": ["string", "null"]
+        },
+        "chapter": {
+          "description": "Name or title of the chapter the video belongs to.",
+          "type": ["string", "null"]
+        },
+        "chapter_id": {
+          "description": "Id of the chapter the video belongs to, as a unicode string.",
+          "type": ["string", "null"]
+        },
+        "chapter_number": {
+          "description": "Number of the chapter the video belongs to, as an integer.",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "chapters": {
+          "description": "A list of dictionaries, with the following entries:",
+          "items": {
+            "$ref": "#/$defs/chapter"
+          },
+          "type": ["array", "null"]
+        },
+        "columns": {
+          "description": "Number of columns in each storyboard fragment, as an integer",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "comment_count": {
+          "description": "Number of comments on the video",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "comments": {
+          "description": "A list of comments, each with one or more of the following properties (all but one of text or html optional):",
+          "items": {
+            "$ref": "#/$defs/comment"
+          },
+          "type": ["array", "null"]
+        },
+        "composer": {
+          "deprecated": true,
+          "description": "Use \"composers\" instead. Composer(s) of the piece, comma-separated.",
+          "type": ["string", "null"]
+        },
+        "composers": {
+          "description": "List of composers of the piece.",
+          "items": {
+            "type": "string"
+          },
+          "type": ["array", "null"]
+        },
+        "concurrent_view_count": {
+          "description": "How many users are currently watching the video on the platform.",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "creator": {
+          "deprecated": true,
+          "description": "Use \"creators\" instead. The creator of the video.",
+          "type": ["string", "null"]
+        },
+        "creators": {
+          "description": "List of creators of the video.",
+          "items": {
+            "type": "string"
+          },
+          "type": ["array", "null"]
+        },
+        "description": {
+          "description": "Full video description.",
+          "type": ["string", "null"]
+        },
+        "direct": {
+          "description": "True if a direct video file was given (must only be set by GenericIE)",
+          "type": ["boolean", "null"]
+        },
+        "disc_number": {
+          "description": "Number of the disc or other physical medium the track belongs to, as an integer.",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "dislike_count": {
+          "description": "Number of negative ratings of the video",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "display_id": {
+          "description": "An alternative identifier for the video, not necessarily unique, but available before title. Typically, id is something like \"4234987\", title \"Dancing naked mole rats\", and display_id \"dancing-naked-mole-rats\"",
+          "type": ["string", "null"]
+        },
+        "duration": {
+          "description": "Length of the video in seconds, as an integer or float.",
+          "exclusiveMinimum": 0,
+          "type": ["number", "integer", "null"]
+        },
+        "end_time": {
+          "description": "Time in seconds where the reproduction should end, as specified in the URL.",
+          "minimum": 0,
+          "type": ["number", "integer", "null"]
+        },
+        "episode": {
+          "description": "Title of the video episode. Unlike mandatory video title field, this field should denote the exact title of the video episode without any kind of decoration.",
+          "type": ["string", "null"]
+        },
+        "episode_id": {
+          "description": "Id of the video episode, as a unicode string.",
+          "type": ["string", "null"]
+        },
+        "episode_number": {
+          "description": "Number of the video episode within a season, as an integer.",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "ext": {
+          "description": "Video filename extension.",
+          "type": ["string", "null"]
+        },
+        "format": {
+          "description": "The video format, defaults to ext (used for --get-format)",
+          "type": ["string", "null"]
+        },
+        "formats": {
+          "description": "A list of dictionaries for each format available, ordered from worst to best quality.",
+          "items": {
+            "$ref": "#/$defs/format"
+          },
+          "type": "array"
+        },
+        "genre": {
+          "deprecated": true,
+          "description": "Use \"genres\" instead. Genre(s) of the track, comma-separated.",
+          "type": ["string", "null"]
+        },
+        "genres": {
+          "description": "List of genres of the track.",
+          "items": {
+            "type": "string"
+          },
+          "type": ["array", "null"]
+        },
+        "heatmap": {
+          "description": "A list of dictionaries, with the following entries:",
+          "items": {
+            "$ref": "#/$defs/heatmap_entry"
+          },
+          "type": ["array", "null"]
+        },
+        "id": {
+          "description": "Video identifier.",
+          "type": "string"
+        },
+        "is_live": {
+          "description": "True, False, or None (=unknown). Whether this video is a live stream that goes on instead of a fixed-length video.",
+          "type": ["boolean", "null"]
+        },
+        "license": {
+          "description": "License name the video is licensed under.",
+          "type": ["string", "null"]
+        },
+        "like_count": {
+          "description": "Number of positive ratings of the video",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "live_status": {
+          "description": "None (=unknown), 'is_live', 'is_upcoming', 'was_live', 'not_live', or 'post_live' (was live, but VOD is not yet processed). If absent, automatically set from is_live, was_live",
+          "enum": [
+            null,
+            "is_live",
+            "is_upcoming",
+            "was_live",
+            "not_live",
+            "post_live"
+          ],
+          "type": ["string", "null"]
+        },
+        "location": {
+          "description": "Physical location where the video was filmed.",
+          "type": ["string", "null"]
+        },
+        "media_type": {
+          "description": "The type of media as classified by the site, e.g. \"episode\", \"clip\", \"trailer\"",
+          "type": ["string", "null"]
+        },
+        "modified_date": {
+          "description": "The date (YYYYMMDD) when the video was last modified in UTC. If not explicitly set, calculated from modified_timestamp",
+          "pattern": "^\\d{4}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])$",
+          "type": ["string", "null"]
+        },
+        "modified_timestamp": {
+          "description": "UNIX timestamp of the moment the video was last modified.",
+          "minimum": 0,
+          "type": ["number", "integer", "null"]
+        },
+        "playable_in_embed": {
+          "description": "Whether this video is allowed to play in embedded players on other sites. Can be True (=always allowed), False (=never allowed), None (=unknown), or a string specifying the criteria for embedability; e.g. 'whitelist'",
+          "type": ["boolean", "string", "null"]
+        },
+        "player_url": {
+          "description": "SWF Player URL (used for rtmpdump).",
+          "format": "uri",
+          "type": ["string", "null"]
+        },
+        "release_date": {
+          "description": "The date (YYYYMMDD) when the video was released in UTC. If not explicitly set, calculated from release_timestamp",
+          "pattern": "^\\d{4}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])$",
+          "type": ["string", "null"]
+        },
+        "release_timestamp": {
+          "description": "UNIX timestamp of the moment the video was released. If it is not clear whether to use timestamp or this, use the former",
+          "minimum": 0,
+          "type": ["number", "integer", "null"]
+        },
+        "release_year": {
+          "description": "Year (YYYY) as integer when the video or album was released. To be used if no exact release date is known. If not explicitly set, calculated from release_date.",
+          "maximum": 2200,
+          "minimum": 1800,
+          "type": ["integer", "null"]
+        },
+        "repost_count": {
+          "description": "Number of reposts of the video",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "rows": {
+          "description": "Number of rows in each storyboard fragment, as an integer",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "save_count": {
+          "description": "Number of times the video has been saved or bookmarked",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "season": {
+          "description": "Title of the season the video episode belongs to.",
+          "type": ["string", "null"]
+        },
+        "season_id": {
+          "description": "Id of the season the video episode belongs to, as a unicode string.",
+          "type": ["string", "null"]
+        },
+        "season_number": {
+          "description": "Number of the season the video episode belongs to, as an integer.",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "section_end": {
+          "description": "End time of the section in seconds",
+          "minimum": 0,
+          "type": ["number", "integer", "null"]
+        },
+        "section_start": {
+          "description": "Start time of the section in seconds",
+          "minimum": 0,
+          "type": ["number", "integer", "null"]
+        },
+        "series": {
+          "description": "Title of the series or programme the video episode belongs to.",
+          "type": ["string", "null"]
+        },
+        "series_id": {
+          "description": "Id of the series or programme the video episode belongs to, as a unicode string.",
+          "type": ["string", "null"]
+        },
+        "start_time": {
+          "description": "Time in seconds where the reproduction should start, as specified in the URL.",
+          "minimum": 0,
+          "type": ["number", "integer", "null"]
+        },
+        "subtitles": {
+          "additionalProperties": {
+            "items": {
+              "$ref": "#/$defs/subtitle_format"
+            },
+            "type": "array"
+          },
+          "description": "The available subtitles as a dictionary in the format {tag: subformats}. \"tag\" is usually a language code, and \"subformats\" is a list sorted from lower to higher preference, each element is a dictionary with the \"ext\" entry and one of: \"data\": The subtitles file contents; \"url\": A URL pointing to the subtitles file. It can optionally also have: \"name\": Name or description of the subtitles; \"http_headers\": A dictionary of additional HTTP headers to add to the request; \"impersonate\": Impersonate target(s); same as the \"formats\" field. \"ext\" will be calculated from URL if missing",
+          "type": ["object", "null"]
+        },
+        "tags": {
+          "description": "A list of tags assigned to the video, e.g. [\"sweden\", \"pop music\"]",
+          "items": {
+            "type": "string"
+          },
+          "type": ["array", "null"]
+        },
+        "thumbnail": {
+          "description": "Full URL to a video thumbnail image.",
+          "format": "uri",
+          "type": ["string", "null"]
+        },
+        "thumbnails": {
+          "description": "A list of dictionaries, with the following entries:",
+          "items": {
+            "$ref": "#/$defs/thumbnail"
+          },
+          "type": ["array", "null"]
+        },
+        "timestamp": {
+          "description": "UNIX timestamp of the moment the video was uploaded",
+          "minimum": 0,
+          "type": ["number", "integer", "null"]
+        },
+        "title": {
+          "description": "Video title, unescaped. Set to an empty string if video has no title as opposed to \"None\" which signifies that the extractor failed to obtain a title",
+          "type": "string"
+        },
+        "track": {
+          "description": "Title of the track.",
+          "type": ["string", "null"]
+        },
+        "track_id": {
+          "description": "Id of the track (useful in case of custom indexing, e.g. 6.iii), as a unicode string.",
+          "type": ["string", "null"]
+        },
+        "track_number": {
+          "description": "Number of the track within an album or a disc, as an integer.",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "upload_date": {
+          "description": "Video upload date in UTC (YYYYMMDD). If not explicitly set, calculated from timestamp",
+          "pattern": "^\\d{4}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])$",
+          "type": ["string", "null"]
+        },
+        "uploader": {
+          "description": "Full name of the video uploader.",
+          "type": ["string", "null"]
+        },
+        "uploader_id": {
+          "description": "Nickname or id of the video uploader.",
+          "type": ["string", "null"]
+        },
+        "uploader_url": {
+          "description": "Full URL to a personal webpage of the video uploader.",
+          "format": "uri",
+          "type": ["string", "null"]
+        },
+        "url": {
+          "description": "Final video URL.",
+          "type": ["string", "null"]
+        },
+        "view_count": {
+          "description": "How many users have watched the video on the platform.",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "was_live": {
+          "description": "True, False, or None (=unknown). Whether this video was originally a live stream.",
+          "type": ["boolean", "null"]
+        },
+        "webpage_url": {
+          "description": "The URL to the video webpage, if given to yt-dlp it should allow to get the same result again. (It will be set by YoutubeDL if it's missing)",
+          "format": "uri",
+          "type": ["string", "null"]
+        }
+      },
+      "required": ["id", "title"],
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/yt-dlp/yt-dlp/raw/master/info-dict.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Schema describing the information dictionary (info dict) file produced by yt-dlp.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/video"
+    },
+    {
+      "$ref": "#/$defs/playlist"
+    },
+    {
+      "$ref": "#/$defs/multi_video"
+    },
+    {
+      "$ref": "#/$defs/url"
+    },
+    {
+      "$ref": "#/$defs/url_transparent"
+    }
+  ],
+  "title": "yt-dlp info_dict"
+}
