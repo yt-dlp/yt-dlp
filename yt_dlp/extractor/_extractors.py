@@ -981,6 +981,7 @@ from .lsm import (
     LSMLTVEmbedIE,
     LSMReplayIE,
 )
+from .lulustream import LuluVidIE
 from .lumni import LumniIE
 from .maariv import MaarivIE
 from .magellantv import MagellanTVIE
