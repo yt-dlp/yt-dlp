@@ -568,6 +568,19 @@ class TestYoutubeDL(unittest.TestCase):
         subs = result['requested_subtitles']
         self.assertEqual(subs['en']['ext'], 'srt')
 
+        subtitles_with_duplicate_formats = {'en': [
+            {'ext': 'vtt', 'url': 'http://localhost/video.en.primary.vtt'},
+            {'ext': 'vtt', 'url': 'http://localhost/video.en.sdh.vtt'},
+        ]}
+        duplicate_info_dict = {**info_dict, 'subtitles': subtitles_with_duplicate_formats}
+        ydl = YDL({'simulate': True, 'writesubtitles': True})
+        ydl.report_warning = lambda *args, **kargs: None
+        result = ydl.process_video_result(duplicate_info_dict, download=False)
+        subs = result['requested_subtitles']
+        self.assertEqual(set(subs.keys()), {'en', 'en-1'})
+        self.assertEqual(subs['en']['url'], 'http://localhost/video.en.primary.vtt')
+        self.assertEqual(subs['en-1']['url'], 'http://localhost/video.en.sdh.vtt')
+
         result = get_info({'writesubtitles': True, 'subtitleslangs': ['es', 'fr', 'it']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
