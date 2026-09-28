@@ -1,8 +1,13 @@
+import json
+import time
 import urllib.parse
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     filter_dict,
+    jwt_decode_hs256,
     parse_iso8601,
     traverse_obj,
     try_call,
@@ -11,7 +16,7 @@ from ..utils import (
 
 
 class MediciIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?P<sub>www|edu)\.)?medici\.tv/[a-z]{2}/[\w.-]+/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?medici\.tv/[a-z]{2}/[\w.-]+/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.medici.tv/en/operas/thomas-ades-the-exterminating-angel-calixto-bieito-opera-bastille-paris',
         'md5': 'd483f74e7a7a9eac0dbe152ab189050d',
@@ -24,20 +29,6 @@ class MediciIE(InfoExtractor):
             'upload_date': '20240304',
             'timestamp': 1709561766,
             'display_id': 'thomas-ades-the-exterminating-angel-calixto-bieito-opera-bastille-paris',
-        },
-        'expected_warnings': [r'preview'],
-    }, {
-        'url': 'https://edu.medici.tv/en/operas/wagner-lohengrin-paris-opera-kirill-serebrennikov-piotr-beczala-kwangchul-youn-johanni-van-oostrum',
-        'md5': '4ef3f4079a6e1c617584463a9eb84f99',
-        'info_dict': {
-            'id': '7900',
-            'ext': 'mp4',
-            'title': 'Wagner\'s Lohengrin',
-            'description': 'md5:a384a62937866101f86902f21752cd89',
-            'thumbnail': r're:https://.+/.+\.jpg',
-            'upload_date': '20231017',
-            'timestamp': 1697554771,
-            'display_id': 'wagner-lohengrin-paris-opera-kirill-serebrennikov-piotr-beczala-kwangchul-youn-johanni-van-oostrum',
         },
         'expected_warnings': [r'preview'],
     }, {
@@ -83,20 +74,6 @@ class MediciIE(InfoExtractor):
         },
         'expected_warnings': [r'preview'],
     }, {
-        'url': 'https://edu.medici.tv/en/masterclasses/yvonne-loriod-olivier-messiaen',
-        'md5': 'fb5dcec46d76ad20fbdbaabb01da191d',
-        'info_dict': {
-            'id': '3024',
-            'ext': 'mp4',
-            'title': 'Olivier Messiaen and Yvonne Loriod, pianists and teachers',
-            'thumbnail': r're:https://.+/.+\.jpg',
-            'description': 'md5:aab948e2f7690214b5c28896c83f1fc1',
-            'upload_date': '20150223',
-            'timestamp': 1424706608,
-            'display_id': 'yvonne-loriod-olivier-messiaen',
-        },
-        'skip': 'Requires authentication; preview starts in the middle',
-    }, {
         'url': 'https://www.medici.tv/en/jazz/makaya-mccraven-la-rochelle',
         'md5': '4cc279a8b06609782747c8f50beea2b3',
         'info_dict': {
@@ -113,14 +90,13 @@ class MediciIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        display_id, subdomain = self._match_valid_url(url).group('id', 'sub')
+        display_id = self._match_id(url)
         self._request_webpage(url, display_id, 'Requesting CSRF token cookie')
 
-        subdomain = 'edu-' if subdomain == 'edu' else ''
         origin = f'https://{urllib.parse.urlparse(url).hostname}'
 
         data = self._download_json(
-            f'https://api.medici.tv/{subdomain}satie/edito/movie-file/{display_id}/', display_id,
+            f'https://api.medici.tv/satie/edito/movie-file/{display_id}/', display_id,
             headers=filter_dict({
                 'Authorization': try_call(
                     lambda: urllib.parse.unquote(self._get_cookies(url)['auth._token.mAuth'].value)),
@@ -135,6 +111,180 @@ class MediciIE(InfoExtractor):
             self.report_warning(
                 'The full video is for subscribers only. Only previews will be downloaded. If you '
                 'have used the --cookies-from-browser option, try using the --cookies option instead')
+
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            data['video']['video_url'], display_id, 'mp4')
+
+        return {
+            'id': str(data['id']),
+            'display_id': display_id,
+            'formats': formats,
+            'subtitles': subtitles,
+            **traverse_obj(data, {
+                'title': ('title', {str}),
+                'description': ('subtitle', {str}),
+                'thumbnail': ('picture', {url_or_none}),
+                'timestamp': ('date_publish', {parse_iso8601}),
+            }),
+        }
+
+
+class MediciEduIE(InfoExtractor):
+    IE_NAME = 'medici:edu'
+    _VALID_URL = r'https?://edu\.medici\.tv/[a-z]{2}/[\w.-]+/(?P<id>[^/?#&]+)'
+    _NETRC_MACHINE = 'medici-edu'
+    _TESTS = [{
+        'url': 'https://edu.medici.tv/en/operas/wagner-lohengrin-paris-opera-kirill-serebrennikov-piotr-beczala-kwangchul-youn-johanni-van-oostrum',
+        'info_dict': {
+            'id': '7900',
+            'ext': 'mp4',
+            'title': 'Wagner\'s Lohengrin',
+            'description': 'md5:a384a62937866101f86902f21752cd89',
+            'thumbnail': r're:https://.+/.+\.jpg',
+            'upload_date': '20231017',
+            'timestamp': 1697554771,
+            'display_id': 'wagner-lohengrin-paris-opera-kirill-serebrennikov-piotr-beczala-kwangchul-youn-johanni-van-oostrum',
+        },
+        'skip': 'Requires authentication',
+    }, {
+        'url': 'https://edu.medici.tv/en/masterclasses/yvonne-loriod-olivier-messiaen',
+        'info_dict': {
+            'id': '3024',
+            'ext': 'mp4',
+            'title': 'Olivier Messiaen and Yvonne Loriod, pianists and teachers',
+            'thumbnail': r're:https://.+/.+\.jpg',
+            'description': 'md5:aab948e2f7690214b5c28896c83f1fc1',
+            'upload_date': '20150223',
+            'timestamp': 1424706608,
+            'display_id': 'yvonne-loriod-olivier-messiaen',
+        },
+        'skip': 'Requires authentication',
+    }]
+
+    _API_BASE = 'https://api.medici.tv/edu-satie'
+    _ORIGIN = 'https://edu.medici.tv'
+
+    _LOGIN_HINT = (
+        'Use  --username refresh --password REFRESH_TOKEN  where REFRESH_TOKEN is the '
+        '"refresh" value in the request payload of a POST to '
+        'https://api.medici.tv/edu-satie/token/refresh/  '
+        '(visible in your browser DevTools Network tab while logged in)')
+
+    _access_token = None
+    _access_token_expiry = 0
+    _refresh_token = None
+
+    @property
+    def _access_token_is_expired(self):
+        return self._access_token_expiry - 30 <= int(time.time())
+
+    def _set_access_token(self, value):
+        self._access_token = value
+        self._access_token_expiry = traverse_obj(
+            value, ({jwt_decode_hs256}, 'exp', {int})) or 0
+
+    def _cache_tokens(self):
+        self.cache.store(self._NETRC_MACHINE, 'tokens', {
+            'access_token': self._access_token,
+            'refresh_token': self._refresh_token,
+        })
+
+    def _fetch_new_tokens(self, invalidate=False):
+        if invalidate:
+            self.report_warning('Access token has been invalidated')
+            self._set_access_token(None)
+
+        if not self._access_token_is_expired:
+            return
+        if not self._refresh_token:
+            self._set_access_token(None)
+            self._cache_tokens()
+            raise ExtractorError(
+                f'Access token has expired or been invalidated. {self._LOGIN_HINT}',
+                expected=True)
+
+        try:
+            response = self._download_json(
+                f'{self._API_BASE}/token/refresh/', None,
+                'Refreshing token', 'Unable to refresh token',
+                data=json.dumps({'refresh': self._refresh_token}).encode(),
+                headers={
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'Origin': self._ORIGIN,
+                    'Referer': f'{self._ORIGIN}/',
+                    'site': 'edu',
+                })
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status in (400, 401):
+                self._set_access_token(None)
+                self._refresh_token = None
+                self._cache_tokens()
+                raise ExtractorError(
+                    f'Your refresh token has been invalidated. {self._LOGIN_HINT}',
+                    expected=True)
+            raise
+
+        self._set_access_token(traverse_obj(response, ('jwt', 'access', {str})))
+        if new_refresh := traverse_obj(response, ('jwt', 'refresh', {str})):
+            self.write_debug('New refresh token granted')
+            self._refresh_token = new_refresh
+        self._cache_tokens()
+
+    def _perform_login(self, username, password):
+        self.report_login()
+
+        if username == 'refresh':
+            self._refresh_token = password
+            self._cache_tokens()
+            if self.get_param('cachedir') is not False:
+                self.to_screen(
+                    'Your refresh token has been cached to disk. To use the cached '
+                    'token next time, pass  --username cache  along with any password')
+            return
+
+        if username == 'cache':
+            cached = self.cache.load(self._NETRC_MACHINE, 'tokens', default={})
+            self._set_access_token(cached.get('access_token'))
+            self._refresh_token = cached.get('refresh_token')
+            return
+
+        raise ExtractorError(
+            f'Login with username/password is not supported. {self._LOGIN_HINT}',
+            expected=True)
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        api_url = f'{self._API_BASE}/edito/movie-file/{display_id}/'
+
+        if self._refresh_token or self._access_token:
+            for should_retry in (True, False):
+                self._fetch_new_tokens(invalidate=not should_retry)
+                try:
+                    data = self._download_json(api_url, display_id, headers={
+                        'Authorization': f'Bearer {self._access_token}',
+                        'Accept': 'application/json, text/plain, */*',
+                        'Origin': self._ORIGIN,
+                        'Referer': f'{self._ORIGIN}/',
+                        'site': 'edu',
+                    })
+                    break
+                except ExtractorError as e:
+                    if should_retry and isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                        continue
+                    raise
+        else:
+            data = self._download_json(api_url, display_id, headers={
+                'Accept': 'application/json, text/plain, */*',
+                'Origin': self._ORIGIN,
+                'Referer': f'{self._ORIGIN}/',
+                'site': 'edu',
+            })
+
+        if not traverse_obj(data, ('video', 'is_full_video')) and traverse_obj(
+                data, ('video', 'is_limited_by_user_access')):
+            self.report_warning(
+                f'The full video is for subscribers only. Only previews will be downloaded. {self._LOGIN_HINT}')
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             data['video']['video_url'], display_id, 'mp4')
