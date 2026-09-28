@@ -33,7 +33,7 @@ from ..utils.traversal import require, traverse_obj, trim_str
 
 class CBCIE(InfoExtractor):
     IE_NAME = 'cbc.ca'
-    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(?!player/|listen/|i/caffeine/syndicate/)(?:[^/?#]+/)+(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(?!player/|listen/|i/caffeine/syndicate/|podcasting/includes/)(?:[^/?#]+/)+(?P<id>[^/?#]+)'
     _TESTS = [{
         # with mediaId
         'url': 'http://www.cbc.ca/22minutes/videos/clips-season-23/don-cherry-play-offs',
@@ -112,6 +112,15 @@ class CBCIE(InfoExtractor):
             'description': 'md5:c18552e41726ee95bd75210d1ca9194c',
         },
         'playlist_mincount': 6,
+    }, {
+        # RSS feed should be handled by generic extractor and not the CBCIE's
+        'url': 'https://www.cbc.ca/podcasting/includes/wiretap2020.xml',
+        'info_dict': {
+            'id': 'https://www.cbc.ca/podcasting/includes/wiretap2020.xml',
+            'title': 'Wiretap',
+            'description': 'md5:2ff56b6279211c554359f29468fd7c18',
+        },
+        'playlist_mincount': 1,
     }]
 
     def _extract_player_init(self, player_init, display_id):
