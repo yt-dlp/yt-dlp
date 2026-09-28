@@ -8,7 +8,7 @@ class YoutubeTruncatedURLIE(YoutubeBaseInfoExtractor):
     IE_DESC = False  # Do not list
     _VALID_URL = r'''(?x)
         (?:https?://)?
-        (?:\w+\.)?[yY][oO][uU][tT][uU][bB][eE](?:-nocookie)?\.com/
+        (?:\w+\.)?[yY][oO][uU][tT][uU][bB][eE](?:-nocookie|kids|education)?\.com/
         (?:watch\?(?:
             feature=[a-z_]+|
             annotation_id=annotation_[^&]+|
