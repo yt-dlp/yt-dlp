@@ -1,6 +1,7 @@
 import os
 import random
 import time
+import contextlib
 
 from .common import FileDownloader
 from ..networking import Request
@@ -319,21 +320,64 @@ class HttpFD(FileDownloader):
                         ctx.throttle_start = now
                     elif now - ctx.throttle_start > 3:
                         if ctx.stream is not None and ctx.tmpfilename != '-':
-                            ctx.stream.close()
+                            with contextlib.suppress(BaseException):
+                                ctx.stream.close()
                         raise ThrottledDownload
                 elif speed:
                     ctx.throttle_start = None
 
             if ctx.stream is None:
+                headers = getattr(ctx.data, 'headers', {}) if hasattr(ctx, 'data') else {}
+                ct = headers.get('Content-Type', '').lower()
+                is_valid_type = (not ct or ct == 'application/octet-stream' or ct.startswith(('video/', 'audio/', 'binary/')))
+                is_fragment_context = 'Frag' in filename or info_dict.get('is_fragment', False)
+                extractor = info_dict.get('extractor_key') or info_dict.get('extractor') or ''
+                frag_id = info_dict.get('fragment_id', 0)
+                should_allow = False
+                reason = ''
+
+                if self.params.get('allow_empty_fragments'):
+                    should_allow = True
+                    reason = 'allowed by config'
+                if is_valid_type and is_fragment_context:
+                    if info_dict.get('is_live', False):
+                        should_allow = True
+                        reason = 'live'
+                    elif extractor.lower().startswith('youtube') and (info_dict.get('fragment_count', 0) and frag_id == info_dict.get('fragment_count', 0)):
+                        should_allow = True
+                        reason = 'valid last YouTube fragment'
+                if should_allow:
+                    self.report_warning(f'\r[download] Empty fragment detected: {reason}. Creating dummy fragment {frag_id}, Type: {ct}')
+                    # create a 0 byte .part
+                    try:
+                        with open(ctx.tmpfilename, 'wb'):
+                            pass 
+                    except OSError as err:
+                        self.to_stderr('\n')
+                        self.report_error(f'[download] Could not create dummy fragment: {err}')
+                        return False
+                    # .part to real name
+                    if ctx.tmpfilename != '-' and ctx.filename:
+                         self.try_rename(ctx.tmpfilename, ctx.filename)
+                    self._hook_progress({
+                        'downloaded_bytes': 0,
+                        'total_bytes': 0,
+                        'filename': ctx.filename,
+                        'status': 'finished',
+                        'elapsed': 0,
+                        'ctx_id': info_dict.get('ctx_id'),
+                    }, info_dict)
+                    return True
+
                 self.to_stderr('\n')
-                self.report_error('Did not get any data blocks')
+                self.report_error(f'[download] Did not get any data blocks (try --allow-empty-fragments), Fragment: {frag_id}, Type: {ct}')
                 return False
 
             if not is_test and ctx.chunk_size and ctx.content_len is not None and byte_counter < ctx.content_len:
                 ctx.resume_len = byte_counter
                 raise NextFragment
 
-            if ctx.tmpfilename != '-':
+            if ctx.tmpfilename != '-' and ctx.stream is not None:
                 ctx.stream.close()
 
             if data_len is not None and byte_counter != data_len:
