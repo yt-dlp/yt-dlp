@@ -707,6 +707,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 f'Login details are needed to download this content. {self._youtube_login_hint}', method=None)
 
     _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*='
+    _YT_INITIAL_DATA_ALT_RE = r'<script\b(?!-)[^>]+(?<!-)\bid=["\']yt-initial-data["\'][^>]*>'
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*='
 
     def _get_default_ytcfg(self, client='web'):
@@ -850,6 +851,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             }, cndn=lambda _, v: v))
 
     def extract_yt_initial_data(self, item_id, webpage, fatal=True):
+        if data := self._search_json(self._YT_INITIAL_DATA_ALT_RE, webpage, 'data', item_id, default=None):
+            self.write_debug('Parsed initial data from dedicated script element')
+            return data
+
         return self._search_json(self._YT_INITIAL_DATA_RE, webpage, 'yt initial data', item_id, fatal=fatal)
 
     @staticmethod
