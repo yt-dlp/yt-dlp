@@ -47,7 +47,8 @@ from .utils._utils import _YDLLogger
 from .utils.networking import normalize_url
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi', 'whale'}
-SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
+FIREFOX_BASED_BROWSERS = {'firefox', 'zen'}
+SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | FIREFOX_BASED_BROWSERS | {'safari'}
 
 
 class YDLLogger(_YDLLogger):
@@ -114,8 +115,8 @@ def load_cookies(cookie_file, browser_specification, ydl):
 
 
 def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(), *, keyring=None, container=None):
-    if browser_name == 'firefox':
-        return _extract_firefox_cookies(profile, container, logger)
+    if browser_name in FIREFOX_BASED_BROWSERS:
+        return _extract_firefox_cookies(profile, container, logger, browser_name=browser_name)
     elif browser_name == 'safari':
         return _extract_safari_cookies(profile, logger)
     elif browser_name in CHROMIUM_BASED_BROWSERS:
@@ -124,26 +125,26 @@ def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(),
         raise ValueError(f'unknown browser: {browser_name}')
 
 
-def _extract_firefox_cookies(profile, container, logger):
+def _extract_firefox_cookies(profile, container, logger, *, browser_name='firefox'):
     MAX_SUPPORTED_DB_SCHEMA_VERSION = 17
 
-    logger.info('Extracting cookies from firefox')
+    logger.info(f'Extracting cookies from {browser_name}')
     if not sqlite3:
-        logger.warning('Cannot extract cookies from firefox without sqlite3 support. '
+        logger.warning(f'Cannot extract cookies from {browser_name} without sqlite3 support. '
                        'Please use a Python interpreter compiled with sqlite3 support')
         return YoutubeDLCookieJar()
 
     if profile is None:
-        search_roots = list(_firefox_browser_dirs())
+        search_roots = list(_firefox_browser_dirs(browser_name))
     elif _is_path(profile):
         search_roots = [profile]
     else:
-        search_roots = [os.path.join(path, profile) for path in _firefox_browser_dirs()]
+        search_roots = [os.path.join(path, profile) for path in _firefox_browser_dirs(browser_name)]
     search_root = ', '.join(map(repr, search_roots))
 
     cookie_database_path = _newest(_firefox_cookie_dbs(search_roots))
     if cookie_database_path is None:
-        raise FileNotFoundError(f'could not find firefox cookies database in {search_root}')
+        raise FileNotFoundError(f'could not find {browser_name} cookies database in {search_root}')
     logger.debug(f'Extracting cookies from: "{cookie_database_path}"')
 
     container_id = None
@@ -158,19 +159,19 @@ def _extract_firefox_cookies(profile, container, logger):
             try_call(lambda: re.fullmatch(r'userContext([^\.]+)\.label', context['l10nID']).group()),
         )), None)
         if not isinstance(container_id, int):
-            raise ValueError(f'could not find firefox container "{container}" in containers.json')
+            raise ValueError(f'could not find {browser_name} container "{container}" in containers.json')
 
     with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
         cursor = _open_database_copy(cookie_database_path, tmpdir)
         with contextlib.closing(cursor.connection):
             db_schema_version = cursor.execute('PRAGMA user_version;').fetchone()[0]
             if db_schema_version > MAX_SUPPORTED_DB_SCHEMA_VERSION:
-                logger.warning(f'Possibly unsupported firefox cookies database version: {db_schema_version}')
+                logger.warning(f'Possibly unsupported {browser_name} cookies database version: {db_schema_version}')
             else:
-                logger.debug(f'Firefox cookies database version: {db_schema_version}')
+                logger.debug(f'{browser_name.capitalize()} cookies database version: {db_schema_version}')
             if isinstance(container_id, int):
                 logger.debug(
-                    f'Only loading cookies from firefox container "{container}", ID {container_id}')
+                    f'Only loading cookies from {browser_name} container "{container}", ID {container_id}')
                 cursor.execute(
                     'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes LIKE ? OR originAttributes LIKE ?',
                     (f'%userContextId={container_id}', f'%userContextId={container_id}&%'))
@@ -196,11 +197,15 @@ def _extract_firefox_cookies(profile, container, logger):
                         path=path, path_specified=bool(path), secure=is_secure, expires=expiry, discard=False,
                         comment=None, comment_url=None, rest={})
                     jar.set_cookie(cookie)
-            logger.info(f'Extracted {len(jar)} cookies from firefox')
+            logger.info(f'Extracted {len(jar)} cookies from {browser_name}')
             return jar
 
 
-def _firefox_browser_dirs():
+def _firefox_browser_dirs(browser_name='firefox'):
+    if browser_name == 'zen':
+        yield from _zen_browser_dirs()
+        return
+
     if sys.platform in ('cygwin', 'win32'):
         yield from map(os.path.expandvars, (
             R'%APPDATA%\Mozilla\Firefox\Profiles',
@@ -222,6 +227,22 @@ def _firefox_browser_dirs():
             '~/.var/app/org.mozilla.firefox/.mozilla/firefox',
             # Snap installations do not respect the XDG base directory specification
             '~/snap/firefox/common/.mozilla/firefox',
+        ))
+
+
+def _zen_browser_dirs():
+    if sys.platform in ('cygwin', 'win32'):
+        yield os.path.expandvars(R'%APPDATA%\zen\Profiles')
+
+    elif sys.platform == 'darwin':
+        yield os.path.expanduser('~/Library/Application Support/zen/Profiles')
+
+    else:
+        yield from map(os.path.expanduser, (
+            os.path.join(_config_home(), 'zen'),
+            '~/.zen',
+            '~/.var/app/app.zen_browser.zen/config/zen',
+            '~/.var/app/app.zen_browser.zen/.zen',
         ))
 
 
