@@ -235,7 +235,7 @@ class OdnoklassnikiIE(InfoExtractor):
         # Direct link from boosty
         if (error == 'The author of this video has not been found or is blocked'
                 and not smuggled.get('referrer') and mode == 'videoembed'):
-            return self._extract_desktop(smuggle_url(url, {'referrer': 'https://boosty.to'}))
+            return self.url_result(smuggle_url(url, {'referrer': 'https://boosty.to'}), self)
         elif error:
             raise ExtractorError(error, expected=True)
         elif '>Access to this video is restricted</div>' in webpage:
