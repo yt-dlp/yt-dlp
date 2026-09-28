@@ -93,6 +93,12 @@ class MultilinePrinterBase:
     def end(self):
         pass
 
+    def pause(self):
+        pass
+
+    def resume(self):
+        pass
+
     def _add_line_number(self, text, line):
         if self.maximum:
             return f'{line + 1}: {text}'
@@ -124,8 +130,15 @@ class MultilinePrinter(MultilinePrinterBase):
     def __init__(self, stream=None, lines=1, preserve_output=True):
         super().__init__(stream, lines)
         self.preserve_output = preserve_output
-        self._lastline = self._lastlength = 0
+        self._lastline = 0
+        self._lastlength = 0
         self._movelock = Lock()
+        self._paused = False
+        self._pause_lock = Lock()
+        self._pause_count = 0
+        self._needs_reinit = True
+        self._lines_drawn = False
+        self._line_buffer = [''] * (self.maximum + 1)
 
     def lock(func):
         @functools.wraps(func)
@@ -133,6 +146,58 @@ class MultilinePrinter(MultilinePrinterBase):
             with self._movelock:
                 return func(self, *args, **kwargs)
         return wrapper
+
+    def _invalidate(self):
+        self._needs_reinit = True
+        self._lines_drawn = False
+
+    def _reserve_and_redraw(self):
+        if self._HAVE_FULLCAP:
+            self.write('\n' * self.maximum)
+            self._lastline = self.maximum
+            for i, text in enumerate(self._line_buffer):
+                if text:
+                    self.write(*self._move_cursor(i), CONTROL_SEQUENCES['ERASE_LINE'], text)
+            self.write(*self._move_cursor(self.maximum))
+        self._needs_reinit = False
+        self._lines_drawn = True
+
+    def pause(self):
+        with self._pause_lock:
+            self._pause_count += 1
+            if self._pause_count == 1:
+                with self._movelock:
+                    if self._HAVE_FULLCAP:
+                        if self._lines_drawn:
+                            moves = self._move_cursor(self.maximum)
+                            erasures = CONTROL_SEQUENCES['ERASE_LINE'] + (CONTROL_SEQUENCES['UP'] + CONTROL_SEQUENCES['ERASE_LINE']) * self.maximum
+                            self.write(*moves, erasures)
+                            self._lastline = 0
+                    else:
+                        if self._lastlength:
+                            self.write('\r', ' ' * self._lastlength, '\r')
+                    self._paused = True
+
+    def resume(self):
+        with self._pause_lock:
+            if self._pause_count > 0:
+                self._pause_count -= 1
+            if self._pause_count == 0:
+                self._paused = False
+                self._invalidate()
+                # show progress during errors
+                if any(self._line_buffer):
+                    with self._movelock:
+                        if self._HAVE_FULLCAP:
+                            self._reserve_and_redraw()
+                        else:
+                            for pos, text in enumerate(self._line_buffer):
+                                if text:
+                                    t = self._add_line_number(text, pos)
+                                    self._lastlength = len(t)
+                                    self.write(t, '\n')
+                                    self._lastline = pos
+                            self._needs_reinit = False
 
     def _move_cursor(self, dest):
         current = min(self._lastline, self.maximum)
@@ -146,37 +211,45 @@ class MultilinePrinter(MultilinePrinterBase):
 
     @lock
     def print_at_line(self, text, pos):
-        if self._HAVE_FULLCAP:
-            self.write(*self._move_cursor(pos), CONTROL_SEQUENCES['ERASE_LINE'], text)
+        if self._paused:
+            self._line_buffer[pos] = text
             return
 
-        text = self._add_line_number(text, pos)
-        textlen = len(text)
-        if self._lastline == pos:
-            # move cursor at the start of progress when writing to same line
-            prefix = '\r'
-            if self._lastlength > textlen:
-                text += ' ' * (self._lastlength - textlen)
-            self._lastlength = textlen
-        else:
-            # otherwise, break the line
-            prefix = '\n'
-            self._lastlength = textlen
-        self.write(prefix, text)
-        self._lastline = pos
+        self._line_buffer[pos] = text
+
+        if not self._HAVE_FULLCAP:
+            text = self._add_line_number(text, pos)
+            textlen = len(text)
+            if self._lastline == pos and not self._needs_reinit:
+                prefix = '\r'
+                if self._lastlength > textlen:
+                    text += ' ' * (self._lastlength - textlen)
+                self._lastlength = textlen
+            else:
+                prefix = '\n'
+                self._lastlength = textlen
+            self.write(prefix, text)
+            self._lastline = pos
+            self._needs_reinit = False
+            return
+
+        if self._needs_reinit or not self._lines_drawn:
+            self._reserve_and_redraw()
+            return
+
+        self.write(*self._move_cursor(pos), CONTROL_SEQUENCES['ERASE_LINE'], text)
 
     @lock
     def end(self):
-        # move cursor to the end of the last line, and write line break
-        # so that other to_screen calls can precede
         text = self._move_cursor(self.maximum) if self._HAVE_FULLCAP else []
         if self.preserve_output:
             self.write(*text, '\n')
             return
 
         if self._HAVE_FULLCAP:
-            self.write(
-                *text, CONTROL_SEQUENCES['ERASE_LINE'],
-                f'{CONTROL_SEQUENCES["UP"]}{CONTROL_SEQUENCES["ERASE_LINE"]}' * self.maximum)
+            if self._lines_drawn:
+                self.write(
+                    *text, CONTROL_SEQUENCES['ERASE_LINE'],
+                    f'{CONTROL_SEQUENCES["UP"]}{CONTROL_SEQUENCES["ERASE_LINE"]}' * self.maximum)
         else:
             self.write('\r', ' ' * self._lastlength, '\r')
