@@ -7,6 +7,7 @@ from ..utils import (
     determine_ext,
     int_or_none,
     js_to_json,
+    parse_iso8601,
     parse_qs,
     str_or_none,
     try_get,
@@ -41,6 +42,8 @@ class RutubeBaseIE(InfoExtractor):
         description = video.get('description')
         duration = int_or_none(video.get('duration'))
 
+        release_timestamp = parse_iso8601(video.get('future_publication'))
+
         return {
             'id': video.get('id') or video_id if video_id else video['id'],
             'title': title,
@@ -55,6 +58,8 @@ class RutubeBaseIE(InfoExtractor):
             'view_count': int_or_none(video.get('hits')),
             'comment_count': int_or_none(video.get('comments_count')),
             'is_live': bool_or_none(video.get('is_livestream')),
+            'live_status': 'is_upcoming' if release_timestamp else None,
+            'release_timestamp': release_timestamp,
             'chapters': self._extract_chapters_from_description(description, duration),
         }
 
@@ -66,16 +71,22 @@ class RutubeBaseIE(InfoExtractor):
         if not query:
             query = {}
         query['format'] = 'json'
-        return self._download_json(
+        query['no_404'] = 'true'
+        options = self._download_json(
             f'https://rutube.ru/api/play/options/{video_id}/',
             video_id, 'Downloading options JSON',
             'Unable to download options JSON',
             headers=self.geo_verification_headers(), query=query)
+        detail = traverse_obj(options, ('detail', {dict}))
+        if detail:
+            reason = traverse_obj(detail, ('languages', 0, 'title', {str})) or detail.get('type')
+            self.raise_no_formats(f'Video is not available: {reason}', video_id=video_id, expected=True)
+        return options
 
     def _extract_formats_and_subtitles(self, options, video_id):
         formats = []
         subtitles = {}
-        for format_id, format_url in options['video_balancer'].items():
+        for format_id, format_url in (options.get('video_balancer') or {}).items():
             ext = determine_ext(format_url)
             if ext == 'm3u8':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
@@ -101,10 +112,6 @@ class RutubeBaseIE(InfoExtractor):
             'name': ('langTitle', {str}),
         }, all, {subs_list_to_dict(lang='ru')})), target=subtitles)
         return formats, subtitles
-
-    def _download_and_extract_formats_and_subtitles(self, video_id, query=None):
-        return self._extract_formats_and_subtitles(
-            self._download_api_options(video_id, query=query), video_id)
 
 
 class RutubeIE(RutubeBaseIE):
@@ -251,7 +258,8 @@ class RutubeIE(RutubeBaseIE):
         video_id = self._match_id(url)
         query = parse_qs(url)
         info = self._download_and_extract_info(video_id, query)
-        formats, subtitles = self._download_and_extract_formats_and_subtitles(video_id, query)
+        options = self._download_api_options(video_id, query)
+        formats, subtitles = self._extract_formats_and_subtitles(options, video_id)
         return {
             **info,
             'formats': formats,
@@ -298,7 +306,7 @@ class RutubeEmbedIE(RutubeBaseIE):
         # requests (see #19163)
         query = parse_qs(url)
         options = self._download_api_options(embed_id, query)
-        video_id = options['effective_video']
+        video_id = options.get('effective_video') or embed_id
         formats, subtitles = self._extract_formats_and_subtitles(options, video_id)
         info = self._download_and_extract_info(video_id, query)
         info.update({
