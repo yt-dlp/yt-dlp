@@ -298,7 +298,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
                 }
 
     def _series_entries(self, series_id, display_id=None, video_type=None, metadata={}):
-        if not video_type or video_type in 'episodes':
+        if not video_type or video_type == 'episodes':
             try:
                 seasons_list = self._call_api(
                     f'https://api.rctiplus.com/api/v1/program/{series_id}/season',
@@ -311,11 +311,11 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
                 yield from self._entries(
                     f'https://api.rctiplus.com/api/v2/program/{series_id}/episode?season={season["season"]}',
                     display_id, f'Downloading season {season["season"]} episode entries', metadata)
-        if not video_type or video_type in 'extras':
+        if not video_type or video_type == 'extras':
             yield from self._entries(
                 f'https://api.rctiplus.com/api/v2/program/{series_id}/extra?content_id=0',
                 display_id, 'Downloading extra entries', metadata)
-        if not video_type or video_type in 'clips':
+        if not video_type or video_type == 'clips':
             yield from self._entries(
                 f'https://api.rctiplus.com/api/v2/program/{series_id}/clip?content_id=0',
                 display_id, 'Downloading clip entries', metadata)

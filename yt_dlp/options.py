@@ -511,7 +511,7 @@ def create_parser():
     general.add_option(
         '--live-from-start',
         action='store_true', dest='live_from_start',
-        help='Download livestreams from the start. Currently experimental and only supported for YouTube, Twitch, and TVer')
+        help='Download livestreams from the start. Currently experimental and only supported for YouTube, Twitch, TVer, and mellow-fan')
     general.add_option(
         '--no-live-from-start',
         action='store_false', dest='live_from_start',
@@ -1139,12 +1139,12 @@ def create_parser():
         dest='external_downloader', metavar='[PROTO:]NAME', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': 'http|ftp|m3u8|dash|rtsp|rtmp|mms',
+            'allowed_keys': 'http|ftp|m3u8|dash|rtmp',
             'default_key': 'default',
             'process': str.strip,
         }, help=(
             'Name or path of the external downloader to use (optionally) prefixed by '
-            'the protocols (http, ftp, m3u8, dash, rstp, rtmp, mms) to use it for. '
+            'the protocols (http, ftp, m3u8, dash, rtmp) to use it for. '
             f'Currently supports native, {", ".join(sorted(list_external_downloaders()))}. '
             'You can use this option multiple times to set different downloaders for different protocols. '
             'E.g. --downloader aria2c --downloader "dash,m3u8:native" will use '

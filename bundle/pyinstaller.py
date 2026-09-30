@@ -38,11 +38,16 @@ def main():
         f'--name={name}',
         '--icon=devscripts/logo.ico',
         '--upx-exclude=vcruntime140.dll',
+        # setuptools and packaging are PyInstaller runtime dependencies,
+        # but would be collected due to cffi's imports if we don't exclude
+        '--exclude-module=setuptools',
+        '--exclude-module=packaging',
         # Ref: https://github.com/yt-dlp/yt-dlp/issues/13311
         #      https://github.com/pyinstaller/pyinstaller/issues/9149
         '--exclude-module=pkg_resources',
         '--noconfirm',
         '--additional-hooks-dir=yt_dlp/__pyinstaller',
+        '--add-data=THIRD_PARTY_LICENSES.txt:.',
         *opts,
         'yt_dlp/__main__.py',
     ]

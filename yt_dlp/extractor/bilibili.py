@@ -127,7 +127,7 @@ class BilibiliBaseIE(InfoExtractor):
                     'format_note': ('quality', {format_names.get}),
                     'duration': ('timelength', {float_or_none(scale=1000)}),
                 }),
-                **parse_resolution(format_names.get(play_info.get('quality'))),
+                **parse_resolution(traverse_obj(play_info, ('quality', {format_names.get}))),
             })
         return formats
 
@@ -166,8 +166,58 @@ class BilibiliBaseIE(InfoExtractor):
         params['w_rid'] = hashlib.md5(f'{query}{self._get_wbi_key(video_id)}'.encode()).hexdigest()
         return params
 
-    def _download_playinfo(self, bvid, cid, headers=None, query=None):
-        params = {'bvid': bvid, 'cid': cid, 'fnval': 4048, **(query or {})}
+    @staticmethod
+    @functools.cache
+    def __screen_dimensions():
+        dims, prefs = zip(
+            ((1920, 1080), 18),
+            ((1366, 768), 18),
+            ((1536, 864), 17),
+            ((1280, 720), 8),
+            ((2560, 1440), 7),
+            ((1440, 900), 5),
+            ((1600, 900), 5),
+            strict=True)
+        return random.choices(dims, weights=prefs)[0]
+
+    @property
+    def _dm_params(self):
+        def get_wh(width=1920, height=1080):
+            res0, res1 = width, height
+            rnd = math.floor(114 * random.random())
+            return [2 * res0 + 2 * res1 + 3 * rnd, 4 * res0 - res1 + rnd, rnd]
+
+        def get_of(scroll_top=10, scroll_left=10):
+            res0, res1 = scroll_top, scroll_left
+            rnd = math.floor(514 * random.random())
+            return [3 * res0 + 2 * res1 + rnd, 4 * res0 - 4 * res1 + 2 * rnd, rnd]
+
+        # Source: https://s1.hdslb.com/bfs/seed/jinkela/short/user-fingerprint/bili-user-fingerprint.min.js
+        # function window.__biliUserFp__.queryUserLog
+        # .dm_img_list and .dm_img_inter.ds are more troublesome as they come from mousemove/click events.
+        # Leave them empty for now, since they should allow playing the video without any mousemove/click.
+        return {
+            'dm_img_list': '[]',
+            'dm_img_str': base64.b64encode(
+                ''.join(random.choices(string.printable, k=random.randint(16, 64))).encode())[:-2].decode(),
+            'dm_cover_img_str': base64.b64encode(
+                ''.join(random.choices(string.printable, k=random.randint(32, 128))).encode())[:-2].decode(),
+            # Bilibili expects dm_img_inter to be a compact JSON (without spaces)
+            'dm_img_inter': json.dumps({
+                'ds': [],
+                'wh': get_wh(*self.__screen_dimensions()),
+                'of': get_of(random.randint(0, 100), 0),
+            }, separators=(',', ':')),
+        }
+
+    def _download_playinfo(self, bvid, cid, headers=None, query=None, fatal=True):
+        params = {
+            'bvid': bvid,
+            'cid': cid,
+            'fnval': 4048,
+            **self._dm_params,
+            **(query or {}),
+        }
         if self.is_logged_in:
             params.pop('try_look', None)
         if qn := params.get('qn'):
@@ -175,9 +225,24 @@ class BilibiliBaseIE(InfoExtractor):
         else:
             note = f'Downloading video formats for cid {cid}'
 
-        return self._download_json(
+        playurl_raw = self._download_json(
             'https://api.bilibili.com/x/player/wbi/playurl', bvid,
-            query=self._sign_wbi(params, bvid), headers=headers, note=note)['data']
+            query=self._sign_wbi(params, bvid), headers=headers, note=note)
+        code = traverse_obj(playurl_raw, ('code', {lambda x: x * -1}))
+        if code == 0:
+            return playurl_raw['data']
+        else:
+            msg = join_nonempty(
+                'Unable to download video info', code,
+                traverse_obj(playurl_raw, ('message', {str})),
+                delim=': ')
+            expected = code in (401, 352)
+            if expected:
+                msg += ', please wait and try later'
+            if fatal:
+                raise ExtractorError(msg, expected=expected)
+            else:
+                self.report_warning(msg)
 
     def json2srt(self, json_data):
         srt_data = ''
@@ -298,7 +363,7 @@ class BilibiliBaseIE(InfoExtractor):
                 'title': f'{metainfo.get("title")} - {next(iter(edges.values())).get("title")}',
                 'formats': self.extract_formats(play_info),
                 'description': f'{json.dumps(edges, ensure_ascii=False)}\n{metainfo.get("description", "")}',
-                'duration': float_or_none(play_info.get('timelength'), scale=1000),
+                'duration': traverse_obj(play_info, ('timelength', {float_or_none(scale=1000)})),
                 'subtitles': self.extract_subtitles(video_id, cid),
             }
 
@@ -662,7 +727,10 @@ class BiliBiliIE(BilibiliBaseIE):
         if not self._match_valid_url(urlh.url):
             return self.url_result(urlh.url)
 
-        headers['Referer'] = url
+        headers.update({
+            'Referer': 'https://www.bilibili.com/',
+            'Origin': 'https://www.bilibili.com',
+        })
 
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id, default=None)
         if not initial_state:
@@ -758,13 +826,12 @@ class BiliBiliIE(BilibiliBaseIE):
                 duration=traverse_obj(initial_state, ('videoData', 'duration', {int_or_none})),
                 __post_extractor=self.extract_comments(aid))
 
-        play_info = None
-        if self.is_logged_in:
-            play_info = traverse_obj(
-                self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None),
-                ('data', {dict}))
-        if not play_info:
-            play_info = self._download_playinfo(video_id, cid, headers=headers, query={'try_look': 1})
+        play_info = traverse_obj(
+            self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id, default=None),
+            ('data', {dict}))
+        if not self.is_logged_in or not play_info:
+            if dl_play_info := self._download_playinfo(video_id, cid, headers=headers, query={'try_look': 1}, fatal=False):
+                play_info = dl_play_info
         formats = self.extract_formats(play_info)
 
         if video_data.get('is_upower_exclusive'):
@@ -819,13 +886,13 @@ class BiliBiliIE(BilibiliBaseIE):
                     'subtitles': self.extract_subtitles(video_id, cid) if idx == 0 else None,
                     '__post_extractor': self.extract_comments(aid) if idx == 0 else None,
                 } for idx, fragment in enumerate(formats[0]['fragments'])],
-                'duration': float_or_none(play_info.get('timelength'), scale=1000),
+                'duration': traverse_obj(play_info, ('timelength', {float_or_none(scale=1000)})),
             }
 
         return {
             **metainfo,
             'formats': formats,
-            'duration': float_or_none(play_info.get('timelength'), scale=1000),
+            'duration': traverse_obj(play_info, ('timelength', {float_or_none(scale=1000)})),
             'chapters': self._get_chapters(aid, cid),
             'subtitles': self.extract_subtitles(video_id, cid),
             '__post_extractor': self.extract_comments(aid),
@@ -1319,20 +1386,21 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
                 'pn': page_idx + 1,
                 'ps': 30,
                 'tid': 0,
-                'web_location': 1550101,
-                'dm_img_list': '[]',
-                'dm_img_str': base64.b64encode(
-                    ''.join(random.choices(string.printable, k=random.randint(16, 64))).encode())[:-2].decode(),
-                'dm_cover_img_str': base64.b64encode(
-                    ''.join(random.choices(string.printable, k=random.randint(32, 128))).encode())[:-2].decode(),
-                'dm_img_inter': '{"ds":[],"wh":[6093,6631,31],"of":[430,760,380]}',
+                'web_location': '333.1387',
+                'special_type': '',
+                'index': 0,
+                **self._dm_params,
             }
 
             try:
                 response = self._download_json(
                     'https://api.bilibili.com/x/space/wbi/arc/search', playlist_id,
                     query=self._sign_wbi(query, playlist_id),
-                    note=f'Downloading space page {page_idx}', headers={'Referer': url})
+                    note=f'Downloading space page {page_idx}', headers={
+                        'Referer': url,
+                        'Origin': 'https://space.bilibili.com',
+                        'Accept-Language': 'en,zh-CN;q=0.9,zh;q=0.8',
+                    })
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 412:
                     raise ExtractorError(
@@ -2030,12 +2098,9 @@ class BiliBiliDynamicIE(InfoExtractor):
 
     def _real_extract(self, url):
         post_id = self._match_id(url)
-        # Without the newer chrome UA, the API will return an error (-352)
         post_data = self._download_json(
             'https://api.bilibili.com/x/polymer/web-dynamic/v1/detail', post_id,
-            query={'id': post_id}, headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-            })
+            query={'id': post_id})
         video_url = traverse_obj(post_data, (
             'data', 'item', (None, 'orig'), 'modules', 'module_dynamic',
             (('major', ('archive', 'pgc')), ('additional', ('reserve', 'common'))),
