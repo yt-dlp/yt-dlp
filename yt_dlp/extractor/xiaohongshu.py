@@ -1,6 +1,7 @@
 
 from .common import InfoExtractor
 from ..utils import (
+    UnsupportedError,
     float_or_none,
     int_or_none,
     js_to_json,
@@ -11,7 +12,7 @@ from ..utils.traversal import traverse_obj
 
 
 class XiaoHongShuIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.xiaohongshu\.com/(?:explore|discovery/item)/(?P<id>[\da-f]+)'
+    _VALID_URL = r'https?://(?:www\.xiaohongshu\.com/(?:explore|discovery/item)|xhslink\.com/o)/(?P<id>[\da-zA-Z]+)'
     IE_DESC = '小红书'
     _TESTS = [{
         'url': 'https://www.xiaohongshu.com/explore/6411cf99000000001300b6d9',
@@ -41,8 +42,11 @@ class XiaoHongShuIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
+        webpage, urlh = self._download_webpage_handle(url, self._match_id(url))
+        if not self.suitable(urlh.url):
+            raise UnsupportedError(urlh.url)
+
+        display_id = self._match_id(urlh.url)
         initial_state = self._search_json(
             r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', display_id, transform_source=js_to_json)
 
