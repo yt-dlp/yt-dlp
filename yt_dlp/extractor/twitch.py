@@ -1081,23 +1081,24 @@ class TwitchStreamIE(TwitchVideosBaseIE):
         'url': 'https://m.twitch.tv/food',
         'only_matching': True,
     }, {
-        'url': 'https://www.twitch.tv/monstercat',
+        'url': 'https://www.twitch.tv/sery_bot',
         'info_dict': {
-            'id': '40500071752',
-            'display_id': 'monstercat',
-            'title': 're:Monstercat',
-            'description': 'md5:0945ad625e615bc8f0469396537d87d9',
+            'id': r're:\d+',
+            'display_id': 'sery_bot',
+            'title': 're:Sery_Bot',
+            'description': str,
             'is_live': True,
-            'timestamp': 1677107190,
-            'upload_date': '20230222',
-            'uploader': 'Monstercat',
-            'uploader_id': 'monstercat',
+            'timestamp': int,
+            'upload_date': r're:\d{8}',
+            'uploader': 'Sery_Bot',
+            'uploader_id': 'sery_bot',
             'live_status': 'is_live',
             'thumbnail': 're:https://.*.jpg',
             'ext': 'mp4',
         },
         'params': {
             'skip_download': 'Livestream',
+            'outtmpl': '%(display_id)s.%(ext)s',
         },
     }]
     _PAGE_LIMIT = 1
