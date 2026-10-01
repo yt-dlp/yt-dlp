@@ -100,17 +100,35 @@ class AfreecaTVIE(AfreecaTVBaseIE):
     IE_DESC = 'sooplive.com'
     _VALID_URL = r'https?://vod\.sooplive\.com/(?:PLAYER/STATION|player)/(?P<id>\d+)/?(?:$|[?#&])'
     _TESTS = [{
-        'url': 'https://vod.sooplive.com/player/192805325',
+        'url': 'https://vod.sooplive.com/player/135011777',
         'info_dict': {
-            'id': '20260414_1B44E53B_293230967_1',
+            'id': '135011777',
             'ext': 'mp4',
             'uploader_id': 'rlantnghks',
             'uploader': '페이즈으',
-            'duration': 10869,
-            'thumbnail': r're:https?://videoimg\.sooplive\.com/.+',
-            'upload_date': '20260414',
-            'timestamp': 1776174982,
-            'title': 'T1 Peyz [CC]',
+            'duration': 10980,
+            'thumbnail': r're:https?://(?:video|st)img\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/.+',
+            'upload_date': '20240901',
+            'timestamp': 1725184951,
+            'title': '젠 페',
+            '_old_archive_ids': ['afreecatv 20240901_BBFD2777_276024216_1'],
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://vod.sooplive.com/player/67629127',
+        'info_dict': {
+            'id': '67629127',
+            'ext': 'mp4',
+            'title': '[중계진] ASL 팀 리그 (ASTL) 시즌2 2주 1일차',
+            'uploader': '중계진',
+            'uploader_id': 'talent',
+            'duration': 15731,
+            'thumbnail': r're:https?://(?:video|st)img\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/.+',
+            'timestamp': 1611481819,
+            'upload_date': '20210124',
+            '_old_archive_ids': ['afreecatv 20210124_047D4A4D_230460316_1'],
         },
         'params': {
             'skip_download': True,
@@ -119,7 +137,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
         # non standard key
         'url': 'https://vod.sooplive.com/PLAYER/STATION/20515605',
         'info_dict': {
-            'id': 'BE689A0E_190960999_1_2_A',
+            'id': '20515605',
             'ext': 'mp4',
             'title': '혼자사는여자집',
             'thumbnail': r're:https?://(?:video|st)img\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/.+',
@@ -128,6 +146,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'upload_date': '20170411',
             'timestamp': 1491897465,
             'duration': 213,
+            '_old_archive_ids': ['afreecatv BE689A0E_190960999_1_2_A'],
         },
         'params': {
             'skip_download': True,
@@ -136,7 +155,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
         # adult content
         'url': 'https://vod.sooplive.com/player/191612613',
         'info_dict': {
-            'id': '20260403_A4534670_292914441_1',
+            'id': '191612613',
             'ext': 'mp4',
             'title': '하이',
             'thumbnail': r're:https?://(?:video|st)img\.sooplive\.com/.+',
@@ -144,11 +163,25 @@ class AfreecaTVIE(AfreecaTVBaseIE):
             'uploader_id': 'serimm',
             'upload_date': '20260402',
             'duration': 7015,
+            '_old_archive_ids': ['afreecatv 20260403_A4534670_292914441_1'],
         },
         'params': {
             'skip_download': True,
         },
         'skip': 'Needs login to view',
+    }, {
+        # multiple file vod
+        'url': 'https://vod.sooplive.com/player/67386380',
+        'info_dict': {
+            'id': '67386380',
+            'title': '[중계진] ASL 팀 리그 (ASTL) 시즌2 1주 2일차',
+            'uploader': '중계진',
+            'uploader_id': 'talent',
+            'duration': 13239,
+            'timestamp': 1611049814,
+            'upload_date': '20210119',
+        },
+        'playlist_count': 2,
     }, {
         # adult content
         'url': 'https://vod.sooplive.com/player/70395877',
