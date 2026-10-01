@@ -885,9 +885,9 @@ class TwitchDirectoryClipsIE(TwitchPlaylistBaseIE):
         assert isinstance(node, dict)
         slug = node.get('slug')
         broadcaster_name = traverse_obj(node, ('broadcaster', 'login'))
-        clip_url = f'https://www.twitch.tv/{broadcaster_name}/clip/{slug}'
-        if not clip_url:
+        if not slug or not broadcaster_name:
             return
+        clip_url = f'https://www.twitch.tv/{broadcaster_name}/clip/{slug}'
         return {
             '_type': 'url_transparent',
             'ie_key': TwitchClipsIE.ie_key(),
