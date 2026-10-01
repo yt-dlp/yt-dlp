@@ -2088,6 +2088,7 @@ from .twitcasting import (
 from .twitch import (
     TwitchClipsIE,
     TwitchCollectionIE,
+    TwitchDirectoryClipsIE,
     TwitchStreamIE,
     TwitchVideosClipsIE,
     TwitchVideosCollectionsIE,
