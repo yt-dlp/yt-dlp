@@ -756,12 +756,11 @@ class TwitchVideosIE(TwitchVideosBaseIE):
         },
         'playlist_mincount': 751,
     }, {
-        # TODO: Investigate why we get 0 entries
         # Uploads sorted by Date
-        'url': 'https://www.twitch.tv/esl_csgo/videos?filter=uploads&sort=time',
+        'url': 'https://www.twitch.tv/eslcs/videos?filter=uploads&sort=time',
         'info_dict': {
-            'id': 'esl_csgo',
-            'title': 'esl_csgo - Uploads sorted by Date',
+            'id': 'eslcs',
+            'title': 'eslcs - Uploads sorted by Date',
         },
         'playlist_mincount': 5,
     }, {
