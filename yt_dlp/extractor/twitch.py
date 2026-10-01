@@ -764,12 +764,11 @@ class TwitchVideosIE(TwitchVideosBaseIE):
         },
         'playlist_mincount': 5,
     }, {
-        # TODO: Investigate why we get 0 entries
         # Past Premieres sorted by Date
-        'url': 'https://www.twitch.tv/spamfish/videos?filter=past_premieres',
+        'url': 'https://www.twitch.tv/blizzard/videos?filter=past_premieres',
         'info_dict': {
-            'id': 'spamfish',
-            'title': 'spamfish - Past Premieres sorted by Date',
+            'id': 'blizzard',
+            'title': 'blizzard - Past Premieres sorted by Date',
         },
         'playlist_mincount': 1,
     }, {
