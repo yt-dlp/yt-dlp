@@ -649,6 +649,7 @@ class TwitchCollectionIE(TwitchBaseIE):
 
 class TwitchPlaylistBaseIE(TwitchBaseIE):
     _PAGE_LIMIT = 100
+    _DATA_KIND = 'user'
 
     def _entries(self, channel_name, *args):
         """
@@ -935,7 +936,6 @@ class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
 
     _OPERATION_NAME = 'ClipsCards__User'
     _ENTRY_KIND = 'clip'
-    _DATA_KIND = 'user'
     _EDGE_KIND = 'ClipEdge'
     _NODE_KIND = 'Clip'
 
@@ -1000,7 +1000,6 @@ class TwitchVideosCollectionsIE(TwitchPlaylistBaseIE):
 
     _OPERATION_NAME = 'ChannelCollectionsContent'
     _ENTRY_KIND = 'collection'
-    _DATA_KIND = 'user'
     _EDGE_KIND = 'CollectionsItemEdge'
     _NODE_KIND = 'Collection'
 
