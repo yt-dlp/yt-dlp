@@ -825,7 +825,7 @@ class TwitchVideosIE(TwitchVideosBaseIE):
 
 
 class TwitchDirectoryClipsIE(TwitchPlaylistBaseIE):
-    _VALID_URL = r'https?://(?:(?:www|go|m)\.)?twitch\.tv/directory/category/(?P<id>[^/]+)/(?:clips|videos/*?\?.*?)'
+    _VALID_URL = r'https?://(?:(?:www|go|m)\.)?twitch\.tv/directory/category/(?P<id>[^/]+)/clips'
 
     _TESTS = [{
         # Clips (defaults to 7d)
