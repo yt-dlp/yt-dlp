@@ -246,6 +246,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
         if len(entries) == 1:
             return {
                 **entries[0],
+                'id': video_id,
                 'title': common_info.get('title'),
             }
 
