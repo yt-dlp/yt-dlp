@@ -740,14 +740,13 @@ class TwitchVideosIE(TwitchVideosBaseIE):
         },
         'playlist_mincount': 754,
     }, {
-        # TODO: Investigate why we get 0 entries
         # Past Broadcasts sorted by Date
-        'url': 'https://www.twitch.tv/spamfish/videos?filter=archives',
+        'url': 'https://www.twitch.tv/gamesdonequick/videos?filter=archives',
         'info_dict': {
-            'id': 'spamfish',
-            'title': 'spamfish - Past Broadcasts sorted by Date',
+            'id': 'gamesdonequick',
+            'title': 'gamesdonequick - Past Broadcasts sorted by Date',
         },
-        'playlist_mincount': 27,
+        'playlist_mincount': 100,
     }, {
         # Highlights sorted by Date
         'url': 'https://www.twitch.tv/spamfish/videos?filter=highlights',
