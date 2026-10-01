@@ -839,7 +839,7 @@ class TwitchDirectoryClipsIE(TwitchPlaylistBaseIE):
 
     _TESTS = [{
         # Clips (defaults to 7d)
-        'url': 'https://www.twitch.tv/directory/category/starcraft/clips?range=7d',
+        'url': 'https://www.twitch.tv/directory/category/starcraft/clips',
         'info_dict': {
             'id': 'starcraft',
             'title': 'starcraft - Clips Top 7D',
@@ -850,6 +850,13 @@ class TwitchDirectoryClipsIE(TwitchPlaylistBaseIE):
         'info_dict': {
             'id': 'minecraft',
             'title': 'minecraft - Clips Top 30D',
+        },
+        'playlist_mincount': 3,
+    }, {
+        'url': 'https://www.twitch.tv/directory/category/minecraft/clips?range=all',
+        'info_dict': {
+            'id': 'minecraft',
+            'title': 'minecraft - Clips Top All',
         },
         'playlist_mincount': 3,
     }]
