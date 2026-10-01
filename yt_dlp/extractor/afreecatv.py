@@ -11,6 +11,7 @@ from ..utils import (
     determine_ext,
     filter_dict,
     int_or_none,
+    make_archive_id,
     orderedSet,
     parse_iso8601,
     str_or_none,
@@ -248,6 +249,7 @@ class AfreecaTVIE(AfreecaTVBaseIE):
                 **entries[0],
                 'id': video_id,
                 'title': common_info.get('title'),
+                '_old_archive_ids': [make_archive_id(self, entries[0]['id'])],
             }
 
         common_info['timestamp'] = traverse_obj(entries, (..., 'timestamp'), get_all=False)
