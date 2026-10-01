@@ -40,6 +40,9 @@ class TwitchBaseIE(InfoExtractor):
     _LOGIN_POST_URL = 'https://passport.twitch.tv/login'
     _NETRC_MACHINE = 'twitch'
 
+    # Static title for streams without a title set.
+    _UNTITLED_BROADCAST = 'Untitled Broadcast'
+
     _OPERATION_HASHES = {
         'CollectionSideBar': '016e1e4ccee0eb4698eb3bf1a04dc1c077fb746c78c82bac9a8f0289658fbd1a',
         'FilterableVideoTower_Videos': '67004f7881e65c297936f32c75246470629557a393788fb5a69d6d9a25a8fd5f',
@@ -279,7 +282,7 @@ class TwitchVodIE(TwitchBaseIE):
         'info_dict': {
             'id': 'v11230755',
             'ext': 'mp4',
-            'title': 'Untitled Broadcast',
+            'title': TwitchBaseIE._UNTITLED_BROADCAST,
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 1638,
             'timestamp': 1439746708,
@@ -473,7 +476,7 @@ class TwitchVodIE(TwitchBaseIE):
                 })
         return {
             'id': info['_id'],
-            'title': info.get('title') or 'Untitled Broadcast',
+            'title': info.get('title') or self._UNTITLED_BROADCAST,
             'description': info.get('description'),
             'duration': int_or_none(info.get('length')),
             'thumbnails': thumbnails,
@@ -672,15 +675,19 @@ class TwitchPlaylistBaseIE(TwitchBaseIE):
                 }],
                 f'Downloading {self._NODE_KIND}s GraphQL page {page_num}',
                 fatal=False)
+
             # Avoid extracting random/unrelated entries when channel_name doesn't exist
             # See https://github.com/yt-dlp/yt-dlp/issues/15450
             if traverse_obj(page, (0, 'data', 'user', 'id', {str})) == '':
                 raise ExtractorError(f'Channel "{channel_name}" not found', expected=True)
-            # A nonexistent category is returned as {"game": null}
+
+            # Fail instead of returning zero results if the category doesn't exist.
+            # Used for directory URLs.
             if data_key == 'game':
                 data = traverse_obj(page, (0, 'data', {dict})) or {}
                 if 'game' in data and data['game'] is None:
                     raise ExtractorError(f'Category "{channel_name}" not found', expected=True)
+
             if not page:
                 break
             edges = try_get(
