@@ -28,7 +28,7 @@ class XiaoHongShuIE(InfoExtractor):
             'thumbnail': r're:https?://sns-webpic-qc\.xhscdn\.com/\d+/[a-z0-9]+/[\w]+',
         },
     }, {
-        'url': 'https://www.xiaohongshu.com/explore/69e8c63c000000001b0206c5?xsec_token=CBCxFsFsXrsXy3MFxZWUlVsLBXGS6Hs615dlbcjYG8h4g=',
+        'url': 'https://www.xiaohongshu.com/discovery/item/69e8c63c000000001b0206c5?xsec_token=CBCxFsFsXrsXy3MFxZWUlVsLBXGS6Hs615dlbcjYG8h4g=',
         'md5': '2d0165e34fad77647035f987de5a8843',
         'info_dict': {
             'id': '69e8c63c000000001b0206c5',
