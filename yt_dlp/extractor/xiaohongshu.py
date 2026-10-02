@@ -15,29 +15,42 @@ class XiaoHongShuIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.xiaohongshu\.com/(?:explore|discovery/item)|xhslink\.com/o)/(?P<id>[\da-zA-Z]+)'
     IE_DESC = '小红书'
     _TESTS = [{
-        'url': 'https://www.xiaohongshu.com/explore/6411cf99000000001300b6d9',
-        'md5': '2a87a77ddbedcaeeda8d7eae61b61228',
+        'url': 'https://www.xiaohongshu.com/explore/640daef50000000012030b49?xsec_token=ABbVz3VBPWhHKGGuKIS5xQNS8vHjAZiY_T_ge6k9UVcFA=',
+        'md5': 'a497217683a6f7b0d29f50e83a19704e',
         'info_dict': {
-            'id': '6411cf99000000001300b6d9',
+            'id': '640daef50000000012030b49',
             'ext': 'mp4',
-            'uploader_id': '5c31698d0000000007018a31',
-            'description': '#今日快乐今日发[话题]# #吃货薯看这里[话题]# #香妃蛋糕[话题]# #小五卷蛋糕[话题]# #新手蛋糕卷[话题]#',
-            'title': '香妃蛋糕也太香了吧🔥不需要卷❗️绝对的友好',
-            'tags': ['今日快乐今日发', '吃货薯看这里', '香妃蛋糕', '小五卷蛋糕', '新手蛋糕卷'],
-            'duration': 101.726,
+            'uploader_id': '5dd7634d0000000001002c23',
+            'description': '今年一直从这棵古玉兰花开看到花落\n花开惊艳，花落的谢幕也是异常华美\n500年的风雨仍旧温柔伫立\n如此这般见证了无数历史～\n一岁为期，一期一会的惊艳\n被时间的洪流裹挟的渺小的我\n能会一期是一期\n#笔记灵感[话题]#\xa0\xa0#周末去哪儿[话题]#\xa0\xa0#浪漫生活的记录者[话题]#\xa0\xa0#法喜寺[话题]#\xa0\xa0#杭州拍照[话题]#',
+            'title': '杭州法喜寺500年古玉兰惊艳落幕！来年再会',
+            'tags': ['笔记灵感', '周末去哪儿', '浪漫生活的记录者', '法喜寺', '杭州拍照'],
+            'duration': 29.634,
             'thumbnail': r're:https?://sns-webpic-qc\.xhscdn\.com/\d+/[a-z0-9]+/[\w]+',
         },
     }, {
-        'url': 'https://www.xiaohongshu.com/discovery/item/674051740000000007027a15?xsec_token=CBgeL8Dxd1ZWBhwqRd568gAZ_iwG-9JIf9tnApNmteU2E=',
+        'url': 'https://www.xiaohongshu.com/explore/69e8c63c000000001b0206c5?xsec_token=CBCxFsFsXrsXy3MFxZWUlVsLBXGS6Hs615dlbcjYG8h4g=',
+        'md5': '2d0165e34fad77647035f987de5a8843',
         'info_dict': {
-            'id': '674051740000000007027a15',
+            'id': '69e8c63c000000001b0206c5',
             'ext': 'mp4',
-            'title': '相互喜欢就可以了',
-            'uploader_id': '63439913000000001901f49a',
-            'duration': 28.073,
-            'description': '#广州[话题]# #深圳[话题]# #香港[话题]# #街头采访[话题]# #是你喜欢的类型[话题]#',
+            'title': '“真正的世界 不在书和地图里 它在外面”',
+            'uploader_id': '68899eae000000002802a64d',
+            'duration': 23.067,
+            'description': '#旅行大玩家[话题]# #旅行推荐官[话题]# #治愈系风景[话题]# #世界这本书又看了几页[话题]# #世界这本书我又多读了一页[话题]#',
             'thumbnail': r're:https?://sns-webpic-qc\.xhscdn\.com/\d+/[\da-f]+/[^/]+',
-            'tags': ['广州', '深圳', '香港', '街头采访', '是你喜欢的类型'],
+            'tags': ['旅行大玩家', '旅行推荐官', '治愈系风景', '世界这本书又看了几页', '世界这本书我又多读了一页'],
+        },
+    }, {
+        'url': 'http://xhslink.com/o/8wvDcEylIRP',
+        'md5': '7f57fe126a9baa58aad65f01cdae8af8',
+        'info_dict': {
+            'id': '6a9e234f00000000250363b5',
+            'ext': 'mp4',
+            'title': '迷你乡村火车轨道建造',
+            'uploader_id': '6a9d59fa0000000013003805',
+            'duration': 59.367,
+            'description': '',
+            'thumbnail': r're:https?://sns-webpic-qc\.xhscdn\.com/\d+/[\da-f]+/[^/]+',
         },
     }]
 
