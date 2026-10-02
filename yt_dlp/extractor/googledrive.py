@@ -3,6 +3,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
+    disposition_filename,
     extract_attributes,
     filter_dict,
     get_element_by_class,
@@ -184,9 +185,7 @@ class GoogleDriveIE(InfoExtractor):
             def add_source_format(urlh):
                 nonlocal title
                 if not title:
-                    title = self._search_regex(
-                        r'\bfilename="([^"]+)"', urlh.headers.get('Content-Disposition'),
-                        'title', default=None)
+                    title = disposition_filename(urlh.headers) or None
                 formats.append({
                     # Use redirect URLs as download URLs in order to calculate
                     # correct cookies in _calc_cookies.
@@ -198,7 +197,7 @@ class GoogleDriveIE(InfoExtractor):
                     'format_id': 'source',
                     'quality': 1,
                 })
-            if urlh.headers.get('Content-Disposition'):
+            if urlh.headers.get_content_disposition():
                 add_source_format(urlh)
             else:
                 confirmation_webpage = self._webpage_read_content(
@@ -209,7 +208,7 @@ class GoogleDriveIE(InfoExtractor):
                         get_element_html_by_id('download-form', confirmation_webpage) or '').get('action')
                     if confirmed_source_url:
                         urlh = request_source_file(confirmed_source_url, 'confirmed source', data=b'')
-                        if urlh and urlh.headers.get('Content-Disposition'):
+                        if urlh and urlh.headers.get_content_disposition():
                             add_source_format(urlh)
                     else:
                         self.report_warning(
