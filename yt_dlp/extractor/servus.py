@@ -4,7 +4,7 @@ from ..utils import (
     float_or_none,
     format_field,
     int_or_none,
-    join_nonempty,
+    merge_dicts,
     traverse_obj,
     unescapeHTML,
     unified_timestamp,
@@ -17,7 +17,7 @@ class ServusIE(InfoExtractor):
                         (?:www\.)?
                         (?:
                             servus\.com/(?:(?:at|de)/p/[^/]+|tv/videos)|
-                            (?:servustv|pm-wissen)\.com/(?:[^/]+/)?v(?:ideos)?
+                            (?:servustv|pm-wissen)\.com/(?:[^/]+/)?(?:v(?:ideos)?|(?:at|de)/page)
                         )
                         /(?P<id>[aA]{2}-?\w+|\d+-\d+)
                     '''
@@ -27,10 +27,10 @@ class ServusIE(InfoExtractor):
         'info_dict': {
             'id': 'AA-28BYCQNH92111',
             'ext': 'mp4',
-            'title': 'Vie Ferrate - Klettersteige in den Alpen',
-            'description': 'md5:25e47ddd83a009a0f9789ba18f2850ce',
-            'thumbnail': r're:^https?://.*\.jpg',
-            'duration': 2823,
+            'title': 'Klettersteige in den Alpen',
+            'description': 'md5:86d0c9eb3b2b6d7cdff247d1ba997ace',
+            'thumbnail': r're:^https?://.*',
+            'duration': 2823280.0,
             'timestamp': 1655752333,
             'upload_date': '20220620',
             'series': 'Bergwelten',
@@ -38,7 +38,6 @@ class ServusIE(InfoExtractor):
             'season_number': 11,
             'episode': 'Episode 8 - Vie Ferrate – Klettersteige in den Alpen',
             'episode_number': 8,
-            'categories': ['Bergwelten'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -71,13 +70,19 @@ class ServusIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url).upper()
-
-        webpage = self._download_webpage(url, video_id)
-        next_data = self._search_nextjs_data(webpage, video_id, fatal=False)
-
+        webpage, urlh = self._download_webpage_handle(url, video_id)
+        video_id = self._match_id(urlh.url).upper()
+        next_data = {}
+        next_datas = traverse_obj(
+            self._search_nextjs_v13_data(webpage, video_id, fatal=False),
+            (..., 'featuredCollectionCards', lambda _, x: video_id in x.get('id'), {dict}),
+        )
+        if next_datas:
+            next_data = merge_dicts(*next_datas)
         video = self._download_json(
-            'https://api-player.redbull.com/stv/servus-tv-playnet',
-            video_id, 'Downloading video JSON', query={'videoId': video_id})
+            'https://api-player.redbull.com/tv', video_id, 'Downloading video JSON',
+            query={'videoId': video_id, 'tenant': 'stv', 'locale': 'de'},
+        )
         if not video.get('videoUrl'):
             self._report_errors(video)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
@@ -93,7 +98,7 @@ class ServusIE(InfoExtractor):
         return {
             'id': video_id,
             'title': video.get('title'),
-            'description': self._get_description(next_data) or video.get('description'),
+            'description': unescapeHTML(next_data.get('long_description')) or video.get('description'),
             'thumbnail': video.get('poster'),
             'duration': float_or_none(video.get('duration')),
             'timestamp': unified_timestamp(video.get('currentSunrise')),
@@ -104,19 +109,11 @@ class ServusIE(InfoExtractor):
             'episode_number': episode_number,
             'formats': formats,
             'subtitles': subtitles,
-            **traverse_obj(next_data, ('props', 'pageProps', 'data', {
-                'title': ('title', 'rendered', {str}),
-                'timestamp': ('stv_date', 'raw', {int}),
-                'duration': ('stv_duration', {float_or_none}),
-                'categories': ('category_names', ..., {str}),
-            })),
+            **traverse_obj(next_data, {
+                'title': ('title', {str}),
+                'duration': ('duration', {float_or_none}),
+            }),
         }
-
-    def _get_description(self, next_data):
-        return join_nonempty(*traverse_obj(next_data, (
-            'props', 'pageProps', 'data',
-            ('stv_short_description', 'stv_long_description'), {str},
-            {lambda x: x.replace('\n\n', '\n')}, {unescapeHTML})), delim='\n\n')
 
     def _report_errors(self, video):
         playability_errors = traverse_obj(video, ('playabilityErrors', ...))
