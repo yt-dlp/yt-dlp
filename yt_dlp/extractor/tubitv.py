@@ -139,6 +139,64 @@ class TubiTvBaseIE(InfoExtractor):
         )
         self.handle_guest_data(response)
 
+    def _parse_metadata(self, video_id, data):
+        formats = []
+        drm_formats = False
+
+        for resource in traverse_obj(data, ('video_resources', lambda _, v: url_or_none(v['manifest']['url']))) or []:
+            resource_type = resource.get('type')
+            manifest_url = resource['manifest']['url']
+            if resource_type == 'dash':
+                formats.extend(self._extract_mpd_formats(manifest_url, video_id, mpd_id=resource_type, fatal=False))
+            elif resource_type in ('hlsv3', 'hlsv6'):
+                fmts = self._extract_m3u8_formats(manifest_url, video_id, 'mp4', m3u8_id=resource_type, fatal=False)
+                for fmt in fmts:
+                    if 'Audio Description' in fmt.get('format_note', ''):
+                        fmt['language_preference'] = -10
+                formats.extend(fmts)
+            elif resource_type in self._UNPLAYABLE_FORMATS:
+                drm_formats = True
+            else:
+                self.report_warning(f'Skipping unknown resource type "{resource_type}"')
+
+        if not formats and drm_formats:
+            self.report_drm(video_id)
+        elif not (formats or data.get('policy_match')):  # policy_match is False if content was removed
+            raise ExtractorError('This content is currently unavailable', expected=True)
+
+        subtitles = {}
+        for sub in traverse_obj(data, ('subtitles', lambda _, v: url_or_none(v['url']))):
+            subtitles.setdefault(sub.get('lang', 'English'), []).append({
+                'url': self._proto_relative_url(sub['url']),
+            })
+
+        thumbnails = []
+        for key in ('hero_images', 'thumbnails', 'hero_images'):
+            thumbnails.extend({'url': thumb_url} for thumb_url in (data.get(key) or []))
+
+        title = traverse_obj(data, ('title', {str}))
+        season_number, episode_number, episode_title = self._search_regex(
+            r'^S(\d+):E(\d+) - (.+)', title, 'episode info', fatal=False, group=(1, 2, 3), default=(None, None, None))
+
+        return {
+            'title': strip_or_none(title),
+            'season_number': int_or_none(season_number),
+            'episode_number': int_or_none(episode_number),
+            'episode': strip_or_none(episode_title),
+            'thumbnails': thumbnails,
+            **traverse_obj(data, {
+                'description': ('description', {str}),
+                'duration': ('duration', {int_or_none}),
+                'uploader_id': ('publisher_id', {str}),
+                'release_year': ('year', {int_or_none}),
+                'release_date': ('availability_starts', {unified_strdate}),
+                'modified_date': ('updated_at', {unified_strdate}),
+                'thumbnails': ('thumbnails', ..., {url_or_none}, {'url': {self._proto_relative_url}}),
+            }),
+            'subtitles': subtitles,
+            'formats': formats,
+        }
+
     def get_video_data_from_api(self, video_id):
         guest_token = self.get_guest_token()
         data = self._download_json(
@@ -155,34 +213,10 @@ class TubiTvBaseIE(InfoExtractor):
                 'Authorization': f'Bearer {guest_token}',
             },
         )
-        formats = []
-        for fmt_url in traverse_obj(data, ('video_resources', lambda _, x: (x.get('type') or '') in ('hlsv3', 'dash', 'hlsv6'), 'manifest', 'url', {url_or_none})) or []:
-            formats.extend(self._extract_m3u8_formats(fmt_url, video_id))
-        if fmt_url := data.get('url'):
-            formats.extend(self._extract_m3u8_formats(fmt_url, video_id))
-
-        subtitles = {}
-        for sub in data.get('subtitles') or []:
-            subtitles.setdefault(sub.get('lang'), []).append({
-                'url': sub.get('url'),
-                'title': sub.get('lang_translation'),
-            })
-
-        thumbnails = []
-        for key in ('hero_images', 'thumbnails', 'hero_images'):
-            thumbnails.extend(data.get(key) or [])
 
         return {
             'id': video_id,
-            **traverse_obj(data, {
-                'title': ('title', {str}),
-                'description': ('description', {str}),
-                'duration': ('duration', {int}),
-                'modified_date': ('updated_at', {unified_strdate}),
-                'release_date': ('availability_starts', {unified_strdate}),
-            }),
-            'formats': formats,
-            'subtitles': subtitles,
+            **self._parse_metadata(video_id, data),
         }
 
 
@@ -200,6 +234,8 @@ class TubiTvIE(TubiTvBaseIE):
             'release_year': 1935,
             'thumbnail': r're:^https?://canvas-lb\.tubitv\.com/.+',
             'duration': 5187,
+            'modified_date': '20260723',
+            'release_date': '20230701',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -217,6 +253,8 @@ class TubiTvIE(TubiTvBaseIE):
             'release_year': 2011,
             'thumbnail': r're:^https?://canvas-lb\.tubitv\.com/.+',
             'duration': 1376,
+            'modified_date': '20260922',
+            'release_date': '20220613',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -245,6 +283,21 @@ class TubiTvIE(TubiTvBaseIE):
         },
         'skip': 'Content Unavailable',
     }, {
+        'url': 'https://tubitv.com/movies/100049199/cruel-intentions',
+        'info_dict': {
+            'id': '100049199',
+            'ext': 'mp4',
+            'title': 'Cruel Intentions',
+            'description': 'md5:529c3dd0166a4435f46052f113f781f8',
+            'uploader_id': '0c7e281b894a98de249c3bcf61c16e29',
+            'duration': 5858,
+            'thumbnail': r're:^https?://canvas-lb\.tubitv\.com/.+',
+            'release_year': 1999,
+            'modified_date': '20260929',
+            'release_date': '20260901',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
         'url': 'https://tubitv.com/es-mx/tv-shows/477363/s01-e03-jacob-dos-dos-y-la-tarjets-de-hockey-robada',
         'only_matching': True,
     }]
@@ -264,55 +317,9 @@ class TubiTvIE(TubiTvBaseIE):
         if not video_data:
             return self.get_video_data_from_api(video_id)
 
-        formats = []
-        drm_formats = False
-
-        for resource in traverse_obj(video_data, ('video_resources', lambda _, v: url_or_none(v['manifest']['url']))):
-            resource_type = resource.get('type')
-            manifest_url = resource['manifest']['url']
-            if resource_type == 'dash':
-                formats.extend(self._extract_mpd_formats(manifest_url, video_id, mpd_id=resource_type, fatal=False))
-            elif resource_type in ('hlsv3', 'hlsv6'):
-                fmts = self._extract_m3u8_formats(manifest_url, video_id, 'mp4', m3u8_id=resource_type, fatal=False)
-                for fmt in fmts:
-                    if 'Audio Description' in fmt.get('format_note', ''):
-                        fmt['language_preference'] = -10
-                formats.extend(fmts)
-            elif resource_type in self._UNPLAYABLE_FORMATS:
-                drm_formats = True
-            else:
-                self.report_warning(f'Skipping unknown resource type "{resource_type}"')
-
-        if not formats and drm_formats:
-            self.report_drm(video_id)
-        elif not formats and not video_data.get('policy_match'):  # policy_match is False if content was removed
-            raise ExtractorError('This content is currently unavailable', expected=True)
-
-        subtitles = {}
-        for sub in traverse_obj(video_data, ('subtitles', lambda _, v: url_or_none(v['url']))):
-            subtitles.setdefault(sub.get('lang', 'English'), []).append({
-                'url': self._proto_relative_url(sub['url']),
-            })
-
-        title = traverse_obj(video_data, ('title', {str}))
-        season_number, episode_number, episode_title = self._search_regex(
-            r'^S(\d+):E(\d+) - (.+)', title, 'episode info', fatal=False, group=(1, 2, 3), default=(None, None, None))
-
         return {
             'id': video_id,
-            'title': strip_or_none(title),
-            'formats': formats,
-            'subtitles': subtitles,
-            'season_number': int_or_none(season_number),
-            'episode_number': int_or_none(episode_number),
-            'episode': strip_or_none(episode_title),
-            **traverse_obj(video_data, {
-                'description': ('description', {str}),
-                'duration': ('duration', {int_or_none}),
-                'uploader_id': ('publisher_id', {str}),
-                'release_year': ('year', {int_or_none}),
-                'thumbnails': ('thumbnails', ..., {url_or_none}, {'url': {self._proto_relative_url}}),
-            }),
+            **self._parse_metadata(video_id, video_data),
         }
 
 
