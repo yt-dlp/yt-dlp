@@ -116,41 +116,41 @@ class GoIE(AdobePassIE):
         'params': {'skip_download': 'm3u8'},
         'skip': 'This video requires AdobePass MSO credentials',
     }, {
-        'url': 'https://www.freeform.com/episode/bda0eaf7-761a-4838-aa44-96f794000844/playlist/PL553044961',
+        'url': 'https://www.freeform.com/episode/235128d8-2609-4df4-9874-0b0b687fe9f9/playlist/PL5539647334',
         'info_dict': {
-            'id': 'VDKA39007340',
+            'id': 'VDKA39623200',
             'ext': 'mp4',
-            'title': 'Angel\'s Landing',
-            'description': 'md5:91bf084e785c968fab16734df7313446',
+            'title': 'New House / New Rules',
+            'description': 'md5:6f38b4b1649dc9f3a9e7acf911a70056',
             'age_limit': 14,
-            'duration': 2523,
+            'duration': 2733,
             'thumbnail': r're:https?://.+/.+\.jpg',
-            'series': 'How I Escaped My Cult',
-            'season': 'Season 1',
-            'season_number': 1,
-            'episode': 'Episode 2',
-            'episode_number': 2,
-            'timestamp': 1740038400.0,
-            'upload_date': '20250220',
+            'series': 'Project Runway',
+            'season': 'Season 21',
+            'season_number': 21,
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'timestamp': 1754020800,
+            'upload_date': '20250801',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
-        'url': 'https://www.nationalgeographic.com/tv/episode/ca694661-1186-41ae-8089-82f64d69b16d/playlist/PL554408064',
+        'url': 'https://www.nationalgeographic.com/tv/episode/df0e5bd8-f9bb-4c92-9f94-74dec4dad8a7/playlist/PL553044961',
         'info_dict': {
-            'id': 'VDKA39492078',
+            'id': 'VDKA35475602',
             'ext': 'mp4',
-            'title': 'Heart of the Emperors',
-            'description': 'md5:4fc50a2878f030bb3a7eac9124dca677',
+            'title': 'The Pol Shebang',
+            'description': 'md5:ccea1210c5ebcdc5c1a435f01bdb8b82',
             'age_limit': 0,
-            'duration': 2775,
+            'duration': 1323,
             'thumbnail': r're:https?://.+/.+\.jpg',
-            'series': 'Secrets of the Penguins',
+            'series': 'The Incredible Pol Farm',
             'season': 'Season 1',
             'season_number': 1,
-            'episode': 'Episode 1',
-            'episode_number': 1,
-            'timestamp': 1745204400.0,
-            'upload_date': '20250421',
+            'episode': 'Episode 14',
+            'episode_number': 14,
+            'timestamp': 1704614400,
+            'upload_date': '20240107',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -190,7 +190,10 @@ class GoIE(AdobePassIE):
 
         site_info = self._SITE_INFO[site]
         brand = site_info['brand']
-        video_data = self._extract_videos(brand, video_id)[0]
+        videos = self._extract_videos(brand, video_id)
+        if not videos:
+            self.report_drm(video_id)
+        video_data = videos[0]
         video_id = video_data['id']
         title = video_data['title']
 
