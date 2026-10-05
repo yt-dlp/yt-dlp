@@ -76,7 +76,7 @@ class YoutubeIEContentProviderLogger(IEContentProviderLogger):
         if self.log_level <= self.LogLevel.ERROR:
             self.__ie._downloader.report_error(
                 self._format_msg(message), is_error=False,
-                tb=''.join(traceback.format_exception(None, cause, cause.__traceback__)) if cause else None)
+                tb=''.join(traceback.format_exception(cause)) if cause else None)
 
 
 class PoTokenCache:

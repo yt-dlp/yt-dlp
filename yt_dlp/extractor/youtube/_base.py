@@ -125,6 +125,7 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'WEB_EMBEDDED_PLAYER',
                 'clientVersion': '2.20260708.00.00',
+                'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15,gzip(gfe)',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 56,
@@ -225,6 +226,7 @@ INNERTUBE_CLIENTS = {
     # "Made for kids" videos aren't available with this client
     # Using a clientVersion>1.65 may return SABR streams only
     # Since 2026.07, intermittent/selective POT enforcement has been observed for non-HLS formats
+    # Since 2026.08.17, ALL formats (including live HLS and itag 18) are 403'd with version 1.65.10
     'android_vr': {
         'INNERTUBE_CONTEXT': {
             'client': {

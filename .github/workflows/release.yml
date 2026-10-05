@@ -155,7 +155,7 @@ jobs:
     needs: [prepare]
     permissions:
       contents: read
-    uses: ./.github/workflows/build.yml
+    uses: $/.github/workflows/build.yml
     with:
       version: ${{ needs.prepare.outputs.version }}
       channel: ${{ needs.prepare.outputs.channel }}
