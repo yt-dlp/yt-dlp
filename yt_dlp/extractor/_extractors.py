@@ -57,6 +57,7 @@ from .agora import (
 from .aitube import AitubeKZVideoIE
 from .alibaba import AlibabaIE
 from .aliexpress import AliExpressLiveIE
+from .alipay import AlipayIE
 from .aljazeera import AlJazeeraIE
 from .allocine import AllocineIE
 from .allstar import (
