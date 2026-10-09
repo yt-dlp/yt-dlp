@@ -129,7 +129,7 @@ class OmroepFlevolandIE(InfoExtractor):
             # I didn't make these up, that's really how they really do it
             entry['is_live'] = entry['url'].endswith('.m3u8')
             if not entry['is_live']:
-                entry['subtitles'] = {'nl': [{ 'url': entry['url'].rsplit('.', 1)[0].replace('/middel/', '/srt/') + '.srt' }]}
+                entry['subtitles'] = {'nl': [{'url': entry['url'].rsplit('.', 1)[0].replace('/middel/', '/srt/') + '.srt'}]}
             entries.append(entry)
 
         return {
